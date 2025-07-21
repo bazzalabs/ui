@@ -1,12 +1,12 @@
 import type { ColumnDef, ColumnFiltersState } from '@tanstack/react-table'
-import type { Column, FilterModel, FiltersState } from '../../core/types'
-import { multiOptionFilterFn, optionFilterFn } from '../../lib/filter-fns'
+import type { Column, FilterModel, FiltersState } from '../../core/types.js'
+import { multiOptionFilterFn, optionFilterFn } from '../../lib/filter-fns.js'
 import {
   isColumnOption,
   isColumnOptionArray,
   isStringArray,
-} from '../../lib/helpers'
-import { dateFilterFn, numberFilterFn, textFilterFn } from './filter-fns'
+} from '../../lib/helpers.js'
+import { dateFilterFn, numberFilterFn, textFilterFn } from './filter-fns.js'
 
 interface CreateTSTColumns<TData> {
   columns: ColumnDef<TData, any>[]

@@ -1,6 +1,6 @@
 import type { Row } from '@tanstack/react-table'
-import type { FilterModel } from '../../core/types'
-import * as f from '../../lib/filter-fns'
+import type { FilterModel } from '../../core/types.js'
+import * as f from '../../lib/filter-fns.js'
 
 export function dateFilterFn<TData>(
   row: Row<TData>,
