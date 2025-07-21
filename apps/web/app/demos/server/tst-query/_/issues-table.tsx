@@ -3,16 +3,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { DataTableFilter } from '@/registry/data-table-filter'
-import type { FiltersState } from '@/registry/data-table-filter/core/types'
-import { createTSTColumns } from '@/registry/data-table-filter/integrations/tanstack-table'
-import { useDataTableFilters } from '@bazzaui/filters'
+import { type FiltersState, useDataTableFilters } from '@bazzaui/filters'
 import { useQuery } from '@tanstack/react-query'
 import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'

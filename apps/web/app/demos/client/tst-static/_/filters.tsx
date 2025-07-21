@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { createColumnConfigHelper } from '@/registry/data-table-filter/core/filters'
+import { createColumnConfigHelper } from '@bazzaui/filters'
 import {
   CalendarArrowUpIcon,
   CircleDotDashedIcon,

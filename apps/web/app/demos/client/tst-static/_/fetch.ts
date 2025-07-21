@@ -1,4 +1,3 @@
-import type { FiltersState } from '@/registry/data-table-filter/core/types'
 import {
   dateFilterFn,
   multiOptionFilterFn,
@@ -6,6 +5,7 @@ import {
   optionFilterFn,
   textFilterFn,
 } from '@/registry/data-table-filter/lib/filter-fns'
+import type { FiltersState } from '@bazzaui/filters'
 import { ISSUE_LABELS, ISSUE_STATUSES, USERS, generateIssues } from './data'
 import type { Issue } from './types'
 import { isAnyOf, sleep } from './utils'
