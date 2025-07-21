@@ -2,12 +2,10 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import {
-  DataTableFilter,
-  useDataTableFilters,
-} from '@/registry/data-table-filter'
+import { DataTableFilter } from '@/registry/data-table-filter'
 import type { FiltersState } from '@/registry/data-table-filter/core/types'
 import { createTSTColumns } from '@/registry/data-table-filter/integrations/tanstack-table'
+import { useDataTableFilters } from '@bazzaui/filters'
 import { useQuery } from '@tanstack/react-query'
 import {
   getCoreRowModel,

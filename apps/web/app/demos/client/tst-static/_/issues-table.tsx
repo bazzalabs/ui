@@ -1,14 +1,12 @@
 'use client'
 
-import {
-  DataTableFilter,
-  useDataTableFilters,
-} from '@/registry/data-table-filter'
+import { DataTableFilter } from '@/registry/data-table-filter'
 import type { FiltersState } from '@/registry/data-table-filter/core/types'
 import {
   createTSTColumns,
   createTSTFilters,
 } from '@/registry/data-table-filter/integrations/tanstack-table'
+import { useDataTableFilters } from '@bazzaui/filters'
 import {
   getCoreRowModel,
   getFilteredRowModel,

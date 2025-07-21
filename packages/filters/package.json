@@ -1,0 +1,21 @@
+{
+  "name": "@bazzaui/filters",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js",
+      "map": "./dist/index.js.map"
+    }
+  },
+  "devDependencies": {
+    "@bazzaui/typescript-config": "*",
+    "typescript": "^5"
+  }
+}
