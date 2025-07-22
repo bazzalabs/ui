@@ -1,7 +1,3 @@
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import type {
   Column,
   ColumnDataType,
@@ -9,9 +5,13 @@ import type {
   FilterModel,
   FilterStrategy,
   FiltersState,
-} from '../core/types'
-import { getColumn } from '../lib/helpers'
-import type { Locale } from '../lib/i18n'
+  Locale,
+} from '@bazzaui/filters'
+import { getColumn } from '@bazzaui/filters'
+import { X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { FilterOperator } from './filter-operator'
 import { FilterSubject } from './filter-subject'
 import { FilterValue } from './filter-value'
@@ -104,7 +104,9 @@ export function ActiveFilter<TData, TType extends ColumnDataType>({
 
 export function ActiveFiltersMobileContainer({
   children,
-}: { children: React.ReactNode }) {
+}: {
+  children: React.ReactNode
+}) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [showLeftBlur, setShowLeftBlur] = useState(false)
   const [showRightBlur, setShowRightBlur] = useState(true)

@@ -1,9 +1,8 @@
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { type DataTableFilterActions, type Locale, t } from '@bazzaui/filters'
 import { FilterXIcon } from 'lucide-react'
 import { memo } from 'react'
-import type { DataTableFilterActions } from '../core/types'
-import { type Locale, t } from '../lib/i18n'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface FilterActionsProps {
   hasFilters: boolean

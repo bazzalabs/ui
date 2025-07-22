@@ -3,8 +3,7 @@ import { defineConfig, type Options } from 'tsup'
 export default defineConfig((options: Options) => ({
   entry: {
     index: './src/index.ts',
-    'integrations/tanstack-table/index':
-      './src/integrations/tanstack-table/index.ts',
+    'tanstack-table/index': './src/integrations/tanstack-table/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

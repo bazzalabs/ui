@@ -1,3 +1,7 @@
-export { useDataTableFilters } from './hooks/use-data-table-filters.js'
 export { createColumnConfigHelper } from './core/filters.js'
+export * from './core/operators.js'
 export * from './core/types.js'
+export { useDataTableFilters } from './hooks/use-data-table-filters.js'
+export * from './lib/array.js'
+export * from './lib/helpers.js'
+export * from './lib/i18n.js'

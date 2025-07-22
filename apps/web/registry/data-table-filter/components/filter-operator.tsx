@@ -1,3 +1,19 @@
+import {
+  type Column,
+  type ColumnDataType,
+  type DataTableFilterActions,
+  dateFilterOperators,
+  type FilterModel,
+  type FilterOperators,
+  filterTypeOperatorDetails,
+  type Locale,
+  multiOptionFilterOperators,
+  numberFilterOperators,
+  optionFilterOperators,
+  t,
+  textFilterOperators,
+} from '@bazzaui/filters'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -12,23 +28,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useState } from 'react'
-import {
-  dateFilterOperators,
-  filterTypeOperatorDetails,
-  multiOptionFilterOperators,
-  numberFilterOperators,
-  optionFilterOperators,
-  textFilterOperators,
-} from '../core/operators'
-import type {
-  Column,
-  ColumnDataType,
-  DataTableFilterActions,
-  FilterModel,
-  FilterOperators,
-} from '../core/types'
-import { type Locale, t } from '../lib/i18n'
 
 interface FilterOperatorProps<TData, TType extends ColumnDataType> {
   column: Column<TData, TType>

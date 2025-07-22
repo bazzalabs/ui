@@ -1,13 +1,13 @@
 'use client'
 
-import { useIsMobile } from '@/hooks/use-mobile'
 import type {
   Column,
   DataTableFilterActions,
   FilterStrategy,
   FiltersState,
-} from '../core/types'
-import type { Locale } from '../lib/i18n'
+  Locale,
+} from '@bazzaui/filters'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { ActiveFilters, ActiveFiltersMobileContainer } from './active-filters'
 import { FilterActions } from './filter-actions'
 import { FilterSelector } from './filter-selector'

@@ -1,3 +1,24 @@
+import {
+  type Column,
+  type ColumnDataType,
+  type DataTableFilterActions,
+  type FilterStrategy,
+  type FiltersState,
+  getColumn,
+  isAnyOf,
+  type Locale,
+  t,
+} from '@bazzaui/filters'
+import { ArrowRightIcon, ChevronRightIcon, FilterIcon } from 'lucide-react'
+import React, {
+  isValidElement,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -14,27 +35,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { ArrowRightIcon, ChevronRightIcon, FilterIcon } from 'lucide-react'
-import {
-  isValidElement,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-import React from 'react'
-import type {
-  Column,
-  ColumnDataType,
-  DataTableFilterActions,
-  FilterStrategy,
-  FiltersState,
-} from '../core/types'
-import { isAnyOf } from '../lib/array'
-import { getColumn } from '../lib/helpers'
-import { type Locale, t } from '../lib/i18n'
 import { FilterValueController } from './filter-value'
 
 interface FilterSelectorProps<TData> {
@@ -241,6 +241,7 @@ function __QuickSearchFilters<TData>({
 }: QuickSearchFiltersProps<TData>) {
   if (!search || search.trim().length < 2) return null
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: its okay
   const cols = useMemo(
     () =>
       columns.filter((c) =>

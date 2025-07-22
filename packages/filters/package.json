@@ -1,6 +1,6 @@
 {
   "name": "@bazzaui/filters",
-  "version": "0.3.2025072100",
+  "version": "0.3.2025072101",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
@@ -12,10 +12,10 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./integrations/tanstack-table": {
-      "types": "./dist/integrations/tanstack-table/index.d.ts",
-      "import": "./dist/integrations/tanstack-table/index.js",
-      "require": "./dist/integrations/tanstack-table/index.cjs"
+    "./tanstack-table": {
+      "types": "./dist/tanstack-table/index.d.ts",
+      "import": "./dist/tanstack-table/index.js",
+      "require": "./dist/tanstack-table/index.cjs"
     }
   },
   "files": [

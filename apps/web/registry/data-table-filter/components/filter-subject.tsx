@@ -1,4 +1,4 @@
-import type { Column, ColumnDataType } from '../core/types'
+import type { Column, ColumnDataType } from '@bazzaui/filters'
 
 interface FilterSubjectProps<TData, TType extends ColumnDataType> {
   column: Column<TData, TType>
