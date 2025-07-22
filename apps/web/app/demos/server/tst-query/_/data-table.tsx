@@ -1,3 +1,6 @@
+import type { DataTableFilterActions } from '@bazzaui/filters'
+import { flexRender, type Table as TanStackTable } from '@tanstack/react-table'
+import { XIcon } from 'lucide-react'
 import { EmptyTableIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,14 +12,14 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import type { DataTableFilterActions } from '@/registry/data-table-filter/core/types'
-import { type Table as TanStackTable, flexRender } from '@tanstack/react-table'
-import { XIcon } from 'lucide-react'
 
 export function DataTable({
   table,
   actions,
-}: { table: TanStackTable<any>; actions?: DataTableFilterActions }) {
+}: {
+  table: TanStackTable<any>
+  actions?: DataTableFilterActions
+}) {
   return (
     <>
       <div className="rounded-md border bg-white dark:bg-inherit">

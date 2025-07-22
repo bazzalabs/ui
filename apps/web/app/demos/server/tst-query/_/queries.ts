@@ -1,4 +1,4 @@
-import type { FiltersState } from '@/registry/data-table-filter/core/types'
+import type { FiltersState } from '@bazzaui/filters'
 import type { QueryOptions } from '@tanstack/react-query'
 import {
   fetchFacetedHours,
