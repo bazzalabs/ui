@@ -7,16 +7,14 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["node_modules", "./apps/web/app/globals.css"]
+    "includes": ["**", "!**/node_modules", "!apps/web/app/globals.css"]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "lineEnding": "lf"
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -25,7 +23,16 @@
         "noNonNullAssertion": "off",
         "useSelfClosingElements": {
           "level": "off"
-        }
+        },
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error"
       },
       "suspicious": {
         "noExplicitAny": "off"
@@ -40,9 +47,10 @@
         "useKeyWithClickEvents": "off"
       }
     },
-    "ignore": [
-      "./apps/web/lib/rehype-npm-command.ts",
-      "./examples/vite-basic/**"
+    "includes": [
+      "**",
+      "!apps/web/lib/rehype-npm-command.ts",
+      "!examples/vite-basic/**"
     ]
   },
   "javascript": {

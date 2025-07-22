@@ -1,4 +1,4 @@
-import { type Options, defineConfig } from 'tsup'
+import { defineConfig, type Options } from 'tsup'
 
 export default defineConfig((options: Options) => ({
   entry: {
@@ -10,7 +10,13 @@ export default defineConfig((options: Options) => ({
   dts: true,
   clean: true,
   splitting: false,
-  external: ['react', 'react-dom', '@tanstack/react-table', 'date-fns'],
+  external: [
+    'react',
+    'react-dom',
+    '@tanstack/react-table',
+    'date-fns',
+    'lucide-react',
+  ],
   outDir: 'dist',
   // Explicitly exclude test files
   ignoreWatch: ['src/__tests__/**/*'],

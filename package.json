@@ -15,7 +15,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.0.6",
     "@types/node": "^22",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
@@ -26,6 +26,13 @@
     "node": ">=22"
   },
   "packageManager": "bun@1.2.4",
-  "workspaces": ["apps/*", "packages/*"],
-  "trustedDependencies": ["@biomejs/biome", "@repo/web", "@swc/core"]
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "@repo/web",
+    "@swc/core"
+  ]
 }
