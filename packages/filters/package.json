@@ -43,11 +43,6 @@
     "publish-package": "bun scripts/publish.ts .",
     "publish-package:dry": "bun scripts/publish.ts . --dry-run"
   },
-  "dependencies": {
-    "@tanstack/react-table": "^8.21.2",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  },
   "devDependencies": {
     "@bazzaui/typescript-config": "*",
     "@testing-library/dom": "^10.4.0",
