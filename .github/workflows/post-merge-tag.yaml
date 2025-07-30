@@ -1,7 +1,7 @@
 name: Post-Merge - Create Tags
 on:
   push:
-    branches: [main]
+    branches: [main, canary]
     paths: ['packages/filters/package.json']
 
 jobs:
