@@ -7,6 +7,7 @@ import { join } from 'node:path'
 interface PublishOptions {
   packagePath: string
   dryRun?: boolean
+  noGitTag?: boolean
   tag?: string
   registry?: string
 }
@@ -14,6 +15,7 @@ interface PublishOptions {
 async function publishPackage({
   packagePath,
   dryRun = false,
+  noGitTag = false,
   tag = 'latest',
   registry = 'https://registry.npmjs.org/',
 }: PublishOptions) {
@@ -92,12 +94,14 @@ async function publishPackage({
       )
 
       // Tag git commit
-      try {
-        execSync(`git tag v${packageJson.version}`, { stdio: 'pipe' })
-        execSync(`git push origin v${packageJson.version}`, { stdio: 'pipe' })
-        console.log(`🏷 Created git tag v${packageJson.version}`)
-      } catch (error) {
-        console.warn('! Failed to create git tag:', error)
+      if (!noGitTag) {
+        try {
+          execSync(`git tag v${packageJson.version}`, { stdio: 'pipe' })
+          execSync(`git push origin v${packageJson.version}`, { stdio: 'pipe' })
+          console.log(`🏷 Created git tag v${packageJson.version}`)
+        } catch (error) {
+          console.warn('! Failed to create git tag:', error)
+        }
       }
     } else {
       console.log('✅ Dry run completed successfully')
@@ -112,6 +116,7 @@ async function main() {
 
   let packagePath = '.'
   let dryRun = false
+  let noGitTag = false
   let tag = 'latest'
   let registry = 'https://registry.npmjs.org/'
 
@@ -121,6 +126,8 @@ async function main() {
 
     if (arg === '--dry-run') {
       dryRun = true
+    } else if (arg === '--no-git-tag') {
+      noGitTag = true
     } else if (arg === '--tag') {
       tag = args[++i] || 'latest'
     } else if (arg === '--registry') {
@@ -133,7 +140,7 @@ async function main() {
   }
 
   try {
-    await publishPackage({ packagePath, dryRun, tag, registry })
+    await publishPackage({ packagePath, dryRun, noGitTag, tag, registry })
   } catch (error) {
     console.error('❌ Publish failed:', error)
     process.exit(1)

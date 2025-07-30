@@ -11,6 +11,7 @@ interface ReleaseOptions {
   minor?: number
   packagePath: string
   dryRun: boolean
+  noGitTag: boolean
   tag: string
   bump?: BumpType
 }
@@ -79,6 +80,7 @@ async function release({
   minor,
   packagePath,
   dryRun,
+  noGitTag,
   tag,
   bump,
 }: ReleaseOptions) {
@@ -132,7 +134,12 @@ async function release({
 
     // Step 2: Publish
     console.log('\n📦 Step 2: Publishing...')
-    const publishArgs = [packagePath, dryRun ? '--dry-run' : '', `--tag ${tag}`]
+    const publishArgs = [
+      packagePath,
+      dryRun ? '--dry-run' : '',
+      noGitTag ? '--no-git-tag' : '',
+      `--tag ${tag}`,
+    ]
       .filter(Boolean)
       .join(' ')
 
@@ -154,6 +161,7 @@ async function main() {
   let minor: number | undefined
   let packagePath = '.'
   let dryRun = false
+  let noGitTag = false
   let tag = 'latest'
   let bump: BumpType | undefined
 
@@ -176,6 +184,8 @@ async function main() {
       packagePath = args[++i] || '.'
     } else if (arg === '--dry-run') {
       dryRun = true
+    } else if (arg === '--no-git-tag') {
+      noGitTag = true
     } else if (arg === '--tag') {
       tag = args[++i] || 'latest'
     } else if (arg === '--help' || arg === '-h') {
@@ -198,6 +208,7 @@ Explicit Version:
 Options:
   --path <path>        Path to package directory (default: .)
   --dry-run           Run without actually publishing
+  --no-git-tag        Do not create a git tag
   --tag <tag>         NPM dist tag (default: latest)
   --help, -h          Show this help
 
@@ -261,7 +272,7 @@ Version Format:
     process.exit(1)
   }
 
-  await release({ major, minor, packagePath, dryRun, tag, bump })
+  await release({ major, minor, packagePath, dryRun, noGitTag, tag, bump })
 }
 
 // @ts-ignore
