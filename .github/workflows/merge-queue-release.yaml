@@ -31,12 +31,20 @@ jobs:
       - name: Install dependencies
         run: bun i --frozen-lockfile
 
-      - name: Set up .npmrc for authentication
+      - name: Run tests (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          cd packages/filters
+          bun run test
+
+      - name: Set up .npmrc for authentication (MQ only)
+        if: github.event_name == 'merge_group'
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Build and publish
+      - name: Build and publish (MQ only)
+        if: github.event_name == 'merge_group'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -44,7 +52,8 @@ jobs:
           bun run build
           bun run release:patch:canary --no-git-tag
 
-      - name: Commit version changes
+      - name: Commit version changes (MQ only)
+        if: github.event_name == 'merge_group'
         run: |
           git add packages/filters/package.json
           git commit -m "chore(filters): bump version to $(cd packages/filters && node -p 'require(\"./package.json\").version')"
