@@ -1,5 +1,7 @@
 name: Merge Queue - Version Bump
 on:
+  pull_request:
+    branches: [main, canary]
   merge_group:
     types: [checks_requested]
 
