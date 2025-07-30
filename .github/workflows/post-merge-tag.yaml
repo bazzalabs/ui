@@ -1,0 +1,19 @@
+name: Post-Merge - Create Tags
+on:
+  push:
+    branches: [main]
+    paths: ['packages/filters/package.json']
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create tag from version
+        run: |
+          cd packages/filters
+          VERSION=$(node -p "require('./package.json').version")
+          git tag "v$VERSION"
+          git push origin "v$VERSION"

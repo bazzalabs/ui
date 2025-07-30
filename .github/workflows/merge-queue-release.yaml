@@ -1,0 +1,46 @@
+name: Merge Queue - Version Bump
+on:
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  version-and-publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: "package.json"
+
+      - name: Setup Node.js for npm
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "package.json"
+
+      - name: Install dependencies
+        run: bun i --frozen-lockfile
+
+      - name: Build and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd packages/filters
+          bun run build
+          bun run release:patch:canary --no-git-tag
+
+      - name: Commit version changes
+        run: |
+          git add packages/filters/package.json
+          git commit -m "chore(filters): bump version to $(cd packages/filters && node -p 'require(\"./package.json\").version')"
+          git push origin HEAD
