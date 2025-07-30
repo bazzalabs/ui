@@ -25,11 +25,12 @@
     }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "content/docs/data-table-filter.mdx"
+    ".next-dev/types/**/*.ts",
+    "content/docs/data-table-filter.mdx",
+    "next-env.d.ts"
   ],
   "exclude": ["node_modules"]
 }
