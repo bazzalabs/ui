@@ -1,14 +1,13 @@
 import { act, renderHook } from '@testing-library/react'
-import { CircleIcon } from 'lucide-react'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
-import { createColumnConfigHelper } from '../core/filters'
-import { DEFAULT_OPERATORS, determineNewOperator } from '../core/operators'
-import type { FiltersState } from '../core/types'
-import { useDataTableFilters } from '../hooks/use-data-table-filters'
+import { createColumnConfigHelper } from '../core/filters.js'
+import { DEFAULT_OPERATORS, determineNewOperator } from '../core/operators.js'
+import type { FiltersState } from '../core/types.js'
+import { useDataTableFilters } from '../hooks/use-data-table-filters.js'
 
 // Dummy icon component for column configuration
-const DummyIcon = CircleIcon
+const DummyIcon = <div />
 
 // Define a dummy data type used for testing.
 type TestData = {
@@ -70,10 +69,10 @@ describe('useDataTableFilters', () => {
 
     expect(result.current.filters).toHaveLength(1)
     const filter = result.current.filters[0]
-    expect(filter.columnId).toBe('status')
-    expect(filter.values).toEqual(['active'])
+    expect(filter?.columnId).toBe('status')
     // For an option column with a single value, the default operator is expected to be "single".
-    expect(filter.operator).toBe(DEFAULT_OPERATORS.option.single)
+    expect(filter?.values).toEqual(['active'])
+    expect(filter?.operator).toBe(DEFAULT_OPERATORS.option.single)
   })
 
   it('should update an existing option filter when adding new values', () => {
@@ -95,16 +94,16 @@ describe('useDataTableFilters', () => {
       result.current.actions.addFilterValue(optionColumn as any, ['active'])
     })
     expect(result.current.filters).toHaveLength(1)
-    expect(result.current.filters[0].values).toEqual(['active'])
+    expect(result.current.filters[0]?.values).toEqual(['active'])
 
     // Add a different value.
     act(() => {
       result.current.actions.addFilterValue(optionColumn as any, ['inactive'])
     })
     expect(result.current.filters).toHaveLength(1)
-    expect(result.current.filters[0].values).toEqual(['active', 'inactive'])
+    expect(result.current.filters[0]?.values).toEqual(['active', 'inactive'])
     // Multiple selected values should cause the operator to switch to "multiple".
-    expect(result.current.filters[0].operator).toBe(
+    expect(result.current.filters[0]?.operator).toBe(
       DEFAULT_OPERATORS.option.multiple,
     )
   })
@@ -126,13 +125,13 @@ describe('useDataTableFilters', () => {
         'inactive',
       ])
     })
-    expect(result.current.filters[0].values).toEqual(['active', 'inactive'])
+    expect(result.current.filters[0]?.values).toEqual(['active', 'inactive'])
 
     // Remove one value.
     act(() => {
       result.current.actions.removeFilterValue(optionColumn as any, ['active'])
     })
-    expect(result.current.filters[0].values).toEqual(['inactive'])
+    expect(result.current.filters[0]?.values).toEqual(['inactive'])
 
     // Remove the last value; the filter should then be removed.
     act(() => {
@@ -212,7 +211,7 @@ describe('useDataTableFilters', () => {
       result.current.actions.removeFilter('name')
     })
     expect(result.current.filters).toHaveLength(1)
-    expect(result.current.filters[0].columnId).toBe('status')
+    expect(result.current.filters[0]?.columnId).toBe('status')
   })
 
   it('should remove all filters using removeAllFilters', () => {
@@ -363,10 +362,10 @@ describe('useDataTableFilters', () => {
       })
 
       expect(result.current.filters).toHaveLength(1)
-      expect(result.current.filters[0].values).toEqual(['active', 'inactive'])
+      expect(result.current.filters[0]?.values).toEqual(['active', 'inactive'])
 
       expect(result.current.filtersState).toHaveLength(1)
-      expect(result.current.filtersState[0].values).toEqual([
+      expect(result.current.filtersState[0]?.values).toEqual([
         'active',
         'inactive',
       ])

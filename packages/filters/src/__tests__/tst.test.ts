@@ -1,12 +1,9 @@
-// Tests for the TanStack Table integration
-
 import type { ColumnDef } from '@tanstack/react-table'
 import { renderHook } from '@testing-library/react'
 import { CircleIcon } from 'lucide-react'
-import { describe } from 'vitest'
-import { createColumnConfigHelper } from '../core/filters'
-import { useDataTableFilters } from '../hooks/use-data-table-filters'
-import { createTSTColumns } from '../integrations/tanstack-table'
+import { describe, expect, it } from 'vitest'
+import { createColumnConfigHelper, useDataTableFilters } from '../index.js'
+import { createTSTColumns } from '../integrations/tanstack-table/index.js'
 
 // Dummy icon component for column configuration
 const DummyIcon = CircleIcon
@@ -83,19 +80,19 @@ describe('Integration: TanStack Table', () => {
     })
 
     it('should consider columns when enableColumnnFilter is not explicitly set', () => {
-      expect(tstColumns[0].filterFn).toBeDefined()
+      expect(tstColumns[0]?.filterFn).toBeDefined()
     })
 
     it('should consider columns when enableColumnnFilter is explicitly set to true', () => {
-      expect(tstColumns[1].filterFn).toBeDefined()
+      expect(tstColumns[1]?.filterFn).toBeDefined()
     })
 
     it('should not consider columns when enableColumnnFilter is explicitly set to false', () => {
-      expect(tstColumns[2].filterFn).toBeUndefined()
+      expect(tstColumns[2]?.filterFn).toBeUndefined()
     })
 
     it('should not consider columns when a matching column config is not found', () => {
-      expect(tstColumns[3].filterFn).toBeUndefined()
+      expect(tstColumns[3]?.filterFn).toBeUndefined()
     })
   })
 })

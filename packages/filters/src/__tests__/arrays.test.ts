@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { uniq } from '../lib/array'
+import { uniq } from '../lib/array.js'
 
 describe('lib/array', () => {
   describe('uniq', () => {
