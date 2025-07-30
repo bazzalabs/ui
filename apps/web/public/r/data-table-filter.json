@@ -5,7 +5,7 @@
   "title": "Data table filter",
   "author": "Kian Bazarjani <kian@bazza.dev>",
   "description": "A powerful data table filter component inspired by Linear.",
-  "dependencies": ["@bazzaui/filters", "date-fns"],
+  "dependencies": ["@bazzaui/filters@canary", "date-fns"],
   "registryDependencies": [
     "button",
     "calendar",

@@ -9,7 +9,7 @@
       "description": "A powerful data table filter component inspired by Linear.",
       "author": "Kian Bazarjani <kian@bazza.dev>",
       "type": "registry:block",
-      "dependencies": ["@bazzaui/filters", "date-fns"],
+      "dependencies": ["@bazzaui/filters@canary", "date-fns"],
       "registryDependencies": [
         "button",
         "calendar",
