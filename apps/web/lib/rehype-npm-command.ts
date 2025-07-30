@@ -1,5 +1,5 @@
-import type { UnistNode, UnistTree } from '@/types/unist'
 import { visit } from 'unist-util-visit'
+import type { UnistNode, UnistTree } from '@/types/unist'
 import { env } from './env'
 
 export function rehypeNpmCommand() {
@@ -112,6 +112,24 @@ export function rehypeNpmCommand() {
         node.properties['__bunCommand__'] = node.properties[
           '__bunCommand__'
         ]?.replace('https://ui.bazza.dev', env.NEXT_PUBLIC_APP_URL)
+      }
+
+      if (
+        node.properties?.['__rawString__']?.includes('@bazzaui/filters') &&
+        env.NEXT_PUBLIC_APP_URL !== 'https://ui.bazza.dev'
+      ) {
+        node.properties['__npmCommand__'] = node.properties[
+          '__npmCommand__'
+        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        node.properties['__yarnCommand__'] = node.properties[
+          '__yarnCommand__'
+        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        node.properties['__pnpmCommand__'] = node.properties[
+          '__pnpmCommand__'
+        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        node.properties['__bunCommand__'] = node.properties[
+          '__bunCommand__'
+        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
       }
     })
   }

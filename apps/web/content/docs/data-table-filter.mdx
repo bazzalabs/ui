@@ -25,10 +25,29 @@ Some answers to the most common questions:
 
 ## Installation
 
+The data table filter is distributed in two parts to keep things modular and flexible:
+
+- The filtering logic is provided as an npm package, `@bazzaui/filters`, which you can add directly to your project to handle all the backend filtering operations.
+- The UI components are distributed separately via the `shadcn` registry, allowing you to integrate the visual filter interface into your app as needed.
+
+This separation lets you use the filtering logic independently of the UI, or combine both for a complete solution.
+
+---
+
+### Kitchen sink (UI + logic)
+
 From the command line, install the component into your project:
 
 ```bash
 npx shadcn@latest add https://ui.bazza.dev/r/filters
+```
+
+### Logic only
+
+If you want to use your own filtering UI, you can skip installing our components:
+
+```bash
+npm install @bazzaui/filters
 ```
 
 > [!WARNING] JavaScript projects should add JSON locales manually after installation.
