@@ -166,6 +166,9 @@ export function FilterableColumn<TData, TType extends ColumnDataType, TVal>({
 }) {
   const itemRef = useRef<HTMLDivElement>(null)
 
+  const { icon: Icon } = column
+  const hasIcon = !!Icon
+
   const prefetch = useCallback(() => {
     column.prefetchOptions()
     column.prefetchValues()
@@ -209,7 +212,12 @@ export function FilterableColumn<TData, TType extends ColumnDataType, TVal>({
     >
       <div className="flex w-full items-center justify-between">
         <div className="inline-flex items-center gap-1.5">
-          {<column.icon strokeWidth={2.25} className="size-4" />}
+          {hasIcon &&
+            (isValidElement(Icon) ? (
+              Icon
+            ) : (
+              <Icon className="size-4 stroke-[2.25px]" />
+            ))}
           <span>{column.displayName}</span>
         </div>
         <ArrowRightIcon className="size-4 opacity-0 group-aria-selected:opacity-100" />
