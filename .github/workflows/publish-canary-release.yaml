@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [canary]
-    # paths: ['packages/filters/**']
+    paths: ['packages/filters/**']
 
 jobs:
   publish-canary:
@@ -52,7 +52,7 @@ jobs:
         run: |
           NEXT_VERSION="v$(cat packages/filters/package.json | jq ".version" -r)"
           git add packages/filters/package.json
-          git commit -m "${NEXT_VERSION}" --no-verify
+          git commit --amend -m "${NEXT_VERSION}" --no-verify
           git tag $NEXT_VERSION
-          git push origin HEAD --no-verify
+          git push origin HEAD --force-with-lease --no-verify
           git push origin $NEXT_VERSION --no-verify

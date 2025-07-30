@@ -1,6 +1,6 @@
 {
   "name": "@bazzaui/filters",
-  "version": "0.3.2025073005",
+  "version": "0.3.2025073006",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",

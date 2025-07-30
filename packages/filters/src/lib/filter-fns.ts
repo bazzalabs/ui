@@ -10,7 +10,7 @@ import { dateFilterOperators } from '../core/operators.js'
 import type { FilterModel } from '../core/types.js'
 import { intersection } from './array.js'
 
-export function optionFilterFn<TData>(
+export function optionFilterFn(
   inputData: string,
   filterValue: FilterModel<'option'>,
 ) {
@@ -64,7 +64,7 @@ export function multiOptionFilterFn(
   }
 }
 
-export function dateFilterFn<TData>(
+export function dateFilterFn(
   inputData: Date,
   filterValue: FilterModel<'date'>,
 ) {
@@ -114,7 +114,7 @@ export function dateFilterFn<TData>(
   }
 }
 
-export function textFilterFn<TData>(
+export function textFilterFn(
   inputData: string,
   filterValue: FilterModel<'text'>,
 ) {
@@ -135,7 +135,7 @@ export function textFilterFn<TData>(
   }
 }
 
-export function numberFilterFn<TData>(
+export function numberFilterFn(
   inputData: number,
   filterValue: FilterModel<'number'>,
 ) {
