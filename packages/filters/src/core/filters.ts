@@ -152,7 +152,6 @@ class ColumnConfigBuilder<
     if (!this.config.id) throw new Error('id is required')
     if (!this.config.accessor) throw new Error('accessor is required')
     if (!this.config.displayName) throw new Error('displayName is required')
-    if (!this.config.icon) throw new Error('icon is required')
     return this.config as ColumnConfig<TData, TType, TVal, TId>
   }
 }
