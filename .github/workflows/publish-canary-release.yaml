@@ -49,6 +49,9 @@ jobs:
 
       - name: Commit version changes
         run: |
+          NEXT_VERSION="v$(cat packages/filters/package.json | jq ".version" -r)"
           git add packages/filters/package.json
-          git commit -m "v$(cat package.json | jq ".version" -r)" --no-verify
+          git commit -m "${NEXT_VERSION}" --no-verify
+          git tag $NEXT_VERSION --no-verify
           git push origin HEAD --no-verify
+          git push origin $NEXT_VERSION --no-verify
