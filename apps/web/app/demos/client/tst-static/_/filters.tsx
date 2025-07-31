@@ -39,7 +39,7 @@ export const columnsConfig = [
     .id('assignee')
     .displayName('Assignee')
     .icon(UserCheckIcon)
-    .transformOptionFn((u) => ({
+    .transformValueToOptionFn((u) => ({
       value: u.id,
       label: u.name,
       icon: (
@@ -62,7 +62,7 @@ export const columnsConfig = [
     .id('labels')
     .displayName('Labels')
     .icon(TagsIcon)
-    .transformOptionFn((l) => ({
+    .transformValueToOptionFn((l) => ({
       value: l.id,
       label: l.name,
       icon: (
