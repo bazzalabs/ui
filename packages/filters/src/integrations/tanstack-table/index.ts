@@ -62,7 +62,7 @@ export function createTSTColumns<TData>({
           return optionFilterFn(value.value, filterValue)
         }
 
-        const sanitizedValue = config.transformOptionFn!(value as never)
+        const sanitizedValue = config.transformValueToOptionFn!(value as never)
         return optionFilterFn(sanitizedValue.value, filterValue)
       }
     }
@@ -89,7 +89,7 @@ export function createTSTColumns<TData>({
         }
 
         const sanitizedValue = (value as never[]).map((v) =>
-          config.transformOptionFn!(v),
+          config.transformValueToOptionFn!(v),
         )
 
         return multiOptionFilterFn(

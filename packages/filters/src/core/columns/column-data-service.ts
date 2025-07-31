@@ -66,12 +66,14 @@ export class ColumnDataService<TData> {
     }
 
     // Transform individual values to options
-    if (column.transformOptionFn) {
+    if (column.transformValueToOptionFn) {
       const memoizedTransform = memo(
         () => [models],
         (deps) =>
           (deps[0] ?? []).map((m) =>
-            column.transformOptionFn!(m as ElementType<NonNullable<TVal>>),
+            column.transformValueToOptionFn!(
+              m as ElementType<NonNullable<TVal>>,
+            ),
           ),
         { key: `transform-${column.id}` },
       )
@@ -83,7 +85,7 @@ export class ColumnDataService<TData> {
     }
 
     throw new Error(
-      `[data-table-filter] [${column.id}] Either provide static options, a transformOptionFn, or ensure the column data conforms to ColumnOption type`,
+      `[data-table-filter] [${column.id}] Either provide static options, a transformValueToOptionFn, or ensure the column data conforms to ColumnOption type`,
     )
   }
 
@@ -119,13 +121,15 @@ export class ColumnDataService<TData> {
       >[]
     }
 
-    if (column.transformOptionFn) {
+    if (column.transformValueToOptionFn) {
       const memoizedTransform = memo(
         () => [raw],
         (deps) =>
           (deps[0] ?? []).map(
             (v) =>
-              column.transformOptionFn!(v) as ElementType<NonNullable<TVal>>,
+              column.transformValueToOptionFn!(v) as ElementType<
+                NonNullable<TVal>
+              >,
           ),
         { key: `transform-values-${column.id}` },
       )
@@ -137,7 +141,7 @@ export class ColumnDataService<TData> {
     }
 
     throw new Error(
-      `[data-table-filter] [${column.id}] Either provide static options, a transformOptionFn, or ensure the column data conforms to ColumnOption type`,
+      `[data-table-filter] [${column.id}] Either provide static options, a transformValueToOptionFn, or ensure the column data conforms to ColumnOption type`,
     )
   }
 

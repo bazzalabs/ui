@@ -87,7 +87,7 @@ function createMemoizedOptionsWithTransforms<TData>(
     () => [
       dataService,
       columnConfig.options,
-      columnConfig.transformOptionFn,
+      columnConfig.transformValueToOptionFn,
       columnConfig.transformOptionsFn,
       columnConfig.orderFn,
       getValues(), // Include values as dependency for reactivity

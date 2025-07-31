@@ -83,7 +83,7 @@ export type TAccessorFn<TData, TVal = unknown> = (data: TData) => TVal
  * Used by `option` and `multiOption` columns.
  * Transforms the underlying column value into a valid ColumnOption.
  */
-export type TTransformOptionFn<TVal = unknown> = (
+export type TTransformValueToOptionFn<TVal = unknown> = (
   value: ElementType<NonNullable<TVal>>,
 ) => ColumnOption
 
@@ -99,7 +99,7 @@ export type TOrderFn<TVal = unknown> = (
 /*
  * Used by `option` and `multiOption` columns.
  * Transforms the computed column options after initial computation, with access to faceted data.
- * Applied AFTER transformOptionFn.
+ * Applied AFTER transformValueToOptionFn.
  */
 export type TTransformOptionsFn = (options: ColumnOption[]) => ColumnOption[]
 
@@ -123,8 +123,8 @@ export type ColumnConfig<
     : never
   min?: TType extends 'number' ? number : never
   max?: TType extends 'number' ? number : never
-  transformOptionFn?: TType extends OptionBasedColumnDataType
-    ? TTransformOptionFn<TVal>
+  transformValueToOptionFn?: TType extends OptionBasedColumnDataType
+    ? TTransformValueToOptionFn<TVal>
     : never
   orderFn?: TType extends OptionBasedColumnDataType ? TOrderFn<TVal> : never
   transformOptionsFn?: TType extends OptionBasedColumnDataType
