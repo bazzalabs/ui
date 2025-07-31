@@ -24,6 +24,8 @@ export interface ColumnOption {
   value: string
   /* An optional icon to display next to the label. */
   icon?: React.ReactElement | React.ElementType
+  /* The count of this option in the data (automatically populated from faceted data). */
+  count?: number
 }
 
 export interface ColumnOptionExtended extends ColumnOption {
@@ -95,6 +97,16 @@ export type TOrderFn<TVal = unknown> = (
 ) => number
 
 /*
+ * Used by `option` and `multiOption` columns.
+ * Transforms the computed column options after initial computation, with access to faceted data.
+ * Applied AFTER transformOptionFn.
+ */
+export type TTransformOptionsFn = (
+  options: ColumnOption[],
+  facetedData?: Map<string, number>,
+) => ColumnOption[]
+
+/*
  * The configuration for a column.
  */
 export type ColumnConfig<
@@ -118,6 +130,9 @@ export type ColumnConfig<
     ? TTransformOptionFn<TVal>
     : never
   orderFn?: TType extends OptionBasedColumnDataType ? TOrderFn<TVal> : never
+  transformOptionsFn?: TType extends OptionBasedColumnDataType
+    ? TTransformOptionsFn
+    : never
 }
 
 export type OptionColumnId<T> = T extends ColumnConfig<

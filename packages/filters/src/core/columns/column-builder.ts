@@ -6,6 +6,7 @@ import type {
   TAccessorFn,
   TOrderFn,
   TTransformOptionFn,
+  TTransformOptionsFn,
 } from '../types.js'
 
 export class ColumnConfigBuilder<
@@ -79,6 +80,19 @@ export class ColumnConfigBuilder<
   transformOptionFn(fn: TTransformOptionFn<TVal>): this {
     this.validateType(['option', 'multiOption'], 'transformOptionFn()')
     this.config.transformOptionFn = fn as any
+    return this
+  }
+
+  /**
+   * Transforms the computed column options after initial computation, with access to faceted data.
+   * This is applied AFTER transformOptionFn and has access to both the computed options array
+   * and faceted unique values data.
+   *
+   * @param fn - Function that receives the computed options and faceted data, returns transformed options
+   */
+  transformOptionsFn(fn: TTransformOptionsFn): this {
+    this.validateType(['option', 'multiOption'], 'transformOptionsFn()')
+    this.config.transformOptionsFn = fn as any
     return this
   }
 

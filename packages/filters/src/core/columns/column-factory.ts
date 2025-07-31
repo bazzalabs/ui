@@ -1,16 +1,11 @@
 import { memo } from '../../lib/memo.js'
-import {
-  getColumnOptions,
-  getColumnValues,
-  getFacetedMinMaxValues,
-  getFacetedUniqueValues,
-} from '../columns/utils.js'
 import type {
   Column,
   ColumnConfig,
   ElementType,
   FilterStrategy,
 } from '../types.js'
+import { ColumnDataService } from './column-data-service.js'
 
 export function createColumns<TData>(
   data: TData[],
@@ -27,23 +22,30 @@ export function createColumn<TData>(
   data: TData[],
   strategy: FilterStrategy,
 ): Column<TData> {
-  const getOptions = createMemoizedOptions(columnConfig, data, strategy)
-  const getValues = createMemoizedValues(columnConfig, data, strategy)
+  // Create the centralized data service
+  const dataService = new ColumnDataService(data, strategy)
+
+  // Create memoized functions
+  const getValues = createMemoizedValues(columnConfig, dataService)
   const getUniqueValues = createMemoizedUniqueValues(
     columnConfig,
+    dataService,
     getValues,
-    strategy,
   )
-  const getMinMaxValues = createMemoizedMinMaxValues(
+  const getMinMaxValues = createMemoizedMinMaxValues(columnConfig, dataService)
+
+  // Create the main getOptions function that handles all transforms
+  const getOptions = createMemoizedOptionsWithTransforms(
     columnConfig,
-    data,
-    strategy,
+    dataService,
+    getValues,
+    getUniqueValues,
   )
 
   // Create the Column instance
   const column: Column<TData> = {
     ...columnConfig,
-    getOptions,
+    getOptions, // This now returns fully processed options
     getValues,
     getFacetedUniqueValues: getUniqueValues,
     getFacetedMinMaxValues: getMinMaxValues,
@@ -71,52 +73,80 @@ export function createColumn<TData>(
   return column
 }
 
-function createMemoizedOptions<TData>(
+/**
+ * Creates the main getOptions function that returns fully processed options.
+ * This includes all transforms and post-processing, plus automatic count population.
+ */
+function createMemoizedOptionsWithTransforms<TData>(
   columnConfig: ColumnConfig<TData, any, any, any>,
-  data: TData[],
-  strategy: FilterStrategy,
+  dataService: ColumnDataService<TData>,
+  getValues: () => ElementType<NonNullable<any>>[],
+  getUniqueValues: () => Map<string, number> | undefined,
 ) {
   return memo(
-    () => [data, strategy, columnConfig.options],
-    ([data, strategy]) =>
-      getColumnOptions(columnConfig, data as any, strategy as any),
-    { key: `options-${columnConfig.id}` },
+    () => [
+      dataService,
+      columnConfig.options,
+      columnConfig.transformOptionFn,
+      columnConfig.transformOptionsFn,
+      columnConfig.orderFn,
+      getValues(), // Include values as dependency for reactivity
+    ],
+    () => {
+      // Step 1: Get base options (without count)
+      const baseOptions = dataService.computeOptions(columnConfig)
+
+      // Step 2: Get faceted data for counts
+      const facetedData = getUniqueValues()
+
+      // Step 3: Add count property to each option
+      const optionsWithCounts = baseOptions.map((option) => ({
+        ...option,
+        count: facetedData?.get(option.value) || 0,
+      }))
+
+      // Step 4: Apply transformOptionsFn if provided
+      if (columnConfig.transformOptionsFn) {
+        return columnConfig.transformOptionsFn(optionsWithCounts, facetedData)
+      }
+
+      return optionsWithCounts
+    },
+    { key: `final-options-${columnConfig.id}` },
   )
 }
 
 function createMemoizedValues<TData>(
   columnConfig: ColumnConfig<TData, any, any, any>,
-  data: TData[],
-  strategy: FilterStrategy,
+  dataService: ColumnDataService<TData>,
 ) {
   return memo(
-    () => [data, strategy],
-    () => (strategy === 'client' ? getColumnValues(columnConfig, data) : []),
+    () => [dataService],
+    ([dataService]) => dataService.getValues(columnConfig),
     { key: `values-${columnConfig.id}` },
   )
 }
 
 function createMemoizedUniqueValues<TData>(
   columnConfig: ColumnConfig<TData, any, any, any>,
+  dataService: ColumnDataService<TData>,
   getValues: () => ElementType<NonNullable<any>>[],
-  strategy: FilterStrategy,
 ) {
   return memo(
-    () => [getValues(), strategy],
-    ([values, strategy]) =>
-      getFacetedUniqueValues(columnConfig, values as any, strategy as any),
+    () => [getValues(), dataService],
+    ([values, dataService]) =>
+      dataService.computeFacetedUniqueValues(columnConfig, values as any),
     { key: `faceted-${columnConfig.id}` },
   )
 }
 
 function createMemoizedMinMaxValues<TData>(
   columnConfig: ColumnConfig<TData, any, any, any>,
-  data: TData[],
-  strategy: FilterStrategy,
+  dataService: ColumnDataService<TData>,
 ) {
   return memo(
-    () => [data, strategy],
-    () => getFacetedMinMaxValues(columnConfig, data, strategy),
+    () => [dataService],
+    ([dataService]) => dataService.computeFacetedMinMaxValues(columnConfig),
     { key: `minmax-${columnConfig.id}` },
   )
 }
