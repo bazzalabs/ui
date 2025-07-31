@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
-import { createColumnConfigHelper } from '../core/filters.js'
+import { createColumnConfigHelper } from '../core/columns/index.js'
 import { DEFAULT_OPERATORS, determineNewOperator } from '../core/operators.js'
 import type { FiltersState } from '../core/types.js'
 import { useDataTableFilters } from '../hooks/use-data-table-filters.js'

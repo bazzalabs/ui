@@ -2,7 +2,7 @@
 
 import type React from 'react'
 import { useMemo, useState } from 'react'
-import { createColumns } from '../core/filters.js'
+import { createColumns } from '../core/columns/index.js'
 import { DEFAULT_OPERATORS, determineNewOperator } from '../core/operators.js'
 import type {
   ColumnConfig,
@@ -16,8 +16,7 @@ import type {
   OptionBasedColumnDataType,
   OptionColumnIds,
 } from '../core/types.js'
-import { uniq } from '../lib/array.js'
-import { addUniq, removeUniq } from '../lib/array.js'
+import { addUniq, removeUniq, uniq } from '../lib/array.js'
 import {
   createDateFilterValue,
   createNumberFilterValue,
