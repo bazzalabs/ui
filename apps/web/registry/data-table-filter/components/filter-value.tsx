@@ -471,7 +471,9 @@ const OptionItem = memo(function OptionItem({
               count === 0 && 'slashed-zero',
             )}
           >
-            {typeof count === 'number' ? (count < 100 ? count : '100+') : ''}
+            {typeof count === 'number'
+              ? new Intl.NumberFormat().format(count)
+              : ''}
           </sup>
         </span>
       </div>
