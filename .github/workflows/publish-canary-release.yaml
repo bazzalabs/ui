@@ -1,9 +1,9 @@
 name: Publish canary release
 on:
   workflow_dispatch:
-  push:
-    branches: [canary]
-    paths: ['packages/filters/**']
+  # push:
+  #   branches: [canary]
+  #   paths: ['packages/filters/**']
 
 jobs:
   publish-canary:
