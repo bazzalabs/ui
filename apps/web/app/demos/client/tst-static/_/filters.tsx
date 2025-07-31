@@ -74,6 +74,14 @@ export const columnsConfig = [
         />
       ),
     }))
+    // Sort options by count (desc), then label (asc)
+    .transformOptionsFn((options) =>
+      options.sort((a, b) => {
+        const countDiff = (b.count ?? 0) - (a.count ?? 0)
+        if (countDiff !== 0) return countDiff
+        return a.label.localeCompare(b.label)
+      }),
+    )
     .build(),
   dtf
     .number()
