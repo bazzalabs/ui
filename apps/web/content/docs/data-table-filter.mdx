@@ -344,12 +344,12 @@ dtf
 - For `option` columns, if you're using...
   - client-side filtering...
     - with static `options`, your accessor should return a `string`.
-    - with inferred options, your accessor can return `any`, provided you have enough information later on to map it to a `ColumnOption` using `transformOptionFn`.
+    - with inferred options, your accessor can return `any`, provided you have enough information later on to map it to a `ColumnOption` using `transformValueToOptionFn`.
   - server-side filtering, your accessor should return a `string`.
 - For `multiOption` columns, if you're using...
   - client-side filtering...
     - with static `options`, your accessor should return a `string[]`.
-    - with inferred options, your accessor can return `any[]`, provided you have enough information later on to map each value to a `ColumnOption` using `transformOptionFn`.
+    - with inferred options, your accessor can return `any[]`, provided you have enough information later on to map each value to a `ColumnOption` using `transformValueToOptionFn`.
   - server-side filtering, your accessor should return a `string[]`.
   
 #### Display Name
@@ -438,7 +438,7 @@ We **infer** the options from the available data at runtime, by looping through 
 
 If the values are already in the `ColumnOption` shape, you're golden.
 
-If not, we can use the `transformOptionFn()` method from the builder, which transforms each unique column value to a `ColumnOption`.
+If not, we can use the `transformValueToOptionFn()` method from the builder, which transforms each unique column value to a `ColumnOption`.
 
 ```tsx {28-32}
 export type User = {
@@ -468,7 +468,7 @@ dtf
   .id('assignee')
   .displayName('Assignee')
   .icon(UserCheckIcon)
-  .transformOptionFn((u) => ({
+  .transformValueToOptionFn((u) => ({
     value: u.id,
     label: u.name,
     icon: <UserAvatar user={u} />
