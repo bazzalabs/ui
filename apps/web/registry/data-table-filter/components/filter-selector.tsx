@@ -170,10 +170,18 @@ export function FilterableColumn<TData, TType extends ColumnDataType, TVal>({
   const hasIcon = !!Icon
 
   const prefetch = useCallback(() => {
-    column.prefetchOptions()
     column.prefetchValues()
-    column.prefetchFacetedUniqueValues()
-    column.prefetchFacetedMinMaxValues()
+
+    // Only prefetch options and faceted values for option and multi-option columns
+    if (isAnyOf(column.type, ['option', 'multiOption'])) {
+      column.prefetchOptions()
+      column.prefetchFacetedUniqueValues()
+    }
+
+    // Only prefetch min/max values for number columns
+    if (column.type === 'number') {
+      column.prefetchFacetedMinMaxValues()
+    }
   }, [column])
 
   useEffect(() => {
