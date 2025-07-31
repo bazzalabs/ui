@@ -1,3 +1,46 @@
+// Overloads for up to 6 dependencies
+// TypeScript can't infer the exact tuple types when destructuring
+export function memo<T1, TResult>(
+  getDeps: () => readonly [T1],
+  compute: (deps: readonly [T1]) => TResult,
+  options: { key: string },
+): () => TResult
+
+// 2 dependencies
+export function memo<T1, T2, TResult>(
+  getDeps: () => readonly [T1, T2],
+  compute: (deps: readonly [T1, T2]) => TResult,
+  options: { key: string },
+): () => TResult
+
+// 3 dependencies
+export function memo<T1, T2, T3, TResult>(
+  getDeps: () => readonly [T1, T2, T3],
+  compute: (deps: readonly [T1, T2, T3]) => TResult,
+  options: { key: string },
+): () => TResult
+
+// 4 dependencies
+export function memo<T1, T2, T3, T4, TResult>(
+  getDeps: () => readonly [T1, T2, T3, T4],
+  compute: (deps: readonly [T1, T2, T3, T4]) => TResult,
+  options: { key: string },
+): () => TResult
+
+// 5 dependencies
+export function memo<T1, T2, T3, T4, T5, TResult>(
+  getDeps: () => readonly [T1, T2, T3, T4, T5],
+  compute: (deps: readonly [T1, T2, T3, T4, T5]) => TResult,
+  options: { key: string },
+): () => TResult
+
+// General fallback for 6+ dependencies
+export function memo<TDeps extends readonly any[], TResult>(
+  getDeps: () => TDeps,
+  compute: (deps: TDeps) => TResult,
+  options: { key: string },
+): () => TResult
+
 export function memo<TDeps extends readonly any[], TResult>(
   getDeps: () => TDeps,
   compute: (deps: TDeps) => TResult,
@@ -7,17 +50,12 @@ export function memo<TDeps extends readonly any[], TResult>(
   let cachedResult: TResult | undefined
 
   return () => {
-    // console.log(`[memo] Calling memoized function: ${options.key}`)
-
     const deps = getDeps()
 
     // If no previous deps or deps have changed, recompute
     if (!prevDeps || !shallowEqual(prevDeps, deps)) {
-      // console.log(`[memo] Cache MISS - ${options.key}`)
       cachedResult = compute(deps)
       prevDeps = deps
-    } else {
-      // console.log(`[memo] Cache HIT - ${options.key}`)
     }
 
     return cachedResult!
