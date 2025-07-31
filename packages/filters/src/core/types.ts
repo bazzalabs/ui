@@ -101,10 +101,7 @@ export type TOrderFn<TVal = unknown> = (
  * Transforms the computed column options after initial computation, with access to faceted data.
  * Applied AFTER transformOptionFn.
  */
-export type TTransformOptionsFn = (
-  options: ColumnOption[],
-  facetedData?: Map<string, number>,
-) => ColumnOption[]
+export type TTransformOptionsFn = (options: ColumnOption[]) => ColumnOption[]
 
 /*
  * The configuration for a column.

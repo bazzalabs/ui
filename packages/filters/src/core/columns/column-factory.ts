@@ -107,7 +107,7 @@ function createMemoizedOptionsWithTransforms<TData>(
 
       // Step 4: Apply transformOptionsFn if provided
       if (columnConfig.transformOptionsFn) {
-        return columnConfig.transformOptionsFn(optionsWithCounts, facetedData)
+        return columnConfig.transformOptionsFn(optionsWithCounts)
       }
 
       return optionsWithCounts
