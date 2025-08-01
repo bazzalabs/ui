@@ -107,6 +107,7 @@ type ColumnDataType =
   | 'text'         /* Text data */
   | 'number'       /* Numerical data */
   | 'date'         /* Dates */
+  | 'boolean'      /* Boolean data */
   | 'option'       /* Single-valued option (e.g. status) */
   | 'multiOption'  /* Multi-valued option (e.g. labels) */
 ```
@@ -118,7 +119,7 @@ The state of the applied filters on a table is represented as `FiltersState`, wh
 ```ts
 type FilterModel<TType extends ColumnDataType = any> = {
   columnId: string
-  type: TType // option, multiOption, text, date, number
+  type: TType // option, multiOption, text, date, boolean, number
   operator: FilterOperators[TType] // i.e. 'is', 'is not', 'is any of', etc.
   values: FilterValues<TType>
 }
@@ -147,6 +148,8 @@ interface ColumnOption {
   value: string
   /* An optional icon to display next to the label. */
   icon?: React.ReactElement | React.ElementType
+  /* Occurrences of this option in the data (automatically populated). */
+  count?: number
 }
 ```
 
@@ -188,9 +191,10 @@ This hooks handles the logic for filtering the data (if using the `client` strat
 
 ```tsx
 const { columns, filters, actions, strategy } = useDataTableFilters({
-  strategy: 'client',       
+  strategy: 'client',
   data: issues.data ?? [], 
-  columnsConfig,          
+  entityName: 'Issue',
+  columnsConfig,
 })
 ```
 
@@ -202,6 +206,7 @@ The instance has the following properties:
 - `filters`: The filters state, represented as a `FilterState` object.
 - `actions`: A collection of mutators for the filters state.
 - `strategy`: The strategy used for filtering (`client` or `server` side filtering).
+- `entityName`: The name of the entity being filtered (e.g. "Issue", "User", etc.).
 
 #### Component
 
@@ -220,6 +225,7 @@ export function IssuesTable() {
         columns={columns} 
         actions={actions} 
         strategy={strategy} 
+        entityName={entityName}
       />
       <DataTable />
     </div>
@@ -306,7 +312,7 @@ From here, we can use our builder instance to create configurations for each col
 
 #### Data types
 
-The first call to the column builder is `text()`, `number()`, `date()`, `option()`, or `multiOption()`.
+The first call to the column builder is `text()`, `number()`, `date()`, `boolean()`, `option()`, or `multiOption()`.
 
 This defines the data type of the column.
 
@@ -502,6 +508,26 @@ With the `client` strategy, **you could skip this step** - the min/max values ca
 > For this case, we recommend setting the faceted `min` and `max` values when we create our instance [(covered later on)](#passing-faceted-values-to-the-instance).
 
 > [!IMPORTANT] If we cannot determine the min/max values *(i.e. if you use `server` strategy without specifying the values)*, filtering will still work as expected, but the slider will not be visible.
+
+#### Toggled state
+
+> [!TIP] This only applies to `boolean` columns.
+
+We use this, in combination with the entity name, when displaying the filter value for a boolean column.
+
+For example, if we have a column `isUrgent`, the entity name is "Issue", and the state name is `urgent`:
+
+- Issue *is* urgent
+- Issue *is not* urgent
+
+```ts {6}
+dtf
+  .boolean()
+  .accessor((row) => row.isUrgent)
+  .id('isUrgent')
+  .displayName('Urgent issues')
+  .toggledStateName('urgent')
+```
 
 #### Build
 
