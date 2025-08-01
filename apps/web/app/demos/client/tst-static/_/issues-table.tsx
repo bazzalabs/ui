@@ -27,13 +27,15 @@ export function IssuesTable({
     setFilters: React.Dispatch<React.SetStateAction<FiltersState>>
   }
 }) {
-  const { columns, filters, actions, strategy } = useDataTableFilters({
-    strategy: 'client',
-    data: ISSUES,
-    columnsConfig,
-    filters: state.filters,
-    onFiltersChange: state.setFilters,
-  })
+  const { columns, filters, actions, strategy, entityName } =
+    useDataTableFilters({
+      strategy: 'client',
+      data: ISSUES,
+      entityName: 'Issue',
+      columnsConfig,
+      filters: state.filters,
+      onFiltersChange: state.setFilters,
+    })
 
   // Step 4: Extend our TanStack Table columns with custom filter functions (and more!)
   //         using our integration hook.
@@ -61,6 +63,9 @@ export function IssuesTable({
     state: {
       rowSelection,
       columnFilters: tstFilters,
+      columnVisibility: {
+        isUrgent: false,
+      },
     },
   })
 
@@ -73,6 +78,7 @@ export function IssuesTable({
           columns={columns}
           actions={actions}
           strategy={strategy}
+          entityName={entityName}
         />
       </div>
       <DataTable table={table} />

@@ -1,4 +1,5 @@
 import {
+  booleanFilterOperators,
   type Column,
   type ColumnDataType,
   type DataTableFilterActions,
@@ -55,6 +56,19 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
         <Button
           variant="ghost"
           className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
+          onClick={(e) => {
+            if (column.type !== 'boolean') return
+            e.preventDefault()
+            const opDetails =
+              filterTypeOperatorDetails.boolean[
+                filter.operator as FilterOperators['boolean']
+              ]
+
+            actions.setFilterOperator(
+              column.id,
+              opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
+            )
+          }}
         >
           <FilterOperatorDisplay
             filter={filter}
@@ -168,6 +182,16 @@ export function FilterOperatorController<TData, TType extends ColumnDataType>({
         <FilterOperatorNumberController
           filter={filter as FilterModel<'number'>}
           column={column as Column<TData, 'number'>}
+          actions={actions}
+          closeController={closeController}
+          locale={locale}
+        />
+      )
+    case 'boolean':
+      return (
+        <FilterOperatorBooleanController
+          filter={filter as FilterModel<'boolean'>}
+          column={column as Column<TData, 'boolean'>}
           actions={actions}
           closeController={closeController}
           locale={locale}
@@ -320,6 +344,41 @@ function FilterOperatorNumberController<TData>({
 
   const changeOperator = (value: string) => {
     actions?.setFilterOperator(column.id, value as FilterOperators['number'])
+    closeController()
+  }
+
+  return (
+    <div>
+      <CommandGroup heading={t('operators', locale)}>
+        {relatedFilters.map((r) => (
+          <CommandItem
+            onSelect={() => changeOperator(r.value)}
+            value={r.value}
+            key={r.value}
+          >
+            {t(r.key, locale)}
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    </div>
+  )
+}
+
+function FilterOperatorBooleanController<TData>({
+  filter,
+  column,
+  actions,
+  closeController,
+  locale = 'en',
+}: FilterOperatorControllerProps<TData, 'boolean'>) {
+  const filterDetails = booleanFilterOperators[filter.operator]
+
+  const relatedFilters = Object.values(booleanFilterOperators).filter(
+    (o) => o.target === filterDetails.target,
+  )
+
+  const changeOperator = (value: string) => {
+    actions?.setFilterOperator(column.id, value as FilterOperators['boolean'])
     closeController()
   }
 

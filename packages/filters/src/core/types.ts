@@ -41,6 +41,7 @@ export type ColumnDataType =
   | 'text'
   | 'number'
   | 'date'
+  | 'boolean'
   /* The column value can be a single value from a list of options. */
   | 'option'
   /* The column value can be zero or more values from a list of options. */
@@ -61,6 +62,7 @@ export type ColumnDataNativeMap = {
   text: string
   number: number
   date: Date
+  boolean: boolean
   option: string
   multiOption: string[]
 }
@@ -130,6 +132,7 @@ export type ColumnConfig<
   transformOptionsFn?: TType extends OptionBasedColumnDataType
     ? TTransformOptionsFn
     : never
+  toggledStateName?: TType extends 'boolean' ? string : never
 }
 
 export type OptionColumnId<T> = T extends ColumnConfig<
@@ -264,6 +267,9 @@ export type DateFilterOperator =
   | 'is between'
   | 'is not between'
 
+/* Operators for boolean data */
+export type BooleanFilterOperator = 'is' | 'is not'
+
 /* Operators for option data */
 export type OptionFilterOperator = 'is' | 'is not' | 'is any of' | 'is none of'
 
@@ -281,6 +287,7 @@ export type FilterOperators = {
   text: TextFilterOperator
   number: NumberFilterOperator
   date: DateFilterOperator
+  boolean: BooleanFilterOperator
   option: OptionFilterOperator
   multiOption: MultiOptionFilterOperator
 }

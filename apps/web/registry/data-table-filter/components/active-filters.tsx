@@ -22,6 +22,7 @@ interface ActiveFiltersProps<TData> {
   actions: DataTableFilterActions
   strategy: FilterStrategy
   locale?: Locale
+  entityName?: string
 }
 
 export function ActiveFilters<TData>({
@@ -30,6 +31,7 @@ export function ActiveFilters<TData>({
   actions,
   strategy,
   locale = 'en',
+  entityName,
 }: ActiveFiltersProps<TData>) {
   return (
     <>
@@ -49,6 +51,7 @@ export function ActiveFilters<TData>({
             actions={actions}
             strategy={strategy}
             locale={locale}
+            entityName={entityName}
           />
         )
       })}
@@ -62,6 +65,7 @@ interface ActiveFilterProps<TData, TType extends ColumnDataType> {
   actions: DataTableFilterActions
   strategy: FilterStrategy
   locale?: Locale
+  entityName?: string
 }
 
 // Generic render function for a filter with type-safe value
@@ -71,10 +75,11 @@ export function ActiveFilter<TData, TType extends ColumnDataType>({
   actions,
   strategy,
   locale = 'en',
+  entityName,
 }: ActiveFilterProps<TData, TType>) {
   return (
     <div className="flex h-7 items-center rounded-2xl border border-border bg-background shadow-xs text-xs">
-      <FilterSubject column={column} />
+      <FilterSubject column={column} entityName={entityName} />
       <Separator orientation="vertical" />
       <FilterOperator
         filter={filter}
@@ -89,6 +94,7 @@ export function ActiveFilter<TData, TType extends ColumnDataType>({
         actions={actions}
         strategy={strategy}
         locale={locale}
+        entityName={entityName}
       />
       <Separator orientation="vertical" />
       <Button

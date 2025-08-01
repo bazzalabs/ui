@@ -3,11 +3,15 @@ import { isValidElement } from 'react'
 
 interface FilterSubjectProps<TData, TType extends ColumnDataType> {
   column: Column<TData, TType>
+  entityName?: string
 }
 
 export function FilterSubject<TData, TType extends ColumnDataType>({
   column,
+  entityName,
 }: FilterSubjectProps<TData, TType>) {
+  const subject = column.type === 'boolean' ? entityName : column.displayName
+
   const { icon: Icon } = column
   const hasIcon = !!Icon
 
@@ -20,7 +24,7 @@ export function FilterSubject<TData, TType extends ColumnDataType>({
           <Icon className="size-4 text-primary stroke-[2.25px]" />
         ))}
 
-      <span>{column.displayName}</span>
+      <span>{subject}</span>
     </span>
   )
 }
