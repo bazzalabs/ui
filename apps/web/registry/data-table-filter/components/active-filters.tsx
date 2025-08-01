@@ -93,7 +93,7 @@ export function ActiveFilter<TData, TType extends ColumnDataType>({
       <Separator orientation="vertical" />
       <Button
         variant="ghost"
-        className="rounded-none rounded-r-2xl text-xs w-7 h-full"
+        className="rounded-none rounded-r-2xl text-xs w-7 h-full text-muted-foreground hover:text-primary"
         onClick={() => actions.removeFilter(filter.columnId)}
       >
         <X className="size-4 -translate-x-0.5" />
