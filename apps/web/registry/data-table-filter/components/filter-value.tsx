@@ -485,34 +485,30 @@ const OptionItem = memo(function OptionItem({
     <CommandItem
       key={value}
       onSelect={handleSelect}
-      className="group flex items-center justify-between gap-1.5"
+      className="group flex items-center justify-between gap-4"
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <Checkbox
           checked={selected}
-          className="opacity-0 data-[state=checked]:opacity-100 group-data-[selected=true]:opacity-100 dark:border-ring mr-1"
+          className="opacity-0 data-[state=checked]:opacity-100 group-data-[selected=true]:opacity-100 dark:border-ring mr-1 shrink-0"
         />
-        {Icon &&
-          (isValidElement(Icon) ? (
-            Icon
-          ) : (
-            <Icon className="size-4 text-primary" />
-          ))}
-        <span>
+        <div className="shrink-0">
+          {Icon &&
+            (isValidElement(Icon) ? (
+              Icon
+            ) : (
+              <Icon className="size-4 text-primary" />
+            ))}
+        </div>
+        <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden">
           {label}
-          <sup
-            className={cn(
-              count == null && 'hidden',
-              'ml-0.5 tabular-nums tracking-tight text-muted-foreground',
-              count === 0 && 'slashed-zero',
-            )}
-          >
-            {typeof count === 'number'
-              ? new Intl.NumberFormat().format(count)
-              : ''}
-          </sup>
         </span>
       </div>
+      {count && (
+        <span className="tabular-nums text-muted-foreground tracking-tight text-xs">
+          {new Intl.NumberFormat().format(count)}
+        </span>
+      )}
     </CommandItem>
   )
 })
@@ -556,10 +552,10 @@ export function FilterValueOptionController<TData>({
   )
 
   return (
-    <Command loop>
+    <Command className="max-w-[300px]" loop>
       <CommandInput autoFocus placeholder={t('search', locale)} />
       <CommandEmpty>{t('noresults', locale)}</CommandEmpty>
-      <CommandList className="max-h-fit">
+      <CommandList>
         <CommandGroup className={cn(selectedOptions.length === 0 && 'hidden')}>
           {selectedOptions.map((option) => (
             <OptionItem
@@ -631,7 +627,7 @@ export function FilterValueMultiOptionController<TData>({
   )
 
   return (
-    <Command loop>
+    <Command className="max-w-[300px]" loop>
       <CommandInput autoFocus placeholder={t('search', locale)} />
       <CommandEmpty>{t('noresults', locale)}</CommandEmpty>
       <CommandList>
