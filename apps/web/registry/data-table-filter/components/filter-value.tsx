@@ -569,7 +569,13 @@ export function FilterValueOptionController<TData>({
             />
           ))}
         </CommandGroup>
-        <CommandSeparator />
+        {/* Only show separator if there are both selected AND unselected options */}
+        <CommandSeparator
+          className={cn(
+            (unselectedOptions.length === 0 || selectedOptions.length === 0) &&
+              'hidden',
+          )}
+        />
         <CommandGroup
           className={cn(unselectedOptions.length === 0 && 'hidden')}
         >
@@ -638,7 +644,13 @@ export function FilterValueMultiOptionController<TData>({
             />
           ))}
         </CommandGroup>
-        <CommandSeparator />
+        {/* Only show separator if there are both selected AND unselected options */}
+        <CommandSeparator
+          className={cn(
+            (unselectedOptions.length === 0 || selectedOptions.length === 0) &&
+              'hidden',
+          )}
+        />
         <CommandGroup
           className={cn(unselectedOptions.length === 0 && 'hidden')}
         >
