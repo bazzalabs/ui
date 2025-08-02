@@ -120,6 +120,11 @@ export const ISSUE_STATUSES: IssueStatus[] = [
 ] as const
 
 export const ISSUE_LABELS: IssueLabel[] = [
+  {
+    id: '550e8401-e29b-41d4-a716-446655440000',
+    name: 'A super, duper long label for testing overflow behaviour and truncating',
+    color: 'red',
+  },
   { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Bug', color: 'red' },
   {
     id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
