@@ -252,6 +252,7 @@ export type Issue = {
   startDate?: Date
   endDate?: Date
   estimatedHours?: number
+  isUrgent: boolean
 }
 
 export type User = {
@@ -347,6 +348,7 @@ dtf
 - For `text` columns, your accessor should return a `string`.
 - For `number` columns, your accessor should return a `number`.
 - For `date` columns, your accessor should return a `Date`.
+- For `boolean` columns, your accessor should return a `boolean`.
 - For `option` columns, if you're using...
   - client-side filtering...
     - with static `options`, your accessor should return a `string`.
@@ -594,10 +596,11 @@ To create the instance, we use the `useDataTableFilters()` hook.
 ```tsx
 import { useDataTableFilters } from '@/components/data-table-filter'
 
-const { columns, filters, actions, strategy } = useDataTableFilters({
-  strategy: 'client',       
+const { columns, filters, actions, strategy, entityName } = useDataTableFilters({
+  strategy: 'client',
   data: issues.data ?? [], 
-  columnsConfig,          
+  columnsConfig,
+  entityName: 'Issue',
 })
 ```
 
@@ -606,13 +609,13 @@ Let's go through each input:
 - `strategy`: The strategy used for filtering (`client` or `server` side filtering).
 - `data`: The data to be filtered. When using the `server` strategy, this data is not directly used, but it should still be supplied to ensure type safety.
 - `columnsConfig`: The column configurations (`ColumnConfig[]`) we created earlier.
+- `entityName`: The name of the entity being filtered (e.g. "Issue", "User", etc.), used in the UI for boolean column filtering.
 
 The hook returns our table filters instance, of which the most important properties are:
 
 - `columns`: The `Column[]` for your data table filters. A `Column` is a superset of a `ColumnConfig`, with additional properties & methods.
 - `filters`: The filters state, represented as a `FilterState` object.
 - `actions`: A collection of mutators for the filters state.
-- `strategy`: The strategy used for filtering (`client` or `server` side filtering).
 
 The real magic is in the `filters` state, which is exposed to you. You can pass this around your application as you wish...
 
