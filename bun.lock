@@ -87,7 +87,7 @@
     },
     "packages/filters": {
       "name": "@bazzaui/filters",
-      "version": "0.3.2025073104",
+      "version": "0.3.2025080500",
       "devDependencies": {
         "@bazzaui/typescript-config": "*",
         "@testing-library/dom": "^10.4.0",

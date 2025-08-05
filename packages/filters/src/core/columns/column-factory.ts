@@ -35,12 +35,7 @@ export function createColumn<TData>(
   const getMinMaxValues = createMemoizedMinMaxValues(columnConfig, dataService)
 
   // Create the main getOptions function that handles all transforms
-  const getOptions = createMemoizedOptionsWithTransforms(
-    columnConfig,
-    dataService,
-    getValues,
-    getUniqueValues,
-  )
+  const getOptions = createMemoizedOptions(columnConfig, dataService, getValues)
 
   // Create the Column instance
   const column: Column<TData> = {
@@ -77,11 +72,10 @@ export function createColumn<TData>(
  * Creates the main getOptions function that returns fully processed options.
  * This includes all transforms and post-processing, plus automatic count population.
  */
-function createMemoizedOptionsWithTransforms<TData>(
+function createMemoizedOptions<TData>(
   columnConfig: ColumnConfig<TData, any, any, any>,
   dataService: ColumnDataService<TData>,
   getValues: () => ElementType<NonNullable<any>>[],
-  getUniqueValues: () => Map<string, number> | undefined,
 ) {
   return memo(
     () => [
@@ -93,24 +87,7 @@ function createMemoizedOptionsWithTransforms<TData>(
       getValues(), // Include values as dependency for reactivity
     ],
     () => {
-      // Step 1: Get base options (without count)
-      const baseOptions = dataService.computeOptions(columnConfig)
-
-      // Step 2: Get faceted data for counts
-      const facetedData = getUniqueValues()
-
-      // Step 3: Add count property to each option
-      const optionsWithCounts = baseOptions.map((option) => ({
-        ...option,
-        count: facetedData?.get(option.value) || 0,
-      }))
-
-      // Step 4: Apply transformOptionsFn if provided
-      if (columnConfig.transformOptionsFn) {
-        return columnConfig.transformOptionsFn(optionsWithCounts)
-      }
-
-      return optionsWithCounts
+      return dataService.computeTransformedOptions(columnConfig)
     },
     { key: `final-options-${columnConfig.id}` },
   )

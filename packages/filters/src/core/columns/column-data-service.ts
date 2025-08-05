@@ -1,6 +1,7 @@
 import { isAnyOf, uniq } from '../../lib/array.js'
 import { isColumnOptionArray } from '../../lib/helpers.js'
 import { memo } from '../../lib/memo.js'
+import { applyOrderFns } from '../../lib/order-fns.js'
 import type {
   ColumnConfig,
   ColumnDataType,
@@ -26,16 +27,12 @@ export class ColumnDataService<TData> {
   ) {}
 
   /**
-   * Computes base column options (without final transformOptionsFn).
-   * The final transform is handled separately in the column factory.
+   * Step 1: Computes base column options without counts, ordering, or transforms
    */
-  computeOptions<TType extends ColumnDataType, TVal>(
+  computeBaseOptions<TType extends ColumnDataType, TVal>(
     column: ColumnConfig<TData, TType, TVal>,
   ): ColumnOption[] {
     if (!isAnyOf(column.type, ['option', 'multiOption'])) {
-      console.warn(
-        'Column options can only be retrieved for option and multiOption columns',
-      )
       return []
     }
 
@@ -53,40 +50,59 @@ export class ColumnDataService<TData> {
       .flatMap(column.accessor)
       .filter((v): v is NonNullable<TVal> => v !== undefined && v !== null)
 
-    let models = uniq(filtered)
-
-    // Apply ordering if provided
-    if (column.orderFn) {
-      models = models.sort((m1, m2) =>
-        column.orderFn!(
-          m1 as ElementType<NonNullable<TVal>>,
-          m2 as ElementType<NonNullable<TVal>>,
-        ),
-      )
-    }
+    const uniqueValues = uniq(filtered)
+    let columnOptions: ColumnOption[] = []
 
     // Transform individual values to options
     if (column.transformValueToOptionFn) {
-      const memoizedTransform = memo(
-        () => [models],
-        (deps) =>
-          (deps[0] ?? []).map((m) =>
-            column.transformValueToOptionFn!(
-              m as ElementType<NonNullable<TVal>>,
-            ),
-          ),
-        { key: `transform-${column.id}` },
+      columnOptions = uniqueValues.map((m) =>
+        column.transformValueToOptionFn!(m as ElementType<NonNullable<TVal>>),
       )
-      return memoizedTransform()
     }
 
-    if (isColumnOptionArray(models)) {
-      return models
+    if (isColumnOptionArray(columnOptions)) {
+      return columnOptions
     }
 
     throw new Error(
       `[data-table-filter] [${column.id}] Either provide static options, a transformValueToOptionFn, or ensure the column data conforms to ColumnOption type`,
     )
+  }
+
+  /**
+   * Step 2: Computes ordered options with counts applied
+   */
+  computeOrderedOptions<TType extends ColumnDataType, TVal>(
+    column: ColumnConfig<TData, TType, TVal>,
+  ): ColumnOption[] {
+    const baseOptions = this.computeBaseOptions(column)
+    const values = this.getValues(column)
+
+    // Add counts to base options
+    const facetedData = this.computeFacetedUniqueValues(column, values as any)
+    const optionsWithCounts = baseOptions.map((option) => ({
+      ...option,
+      count: facetedData?.get(option.value) || 0,
+    }))
+
+    // Apply ordering if provided
+    if (column.orderFn) {
+      return applyOrderFns(column.orderFn, optionsWithCounts)
+    }
+
+    return optionsWithCounts
+  }
+
+  /**
+   * Step 3: Computes final transformed options
+   */
+  computeTransformedOptions<TType extends ColumnDataType, TVal>(
+    column: ColumnConfig<TData, TType, TVal>,
+  ): ColumnOption[] {
+    const orderedOptions = this.computeOrderedOptions(column)
+
+    if (!column.transformOptionsFn) return orderedOptions
+    return column.transformOptionsFn(orderedOptions)
   }
 
   /**

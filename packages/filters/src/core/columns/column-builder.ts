@@ -1,10 +1,21 @@
 import { isAnyOf } from '../../lib/array.js'
+import {
+  isBuiltInOrderFnName,
+  isBuiltInOrderFnTuple,
+  isCustomOrderFn,
+  isOrderDirection,
+  orderFns,
+} from '../../lib/order-fns.js'
 import type {
   ColumnConfig,
   ColumnDataType,
   ColumnOption,
+  OrderDirection,
   TAccessorFn,
-  TOrderFn,
+  TBuiltInOrderFnName,
+  TCustomOrderFn,
+  TOrderFnArg,
+  TOrderFns,
   TTransformOptionsFn,
   TTransformValueToOptionFn,
 } from '../types.js'
@@ -102,9 +113,45 @@ export class ColumnConfigBuilder<
     return this
   }
 
-  orderFn(fn: TOrderFn<TVal>): this {
+  orderFn(name: TBuiltInOrderFnName, direction: OrderDirection): this
+  orderFn(customFn: TCustomOrderFn): this
+  orderFn(...args: TOrderFnArg[]): this
+  orderFn(...args: any[]): this {
     this.validateType(['option', 'multiOption'], 'orderFn()')
-    this.config.orderFn = fn as any
+
+    const orderFnsToApply: TOrderFns = []
+
+    // Handle the case where first two args are built-in name and direction
+    if (
+      args.length === 2 &&
+      isBuiltInOrderFnName(args[0]) &&
+      isOrderDirection(args[1])
+    ) {
+      const [name, direction] = args
+      orderFnsToApply.push((a: ColumnOption, b: ColumnOption) =>
+        orderFns[name](a, b, direction),
+      )
+    } else if (args.length === 1 && isCustomOrderFn(args[0])) {
+      orderFnsToApply.push(args[0])
+    } else {
+      // Handle array/rest syntax - validate each argument
+      for (const arg of args) {
+        if (isBuiltInOrderFnTuple(arg)) {
+          const [name, direction] = arg
+          orderFnsToApply.push((a: ColumnOption, b: ColumnOption) =>
+            orderFns[name](a, b, direction),
+          )
+        } else if (isCustomOrderFn(arg)) {
+          orderFnsToApply.push(arg)
+        } else {
+          throw new Error(
+            `Invalid argument: ${JSON.stringify(arg)}. Expected built-in function tuple or custom function.`,
+          )
+        }
+      }
+    }
+
+    this.config.orderFn = orderFnsToApply as any
     return this
   }
 

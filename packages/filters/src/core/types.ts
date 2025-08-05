@@ -9,6 +9,8 @@
  *
  */
 
+import type { orderFns } from '../lib/order-fns.js'
+
 export type ElementType<T> = T extends (infer U)[] ? U : T
 
 export type Nullable<T> = T | null | undefined
@@ -89,14 +91,27 @@ export type TTransformValueToOptionFn<TVal = unknown> = (
   value: ElementType<NonNullable<TVal>>,
 ) => ColumnOption
 
+export type TOrderFns = Array<TOrderFn>
+
+export type TOrderFn = TCustomOrderFn
+
+export type TCustomOrderFn = (a: ColumnOption, b: ColumnOption) => number
+
+export type TBuiltInOrderFn = (
+  a: ColumnOption,
+  b: ColumnOption,
+  direction: OrderDirection,
+) => number
+
+export type TOrderFnArg = [TBuiltInOrderFnName, OrderDirection] | TCustomOrderFn
+
 /*
  * Used by `option` and `multiOption` columns.
- * A custom ordering function when sorting a column's options.
+ * The direction of ordering for built-in ordering functions.
  */
-export type TOrderFn<TVal = unknown> = (
-  a: ElementType<NonNullable<TVal>>,
-  b: ElementType<NonNullable<TVal>>,
-) => number
+export type OrderDirection = 'asc' | 'desc'
+
+export type TBuiltInOrderFnName = keyof typeof orderFns
 
 /*
  * Used by `option` and `multiOption` columns.
@@ -129,7 +144,7 @@ export type ColumnConfig<
   transformValueToOptionFn?: TType extends OptionBasedColumnDataType
     ? TTransformValueToOptionFn<TVal>
     : never
-  orderFn?: TType extends OptionBasedColumnDataType ? TOrderFn<TVal> : never
+  orderFn?: TType extends OptionBasedColumnDataType ? TOrderFns : never
   transformOptionsFn?: TType extends OptionBasedColumnDataType
     ? TTransformOptionsFn
     : never
