@@ -1,9 +1,9 @@
 'use client'
 
-import { highlight } from '@/lib/highlighter'
-import { cn } from '@/lib/utils'
 import { type HTMLAttributes, type JSX, useLayoutEffect, useState } from 'react'
 import type { BundledLanguage } from 'shiki/bundle-web.mjs'
+import { highlight } from '@/lib/highlighter'
+import { cn } from '@/lib/utils'
 
 interface CodeBlockWrapperProps extends HTMLAttributes<HTMLDivElement> {
   loading?: boolean
@@ -37,7 +37,10 @@ export const CodeBlockWrapper = ({
 export function CodeBlock({
   code,
   lang,
-}: { code: string; lang: BundledLanguage }) {
+}: {
+  code: string
+  lang: BundledLanguage
+}) {
   const [nodes, setNodes] = useState<JSX.Element | null>(null)
 
   useLayoutEffect(() => {

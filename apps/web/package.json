@@ -13,7 +13,7 @@
     "format": "biome format",
     "clean": "biome clean",
     "ui:add": "bunx --bun shadcn@latest add",
-    "registry:build": "shadcn build"
+    "registry:build": "shadcn build && biome format --write"
   },
   "dependencies": {
     "@bazzaui/filters": "workspace:*",
