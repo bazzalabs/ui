@@ -32,7 +32,7 @@ export class ColumnConfigBuilder<
   id<TNewId extends string>(
     value: TNewId,
   ): ColumnConfigBuilder<TData, TType, TVal, TNewId> {
-    const newInstance = this.clone() as any
+    const newInstance = this.clone() as ColumnConfigBuilder<any, any, any, any>
     newInstance.config.id = value
     return newInstance as ColumnConfigBuilder<TData, TType, TVal, TNewId>
   }
@@ -40,7 +40,7 @@ export class ColumnConfigBuilder<
   accessor<TNewVal>(
     accessor: TAccessorFn<TData, TNewVal>,
   ): ColumnConfigBuilder<TData, TType, TNewVal, TId> {
-    const newInstance = this.clone() as any
+    const newInstance = this.clone() as ColumnConfigBuilder<any, any, any, any>
     newInstance.config.accessor = accessor
     return newInstance as ColumnConfigBuilder<TData, TType, TNewVal, TId>
   }
@@ -121,7 +121,7 @@ export class ColumnConfigBuilder<
         'toggledStateName() is only applicable to boolean columns',
       )
 
-    const newInstance = this.clone() as any
+    const newInstance = this.clone() as ColumnConfigBuilder<any, any, any, any>
     newInstance.config.toggledStateName = value
     return newInstance
   }
