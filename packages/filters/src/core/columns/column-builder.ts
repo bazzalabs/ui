@@ -57,6 +57,12 @@ export class ColumnConfigBuilder<
     return newInstance
   }
 
+  hidden(value: boolean): ColumnConfigBuilder<TData, TType, TVal, TId> {
+    const newInstance = this.clone()
+    newInstance.config.hidden = value
+    return newInstance
+  }
+
   // Number-specific methods
   min(value: number): this {
     this.validateType('number', 'min()')

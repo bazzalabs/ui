@@ -59,12 +59,23 @@ function __FilterSelector<TData>({
   const [property, setProperty] = useState<string | undefined>(undefined)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const column = property ? getColumn(columns, property) : undefined
+  const visibleColumns = useMemo(
+    () => columns.filter((c) => !c.hidden),
+    [columns],
+  )
+
+  const visibleFilters = useMemo(
+    () =>
+      filters.filter((f) => visibleColumns.find((c) => c.id === f.columnId)),
+    [filters, visibleColumns],
+  )
+
+  const column = property ? getColumn(visibleColumns, property) : undefined
   const filter = property
-    ? filters.find((f) => f.columnId === property)
+    ? visibleFilters.find((f) => f.columnId === property)
     : undefined
 
-  const hasFilters = filters.length > 0
+  const hasVisibleFilters = visibleFilters.length > 0
 
   useEffect(() => {
     if (property && inputRef) {
@@ -107,7 +118,7 @@ function __FilterSelector<TData>({
           <CommandEmpty>{t('noresults', locale)}</CommandEmpty>
           <CommandList className="max-h-fit">
             <CommandGroup>
-              {columns.map((column) => (
+              {visibleColumns.map((column) => (
                 <FilterableColumn
                   key={column.id}
                   column={column}
@@ -117,8 +128,8 @@ function __FilterSelector<TData>({
               ))}
               <QuickSearchFilters
                 search={value}
-                filters={filters}
-                columns={columns}
+                filters={visibleFilters}
+                columns={visibleColumns}
                 actions={actions}
                 strategy={strategy}
                 locale={locale}
@@ -127,7 +138,7 @@ function __FilterSelector<TData>({
           </CommandList>
         </Command>
       ),
-    [property, column, filter, filters, columns, actions, value],
+    [property, column, filter, visibleFilters, visibleColumns, actions, value],
   )
 
   return (
@@ -141,10 +152,10 @@ function __FilterSelector<TData>({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className={cn('h-7', hasFilters && 'w-fit !px-2')}
+          className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
         >
           <FilterIcon className="size-4" />
-          {!hasFilters && <span>{t('filter', locale)}</span>}
+          {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent

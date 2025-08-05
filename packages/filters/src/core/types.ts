@@ -119,6 +119,7 @@ export type ColumnConfig<
   displayName: string
   icon?: React.ReactElement | React.ElementType
   type: TType
+  hidden?: boolean
   options?: TType extends OptionBasedColumnDataType ? ColumnOption[] : never
   facetedOptions?: TType extends OptionBasedColumnDataType
     ? Map<string, number>
