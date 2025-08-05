@@ -385,6 +385,23 @@ dtf
   .icon(Heading1Icon)
 ```
 
+#### Hidden
+
+We can use the `hidden()` method to hide a column from the filters interfaces - that is, the filter selector menu and the active filters list.
+
+Note that this **does not prevent filtering the column** - it only hides it from the UI. The column is still filterable via `actions` or by manipulating the filters state directly.
+
+A good use case for this is when you want a search input separate from the filters interface, but to keep its state with the rest of your column filters.
+
+```ts {6}
+dtf
+  .text()
+  .id("title")
+  .accessor((row) => row.title)
+  .displayName("Title")
+  .hidden()
+```
+
 #### Options
 
 > [!TIP] This applies to `option` and `multiOption` columns.
