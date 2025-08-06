@@ -15,6 +15,8 @@ export type ElementType<T> = T extends (infer U)[] ? U : T
 
 export type Nullable<T> = T | null | undefined
 
+export type StateUpdaterFn<T> = (prev: T, next: T) => void
+
 /*
  * The model of a column option.
  * Used for representing underlying column values of type `option` or `multiOption`.

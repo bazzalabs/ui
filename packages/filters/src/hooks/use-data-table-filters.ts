@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createColumns } from '../core/columns/index.js'
 import { DEFAULT_OPERATORS, determineNewOperator } from '../core/operators.js'
 import type {
@@ -15,6 +15,7 @@ import type {
   NumberColumnIds,
   OptionBasedColumnDataType,
   OptionColumnIds,
+  StateUpdaterFn,
 } from '../core/types.js'
 import { addUniq, removeUniq, uniq } from '../lib/array.js'
 import {
@@ -35,7 +36,9 @@ export interface DataTableFiltersOptions<
   columnsConfig: TColumns
   defaultFilters?: FiltersState
   filters?: FiltersState
-  onFiltersChange?: React.Dispatch<React.SetStateAction<FiltersState>>
+  onFiltersChange?:
+    | React.Dispatch<React.SetStateAction<FiltersState>>
+    | StateUpdaterFn<FiltersState>
   options?: Partial<
     Record<OptionColumnIds<TColumns>, ColumnOption[] | undefined>
   >
@@ -74,8 +77,43 @@ export function useDataTableFilters<
     )
   }
 
-  const filters = externalFilters ?? internalFilters
-  const setFilters = onFiltersChange ?? setInternalFilters
+  const isControlled =
+    externalFilters !== undefined && onFiltersChange !== undefined
+
+  const filters = isControlled ? externalFilters : internalFilters
+
+  const setFilters = useCallback(
+    (nextFilters: FiltersState | ((prev: FiltersState) => FiltersState)) => {
+      const prevFilters = filters
+
+      const resolvedNextFilters =
+        typeof nextFilters === 'function'
+          ? nextFilters(prevFilters) // If function: call it with prev to get next
+          : nextFilters // If value: use it directly
+
+      // Handle change for controlled mode
+      if (isControlled) {
+        if (onFiltersChange.length <= 1) {
+          // React Dispatch style: handler(nextValue)
+          ;(
+            onFiltersChange as React.Dispatch<
+              React.SetStateAction<FiltersState>
+            >
+          )(resolvedNextFilters)
+        } else {
+          // Custom handler style: handler(prevValue, nextValue)
+          ;(onFiltersChange as StateUpdaterFn<FiltersState>)(
+            prevFilters,
+            resolvedNextFilters,
+          )
+        }
+      } else if (!isControlled) {
+        // Uncontrolled mode: just update internal state
+        setInternalFilters(resolvedNextFilters)
+      }
+    },
+    [filters, isControlled, onFiltersChange],
+  )
 
   // Convert ColumnConfig to Column, applying options and faceted options if provided
   const columns = useMemo(() => {
