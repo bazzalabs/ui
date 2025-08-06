@@ -7,11 +7,16 @@ export default defineConfig((options: Options) => ({
   },
   format: ['esm'],
   dts: true,
+  minify: true,
+  sourcemap: true,
   clean: true,
   splitting: false,
   external: ['react', 'react-dom', '@tanstack/react-table', 'date-fns'],
-  outDir: 'dist',
   // Explicitly exclude test files
   ignoreWatch: ['src/__tests__/**/*'],
+  outDir: 'dist/',
+  outExtension: ({ format }) => {
+    return format === 'esm' ? { js: '.mjs' } : { js: '.cjs' }
+  },
   ...options,
 }))
