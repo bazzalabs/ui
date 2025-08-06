@@ -15,8 +15,5 @@ export default defineConfig((options: Options) => ({
   // Explicitly exclude test files
   ignoreWatch: ['src/__tests__/**/*'],
   outDir: 'dist/',
-  outExtension: ({ format }) => {
-    return format === 'esm' ? { js: '.mjs' } : { js: '.cjs' }
-  },
   ...options,
 }))
