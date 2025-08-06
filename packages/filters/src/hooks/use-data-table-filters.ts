@@ -84,32 +84,33 @@ export function useDataTableFilters<
 
   const setFilters = useCallback(
     (nextFilters: FiltersState | ((prev: FiltersState) => FiltersState)) => {
-      const prevFilters = filters
-
-      const resolvedNextFilters =
-        typeof nextFilters === 'function'
-          ? nextFilters(prevFilters) // If function: call it with prev to get next
-          : nextFilters // If value: use it directly
-
       // Handle change for controlled mode
       if (isControlled) {
+        // For controlled mode, we need to resolve the function and call the handler
+        const prevFilters = filters
+        const resolvedNextFilters =
+          typeof nextFilters === 'function'
+            ? nextFilters(prevFilters) // If function: call it with prev to get next
+            : nextFilters // If value: use it directly
+
+        // Detect handler type by function length and call appropriately
         if (onFiltersChange.length <= 1) {
-          // React Dispatch style: handler(nextValue)
-          ;(
-            onFiltersChange as React.Dispatch<
-              React.SetStateAction<FiltersState>
-            >
-          )(resolvedNextFilters)
+          // React Dispatch style
+          const dispatchHandler = onFiltersChange as React.Dispatch<
+            React.SetStateAction<FiltersState>
+          >
+          dispatchHandler(resolvedNextFilters)
         } else {
-          // Custom handler style: handler(prevValue, nextValue)
-          ;(onFiltersChange as StateUpdaterFn<FiltersState>)(
-            prevFilters,
-            resolvedNextFilters,
-          )
+          // Custom handler style
+          const customHandler = onFiltersChange as (
+            prev: FiltersState,
+            next: FiltersState,
+          ) => void
+          customHandler(prevFilters, resolvedNextFilters)
         }
       } else if (!isControlled) {
-        // Uncontrolled mode: just update internal state
-        setInternalFilters(resolvedNextFilters)
+        // Uncontrolled mode: let React handle the function resolution
+        setInternalFilters(nextFilters)
       }
     },
     [filters, isControlled, onFiltersChange],
