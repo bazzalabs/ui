@@ -920,6 +920,657 @@ describe('useDataTableFilters', () => {
       })
     })
   })
+
+  describe('Batch actions', () => {
+    it('should execute multiple filter operations atomically', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+        }),
+      )
+
+      // Initially, no filters exist
+      expect(result.current.filters).toHaveLength(0)
+
+      // Use batch to add multiple filters at once
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.addFilterValue(optionColumn as any, ['active'])
+          batch.setFilterValue(textColumn as any, ['John'])
+        })
+      })
+
+      // Both filters should be added in a single state update
+      expect(result.current.filters).toHaveLength(2)
+      expect(result.current.filters[0]?.columnId).toBe('status')
+      expect(result.current.filters[0]?.values).toEqual(['active'])
+      expect(result.current.filters[1]?.columnId).toBe('name')
+      expect(result.current.filters[1]?.values).toEqual(['John'])
+    })
+
+    it('should work with controlled state and onFiltersChange', () => {
+      const mockHandler = vi.fn()
+      const { result } = renderHook(() => {
+        const [filters, setFilters] = useState<FiltersState>([])
+        return {
+          externalFilters: filters,
+          ...useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters,
+            onFiltersChange: (prev, next) => {
+              mockHandler(prev, next)
+              setFilters(next)
+            },
+          }),
+        }
+      })
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.addFilterValue(optionColumn as any, ['active'])
+          batch.setFilterValue(textColumn as any, ['Jane'])
+          batch.setFilterOperator('status', 'is not')
+        })
+      })
+
+      // Should trigger onFiltersChange only once with the final result
+      expect(mockHandler).toHaveBeenCalledTimes(1)
+      expect(mockHandler).toHaveBeenCalledWith(
+        [], // prev (empty)
+        [
+          {
+            columnId: 'status',
+            type: 'option',
+            operator: 'is not', // Updated by setFilterOperator
+            values: ['active'],
+          },
+          {
+            columnId: 'name',
+            type: 'text',
+            operator: 'contains',
+            values: ['Jane'],
+          },
+        ], // next (final state)
+      )
+    })
+
+    it('should handle complex batch operations with operator transitions', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Add single value (should use 'is' operator)
+          batch.addFilterValue(optionColumn as any, ['active'])
+          // Add another value (should transition to 'is any of')
+          batch.addFilterValue(optionColumn as any, ['inactive'])
+          // Add a third filter type
+          batch.setFilterValue(textColumn as any, ['test'])
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(2)
+
+      const statusFilter = result.current.filters.find(
+        (f) => f.columnId === 'status',
+      )
+      expect(statusFilter?.operator).toBe('is any of') // Should transition to multiple
+      expect(statusFilter?.values).toEqual(['active', 'inactive'])
+
+      const nameFilter = result.current.filters.find(
+        (f) => f.columnId === 'name',
+      )
+      expect(nameFilter?.operator).toBe('contains')
+      expect(nameFilter?.values).toEqual(['test'])
+    })
+
+    it('should handle removal operations in batch', () => {
+      const initialFilters: FiltersState = [
+        {
+          columnId: 'status',
+          type: 'option',
+          operator: 'is any of',
+          values: ['active', 'inactive'],
+        },
+        {
+          columnId: 'name',
+          type: 'text',
+          operator: 'contains',
+          values: ['John'],
+        },
+      ]
+
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          defaultFilters: initialFilters,
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Remove one value from multi-select (should transition operator)
+          batch.removeFilterValue(optionColumn as any, ['inactive'])
+          // Remove entire text filter
+          batch.removeFilter('name')
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(1)
+
+      const remainingFilter = result.current.filters[0]
+      expect(remainingFilter?.columnId).toBe('status')
+      expect(remainingFilter?.operator).toBe('is') // Should transition back to single
+      expect(remainingFilter?.values).toEqual(['active'])
+    })
+
+    it('should handle mixed add/remove operations correctly', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          defaultFilters: [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ],
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Remove existing filter
+          batch.removeFilter('status')
+          // Add new filter for different column
+          batch.setFilterValue(textColumn as any, ['batch-test'])
+          // Add back option filter with different value
+          batch.addFilterValue(optionColumn as any, ['inactive'])
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(2)
+
+      const statusFilter = result.current.filters.find(
+        (f) => f.columnId === 'status',
+      )
+      expect(statusFilter?.values).toEqual(['inactive'])
+
+      const nameFilter = result.current.filters.find(
+        (f) => f.columnId === 'name',
+      )
+      expect(nameFilter?.values).toEqual(['batch-test'])
+    })
+
+    it('should handle removeAllFilters in batch with subsequent operations', () => {
+      const initialFilters: FiltersState = [
+        {
+          columnId: 'status',
+          type: 'option',
+          operator: 'is',
+          values: ['active'],
+        },
+        {
+          columnId: 'name',
+          type: 'text',
+          operator: 'contains',
+          values: ['John'],
+        },
+      ]
+
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          defaultFilters: initialFilters,
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Clear all existing filters
+          batch.removeAllFilters()
+          // Add new filters
+          batch.addFilterValue(optionColumn as any, ['inactive'])
+          batch.setFilterValue(textColumn as any, ['Jane'])
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(2)
+
+      const statusFilter = result.current.filters.find(
+        (f) => f.columnId === 'status',
+      )
+      expect(statusFilter?.values).toEqual(['inactive'])
+
+      const nameFilter = result.current.filters.find(
+        (f) => f.columnId === 'name',
+      )
+      expect(nameFilter?.values).toEqual(['Jane'])
+    })
+
+    it('should maintain transaction isolation (changes only apply after batch completes)', () => {
+      const mockHandler = vi.fn(
+        (_prev: FiltersState, _next: FiltersState) => {},
+      )
+      const { result } = renderHook(() => {
+        const [filters] = useState<FiltersState>([])
+        return {
+          externalFilters: filters,
+          ...useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters,
+            onFiltersChange: mockHandler,
+          }),
+        }
+      })
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // These operations should not trigger individual state updates
+          batch.addFilterValue(optionColumn as any, ['active'])
+          batch.setFilterValue(textColumn as any, ['John'])
+          batch.addFilterValue(optionColumn as any, ['inactive']) // Should transition operator
+        })
+      })
+
+      // Handler should be called only once with the final state
+      expect(mockHandler).toHaveBeenCalledTimes(1)
+      expect(mockHandler).toHaveBeenCalledWith(
+        [], // prev (empty)
+        [
+          {
+            columnId: 'status',
+            type: 'option',
+            operator: 'is any of', // Final operator after all operations
+            values: ['active', 'inactive'], // Final values after all operations
+          },
+          {
+            columnId: 'name',
+            type: 'text',
+            operator: 'contains',
+            values: ['John'],
+          },
+        ], // next (final state)
+      )
+    })
+
+    it('should work with React Dispatch style handlers', () => {
+      const mockSetFilters = vi.fn()
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          filters: [],
+          onFiltersChange: mockSetFilters, // React Dispatch style (1 parameter)
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.addFilterValue(optionColumn as any, ['active'])
+          batch.setFilterValue(textColumn as any, ['test'])
+        })
+      })
+
+      // Should be called once with just the final state
+      expect(mockSetFilters).toHaveBeenCalledTimes(1)
+      expect(mockSetFilters).toHaveBeenCalledWith([
+        {
+          columnId: 'status',
+          type: 'option',
+          operator: 'is',
+          values: ['active'],
+        },
+        {
+          columnId: 'name',
+          type: 'text',
+          operator: 'contains',
+          values: ['test'],
+        },
+      ])
+
+      // Verify it was called with exactly 1 parameter
+      expect(mockSetFilters.mock.calls[0]).toHaveLength(1)
+    })
+
+    it('should handle empty batch operations', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          defaultFilters: [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ],
+        }),
+      )
+
+      const initialLength = result.current.filters.length
+
+      act(() => {
+        result.current.actions.batch(() => {
+          // Do nothing in the batch
+        })
+      })
+
+      // State should remain unchanged
+      expect(result.current.filters).toHaveLength(initialLength)
+      expect(result.current.filters[0]?.values).toEqual(['active'])
+    })
+
+    it('should handle operations that cancel each other out', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Add a filter
+          batch.addFilterValue(optionColumn as any, ['active'])
+          // Then immediately remove it
+          batch.removeFilterValue(optionColumn as any, ['active'])
+          // Add a different filter
+          batch.setFilterValue(textColumn as any, ['test'])
+          // Then remove that too
+          batch.removeFilter('name')
+        })
+      })
+
+      // Final state should be empty since operations cancelled out
+      expect(result.current.filters).toHaveLength(0)
+    })
+
+    it('should work with complex state transitions', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          defaultFilters: [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is any of',
+              values: ['active', 'inactive'],
+            },
+          ],
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Remove one value (should transition from 'is any of' to 'is')
+          batch.removeFilterValue(optionColumn as any, ['inactive'])
+          // Change operator
+          batch.setFilterOperator('status', 'is not')
+          // Add a completely different filter
+          batch.setFilterValue(textColumn as any, ['complex-test'])
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(2)
+
+      const statusFilter = result.current.filters.find(
+        (f) => f.columnId === 'status',
+      )
+      expect(statusFilter?.operator).toBe('is not') // Final operator
+      expect(statusFilter?.values).toEqual(['active']) // After removal
+
+      const nameFilter = result.current.filters.find(
+        (f) => f.columnId === 'name',
+      )
+      expect(nameFilter?.operator).toBe('contains')
+      expect(nameFilter?.values).toEqual(['complex-test'])
+    })
+
+    it('should maintain proper transaction semantics with controlled state', () => {
+      const stateChanges: FiltersState[] = []
+      const { result } = renderHook(() => {
+        const [filters, setFilters] = useState<FiltersState>([])
+
+        return {
+          externalFilters: filters,
+          ...useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters,
+            onFiltersChange: (_prev, next) => {
+              stateChanges.push(next)
+              setFilters(next)
+            },
+          }),
+        }
+      })
+
+      // Perform individual operations (should create multiple state changes)
+      act(() => {
+        result.current.actions.addFilterValue(optionColumn as any, ['active'])
+      })
+
+      act(() => {
+        result.current.actions.setFilterValue(textColumn as any, ['individual'])
+      })
+
+      // Reset for batch test
+      act(() => {
+        result.current.actions.removeAllFilters()
+      })
+
+      const individualOperationsCount = stateChanges.length
+
+      // Now do the same operations in a batch (should create only one state change)
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.addFilterValue(optionColumn as any, ['active'])
+          batch.setFilterValue(textColumn as any, ['batched'])
+        })
+      })
+
+      // Should have added only 1 more state change (the batch result)
+      expect(stateChanges).toHaveLength(individualOperationsCount + 1)
+
+      // Final state should have both filters
+      const finalState = stateChanges[stateChanges.length - 1]
+      expect(finalState).toHaveLength(2)
+      expect(finalState?.find((f) => f.columnId === 'status')?.values).toEqual([
+        'active',
+      ])
+      expect(finalState?.find((f) => f.columnId === 'name')?.values).toEqual([
+        'batched',
+      ])
+    })
+
+    it('should handle batch operations with React Dispatch style handler', () => {
+      const mockSetFilters = vi.fn()
+      const { result } = renderHook(() => {
+        const [filters] = useState<FiltersState>([])
+
+        return useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          filters,
+          onFiltersChange: mockSetFilters, // Single parameter React Dispatch style
+        })
+      })
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.addFilterValue(optionColumn as any, ['active', 'inactive'])
+          batch.setFilterValue(textColumn as any, ['dispatch-test'])
+        })
+      })
+
+      // Should be called once with the final state
+      expect(mockSetFilters).toHaveBeenCalledTimes(1)
+      expect(mockSetFilters).toHaveBeenCalledWith([
+        {
+          columnId: 'status',
+          type: 'option',
+          operator: 'is any of', // Multiple values
+          values: ['active', 'inactive'],
+        },
+        {
+          columnId: 'name',
+          type: 'text',
+          operator: 'contains',
+          values: ['dispatch-test'],
+        },
+      ])
+
+      // Verify single parameter call
+      expect(mockSetFilters.mock.calls[0]).toHaveLength(1)
+    })
+
+    it('should handle batch operations that result in no filters', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+          defaultFilters: [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ],
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.removeAllFilters()
+          // Add and then immediately remove
+          batch.addFilterValue(optionColumn as any, ['inactive'])
+          batch.removeFilterValue(optionColumn as any, ['inactive'])
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(0)
+    })
+
+    it('should support nested batch-like patterns (batch within transaction)', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          // Simulate complex business logic that might group operations
+          const statusOperations = () => {
+            batch.addFilterValue(optionColumn as any, ['active'])
+            batch.addFilterValue(optionColumn as any, ['inactive'])
+          }
+
+          const textOperations = () => {
+            batch.setFilterValue(textColumn as any, ['nested'])
+          }
+
+          // Execute grouped operations
+          statusOperations()
+          textOperations()
+        })
+      })
+
+      expect(result.current.filters).toHaveLength(2)
+      expect(
+        result.current.filters.find((f) => f.columnId === 'status')?.values,
+      ).toEqual(['active', 'inactive'])
+      expect(
+        result.current.filters.find((f) => f.columnId === 'name')?.values,
+      ).toEqual(['nested'])
+    })
+
+    it('should preserve all filter properties during batch operations', () => {
+      const { result } = renderHook(() =>
+        useDataTableFilters({
+          strategy: 'client',
+          data,
+          columnsConfig,
+          options,
+        }),
+      )
+
+      act(() => {
+        result.current.actions.batch((batch) => {
+          batch.setFilterValue(optionColumn as any, ['active', 'inactive'])
+          batch.setFilterValue(textColumn as any, ['properties-test'])
+        })
+      })
+
+      const statusFilter = result.current.filters.find(
+        (f) => f.columnId === 'status',
+      )
+      const nameFilter = result.current.filters.find(
+        (f) => f.columnId === 'name',
+      )
+
+      // Verify all properties are correctly set
+      expect(statusFilter).toEqual({
+        columnId: 'status',
+        type: 'option',
+        operator: 'is any of',
+        values: ['active', 'inactive'],
+      })
+
+      expect(nameFilter).toEqual({
+        columnId: 'name',
+        type: 'text',
+        operator: 'contains',
+        values: ['properties-test'],
+      })
+    })
+  })
 })
 
 describe('determineNewOperator function', () => {

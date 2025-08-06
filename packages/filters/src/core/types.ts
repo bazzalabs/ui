@@ -247,11 +247,66 @@ export type Column<
   ColumnProperties<TData, TVal> &
   ColumnPrivateProperties<TData, TVal>
 
-/*
- * Describes the available actions on column filters.
- * Includes both column-specific and global actions, ultimately acting on the column filters.
- */
 export interface DataTableFilterActions {
+  addFilterValue: <TData, TType extends OptionBasedColumnDataType>(
+    column: Column<TData, TType>,
+    values: FilterModel<TType>['values'],
+  ) => void
+
+  removeFilterValue: <TData, TType extends OptionBasedColumnDataType>(
+    column: Column<TData, TType>,
+    value: FilterModel<TType>['values'],
+  ) => void
+
+  setFilterValue: <TData, TType extends ColumnDataType>(
+    column: Column<TData, TType>,
+    values: FilterModel<TType>['values'],
+  ) => void
+
+  setFilterOperator: <TType extends ColumnDataType>(
+    columnId: string,
+    operator: FilterModel<TType>['operator'],
+  ) => void
+
+  removeFilter: (columnId: string) => void
+
+  removeAllFilters: () => void
+  batch: (callback: (batchActions: DataTableFilterBatchActions) => void) => void
+}
+
+export interface FilterOperations {
+  addFilterValue: <TData, TType extends OptionBasedColumnDataType>(
+    filters: FiltersState,
+    column: Column<TData, TType>,
+    values: FilterModel<TType>['values'],
+  ) => FiltersState
+
+  removeFilterValue: <TData, TType extends OptionBasedColumnDataType>(
+    filters: FiltersState,
+    column: Column<TData, TType>,
+    value: FilterModel<TType>['values'],
+  ) => FiltersState
+
+  setFilterValue: <TData, TType extends ColumnDataType>(
+    filters: FiltersState,
+    column: Column<TData, TType>,
+    values: FilterModel<TType>['values'],
+  ) => FiltersState
+
+  setFilterOperator: <TType extends ColumnDataType>(
+    filters: FiltersState,
+    columnId: string,
+    operator: FilterModel<TType>['operator'],
+  ) => FiltersState
+
+  removeFilter: (filters: FiltersState, columnId: string) => FiltersState
+
+  removeAllFilters: (filters: FiltersState) => FiltersState
+}
+
+export interface DataTableFilterBatchActions extends BatchFilterOperations {}
+
+export interface BatchFilterOperations {
   addFilterValue: <TData, TType extends OptionBasedColumnDataType>(
     column: Column<TData, TType>,
     values: FilterModel<TType>['values'],

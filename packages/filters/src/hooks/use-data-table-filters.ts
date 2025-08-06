@@ -3,12 +3,15 @@
 import type React from 'react'
 import { useCallback, useMemo, useState } from 'react'
 import { createColumns } from '../core/columns/index.js'
-import { DEFAULT_OPERATORS, determineNewOperator } from '../core/operators.js'
+import { filterOperations } from '../core/filters.js'
 import type {
+  BatchFilterOperations,
+  Column,
   ColumnConfig,
   ColumnDataType,
   ColumnOption,
   DataTableFilterActions,
+  DataTableFilterBatchActions,
   FilterModel,
   FilterStrategy,
   FiltersState,
@@ -17,10 +20,7 @@ import type {
   OptionColumnIds,
   StateUpdaterFn,
 } from '../core/types.js'
-import { addUniq, removeUniq, uniq } from '../lib/array.js'
 import {
-  createDateFilterValue,
-  createNumberFilterValue,
   isColumnOptionArray,
   isColumnOptionMap,
   isMinMaxTuple,
@@ -106,6 +106,7 @@ export function useDataTableFilters<
             prev: FiltersState,
             next: FiltersState,
           ) => void
+
           customHandler(prevFilters, resolvedNextFilters)
         }
       } else if (!isControlled) {
@@ -166,223 +167,119 @@ export function useDataTableFilters<
   const actions: DataTableFilterActions = useMemo(
     () => ({
       addFilterValue<TData, TType extends OptionBasedColumnDataType>(
-        column: ColumnConfig<TData, TType>,
+        column: Column<TData, TType>,
         values: FilterModel<TType>['values'],
       ) {
-        if (column.type === 'option') {
-          setFilters((prev) => {
-            const filter = prev.find((f) => f.columnId === column.id)
-            const isColumnFiltered = filter && filter.values.length > 0
-            if (!isColumnFiltered) {
-              return [
-                ...prev,
-                {
-                  columnId: column.id,
-                  type: column.type,
-                  operator:
-                    values.length > 1
-                      ? DEFAULT_OPERATORS[column.type]!.multiple
-                      : DEFAULT_OPERATORS[column.type]!.single,
-                  values,
-                },
-              ]
-            }
-            const oldValues = filter.values
-            const newValues = addUniq(filter.values, values)
-            const newOperator = determineNewOperator(
-              'option',
-              oldValues,
-              newValues,
-              filter.operator,
-            )
-            return prev.map((f) =>
-              f.columnId === column.id
-                ? {
-                    columnId: column.id,
-                    type: column.type,
-                    operator: newOperator,
-                    values: newValues,
-                  }
-                : f,
-            )
-          })
-          return
-        }
-        if (column.type === 'multiOption') {
-          setFilters((prev) => {
-            const filter = prev.find((f) => f.columnId === column.id)
-            const isColumnFiltered = filter && filter.values.length > 0
-            if (!isColumnFiltered) {
-              return [
-                ...prev,
-                {
-                  columnId: column.id,
-                  type: column.type,
-                  operator:
-                    values.length > 1
-                      ? DEFAULT_OPERATORS[column.type]!.multiple
-                      : DEFAULT_OPERATORS[column.type]!.single,
-                  values,
-                },
-              ]
-            }
-            const oldValues = filter.values
-            const newValues = addUniq(filter.values, values)
-            const newOperator = determineNewOperator(
-              'multiOption',
-              oldValues,
-              newValues,
-              filter.operator,
-            )
-            if (newValues.length === 0) {
-              return prev.filter((f) => f.columnId !== column.id)
-            }
-            return prev.map((f) =>
-              f.columnId === column.id
-                ? {
-                    columnId: column.id,
-                    type: column.type,
-                    operator: newOperator,
-                    values: newValues,
-                  }
-                : f,
-            )
-          })
-          return
-        }
-        throw new Error(
-          '[data-table-filter] addFilterValue() is only supported for option columns',
+        setFilters((prev) =>
+          filterOperations.addFilterValue(prev, column, values),
         )
       },
+
       removeFilterValue<TData, TType extends OptionBasedColumnDataType>(
-        column: ColumnConfig<TData, TType>,
+        column: Column<TData, TType>,
         value: FilterModel<TType>['values'],
       ) {
-        if (column.type === 'option') {
-          setFilters((prev) => {
-            const filter = prev.find((f) => f.columnId === column.id)
-            const isColumnFiltered = filter && filter.values.length > 0
-            if (!isColumnFiltered) {
-              return [...prev]
-            }
-            const newValues = removeUniq(filter.values, value)
-            const oldValues = filter.values
-            const newOperator = determineNewOperator(
-              'option',
-              oldValues,
-              newValues,
-              filter.operator,
-            )
-            if (newValues.length === 0) {
-              return prev.filter((f) => f.columnId !== column.id)
-            }
-            return prev.map((f) =>
-              f.columnId === column.id
-                ? {
-                    columnId: column.id,
-                    type: column.type,
-                    operator: newOperator,
-                    values: newValues,
-                  }
-                : f,
-            )
-          })
-          return
-        }
-        if (column.type === 'multiOption') {
-          setFilters((prev) => {
-            const filter = prev.find((f) => f.columnId === column.id)
-            const isColumnFiltered = filter && filter.values.length > 0
-            if (!isColumnFiltered) {
-              return [...prev]
-            }
-            const newValues = removeUniq(filter.values, value)
-            const oldValues = filter.values
-            const newOperator = determineNewOperator(
-              'multiOption',
-              oldValues,
-              newValues,
-              filter.operator,
-            )
-            if (newValues.length === 0) {
-              return prev.filter((f) => f.columnId !== column.id)
-            }
-            return prev.map((f) =>
-              f.columnId === column.id
-                ? {
-                    columnId: column.id,
-                    type: column.type,
-                    operator: newOperator,
-                    values: newValues,
-                  }
-                : f,
-            )
-          })
-          return
-        }
-        throw new Error(
-          '[data-table-filter] removeFilterValue() is only supported for option columns',
+        setFilters((prev) =>
+          filterOperations.removeFilterValue(prev, column, value),
         )
       },
+
       setFilterValue<TData, TType extends ColumnDataType>(
-        column: ColumnConfig<TData, TType>,
+        column: Column<TData, TType>,
         values: FilterModel<TType>['values'],
       ) {
-        setFilters((prev) => {
-          const filter = prev.find((f) => f.columnId === column.id)
-          const isColumnFiltered = filter && filter.values.length > 0
-          const newValues =
-            column.type === 'number'
-              ? createNumberFilterValue(values as number[])
-              : column.type === 'date'
-                ? createDateFilterValue(
-                    values as [Date, Date] | [Date] | [] | undefined,
-                  )
-                : uniq(values)
-          if (newValues.length === 0) return prev
-          if (!isColumnFiltered) {
-            return [
-              ...prev,
-              {
-                columnId: column.id,
-                type: column.type,
-                operator:
-                  values.length > 1
-                    ? DEFAULT_OPERATORS[column.type]!.multiple
-                    : DEFAULT_OPERATORS[column.type]!.single,
-                values: newValues,
-              },
-            ]
-          }
-          const oldValues = filter.values
-          const newOperator = determineNewOperator(
-            column.type,
-            oldValues,
-            newValues,
-            filter.operator,
-          )
-          const newFilter = {
-            columnId: column.id,
-            type: column.type,
-            operator: newOperator,
-            values: newValues as any,
-          } satisfies FilterModel<TType>
-          return prev.map((f) => (f.columnId === column.id ? newFilter : f))
-        })
+        setFilters((prev) =>
+          filterOperations.setFilterValue(prev, column, values),
+        )
       },
+
       setFilterOperator<TType extends ColumnDataType>(
         columnId: string,
         operator: FilterModel<TType>['operator'],
       ) {
         setFilters((prev) =>
-          prev.map((f) => (f.columnId === columnId ? { ...f, operator } : f)),
+          filterOperations.setFilterOperator(prev, columnId, operator),
         )
       },
+
       removeFilter(columnId: string) {
-        setFilters((prev) => prev.filter((f) => f.columnId !== columnId))
+        setFilters((prev) => filterOperations.removeFilter(prev, columnId))
       },
+
       removeAllFilters() {
-        setFilters([])
+        setFilters((prev) => filterOperations.removeAllFilters(prev))
+      },
+
+      batch(callback: (batchActions: DataTableFilterBatchActions) => void) {
+        setFilters((prevFilters) => {
+          // Start with current state
+          let transactionFilters = prevFilters
+
+          // Create batch actions that apply operations to transaction state
+          const batchActions: BatchFilterOperations = {
+            addFilterValue<TData, TType extends OptionBasedColumnDataType>(
+              column: Column<TData, TType>,
+              values: FilterModel<TType>['values'],
+            ) {
+              transactionFilters = filterOperations.addFilterValue(
+                transactionFilters,
+                column,
+                values,
+              )
+            },
+
+            removeFilterValue<TData, TType extends OptionBasedColumnDataType>(
+              column: Column<TData, TType>,
+              value: FilterModel<TType>['values'],
+            ) {
+              transactionFilters = filterOperations.removeFilterValue(
+                transactionFilters,
+                column,
+                value,
+              )
+            },
+
+            setFilterValue<TData, TType extends ColumnDataType>(
+              column: Column<TData, TType>,
+              values: FilterModel<TType>['values'],
+            ) {
+              transactionFilters = filterOperations.setFilterValue(
+                transactionFilters,
+                column,
+                values,
+              )
+            },
+
+            setFilterOperator<TType extends ColumnDataType>(
+              columnId: string,
+              operator: FilterModel<TType>['operator'],
+            ) {
+              transactionFilters = filterOperations.setFilterOperator(
+                transactionFilters,
+                columnId,
+                operator,
+              )
+            },
+
+            removeFilter(columnId: string) {
+              transactionFilters = filterOperations.removeFilter(
+                transactionFilters,
+                columnId,
+              )
+            },
+
+            removeAllFilters() {
+              transactionFilters =
+                filterOperations.removeAllFilters(transactionFilters)
+            },
+          }
+
+          // Execute the callback with batch actions
+          callback(batchActions)
+
+          // Return the final transaction state
+          return transactionFilters
+        })
       },
     }),
     [setFilters],
