@@ -14,6 +14,12 @@ import { LABEL_STYLES_BG, type TW_COLOR } from './columns'
 import { ISSUE_STATUSES } from './data'
 import type { Issue } from './types'
 
+declare module '@bazzaui/filters' {
+  interface ColumnMeta {
+    foo?: string
+  }
+}
+
 const dtf = createColumnConfigHelper<Issue>()
 
 export const columnsConfig = [
@@ -23,6 +29,9 @@ export const columnsConfig = [
     .accessor((row) => row.title)
     .displayName('Title')
     .icon(Heading1Icon)
+    .meta({
+      foo: 'bar',
+    })
     .build(),
   dtf
     .option()
