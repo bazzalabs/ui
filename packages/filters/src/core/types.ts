@@ -1,3 +1,5 @@
+import type { orderFns } from '../lib/order-fns.js'
+
 /*
  * # GENERAL NOTES:
  *
@@ -9,13 +11,29 @@
  *
  */
 
-import type { orderFns } from '../lib/order-fns.js'
-
 export type ElementType<T> = T extends (infer U)[] ? U : T
 
 export type Nullable<T> = T | null | undefined
 
 export type StateUpdaterFn<T> = (prev: T, next: T) => void
+
+/**
+ * Interface for column metadata that can be extended via declaration merging.
+ * Users can augment this interface to add custom metadata properties.
+ *
+ * @example
+ * ```typescript
+ * declare module '@bazzaui/filters' {
+ *   interface ColumnMeta {
+ *     tooltip?: string
+ *     category?: string
+ *     sortable?: boolean
+ *   }
+ * }
+ * ```
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: consumers can override this
+export interface ColumnMeta {}
 
 /*
  * The model of a column option.
@@ -151,6 +169,7 @@ export type ColumnConfig<
     ? TTransformOptionsFn
     : never
   toggledStateName?: TType extends 'boolean' ? string : never
+  meta?: ColumnMeta
 }
 
 export type OptionColumnId<T> = T extends ColumnConfig<

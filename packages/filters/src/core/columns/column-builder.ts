@@ -9,6 +9,7 @@ import {
 import type {
   ColumnConfig,
   ColumnDataType,
+  ColumnMeta,
   ColumnOption,
   OrderDirection,
   TAccessorFn,
@@ -170,6 +171,12 @@ export class ColumnConfigBuilder<
 
     const newInstance = this.clone() as ColumnConfigBuilder<any, any, any, any>
     newInstance.config.toggledStateName = value
+    return newInstance
+  }
+
+  meta(value: ColumnMeta): ColumnConfigBuilder<TData, TType, TVal, TId> {
+    const newInstance = this.clone()
+    newInstance.config.meta = value
     return newInstance
   }
 
