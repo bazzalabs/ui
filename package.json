@@ -6,6 +6,8 @@
     "dev:up": "turbo run dev test:watch",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
+    "bench": "turbo run bench",
+    "bench:watch": "turbo run bench:watch",
     "check": "biome check .",
     "check:fix": "biome check --fix .",
     "vercel:install": "turbo run vercel:install",

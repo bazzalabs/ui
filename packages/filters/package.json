@@ -24,8 +24,10 @@
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest --watch --disable-console-intercept",
+    "test": "vitest run --run --mode test",
+    "test:watch": "vitest --mode test --watch --disable-console-intercept",
+    "bench": "vitest bench --run",
+    "bench:watch": "vitest bench --watch",
     "/**** Version Bumping (Recommended)": "",
     "release:patch": "bun scripts/release.ts --bump patch --path .",
     "release:minor": "bun scripts/release.ts --bump minor --path .",
@@ -45,15 +47,21 @@
   },
   "devDependencies": {
     "@bazzaui/typescript-config": "*",
+    "@ndaidong/txtgen": "^4.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.1",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.3.4",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.537.0",
+    "nanoid": "^5.1.5",
+    "remeda": "^2.30.0",
+    "tinybench": "^4.0.1",
     "tsup": "^8.5.0",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.1.1"
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "@tanstack/react-table": ">=8.0.0",
