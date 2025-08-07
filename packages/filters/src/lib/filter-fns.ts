@@ -9,6 +9,7 @@ import {
 import { dateFilterOperators } from '../core/operators.js'
 import type { FilterModel } from '../core/types.js'
 import { intersection } from './array.js'
+import { getValidNumber, isValidNumber } from './helpers.js'
 
 export function optionFilterFn(
   inputData: string,
@@ -138,42 +139,117 @@ export function textFilterFn(
 export function numberFilterFn(
   inputData: number,
   filterValue: FilterModel<'number'>,
-) {
+): boolean {
+  // Early exit conditions
   if (!filterValue || !filterValue.values || filterValue.values.length === 0) {
     return true
   }
 
   const value = inputData
-  if (value === undefined || Number.isNaN(value)) return false
+  const filterVal = getValidNumber(filterValue.values[0])
 
-  const filterVal = filterValue.values[0]
-  if (filterVal === undefined) return true
+  // If the primary filter value is invalid, no filtering applies
+  if (filterVal === undefined) {
+    return true
+  }
+
+  // Input validation - if input data is not a valid number, handle appropriately
+  if (!isValidNumber(value)) {
+    // NaN input data never matches any filter (NaN !== NaN)
+    return false
+  }
 
   switch (filterValue.operator) {
     case 'is':
       return value === filterVal
+
     case 'is not':
       return value !== filterVal
+
     case 'is greater than':
+      // Handle Infinity edge cases
+      if (filterVal === Number.POSITIVE_INFINITY) return false // Nothing is greater than Infinity
+      if (filterVal === Number.NEGATIVE_INFINITY) return true // Everything is greater than -Infinity
       return value > filterVal
+
     case 'is greater than or equal to':
+      if (filterVal === Number.POSITIVE_INFINITY)
+        return value === Number.POSITIVE_INFINITY // Only Infinity >= Infinity
+      if (filterVal === Number.NEGATIVE_INFINITY) return true // Everything >= -Infinity
       return value >= filterVal
+
     case 'is less than':
+      if (filterVal === Number.NEGATIVE_INFINITY) return false // Nothing is less than -Infinity
+      if (filterVal === Number.POSITIVE_INFINITY)
+        return value !== Number.POSITIVE_INFINITY // Everything except Infinity < Infinity
       return value < filterVal
+
     case 'is less than or equal to':
+      if (filterVal === Number.NEGATIVE_INFINITY)
+        return value === Number.NEGATIVE_INFINITY // Only -Infinity <= -Infinity
+      if (filterVal === Number.POSITIVE_INFINITY) return true // Everything <= Infinity
       return value <= filterVal
+
     case 'is between': {
-      const lowerBound = filterValue.values[0]
-      const upperBound = filterValue.values[1]
-      if (lowerBound === undefined || upperBound === undefined) return true
-      return value >= lowerBound && value <= upperBound
+      const lowerBound = getValidNumber(filterValue.values[0])
+      const upperBound = getValidNumber(filterValue.values[1])
+
+      // If either bound is invalid, no filtering applies
+      if (lowerBound === undefined || upperBound === undefined) {
+        return true
+      }
+
+      // Handle the case where bounds might be reversed
+      const actualLower = Math.min(lowerBound, upperBound)
+      const actualUpper = Math.max(lowerBound, upperBound)
+
+      // Special handling for infinite bounds
+      if (
+        actualLower === Number.NEGATIVE_INFINITY &&
+        actualUpper === Number.POSITIVE_INFINITY
+      ) {
+        return true // Everything is between -∞ and +∞
+      }
+      if (
+        actualLower === Number.POSITIVE_INFINITY ||
+        actualUpper === Number.NEGATIVE_INFINITY
+      ) {
+        return false // Invalid range
+      }
+
+      return value >= actualLower && value <= actualUpper
     }
+
     case 'is not between': {
-      const lowerBound = filterValue.values[0]
-      const upperBound = filterValue.values[1]
-      if (lowerBound === undefined || upperBound === undefined) return true
-      return value < lowerBound || value > upperBound
+      const lowerBound = getValidNumber(filterValue.values[0])
+      const upperBound = getValidNumber(filterValue.values[1])
+
+      // If either bound is invalid, no filtering applies
+      if (lowerBound === undefined || upperBound === undefined) {
+        return true
+      }
+
+      // Handle the case where bounds might be reversed
+      const actualLower = Math.min(lowerBound, upperBound)
+      const actualUpper = Math.max(lowerBound, upperBound)
+
+      // Special handling for infinite bounds
+      if (
+        actualLower === Number.NEGATIVE_INFINITY &&
+        actualUpper === Number.POSITIVE_INFINITY
+      ) {
+        return false // Nothing is outside -∞ to +∞
+      }
+      if (
+        actualLower === Number.POSITIVE_INFINITY ||
+        actualUpper === Number.NEGATIVE_INFINITY
+      ) {
+        return true // Invalid range means everything is "not between"
+      }
+
+      return value < actualLower || value > actualUpper
     }
+
     default:
       return true
   }

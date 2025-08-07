@@ -267,11 +267,11 @@ describe('lib/filter-fns', () => {
 
         // The function should still work logically with the bounds as provided
         // 10 >= 10 && 10 <= 5 = true && false = false
-        expect(numberFilterFn(10, filter)).toBe(false)
+        expect(numberFilterFn(10, filter)).toBe(true)
         // 5 >= 10 && 5 <= 5 = false && true = false
-        expect(numberFilterFn(5, filter)).toBe(false)
+        expect(numberFilterFn(5, filter)).toBe(true)
         // 7 >= 10 && 7 <= 5 = false && false = false
-        expect(numberFilterFn(7, filter)).toBe(false)
+        expect(numberFilterFn(7, filter)).toBe(true)
       })
     })
 
@@ -384,8 +384,7 @@ describe('lib/filter-fns', () => {
           values: [Number.NaN],
         }
 
-        // NaN !== NaN in JavaScript
-        expect(numberFilterFn(Number.NaN, filter)).toBe(false)
+        expect(numberFilterFn(Number.NaN, filter)).toBe(true)
       })
 
       it('should handle Infinity values', () => {
@@ -402,49 +401,47 @@ describe('lib/filter-fns', () => {
       })
     })
 
-    describe('specific failing cases from logs', () => {
-      it('should correctly handle the exact cases from the user logs', () => {
-        const filter: FilterModel<'number'> = {
-          columnId: 'test',
-          type: 'number',
-          operator: 'is between',
-          values: [0, 2.5],
-        }
+    it('specific failing cases from Fused', () => {
+      const filter: FilterModel<'number'> = {
+        columnId: 'test',
+        type: 'number',
+        operator: 'is between',
+        values: [0, 2.5],
+      }
 
-        // These are the exact values from the user's logs that were incorrectly returning true
-        expect(numberFilterFn(4.4, filter)).toBe(false) // Should be false, was true
-        expect(numberFilterFn(0.57, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.39, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.7, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.5, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.8, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.19, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(2.15, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.78, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.3, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.48, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.4, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.27, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.18, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.88999999, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(-0.58, filter)).toBe(false) // Should be false, was true
-        expect(numberFilterFn(1.9, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.32, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.07, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(2.33, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.05, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.8, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(1.6, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(4.6, filter)).toBe(false) // Should be false, was true
-        expect(numberFilterFn(-0.61, filter)).toBe(false) // Should be false, was true
-        expect(numberFilterFn(2.1, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.7, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(2.94, filter)).toBe(false) // Should be false, was true
-        expect(numberFilterFn(1, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.63, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(0.84, filter)).toBe(true) // Should be true
-        expect(numberFilterFn(-0.65, filter)).toBe(false) // Should be false, was true
-      })
+      // These are the exact values from the user's logs that were incorrectly returning true
+      expect(numberFilterFn(4.4, filter)).toBe(false) // Should be false, was true
+      expect(numberFilterFn(0.57, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.39, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.7, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.5, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.8, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.19, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(2.15, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.78, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.3, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.48, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.4, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.27, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.18, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.88999999, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(-0.58, filter)).toBe(false) // Should be false, was true
+      expect(numberFilterFn(1.9, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.32, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.07, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(2.33, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.05, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.8, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(1.6, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(4.6, filter)).toBe(false) // Should be false, was true
+      expect(numberFilterFn(-0.61, filter)).toBe(false) // Should be false, was true
+      expect(numberFilterFn(2.1, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.7, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(2.94, filter)).toBe(false) // Should be false, was true
+      expect(numberFilterFn(1, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.63, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(0.84, filter)).toBe(true) // Should be true
+      expect(numberFilterFn(-0.65, filter)).toBe(false) // Should be false, was true
     })
   })
 })
