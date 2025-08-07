@@ -144,9 +144,10 @@ export function numberFilterFn(
   }
 
   const value = inputData
-  const filterVal = filterValue.values[0]
+  if (value === undefined || Number.isNaN(value)) return false
 
-  if (!filterVal) return true
+  const filterVal = filterValue.values[0]
+  if (filterVal === undefined) return true
 
   switch (filterValue.operator) {
     case 'is':
