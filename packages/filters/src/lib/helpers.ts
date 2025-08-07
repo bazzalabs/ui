@@ -1,5 +1,13 @@
 import { isBefore } from 'date-fns'
-import type { Column, ColumnOption } from '../core/types.js'
+import type { Column, ColumnOption, FiltersState } from '../core/types.js'
+import {
+  booleanFilterFn,
+  dateFilterFn,
+  multiOptionFilterFn,
+  numberFilterFn,
+  optionFilterFn,
+  textFilterFn,
+} from './filter-fns.js'
 
 export function getColumn<TData>(columns: Column<TData>[], id: string) {
   const column = columns.find((c) => c.id === id)
@@ -96,4 +104,58 @@ export function isMinMaxTuple(value: unknown): value is [number, number] {
     typeof value[0] === 'number' &&
     typeof value[1] === 'number'
   )
+}
+export function getValidNumber(value: any): number | undefined {
+  if (value === null || value === undefined) return undefined
+  if (typeof value !== 'number') return undefined
+  if (Number.isNaN(value)) return undefined
+
+  return value // This includes Infinity and -Infinity, which are valid
+}
+
+export function isValidNumber(value: any): value is number {
+  return typeof value === 'number' && !Number.isNaN(value)
+}
+
+export function filterRow(row: any, filters: FiltersState) {
+  for (const filter of filters) {
+    const cell = row[filter.columnId]
+
+    if (filter.type === 'text') {
+      if (!textFilterFn(cell, filter)) {
+        return false
+      }
+    } else if (filter.type === 'number') {
+      if (!numberFilterFn(cell, filter)) {
+        return false
+      }
+    } else if (filter.type === 'date') {
+      if (!dateFilterFn(cell, filter)) {
+        return false
+      }
+    } else if (filter.type === 'boolean') {
+      if (!booleanFilterFn(cell, filter)) {
+        return false
+      }
+    } else if (filter.type === 'option') {
+      if (!optionFilterFn(cell, filter)) {
+        return false
+      }
+    } else if (filter.type === 'multiOption') {
+      if (!multiOptionFilterFn(cell, filter)) {
+        return false
+      }
+    } else {
+      throw new Error(`Unknown filter type: ${filter.type}`)
+    }
+  }
+
+  return true
+}
+
+export function filterData<TData>(
+  data: TData[],
+  filters: FiltersState,
+): TData[] {
+  return data.filter((row) => filterRow(row, filters))
 }

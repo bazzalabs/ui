@@ -27,6 +27,14 @@
       "cache": false,
       "persistent": true
     },
+    "bench": {
+      "cache": false,
+      "persistent": false
+    },
+    "bench:watch": {
+      "cache": false,
+      "persistent": true
+    },
     "start": {
       "cache": false,
       "persistent": true
