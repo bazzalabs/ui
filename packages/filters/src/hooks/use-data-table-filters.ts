@@ -9,16 +9,16 @@ import type {
   Column,
   ColumnConfig,
   ColumnDataType,
-  ColumnOption,
   DataTableFilterActions,
   DataTableFilterBatchActions,
+  DataTableFiltersInstance,
+  DataTableFiltersOptions,
   FilterModel,
   FilterStrategy,
   FiltersState,
   NumberColumnIds,
   OptionBasedColumnDataType,
   OptionColumnIds,
-  StateUpdaterFn,
 } from '../core/types.js'
 import {
   isColumnOptionArray,
@@ -26,33 +26,11 @@ import {
   isMinMaxTuple,
 } from '../lib/helpers.js'
 
-export interface DataTableFiltersOptions<
-  TData,
-  TColumns extends ReadonlyArray<ColumnConfig<TData, any, any, any>>,
-  TStrategy extends FilterStrategy,
-> {
-  strategy: TStrategy
-  data: TData[]
-  columnsConfig: TColumns
-  defaultFilters?: FiltersState
-  filters?: FiltersState
-  onFiltersChange?:
-    | React.Dispatch<React.SetStateAction<FiltersState>>
-    | StateUpdaterFn<FiltersState>
-  options?: Partial<
-    Record<OptionColumnIds<TColumns>, ColumnOption[] | undefined>
-  >
-  faceted?: Partial<
-    | Record<OptionColumnIds<TColumns>, Map<string, number> | undefined>
-    | Record<NumberColumnIds<TColumns>, [number, number] | undefined>
-  >
-  entityName?: string
-}
-
 export function useDataTableFilters<
   TData,
   TColumns extends ReadonlyArray<ColumnConfig<TData, any, any, any>>,
   TStrategy extends FilterStrategy,
+  TContext,
 >({
   strategy,
   data,
@@ -63,7 +41,12 @@ export function useDataTableFilters<
   options,
   faceted,
   entityName,
-}: DataTableFiltersOptions<TData, TColumns, TStrategy>) {
+}: DataTableFiltersOptions<
+  TData,
+  TColumns,
+  TStrategy,
+  TContext
+>): DataTableFiltersInstance<TData, TStrategy, TContext> {
   const [internalFilters, setInternalFilters] = useState<FiltersState>(
     defaultFilters ?? [],
   )
@@ -83,7 +66,10 @@ export function useDataTableFilters<
   const filters = isControlled ? externalFilters : internalFilters
 
   const setFilters = useCallback(
-    (nextFilters: FiltersState | ((prev: FiltersState) => FiltersState)) => {
+    (
+      nextFilters: FiltersState | ((prev: FiltersState) => FiltersState),
+      context?: TContext,
+    ) => {
       // Handle change for controlled mode
       if (isControlled) {
         // For controlled mode, we need to resolve the function and call the handler
@@ -101,13 +87,14 @@ export function useDataTableFilters<
           >
           dispatchHandler(resolvedNextFilters)
         } else {
-          // Custom handler style
+          // Custom handler style - pass prev, next, and context
           const customHandler = onFiltersChange as (
             prev: FiltersState,
             next: FiltersState,
+            context?: TContext,
           ) => void
 
-          customHandler(prevFilters, resolvedNextFilters)
+          customHandler(prevFilters, resolvedNextFilters, context)
         }
       } else if (!isControlled) {
         // Uncontrolled mode: let React handle the function resolution
@@ -164,53 +151,68 @@ export function useDataTableFilters<
     return createColumns(data, enhancedConfigs, strategy)
   }, [data, columnsConfig, options, faceted, strategy])
 
-  const actions: DataTableFilterActions = useMemo(
+  const actions: DataTableFilterActions<TContext> = useMemo(
     () => ({
       addFilterValue<TData, TType extends OptionBasedColumnDataType>(
         column: Column<TData, TType>,
         values: FilterModel<TType>['values'],
+        context?: TContext,
       ) {
-        setFilters((prev) =>
-          filterOperations.addFilterValue(prev, column, values),
+        setFilters(
+          (prev) => filterOperations.addFilterValue(prev, column, values),
+          context,
         )
       },
 
       removeFilterValue<TData, TType extends OptionBasedColumnDataType>(
         column: Column<TData, TType>,
         value: FilterModel<TType>['values'],
+        context?: TContext,
       ) {
-        setFilters((prev) =>
-          filterOperations.removeFilterValue(prev, column, value),
+        setFilters(
+          (prev) => filterOperations.removeFilterValue(prev, column, value),
+          context,
         )
       },
 
       setFilterValue<TData, TType extends ColumnDataType>(
         column: Column<TData, TType>,
         values: FilterModel<TType>['values'],
+        context?: TContext,
       ) {
-        setFilters((prev) =>
-          filterOperations.setFilterValue(prev, column, values),
+        setFilters(
+          (prev) => filterOperations.setFilterValue(prev, column, values),
+          context,
         )
       },
 
       setFilterOperator<TType extends ColumnDataType>(
         columnId: string,
         operator: FilterModel<TType>['operator'],
+        context?: TContext,
       ) {
-        setFilters((prev) =>
-          filterOperations.setFilterOperator(prev, columnId, operator),
+        setFilters(
+          (prev) =>
+            filterOperations.setFilterOperator(prev, columnId, operator),
+          context,
         )
       },
 
-      removeFilter(columnId: string) {
-        setFilters((prev) => filterOperations.removeFilter(prev, columnId))
+      removeFilter(columnId: string, context?: TContext) {
+        setFilters(
+          (prev) => filterOperations.removeFilter(prev, columnId),
+          context,
+        )
       },
 
-      removeAllFilters() {
-        setFilters((prev) => filterOperations.removeAllFilters(prev))
+      removeAllFilters(context?: TContext) {
+        setFilters((prev) => filterOperations.removeAllFilters(prev), context)
       },
 
-      batch(callback: (batchActions: DataTableFilterBatchActions) => void) {
+      batch(
+        callback: (batchActions: DataTableFilterBatchActions) => void,
+        context?: TContext,
+      ) {
         setFilters((prevFilters) => {
           // Start with current state
           let transactionFilters = prevFilters
@@ -279,11 +281,23 @@ export function useDataTableFilters<
 
           // Return the final transaction state
           return transactionFilters
-        })
+        }, context)
       },
     }),
     [setFilters],
   )
 
   return { columns, filters, actions, strategy, entityName } // columns is Column<TData>[]
+}
+
+export function createTypedDataTableFilters<TContext>() {
+  return function useTypedDataTableFilters<
+    TData,
+    TColumns extends ReadonlyArray<ColumnConfig<TData, any, any, any>>,
+    TStrategy extends FilterStrategy,
+  >(
+    options: DataTableFiltersOptions<TData, TColumns, TStrategy, TContext>,
+  ): DataTableFiltersInstance<TData, TStrategy, TContext> {
+    return useDataTableFilters<TData, TColumns, TStrategy, TContext>(options)
+  }
 }

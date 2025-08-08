@@ -15,7 +15,11 @@ export type ElementType<T> = T extends (infer U)[] ? U : T
 
 export type Nullable<T> = T | null | undefined
 
-export type StateUpdaterFn<T> = (prev: T, next: T) => void
+export type FiltersStateUpdaterFn<TContext> = (
+  prev: FiltersState,
+  next: FiltersState,
+  context?: TContext,
+) => void
 
 /**
  * Interface for column metadata that can be extended via declaration merging.
@@ -247,31 +251,39 @@ export type Column<
   ColumnProperties<TData, TVal> &
   ColumnPrivateProperties<TData, TVal>
 
-export interface DataTableFilterActions {
+export interface DataTableFilterActions<TContext = any> {
   addFilterValue: <TData, TType extends OptionBasedColumnDataType>(
     column: Column<TData, TType>,
     values: FilterModel<TType>['values'],
+    context?: TContext,
   ) => void
 
   removeFilterValue: <TData, TType extends OptionBasedColumnDataType>(
     column: Column<TData, TType>,
     value: FilterModel<TType>['values'],
+    context?: TContext,
   ) => void
 
   setFilterValue: <TData, TType extends ColumnDataType>(
     column: Column<TData, TType>,
     values: FilterModel<TType>['values'],
+    context?: TContext,
   ) => void
 
   setFilterOperator: <TType extends ColumnDataType>(
     columnId: string,
     operator: FilterModel<TType>['operator'],
+    context?: TContext,
   ) => void
 
-  removeFilter: (columnId: string) => void
+  removeFilter: (columnId: string, context?: TContext) => void
 
-  removeAllFilters: () => void
-  batch: (callback: (batchActions: DataTableFilterBatchActions) => void) => void
+  removeAllFilters: (context?: TContext) => void
+
+  batch: (
+    callback: (batchActions: DataTableFilterBatchActions) => void,
+    context?: TContext,
+  ) => void
 }
 
 export interface FilterOperations {
@@ -458,4 +470,40 @@ export type FilterOperatorDetails<
 /* Maps column data types to their respective filter operator details */
 export type FilterTypeOperatorDetails = {
   [key in ColumnDataType]: FilterDetails<key>
+}
+
+export interface DataTableFiltersOptions<
+  TData,
+  TColumns extends ReadonlyArray<ColumnConfig<TData, any, any, any>>,
+  TStrategy extends FilterStrategy,
+  TContext = any,
+> {
+  strategy: TStrategy
+  data: TData[]
+  columnsConfig: TColumns
+  defaultFilters?: FiltersState
+  filters?: FiltersState
+  onFiltersChange?:
+    | React.Dispatch<React.SetStateAction<FiltersState>>
+    | FiltersStateUpdaterFn<TContext>
+  options?: Partial<
+    Record<OptionColumnIds<TColumns>, ColumnOption[] | undefined>
+  >
+  faceted?: Partial<
+    | Record<OptionColumnIds<TColumns>, Map<string, number> | undefined>
+    | Record<NumberColumnIds<TColumns>, [number, number] | undefined>
+  >
+  entityName?: string
+}
+
+export interface DataTableFiltersInstance<
+  TData,
+  TStrategy extends FilterStrategy,
+  TContext,
+> {
+  columns: Column<TData>[]
+  filters: FiltersState
+  actions: DataTableFilterActions<TContext>
+  strategy: TStrategy
+  entityName?: string
 }
