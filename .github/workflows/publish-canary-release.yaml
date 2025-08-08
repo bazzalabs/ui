@@ -1,11 +1,14 @@
 name: Publish canary release
+
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (no actual publishing or git commits)'
+        required: false
+        default: false
+        type: boolean
   pull_request:
-    branches: ['abc/**']
-  # push:
-  #   branches: [canary]
-  #   paths: ['packages/filters/**']
 
 jobs:
   publish-canary:
@@ -38,6 +41,7 @@ jobs:
         run: bun i --frozen-lockfile
 
       - name: Set up .npmrc for authentication
+        if: github.event_name != 'pull_request' && !inputs.dry_run
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -48,9 +52,14 @@ jobs:
         run: |
           cd packages/filters
           bun run build
-          bun run release:patch:canary --no-git-tag
+          if [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            bun run release:patch:canary --no-git-tag --dry-run
+          else
+            bun run release:patch:canary --no-git-tag
+          fi
 
       - name: Commit version changes
+        if: github.event_name != 'pull_request' && !inputs.dry_run
         run: |
           NEXT_VERSION="v$(cat packages/filters/package.json | jq ".version" -r)"
           git add packages/filters/package.json
