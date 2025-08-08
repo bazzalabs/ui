@@ -1,7 +1,7 @@
 'use client'
 
 import type { FiltersState } from '@bazzaui/filters'
-import { useDataTableFilters } from '@bazzaui/filters'
+import { createTypedDataTableFilters } from '@bazzaui/filters'
 import {
   createTSTColumns,
   createTSTFilters,
@@ -19,6 +19,13 @@ import { ISSUES } from './data'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'
 
+type IssuesFilteringContext = {
+  foo?: string
+}
+
+const useIssuesTableFilters =
+  createTypedDataTableFilters<IssuesFilteringContext>()
+
 export function IssuesTable({
   state,
 }: {
@@ -27,14 +34,22 @@ export function IssuesTable({
     setFilters: React.Dispatch<React.SetStateAction<FiltersState>>
   }
 }) {
+  function handleFiltersChange(
+    _prev: FiltersState,
+    next: FiltersState,
+    _context?: IssuesFilteringContext,
+  ) {
+    state.setFilters(next)
+  }
+
   const { columns, filters, actions, strategy, entityName } =
-    useDataTableFilters({
+    useIssuesTableFilters({
       strategy: 'client',
       data: ISSUES,
       entityName: 'Issue',
       columnsConfig,
       filters: state.filters,
-      onFiltersChange: state.setFilters,
+      onFiltersChange: handleFiltersChange,
     })
 
   // Step 4: Extend our TanStack Table columns with custom filter functions (and more!)
