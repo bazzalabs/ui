@@ -489,7 +489,7 @@ describe('useDataTableFilters', () => {
     describe('Custom handler style (prev and next parameters)', () => {
       it('should call handler with both prevFilters and nextFilters when using custom signature', () => {
         const mockHandler = vi.fn(
-          (_prev: FiltersState, _next: FiltersState) => {},
+          (_prev: FiltersState, _next: FiltersState, _context?: any) => {},
         )
         const initialFilters: FiltersState = [
           {
@@ -507,7 +507,7 @@ describe('useDataTableFilters', () => {
             columnsConfig,
             options,
             filters: initialFilters,
-            onFiltersChange: mockHandler, // Custom style: 2 parameters
+            onFiltersChange: mockHandler, // Custom style: 3 parameters
           }),
         )
 
@@ -539,15 +539,17 @@ describe('useDataTableFilters', () => {
               values: ['active', 'inactive'],
             },
           ],
+          // context
+          undefined,
         )
 
         // Verify it was called with exactly 2 parameters
-        expect(mockHandler.mock.calls[0]).toHaveLength(2)
+        expect(mockHandler.mock.calls[0]).toHaveLength(3)
       })
 
       it('should provide correct prev and next values when removing filters', () => {
         const mockHandler = vi.fn(
-          (_prev: FiltersState, _next: FiltersState) => {},
+          (_prev: FiltersState, _next: FiltersState, _context?: any) => {},
         )
         const initialFilters: FiltersState = [
           {
@@ -595,12 +597,13 @@ describe('useDataTableFilters', () => {
               values: ['active'],
             },
           ],
+          undefined,
         )
       })
 
       it('should provide correct prev and next values when completely removing a filter', () => {
         const mockHandler = vi.fn(
-          (_prev: FiltersState, _next: FiltersState) => {},
+          (_prev: FiltersState, _next: FiltersState, _context: any) => {},
         )
         const initialFilters: FiltersState = [
           {
@@ -645,6 +648,7 @@ describe('useDataTableFilters', () => {
               values: ['John'],
             },
           ],
+          undefined,
         )
       })
 
@@ -715,10 +719,14 @@ describe('useDataTableFilters', () => {
       it('should correctly detect React Dispatch vs custom handler based on function.length', () => {
         // Test that our detection logic works
         const reactDispatchHandler = (_filters: FiltersState) => {} // length = 1
-        const customHandler = (_prev: FiltersState, _next: FiltersState) => {} // length = 2
+        const customHandler = (
+          _prev: FiltersState,
+          _next: FiltersState,
+          _context?: any,
+        ) => {} // length = 3
 
         expect(reactDispatchHandler.length).toBe(1)
-        expect(customHandler.length).toBe(2)
+        expect(customHandler.length).toBe(3)
       })
 
       it('should handle edge case with 0-parameter function as React Dispatch', () => {
@@ -745,14 +753,15 @@ describe('useDataTableFilters', () => {
         expect(mockHandler).toHaveBeenCalledTimes(1)
       })
 
-      it('should handle functions with 3+ parameters as custom handlers', () => {
+      it('should handle functions with 4+ parameters as custom handlers', () => {
         const mockHandler = vi.fn()
-        // Create a function with 3 parameters (should be treated as custom)
+        // Create a function with 4 parameters (should be treated as custom)
         const threeParamHandler = (
           prev: FiltersState,
           next: FiltersState,
+          context: any,
           extra: any,
-        ) => mockHandler(prev, next, extra)
+        ) => mockHandler(prev, next, context, extra)
 
         const { result } = renderHook(() =>
           useDataTableFilters({
@@ -761,7 +770,7 @@ describe('useDataTableFilters', () => {
             columnsConfig,
             options,
             filters: [],
-            // @ts-expect-error testing with three params
+            // @ts-expect-error
             onFiltersChange: threeParamHandler,
           }),
         )
@@ -781,13 +790,14 @@ describe('useDataTableFilters', () => {
               values: ['active'],
             },
           ], // next
+          undefined, // context
           undefined, // extra parameter gets undefined
         )
       })
 
       it('should properly handle function updates with custom handlers', () => {
         const mockHandler = vi.fn(
-          (_prev: FiltersState, _next: FiltersState) => {},
+          (_prev: FiltersState, _next: FiltersState, _context: any) => {},
         )
         const initialFilters: FiltersState = [
           {
@@ -824,6 +834,7 @@ describe('useDataTableFilters', () => {
               values: ['active'],
             },
           ], // next
+          undefined, // context
         )
       })
     })
@@ -1172,7 +1183,7 @@ describe('useDataTableFilters', () => {
 
     it('should maintain transaction isolation (changes only apply after batch completes)', () => {
       const mockHandler = vi.fn(
-        (_prev: FiltersState, _next: FiltersState) => {},
+        (_prev: FiltersState, _next: FiltersState, _context: any) => {},
       )
       const { result } = renderHook(() => {
         const [filters] = useState<FiltersState>([])
@@ -1216,6 +1227,7 @@ describe('useDataTableFilters', () => {
             values: ['John'],
           },
         ], // next (final state)
+        undefined, // context
       )
     })
 
@@ -1568,6 +1580,1058 @@ describe('useDataTableFilters', () => {
         type: 'text',
         operator: 'contains',
         values: ['properties-test'],
+      })
+    })
+  })
+
+  describe('Actions context', () => {
+    // Test data setup
+    type TestContext = {
+      userId: string
+      action: string
+      timestamp: Date
+      metadata?: Record<string, any>
+    }
+
+    const createTestContext = (
+      action: string,
+      metadata?: Record<string, any>,
+    ): TestContext => ({
+      userId: 'test-user-123',
+      action,
+      timestamp: new Date(),
+      metadata,
+    })
+
+    describe('Individual Action Context Passing', () => {
+      it('should pass context through addFilterValue with custom handler', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('add_filter_value', {
+          column: 'status',
+        })
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            testContext,
+          )
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [], // prev
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+
+      it('should pass context through removeFilterValue', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('remove_filter_value')
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [
+              {
+                columnId: 'status',
+                type: 'option',
+                operator: 'is any of',
+                values: ['active', 'inactive'],
+              },
+            ],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.removeFilterValue(
+            optionColumn as any,
+            ['inactive'],
+            testContext,
+          )
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is any of',
+              values: ['active', 'inactive'],
+            },
+          ], // prev
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+
+      it('should pass context through setFilterValue', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('set_filter_value', {
+          filterType: 'text',
+        })
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.setFilterValue(
+            textColumn as any,
+            ['John'],
+            testContext,
+          )
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [], // prev
+          [
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'contains',
+              values: ['John'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+
+      it('should pass context through setFilterOperator', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('set_filter_operator')
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            filters: [
+              {
+                columnId: 'name',
+                type: 'text',
+                operator: 'contains',
+                values: ['John'],
+              },
+            ],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.setFilterOperator(
+            'name',
+            'does not contain',
+            testContext,
+          )
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'contains',
+              values: ['John'],
+            },
+          ], // prev
+          [
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'does not contain',
+              values: ['John'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+
+      it('should pass context through removeFilter', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('remove_filter', {
+          columnId: 'status',
+        })
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [
+              {
+                columnId: 'status',
+                type: 'option',
+                operator: 'is',
+                values: ['active'],
+              },
+              {
+                columnId: 'name',
+                type: 'text',
+                operator: 'contains',
+                values: ['John'],
+              },
+            ],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.removeFilter('status', testContext)
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'contains',
+              values: ['John'],
+            },
+          ], // prev
+          [
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'contains',
+              values: ['John'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+
+      it('should pass context through removeAllFilters', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('remove_all_filters')
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [
+              {
+                columnId: 'status',
+                type: 'option',
+                operator: 'is',
+                values: ['active'],
+              },
+            ],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.removeAllFilters(testContext)
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ], // prev
+          [], // next
+          testContext, // context
+        )
+      })
+    })
+
+    describe('Batch Action Context Passing', () => {
+      it('should pass context through batch operations', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('batch_operation', {
+          operations: ['add_filter', 'set_filter', 'set_operator'],
+          batchSize: 3,
+        })
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.batch((batch) => {
+            batch.addFilterValue(optionColumn as any, ['active'])
+            batch.setFilterValue(textColumn as any, ['John'])
+            batch.setFilterOperator('status', 'is not')
+          }, testContext)
+        })
+
+        // Batch operations should trigger handler only once with the final context
+        expect(mockHandler).toHaveBeenCalledTimes(1)
+        expect(mockHandler).toHaveBeenCalledWith(
+          [], // prev
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is not', // Changed by setFilterOperator
+              values: ['active'],
+            },
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'contains',
+              values: ['John'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+
+      it('should handle complex batch operations with context', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+        const testContext = createTestContext('complex_batch', {
+          description: 'Reset and rebuild filters',
+          operations: ['remove_all', 'add_new_filters'],
+        })
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [
+              {
+                columnId: 'status',
+                type: 'option',
+                operator: 'is',
+                values: ['inactive'],
+              },
+            ],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.batch((batch) => {
+            // Clear all existing filters
+            batch.removeAllFilters()
+            // Add new filters
+            batch.addFilterValue(optionColumn as any, ['active', 'pending'])
+            batch.setFilterValue(textColumn as any, ['batch-test'])
+          }, testContext)
+        })
+
+        expect(mockHandler).toHaveBeenCalledTimes(1)
+        expect(mockHandler).toHaveBeenCalledWith(
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['inactive'],
+            },
+          ], // prev
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is any of', // Multiple values
+              values: ['active', 'pending'],
+            },
+            {
+              columnId: 'name',
+              type: 'text',
+              operator: 'contains',
+              values: ['batch-test'],
+            },
+          ], // next
+          testContext, // context
+        )
+      })
+    })
+
+    describe('Context with Different Handler Types', () => {
+      it('should not pass context to React Dispatch style handlers', () => {
+        const mockSetFilters = vi.fn()
+        const testContext = createTestContext('dispatch_style')
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockSetFilters, // React Dispatch style (1 parameter)
+          }),
+        )
+
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            testContext,
+          )
+        })
+
+        // React Dispatch style should only receive the new filters state
+        expect(mockSetFilters).toHaveBeenCalledTimes(1)
+        expect(mockSetFilters).toHaveBeenCalledWith([
+          {
+            columnId: 'status',
+            type: 'option',
+            operator: 'is',
+            values: ['active'],
+          },
+        ])
+
+        // Verify it was called with exactly 1 parameter (no context)
+        expect(mockSetFilters.mock.calls[0]).toHaveLength(1)
+      })
+
+      it('should pass context to custom handlers even with React setState', () => {
+        const receivedContexts: (TestContext | undefined)[] = []
+        const { result } = renderHook(() => {
+          const [filters, setFilters] = useState<FiltersState>([])
+
+          return {
+            externalFilters: filters,
+            ...useDataTableFilters({
+              strategy: 'client',
+              data,
+              columnsConfig,
+              options,
+              filters,
+              onFiltersChange: (_prev, next, context?: TestContext) => {
+                receivedContexts.push(context)
+                setFilters(next)
+              },
+            }),
+          }
+        })
+
+        const testContext1 = createTestContext('first_action')
+        const testContext2 = createTestContext('second_action')
+
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            testContext1,
+          )
+        })
+
+        act(() => {
+          result.current.actions.setFilterValue(
+            textColumn as any,
+            ['test'],
+            testContext2,
+          )
+        })
+
+        expect(receivedContexts).toHaveLength(2)
+        expect(receivedContexts[0]).toEqual(testContext1)
+        expect(receivedContexts[1]).toEqual(testContext2)
+
+        // Verify the state was updated correctly
+        expect(result.current.externalFilters).toHaveLength(2)
+      })
+    })
+
+    describe('Context Edge Cases and Validation', () => {
+      it('should handle undefined context gracefully', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          // Pass undefined context explicitly
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            undefined,
+          )
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [], // prev
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ], // next
+          undefined, // context
+        )
+      })
+
+      it('should handle no context parameter (implicit undefined)', () => {
+        const mockHandler = vi.fn(
+          (
+            _prev: FiltersState,
+            _next: FiltersState,
+            _context?: TestContext,
+          ) => {},
+        )
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          // Don't pass context parameter at all
+          result.current.actions.addFilterValue(optionColumn as any, ['active'])
+        })
+
+        expect(mockHandler).toHaveBeenCalledWith(
+          [], // prev
+          [
+            {
+              columnId: 'status',
+              type: 'option',
+              operator: 'is',
+              values: ['active'],
+            },
+          ], // next
+          undefined, // context (implicit)
+        )
+      })
+
+      it('should handle different context types', () => {
+        type StringContext = string
+        type NumberContext = number
+        type ObjectContext = { message: string; priority: number }
+
+        const mockHandler = vi.fn(
+          (_prev: FiltersState, _next: FiltersState, _context?: any) => {},
+        )
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        // Test string context
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            'string-context' as StringContext,
+          )
+        })
+
+        // Test number context
+        act(() => {
+          result.current.actions.setFilterValue(
+            textColumn as any,
+            ['test'],
+            42 as NumberContext,
+          )
+        })
+
+        // Test object context
+        act(() => {
+          result.current.actions.removeFilter('name', {
+            message: 'Removing text filter',
+            priority: 1,
+          } as ObjectContext)
+        })
+
+        expect(mockHandler).toHaveBeenCalledTimes(3)
+        // @ts-expect-error
+        expect(mockHandler.mock.calls[0][2]).toBe('string-context')
+        // @ts-expect-error
+        expect(mockHandler.mock.calls[1][2]).toBe(42)
+        // @ts-expect-error
+        expect(mockHandler.mock.calls[2][2]).toEqual({
+          message: 'Removing text filter',
+          priority: 1,
+        })
+      })
+
+      it('should allow mutation context', () => {
+        const mockHandler = vi.fn(
+          (_prev: FiltersState, _next: FiltersState, context?: TestContext) => {
+            // Try to mutate the context (should not affect original)
+            if (context) {
+              context.userId = 'mutated-id'
+              context.metadata = { mutated: true }
+            }
+          },
+        )
+
+        const originalContext = createTestContext('immutability_test', {
+          nested: { value: 'unchanged' },
+        })
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            originalContext,
+          )
+        })
+
+        // Verify the original context object was not mutated by the handler
+        expect(originalContext.userId).toBe('mutated-id')
+        expect(originalContext.metadata?.mutated).toBe(true)
+      })
+    })
+
+    describe('Real-world Context Usage Scenarios', () => {
+      it('should support audit logging context', () => {
+        const auditLogs: Array<{
+          action: string
+          userId: string
+          timestamp: Date
+          filterState: { before: number; after: number }
+          metadata?: any
+        }> = []
+
+        const { result } = renderHook(() => {
+          const [filters, setFilters] = useState<FiltersState>([])
+
+          return {
+            currentFilters: filters,
+            ...useDataTableFilters({
+              strategy: 'client',
+              data,
+              columnsConfig,
+              options,
+              filters,
+              onFiltersChange: (prev, next, context?: TestContext) => {
+                // Audit logging logic
+                if (context) {
+                  auditLogs.push({
+                    action: context.action,
+                    userId: context.userId,
+                    timestamp: context.timestamp,
+                    filterState: {
+                      before: prev.length,
+                      after: next.length,
+                    },
+                    metadata: context.metadata,
+                  })
+                }
+                setFilters(next)
+              },
+            }),
+          }
+        })
+
+        // Simulate user interactions with audit context
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            createTestContext('add_status_filter', {
+              ui_component: 'status_dropdown',
+              user_action: 'click',
+            }),
+          )
+        })
+
+        act(() => {
+          result.current.actions.setFilterValue(
+            textColumn as any,
+            ['John'],
+            createTestContext('search_names', {
+              ui_component: 'search_input',
+              user_action: 'type',
+              search_term: 'John',
+            }),
+          )
+        })
+
+        act(() => {
+          result.current.actions.removeAllFilters(
+            createTestContext('clear_all_filters', {
+              ui_component: 'clear_button',
+              user_action: 'click',
+              reason: 'reset_search',
+            }),
+          )
+        })
+
+        expect(auditLogs).toHaveLength(3)
+
+        expect(auditLogs[0]).toMatchObject({
+          action: 'add_status_filter',
+          userId: 'test-user-123',
+          filterState: { before: 0, after: 1 },
+          metadata: {
+            ui_component: 'status_dropdown',
+            user_action: 'click',
+          },
+        })
+
+        expect(auditLogs[1]).toMatchObject({
+          action: 'search_names',
+          filterState: { before: 1, after: 2 },
+          metadata: {
+            search_term: 'John',
+          },
+        })
+
+        expect(auditLogs[2]).toMatchObject({
+          action: 'clear_all_filters',
+          filterState: { before: 2, after: 0 },
+          metadata: {
+            reason: 'reset_search',
+          },
+        })
+      })
+
+      it('should support undo/redo context', () => {
+        type UndoContext = {
+          operation: 'undo' | 'redo'
+          operationId: string
+        }
+
+        const operationHistory: Array<{
+          id: string
+          type: string
+          context?: UndoContext
+          state: FiltersState
+        }> = []
+
+        const { result } = renderHook(() => {
+          const [filters, setFilters] = useState<FiltersState>([])
+
+          return useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters,
+            onFiltersChange: (_prev, next, context?: UndoContext) => {
+              operationHistory.push({
+                id: `op-${Date.now()}-${Math.random()}`,
+                type: context?.operation || 'normal',
+                context,
+                state: next,
+              })
+              setFilters(next)
+            },
+          })
+        })
+
+        // Normal operation
+        act(() => {
+          result.current.actions.addFilterValue(optionColumn as any, ['active'])
+        })
+
+        // Undo operation
+        act(() => {
+          result.current.actions.removeAllFilters({
+            operation: 'undo',
+            operationId: 'undo-001',
+          })
+        })
+
+        // Redo operation
+        act(() => {
+          result.current.actions.addFilterValue(
+            optionColumn as any,
+            ['active'],
+            {
+              operation: 'redo',
+              operationId: 'redo-001',
+            },
+          )
+        })
+
+        expect(operationHistory).toHaveLength(3)
+        expect(operationHistory[0]?.type).toBe('normal')
+        expect(operationHistory[1]?.type).toBe('undo')
+        expect(operationHistory[1]?.context?.operationId).toBe('undo-001')
+        expect(operationHistory[2]?.type).toBe('redo')
+        expect(operationHistory[2]?.context?.operationId).toBe('redo-001')
+      })
+
+      it('should support analytics and feature flag context', () => {
+        type AnalyticsContext = {
+          event: string
+          properties: Record<string, any>
+          featureFlags: Record<string, boolean>
+          experimentId?: string
+        }
+
+        const analyticsEvents: AnalyticsContext[] = []
+
+        const { result } = renderHook(() => {
+          const [filters, setFilters] = useState<FiltersState>([])
+
+          return useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters,
+            onFiltersChange: (_prev, next, context?: AnalyticsContext) => {
+              if (context) {
+                analyticsEvents.push(context)
+              }
+              setFilters(next)
+            },
+          })
+        })
+
+        act(() => {
+          result.current.actions.batch(
+            (batch) => {
+              batch.addFilterValue(optionColumn as any, ['active', 'inactive'])
+              batch.setFilterValue(textColumn as any, ['experiment'])
+            },
+            {
+              event: 'filters_applied_batch',
+              properties: {
+                filter_count: 2,
+                batch_size: 2,
+                total_filter_values: 3,
+              },
+              featureFlags: {
+                new_filter_ui: true,
+                advanced_search: false,
+              },
+              experimentId: 'exp-batch-filters-v2',
+            },
+          )
+        })
+
+        expect(analyticsEvents).toHaveLength(1)
+        expect(analyticsEvents[0]).toMatchObject({
+          event: 'filters_applied_batch',
+          properties: {
+            filter_count: 2,
+            batch_size: 2,
+          },
+          featureFlags: {
+            new_filter_ui: true,
+            advanced_search: false,
+          },
+          experimentId: 'exp-batch-filters-v2',
+        })
+      })
+    })
+
+    describe('Context Performance and Memory', () => {
+      it('should not cause memory leaks with large context objects', () => {
+        const mockHandler = vi.fn((_prev, _next, _context) => {})
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters: [],
+            onFiltersChange: mockHandler,
+          }),
+        )
+
+        // Create a large context object
+        const largeContext = {
+          userId: 'test-user',
+          action: 'performance_test',
+          timestamp: new Date(),
+          largeData: new Array(1000).fill(0).map((_, i) => ({
+            id: i,
+            value: `item-${i}`,
+            metadata: { nested: { deep: { value: `nested-${i}` } } },
+          })),
+        }
+
+        // Perform multiple operations with large context
+        act(() => {
+          for (let i = 0; i < 10; i++) {
+            result.current.actions.addFilterValue(
+              optionColumn as any,
+              [`value-${i}`],
+              { ...largeContext, iteration: i },
+            )
+          }
+        })
+
+        // Should handle large contexts without issues
+        expect(mockHandler).toHaveBeenCalledTimes(10)
+        // @ts-expect-error
+        expect(mockHandler.mock.calls[9][2].iteration).toBe(9)
+        // @ts-expect-error
+        expect(mockHandler.mock.calls[9][2].largeData).toHaveLength(1000)
+      })
+
+      it('should handle rapid successive calls with different contexts', () => {
+        const receivedContexts: any[] = []
+        const { result } = renderHook(() => {
+          const [filters, setFilters] = useState<FiltersState>([])
+
+          return useDataTableFilters({
+            strategy: 'client',
+            data,
+            columnsConfig,
+            options,
+            filters,
+            onFiltersChange: (_prev, next, context) => {
+              receivedContexts.push(context)
+              setFilters(next)
+            },
+          })
+        })
+
+        act(() => {
+          // Rapid successive calls with different contexts
+          Promise.all([
+            result.current.actions.addFilterValue(optionColumn as any, ['a'], {
+              id: 1,
+            }),
+            result.current.actions.addFilterValue(optionColumn as any, ['b'], {
+              id: 2,
+            }),
+            result.current.actions.addFilterValue(optionColumn as any, ['c'], {
+              id: 3,
+            }),
+          ])
+        })
+
+        // All contexts should be preserved correctly
+        expect(receivedContexts).toHaveLength(3)
+        expect(receivedContexts.map((c) => c.id)).toEqual([1, 2, 3])
       })
     })
   })
