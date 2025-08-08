@@ -251,7 +251,7 @@ export type Column<
   ColumnProperties<TData, TVal> &
   ColumnPrivateProperties<TData, TVal>
 
-export interface DataTableFilterActions<TContext> {
+export interface DataTableFilterActions<TContext = any> {
   addFilterValue: <TData, TType extends OptionBasedColumnDataType>(
     column: Column<TData, TType>,
     values: FilterModel<TType>['values'],
@@ -476,7 +476,7 @@ export interface DataTableFiltersOptions<
   TData,
   TColumns extends ReadonlyArray<ColumnConfig<TData, any, any, any>>,
   TStrategy extends FilterStrategy,
-  TContext,
+  TContext = any,
 > {
   strategy: TStrategy
   data: TData[]
