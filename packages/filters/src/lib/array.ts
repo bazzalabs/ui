@@ -1,3 +1,5 @@
+import { getValidNumber } from './helpers.js'
+
 export function intersection<T>(a: T[], b: T[]): T[] {
   return a.filter((x) => b.includes(x))
 }
@@ -141,4 +143,86 @@ export function removeUniq<T>(arr: T[], values: T[]): T[] {
 
 export function isAnyOf<T>(value: T, values: T[]): boolean {
   return values.includes(value)
+}
+
+/**
+ * Get the maximum value from an array of numbers.
+ * Ignores invalid entries (null/undefined/NaN or non-numbers) via `getValidNumber`,
+ * so it’s safe with `noUncheckedIndexedAccess` and sparse arrays.
+ *
+ * @param values - Array of numbers (may contain holes)
+ * @returns The largest valid number, or -Infinity if none are valid.
+ * @example
+ * max([1, 3, 2]) // => 3
+ * max([])        // => -Infinity
+ */
+export function max(values: readonly number[]): number {
+  let found = false
+  let m = Number.NEGATIVE_INFINITY
+
+  for (let i = 0; i < values.length; i++) {
+    const v = getValidNumber(values[i] as any)
+    if (v !== undefined) {
+      if (v > m) m = v
+      found = true
+    }
+  }
+
+  return found ? m : Number.NEGATIVE_INFINITY
+}
+
+/**
+ * Get the minimum value from an array of numbers.
+ * Ignores invalid entries (null/undefined/NaN or non-numbers) via `getValidNumber`,
+ * so it’s safe with `noUncheckedIndexedAccess` and sparse arrays.
+ *
+ * @param values - Array of numbers (may contain holes)
+ * @returns The smallest valid number, or Infinity if none are valid.
+ * @example
+ * min([1, 3, 2]) // => 1
+ * min([])        // => Infinity
+ */
+export function min(values: readonly number[]): number {
+  let found = false
+  let m = Number.POSITIVE_INFINITY
+
+  for (let i = 0; i < values.length; i++) {
+    const v = getValidNumber(values[i] as any)
+    if (v !== undefined) {
+      if (v < m) m = v
+      found = true
+    }
+  }
+
+  return found ? m : Number.POSITIVE_INFINITY
+}
+
+/**
+ * Get both the minimum and maximum values from an array of numbers in a single pass.
+ * Ignores invalid entries via `getValidNumber`, making it safe with `noUncheckedIndexedAccess`
+ * and efficient for sparse/large arrays.
+ *
+ * @param values - Array of numbers (may contain holes)
+ * @returns A tuple [min, max], or [Infinity, -Infinity] if none are valid.
+ * @example
+ * minMax([3, -2, 7, 0]) // => [-2, 7]
+ * minMax([])            // => [Infinity, -Infinity]
+ */
+export function minMax(values: readonly number[]): [number, number] {
+  let found = false
+  let minVal = Number.POSITIVE_INFINITY
+  let maxVal = Number.NEGATIVE_INFINITY
+
+  for (let i = 0; i < values.length; i++) {
+    const v = getValidNumber(values[i] as any)
+    if (v !== undefined) {
+      if (v < minVal) minVal = v
+      if (v > maxVal) maxVal = v
+      found = true
+    }
+  }
+
+  return found
+    ? [minVal, maxVal]
+    : [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
 }
