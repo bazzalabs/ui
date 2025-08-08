@@ -1,4 +1,4 @@
-import { isAnyOf, uniq } from '../../lib/array.js'
+import { isAnyOf, minMax, uniq } from '../../lib/array.js'
 import { isColumnOptionArray } from '../../lib/helpers.js'
 import { memo } from '../../lib/memo.js'
 import { applyOrderFns } from '../../lib/order-fns.js'
@@ -220,9 +220,6 @@ export class ColumnDataService<TData> {
       return [0, 0]
     }
 
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-
-    return [min, max]
+    return minMax(values)
   }
 }
