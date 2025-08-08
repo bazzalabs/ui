@@ -9,6 +9,7 @@ on:
         default: false
         type: boolean
   pull_request:
+    branches: [canary]
 
 jobs:
   publish-canary:
