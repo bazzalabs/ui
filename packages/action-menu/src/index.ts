@@ -7,6 +7,9 @@ import {
   Item,
   List,
   Root,
+  Sub,
+  SubContent,
+  SubTrigger,
   Trigger,
 } from './action-menu.js'
 
@@ -18,4 +21,7 @@ export const ActionMenu = {
   Input,
   List,
   Group,
+  Sub,
+  SubContent,
+  SubTrigger,
 }

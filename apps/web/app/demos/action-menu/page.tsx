@@ -8,14 +8,29 @@ export default function Page() {
       <h1 className="text-4xl font-[538] tracking-[-0.03rem] select-none">
         Action Menu
       </h1>
-      <ActionMenu.Root>
+      <ActionMenu.Root className='**:data-[role="option"]:border  **:data-[role="option"]:border-transparent **:data-[role="option"]:data-[focused="true"]:border-purple-500'>
         <ActionMenu.Trigger>Trigger</ActionMenu.Trigger>
-        <ActionMenu.Content>
-          <ActionMenu.Input />
+        <ActionMenu.Content className="border border-blue-500">
+          <ActionMenu.Input className="outline-none outline-0" />
           <ActionMenu.List>
             <ActionMenu.Group>
-              <ActionMenu.Item value="1">Item 1</ActionMenu.Item>
-              <ActionMenu.Item value="2">Item 2</ActionMenu.Item>
+              <ActionMenu.Sub>
+                <ActionMenu.SubTrigger value="x">Item X</ActionMenu.SubTrigger>
+                <ActionMenu.SubContent
+                  className="border border-red-500 p-0.5"
+                  align="start"
+                >
+                  <ActionMenu.Input />
+                  <ActionMenu.List>
+                    <ActionMenu.Group>
+                      <ActionMenu.Item value="x1">Item X.1</ActionMenu.Item>
+                      <ActionMenu.Item value="x2">Item X.2</ActionMenu.Item>
+                      <ActionMenu.Item value="x3">Item X.3</ActionMenu.Item>
+                    </ActionMenu.Group>
+                    <ActionMenu.Item value="x4">Item X.4</ActionMenu.Item>
+                  </ActionMenu.List>
+                </ActionMenu.SubContent>
+              </ActionMenu.Sub>
               <ActionMenu.Item value="3">Item 3</ActionMenu.Item>
             </ActionMenu.Group>
             <ActionMenu.Item value="4">Item 4</ActionMenu.Item>
