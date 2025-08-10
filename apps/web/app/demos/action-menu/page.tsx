@@ -11,9 +11,15 @@ export default function Page() {
       <ActionMenu.Root>
         <ActionMenu.Trigger>Trigger</ActionMenu.Trigger>
         <ActionMenu.Content>
-          <ActionMenu.Item>Item 1</ActionMenu.Item>
-          <ActionMenu.Item>Item 2</ActionMenu.Item>
-          <ActionMenu.Item>Item 3</ActionMenu.Item>
+          <ActionMenu.Input />
+          <ActionMenu.List>
+            <ActionMenu.Group>
+              <ActionMenu.Item value="1">Item 1</ActionMenu.Item>
+              <ActionMenu.Item value="2">Item 2</ActionMenu.Item>
+              <ActionMenu.Item value="3">Item 3</ActionMenu.Item>
+            </ActionMenu.Group>
+            <ActionMenu.Item value="4">Item 4</ActionMenu.Item>
+          </ActionMenu.List>
         </ActionMenu.Content>
       </ActionMenu.Root>
     </div>
