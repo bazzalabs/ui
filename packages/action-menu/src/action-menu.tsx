@@ -968,7 +968,21 @@ export const SubTrigger = React.forwardRef<
     React.useEffect(() => {
       const node = itemRef.current
       if (!node) return
-      const onOpen = () => sub.onOpenChange(true)
+      const onOpen = () => {
+        sub.onOpenChange(true)
+        // NEW: when opened via bridge, move focus inside submenu
+        requestAnimationFrame(() => {
+          const contentEl = sub.contentRef.current
+          if (!contentEl) return
+          const input = contentEl.querySelector<HTMLInputElement>(
+            '[data-action-menu-input]',
+          )
+          const list = contentEl.querySelector<HTMLElement>(
+            '[data-action-menu-list]',
+          )
+          ;(input ?? list)?.focus()
+        })
+      }
       const onClose = () => sub.onOpenChange(false)
       node.addEventListener('actionmenu-open-sub', onOpen as EventListener)
       node.addEventListener('actionmenu-close-sub', onClose as EventListener)
@@ -1028,6 +1042,18 @@ export const SubTrigger = React.forwardRef<
             } else if (e.key === 'ArrowRight') {
               e.preventDefault()
               sub.onOpenChange(true)
+              // NEW: once open, move focus into the submenu (prefer Input, else List)
+              requestAnimationFrame(() => {
+                const contentEl = sub.contentRef.current
+                if (!contentEl) return
+                const input = contentEl.querySelector<HTMLInputElement>(
+                  '[data-action-menu-input]',
+                )
+                const list = contentEl.querySelector<HTMLElement>(
+                  '[data-action-menu-list]',
+                )
+                ;(input ?? list)?.focus()
+              })
             } else if (e.key === 'ArrowLeft') {
               e.preventDefault()
               sub.onOpenChange(false)
@@ -1099,7 +1125,9 @@ export const SubContent = React.forwardRef<
     const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
       if (e.target === surfaceRef.current) {
         requestAnimationFrame(() => {
-          collectionValue.listRef.current?.focus()
+          const input = collectionValue.inputRef.current
+          if (input) input.focus()
+          else collectionValue.listRef.current?.focus()
         })
       }
     }
@@ -1162,8 +1190,21 @@ export const SubContent = React.forwardRef<
               tabIndex={-1}
               data-action-menu-surface
               onFocusCapture={handleFocusCapture}
-              onPointerEnter={() => {
+              onPointerEnter={(e) => {
                 sub.cancelScheduledClose()
+                // NEW: if focus is still outside this submenu, move it inside now (prefer Input, else List)
+                const contentEl = sub.contentRef.current
+                if (!contentEl) return
+                const ae = document.activeElement as HTMLElement | null
+                if (!ae || !contentEl.contains(ae)) {
+                  const input = contentEl.querySelector<HTMLInputElement>(
+                    '[data-action-menu-input]',
+                  )
+                  const list = contentEl.querySelector<HTMLElement>(
+                    '[data-action-menu-list]',
+                  )
+                  ;(input ?? list)?.focus()
+                }
               }}
               onPointerLeave={(e) => {
                 sub.trackPointer(e.clientX, e.clientY)
