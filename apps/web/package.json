@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@bazzaui/filters": "workspace:*",
+    "@bazza-ui/action-menu": "workspace:*",
     "@ndaidong/txtgen": "^4.0.1",
     "@radix-ui/react-avatar": "^1.1.3",
     "@radix-ui/react-checkbox": "^1.3.1",

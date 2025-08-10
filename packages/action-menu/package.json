@@ -1,0 +1,51 @@
+{
+  "name": "@bazza-ui/action-menu",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "test": "vitest run --run --mode test",
+    "test:watch": "vitest --mode test --watch --disable-console-intercept",
+    "bench": "vitest bench --run",
+    "bench:watch": "vitest bench --watch"
+  },
+  "devDependencies": {
+    "@bazzaui/typescript-config": "*",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.1",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tinybench": "^4.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@radix-ui/primitive": "^1.1.2",
+    "@radix-ui/react-compose-refs": "^1.1.2",
+    "@radix-ui/react-popper": "^1.2.7",
+    "@radix-ui/react-presence": "^1.1.4",
+    "@radix-ui/react-use-controllable-state": "^1.2.2"
+  }
+}
