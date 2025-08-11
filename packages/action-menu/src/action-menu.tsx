@@ -18,10 +18,16 @@ import * as React from 'react'
 const GEOMETRY_HOLD_DURATION_MS = 200
 // Extra forgiveness time added on top of the intent delay while geometry-hold is active.
 const GEOMETRY_HOLD_EXTRA_MS = 150
+// Grace polygon clears after this many ms (while pointer is "in flight" from trigger to content)
+const GRACE_CLEAR_MS = 300
 
 /* =================================================================================================
  * Utilities (no public API impact)
  * =============================================================================================== */
+
+type Point = { x: number; y: number }
+type Polygon = Point[]
+type Side = 'left' | 'right'
 
 const normalize = (s: string) => s.toLowerCase().trim()
 
@@ -63,6 +69,23 @@ function isInsideTriangle(
   const u = (dot11 * dot02 - dot01 * dot12) * inv
   const v = (dot00 * dot12 - dot01 * dot02) * inv
   return u >= 0 && v >= 0 && u + v <= 1
+}
+
+// Point-in-polygon (ray casting)
+function isPointInPolygon(point: Point, polygon?: Polygon | null) {
+  if (!polygon || polygon.length < 3) return false
+  const { x, y } = point
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i]!.x,
+      yi = polygon[i]!.y
+    const xj = polygon[j]!.x,
+      yj = polygon[j]!.y
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
 }
 
 function useMousePosition(): [number, number] {
@@ -891,6 +914,8 @@ type SubContextValue = {
     topCorner: { x: number; y: number } | null
     bottomCorner: { x: number; y: number } | null
     active: boolean
+    polygon?: Polygon | null
+    insidePolygon?: boolean
   } | null
 }
 
@@ -935,11 +960,46 @@ export const Sub = ({
   const geometryHoldUntilRef = React.useRef<number>(0)
   const lastTraceTsRef = React.useRef(0)
 
+  // Grace polygon + direction
+  const graceRef = React.useRef<{ area: Polygon; side: Side } | null>(null)
+  const graceTimerRef = React.useRef<number | null>(null)
+  const lastPointerXRef = React.useRef(0)
+  const pointerDirRef = React.useRef<Side>('right')
+
+  const clearGrace = React.useCallback(() => {
+    if (graceTimerRef.current != null) {
+      window.clearTimeout(graceTimerRef.current)
+      graceTimerRef.current = null
+    }
+    graceRef.current = null
+    __amTrace('grace:clear')
+  }, [])
+
+  const setGrace = React.useCallback(
+    (intent: { area: Polygon; side: Side }) => {
+      clearGrace()
+      graceRef.current = intent
+      __amTrace('grace:set', intent)
+      graceTimerRef.current = window.setTimeout(() => {
+        graceRef.current = null
+        graceTimerRef.current = null
+        __amTrace('grace:expired')
+      }, GRACE_CLEAR_MS)
+    },
+    [clearGrace],
+  )
+
   const trackPointer = React.useCallback((x: number, y: number) => {
     const now = performance.now()
     const arr = pointsRef.current
     arr.push({ x, y, t: now })
     while (arr.length > 5 || (arr.length && now - arr[0]!.t > 300)) arr.shift()
+
+    // Track coarse horizontal direction like Radix
+    if (x !== lastPointerXRef.current) {
+      pointerDirRef.current = x > lastPointerXRef.current ? 'right' : 'left'
+      lastPointerXRef.current = x
+    }
 
     if (__amShouldTrace()) {
       if (now - lastTraceTsRef.current > 80) {
@@ -969,52 +1029,50 @@ export const Sub = ({
     return { prev, last }
   }, [])
 
+  // Radix-style: only delay if the pointer is both moving toward the submenu side AND within the grace polygon
   const shouldDelayCloseForIntent = React.useCallback(() => {
     const rect = contentRectRef.current
-    const pts = pointsRef.current
-    if (!rect || pts.length < 2) {
+    const { prev, last } = computePrevLast()
+    const grace = graceRef.current
+    if (!prev || !last || !grace) {
       __amTrace('intent-check: insufficient-data', {
         hasRect: !!rect,
-        points: pts.length,
+        hasPrevLast: !!(prev && last),
+        hasGrace: !!grace,
       })
       return false
     }
 
-    const last = pts[pts.length - 1]!
-    const prev = [...pts].reverse().find((p) => last.t - p.t >= 100) ?? pts[0]!
+    const inside = isPointInPolygon({ x: last.x, y: last.y }, grace.area)
+    const movingToward =
+      grace.side === 'right' ? last.x > prev.x : last.x < prev.x
 
-    const movingRight = last.x > prev.x
-    const slackY = 24
-    const withinY =
-      last.y >= rect.top - slackY && last.y <= rect.bottom + slackY
+    // If (very rarely) rect is still missing but we do have a grace area and direction,
+    // treat it as intent-true when the pointer is moving toward the submenu.
+    if (!rect && inside && movingToward) {
+      __amTrace('intent-check: optimistic-true (grace present, no rect yet)')
+      return true
+    }
 
-    const topCorner = { x: rect.left, y: rect.top }
-    const bottomCorner = { x: rect.left, y: rect.bottom }
-    const insideTri = isInsideTriangle(last, prev, topCorner, bottomCorner)
-
-    const slackX = 30
-    const overshoot = last.x >= rect.left + slackX
-
-    const result = movingRight && withinY && insideTri && !overshoot
+    const result = inside && movingToward
 
     __amTrace('intent-check', {
       prev: { x: prev.x, y: prev.y },
       last: { x: last.x, y: last.y },
       rect: {
-        left: rect.left,
-        top: rect.top,
-        right: rect.right,
-        bottom: rect.bottom,
+        left: rect?.left,
+        top: rect?.top,
+        right: rect?.right,
+        bottom: rect?.bottom,
       },
-      movingRight,
-      withinY,
-      insideTri,
-      overshoot,
+      graceSide: grace.side,
+      inside,
+      movingToward,
       result,
     })
 
     return result
-  }, [])
+  }, [computePrevLast])
 
   const cancelScheduledClose = React.useCallback(() => {
     if (closeTimerRef.current != null) {
@@ -1043,6 +1101,7 @@ export const Sub = ({
         delay = 0
       } else if (reason === 'trigger-leave' || reason === 'content-leave') {
         intent = shouldDelayCloseForIntent()
+        console.log('intent', intent)
         delay = intent
           ? (inGeometryHold ? GEOMETRY_HOLD_EXTRA_MS : 0) + owner.intentDelayMs
           : 0
@@ -1060,6 +1119,7 @@ export const Sub = ({
         closeTimerRef.current = null
         __amTrace('close: fired', { reason })
         setOpen(false)
+        clearGrace()
         owner.setHoverGuardActive(false)
         owner.setActiveOwner(parentSurfaceId)
       }, delay)
@@ -1070,6 +1130,7 @@ export const Sub = ({
       owner,
       parentSurfaceId,
       setOpen,
+      clearGrace,
     ],
   )
 
@@ -1079,6 +1140,7 @@ export const Sub = ({
       return null
     const rect = contentRectRef.current
     const { prev, last } = computePrevLast()
+    const grace = graceRef.current
     if (!rect || !prev || !last) {
       return {
         prev: prev ?? null,
@@ -1086,12 +1148,26 @@ export const Sub = ({
         topCorner: null,
         bottomCorner: null,
         active: false,
+        polygon: grace?.area ?? null,
+        insidePolygon: false,
       }
     }
     const topCorner = { x: rect.left, y: rect.top }
     const bottomCorner = { x: rect.left, y: rect.bottom }
     const active = isInsideTriangle(last, prev, topCorner, bottomCorner)
-    return { prev, last, topCorner, bottomCorner, active }
+    const insidePolygon = isPointInPolygon(
+      { x: last.x, y: last.y },
+      grace?.area,
+    )
+    return {
+      prev,
+      last,
+      topCorner,
+      bottomCorner,
+      active,
+      polygon: grace?.area ?? null,
+      insidePolygon,
+    }
   }, [computePrevLast])
 
   const value: SubContextValue = React.useMemo(
@@ -1127,6 +1203,13 @@ export const Sub = ({
         <GeometryHoldBridge
           holderRef={geometryHoldUntilRef}
           contentRef={contentRef}
+          setContentRect={setContentRect}
+        />
+        {/* Internal helper to manage grace polygon from the SubTrigger */}
+        <GracePolygonBridge
+          triggerRef={triggerRef}
+          contentRef={contentRef}
+          setGrace={setGrace}
           setContentRect={setContentRect}
         />
         {children}
@@ -1172,7 +1255,68 @@ function GeometryHoldBridge({
   return null
 }
 
-/** Debug overlay: paints intent triangle + points when window.__ACTION_MENU_DEBUG__ === true */
+/** Builds a grace polygon when leaving the sub-trigger, like Radix. */
+function GracePolygonBridge({
+  triggerRef,
+  contentRef,
+  setGrace,
+  setContentRect,
+}: {
+  triggerRef: React.RefObject<HTMLElement | null>
+  contentRef: React.RefObject<HTMLDivElement | null>
+  setGrace: (intent: { area: Polygon; side: Side }) => void
+  setContentRect: (rect: DOMRect | null) => void
+}) {
+  const handleLeave = React.useCallback(
+    (e: PointerEvent) => {
+      const triggerEl = triggerRef.current
+      const contentEl = contentRef.current
+      if (!triggerEl || !contentEl) return
+
+      const contentRect = contentEl.getBoundingClientRect()
+      // Write the rect immediately to avoid “hasRect: false” in the very next tick.
+      setContentRect(contentRect)
+
+      // Determine side: prefer DOM position, fallback to dataset
+      const triggerRect = triggerEl.getBoundingClientRect()
+      const side: Side =
+        contentRect.left >= triggerRect.right ? 'right' : 'left'
+
+      const rightSide = side === 'right'
+      const near = rightSide ? contentRect.left : contentRect.right
+      const far = rightSide ? contentRect.right : contentRect.left
+
+      // bleed keeps the starting pointer point inside the polygon reliably
+      const bleed = rightSide ? -5 : +5
+
+      const area: Polygon = [
+        { x: e.clientX + bleed, y: e.clientY },
+        { x: near, y: contentRect.top },
+        { x: far, y: contentRect.top },
+        { x: far, y: contentRect.bottom },
+        { x: near, y: contentRect.bottom },
+      ]
+      setGrace({ area, side })
+    },
+    [triggerRef, contentRef, setGrace, setContentRect],
+  )
+
+  React.useEffect(() => {
+    const trg = triggerRef.current
+    if (!trg) return
+    const onLeave = (ev: Event) => {
+      const e = ev as PointerEvent
+      if (e.pointerType !== 'mouse') return
+      handleLeave(e)
+    }
+    trg.addEventListener('pointerleave', onLeave)
+    return () => trg.removeEventListener('pointerleave', onLeave)
+  }, [triggerRef, handleLeave])
+
+  return null
+}
+
+/** Debug overlay: paints intent triangle + points + grace polygon when window.__ACTION_MENU_DEBUG__ === true */
 function IntentDebugOverlay({
   getDebug,
 }: {
@@ -1182,6 +1326,8 @@ function IntentDebugOverlay({
     topCorner: { x: number; y: number } | null
     bottomCorner: { x: number; y: number } | null
     active: boolean
+    polygon?: Polygon | null
+    insidePolygon?: boolean
   } | null
 }) {
   const [tick, setTick] = React.useState(0)
@@ -1201,9 +1347,22 @@ function IntentDebugOverlay({
     return null
   }
   if (!dbg) return null
-  const { prev, last, topCorner, bottomCorner, active } = dbg
-  if (!prev || !last || !topCorner || !bottomCorner) return null
-  const poly = `${prev.x},${prev.y} ${topCorner.x},${topCorner.y} ${bottomCorner.x},${bottomCorner.y}`
+  const {
+    prev,
+    last,
+    topCorner,
+    bottomCorner,
+    active,
+    polygon,
+    insidePolygon,
+  } = dbg
+  if (!prev || !last) return null
+
+  const tri =
+    topCorner && bottomCorner
+      ? `${prev.x},${prev.y} ${topCorner.x},${topCorner.y} ${bottomCorner.x},${bottomCorner.y}`
+      : null
+
   return (
     <svg
       style={{
@@ -1216,44 +1375,49 @@ function IntentDebugOverlay({
       height="100%"
       aria-hidden
     >
-      <polygon
-        points={poly}
-        fill={active ? 'rgba(0,200,0,0.12)' : 'rgba(200,0,0,0.08)'}
-      />
+      {tri ? (
+        <polygon
+          points={tri}
+          fill={active ? 'rgba(0,200,0,0.12)' : 'rgba(200,0,0,0.08)'}
+        />
+      ) : null}
+      {polygon && polygon.length >= 3 ? (
+        <polygon
+          points={polygon.map((p) => `${p.x},${p.y}`).join(' ')}
+          fill={insidePolygon ? 'rgba(0,0,255,0.10)' : 'rgba(0,0,255,0.05)'}
+          stroke="rgba(0,0,255,0.4)"
+          strokeWidth={1}
+        />
+      ) : null}
       <circle cx={prev.x} cy={prev.y} r="4" fill="orange" />
       <circle cx={last.x} cy={last.y} r="4" fill="blue" />
-      <line
-        x1={prev.x}
-        y1={prev.y}
-        x2={last.x}
-        y2={last.y}
-        stroke="blue"
-        strokeDasharray="4 4"
-      />
-      <rect
-        x={topCorner.x}
-        y={topCorner.y}
-        width={Math.max(1, bottomCorner.x - topCorner.x)}
-        height={Math.max(1, bottomCorner.y - topCorner.y)}
-        fill="transparent"
-        stroke="purple"
-        strokeDasharray="6 6"
-      />
+      {topCorner && bottomCorner ? (
+        <>
+          <line
+            x1={prev.x}
+            y1={prev.y}
+            x2={last.x}
+            y2={last.y}
+            stroke="blue"
+            strokeDasharray="4 4"
+          />
+          <rect
+            x={topCorner.x}
+            y={topCorner.y}
+            width={Math.max(1, bottomCorner.x - topCorner.x)}
+            height={Math.max(1, bottomCorner.y - topCorner.y)}
+            fill="transparent"
+            stroke="purple"
+            strokeDasharray="6 6"
+          />
+        </>
+      ) : null}
       <text x={prev.x + 6} y={prev.y - 6} fill="orange" fontSize="12">
         prev
       </text>
       <text x={last.x + 6} y={last.y - 6} fill="blue" fontSize="12">
         last
       </text>
-      <text
-        x={topCorner.x + 6}
-        y={topCorner.y + 12}
-        fill="purple"
-        fontSize="12"
-      >
-        intent {active ? 'ACTIVE' : 'idle'}
-      </text>
-      {/* tick is used to force rerender */}
       <text x={10} y={20} fill="black" fontSize="12">
         dbg {tick}
       </text>
@@ -1389,14 +1553,23 @@ export const SubTrigger = React.forwardRef<
           id={itemId}
           onMouseEnter={composeEventHandlers(onMouseEnter, () => {
             if (disabled || !visible) return
+            // During corridor traversal, avoid letting sibling subtriggers steal attention
+            if (owner.hoverGuardActive && !focused) {
+              __amTrace(
+                'submenu: pointer-enter trigger (blocked by hoverGuard)',
+              )
+              return
+            }
             __amTrace('submenu: pointer-enter trigger')
             sub.onOpenChange(true)
-            // We are starting the corridor traversal; suppress parent hover updates
+            // Starting or continuing traversal: suppress parent hover updates
             owner.setHoverGuardActive(true)
           })}
           onMouseMove={composeEventHandlers(onMouseMove, (e) => {
             sub.trackPointer(e.clientX, e.clientY)
             if (!visible || disabled) return
+            // While corridor is active, don't allow *other* triggers to grab focus
+            if (owner.hoverGuardActive && !focused) return
             if (!focused) setActiveId(itemId)
           })}
           onMouseLeave={composeEventHandlers(onMouseLeave as any, () => {
