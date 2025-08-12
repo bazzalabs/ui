@@ -1,6 +1,7 @@
 'use client'
 
 import { ActionMenu } from '@bazza-ui/action-menu'
+import { ChevronRightIcon } from 'lucide-react'
 import { NavBar } from '@/components/nav-bar'
 
 export default function SSRPage() {
@@ -26,17 +27,21 @@ export default function SSRPage() {
         <div className="px-4 py-2 max-w-screen-2xl w-full mx-auto border-border border-dashed xl:border-x">
           <div className="flex flex-col gap-8 p-8">
             <ActionMenu.Root
+              // intentDelay={5000}
               className='**:data-[role="option"]:border  **:data-[role="option"]:border-transparent **:data-[role="option"]:data-[focused="true"]:border-purple-500'
-              intentDelay={5000}
             >
               <ActionMenu.Trigger>Trigger</ActionMenu.Trigger>
-              <ActionMenu.Content className="border border-blue-500">
-                <ActionMenu.Input className="outline-none outline-0" />
+              <ActionMenu.Content className="border border-blue-500 p-0.5">
+                <ActionMenu.Input />
                 <ActionMenu.List>
                   <ActionMenu.Group>
                     <ActionMenu.Sub>
-                      <ActionMenu.SubTrigger value="x">
-                        Item X
+                      <ActionMenu.SubTrigger
+                        value="x"
+                        className="flex items-center justify-between"
+                      >
+                        <span>Item X</span>
+                        <ChevronRightIcon className="size-4" />
                       </ActionMenu.SubTrigger>
                       <ActionMenu.SubContent
                         className="border border-red-500 p-0.5"
@@ -51,6 +56,37 @@ export default function SSRPage() {
                             <ActionMenu.Item value="x2">
                               Item X.2
                             </ActionMenu.Item>
+                            <ActionMenu.Sub>
+                              <ActionMenu.SubTrigger
+                                value="a"
+                                className="flex items-center justify-between"
+                              >
+                                <span>Item A</span>
+                                <ChevronRightIcon className="size-4" />
+                              </ActionMenu.SubTrigger>
+                              <ActionMenu.SubContent
+                                className="border border-red-500 p-0.5"
+                                align="start"
+                              >
+                                <ActionMenu.Input />
+                                <ActionMenu.List>
+                                  <ActionMenu.Group>
+                                    <ActionMenu.Item value="a1">
+                                      Item A.1
+                                    </ActionMenu.Item>
+                                    Item A.2
+                                    <ActionMenu.Item value="a2"></ActionMenu.Item>
+                                    <ActionMenu.Item value="a3">
+                                      Item A.3
+                                    </ActionMenu.Item>
+                                  </ActionMenu.Group>
+                                  <ActionMenu.Item value="a4">
+                                    Item A.4
+                                  </ActionMenu.Item>
+                                </ActionMenu.List>
+                              </ActionMenu.SubContent>
+                            </ActionMenu.Sub>
+
                             <ActionMenu.Item value="x3">
                               Item X.3
                             </ActionMenu.Item>
@@ -62,8 +98,12 @@ export default function SSRPage() {
                     <ActionMenu.Item value="3">Item 3</ActionMenu.Item>
                   </ActionMenu.Group>
                   <ActionMenu.Sub>
-                    <ActionMenu.SubTrigger value="y">
-                      Item Y
+                    <ActionMenu.SubTrigger
+                      value="y"
+                      className="flex items-center justify-between"
+                    >
+                      <span>Item Y</span>
+                      <ChevronRightIcon className="size-4" />
                     </ActionMenu.SubTrigger>
                     <ActionMenu.SubContent
                       className="border border-red-500 p-0.5"

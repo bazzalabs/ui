@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
-  transpilePackages: ['next-mdx-remote', '@bazza-ui/action-menu'],
+  transpilePackages: ['next-mdx-remote'],
   redirects: async () => [
     {
       source: '/chat',

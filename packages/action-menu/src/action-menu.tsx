@@ -661,10 +661,8 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
           } else if (e.key === 'ArrowRight') {
             e.preventDefault()
             openSubmenuForActive(activeId)
-          } else if (e.key === 'ArrowLeft') {
-            e.preventDefault()
-            closeSubmenuForActive(activeId)
           }
+          // NOTE: ArrowLeft intentionally NOT handled here (owned by SubContent)
         })}
       />
     )
@@ -735,10 +733,8 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
           } else if (e.key === 'ArrowRight') {
             e.preventDefault()
             openSubmenuForActive(activeId)
-          } else if (e.key === 'ArrowLeft') {
-            e.preventDefault()
-            closeSubmenuForActive(activeId)
           }
+          // NOTE: ArrowLeft intentionally NOT handled here (owned by SubContent)
         })}
         onPointerEnter={() => {
           owner.setHoverGuardActive(false)
@@ -1102,8 +1098,10 @@ export const Sub = ({
       } else if (reason === 'trigger-leave' || reason === 'content-leave') {
         intent = shouldDelayCloseForIntent()
         console.log('intent', intent)
+        // CHANGED: add small unconditional +100ms when intent is true (for deep submenu gaps)
         delay = intent
-          ? (inGeometryHold ? GEOMETRY_HOLD_EXTRA_MS : 0) + owner.intentDelayMs
+          ? (inGeometryHold ? GEOMETRY_HOLD_EXTRA_MS : 100) +
+            owner.intentDelayMs
           : 0
       }
 
@@ -1286,8 +1284,8 @@ function GracePolygonBridge({
       const near = rightSide ? contentRect.left : contentRect.right
       const far = rightSide ? contentRect.right : contentRect.left
 
-      // bleed keeps the starting pointer point inside the polygon reliably
-      const bleed = rightSide ? -5 : +5
+      // CHANGED: widen bleed to make corridor more forgiving for deep submenus
+      const bleed = rightSide ? -12 : +12
 
       const area: Polygon = [
         { x: e.clientX + bleed, y: e.clientY },
@@ -1611,12 +1609,8 @@ export const SubTrigger = React.forwardRef<
                 }
                 ;(input ?? list)?.focus()
               })
-            } else if (e.key === 'ArrowLeft') {
-              e.preventDefault()
-              __amTrace('submenu: ArrowLeft → close & return to parent')
-              sub.onOpenChange(false)
-              owner.setActiveOwner(sub.parentSurfaceId)
             }
+            // NOTE: ArrowLeft intentionally NOT handled here (owned by SubContent)
           })}
           onFocus={composeEventHandlers(onFocus, () => {
             if (disabled || !visible) return
@@ -1727,8 +1721,15 @@ export const SubContent = React.forwardRef<
                 owner.setHoverGuardActive(false)
               }}
               onKeyDown={(e) => {
+                // Only react if the keydown originated within this submenu
+                const isInside = (e.currentTarget as HTMLElement).contains(
+                  e.target as Node,
+                )
+                if (!isInside) return
+
                 if (e.key === 'ArrowLeft') {
                   e.preventDefault()
+                  e.stopPropagation() // CHANGED: prevent parent from also processing ArrowLeft
                   sub.onOpenChange(false)
                   owner.setActiveOwner(sub.parentSurfaceId)
                   const parentEl =
@@ -1760,12 +1761,13 @@ export const SubContent = React.forwardRef<
                 onPointerEnter={() => {
                   __amTrace('submenu: pointer-enter content')
                   sub.cancelScheduledClose()
-                  owner.setHoverGuardActive(false)
                   owner.setActiveOwner(surfaceId)
+                  // CHANGED: clear hover guard AFTER focus is placed inside child
                   requestAnimationFrame(() => {
                     const input = collectionValue.inputRef.current
                     if (input) input.focus()
                     else collectionValue.listRef.current?.focus()
+                    owner.setHoverGuardActive(false)
                   })
                 }}
                 onPointerLeave={(e) => {

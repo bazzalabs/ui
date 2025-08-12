@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup --watch",
+    "dev": "tsc --watch",
     "build": "tsup",
     "test": "vitest run --run --mode test",
     "test:watch": "vitest --mode test --watch --disable-console-intercept",
