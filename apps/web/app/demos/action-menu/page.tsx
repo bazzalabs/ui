@@ -37,10 +37,10 @@ export default function SSRPage() {
                   <ActionMenu.Group>
                     <ActionMenu.Sub>
                       <ActionMenu.SubTrigger
-                        value="x"
+                        value="a"
                         className="flex items-center justify-between"
                       >
-                        <span>Item X</span>
+                        <span>Item A</span>
                         <ChevronRightIcon className="size-4" />
                       </ActionMenu.SubTrigger>
                       <ActionMenu.SubContent
@@ -50,81 +50,153 @@ export default function SSRPage() {
                         <ActionMenu.Input />
                         <ActionMenu.List>
                           <ActionMenu.Group>
-                            <ActionMenu.Item value="x1">
-                              Item X.1
+                            <ActionMenu.Item value="a1">
+                              Item A.1
                             </ActionMenu.Item>
-                            <ActionMenu.Item value="x2">
-                              Item X.2
+                            <ActionMenu.Item value="a2">
+                              Item A.2
                             </ActionMenu.Item>
                             <ActionMenu.Sub>
                               <ActionMenu.SubTrigger
-                                value="a"
+                                value="b"
                                 className="flex items-center justify-between"
                               >
-                                <span>Item A</span>
+                                <span>Item B</span>
                                 <ChevronRightIcon className="size-4" />
                               </ActionMenu.SubTrigger>
                               <ActionMenu.SubContent
-                                className="border border-red-500 p-0.5"
+                                className="border border-green-500 p-0.5"
                                 align="start"
                               >
                                 <ActionMenu.Input />
                                 <ActionMenu.List>
                                   <ActionMenu.Group>
-                                    <ActionMenu.Item value="a1">
-                                      Item A.1
+                                    <ActionMenu.Item value="b1">
+                                      Item B.1
                                     </ActionMenu.Item>
-                                    Item A.2
-                                    <ActionMenu.Item value="a2"></ActionMenu.Item>
-                                    <ActionMenu.Item value="a3">
-                                      Item A.3
+                                    <ActionMenu.Item value="b2">
+                                      Item B.2
+                                    </ActionMenu.Item>
+                                    <ActionMenu.Item value="b3">
+                                      Item B.3
                                     </ActionMenu.Item>
                                   </ActionMenu.Group>
-                                  <ActionMenu.Item value="a4">
-                                    Item A.4
-                                  </ActionMenu.Item>
                                 </ActionMenu.List>
                               </ActionMenu.SubContent>
                             </ActionMenu.Sub>
 
-                            <ActionMenu.Item value="x3">
-                              Item X.3
+                            <ActionMenu.Item value="a3">
+                              Item A.3
                             </ActionMenu.Item>
                           </ActionMenu.Group>
-                          <ActionMenu.Item value="x4">Item X.4</ActionMenu.Item>
                         </ActionMenu.List>
                       </ActionMenu.SubContent>
                     </ActionMenu.Sub>
-                    <ActionMenu.Item value="3">Item 3</ActionMenu.Item>
                   </ActionMenu.Group>
-                  <ActionMenu.Sub>
-                    <ActionMenu.SubTrigger
-                      value="y"
-                      className="flex items-center justify-between"
-                    >
-                      <span>Item Y</span>
-                      <ChevronRightIcon className="size-4" />
-                    </ActionMenu.SubTrigger>
-                    <ActionMenu.SubContent
-                      className="border border-red-500 p-0.5"
-                      align="start"
-                    >
-                      <ActionMenu.Input />
-                      <ActionMenu.List>
-                        <ActionMenu.Group>
-                          <ActionMenu.Item value="y1">Item Y.1</ActionMenu.Item>
-                          <ActionMenu.Item value="y2">Item Y.2</ActionMenu.Item>
-                          <ActionMenu.Item value="y3">Item Y.3</ActionMenu.Item>
-                        </ActionMenu.Group>
-                        <ActionMenu.Item value="y4">Item Y.4</ActionMenu.Item>
-                      </ActionMenu.List>
-                    </ActionMenu.SubContent>
-                  </ActionMenu.Sub>
-
-                  <ActionMenu.Item value="4">Item 4</ActionMenu.Item>
                 </ActionMenu.List>
               </ActionMenu.Content>
             </ActionMenu.Root>
+
+            {/* <ActionMenu.Root */}
+            {/*   // intentDelay={5000} */}
+            {/*   className='**:data-[role="option"]:border  **:data-[role="option"]:border-transparent **:data-[role="option"]:data-[focused="true"]:border-purple-500' */}
+            {/* > */}
+            {/*   <ActionMenu.Trigger>Trigger</ActionMenu.Trigger> */}
+            {/*   <ActionMenu.Content className="border border-blue-500 p-0.5"> */}
+            {/*     <ActionMenu.Input /> */}
+            {/*     <ActionMenu.List> */}
+            {/*       <ActionMenu.Group> */}
+            {/*         <ActionMenu.Sub> */}
+            {/*           <ActionMenu.SubTrigger */}
+            {/*             value="x" */}
+            {/*             className="flex items-center justify-between" */}
+            {/*           > */}
+            {/*             <span>Item X</span> */}
+            {/*             <ChevronRightIcon className="size-4" /> */}
+            {/*           </ActionMenu.SubTrigger> */}
+            {/*           <ActionMenu.SubContent */}
+            {/*             className="border border-red-500 p-0.5" */}
+            {/*             align="start" */}
+            {/*           > */}
+            {/*             <ActionMenu.Input /> */}
+            {/*             <ActionMenu.List> */}
+            {/*               <ActionMenu.Group> */}
+            {/*                 <ActionMenu.Item value="x1"> */}
+            {/*                   Item X.1 */}
+            {/*                 </ActionMenu.Item> */}
+            {/*                 <ActionMenu.Item value="x2"> */}
+            {/*                   Item X.2 */}
+            {/*                 </ActionMenu.Item> */}
+            {/*                 <ActionMenu.Sub> */}
+            {/*                   <ActionMenu.SubTrigger */}
+            {/*                     value="a" */}
+            {/*                     className="flex items-center justify-between" */}
+            {/*                   > */}
+            {/*                     <span>Item A</span> */}
+            {/*                     <ChevronRightIcon className="size-4" /> */}
+            {/*                   </ActionMenu.SubTrigger> */}
+            {/*                   <ActionMenu.SubContent */}
+            {/*                     className="border border-green-500 p-0.5" */}
+            {/*                     align="start" */}
+            {/*                   > */}
+            {/*                     <ActionMenu.Input /> */}
+            {/*                     <ActionMenu.List> */}
+            {/*                       <ActionMenu.Group> */}
+            {/*                         <ActionMenu.Item value="a1"> */}
+            {/*                           Item A.1 */}
+            {/*                         </ActionMenu.Item> */}
+            {/*                         <ActionMenu.Item value="a2"> */}
+            {/*                           Item A.2 */}
+            {/*                         </ActionMenu.Item> */}
+            {/*                         <ActionMenu.Item value="a3"> */}
+            {/*                           Item A.3 */}
+            {/*                         </ActionMenu.Item> */}
+            {/*                       </ActionMenu.Group> */}
+            {/*                       <ActionMenu.Item value="a4"> */}
+            {/*                         Item A.4 */}
+            {/*                       </ActionMenu.Item> */}
+            {/*                     </ActionMenu.List> */}
+            {/*                   </ActionMenu.SubContent> */}
+            {/*                 </ActionMenu.Sub> */}
+            {/**/}
+            {/*                 <ActionMenu.Item value="x3"> */}
+            {/*                   Item X.3 */}
+            {/*                 </ActionMenu.Item> */}
+            {/*               </ActionMenu.Group> */}
+            {/*               <ActionMenu.Item value="x4">Item X.4</ActionMenu.Item> */}
+            {/*             </ActionMenu.List> */}
+            {/*           </ActionMenu.SubContent> */}
+            {/*         </ActionMenu.Sub> */}
+            {/*         <ActionMenu.Item value="3">Item 3</ActionMenu.Item> */}
+            {/*       </ActionMenu.Group> */}
+            {/*       <ActionMenu.Sub> */}
+            {/*         <ActionMenu.SubTrigger */}
+            {/*           value="y" */}
+            {/*           className="flex items-center justify-between" */}
+            {/*         > */}
+            {/*           <span>Item Y</span> */}
+            {/*           <ChevronRightIcon className="size-4" /> */}
+            {/*         </ActionMenu.SubTrigger> */}
+            {/*         <ActionMenu.SubContent */}
+            {/*           className="border border-red-500 p-0.5" */}
+            {/*           align="start" */}
+            {/*         > */}
+            {/*           <ActionMenu.Input /> */}
+            {/*           <ActionMenu.List> */}
+            {/*             <ActionMenu.Group> */}
+            {/*               <ActionMenu.Item value="y1">Item Y.1</ActionMenu.Item> */}
+            {/*               <ActionMenu.Item value="y2">Item Y.2</ActionMenu.Item> */}
+            {/*               <ActionMenu.Item value="y3">Item Y.3</ActionMenu.Item> */}
+            {/*             </ActionMenu.Group> */}
+            {/*             <ActionMenu.Item value="y4">Item Y.4</ActionMenu.Item> */}
+            {/*           </ActionMenu.List> */}
+            {/*         </ActionMenu.SubContent> */}
+            {/*       </ActionMenu.Sub> */}
+            {/**/}
+            {/*       <ActionMenu.Item value="4">Item 4</ActionMenu.Item> */}
+            {/*     </ActionMenu.List> */}
+            {/*   </ActionMenu.Content> */}
+            {/* </ActionMenu.Root> */}
           </div>
         </div>
       </div>
