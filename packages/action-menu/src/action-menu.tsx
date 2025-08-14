@@ -561,6 +561,7 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
                   ref={composedRef}
                   role="menu"
                   tabIndex={-1}
+                  data-state={root.open ? 'open' : 'closed'}
                   data-action-menu-surface
                   data-surface-id={surfaceId}
                   data-dir={dir}
@@ -1295,6 +1296,7 @@ export const SubContent = React.forwardRef<
                   data-submenu
                   data-surface-id={surfaceId}
                   data-dir={dir}
+                  data-state={sub.open ? 'open' : 'closed'}
                   onFocusCapture={handleFocusCapture}
                   onMouseMove={(e) => {
                     const rect = surfaceRef.current?.getBoundingClientRect()
