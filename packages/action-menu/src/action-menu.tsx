@@ -3,10 +3,11 @@
 /** biome-ignore-all lint/a11y/useAriaPropsSupportedByRole: x */
 
 /**
- * ActionMenu — simplified version with NO intent-zone logic.
- * - Removed grace polygons, pointer tracking, geometry holds, hover guard, modality.
- * - Straightforward open/close semantics for submenus.
- * - Focus moves predictably on open; ArrowRight opens sub, ArrowLeft closes.
+ * ActionMenu — simplified, keyboard-solid version.
+ * - Centralized key handling with cmdk-like helpers (first/last/next/prev).
+ * - Direction-aware open/close (LTR/RTL) + Vim bindings (Ctrl+N/P, Ctrl+J/K).
+ * - ArrowRight opens submenu, ArrowLeft closes (mirrored under RTL).
+ * - Back-nav restores parent selection and focus to the triggering row.
  */
 
 import { composeEventHandlers } from '@radix-ui/primitive'
@@ -19,8 +20,45 @@ import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 
 /* ================================================================================================
- * Utilities
+ * Key maps & helpers
  * ============================================================================================== */
+
+export type Direction = 'ltr' | 'rtl'
+
+const SELECTION_KEYS = ['Enter', ' '] as const
+const FIRST_KEYS = ['ArrowDown', 'PageUp', 'Home'] as const
+const LAST_KEYS = ['ArrowUp', 'PageDown', 'End'] as const
+
+const SUB_OPEN_KEYS: Record<Direction, readonly string[]> = {
+  ltr: [...SELECTION_KEYS, 'ArrowRight'],
+  rtl: [...SELECTION_KEYS, 'ArrowLeft'],
+}
+const SUB_CLOSE_KEYS: Record<Direction, readonly string[]> = {
+  ltr: ['ArrowLeft'],
+  rtl: ['ArrowRight'],
+}
+
+const isSelectionKey = (k: string) =>
+  (SELECTION_KEYS as readonly string[]).includes(k)
+const isFirstKey = (k: string) => (FIRST_KEYS as readonly string[]).includes(k)
+const isLastKey = (k: string) => (LAST_KEYS as readonly string[]).includes(k)
+const isOpenKey = (dir: Direction, k: string) => SUB_OPEN_KEYS[dir].includes(k)
+const isCloseKey = (dir: Direction, k: string) =>
+  SUB_CLOSE_KEYS[dir].includes(k)
+
+const isVimNext = (e: React.KeyboardEvent) =>
+  e.ctrlKey && (e.key === 'n' || e.key === 'j')
+const isVimPrev = (e: React.KeyboardEvent) =>
+  e.ctrlKey && (e.key === 'p' || e.key === 'k')
+
+const getDir = (explicit?: Direction): Direction => {
+  if (explicit) return explicit
+  if (typeof document !== 'undefined') {
+    const d = document?.dir?.toLowerCase()
+    if (d === 'rtl' || d === 'ltr') return d
+  }
+  return 'ltr'
+}
 
 const normalize = (s: string) => s.toLowerCase().trim()
 
@@ -37,6 +75,38 @@ function openSubmenuForActive(activeId: string | null) {
 
 function isInBounds(x: number, y: number, rect: DOMRect) {
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+}
+
+function isActiveRowSubTrigger(activeId: string | null) {
+  if (!activeId) return false
+  return document.getElementById(activeId)?.dataset.subtrigger === 'true'
+}
+
+function inputCaretAtBackBoundary(
+  input: HTMLInputElement,
+  dir: Direction,
+): boolean {
+  // In LTR: caret at start = "back"
+  // In RTL: caret at end   = "back"
+  const start = input.selectionStart ?? 0
+  const end = input.selectionEnd ?? 0
+  if (dir === 'ltr') return start === 0 && end === 0
+  const L = input.value?.length ?? 0
+  return start === L && end === L
+}
+
+function useLayoutScheduler() {
+  const [, bump] = React.useState(0)
+  const queueRef = React.useRef<Map<string | number, () => void>>(new Map())
+  React.useLayoutEffect(() => {
+    const fns = Array.from(queueRef.current.values())
+    queueRef.current.clear()
+    for (const fn of fns) fn()
+  })
+  return (id: string | number, fn: () => void) => {
+    queueRef.current.set(id, fn) // dedupe by id
+    bump((i) => i + 1)
+  }
 }
 
 /* ================================================================================================
@@ -91,10 +161,14 @@ type CollectionContextValue = {
   getVisibleItemIds: () => string[]
   isItemVisible: (id: string) => boolean
 
+  // cmdk-like helpers
   activeId: string | null
   setActiveId: (id: string | null) => void
-  moveActive: (dir: 1 | -1) => void
-  setActiveToFirstVisible: () => void
+  setActiveByIndex: (index: number) => void
+  first: () => void
+  last: () => void
+  next: () => void
+  prev: () => void
   clickActive: () => void
 
   inputPresent: boolean
@@ -116,10 +190,17 @@ const useCollection = () => {
   return ctx
 }
 
-function useCollectionState(): CollectionContextValue {
+function useCollectionState({
+  surfaceId,
+}: {
+  surfaceId: string
+}): CollectionContextValue {
+  const schedule = useLayoutScheduler()
+
   const [query, setQuery] = React.useState('')
   const itemsRef = React.useRef<Map<string, RegisteredItem>>(new Map())
   const groupsRef = React.useRef<Map<string, RegisteredGroup>>(new Map())
+  const groupOrderRef = React.useRef<string[]>([]) // insertion order for groups
   const [activeId, setActiveId] = React.useState<string | null>(null)
 
   const inputRef = React.useRef<HTMLInputElement | null>(null)
@@ -138,34 +219,59 @@ function useCollectionState(): CollectionContextValue {
     return ids
   }, [normQuery])
 
+  const ensureValidActive = React.useCallback(() => {
+    const visible = getVisibleItemIds()
+    setActiveId((curr) => {
+      if (curr && itemsRef.current.has(curr) && visible.includes(curr))
+        return curr
+      return visible[0] ?? null
+    })
+  }, [getVisibleItemIds])
+
   const isItemVisible = React.useCallback(
     (id: string) => getVisibleItemIds().includes(id),
     [getVisibleItemIds],
   )
 
-  const moveActive = React.useCallback(
-    (dir: 1 | -1) => {
+  const setActiveByIndex = React.useCallback(
+    (index: number) => {
       const visible = getVisibleItemIds()
       if (visible.length === 0) {
         setActiveId(null)
         return
       }
-      const currentIndex = activeId ? visible.indexOf(activeId) : -1
-      const nextIndex =
-        currentIndex === -1
-          ? dir === 1
-            ? 0
-            : visible.length - 1
-          : (currentIndex + dir + visible.length) % visible.length
-      setActiveId(visible[nextIndex]!)
+      const clamped =
+        index < 0 ? 0 : index >= visible.length ? visible.length - 1 : index
+      setActiveId(visible[clamped]!)
     },
-    [activeId, getVisibleItemIds],
+    [getVisibleItemIds],
   )
 
-  const setActiveToFirstVisible = React.useCallback(() => {
+  const first = React.useCallback(() => {
     const visible = getVisibleItemIds()
     setActiveId(visible[0] ?? null)
   }, [getVisibleItemIds])
+
+  const last = React.useCallback(() => {
+    const visible = getVisibleItemIds()
+    setActiveId(visible.length ? visible[visible.length - 1]! : null)
+  }, [getVisibleItemIds])
+
+  const next = React.useCallback(() => {
+    const visible = getVisibleItemIds()
+    if (!visible.length) return setActiveId(null)
+    const idx = activeId ? visible.indexOf(activeId) : -1
+    const nextIndex = idx === -1 ? 0 : (idx + 1) % visible.length
+    setActiveId(visible[nextIndex]!)
+  }, [activeId, getVisibleItemIds])
+
+  const prev = React.useCallback(() => {
+    const visible = getVisibleItemIds()
+    if (!visible.length) return setActiveId(null)
+    const idx = activeId ? visible.indexOf(activeId) : 0
+    const prevIndex = idx <= 0 ? visible.length - 1 : idx - 1
+    setActiveId(visible[prevIndex]!)
+  }, [activeId, getVisibleItemIds])
 
   const clickActive = React.useCallback(() => {
     if (!activeId) return
@@ -174,21 +280,28 @@ function useCollectionState(): CollectionContextValue {
 
   const registerItem = React.useCallback((item: RegisteredItem) => {
     itemsRef.current.set(item.id, item)
+    // After all items from this commit register, pick a valid active.
+    schedule('items:reconcile', ensureValidActive)
   }, [])
   const unregisterItem = React.useCallback((id: string) => {
     itemsRef.current.delete(id)
+    schedule('items:reconcile', ensureValidActive)
   }, [])
 
   const registerGroup = React.useCallback((g: RegisteredGroup) => {
     groupsRef.current.set(g.id, g)
+    if (!groupOrderRef.current.includes(g.id)) {
+      groupOrderRef.current.push(g.id)
+    }
   }, [])
   const unregisterGroup = React.useCallback((id: string) => {
     groupsRef.current.delete(id)
+    groupOrderRef.current = groupOrderRef.current.filter((gid) => gid !== id)
   }, [])
 
   React.useEffect(() => {
-    setActiveToFirstVisible()
-  }, [normQuery, setActiveToFirstVisible])
+    schedule('query:reconcile', ensureValidActive)
+  }, [normQuery, getVisibleItemIds])
 
   return {
     query,
@@ -201,8 +314,11 @@ function useCollectionState(): CollectionContextValue {
     isItemVisible,
     activeId,
     setActiveId,
-    moveActive,
-    setActiveToFirstVisible,
+    setActiveByIndex,
+    first,
+    last,
+    next,
+    prev,
     clickActive,
     inputPresent,
     setInputPresent,
@@ -229,6 +345,17 @@ const useFocusOwner = () => {
   if (!ctx) throw new Error('FocusOwnerCtx missing')
   return ctx
 }
+
+/* ================================================================================================
+ * Keyboard options context (dir + vim)
+ * ============================================================================================== */
+
+type KeyboardOptions = { dir: Direction; vimBindings: boolean }
+const KeyboardCtx = React.createContext<KeyboardOptions>({
+  dir: 'ltr',
+  vimBindings: true,
+})
+const useKeyboardOpts = () => React.useContext(KeyboardCtx)
 
 /* ================================================================================================
  * Root
@@ -335,6 +462,8 @@ export interface ActionMenuContentProps
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
   closeOnAnchorPointerDown?: boolean
+  dir?: Direction
+  vimBindings?: boolean
 }
 
 export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
@@ -348,93 +477,257 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
       avoidCollisions = true,
       collisionPadding = 8,
       closeOnAnchorPointerDown = false,
+      dir: dirProp,
+      vimBindings = true,
       ...props
     },
     ref,
   ) => {
     const root = useRootCtx()
     const surfaceId = React.useId()
-
-    const collectionValue = useCollectionState()
-
+    const collectionValue = useCollectionState({ surfaceId })
     const { ownerId, setOwnerId } = useFocusOwner()
     const isOwner = ownerId === surfaceId
-
     const surfaceRef = React.useRef<HTMLDivElement | null>(null)
     const composedRef = composeRefs(ref, surfaceRef)
+    const dir = getDir(dirProp)
 
     React.useEffect(() => {
-      if (root.open && ownerId === null) setOwnerId(surfaceId)
+      // If root is closed, reset ownerId and activeId
+      if (!root.open) {
+        setOwnerId(null)
+        collectionValue.setActiveId(null)
+        return
+      }
+
+      // If root is open and ownerId is null, set ownerId and focus the surface
+      if (root.open && ownerId === null) {
+        setOwnerId(surfaceId)
+        ;(
+          collectionValue.inputRef.current ?? collectionValue.listRef.current
+        )?.focus()
+      }
     }, [root.open, ownerId, surfaceId, setOwnerId])
 
-    // Focus when this surface is the owner
     React.useEffect(() => {
       if (!root.open || !isOwner) return
       const id = requestAnimationFrame(() => {
         ;(
           collectionValue.inputRef.current ?? collectionValue.listRef.current
         )?.focus()
+        // if (!collectionValue.activeId) collectionValue.first()
       })
       return () => cancelAnimationFrame(id)
     }, [root.open, isOwner, collectionValue.inputPresent])
 
     return (
       <SurfaceCtx.Provider value={surfaceId}>
-        <Presence present={root.open}>
-          <Popper.Content
-            side={side}
-            align={align}
-            sideOffset={sideOffset}
-            alignOffset={alignOffset}
-            avoidCollisions={avoidCollisions}
-            collisionPadding={collisionPadding}
-            asChild
-          >
-            <DismissableLayer
-              onEscapeKeyDown={() => root.onOpenChange(false)}
-              onDismiss={() => root.onOpenChange(false)}
-              onInteractOutside={(event) => {
-                const target = event.target as Node | null
-                const anchor = root.anchorRef.current
-                if (
-                  !closeOnAnchorPointerDown &&
-                  anchor &&
-                  target &&
-                  anchor.contains(target)
-                ) {
-                  event.preventDefault()
-                }
-              }}
+        <KeyboardCtx.Provider value={{ dir, vimBindings }}>
+          <Presence present={root.open}>
+            <Popper.Content
+              side={side}
+              align={align}
+              sideOffset={sideOffset}
+              alignOffset={alignOffset}
+              avoidCollisions={avoidCollisions}
+              collisionPadding={collisionPadding}
               asChild
             >
-              <Primitive.div
-                {...props}
-                ref={composedRef}
-                role="menu"
-                tabIndex={-1}
-                data-action-menu-surface
-                data-surface-id={surfaceId}
-                onMouseMove={(e) => {
-                  const rect = surfaceRef.current?.getBoundingClientRect()
-                  if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
-                  setOwnerId(surfaceId)
+              <DismissableLayer
+                onEscapeKeyDown={() => root.onOpenChange(false)}
+                onDismiss={() => root.onOpenChange(false)}
+                onInteractOutside={(event) => {
+                  const target = event.target as Node | null
+                  const anchor = root.anchorRef.current
+                  if (
+                    !closeOnAnchorPointerDown &&
+                    anchor &&
+                    target &&
+                    anchor.contains(target)
+                  ) {
+                    event.preventDefault()
+                  }
                 }}
+                asChild
               >
-                <CollectionCtx.Provider value={collectionValue}>
-                  {children}
-                  <span className="absolute right-0 top-0 text-xs font-medium">
-                    {surfaceId}
-                  </span>
-                </CollectionCtx.Provider>
-              </Primitive.div>
-            </DismissableLayer>
-          </Popper.Content>
-        </Presence>
+                <Primitive.div
+                  {...props}
+                  ref={composedRef}
+                  role="menu"
+                  tabIndex={-1}
+                  data-action-menu-surface
+                  data-surface-id={surfaceId}
+                  data-dir={dir}
+                  onMouseMove={(e) => {
+                    const rect = surfaceRef.current?.getBoundingClientRect()
+                    if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
+                    setOwnerId(surfaceId)
+                  }}
+                >
+                  <CollectionCtx.Provider value={collectionValue}>
+                    {children}
+                  </CollectionCtx.Provider>
+                </Primitive.div>
+              </DismissableLayer>
+            </Popper.Content>
+          </Presence>
+        </KeyboardCtx.Provider>
       </SurfaceCtx.Provider>
     )
   },
 )
 Content.displayName = 'ActionMenu.Content'
+
+/* ================================================================================================
+ * Unified menu key handling (used by Input & List)
+ * ============================================================================================== */
+
+function useMenuKeydown(source: 'input' | 'list') {
+  const {
+    activeId,
+    first,
+    last,
+    next,
+    prev,
+    clickActive,
+    getVisibleItemIds,
+    setActiveId,
+    inputPresent,
+  } = useCollection()
+  const root = useRootCtx()
+  const { setOwnerId } = useFocusOwner()
+  const sub = React.useContext(SubCtx) as SubContextValue | null
+  const { dir, vimBindings } = useKeyboardOpts()
+
+  return React.useCallback(
+    (e: React.KeyboardEvent) => {
+      const k = e.key
+
+      // Vim binds
+      if (vimBindings) {
+        if (isVimNext(e)) {
+          e.preventDefault()
+          next()
+          return
+        }
+        if (isVimPrev(e)) {
+          e.preventDefault()
+          prev()
+          return
+        }
+      }
+
+      // Keep focus trapped
+      if ((source === 'list' || !inputPresent) && k === 'Tab') {
+        e.preventDefault()
+        return
+      }
+
+      if (k === 'ArrowDown') {
+        e.preventDefault()
+        next()
+        return
+      }
+      if (k === 'ArrowUp') {
+        e.preventDefault()
+        prev()
+        return
+      }
+
+      if (isFirstKey(k)) {
+        e.preventDefault()
+        first()
+        return
+      }
+      if (isLastKey(k)) {
+        e.preventDefault()
+        last()
+        return
+      }
+
+      // Open / Select
+      if (isOpenKey(dir, k)) {
+        e.preventDefault()
+        if (isSelectionKey(k)) {
+          // If the active row is a subtrigger, open it; else "select" the item
+          if (isActiveRowSubTrigger(activeId)) {
+            openSubmenuForActive(activeId)
+          } else {
+            clickActive()
+          }
+        } else {
+          openSubmenuForActive(activeId)
+        }
+        return
+      }
+
+      // Close / Back
+      if (isCloseKey(dir, k)) {
+        // In Input, only back out if caret is at the "back" boundary
+        if (source === 'input') {
+          const t = e.currentTarget as HTMLInputElement
+          if (!inputCaretAtBackBoundary(t, dir)) return
+        }
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (sub) {
+          // sub.onOpenChange(false)
+          sub.parentSetActiveId(sub.triggerItemId)
+          setOwnerId(sub.parentSurfaceId)
+          const parentEl = document.querySelector<HTMLElement>(
+            `[data-surface-id="${sub.parentSurfaceId}"]`,
+          )
+          requestAnimationFrame(() => {
+            const parentInput = parentEl?.querySelector<HTMLInputElement>(
+              '[data-action-menu-input]',
+            )
+            const parentList = parentEl?.querySelector<HTMLElement>(
+              '[data-action-menu-list]',
+            )
+            ;(parentInput ?? parentList)?.focus()
+          })
+        } else {
+          // At root: close and return focus to trigger
+          // root.onOpenChange(false)
+          requestAnimationFrame(() => root.anchorRef.current?.focus())
+        }
+        return
+      }
+
+      // Enter (selection when not captured by open-key case above)
+      if (k === 'Enter') {
+        e.preventDefault()
+        clickActive()
+        return
+      }
+
+      // Keep aria-activedescendant in sync when typing in Input
+      if (source === 'input' && k.length === 1) {
+        // typeahead occurs via onChange; ensure active is first visible
+        const ids = getVisibleItemIds()
+        setActiveId(ids[0] ?? null)
+      }
+    },
+    [
+      source,
+      dir,
+      vimBindings,
+      inputPresent,
+      next,
+      prev,
+      first,
+      last,
+      clickActive,
+      activeId,
+      getVisibleItemIds,
+      setActiveId,
+      root,
+      setOwnerId,
+      sub,
+    ],
+  )
+}
 
 /* ================================================================================================
  * Input (keyboard nav + filtering)
@@ -450,11 +743,9 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
     const {
       setQuery,
       query,
-      moveActive,
       getVisibleItemIds,
       setActiveId,
       activeId,
-      clickActive,
       setInputPresent,
       inputRef,
       listId,
@@ -462,6 +753,7 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
 
     const localRef = React.useRef<HTMLInputElement | null>(null)
     const composedRef = composeRefs(ref, localRef, inputRef as any)
+    const handleKeys = useMenuKeydown('input')
 
     React.useEffect(() => {
       setInputPresent(true)
@@ -496,33 +788,7 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
           const ids = getVisibleItemIds()
           setActiveId(ids[0] ?? null)
         })}
-        onKeyDown={composeEventHandlers(onKeyDown, (e) => {
-          if (e.key === 'Tab') {
-            e.preventDefault()
-            return
-          }
-          if (e.key === 'ArrowDown') {
-            e.preventDefault()
-            moveActive(1)
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault()
-            moveActive(-1)
-          } else if (e.key === 'Home') {
-            e.preventDefault()
-            const ids = getVisibleItemIds()
-            setActiveId(ids[0] ?? null)
-          } else if (e.key === 'End') {
-            e.preventDefault()
-            const ids = getVisibleItemIds()
-            setActiveId(ids[ids.length - 1] ?? null)
-          } else if (e.key === 'Enter') {
-            e.preventDefault()
-            clickActive()
-          } else if (e.key === 'ArrowRight') {
-            e.preventDefault()
-            openSubmenuForActive(activeId)
-          }
-        })}
+        onKeyDown={composeEventHandlers(onKeyDown, handleKeys)}
       />
     )
   },
@@ -538,19 +804,10 @@ export interface ActionMenuListProps
 
 export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
   ({ children, onKeyDown, id, ...props }, ref) => {
-    const {
-      activeId,
-      moveActive,
-      getVisibleItemIds,
-      setActiveId,
-      clickActive,
-      inputPresent,
-      listRef,
-      setListId,
-    } = useCollection()
-
+    const { activeId, listRef, setListId } = useCollection()
     const localId = React.useId()
     const listDomId = id ?? `action-menu-list-${localId}`
+    const handleKeys = useMenuKeydown('list')
 
     React.useEffect(() => {
       setListId(listDomId)
@@ -566,33 +823,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
         role="listbox"
         tabIndex={-1}
         aria-activedescendant={activeId ?? undefined}
-        onKeyDown={composeEventHandlers(onKeyDown, (e) => {
-          if (!inputPresent && e.key === 'Tab') {
-            e.preventDefault()
-            return
-          }
-          if (e.key === 'ArrowDown') {
-            e.preventDefault()
-            moveActive(1)
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault()
-            moveActive(-1)
-          } else if (e.key === 'Home') {
-            e.preventDefault()
-            const ids = getVisibleItemIds()
-            setActiveId(ids[0] ?? null)
-          } else if (e.key === 'End') {
-            e.preventDefault()
-            const ids = getVisibleItemIds()
-            setActiveId(ids[ids.length - 1] ?? null)
-          } else if (e.key === 'Enter') {
-            e.preventDefault()
-            clickActive()
-          } else if (e.key === 'ArrowRight') {
-            e.preventDefault()
-            openSubmenuForActive(activeId)
-          }
-        })}
+        onKeyDown={composeEventHandlers(onKeyDown, handleKeys)}
       >
         {children}
       </Primitive.div>
@@ -681,7 +912,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     } = useCollection()
     const { onOpenChange } = useRootCtx()
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       registerItem({
         id: itemId,
         value,
@@ -743,6 +974,7 @@ type SubContextValue = {
   parentSurfaceId: string
   triggerItemId: string | null
   setTriggerItemId: (id: string | null) => void
+  parentSetActiveId: (id: string | null) => void
 }
 
 const SubCtx = React.createContext<SubContextValue | null>(null)
@@ -780,7 +1012,6 @@ export const Sub = ({
   )
   const contentRef = React.useRef<HTMLDivElement | null>(null)
 
-  // Close when parent activeId is not my trigger
   const parent = useCollection()
 
   React.useEffect(() => {
@@ -792,18 +1023,24 @@ export const Sub = ({
   const value: SubContextValue = React.useMemo(
     () => ({
       open,
-      onOpenChange: setOpen,
-      onOpenToggle: () => setOpen((v) => !v),
+      onOpenChange: (value) => {
+        console.log(`[${parentSurfaceId}] onOpenChange`, value)
+        setOpen(value)
+      },
+      onOpenToggle: () => {
+        console.log(`[${parentSurfaceId}] onOpenToggle`)
+        setOpen((v) => !v)
+      },
       triggerRef,
       contentRef,
       parentSurfaceId,
       triggerItemId,
       setTriggerItemId,
+      parentSetActiveId: parent.setActiveId,
     }),
-    [open, setOpen, parentSurfaceId, triggerItemId],
+    [open, setOpen, parentSurfaceId, triggerItemId, parent.setActiveId],
   )
 
-  // Wrap BOTH SubTrigger and SubContent so alignment works.
   return (
     <SubCtx.Provider value={value}>
       <Popper.Root>{children}</Popper.Root>
@@ -841,6 +1078,7 @@ export const SubTrigger = React.forwardRef<
     },
     ref,
   ) => {
+    const { setOwnerId } = useFocusOwner()
     const generatedId = React.useId()
     const itemId = id ?? `action-menu-subtrigger-${generatedId}`
     const itemRef = React.useRef<HTMLDivElement | null>(null)
@@ -852,6 +1090,44 @@ export const SubTrigger = React.forwardRef<
       return () => sub.setTriggerItemId(null)
     }, [itemId])
 
+    // Listen for programmatic open (ArrowRight from the parent surface)
+    React.useEffect(() => {
+      const node = itemRef.current
+      if (!node) return
+
+      const onOpen = () => {
+        // 1) Open submenu
+        sub.onOpenChange(true)
+
+        // 2) On next frame(s), hand focus + ownership to the submenu surface
+        const tryFocus = (attempt = 0) => {
+          const content = sub.contentRef.current as HTMLElement | null
+          if (content) {
+            // Set owner to the child surface so its key handler receives keys
+            const surfaceId = content.dataset.surfaceId
+            if (surfaceId) setOwnerId(surfaceId)
+
+            // Focus input first, else list
+            const input = content.querySelector<HTMLInputElement>(
+              '[data-action-menu-input]',
+            )
+            const list = content.querySelector<HTMLElement>(
+              '[data-action-menu-list]',
+            )
+            ;(input ?? list)?.focus()
+            return
+          }
+          // SubContent might not be mounted yet — retry a few times
+          if (attempt < 5) requestAnimationFrame(() => tryFocus(attempt + 1))
+        }
+        requestAnimationFrame(() => tryFocus())
+      }
+
+      node.addEventListener('actionmenu-open-sub', onOpen as any)
+      return () =>
+        node.removeEventListener('actionmenu-open-sub', onOpen as any)
+    }, [sub, setOwnerId])
+
     const {
       registerItem,
       unregisterItem,
@@ -860,7 +1136,7 @@ export const SubTrigger = React.forwardRef<
       setActiveId,
     } = useCollection()
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       registerItem({
         id: itemId,
         value,
@@ -873,7 +1149,6 @@ export const SubTrigger = React.forwardRef<
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
 
-    // When this row becomes active, ensure submenu opens
     React.useEffect(() => {
       if (visible && focused) sub.onOpenChange(true)
     }, [visible, focused, sub])
@@ -915,33 +1190,13 @@ export const SubTrigger = React.forwardRef<
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault()
               sub.onOpenToggle()
-            } else if (e.key === 'ArrowRight') {
-              e.preventDefault()
-              sub.onOpenChange(true)
-              // Move focus inside on next frame
-              const contentEl = sub.contentRef.current
-              requestAnimationFrame(() => {
-                const input = contentEl?.querySelector<HTMLInputElement>(
-                  '[data-action-menu-input]',
-                )
-                const list = contentEl?.querySelector<HTMLElement>(
-                  '[data-action-menu-list]',
-                )
-                ;(input ?? list)?.focus()
-              })
             }
           })}
           onFocus={composeEventHandlers(onFocus, () => {
             if (disabled || !visible) return
             sub.onOpenChange(true)
           })}
-          onBlur={composeEventHandlers(onBlur as any, (e: React.FocusEvent) => {
-            if (disabled) return
-            // const next = e.relatedTarget as Node | null
-            // const contentEl = sub.contentRef.current
-            // if (contentEl && next && contentEl.contains(next)) return
-            // sub.onOpenChange(false)
-          })}
+          onBlur={composeEventHandlers(onBlur as any, () => {})}
         >
           {children}
         </Primitive.div>
@@ -961,6 +1216,8 @@ export interface ActionMenuSubContentProps
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
+  dir?: Direction
+  vimBindings?: boolean
 }
 
 export const SubContent = React.forwardRef<
@@ -976,25 +1233,29 @@ export const SubContent = React.forwardRef<
       alignOffset = 0,
       avoidCollisions = true,
       collisionPadding = 8,
+      dir: dirProp,
+      vimBindings = true,
       ...props
     },
     ref,
   ) => {
     const sub = useSubCtx()
     const surfaceId = React.useId()
-
-    const collectionValue = useCollectionState()
-
+    const collectionValue = useCollectionState({ surfaceId })
     const { ownerId, setOwnerId } = useFocusOwner()
     const isOwner = ownerId === surfaceId
-
-    React.useEffect(() => {
-      if (!sub.open || !isOwner) return
-      collectionValue.inputRef.current?.focus()
-    }, [ownerId])
-
     const surfaceRef = React.useRef<HTMLDivElement | null>(null)
     const composedSurfaceRef = composeRefs(ref, surfaceRef, sub.contentRef)
+    const dir = getDir(dirProp)
+
+    React.useEffect(() => {
+      if (!sub.open && collectionValue.activeId)
+        collectionValue.setActiveId(null)
+    }, [sub.open])
+
+    React.useEffect(() => {
+      if (sub.open && isOwner) collectionValue.inputRef.current?.focus()
+    }, [sub.open, isOwner])
 
     const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
       if (e.target === surfaceRef.current) {
@@ -1008,77 +1269,47 @@ export const SubContent = React.forwardRef<
 
     return (
       <SurfaceCtx.Provider value={surfaceId}>
-        <Presence present={sub.open}>
-          <Popper.Content
-            side={side}
-            align={align}
-            sideOffset={sideOffset}
-            alignOffset={alignOffset}
-            avoidCollisions={avoidCollisions}
-            collisionPadding={collisionPadding}
-            asChild
-          >
-            <DismissableLayer
-              onEscapeKeyDown={() => {
-                sub.onOpenChange(false)
-              }}
-              onDismiss={() => {
-                sub.onOpenChange(false)
-              }}
-              onKeyDown={(e) => {
-                // Only react if the keydown originated within this submenu
-                const isInside = (e.currentTarget as HTMLElement).contains(
-                  e.target as Node,
-                )
-                if (!isInside) return
-                if (e.key === 'ArrowLeft') {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  sub.onOpenChange(false)
-                  setOwnerId(sub.parentSurfaceId) // hand ownership back
-                  const parentEl =
-                    (document.querySelector(
-                      `[data-surface-id="${sub.parentSurfaceId}"]`,
-                    ) as HTMLElement | null) ?? null
-                  requestAnimationFrame(() => {
-                    const parentInput =
-                      parentEl?.querySelector<HTMLInputElement>(
-                        '[data-action-menu-input]',
-                      )
-                    const parentList = parentEl?.querySelector<HTMLElement>(
-                      '[data-action-menu-list]',
-                    )
-                    ;(parentInput ?? parentList)?.focus()
-                  })
-                }
-              }}
+        <KeyboardCtx.Provider value={{ dir, vimBindings }}>
+          <Presence present={sub.open}>
+            <Popper.Content
+              side={side}
+              align={align}
+              sideOffset={sideOffset}
+              alignOffset={alignOffset}
+              avoidCollisions={avoidCollisions}
+              collisionPadding={collisionPadding}
               asChild
             >
-              <Primitive.div
-                {...props}
-                ref={composedSurfaceRef}
-                role="menu"
-                tabIndex={-1}
-                data-action-menu-surface
-                data-submenu
-                data-surface-id={surfaceId}
-                onFocusCapture={handleFocusCapture}
-                onMouseMove={(e) => {
-                  const rect = surfaceRef.current?.getBoundingClientRect()
-                  if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
-                  setOwnerId(surfaceId)
+              <DismissableLayer
+                onEscapeKeyDown={() => {
+                  sub.onOpenChange(false)
                 }}
+                asChild
               >
-                <CollectionCtx.Provider value={collectionValue}>
-                  {children}
-                  <span className="absolute right-0 top-0 text-xs font-medium">
-                    {surfaceId}
-                  </span>
-                </CollectionCtx.Provider>
-              </Primitive.div>
-            </DismissableLayer>
-          </Popper.Content>
-        </Presence>
+                <Primitive.div
+                  {...props}
+                  ref={composedSurfaceRef}
+                  role="menu"
+                  tabIndex={-1}
+                  data-action-menu-surface
+                  data-submenu
+                  data-surface-id={surfaceId}
+                  data-dir={dir}
+                  onFocusCapture={handleFocusCapture}
+                  onMouseMove={(e) => {
+                    const rect = surfaceRef.current?.getBoundingClientRect()
+                    if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
+                    setOwnerId(surfaceId)
+                  }}
+                >
+                  <CollectionCtx.Provider value={collectionValue}>
+                    {children}
+                  </CollectionCtx.Provider>
+                </Primitive.div>
+              </DismissableLayer>
+            </Popper.Content>
+          </Presence>
+        </KeyboardCtx.Provider>
       </SurfaceCtx.Provider>
     )
   },
