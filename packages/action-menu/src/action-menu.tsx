@@ -20,12 +20,20 @@ import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 
 /* ================================================================================================
+ * General purpose types
+ * ============================================================================================== */
+
+type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
+type InputProps = React.ComponentPropsWithoutRef<typeof Primitive.input>
+type ButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.button>
+
+/* ================================================================================================
  * Key maps & helpers
  * ============================================================================================== */
 
 export type Direction = 'ltr' | 'rtl'
 
-const SELECTION_KEYS = ['Enter', ' '] as const
+const SELECTION_KEYS = ['Enter'] as const
 const FIRST_KEYS = ['ArrowDown', 'PageUp', 'Home'] as const
 const LAST_KEYS = ['ArrowUp', 'PageDown', 'End'] as const
 
@@ -361,7 +369,7 @@ const useKeyboardOpts = () => React.useContext(KeyboardCtx)
  * Root
  * ============================================================================================== */
 
-export interface ActionMenuProps extends React.ComponentPropsWithoutRef<'div'> {
+export interface ActionMenuProps extends DivProps {
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
@@ -403,8 +411,7 @@ Root.displayName = 'ActionMenu.Root'
  * Trigger (Popper anchor)
  * ============================================================================================== */
 
-export interface ActionMenuTriggerProps
-  extends React.ComponentPropsWithoutRef<'button'> {}
+export interface ActionMenuTriggerProps extends ButtonProps {}
 
 export const Trigger = React.forwardRef<
   HTMLButtonElement,
@@ -451,8 +458,7 @@ Trigger.displayName = 'ActionMenu.Trigger'
  * Content (surface + provider for collection state)
  * ============================================================================================== */
 
-export interface ActionMenuContentProps
-  extends Omit<React.ComponentPropsWithoutRef<'div'>, 'dir'> {
+export interface ActionMenuContentProps extends Omit<DivProps, 'dir'> {
   side?: 'top' | 'right' | 'bottom' | 'left'
   align?: 'start' | 'center' | 'end'
   sideOffset?: number
@@ -672,7 +678,8 @@ function useMenuKeydown(source: 'input' | 'list') {
         e.stopPropagation()
 
         if (sub) {
-          // sub.onOpenChange(false)
+          console.log('here!')
+          sub.onOpenChange(false)
           sub.parentSetActiveId(sub.triggerItemId)
           setOwnerId(sub.parentSurfaceId)
           const parentEl = document.querySelector<HTMLElement>(
@@ -733,8 +740,7 @@ function useMenuKeydown(source: 'input' | 'list') {
  * Input (keyboard nav + filtering)
  * ============================================================================================== */
 
-export interface ActionMenuInputProps
-  extends React.ComponentPropsWithoutRef<'input'> {
+export interface ActionMenuInputProps extends InputProps {
   autoSelect?: boolean
 }
 
@@ -799,8 +805,7 @@ Input.displayName = 'ActionMenu.Input'
  * List + Group + Item
  * ============================================================================================== */
 
-export interface ActionMenuListProps
-  extends React.ComponentPropsWithoutRef<'div'> {}
+export interface ActionMenuListProps extends DivProps {}
 
 export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
   ({ children, onKeyDown, id, ...props }, ref) => {
@@ -832,8 +837,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
 )
 List.displayName = 'ActionMenu.List'
 
-export interface ActionMenuGroupProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+export interface ActionMenuGroupProps extends DivProps {
   id?: string
   label?: string
 }
@@ -885,8 +889,7 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
 )
 Group.displayName = 'ActionMenu.Group'
 
-export interface ActionMenuItemProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+export interface ActionMenuItemProps extends DivProps {
   value: string
   id?: string
   disabled?: boolean
@@ -1024,11 +1027,11 @@ export const Sub = ({
     () => ({
       open,
       onOpenChange: (value) => {
-        console.log(`[${parentSurfaceId}] onOpenChange`, value)
+        // console.log(`[${parentSurfaceId}] onOpenChange`, value)
         setOpen(value)
       },
       onOpenToggle: () => {
-        console.log(`[${parentSurfaceId}] onOpenToggle`)
+        // console.log(`[${parentSurfaceId}] onOpenToggle`)
         setOpen((v) => !v)
       },
       triggerRef,
@@ -1049,8 +1052,7 @@ export const Sub = ({
 }
 Sub.displayName = 'ActionMenu.Sub'
 
-export interface ActionMenuSubTriggerProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+export interface ActionMenuSubTriggerProps extends DivProps {
   value: string
   id?: string
   disabled?: boolean
@@ -1078,7 +1080,7 @@ export const SubTrigger = React.forwardRef<
     },
     ref,
   ) => {
-    const { setOwnerId } = useFocusOwner()
+    const { ownerId, setOwnerId } = useFocusOwner()
     const generatedId = React.useId()
     const itemId = id ?? `action-menu-subtrigger-${generatedId}`
     const itemRef = React.useRef<HTMLDivElement | null>(null)
@@ -1149,9 +1151,7 @@ export const SubTrigger = React.forwardRef<
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
 
-    React.useEffect(() => {
-      if (visible && focused) sub.onOpenChange(true)
-    }, [visible, focused, sub])
+    const isMenuFocused = ownerId === sub.parentSurfaceId
 
     return (
       <Popper.Anchor asChild>
@@ -1161,6 +1161,7 @@ export const SubTrigger = React.forwardRef<
           role="option"
           data-role="option"
           data-subtrigger="true"
+          data-menu-focused={!isMenuFocused ? 'true' : 'false'}
           aria-selected={focused || undefined}
           aria-disabled={disabled || undefined}
           aria-haspopup="menu"
@@ -1206,8 +1207,7 @@ export const SubTrigger = React.forwardRef<
 )
 SubTrigger.displayName = 'ActionMenu.SubTrigger'
 
-export interface ActionMenuSubContentProps
-  extends Omit<React.ComponentPropsWithoutRef<'div'>, 'dir'> {
+export interface ActionMenuSubContentProps extends Omit<DivProps, 'dir'> {
   side?: 'top' | 'right' | 'bottom' | 'left'
   align?: 'start' | 'center' | 'end'
   sideOffset?: number

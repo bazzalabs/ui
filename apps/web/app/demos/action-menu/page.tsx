@@ -1,8 +1,9 @@
 'use client'
 
-import { ActionMenu } from '@bazza-ui/action-menu'
 import { ChevronRightIcon } from 'lucide-react'
 import { NavBar } from '@/components/nav-bar'
+import { ActionMenu } from '@/components/ui/action-menu'
+import { Button } from '@/components/ui/button'
 
 export default function SSRPage() {
   return (
@@ -26,27 +27,20 @@ export default function SSRPage() {
       <div className="border-b border-border border-dashed bg-site-background flex-1">
         <div className="px-4 py-2 max-w-screen-2xl w-full mx-auto border-border border-dashed xl:border-x">
           <div className="flex flex-col gap-8 p-8">
-            <ActionMenu.Root
-              // intentDelay={5000}
-              className='**:data-[role="option"]:border  **:data-[role="option"]:border-transparent **:data-[role="option"]:data-[focused="true"]:border-purple-500'
-            >
-              <ActionMenu.Trigger>Trigger</ActionMenu.Trigger>
-              <ActionMenu.Content className="border border-blue-500 p-0.5">
+            <ActionMenu.Root>
+              <ActionMenu.Trigger asChild>
+                <Button variant="outline">Filter</Button>
+              </ActionMenu.Trigger>
+              <ActionMenu.Content>
                 <ActionMenu.Input />
                 <ActionMenu.List>
                   <ActionMenu.Group>
+                    <ActionMenu.Item value="1">Item 1</ActionMenu.Item>
                     <ActionMenu.Sub>
-                      <ActionMenu.SubTrigger
-                        value="a"
-                        className="flex items-center justify-between"
-                      >
-                        <span>Item A</span>
-                        <ChevronRightIcon className="size-4" />
+                      <ActionMenu.SubTrigger value="a">
+                        Item A
                       </ActionMenu.SubTrigger>
-                      <ActionMenu.SubContent
-                        className="border border-red-500 p-0.5"
-                        align="start"
-                      >
+                      <ActionMenu.SubContent align="start">
                         <ActionMenu.Input />
                         <ActionMenu.List>
                           <ActionMenu.Group>
@@ -57,17 +51,10 @@ export default function SSRPage() {
                               Item A.2
                             </ActionMenu.Item>
                             <ActionMenu.Sub>
-                              <ActionMenu.SubTrigger
-                                value="b"
-                                className="flex items-center justify-between"
-                              >
-                                <span>Item B</span>
-                                <ChevronRightIcon className="size-4" />
+                              <ActionMenu.SubTrigger value="b">
+                                Item B
                               </ActionMenu.SubTrigger>
-                              <ActionMenu.SubContent
-                                className="border border-green-500 p-0.5"
-                                align="start"
-                              >
+                              <ActionMenu.SubContent align="start">
                                 <ActionMenu.Input />
                                 <ActionMenu.List>
                                   <ActionMenu.Group>
