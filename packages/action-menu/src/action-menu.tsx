@@ -35,6 +35,10 @@ function openSubmenuForActive(activeId: string | null) {
     dispatch(el, 'actionmenu-open-sub')
 }
 
+function isInBounds(x: number, y: number, rect: DOMRect) {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+}
+
 /* ================================================================================================
  * Root-level context (open state + anchor)
  * ============================================================================================== */
@@ -246,11 +250,6 @@ export const Root = React.forwardRef<HTMLDivElement, ActionMenuProps>(
     const anchorRef = React.useRef<HTMLButtonElement | null>(null)
     const [ownerId, setOwnerId] = React.useState<string | null>(null)
 
-    const handleOwnerIdChange = (id: string | null) => {
-      console.log('handleOwnerIdChange', id)
-      setOwnerId(id)
-    }
-
     return (
       <RootCtx.Provider
         value={{
@@ -260,9 +259,7 @@ export const Root = React.forwardRef<HTMLDivElement, ActionMenuProps>(
           anchorRef,
         }}
       >
-        <FocusOwnerCtx.Provider
-          value={{ ownerId, setOwnerId: handleOwnerIdChange }}
-        >
+        <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
           <Popper.Root>
             <Primitive.div ref={ref} {...props}>
               {children}
@@ -363,6 +360,9 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
     const { ownerId, setOwnerId } = useFocusOwner()
     const isOwner = ownerId === surfaceId
 
+    const surfaceRef = React.useRef<HTMLDivElement | null>(null)
+    const composedRef = composeRefs(ref, surfaceRef)
+
     React.useEffect(() => {
       if (root.open && ownerId === null) setOwnerId(surfaceId)
     }, [root.open, ownerId, surfaceId, setOwnerId])
@@ -409,13 +409,14 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
             >
               <Primitive.div
                 {...props}
-                ref={ref}
+                ref={composedRef}
                 role="menu"
                 tabIndex={-1}
                 data-action-menu-surface
                 data-surface-id={surfaceId}
-                onPointerEnter={() => {
-                  console.log('in root content!')
+                onMouseMove={(e) => {
+                  const rect = surfaceRef.current?.getBoundingClientRect()
+                  if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
                   setOwnerId(surfaceId)
                 }}
               >
@@ -988,17 +989,12 @@ export const SubContent = React.forwardRef<
     const isOwner = ownerId === surfaceId
 
     React.useEffect(() => {
-      console.log('isOwner', isOwner)
       if (!sub.open || !isOwner) return
       collectionValue.inputRef.current?.focus()
     }, [ownerId])
 
     const surfaceRef = React.useRef<HTMLDivElement | null>(null)
-    const composedSurfaceRef = composeRefs(
-      ref,
-      surfaceRef,
-      sub.contentRef as any,
-    )
+    const composedSurfaceRef = composeRefs(ref, surfaceRef, sub.contentRef)
 
     const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
       if (e.target === surfaceRef.current) {
@@ -1067,13 +1063,9 @@ export const SubContent = React.forwardRef<
                 data-submenu
                 data-surface-id={surfaceId}
                 onFocusCapture={handleFocusCapture}
-                onPointerEnter={() => {
-                  console.log(
-                    'Pointer enter',
-                    surfaceId,
-                    'current owner:',
-                    ownerId,
-                  )
+                onMouseMove={(e) => {
+                  const rect = surfaceRef.current?.getBoundingClientRect()
+                  if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
                   setOwnerId(surfaceId)
                 }}
               >
