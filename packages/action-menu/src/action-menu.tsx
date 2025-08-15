@@ -32,6 +32,13 @@ type ButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.button>
  * Key maps & helpers
  * ============================================================================================== */
 
+const SELECT_EVENT = 'actionmenu-item-select' as const
+
+function dispatchSelect(el: HTMLElement | null) {
+  if (!el) return
+  el.dispatchEvent(new CustomEvent(SELECT_EVENT, { bubbles: true }))
+}
+
 export type Direction = 'ltr' | 'rtl'
 
 const SELECTION_KEYS = ['Enter'] as const
@@ -681,7 +688,8 @@ function useMenuKeydown(source: 'input' | 'list') {
           if (isActiveRowSubTrigger(activeId)) {
             openSubmenuForActive(activeId)
           } else {
-            clickActive()
+            const el = activeId ? document.getElementById(activeId) : null
+            dispatchSelect(el)
           }
         } else {
           openSubmenuForActive(activeId)
@@ -726,7 +734,8 @@ function useMenuKeydown(source: 'input' | 'list') {
       // Enter (selection when not captured by open-key case above)
       if (k === 'Enter') {
         e.preventDefault()
-        clickActive()
+        const el = activeId ? document.getElementById(activeId) : null
+        dispatchSelect(el)
         return
       }
 
@@ -931,6 +940,8 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       onClick,
       onSelect,
       onKeyDown,
+      onPointerDown,
+      onMouseDown,
       groupId,
       ...props
     },
@@ -963,6 +974,35 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
 
+    React.useEffect(() => {
+      const node = itemRef.current
+      if (!node || disabled) return
+
+      const handleSelect = () => {
+        if (disabled || !visible) return
+
+        // keep selection in sync (like cmdk's setState('value', ..., true))
+        if (!focused) setActiveId(itemId)
+
+        // user callback (you close/clear here if you want)
+        onSelect?.(value)
+
+        // keep focus on the surface input/list (cmdk keeps focus on input)
+        const surface = node.closest<HTMLElement>('[data-action-menu-surface]')
+        const input = surface?.querySelector<HTMLInputElement>(
+          '[data-action-menu-input]',
+        )
+        const list = surface?.querySelector<HTMLElement>(
+          '[data-action-menu-list]',
+        )
+        ;(input ?? list)?.focus()
+      }
+
+      node.addEventListener(SELECT_EVENT, handleSelect as EventListener)
+      return () =>
+        node.removeEventListener(SELECT_EVENT, handleSelect as EventListener)
+    }, [disabled, itemId, value, onSelect, visible, focused, setActiveId])
+
     return (
       <Primitive.div
         {...props}
@@ -974,23 +1014,30 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         data-action-menu-item-id={itemId}
         data-focused={focused ? 'true' : 'false'}
         hidden={!visible}
-        tabIndex={-1}
+        // tabIndex={-1}
         id={itemId}
         onMouseMove={() => {
           if (!visible || disabled) return
           if (!focused) setActiveId(itemId)
         }}
-        onClick={composeEventHandlers(onClick, () => {
+        onClick={composeEventHandlers(onClick, (e) => {
           if (disabled || !visible) return
-          onSelect?.(value)
-          // onOpenChange(false)
+          e.preventDefault()
+          dispatchSelect(e.currentTarget as HTMLElement)
         })}
         onKeyDown={composeEventHandlers(onKeyDown, (e) => {
           if (disabled) return
           if (e.key === 'Enter') {
             e.preventDefault()
-            itemRef.current?.click()
+            dispatchSelect(e.currentTarget as HTMLElement)
           }
+        })}
+        onPointerDown={composeEventHandlers(onPointerDown as any, (e) => {
+          // Allow right-click context menus etc., but block primary-click focus
+          if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
+        })}
+        onMouseDown={composeEventHandlers(onMouseDown as any, (e) => {
+          if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
         })}
       >
         {children}
