@@ -18,6 +18,7 @@ import { Presence } from '@radix-ui/react-presence'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
+import { commandScore } from './command-score.js'
 
 /* ================================================================================================
  * General purpose types
@@ -117,6 +118,15 @@ function useLayoutScheduler() {
   }
 }
 
+export type FilterFn = (
+  value: string,
+  search: string,
+  keywords?: string[],
+) => number
+
+const defaultFilter: FilterFn = (value, search, keywords = []) =>
+  commandScore(value, search, keywords)
+
 /* ================================================================================================
  * Root-level context (open state + anchor)
  * ============================================================================================== */
@@ -147,6 +157,7 @@ const useSurfaceId = () => React.useContext(SurfaceCtx)
 type RegisteredItem = {
   id: string
   value: string
+  keywords?: string[]
   ref: React.RefObject<HTMLDivElement | null>
   groupId?: string | null
 }
@@ -199,9 +210,9 @@ const useCollection = () => {
 }
 
 function useCollectionState({
-  surfaceId,
+  filterFn = defaultFilter,
 }: {
-  surfaceId: string
+  filterFn?: FilterFn
 }): CollectionContextValue {
   const schedule = useLayoutScheduler()
 
@@ -219,13 +230,19 @@ function useCollectionState({
   const normQuery = normalize(query)
 
   const getVisibleItemIds = React.useCallback(() => {
-    const ids: string[] = []
-    itemsRef.current.forEach((item) => {
-      if (!normQuery || normalize(item.value).includes(normQuery))
-        ids.push(item.id)
-    })
-    return ids
-  }, [normQuery])
+    const items = Array.from(itemsRef.current.values())
+    if (!query) return items.map((i) => i.id) // keep original order when no query
+
+    const scored = items
+      .map((i) => ({
+        id: i.id,
+        score: filterFn(i.value, query, i.keywords),
+      }))
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return scored.map((s) => s.id)
+  }, [query, filterFn])
 
   const ensureValidActive = React.useCallback(() => {
     const visible = getVisibleItemIds()
@@ -470,6 +487,7 @@ export interface ActionMenuContentProps extends Omit<DivProps, 'dir'> {
   closeOnAnchorPointerDown?: boolean
   dir?: Direction
   vimBindings?: boolean
+  filterFn?: FilterFn
 }
 
 export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
@@ -485,13 +503,16 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
       closeOnAnchorPointerDown = false,
       dir: dirProp,
       vimBindings = true,
+      filterFn,
       ...props
     },
     ref,
   ) => {
     const root = useRootCtx()
     const surfaceId = React.useId()
-    const collectionValue = useCollectionState({ surfaceId })
+    const collectionValue = useCollectionState({
+      filterFn: filterFn ?? defaultFilter,
+    })
     const { ownerId, setOwnerId } = useFocusOwner()
     const isOwner = ownerId === surfaceId
     const surfaceRef = React.useRef<HTMLDivElement | null>(null)
@@ -893,6 +914,7 @@ export interface ActionMenuItemProps
   extends Omit<DivProps, 'value' | 'onSelect'> {
   onSelect?: (value: string) => void
   value: string
+  keywords?: string[]
   id?: string
   disabled?: boolean
   groupId?: string | null
@@ -903,6 +925,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     {
       children,
       value,
+      keywords,
       id,
       disabled,
       onClick,
@@ -925,17 +948,17 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       activeId,
       setActiveId,
     } = useCollection()
-    const { onOpenChange } = useRootCtx()
 
     React.useLayoutEffect(() => {
       registerItem({
         id: itemId,
         value,
+        keywords,
         ref: itemRef,
         groupId: groupId ?? null,
       })
       return () => unregisterItem(itemId)
-    }, [itemId, registerItem, unregisterItem, value, groupId])
+    }, [itemId, registerItem, unregisterItem, value, keywords, groupId])
 
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
@@ -1077,6 +1100,7 @@ Sub.displayName = 'ActionMenu.Sub'
 
 export interface ActionMenuSubTriggerProps extends DivProps {
   value: string
+  keywords?: string[]
   id?: string
   disabled?: boolean
   groupId?: string | null
@@ -1089,6 +1113,7 @@ export const SubTrigger = React.forwardRef<
   (
     {
       value,
+      keywords,
       id,
       disabled,
       onKeyDown,
@@ -1165,11 +1190,12 @@ export const SubTrigger = React.forwardRef<
       registerItem({
         id: itemId,
         value,
+        keywords,
         ref: itemRef,
         groupId: groupId ?? null,
       })
       return () => unregisterItem(itemId)
-    }, [itemId, value, registerItem, unregisterItem, groupId])
+    }, [itemId, value, keywords, registerItem, unregisterItem, groupId])
 
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
@@ -1241,6 +1267,7 @@ export interface ActionMenuSubContentProps extends Omit<DivProps, 'dir'> {
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
   dir?: Direction
   vimBindings?: boolean
+  filterFn?: FilterFn
 }
 
 export const SubContent = React.forwardRef<
@@ -1258,13 +1285,16 @@ export const SubContent = React.forwardRef<
       collisionPadding = 8,
       dir: dirProp,
       vimBindings = true,
+      filterFn,
       ...props
     },
     ref,
   ) => {
     const sub = useSubCtx()
     const surfaceId = sub.childSurfaceId
-    const collectionValue = useCollectionState({ surfaceId })
+    const collectionValue = useCollectionState({
+      filterFn: filterFn ?? defaultFilter,
+    })
     const { ownerId, setOwnerId } = useFocusOwner()
     const isOwner = ownerId === surfaceId
     const surfaceRef = React.useRef<HTMLDivElement | null>(null)
