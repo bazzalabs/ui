@@ -679,7 +679,6 @@ function useMenuKeydown(source: 'input' | 'list') {
         e.stopPropagation()
 
         if (sub) {
-          console.log('here!')
           sub.onOpenChange(false)
           sub.parentSetActiveId(sub.triggerItemId)
           setOwnerId(sub.parentSurfaceId)
@@ -890,7 +889,9 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
 )
 Group.displayName = 'ActionMenu.Group'
 
-export interface ActionMenuItemProps extends DivProps {
+export interface ActionMenuItemProps
+  extends Omit<DivProps, 'value' | 'onSelect'> {
+  onSelect?: (value: string) => void
   value: string
   id?: string
   disabled?: boolean
@@ -899,7 +900,17 @@ export interface ActionMenuItemProps extends DivProps {
 
 export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
   (
-    { children, value, id, disabled, onClick, onKeyDown, groupId, ...props },
+    {
+      children,
+      value,
+      id,
+      disabled,
+      onClick,
+      onSelect,
+      onKeyDown,
+      groupId,
+      ...props
+    },
     ref,
   ) => {
     const generatedId = React.useId()
@@ -948,7 +959,8 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         }}
         onClick={composeEventHandlers(onClick, () => {
           if (disabled || !visible) return
-          onOpenChange(false)
+          onSelect?.(value)
+          // onOpenChange(false)
         })}
         onKeyDown={composeEventHandlers(onKeyDown, (e) => {
           if (disabled) return
@@ -979,6 +991,7 @@ type SubContextValue = {
   triggerItemId: string | null
   setTriggerItemId: (id: string | null) => void
   parentSetActiveId: (id: string | null) => void
+  childSurfaceId: string
 }
 
 const SubCtx = React.createContext<SubContextValue | null>(null)
@@ -1002,6 +1015,7 @@ export const Sub = ({
   onOpenChange,
   children,
 }: ActionMenuSubProps) => {
+  const childSurfaceId = React.useId()
   const parentSurfaceId = useSurfaceId() || 'root'
   const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
 
@@ -1041,8 +1055,16 @@ export const Sub = ({
       triggerItemId,
       setTriggerItemId,
       parentSetActiveId: parent.setActiveId,
+      childSurfaceId,
     }),
-    [open, setOpen, parentSurfaceId, triggerItemId, parent.setActiveId],
+    [
+      open,
+      setOpen,
+      parentSurfaceId,
+      triggerItemId,
+      parent.setActiveId,
+      childSurfaceId,
+    ],
   )
 
   return (
@@ -1152,7 +1174,7 @@ export const SubTrigger = React.forwardRef<
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
 
-    const isMenuFocused = ownerId === sub.parentSurfaceId
+    const isMenuFocused = ownerId === sub.childSurfaceId
 
     return (
       <Popper.Anchor asChild>
@@ -1162,7 +1184,7 @@ export const SubTrigger = React.forwardRef<
           role="option"
           data-role="option"
           data-subtrigger="true"
-          data-menu-focused={!isMenuFocused ? 'true' : 'false'}
+          data-menu-focused={isMenuFocused ? 'true' : 'false'}
           aria-selected={focused || undefined}
           aria-disabled={disabled || undefined}
           aria-haspopup="menu"
@@ -1241,7 +1263,7 @@ export const SubContent = React.forwardRef<
     ref,
   ) => {
     const sub = useSubCtx()
-    const surfaceId = React.useId()
+    const surfaceId = sub.childSurfaceId
     const collectionValue = useCollectionState({ surfaceId })
     const { ownerId, setOwnerId } = useFocusOwner()
     const isOwner = ownerId === surfaceId
