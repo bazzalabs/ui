@@ -134,6 +134,170 @@ export type FilterFn = (
 const defaultFilter: FilterFn = (value, search, keywords = []) =>
   commandScore(value, search, keywords)
 
+function inferSimpleText(node: React.ReactNode): string | null {
+  if (node == null || node === false) return null
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) {
+    const parts = node.map(inferSimpleText).filter(Boolean) as string[]
+    return parts.length ? parts.join(' ').trim() : null
+  }
+  if (React.isValidElement(node)) {
+    const t = node.type as any
+    // permit simple inline wrappers
+    if (t === React.Fragment || t === 'span' || t === 'em' || t === 'strong') {
+      // FIX: TYPE ERROR HERE?
+      return inferSimpleText(node.props.children)
+    }
+  }
+  return null
+}
+
+/* ================================================================================================
+ * Search Registry
+ * ============================================================================================== */
+
+export type ItemRecord = {
+  kind: 'item'
+  id: string
+  label: string
+  keywords?: string[]
+  breadcrumb: string[]
+  scopePath: string[]
+  perform: () => void
+  searchText: string
+  // Optional: custom search-row renderer coming from <Item.Shortcut/>
+  renderShortcut?: (a: { breadcrumb: string[] }) => React.ReactNode
+}
+
+export type SubmenuRecord = {
+  kind: 'submenu'
+  id: string // e.g. submenu::project-status
+  label: string // submenu title
+  breadcrumb: string[] // ["Project properties","Project status"]
+  scopePath: string[] // searchable in ancestors (not inside itself)
+  searchText: string
+  // Returns a real <Sub> with <SubTrigger>row</SubTrigger> + <SubContent/>
+  renderInline: (row: React.ReactNode) => React.ReactNode
+}
+
+export type SearchRecord = ItemRecord | SubmenuRecord
+
+type Registry = {
+  items: Map<string, SearchRecord>
+  byScope: Map<string, Set<string>>
+}
+
+const Ctx = React.createContext<{
+  reg: Registry
+  upsert(r: SearchRecord): void
+  remove(id: string): void
+} | null>(null)
+
+export function SearchRegistryProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const regRef = React.useRef<Registry>({
+    items: new Map(),
+    byScope: new Map(),
+  })
+
+  const upsert = React.useCallback((r: SearchRecord) => {
+    const reg = regRef.current
+    const prev = reg.items.get(r.id)
+    if (prev)
+      for (const s of prev.scopePath) reg.byScope.get(s)?.delete(prev.id)
+    reg.items.set(r.id, r)
+    for (const s of r.scopePath)
+      (reg.byScope.get(s) ?? reg.byScope.set(s, new Set()).get(s))!.add(r.id)
+  }, [])
+
+  const remove = React.useCallback((id: string) => {
+    const reg = regRef.current
+    const rec = reg.items.get(id)
+    if (!rec) return
+    reg.items.delete(id)
+    for (const s of rec.scopePath) reg.byScope.get(s)?.delete(id)
+  }, [])
+
+  return (
+    <Ctx.Provider value={{ reg: regRef.current, upsert, remove }}>
+      {children}
+    </Ctx.Provider>
+  )
+}
+
+export function useSearchRegistry() {
+  const ctx = React.useContext(Ctx)
+  if (!ctx) throw new Error('Missing SearchRegistryProvider')
+  return ctx
+}
+
+export function useScopedSearch(scopeId: string, query: string) {
+  const { reg } = useSearchRegistry()
+  const q = query.toLowerCase().trim()
+  return React.useMemo(() => {
+    if (!q) return [] as SearchRecord[]
+    const ids = reg.byScope.get(scopeId)
+    if (!ids) return []
+    return Array.from(ids)
+      .map((id) => reg.items.get(id)!)
+      .map((rec) => ({
+        rec,
+        score: commandScore(
+          rec.searchText,
+          q,
+          'keywords' in rec ? (rec.keywords ?? []) : [],
+        ),
+      }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.rec)
+  }, [scopeId, q, reg])
+}
+
+export type Scope = {
+  scopeId: string
+  breadcrumb: string[]
+  scopePath: string[]
+}
+const ScopeCtx = React.createContext<Scope>({
+  scopeId: 'root',
+  breadcrumb: [],
+  scopePath: [],
+})
+export const useScope = () => React.useContext(ScopeCtx)
+
+export function ScopeProvider({
+  scopeId,
+  title,
+  children,
+}: {
+  scopeId: string
+  title?: string
+  children: React.ReactNode
+}) {
+  const parent = useScope()
+  const value = React.useMemo<Scope>(
+    () => ({
+      scopeId,
+      breadcrumb: title ? [...parent.breadcrumb, title] : parent.breadcrumb,
+      scopePath: [...parent.scopePath, scopeId],
+    }),
+    [parent.breadcrumb, parent.scopePath, scopeId, title],
+  )
+
+  return <ScopeCtx.Provider value={value}>{children}</ScopeCtx.Provider>
+}
+
+/* ================================================================================================
+ * Indexing
+ * ============================================================================================== */
+
+const IndexingCtx = React.createContext(false)
+const useIndexing = () => React.useContext(IndexingCtx)
+
 /* ================================================================================================
  * Root-level context (open state + anchor)
  * ============================================================================================== */
@@ -142,6 +306,7 @@ type ActionMenuRootContextValue = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenToggle: () => void
+  modal: boolean
   anchorRef: React.RefObject<HTMLButtonElement | null>
 }
 
@@ -361,6 +526,48 @@ function useCollectionState({
   }
 }
 
+//
+
+const NOOP = () => {}
+const refNull = { current: null as any }
+
+const noopValue = {
+  query: '',
+  setQuery: NOOP,
+  registerItem: NOOP,
+  unregisterItem: NOOP,
+  registerGroup: NOOP,
+  unregisterGroup: NOOP,
+  getVisibleItemIds: () => [] as string[],
+  isItemVisible: () => false,
+  activeId: null as string | null,
+  setActiveId: NOOP,
+  setActiveByIndex: NOOP,
+  first: NOOP,
+  last: NOOP,
+  next: NOOP,
+  prev: NOOP,
+  clickActive: NOOP,
+  inputPresent: false,
+  setInputPresent: NOOP,
+  inputRef: refNull,
+  listRef: refNull,
+  listId: null as string | null,
+  setListId: NOOP,
+}
+
+export function NoopCollectionProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <CollectionCtx.Provider value={noopValue as any}>
+      {children}
+    </CollectionCtx.Provider>
+  )
+}
+
 /* ================================================================================================
  * Focus context -- which surface owns the real DOM focus
  * ============================================================================================== */
@@ -397,10 +604,21 @@ export interface ActionMenuProps extends DivProps {
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  modal?: boolean
 }
 
 export const Root = React.forwardRef<HTMLDivElement, ActionMenuProps>(
-  ({ children, open: openProp, defaultOpen, onOpenChange, ...props }, ref) => {
+  (
+    {
+      children,
+      open: openProp,
+      defaultOpen,
+      onOpenChange,
+      modal = true,
+      ...props
+    },
+    ref,
+  ) => {
     const [open, setOpen] = useControllableState({
       prop: openProp,
       defaultProp: defaultOpen ?? false,
@@ -416,14 +634,19 @@ export const Root = React.forwardRef<HTMLDivElement, ActionMenuProps>(
           onOpenChange: setOpen,
           onOpenToggle: () => setOpen((v) => !v),
           anchorRef,
+          modal,
         }}
       >
         <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
-          <Popper.Root>
-            <Primitive.div ref={ref} {...props}>
-              {children}
-            </Primitive.div>
-          </Popper.Root>
+          <SearchRegistryProvider>
+            <ScopeProvider scopeId="root">
+              <Popper.Root>
+                <Primitive.div ref={ref} {...props}>
+                  {children}
+                </Primitive.div>
+              </Popper.Root>
+            </ScopeProvider>
+          </SearchRegistryProvider>
         </FocusOwnerCtx.Provider>
       </RootCtx.Provider>
     )
@@ -570,6 +793,7 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
               <DismissableLayer
                 onEscapeKeyDown={() => root.onOpenChange(false)}
                 onDismiss={() => root.onOpenChange(false)}
+                disableOutsidePointerEvents={root.modal}
                 onInteractOutside={(event) => {
                   const target = event.target as Node | null
                   const anchor = root.anchorRef.current
@@ -776,6 +1000,7 @@ export interface ActionMenuInputProps extends InputProps {
 
 export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
   ({ autoSelect = false, onChange, onKeyDown, ...props }, ref) => {
+    const indexing = useIndexing()
     const {
       setQuery,
       query,
@@ -806,6 +1031,8 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
         return () => cancelAnimationFrame(id)
       }
     }, [autoSelect])
+
+    if (indexing) return null
 
     return (
       <Primitive.input
@@ -839,7 +1066,9 @@ export interface ActionMenuListProps extends DivProps {}
 
 export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
   ({ children, onKeyDown, id, ...props }, ref) => {
-    const { activeId, listRef, setListId } = useCollection()
+    const { activeId, listRef, setListId, query } = useCollection()
+    const { scopeId } = useScope()
+    const results = useScopedSearch(scopeId, query)
     const localId = React.useId()
     const listDomId = id ?? `action-menu-list-${localId}`
     const handleKeys = useMenuKeydown('list')
@@ -848,6 +1077,57 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
       setListId(listDomId)
       return () => setListId(null)
     }, [listDomId, setListId])
+
+    const renderChildren = query
+      ? results.map((r) => {
+          if (r.kind === 'submenu') {
+            const rowVisual = (
+              <div
+                data-kind="search-result"
+                className="flex items-center gap-2"
+              >
+                <div data-slot="am-result-text">
+                  {r.breadcrumb.length > 1 && (
+                    <span data-slot="am-result-crumbs" aria-hidden="true">
+                      {r.breadcrumb.slice(0, -1).join(' › ')} ›
+                    </span>
+                  )}
+                  <span data-slot="am-result-leaf">{r.breadcrumb.at(-1)}</span>
+                  <span aria-hidden="true"> › </span>
+                </div>
+              </div>
+            )
+            // Inline, fully functional submenu
+            return (
+              <React.Fragment key={r.id}>
+                {r.renderInline(rowVisual)}
+              </React.Fragment>
+            )
+          }
+
+          // item record
+          const rowVisual = r.renderShortcut ? (
+            r.renderShortcut({ breadcrumb: r.breadcrumb })
+          ) : (
+            <div data-kind="search-result" className="flex items-center gap-2">
+              <div data-slot="am-result-text">
+                {r.breadcrumb.length > 1 && (
+                  <span data-slot="am-result-crumbs" aria-hidden="true">
+                    {r.breadcrumb.slice(0, -1).join(' › ')} ›
+                  </span>
+                )}
+                <span data-slot="am-result-leaf">{r.breadcrumb.at(-1)}</span>
+              </div>
+            </div>
+          )
+
+          return (
+            <Item key={r.id} value={r.searchText} onSelect={r.perform}>
+              {rowVisual}
+            </Item>
+          )
+        })
+      : children
 
     return (
       <Primitive.div
@@ -860,7 +1140,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
         aria-activedescendant={activeId ?? undefined}
         onKeyDown={composeEventHandlers(onKeyDown, handleKeys)}
       >
-        {children}
+        {renderChildren}
       </Primitive.div>
     )
   },
@@ -919,6 +1199,17 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
 )
 Group.displayName = 'ActionMenu.Group'
 
+const ItemShortcutCtx = React.createContext<{
+  setShortcut: (fn: (a: { breadcrumb: string[] }) => React.ReactNode) => void
+} | null>(null)
+
+function useItemShortcutSlot() {
+  const ctx = React.useContext(ItemShortcutCtx)
+  if (!ctx)
+    throw new Error('ActionMenu.Item.Shortcut must be inside ActionMenu.Item')
+  return ctx
+}
+
 export interface ActionMenuItemProps
   extends Omit<DivProps, 'value' | 'onSelect'> {
   onSelect?: (value: string) => void
@@ -952,6 +1243,75 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     const itemRef = React.useRef<HTMLDivElement | null>(null)
     const composedRef = composeRefs(ref, itemRef)
 
+    const indexing = useIndexing()
+    const { breadcrumb, scopePath } = useScope()
+    const { upsert, remove } = useSearchRegistry()
+
+    const shortcutRef = React.useRef<
+      null | ((a: { breadcrumb: string[] }) => React.ReactNode)
+    >(null)
+    const setShortcut = React.useCallback(
+      (fn: (a: { breadcrumb: string[] }) => React.ReactNode) => {
+        shortcutRef.current = fn
+      },
+      [],
+    )
+
+    const searchId = React.useMemo(() => {
+      const norm = value
+      return `${scopePath.join('/')}::${norm}`
+    }, [scopePath, value])
+
+    // Register into search (runs in mirror + visible; last write wins)
+    React.useLayoutEffect(() => {
+      if (disabled) return
+
+      // infer a simple fallback if no shortcut provided yet
+      let renderShortcut = shortcutRef.current
+      if (!renderShortcut) {
+        const inferred = inferSimpleText(children)
+        if (inferred) {
+          renderShortcut = ({ breadcrumb }) => (
+            <div className="am-row">
+              {breadcrumb.length > 1 && (
+                <span className="am-crumbs">
+                  {breadcrumb.slice(0, -1).join(' › ')} ›{' '}
+                </span>
+              )}
+              <span className="am-leaf">{inferred}</span>
+            </div>
+          )
+        }
+      }
+
+      const rec: ItemRecord = {
+        kind: 'item',
+        id: searchId,
+        label: String(value),
+        keywords,
+        breadcrumb: [...breadcrumb, String(value)],
+        scopePath,
+        perform: () => onSelect?.(value),
+        searchText: [...breadcrumb, String(value), ...(keywords ?? [])]
+          .join(' ')
+          .toLowerCase(),
+        renderShortcut: renderShortcut ?? undefined,
+      }
+      upsert(rec)
+      return () => remove(searchId)
+    }, [
+      searchId,
+      value,
+      (keywords ?? []).join('|'),
+      breadcrumb.join('>'),
+      scopePath.join('>'),
+      disabled,
+      onSelect,
+      upsert,
+      remove,
+      children,
+    ])
+
     const {
       registerItem,
       unregisterItem,
@@ -961,6 +1321,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     } = useCollection()
 
     React.useLayoutEffect(() => {
+      if (indexing) return
       registerItem({
         id: itemId,
         value,
@@ -969,7 +1330,15 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         groupId: groupId ?? null,
       })
       return () => unregisterItem(itemId)
-    }, [itemId, registerItem, unregisterItem, value, keywords, groupId])
+    }, [
+      indexing,
+      itemId,
+      registerItem,
+      unregisterItem,
+      value,
+      keywords,
+      groupId,
+    ])
 
     const visible = isItemVisible(itemId)
     const focused = activeId === itemId
@@ -1002,6 +1371,14 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       return () =>
         node.removeEventListener(SELECT_EVENT, handleSelect as EventListener)
     }, [disabled, itemId, value, onSelect, visible, focused, setActiveId])
+
+    if (indexing) {
+      return (
+        <ItemShortcutCtx.Provider value={{ setShortcut }}>
+          {children}
+        </ItemShortcutCtx.Provider>
+      )
+    }
 
     return (
       <Primitive.div
@@ -1040,12 +1417,113 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
         })}
       >
-        {children}
+        <ItemShortcutCtx.Provider value={{ setShortcut }}>
+          {children}
+        </ItemShortcutCtx.Provider>
       </Primitive.div>
     )
   },
 )
 Item.displayName = 'ActionMenu.Item'
+
+export const ItemShortcut = function ItemShortcut({
+  children,
+}: {
+  children: ((a: { breadcrumb: string[] }) => React.ReactNode) | React.ReactNode
+}) {
+  const { setShortcut } = useItemShortcutSlot()
+  const { breadcrumb } = useScope()
+  React.useEffect(() => {
+    const fn =
+      typeof children === 'function'
+        ? (children as (a: { breadcrumb: string[] }) => React.ReactNode)
+        : () => children
+    setShortcut(fn)
+  }, [children, setShortcut])
+  return null
+}
+
+;(Item as any).Shortcut = ItemShortcut
+
+export type MenuHelperCtx = {
+  scopeId: string
+  breadcrumb: string[]
+  query: string
+  mode: 'browse' | 'search'
+}
+
+export type ItemBuilderSpec<TData, TExtra extends object = {}> = {
+  id: (data: TData) => string // stable id
+  label: (data: TData) => string // value used by filterFn
+  keywords?: (data: TData) => string[] // optional synonyms
+  renderBrowse: (
+    ctx: { data: TData } & TExtra & MenuHelperCtx,
+  ) => React.ReactNode
+  renderShortcut?: (
+    ctx: { data: TData } & TExtra & MenuHelperCtx,
+  ) => React.ReactNode
+}
+
+export function createMenuItemBuilder<TData, TExtra extends object = {}>(
+  spec: ItemBuilderSpec<TData, TExtra>,
+) {
+  type Props = {
+    data: TData
+    disabled?: boolean
+    onSelect?: (data: TData) => void
+  } & TExtra
+
+  const BuiltItem: React.FC<Props> = ({
+    data,
+    disabled,
+    onSelect,
+    ...extra
+  }) => {
+    const { scopeId, breadcrumb } = useScope()
+    const { query } = useCollection()
+    const value = React.useMemo(() => spec.label(data), [data])
+    const ks = React.useMemo(() => spec.keywords?.(data) ?? [], [data])
+    const id = React.useMemo(() => spec.id(data), [data])
+
+    return (
+      <Item
+        value={value}
+        keywords={ks}
+        id={id}
+        disabled={disabled}
+        onSelect={() => onSelect?.(data)}
+      >
+        {/* visible row */}
+        {spec.renderBrowse({
+          data,
+          ...(extra as TExtra),
+          scopeId,
+          breadcrumb,
+          query,
+          mode: 'browse',
+        })}
+        {/* search row */}
+        {spec.renderShortcut && (
+          <ItemShortcut>
+            {({ breadcrumb: b }) =>
+              spec.renderShortcut!({
+                data,
+                ...(extra as TExtra),
+                scopeId,
+                breadcrumb: b,
+                query,
+                mode: 'search',
+              })
+            }
+          </ItemShortcut>
+        )}
+      </Item>
+    )
+  }
+
+  BuiltItem.displayName = 'BuiltItem'
+  return BuiltItem
+}
 
 /* ================================================================================================
  * Submenu primitives: Sub, SubTrigger, SubContent (NO intent logic)
@@ -1111,14 +1589,8 @@ export const Sub = ({
   const value: SubContextValue = React.useMemo(
     () => ({
       open,
-      onOpenChange: (value) => {
-        // console.log(`[${parentSurfaceId}] onOpenChange`, value)
-        setOpen(value)
-      },
-      onOpenToggle: () => {
-        // console.log(`[${parentSurfaceId}] onOpenToggle`)
-        setOpen((v) => !v)
-      },
+      onOpenChange: setOpen,
+      onOpenToggle: () => setOpen((v) => !v),
       triggerRef,
       contentRef,
       parentSurfaceId,
@@ -1315,6 +1787,9 @@ export interface ActionMenuSubContentProps extends Omit<DivProps, 'dir'> {
   dir?: Direction
   vimBindings?: boolean
   filterFn?: FilterFn
+  title: string
+  scopeId?: string
+  disableIndexMirror?: boolean
 }
 
 export const SubContent = React.forwardRef<
@@ -1333,12 +1808,70 @@ export const SubContent = React.forwardRef<
       dir: dirProp,
       vimBindings = true,
       filterFn,
+      title,
+      scopeId: providedScopeId,
       ...props
     },
     ref,
   ) => {
     const sub = useSubCtx()
     const surfaceId = sub.childSurfaceId
+    const scopeId = React.useMemo(
+      () => providedScopeId ?? title.toLowerCase().replace(/\s+/g, '-'),
+      [providedScopeId, title],
+    )
+
+    function IndexSubmenuRecord({
+      sid,
+      title,
+      renderChildren,
+    }: {
+      sid: string
+      title: string
+      renderChildren: () => React.ReactNode
+    }) {
+      const { upsert, remove } = useSearchRegistry()
+      const { breadcrumb, scopePath } = useScope()
+
+      const recId = React.useMemo(() => `submenu::${sid}`, [sid])
+
+      React.useLayoutEffect(() => {
+        const ancestors = scopePath.slice(0, -1) // index at ancestors only
+
+        const Template: React.FC<{ row: React.ReactNode }> = ({ row }) => (
+          <Sub>
+            <SubTrigger value={title}>{row}</SubTrigger>
+            <SubContent title={title} scopeId={sid} disableIndexMirror>
+              {renderChildren()}
+            </SubContent>
+          </Sub>
+        )
+
+        const rec: SubmenuRecord = {
+          kind: 'submenu',
+          id: recId,
+          label: title,
+          breadcrumb, // includes our title at the end
+          scopePath: ancestors,
+          searchText: breadcrumb.join(' ').toLowerCase(),
+          renderInline: (row) => <Template row={row} />,
+        }
+        upsert(rec)
+        return () => remove(recId)
+      }, [
+        recId,
+        title,
+        breadcrumb.join('>'),
+        scopePath.join('>'),
+        sid,
+        upsert,
+        remove,
+        renderChildren,
+      ])
+
+      return null
+    }
+
     const collectionValue = useCollectionState({
       filterFn: filterFn ?? defaultFilter,
     })
@@ -1368,50 +1901,80 @@ export const SubContent = React.forwardRef<
     }
 
     return (
-      <SurfaceCtx.Provider value={surfaceId}>
-        <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-          <Presence present={sub.open}>
-            <Popper.Content
-              side={side}
-              align={align}
-              sideOffset={sideOffset}
-              alignOffset={alignOffset}
-              avoidCollisions={avoidCollisions}
-              collisionPadding={collisionPadding}
-              asChild
-            >
-              <DismissableLayer
-                onEscapeKeyDown={() => {
-                  sub.onOpenChange(false)
-                }}
-                asChild
-              >
-                <Primitive.div
-                  {...props}
-                  ref={composedSurfaceRef}
-                  role="menu"
-                  tabIndex={-1}
-                  data-action-menu-surface
-                  data-submenu
-                  data-surface-id={surfaceId}
-                  data-dir={dir}
-                  data-state={sub.open ? 'open' : 'closed'}
-                  onFocusCapture={handleFocusCapture}
-                  onMouseMove={(e) => {
-                    const rect = surfaceRef.current?.getBoundingClientRect()
-                    if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
-                    setOwnerId(surfaceId)
-                  }}
+      <>
+        <SurfaceCtx.Provider value={surfaceId}>
+          <KeyboardCtx.Provider value={{ dir, vimBindings }}>
+            <ScopeProvider scopeId={scopeId} title={title}>
+              <Presence present={sub.open}>
+                <Popper.Content
+                  side={side}
+                  align={align}
+                  sideOffset={sideOffset}
+                  alignOffset={alignOffset}
+                  avoidCollisions={avoidCollisions}
+                  collisionPadding={collisionPadding}
+                  asChild
                 >
-                  <CollectionCtx.Provider value={collectionValue}>
-                    {children}
-                  </CollectionCtx.Provider>
-                </Primitive.div>
-              </DismissableLayer>
-            </Popper.Content>
-          </Presence>
-        </KeyboardCtx.Provider>
-      </SurfaceCtx.Provider>
+                  <DismissableLayer
+                    onEscapeKeyDown={() => {
+                      sub.onOpenChange(false)
+                    }}
+                    asChild
+                  >
+                    <Primitive.div
+                      {...props}
+                      ref={composedSurfaceRef}
+                      role="menu"
+                      tabIndex={-1}
+                      data-action-menu-surface
+                      data-submenu
+                      data-surface-id={surfaceId}
+                      data-dir={dir}
+                      data-state={sub.open ? 'open' : 'closed'}
+                      onFocusCapture={handleFocusCapture}
+                      onMouseMove={(e) => {
+                        const rect = surfaceRef.current?.getBoundingClientRect()
+                        if (!rect || !isInBounds(e.clientX, e.clientY, rect))
+                          return
+                        setOwnerId(surfaceId)
+                      }}
+                    >
+                      <CollectionCtx.Provider value={collectionValue}>
+                        {children}
+                      </CollectionCtx.Provider>
+                    </Primitive.div>
+                  </DismissableLayer>
+                </Popper.Content>
+              </Presence>
+            </ScopeProvider>
+          </KeyboardCtx.Provider>
+        </SurfaceCtx.Provider>
+        <ScopeProvider scopeId={scopeId} title={title}>
+          <IndexingCtx.Provider value={true}>
+            <NoopCollectionProvider>
+              {!props.disableIndexMirror && (
+                <IndexSubmenuRecord
+                  sid={scopeId}
+                  title={title}
+                  renderChildren={() => children}
+                />
+              )}
+              <Primitive.div
+                data-index-mirror
+                aria-hidden="true"
+                hidden
+                style={{
+                  display: 'none',
+                  visibility: 'hidden',
+                  pointerEvents: 'none',
+                }}
+              >
+                {children}
+              </Primitive.div>
+            </NoopCollectionProvider>
+          </IndexingCtx.Provider>
+        </ScopeProvider>
+      </>
     )
   },
 )
