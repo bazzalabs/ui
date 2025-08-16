@@ -23,6 +23,8 @@ import {
   Trigger,
 } from './action-menu.js'
 
+export { toRenderFn } from './action-menu.js'
+
 export const ActionMenu = {
   Root,
   Trigger,

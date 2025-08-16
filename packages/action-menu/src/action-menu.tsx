@@ -143,41 +143,58 @@ function inferSimpleText(node: React.ReactNode): string | null {
   }
   if (React.isValidElement(node)) {
     const t = node.type as any
-    // permit simple inline wrappers
-    if (t === React.Fragment || t === 'span' || t === 'em' || t === 'strong') {
-      // FIX: TYPE ERROR HERE?
-      return inferSimpleText(node.props.children)
+    // allow common inline wrappers
+    if (
+      t === React.Fragment ||
+      t === 'span' ||
+      t === 'em' ||
+      t === 'strong' ||
+      t === 'small'
+    ) {
+      return inferSimpleText((node.props as any).children)
     }
   }
   return null
+}
+
+export function toRenderFn<C>(
+  childOrFn: React.ReactNode | ((ctx: C) => React.ReactNode) | undefined | null,
+): (ctx: C) => React.ReactNode {
+  if (typeof childOrFn === 'function')
+    return childOrFn as (ctx: C) => React.ReactNode
+  return () => childOrFn as React.ReactNode
 }
 
 /* ================================================================================================
  * Search Registry
  * ============================================================================================== */
 
+export type RenderCtx = {
+  breadcrumb: string[] // ancestors only; NO leaf label
+  mode: 'browse' | 'search'
+}
+
 export type ItemRecord = {
   kind: 'item'
   id: string
-  label: string
   keywords?: string[]
-  breadcrumb: string[]
+  breadcrumb: string[] // ancestors only
   scopePath: string[]
+  ownerScopeId: string // NEW: where this node actually lives
   perform: () => void
   searchText: string
-  // Optional: custom search-row renderer coming from <Item.Shortcut/>
-  renderShortcut?: (a: { breadcrumb: string[] }) => React.ReactNode
+  render: (ctx: RenderCtx) => React.ReactNode
 }
 
 export type SubmenuRecord = {
   kind: 'submenu'
-  id: string // e.g. submenu::project-status
-  label: string // submenu title
-  breadcrumb: string[] // ["Project properties","Project status"]
-  scopePath: string[] // searchable in ancestors (not inside itself)
+  id: string
+  label: string
+  breadcrumb: string[] // includes the submenu title (it IS the leaf)
+  scopePath: string[] // index at ancestors
+  ownerScopeId: string // the submenu's own scope id
   searchText: string
-  // Returns a real <Sub> with <SubTrigger>row</SubTrigger> + <SubContent/>
-  renderInline: (row: React.ReactNode) => React.ReactNode
+  renderInline: (ctx: RenderCtx) => React.ReactNode
 }
 
 export type SearchRecord = ItemRecord | SubmenuRecord
@@ -674,6 +691,7 @@ export const Trigger = React.forwardRef<
       <Popper.Anchor asChild>
         <Primitive.button
           {...props}
+          data-slot="action-menu-trigger"
           ref={composeRefs(forwardedRef, root.anchorRef)}
           disabled={disabled}
           onPointerDown={composeEventHandlers(onPointerDown, (event) => {
@@ -813,6 +831,7 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
                   ref={composedRef}
                   role="menu"
                   tabIndex={-1}
+                  data-slot="action-menu-content"
                   data-state={root.open ? 'open' : 'closed'}
                   data-action-menu-surface
                   data-surface-id={surfaceId}
@@ -1039,6 +1058,7 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
         {...props}
         ref={composedRef}
         role="combobox"
+        data-slot="action-menu-input"
         aria-controls={listId ?? undefined}
         aria-autocomplete="list"
         aria-expanded={true}
@@ -1068,7 +1088,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
   ({ children, onKeyDown, id, ...props }, ref) => {
     const { activeId, listRef, setListId, query } = useCollection()
     const { scopeId } = useScope()
-    const results = useScopedSearch(scopeId, query)
+    const results = useScopedSearch(scopeId, query) // SearchRecord[]
     const localId = React.useId()
     const listDomId = id ?? `action-menu-list-${localId}`
     const handleKeys = useMenuKeydown('list')
@@ -1078,56 +1098,40 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
       return () => setListId(null)
     }, [listDomId, setListId])
 
-    const renderChildren = query
-      ? results.map((r) => {
+    // Only show descendants in the deep section.
+    // - Items: local if their last scopePath segment === scopeId
+    // - Submenus: local if their ownerScopeId === scopeId (the scope where the SubTrigger lives)
+    const deepResults = React.useMemo(() => {
+      if (!query) return []
+      return results.filter((r) => {
+        if (r.kind === 'item') {
+          const last = r.scopePath[r.scopePath.length - 1]
+          return last !== scopeId
+        }
+        // r.kind === 'submenu'
+        return r.ownerScopeId !== scopeId
+      })
+    }, [results, query, scopeId])
+
+    const deepSection = query
+      ? deepResults.map((r) => {
+          const ctx: RenderCtx = { breadcrumb: r.breadcrumb, mode: 'search' }
+
           if (r.kind === 'submenu') {
-            const rowVisual = (
-              <div
-                data-kind="search-result"
-                className="flex items-center gap-2"
-              >
-                <div data-slot="am-result-text">
-                  {r.breadcrumb.length > 1 && (
-                    <span data-slot="am-result-crumbs" aria-hidden="true">
-                      {r.breadcrumb.slice(0, -1).join(' › ')} ›
-                    </span>
-                  )}
-                  <span data-slot="am-result-leaf">{r.breadcrumb.at(-1)}</span>
-                  <span aria-hidden="true"> › </span>
-                </div>
-              </div>
-            )
-            // Inline, fully functional submenu
+            // Render the REAL submenu row (keeps your custom SubTrigger markup/icons)
             return (
-              <React.Fragment key={r.id}>
-                {r.renderInline(rowVisual)}
-              </React.Fragment>
+              <React.Fragment key={r.id}>{r.renderInline(ctx)}</React.Fragment>
             )
           }
 
-          // item record
-          const rowVisual = r.renderShortcut ? (
-            r.renderShortcut({ breadcrumb: r.breadcrumb })
-          ) : (
-            <div data-kind="search-result" className="flex items-center gap-2">
-              <div data-slot="am-result-text">
-                {r.breadcrumb.length > 1 && (
-                  <span data-slot="am-result-crumbs" aria-hidden="true">
-                    {r.breadcrumb.slice(0, -1).join(' › ')} ›
-                  </span>
-                )}
-                <span data-slot="am-result-leaf">{r.breadcrumb.at(-1)}</span>
-              </div>
-            </div>
-          )
-
+          // r.kind === 'item'
           return (
             <Item key={r.id} value={r.searchText} onSelect={r.perform}>
-              {rowVisual}
+              {r.render(ctx)}
             </Item>
           )
         })
-      : children
+      : null
 
     return (
       <Primitive.div
@@ -1140,7 +1144,10 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
         aria-activedescendant={activeId ?? undefined}
         onKeyDown={composeEventHandlers(onKeyDown, handleKeys)}
       >
-        {renderChildren}
+        {/* Local items render normally (your original subtree), even while searching */}
+        {children}
+        {/* Deep (descendant) hits appended when a query is present */}
+        {deepSection}
       </Primitive.div>
     )
   },
@@ -1187,6 +1194,7 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
         {...props}
         ref={composeRefs(ref, groupRef)}
         role="group"
+        data-slot="action-menu-group"
         data-action-menu-group
         aria-label={label}
         hidden={!hasVisibleChildren}
@@ -1199,25 +1207,15 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
 )
 Group.displayName = 'ActionMenu.Group'
 
-const ItemShortcutCtx = React.createContext<{
-  setShortcut: (fn: (a: { breadcrumb: string[] }) => React.ReactNode) => void
-} | null>(null)
-
-function useItemShortcutSlot() {
-  const ctx = React.useContext(ItemShortcutCtx)
-  if (!ctx)
-    throw new Error('ActionMenu.Item.Shortcut must be inside ActionMenu.Item')
-  return ctx
-}
-
 export interface ActionMenuItemProps
-  extends Omit<DivProps, 'value' | 'onSelect'> {
+  extends Omit<DivProps, 'value' | 'onSelect' | 'children'> {
   onSelect?: (value: string) => void
   value: string
   keywords?: string[]
   id?: string
   disabled?: boolean
   groupId?: string | null
+  children?: React.ReactNode | ((ctx: RenderCtx) => React.ReactNode)
 }
 
 export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
@@ -1244,72 +1242,60 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     const composedRef = composeRefs(ref, itemRef)
 
     const indexing = useIndexing()
-    const { breadcrumb, scopePath } = useScope()
+    const { breadcrumb: scopeBreadcrumb, scopePath } = useScope()
     const { upsert, remove } = useSearchRegistry()
 
-    const shortcutRef = React.useRef<
-      null | ((a: { breadcrumb: string[] }) => React.ReactNode)
-    >(null)
-    const setShortcut = React.useCallback(
-      (fn: (a: { breadcrumb: string[] }) => React.ReactNode) => {
-        shortcutRef.current = fn
-      },
-      [],
+    const itemRenderFn = React.useMemo(
+      () => toRenderFn<RenderCtx>(children),
+      [children],
     )
 
-    const searchId = React.useMemo(() => {
-      const norm = value
-      return `${scopePath.join('/')}::${norm}`
-    }, [scopePath, value])
+    // Render for the visible (local/browse) row
+    const browseRow: React.ReactNode = itemRenderFn({
+      breadcrumb: scopeBreadcrumb,
+      mode: 'browse',
+    })
 
     // Register into search (runs in mirror + visible; last write wins)
     React.useLayoutEffect(() => {
       if (disabled) return
 
-      // infer a simple fallback if no shortcut provided yet
-      let renderShortcut = shortcutRef.current
-      if (!renderShortcut) {
-        const inferred = inferSimpleText(children)
-        if (inferred) {
-          renderShortcut = ({ breadcrumb }) => (
-            <div className="am-row">
-              {breadcrumb.length > 1 && (
-                <span className="am-crumbs">
-                  {breadcrumb.slice(0, -1).join(' › ')} ›{' '}
-                </span>
-              )}
-              <span className="am-leaf">{inferred}</span>
-            </div>
-          )
-        }
-      }
+      // Infer text for scoring from the browse rendering
+      const inferred = inferSimpleText(
+        itemRenderFn({ breadcrumb: scopeBreadcrumb, mode: 'browse' }),
+      )
+
+      const searchText = [
+        ...scopeBreadcrumb, // ancestors only
+        inferred ?? String(value), // leaf label comes from user rendering
+        ...(keywords ?? []),
+      ]
+        .join(' ')
+        .toLowerCase()
 
       const rec: ItemRecord = {
         kind: 'item',
-        id: searchId,
-        label: String(value),
+        id: `${scopePath.join('/')}::${String(value)}`,
         keywords,
-        breadcrumb: [...breadcrumb, String(value)],
+        breadcrumb: [...scopeBreadcrumb], // IMPORTANT: ancestors only
         scopePath,
+        ownerScopeId: scopePath[scopePath.length - 1]!,
         perform: () => onSelect?.(value),
-        searchText: [...breadcrumb, String(value), ...(keywords ?? [])]
-          .join(' ')
-          .toLowerCase(),
-        renderShortcut: renderShortcut ?? undefined,
+        searchText,
+        render: (ctx) => itemRenderFn(ctx), // one source of truth for deep row
       }
       upsert(rec)
-      return () => remove(searchId)
+      return () => remove(rec.id)
     }, [
-      searchId,
+      disabled,
+      scopeBreadcrumb.join('>'),
+      scopePath.join('>'),
       value,
       (keywords ?? []).join('|'),
-      breadcrumb.join('>'),
-      scopePath.join('>'),
-      disabled,
-      onSelect,
       upsert,
       remove,
-      children,
+      onSelect,
+      itemRenderFn,
     ])
 
     const {
@@ -1373,11 +1359,8 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     }, [disabled, itemId, value, onSelect, visible, focused, setActiveId])
 
     if (indexing) {
-      return (
-        <ItemShortcutCtx.Provider value={{ setShortcut }}>
-          {children}
-        </ItemShortcutCtx.Provider>
-      )
+      // During mirror: render children to allow any lazy logic, but no DOM row in the real list.
+      return <>{children}</>
     }
 
     return (
@@ -1386,16 +1369,16 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         ref={composedRef}
         role="option"
         data-role="option"
+        data-slot="action-menu-item"
+        action-menu-option
         aria-selected={focused || undefined}
         aria-disabled={disabled || undefined}
         data-action-menu-item-id={itemId}
         data-focused={focused ? 'true' : 'false'}
         hidden={!visible}
-        // tabIndex={-1}
         id={itemId}
         onMouseMove={() => {
-          if (!visible || disabled) return
-          if (!focused) setActiveId(itemId)
+          if (visible && !disabled && !focused) setActiveId(itemId)
         }}
         onClick={composeEventHandlers(onClick, (e) => {
           if (disabled || !visible) return
@@ -1403,127 +1386,24 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
           dispatchSelect(e.currentTarget as HTMLElement)
         })}
         onKeyDown={composeEventHandlers(onKeyDown, (e) => {
-          if (disabled) return
-          if (e.key === 'Enter') {
+          if (!disabled && e.key === 'Enter') {
             e.preventDefault()
             dispatchSelect(e.currentTarget as HTMLElement)
           }
         })}
         onPointerDown={composeEventHandlers(onPointerDown as any, (e) => {
-          // Allow right-click context menus etc., but block primary-click focus
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
         })}
         onMouseDown={composeEventHandlers(onMouseDown as any, (e) => {
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
         })}
       >
-        <ItemShortcutCtx.Provider value={{ setShortcut }}>
-          {children}
-        </ItemShortcutCtx.Provider>
+        {browseRow}
       </Primitive.div>
     )
   },
 )
 Item.displayName = 'ActionMenu.Item'
-
-export const ItemShortcut = function ItemShortcut({
-  children,
-}: {
-  children: ((a: { breadcrumb: string[] }) => React.ReactNode) | React.ReactNode
-}) {
-  const { setShortcut } = useItemShortcutSlot()
-  const { breadcrumb } = useScope()
-  React.useEffect(() => {
-    const fn =
-      typeof children === 'function'
-        ? (children as (a: { breadcrumb: string[] }) => React.ReactNode)
-        : () => children
-    setShortcut(fn)
-  }, [children, setShortcut])
-  return null
-}
-
-;(Item as any).Shortcut = ItemShortcut
-
-export type MenuHelperCtx = {
-  scopeId: string
-  breadcrumb: string[]
-  query: string
-  mode: 'browse' | 'search'
-}
-
-export type ItemBuilderSpec<TData, TExtra extends object = {}> = {
-  id: (data: TData) => string // stable id
-  label: (data: TData) => string // value used by filterFn
-  keywords?: (data: TData) => string[] // optional synonyms
-  renderBrowse: (
-    ctx: { data: TData } & TExtra & MenuHelperCtx,
-  ) => React.ReactNode
-  renderShortcut?: (
-    ctx: { data: TData } & TExtra & MenuHelperCtx,
-  ) => React.ReactNode
-}
-
-export function createMenuItemBuilder<TData, TExtra extends object = {}>(
-  spec: ItemBuilderSpec<TData, TExtra>,
-) {
-  type Props = {
-    data: TData
-    disabled?: boolean
-    onSelect?: (data: TData) => void
-  } & TExtra
-
-  const BuiltItem: React.FC<Props> = ({
-    data,
-    disabled,
-    onSelect,
-    ...extra
-  }) => {
-    const { scopeId, breadcrumb } = useScope()
-    const { query } = useCollection()
-    const value = React.useMemo(() => spec.label(data), [data])
-    const ks = React.useMemo(() => spec.keywords?.(data) ?? [], [data])
-    const id = React.useMemo(() => spec.id(data), [data])
-
-    return (
-      <Item
-        value={value}
-        keywords={ks}
-        id={id}
-        disabled={disabled}
-        onSelect={() => onSelect?.(data)}
-      >
-        {/* visible row */}
-        {spec.renderBrowse({
-          data,
-          ...(extra as TExtra),
-          scopeId,
-          breadcrumb,
-          query,
-          mode: 'browse',
-        })}
-        {/* search row */}
-        {spec.renderShortcut && (
-          <ItemShortcut>
-            {({ breadcrumb: b }) =>
-              spec.renderShortcut!({
-                data,
-                ...(extra as TExtra),
-                scopeId,
-                breadcrumb: b,
-                query,
-                mode: 'search',
-              })
-            }
-          </ItemShortcut>
-        )}
-      </Item>
-    )
-  }
-
-  BuiltItem.displayName = 'BuiltItem'
-  return BuiltItem
-}
 
 /* ================================================================================================
  * Submenu primitives: Sub, SubTrigger, SubContent (NO intent logic)
@@ -1549,6 +1429,18 @@ const useSubCtx = () => {
     throw new Error('ActionMenu.Sub components must be inside ActionMenu.Sub')
   return ctx
 }
+
+type SubRenderCtxValue = {
+  setRender: (
+    fn: ((ctx: RenderCtx & { open: boolean }) => React.ReactNode) | null,
+  ) => void
+  getRender: () =>
+    | ((ctx: RenderCtx & { open: boolean }) => React.ReactNode)
+    | null
+}
+
+const SubRenderCtx = React.createContext<SubRenderCtxValue | null>(null)
+const useSubRenderCtx = () => React.useContext(SubRenderCtx)
 
 export interface ActionMenuSubProps {
   open?: boolean
@@ -1609,20 +1501,40 @@ export const Sub = ({
     ],
   )
 
+  const renderRef = React.useRef<
+    ((ctx: RenderCtx & { open: boolean }) => React.ReactNode) | null
+  >(null)
+
+  const subRenderValue = React.useMemo<SubRenderCtxValue>(
+    () => ({
+      setRender: (fn) => {
+        renderRef.current = fn
+      },
+      getRender: () => renderRef.current,
+    }),
+    [],
+  )
+
   return (
     <SubCtx.Provider value={value}>
-      <Popper.Root>{children}</Popper.Root>
+      <SubRenderCtx.Provider value={subRenderValue}>
+        <Popper.Root>{children}</Popper.Root>
+      </SubRenderCtx.Provider>
     </SubCtx.Provider>
   )
 }
 Sub.displayName = 'ActionMenu.Sub'
 
-export interface ActionMenuSubTriggerProps extends DivProps {
+export interface ActionMenuSubTriggerProps
+  extends Omit<DivProps, 'value' | 'children'> {
   value: string
   keywords?: string[]
   id?: string
   disabled?: boolean
   groupId?: string | null
+  children?:
+    | React.ReactNode
+    | ((ctx: RenderCtx & { open: boolean }) => React.ReactNode)
 }
 
 export const SubTrigger = React.forwardRef<
@@ -1653,6 +1565,18 @@ export const SubTrigger = React.forwardRef<
     const itemRef = React.useRef<HTMLDivElement | null>(null)
     const composedRef = composeRefs(ref, itemRef)
     const sub = useSubCtx()
+    const subRender = useSubRenderCtx()
+    const { breadcrumb } = useScope()
+    const renderFn = React.useMemo(
+      () => toRenderFn<RenderCtx & { open: boolean }>(children),
+      [children],
+    )
+
+    React.useLayoutEffect(() => {
+      if (!subRender) return
+      subRender.setRender(renderFn)
+      return () => subRender.setRender(null)
+    }, [subRender, renderFn])
 
     React.useEffect(() => {
       sub.setTriggerItemId(itemId)
@@ -1721,12 +1645,19 @@ export const SubTrigger = React.forwardRef<
 
     const isMenuFocused = ownerId === sub.childSurfaceId
 
+    const browseRow: React.ReactNode = renderFn({
+      breadcrumb,
+      mode: 'browse',
+      open: sub.open,
+    })
+
     return (
       <Popper.Anchor asChild>
         <Primitive.div
           {...props}
           ref={composeRefs(composedRef, sub.triggerRef as any)}
           role="option"
+          data-slot="action-menu-subtrigger"
           data-role="option"
           data-subtrigger="true"
           data-menu-focused={isMenuFocused ? 'true' : 'false'}
@@ -1734,6 +1665,7 @@ export const SubTrigger = React.forwardRef<
           aria-disabled={disabled || undefined}
           aria-haspopup="menu"
           aria-expanded={sub.open || undefined}
+          action-menu-option
           data-action-menu-item-id={itemId}
           data-focused={focused ? 'true' : 'false'}
           hidden={!visible}
@@ -1767,13 +1699,70 @@ export const SubTrigger = React.forwardRef<
           })}
           onBlur={composeEventHandlers(onBlur as any, () => {})}
         >
-          {children}
+          {browseRow}
         </Primitive.div>
       </Popper.Anchor>
     )
   },
 )
 SubTrigger.displayName = 'ActionMenu.SubTrigger'
+
+function IndexSubmenuRecord({
+  sid,
+  title,
+  renderChildren,
+}: {
+  sid: string
+  title: string
+  renderChildren: () => React.ReactNode
+}) {
+  const { upsert, remove } = useSearchRegistry()
+  const { breadcrumb, scopePath } = useScope()
+  const subRender = useSubRenderCtx()
+
+  const recId = React.useMemo(() => `submenu::${sid}`, [sid])
+
+  React.useLayoutEffect(() => {
+    const ancestors = scopePath.slice(0, -1)
+    const rfn = subRender?.getRender() ?? null
+
+    const rec: SubmenuRecord = {
+      kind: 'submenu',
+      id: recId,
+      label: title,
+      breadcrumb,
+      scopePath: ancestors,
+      ownerScopeId: sid,
+      searchText: breadcrumb.join(' ').toLowerCase(),
+      renderInline: (ctx) => (
+        <Sub>
+          <SubTrigger value={title}>
+            {/* Use the exact same SubTrigger child renderer; if it was a node, it returns that node */}
+            {rfn ? rfn({ ...ctx, open: false }) : null}
+          </SubTrigger>
+          <SubContent title={title} scopeId={sid} disableIndexMirror>
+            {renderChildren()}
+          </SubContent>
+        </Sub>
+      ),
+    }
+
+    upsert(rec)
+    return () => remove(recId)
+  }, [
+    recId,
+    title,
+    breadcrumb.join('>'),
+    scopePath.join('>'),
+    sid,
+    upsert,
+    remove,
+    renderChildren,
+    subRender,
+  ])
+
+  return null
+}
 
 export interface ActionMenuSubContentProps extends Omit<DivProps, 'dir'> {
   side?: 'top' | 'right' | 'bottom' | 'left'
@@ -1810,6 +1799,7 @@ export const SubContent = React.forwardRef<
       filterFn,
       title,
       scopeId: providedScopeId,
+      disableIndexMirror,
       ...props
     },
     ref,
@@ -1820,57 +1810,6 @@ export const SubContent = React.forwardRef<
       () => providedScopeId ?? title.toLowerCase().replace(/\s+/g, '-'),
       [providedScopeId, title],
     )
-
-    function IndexSubmenuRecord({
-      sid,
-      title,
-      renderChildren,
-    }: {
-      sid: string
-      title: string
-      renderChildren: () => React.ReactNode
-    }) {
-      const { upsert, remove } = useSearchRegistry()
-      const { breadcrumb, scopePath } = useScope()
-
-      const recId = React.useMemo(() => `submenu::${sid}`, [sid])
-
-      React.useLayoutEffect(() => {
-        const ancestors = scopePath.slice(0, -1) // index at ancestors only
-
-        const Template: React.FC<{ row: React.ReactNode }> = ({ row }) => (
-          <Sub>
-            <SubTrigger value={title}>{row}</SubTrigger>
-            <SubContent title={title} scopeId={sid} disableIndexMirror>
-              {renderChildren()}
-            </SubContent>
-          </Sub>
-        )
-
-        const rec: SubmenuRecord = {
-          kind: 'submenu',
-          id: recId,
-          label: title,
-          breadcrumb, // includes our title at the end
-          scopePath: ancestors,
-          searchText: breadcrumb.join(' ').toLowerCase(),
-          renderInline: (row) => <Template row={row} />,
-        }
-        upsert(rec)
-        return () => remove(recId)
-      }, [
-        recId,
-        title,
-        breadcrumb.join('>'),
-        scopePath.join('>'),
-        sid,
-        upsert,
-        remove,
-        renderChildren,
-      ])
-
-      return null
-    }
 
     const collectionValue = useCollectionState({
       filterFn: filterFn ?? defaultFilter,
@@ -1926,6 +1865,7 @@ export const SubContent = React.forwardRef<
                       ref={composedSurfaceRef}
                       role="menu"
                       tabIndex={-1}
+                      data-slot="action-menu-subcontent"
                       data-action-menu-surface
                       data-submenu
                       data-surface-id={surfaceId}
@@ -1952,7 +1892,7 @@ export const SubContent = React.forwardRef<
         <ScopeProvider scopeId={scopeId} title={title}>
           <IndexingCtx.Provider value={true}>
             <NoopCollectionProvider>
-              {!props.disableIndexMirror && (
+              {!disableIndexMirror && (
                 <IndexSubmenuRecord
                   sid={scopeId}
                   title={title}
