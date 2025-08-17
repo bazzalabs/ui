@@ -40,7 +40,7 @@ export default function SSRPage() {
                       <ActionMenu.SubTrigger value="a">
                         Item A
                       </ActionMenu.SubTrigger>
-                      <ActionMenu.SubContent align="start">
+                      <ActionMenu.SubContent align="start" title="Item A">
                         <ActionMenu.Input />
                         <ActionMenu.List>
                           <ActionMenu.Group>
@@ -54,7 +54,10 @@ export default function SSRPage() {
                               <ActionMenu.SubTrigger value="b">
                                 Item B
                               </ActionMenu.SubTrigger>
-                              <ActionMenu.SubContent align="start">
+                              <ActionMenu.SubContent
+                                align="start"
+                                title="Item B"
+                              >
                                 <ActionMenu.Input />
                                 <ActionMenu.List>
                                   <ActionMenu.Group>

@@ -553,7 +553,7 @@ export function generateSampleIssue(): Issue {
   const title = generateIssueTitle()
   const description = lorem(4, 8)
 
-  const labelsCount = randomInteger(0, 5)
+  const labelsCount = randomInteger(0, 1)
   const labels =
     labelsCount > 0
       ? (sample(ISSUE_LABELS, labelsCount) as IssueLabel[])
@@ -602,5 +602,5 @@ export function generateIssues(count: number) {
 }
 
 export const ISSUES = generateIssues(
-  process.env.NODE_ENV === 'production' ? 30000 : 5000,
+  process.env.NODE_ENV === 'production' ? 100_000 : 20,
 )

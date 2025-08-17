@@ -169,9 +169,11 @@ export function toRenderFn<C>(
  * Search Registry
  * ============================================================================================== */
 
+export type ItemViewMode = 'local' | 'shortcut'
+
 export type RenderCtx = {
   breadcrumb: string[] // ancestors only; NO leaf label
-  mode: 'browse' | 'search'
+  mode: ItemViewMode
 }
 
 export type ItemRecord = {
@@ -184,6 +186,7 @@ export type ItemRecord = {
   perform: () => void
   searchText: string
   render: (ctx: RenderCtx) => React.ReactNode
+  rowClassName?: string
 }
 
 export type SubmenuRecord = {
@@ -195,6 +198,7 @@ export type SubmenuRecord = {
   ownerScopeId: string // the submenu's own scope id
   searchText: string
   renderInline: (ctx: RenderCtx) => React.ReactNode
+  rowClassName?: string
 }
 
 export type SearchRecord = ItemRecord | SubmenuRecord
@@ -1115,7 +1119,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
 
     const deepSection = query
       ? deepResults.map((r) => {
-          const ctx: RenderCtx = { breadcrumb: r.breadcrumb, mode: 'search' }
+          const ctx: RenderCtx = { breadcrumb: r.breadcrumb, mode: 'shortcut' }
 
           if (r.kind === 'submenu') {
             // Render the REAL submenu row (keeps your custom SubTrigger markup/icons)
@@ -1126,7 +1130,12 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
 
           // r.kind === 'item'
           return (
-            <Item key={r.id} value={r.searchText} onSelect={r.perform}>
+            <Item
+              key={r.id}
+              className={r.rowClassName}
+              value={r.searchText}
+              onSelect={r.perform}
+            >
               {r.render(ctx)}
             </Item>
           )
@@ -1218,9 +1227,10 @@ export interface ActionMenuItemProps
   children?: React.ReactNode | ((ctx: RenderCtx) => React.ReactNode)
 }
 
-export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
+export const ItemImpl = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
   (
     {
+      className,
       children,
       value,
       keywords,
@@ -1253,7 +1263,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     // Render for the visible (local/browse) row
     const browseRow: React.ReactNode = itemRenderFn({
       breadcrumb: scopeBreadcrumb,
-      mode: 'browse',
+      mode: 'local',
     })
 
     // Register into search (runs in mirror + visible; last write wins)
@@ -1262,7 +1272,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
 
       // Infer text for scoring from the browse rendering
       const inferred = inferSimpleText(
-        itemRenderFn({ breadcrumb: scopeBreadcrumb, mode: 'browse' }),
+        itemRenderFn({ breadcrumb: scopeBreadcrumb, mode: 'local' }),
       )
 
       const searchText = [
@@ -1283,10 +1293,12 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         perform: () => onSelect?.(value),
         searchText,
         render: (ctx) => itemRenderFn(ctx), // one source of truth for deep row
+        rowClassName: className,
       }
       upsert(rec)
       return () => remove(rec.id)
     }, [
+      className,
       disabled,
       scopeBreadcrumb.join('>'),
       scopePath.join('>'),
@@ -1366,6 +1378,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     return (
       <Primitive.div
         {...props}
+        className={className}
         ref={composedRef}
         role="option"
         data-role="option"
@@ -1403,7 +1416,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     )
   },
 )
-Item.displayName = 'ActionMenu.Item'
+ItemImpl.displayName = 'ActionMenu.ItemImpl'
 
 /* ================================================================================================
  * Submenu primitives: Sub, SubTrigger, SubContent (NO intent logic)
@@ -1437,6 +1450,8 @@ type SubRenderCtxValue = {
   getRender: () =>
     | ((ctx: RenderCtx & { open: boolean }) => React.ReactNode)
     | null
+  setRowClassName: (c?: string) => void
+  getRowClassName: () => string | undefined
 }
 
 const SubRenderCtx = React.createContext<SubRenderCtxValue | null>(null)
@@ -1504,6 +1519,7 @@ export const Sub = ({
   const renderRef = React.useRef<
     ((ctx: RenderCtx & { open: boolean }) => React.ReactNode) | null
   >(null)
+  const rowClassRef = React.useRef<string | undefined>(undefined)
 
   const subRenderValue = React.useMemo<SubRenderCtxValue>(
     () => ({
@@ -1511,6 +1527,10 @@ export const Sub = ({
         renderRef.current = fn
       },
       getRender: () => renderRef.current,
+      setRowClassName: (c) => {
+        rowClassRef.current = c
+      },
+      getRowClassName: () => rowClassRef.current,
     }),
     [],
   )
@@ -1537,12 +1557,14 @@ export interface ActionMenuSubTriggerProps
     | ((ctx: RenderCtx & { open: boolean }) => React.ReactNode)
 }
 
-export const SubTrigger = React.forwardRef<
+export const SubTriggerImpl = React.forwardRef<
   HTMLDivElement,
   ActionMenuSubTriggerProps
 >(
   (
     {
+      className,
+      children,
       value,
       keywords,
       id,
@@ -1554,7 +1576,6 @@ export const SubTrigger = React.forwardRef<
       onFocus,
       onBlur,
       groupId,
-      children,
       ...props
     },
     ref,
@@ -1575,8 +1596,9 @@ export const SubTrigger = React.forwardRef<
     React.useLayoutEffect(() => {
       if (!subRender) return
       subRender.setRender(renderFn)
+      subRender.setRowClassName(className)
       return () => subRender.setRender(null)
-    }, [subRender, renderFn])
+    }, [subRender, renderFn, className])
 
     React.useEffect(() => {
       sub.setTriggerItemId(itemId)
@@ -1647,7 +1669,7 @@ export const SubTrigger = React.forwardRef<
 
     const browseRow: React.ReactNode = renderFn({
       breadcrumb,
-      mode: 'browse',
+      mode: 'local',
       open: sub.open,
     })
 
@@ -1655,6 +1677,7 @@ export const SubTrigger = React.forwardRef<
       <Popper.Anchor asChild>
         <Primitive.div
           {...props}
+          className={className}
           ref={composeRefs(composedRef, sub.triggerRef as any)}
           role="option"
           data-slot="action-menu-subtrigger"
@@ -1705,7 +1728,7 @@ export const SubTrigger = React.forwardRef<
     )
   },
 )
-SubTrigger.displayName = 'ActionMenu.SubTrigger'
+SubTriggerImpl.displayName = 'ActionMenu.SubTriggerImpl'
 
 function IndexSubmenuRecord({
   sid,
@@ -1725,6 +1748,7 @@ function IndexSubmenuRecord({
   React.useLayoutEffect(() => {
     const ancestors = scopePath.slice(0, -1)
     const rfn = subRender?.getRender() ?? null
+    const rowClassName = subRender?.getRowClassName()
 
     const rec: SubmenuRecord = {
       kind: 'submenu',
@@ -1734,9 +1758,10 @@ function IndexSubmenuRecord({
       scopePath: ancestors,
       ownerScopeId: sid,
       searchText: breadcrumb.join(' ').toLowerCase(),
+      rowClassName,
       renderInline: (ctx) => (
         <Sub>
-          <SubTrigger value={title}>
+          <SubTrigger value={title} className={rowClassName}>
             {/* Use the exact same SubTrigger child renderer; if it was a node, it returns that node */}
             {rfn ? rfn({ ...ctx, open: false }) : null}
           </SubTrigger>
@@ -1919,3 +1944,64 @@ export const SubContent = React.forwardRef<
   },
 )
 SubContent.displayName = 'ActionMenu.SubContent'
+
+/* ================================================================================================
+ * Components Provider + Public Proxies
+ * ============================================================================================== */
+
+type ComponentMap = {
+  Item: React.ForwardRefExoticComponent<
+    ActionMenuItemProps & React.RefAttributes<HTMLDivElement>
+  >
+  SubTrigger: React.ForwardRefExoticComponent<
+    ActionMenuSubTriggerProps & React.RefAttributes<HTMLDivElement>
+  >
+}
+
+const ComponentsCtx = React.createContext<ComponentMap | null>(null)
+
+const defaultComponentMap: ComponentMap = {
+  Item: ItemImpl,
+  SubTrigger: SubTriggerImpl,
+}
+
+/** Override concrete row components (used for BOTH local and deep rows) */
+export function ComponentsProvider({
+  components,
+  children,
+}: {
+  components: Partial<ComponentMap>
+  children: React.ReactNode
+}) {
+  const parent = React.useContext(ComponentsCtx) ?? defaultComponentMap
+  const value = React.useMemo(
+    () => ({ ...parent, ...components }),
+    [parent, components],
+  )
+  return (
+    <ComponentsCtx.Provider value={value}>{children}</ComponentsCtx.Provider>
+  )
+}
+
+/** Public proxies resolve to the provider mapping */
+export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
+  (props, ref) => {
+    const map = React.useContext(ComponentsCtx) ?? defaultComponentMap
+    const Comp = map.Item
+    return <Comp {...props} ref={ref} />
+  },
+)
+Item.displayName = 'ActionMenu.Item'
+
+export const SubTrigger = React.forwardRef<
+  HTMLDivElement,
+  ActionMenuSubTriggerProps
+>((props, ref) => {
+  const map = React.useContext(ComponentsCtx) ?? defaultComponentMap
+  const Comp = map.SubTrigger
+  return <Comp {...props} ref={ref} />
+})
+SubTrigger.displayName = 'ActionMenu.SubTrigger'
+
+/** Give styled layer access to the internal logic components (no recursion). */
+export { ItemImpl as __ItemImpl, SubTriggerImpl as __SubTriggerImpl }

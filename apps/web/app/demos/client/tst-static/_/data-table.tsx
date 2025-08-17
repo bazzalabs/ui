@@ -1,3 +1,4 @@
+import { flexRender, type Table as TanStackTable } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -7,16 +8,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { type Table as TanStackTable, flexRender } from '@tanstack/react-table'
 
 export function DataTable({ table }: { table: TanStackTable<any> }) {
   return (
     <>
-      <div className="rounded-md border bg-white dark:bg-inherit">
-        <Table>
+      <div className="rounded-md border bg-site-background">
+        <Table className="rounded-md">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-popover">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>

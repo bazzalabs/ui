@@ -25,6 +25,7 @@ import {
   useState,
 } from 'react'
 import type { DateRange } from 'react-day-picker'
+import { ActionMenu } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -513,6 +514,126 @@ const OptionItem = memo(function OptionItem({
   )
 })
 
+const OptionItem_v2 = memo(function OptionItem({
+  option,
+  onToggle,
+}: OptionItemProps) {
+  const { value, label, icon: Icon, selected, count } = option
+  const handleSelect = useCallback(() => {
+    onToggle(value, !selected)
+  }, [onToggle, value, selected])
+
+  return (
+    <ActionMenu.Item
+      key={value}
+      value={value}
+      keywords={[label]}
+      onSelect={handleSelect}
+      className="group flex items-center justify-between gap-4"
+    >
+      {(ctx) => {
+        return (
+          <>
+            <div
+              className={cn(
+                'flex items-center gap-1.5 flex-1 min-w-0',
+                ctx.mode === 'shortcut' && 'border border-red-500',
+              )}
+            >
+              <Checkbox
+                checked={selected}
+                className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]:opacity-100 dark:border-ring mr-1 shrink-0"
+              />
+              <div className="shrink-0">
+                {Icon &&
+                  (isValidElement(Icon) ? (
+                    Icon
+                  ) : (
+                    <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
+                  ))}
+              </div>
+              <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden">
+                {label}
+              </span>
+            </div>
+            {count && (
+              <span className="tabular-nums text-muted-foreground tracking-tight text-xs">
+                {new Intl.NumberFormat().format(count)}
+              </span>
+            )}
+          </>
+        )
+      }}
+    </ActionMenu.Item>
+  )
+})
+
+export function FilterValueOptionController_v2<TData>({
+  filter,
+  column,
+  actions,
+  locale = 'en',
+}: FilterValueControllerProps<TData, 'option'>) {
+  // Derive the initial selected values on mount
+  const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
+
+  // Separate the selected and unselected options
+  const { selectedOptions, unselectedOptions } = useMemo(() => {
+    const counts = column.getFacetedUniqueValues()
+    const allOptions = column.getOptions().map((o) => {
+      const currentlySelected = filter?.values.includes(o.value) ?? false
+      return {
+        ...o,
+        selected: currentlySelected,
+        count: counts?.get(o.value) ?? 0,
+      }
+    })
+
+    const selected = allOptions.filter((o) =>
+      initialSelectedValues.has(o.value),
+    )
+    const unselected = allOptions.filter(
+      (o) => !initialSelectedValues.has(o.value),
+    )
+    return { selectedOptions: selected, unselectedOptions: unselected }
+  }, [column, filter?.values, initialSelectedValues])
+
+  const handleToggle = useCallback(
+    (value: string, checked: boolean) => {
+      if (checked) actions.addFilterValue(column, [value])
+      else actions.removeFilterValue(column, [value])
+    },
+    [actions, column],
+  )
+
+  return (
+    <>
+      <ActionMenu.Input placeholder={`${column.displayName}...`} />
+      <div className="h-[1px] w-full bg-border" />
+      <ActionMenu.List>
+        <ActionMenu.Group>
+          {selectedOptions.map((option) => (
+            <OptionItem_v2
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </ActionMenu.Group>
+        <ActionMenu.Group>
+          {unselectedOptions.map((option) => (
+            <OptionItem_v2
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </ActionMenu.Group>
+      </ActionMenu.List>
+    </>
+  )
+}
+
 export function FilterValueOptionController<TData>({
   filter,
   column,
@@ -588,6 +709,71 @@ export function FilterValueOptionController<TData>({
   )
 }
 
+export function FilterValueMultiOptionController_v2<TData>({
+  filter,
+  column,
+  actions,
+  locale = 'en',
+}: FilterValueControllerProps<TData, 'multiOption'>) {
+  // Derive the initial selected values on mount
+  const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
+
+  // Separate the selected and unselected options
+  const { selectedOptions, unselectedOptions } = useMemo(() => {
+    const counts = column.getFacetedUniqueValues()
+    const allOptions = column.getOptions().map((o) => {
+      const currentlySelected = filter?.values.includes(o.value) ?? false
+      return {
+        ...o,
+        selected: currentlySelected,
+        count: counts?.get(o.value) ?? 0,
+      }
+    })
+
+    const selected = allOptions.filter((o) =>
+      initialSelectedValues.has(o.value),
+    )
+    const unselected = allOptions.filter(
+      (o) => !initialSelectedValues.has(o.value),
+    )
+    return { selectedOptions: selected, unselectedOptions: unselected }
+  }, [column, filter?.values, initialSelectedValues])
+
+  const handleToggle = useCallback(
+    (value: string, checked: boolean) => {
+      if (checked) actions.addFilterValue(column, [value])
+      else actions.removeFilterValue(column, [value])
+    },
+    [actions, column],
+  )
+
+  return (
+    <>
+      <ActionMenu.Input placeholder={`${column.displayName}...`} />
+      <div className="h-[1px] w-full bg-border" />
+      <ActionMenu.List>
+        <ActionMenu.Group>
+          {selectedOptions.map((option) => (
+            <OptionItem_v2
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </ActionMenu.Group>
+        <ActionMenu.Group>
+          {unselectedOptions.map((option) => (
+            <OptionItem_v2
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </ActionMenu.Group>
+      </ActionMenu.List>
+    </>
+  )
+}
 export function FilterValueMultiOptionController<TData>({
   filter,
   column,

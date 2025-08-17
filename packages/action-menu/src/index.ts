@@ -1,16 +1,6 @@
 'use client'
 
 import {
-  type ActionMenuContentProps,
-  type ActionMenuGroupProps,
-  type ActionMenuInputProps,
-  type ActionMenuItemProps,
-  type ActionMenuListProps,
-  type ActionMenuProps,
-  type ActionMenuSubContentProps,
-  type ActionMenuSubProps,
-  type ActionMenuSubTriggerProps,
-  type ActionMenuTriggerProps,
   Content,
   Group,
   Input,
@@ -23,7 +13,14 @@ import {
   Trigger,
 } from './action-menu.js'
 
-export { toRenderFn } from './action-menu.js'
+// keep toRenderFn
+// NEW: re-export provider + internal impls for the styled layer
+export {
+  __ItemImpl,
+  __SubTriggerImpl,
+  ComponentsProvider,
+  toRenderFn,
+} from './action-menu.js'
 
 export const ActionMenu = {
   Root,
@@ -36,17 +33,21 @@ export const ActionMenu = {
   Sub,
   SubContent,
   SubTrigger,
+  // (optional) expose via the namespace as well:
+  // ComponentsProvider,
 }
 
 export type {
-  ActionMenuProps,
-  ActionMenuTriggerProps,
   ActionMenuContentProps,
-  ActionMenuInputProps,
-  ActionMenuListProps,
   ActionMenuGroupProps,
+  ActionMenuInputProps,
   ActionMenuItemProps,
+  ActionMenuListProps,
+  ActionMenuProps,
+  ActionMenuSubContentProps,
   ActionMenuSubProps,
   ActionMenuSubTriggerProps,
-  ActionMenuSubContentProps,
-}
+  ActionMenuTriggerProps,
+  // (optional) helpful for typing user renderers
+  RenderCtx,
+} from './action-menu.js'

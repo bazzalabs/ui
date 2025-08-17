@@ -2,6 +2,7 @@ import {
   type Column,
   type ColumnDataType,
   type DataTableFilterActions,
+  type FilterModel,
   type FilterStrategy,
   type FiltersState,
   getColumn,
@@ -19,6 +20,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { ActionMenu } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -35,7 +37,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { FilterValueController } from './filter-value'
+import {
+  FilterValueController,
+  FilterValueMultiOptionController_v2,
+  FilterValueOptionController_v2,
+} from './filter-value'
 
 interface FilterSelectorProps<TData> {
   filters: FiltersState
@@ -43,6 +49,207 @@ interface FilterSelectorProps<TData> {
   actions: DataTableFilterActions
   strategy: FilterStrategy
   locale?: Locale
+}
+
+export const FilterSelector_v2 = memo(
+  __FilterSelector_v2,
+) as typeof __FilterSelector_v2
+
+function __FilterSelector_v2<TData>({
+  filters,
+  columns,
+  actions,
+  strategy,
+  locale = 'en',
+}: FilterSelectorProps<TData>) {
+  const [open, setOpen] = useState(false)
+  // const [value, setValue] = useState('')
+
+  const visibleColumns = useMemo(
+    () => columns.filter((c) => !c.hidden),
+    [columns],
+  )
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: good
+  useEffect(() => {
+    if (open) {
+      for (const column of visibleColumns) {
+        column.prefetchValues()
+        column.prefetchOptions()
+        column.prefetchFacetedUniqueValues()
+      }
+    }
+  }, [open])
+
+  const visibleFilters = useMemo(
+    () =>
+      filters.filter((f) => visibleColumns.find((c) => c.id === f.columnId)),
+    [filters, visibleColumns],
+  )
+
+  const hasVisibleFilters = visibleFilters.length > 0
+
+  return (
+    <ActionMenu.Root open={open} onOpenChange={setOpen}>
+      <ActionMenu.Trigger asChild>
+        <Button
+          variant="outline"
+          className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
+        >
+          <FilterIcon className="size-4" />
+          {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
+        </Button>
+      </ActionMenu.Trigger>
+      <ActionMenu.Content className="min-w-[225px]">
+        <ActionMenu.Input placeholder="Filter..." />
+        <div className="h-[1px] w-full bg-border" />
+        <ActionMenu.List>
+          {visibleColumns.map((column) => (
+            <FilterableColumn_v2
+              key={column.id}
+              filter={filters.find((f) => f.columnId === column.id)!}
+              column={column}
+              actions={actions}
+              strategy={strategy}
+              locale={locale}
+            />
+          ))}
+        </ActionMenu.List>
+      </ActionMenu.Content>
+    </ActionMenu.Root>
+  )
+}
+
+export function FilterableColumn_v2<TData, TType extends ColumnDataType, TVal>({
+  filter,
+  column,
+  actions,
+  strategy,
+  locale = 'en',
+}: {
+  filter: FilterModel<TType>
+  column: Column<TData, TType, TVal>
+  actions: DataTableFilterActions
+  strategy: FilterStrategy
+  locale?: Locale
+}) {
+  const itemRef = useRef<HTMLDivElement>(null)
+
+  const { icon: Icon } = column
+  const hasIcon = !!Icon
+
+  const prefetch = useCallback(async () => {
+    column.prefetchValues()
+
+    // Only prefetch options and faceted values for option and multi-option columns
+    if (isAnyOf(column.type, ['option', 'multiOption'])) {
+      column.prefetchOptions()
+      column.prefetchFacetedUniqueValues()
+    }
+
+    // Only prefetch min/max values for number columns
+    if (column.type === 'number') {
+      column.prefetchFacetedMinMaxValues()
+    }
+  }, [column])
+
+  useEffect(() => {
+    const target = itemRef.current
+
+    if (!target) return
+
+    // Set up MutationObserver
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes') {
+          const isSelected = target.getAttribute('data-focused') === 'true'
+          if (isSelected) prefetch()
+        }
+      }
+    })
+
+    // Set up observer
+    observer.observe(target, {
+      attributes: true,
+      attributeFilter: ['data-focused'],
+    })
+
+    // Cleanup on unmount
+    return () => observer.disconnect()
+  }, [prefetch])
+
+  function handleSelect() {
+    if (column.type === 'boolean') {
+      actions.setFilterValue(column as any, [true])
+      return
+    }
+  }
+
+  const content = useMemo(() => {
+    switch (column.type) {
+      case 'option':
+        return (
+          <FilterValueOptionController_v2
+            filter={filter as FilterModel<'option'>}
+            column={column as Column<TData, 'option'>}
+            actions={actions}
+            locale={locale}
+            strategy={strategy}
+          />
+        )
+      case 'multiOption':
+        return (
+          <FilterValueMultiOptionController_v2
+            filter={filter as FilterModel<'multiOption'>}
+            column={column as Column<TData, 'multiOption'>}
+            actions={actions}
+            locale={locale}
+            strategy={strategy}
+          />
+        )
+      default:
+        return null
+    }
+  }, [column, actions])
+
+  return (
+    <ActionMenu.Sub>
+      <ActionMenu.SubTrigger
+        value={column.id}
+        keywords={[column.displayName]}
+        onSelect={handleSelect}
+        className="group"
+        onMouseEnter={prefetch}
+      >
+        {(ctx) => {
+          return (
+            <div className="flex w-full items-center justify-between">
+              <div className="inline-flex items-center gap-1.5">
+                {hasIcon &&
+                  (isValidElement(Icon) ? (
+                    Icon
+                  ) : (
+                    <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
+                  ))}
+                <div className="flex items-center gap-0.5">
+                  {ctx.breadcrumb.map((name, index) => (
+                    <React.Fragment key={`${index}-${name}`}>
+                      <span className="text-muted-foreground">{name}</span>
+                      <ChevronRightIcon className="size-4 text-muted-foreground/75" />
+                    </React.Fragment>
+                  ))}
+                  <span>{column.displayName}</span>
+                </div>
+              </div>
+            </div>
+          )
+        }}
+      </ActionMenu.SubTrigger>
+      <ActionMenu.SubContent title={column.displayName}>
+        {content}
+      </ActionMenu.SubContent>
+    </ActionMenu.Sub>
+  )
 }
 
 export const FilterSelector = memo(__FilterSelector) as typeof __FilterSelector
@@ -312,7 +519,7 @@ function __QuickSearchFilters<TData>({
               return (
                 <CommandItem
                   key={v.value}
-                  value={v.value}
+                  value={`${column.id}::${v.value}`}
                   keywords={[v.label, v.value]}
                   onSelect={() => {
                     handleOptionSelect(v.value, !checked)
