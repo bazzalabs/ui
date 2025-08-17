@@ -1,3 +1,4 @@
+import { useRow } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
@@ -523,6 +524,52 @@ const OptionItem_v2 = memo(function OptionItem({
     onToggle(value, !selected)
   }, [onToggle, value, selected])
 
+  function OptionRow() {
+    const ctx = useRow()
+    console.log(`[${option.label}] ctx.breadcrumbs`, ctx.breadcrumbs)
+    return (
+      <>
+        <div
+          className={cn(
+            'flex items-center gap-1.5 flex-1 min-w-0',
+            ctx.mode === 'search' && 'border border-red-500',
+          )}
+        >
+          <Checkbox
+            checked={selected}
+            className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]:opacity-100 dark:border-ring mr-1 shrink-0"
+          />
+          <div className="shrink-0">
+            {Icon &&
+              (isValidElement(Icon) ? (
+                Icon
+              ) : (
+                <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
+              ))}
+          </div>
+          <div className="flex items-center gap-0">
+            {ctx.breadcrumbs.map((crumb) => (
+              <span
+                key={crumb}
+                className="overflow-ellipsis whitespace-nowrap overflow-x-hidden"
+              >
+                {crumb}
+              </span>
+            ))}
+            <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden">
+              {label}
+            </span>
+          </div>
+        </div>
+        {count && (
+          <span className="tabular-nums text-muted-foreground tracking-tight text-xs">
+            {new Intl.NumberFormat().format(count)}
+          </span>
+        )}
+      </>
+    )
+  }
+
   return (
     <ActionMenu.Item
       key={value}
@@ -531,39 +578,7 @@ const OptionItem_v2 = memo(function OptionItem({
       onSelect={handleSelect}
       className="group flex items-center justify-between gap-4"
     >
-      {(ctx) => {
-        return (
-          <>
-            <div
-              className={cn(
-                'flex items-center gap-1.5 flex-1 min-w-0',
-                ctx.mode === 'shortcut' && 'border border-red-500',
-              )}
-            >
-              <Checkbox
-                checked={selected}
-                className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]:opacity-100 dark:border-ring mr-1 shrink-0"
-              />
-              <div className="shrink-0">
-                {Icon &&
-                  (isValidElement(Icon) ? (
-                    Icon
-                  ) : (
-                    <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
-                  ))}
-              </div>
-              <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden">
-                {label}
-              </span>
-            </div>
-            {count && (
-              <span className="tabular-nums text-muted-foreground tracking-tight text-xs">
-                {new Intl.NumberFormat().format(count)}
-              </span>
-            )}
-          </>
-        )
-      }}
+      <OptionRow />
     </ActionMenu.Item>
   )
 })

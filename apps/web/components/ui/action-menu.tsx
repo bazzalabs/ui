@@ -1,6 +1,4 @@
 import {
-  __ItemImpl,
-  __SubTriggerImpl,
   type ActionMenuContentProps,
   type ActionMenuGroupProps,
   type ActionMenuInputProps,
@@ -12,8 +10,6 @@ import {
   type ActionMenuSubProps,
   type ActionMenuSubTriggerProps,
   type ActionMenuTriggerProps,
-  ComponentsProvider,
-  toRenderFn,
 } from '@bazza-ui/action-menu'
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
@@ -35,52 +31,8 @@ const TriangleRightIcon = ({
   )
 }
 
-const StyledItem = forwardRef<HTMLDivElement, ActionMenuItemProps>(
-  ({ className, ...props }, ref) => (
-    <__ItemImpl
-      ref={ref}
-      className={cn(
-        "data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
-      {...props}
-    />
-  ),
-)
-StyledItem.displayName = 'ActionMenuStyled.Item'
-
-const StyledSubTrigger = forwardRef<HTMLDivElement, ActionMenuSubTriggerProps>(
-  ({ className, children, ...props }, ref) => {
-    const render = toRenderFn(children)
-    return (
-      <__SubTriggerImpl
-        ref={ref}
-        className={cn(
-          "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-2 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-          className,
-        )}
-        {...props}
-      >
-        {(ctx) => (
-          <>
-            {render(ctx)}
-            <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
-          </>
-        )}
-      </__SubTriggerImpl>
-    )
-  },
-)
-StyledSubTrigger.displayName = 'ActionMenuStyled.SubTrigger'
-
 export const ActionMenuRoot = ({ className, ...props }: ActionMenuProps) => {
-  return (
-    <ComponentsProvider
-      components={{ Item: StyledItem, SubTrigger: StyledSubTrigger }}
-    >
-      <ActionMenuPrimitive.Root className={cn(className)} {...props} />
-    </ComponentsProvider>
-  )
+  return <ActionMenuPrimitive.Root className={cn(className)} {...props} />
 }
 
 export const ActionMenuTrigger = ({
@@ -145,16 +97,39 @@ export const ActionMenuGroup = ({
   return <ActionMenuPrimitive.Group className={cn(className)} {...props} />
 }
 
-export const ActionMenuItem = (props: ActionMenuItemProps) => (
-  <ActionMenuPrimitive.Item {...props} />
+export const ActionMenuItem = ({
+  className,
+  ...props
+}: ActionMenuItemProps) => (
+  <ActionMenuPrimitive.Item
+    {...props}
+    className={cn(
+      'group flex items-center justify-between gap-4 rounded-sm px-3 py-1.5 text-sm',
+      'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
+      className,
+    )}
+  />
 )
 
 export const ActionMenuSub = ({ ...props }: ActionMenuSubProps) => {
   return <ActionMenuPrimitive.Sub {...props} />
 }
 
-export const ActionMenuSubTrigger = (props: ActionMenuSubTriggerProps) => (
-  <ActionMenuPrimitive.SubTrigger {...props} />
+export const ActionMenuSubTrigger = ({
+  className,
+  children,
+  ...props
+}: ActionMenuSubTriggerProps) => (
+  <ActionMenuPrimitive.SubTrigger
+    {...props}
+    className={cn(
+      className,
+      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-2 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+    )}
+  >
+    {children}
+    <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
+  </ActionMenuPrimitive.SubTrigger>
 )
 
 export const ActionMenuSubContent = ({

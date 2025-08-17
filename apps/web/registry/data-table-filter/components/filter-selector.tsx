@@ -1,3 +1,4 @@
+import { ActionMenuSubTriggerProps, useRow } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
@@ -212,6 +213,31 @@ export function FilterableColumn_v2<TData, TType extends ColumnDataType, TVal>({
     }
   }, [column, actions])
 
+  function SubTriggerRow() {
+    const ctx = useRow()
+    return (
+      <div className="flex w-full items-center justify-between">
+        <div className="inline-flex items-center gap-1.5">
+          {hasIcon &&
+            (isValidElement(Icon) ? (
+              Icon
+            ) : (
+              <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
+            ))}
+          <div className="flex items-center gap-0.5">
+            {ctx.breadcrumbs.map((name, index) => (
+              <React.Fragment key={`${index}-${name}`}>
+                <span className="text-muted-foreground">{name}</span>
+                <ChevronRightIcon className="size-4 text-muted-foreground/75" />
+              </React.Fragment>
+            ))}
+            <span>{column.displayName}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <ActionMenu.Sub>
       <ActionMenu.SubTrigger
@@ -221,30 +247,39 @@ export function FilterableColumn_v2<TData, TType extends ColumnDataType, TVal>({
         className="group"
         onMouseEnter={prefetch}
       >
-        {(ctx) => {
-          return (
-            <div className="flex w-full items-center justify-between">
-              <div className="inline-flex items-center gap-1.5">
-                {hasIcon &&
-                  (isValidElement(Icon) ? (
-                    Icon
-                  ) : (
-                    <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
-                  ))}
-                <div className="flex items-center gap-0.5">
-                  {ctx.breadcrumb.map((name, index) => (
-                    <React.Fragment key={`${index}-${name}`}>
-                      <span className="text-muted-foreground">{name}</span>
-                      <ChevronRightIcon className="size-4 text-muted-foreground/75" />
-                    </React.Fragment>
-                  ))}
-                  <span>{column.displayName}</span>
-                </div>
-              </div>
-            </div>
-          )
-        }}
+        <SubTriggerRow />
       </ActionMenu.SubTrigger>
+      {/* <ActionMenu.SubTrigger */}
+      {/*   value={column.id} */}
+      {/*   keywords={[column.displayName]} */}
+      {/*   onSelect={handleSelect} */}
+      {/*   className="group" */}
+      {/*   onMouseEnter={prefetch} */}
+      {/* > */}
+      {/*   {(ctx) => { */}
+      {/*     return ( */}
+      {/*       <div className="flex w-full items-center justify-between"> */}
+      {/*         <div className="inline-flex items-center gap-1.5"> */}
+      {/*           {hasIcon && */}
+      {/*             (isValidElement(Icon) ? ( */}
+      {/*               Icon */}
+      {/*             ) : ( */}
+      {/*               <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" /> */}
+      {/*             ))} */}
+      {/*           <div className="flex items-center gap-0.5"> */}
+      {/*             {ctx.breadcrumb.map((name, index) => ( */}
+      {/*               <React.Fragment key={`${index}-${name}`}> */}
+      {/*                 <span className="text-muted-foreground">{name}</span> */}
+      {/*                 <ChevronRightIcon className="size-4 text-muted-foreground/75" /> */}
+      {/*               </React.Fragment> */}
+      {/*             ))} */}
+      {/*             <span>{column.displayName}</span> */}
+      {/*           </div> */}
+      {/*         </div> */}
+      {/*       </div> */}
+      {/*     ) */}
+      {/*   }} */}
+      {/* </ActionMenu.SubTrigger> */}
       <ActionMenu.SubContent title={column.displayName}>
         {content}
       </ActionMenu.SubContent>

@@ -13,15 +13,6 @@ import {
   Trigger,
 } from './action-menu.js'
 
-// keep toRenderFn
-// NEW: re-export provider + internal impls for the styled layer
-export {
-  __ItemImpl,
-  __SubTriggerImpl,
-  ComponentsProvider,
-  toRenderFn,
-} from './action-menu.js'
-
 export const ActionMenu = {
   Root,
   Trigger,
@@ -33,8 +24,6 @@ export const ActionMenu = {
   Sub,
   SubContent,
   SubTrigger,
-  // (optional) expose via the namespace as well:
-  // ComponentsProvider,
 }
 
 export type {
@@ -48,6 +37,5 @@ export type {
   ActionMenuSubProps,
   ActionMenuSubTriggerProps,
   ActionMenuTriggerProps,
-  // (optional) helpful for typing user renderers
-  RenderCtx,
 } from './action-menu.js'
+export { useRow } from './action-menu.js'
