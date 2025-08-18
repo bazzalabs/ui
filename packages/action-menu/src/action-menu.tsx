@@ -29,15 +29,19 @@ type InputProps = React.ComponentPropsWithoutRef<typeof Primitive.input>
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.button>
 
 /* ================================================================================================
- * Key maps & helpers
+ * Constants, selectors & tiny helpers
  * ============================================================================================== */
 
 const SELECT_EVENT = 'actionmenu-item-select' as const
 
-function dispatchSelect(el: HTMLElement | null) {
-  if (!el) return
-  el.dispatchEvent(new CustomEvent(SELECT_EVENT, { bubbles: true }))
-}
+const DATA = {
+  surface: 'data-action-menu-surface',
+  input: 'data-action-menu-input',
+  list: 'data-action-menu-list',
+  itemId: 'data-action-menu-item-id',
+  group: 'data-action-menu-group',
+  groupHeading: 'data-action-menu-group-heading',
+} as const
 
 export type Direction = 'ltr' | 'rtl'
 
@@ -81,6 +85,10 @@ const normalize = (s: string) => s.toLowerCase().trim()
 function dispatch(node: HTMLElement | null | undefined, type: string) {
   if (!node) return
   node.dispatchEvent(new CustomEvent(type, { bubbles: true }))
+}
+
+function dispatchSelect(el: HTMLElement | null) {
+  dispatch(el, SELECT_EVENT)
 }
 
 function openSubmenuForActive(activeId: string | null) {
@@ -149,20 +157,19 @@ function scrollActiveIntoView(
 ) {
   if (!listEl || !activeId) return
   const item = listEl.querySelector<HTMLElement>(
-    `[data-action-menu-item-id="${CSS.escape(activeId)}"]`,
+    `[${DATA.itemId}="${CSS.escape(activeId)}"]`,
   )
   if (!item || item.hidden) return
 
   // If this is the first *visible* item in a group, ensure heading is visible first (cmdk UX).
-  const group = item.closest<HTMLElement>('[data-action-menu-group]')
+  const group = item.closest<HTMLElement>(`[${DATA.group}]`)
   if (group) {
     const firstVisible = group.querySelector<HTMLElement>(
-      '[data-action-menu-item-id]:not([hidden])',
+      `[${DATA.itemId}]:not([hidden])`,
     )
     if (firstVisible === item) {
-      // Your Group renders the label as role="presentation"
       const heading =
-        group.querySelector<HTMLElement>('[data-action-menu-group-heading]') ||
+        group.querySelector<HTMLElement>(`[${DATA.groupHeading}]`) ||
         group.querySelector<HTMLElement>('[role="presentation"]')
       heading?.scrollIntoView({ block: 'nearest' })
     }
@@ -171,9 +178,16 @@ function scrollActiveIntoView(
   item.scrollIntoView({ block: 'nearest' })
 }
 
-// =========================================
-// Row context (no DOM) + public hook
-// =========================================
+function findWidgetsWithinSurface(surface: HTMLElement | null) {
+  const input =
+    surface?.querySelector<HTMLInputElement>(`[${DATA.input}]`) ?? null
+  const list = surface?.querySelector<HTMLElement>(`[${DATA.list}]`) ?? null
+  return { input, list }
+}
+
+/* ================================================================================================
+ * Row context (no DOM) + public hook
+ * ============================================================================================== */
 export type RowCtx = {
   mode: 'browse' | 'search'
   breadcrumbs: string[] // context-aware (relative to the current list)
@@ -317,7 +331,6 @@ export function useScopedSearch(scopeId: string, query: string) {
   return React.useMemo(() => {
     if (!q) return [] as SearchRecord[]
     const ids = reg.byScope.get(scopeId)
-    console.log('ids', ids)
     if (!ids) return []
     return Array.from(ids)
       .map((id) => reg.items.get(id)!)
@@ -335,11 +348,16 @@ export function useScopedSearch(scopeId: string, query: string) {
   }, [scopeId, q, reg, version])
 }
 
+/* ================================================================================================
+ * Scope context
+ * ============================================================================================== */
+
 export type Scope = {
   scopeId: string
   breadcrumb: string[]
   scopePath: string[]
 }
+
 const ScopeCtx = React.createContext<Scope>({
   scopeId: 'root',
   breadcrumb: [],
@@ -370,7 +388,7 @@ export function ScopeProvider({
 }
 
 /* ================================================================================================
- * Indexing
+ * Indexing mode flag
  * ============================================================================================== */
 
 const IndexingCtx = React.createContext(false)
@@ -468,6 +486,15 @@ function useCollectionState({
 
   const [query, setQuery] = React.useState('')
   const itemsRef = React.useRef<Map<string, RegisteredItem>>(new Map())
+  const itemsVersionRef = React.useRef(0)
+  /** Cache for the last computed visible list */
+  const visibleCacheRef = React.useRef<{
+    q: string
+    version: number
+    filterFn: FilterFn
+    ids: string[]
+    index: Set<string>
+  } | null>(null)
   const groupsRef = React.useRef<Map<string, RegisteredGroup>>(new Map())
   const groupOrderRef = React.useRef<string[]>([]) // insertion order for groups
   const [activeId, setActiveId] = React.useState<string | null>(null)
@@ -481,40 +508,64 @@ function useCollectionState({
 
   const getVisibleItemIds = React.useCallback(() => {
     const items = Array.from(itemsRef.current.values())
-    if (!query) return items.map((i) => i.id) // keep original order when no query
+    const version = itemsVersionRef.current
+    const q = query
+    const cached = visibleCacheRef.current
 
-    const scored = items
-      .map((i) => ({
-        id: i.id,
-        score: filterFn(i.value, query, i.keywords),
-      }))
-      .filter((s) => s.score > 0)
-    // .sort((a, b) => b.score - a.score)
+    // Fast path: nothing relevant changed
+    if (
+      cached &&
+      cached.version === version &&
+      cached.q === q &&
+      cached.filterFn === filterFn
+    ) {
+      return cached.ids
+    }
 
-    return scored.map((s) => s.id)
+    console.log('here!')
+
+    let ids: string[]
+    if (!q) {
+      ids = items.map((i) => i.id) // preserve insertion order when no query
+    } else {
+      const scored = items
+        .map((i) => ({
+          id: i.id,
+          score: filterFn(i.value, q, i.keywords),
+        }))
+        .filter((s) => s.score > 0)
+        .sort((a, b) => {
+          const byScore = b.score - a.score
+          return byScore || a.id.localeCompare(b.id) // stable tie-breaker
+        })
+      ids = scored.map((s) => s.id)
+    }
+
+    const index = new Set(ids)
+    visibleCacheRef.current = { q, version, filterFn, ids, index }
+    return ids
   }, [query, filterFn])
+
+  const isItemVisible = React.useCallback(
+    (id: string) => {
+      // Ensure cache is warm for current (query, itemsVersion, filterFn)
+      getVisibleItemIds()
+      return visibleCacheRef.current?.index.has(id) ?? false
+    },
+    [getVisibleItemIds],
+  )
 
   const ensureValidActive = React.useCallback(() => {
     const visible = getVisibleItemIds()
-    setActiveId((curr) => {
-      if (curr && itemsRef.current.has(curr) && visible.includes(curr))
-        return curr
-      return visible[0] ?? null
-    })
+    setActiveId((curr) =>
+      curr && visible.includes(curr) ? curr : (visible[0] ?? null),
+    )
   }, [getVisibleItemIds])
-
-  const isItemVisible = React.useCallback(
-    (id: string) => getVisibleItemIds().includes(id),
-    [getVisibleItemIds],
-  )
 
   const setActiveByIndex = React.useCallback(
     (index: number) => {
       const visible = getVisibleItemIds()
-      if (visible.length === 0) {
-        setActiveId(null)
-        return
-      }
+      if (!visible.length) return setActiveId(null)
       const clamped =
         index < 0 ? 0 : index >= visible.length ? visible.length - 1 : index
       setActiveId(visible[clamped]!)
@@ -555,42 +606,43 @@ function useCollectionState({
 
   const registerItem = React.useCallback((item: RegisteredItem) => {
     itemsRef.current.set(item.id, item)
-    // After all items from this commit register, pick a valid active.
+    itemsVersionRef.current++
     schedule('items:reconcile', ensureValidActive)
   }, [])
   const unregisterItem = React.useCallback((id: string) => {
     itemsRef.current.delete(id)
+    itemsVersionRef.current++
     schedule('items:reconcile', ensureValidActive)
   }, [])
 
   const registerGroup = React.useCallback((g: RegisteredGroup) => {
     groupsRef.current.set(g.id, g)
-    if (!groupOrderRef.current.includes(g.id)) {
-      groupOrderRef.current.push(g.id)
-    }
+    if (!groupOrderRef.current.includes(g.id)) groupOrderRef.current.push(g.id)
   }, [])
   const unregisterGroup = React.useCallback((id: string) => {
     groupsRef.current.delete(id)
     groupOrderRef.current = groupOrderRef.current.filter((gid) => gid !== id)
   }, [])
 
-  React.useEffect(() => {
-    schedule('query:reconcile', ensureValidActive)
-  }, [normQuery, getVisibleItemIds])
-
+  // Focus the first visible item on query change
   React.useLayoutEffect(() => {
-    // Defer to the same scheduler you already use so we coalesce with other updates.
-    schedule('scroll-active-into-view', () => {
-      scrollActiveIntoView(listRef.current, activeId)
+    schedule('query:reconcile', () => {
+      const visible = getVisibleItemIds()
+      setActiveId(visible[0] ?? null)
     })
+  }, [normQuery, getVisibleItemIds, setActiveId])
+
+  // Scroll selected row into view whenever selection or query changes
+  React.useLayoutEffect(() => {
+    schedule('scroll-active-into-view', () =>
+      scrollActiveIntoView(listRef.current, activeId),
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId])
-
-  // Also scroll when the query changes (first-visible item becomes active).
   React.useLayoutEffect(() => {
-    schedule('scroll-after-query', () => {
-      scrollActiveIntoView(listRef.current, activeId)
-    })
+    schedule('scroll-after-query', () =>
+      scrollActiveIntoView(listRef.current, activeId),
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [normQuery])
 
@@ -620,21 +672,20 @@ function useCollectionState({
   }
 }
 
-//
-
+// No-op collection provider (used during indexing mirrors)
 const NOOP = () => {}
 const refNull = { current: null as any }
 
-const noopValue = {
+const noopValue: CollectionContextValue = {
   query: '',
   setQuery: NOOP,
   registerItem: NOOP,
   unregisterItem: NOOP,
   registerGroup: NOOP,
   unregisterGroup: NOOP,
-  getVisibleItemIds: () => [] as string[],
+  getVisibleItemIds: () => [],
   isItemVisible: () => false,
-  activeId: null as string | null,
+  activeId: null,
   setActiveId: NOOP,
   setActiveByIndex: NOOP,
   first: NOOP,
@@ -646,7 +697,7 @@ const noopValue = {
   setInputPresent: NOOP,
   inputRef: refNull,
   listRef: refNull,
-  listId: null as string | null,
+  listId: null,
   setListId: NOOP,
 }
 
@@ -656,7 +707,7 @@ export function NoopCollectionProvider({
   children: React.ReactNode
 }) {
   return (
-    <CollectionCtx.Provider value={noopValue as any}>
+    <CollectionCtx.Provider value={noopValue}>
       {children}
     </CollectionCtx.Provider>
   )
@@ -670,9 +721,7 @@ type FocusOwnerCtxValue = {
   ownerId: string | null
   setOwnerId: (id: string | null) => void
 }
-
 const FocusOwnerCtx = React.createContext<FocusOwnerCtxValue | null>(null)
-
 const useFocusOwner = () => {
   const ctx = React.useContext(FocusOwnerCtx)
   if (!ctx) throw new Error('FocusOwnerCtx missing')
@@ -851,7 +900,6 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
         collectionValue.setActiveId(null)
         return
       }
-
       // If root is open and ownerId is null, set ownerId and focus the surface
       if (root.open && ownerId === null) {
         setOwnerId(surfaceId)
@@ -867,7 +915,6 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
         ;(
           collectionValue.inputRef.current ?? collectionValue.listRef.current
         )?.focus()
-        // if (!collectionValue.activeId) collectionValue.first()
       })
       return () => cancelAnimationFrame(id)
     }, [root.open, isOwner, collectionValue.inputPresent])
@@ -1035,17 +1082,11 @@ function useMenuKeydown(source: 'input' | 'list') {
             `[data-surface-id="${sub.parentSurfaceId}"]`,
           )
           requestAnimationFrame(() => {
-            const parentInput = parentEl?.querySelector<HTMLInputElement>(
-              '[data-action-menu-input]',
-            )
-            const parentList = parentEl?.querySelector<HTMLElement>(
-              '[data-action-menu-list]',
-            )
-            ;(parentInput ?? parentList)?.focus()
+            const { input, list } = findWidgetsWithinSurface(parentEl)
+            ;(input ?? list)?.focus()
           })
         } else {
           // At root: close and return focus to trigger
-          // root.onOpenChange(false)
           requestAnimationFrame(() => root.anchorRef.current?.focus())
         }
         return
@@ -1057,13 +1098,6 @@ function useMenuKeydown(source: 'input' | 'list') {
         const el = activeId ? document.getElementById(activeId) : null
         dispatchSelect(el)
         return
-      }
-
-      // Keep aria-activedescendant in sync when typing in Input
-      if (source === 'input' && k.length === 1) {
-        // typeahead occurs via onChange; ensure active is first visible
-        const ids = getVisibleItemIds()
-        setActiveId(ids[0] ?? null)
       }
     },
     [
@@ -1145,8 +1179,6 @@ export const Input = React.forwardRef<HTMLInputElement, ActionMenuInputProps>(
         onChange={composeEventHandlers(onChange as any, (e) => {
           const next = (e.target as HTMLInputElement).value
           setQuery(next)
-          const ids = getVisibleItemIds()
-          setActiveId(ids[0] ?? null)
         })}
         onKeyDown={composeEventHandlers(onKeyDown, handleKeys)}
       />
@@ -1194,31 +1226,26 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
           const last = r.scopePath[r.scopePath.length - 1]
           return last !== scopeId
         }
-        // r.kind === 'submenu'
         return r.ownerScopeId !== scopeId
       })
     }, [results, query, scopeId])
 
-    console.log('deepResults', deepResults)
-
     const deepSection = query
       ? deepResults.map((r: any) => {
-          // Build context-aware breadcrumbs (relative to THIS list's scope)
-          const crumbs = relativeBreadcrumbs(r, scopeId, r.scopePath) // ← no valueStr
+          const crumbs = relativeBreadcrumbs(r, scopeId, r.scopePath)
           const rowBase: RowCtx = {
             mode: 'search',
             breadcrumbs: crumbs,
             query,
             score: r.score ?? 0,
-            focused: false, // Item will overwrite with live focus
-            disabled: false, // Item will overwrite
+            focused: false,
+            disabled: false,
           }
 
           if (r.kind === 'submenu') {
-            // Render the real SubTrigger row for submenu hits
             return (
-              <Sub>
-                <RowCtx.Provider key={r.id} value={rowBase}>
+              <Sub key={r.id}>
+                <RowCtx.Provider value={rowBase}>
                   {r.renderTriggerRow()}
                 </RowCtx.Provider>
                 {r.renderContent ? (
@@ -1230,7 +1257,6 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
             )
           }
 
-          // r.kind === 'item'
           return (
             <RowCtx.Provider key={r.id} value={rowBase}>
               <Item
@@ -1257,9 +1283,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
         aria-activedescendant={activeId ?? undefined}
         onKeyDown={composeEventHandlers(onKeyDown, handleKeys)}
       >
-        {/* Local items render normally (your original subtree), even while searching */}
         {children}
-        {/* Deep (descendant) hits appended when a query is present */}
         {deepSection}
       </Primitive.div>
     )
@@ -1292,7 +1316,7 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
         const el = groupRef.current
         if (!el) return
         const items = Array.from(
-          el.querySelectorAll<HTMLElement>('[data-action-menu-item-id]'),
+          el.querySelectorAll<HTMLElement>(`[${DATA.itemId}]`),
         )
         const anyVisible = items.some((n) =>
           visible.has(n.dataset.actionMenuItemId || ''),
@@ -1365,18 +1389,16 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
 
     const indexing = useIndexing()
     const { breadcrumb: scopeBreadcrumb, scopePath } = useScope()
-    const { upsert, remove } = useSearchRegistry()
+    const { upsert } = useSearchRegistry()
     const parentRow = React.useContext(RowCtx)
-
     const isShortcut = parentRow?.mode === 'search'
 
     const childrenRef = React.useRef<React.ReactNode>(children)
-
     React.useLayoutEffect(() => {
       childrenRef.current = children
     }, [children])
 
-    // --- Register into search (mirror only) ---
+    // Register into search (mirror only)
     React.useLayoutEffect(() => {
       if (disabled || isShortcut || !indexing) return
       const valueStr = String(value)
@@ -1402,7 +1424,6 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       }
 
       upsert(rec)
-
       return () => {}
     }, [
       indexing,
@@ -1413,7 +1434,6 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       value,
       (keywords ?? []).join('|'),
       upsert,
-      remove,
       className,
     ])
 
@@ -1456,13 +1476,8 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         if (disabled || !visible) return
         if (!focused) setActiveId(itemId)
         onSelect?.(String(value))
-        const surface = node.closest<HTMLElement>('[data-action-menu-surface]')
-        const input = surface?.querySelector<HTMLInputElement>(
-          '[data-action-menu-input]',
-        )
-        const list = surface?.querySelector<HTMLElement>(
-          '[data-action-menu-list]',
-        )
+        const surface = node.closest<HTMLElement>(`[${DATA.surface}]`)
+        const { input, list } = findWidgetsWithinSurface(surface)
         ;(input ?? list)?.focus()
       }
       node.addEventListener(SELECT_EVENT, handleSelect as EventListener)
@@ -1470,7 +1485,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         node.removeEventListener(SELECT_EVENT, handleSelect as EventListener)
     }, [disabled, itemId, value, onSelect, visible, focused, setActiveId])
 
-    // ---------- ALWAYS build row context FIRST ----------
+    // Build row context
     const row: RowCtx = React.useMemo(
       () => ({
         mode: parentRow?.mode ?? 'browse',
@@ -1491,12 +1506,12 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       ],
     )
 
-    // ---------- Indexing mirror path (no DOM), but WITH RowCtx ----------
+    // Indexing mirror path (no DOM), but WITH RowCtx
     if (indexing) {
       return <RowCtx.Provider value={row}>{children}</RowCtx.Provider>
     }
 
-    // ---------- Normal DOM row ----------
+    // Normal DOM row
     return (
       <Primitive.div
         {...rest}
@@ -1595,7 +1610,6 @@ export const Sub = ({
     null,
   )
   const contentRef = React.useRef<HTMLDivElement | null>(null)
-
   const parent = useCollection()
 
   React.useEffect(() => {
@@ -1677,7 +1691,7 @@ export const SubTrigger = React.forwardRef<
     const composedRef = composeRefs(ref, itemRef)
     const sub = useSubCtx()
     const { breadcrumb, scopePath } = useScope()
-    const { upsert, remove } = useSearchRegistry()
+    const { upsert } = useSearchRegistry()
     const indexing = useIndexing()
 
     const latestChildrenRef = React.useRef(children)
@@ -1725,7 +1739,6 @@ export const SubTrigger = React.forwardRef<
       keywords,
       breadcrumb.join('>'),
       upsert,
-      remove,
       className,
       sub.childSurfaceId,
     ])
@@ -1790,12 +1803,7 @@ export const SubTrigger = React.forwardRef<
           if (content) {
             const surfaceId = content.dataset.surfaceId
             if (surfaceId) setOwnerId(surfaceId)
-            const input = content.querySelector<HTMLInputElement>(
-              '[data-action-menu-input]',
-            )
-            const list = content.querySelector<HTMLElement>(
-              '[data-action-menu-list]',
-            )
+            const { input, list } = findWidgetsWithinSurface(content)
             ;(input ?? list)?.focus()
             return
           }
@@ -1948,16 +1956,14 @@ export const SubContent = React.forwardRef<
       () => `submenu::${title}::${sub.ownerScopeId}`,
       [title, sub.ownerScopeId],
     )
-    const { attachSubContent, detachSubContent } = useSearchRegistry()
+    const { attachSubContent } = useSearchRegistry()
 
     // Register a factory that can render this submenu’s content on demand
     React.useEffect(() => {
-      // Don’t attach from the “search clone” to avoid recursion
       if (disableIndexMirror) return
       attachSubContent(recId, () => (
         <SubContent
           {...props}
-          // prevent clones from re-attaching/mirroring again
           disableIndexMirror
           title={title}
           scopeId={providedScopeId}
@@ -1967,15 +1973,7 @@ export const SubContent = React.forwardRef<
       ))
       return () => {}
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-      attachSubContent,
-      detachSubContent,
-      recId,
-      title,
-      providedScopeId,
-      // children is intentionally stable enough for your use-case; if not,
-      // wrap with latestChildrenRef like you did in SubTrigger
-    ])
+    }, [attachSubContent, recId, title, providedScopeId])
 
     return (
       <>
