@@ -103,7 +103,6 @@ function __FilterSelector_v2<TData>({
       </ActionMenu.Trigger>
       <ActionMenu.Content className="min-w-[225px]">
         <ActionMenu.Input placeholder="Filter..." />
-        <div className="h-[1px] w-full bg-border" />
         <ActionMenu.List>
           {visibleColumns.map((column) => (
             <FilterableColumn_v2

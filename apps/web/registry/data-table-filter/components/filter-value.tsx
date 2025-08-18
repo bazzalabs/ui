@@ -534,7 +534,7 @@ const OptionItem_v2 = memo(function OptionItem({
             checked={selected}
             className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]:opacity-100 dark:border-ring mr-1 shrink-0"
           />
-          <div className="shrink-0">
+          <div className="shrink-0 size-4 flex items-center justify-center">
             {Icon &&
               (isValidElement(Icon) ? (
                 Icon
@@ -618,7 +618,6 @@ export function FilterValueOptionController_v2<TData>({
   return (
     <>
       <ActionMenu.Input placeholder={`${column.displayName}...`} />
-      <div className="h-[1px] w-full bg-border" />
       <ActionMenu.List>
         <ActionMenu.Group>
           {selectedOptions.map((option) => (
@@ -759,7 +758,6 @@ export function FilterValueMultiOptionController_v2<TData>({
   return (
     <>
       <ActionMenu.Input placeholder={`${column.displayName}...`} />
-      <div className="h-[1px] w-full bg-border" />
       <ActionMenu.List>
         <ActionMenu.Group>
           {selectedOptions.map((option) => (

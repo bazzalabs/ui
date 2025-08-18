@@ -143,6 +143,34 @@ function relativeBreadcrumbs(
   return idx >= 0 ? rec.breadcrumb.slice(idx) : rec.breadcrumb
 }
 
+function scrollActiveIntoView(
+  listEl: HTMLElement | null,
+  activeId: string | null,
+) {
+  if (!listEl || !activeId) return
+  const item = listEl.querySelector<HTMLElement>(
+    `[data-action-menu-item-id="${CSS.escape(activeId)}"]`,
+  )
+  if (!item || item.hidden) return
+
+  // If this is the first *visible* item in a group, ensure heading is visible first (cmdk UX).
+  const group = item.closest<HTMLElement>('[data-action-menu-group]')
+  if (group) {
+    const firstVisible = group.querySelector<HTMLElement>(
+      '[data-action-menu-item-id]:not([hidden])',
+    )
+    if (firstVisible === item) {
+      // Your Group renders the label as role="presentation"
+      const heading =
+        group.querySelector<HTMLElement>('[data-action-menu-group-heading]') ||
+        group.querySelector<HTMLElement>('[role="presentation"]')
+      heading?.scrollIntoView({ block: 'nearest' })
+    }
+  }
+
+  item.scrollIntoView({ block: 'nearest' })
+}
+
 // =========================================
 // Row context (no DOM) + public hook
 // =========================================
@@ -263,16 +291,14 @@ export function SearchRegistryProvider({
 
   return (
     <Ctx.Provider
-      value={
-        {
-          reg: regRef.current,
-          upsert,
-          remove,
-          version,
-          attachSubContent,
-          detachSubContent,
-        } as any
-      }
+      value={{
+        reg: regRef.current,
+        upsert,
+        remove,
+        version,
+        attachSubContent,
+        detachSubContent,
+      }}
     >
       {children}
     </Ctx.Provider>
@@ -551,6 +577,22 @@ function useCollectionState({
   React.useEffect(() => {
     schedule('query:reconcile', ensureValidActive)
   }, [normQuery, getVisibleItemIds])
+
+  React.useLayoutEffect(() => {
+    // Defer to the same scheduler you already use so we coalesce with other updates.
+    schedule('scroll-active-into-view', () => {
+      scrollActiveIntoView(listRef.current, activeId)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId])
+
+  // Also scroll when the query changes (first-visible item becomes active).
+  React.useLayoutEffect(() => {
+    schedule('scroll-after-query', () => {
+      scrollActiveIntoView(listRef.current, activeId)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normQuery])
 
   return {
     query,
@@ -1270,7 +1312,11 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
         aria-label={label}
         hidden={!hasVisibleChildren}
       >
-        {label ? <div role="presentation">{label}</div> : null}
+        {label ? (
+          <div data-action-menu-group-heading role="presentation">
+            {label}
+          </div>
+        ) : null}
         {children}
       </Primitive.div>
     )
@@ -1324,6 +1370,12 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
 
     const isShortcut = parentRow?.mode === 'search'
 
+    const childrenRef = React.useRef<React.ReactNode>(children)
+
+    React.useLayoutEffect(() => {
+      childrenRef.current = children
+    }, [children])
+
     // --- Register into search (mirror only) ---
     React.useLayoutEffect(() => {
       if (disabled || isShortcut || !indexing) return
@@ -1342,7 +1394,10 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         ownerScopeId: scopePath[scopePath.length - 1]!,
         perform: () => onSelectRef.current?.(valueStr),
         searchText,
-        render: () => children as React.ReactNode,
+        render: () => {
+          const node = childrenRef.current
+          return React.isValidElement(node) ? React.cloneElement(node) : node
+        },
         rowClassName: className,
       }
 
