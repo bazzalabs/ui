@@ -1,4 +1,4 @@
-import { ActionMenuSubTriggerProps, useRow } from '@bazza-ui/action-menu'
+import { useRow } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,

@@ -190,7 +190,8 @@ export type SubmenuRecord = {
   scopePath: string[]
   ownerScopeId: string
   searchText: string
-  renderInline: () => React.ReactNode
+  renderTriggerRow: () => React.ReactNode
+  renderContent?: () => React.ReactNode
   rowClassName?: string
 }
 
@@ -206,6 +207,8 @@ const Ctx = React.createContext<{
   upsert(r: SearchRecord): void
   remove(id: string): void
   version: number
+  attachSubContent: (id: string, render: () => React.ReactNode) => void
+  detachSubContent: (id: string) => void
 } | null>(null)
 
 export function SearchRegistryProvider({
@@ -239,9 +242,37 @@ export function SearchRegistryProvider({
     setVersion((v) => v + 1)
   }, [])
 
+  const attachSubContent = React.useCallback(
+    (id: string, render: () => React.ReactNode) => {
+      const rec = regRef.current.items.get(id)
+      if (rec && rec.kind === 'submenu') {
+        rec.renderContent = render
+        setVersion((v) => v + 1)
+      }
+    },
+    [],
+  )
+
+  const detachSubContent = React.useCallback((id: string) => {
+    const rec = regRef.current.items.get(id)
+    if (rec && rec.kind === 'submenu' && rec.renderContent) {
+      delete rec.renderContent
+      setVersion((v) => v + 1)
+    }
+  }, [])
+
   return (
     <Ctx.Provider
-      value={{ reg: regRef.current, upsert, remove, version } as any}
+      value={
+        {
+          reg: regRef.current,
+          upsert,
+          remove,
+          version,
+          attachSubContent,
+          detachSubContent,
+        } as any
+      }
     >
       {children}
     </Ctx.Provider>
@@ -432,7 +463,7 @@ function useCollectionState({
         score: filterFn(i.value, query, i.keywords),
       }))
       .filter((s) => s.score > 0)
-      .sort((a, b) => b.score - a.score)
+    // .sort((a, b) => b.score - a.score)
 
     return scored.map((s) => s.id)
   }, [query, filterFn])
@@ -1086,6 +1117,15 @@ Input.displayName = 'ActionMenu.Input'
  * List + Group + Item
  * ============================================================================================== */
 
+const BROWSE_ROW_RESET: RowCtx = {
+  mode: 'browse',
+  breadcrumbs: [],
+  query: '',
+  score: 0,
+  focused: false,
+  disabled: false,
+}
+
 export interface ActionMenuListProps extends DivProps {}
 
 export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
@@ -1135,9 +1175,16 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
           if (r.kind === 'submenu') {
             // Render the real SubTrigger row for submenu hits
             return (
-              <RowCtx.Provider key={r.id} value={rowBase}>
-                {r.renderInline()}
-              </RowCtx.Provider>
+              <Sub>
+                <RowCtx.Provider key={r.id} value={rowBase}>
+                  {r.renderTriggerRow()}
+                </RowCtx.Provider>
+                {r.renderContent ? (
+                  <RowCtx.Provider value={BROWSE_ROW_RESET}>
+                    {r.renderContent({ disableIndexMirror: true })}
+                  </RowCtx.Provider>
+                ) : null}
+              </Sub>
             )
           }
 
@@ -1453,6 +1500,7 @@ type SubContextValue = {
   setTriggerItemId: (id: string | null) => void
   parentSetActiveId: (id: string | null) => void
   childSurfaceId: string
+  ownerScopeId: string
 }
 
 const SubCtx = React.createContext<SubContextValue | null>(null)
@@ -1478,6 +1526,8 @@ export const Sub = ({
 }: ActionMenuSubProps) => {
   const childSurfaceId = React.useId()
   const parentSurfaceId = useSurfaceId() || 'root'
+  const parentScope = useScope()
+  const ownerScopeId = parentScope.scopeId
   const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
 
   const [open, setOpen] = useControllableState({
@@ -1511,6 +1561,7 @@ export const Sub = ({
       setTriggerItemId,
       parentSetActiveId: parent.setActiveId,
       childSurfaceId,
+      ownerScopeId,
     }),
     [
       open,
@@ -1519,6 +1570,7 @@ export const Sub = ({
       triggerItemId,
       parent.setActiveId,
       childSurfaceId,
+      ownerScopeId,
     ],
   )
 
@@ -1597,13 +1649,14 @@ export const SubTrigger = React.forwardRef<
           .join(' ')
           .toLowerCase(),
         rowClassName: className,
-        renderInline: () => (
-          <Sub>
-            <SubTrigger value={valueStr} className={className}>
-              {latestChildrenRef.current}
-            </SubTrigger>
-            {/* SubContent will be provided by the real subtree; deep inline is only the trigger row */}
-          </Sub>
+        renderTriggerRow: () => (
+          <SubTrigger
+            value={valueStr}
+            keywords={keywords ?? []}
+            className={className}
+          >
+            {latestChildrenRef.current}
+          </SubTrigger>
         ),
       }
 
@@ -1836,6 +1889,39 @@ export const SubContent = React.forwardRef<
       }
     }
 
+    const recId = React.useMemo(
+      () => `submenu::${title}::${sub.ownerScopeId}`,
+      [title, sub.ownerScopeId],
+    )
+    const { attachSubContent, detachSubContent } = useSearchRegistry()
+
+    // Register a factory that can render this submenu’s content on demand
+    React.useEffect(() => {
+      // Don’t attach from the “search clone” to avoid recursion
+      if (disableIndexMirror) return
+      attachSubContent(recId, () => (
+        <SubContent
+          {...props}
+          // prevent clones from re-attaching/mirroring again
+          disableIndexMirror
+          title={title}
+          scopeId={providedScopeId}
+        >
+          {children}
+        </SubContent>
+      ))
+      return () => {}
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      attachSubContent,
+      detachSubContent,
+      recId,
+      title,
+      providedScopeId,
+      // children is intentionally stable enough for your use-case; if not,
+      // wrap with latestChildrenRef like you did in SubTrigger
+    ])
+
     return (
       <>
         <SurfaceCtx.Provider value={surfaceId}>
@@ -1886,24 +1972,26 @@ export const SubContent = React.forwardRef<
             </ScopeProvider>
           </KeyboardCtx.Provider>
         </SurfaceCtx.Provider>
-        <ScopeProvider scopeId={scopeId} title={title}>
-          <IndexingCtx.Provider value={true}>
-            <NoopCollectionProvider>
-              <Primitive.div
-                data-index-mirror
-                aria-hidden="true"
-                hidden
-                style={{
-                  display: 'none',
-                  visibility: 'hidden',
-                  pointerEvents: 'none',
-                }}
-              >
-                {children}
-              </Primitive.div>
-            </NoopCollectionProvider>
-          </IndexingCtx.Provider>
-        </ScopeProvider>
+        {!disableIndexMirror && (
+          <ScopeProvider scopeId={scopeId} title={title}>
+            <IndexingCtx.Provider value={true}>
+              <NoopCollectionProvider>
+                <Primitive.div
+                  data-index-mirror
+                  aria-hidden="true"
+                  hidden
+                  style={{
+                    display: 'none',
+                    visibility: 'hidden',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {children}
+                </Primitive.div>
+              </NoopCollectionProvider>
+            </IndexingCtx.Provider>
+          </ScopeProvider>
+        )}
       </>
     )
   },

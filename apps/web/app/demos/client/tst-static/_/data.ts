@@ -602,5 +602,5 @@ export function generateIssues(count: number) {
 }
 
 export const ISSUES = generateIssues(
-  process.env.NODE_ENV === 'production' ? 100_000 : 20,
+  process.env.NODE_ENV === 'production' ? 100_000 : 30_000,
 )
