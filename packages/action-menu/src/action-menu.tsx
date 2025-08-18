@@ -135,16 +135,12 @@ const defaultFilter: FilterFn = (value, search, keywords = []) =>
   commandScore(value, search, keywords)
 
 function relativeBreadcrumbs(
-  rec: { breadcrumb: string[] },
+  rec: { breadcrumb: string[]; kind: 'item' | 'submenu' },
   fromScopeId: string,
   recScopePath: string[],
-  valueStr: string,
 ) {
-  // slice breadcrumb from the first occurrence of fromScopeId (if present)
   const idx = recScopePath.lastIndexOf(fromScopeId)
-  const base = idx >= 0 ? rec.breadcrumb.slice(idx) : rec.breadcrumb
-  // include the leaf as the last segment
-  return [...base, valueStr]
+  return idx >= 0 ? rec.breadcrumb.slice(idx) : rec.breadcrumb
 }
 
 // =========================================
@@ -264,6 +260,7 @@ export function useScopedSearch(scopeId: string, query: string) {
   return React.useMemo(() => {
     if (!q) return [] as SearchRecord[]
     const ids = reg.byScope.get(scopeId)
+    console.log('ids', ids)
     if (!ids) return []
     return Array.from(ids)
       .map((id) => reg.items.get(id)!)
@@ -1120,15 +1117,12 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
       })
     }, [results, query, scopeId])
 
+    console.log('deepResults', deepResults)
+
     const deepSection = query
       ? deepResults.map((r: any) => {
           // Build context-aware breadcrumbs (relative to THIS list's scope)
-          const crumbs = relativeBreadcrumbs(
-            r,
-            scopeId,
-            r.scopePath,
-            r.valueStr,
-          )
+          const crumbs = relativeBreadcrumbs(r, scopeId, r.scopePath) // ← no valueStr
           const rowBase: RowCtx = {
             mode: 'search',
             breadcrumbs: crumbs,
@@ -1153,6 +1147,7 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
               <Item
                 className={r.rowClassName}
                 value={r.valueStr}
+                keywords={'keywords' in r ? (r.keywords ?? []) : []}
                 onSelect={r.perform}
               >
                 {r.render()}
@@ -1278,10 +1273,13 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     const indexing = useIndexing()
     const { breadcrumb: scopeBreadcrumb, scopePath } = useScope()
     const { upsert, remove } = useSearchRegistry()
+    const parentRow = React.useContext(RowCtx)
 
-    // --- Register into search (unchanged) ---
+    const isShortcut = parentRow?.mode === 'search'
+
+    // --- Register into search (mirror only) ---
     React.useLayoutEffect(() => {
-      if (disabled) return
+      if (disabled || isShortcut || !indexing) return
       const valueStr = String(value)
       const searchText = [...scopeBreadcrumb, valueStr, ...(keywords ?? [])]
         .join(' ')
@@ -1301,21 +1299,12 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         rowClassName: className,
       }
 
-      const { rowClassName, ...rest } = rec
-
-      console.log(
-        JSON.stringify(
-          {
-            ...rest,
-          },
-          null,
-          '\t',
-        ),
-      )
-
       upsert(rec)
-      return () => remove(rec.id)
+
+      return () => {}
     }, [
+      indexing,
+      isShortcut,
       disabled,
       scopeBreadcrumb.join('>'),
       scopePath.join('>'),
@@ -1380,7 +1369,6 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     }, [disabled, itemId, value, onSelect, visible, focused, setActiveId])
 
     // ---------- ALWAYS build row context FIRST ----------
-    const parentRow = React.useContext(RowCtx)
     const row: RowCtx = React.useMemo(
       () => ({
         mode: parentRow?.mode ?? 'browse',
@@ -1583,6 +1571,7 @@ export const SubTrigger = React.forwardRef<
     const sub = useSubCtx()
     const { breadcrumb, scopePath } = useScope()
     const { upsert, remove } = useSearchRegistry()
+    const indexing = useIndexing()
 
     const latestChildrenRef = React.useRef(children)
     React.useLayoutEffect(() => {
@@ -1594,16 +1583,16 @@ export const SubTrigger = React.forwardRef<
 
     // For deep-search indexing (value + keywords + breadcrumb)
     React.useLayoutEffect(() => {
-      if (disabled || isShortcut) return
+      if (disabled || isShortcut || !indexing) return
       const valueStr = String(value)
-      const recId = `submenu::${valueStr}::${sub.childSurfaceId}`
+      const recId = `submenu::${valueStr}::${scopePath[scopePath.length - 1]!}`
       const rec: SubmenuRecord = {
         kind: 'submenu',
         id: recId,
         valueStr,
-        breadcrumb: [...breadcrumb, valueStr],
+        breadcrumb: [...breadcrumb],
         scopePath: [...scopePath],
-        ownerScopeId: sub.childSurfaceId,
+        ownerScopeId: scopePath[scopePath.length - 1]!,
         searchText: [...breadcrumb, valueStr, ...(keywords ?? [])]
           .join(' ')
           .toLowerCase(),
@@ -1618,21 +1607,10 @@ export const SubTrigger = React.forwardRef<
         ),
       }
 
-      const { renderInline, rowClassName, ...rest } = rec
-
-      console.log(
-        JSON.stringify(
-          {
-            ...rest,
-          },
-          null,
-          '\t',
-        ),
-      )
-
       upsert(rec)
-      return () => remove(recId)
+      return () => {}
     }, [
+      indexing,
       isShortcut,
       disabled,
       value,

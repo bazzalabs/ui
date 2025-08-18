@@ -15,9 +15,10 @@ import {
   take,
 } from '@bazzaui/filters'
 import { format, isEqual } from 'date-fns'
-import { Ellipsis } from 'lucide-react'
+import { ChevronRightIcon, Ellipsis } from 'lucide-react'
 import {
   cloneElement,
+  Fragment,
   isValidElement,
   memo,
   useCallback,
@@ -526,15 +527,9 @@ const OptionItem_v2 = memo(function OptionItem({
 
   function OptionRow() {
     const ctx = useRow()
-    console.log(`[${option.label}] ctx.breadcrumbs`, ctx.breadcrumbs)
     return (
       <>
-        <div
-          className={cn(
-            'flex items-center gap-1.5 flex-1 min-w-0',
-            ctx.mode === 'search' && 'border border-red-500',
-          )}
-        >
+        <div className={cn('flex items-center gap-1.5 flex-1 min-w-0')}>
           <Checkbox
             checked={selected}
             className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]:opacity-100 dark:border-ring mr-1 shrink-0"
@@ -547,14 +542,14 @@ const OptionItem_v2 = memo(function OptionItem({
                 <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
               ))}
           </div>
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-1">
             {ctx.breadcrumbs.map((crumb) => (
-              <span
-                key={crumb}
-                className="overflow-ellipsis whitespace-nowrap overflow-x-hidden"
-              >
-                {crumb}
-              </span>
+              <Fragment key={crumb}>
+                <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden text-muted-foreground">
+                  {crumb}
+                </span>
+                <ChevronRightIcon className="size-3 text-muted-foreground/70" />
+              </Fragment>
             ))}
             <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden">
               {label}
@@ -572,7 +567,6 @@ const OptionItem_v2 = memo(function OptionItem({
 
   return (
     <ActionMenu.Item
-      key={value}
       value={value}
       keywords={[label]}
       onSelect={handleSelect}

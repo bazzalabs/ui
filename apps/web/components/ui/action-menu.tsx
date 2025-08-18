@@ -50,7 +50,7 @@ export const ActionMenuContent = ({
     <ActionMenuPrimitive.Content
       className={cn(
         'border bg-popover z-50 rounded-md text-sm shadow-xs origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        'data-[state=open]:animate-in duration-150 ease-out data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
         className,
       )}
       {...props}
@@ -64,14 +64,17 @@ export const ActionMenuInput = ({
   ...props
 }: ActionMenuInputProps) => {
   return (
-    <ActionMenuPrimitive.Input
-      className={cn(
-        'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
-        className,
-      )}
-      placeholder="Search..."
-      {...props}
-    />
+    <>
+      <ActionMenuPrimitive.Input
+        className={cn(
+          'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+          className,
+        )}
+        placeholder="Search..."
+        {...props}
+      />
+      <div className="h-px w-full bg-border" />
+    </>
   )
 }
 
@@ -82,7 +85,7 @@ export const ActionMenuList = ({
   return (
     <ActionMenuPrimitive.List
       className={cn(
-        'p-1 flex flex-col w-full max-w-[300px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
+        'p-1 flex flex-col w-full max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
         className,
       )}
       {...props}
@@ -124,7 +127,7 @@ export const ActionMenuSubTrigger = ({
     {...props}
     className={cn(
       className,
-      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-2 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
     )}
   >
     {children}
