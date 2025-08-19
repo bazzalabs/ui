@@ -522,8 +522,6 @@ function useCollectionState({
       return cached.ids
     }
 
-    console.log('here!')
-
     let ids: string[]
     if (!q) {
       ids = items.map((i) => i.id) // preserve insertion order when no query
