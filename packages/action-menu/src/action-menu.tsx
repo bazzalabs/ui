@@ -43,6 +43,9 @@ const DATA = {
   groupHeading: 'data-action-menu-group-heading',
 } as const
 
+const VALID_ROW_SELECTOR =
+  '[data-action-menu-item-id]:not([hidden]):not([aria-disabled="true"])'
+
 export type Direction = 'ltr' | 'rtl'
 
 const SELECTION_KEYS = ['Enter'] as const
@@ -448,6 +451,10 @@ type CollectionContextValue = {
   getVisibleItemIds: () => string[]
   isItemVisible: (id: string) => boolean
 
+  getLastScores: () => Map<string, number>
+  getAllItemIds: () => string[]
+  getGroupOrder: () => string[]
+
   // cmdk-like helpers
   activeId: string | null
   setActiveId: (id: string | null) => void
@@ -506,13 +513,14 @@ function useCollectionState({
 
   const normQuery = normalize(query)
 
+  const lastScoresRef = React.useRef<Map<string, number>>(new Map())
+
   const getVisibleItemIds = React.useCallback(() => {
     const items = Array.from(itemsRef.current.values())
     const version = itemsVersionRef.current
     const q = query
     const cached = visibleCacheRef.current
 
-    // Fast path: nothing relevant changed
     if (
       cached &&
       cached.version === version &&
@@ -523,8 +531,12 @@ function useCollectionState({
     }
 
     let ids: string[]
+
     if (!q) {
-      ids = items.map((i) => i.id) // preserve insertion order when no query
+      // preserve insertion order when no query
+      ids = items.map((i) => i.id)
+      // keep "0" scores so callers can restore initial order
+      lastScoresRef.current = new Map(ids.map((id) => [id, 0]))
     } else {
       const scored = items
         .map((i) => ({
@@ -534,9 +546,11 @@ function useCollectionState({
         .filter((s) => s.score > 0)
         .sort((a, b) => {
           const byScore = b.score - a.score
-          return byScore || a.id.localeCompare(b.id) // stable tie-breaker
+          return byScore || a.id.localeCompare(b.id)
         })
+
       ids = scored.map((s) => s.id)
+      lastScoresRef.current = new Map(scored.map((s) => [s.id, s.score]))
     }
 
     const index = new Set(ids)
@@ -555,17 +569,27 @@ function useCollectionState({
 
   const ensureValidActive = React.useCallback(() => {
     const visible = getVisibleItemIds()
+    if (normQuery) {
+      // When searching, ALWAYS snap to the first result
+      setActiveId(visible[0] ?? null)
+      return
+    }
+    // When not searching, keep previous if still visible
     setActiveId((curr) =>
       curr && visible.includes(curr) ? curr : (visible[0] ?? null),
     )
-  }, [getVisibleItemIds])
+  }, [getVisibleItemIds, normQuery])
 
   const setActiveByIndex = React.useCallback(
     (index: number) => {
       const visible = getVisibleItemIds()
+
+      console.log('visible:', visible)
       if (!visible.length) return setActiveId(null)
       const clamped =
         index < 0 ? 0 : index >= visible.length ? visible.length - 1 : index
+
+      console.log('first:', visible[clamped])
       setActiveId(visible[clamped]!)
     },
     [getVisibleItemIds],
@@ -622,13 +646,20 @@ function useCollectionState({
     groupOrderRef.current = groupOrderRef.current.filter((gid) => gid !== id)
   }, [])
 
+  const getLastScores = React.useCallback(() => lastScoresRef.current, [])
+  const getAllItemIds = React.useCallback(
+    () => Array.from(itemsRef.current.keys()),
+    [],
+  )
+  const getGroupOrder = React.useCallback(() => [...groupOrderRef.current], [])
+
   // Focus the first visible item on query change
-  React.useLayoutEffect(() => {
-    schedule('query:reconcile', () => {
-      const visible = getVisibleItemIds()
-      setActiveId(visible[0] ?? null)
-    })
-  }, [normQuery, getVisibleItemIds, setActiveId])
+  // React.useLayoutEffect(() => {
+  //   schedule('query:reconcile', () => {
+  //     const visible = getVisibleItemIds()
+  //     setActiveId(visible[0] ?? null)
+  //   })
+  // }, [normQuery, getVisibleItemIds, setActiveId])
 
   // Scroll selected row into view whenever selection or query changes
   React.useLayoutEffect(() => {
@@ -637,12 +668,6 @@ function useCollectionState({
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId])
-  React.useLayoutEffect(() => {
-    schedule('scroll-after-query', () =>
-      scrollActiveIntoView(listRef.current, activeId),
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normQuery])
 
   return {
     query,
@@ -667,6 +692,9 @@ function useCollectionState({
     listRef,
     listId,
     setListId,
+    getLastScores,
+    getAllItemIds,
+    getGroupOrder,
   }
 }
 
@@ -686,6 +714,9 @@ const noopValue: CollectionContextValue = {
   activeId: null,
   setActiveId: NOOP,
   setActiveByIndex: NOOP,
+  getLastScores: () => new Map<string, number>(),
+  getAllItemIds: () => [],
+  getGroupOrder: () => [],
   first: NOOP,
   last: NOOP,
   next: NOOP,
@@ -844,10 +875,11 @@ export const Trigger = React.forwardRef<
 Trigger.displayName = 'ActionMenu.Trigger'
 
 /* ================================================================================================
- * Content (surface + provider for collection state)
+ * Positioner
  * ============================================================================================== */
 
-export interface ActionMenuContentProps extends Omit<DivProps, 'dir'> {
+export interface ActionMenuPositionerProps {
+  children: React.ReactElement // must be a single element (e.g., <ActionMenu.Content/> or <ActionMenu.SubContent/>)
   side?: 'top' | 'right' | 'bottom' | 'left'
   align?: 'start' | 'center' | 'end'
   sideOffset?: number
@@ -856,30 +888,106 @@ export interface ActionMenuContentProps extends Omit<DivProps, 'dir'> {
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
+  /** Root-only: keep menu open when clicking the trigger/anchor unless true */
   closeOnAnchorPointerDown?: boolean
+}
+
+export const Positioner: React.FC<ActionMenuPositionerProps> = ({
+  children,
+  side,
+  align = 'start',
+  sideOffset = 8,
+  alignOffset = 0,
+  avoidCollisions = true,
+  collisionPadding = 8,
+  closeOnAnchorPointerDown = true,
+}) => {
+  const sub = React.useContext(SubCtx)
+  const root = useRootCtx()
+
+  const isSub = !!sub
+  const present = isSub ? sub!.open : root.open
+  const defaultSide = isSub ? 'right' : 'bottom'
+  const resolvedSide = side ?? defaultSide
+
+  const childIsSubContent =
+    (children as any)?.type?.displayName === 'ActionMenu.SubContent'
+
+  const close = React.useCallback(() => {
+    if (isSub) return
+    root.onOpenChange(false)
+  }, [isSub, root, sub])
+
+  return (
+    <>
+      {/* Always-mounted hidden indexer for submenus */}
+      {isSub && childIsSubContent
+        ? React.cloneElement(
+            children as React.ReactElement,
+            {
+              indexOnly: true,
+            } as any,
+          )
+        : null}
+      <Presence present={present}>
+        <Popper.Content
+          side={resolvedSide}
+          align={align}
+          sideOffset={sideOffset}
+          alignOffset={alignOffset}
+          avoidCollisions={avoidCollisions}
+          collisionPadding={collisionPadding}
+          asChild
+        >
+          <DismissableLayer
+            onEscapeKeyDown={close}
+            onDismiss={closeOnAnchorPointerDown ? close : undefined}
+            disableOutsidePointerEvents={isSub ? undefined : root.modal}
+            onInteractOutside={
+              isSub
+                ? undefined
+                : (event) => {
+                    const target = event.target as Node | null
+                    const anchor = root.anchorRef.current
+                    if (
+                      !closeOnAnchorPointerDown &&
+                      anchor &&
+                      target &&
+                      anchor.contains(target)
+                    ) {
+                      event.preventDefault()
+                    }
+                  }
+            }
+            asChild
+          >
+            {/* Visible copy: suppress its own mirror to avoid double-indexing */}
+            {isSub && childIsSubContent
+              ? React.cloneElement(
+                  children as React.ReactElement,
+                  { disableIndexMirror: true } as any,
+                )
+              : children}
+          </DismissableLayer>
+        </Popper.Content>
+      </Presence>
+    </>
+  )
+}
+Positioner.displayName = 'ActionMenu.Positioner'
+
+/* ================================================================================================
+ * Content (surface + provider for collection state)
+ * ============================================================================================== */
+
+export interface ActionMenuContentProps extends Omit<DivProps, 'dir'> {
   dir?: Direction
   vimBindings?: boolean
   filterFn?: FilterFn
 }
 
 export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
-  (
-    {
-      children,
-      side = 'bottom',
-      align = 'start',
-      sideOffset = 6,
-      alignOffset = 0,
-      avoidCollisions = true,
-      collisionPadding = 8,
-      closeOnAnchorPointerDown = false,
-      dir: dirProp,
-      vimBindings = true,
-      filterFn,
-      ...props
-    },
-    ref,
-  ) => {
+  ({ children, dir: dirProp, vimBindings = true, filterFn, ...props }, ref) => {
     const root = useRootCtx()
     const surfaceId = React.useId()
     const collectionValue = useCollectionState({
@@ -892,13 +1000,11 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
     const dir = getDir(dirProp)
 
     React.useEffect(() => {
-      // If root is closed, reset ownerId and activeId
       if (!root.open) {
         setOwnerId(null)
         collectionValue.setActiveId(null)
         return
       }
-      // If root is open and ownerId is null, set ownerId and focus the surface
       if (root.open && ownerId === null) {
         setOwnerId(surfaceId)
         ;(
@@ -920,57 +1026,26 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
     return (
       <SurfaceCtx.Provider value={surfaceId}>
         <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-          <Presence present={root.open}>
-            <Popper.Content
-              side={side}
-              align={align}
-              sideOffset={sideOffset}
-              alignOffset={alignOffset}
-              avoidCollisions={avoidCollisions}
-              collisionPadding={collisionPadding}
-              asChild
-            >
-              <DismissableLayer
-                onEscapeKeyDown={() => root.onOpenChange(false)}
-                onDismiss={() => root.onOpenChange(false)}
-                disableOutsidePointerEvents={root.modal}
-                onInteractOutside={(event) => {
-                  const target = event.target as Node | null
-                  const anchor = root.anchorRef.current
-                  if (
-                    !closeOnAnchorPointerDown &&
-                    anchor &&
-                    target &&
-                    anchor.contains(target)
-                  ) {
-                    event.preventDefault()
-                  }
-                }}
-                asChild
-              >
-                <Primitive.div
-                  {...props}
-                  ref={composedRef}
-                  role="menu"
-                  tabIndex={-1}
-                  data-slot="action-menu-content"
-                  data-state={root.open ? 'open' : 'closed'}
-                  data-action-menu-surface
-                  data-surface-id={surfaceId}
-                  data-dir={dir}
-                  onMouseMove={(e) => {
-                    const rect = surfaceRef.current?.getBoundingClientRect()
-                    if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
-                    setOwnerId(surfaceId)
-                  }}
-                >
-                  <CollectionCtx.Provider value={collectionValue}>
-                    {children}
-                  </CollectionCtx.Provider>
-                </Primitive.div>
-              </DismissableLayer>
-            </Popper.Content>
-          </Presence>
+          <Primitive.div
+            {...props}
+            ref={composedRef}
+            role="menu"
+            tabIndex={-1}
+            data-slot="action-menu-content"
+            data-state={root.open ? 'open' : 'closed'}
+            data-action-menu-surface
+            data-surface-id={surfaceId}
+            data-dir={dir}
+            onMouseMove={(e) => {
+              const rect = surfaceRef.current?.getBoundingClientRect()
+              if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
+              setOwnerId(surfaceId)
+            }}
+          >
+            <CollectionCtx.Provider value={collectionValue}>
+              {children}
+            </CollectionCtx.Provider>
+          </Primitive.div>
         </KeyboardCtx.Provider>
       </SurfaceCtx.Provider>
     )
@@ -1202,7 +1277,16 @@ export interface ActionMenuListProps extends DivProps {}
 
 export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
   ({ children, onKeyDown, id, ...props }, ref) => {
-    const { activeId, listRef, setListId, query } = useCollection()
+    const {
+      activeId,
+      listRef,
+      setListId,
+      query,
+      getLastScores,
+      getAllItemIds,
+      getGroupOrder,
+      setActiveId,
+    } = useCollection()
     const { scopeId } = useScope()
     const results = useScopedSearch(scopeId, query) // SearchRecord[]
     const localId = React.useId()
@@ -1213,6 +1297,116 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
       setListId(listDomId)
       return () => setListId(null)
     }, [listDomId, setListId])
+
+    React.useLayoutEffect(() => {
+      const listEl = (listRef as React.RefObject<HTMLDivElement>).current
+      if (!listEl) return
+
+      // When empty query, restore to initial registration order.
+      // When searching, order by score (desc), like cmdk.
+      const isSearching = Boolean(query)
+      const scores = getLastScores()
+      const byIdOrder = isSearching ? null : getAllItemIds()
+      const groupOrder = getGroupOrder()
+
+      // Helper: append item to proper container (group if present, else list)
+      const appendIntoProperContainer = (el: HTMLElement) => {
+        const group = el.closest<HTMLElement>('[data-action-menu-group]')
+        if (group) {
+          // If wrapping elements exist, append the outermost element that belongs under the group
+          const candidate =
+            el.parentElement === group
+              ? el
+              : el.closest('[data-action-menu-group] > *')
+          group.appendChild(candidate as HTMLElement)
+        } else {
+          // Move to the list root
+          const candidate =
+            el.parentElement === listEl
+              ? el
+              : ((el.closest(':scope > *') as HTMLElement) ?? el)
+          listEl.appendChild(candidate)
+        }
+      }
+
+      // (A) Reorder ITEMS
+      // Take only *visible* and *enabled* options (like cmdk VALID_ITEM_SELECTOR)
+      const itemNodes = Array.from(
+        listEl.querySelectorAll<HTMLElement>(
+          '[data-action-menu-item-id]:not([hidden]):not([aria-disabled="true"])',
+        ),
+      )
+
+      // Establish the desired order: by score (search) or by registration order (browse)
+      const sortFn = isSearching
+        ? (a: HTMLElement, b: HTMLElement) => {
+            const idA = a.dataset.actionMenuItemId!
+            const idB = b.dataset.actionMenuItemId!
+            return (scores.get(idB) ?? 0) - (scores.get(idA) ?? 0)
+          }
+        : (a: HTMLElement, b: HTMLElement) => {
+            const idA = a.dataset.actionMenuItemId!
+            const idB = b.dataset.actionMenuItemId!
+            const idxA = byIdOrder!.indexOf(idA)
+            const idxB = byIdOrder!.indexOf(idB)
+            return idxA - idxB
+          }
+
+      itemNodes.sort(sortFn).forEach(appendIntoProperContainer)
+
+      // (B) Reorder GROUPS
+      // When searching: groups sorted by the highest item score within.
+      // When not searching: restore original group insertion order.
+      const groups = Array.from(
+        listEl.querySelectorAll<HTMLElement>('[data-action-menu-group]'),
+      )
+
+      const groupSort = isSearching
+        ? (ga: HTMLElement, gb: HTMLElement) => {
+            const itemsA = Array.from(
+              ga.querySelectorAll<HTMLElement>(
+                '[data-action-menu-item-id]:not([hidden]):not([aria-disabled="true"])',
+              ),
+            )
+            const itemsB = Array.from(
+              gb.querySelectorAll<HTMLElement>(
+                '[data-action-menu-item-id]:not([hidden]):not([aria-disabled="true"])',
+              ),
+            )
+            const maxA = itemsA.reduce(
+              (m, el) =>
+                Math.max(m, scores.get(el.dataset.actionMenuItemId!) ?? 0),
+              0,
+            )
+            const maxB = itemsB.reduce(
+              (m, el) =>
+                Math.max(m, scores.get(el.dataset.actionMenuItemId!) ?? 0),
+              0,
+            )
+            return maxB - maxA
+          }
+        : (ga: HTMLElement, gb: HTMLElement) => {
+            const ida = ga.getAttribute('data-action-menu-group-id') || ''
+            const idb = gb.getAttribute('data-action-menu-group-id') || ''
+            const ia = ida ? groupOrder.indexOf(ida) : -1
+            const ib = idb ? groupOrder.indexOf(idb) : -1
+            // Unknown groups (no id) keep their relative order at the end
+            if (ia === -1 || ib === -1) return 0
+            return ia - ib
+          }
+
+      groups.sort(groupSort).forEach((g) => g.parentElement?.appendChild(g))
+
+      const first = listEl.querySelector<HTMLElement>(VALID_ROW_SELECTOR)
+      setActiveId(first ? first.dataset.actionMenuItemId! : null)
+    }, [
+      query,
+      listRef,
+      getLastScores,
+      getAllItemIds,
+      getGroupOrder,
+      setActiveId,
+    ])
 
     // Only show descendants in the deep section.
     // - Items: local if their last scopePath segment === scopeId
@@ -1248,7 +1442,9 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
                 </RowCtx.Provider>
                 {r.renderContent ? (
                   <RowCtx.Provider value={BROWSE_ROW_RESET}>
-                    {r.renderContent({ disableIndexMirror: true })}
+                    <Positioner side="right">
+                      {r.renderContent({ disableIndexMirror: true })}
+                    </Positioner>
                   </RowCtx.Provider>
                 ) : null}
               </Sub>
@@ -1331,6 +1527,7 @@ export const Group = React.forwardRef<HTMLDivElement, ActionMenuGroupProps>(
         role="group"
         data-slot="action-menu-group"
         data-action-menu-group
+        data-action-menu-group-id={groupId}
         aria-label={label}
         hidden={!hasVisibleChildren}
       >
@@ -1876,20 +2073,13 @@ export const SubTrigger = React.forwardRef<
 SubTrigger.displayName = 'ActionMenu.SubTrigger'
 
 export interface ActionMenuSubContentProps extends Omit<DivProps, 'dir'> {
-  side?: 'top' | 'right' | 'bottom' | 'left'
-  align?: 'start' | 'center' | 'end'
-  sideOffset?: number
-  alignOffset?: number
-  avoidCollisions?: boolean
-  collisionPadding?:
-    | number
-    | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
   dir?: Direction
   vimBindings?: boolean
   filterFn?: FilterFn
   title: string
   scopeId?: string
   disableIndexMirror?: boolean
+  indexOnly?: boolean
 }
 
 export const SubContent = React.forwardRef<
@@ -1899,18 +2089,13 @@ export const SubContent = React.forwardRef<
   (
     {
       children,
-      side = 'right',
-      align = 'start',
-      sideOffset = 6,
-      alignOffset = 0,
-      avoidCollisions = true,
-      collisionPadding = 8,
       dir: dirProp,
       vimBindings = true,
       filterFn,
       title,
       scopeId: providedScopeId,
       disableIndexMirror,
+      indexOnly,
       ...props
     },
     ref,
@@ -1932,11 +2117,13 @@ export const SubContent = React.forwardRef<
     const dir = getDir(dirProp)
 
     React.useEffect(() => {
+      if (indexOnly) return
       if (!sub.open && collectionValue.activeId)
         collectionValue.setActiveId(null)
     }, [sub.open])
 
     React.useEffect(() => {
+      if (indexOnly) return
       if (sub.open && isOwner) collectionValue.inputRef.current?.focus()
     }, [sub.open, isOwner])
 
@@ -1956,7 +2143,6 @@ export const SubContent = React.forwardRef<
     )
     const { attachSubContent } = useSearchRegistry()
 
-    // Register a factory that can render this submenu’s content on demand
     React.useEffect(() => {
       if (disableIndexMirror) return
       attachSubContent(recId, () => (
@@ -1973,56 +2159,61 @@ export const SubContent = React.forwardRef<
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [attachSubContent, recId, title, providedScopeId])
 
+    if (indexOnly) {
+      // Only render the indexing mirror so items & submenus get registered even when closed
+      return (
+        <ScopeProvider scopeId={scopeId} title={title}>
+          <IndexingCtx.Provider value={true}>
+            <NoopCollectionProvider>
+              <Primitive.div
+                data-index-mirror
+                aria-hidden="true"
+                hidden
+                style={{
+                  display: 'none',
+                  visibility: 'hidden',
+                  pointerEvents: 'none',
+                }}
+              >
+                {children}
+              </Primitive.div>
+            </NoopCollectionProvider>
+          </IndexingCtx.Provider>
+        </ScopeProvider>
+      )
+    }
+
     return (
       <>
         <SurfaceCtx.Provider value={surfaceId}>
           <KeyboardCtx.Provider value={{ dir, vimBindings }}>
             <ScopeProvider scopeId={scopeId} title={title}>
-              <Presence present={sub.open}>
-                <Popper.Content
-                  side={side}
-                  align={align}
-                  sideOffset={sideOffset}
-                  alignOffset={alignOffset}
-                  avoidCollisions={avoidCollisions}
-                  collisionPadding={collisionPadding}
-                  asChild
-                >
-                  <DismissableLayer
-                    onEscapeKeyDown={() => {
-                      sub.onOpenChange(false)
-                    }}
-                    asChild
-                  >
-                    <Primitive.div
-                      {...props}
-                      ref={composedSurfaceRef}
-                      role="menu"
-                      tabIndex={-1}
-                      data-slot="action-menu-subcontent"
-                      data-action-menu-surface
-                      data-submenu
-                      data-surface-id={surfaceId}
-                      data-dir={dir}
-                      data-state={sub.open ? 'open' : 'closed'}
-                      onFocusCapture={handleFocusCapture}
-                      onMouseMove={(e) => {
-                        const rect = surfaceRef.current?.getBoundingClientRect()
-                        if (!rect || !isInBounds(e.clientX, e.clientY, rect))
-                          return
-                        setOwnerId(surfaceId)
-                      }}
-                    >
-                      <CollectionCtx.Provider value={collectionValue}>
-                        {children}
-                      </CollectionCtx.Provider>
-                    </Primitive.div>
-                  </DismissableLayer>
-                </Popper.Content>
-              </Presence>
+              <Primitive.div
+                {...props}
+                ref={composedSurfaceRef}
+                role="menu"
+                tabIndex={-1}
+                data-slot="action-menu-subcontent"
+                data-action-menu-surface
+                data-submenu
+                data-surface-id={surfaceId}
+                data-dir={dir}
+                data-state={sub.open ? 'open' : 'closed'}
+                onFocusCapture={handleFocusCapture}
+                onMouseMove={(e) => {
+                  const rect = surfaceRef.current?.getBoundingClientRect()
+                  if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
+                  setOwnerId(surfaceId)
+                }}
+              >
+                <CollectionCtx.Provider value={collectionValue}>
+                  {children}
+                </CollectionCtx.Provider>
+              </Primitive.div>
             </ScopeProvider>
           </KeyboardCtx.Provider>
         </SurfaceCtx.Provider>
+
         {!disableIndexMirror && (
           <ScopeProvider scopeId={scopeId} title={title}>
             <IndexingCtx.Provider value={true}>

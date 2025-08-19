@@ -46,14 +46,16 @@ export const ActionMenuContent = ({
   ...props
 }: ActionMenuContentProps) => {
   return (
-    <ActionMenuPrimitive.Content
-      className={cn(
-        'border bg-popover z-50 rounded-md text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-        className,
-      )}
-      {...props}
-    />
+    <ActionMenuPrimitive.Positioner side="bottom">
+      <ActionMenuPrimitive.Content
+        className={cn(
+          'border bg-popover z-50 rounded-md text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+          className,
+        )}
+        {...props}
+      />
+    </ActionMenuPrimitive.Positioner>
   )
 }
 
@@ -139,13 +141,15 @@ export const ActionMenuSubContent = ({
   ...props
 }: ActionMenuSubContentProps) => {
   return (
-    <ActionMenuPrimitive.SubContent
-      className={cn(
-        'bg-popover z-50 rounded-md border shadow-md flex flex-col h-full w-full',
-        className,
-      )}
-      {...props}
-    />
+    <ActionMenuPrimitive.Positioner side="right">
+      <ActionMenuPrimitive.SubContent
+        className={cn(
+          'bg-popover z-50 rounded-md border shadow-md flex flex-col h-full w-full',
+          className,
+        )}
+        {...props}
+      />
+    </ActionMenuPrimitive.Positioner>
   )
 }
 
