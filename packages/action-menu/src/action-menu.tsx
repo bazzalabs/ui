@@ -8,6 +8,13 @@
  * - Direction-aware open/close (LTR/RTL) + Vim bindings (Ctrl+N/P, Ctrl+J/K).
  * - ArrowRight opens submenu, ArrowLeft closes (mirrored under RTL).
  * - Back-nav restores parent selection and focus to the triggering row.
+ *
+ * Surgical enhancements vs. previous version:
+ * - cmdk-style external store per surface via useSyncExternalStore (surgical re-renders).
+ * - Layout-effect scheduler retained, but emits coordinate with store.
+ * - Deep search submenu results render ORIGINAL SubContent (no cloning) via DeepSubTrigger.
+ * - Row-level invalidation bus for dynamic rows (checkboxes etc.) → re-render only that row.
+ * - Lighter indexing pass using RenderSuppressedCtx + IndexRegistrar (no heavy JSX cloning).
  */
 
 import { composeEventHandlers } from '@radix-ui/primitive'
@@ -113,8 +120,6 @@ function inputCaretAtBackBoundary(
   input: HTMLInputElement,
   dir: Direction,
 ): boolean {
-  // In LTR: caret at start = "back"
-  // In RTL: caret at end   = "back"
   const start = input.selectionStart ?? 0
   const end = input.selectionEnd ?? 0
   if (dir === 'ltr') return start === 0 && end === 0
@@ -164,7 +169,6 @@ function scrollActiveIntoView(
   )
   if (!item || item.hidden) return
 
-  // If this is the first *visible* item in a group, ensure heading is visible first (cmdk UX).
   const group = item.closest<HTMLElement>(`[${DATA.group}]`)
   if (group) {
     const firstVisible = group.querySelector<HTMLElement>(
@@ -189,6 +193,113 @@ function findWidgetsWithinSurface(surface: HTMLElement | null) {
 }
 
 /* ================================================================================================
+ * cmdk-like external store for each surface (Content/SubContent)
+ * ============================================================================================== */
+
+type CollState = {
+  query: string
+  activeId: string | null
+  itemsVersion: number
+  lastScores: Map<string, number>
+  visibleIds: string[]
+  visibleIndex: Set<string>
+}
+
+type CollStore = {
+  subscribe(cb: () => void): () => void
+  snapshot(): CollState
+  set<K extends keyof CollState>(k: K, v: CollState[K]): void
+  bump(): void
+}
+
+function createCollectionStore(): CollStore {
+  const state: CollState = {
+    query: '',
+    activeId: null,
+    itemsVersion: 0,
+    lastScores: new Map(),
+    visibleIds: [],
+    visibleIndex: new Set(),
+  }
+  const listeners = new Set<() => void>()
+  return {
+    subscribe(cb) {
+      listeners.add(cb)
+      return () => listeners.delete(cb)
+    },
+    snapshot() {
+      return state
+    },
+    set(k, v) {
+      if (Object.is((state as any)[k], v)) return
+      ;(state as any)[k] = v
+      listeners.forEach((l) => l())
+    },
+    bump() {
+      listeners.forEach((l) => l())
+    },
+  }
+}
+
+function useCollectionSel<T>(store: CollStore, sel: (s: CollState) => T): T {
+  const get = React.useCallback(() => sel(store.snapshot()), [store, sel])
+  return React.useSyncExternalStore(store.subscribe, get, get)
+}
+
+/* ================================================================================================
+ * Row-level surgical invalidation bus (re-render only one row)
+ * ============================================================================================== */
+
+type RowSignals = {
+  subscribe(id: string, cb: () => void): () => void
+  ping(id: string): void
+}
+function createRowSignals(): RowSignals {
+  const map = new Map<string, Set<() => void>>()
+  return {
+    subscribe(id, cb) {
+      // const set = map.get(id) ?? (map.set(id, new Set()), map.get(id)!)
+      let set = map.get(id)
+      if (!set) {
+        map.set(id, new Set())
+        set = map.get(id)!
+      }
+      set.add(cb)
+      return () => set.delete(cb)
+    },
+    ping(id) {
+      const set = map.get(id)
+      if (!set) return
+      set.forEach((cb) => cb())
+    },
+  }
+}
+const RowSignalsCtx = React.createContext<RowSignals | null>(null)
+const RowSignalsProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const ref = React.useRef<RowSignals | null>(null)
+  if (!ref.current) ref.current = createRowSignals()
+  return (
+    <RowSignalsCtx.Provider value={ref.current}>
+      {children}
+    </RowSignalsCtx.Provider>
+  )
+}
+function useRowInvalidator(id: string) {
+  const bus = React.useContext(RowSignalsCtx)!
+  return React.useCallback(() => bus.ping(id), [bus, id])
+}
+function useRowSubscription(id: string) {
+  const [, setTick] = React.useState(0)
+  const bus = React.useContext(RowSignalsCtx)!
+  React.useEffect(
+    () => bus.subscribe(id, () => setTick((t) => t + 1)),
+    [bus, id],
+  )
+}
+
+/* ================================================================================================
  * Row context (no DOM) + public hook
  * ============================================================================================== */
 export type RowCtx = {
@@ -198,6 +309,8 @@ export type RowCtx = {
   score: number
   focused: boolean
   disabled: boolean
+  /** trigger a surgical re-render of just this row */
+  invalidate?: () => void
 }
 
 const RowCtx = React.createContext<RowCtx | null>(null)
@@ -235,7 +348,7 @@ export type SubmenuRecord = {
   scopePath: string[]
   ownerScopeId: string
   searchText: string
-  renderTriggerRow: () => React.ReactNode
+  /** original developer-defined SubContent renderer (captured via attachSubContent) */
   renderContent?: () => React.ReactNode
   rowClassName?: string
 }
@@ -337,17 +450,16 @@ export function useScopedSearch(scopeId: string, query: string) {
     if (!ids) return []
     return Array.from(ids)
       .map((id) => reg.items.get(id)!)
-      .map((rec) => ({
+      .map((rec: SearchRecord) => ({
         rec,
-        score: commandScore(
-          rec.searchText,
-          q,
-          'keywords' in rec ? (rec.keywords ?? []) : [],
-        ),
+        score:
+          rec.kind === 'item'
+            ? commandScore(rec.searchText, q, rec.keywords ?? [])
+            : commandScore(rec.searchText, q, []),
       }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map((x) => ({ ...x.rec, score: x.score, query: q }) as any)
+      .filter((x: any) => x.score > 0)
+      .sort((a: any, b: any) => b.score - a.score)
+      .map((x: any) => ({ ...x.rec, score: x.score, query: q }) as any)
   }, [scopeId, q, reg, version])
 }
 
@@ -391,11 +503,22 @@ export function ScopeProvider({
 }
 
 /* ================================================================================================
- * Indexing mode flag
+ * Indexing mode + render suppression
  * ============================================================================================== */
 
 const IndexingCtx = React.createContext(false)
 const useIndexing = () => React.useContext(IndexingCtx)
+
+const RenderSuppressedCtx = React.createContext(false)
+
+/** Lighter indexer wrapper: mark subtree as "render suppressed" */
+function IndexRegistrar({ children }: { children: React.ReactNode }) {
+  return (
+    <RenderSuppressedCtx.Provider value={true}>
+      {children}
+    </RenderSuppressedCtx.Provider>
+  )
+}
 
 /* ================================================================================================
  * Root-level context (open state + anchor)
@@ -422,7 +545,7 @@ const SurfaceCtx = React.createContext<string | null>(null)
 const useSurfaceId = () => React.useContext(SurfaceCtx)
 
 /* ================================================================================================
- * Collection context (owned by each Content/SubContent)
+ * Collection context (owned by each Content/SubContent) + store-backed impl
  * ============================================================================================== */
 
 type RegisteredItem = {
@@ -491,7 +614,13 @@ function useCollectionState({
 }): CollectionContextValue {
   const schedule = useLayoutScheduler()
 
-  const [query, setQuery] = React.useState('')
+  // external store
+  const storeRef = React.useRef<ReturnType<
+    typeof createCollectionStore
+  > | null>(null)
+  if (!storeRef.current) storeRef.current = createCollectionStore()
+  const store = storeRef.current
+
   const itemsRef = React.useRef<Map<string, RegisteredItem>>(new Map())
   const itemsVersionRef = React.useRef(0)
   /** Cache for the last computed visible list */
@@ -504,7 +633,22 @@ function useCollectionState({
   } | null>(null)
   const groupsRef = React.useRef<Map<string, RegisteredGroup>>(new Map())
   const groupOrderRef = React.useRef<string[]>([]) // insertion order for groups
-  const [activeId, setActiveId] = React.useState<string | null>(null)
+
+  const query = useCollectionSel(store, (s) => s.query)
+  const activeId = useCollectionSel(store, (s) => s.activeId)
+
+  const setQuery = React.useCallback(
+    (q: string) => {
+      store.set('query', q)
+    },
+    [store],
+  )
+  const setActiveId = React.useCallback(
+    (id: string | null) => {
+      store.set('activeId', id)
+    },
+    [store],
+  )
 
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const listRef = React.useRef<HTMLDivElement | null>(null)
@@ -512,8 +656,6 @@ function useCollectionState({
   const [listId, setListId] = React.useState<string | null>(null)
 
   const normQuery = normalize(query)
-
-  const lastScoresRef = React.useRef<Map<string, number>>(new Map())
 
   const getVisibleItemIds = React.useCallback(() => {
     const items = Array.from(itemsRef.current.values())
@@ -531,12 +673,11 @@ function useCollectionState({
     }
 
     let ids: string[]
+    let lastScores = new Map<string, number>()
 
     if (!q) {
-      // preserve insertion order when no query
       ids = items.map((i) => i.id)
-      // keep "0" scores so callers can restore initial order
-      lastScoresRef.current = new Map(ids.map((id) => [id, 0]))
+      lastScores = new Map(ids.map((id) => [id, 0]))
     } else {
       const scored = items
         .map((i) => ({
@@ -550,17 +691,22 @@ function useCollectionState({
         })
 
       ids = scored.map((s) => s.id)
-      lastScoresRef.current = new Map(scored.map((s) => [s.id, s.score]))
+      lastScores = new Map(scored.map((s) => [s.id, s.score]))
     }
 
     const index = new Set(ids)
     visibleCacheRef.current = { q, version, filterFn, ids, index }
+
+    // write to store (non-destructive emissions)
+    store.set('lastScores', lastScores)
+    store.set('visibleIds', ids)
+    store.set('visibleIndex', index as any)
     return ids
-  }, [query, filterFn])
+  }, [query, filterFn, store])
 
   const isItemVisible = React.useCallback(
     (id: string) => {
-      // Ensure cache is warm for current (query, itemsVersion, filterFn)
+      // warm cache
       getVisibleItemIds()
       return visibleCacheRef.current?.index.has(id) ?? false
     },
@@ -569,41 +715,39 @@ function useCollectionState({
 
   const ensureValidActive = React.useCallback(() => {
     const visible = getVisibleItemIds()
+
     if (normQuery) {
       // When searching, ALWAYS snap to the first result
       setActiveId(visible[0] ?? null)
       return
     }
+
     // When not searching, keep previous if still visible
-    setActiveId((curr) =>
-      curr && visible.includes(curr) ? curr : (visible[0] ?? null),
-    )
-  }, [getVisibleItemIds, normQuery])
+    const curr = store.snapshot().activeId
+    const next = curr && visible.includes(curr) ? curr : (visible[0] ?? null)
+    setActiveId(next)
+  }, [getVisibleItemIds, normQuery, setActiveId, store])
 
   const setActiveByIndex = React.useCallback(
     (index: number) => {
       const visible = getVisibleItemIds()
-
-      console.log('visible:', visible)
       if (!visible.length) return setActiveId(null)
       const clamped =
         index < 0 ? 0 : index >= visible.length ? visible.length - 1 : index
-
-      console.log('first:', visible[clamped])
       setActiveId(visible[clamped]!)
     },
-    [getVisibleItemIds],
+    [getVisibleItemIds, setActiveId],
   )
 
   const first = React.useCallback(() => {
     const visible = getVisibleItemIds()
     setActiveId(visible[0] ?? null)
-  }, [getVisibleItemIds])
+  }, [getVisibleItemIds, setActiveId])
 
   const last = React.useCallback(() => {
     const visible = getVisibleItemIds()
     setActiveId(visible.length ? visible[visible.length - 1]! : null)
-  }, [getVisibleItemIds])
+  }, [getVisibleItemIds, setActiveId])
 
   const next = React.useCallback(() => {
     const visible = getVisibleItemIds()
@@ -611,7 +755,7 @@ function useCollectionState({
     const idx = activeId ? visible.indexOf(activeId) : -1
     const nextIndex = idx === -1 ? 0 : (idx + 1) % visible.length
     setActiveId(visible[nextIndex]!)
-  }, [activeId, getVisibleItemIds])
+  }, [activeId, getVisibleItemIds, setActiveId])
 
   const prev = React.useCallback(() => {
     const visible = getVisibleItemIds()
@@ -619,23 +763,31 @@ function useCollectionState({
     const idx = activeId ? visible.indexOf(activeId) : 0
     const prevIndex = idx <= 0 ? visible.length - 1 : idx - 1
     setActiveId(visible[prevIndex]!)
-  }, [activeId, getVisibleItemIds])
+  }, [activeId, getVisibleItemIds, setActiveId])
 
   const clickActive = React.useCallback(() => {
     if (!activeId) return
     itemsRef.current.get(activeId)?.ref.current?.click()
   }, [activeId])
 
-  const registerItem = React.useCallback((item: RegisteredItem) => {
-    itemsRef.current.set(item.id, item)
-    itemsVersionRef.current++
-    schedule('items:reconcile', ensureValidActive)
-  }, [])
-  const unregisterItem = React.useCallback((id: string) => {
-    itemsRef.current.delete(id)
-    itemsVersionRef.current++
-    schedule('items:reconcile', ensureValidActive)
-  }, [])
+  const registerItem = React.useCallback(
+    (item: RegisteredItem) => {
+      itemsRef.current.set(item.id, item)
+      itemsVersionRef.current++
+      store.set('itemsVersion', itemsVersionRef.current)
+      schedule('items:reconcile', ensureValidActive)
+    },
+    [ensureValidActive, schedule, store],
+  )
+  const unregisterItem = React.useCallback(
+    (id: string) => {
+      itemsRef.current.delete(id)
+      itemsVersionRef.current++
+      store.set('itemsVersion', itemsVersionRef.current)
+      schedule('items:reconcile', ensureValidActive)
+    },
+    [ensureValidActive, schedule, store],
+  )
 
   const registerGroup = React.useCallback((g: RegisteredGroup) => {
     groupsRef.current.set(g.id, g)
@@ -646,22 +798,16 @@ function useCollectionState({
     groupOrderRef.current = groupOrderRef.current.filter((gid) => gid !== id)
   }, [])
 
-  const getLastScores = React.useCallback(() => lastScoresRef.current, [])
+  const getLastScores = React.useCallback(
+    () => store.snapshot().lastScores,
+    [store],
+  )
   const getAllItemIds = React.useCallback(
     () => Array.from(itemsRef.current.keys()),
     [],
   )
   const getGroupOrder = React.useCallback(() => [...groupOrderRef.current], [])
 
-  // Focus the first visible item on query change
-  // React.useLayoutEffect(() => {
-  //   schedule('query:reconcile', () => {
-  //     const visible = getVisibleItemIds()
-  //     setActiveId(visible[0] ?? null)
-  //   })
-  // }, [normQuery, getVisibleItemIds, setActiveId])
-
-  // Scroll selected row into view whenever selection or query changes
   React.useLayoutEffect(() => {
     schedule('scroll-active-into-view', () =>
       scrollActiveIntoView(listRef.current, activeId),
@@ -1042,9 +1188,11 @@ export const Content = React.forwardRef<HTMLDivElement, ActionMenuContentProps>(
               setOwnerId(surfaceId)
             }}
           >
-            <CollectionCtx.Provider value={collectionValue}>
-              {children}
-            </CollectionCtx.Provider>
+            <RowSignalsProvider>
+              <CollectionCtx.Provider value={collectionValue}>
+                {children}
+              </CollectionCtx.Provider>
+            </RowSignalsProvider>
           </Primitive.div>
         </KeyboardCtx.Provider>
       </SurfaceCtx.Provider>
@@ -1124,7 +1272,6 @@ function useMenuKeydown(source: 'input' | 'list') {
       if (isOpenKey(dir, k)) {
         e.preventDefault()
         if (isSelectionKey(k)) {
-          // If the active row is a subtrigger, open it; else "select" the item
           if (isActiveRowSubTrigger(activeId)) {
             openSubmenuForActive(activeId)
           } else {
@@ -1139,7 +1286,6 @@ function useMenuKeydown(source: 'input' | 'list') {
 
       // Close / Back
       if (isCloseKey(dir, k)) {
-        // In Input, only back out if caret is at the "back" boundary
         if (source === 'input') {
           const t = e.currentTarget as HTMLInputElement
           if (!inputCaretAtBackBoundary(t, dir)) return
@@ -1159,7 +1305,6 @@ function useMenuKeydown(source: 'input' | 'list') {
             ;(input ?? list)?.focus()
           })
         } else {
-          // At root: close and return focus to trigger
           requestAnimationFrame(() => root.anchorRef.current?.focus())
         }
         return
@@ -1302,25 +1447,20 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
       const listEl = (listRef as React.RefObject<HTMLDivElement>).current
       if (!listEl) return
 
-      // When empty query, restore to initial registration order.
-      // When searching, order by score (desc), like cmdk.
       const isSearching = Boolean(query)
       const scores = getLastScores()
       const byIdOrder = isSearching ? null : getAllItemIds()
       const groupOrder = getGroupOrder()
 
-      // Helper: append item to proper container (group if present, else list)
       const appendIntoProperContainer = (el: HTMLElement) => {
         const group = el.closest<HTMLElement>('[data-action-menu-group]')
         if (group) {
-          // If wrapping elements exist, append the outermost element that belongs under the group
           const candidate =
             el.parentElement === group
               ? el
               : el.closest('[data-action-menu-group] > *')
           group.appendChild(candidate as HTMLElement)
         } else {
-          // Move to the list root
           const candidate =
             el.parentElement === listEl
               ? el
@@ -1329,15 +1469,12 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
         }
       }
 
-      // (A) Reorder ITEMS
-      // Take only *visible* and *enabled* options (like cmdk VALID_ITEM_SELECTOR)
       const itemNodes = Array.from(
         listEl.querySelectorAll<HTMLElement>(
           '[data-action-menu-item-id]:not([hidden]):not([aria-disabled="true"])',
         ),
       )
 
-      // Establish the desired order: by score (search) or by registration order (browse)
       const sortFn = isSearching
         ? (a: HTMLElement, b: HTMLElement) => {
             const idA = a.dataset.actionMenuItemId!
@@ -1354,9 +1491,6 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
 
       itemNodes.sort(sortFn).forEach(appendIntoProperContainer)
 
-      // (B) Reorder GROUPS
-      // When searching: groups sorted by the highest item score within.
-      // When not searching: restore original group insertion order.
       const groups = Array.from(
         listEl.querySelectorAll<HTMLElement>('[data-action-menu-group]'),
       )
@@ -1390,7 +1524,6 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
             const idb = gb.getAttribute('data-action-menu-group-id') || ''
             const ia = ida ? groupOrder.indexOf(ida) : -1
             const ib = idb ? groupOrder.indexOf(idb) : -1
-            // Unknown groups (no id) keep their relative order at the end
             if (ia === -1 || ib === -1) return 0
             return ia - ib
           }
@@ -1409,11 +1542,9 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
     ])
 
     // Only show descendants in the deep section.
-    // - Items: local if their last scopePath segment === scopeId
-    // - Submenus: local if their ownerScopeId === scopeId (the scope where the SubTrigger lives)
     const deepResults = React.useMemo(() => {
       if (!query) return []
-      return results.filter((r) => {
+      return results.filter((r: any) => {
         if (r.kind === 'item') {
           const last = r.scopePath[r.scopePath.length - 1]
           return last !== scopeId
@@ -1438,13 +1569,18 @@ export const List = React.forwardRef<HTMLDivElement, ActionMenuListProps>(
             return (
               <Sub key={r.id}>
                 <RowCtx.Provider value={rowBase}>
-                  {r.renderTriggerRow()}
+                  <DeepSubTrigger rec={r}>
+                    {/* Developer's custom surfaced-row UI can go here if you want to allow template injection.
+                       By default, render breadcrumbs > title: */}
+                    <div>
+                      {crumbs.join(' > ')}{' '}
+                      <span style={{ opacity: 0.6 }}>{r.valueStr}</span>
+                    </div>
+                  </DeepSubTrigger>
                 </RowCtx.Provider>
                 {r.renderContent ? (
                   <RowCtx.Provider value={BROWSE_ROW_RESET}>
-                    <Positioner side="right">
-                      {r.renderContent({ disableIndexMirror: true })}
-                    </Positioner>
+                    <Positioner side="right">{r.renderContent()}</Positioner>
                   </RowCtx.Provider>
                 ) : null}
               </Sub>
@@ -1583,6 +1719,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
     const composedRef = composeRefs(ref, itemRef)
 
     const indexing = useIndexing()
+    const suppressed = React.useContext(RenderSuppressedCtx)
     const { breadcrumb: scopeBreadcrumb, scopePath } = useScope()
     const { upsert } = useSearchRegistry()
     const parentRow = React.useContext(RowCtx)
@@ -1593,7 +1730,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       childrenRef.current = children
     }, [children])
 
-    // Register into search (mirror only)
+    // Register into search (mirror only) — lighter: skip heavy clones when suppressed
     React.useLayoutEffect(() => {
       if (disabled || isShortcut || !indexing) return
       const valueStr = String(value)
@@ -1612,6 +1749,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         perform: () => onSelectRef.current?.(valueStr),
         searchText,
         render: () => {
+          if (suppressed) return null
           const node = childrenRef.current
           return React.isValidElement(node) ? React.cloneElement(node) : node
         },
@@ -1630,6 +1768,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
       (keywords ?? []).join('|'),
       upsert,
       className,
+      suppressed,
     ])
 
     const {
@@ -1680,6 +1819,10 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         node.removeEventListener(SELECT_EVENT, handleSelect as EventListener)
     }, [disabled, itemId, value, onSelect, visible, focused, setActiveId])
 
+    // Row-level surgical invalidation
+    useRowSubscription(itemId)
+    const invalidate = useRowInvalidator(itemId)
+
     // Build row context
     const row: RowCtx = React.useMemo(
       () => ({
@@ -1689,6 +1832,7 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         score: parentRow?.score ?? 0,
         focused,
         disabled: !!disabled,
+        invalidate,
       }),
       [
         parentRow?.mode,
@@ -1698,15 +1842,14 @@ export const Item = React.forwardRef<HTMLDivElement, ActionMenuItemProps>(
         focused,
         disabled,
         query,
+        invalidate,
       ],
     )
 
-    // Indexing mirror path (no DOM), but WITH RowCtx
     if (indexing) {
       return <RowCtx.Provider value={row}>{children}</RowCtx.Provider>
     }
 
-    // Normal DOM row
     return (
       <Primitive.div
         {...rest}
@@ -1888,6 +2031,7 @@ export const SubTrigger = React.forwardRef<
     const { breadcrumb, scopePath } = useScope()
     const { upsert } = useSearchRegistry()
     const indexing = useIndexing()
+    const suppressed = React.useContext(RenderSuppressedCtx)
 
     const latestChildrenRef = React.useRef(children)
     React.useLayoutEffect(() => {
@@ -1913,15 +2057,7 @@ export const SubTrigger = React.forwardRef<
           .join(' ')
           .toLowerCase(),
         rowClassName: className,
-        renderTriggerRow: () => (
-          <SubTrigger
-            value={valueStr}
-            keywords={keywords ?? []}
-            className={className}
-          >
-            {latestChildrenRef.current}
-          </SubTrigger>
-        ),
+        // we no longer provide a cloned renderTriggerRow; surfaced rows use DeepSubTrigger
       }
 
       upsert(rec)
@@ -1935,7 +2071,8 @@ export const SubTrigger = React.forwardRef<
       breadcrumb.join('>'),
       upsert,
       className,
-      sub.childSurfaceId,
+      scopePath.join('>'),
+      suppressed,
     ])
 
     const {
@@ -1951,6 +2088,7 @@ export const SubTrigger = React.forwardRef<
       return () => {
         if (sub.triggerItemId === itemId) sub.setTriggerItemId(null)
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [itemId])
 
     React.useLayoutEffect(() => {
@@ -2064,13 +2202,149 @@ export const SubTrigger = React.forwardRef<
             setActiveId(itemId)
           }}
         >
-          <RowCtx.Provider value={row}>{children}</RowCtx.Provider>
+          <RowCtx.Provider value={row}>
+            {latestChildrenRef.current}
+          </RowCtx.Provider>
         </Primitive.div>
       </Popper.Anchor>
     )
   },
 )
 SubTrigger.displayName = 'ActionMenu.SubTrigger'
+
+/* ======================= DeepSubTrigger (for surfaced submenu results, NO cloning) ============= */
+
+const DeepSubTrigger = React.forwardRef<
+  HTMLDivElement,
+  { rec: SubmenuRecord; children?: React.ReactNode; className?: string }
+>(({ rec, children, className }, ref) => {
+  const { setOwnerId, ownerId } = useFocusOwner()
+  const sub = useSubCtx()
+  const { registerItem, unregisterItem, isItemVisible, activeId, setActiveId } =
+    useCollection()
+  const generatedId = React.useId()
+  const itemId = `action-menu-deepsub-${generatedId}`
+  const itemRef = React.useRef<HTMLDivElement | null>(null)
+  const composedRef = composeRefs(ref, itemRef)
+  const focused = activeId === itemId
+  const visible = isItemVisible(itemId)
+
+  // ensure SubCtx knows which row opened it (for back-nav)
+  React.useLayoutEffect(() => {
+    if (sub.triggerItemId !== itemId) sub.setTriggerItemId(itemId)
+    return () => {
+      if (sub.triggerItemId === itemId) sub.setTriggerItemId(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemId])
+
+  // register with list
+  React.useLayoutEffect(() => {
+    registerItem({
+      id: itemId,
+      value: rec.valueStr,
+      keywords: [],
+      ref: itemRef,
+      groupId: null,
+    })
+    return () => unregisterItem(itemId)
+  }, [itemId, rec.valueStr, registerItem, unregisterItem])
+
+  // open on programmatic request (keyboard)
+  React.useEffect(() => {
+    const node = itemRef.current
+    if (!node) return
+    const onOpen = () => {
+      sub.onOpenChange(true)
+      const tryFocus = (attempt = 0) => {
+        const content = sub.contentRef.current as HTMLElement | null
+        if (content) {
+          const surfaceId = content.dataset.surfaceId
+          if (surfaceId) setOwnerId(surfaceId)
+          const { input, list } = findWidgetsWithinSurface(content)
+          ;(input ?? list)?.focus()
+          return
+        }
+        if (attempt < 5) requestAnimationFrame(() => tryFocus(attempt + 1))
+      }
+      requestAnimationFrame(() => tryFocus())
+    }
+    node.addEventListener('actionmenu-open-sub', onOpen as any)
+    return () => node.removeEventListener('actionmenu-open-sub', onOpen as any)
+  }, [sub, setOwnerId])
+
+  // RowCtx with invalidation for surfaced row
+  useRowSubscription(itemId)
+  const invalidate = useRowInvalidator(itemId)
+  const parentRow = React.useContext(RowCtx)
+  const row: RowCtx = React.useMemo(
+    () => ({
+      mode: parentRow?.mode ?? 'search',
+      breadcrumbs: parentRow?.breadcrumbs ?? [],
+      query: parentRow?.query ?? '',
+      score: parentRow?.score ?? 0,
+      focused,
+      disabled: false,
+      invalidate,
+    }),
+    [
+      parentRow?.mode,
+      parentRow?.breadcrumbs?.join('>'),
+      parentRow?.query,
+      parentRow?.score,
+      focused,
+      invalidate,
+    ],
+  )
+
+  return (
+    <Popper.Anchor asChild>
+      <Primitive.div
+        ref={composeRefs(composedRef, sub.triggerRef as any)}
+        role="option"
+        data-slot="action-menu-deep-subtrigger"
+        data-role="option"
+        data-subtrigger="true"
+        aria-selected={focused || undefined}
+        aria-haspopup="menu"
+        aria-expanded={sub.open || undefined}
+        action-menu-option
+        className={className}
+        data-action-menu-item-id={itemId}
+        data-focused={focused ? 'true' : 'false'}
+        hidden={!visible}
+        tabIndex={-1}
+        id={itemId}
+        onMouseEnter={() => {
+          sub.onOpenChange(true)
+          if (!focused) setActiveId(itemId)
+        }}
+        onPointerDown={(e: any) => {
+          if (e.button === 0 && e.ctrlKey === false) {
+            sub.onOpenToggle()
+            e.preventDefault()
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            sub.onOpenToggle()
+          }
+        }}
+        onMouseMove={() => {
+          if (!focused) setActiveId(itemId)
+        }}
+      >
+        <RowCtx.Provider value={row}>{children}</RowCtx.Provider>
+      </Primitive.div>
+    </Popper.Anchor>
+  )
+})
+DeepSubTrigger.displayName = 'ActionMenu.DeepSubTrigger'
+
+/* ================================================================================================
+ * SubContent
+ * ============================================================================================== */
 
 export interface ActionMenuSubContentProps extends Omit<DivProps, 'dir'> {
   dir?: Direction
@@ -2160,7 +2434,6 @@ export const SubContent = React.forwardRef<
     }, [attachSubContent, recId, title, providedScopeId])
 
     if (indexOnly) {
-      // Only render the indexing mirror so items & submenus get registered even when closed
       return (
         <ScopeProvider scopeId={scopeId} title={title}>
           <IndexingCtx.Provider value={true}>
@@ -2175,7 +2448,7 @@ export const SubContent = React.forwardRef<
                   pointerEvents: 'none',
                 }}
               >
-                {children}
+                <IndexRegistrar>{children}</IndexRegistrar>
               </Primitive.div>
             </NoopCollectionProvider>
           </IndexingCtx.Provider>
@@ -2206,9 +2479,11 @@ export const SubContent = React.forwardRef<
                   setOwnerId(surfaceId)
                 }}
               >
-                <CollectionCtx.Provider value={collectionValue}>
-                  {children}
-                </CollectionCtx.Provider>
+                <RowSignalsProvider>
+                  <CollectionCtx.Provider value={collectionValue}>
+                    {children}
+                  </CollectionCtx.Provider>
+                </RowSignalsProvider>
               </Primitive.div>
             </ScopeProvider>
           </KeyboardCtx.Provider>
@@ -2228,7 +2503,7 @@ export const SubContent = React.forwardRef<
                     pointerEvents: 'none',
                   }}
                 >
-                  {children}
+                  <IndexRegistrar>{children}</IndexRegistrar>
                 </Primitive.div>
               </NoopCollectionProvider>
             </IndexingCtx.Provider>
