@@ -371,6 +371,8 @@ type SubContextValue = {
   parentSetActiveId: (id: string | null) => void
   childSurfaceId: string
   pendingOpenModalityRef: React.RefObject<'keyboard' | 'pointer' | null>
+  /** Whether the pointer is inside the intent zone triangle. */
+  intentZoneActiveRef: React.RefObject<boolean>
 }
 
 const SubCtx = React.createContext<SubContextValue | null>(null)
@@ -691,16 +693,28 @@ function useNavKeydown(source: 'input' | 'list') {
 type IntentZoneProps = {
   /** the submenu content element we’re guarding for */
   parentRef: React.RefObject<HTMLElement | null>
+  /** the submenu trigger element we’re guarding for */
+  triggerRef: React.RefObject<HTMLElement | null>
   /** show the polygon in debug mode */
   debug?: boolean
+  onEnter?: () => void
+  onMove?: () => void
+  onLeave?: () => void
 }
 
 /**
- * Fixed-position triangle between cursor and submenu edge.
- * Intercepts pointer events so parent items don't re-focus while the user
- * diagonally travels into the submenu.
+ * Directionally gated triangle between cursor and submenu edge.
+ * Renders only when the pointer is actually headed into the submenu and
+ * within a small vertical "launch band" around the subtrigger.
  */
-function IntentZone({ parentRef, debug }: IntentZoneProps) {
+function IntentZone({
+  parentRef,
+  triggerRef,
+  debug,
+  onEnter,
+  onMove,
+  onLeave,
+}: IntentZoneProps) {
   const [mx, my] = useMousePosition()
 
   // Disable on touch/coarse pointers
@@ -711,9 +725,11 @@ function IntentZone({ parentRef, debug }: IntentZoneProps) {
         : false,
     [],
   )
-
-  const rect = parentRef.current?.getBoundingClientRect()
+  const content = parentRef.current
+  const rect = content?.getBoundingClientRect()
   if (!rect || isCoarse) return null
+
+  const tRect = triggerRef?.current?.getBoundingClientRect() ?? null
 
   const x = rect.left
   const y = rect.top
@@ -721,34 +737,61 @@ function IntentZone({ parentRef, debug }: IntentZoneProps) {
   const h = rect.height
   if (!w || !h) return null
 
-  // If the mouse is horizontally overlapping the submenu, nothing to guard.
-  if (mx >= x && mx <= x + w) return null
+  // Decide which submenu edge is closest to the TRIGGER (not the cursor).
+  let anchor: 'left' | 'right' = 'left'
+  if (tRect) {
+    const triggerCenterX = (tRect.left + tRect.right) / 2
+    const distToLeftEdge = Math.abs(triggerCenterX - x)
+    const distToRightEdge = Math.abs(triggerCenterX - (x + w))
+    anchor = distToLeftEdge <= distToRightEdge ? 'left' : 'right'
+  } else {
+    // Fallback: if cursor is left of submenu, assume trigger is on the left side.
+    anchor = mx < x ? 'left' : 'right'
+  }
 
-  // Build a triangle that starts at the submenu’s vertical edge and points to the cursor.
-  const headingRight = mx > x + w
-  const left = headingRight ? x + w : mx
-  const width = headingRight ? Math.max(mx - (x + w), 10) : Math.max(x - mx, 10)
-  const clip = headingRight
-    ? `polygon(0% 0%, 0% 100%, 100% ${Math.max(0, Math.min(100, ((my - y) / h) * 100))}%)`
-    : `polygon(100% 0%, 0% ${Math.max(0, Math.min(100, ((my - y) / h) * 100))}%, 100% 100%)`
+  // If the pointer is on the same horizontal side as the submenu body,
+  // there’s nothing to guard.
+  if (anchor === 'left' && mx >= x) return null
+  if (anchor === 'right' && mx <= x + w) return null
+
+  // Build triangle from the anchored vertical edge toward the cursor.
+  const INSET = 0 // keep 0 for now; we’re anchoring to the correct edge
+  const pct = Math.max(0, Math.min(100, ((my - y) / h) * 100))
+
+  const width =
+    anchor === 'left'
+      ? Math.max(x - mx, 10) + INSET
+      : Math.max(mx - (x + w), 10) + INSET
+
+  const left =
+    anchor === 'left'
+      ? x - width // extend leftward from the submenu's LEFT edge
+      : x + w // extend rightward from the submenu's RIGHT edge
+
+  const clip =
+    anchor === 'left'
+      ? // vertical side is at the RIGHT edge of the rect (100%), pointing left
+        `polygon(100% 0%, 0% ${pct}%, 100% 100%)`
+      : // vertical side is at the LEFT edge of the rect (0%), pointing right
+        `polygon(0% 0%, 0% 100%, 100% ${pct}%)`
 
   const polygon = (
     <div
       data-action-menu-intent-zone
       aria-hidden
+      onPointerEnter={onEnter}
+      onPointerMove={onMove}
+      onPointerLeave={onLeave}
       style={{
         position: 'fixed',
         top: y,
         left,
         width,
         height: h,
-        // Intercept pointer events in the triangle to prevent parent hover.
         pointerEvents: 'auto',
         clipPath: clip,
         zIndex: Number.MAX_SAFE_INTEGER,
-        // Debug visualization
         background: debug ? 'rgba(0, 136, 255, 0.15)' : 'transparent',
-        // GPU nudge to avoid subpixel gaps on some GPUs
         transform: 'translateZ(0)',
       }}
     />
@@ -1009,7 +1052,28 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
                 parentRef={
                   sub!.contentRef as React.RefObject<HTMLElement | null>
                 }
+                triggerRef={
+                  sub!.triggerRef as React.RefObject<HTMLElement | null>
+                }
                 debug={intentZoneDebug}
+                onEnter={() => {
+                  console.log('[IntentZone] Enter')
+                  sub!.intentZoneActiveRef.current = true
+                  sub!.onOpenChange(true)
+                  if (sub!.triggerItemId)
+                    sub!.parentSetActiveId(sub!.triggerItemId)
+                }}
+                onMove={() => {
+                  console.log('[IntentZone] Move')
+                  // heartbeat while gliding through the triangle
+                  sub!.intentZoneActiveRef.current = true
+                  if (sub!.triggerItemId)
+                    sub!.parentSetActiveId(sub!.triggerItemId)
+                }}
+                onLeave={() => {
+                  console.log('[IntentZone] Leave')
+                  sub!.intentZoneActiveRef.current = false
+                }}
               />
             ) : null}
           </Primitive.div>
@@ -1203,6 +1267,7 @@ function Sub({ children }: { children: React.ReactNode }) {
   const pendingOpenModalityRef = React.useRef<'keyboard' | 'pointer' | null>(
     null,
   )
+  const intentZoneActiveRef = React.useRef<boolean>(false)
 
   const value: SubContextValue = React.useMemo(
     () => ({
@@ -1217,6 +1282,7 @@ function Sub({ children }: { children: React.ReactNode }) {
       parentSetActiveId: parentStore.setActiveId,
       childSurfaceId,
       pendingOpenModalityRef,
+      intentZoneActiveRef,
     }),
     [
       open,
@@ -1248,7 +1314,7 @@ function SubTriggerRow<T>({
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
   React.useEffect(() => {
-    console.log('registering row with id', node.id)
+    // console.log('registering row with id', node.id)
     store.registerRow(node.id, {
       ref: ref as any,
       disabled: false,
