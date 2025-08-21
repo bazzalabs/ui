@@ -7,6 +7,9 @@ import { Presence } from '@radix-ui/react-presence'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
+import { createPortal } from 'react-dom'
+
+const DEBUG_MODE = true
 
 /* =========================================================================== */
 /* ============================ Data model (generic) ========================== */
@@ -249,6 +252,16 @@ function findWidgetsWithinSurface(surface: HTMLElement | null) {
   const list =
     surface?.querySelector<HTMLElement>('[data-action-menu-list]') ?? null
   return { input, list }
+}
+
+function useMousePosition(): [number, number] {
+  const [pos, setPos] = React.useState<[number, number]>([0, 0])
+  React.useEffect(() => {
+    const onMove = (e: PointerEvent) => setPos([e.clientX, e.clientY])
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+  return pos
 }
 
 /* ================================================================================================
@@ -675,6 +688,75 @@ function useNavKeydown(source: 'input' | 'list') {
   )
 }
 
+type IntentZoneProps = {
+  /** the submenu content element we’re guarding for */
+  parentRef: React.RefObject<HTMLElement | null>
+  /** show the polygon in debug mode */
+  debug?: boolean
+}
+
+/**
+ * Fixed-position triangle between cursor and submenu edge.
+ * Intercepts pointer events so parent items don't re-focus while the user
+ * diagonally travels into the submenu.
+ */
+function IntentZone({ parentRef, debug }: IntentZoneProps) {
+  const [mx, my] = useMousePosition()
+
+  // Disable on touch/coarse pointers
+  const isCoarse = React.useMemo(
+    () =>
+      typeof window !== 'undefined'
+        ? matchMedia('(pointer: coarse)').matches
+        : false,
+    [],
+  )
+
+  const rect = parentRef.current?.getBoundingClientRect()
+  if (!rect || isCoarse) return null
+
+  const x = rect.left
+  const y = rect.top
+  const w = rect.width
+  const h = rect.height
+  if (!w || !h) return null
+
+  // If the mouse is horizontally overlapping the submenu, nothing to guard.
+  if (mx >= x && mx <= x + w) return null
+
+  // Build a triangle that starts at the submenu’s vertical edge and points to the cursor.
+  const headingRight = mx > x + w
+  const left = headingRight ? x + w : mx
+  const width = headingRight ? Math.max(mx - (x + w), 10) : Math.max(x - mx, 10)
+  const clip = headingRight
+    ? `polygon(0% 0%, 0% 100%, 100% ${Math.max(0, Math.min(100, ((my - y) / h) * 100))}%)`
+    : `polygon(100% 0%, 0% ${Math.max(0, Math.min(100, ((my - y) / h) * 100))}%, 100% 100%)`
+
+  const polygon = (
+    <div
+      data-action-menu-intent-zone
+      aria-hidden
+      style={{
+        position: 'fixed',
+        top: y,
+        left,
+        width,
+        height: h,
+        // Intercept pointer events in the triangle to prevent parent hover.
+        pointerEvents: 'auto',
+        clipPath: clip,
+        zIndex: Number.MAX_SAFE_INTEGER,
+        // Debug visualization
+        background: debug ? 'rgba(0, 136, 255, 0.15)' : 'transparent',
+        // GPU nudge to avoid subpixel gaps on some GPUs
+        transform: 'translateZ(0)',
+      }}
+    />
+  )
+
+  return createPortal(polygon, document.body)
+}
+
 /* ================================================================================================
  * Root
  * ============================================================================================== */
@@ -793,6 +875,10 @@ export interface ActionMenuPositionerProps {
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
   /** Root-only: keep menu open when clicking the trigger/anchor unless true */
   closeOnAnchorPointerDown?: boolean
+  /** Enable diagonal-intent guard for submenus (safe polygon). */
+  intentZone?: boolean
+  /** Show the intent zone triangle for debugging. */
+  intentZoneDebug?: boolean
 }
 
 export const Positioner: React.FC<ActionMenuPositionerProps> = ({
@@ -804,10 +890,12 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   avoidCollisions = true,
   collisionPadding = 8,
   closeOnAnchorPointerDown = true,
+  intentZone = true,
+  intentZoneDebug = DEBUG_MODE,
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
-  const { ownerId, setOwnerId } = React.useContext(FocusOwnerCtx)!
+  const { setOwnerId } = React.useContext(FocusOwnerCtx)!
 
   const isSub = !!sub
   const present = isSub ? sub!.open : root.open
@@ -856,7 +944,6 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
         alignOffset={alignOffset}
         avoidCollisions={avoidCollisions}
         collisionPadding={collisionPadding}
-        asChild
       >
         <DismissableLayer
           onEscapeKeyDown={close}
@@ -867,6 +954,16 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
               ? (event) => {
                   const target = event.target as Node | null
                   const trigger = sub!.triggerRef.current
+
+                  // Treat pointer in the intent-zone as inside (don’t dismiss).
+                  if (
+                    target instanceof Element &&
+                    target.closest?.('[data-action-menu-intent-zone]')
+                  ) {
+                    event.preventDefault()
+                    return
+                  }
+
                   // Opening via hover or click means the pointer/focus is still on the trigger.
                   // Treat interactions on the trigger as *inside* to avoid instant dismiss.
                   if (trigger && target && trigger.contains(target)) {
@@ -903,9 +1000,19 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
                 }
               : undefined
           }
-          asChild
         >
-          {children}
+          <Primitive.div style={{ position: 'relative' }}>
+            {children}
+            {/* Safe polygon overlay only for open submenus */}
+            {isSub && present && intentZone ? (
+              <IntentZone
+                parentRef={
+                  sub!.contentRef as React.RefObject<HTMLElement | null>
+                }
+                debug={intentZoneDebug}
+              />
+            ) : null}
+          </Primitive.div>
         </DismissableLayer>
       </Popper.Content>
     </Presence>
