@@ -76,9 +76,10 @@ export type GroupNode<T = unknown> = BaseNode<'group'> & {
 }
 
 /** Submenu whose children can have a *different* payload shape `TChild` */
-export type SubmenuNode<TChild = unknown> = BaseNode<'submenu'> &
+export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
   Searchable &
   Renderable & {
+    data?: T
     title?: string
     nodes: MenuNode<TChild>[]
   }
