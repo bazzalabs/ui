@@ -317,11 +317,8 @@ function dispatch(node: HTMLElement | null | undefined, type: string) {
 }
 
 function openSubmenuForActive(activeId: string | null) {
-  console.log('called openSubmenuForActive', activeId)
-
   const el = activeId ? document.getElementById(activeId) : null
   if (el && (el as HTMLElement).dataset.subtrigger === 'true') {
-    console.log('dispatching open-sub')
     dispatch(el, OPEN_SUB_EVENT)
   }
 }
@@ -360,6 +357,7 @@ type SubContextValue = {
   setTriggerItemId: (id: string | null) => void
   parentSetActiveId: (id: string | null) => void
   childSurfaceId: string
+  pendingOpenModalityRef: React.RefObject<'keyboard' | 'pointer' | null>
 }
 
 const SubCtx = React.createContext<SubContextValue | null>(null)
@@ -451,8 +449,6 @@ function createSurfaceStore(): SurfaceStore {
   const setActiveId = (id: string | null) => {
     if (Object.is(state.activeId, id)) return
     state.activeId = id
-
-    console.log('setting active id to', id)
 
     // Single-open submenu policy — close any submenu whose trigger isn’t active
     for (const [rid, rec] of rows) {
@@ -548,6 +544,12 @@ const useSurface = () => {
   return ctx
 }
 
+const HoverPolicyCtx = React.createContext({
+  suppressHoverOpen: false,
+  clearSuppression: () => {},
+})
+const useHoverPolicy = () => React.useContext(HoverPolicyCtx)
+
 /* ================================================================================================
  * Keyboard handling shared by Input/List
  * ============================================================================================== */
@@ -562,14 +564,10 @@ function useNavKeydown(source: 'input' | 'list') {
 
   return React.useCallback(
     (e: React.KeyboardEvent) => {
-      console.log('called keyboard nav')
-
       // Only the focus-owning surface handles keys.
       if (ownerId && ownerId !== surfaceId) return
 
       const k = e.key
-
-      console.log('handling key', k)
 
       const stop = () => {
         e.preventDefault()
@@ -841,8 +839,6 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
       const content = sub!.contentRef.current as HTMLElement | null
       if (content) {
         const { input, list } = findWidgetsWithinSurface(content)
-        console.log('here!', isSub)
-
         ;(input ?? list)?.focus()
         return
       }
@@ -937,6 +933,7 @@ export interface ActionMenuContentProps<T = unknown>
 type ActionMenuContentInternalProps<T = unknown> = ActionMenuContentProps<T> & {
   /** internal: allows SubmenuContent to pin the child surface id */
   surfaceIdProp?: string
+  suppressHoverOpenOnMount?: boolean
 }
 
 /** Internal generic base so `createActionMenu<T>()` can close over `T` */
@@ -948,6 +945,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     vimBindings = true,
     dir: dirProp,
     surfaceIdProp,
+    suppressHoverOpenOnMount,
     ...props
   }: ActionMenuContentInternalProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>,
@@ -1001,6 +999,13 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     return () => cancelAnimationFrame(id)
   }, [root.open, isOwner, store.inputRef, store.listRef])
 
+  const [suppressHoverOpen, setSuppressHoverOpen] = React.useState(
+    !!suppressHoverOpenOnMount,
+  )
+  const clearSuppression = React.useCallback(() => {
+    if (suppressHoverOpen) setSuppressHoverOpen(false)
+  }, [suppressHoverOpen])
+
   const baseContentProps = React.useMemo(
     () =>
       ({
@@ -1012,13 +1017,14 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         'data-action-menu-surface': true as const,
         'data-surface-id': surfaceId,
         onMouseMove: (e: React.MouseEvent) => {
+          clearSuppression()
           const rect = surfaceRef.current?.getBoundingClientRect()
           if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
           setOwnerId(surfaceId)
         },
         ...props,
       }) as const,
-    [composedRef, root.open, surfaceId, setOwnerId, props],
+    [composedRef, root.open, clearSuppression, surfaceId, setOwnerId, props],
   )
 
   const contentBind: ContentBindAPI = {
@@ -1057,7 +1063,13 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 
   return (
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-      <SurfaceIdCtx.Provider value={surfaceId}>{wrapped}</SurfaceIdCtx.Provider>
+      <SurfaceIdCtx.Provider value={surfaceId}>
+        <HoverPolicyCtx.Provider
+          value={{ suppressHoverOpen, clearSuppression }}
+        >
+          {wrapped}
+        </HoverPolicyCtx.Provider>
+      </SurfaceIdCtx.Provider>
     </KeyboardCtx.Provider>
   )
 }) as <T>(
@@ -1081,6 +1093,9 @@ function Sub({ children }: { children: React.ReactNode }) {
   const parentSurfaceId = useSurfaceId() || 'root'
   const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
   const childSurfaceId = React.useId()
+  const pendingOpenModalityRef = React.useRef<'keyboard' | 'pointer' | null>(
+    null,
+  )
 
   const value: SubContextValue = React.useMemo(
     () => ({
@@ -1094,6 +1109,7 @@ function Sub({ children }: { children: React.ReactNode }) {
       setTriggerItemId,
       parentSetActiveId: parentStore.setActiveId,
       childSurfaceId,
+      pendingOpenModalityRef,
     }),
     [
       open,
@@ -1120,6 +1136,7 @@ function SubTriggerRow<T>({
 }) {
   const store = useSurface()
   const sub = useSubCtx()!
+  const { suppressHoverOpen } = useHoverPolicy()
   const ref = React.useRef<HTMLElement | null>(null)
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
@@ -1140,6 +1157,7 @@ function SubTriggerRow<T>({
     const nodeEl = ref.current
     if (!nodeEl) return
     const onOpen = () => {
+      sub.pendingOpenModalityRef.current = 'keyboard'
       sub.onOpenChange(true)
       // Move focus down into the child surface’s first focusable (input or list)
       const tryFocus = (attempt = 0) => {
@@ -1170,20 +1188,6 @@ function SubTriggerRow<T>({
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === node.id
 
-  React.useEffect(() => {
-    console.log(
-      JSON.stringify(
-        {
-          'node.id': node.id,
-          activeId,
-          focused,
-        },
-        null,
-        '\t',
-      ),
-    )
-  }, [activeId])
-
   const baseRowProps = React.useMemo(
     () =>
       ({
@@ -1199,16 +1203,16 @@ function SubTriggerRow<T>({
         onPointerDown: (e: React.PointerEvent) => {
           if (e.button === 0 && e.ctrlKey === false) {
             e.preventDefault()
+            sub.pendingOpenModalityRef.current = 'pointer'
             sub.onOpenToggle()
           }
         },
         onMouseMove: () => {
-          console.log('mouse move on', node.id)
           if (!focused) store.setActiveId(node.id)
         },
         onMouseEnter: () => {
-          sub.onOpenChange(true)
           if (!focused) store.setActiveId(node.id)
+          if (!suppressHoverOpen) sub.onOpenChange(true)
         },
       }) as const,
     [node.id, focused, store, sub],
@@ -1243,12 +1247,19 @@ function SubmenuContent<T>({
   renderers: Renderers<T>
 }) {
   const sub = useSubCtx()!
+  const suppressHover = sub.pendingOpenModalityRef.current === 'keyboard'
+
+  React.useEffect(() => {
+    sub.pendingOpenModalityRef.current = null // reset after we consume it
+  }, [sub])
+
   // Compose our content ref into the surface container to let Positioner focus it
   const content = (
     <ContentBase<T>
       menu={menu}
       renderers={renderers as any}
       surfaceIdProp={sub.childSurfaceId}
+      suppressHoverOpenOnMount={suppressHover}
     />
   )
 
