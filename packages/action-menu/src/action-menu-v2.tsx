@@ -307,6 +307,26 @@ const KeyboardCtx = React.createContext<KeyboardOptions>({
 const useKeyboardOpts = () => React.useContext(KeyboardCtx)
 
 /* ================================================================================================
+ * Custom events (open submenu)
+ * ============================================================================================== */
+const OPEN_SUB_EVENT = 'actionmenu-open-sub' as const
+
+function dispatch(node: HTMLElement | null | undefined, type: string) {
+  if (!node) return
+  node.dispatchEvent(new CustomEvent(type, { bubbles: true }))
+}
+
+function openSubmenuForActive(activeId: string | null) {
+  console.log('called openSubmenuForActive', activeId)
+
+  const el = activeId ? document.getElementById(activeId) : null
+  if (el && (el as HTMLElement).dataset.subtrigger === 'true') {
+    console.log('dispatching open-sub')
+    dispatch(el, OPEN_SUB_EVENT)
+  }
+}
+
+/* ================================================================================================
  * Root-level context (open state + anchor)
  * ============================================================================================== */
 
@@ -393,7 +413,6 @@ type SurfaceStore = {
   last(): void
   next(): void
   prev(): void
-  clickActive(): void
 
   readonly rows: Map<string, RowRecord>
   readonly inputRef: React.RefObject<HTMLInputElement | null>
@@ -430,8 +449,19 @@ function createSurfaceStore(): SurfaceStore {
   }
 
   const setActiveId = (id: string | null) => {
-    console.log('setActiveId to', id)
+    if (Object.is(state.activeId, id)) return
     state.activeId = id
+
+    console.log('setting active id to', id)
+
+    // Single-open submenu policy — close any submenu whose trigger isn’t active
+    for (const [rid, rec] of rows) {
+      if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
+        try {
+          rec.closeSub()
+        } catch {}
+      }
+    }
     emit()
     // scroll into view if possible
     const el = id ? rows.get(id)?.ref.current : null
@@ -469,12 +499,6 @@ function createSurfaceStore(): SurfaceStore {
     setActiveId(order[p]!)
   }
 
-  const clickActive = () => {
-    const id = state.activeId
-    if (!id) return
-    rows.get(id)?.ref.current?.click()
-  }
-
   return {
     subscribe(cb) {
       listeners.add(cb)
@@ -506,7 +530,6 @@ function createSurfaceStore(): SurfaceStore {
     last,
     next,
     prev,
-    clickActive,
     rows,
     inputRef,
     listRef,
@@ -533,20 +556,35 @@ function useNavKeydown(source: 'input' | 'list') {
   const store = useSurface()
   const root = useRootCtx()
   const sub = useSubCtx()
+  const surfaceId = useSurfaceId() || 'root'
+  const { ownerId, setOwnerId } = useFocusOwner()
   const { dir, vimBindings } = useKeyboardOpts()
 
   return React.useCallback(
     (e: React.KeyboardEvent) => {
+      console.log('called keyboard nav')
+
+      // Only the focus-owning surface handles keys.
+      if (ownerId && ownerId !== surfaceId) return
+
       const k = e.key
+
+      console.log('handling key', k)
+
+      const stop = () => {
+        e.preventDefault()
+        e.stopPropagation()
+      }
 
       // Vim binds
       if (vimBindings) {
         if (isVimNext(e)) {
-          e.preventDefault()
+          stop()
           store.next()
           return
         }
         if (isVimPrev(e)) {
+          stop()
           e.preventDefault()
           store.prev()
           return
@@ -555,40 +593,44 @@ function useNavKeydown(source: 'input' | 'list') {
 
       // Trap focus in the surface
       if (k === 'Tab') {
-        e.preventDefault()
+        stop()
         return
       }
 
       if (k === 'ArrowDown') {
-        e.preventDefault()
+        stop()
         store.next()
         return
       }
       if (k === 'ArrowUp') {
-        e.preventDefault()
+        stop()
         store.prev()
         return
       }
       if (k === 'Home' || k === 'PageUp') {
-        e.preventDefault()
+        stop()
         store.first()
         return
       }
       if (k === 'End' || k === 'PageDown') {
-        e.preventDefault()
+        stop()
         store.last()
         return
       }
 
       // Open / Select
       if (isOpenKey(dir, k)) {
-        e.preventDefault()
-        const id = store.snapshot().activeId
-        const rec = id ? store.rows.get(id) : undefined
-        if (rec?.kind === 'submenu' && rec.openSub) {
-          rec.openSub()
-        } else if (isSelectionKey(k)) {
-          store.clickActive()
+        stop()
+        const activeId = store.snapshot().activeId
+        if (isSelectionKey(k)) {
+          // Enter on a subtrigger opens the submenu; otherwise select
+          const el = activeId ? document.getElementById(activeId) : null
+          if (el && el.dataset.subtrigger === 'true') {
+            openSubmenuForActive(activeId)
+          }
+        } else {
+          // ArrowRight (LTR) / ArrowLeft (RTL)
+          openSubmenuForActive(activeId)
         }
         return
       }
@@ -596,7 +638,8 @@ function useNavKeydown(source: 'input' | 'list') {
       // Close / Back (for submenu surfaces)
       if (isCloseKey(dir, k)) {
         if (sub) {
-          e.preventDefault()
+          stop()
+          setOwnerId(sub.parentSurfaceId)
           sub.onOpenChange(false)
           sub.parentSetActiveId(sub.triggerItemId)
           const parentEl = document.querySelector<HTMLElement>(
@@ -611,19 +654,17 @@ function useNavKeydown(source: 'input' | 'list') {
       }
 
       if (k === 'Enter') {
-        e.preventDefault()
-        const id = store.snapshot().activeId
-        const rec = id ? store.rows.get(id) : undefined
-        if (rec?.kind === 'submenu' && rec.openSub) {
-          rec.openSub()
-        } else {
-          store.clickActive()
+        stop()
+        const activeId = store.snapshot().activeId
+        const el = activeId ? document.getElementById(activeId) : null
+        if (el && el.dataset.subtrigger === 'true') {
+          openSubmenuForActive(activeId)
         }
         return
       }
 
       if (k === 'Escape') {
-        e.preventDefault()
+        stop()
         if (sub) {
           sub.onOpenChange(false)
           return
@@ -632,7 +673,7 @@ function useNavKeydown(source: 'input' | 'list') {
         return
       }
     },
-    [store, root, sub, dir, vimBindings],
+    [store, root, sub, dir, vimBindings, ownerId, setOwnerId, surfaceId],
   )
 }
 
@@ -800,6 +841,8 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
       const content = sub!.contentRef.current as HTMLElement | null
       if (content) {
         const { input, list } = findWidgetsWithinSurface(content)
+        console.log('here!', isSub)
+
         ;(input ?? list)?.focus()
         return
       }
@@ -1039,25 +1082,6 @@ function Sub({ children }: { children: React.ReactNode }) {
   const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
   const childSurfaceId = React.useId()
 
-  const parentActiveId = useSurfaceSel(parentStore, (s) => s.activeId)
-  React.useEffect(() => {
-    console.log(
-      JSON.stringify(
-        {
-          surfaceId: childSurfaceId,
-          open,
-          triggerItemId,
-          parentActiveId,
-        },
-        null,
-        '\t',
-      ),
-    )
-    if (!open) return
-    if (!triggerItemId) return
-    if (parentActiveId !== triggerItemId) setOpen(false)
-  }, [open, triggerItemId, parentActiveId])
-
   const value: SubContextValue = React.useMemo(
     () => ({
       open,
@@ -1100,6 +1124,7 @@ function SubTriggerRow<T>({
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
   React.useEffect(() => {
+    console.log('registering row with id', node.id)
     store.registerRow(node.id, {
       ref: ref as any,
       disabled: false,
@@ -1108,7 +1133,30 @@ function SubTriggerRow<T>({
       closeSub: () => sub.onOpenChange(false),
     })
     return () => store.unregisterRow(node.id)
-  }, [store, node.id, sub])
+  }, [store, node.id])
+
+  // Open on custom event from the parent surface (old behavior)
+  React.useEffect(() => {
+    const nodeEl = ref.current
+    if (!nodeEl) return
+    const onOpen = () => {
+      sub.onOpenChange(true)
+      // Move focus down into the child surface’s first focusable (input or list)
+      const tryFocus = (attempt = 0) => {
+        const content = sub.contentRef.current as HTMLElement | null
+        if (content) {
+          const { input, list } = findWidgetsWithinSurface(content)
+          ;(input ?? list)?.focus()
+          return
+        }
+        if (attempt < 5) requestAnimationFrame(() => tryFocus(attempt + 1))
+      }
+      requestAnimationFrame(() => tryFocus())
+    }
+    nodeEl.addEventListener(OPEN_SUB_EVENT, onOpen as EventListener)
+    return () =>
+      nodeEl.removeEventListener(OPEN_SUB_EVENT, onOpen as EventListener)
+  }, [sub])
 
   // Track which parent row opened the submenu so we can return focus on close
   React.useEffect(() => {
@@ -1122,6 +1170,20 @@ function SubTriggerRow<T>({
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === node.id
 
+  React.useEffect(() => {
+    console.log(
+      JSON.stringify(
+        {
+          'node.id': node.id,
+          activeId,
+          focused,
+        },
+        null,
+        '\t',
+      ),
+    )
+  }, [activeId])
+
   const baseRowProps = React.useMemo(
     () =>
       ({
@@ -1130,8 +1192,8 @@ function SubTriggerRow<T>({
         role: 'option' as const,
         tabIndex: -1,
         'data-action-menu-item-id': node.id,
-        'data-focused': focused ? ('true' as const) : undefined,
-        'aria-selected': focused || undefined,
+        'data-focused': focused,
+        'aria-selected': focused,
         'aria-disabled': false,
         'data-subtrigger': 'true',
         onPointerDown: (e: React.PointerEvent) => {
@@ -1141,17 +1203,12 @@ function SubTriggerRow<T>({
           }
         },
         onMouseMove: () => {
+          console.log('mouse move on', node.id)
           if (!focused) store.setActiveId(node.id)
         },
         onMouseEnter: () => {
           sub.onOpenChange(true)
           if (!focused) store.setActiveId(node.id)
-        },
-        onKeyDown: (e: React.KeyboardEvent) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            sub.onOpenToggle()
-          }
         },
       }) as const,
     [node.id, focused, store, sub],
@@ -1315,8 +1372,8 @@ function ItemRow<T>({
         role: 'option' as const,
         tabIndex: -1,
         'data-action-menu-item-id': node.id,
-        'data-focused': focused ? ('true' as const) : undefined,
-        'aria-selected': focused || undefined,
+        'data-focused': focused,
+        'aria-selected': focused,
         'aria-disabled': false,
         onPointerDown: (e: React.PointerEvent) => {
           // keep click semantics predictable

@@ -301,31 +301,55 @@ const projectStatusMenu: SubmenuNode = {
       kind: 'item',
       id: 'failed',
       label: 'Failed',
+      data: {
+        value: 'failed',
+        label: 'Failed',
+      },
     },
     {
       kind: 'item',
       id: 'backlog',
       label: 'Backlog',
+      data: {
+        value: 'backlog',
+        label: 'Backlog',
+      },
     },
     {
       kind: 'item',
       id: 'planned',
       label: 'Planned',
+      data: {
+        value: 'planned',
+        label: 'Planned',
+      },
     },
     {
       kind: 'item',
       id: 'in-progress',
       label: 'In Progress',
+      data: {
+        value: 'in-progress',
+        label: 'In Progress',
+      },
     },
     {
       kind: 'item',
       id: 'completed',
       label: 'Completed',
+      data: {
+        value: 'completed',
+        label: 'Completed',
+      },
     },
     {
       kind: 'item',
       id: 'canceled',
       label: 'Canceled',
+      data: {
+        value: 'canceled',
+        label: 'Canceled',
+      },
     },
   ],
 }
