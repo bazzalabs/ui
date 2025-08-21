@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
+/** biome-ignore-all lint/a11y/useSemanticElements: This library renders ARIA-only primitives intentionally. */
 import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import { DismissableLayer } from '@radix-ui/react-dismissable-layer'
@@ -73,14 +73,11 @@ type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.button>
 
 export type RowBindAPI = {
-  /** Whether our internal focus thinks this row is focused (basic for now) */
+  /** Whether our internal focus thinks this row is focused (fake focus) */
   focused: boolean
   /** Basic disabled flag (not wired yet in this proto) */
   disabled: boolean
-  /**
-   * Returns our fully-wired props (role, ids, data-*, and base handlers).
-   * Your props are composed *after* ours.
-   */
+  /** Returns fully-wired props (role, ids, data-*, handlers). */
   getRowProps: <T extends React.HTMLAttributes<HTMLElement>>(
     overrides?: T,
   ) => T & {
@@ -96,10 +93,7 @@ export type RowBindAPI = {
 }
 
 export type ContentBindAPI = {
-  /**
-   * Returns our menu-surface props (role, ids, data-*, etc.).
-   * Your props are composed *after* ours.
-   */
+  /** Returns menu-surface props (role, ids, data-*, etc.). */
   getContentProps: <T extends React.HTMLAttributes<HTMLElement>>(
     overrides?: T,
   ) => T & {
@@ -113,21 +107,56 @@ export type ContentBindAPI = {
   }
 }
 
+export type InputBindAPI = {
+  /** Returns wired input props; carries `aria-activedescendant` & handlers. */
+  getInputProps: <T extends React.InputHTMLAttributes<HTMLInputElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.Ref<any>
+    role: 'combobox'
+    'data-slot': 'action-menu-input'
+    'data-action-menu-input': true
+    'aria-autocomplete': 'list'
+    'aria-expanded': true
+    'aria-controls'?: string
+    'aria-activedescendant'?: string
+  }
+}
+
+export type ListBindAPI = {
+  /** Returns wired list props; acts as fallback focus owner when no Input. */
+  getListProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.Ref<any>
+    role: 'listbox'
+    id: string
+    tabIndex: number
+    'data-slot': 'action-menu-list'
+    'data-action-menu-list': true
+    'aria-activedescendant'?: string
+  }
+}
+
 export type Renderers<T = unknown> = {
-  /**
-   * Item renderer for nodes with payload `T`.
-   * Use `bind.getRowProps()` to opt-in to handling the row element yourself.
-   * If you *don't* call it, we'll auto-wrap your JSX with a wired row.
-   */
+  /** Item renderer for nodes with payload `T`. */
   item: (args: { node: ItemNode<T>; bind: RowBindAPI }) => React.ReactNode
-  /**
-   * Content renderer for a surface whose items use payload `T`.
-   * Use `bind.getContentProps()` to own the surface element; otherwise we auto-wrap.
-   */
+  /** Content renderer for a surface whose items use payload `T`. */
   content: (args: {
     menu: MenuData<T>
     children: React.ReactNode
     bind: ContentBindAPI
+  }) => React.ReactNode
+  /** Input renderer for the surface. */
+  input: (args: {
+    value: string
+    onChange: (v: string) => void
+    bind: InputBindAPI
+  }) => React.ReactNode
+  /** List renderer that wraps all rows. */
+  list: (args: {
+    children: React.ReactNode
+    bind: ListBindAPI
   }) => React.ReactNode
 }
 
@@ -141,6 +170,10 @@ function defaultRenderers<T>(): Renderers<T> {
         <span>{node.label ?? String(node.id)}</span>
       ),
     content: ({ children }) => <>{children}</>,
+    input: ({ value, onChange }) => (
+      <input value={value} onChange={(e) => onChange(e.target.value)} />
+    ),
+    list: ({ children }) => <div>{children}</div>,
   }
 }
 
@@ -200,6 +233,61 @@ function isInBounds(x: number, y: number, rect: DOMRect) {
 }
 
 /* ================================================================================================
+ * Keyboard helpers
+ * ============================================================================================== */
+
+export type Direction = 'ltr' | 'rtl'
+
+export const SELECTION_KEYS = ['Enter'] as const
+export const FIRST_KEYS = ['ArrowDown', 'PageUp', 'Home'] as const
+export const LAST_KEYS = ['ArrowUp', 'PageDown', 'End'] as const
+
+export const SUB_OPEN_KEYS: Record<Direction, readonly string[]> = {
+  ltr: [...SELECTION_KEYS, 'ArrowRight'],
+  rtl: [...SELECTION_KEYS, 'ArrowLeft'],
+}
+export const SUB_CLOSE_KEYS: Record<Direction, readonly string[]> = {
+  ltr: ['ArrowLeft'],
+  rtl: ['ArrowRight'],
+}
+
+export const isSelectionKey = (k: string) =>
+  (SELECTION_KEYS as readonly string[]).includes(k)
+export const isFirstKey = (k: string) =>
+  (FIRST_KEYS as readonly string[]).includes(k)
+export const isLastKey = (k: string) =>
+  (LAST_KEYS as readonly string[]).includes(k)
+export const isOpenKey = (dir: Direction, k: string) =>
+  SUB_OPEN_KEYS[dir].includes(k)
+export const isCloseKey = (dir: Direction, k: string) =>
+  SUB_CLOSE_KEYS[dir].includes(k)
+
+export const isVimNext = (e: React.KeyboardEvent) =>
+  e.ctrlKey && (e.key === 'n' || e.key === 'j')
+export const isVimPrev = (e: React.KeyboardEvent) =>
+  e.ctrlKey && (e.key === 'p' || e.key === 'k')
+
+export const getDir = (explicit?: Direction): Direction => {
+  if (explicit) return explicit
+  if (typeof document !== 'undefined') {
+    const d = document?.dir?.toLowerCase()
+    if (d === 'rtl' || d === 'ltr') return d as Direction
+  }
+  return 'ltr'
+}
+
+/* ================================================================================================
+ * Keywobard context
+ * ============================================================================================== */
+
+type KeyboardOptions = { dir: Direction; vimBindings: boolean }
+const KeyboardCtx = React.createContext<KeyboardOptions>({
+  dir: 'ltr',
+  vimBindings: true,
+})
+const useKeyboardOpts = () => React.useContext(KeyboardCtx)
+
+/* ================================================================================================
  * Root-level context (open state + anchor)
  * ============================================================================================== */
 
@@ -220,25 +308,6 @@ const useRootCtx = () => {
 }
 
 /* ================================================================================================
- * Submenu context (reserved for later)
- * ============================================================================================== */
-
-type SubContextValue = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onOpenToggle: () => void
-  triggerRef: React.RefObject<HTMLDivElement | HTMLButtonElement | null>
-  contentRef: React.RefObject<HTMLDivElement | null>
-  parentSurfaceId: string
-  triggerItemId: string | null
-  setTriggerItemId: (id: string | null) => void
-  parentSetActiveId: (id: string | null) => void
-  childSurfaceId: string
-  ownerScopeId: string
-}
-const SubCtx = React.createContext<SubContextValue | null>(null)
-
-/* ================================================================================================
  * Focus context -- which surface owns the real DOM focus
  * ============================================================================================== */
 
@@ -251,6 +320,254 @@ const useFocusOwner = () => {
   const ctx = React.useContext(FocusOwnerCtx)
   if (!ctx) throw new Error('FocusOwnerCtx missing')
   return ctx
+}
+
+/* ================================================================================================
+ * Surface store (per Content) — roving focus & registration
+ * ============================================================================================== */
+
+type SurfaceState = {
+  activeId: string | null
+  hasInput: boolean
+  listId: string | null
+}
+
+type RowRecord = {
+  ref: React.RefObject<HTMLElement>
+  disabled?: boolean
+}
+
+type SurfaceStore = {
+  subscribe(cb: () => void): () => void
+  snapshot(): SurfaceState
+  set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
+
+  registerRow(id: string, rec: RowRecord): void
+  unregisterRow(id: string): void
+  getOrder(): string[]
+
+  setActiveId(id: string | null): void
+  setActiveByIndex(idx: number): void
+  first(): void
+  last(): void
+  next(): void
+  prev(): void
+  clickActive(): void
+
+  readonly rows: Map<string, RowRecord>
+  readonly inputRef: React.RefObject<HTMLInputElement | null>
+  readonly listRef: React.RefObject<HTMLDivElement | null>
+}
+
+function createSurfaceStore(): SurfaceStore {
+  const state: SurfaceState = {
+    activeId: null,
+    hasInput: true,
+    listId: null,
+  }
+  const listeners = new Set<() => void>()
+  const rows = new Map<string, RowRecord>()
+  const order: string[] = []
+  const listRef = React.createRef<HTMLDivElement | null>()
+  const inputRef = React.createRef<HTMLInputElement | null>()
+
+  const emit = () => listeners.forEach((l) => l())
+
+  const snapshot = () => state
+
+  const set = <K extends keyof SurfaceState>(k: K, v: SurfaceState[K]) => {
+    if (Object.is((state as any)[k], v)) return
+    ;(state as any)[k] = v
+    emit()
+  }
+
+  const getOrder = () => order.slice()
+
+  const ensureActiveExists = () => {
+    if (state.activeId && rows.has(state.activeId)) return
+    state.activeId = order[0] ?? null
+  }
+
+  const setActiveId = (id: string | null) => {
+    state.activeId = id
+    emit()
+    // scroll into view if possible
+    const el = id ? rows.get(id)?.ref.current : null
+    const listEl = listRef.current
+    if (el && listEl) {
+      try {
+        const inList = listEl.contains(el)
+        if (inList) el.scrollIntoView({ block: 'nearest' })
+      } catch {}
+    }
+  }
+
+  const setActiveByIndex = (idx: number) => {
+    if (!order.length) return setActiveId(null)
+    const clamped = idx < 0 ? 0 : idx >= order.length ? order.length - 1 : idx
+    setActiveId(order[clamped]!)
+  }
+
+  const first = () => setActiveByIndex(0)
+  const last = () => setActiveByIndex(order.length - 1)
+
+  const next = () => {
+    if (!order.length) return setActiveId(null)
+    const curr = state.activeId
+    const i = curr ? order.indexOf(curr) : -1
+    const n = i === -1 ? 0 : (i + 1) % order.length
+    setActiveId(order[n]!)
+  }
+
+  const prev = () => {
+    if (!order.length) return setActiveId(null)
+    const curr = state.activeId
+    const i = curr ? order.indexOf(curr) : 0
+    const p = i <= 0 ? order.length - 1 : i - 1
+    setActiveId(order[p]!)
+  }
+
+  const clickActive = () => {
+    const id = state.activeId
+    if (!id) return
+    rows.get(id)?.ref.current?.click()
+  }
+
+  return {
+    subscribe(cb) {
+      listeners.add(cb)
+      return () => listeners.delete(cb)
+    },
+    snapshot,
+    set,
+    registerRow(id, rec) {
+      if (!rows.has(id)) order.push(id)
+      rows.set(id, rec)
+      ensureActiveExists()
+      emit()
+    },
+    unregisterRow(id) {
+      rows.delete(id)
+      const idx = order.indexOf(id)
+      if (idx >= 0) order.splice(idx, 1)
+      if (state.activeId === id) {
+        ensureActiveExists()
+        emit()
+      } else {
+        emit()
+      }
+    },
+    getOrder,
+    setActiveId,
+    setActiveByIndex,
+    first,
+    last,
+    next,
+    prev,
+    clickActive,
+    rows,
+    inputRef,
+    listRef,
+  }
+}
+
+function useSurfaceSel<T>(store: SurfaceStore, sel: (s: SurfaceState) => T): T {
+  const get = React.useCallback(() => sel(store.snapshot()), [store, sel])
+  return React.useSyncExternalStore(store.subscribe, get, get)
+}
+
+const SurfaceCtx = React.createContext<SurfaceStore | null>(null)
+const useSurface = () => {
+  const ctx = React.useContext(SurfaceCtx)
+  if (!ctx) throw new Error('SurfaceCtx missing')
+  return ctx
+}
+
+/* ================================================================================================
+ * Keyboard handling shared by Input/List
+ * ============================================================================================== */
+
+function useNavKeydown(source: 'input' | 'list') {
+  const store = useSurface()
+  const root = useRootCtx()
+  const { dir, vimBindings } = useKeyboardOpts()
+
+  return React.useCallback(
+    (e: React.KeyboardEvent) => {
+      const k = e.key
+
+      // Trap focus within surface
+      if (k === 'Tab') {
+        e.preventDefault()
+        return
+      }
+
+      // ---- Vim-style bindings ----
+      if (vimBindings) {
+        if (isVimNext(e)) {
+          e.preventDefault()
+          store.next()
+          return
+        }
+        if (isVimPrev(e)) {
+          e.preventDefault()
+          store.prev()
+          return
+        }
+      }
+
+      // ---- Arrow navigation ----
+      if (k === 'ArrowDown') {
+        e.preventDefault()
+        store.next()
+        return
+      }
+      if (k === 'ArrowUp') {
+        e.preventDefault()
+        store.prev()
+        return
+      }
+
+      // ---- Home/End/PageUp/PageDown via constants ----
+      if (isFirstKey(k)) {
+        e.preventDefault()
+        store.first()
+        return
+      }
+      if (isLastKey(k)) {
+        e.preventDefault()
+        store.last()
+        return
+      }
+
+      // ---- Direction-aware open/close (submenu hooks can be added later) ----
+      if (isOpenKey(dir, k)) {
+        e.preventDefault()
+        if (isSelectionKey(k)) {
+          store.clickActive()
+        } else {
+          // open submenu here when implemented
+        }
+        return
+      }
+
+      if (isCloseKey(dir, k) || k === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        // close or go back to parent surface when submenus exist
+        root.onOpenChange(false)
+        return
+      }
+
+      // ---- Selection ----
+      if (k === 'Enter') {
+        e.preventDefault()
+        store.clickActive()
+        return
+      }
+    },
+    [store, root, dir, vimBindings],
+  )
 }
 
 /* ================================================================================================
@@ -383,89 +700,69 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   collisionPadding = 8,
   closeOnAnchorPointerDown = true,
 }) => {
-  const sub = React.useContext(SubCtx)
   const root = useRootCtx()
 
-  const isSub = !!sub
-  const present = isSub ? sub!.open : root.open
-  const defaultSide = isSub ? 'right' : 'bottom'
+  const present = root.open
+  const defaultSide = 'bottom'
   const resolvedSide = side ?? defaultSide
 
-  const childIsSubContent =
-    (children as any)?.type?.displayName === 'ActionMenu.SubContent'
-
   const close = React.useCallback(() => {
-    if (isSub) return
     root.onOpenChange(false)
-  }, [isSub, root, sub])
+  }, [root])
 
   return (
-    <>
-      {/* Keep API parity; no submenu content yet in this proto */}
-      {isSub && childIsSubContent
-        ? React.cloneElement(
-            children as React.ReactElement,
-            {
-              indexOnly: true,
-            } as any,
-          )
-        : null}
-      <Presence present={present}>
-        <Popper.Content
-          side={resolvedSide}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          avoidCollisions={avoidCollisions}
-          collisionPadding={collisionPadding}
+    <Presence present={present}>
+      <Popper.Content
+        side={resolvedSide}
+        align={align}
+        sideOffset={sideOffset}
+        alignOffset={alignOffset}
+        avoidCollisions={avoidCollisions}
+        collisionPadding={collisionPadding}
+        asChild
+      >
+        <DismissableLayer
+          onEscapeKeyDown={close}
+          onDismiss={closeOnAnchorPointerDown ? close : undefined}
+          disableOutsidePointerEvents={root.modal}
+          onInteractOutside={(event) => {
+            const target = event.target as Node | null
+            const anchor = root.anchorRef.current
+            if (
+              !closeOnAnchorPointerDown &&
+              anchor &&
+              target &&
+              anchor.contains(target)
+            ) {
+              event.preventDefault()
+            }
+          }}
           asChild
         >
-          <DismissableLayer
-            onEscapeKeyDown={close}
-            onDismiss={closeOnAnchorPointerDown ? close : undefined}
-            disableOutsidePointerEvents={isSub ? undefined : root.modal}
-            onInteractOutside={
-              isSub
-                ? undefined
-                : (event) => {
-                    const target = event.target as Node | null
-                    const anchor = root.anchorRef.current
-                    if (
-                      !closeOnAnchorPointerDown &&
-                      anchor &&
-                      target &&
-                      anchor.contains(target)
-                    ) {
-                      event.preventDefault()
-                    }
-                  }
-            }
-            asChild
-          >
-            {children}
-          </DismissableLayer>
-        </Popper.Content>
-      </Presence>
-    </>
+          {children}
+        </DismissableLayer>
+      </Popper.Content>
+    </Presence>
   )
 }
 Positioner.displayName = 'ActionMenu.Positioner'
 
 /* ================================================================================================
- * Content (generic) — minimal prototype + bind/content auto-wrap
+ * Content (generic) — adds Input and List with bind APIs
  * ============================================================================================== */
 
 export interface ActionMenuContentProps<T = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
   /** Surface items’ data shape for this menu */
   menu: MenuData<T>
-  /**
-   * Per-instance renderers (merged over sensible defaults). If you omit both
-   * this and `createActionMenu({ renderers })`, we use defaults.
-   */
+  /** Per-instance renderers (merged over sensible defaults). */
   renderers?: Partial<Renderers<T>>
-  /** Keep the prop for parity; unused in this proto */
+  /** If false, no Input is rendered; List becomes focus owner. */
+  withInput?: boolean
+  /** Vim-style keybindings (Ctrl+N/P, Ctrl+J/K). */
   vimBindings?: boolean
+  /** Text direction. If omitted, falls back to document.dir */
+  dir?: Direction
 }
 
 /** Internal generic base so `createActionMenu<T>()` can close over `T` */
@@ -473,7 +770,9 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   {
     menu,
     renderers: rOverrides,
+    withInput = true,
     vimBindings = true,
+    dir: dirProp,
     ...props
   }: ActionMenuContentProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>,
@@ -484,11 +783,23 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   const isOwner = ownerId === surfaceId
   const surfaceRef = React.useRef<HTMLDivElement | null>(null)
   const composedRef = composeRefs(ref, surfaceRef)
+  const dir = getDir(dirProp)
+
+  const [value, setValue] = React.useState('')
 
   const renderers = React.useMemo<Renderers<T>>(
     () => ({ ...defaultRenderers<T>(), ...(rOverrides as any) }),
     [rOverrides],
   )
+
+  // Create per-surface store
+  const storeRef = React.useRef<SurfaceStore | null>(null)
+  if (!storeRef.current) storeRef.current = createSurfaceStore()
+  const store = storeRef.current
+
+  React.useEffect(() => {
+    store.set('hasInput', withInput)
+  }, [withInput, store])
 
   React.useEffect(() => {
     if (!root.open) {
@@ -497,19 +808,18 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     }
     if (root.open && ownerId === null) {
       setOwnerId(surfaceId)
+      ;(store.inputRef.current ?? store.listRef.current)?.focus()
     }
-  }, [root.open, ownerId, surfaceId, setOwnerId])
+  }, [root.open, ownerId, surfaceId, setOwnerId, store.inputRef, store.listRef])
 
   React.useEffect(() => {
     if (!root.open || !isOwner) return
     const id = requestAnimationFrame(() => {
-      // focus management can live here in later iterations
+      ;(store.inputRef.current ?? store.listRef.current)?.focus()
     })
     return () => cancelAnimationFrame(id)
-  }, [root.open, isOwner])
+  }, [root.open, isOwner, store.inputRef, store.listRef])
 
-  // Base content props we’ll either apply directly (if user calls bind)
-  // or use to auto-wrap the renderer result.
   const baseContentProps = React.useMemo(
     () =>
       ({
@@ -530,20 +840,45 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     [composedRef, root.open, surfaceId, setOwnerId, props],
   )
 
-  const bind: ContentBindAPI = {
+  const contentBind: ContentBindAPI = {
     getContentProps: (overrides) =>
       mergeProps(baseContentProps as any, overrides),
   }
 
-  const children = renderMenu<T>(menu, renderers)
+  // Compose children (Input + List). These are components so hooks are top-level there.
+  const childrenNoProvider = (
+    <>
+      {withInput ? (
+        <InputView<T>
+          store={store}
+          value={value}
+          onChange={setValue}
+          renderer={renderers.input}
+        />
+      ) : null}
+      <ListView<T> store={store} menu={menu} renderers={renderers} />
+    </>
+  )
 
-  const body = renderers.content({ menu, children, bind })
+  const body = renderers.content({
+    menu,
+    children: childrenNoProvider,
+    bind: contentBind,
+  })
 
-  // If they didn’t use bind.getContentProps(), auto-wrap with our container
-  if (!isElementWithProp(body, 'data-action-menu-surface')) {
-    return <Primitive.div {...(baseContentProps as any)}>{body}</Primitive.div>
-  }
-  return body as React.ReactElement
+  const wrapped = !isElementWithProp(body, 'data-action-menu-surface') ? (
+    <Primitive.div {...(baseContentProps as any)}>
+      <SurfaceCtx.Provider value={store}>{body}</SurfaceCtx.Provider>
+    </Primitive.div>
+  ) : (
+    <SurfaceCtx.Provider value={store}>{body}</SurfaceCtx.Provider>
+  )
+
+  return (
+    <KeyboardCtx.Provider value={{ dir, vimBindings }}>
+      {wrapped}
+    </KeyboardCtx.Provider>
+  )
 }) as <T>(
   p: ActionMenuContentProps<T> & { ref?: React.Ref<HTMLDivElement> },
 ) => ReturnType<typeof Primitive.div>
@@ -559,73 +894,104 @@ Content.displayName = 'ActionMenu.Content'
 /* =============================== Rendering ================================= */
 /* =========================================================================== */
 
-function renderMenu<T>(menu: MenuData<T>, renderers: Renderers<T>) {
-  return (menu.nodes ?? []).map((node) => {
-    if (node.hidden) return null
-    if (node.kind === 'item')
-      return <ItemRow key={node.id} node={node} renderer={renderers.item} />
-    if (node.kind === 'group') {
-      return (
-        <div key={node.id} role="group" data-action-menu-group>
-          {node.heading ? (
-            <div data-action-menu-group-heading role="presentation">
-              {node.heading}
+function renderMenu<T>(
+  menu: MenuData<T>,
+  renderers: Renderers<T>,
+  store: SurfaceStore,
+) {
+  return (
+    <React.Fragment>
+      {(menu.nodes ?? []).map((node) => {
+        if (node.hidden) return null
+        if (node.kind === 'item')
+          return (
+            <ItemRow
+              key={node.id}
+              node={node}
+              renderer={renderers.item}
+              store={store}
+            />
+          )
+        if (node.kind === 'group') {
+          return (
+            <div key={node.id} role="group" data-action-menu-group>
+              {node.heading ? (
+                <div data-action-menu-group-heading role="presentation">
+                  {node.heading}
+                </div>
+              ) : null}
+              {node.nodes.map((child) => {
+                if (child.hidden) return null
+                return child.kind === 'item' ? (
+                  <ItemRow
+                    key={child.id}
+                    node={child as ItemNode<T>}
+                    renderer={renderers.item}
+                    store={store}
+                  />
+                ) : (
+                  // Submenu visuals out-of-scope; fallback if provided
+                  (child.render?.() ?? null)
+                )
+              })}
             </div>
-          ) : null}
-          {node.nodes.map((child) => {
-            if (child.hidden) return null
-            return child.kind === 'item' ? (
-              <ItemRow
-                key={child.id}
-                node={child as ItemNode<T>}
-                renderer={renderers.item}
-              />
-            ) : (
-              // Submenu visuals are out-of-scope for this proto; show fallback if provided
-              (child.render?.() ?? null)
-            )
-          })}
-        </div>
-      )
-    }
-    // Submenu at root level — fallback only in this proto
-    return node.render?.() ?? null
-  })
+          )
+        }
+        // Submenu at root level — fallback only
+        return node.render?.() ?? null
+      })}
+    </React.Fragment>
+  )
 }
 
 function ItemRow<T>({
   node,
   renderer,
+  store,
 }: {
   node: ItemNode<T>
   renderer: Renderers<T>['item']
+  store: SurfaceStore
 }) {
-  // Base row behavior/attributes we always want
+  const ref = React.useRef<HTMLElement | null>(null)
+
+  // Register/unregister with surface
+  React.useEffect(() => {
+    store.registerRow(node.id, { ref: ref as any, disabled: false })
+    return () => store.unregisterRow(node.id)
+  }, [store, node.id])
+
+  const activeId = useSurfaceSel(store, (s) => s.activeId)
+  const focused = activeId === node.id
+
   const baseRowProps = React.useMemo(
     () =>
       ({
         id: node.id,
-        ref: React.createRef<HTMLElement>(),
+        ref: ref as any,
         role: 'option' as const,
         tabIndex: -1,
         'data-action-menu-item-id': node.id,
-        'data-focused': undefined,
-        'aria-selected': undefined,
+        'data-focused': focused ? ('true' as const) : undefined,
+        'aria-selected': focused || undefined,
         'aria-disabled': false,
         onPointerDown: (e: React.PointerEvent) => {
           // keep click semantics predictable
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
+        },
+        onMouseMove: () => {
+          if (!focused) store.setActiveId(node.id)
         },
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
           node.onSelect?.()
         },
       }) as const,
-    [node.id, node.onSelect],
+    [node.id, node.onSelect, focused, store],
   )
 
   const bind: RowBindAPI = {
-    focused: false,
+    focused,
     disabled: false,
     getRowProps: (overrides) =>
       mergeProps(baseRowProps as any, overrides as any),
@@ -634,7 +1000,7 @@ function ItemRow<T>({
   const visual = renderer({ node, bind })
 
   // If they *did* call bind.getRowProps(), their returned element will carry
-  // data-action-menu-item-id. Otherwise, we auto-wrap with our wired <div>.
+  // data-action-menu-item-id. Otherwise, auto-wrap with our wired <div>.
   if (isElementWithProp(visual, 'data-action-menu-item-id')) {
     return visual as React.ReactElement
   }
@@ -644,6 +1010,108 @@ function ItemRow<T>({
     (node.render ? node.render() : <span>{node.label ?? String(node.id)}</span>)
 
   return <div {...(baseRowProps as any)}>{fallbackVisual}</div>
+}
+
+/* =========================================================================== */
+/* ======================= Input & List view components ======================= */
+/* =========================================================================== */
+
+function InputView<T>({
+  store,
+  value,
+  onChange,
+  renderer,
+}: {
+  store: SurfaceStore
+  value: string
+  onChange: (v: string) => void
+  renderer: Renderers<T>['input']
+}) {
+  const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
+  const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)
+  const onKeyDown = useNavKeydown('input')
+
+  const baseInputProps = {
+    ref: store.inputRef as any,
+    role: 'combobox' as const,
+    'data-slot': 'action-menu-input' as const,
+    'data-action-menu-input': true as const,
+    'aria-autocomplete': 'list' as const,
+    'aria-expanded': true as const,
+    'aria-controls': listId,
+    'aria-activedescendant': activeId,
+    value,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      onChange(e.target.value),
+    onKeyDown,
+  }
+
+  const bind: InputBindAPI = {
+    getInputProps: (overrides) =>
+      mergeProps(baseInputProps as any, overrides as any),
+  }
+
+  const el = renderer({ value, onChange, bind })
+  if (!isElementWithProp(el, 'data-action-menu-input')) {
+    return (
+      <input
+        {...(bind.getInputProps({
+          value,
+          onChange: (e: any) => onChange(e.target.value),
+        }) as any)}
+      />
+    )
+  }
+  return el as React.ReactElement
+}
+
+function ListView<T>({
+  store,
+  menu,
+  renderers,
+}: {
+  store: SurfaceStore
+  menu: MenuData<T>
+  renderers: Renderers<T>
+}) {
+  const localId = React.useId()
+  const listId = useSurfaceSel(store, (s) => s.listId)
+  const hasInput = useSurfaceSel(store, (s) => s.hasInput)
+  const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
+  const onKeyDown = useNavKeydown('list')
+
+  React.useEffect(() => {
+    const id = listId ?? `action-menu-list-${localId}`
+    store.set('listId', id)
+    return () => store.set('listId', null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localId])
+
+  const effectiveListId =
+    store.snapshot().listId ?? `action-menu-list-${localId}`
+
+  const baseListProps = {
+    ref: store.listRef as any,
+    role: 'listbox' as const,
+    id: effectiveListId,
+    tabIndex: hasInput ? -1 : 0,
+    'data-slot': 'action-menu-list' as const,
+    'data-action-menu-list': true as const,
+    'aria-activedescendant': hasInput ? undefined : activeId,
+    onKeyDown,
+  }
+  const bind: ListBindAPI = {
+    getListProps: (overrides) =>
+      mergeProps(baseListProps as any, overrides as any),
+  }
+
+  const children = renderMenu<T>(menu, renderers, store)
+  const el = renderers.list({ children, bind })
+
+  if (!isElementWithProp(el, 'data-action-menu-list')) {
+    return <div {...(bind.getListProps() as any)}>{children}</div>
+  }
+  return el as React.ReactElement
 }
 
 /* =========================================================================== */

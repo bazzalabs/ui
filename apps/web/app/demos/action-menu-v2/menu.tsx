@@ -14,6 +14,25 @@ export const FilterMenu = createActionMenu<ColumnOption>({
       })
       return <div {...props}>{children}</div>
     },
+    list: ({ children, bind }) => {
+      const props = bind.getListProps({
+        className: cn(
+          'p-1 flex flex-col w-full max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
+        ),
+      })
+
+      return <div {...props}>{children}</div>
+    },
+    input: ({ bind }) => {
+      const props = bind.getInputProps({
+        placeholder: 'Filter...',
+        className: cn(
+          'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b',
+        ),
+      })
+
+      return <input {...props} />
+    },
     item: ({ node, bind }) => {
       const props = bind.getRowProps({
         className: cn(
@@ -174,40 +193,44 @@ export const menuData: MenuData<ColumnOption> = {
         ),
       },
     },
-    // {
-    //   kind: 'item',
-    //   id: 'done',
-    //   label: 'Done',
-    //   render: () => (
-    //     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    //       <circle
-    //         cx="7"
-    //         cy="7"
-    //         r="6"
-    //         fill="none"
-    //         stroke="lch(48% 59.31 288.43)"
-    //         strokeWidth="1.5"
-    //         strokeDasharray="3.14 0"
-    //         strokeDashoffset="-0.7"
-    //       ></circle>
-    //       <circle
-    //         cx="7"
-    //         cy="7"
-    //         r="3"
-    //         fill="none"
-    //         stroke="lch(48% 59.31 288.43)"
-    //         strokeWidth="6"
-    //         strokeDasharray="18.84955592153876 37.69911184307752"
-    //         strokeDashoffset="0"
-    //         transform="rotate(-90 7 7)"
-    //       ></circle>
-    //       <path
-    //         stroke="none"
-    //         className="fill-popover"
-    //         d="M10.951 4.24896C11.283 4.58091 11.283 5.11909 10.951 5.45104L5.95104 10.451C5.61909 10.783 5.0809 10.783 4.74896 10.451L2.74896 8.45104C2.41701 8.11909 2.41701 7.5809 2.74896 7.24896C3.0809 6.91701 3.61909 6.91701 3.95104 7.24896L5.35 8.64792L9.74896 4.24896C10.0809 3.91701 10.6191 3.91701 10.951 4.24896Z"
-    //       ></path>
-    //     </svg>
-    //   ),
-    // },
+    {
+      kind: 'item',
+      id: 'done',
+      label: 'Done',
+      data: {
+        value: 'done',
+        label: 'Done',
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle
+              cx="7"
+              cy="7"
+              r="6"
+              fill="none"
+              stroke="lch(48% 59.31 288.43)"
+              strokeWidth="1.5"
+              strokeDasharray="3.14 0"
+              strokeDashoffset="-0.7"
+            ></circle>
+            <circle
+              cx="7"
+              cy="7"
+              r="3"
+              fill="none"
+              stroke="lch(48% 59.31 288.43)"
+              strokeWidth="6"
+              strokeDasharray="18.84955592153876 37.69911184307752"
+              strokeDashoffset="0"
+              transform="rotate(-90 7 7)"
+            ></circle>
+            <path
+              stroke="none"
+              className="fill-popover"
+              d="M10.951 4.24896C11.283 4.58091 11.283 5.11909 10.951 5.45104L5.95104 10.451C5.61909 10.783 5.0809 10.783 4.74896 10.451L2.74896 8.45104C2.41701 8.11909 2.41701 7.5809 2.74896 7.24896C3.0809 6.91701 3.61909 6.91701 3.95104 7.24896L5.35 8.64792L9.74896 4.24896C10.0809 3.91701 10.6191 3.91701 10.951 4.24896Z"
+            ></path>
+          </svg>
+        ),
+      },
+    },
   ],
 }
