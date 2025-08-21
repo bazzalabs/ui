@@ -89,14 +89,9 @@ export const FilterMenu = createActionMenu<ColumnOption>({
         ),
       })
 
-      // const data = node.data!
-      // const Icon = data.icon
-
       return (
         <div {...props}>
-          {/* {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />} */}
           <span>{node.title}</span>
-          {/* <span>{data.label}</span> */}
           <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
           <span className="absolute top-0 right-0 text-[10px] font-medium">
             {props['data-action-menu-item-id']}

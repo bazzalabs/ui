@@ -11,6 +11,34 @@ import { createPortal } from 'react-dom'
 
 const DEBUG_MODE = true
 
+const DBG = (...args: any[]) => {
+  if (!DEBUG_MODE) return
+  // eslint-disable-next-line no-console
+  console.log('[AM]', ...args)
+}
+const DBG_GROUP = (title: string, obj?: any) => {
+  if (!DEBUG_MODE) return
+  // eslint-disable-next-line no-console
+  console.groupCollapsed(`%c[AM] ${title}`, 'color:#08f')
+  if (obj) console.log(obj)
+  // eslint-disable-next-line no-console
+  console.groupEnd()
+}
+
+function setActiveWithReason(
+  target: SurfaceStore | ((id: string | null) => void),
+  id: string | null,
+  reason: string,
+) {
+  DBG('setActive(reason)', { id, reason })
+  ;(window as any).__AM_lastSetActiveReason = reason
+  if (typeof target === 'function') {
+    target(id)
+  } else {
+    target.setActiveId(id)
+  }
+}
+
 /* =========================================================================== */
 /* ============================ Data model (generic) ========================== */
 /* =========================================================================== */
@@ -462,19 +490,28 @@ function createSurfaceStore(): SurfaceStore {
   }
 
   const setActiveId = (id: string | null) => {
-    if (Object.is(state.activeId, id)) return
+    const prev = state.activeId
+    DBG_GROUP('setActiveId()', { prev, next: id, order: order.slice() })
+
+    if (Object.is(prev, id)) return
     state.activeId = id
 
-    // Single-open submenu policy — close any submenu whose trigger isn’t active
     for (const [rid, rec] of rows) {
       if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
         try {
+          DBG('closing submenu because activeId changed', {
+            closing: rid,
+            nowActive: id,
+          })
           rec.closeSub()
-        } catch {}
+        } catch (e) {
+          DBG('closeSub threw', e)
+        }
       }
     }
+
     emit()
-    // scroll into view if possible
+
     const el = id ? rows.get(id)?.ref.current : null
     const listEl = listRef.current
     if (el && listEl) {
@@ -483,6 +520,17 @@ function createSurfaceStore(): SurfaceStore {
         if (inList) el.scrollIntoView({ block: 'nearest' })
       } catch {}
     }
+  }
+
+  // DEV ONLY: expose a stack for each setActiveId callsite
+  if (DEBUG_MODE && !(setActiveId as any).__wrapped) {
+    const orig = setActiveId
+    ;(setActiveId as any).__wrapped = true
+    ;(setActiveId as any).__orig = orig
+    // wrap with stack capture
+    const stack = new Error('setActiveId@stack').stack
+    ;(window as any).__AM_lastActiveStack = stack
+    DBG('setActiveId stack', stack?.split('\n').slice(0, 6).join('\n'))
   }
 
   const setActiveByIndex = (idx: number) => {
@@ -559,9 +607,28 @@ const useSurface = () => {
   return ctx
 }
 
-const HoverPolicyCtx = React.createContext({
+type HoverPolicy = {
+  suppressHoverOpen: boolean
+  clearSuppression: () => void
+  aimGuardActive: boolean
+  guardedTriggerId: string | null
+  activateAimGuard: (triggerId: string, timeoutMs?: number) => void
+  clearAimGuard: () => void
+  aimGuardActiveRef: React.RefObject<boolean | null>
+  guardedTriggerIdRef: React.RefObject<string | null>
+  isGuardBlocking: (rowId: string) => boolean
+}
+
+const HoverPolicyCtx = React.createContext<HoverPolicy>({
   suppressHoverOpen: false,
   clearSuppression: () => {},
+  aimGuardActive: false,
+  guardedTriggerId: null,
+  activateAimGuard: () => {},
+  clearAimGuard: () => {},
+  aimGuardActiveRef: React.createRef<boolean>(),
+  guardedTriggerIdRef: React.createRef(),
+  isGuardBlocking: () => false,
 })
 const useHoverPolicy = () => React.useContext(HoverPolicyCtx)
 
@@ -690,34 +757,142 @@ function useNavKeydown(source: 'input' | 'list') {
   )
 }
 
-type IntentZoneProps = {
-  /** the submenu content element we’re guarding for */
-  parentRef: React.RefObject<HTMLElement | null>
-  /** the submenu trigger element we’re guarding for */
-  triggerRef: React.RefObject<HTMLElement | null>
-  /** show the polygon in debug mode */
-  debug?: boolean
-  onEnter?: () => void
-  onMove?: () => void
-  onLeave?: () => void
+/** Keep the last N mouse positions without causing re-renders. */
+function useMouseTrail(n = 2) {
+  const trailRef = React.useRef<[number, number][]>([])
+  React.useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const a = trailRef.current
+      a.push([e.clientX, e.clientY])
+      if (a.length > n) a.shift()
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [n])
+  return trailRef
+}
+
+type AnchorSide = 'left' | 'right'
+
+function resolveAnchorSide(
+  rect: DOMRect,
+  tRect: DOMRect | null,
+  mx: number,
+): 'left' | 'right' {
+  if (tRect) {
+    const tx = (tRect.left + tRect.right) / 2
+    const dL = Math.abs(tx - rect.left)
+    const dR = Math.abs(tx - rect.right)
+    return dL <= dR ? 'left' : 'right'
+  }
+  return mx < rect.left ? 'left' : 'right'
 }
 
 /**
- * Directionally gated triangle between cursor and submenu edge.
- * Renders only when the pointer is actually headed into the submenu and
- * within a small vertical "launch band" around the subtrigger.
+ * Predict if the current pointer *heading* from the exit point will intersect
+ * the submenu’s near edge within its vertical span (i.e., stay inside the safe wedge).
  */
-function IntentZone({
-  parentRef,
-  triggerRef,
-  debug,
-  onEnter,
-  onMove,
-  onLeave,
-}: IntentZoneProps) {
+function willReachSubmenuWithoutLeavingPolygon(
+  exitX: number,
+  exitY: number,
+  prevX: number | undefined,
+  prevY: number | undefined,
+  rect: DOMRect,
+  anchor: AnchorSide,
+): boolean {
+  if (prevX == null || prevY == null) return false
+  const dx = exitX - prevX
+  const dy = exitY - prevY
+  if (dx === 0 && dy === 0) return false
+
+  const edgeX = anchor === 'right' ? rect.left : rect.right
+  // must be moving toward the submenu edge
+  if (anchor === 'right' && dx <= 0) return false
+  if (anchor === 'left' && dx >= 0) return false
+
+  // Ray from exit point towards current heading intersects vertical edge?
+  const t = (edgeX - exitX) / dx
+  if (t <= 0) return false
+  const yAtEdge = exitY + t * dy
+  return yAtEdge >= rect.top && yAtEdge <= rect.bottom
+}
+
+/** Return a smoothed heading vector from the mouse trail. Falls back to a sane vector if needed. */
+function getSmoothedHeading(
+  trail: [number, number][],
+  exitX: number,
+  exitY: number,
+  anchor: 'left' | 'right',
+  tRect: DOMRect | null,
+  rect: DOMRect,
+): { dx: number; dy: number } {
+  // Average the last few deltas
+  let dx = 0
+  let dy = 0
+  const n = Math.min(Math.max(trail.length - 1, 0), 4) // up to 4 segments
+  for (let i = trail.length - n - 1; i < trail.length - 1; i++) {
+    if (i < 0) continue
+    const [x1, y1] = trail[i]!
+    const [x2, y2] = trail[i + 1]!
+    dx += x2 - x1
+    dy += y2 - y1
+  }
+
+  // If heading is degenerate, fall back to a vector from trigger center to submenu edge center
+  const mag = Math.hypot(dx, dy)
+  if (mag < 0.5) {
+    const tx = tRect ? (tRect.left + tRect.right) / 2 : exitX
+    const ty = tRect ? (tRect.top + tRect.bottom) / 2 : exitY
+    const edgeX = anchor === 'right' ? rect.left : rect.right
+    const edgeCy = (rect.top + rect.bottom) / 2
+    dx = edgeX - tx
+    dy = edgeCy - ty
+  }
+
+  return { dx, dy }
+}
+
+/** Robust “will hit submenu” test with vertical tolerance at the edge. */
+function willHitSubmenu(
+  exitX: number,
+  exitY: number,
+  heading: { dx: number; dy: number },
+  rect: DOMRect,
+  anchor: 'left' | 'right',
+  triggerRect: DOMRect | null,
+): boolean {
+  const { dx, dy } = heading
+  if (Math.abs(dx) < 0.01) return false
+
+  if (anchor === 'left' && dx <= 0) return false // need to go right
+  if (anchor === 'right' && dx >= 0) return false // need to go left
+
+  const edgeX = anchor === 'left' ? rect.left : rect.right
+
+  const t = (edgeX - exitX) / dx
+  if (t <= 0) return false
+
+  const yAtEdge = exitY + t * dy
+
+  // Tolerant vertical band at the edge
+  const baseBand = triggerRect ? triggerRect.height * 0.75 : 28
+  const extra = Math.max(12, Math.min(36, baseBand)) // 12..36px
+  const top = rect.top - extra * 0.25
+  const bottom = rect.bottom + extra * 0.25
+
+  return yAtEdge >= top && yAtEdge <= bottom
+}
+
+type IntentZoneProps = {
+  parentRef: React.RefObject<HTMLElement | null>
+  triggerRef: React.RefObject<HTMLElement | null>
+  debug?: boolean
+}
+
+/** Visual-only debug polygon; no event handlers and no hit-testing. */
+function IntentZone({ parentRef, triggerRef, debug }: IntentZoneProps) {
   const [mx, my] = useMousePosition()
 
-  // Disable on touch/coarse pointers
   const isCoarse = React.useMemo(
     () =>
       typeof window !== 'undefined'
@@ -730,65 +905,41 @@ function IntentZone({
   if (!rect || isCoarse) return null
 
   const tRect = triggerRef?.current?.getBoundingClientRect() ?? null
-
   const x = rect.left
   const y = rect.top
   const w = rect.width
   const h = rect.height
   if (!w || !h) return null
 
-  // Decide which submenu edge is closest to the TRIGGER (not the cursor).
-  let anchor: 'left' | 'right' = 'left'
-  if (tRect) {
-    const triggerCenterX = (tRect.left + tRect.right) / 2
-    const distToLeftEdge = Math.abs(triggerCenterX - x)
-    const distToRightEdge = Math.abs(triggerCenterX - (x + w))
-    anchor = distToLeftEdge <= distToRightEdge ? 'left' : 'right'
-  } else {
-    // Fallback: if cursor is left of submenu, assume trigger is on the left side.
-    anchor = mx < x ? 'left' : 'right'
-  }
+  const anchor = resolveAnchorSide(rect, tRect, mx)
 
-  // If the pointer is on the same horizontal side as the submenu body,
-  // there’s nothing to guard.
+  // If pointer is already past the submenu edge, nothing to draw.
   if (anchor === 'left' && mx >= x) return null
   if (anchor === 'right' && mx <= x + w) return null
 
-  // Build triangle from the anchored vertical edge toward the cursor.
-  const INSET = 0 // keep 0 for now; we’re anchoring to the correct edge
+  const INSET = 2
   const pct = Math.max(0, Math.min(100, ((my - y) / h) * 100))
-
   const width =
     anchor === 'left'
       ? Math.max(x - mx, 10) + INSET
       : Math.max(mx - (x + w), 10) + INSET
-
-  const left =
-    anchor === 'left'
-      ? x - width // extend leftward from the submenu's LEFT edge
-      : x + w // extend rightward from the submenu's RIGHT edge
-
+  const left = anchor === 'left' ? x - width : x + w
   const clip =
     anchor === 'left'
-      ? // vertical side is at the RIGHT edge of the rect (100%), pointing left
-        `polygon(100% 0%, 0% ${pct}%, 100% 100%)`
-      : // vertical side is at the LEFT edge of the rect (0%), pointing right
-        `polygon(0% 0%, 0% 100%, 100% ${pct}%)`
+      ? `polygon(100% 0%, 0% ${pct}%, 100% 100%)`
+      : `polygon(0% 0%, 0% 100%, 100% ${pct}%)`
 
   const polygon = (
     <div
       data-action-menu-intent-zone
       aria-hidden
-      onPointerEnter={onEnter}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
       style={{
         position: 'fixed',
         top: y,
         left,
         width,
         height: h,
-        pointerEvents: 'auto',
+        pointerEvents: 'none', // IMPORTANT: no events, pure visual
         clipPath: clip,
         zIndex: Number.MAX_SAFE_INTEGER,
         background: debug ? 'rgba(0, 136, 255, 0.15)' : 'transparent',
@@ -998,15 +1149,6 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
                   const target = event.target as Node | null
                   const trigger = sub!.triggerRef.current
 
-                  // Treat pointer in the intent-zone as inside (don’t dismiss).
-                  if (
-                    target instanceof Element &&
-                    target.closest?.('[data-action-menu-intent-zone]')
-                  ) {
-                    event.preventDefault()
-                    return
-                  }
-
                   // Opening via hover or click means the pointer/focus is still on the trigger.
                   // Treat interactions on the trigger as *inside* to avoid instant dismiss.
                   if (trigger && target && trigger.contains(target)) {
@@ -1056,24 +1198,6 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
                   sub!.triggerRef as React.RefObject<HTMLElement | null>
                 }
                 debug={intentZoneDebug}
-                onEnter={() => {
-                  console.log('[IntentZone] Enter')
-                  sub!.intentZoneActiveRef.current = true
-                  sub!.onOpenChange(true)
-                  if (sub!.triggerItemId)
-                    sub!.parentSetActiveId(sub!.triggerItemId)
-                }}
-                onMove={() => {
-                  console.log('[IntentZone] Move')
-                  // heartbeat while gliding through the triangle
-                  sub!.intentZoneActiveRef.current = true
-                  if (sub!.triggerItemId)
-                    sub!.parentSetActiveId(sub!.triggerItemId)
-                }}
-                onLeave={() => {
-                  console.log('[IntentZone] Leave')
-                  sub!.intentZoneActiveRef.current = false
-                }}
               />
             ) : null}
           </Primitive.div>
@@ -1177,6 +1301,62 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     if (suppressHoverOpen) setSuppressHoverOpen(false)
   }, [suppressHoverOpen])
 
+  const [aimGuardActive, setAimGuardActive] = React.useState(false)
+  const [guardedTriggerId, setGuardedTriggerId] = React.useState<string | null>(
+    null,
+  )
+
+  const aimGuardActiveRef = React.useRef(false)
+  const guardedTriggerIdRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    aimGuardActiveRef.current = aimGuardActive
+  }, [aimGuardActive])
+  React.useEffect(() => {
+    guardedTriggerIdRef.current = guardedTriggerId
+  }, [guardedTriggerId])
+
+  const guardTimerRef = React.useRef<number | null>(null)
+  const clearAimGuard = React.useCallback(() => {
+    DBG('GUARD clear')
+    if (guardTimerRef.current) {
+      window.clearTimeout(guardTimerRef.current)
+      guardTimerRef.current = null
+    }
+    // Synchronous ref update so handlers see it immediately
+    aimGuardActiveRef.current = false
+    guardedTriggerIdRef.current = null
+    setAimGuardActive(false)
+    setGuardedTriggerId(null)
+  }, [])
+
+  const activateAimGuard = React.useCallback(
+    (triggerId: string, timeoutMs = 450) => {
+      DBG('GUARD activate', { triggerId, timeoutMs })
+      // Synchronous ref update so next events see it immediately
+      aimGuardActiveRef.current = true
+      guardedTriggerIdRef.current = triggerId
+
+      setGuardedTriggerId(triggerId)
+      setAimGuardActive(true)
+      if (guardTimerRef.current) window.clearTimeout(guardTimerRef.current)
+      guardTimerRef.current = window.setTimeout(() => {
+        DBG('GUARD timeout', { triggerId })
+        aimGuardActiveRef.current = false
+        guardedTriggerIdRef.current = null
+        setAimGuardActive(false)
+        setGuardedTriggerId(null)
+        guardTimerRef.current = null
+      }, timeoutMs) as any
+    },
+    [],
+  )
+
+  const isGuardBlocking = React.useCallback(
+    (rowId: string) =>
+      aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId,
+    [],
+  )
+
   const baseContentProps = React.useMemo(
     () =>
       ({
@@ -1236,7 +1416,17 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
       <SurfaceIdCtx.Provider value={surfaceId}>
         <HoverPolicyCtx.Provider
-          value={{ suppressHoverOpen, clearSuppression }}
+          value={{
+            suppressHoverOpen,
+            clearSuppression,
+            aimGuardActive,
+            guardedTriggerId,
+            activateAimGuard,
+            clearAimGuard,
+            aimGuardActiveRef, // 🔴 new
+            guardedTriggerIdRef, // 🔴 new
+            isGuardBlocking, // 🔴 new
+          }}
         >
           {wrapped}
         </HoverPolicyCtx.Provider>
@@ -1309,7 +1499,15 @@ function SubTriggerRow<T>({
 }) {
   const store = useSurface()
   const sub = useSubCtx()!
-  const { suppressHoverOpen } = useHoverPolicy()
+  const {
+    isGuardBlocking,
+    aimGuardActive,
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+    activateAimGuard,
+    clearAimGuard,
+  } = useHoverPolicy()
+  const mouseTrailRef = useMouseTrail(4)
   const ref = React.useRef<HTMLElement | null>(null)
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
@@ -1361,6 +1559,14 @@ function SubTriggerRow<T>({
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === node.id
 
+  React.useEffect(() => {
+    DBG('SUB open change', {
+      node: node.id,
+      open: sub.open,
+      activeId: store.snapshot().activeId,
+    })
+  }, [sub.open, node.id, store])
+
   const baseRowProps = React.useMemo(
     () =>
       ({
@@ -1380,15 +1586,127 @@ function SubTriggerRow<T>({
             sub.onOpenToggle()
           }
         },
-        onMouseMove: () => {
-          if (!focused) store.setActiveId(node.id)
+
+        onPointerEnter: () => {
+          DBG('ptrenter@subtrigger', {
+            node: node.id,
+            guardRef: aimGuardActiveRef.current,
+            guardState: aimGuardActive, // optional: pull from context too
+            guardedRef: guardedTriggerIdRef.current,
+          })
+          // Use ref-backed guard to avoid 1-tick stale state
+          if (isGuardBlocking(node.id)) {
+            DBG('ignore SubTrigger hover (guard active for another trigger)', {
+              node: node.id,
+              guardedTriggerId: guardedTriggerIdRef.current,
+            })
+            return
+          }
+          if (!focused)
+            setActiveWithReason(
+              store,
+              node.id,
+              `SubTrigger.pointerenter:${node.id}`,
+            )
+          clearAimGuard()
+          if (!sub.open) sub.onOpenChange(true)
         },
-        onMouseEnter: () => {
-          if (!focused) store.setActiveId(node.id)
-          if (!suppressHoverOpen) sub.onOpenChange(true)
+
+        onPointerMove: () => {
+          if (isGuardBlocking(node.id)) return
+          if (!focused)
+            setActiveWithReason(
+              store,
+              node.id,
+              `SubTrigger.pointermove:${node.id}`,
+            )
+          if (!sub.open) sub.onOpenChange(true)
+        },
+
+        onPointerLeave: (e: React.PointerEvent) => {
+          const contentRect = sub.contentRef.current?.getBoundingClientRect()
+          if (!contentRect) {
+            clearAimGuard()
+            return
+          }
+
+          const tRect =
+            (
+              sub.triggerRef.current as HTMLElement | null
+            )?.getBoundingClientRect() ?? null
+          const anchor = resolveAnchorSide(contentRect, tRect, e.clientX)
+
+          // Build a smoothed heading; if degenerate, it will fallback automatically.
+          const heading = getSmoothedHeading(
+            mouseTrailRef.current,
+            e.clientX,
+            e.clientY,
+            anchor,
+            tRect,
+            contentRect,
+          )
+
+          const hit = willHitSubmenu(
+            e.clientX,
+            e.clientY,
+            heading,
+            contentRect,
+            anchor,
+            tRect,
+          )
+
+          if (DEBUG_MODE) {
+            // eslint-disable-next-line no-console
+            console.log(
+              '[aim] leave',
+              JSON.stringify(
+                {
+                  exit: [e.clientX, e.clientY],
+                  heading,
+                  anchor,
+                  contentRect: {
+                    left: Math.round(contentRect.left),
+                    right: Math.round(contentRect.right),
+                    top: Math.round(contentRect.top),
+                    bottom: Math.round(contentRect.bottom),
+                  },
+                  hit,
+                },
+                null,
+                '\t',
+              ),
+            )
+          }
+
+          if (hit) {
+            activateAimGuard(node.id, 600)
+            DBG('after-activate', {
+              guardRef: aimGuardActiveRef.current,
+              guardedRef: guardedTriggerIdRef.current,
+            })
+            setActiveWithReason(
+              sub.parentSetActiveId as any,
+              node.id,
+              `SubTrigger.leave.hit:${node.id}`,
+            )
+            sub.onOpenChange(true)
+          } else {
+            DBG('no-hit: clear guard')
+            clearAimGuard()
+          }
         },
       }) as const,
-    [node.id, focused, store, sub],
+    [
+      node.id,
+      focused,
+      store,
+      sub,
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      activateAimGuard,
+      clearAimGuard,
+      isGuardBlocking,
+    ],
   )
 
   const bind: RowBindAPI = {
@@ -1547,6 +1865,7 @@ function ItemRow<T>({
 
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === node.id
+  const { aimGuardActive } = useHoverPolicy()
 
   const baseRowProps = React.useMemo(
     () =>
@@ -1564,6 +1883,7 @@ function ItemRow<T>({
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
         },
         onMouseMove: () => {
+          if (aimGuardActive) return
           if (!focused) store.setActiveId(node.id)
         },
         onClick: (e: React.MouseEvent) => {
@@ -1571,7 +1891,7 @@ function ItemRow<T>({
           node.onSelect?.()
         },
       }) as const,
-    [node.id, node.onSelect, focused, store],
+    [node.id, node.onSelect, aimGuardActive, focused, store],
   )
 
   const bind: RowBindAPI = {
