@@ -158,6 +158,11 @@ export type Renderers<T = unknown> = {
     children: React.ReactNode
     bind: ListBindAPI
   }) => React.ReactNode
+  /** Submenu trigger renderer */
+  submenuTrigger: (args: {
+    node: SubmenuNode<any>
+    bind: RowBindAPI
+  }) => React.ReactNode
 }
 
 /* Default minimal renderers (safe fallbacks) */
@@ -174,6 +179,12 @@ function defaultRenderers<T>(): Renderers<T> {
       <input value={value} onChange={(e) => onChange(e.target.value)} />
     ),
     list: ({ children }) => <div>{children}</div>,
+    submenuTrigger: ({ node }) =>
+      node.render ? (
+        node.render()
+      ) : (
+        <span>{node.label ?? node.title ?? String(node.id)}</span>
+      ),
   }
 }
 
@@ -230,6 +241,14 @@ function isElementWithProp(node: React.ReactNode, propName: string) {
 
 function isInBounds(x: number, y: number, rect: DOMRect) {
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+}
+
+function findWidgetsWithinSurface(surface: HTMLElement | null) {
+  const input =
+    surface?.querySelector<HTMLInputElement>('[data-action-menu-input]') ?? null
+  const list =
+    surface?.querySelector<HTMLElement>('[data-action-menu-list]') ?? null
+  return { input, list }
 }
 
 /* ================================================================================================
@@ -307,6 +326,25 @@ const useRootCtx = () => {
   return ctx
 }
 
+const SurfaceIdCtx = React.createContext<string | null>(null)
+const useSurfaceId = () => React.useContext(SurfaceIdCtx)
+
+type SubContextValue = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onOpenToggle: () => void
+  triggerRef: React.RefObject<HTMLDivElement | HTMLButtonElement | null>
+  contentRef: React.RefObject<HTMLDivElement | null>
+  parentSurfaceId: string
+  triggerItemId: string | null
+  setTriggerItemId: (id: string | null) => void
+  parentSetActiveId: (id: string | null) => void
+  childSurfaceId: string
+}
+
+const SubCtx = React.createContext<SubContextValue | null>(null)
+const useSubCtx = () => React.useContext(SubCtx)
+
 /* ================================================================================================
  * Focus context -- which surface owns the real DOM focus
  * ============================================================================================== */
@@ -335,6 +373,9 @@ type SurfaceState = {
 type RowRecord = {
   ref: React.RefObject<HTMLElement>
   disabled?: boolean
+  kind: 'item' | 'submenu'
+  openSub?: () => void
+  closeSub?: () => void
 }
 
 type SurfaceStore = {
@@ -389,6 +430,7 @@ function createSurfaceStore(): SurfaceStore {
   }
 
   const setActiveId = (id: string | null) => {
+    console.log('setActiveId to', id)
     state.activeId = id
     emit()
     // scroll into view if possible
@@ -490,19 +532,14 @@ const useSurface = () => {
 function useNavKeydown(source: 'input' | 'list') {
   const store = useSurface()
   const root = useRootCtx()
+  const sub = useSubCtx()
   const { dir, vimBindings } = useKeyboardOpts()
 
   return React.useCallback(
     (e: React.KeyboardEvent) => {
       const k = e.key
 
-      // Trap focus within surface
-      if (k === 'Tab') {
-        e.preventDefault()
-        return
-      }
-
-      // ---- Vim-style bindings ----
+      // Vim binds
       if (vimBindings) {
         if (isVimNext(e)) {
           e.preventDefault()
@@ -516,7 +553,12 @@ function useNavKeydown(source: 'input' | 'list') {
         }
       }
 
-      // ---- Arrow navigation ----
+      // Trap focus in the surface
+      if (k === 'Tab') {
+        e.preventDefault()
+        return
+      }
+
       if (k === 'ArrowDown') {
         e.preventDefault()
         store.next()
@@ -527,46 +569,70 @@ function useNavKeydown(source: 'input' | 'list') {
         store.prev()
         return
       }
-
-      // ---- Home/End/PageUp/PageDown via constants ----
-      if (isFirstKey(k)) {
+      if (k === 'Home' || k === 'PageUp') {
         e.preventDefault()
         store.first()
         return
       }
-      if (isLastKey(k)) {
+      if (k === 'End' || k === 'PageDown') {
         e.preventDefault()
         store.last()
         return
       }
 
-      // ---- Direction-aware open/close (submenu hooks can be added later) ----
+      // Open / Select
       if (isOpenKey(dir, k)) {
         e.preventDefault()
-        if (isSelectionKey(k)) {
+        const id = store.snapshot().activeId
+        const rec = id ? store.rows.get(id) : undefined
+        if (rec?.kind === 'submenu' && rec.openSub) {
+          rec.openSub()
+        } else if (isSelectionKey(k)) {
           store.clickActive()
-        } else {
-          // open submenu here when implemented
         }
         return
       }
 
-      if (isCloseKey(dir, k) || k === 'Escape') {
+      // Close / Back (for submenu surfaces)
+      if (isCloseKey(dir, k)) {
+        if (sub) {
+          e.preventDefault()
+          sub.onOpenChange(false)
+          sub.parentSetActiveId(sub.triggerItemId)
+          const parentEl = document.querySelector<HTMLElement>(
+            `[data-surface-id="${sub.parentSurfaceId}"]`,
+          )
+          requestAnimationFrame(() => {
+            const { input, list } = findWidgetsWithinSurface(parentEl)
+            ;(input ?? list)?.focus()
+          })
+          return
+        }
+      }
+
+      if (k === 'Enter') {
         e.preventDefault()
-        e.stopPropagation()
-        // close or go back to parent surface when submenus exist
-        root.onOpenChange(false)
+        const id = store.snapshot().activeId
+        const rec = id ? store.rows.get(id) : undefined
+        if (rec?.kind === 'submenu' && rec.openSub) {
+          rec.openSub()
+        } else {
+          store.clickActive()
+        }
         return
       }
 
-      // ---- Selection ----
-      if (k === 'Enter') {
+      if (k === 'Escape') {
         e.preventDefault()
-        store.clickActive()
+        if (sub) {
+          sub.onOpenChange(false)
+          return
+        }
+        root.onOpenChange(false)
         return
       }
     },
-    [store, root, dir, vimBindings],
+    [store, root, sub, dir, vimBindings],
   )
 }
 
@@ -701,14 +767,46 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   closeOnAnchorPointerDown = true,
 }) => {
   const root = useRootCtx()
+  const sub = useSubCtx()
+  const { ownerId, setOwnerId } = React.useContext(FocusOwnerCtx)!
 
-  const present = root.open
-  const defaultSide = 'bottom'
+  const isSub = !!sub
+  const present = isSub ? sub!.open : root.open
+  const defaultSide = isSub ? 'right' : 'bottom'
   const resolvedSide = side ?? defaultSide
 
   const close = React.useCallback(() => {
-    root.onOpenChange(false)
-  }, [root])
+    if (isSub) {
+      sub!.onOpenChange(false)
+      // Return focus to parent surface
+      setOwnerId(sub!.parentSurfaceId)
+      const parentEl = document.querySelector<HTMLElement>(
+        `[data-surface-id="${sub!.parentSurfaceId}"]`,
+      )
+      requestAnimationFrame(() => {
+        const { input, list } = findWidgetsWithinSurface(parentEl)
+        ;(input ?? list)?.focus()
+      })
+    } else {
+      root.onOpenChange(false)
+    }
+  }, [isSub, root, sub, setOwnerId])
+
+  // On submenu open, move ownership + focus to the child surface’s first widget
+  React.useEffect(() => {
+    if (!isSub || !sub!.open) return
+    setOwnerId(sub!.childSurfaceId)
+    const tryFocus = (attempt = 0) => {
+      const content = sub!.contentRef.current as HTMLElement | null
+      if (content) {
+        const { input, list } = findWidgetsWithinSurface(content)
+        ;(input ?? list)?.focus()
+        return
+      }
+      if (attempt < 5) requestAnimationFrame(() => tryFocus(attempt + 1))
+    }
+    requestAnimationFrame(() => tryFocus())
+  }, [isSub, sub, setOwnerId, sub?.open])
 
   return (
     <Presence present={present}>
@@ -724,19 +822,48 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
         <DismissableLayer
           onEscapeKeyDown={close}
           onDismiss={closeOnAnchorPointerDown ? close : undefined}
-          disableOutsidePointerEvents={root.modal}
-          onInteractOutside={(event) => {
-            const target = event.target as Node | null
-            const anchor = root.anchorRef.current
-            if (
-              !closeOnAnchorPointerDown &&
-              anchor &&
-              target &&
-              anchor.contains(target)
-            ) {
-              event.preventDefault()
-            }
-          }}
+          disableOutsidePointerEvents={isSub ? undefined : root.modal}
+          onInteractOutside={
+            isSub
+              ? (event) => {
+                  const target = event.target as Node | null
+                  const trigger = sub!.triggerRef.current
+                  // Opening via hover or click means the pointer/focus is still on the trigger.
+                  // Treat interactions on the trigger as *inside* to avoid instant dismiss.
+                  if (trigger && target && trigger.contains(target)) {
+                    event.preventDefault()
+                  }
+                }
+              : (event) => {
+                  const target = event.target as Node | null
+                  const anchor = root.anchorRef.current
+                  if (
+                    !closeOnAnchorPointerDown &&
+                    anchor &&
+                    target &&
+                    anchor.contains(target)
+                  ) {
+                    event.preventDefault()
+                  }
+                }
+          }
+          onFocusOutside={
+            isSub
+              ? (event) => {
+                  const target = event.target as Node | null
+                  const trigger = sub!.triggerRef.current
+                  const parentSurface = document.querySelector<HTMLElement>(
+                    `[data-surface-id="${sub!.parentSurfaceId}"]`,
+                  )
+                  if (
+                    (trigger && target && trigger.contains(target)) ||
+                    (parentSurface && target && parentSurface.contains(target))
+                  ) {
+                    event.preventDefault()
+                  }
+                }
+              : undefined
+          }
           asChild
         >
           {children}
@@ -745,7 +872,6 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
     </Presence>
   )
 }
-Positioner.displayName = 'ActionMenu.Positioner'
 
 /* ================================================================================================
  * Content (generic) — adds Input and List with bind APIs
@@ -765,6 +891,11 @@ export interface ActionMenuContentProps<T = unknown>
   dir?: Direction
 }
 
+type ActionMenuContentInternalProps<T = unknown> = ActionMenuContentProps<T> & {
+  /** internal: allows SubmenuContent to pin the child surface id */
+  surfaceIdProp?: string
+}
+
 /** Internal generic base so `createActionMenu<T>()` can close over `T` */
 const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   {
@@ -773,16 +904,23 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     withInput = true,
     vimBindings = true,
     dir: dirProp,
+    surfaceIdProp,
     ...props
-  }: ActionMenuContentProps<T>,
+  }: ActionMenuContentInternalProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const root = useRootCtx()
-  const surfaceId = React.useId()
+  const sub = useSubCtx()
+  const generatedId = React.useId()
+  const surfaceId = surfaceIdProp ?? generatedId
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId
   const surfaceRef = React.useRef<HTMLDivElement | null>(null)
-  const composedRef = composeRefs(ref, surfaceRef)
+  const composedRef = composeRefs(
+    ref,
+    surfaceRef,
+    sub ? (sub.contentRef as any) : undefined,
+  )
   const dir = getDir(dirProp)
 
   const [value, setValue] = React.useState('')
@@ -876,11 +1014,11 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 
   return (
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-      {wrapped}
+      <SurfaceIdCtx.Provider value={surfaceId}>{wrapped}</SurfaceIdCtx.Provider>
     </KeyboardCtx.Provider>
   )
 }) as <T>(
-  p: ActionMenuContentProps<T> & { ref?: React.Ref<HTMLDivElement> },
+  p: ActionMenuContentInternalProps<T> & { ref?: React.Ref<HTMLDivElement> },
 ) => ReturnType<typeof Primitive.div>
 
 /* Public export: generic-friendly but usable directly (any) */
@@ -889,6 +1027,176 @@ export const Content = React.forwardRef<
   ActionMenuContentProps<any>
 >((p, ref) => <ContentBase {...p} ref={ref} />)
 Content.displayName = 'ActionMenu.Content'
+
+function Sub({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false)
+  const triggerRef = React.useRef<HTMLDivElement | HTMLButtonElement | null>(
+    null,
+  )
+  const contentRef = React.useRef<HTMLDivElement | null>(null)
+  const parentStore = useSurface()
+  const parentSurfaceId = useSurfaceId() || 'root'
+  const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
+  const childSurfaceId = React.useId()
+
+  const parentActiveId = useSurfaceSel(parentStore, (s) => s.activeId)
+  React.useEffect(() => {
+    console.log(
+      JSON.stringify(
+        {
+          surfaceId: childSurfaceId,
+          open,
+          triggerItemId,
+          parentActiveId,
+        },
+        null,
+        '\t',
+      ),
+    )
+    if (!open) return
+    if (!triggerItemId) return
+    if (parentActiveId !== triggerItemId) setOpen(false)
+  }, [open, triggerItemId, parentActiveId])
+
+  const value: SubContextValue = React.useMemo(
+    () => ({
+      open,
+      onOpenChange: setOpen,
+      onOpenToggle: () => setOpen((v) => !v),
+      triggerRef,
+      contentRef,
+      parentSurfaceId,
+      triggerItemId,
+      setTriggerItemId,
+      parentSetActiveId: parentStore.setActiveId,
+      childSurfaceId,
+    }),
+    [
+      open,
+      parentSurfaceId,
+      triggerItemId,
+      parentStore.setActiveId,
+      childSurfaceId,
+    ],
+  )
+
+  return (
+    <SubCtx.Provider value={value}>
+      <Popper.Root>{children}</Popper.Root>
+    </SubCtx.Provider>
+  )
+}
+
+function SubTriggerRow<T>({
+  node,
+  renderer,
+}: {
+  node: SubmenuNode<T>
+  renderer: Renderers<T>['submenuTrigger']
+}) {
+  const store = useSurface()
+  const sub = useSubCtx()!
+  const ref = React.useRef<HTMLElement | null>(null)
+
+  // Register with surface as a 'submenu' kind, providing open/close callbacks
+  React.useEffect(() => {
+    store.registerRow(node.id, {
+      ref: ref as any,
+      disabled: false,
+      kind: 'submenu',
+      openSub: () => sub.onOpenChange(true),
+      closeSub: () => sub.onOpenChange(false),
+    })
+    return () => store.unregisterRow(node.id)
+  }, [store, node.id, sub])
+
+  // Track which parent row opened the submenu so we can return focus on close
+  React.useEffect(() => {
+    if (sub.triggerItemId !== node.id) sub.setTriggerItemId(node.id)
+    return () => {
+      if (sub.triggerItemId === node.id) sub.setTriggerItemId(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id])
+
+  const activeId = useSurfaceSel(store, (s) => s.activeId)
+  const focused = activeId === node.id
+
+  const baseRowProps = React.useMemo(
+    () =>
+      ({
+        id: node.id,
+        ref: composeRefs(ref as any, sub.triggerRef as any),
+        role: 'option' as const,
+        tabIndex: -1,
+        'data-action-menu-item-id': node.id,
+        'data-focused': focused ? ('true' as const) : undefined,
+        'aria-selected': focused || undefined,
+        'aria-disabled': false,
+        'data-subtrigger': 'true',
+        onPointerDown: (e: React.PointerEvent) => {
+          if (e.button === 0 && e.ctrlKey === false) {
+            e.preventDefault()
+            sub.onOpenToggle()
+          }
+        },
+        onMouseMove: () => {
+          if (!focused) store.setActiveId(node.id)
+        },
+        onMouseEnter: () => {
+          sub.onOpenChange(true)
+          if (!focused) store.setActiveId(node.id)
+        },
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            sub.onOpenToggle()
+          }
+        },
+      }) as const,
+    [node.id, focused, store, sub],
+  )
+
+  const bind: RowBindAPI = {
+    focused,
+    disabled: false,
+    getRowProps: (overrides) =>
+      mergeProps(baseRowProps as any, overrides as any),
+  }
+
+  const visual = renderer({ node, bind })
+
+  // Auto-wrap with Popper.Anchor so submenu positions relative to this row
+  const content = isElementWithProp(visual, 'data-action-menu-item-id') ? (
+    visual
+  ) : (
+    <div {...(baseRowProps as any)}>
+      {visual ?? (node.render ? node.render() : (node.label ?? node.title))}
+    </div>
+  )
+
+  return <Popper.Anchor asChild>{content as any}</Popper.Anchor>
+}
+
+function SubmenuContent<T>({
+  menu,
+  renderers,
+}: {
+  menu: MenuData<T>
+  renderers: Renderers<T>
+}) {
+  const sub = useSubCtx()!
+  // Compose our content ref into the surface container to let Positioner focus it
+  const content = (
+    <ContentBase<T>
+      menu={menu}
+      renderers={renderers as any}
+      surfaceIdProp={sub.childSurfaceId}
+    />
+  )
+
+  return <Positioner side="right">{content as any}</Positioner>
+}
 
 /* =========================================================================== */
 /* =============================== Rendering ================================= */
@@ -922,23 +1230,54 @@ function renderMenu<T>(
               ) : null}
               {node.nodes.map((child) => {
                 if (child.hidden) return null
-                return child.kind === 'item' ? (
-                  <ItemRow
-                    key={child.id}
-                    node={child as ItemNode<T>}
-                    renderer={renderers.item}
-                    store={store}
-                  />
-                ) : (
-                  // Submenu visuals out-of-scope; fallback if provided
-                  (child.render?.() ?? null)
+                if (child.kind === 'item') {
+                  return (
+                    <ItemRow
+                      key={child.id}
+                      node={child as ItemNode<T>}
+                      renderer={renderers.item}
+                      store={store}
+                    />
+                  )
+                }
+                // submenu inside a group
+                return (
+                  <Sub key={child.id}>
+                    <SubTriggerRow
+                      node={child as SubmenuNode<any>}
+                      renderer={renderers.submenuTrigger as any}
+                    />
+                    <SubmenuContent
+                      menu={{
+                        id: child.id,
+                        title: child.title ?? child.label,
+                        nodes: child.nodes,
+                      }}
+                      renderers={renderers as any}
+                    />
+                  </Sub>
                 )
               })}
             </div>
           )
         }
-        // Submenu at root level — fallback only
-        return node.render?.() ?? null
+        if (node.kind === 'submenu') {
+          const childMenu: MenuData<any> = {
+            id: node.id,
+            title: node.title ?? node.label,
+            nodes: node.nodes,
+          }
+          return (
+            <Sub key={node.id}>
+              <SubTriggerRow
+                node={node as SubmenuNode<any>}
+                renderer={renderers.submenuTrigger as any}
+              />
+              <SubmenuContent menu={childMenu} renderers={renderers as any} />
+            </Sub>
+          )
+        }
+        return null
       })}
     </React.Fragment>
   )
@@ -957,7 +1296,11 @@ function ItemRow<T>({
 
   // Register/unregister with surface
   React.useEffect(() => {
-    store.registerRow(node.id, { ref: ref as any, disabled: false })
+    store.registerRow(node.id, {
+      ref: ref as any,
+      disabled: false,
+      kind: 'item',
+    })
     return () => store.unregisterRow(node.id)
   }, [store, node.id])
 

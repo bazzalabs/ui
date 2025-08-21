@@ -17,7 +17,14 @@ export type {
   ActionMenuContentProps,
 } from './action-menu-v2.js'
 
-export type { MenuData, MenuNode, MenuNodeKind } from './action-menu-v2.js'
+export type {
+  MenuData,
+  MenuNode,
+  MenuNodeKind,
+  SubmenuNode,
+  ItemNode,
+  GroupNode,
+} from './action-menu-v2.js'
 
 export { useRow } from './action-menu.js'
 

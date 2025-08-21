@@ -1,7 +1,28 @@
-import { createActionMenu, type MenuData } from '@bazza-ui/action-menu'
+import {
+  createActionMenu,
+  type MenuData,
+  type SubmenuNode,
+} from '@bazza-ui/action-menu'
 import type { ColumnOption } from '@bazzaui/filters'
 import { isValidElement } from 'react'
 import { cn } from '@/lib/utils'
+
+const TriangleRightIcon = ({
+  ...props
+}: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
+    </svg>
+  )
+}
 
 export const FilterMenu = createActionMenu<ColumnOption>({
   renderers: {
@@ -10,9 +31,18 @@ export const FilterMenu = createActionMenu<ColumnOption>({
         className: cn(
           'border bg-popover z-50 rounded-md text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
           'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+          'relative',
         ),
       })
-      return <div {...props}>{children}</div>
+
+      return (
+        <div {...props}>
+          {children}
+          <span className="absolute top-0 right-0 text-[10px] font-medium">
+            {props['data-surface-id']}
+          </span>
+        </div>
+      )
     },
     list: ({ children, bind }) => {
       const props = bind.getListProps({
@@ -51,11 +81,37 @@ export const FilterMenu = createActionMenu<ColumnOption>({
         </div>
       )
     },
+    submenuTrigger: ({ node, bind }) => {
+      const props = bind.getRowProps({
+        className: cn(
+          "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+          'relative',
+        ),
+      })
+
+      // const data = node.data!
+      // const Icon = data.icon
+
+      return (
+        <div {...props}>
+          {/* {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />} */}
+          <span>{node.title}</span>
+          {/* <span>{data.label}</span> */}
+          <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
+          <span className="absolute top-0 right-0 text-[10px] font-medium">
+            {props['data-action-menu-item-id']}
+          </span>
+        </div>
+      )
+    },
   },
 })
 
-export const menuData: MenuData<ColumnOption> = {
-  id: 'issue-properties',
+const statusMenu: SubmenuNode = {
+  kind: 'submenu',
+  id: 'status',
+  label: 'Status',
+  title: 'Status',
   nodes: [
     {
       kind: 'item',
@@ -233,4 +289,56 @@ export const menuData: MenuData<ColumnOption> = {
       },
     },
   ],
+}
+
+const projectStatusMenu: SubmenuNode = {
+  kind: 'submenu',
+  id: 'project-status',
+  title: 'Project status',
+  label: 'Project status',
+  nodes: [
+    {
+      kind: 'item',
+      id: 'failed',
+      label: 'Failed',
+    },
+    {
+      kind: 'item',
+      id: 'backlog',
+      label: 'Backlog',
+    },
+    {
+      kind: 'item',
+      id: 'planned',
+      label: 'Planned',
+    },
+    {
+      kind: 'item',
+      id: 'in-progress',
+      label: 'In Progress',
+    },
+    {
+      kind: 'item',
+      id: 'completed',
+      label: 'Completed',
+    },
+    {
+      kind: 'item',
+      id: 'canceled',
+      label: 'Canceled',
+    },
+  ],
+}
+
+const projectPropertiesMenu: SubmenuNode = {
+  kind: 'submenu',
+  id: 'project-properties',
+  title: 'Project properties',
+  label: 'Project properties',
+  nodes: [projectStatusMenu],
+}
+
+export const menuData: MenuData<ColumnOption> = {
+  id: 'issue-properties',
+  nodes: [statusMenu, projectPropertiesMenu],
 }
