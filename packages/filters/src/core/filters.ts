@@ -9,6 +9,7 @@ import type {
 } from '../core/types.js'
 import { addUniq, removeUniq, uniq } from '../lib/array.js'
 import {
+  createBigIntFilterValue,
   createDateFilterValue,
   createNumberFilterValue,
 } from '../lib/helpers.js'
@@ -162,11 +163,13 @@ export const filterOperations: FilterOperations = {
     const newValues =
       column.type === 'number'
         ? createNumberFilterValue(values as number[])
-        : column.type === 'date'
-          ? createDateFilterValue(
-              values as [Date, Date] | [Date] | [] | undefined,
-            )
-          : uniq(values)
+        : column.type === 'bigint'
+          ? createBigIntFilterValue(values as bigint[])
+          : column.type === 'date'
+            ? createDateFilterValue(
+                values as [Date, Date] | [Date] | [] | undefined,
+              )
+            : uniq(values)
 
     if (newValues.length === 0) return filters
 
