@@ -9,7 +9,7 @@ import {
 import { dateFilterOperators } from '../core/operators.js'
 import type { FilterModel } from '../core/types.js'
 import { intersection } from './array.js'
-import { getValidNumber, isValidNumber } from './helpers.js'
+import { getValidBigInt, getValidNumber, isValidNumber } from './helpers.js'
 
 export function optionFilterFn(
   inputData: string,
@@ -246,6 +246,78 @@ export function numberFilterFn(
       ) {
         return true // Invalid range means everything is "not between"
       }
+
+      return value < actualLower || value > actualUpper
+    }
+
+    default:
+      return true
+  }
+}
+
+export function bigIntFilterFn(
+  inputData: bigint,
+  filterValue: FilterModel<'bigint'>,
+): boolean {
+  // Early exit conditions
+  if (!filterValue || !filterValue.values || filterValue.values.length === 0) {
+    return true
+  }
+
+  const value = inputData
+  const filterVal = getValidBigInt(filterValue.values[0])
+
+  if (filterVal === undefined) {
+    return true
+  }
+
+  if (typeof value !== 'bigint') {
+    return false
+  }
+
+  switch (filterValue.operator) {
+    case 'is':
+      return value === filterVal
+
+    case 'is not':
+      return value !== filterVal
+
+    case 'is greater than':
+      return value > filterVal
+
+    case 'is greater than or equal to':
+      return value >= filterVal
+
+    case 'is less than':
+      return value < filterVal
+
+    case 'is less than or equal to':
+      return value <= filterVal
+
+    case 'is between': {
+      const lowerBound = getValidBigInt(filterValue.values[0])
+      const upperBound = getValidBigInt(filterValue.values[1])
+
+      if (lowerBound === undefined || upperBound === undefined) {
+        return true
+      }
+
+      const actualLower = lowerBound < upperBound ? lowerBound : upperBound
+      const actualUpper = lowerBound < upperBound ? upperBound : lowerBound
+
+      return value >= actualLower && value <= actualUpper
+    }
+
+    case 'is not between': {
+      const lowerBound = getValidBigInt(filterValue.values[0])
+      const upperBound = getValidBigInt(filterValue.values[1])
+
+      if (lowerBound === undefined || upperBound === undefined) {
+        return true
+      }
+
+      const actualLower = lowerBound < upperBound ? lowerBound : upperBound
+      const actualUpper = lowerBound < upperBound ? upperBound : lowerBound
 
       return value < actualLower || value > actualUpper
     }

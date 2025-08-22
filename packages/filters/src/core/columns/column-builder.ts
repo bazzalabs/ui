@@ -76,14 +76,26 @@ export class ColumnConfigBuilder<
   }
 
   // Number-specific methods
-  min(value: number): this {
-    this.validateType('number', 'min()')
+  min(
+    value: TType extends 'number'
+      ? number
+      : TType extends 'bigint'
+        ? bigint
+        : never,
+  ): this {
+    this.validateType(['number', 'bigint'], 'min()')
     this.config.min = value as any
     return this
   }
 
-  max(value: number): this {
-    this.validateType('number', 'max()')
+  max(
+    value: TType extends 'number'
+      ? number
+      : TType extends 'bigint'
+        ? bigint
+        : never,
+  ): this {
+    this.validateType(['number', 'bigint'], 'max()')
     this.config.max = value as any
     return this
   }
@@ -208,6 +220,7 @@ export class ColumnConfigBuilder<
 interface FluentColumnConfigHelper<TData> {
   text: () => ColumnConfigBuilder<TData, 'text', string>
   number: () => ColumnConfigBuilder<TData, 'number', number>
+  bigint: () => ColumnConfigBuilder<TData, 'bigint', bigint>
   date: () => ColumnConfigBuilder<TData, 'date', Date>
   boolean: () => ColumnConfigBuilder<TData, 'boolean', boolean>
   option: () => ColumnConfigBuilder<TData, 'option', string>
@@ -221,6 +234,7 @@ export function createColumnConfigHelper<
   return {
     text: () => new ColumnConfigBuilder<TData, 'text', string>('text'),
     number: () => new ColumnConfigBuilder<TData, 'number', number>('number'),
+    bigint: () => new ColumnConfigBuilder<TData, 'bigint', bigint>('bigint'),
     date: () => new ColumnConfigBuilder<TData, 'date', Date>('date'),
     boolean: () =>
       new ColumnConfigBuilder<TData, 'boolean', boolean>('boolean'),

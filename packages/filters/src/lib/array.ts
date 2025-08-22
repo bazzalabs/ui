@@ -1,3 +1,4 @@
+import type { NumericValue } from '../core/types.js'
 import { getValidNumber } from './helpers.js'
 
 export function intersection<T>(a: T[], b: T[]): T[] {
@@ -145,10 +146,16 @@ export function isAnyOf<T>(value: T, values: T[]): boolean {
   return values.includes(value)
 }
 
+function getValidBigInt(value: any): bigint | undefined {
+  if (value === null || value === undefined) return undefined
+  if (typeof value !== 'bigint') return undefined
+  return value
+}
+
 /**
  * Get the maximum value from an array of numbers.
  * Ignores invalid entries (null/undefined/NaN or non-numbers) via `getValidNumber`,
- * so it’s safe with `noUncheckedIndexedAccess` and sparse arrays.
+ * so it's safe with `noUncheckedIndexedAccess` and sparse arrays.
  *
  * @param values - Array of numbers (may contain holes)
  * @returns The largest valid number, or -Infinity if none are valid.
@@ -156,25 +163,72 @@ export function isAnyOf<T>(value: T, values: T[]): boolean {
  * max([1, 3, 2]) // => 3
  * max([])        // => -Infinity
  */
-export function max(values: readonly number[]): number {
+export function max(values: readonly number[]): number
+/**
+ * Get the maximum value from an array of bigints.
+ * Ignores invalid entries (null/undefined or non-bigints),
+ * so it's safe with `noUncheckedIndexedAccess` and sparse arrays.
+ *
+ * @param values - Array of bigints (may contain holes)
+ * @returns The largest valid bigint, or -Infinity if none are valid.
+ * @example
+ * max([1n, 3n, 2n]) // => 3n
+ * max([])           // => -Infinity
+ */
+export function max(values: readonly bigint[]): bigint
+export function max(
+  values: readonly number[] | readonly bigint[],
+): number | bigint {
   let found = false
-  let m = Number.NEGATIVE_INFINITY
+
+  // Check if we're dealing with numbers or bigints by looking at the first valid value
+  let isNumberArray = false
+  let isBigIntArray = false
 
   for (let i = 0; i < values.length; i++) {
-    const v = getValidNumber(values[i] as any)
-    if (v !== undefined) {
-      if (v > m) m = v
-      found = true
+    const value = values[i]
+    if (getValidNumber(value) !== undefined) {
+      isNumberArray = true
+      break
+    }
+    if (getValidBigInt(value) !== undefined) {
+      isBigIntArray = true
+      break
     }
   }
 
+  if (isNumberArray) {
+    let m = Number.NEGATIVE_INFINITY
+    for (let i = 0; i < values.length; i++) {
+      const v = getValidNumber(values[i] as any)
+      if (v !== undefined) {
+        if (v > m) m = v
+        found = true
+      }
+    }
+    return found ? m : Number.NEGATIVE_INFINITY
+  }
+
+  // BigInt array
+  let m: bigint | number = Number.NEGATIVE_INFINITY
+  for (let i = 0; i < values.length; i++) {
+    const v = getValidBigInt(values[i] as any)
+    if (v !== undefined) {
+      if (!found) {
+        m = v
+        found = true
+      } else if (typeof m === 'bigint' && v > m) {
+        m = v
+      }
+    }
+  }
   return found ? m : Number.NEGATIVE_INFINITY
 }
 
 /**
  * Get the minimum value from an array of numbers.
  * Ignores invalid entries (null/undefined/NaN or non-numbers) via `getValidNumber`,
- * so it’s safe with `noUncheckedIndexedAccess` and sparse arrays.
+ * so it's safe with `noUncheckedIndexedAccess` and sparse arrays.
  *
  * @param values - Array of numbers (may contain holes)
  * @returns The smallest valid number, or Infinity if none are valid.
@@ -182,18 +236,65 @@ export function max(values: readonly number[]): number {
  * min([1, 3, 2]) // => 1
  * min([])        // => Infinity
  */
-export function min(values: readonly number[]): number {
+export function min(values: readonly number[]): number
+/**
+ * Get the minimum value from an array of bigints.
+ * Ignores invalid entries (null/undefined or non-bigints),
+ * so it's safe with `noUncheckedIndexedAccess` and sparse arrays.
+ *
+ * @param values - Array of bigints (may contain holes)
+ * @returns The smallest valid bigint, or Infinity if none are valid.
+ * @example
+ * min([1n, 3n, 2n]) // => 1n
+ * min([])           // => Infinity
+ */
+export function min(values: readonly bigint[]): bigint
+export function min(
+  values: readonly number[] | readonly bigint[],
+): number | bigint {
   let found = false
-  let m = Number.POSITIVE_INFINITY
+
+  // Check if we're dealing with numbers or bigints by looking at the first valid value
+  let isNumberArray = false
+  let isBigIntArray = false
 
   for (let i = 0; i < values.length; i++) {
-    const v = getValidNumber(values[i] as any)
-    if (v !== undefined) {
-      if (v < m) m = v
-      found = true
+    const value = values[i]
+    if (getValidNumber(value) !== undefined) {
+      isNumberArray = true
+      break
+    }
+    if (getValidBigInt(value) !== undefined) {
+      isBigIntArray = true
+      break
     }
   }
 
+  if (isNumberArray) {
+    let m = Number.POSITIVE_INFINITY
+    for (let i = 0; i < values.length; i++) {
+      const v = getValidNumber(values[i] as any)
+      if (v !== undefined) {
+        if (v < m) m = v
+        found = true
+      }
+    }
+    return found ? m : Number.POSITIVE_INFINITY
+  }
+
+  // BigInt array
+  let m: bigint | number = Number.POSITIVE_INFINITY
+  for (let i = 0; i < values.length; i++) {
+    const v = getValidBigInt(values[i] as any)
+    if (v !== undefined) {
+      if (!found) {
+        m = v
+        found = true
+      } else if (typeof m === 'bigint' && v < m) {
+        m = v
+      }
+    }
+  }
   return found ? m : Number.POSITIVE_INFINITY
 }
 
@@ -208,21 +309,77 @@ export function min(values: readonly number[]): number {
  * minMax([3, -2, 7, 0]) // => [-2, 7]
  * minMax([])            // => [Infinity, -Infinity]
  */
-export function minMax(values: readonly number[]): [number, number] {
+export function minMax(values: readonly number[]): [number, number]
+/**
+ * Get both the minimum and maximum values from an array of bigints in a single pass.
+ * Ignores invalid entries via `getValidBigInt`, making it safe with `noUncheckedIndexedAccess`
+ * and efficient for sparse/large arrays.
+ *
+ * @param values - Array of bigints (may contain holes)
+ * @returns A tuple [min, max], or [Infinity, -Infinity] if none are valid.
+ * @example
+ * minMax([3n, -2n, 7n, 0n]) // => [-2n, 7n]
+ * minMax([])                // => [Infinity, -Infinity]
+ */
+export function minMax(values: readonly bigint[]): [bigint, bigint]
+export function minMax(
+  values: readonly number[] | readonly bigint[],
+): [number, number] | [bigint, bigint] {
   let found = false
-  let minVal = Number.POSITIVE_INFINITY
-  let maxVal = Number.NEGATIVE_INFINITY
+
+  // Check if we're dealing with numbers or bigints by looking at the first valid value
+  let isNumberArray = false
+  let isBigIntArray = false
 
   for (let i = 0; i < values.length; i++) {
-    const v = getValidNumber(values[i] as any)
+    const value = values[i]
+    if (getValidNumber(value) !== undefined) {
+      isNumberArray = true
+      break
+    }
+    if (getValidBigInt(value) !== undefined) {
+      isBigIntArray = true
+      break
+    }
+  }
+
+  if (isNumberArray) {
+    let minVal = Number.POSITIVE_INFINITY
+    let maxVal = Number.NEGATIVE_INFINITY
+
+    for (let i = 0; i < values.length; i++) {
+      const v = getValidNumber(values[i] as any)
+      if (v !== undefined) {
+        if (v < minVal) minVal = v
+        if (v > maxVal) maxVal = v
+        found = true
+      }
+    }
+
+    return found
+      ? [minVal, maxVal]
+      : [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
+  }
+
+  // BigInt array
+  let minVal: bigint | number = Number.POSITIVE_INFINITY
+  let maxVal: bigint | number = Number.NEGATIVE_INFINITY
+
+  for (let i = 0; i < values.length; i++) {
+    const v = getValidBigInt(values[i] as any)
     if (v !== undefined) {
-      if (v < minVal) minVal = v
-      if (v > maxVal) maxVal = v
-      found = true
+      if (!found) {
+        minVal = v
+        maxVal = v
+        found = true
+      } else {
+        if (typeof minVal === 'bigint' && v < minVal) minVal = v
+        if (typeof maxVal === 'bigint' && v > maxVal) maxVal = v
+      }
     }
   }
 
   return found
-    ? [minVal, maxVal]
+    ? [minVal as bigint, maxVal as bigint]
     : [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
 }
