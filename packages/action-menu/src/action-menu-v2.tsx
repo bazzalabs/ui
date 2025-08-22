@@ -1113,80 +1113,80 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   }, [isSub, sub, setOwnerId, sub?.open])
 
   return (
-    <Presence present={present}>
-      <Popper.Content
-        side={resolvedSide}
-        align={align}
-        sideOffset={sideOffset}
-        alignOffset={alignOffset}
-        avoidCollisions={avoidCollisions}
-        collisionPadding={collisionPadding}
-      >
-        <DismissableLayer
-          onEscapeKeyDown={close}
-          onDismiss={closeOnAnchorPointerDown ? close : undefined}
-          disableOutsidePointerEvents={isSub ? undefined : root.modal}
-          onInteractOutside={
-            isSub
-              ? (event) => {
-                  const target = event.target as Node | null
-                  const trigger = sub!.triggerRef.current
-
-                  // Opening via hover or click means the pointer/focus is still on the trigger.
-                  // Treat interactions on the trigger as *inside* to avoid instant dismiss.
-                  if (trigger && target && trigger.contains(target)) {
-                    event.preventDefault()
-                  }
-                }
-              : (event) => {
-                  const target = event.target as Node | null
-                  const anchor = root.anchorRef.current
-                  if (
-                    !closeOnAnchorPointerDown &&
-                    anchor &&
-                    target &&
-                    anchor.contains(target)
-                  ) {
-                    event.preventDefault()
-                  }
-                }
-          }
-          onFocusOutside={
-            isSub
-              ? (event) => {
-                  const target = event.target as Node | null
-                  const trigger = sub!.triggerRef.current
-                  const parentSurface = document.querySelector<HTMLElement>(
-                    `[data-surface-id="${sub!.parentSurfaceId}"]`,
-                  )
-                  if (
-                    (trigger && target && trigger.contains(target)) ||
-                    (parentSurface && target && parentSurface.contains(target))
-                  ) {
-                    event.preventDefault()
-                  }
-                }
-              : undefined
-          }
+    <>
+      <Presence present={present}>
+        <Popper.Content
+          asChild
+          side={resolvedSide}
+          align={align}
+          sideOffset={sideOffset}
+          alignOffset={alignOffset}
+          avoidCollisions={avoidCollisions}
+          collisionPadding={collisionPadding}
         >
-          <Primitive.div style={{ position: 'relative' }}>
+          <DismissableLayer
+            asChild
+            onEscapeKeyDown={close}
+            onDismiss={closeOnAnchorPointerDown ? close : undefined}
+            disableOutsidePointerEvents={isSub ? undefined : root.modal}
+            onInteractOutside={
+              isSub
+                ? (event) => {
+                    const target = event.target as Node | null
+                    const trigger = sub!.triggerRef.current
+
+                    // Opening via hover or click means the pointer/focus is still on the trigger.
+                    // Treat interactions on the trigger as *inside* to avoid instant dismiss.
+                    if (trigger && target && trigger.contains(target)) {
+                      event.preventDefault()
+                    }
+                  }
+                : (event) => {
+                    const target = event.target as Node | null
+                    const anchor = root.anchorRef.current
+                    if (
+                      !closeOnAnchorPointerDown &&
+                      anchor &&
+                      target &&
+                      anchor.contains(target)
+                    ) {
+                      event.preventDefault()
+                    }
+                  }
+            }
+            onFocusOutside={
+              isSub
+                ? (event) => {
+                    const target = event.target as Node | null
+                    const trigger = sub!.triggerRef.current
+                    const parentSurface = document.querySelector<HTMLElement>(
+                      `[data-surface-id="${sub!.parentSurfaceId}"]`,
+                    )
+                    if (
+                      (trigger && target && trigger.contains(target)) ||
+                      (parentSurface &&
+                        target &&
+                        parentSurface.contains(target))
+                    ) {
+                      event.preventDefault()
+                    }
+                  }
+                : undefined
+            }
+          >
             {children}
-            {/* Safe polygon overlay only for open submenus */}
-            {isSub && present && intentZone ? (
-              <IntentZone
-                parentRef={
-                  sub!.contentRef as React.RefObject<HTMLElement | null>
-                }
-                triggerRef={
-                  sub!.triggerRef as React.RefObject<HTMLElement | null>
-                }
-                debug={intentZoneDebug}
-              />
-            ) : null}
-          </Primitive.div>
-        </DismissableLayer>
-      </Popper.Content>
-    </Presence>
+          </DismissableLayer>
+        </Popper.Content>
+      </Presence>
+      {/* Safe polygon overlay only for open submenus */}
+      {isSub && present && intentZone ? (
+        <IntentZone
+          parentRef={sub!.contentRef as React.RefObject<HTMLElement | null>}
+          triggerRef={sub!.triggerRef as React.RefObject<HTMLElement | null>}
+          debug={intentZoneDebug}
+        />
+      ) : null}
+    </>
   )
 }
 
@@ -1248,6 +1248,8 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     () => ({ ...defaultRenderers<T>(), ...(rOverrides as any) }),
     [rOverrides],
   )
+
+  const isSubmenu = !!sub
 
   // Create per-surface store
   const storeRef = React.useRef<SurfaceStore | null>(null)
@@ -1344,6 +1346,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         role: 'menu',
         tabIndex: -1,
         'data-slot': 'action-menu-content',
+        'data-root-menu': !isSubmenu ? 'true' : undefined,
         'data-state': root.open ? 'open' : 'closed',
         'data-action-menu-surface': true as const,
         'data-surface-id': surfaceId,
