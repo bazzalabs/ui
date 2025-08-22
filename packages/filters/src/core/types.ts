@@ -59,6 +59,8 @@ export interface ColumnOptionExtended extends ColumnOption {
   count?: number
 }
 
+export type NumericValue = number | bigint
+
 /*
  * Represents the data type (kind) of a column.
  */
@@ -66,6 +68,7 @@ export type ColumnDataType =
   /* The column value is a string that should be searchable. */
   | 'text'
   | 'number'
+  | 'bigint'
   | 'date'
   | 'boolean'
   /* The column value can be a single value from a list of options. */
@@ -87,6 +90,7 @@ export type OptionBasedColumnDataType = Extract<
 export type ColumnDataNativeMap = {
   text: string
   number: number
+  bigint: bigint
   date: Date
   boolean: boolean
   option: string
@@ -163,8 +167,16 @@ export type ColumnConfig<
   facetedOptions?: TType extends OptionBasedColumnDataType
     ? Map<string, number>
     : never
-  min?: TType extends 'number' ? number : never
-  max?: TType extends 'number' ? number : never
+  min?: TType extends 'number'
+    ? number
+    : TType extends 'bigint'
+      ? bigint
+      : never
+  max?: TType extends 'number'
+    ? number
+    : TType extends 'bigint'
+      ? bigint
+      : never
   transformValueToOptionFn?: TType extends OptionBasedColumnDataType
     ? TTransformValueToOptionFn<TVal>
     : never
@@ -225,11 +237,17 @@ export type DataTableFilterConfig<TData> = {
   columns: ColumnConfig<TData>[]
 }
 
-export type ColumnProperties<TData, TVal> = {
+export type MinMaxReturn<T extends ColumnDataType> = T extends 'number'
+  ? [number, number] | undefined
+  : T extends 'bigint'
+    ? [bigint, bigint] | undefined
+    : undefined
+
+export type ColumnProperties<TData, TType extends ColumnDataType, TVal> = {
   getOptions: () => ColumnOption[]
   getValues: () => ElementType<NonNullable<TVal>>[]
   getFacetedUniqueValues: () => Map<string, number> | undefined
-  getFacetedMinMaxValues: () => [number, number] | undefined
+  getFacetedMinMaxValues: () => MinMaxReturn<TType>
   prefetchOptions: () => Promise<void> // Prefetch options
   prefetchValues: () => Promise<void> // Prefetch values
   prefetchFacetedUniqueValues: () => Promise<void> // Prefetch faceted unique values
@@ -248,7 +266,7 @@ export type Column<
   TType extends ColumnDataType = any,
   TVal = unknown,
 > = ColumnConfig<TData, TType, TVal> &
-  ColumnProperties<TData, TVal> &
+  ColumnProperties<TData, TType, TVal> &
   ColumnPrivateProperties<TData, TVal>
 
 export interface DataTableFilterActions<TContext = any> {
@@ -360,6 +378,8 @@ export type NumberFilterOperator =
   | 'is between'
   | 'is not between'
 
+export type BigIntFilterOperator = NumberFilterOperator
+
 /* Operators for date data */
 export type DateFilterOperator =
   | 'is'
@@ -390,6 +410,7 @@ export type MultiOptionFilterOperator =
 export type FilterOperators = {
   text: TextFilterOperator
   number: NumberFilterOperator
+  bigint: BigIntFilterOperator
   date: DateFilterOperator
   boolean: BooleanFilterOperator
   option: OptionFilterOperator

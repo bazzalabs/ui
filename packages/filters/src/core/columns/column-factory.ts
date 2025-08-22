@@ -2,6 +2,7 @@ import { memo } from '../../lib/memo.js'
 import type {
   Column,
   ColumnConfig,
+  ColumnDataType,
   ElementType,
   FilterStrategy,
 } from '../types.js'
@@ -117,8 +118,8 @@ function createMemoizedUniqueValues<TData>(
   )
 }
 
-function createMemoizedMinMaxValues<TData>(
-  columnConfig: ColumnConfig<TData, any, any, any>,
+function createMemoizedMinMaxValues<TData, TType extends ColumnDataType>(
+  columnConfig: ColumnConfig<TData, TType, any, any>,
   dataService: ColumnDataService<TData>,
 ) {
   return memo(

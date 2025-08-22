@@ -19,6 +19,10 @@ export const DEFAULT_OPERATORS: Record<
     single: 'is',
     multiple: 'is between',
   },
+  bigint: {
+    single: 'is',
+    multiple: 'is between',
+  },
   date: {
     single: 'is',
     multiple: 'is between',
@@ -361,6 +365,9 @@ export const numberFilterOperators = {
   },
 } as const satisfies FilterDetails<'number'>
 
+export const bigIntFilterOperators =
+  numberFilterOperators satisfies FilterDetails<'bigint'>
+
 export const booleanFilterOperators = {
   is: {
     key: 'filters.boolean.is',
@@ -385,6 +392,7 @@ export const booleanFilterOperators = {
 export const filterTypeOperatorDetails: FilterTypeOperatorDetails = {
   text: textFilterOperators,
   number: numberFilterOperators,
+  bigint: bigIntFilterOperators,
   date: dateFilterOperators,
   boolean: booleanFilterOperators,
   option: optionFilterOperators,

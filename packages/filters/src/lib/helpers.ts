@@ -117,6 +117,19 @@ export function isValidNumber(value: any): value is number {
   return typeof value === 'number' && !Number.isNaN(value)
 }
 
+export function getValidBigInt(value: any): bigint | undefined {
+  if (value === null || value === undefined) return undefined
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'string' || typeof value === 'number') {
+    try {
+      return BigInt(value)
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
 export function filterRow(row: any, filters: FiltersState) {
   for (const filter of filters) {
     const cell = row[filter.columnId]
