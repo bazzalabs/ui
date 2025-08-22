@@ -30,7 +30,6 @@ function setActiveWithReason(
   id: string | null,
   reason: string,
 ) {
-  DBG('setActive(reason)', { id, reason })
   ;(window as any).__AM_lastSetActiveReason = reason
   if (typeof target === 'function') {
     target(id)
@@ -338,7 +337,7 @@ export const getDir = (explicit?: Direction): Direction => {
 }
 
 /* ================================================================================================
- * Keywobard context
+ * Keyboard context
  * ============================================================================================== */
 
 type KeyboardOptions = { dir: Direction; vimBindings: boolean }
@@ -492,27 +491,21 @@ function createSurfaceStore(): SurfaceStore {
 
   const setActiveId = (id: string | null) => {
     const prev = state.activeId
-    DBG_GROUP('setActiveId()', { prev, next: id, order: order.slice() })
-
     if (Object.is(prev, id)) return
     state.activeId = id
 
+    // Single-open submenu policy — close any submenu whose trigger isn’t active
     for (const [rid, rec] of rows) {
       if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
         try {
-          DBG('closing submenu because activeId changed', {
-            closing: rid,
-            nowActive: id,
-          })
           rec.closeSub()
-        } catch (e) {
-          DBG('closeSub threw', e)
-        }
+        } catch {}
       }
     }
 
     emit()
 
+    // scroll into view if possible
     const el = id ? rows.get(id)?.ref.current : null
     const listEl = listRef.current
     if (el && listEl) {
@@ -521,17 +514,6 @@ function createSurfaceStore(): SurfaceStore {
         if (inList) el.scrollIntoView({ block: 'nearest' })
       } catch {}
     }
-  }
-
-  // DEV ONLY: expose a stack for each setActiveId callsite
-  if (DEBUG_MODE && !(setActiveId as any).__wrapped) {
-    const orig = setActiveId
-    ;(setActiveId as any).__wrapped = true
-    ;(setActiveId as any).__orig = orig
-    // wrap with stack capture
-    const stack = new Error('setActiveId@stack').stack
-    ;(window as any).__AM_lastActiveStack = stack
-    DBG('setActiveId stack', stack?.split('\n').slice(0, 6).join('\n'))
   }
 
   const setActiveByIndex = (idx: number) => {
@@ -1318,7 +1300,6 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 
   const guardTimerRef = React.useRef<number | null>(null)
   const clearAimGuard = React.useCallback(() => {
-    DBG('GUARD clear')
     if (guardTimerRef.current) {
       window.clearTimeout(guardTimerRef.current)
       guardTimerRef.current = null
@@ -1332,7 +1313,6 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 
   const activateAimGuard = React.useCallback(
     (triggerId: string, timeoutMs = 450) => {
-      DBG('GUARD activate', { triggerId, timeoutMs })
       // Synchronous ref update so next events see it immediately
       aimGuardActiveRef.current = true
       guardedTriggerIdRef.current = triggerId
@@ -1341,7 +1321,6 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
       setAimGuardActive(true)
       if (guardTimerRef.current) window.clearTimeout(guardTimerRef.current)
       guardTimerRef.current = window.setTimeout(() => {
-        DBG('GUARD timeout', { triggerId })
         aimGuardActiveRef.current = false
         guardedTriggerIdRef.current = null
         setAimGuardActive(false)
@@ -1424,9 +1403,9 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
             guardedTriggerId,
             activateAimGuard,
             clearAimGuard,
-            aimGuardActiveRef, // 🔴 new
-            guardedTriggerIdRef, // 🔴 new
-            isGuardBlocking, // 🔴 new
+            aimGuardActiveRef, // available for future debugging
+            guardedTriggerIdRef, // available for future debugging
+            isGuardBlocking,
           }}
         >
           {wrapped}
@@ -1500,20 +1479,12 @@ function SubTriggerRow<T>({
 }) {
   const store = useSurface()
   const sub = useSubCtx()!
-  const {
-    isGuardBlocking,
-    aimGuardActive,
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
-    activateAimGuard,
-    clearAimGuard,
-  } = useHoverPolicy()
+  const { isGuardBlocking, activateAimGuard, clearAimGuard } = useHoverPolicy()
   const mouseTrailRef = useMouseTrail(4)
   const ref = React.useRef<HTMLElement | null>(null)
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
   React.useEffect(() => {
-    // console.log('registering row with id', node.id)
     store.registerRow(node.id, {
       ref: ref as any,
       disabled: false,
@@ -1560,14 +1531,6 @@ function SubTriggerRow<T>({
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === node.id
 
-  React.useEffect(() => {
-    DBG('SUB open change', {
-      node: node.id,
-      open: sub.open,
-      activeId: store.snapshot().activeId,
-    })
-  }, [sub.open, node.id, store])
-
   const baseRowProps = React.useMemo(
     () =>
       ({
@@ -1589,20 +1552,7 @@ function SubTriggerRow<T>({
         },
 
         onPointerEnter: () => {
-          DBG('ptrenter@subtrigger', {
-            node: node.id,
-            guardRef: aimGuardActiveRef.current,
-            guardState: aimGuardActive, // optional: pull from context too
-            guardedRef: guardedTriggerIdRef.current,
-          })
-          // Use ref-backed guard to avoid 1-tick stale state
-          if (isGuardBlocking(node.id)) {
-            DBG('ignore SubTrigger hover (guard active for another trigger)', {
-              node: node.id,
-              guardedTriggerId: guardedTriggerIdRef.current,
-            })
-            return
-          }
+          if (isGuardBlocking(node.id)) return
           if (!focused)
             setActiveWithReason(
               store,
@@ -1656,35 +1606,8 @@ function SubTriggerRow<T>({
             tRect,
           )
 
-          if (DEBUG_MODE) {
-            // eslint-disable-next-line no-console
-            console.log(
-              '[aim] leave',
-              JSON.stringify(
-                {
-                  exit: [e.clientX, e.clientY],
-                  heading,
-                  anchor,
-                  contentRect: {
-                    left: Math.round(contentRect.left),
-                    right: Math.round(contentRect.right),
-                    top: Math.round(contentRect.top),
-                    bottom: Math.round(contentRect.bottom),
-                  },
-                  hit,
-                },
-                null,
-                '\t',
-              ),
-            )
-          }
-
           if (hit) {
             activateAimGuard(node.id, 600)
-            DBG('after-activate', {
-              guardRef: aimGuardActiveRef.current,
-              guardedRef: guardedTriggerIdRef.current,
-            })
             setActiveWithReason(
               sub.parentSetActiveId as any,
               node.id,
@@ -1692,7 +1615,6 @@ function SubTriggerRow<T>({
             )
             sub.onOpenChange(true)
           } else {
-            DBG('no-hit: clear guard')
             clearAimGuard()
           }
         },
@@ -1702,8 +1624,6 @@ function SubTriggerRow<T>({
       focused,
       store,
       sub,
-      aimGuardActiveRef,
-      guardedTriggerIdRef,
       activateAimGuard,
       clearAimGuard,
       isGuardBlocking,
