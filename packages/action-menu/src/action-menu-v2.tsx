@@ -771,35 +771,6 @@ function resolveAnchorSide(
   return mx < rect.left ? 'left' : 'right'
 }
 
-/**
- * Predict if the current pointer *heading* from the exit point will intersect
- * the submenu’s near edge within its vertical span (i.e., stay inside the safe wedge).
- */
-function willReachSubmenuWithoutLeavingPolygon(
-  exitX: number,
-  exitY: number,
-  prevX: number | undefined,
-  prevY: number | undefined,
-  rect: DOMRect,
-  anchor: AnchorSide,
-): boolean {
-  if (prevX == null || prevY == null) return false
-  const dx = exitX - prevX
-  const dy = exitY - prevY
-  if (dx === 0 && dy === 0) return false
-
-  const edgeX = anchor === 'right' ? rect.left : rect.right
-  // must be moving toward the submenu edge
-  if (anchor === 'right' && dx <= 0) return false
-  if (anchor === 'left' && dx >= 0) return false
-
-  // Ray from exit point towards current heading intersects vertical edge?
-  const t = (edgeX - exitX) / dx
-  if (t <= 0) return false
-  const yAtEdge = exitY + t * dy
-  return yAtEdge >= rect.top && yAtEdge <= rect.bottom
-}
-
 /** Return a smoothed heading vector from the mouse trail. Falls back to a sane vector if needed. */
 function getSmoothedHeading(
   trail: [number, number][],
