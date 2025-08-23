@@ -1067,22 +1067,6 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
     }
   }, [isSub, root, sub, setOwnerId])
 
-  // On submenu open, move ownership + focus to the child surface’s first widget
-  React.useEffect(() => {
-    if (!isSub || !sub!.open) return
-    setOwnerId(sub!.childSurfaceId)
-    const tryFocus = (attempt = 0) => {
-      const content = sub!.contentRef.current as HTMLElement | null
-      if (content) {
-        const { input, list } = findWidgetsWithinSurface(content)
-        ;(input ?? list)?.focus()
-        return
-      }
-      if (attempt < 5) requestAnimationFrame(() => tryFocus(attempt + 1))
-    }
-    requestAnimationFrame(() => tryFocus())
-  }, [isSub, sub, setOwnerId, sub?.open])
-
   return (
     <>
       <Presence present={present}>
@@ -1453,6 +1437,7 @@ function SubTriggerRow<T>({
 }) {
   const store = useSurface()
   const sub = useSubCtx()!
+  const { setOwnerId } = useFocusOwner()
   const { isGuardBlocking, activateAimGuard, clearAimGuard } = useHoverPolicy()
   const mouseTrailRef = useMouseTrail(4)
   const ref = React.useRef<HTMLElement | null>(null)
@@ -1476,6 +1461,7 @@ function SubTriggerRow<T>({
     const onOpen = () => {
       sub.pendingOpenModalityRef.current = 'keyboard'
       sub.onOpenChange(true)
+      setOwnerId(sub.childSurfaceId)
       // Move focus down into the child surface’s first focusable (input or list)
       const tryFocus = (attempt = 0) => {
         const content = sub.contentRef.current as HTMLElement | null
@@ -1491,7 +1477,7 @@ function SubTriggerRow<T>({
     nodeEl.addEventListener(OPEN_SUB_EVENT, onOpen as EventListener)
     return () =>
       nodeEl.removeEventListener(OPEN_SUB_EVENT, onOpen as EventListener)
-  }, [sub])
+  }, [sub, setOwnerId])
 
   // Track which parent row opened the submenu so we can return focus on close
   React.useEffect(() => {
