@@ -13,15 +13,12 @@ const DEBUG_MODE = true
 
 const DBG = (...args: any[]) => {
   if (!DEBUG_MODE) return
-  // eslint-disable-next-line no-console
   console.log('[AM]', ...args)
 }
 const DBG_GROUP = (title: string, obj?: any) => {
   if (!DEBUG_MODE) return
-  // eslint-disable-next-line no-console
   console.groupCollapsed(`%c[AM] ${title}`, 'color:#08f')
   if (obj) console.log(obj)
-  // eslint-disable-next-line no-console
   console.groupEnd()
 }
 
@@ -95,6 +92,16 @@ export type MenuNode<T = unknown> =
   | ItemNode<T>
   | GroupNode<T>
   | SubmenuNode<any>
+
+export type SearchContext = {
+  query: string
+  /** true if this row is rendered as a result from a descendant submenu */
+  isDeep: boolean
+  /** titles of submenus leading from the current surface to this row; never includes the row’s own label/title */
+  breadcrumbs: string[]
+  /** same as breacrumbs, but with submenu IDs */
+  breadcrumbIds: string[]
+}
 
 /* =========================================================================== */
 /* =========================== Renderer & bind APIs ========================== */
@@ -171,7 +178,11 @@ export type ListBindAPI = {
 
 export type Renderers<T = unknown> = {
   /** Item renderer for nodes with payload `T`. */
-  item: (args: { node: ItemNode<T>; bind: RowBindAPI }) => React.ReactNode
+  item: (args: {
+    node: ItemNode<T>
+    search?: SearchContext
+    bind: RowBindAPI
+  }) => React.ReactNode
   /** Content renderer for a surface whose items use payload `T`. */
   content: (args: {
     menu: MenuData<T>
@@ -192,6 +203,7 @@ export type Renderers<T = unknown> = {
   /** Submenu trigger renderer */
   submenuTrigger: (args: {
     node: SubmenuNode<any>
+    search?: SearchContext
     bind: RowBindAPI
   }) => React.ReactNode
 }
@@ -447,6 +459,7 @@ type SurfaceStore = {
   registerRow(id: string, rec: RowRecord): void
   unregisterRow(id: string): void
   getOrder(): string[]
+  resetOrder(ids: string[]): void
 
   setActiveId(id: string | null): void
   setActiveByIndex(idx: number): void
@@ -483,6 +496,29 @@ function createSurfaceStore(): SurfaceStore {
   }
 
   const getOrder = () => order.slice()
+
+  const resetOrder = (ids: string[]) => {
+    // de-dupe, keep only rows that still exist
+    // const next: string[] = []
+    // const seen = new Set<string>()
+    // for (const id of ids) {
+    //   if (rows.has(id) && !seen.has(id)) {
+    //     seen.add(id)
+    //     next.push(id)
+    //   }
+    // }
+    // // replace in place to keep references stable
+    // order.splice(0, order.length, ...next)
+    //
+    // // keep active valid; if it fell out, snap to first
+    // if (!state.activeId || !rows.has(state.activeId)) {
+    //   state.activeId = order[0] ?? null
+    // }
+    order.splice(0)
+    order.push(...ids)
+
+    emit()
+  }
 
   const ensureActiveExists = () => {
     if (state.activeId && rows.has(state.activeId)) return
@@ -566,6 +602,7 @@ function createSurfaceStore(): SurfaceStore {
       }
     },
     getOrder,
+    resetOrder,
     setActiveId,
     setActiveByIndex,
     first,
@@ -1332,7 +1369,12 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
           renderer={renderers.input}
         />
       ) : null}
-      <ListView<T> store={store} menu={menu} renderers={renderers} />
+      <ListView<T>
+        store={store}
+        menu={menu}
+        renderers={renderers}
+        query={value}
+      />
     </>
   )
 
@@ -1431,28 +1473,38 @@ function Sub({ children }: { children: React.ReactNode }) {
 function SubTriggerRow<T>({
   node,
   renderer,
+  search,
 }: {
   node: SubmenuNode<T>
   renderer: Renderers<T>['submenuTrigger']
+  search?: SearchContext
 }) {
   const store = useSurface()
   const sub = useSubCtx()!
   const { setOwnerId } = useFocusOwner()
-  const { isGuardBlocking, activateAimGuard, clearAimGuard } = useHoverPolicy()
+  const {
+    isGuardBlocking,
+    guardedTriggerIdRef,
+    aimGuardActiveRef,
+    activateAimGuard,
+    clearAimGuard,
+  } = useHoverPolicy()
   const mouseTrailRef = useMouseTrail(4)
   const ref = React.useRef<HTMLElement | null>(null)
+  const surfaceId = useSurfaceId()
+  const rowId = makeRowId(node.id, search, surfaceId)
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
   React.useEffect(() => {
-    store.registerRow(node.id, {
+    store.registerRow(rowId, {
       ref: ref as any,
       disabled: false,
       kind: 'submenu',
       openSub: () => sub.onOpenChange(true),
       closeSub: () => sub.onOpenChange(false),
     })
-    return () => store.unregisterRow(node.id)
-  }, [store, node.id])
+    return () => store.unregisterRow(rowId)
+  }, [store, rowId])
 
   // Open on custom event from the parent surface (old behavior)
   React.useEffect(() => {
@@ -1481,24 +1533,24 @@ function SubTriggerRow<T>({
 
   // Track which parent row opened the submenu so we can return focus on close
   React.useEffect(() => {
-    if (sub.triggerItemId !== node.id) sub.setTriggerItemId(node.id)
+    if (sub.triggerItemId !== rowId) sub.setTriggerItemId(rowId)
     return () => {
-      if (sub.triggerItemId === node.id) sub.setTriggerItemId(null)
+      if (sub.triggerItemId === rowId) sub.setTriggerItemId(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node.id])
+  }, [rowId])
 
   const activeId = useSurfaceSel(store, (s) => s.activeId)
-  const focused = activeId === node.id
+  const focused = activeId === rowId
 
   const baseRowProps = React.useMemo(
     () =>
       ({
-        id: node.id,
+        id: rowId,
         ref: composeRefs(ref as any, sub.triggerRef as any),
         role: 'option' as const,
         tabIndex: -1,
-        'data-action-menu-item-id': node.id,
+        'data-action-menu-item-id': rowId,
         'data-focused': focused,
         'aria-selected': focused,
         'aria-disabled': false,
@@ -1512,29 +1564,39 @@ function SubTriggerRow<T>({
         },
 
         onPointerEnter: () => {
-          if (isGuardBlocking(node.id)) return
+          if (
+            aimGuardActiveRef.current &&
+            guardedTriggerIdRef.current !== rowId
+          )
+            return
           if (!focused)
             setActiveWithReason(
               store,
-              node.id,
-              `SubTrigger.pointerenter:${node.id}`,
+              rowId,
+              `SubTrigger.pointerenter:${rowId}`,
             )
           clearAimGuard()
           if (!sub.open) sub.onOpenChange(true)
         },
 
         onPointerMove: () => {
-          if (isGuardBlocking(node.id)) return
+          if (
+            aimGuardActiveRef.current &&
+            guardedTriggerIdRef.current !== rowId
+          )
+            return
           if (!focused)
-            setActiveWithReason(
-              store,
-              node.id,
-              `SubTrigger.pointermove:${node.id}`,
-            )
+            setActiveWithReason(store, rowId, `SubTrigger.pointermove:${rowId}`)
           if (!sub.open) sub.onOpenChange(true)
         },
 
         onPointerLeave: (e: React.PointerEvent) => {
+          if (
+            aimGuardActiveRef.current &&
+            guardedTriggerIdRef.current !== rowId
+          )
+            return
+
           const contentRect = sub.contentRef.current?.getBoundingClientRect()
           if (!contentRect) {
             clearAimGuard()
@@ -1567,11 +1629,11 @@ function SubTriggerRow<T>({
           )
 
           if (hit) {
-            activateAimGuard(node.id, 600)
+            activateAimGuard(rowId, 600)
             setActiveWithReason(
               sub.parentSetActiveId as any,
-              node.id,
-              `SubTrigger.leave.hit:${node.id}`,
+              rowId,
+              `SubTrigger.leave.hit:${rowId}`,
             )
             sub.onOpenChange(true)
           } else {
@@ -1580,7 +1642,7 @@ function SubTriggerRow<T>({
         },
       }) as const,
     [
-      node.id,
+      rowId,
       focused,
       store,
       sub,
@@ -1597,7 +1659,7 @@ function SubTriggerRow<T>({
       mergeProps(baseRowProps as any, overrides as any),
   }
 
-  const visual = renderer({ node, bind })
+  const visual = renderer({ node, bind, search })
 
   // Auto-wrap with Popper.Anchor so submenu positions relative to this row
   const content = isElementWithProp(visual, 'data-action-menu-item-id') ? (
@@ -1641,6 +1703,17 @@ function SubmenuContent<T>({
 /* =========================================================================== */
 /* =============================== Rendering ================================= */
 /* =========================================================================== */
+
+function makeRowId(
+  baseId: string,
+  search: SearchContext | undefined,
+  surfaceId: string | null,
+) {
+  if (!search || !search.isDeep || !surfaceId) return baseId
+  return baseId
+  // return `${surfaceId}-${baseId}`
+  // return `${search.breadcrumbIds.join('::')}::${baseId}`
+}
 
 function renderMenu<T>(
   menu: MenuData<T>,
@@ -1727,35 +1800,39 @@ function ItemRow<T>({
   node,
   renderer,
   store,
+  search,
 }: {
   node: ItemNode<T>
   renderer: Renderers<T>['item']
   store: SurfaceStore
+  search?: SearchContext
 }) {
   const ref = React.useRef<HTMLElement | null>(null)
+  const surfaceId = useSurfaceId()
+  const rowId = makeRowId(node.id, search, surfaceId) // NEW (search)
 
   // Register/unregister with surface
   React.useEffect(() => {
-    store.registerRow(node.id, {
+    store.registerRow(rowId, {
       ref: ref as any,
       disabled: false,
       kind: 'item',
     })
-    return () => store.unregisterRow(node.id)
-  }, [store, node.id])
+    return () => store.unregisterRow(rowId)
+  }, [store, rowId])
 
   const activeId = useSurfaceSel(store, (s) => s.activeId)
-  const focused = activeId === node.id
-  const { aimGuardActive } = useHoverPolicy()
+  const focused = activeId === rowId
+  const { aimGuardActive, aimGuardActiveRef } = useHoverPolicy()
 
   const baseRowProps = React.useMemo(
     () =>
       ({
-        id: node.id,
+        id: rowId,
         ref: ref as any,
         role: 'option' as const,
         tabIndex: -1,
-        'data-action-menu-item-id': node.id,
+        'data-action-menu-item-id': rowId,
         'data-focused': focused,
         'aria-selected': focused,
         'aria-disabled': false,
@@ -1764,15 +1841,15 @@ function ItemRow<T>({
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
         },
         onMouseMove: () => {
-          if (aimGuardActive) return
-          if (!focused) store.setActiveId(node.id)
+          if (aimGuardActiveRef.current) return
+          if (!focused) store.setActiveId(rowId)
         },
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
           node.onSelect?.()
         },
       }) as const,
-    [node.id, node.onSelect, aimGuardActive, focused, store],
+    [rowId, node.onSelect, aimGuardActive, focused, store],
   )
 
   const bind: RowBindAPI = {
@@ -1782,7 +1859,7 @@ function ItemRow<T>({
       mergeProps(baseRowProps as any, overrides as any),
   }
 
-  const visual = renderer({ node, bind })
+  const visual = renderer({ node, bind, search })
 
   // If they *did* call bind.getRowProps(), their returned element will carry
   // data-action-menu-item-id. Otherwise, auto-wrap with our wired <div>.
@@ -1854,10 +1931,12 @@ function ListView<T>({
   store,
   menu,
   renderers,
+  query,
 }: {
   store: SurfaceStore
   menu: MenuData<T>
   renderers: Renderers<T>
+  query?: string
 }) {
   const localId = React.useId()
   const listId = useSurfaceSel(store, (s) => s.listId)
@@ -1890,9 +1969,157 @@ function ListView<T>({
       mergeProps(baseListProps as any, overrides as any),
   }
 
-  const children = renderMenu<T>(menu, renderers, store)
-  const el = renderers.list({ children, bind })
+  const norm = (s: string) => s.toLowerCase()
+  const matchesSearchable = (
+    node: Partial<Searchable & { title?: string }>,
+    q: string,
+  ) => {
+    const t = norm(q.trim())
+    if (!t) return true
+    if ((node.label ?? node.title ?? '').toLowerCase().includes(t)) return true
+    if ((node.keywords ?? []).some((k) => norm(k ?? '').includes(t)))
+      return true
+    return false
+  }
 
+  type SRItem = {
+    type: 'item'
+    node: ItemNode<T>
+    breadcrumbs: string[]
+    breadcrumbIds: string[]
+  }
+  type SRSub = {
+    type: 'submenu'
+    node: SubmenuNode<any>
+    breadcrumbs: string[]
+    breadcrumbIds: string[]
+  }
+  type SR = SRItem | SRSub
+
+  const collect = React.useCallback(
+    (
+      nodes: MenuNode<T>[] | undefined,
+      q: string,
+      bc: string[] = [],
+      bcIds: string[] = [],
+    ): SR[] => {
+      const out: SR[] = []
+      for (const n of nodes ?? []) {
+        if ((n as any).hidden) continue
+        if (n.kind === 'item') {
+          if (matchesSearchable(n, q))
+            out.push({
+              type: 'item',
+              node: {
+                ...n,
+                id: bcIds.at(-1) ? `${bcIds.at(-1)}-${n.id}` : n.id,
+              } as ItemNode<T>,
+              breadcrumbs: bc,
+              breadcrumbIds: bcIds,
+            })
+        } else if (n.kind === 'group') {
+          out.push(...collect((n as GroupNode<T>).nodes, q, bc))
+        } else if (n.kind === 'submenu') {
+          const sub = n as SubmenuNode<any>
+          // If the submenu itself matches, include it as a result (without its own title in breadcrumbs)
+          if (matchesSearchable(sub, q))
+            out.push({
+              type: 'submenu',
+              node: sub,
+              breadcrumbs: bc,
+              breadcrumbIds: bcIds,
+            })
+          // Always traverse children to find deep matches; breadcrumbs include the submenu's title
+          const title = sub.title ?? sub.label ?? sub.id ?? ''
+          out.push(
+            ...collect(sub.nodes as any, q, [...bc, title], [...bcIds, sub.id]),
+          )
+        }
+      }
+      return out
+    },
+    [],
+  )
+
+  const q = (query ?? '').trim()
+  const results = React.useMemo(
+    () => (q ? collect(menu.nodes, q) : []),
+    [q, menu.nodes],
+  )
+  const firstRowId = results[0]?.node.id ?? null
+
+  let children: React.ReactNode
+
+  React.useLayoutEffect(() => {
+    if (!q) return
+    if (!firstRowId) return
+
+    const raf = requestAnimationFrame(() => store.setActiveId(firstRowId))
+    return () => cancelAnimationFrame(raf)
+  }, [q])
+
+  React.useLayoutEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const listEl = store.listRef.current
+      if (!listEl) return
+      const ids = Array.from(
+        listEl.querySelectorAll<HTMLElement>('[data-action-menu-item-id]'),
+      ).map((el) => el.id)
+
+      store.resetOrder(ids)
+    })
+
+    return () => cancelAnimationFrame(raf)
+  }, [store, q])
+
+  if (q.length === 0) {
+    // default render
+    children = renderMenu<T>(menu, renderers, store)
+  } else {
+    children = (
+      // biome-ignore lint/complexity/noUselessFragments: <explanation>
+      <>
+        {results.map((res) => {
+          const searchCtx: SearchContext = {
+            query: q,
+            isDeep: res.breadcrumbs.length > 0,
+            breadcrumbs: res.breadcrumbs,
+            breadcrumbIds: res.breadcrumbIds,
+          }
+          if (res.type === 'item') {
+            return (
+              <ItemRow
+                key={`deep-${res.node.id}`}
+                node={res.node}
+                renderer={renderers.item}
+                store={store}
+                search={searchCtx} // NEW (search)
+              />
+            )
+          }
+          // submenu result should behave like a real submenu
+          const childMenu: MenuData<any> = {
+            id: res.node.id,
+            title: res.node.title ?? res.node.label,
+            nodes: res.node.nodes,
+          }
+
+          return (
+            <Sub key={`deep-${res.node.id}`}>
+              <SubTriggerRow
+                node={res.node}
+                renderer={renderers.submenuTrigger as any}
+                search={searchCtx} // NEW (search)
+              />
+              <SubmenuContent menu={childMenu} renderers={renderers as any} />
+            </Sub>
+          )
+        })}
+      </>
+    )
+  }
+
+  const el = renderers.list({ children, bind })
   if (!isElementWithProp(el, 'data-action-menu-list')) {
     return <div {...(bind.getListProps() as any)}>{children}</div>
   }

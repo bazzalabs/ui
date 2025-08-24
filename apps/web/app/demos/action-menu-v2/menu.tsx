@@ -4,7 +4,8 @@ import {
   type SubmenuNode,
 } from '@bazza-ui/action-menu'
 import type { ColumnOption } from '@bazzaui/filters'
-import { isValidElement } from 'react'
+import { ChevronRightIcon } from 'lucide-react'
+import { Fragment, isValidElement } from 'react'
 import { cn } from '@/lib/utils'
 
 const TriangleRightIcon = ({
@@ -24,7 +25,25 @@ const TriangleRightIcon = ({
   )
 }
 
-export const FilterMenu = createActionMenu<ColumnOption>({
+const LabelWithBreadcrumbs = ({
+  label,
+  breadcrumbs,
+}: {
+  label: string
+  breadcrumbs?: string[]
+}) => (
+  <div className="flex items-center gap-1">
+    {breadcrumbs?.map((crumb, idx) => (
+      <Fragment key={`${idx}-${crumb}`}>
+        <span className="text-muted-foreground">{crumb}</span>
+        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px]" />
+      </Fragment>
+    ))}
+    <span>{label}</span>
+  </div>
+)
+
+export const FilterMenu = createActionMenu<Pick<ColumnOption, 'icon'>>({
   renderers: {
     content: ({ children, bind }) => {
       const props = bind.getContentProps({
@@ -63,7 +82,7 @@ export const FilterMenu = createActionMenu<ColumnOption>({
 
       return <input {...props} />
     },
-    item: ({ node, bind }) => {
+    item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: cn(
           'group flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm select-none',
@@ -77,11 +96,15 @@ export const FilterMenu = createActionMenu<ColumnOption>({
       return (
         <div {...props}>
           {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />}
-          <span>{data.label}</span>
+          <LabelWithBreadcrumbs
+            // @ts-expect-error
+            label={data.label}
+            breadcrumbs={search?.breadcrumbs}
+          />
         </div>
       )
     },
-    submenuTrigger: ({ node, bind }) => {
+    submenuTrigger: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: cn(
           "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
@@ -96,7 +119,10 @@ export const FilterMenu = createActionMenu<ColumnOption>({
         <div {...props}>
           <div className="flex items-center gap-2">
             {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />}
-            <span>{node.title}</span>
+            <LabelWithBreadcrumbs
+              label={node.label ?? ''}
+              breadcrumbs={search?.breadcrumbs}
+            />
           </div>
           <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
           <span className="absolute top-0 right-0 text-[10px] font-medium">
@@ -670,7 +696,7 @@ const projectPropertiesMenu: SubmenuNode = {
   nodes: [projectStatusMenu],
 }
 
-export const menuData: MenuData<{ icon: ColumnOption['icon'] }> = {
+export const menuData: MenuData<Pick<ColumnOption, 'icon'>> = {
   id: 'issue-properties',
   nodes: [statusMenu, projectPropertiesMenu],
 }
