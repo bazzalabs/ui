@@ -181,6 +181,7 @@ export function commandScore(
    */
   const transformedString =
     aliases && aliases.length > 0 ? `${string} ${aliases.join(' ')}` : string
+
   return commandScoreInner(
     transformedString,
     abbreviation,

@@ -1,9 +1,9 @@
-import { useRow } from '@bazza-ui/action-menu'
+import type { MenuData } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
+  type ColumnOptionExtended,
   type DataTableFilterActions,
-  type FilterModel,
   type FilterStrategy,
   type FiltersState,
   getColumn,
@@ -21,7 +21,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { ActionMenu } from '@/components/ui/action-menu'
+import { ActionMenu, LabelWithBreadcrumbs } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -40,13 +40,13 @@ import {
 import { cn } from '@/lib/utils'
 import {
   FilterValueController,
-  FilterValueMultiOptionController_v2,
-  FilterValueOptionController_v2,
+  filterValueMultiOptionMenu,
+  filterValueOptionMenu,
 } from './filter-value'
 
 interface FilterSelectorProps<TData> {
   filters: FiltersState
-  columns: Column<TData>[]
+  columns: Column<TData, ColumnDataType>[]
   actions: DataTableFilterActions
   strategy: FilterStrategy
   locale?: Locale
@@ -90,6 +90,34 @@ function __FilterSelector_v2<TData>({
 
   const hasVisibleFilters = visibleFilters.length > 0
 
+  const menu: MenuData<Column<any, ColumnDataType>> = {
+    id: 'properties',
+    nodes: columns
+      .filter((c) => isAnyOf(c.type, ['option', 'multiOption']))
+      .map((c) => {
+        switch (c.type) {
+          case 'option':
+            return filterValueOptionMenu({
+              filter: filters.find((f) => f.columnId === c.id)!,
+              column: c as Column<TData, 'option'>,
+              actions,
+              locale,
+              strategy,
+            })
+          case 'multiOption':
+            return filterValueMultiOptionMenu({
+              filter: filters.find((f) => f.columnId === c.id)!,
+              column: c as Column<TData, 'multiOption'>,
+              actions,
+              locale,
+              strategy,
+            })
+          default:
+            throw new Error('Unexpected column type')
+        }
+      }),
+  }
+
   return (
     <ActionMenu.Root open={open} onOpenChange={setOpen}>
       <ActionMenu.Trigger asChild>
@@ -101,188 +129,41 @@ function __FilterSelector_v2<TData>({
           {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
       </ActionMenu.Trigger>
-      <ActionMenu.Content className="min-w-[225px]">
-        <ActionMenu.Input placeholder="Filter..." />
-        <ActionMenu.List>
-          {visibleColumns.map((column) => (
-            <FilterableColumn_v2
-              key={column.id}
-              filter={filters.find((f) => f.columnId === column.id)!}
-              column={column}
-              actions={actions}
-              strategy={strategy}
-              locale={locale}
-            />
-          ))}
-        </ActionMenu.List>
-      </ActionMenu.Content>
+      <ActionMenu.Positioner side="bottom">
+        <ActionMenu.Content
+          menu={menu}
+          renderers={{
+            item: ({ node, bind, search }) => {
+              const props = bind.getRowProps()
+
+              const data = node.data! as ColumnOptionExtended
+              const Icon = data.icon ?? null
+
+              return (
+                <div {...props}>
+                  <Checkbox
+                    checked={Boolean(data.selected)}
+                    className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]:opacity-100 dark:border-ring mr-1 shrink-0"
+                  />
+
+                  <div className="size-4 flex items-center justify-center">
+                    {!Icon ? null : isValidElement(Icon) ? (
+                      Icon
+                    ) : (
+                      <Icon className="size-4 shrink-0 data-[focused=true]:text-primary" />
+                    )}
+                  </div>
+                  <LabelWithBreadcrumbs
+                    label={data.label}
+                    breadcrumbs={search?.breadcrumbs}
+                  />
+                </div>
+              )
+            },
+          }}
+        />
+      </ActionMenu.Positioner>
     </ActionMenu.Root>
-  )
-}
-
-export function FilterableColumn_v2<TData, TType extends ColumnDataType, TVal>({
-  filter,
-  column,
-  actions,
-  strategy,
-  locale = 'en',
-}: {
-  filter: FilterModel<TType>
-  column: Column<TData, TType, TVal>
-  actions: DataTableFilterActions
-  strategy: FilterStrategy
-  locale?: Locale
-}) {
-  const itemRef = useRef<HTMLDivElement>(null)
-
-  const { icon: Icon } = column
-  const hasIcon = !!Icon
-
-  const prefetch = useCallback(async () => {
-    column.prefetchValues()
-
-    // Only prefetch options and faceted values for option and multi-option columns
-    if (isAnyOf(column.type, ['option', 'multiOption'])) {
-      column.prefetchOptions()
-      column.prefetchFacetedUniqueValues()
-    }
-
-    // Only prefetch min/max values for number columns
-    if (column.type === 'number') {
-      column.prefetchFacetedMinMaxValues()
-    }
-  }, [column])
-
-  useEffect(() => {
-    const target = itemRef.current
-
-    if (!target) return
-
-    // Set up MutationObserver
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'attributes') {
-          const isSelected = target.getAttribute('data-focused') === 'true'
-          if (isSelected) prefetch()
-        }
-      }
-    })
-
-    // Set up observer
-    observer.observe(target, {
-      attributes: true,
-      attributeFilter: ['data-focused'],
-    })
-
-    // Cleanup on unmount
-    return () => observer.disconnect()
-  }, [prefetch])
-
-  function handleSelect() {
-    if (column.type === 'boolean') {
-      actions.setFilterValue(column as any, [true])
-      return
-    }
-  }
-
-  const content = useMemo(() => {
-    switch (column.type) {
-      case 'option':
-        return (
-          <FilterValueOptionController_v2
-            filter={filter as FilterModel<'option'>}
-            column={column as Column<TData, 'option'>}
-            actions={actions}
-            locale={locale}
-            strategy={strategy}
-          />
-        )
-      case 'multiOption':
-        return (
-          <FilterValueMultiOptionController_v2
-            filter={filter as FilterModel<'multiOption'>}
-            column={column as Column<TData, 'multiOption'>}
-            actions={actions}
-            locale={locale}
-            strategy={strategy}
-          />
-        )
-      default:
-        return null
-    }
-  }, [column, actions])
-
-  function SubTriggerRow() {
-    const ctx = useRow()
-    return (
-      <div className="flex w-full items-center justify-between">
-        <div className="inline-flex items-center gap-1.5">
-          {hasIcon &&
-            (isValidElement(Icon) ? (
-              Icon
-            ) : (
-              <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" />
-            ))}
-          <div className="flex items-center gap-0.5">
-            {ctx.breadcrumbs.map((name, index) => (
-              <React.Fragment key={`${index}-${name}`}>
-                <span className="text-muted-foreground">{name}</span>
-                <ChevronRightIcon className="size-4 text-muted-foreground/75" />
-              </React.Fragment>
-            ))}
-            <span>{column.displayName}</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <ActionMenu.Sub>
-      <ActionMenu.SubTrigger
-        value={column.id}
-        keywords={[column.displayName]}
-        onSelect={handleSelect}
-        className="group"
-        onMouseEnter={prefetch}
-      >
-        <SubTriggerRow />
-      </ActionMenu.SubTrigger>
-      {/* <ActionMenu.SubTrigger */}
-      {/*   value={column.id} */}
-      {/*   keywords={[column.displayName]} */}
-      {/*   onSelect={handleSelect} */}
-      {/*   className="group" */}
-      {/*   onMouseEnter={prefetch} */}
-      {/* > */}
-      {/*   {(ctx) => { */}
-      {/*     return ( */}
-      {/*       <div className="flex w-full items-center justify-between"> */}
-      {/*         <div className="inline-flex items-center gap-1.5"> */}
-      {/*           {hasIcon && */}
-      {/*             (isValidElement(Icon) ? ( */}
-      {/*               Icon */}
-      {/*             ) : ( */}
-      {/*               <Icon className="size-4 stroke-[2.50px] text-muted-foreground group-data-[focused=true]:text-primary" /> */}
-      {/*             ))} */}
-      {/*           <div className="flex items-center gap-0.5"> */}
-      {/*             {ctx.breadcrumb.map((name, index) => ( */}
-      {/*               <React.Fragment key={`${index}-${name}`}> */}
-      {/*                 <span className="text-muted-foreground">{name}</span> */}
-      {/*                 <ChevronRightIcon className="size-4 text-muted-foreground/75" /> */}
-      {/*               </React.Fragment> */}
-      {/*             ))} */}
-      {/*             <span>{column.displayName}</span> */}
-      {/*           </div> */}
-      {/*         </div> */}
-      {/*       </div> */}
-      {/*     ) */}
-      {/*   }} */}
-      {/* </ActionMenu.SubTrigger> */}
-      <ActionMenu.SubContent title={column.displayName}>
-        {content}
-      </ActionMenu.SubContent>
-    </ActionMenu.Sub>
   )
 }
 

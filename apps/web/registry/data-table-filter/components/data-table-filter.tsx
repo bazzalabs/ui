@@ -64,13 +64,6 @@ export function DataTableFilter<TData>({
   return (
     <div className="flex w-full items-start justify-between gap-2">
       <div className="flex md:flex-wrap gap-2 w-full flex-1">
-        {/* <FilterSelector */}
-        {/*   columns={columns} */}
-        {/*   filters={filters} */}
-        {/*   actions={actions} */}
-        {/*   strategy={strategy} */}
-        {/*   locale={locale} */}
-        {/* /> */}
         <FilterSelector_v2
           columns={columns}
           filters={filters}

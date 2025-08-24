@@ -20,7 +20,7 @@ const TriangleRightIcon = ({
   )
 }
 
-const LabelWithBreadcrumbs = ({
+export const LabelWithBreadcrumbs = ({
   label,
   breadcrumbs,
 }: {
@@ -41,22 +41,22 @@ const LabelWithBreadcrumbs = ({
 export const ActionMenu = createActionMenu({
   classNames: {
     content: cn(
-      'border bg-popover z-50 rounded-md text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
+      'border bg-popover z-50 rounded-lg text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
       'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
-      'relative',
+      'relative isolate',
     ),
     list: cn(
-      'p-1 flex flex-col w-full max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
+      'p-1 flex flex-col w-full min-w-[200px] max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
     ),
     input: cn(
       'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
     ),
     item: cn(
-      'group flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm select-none',
+      'group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm select-none',
       'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
     ),
     subtrigger: cn(
-      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-md px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
       'relative',
     ),
   },
@@ -70,7 +70,13 @@ export const ActionMenu = createActionMenu({
 
       return (
         <div {...props}>
-          {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />}
+          <div className="size-4 flex items-center justify-center">
+            {!Icon ? null : isValidElement(Icon) ? (
+              Icon
+            ) : (
+              <Icon className="size-4 shrink-0 data-[focused=true]:text-primary" />
+            )}
+          </div>
           <LabelWithBreadcrumbs
             // @ts-expect-error
             label={data.label}
@@ -88,16 +94,22 @@ export const ActionMenu = createActionMenu({
       return (
         <div {...props}>
           <div className="flex items-center gap-2">
-            {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />}
+            <div className="size-4 flex items-center justify-center">
+              {!Icon ? null : isValidElement(Icon) ? (
+                Icon
+              ) : (
+                <Icon className="size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary" />
+              )}
+            </div>
             <LabelWithBreadcrumbs
               label={node.label ?? ''}
               breadcrumbs={search?.breadcrumbs}
             />
           </div>
           <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
-          <span className="absolute top-0 right-0 text-[10px] font-medium">
-            {props['data-action-menu-item-id']}
-          </span>
+          {/* <span className="absolute top-0 right-0 text-[10px] font-medium"> */}
+          {/*   {props['data-action-menu-item-id']} */}
+          {/* </span> */}
         </div>
       )
     },

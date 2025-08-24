@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/a11y/useSemanticElements: This library renders ARIA-only primitives intentionally. */
+
 import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import { DismissableLayer } from '@radix-ui/react-dismissable-layer'
@@ -8,7 +9,9 @@ import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { createPortal } from 'react-dom'
+import { flat, partition, pipe, prop, sortBy } from 'remeda'
 import { cn } from './cn.js'
+import { commandScore } from './command-score.js'
 
 const DEBUG_MODE = true
 
@@ -374,6 +377,7 @@ const useKeyboardOpts = () => React.useContext(KeyboardCtx)
  * Custom events (open submenu)
  * ============================================================================================== */
 const OPEN_SUB_EVENT = 'actionmenu-open-sub' as const
+const SELECT_ITEM_EVENT = 'actionmenu-select-item' as const
 
 function dispatch(node: HTMLElement | null | undefined, type: string) {
   if (!node) return
@@ -738,6 +742,8 @@ function useNavKeydown(source: 'input' | 'list') {
           const el = activeId ? document.getElementById(activeId) : null
           if (el && el.dataset.subtrigger === 'true') {
             openSubmenuForActive(activeId)
+          } else {
+            dispatch(el, SELECT_ITEM_EVENT)
           }
         } else {
           // ArrowRight (LTR) / ArrowLeft (RTL)
@@ -770,7 +776,10 @@ function useNavKeydown(source: 'input' | 'list') {
         const el = activeId ? document.getElementById(activeId) : null
         if (el && el.dataset.subtrigger === 'true') {
           openSubmenuForActive(activeId)
+        } else {
+          dispatch(el, SELECT_ITEM_EVENT)
         }
+
         return
       }
 
@@ -1857,6 +1866,16 @@ function ItemRow<T>({
   const surfaceId = useSurfaceId()
   const rowId = makeRowId(node.id, search, surfaceId) // NEW (search)
 
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onSelectFromKey: EventListener = () => {
+      node.onSelect?.()
+    }
+    el.addEventListener(SELECT_ITEM_EVENT, onSelectFromKey)
+    return () => el.removeEventListener(SELECT_ITEM_EVENT, onSelectFromKey)
+  }, [node.onSelect])
+
   // Register/unregister with surface
   React.useEffect(() => {
     store.registerRow(rowId, {
@@ -2041,12 +2060,14 @@ function ListView<T>({
     node: ItemNode<T>
     breadcrumbs: string[]
     breadcrumbIds: string[]
+    score: number
   }
   type SRSub = {
     type: 'submenu'
     node: SubmenuNode<any>
     breadcrumbs: string[]
     breadcrumbIds: string[]
+    score: number
   }
   type SR = SRItem | SRSub
 
@@ -2061,7 +2082,8 @@ function ListView<T>({
       for (const n of nodes ?? []) {
         if ((n as any).hidden) continue
         if (n.kind === 'item') {
-          if (matchesSearchable(n, q))
+          const score = commandScore(n.id, q, n.keywords)
+          if (score > 0)
             out.push({
               type: 'item',
               node: {
@@ -2070,18 +2092,21 @@ function ListView<T>({
               } as ItemNode<T>,
               breadcrumbs: bc,
               breadcrumbIds: bcIds,
+              score,
             })
         } else if (n.kind === 'group') {
           out.push(...collect((n as GroupNode<T>).nodes, q, bc))
         } else if (n.kind === 'submenu') {
           const sub = n as SubmenuNode<any>
+          const score = commandScore(n.id, q, n.keywords)
           // If the submenu itself matches, include it as a result (without its own title in breadcrumbs)
-          if (matchesSearchable(sub, q))
+          if (score > 0)
             out.push({
               type: 'submenu',
               node: sub,
               breadcrumbs: bc,
               breadcrumbIds: bcIds,
+              score,
             })
           // Always traverse children to find deep matches; breadcrumbs include the submenu's title
           const title = sub.title ?? sub.label ?? sub.id ?? ''
@@ -2097,10 +2122,21 @@ function ListView<T>({
 
   const q = (query ?? '').trim()
   const results = React.useMemo(
-    () => (q ? collect(menu.nodes, q) : []),
+    () =>
+      q
+        ? pipe(
+            collect(menu.nodes, q),
+            sortBy([prop('score'), 'desc']),
+            partition((v) => v.type === 'submenu'), // Show submenus first
+            flat(),
+          )
+        : [],
     [q, menu.nodes],
   )
-  const firstRowId = results[0]?.node.id ?? null
+  const firstRowId = React.useMemo(
+    () => results[0]?.node.id ?? null,
+    [results[0]],
+  )
 
   let children: React.ReactNode
 
