@@ -8,6 +8,7 @@ import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { createPortal } from 'react-dom'
+import { cn } from './cn.js'
 
 const DEBUG_MODE = true
 
@@ -176,6 +177,18 @@ export type ListBindAPI = {
   }
 }
 
+export type SlotClassNames = {
+  root?: string
+  trigger?: string
+  content?: string
+  input?: string
+  list?: string
+  item?: string
+  subtrigger?: string
+  group?: string
+  groupHeading?: string
+}
+
 export type Renderers<T = unknown> = {
   /** Item renderer for nodes with payload `T`. */
   item: (args: {
@@ -257,9 +270,7 @@ function mergeProps<
   const merged: any = { ...base, ...overrides }
   // merge className
   if (base.className || (overrides as any).className) {
-    merged.className = [base.className, (overrides as any).className]
-      .filter(Boolean)
-      .join(' ')
+    merged.className = cn(base.className, (overrides as any).className)
   }
   // compose known handlers (base first, then override)
   for (const key of HANDLER_KEYS) {
@@ -1198,12 +1209,15 @@ export interface ActionMenuContentProps<T = unknown>
   vimBindings?: boolean
   /** Text direction. If omitted, falls back to document.dir */
   dir?: Direction
+  /** Slot class names */
+  classNames?: Partial<SlotClassNames>
 }
 
 type ActionMenuContentInternalProps<T = unknown> = ActionMenuContentProps<T> & {
   /** internal: allows SubmenuContent to pin the child surface id */
   surfaceIdProp?: string
   suppressHoverOpenOnMount?: boolean
+  classNames?: Partial<SlotClassNames>
 }
 
 /** Internal generic base so `createActionMenu<T>()` can close over `T` */
@@ -1216,6 +1230,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     dir: dirProp,
     surfaceIdProp,
     suppressHoverOpenOnMount,
+    classNames,
     ...props
   }: ActionMenuContentInternalProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>,
@@ -1342,6 +1357,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         'data-state': root.open ? 'open' : 'closed',
         'data-action-menu-surface': true as const,
         'data-surface-id': surfaceId,
+        className: classNames?.content ?? {},
         onMouseMove: (e: React.MouseEvent) => {
           clearSuppression()
           const rect = surfaceRef.current?.getBoundingClientRect()
@@ -1367,6 +1383,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
           value={value}
           onChange={setValue}
           renderer={renderers.input}
+          classNames={classNames}
         />
       ) : null}
       <ListView<T>
@@ -1374,6 +1391,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         menu={menu}
         renderers={renderers}
         query={value}
+        classNames={classNames}
       />
     </>
   )
@@ -1473,10 +1491,12 @@ function Sub({ children }: { children: React.ReactNode }) {
 function SubTriggerRow<T>({
   node,
   renderer,
+  classNames,
   search,
 }: {
   node: SubmenuNode<T>
   renderer: Renderers<T>['submenuTrigger']
+  classNames?: Partial<SlotClassNames>
   search?: SearchContext
 }) {
   const store = useSurface()
@@ -1555,6 +1575,7 @@ function SubTriggerRow<T>({
         'aria-selected': focused,
         'aria-disabled': false,
         'data-subtrigger': 'true',
+        className: classNames?.subtrigger ?? {},
         onPointerDown: (e: React.PointerEvent) => {
           if (e.button === 0 && e.ctrlKey === false) {
             e.preventDefault()
@@ -1644,6 +1665,7 @@ function SubTriggerRow<T>({
     [
       rowId,
       focused,
+      classNames?.item,
       store,
       sub,
       activateAimGuard,
@@ -1676,9 +1698,11 @@ function SubTriggerRow<T>({
 function SubmenuContent<T>({
   menu,
   renderers,
+  classNames,
 }: {
   menu: MenuData<T>
   renderers: Renderers<T>
+  classNames?: Partial<SlotClassNames>
 }) {
   const sub = useSubCtx()!
   const suppressHover = sub.pendingOpenModalityRef.current === 'keyboard'
@@ -1692,6 +1716,7 @@ function SubmenuContent<T>({
     <ContentBase<T>
       menu={menu}
       renderers={renderers as any}
+      classNames={classNames}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
     />
@@ -1718,6 +1743,7 @@ function makeRowId(
 function renderMenu<T>(
   menu: MenuData<T>,
   renderers: Renderers<T>,
+  classNames: Partial<SlotClassNames> | undefined,
   store: SurfaceStore,
 ) {
   return (
@@ -1730,14 +1756,24 @@ function renderMenu<T>(
               key={node.id}
               node={node}
               renderer={renderers.item}
+              classNames={classNames}
               store={store}
             />
           )
         if (node.kind === 'group') {
           return (
-            <div key={node.id} role="group" data-action-menu-group>
+            <div
+              key={node.id}
+              role="group"
+              data-action-menu-group
+              className={classNames?.group}
+            >
               {node.heading ? (
-                <div data-action-menu-group-heading role="presentation">
+                <div
+                  data-action-menu-group-heading
+                  role="presentation"
+                  className={classNames?.groupHeading}
+                >
                   {node.heading}
                 </div>
               ) : null}
@@ -1749,6 +1785,7 @@ function renderMenu<T>(
                       key={child.id}
                       node={child as ItemNode<T>}
                       renderer={renderers.item}
+                      classNames={classNames}
                       store={store}
                     />
                   )
@@ -1759,6 +1796,7 @@ function renderMenu<T>(
                     <SubTriggerRow
                       node={child as SubmenuNode<any>}
                       renderer={renderers.submenuTrigger as any}
+                      classNames={classNames}
                     />
                     <SubmenuContent
                       menu={{
@@ -1767,6 +1805,7 @@ function renderMenu<T>(
                         nodes: child.nodes,
                       }}
                       renderers={renderers as any}
+                      classNames={classNames}
                     />
                   </Sub>
                 )
@@ -1785,8 +1824,13 @@ function renderMenu<T>(
               <SubTriggerRow
                 node={node as SubmenuNode<any>}
                 renderer={renderers.submenuTrigger as any}
+                classNames={classNames}
               />
-              <SubmenuContent menu={childMenu} renderers={renderers as any} />
+              <SubmenuContent
+                menu={childMenu}
+                renderers={renderers as any}
+                classNames={classNames}
+              />
             </Sub>
           )
         }
@@ -1799,11 +1843,13 @@ function renderMenu<T>(
 function ItemRow<T>({
   node,
   renderer,
+  classNames,
   store,
   search,
 }: {
   node: ItemNode<T>
   renderer: Renderers<T>['item']
+  classNames?: Partial<SlotClassNames>
   store: SurfaceStore
   search?: SearchContext
 }) {
@@ -1836,6 +1882,7 @@ function ItemRow<T>({
         'data-focused': focused,
         'aria-selected': focused,
         'aria-disabled': false,
+        className: classNames?.item ?? {},
         onPointerDown: (e: React.PointerEvent) => {
           // keep click semantics predictable
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
@@ -1849,7 +1896,7 @@ function ItemRow<T>({
           node.onSelect?.()
         },
       }) as const,
-    [rowId, node.onSelect, aimGuardActive, focused, store],
+    [rowId, node.onSelect, aimGuardActive, focused, store, classNames?.item],
   )
 
   const bind: RowBindAPI = {
@@ -1883,11 +1930,13 @@ function InputView<T>({
   value,
   onChange,
   renderer,
+  classNames,
 }: {
   store: SurfaceStore
   value: string
   onChange: (v: string) => void
   renderer: Renderers<T>['input']
+  classNames?: Partial<SlotClassNames>
 }) {
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
   const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)
@@ -1902,6 +1951,7 @@ function InputView<T>({
     'aria-expanded': true as const,
     'aria-controls': listId,
     'aria-activedescendant': activeId,
+    className: classNames?.input ?? {},
     value,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
       onChange(e.target.value),
@@ -1917,6 +1967,7 @@ function InputView<T>({
   if (!isElementWithProp(el, 'data-action-menu-input')) {
     return (
       <input
+        placeholder="Filter..."
         {...(bind.getInputProps({
           value,
           onChange: (e: any) => onChange(e.target.value),
@@ -1931,11 +1982,13 @@ function ListView<T>({
   store,
   menu,
   renderers,
+  classNames,
   query,
 }: {
   store: SurfaceStore
   menu: MenuData<T>
   renderers: Renderers<T>
+  classNames?: Partial<SlotClassNames>
   query?: string
 }) {
   const localId = React.useId()
@@ -1962,6 +2015,7 @@ function ListView<T>({
     'data-slot': 'action-menu-list' as const,
     'data-action-menu-list': true as const,
     'aria-activedescendant': hasInput ? undefined : activeId,
+    className: classNames?.list ?? {},
     onKeyDown,
   }
   const bind: ListBindAPI = {
@@ -2074,7 +2128,7 @@ function ListView<T>({
 
   if (q.length === 0) {
     // default render
-    children = renderMenu<T>(menu, renderers, store)
+    children = renderMenu<T>(menu, renderers, classNames, store)
   } else {
     children = (
       // biome-ignore lint/complexity/noUselessFragments: <explanation>
@@ -2094,6 +2148,7 @@ function ListView<T>({
                 renderer={renderers.item}
                 store={store}
                 search={searchCtx} // NEW (search)
+                classNames={classNames}
               />
             )
           }
@@ -2110,8 +2165,13 @@ function ListView<T>({
                 node={res.node}
                 renderer={renderers.submenuTrigger as any}
                 search={searchCtx} // NEW (search)
+                classNames={classNames}
               />
-              <SubmenuContent menu={childMenu} renderers={renderers as any} />
+              <SubmenuContent
+                menu={childMenu}
+                renderers={renderers as any}
+                classNames={classNames}
+              />
             </Sub>
           )
         })}
@@ -2136,21 +2196,52 @@ function ListView<T>({
  */
 export function createActionMenu<T>(opts?: {
   renderers?: Partial<Renderers<T>>
+  defaults?: {
+    content?: Pick<
+      ActionMenuContentProps<T>,
+      'withInput' | 'vimBindings' | 'dir'
+    >
+  }
+  classNames?: Partial<SlotClassNames>
 }) {
-  const defaults = {
+  const baseRenderers = {
     ...defaultRenderers<T>(),
     ...(opts?.renderers as any),
   } as Renderers<T>
+  const baseDefaults = opts?.defaults?.content ?? {}
+  const baseClassNames = opts?.classNames ?? {}
 
   const ContentTyped = React.forwardRef<
     HTMLDivElement,
     ActionMenuContentProps<T>
-  >(({ renderers, ...rest }, ref) => {
-    const merged = React.useMemo<Renderers<T>>(
-      () => ({ ...defaults, ...(renderers as any) }),
+  >(({ renderers, classNames, ...rest }, ref) => {
+    const mergedRenderers = React.useMemo<Renderers<T>>(
+      () => ({ ...baseRenderers, ...(renderers as any) }),
       [renderers],
     )
-    return <ContentBase<T> {...(rest as any)} renderers={merged} ref={ref} />
+    const mergedClassNames = React.useMemo<Partial<SlotClassNames>>(
+      () => ({
+        ...baseClassNames,
+        ...(classNames ?? {}),
+      }),
+      [classNames],
+    )
+    // Apply defaults for content-level options if not provided
+    const withInput = rest.withInput ?? baseDefaults.withInput ?? true
+    const vimBindings = rest.vimBindings ?? baseDefaults.vimBindings ?? true
+    const dir = (rest.dir ?? baseDefaults.dir) as Direction | undefined
+
+    return (
+      <ContentBase<T>
+        {...(rest as any)}
+        withInput={withInput}
+        vimBindings={vimBindings}
+        dir={dir}
+        renderers={mergedRenderers}
+        classNames={mergedClassNames}
+        ref={ref}
+      />
+    )
   })
   ContentTyped.displayName = 'ActionMenu.Content'
 

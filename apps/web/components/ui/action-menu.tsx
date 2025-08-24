@@ -1,16 +1,6 @@
-import {
-  type ActionMenuContentProps,
-  type ActionMenuGroupProps,
-  type ActionMenuInputProps,
-  type ActionMenuItemProps,
-  type ActionMenuListProps,
-  ActionMenu as ActionMenuPrimitive,
-  type ActionMenuProps,
-  type ActionMenuSubContentProps,
-  type ActionMenuSubProps,
-  type ActionMenuSubTriggerProps,
-  type ActionMenuTriggerProps,
-} from '@bazza-ui/action-menu'
+import { createActionMenu } from '@bazza-ui/action-menu'
+import { ChevronRightIcon } from 'lucide-react'
+import { Fragment, isValidElement } from 'react'
 import { cn } from '@/lib/utils'
 
 const TriangleRightIcon = ({
@@ -30,138 +20,86 @@ const TriangleRightIcon = ({
   )
 }
 
-export const ActionMenuRoot = ({ className, ...props }: ActionMenuProps) => {
-  return <ActionMenuPrimitive.Root className={cn(className)} {...props} />
-}
-
-export const ActionMenuTrigger = ({
-  className,
-  ...props
-}: ActionMenuTriggerProps) => {
-  return <ActionMenuPrimitive.Trigger className={cn(className)} {...props} />
-}
-
-export const ActionMenuContent = ({
-  className,
-  ...props
-}: ActionMenuContentProps) => {
-  return (
-    <ActionMenuPrimitive.Positioner side="bottom">
-      <ActionMenuPrimitive.Content
-        className={cn(
-          'border bg-popover z-50 rounded-md text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-          className,
-        )}
-        {...props}
-      />
-    </ActionMenuPrimitive.Positioner>
-  )
-}
-
-export const ActionMenuInput = ({
-  className,
-  asChild,
-  ...props
-}: ActionMenuInputProps) => {
-  return (
-    <>
-      <ActionMenuPrimitive.Input
-        className={cn(
-          'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
-          className,
-        )}
-        placeholder="Search..."
-        {...props}
-      />
-      <div className="h-px w-full bg-border" />
-    </>
-  )
-}
-
-export const ActionMenuList = ({
-  className,
-  ...props
-}: ActionMenuListProps) => {
-  return (
-    <ActionMenuPrimitive.List
-      className={cn(
-        'p-1 flex flex-col w-full max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
-        className,
-      )}
-      {...props}
-    />
-  )
-}
-
-export const ActionMenuGroup = ({
-  className,
-  ...props
-}: ActionMenuGroupProps) => {
-  return <ActionMenuPrimitive.Group className={cn(className)} {...props} />
-}
-
-export const ActionMenuItem = ({
-  className,
-  ...props
-}: ActionMenuItemProps) => (
-  <ActionMenuPrimitive.Item
-    {...props}
-    className={cn(
-      'group flex items-center justify-between gap-4 rounded-sm px-3 py-1.5 text-sm',
-      'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
-      className,
-    )}
-  />
+const LabelWithBreadcrumbs = ({
+  label,
+  breadcrumbs,
+}: {
+  label: string
+  breadcrumbs?: string[]
+}) => (
+  <div className="flex items-center gap-1">
+    {breadcrumbs?.map((crumb, idx) => (
+      <Fragment key={`${idx}-${crumb}`}>
+        <span className="text-muted-foreground">{crumb}</span>
+        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px]" />
+      </Fragment>
+    ))}
+    <span>{label}</span>
+  </div>
 )
 
-// export const ActionMenuSub = ({ ...props }: ActionMenuSubProps) => {
-//   return <ActionMenuPrimitive.Sub {...props} />
-// }
-//
-// export const ActionMenuSubTrigger = ({
-//   className,
-//   children,
-//   ...props
-// }: ActionMenuSubTriggerProps) => (
-//   <ActionMenuPrimitive.SubTrigger
-//     {...props}
-//     className={cn(
-//       className,
-//       "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-//     )}
-//   >
-//     {children}
-//     <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
-//   </ActionMenuPrimitive.SubTrigger>
-// )
-//
-// export const ActionMenuSubContent = ({
-//   className,
-//   ...props
-// }: ActionMenuSubContentProps) => {
-//   return (
-//     <ActionMenuPrimitive.Positioner side="right">
-//       <ActionMenuPrimitive.SubContent
-//         className={cn(
-//           'bg-popover z-50 rounded-md border shadow-md flex flex-col h-full w-full',
-//           className,
-//         )}
-//         {...props}
-//       />
-//     </ActionMenuPrimitive.Positioner>
-//   )
-// }
+export const ActionMenu = createActionMenu({
+  classNames: {
+    content: cn(
+      'border bg-popover z-50 rounded-md text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
+      'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
+      'relative',
+    ),
+    list: cn(
+      'p-1 flex flex-col w-full max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
+    ),
+    input: cn(
+      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
+    ),
+    item: cn(
+      'group flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm select-none',
+      'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
+    ),
+    subtrigger: cn(
+      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-sm px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+      'relative',
+    ),
+  },
+  renderers: {
+    item: ({ node, bind, search }) => {
+      const props = bind.getRowProps()
 
-export const ActionMenu = {
-  Root: ActionMenuRoot,
-  Trigger: ActionMenuTrigger,
-  Content: ActionMenuContent,
-  Input: ActionMenuInput,
-  List: ActionMenuList,
-  // Group: ActionMenuGroup,
-  Item: ActionMenuItem,
-  // Sub: ActionMenuSub,
-  // SubTrigger: ActionMenuSubTrigger,
-  // SubContent: ActionMenuSubContent,
-}
+      const data = node.data!
+      // @ts-expect-error
+      const Icon = data.icon ?? null
+
+      return (
+        <div {...props}>
+          {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />}
+          <LabelWithBreadcrumbs
+            // @ts-expect-error
+            label={data.label}
+            breadcrumbs={search?.breadcrumbs}
+          />
+        </div>
+      )
+    },
+    submenuTrigger: ({ node, bind, search }) => {
+      const props = bind.getRowProps({})
+
+      const data = node.data
+      const Icon = data?.icon
+
+      return (
+        <div {...props}>
+          <div className="flex items-center gap-2">
+            {!Icon ? null : isValidElement(Icon) ? Icon : <Icon />}
+            <LabelWithBreadcrumbs
+              label={node.label ?? ''}
+              breadcrumbs={search?.breadcrumbs}
+            />
+          </div>
+          <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
+          <span className="absolute top-0 right-0 text-[10px] font-medium">
+            {props['data-action-menu-item-id']}
+          </span>
+        </div>
+      )
+    },
+  },
+})
