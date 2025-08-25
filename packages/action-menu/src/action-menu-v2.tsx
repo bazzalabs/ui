@@ -13,7 +13,7 @@ import { flat, partition, pipe, prop, sortBy } from 'remeda'
 import { cn } from './cn.js'
 import { commandScore } from './command-score.js'
 
-const DEBUG_MODE = true
+const DEBUG_MODE = false
 
 const DBG = (...args: any[]) => {
   if (!DEBUG_MODE) return
@@ -24,19 +24,6 @@ const DBG_GROUP = (title: string, obj?: any) => {
   console.groupCollapsed(`%c[AM] ${title}`, 'color:#08f')
   if (obj) console.log(obj)
   console.groupEnd()
-}
-
-function setActiveWithReason(
-  target: SurfaceStore | ((id: string | null) => void),
-  id: string | null,
-  reason: string,
-) {
-  ;(window as any).__AM_lastSetActiveReason = reason
-  if (typeof target === 'function') {
-    target(id)
-  } else {
-    target.setActiveId(id)
-  }
 }
 
 /* =========================================================================== */
@@ -423,7 +410,7 @@ type SubContextValue = {
   parentSurfaceId: string
   triggerItemId: string | null
   setTriggerItemId: (id: string | null) => void
-  parentSetActiveId: (id: string | null) => void
+  parentSetActiveId: (id: string | null, cause?: ActivationCause) => void
   childSurfaceId: string
   pendingOpenModalityRef: React.RefObject<'keyboard' | 'pointer' | null>
   /** Whether the pointer is inside the intent zone triangle. */
@@ -466,6 +453,8 @@ type RowRecord = {
   closeSub?: () => void
 }
 
+type ActivationCause = 'keyboard' | 'pointer' | 'programmatic'
+
 type SurfaceStore = {
   subscribe(cb: () => void): () => void
   snapshot(): SurfaceState
@@ -476,12 +465,12 @@ type SurfaceStore = {
   getOrder(): string[]
   resetOrder(ids: string[]): void
 
-  setActiveId(id: string | null): void
-  setActiveByIndex(idx: number): void
-  first(): void
-  last(): void
-  next(): void
-  prev(): void
+  setActiveId(id: string | null, cause?: ActivationCause): void
+  setActiveByIndex(idx: number, cause?: ActivationCause): void
+  first(cause?: ActivationCause): void
+  last(cause?: ActivationCause): void
+  next(cause?: ActivationCause): void
+  prev(cause?: ActivationCause): void
 
   readonly rows: Map<string, RowRecord>
   readonly inputRef: React.RefObject<HTMLInputElement | null>
@@ -513,22 +502,6 @@ function createSurfaceStore(): SurfaceStore {
   const getOrder = () => order.slice()
 
   const resetOrder = (ids: string[]) => {
-    // de-dupe, keep only rows that still exist
-    // const next: string[] = []
-    // const seen = new Set<string>()
-    // for (const id of ids) {
-    //   if (rows.has(id) && !seen.has(id)) {
-    //     seen.add(id)
-    //     next.push(id)
-    //   }
-    // }
-    // // replace in place to keep references stable
-    // order.splice(0, order.length, ...next)
-    //
-    // // keep active valid; if it fell out, snap to first
-    // if (!state.activeId || !rows.has(state.activeId)) {
-    //   state.activeId = order[0] ?? null
-    // }
     order.splice(0)
     order.push(...ids)
 
@@ -540,7 +513,10 @@ function createSurfaceStore(): SurfaceStore {
     state.activeId = order[0] ?? null
   }
 
-  const setActiveId = (id: string | null) => {
+  const setActiveId = (
+    id: string | null,
+    cause: ActivationCause = 'keyboard',
+  ) => {
     const prev = state.activeId
     if (Object.is(prev, id)) return
     state.activeId = id
@@ -556,6 +532,8 @@ function createSurfaceStore(): SurfaceStore {
 
     emit()
 
+    if (cause !== 'keyboard') return
+
     // scroll into view if possible
     const el = id ? rows.get(id)?.ref.current : null
     const listEl = listRef.current
@@ -567,29 +545,35 @@ function createSurfaceStore(): SurfaceStore {
     }
   }
 
-  const setActiveByIndex = (idx: number) => {
-    if (!order.length) return setActiveId(null)
+  const setActiveByIndex = (
+    idx: number,
+    cause: ActivationCause = 'keyboard',
+  ) => {
+    if (!order.length) return setActiveId(null, cause)
     const clamped = idx < 0 ? 0 : idx >= order.length ? order.length - 1 : idx
-    setActiveId(order[clamped]!)
+    setActiveId(order[clamped]!, cause)
   }
 
-  const first = () => setActiveByIndex(0)
-  const last = () => setActiveByIndex(order.length - 1)
+  const first = (cause: ActivationCause = 'keyboard') =>
+    setActiveByIndex(0, cause)
 
-  const next = () => {
-    if (!order.length) return setActiveId(null)
+  const last = (cause: ActivationCause = 'keyboard') =>
+    setActiveByIndex(order.length - 1, cause)
+
+  const next = (cause: ActivationCause = 'keyboard') => {
+    if (!order.length) return setActiveId(null, cause)
     const curr = state.activeId
     const i = curr ? order.indexOf(curr) : -1
     const n = i === -1 ? 0 : (i + 1) % order.length
-    setActiveId(order[n]!)
+    setActiveId(order[n]!, cause)
   }
 
-  const prev = () => {
-    if (!order.length) return setActiveId(null)
+  const prev = (cause: ActivationCause = 'keyboard') => {
+    if (!order.length) return setActiveId(null, cause)
     const curr = state.activeId
     const i = curr ? order.indexOf(curr) : 0
     const p = i <= 0 ? order.length - 1 : i - 1
-    setActiveId(order[p]!)
+    setActiveId(order[p]!, cause)
   }
 
   return {
@@ -1246,8 +1230,10 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 ) {
   const root = useRootCtx()
   const sub = useSubCtx()
-  const generatedId = React.useId()
-  const surfaceId = surfaceIdProp ?? generatedId
+  const surfaceId = React.useMemo(
+    () => surfaceIdProp ?? sub?.childSurfaceId ?? 'root',
+    [surfaceIdProp, sub],
+  )
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId
   const surfaceRef = React.useRef<HTMLDivElement | null>(null)
@@ -1521,6 +1507,7 @@ function SubTriggerRow<T>({
   const mouseTrailRef = useMouseTrail(4)
   const ref = React.useRef<HTMLElement | null>(null)
   const surfaceId = useSurfaceId()
+  const { ownerId } = useFocusOwner()
   const rowId = makeRowId(node.id, search, surfaceId)
 
   // Register with surface as a 'submenu' kind, providing open/close callbacks
@@ -1571,6 +1558,7 @@ function SubTriggerRow<T>({
 
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === rowId
+  const menuFocused = sub.childSurfaceId === ownerId
 
   const baseRowProps = React.useMemo(
     () =>
@@ -1581,6 +1569,8 @@ function SubTriggerRow<T>({
         tabIndex: -1,
         'data-action-menu-item-id': rowId,
         'data-focused': focused,
+        'data-menu-state': sub.open ? 'open' : 'closed',
+        'data-menu-focused': menuFocused,
         'aria-selected': focused,
         'aria-disabled': false,
         'data-subtrigger': 'true',
@@ -1599,12 +1589,7 @@ function SubTriggerRow<T>({
             guardedTriggerIdRef.current !== rowId
           )
             return
-          if (!focused)
-            setActiveWithReason(
-              store,
-              rowId,
-              `SubTrigger.pointerenter:${rowId}`,
-            )
+          if (!focused) store.setActiveId(rowId, 'pointer')
           clearAimGuard()
           if (!sub.open) sub.onOpenChange(true)
         },
@@ -1615,8 +1600,7 @@ function SubTriggerRow<T>({
             guardedTriggerIdRef.current !== rowId
           )
             return
-          if (!focused)
-            setActiveWithReason(store, rowId, `SubTrigger.pointermove:${rowId}`)
+          if (!focused) store.setActiveId(rowId, 'pointer')
           if (!sub.open) sub.onOpenChange(true)
         },
 
@@ -1660,11 +1644,7 @@ function SubTriggerRow<T>({
 
           if (hit) {
             activateAimGuard(rowId, 600)
-            setActiveWithReason(
-              sub.parentSetActiveId as any,
-              rowId,
-              `SubTrigger.leave.hit:${rowId}`,
-            )
+            store.setActiveId(rowId, 'pointer')
             sub.onOpenChange(true)
           } else {
             clearAimGuard()
@@ -1674,7 +1654,8 @@ function SubTriggerRow<T>({
     [
       rowId,
       focused,
-      classNames?.item,
+      menuFocused,
+      classNames?.subtrigger,
       store,
       sub,
       activateAimGuard,
@@ -1908,7 +1889,7 @@ function ItemRow<T>({
         },
         onMouseMove: () => {
           if (aimGuardActiveRef.current) return
-          if (!focused) store.setActiveId(rowId)
+          if (!focused) store.setActiveId(rowId, 'pointer')
         },
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
@@ -2144,7 +2125,9 @@ function ListView<T>({
     if (!q) return
     if (!firstRowId) return
 
-    const raf = requestAnimationFrame(() => store.setActiveId(firstRowId))
+    const raf = requestAnimationFrame(() =>
+      store.setActiveId(firstRowId, 'keyboard'),
+    )
     return () => cancelAnimationFrame(raf)
   }, [q])
 

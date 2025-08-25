@@ -443,11 +443,6 @@ function __FilterValueController<TData, TType extends ColumnDataType>({
   }
 }
 
-interface OptionItemProps {
-  option: ColumnOptionExtended
-  onToggle: (value: string, checked: boolean) => void
-}
-
 export function filterValueOptionMenu<TData>({
   filter,
   column,
@@ -500,6 +495,7 @@ export function filterValueOptionMenu<TData>({
       kind: 'item',
       id: option.value,
       label: option.label,
+      keywords: [option.label],
       data: option,
       onSelect: () => handleToggle(option.value, !option.selected),
     })),
@@ -554,10 +550,12 @@ export function filterValueMultiOptionMenu<TData>({
     label: column.displayName,
     title: column.displayName,
     data: column,
+    // virtualized: true,
     nodes: [...selectedOptions, ...unselectedOptions].map((option) => ({
       kind: 'item',
       id: option.value,
       label: option.label,
+      keywords: [option.label],
       data: option,
       onSelect: () => handleToggle(option.value, !option.selected),
     })),

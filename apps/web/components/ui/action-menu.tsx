@@ -106,7 +106,7 @@ export const ActionMenu = createActionMenu({
               breadcrumbs={search?.breadcrumbs}
             />
           </div>
-          <TriangleRightIcon className="text-muted-foreground group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
+          <TriangleRightIcon className="text-muted-foreground group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
           {/* <span className="absolute top-0 right-0 text-[10px] font-medium"> */}
           {/*   {props['data-action-menu-item-id']} */}
           {/* </span> */}
