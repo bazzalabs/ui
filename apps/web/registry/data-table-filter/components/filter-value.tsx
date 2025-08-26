@@ -490,6 +490,7 @@ export function filterValueOptionMenu<TData>({
     id: column.id,
     label: column.displayName,
     title: column.displayName,
+    inputPlaceholder: `${column.displayName}...`,
     data: column,
     nodes: [...selectedOptions, ...unselectedOptions].map((option) => ({
       kind: 'item',
@@ -549,6 +550,7 @@ export function filterValueMultiOptionMenu<TData>({
     id: column.id,
     label: column.displayName,
     title: column.displayName,
+    inputPlaceholder: `${column.displayName}...`,
     data: column,
     // virtualized: true,
     nodes: [...selectedOptions, ...unselectedOptions].map((option) => ({

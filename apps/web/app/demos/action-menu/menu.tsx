@@ -13,6 +13,7 @@ const statusMenu: SubmenuNode<{ icon?: ColumnOption['icon'] }> = {
   id: 'status',
   label: 'Status',
   title: 'Status',
+  inputPlaceholder: 'Status...',
   data: {
     icon: <StatusIcon />,
   },
@@ -75,6 +76,7 @@ const projectStatusMenu: SubmenuNode<{ icon?: ColumnOption['icon'] }> = {
   id: 'project-status',
   title: 'Project status',
   label: 'Project status',
+  inputPlaceholder: 'Project status...',
   data: {
     icon: <ProjectStatusIcon />,
   },
@@ -147,6 +149,7 @@ const projectPropertiesMenu: SubmenuNode = {
   id: 'project-properties',
   title: 'Project properties',
   label: 'Project properties',
+  inputPlaceholder: 'Project properties...',
   data: {
     icon: <ProjectPropertiesIcon />,
   },
