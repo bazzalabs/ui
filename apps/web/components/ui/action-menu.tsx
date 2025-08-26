@@ -46,7 +46,7 @@ export const ActionMenu = createActionMenu({
       'relative isolate',
     ),
     list: cn(
-      'p-1 flex flex-col w-full min-w-[200px] max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto',
+      'p-1 flex flex-col w-full min-w-[200px] max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
     ),
     input: cn(
       'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
@@ -66,17 +66,19 @@ export const ActionMenu = createActionMenu({
 
       const data = node.data!
       // @ts-expect-error
-      const Icon = data.icon ?? null
+      const Icon = data?.icon ?? null
 
       return (
         <div {...props}>
-          <div className="size-4 flex items-center justify-center">
-            {!Icon ? null : isValidElement(Icon) ? (
-              Icon
-            ) : (
-              <Icon className="size-4 shrink-0 data-[focused=true]:text-primary" />
-            )}
-          </div>
+          {Icon && (
+            <div className="size-4 flex items-center justify-center">
+              {isValidElement(Icon) ? (
+                Icon
+              ) : (
+                <Icon className="size-4 shrink-0 data-[focused=true]:text-primary" />
+              )}
+            </div>
+          )}
           <LabelWithBreadcrumbs
             // @ts-expect-error
             label={data.label}

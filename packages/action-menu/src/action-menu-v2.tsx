@@ -69,6 +69,8 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
     data?: T
     title?: string
     inputPlaceholder?: string
+    /** When true, hide the input until the user starts typing on that surface. */
+    hideSearchUntilActive?: boolean
     nodes: MenuNode<TChild>[]
   }
 
@@ -77,6 +79,8 @@ export type MenuData<T = unknown> = {
   id: string
   title?: string
   inputPlaceholder?: string
+  /** When true, hide the input until the user starts typing on that surface. */
+  hideSearchUntilActive?: boolean
   nodes?: MenuNode<T>[]
 }
 
@@ -1201,8 +1205,6 @@ export interface ActionMenuContentProps<T = unknown>
   menu: MenuData<T>
   /** Per-instance renderers (merged over sensible defaults). */
   renderers?: Partial<Renderers<T>>
-  /** If false, no Input is rendered; List becomes focus owner. */
-  withInput?: boolean
   /** Vim-style keybindings (Ctrl+N/P, Ctrl+J/K). */
   vimBindings?: boolean
   /** Text direction. If omitted, falls back to document.dir */
@@ -1223,7 +1225,6 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   {
     menu,
     renderers: rOverrides,
-    withInput = true,
     vimBindings = true,
     dir: dirProp,
     surfaceIdProp,
@@ -1258,14 +1259,20 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 
   const isSubmenu = !!sub
 
+  // input shows immediately unless hideSearchUntilActive is set on this surface
+  const [inputActive, setInputActive] = React.useState(
+    !menu.hideSearchUntilActive,
+  )
+
   // Create per-surface store
   const storeRef = React.useRef<SurfaceStore | null>(null)
   if (!storeRef.current) storeRef.current = createSurfaceStore()
   const store = storeRef.current
 
+  // Keep store awareness in sync so List tabIndex/aria are correct
   React.useEffect(() => {
-    store.set('hasInput', withInput)
-  }, [withInput, store])
+    store.set('hasInput', inputActive)
+  }, [inputActive, store])
 
   React.useEffect(() => {
     if (!root.open) {
@@ -1377,7 +1384,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   // Compose children (Input + List). These are components so hooks are top-level there.
   const childrenNoProvider = (
     <>
-      {withInput ? (
+      {inputActive ? (
         <InputView<T>
           store={store}
           value={value}
@@ -1393,6 +1400,17 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         renderers={renderers}
         query={value}
         classNames={classNames}
+        inputActive={inputActive}
+        onTypeStart={(seed) => {
+          // first typed key while input is hidden: show input, seed it, focus it
+          if (!inputActive) {
+            setInputActive(true)
+            setValue(seed)
+            requestAnimationFrame(() => {
+              store.inputRef.current?.focus()
+            })
+          }
+        }}
       />
     </>
   )
@@ -1987,20 +2005,44 @@ function ListView<T>({
   menu,
   renderers,
   classNames,
-
   query,
+  inputActive,
+  onTypeStart,
 }: {
   store: SurfaceStore
   menu: MenuData<T>
   renderers: Renderers<T>
   classNames?: Partial<SlotClassNames>
   query?: string
+  inputActive: boolean
+  /** Called with the first typed character that should seed the input. */
+  onTypeStart: (seed: string) => void
 }) {
   const localId = React.useId()
   const listId = useSurfaceSel(store, (s) => s.listId)
   const hasInput = useSurfaceSel(store, (s) => s.hasInput)
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
-  const onKeyDown = useNavKeydown('list')
+  const navKeydown = useNavKeydown('list')
+
+  const onKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      // While the input is hidden, start search on first printable key or Backspace.
+      if (!inputActive && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === 'Backspace') {
+          e.preventDefault()
+          onTypeStart('')
+          return
+        }
+        if (e.key.length === 1) {
+          e.preventDefault()
+          onTypeStart(e.key)
+          return
+        }
+      }
+      navKeydown(e)
+    },
+    [inputActive, onTypeStart, navKeydown],
+  )
 
   React.useEffect(() => {
     const id = listId ?? `action-menu-list-${localId}`
@@ -2219,10 +2261,7 @@ function ListView<T>({
 export function createActionMenu<T>(opts?: {
   renderers?: Partial<Renderers<T>>
   defaults?: {
-    content?: Pick<
-      ActionMenuContentProps<T>,
-      'withInput' | 'vimBindings' | 'dir'
-    >
+    content?: Pick<ActionMenuContentProps<T>, 'vimBindings' | 'dir'>
   }
   classNames?: Partial<SlotClassNames>
 }) {
@@ -2231,7 +2270,7 @@ export function createActionMenu<T>(opts?: {
     ...(opts?.renderers as any),
   } as Renderers<T>
   const baseDefaults = opts?.defaults?.content ?? {}
-  const baseClassNames = opts?.classNames ?? {}
+  const baseClassNames = opts?.classNames
 
   const ContentTyped = React.forwardRef<
     HTMLDivElement,
@@ -2243,20 +2282,28 @@ export function createActionMenu<T>(opts?: {
     )
     const mergedClassNames = React.useMemo<Partial<SlotClassNames>>(
       () => ({
-        ...baseClassNames,
-        ...(classNames ?? {}),
+        root: cn(baseClassNames?.root, classNames?.root),
+        trigger: cn(baseClassNames?.trigger, classNames?.trigger),
+        content: cn(baseClassNames?.content, classNames?.content),
+        input: cn(baseClassNames?.input, classNames?.input),
+        list: cn(baseClassNames?.list, classNames?.list),
+        item: cn(baseClassNames?.item, classNames?.item),
+        subtrigger: cn(baseClassNames?.subtrigger, classNames?.subtrigger),
+        group: cn(baseClassNames?.group, classNames?.group),
+        groupHeading: cn(
+          baseClassNames?.groupHeading,
+          classNames?.groupHeading,
+        ),
       }),
-      [classNames],
+      [classNames, baseClassNames],
     )
     // Apply defaults for content-level options if not provided
-    const withInput = rest.withInput ?? baseDefaults.withInput ?? true
     const vimBindings = rest.vimBindings ?? baseDefaults.vimBindings ?? true
     const dir = (rest.dir ?? baseDefaults.dir) as Direction | undefined
 
     return (
       <ContentBase<T>
         {...(rest as any)}
-        withInput={withInput}
         vimBindings={vimBindings}
         dir={dir}
         renderers={mergedRenderers}

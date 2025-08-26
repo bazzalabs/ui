@@ -77,6 +77,7 @@ const projectStatusMenu: SubmenuNode<{ icon?: ColumnOption['icon'] }> = {
   title: 'Project status',
   label: 'Project status',
   inputPlaceholder: 'Project status...',
+  hideSearchUntilActive: true,
   data: {
     icon: <ProjectStatusIcon />,
   },

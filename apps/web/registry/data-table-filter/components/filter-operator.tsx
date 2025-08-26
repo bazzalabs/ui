@@ -1,3 +1,4 @@
+import type { MenuData } from '@bazza-ui/action-menu'
 import {
   booleanFilterOperators,
   type Column,
@@ -5,6 +6,7 @@ import {
   type DataTableFilterActions,
   dateFilterOperators,
   type FilterModel,
+  type FilterOperatorDetails,
   type FilterOperators,
   filterTypeOperatorDetails,
   type Locale,
@@ -15,6 +17,7 @@ import {
   textFilterOperators,
 } from '@bazzaui/filters'
 import { useState } from 'react'
+import { ActionMenu } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -50,12 +53,23 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
 
   const close = () => setOpen(false)
 
+  const menu =
+    column.type === 'option'
+      ? createOptionOperatorMenu({
+          filter: filter as FilterModel<'option'>,
+          column: column as Column<TData, 'option'>,
+          actions,
+          closeController: close,
+          locale,
+        })
+      : null
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <ActionMenu.Root open={open} onOpenChange={setOpen}>
+      <ActionMenu.Trigger>
         <Button
           variant="ghost"
-          className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
+          className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs border border-red-500"
           onClick={(e) => {
             if (column.type !== 'boolean') return
             e.preventDefault()
@@ -76,26 +90,14 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
             locale={locale}
           />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-fit p-0 origin-(--radix-popover-content-transform-origin)"
-      >
-        <Command loop>
-          <CommandInput placeholder={t('search', locale)} />
-          <CommandEmpty>{t('noresults', locale)}</CommandEmpty>
-          <CommandList className="max-h-fit">
-            <FilterOperatorController
-              filter={filter}
-              column={column}
-              actions={actions}
-              closeController={close}
-              locale={locale}
-            />
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      </ActionMenu.Trigger>
+      <ActionMenu.Positioner>
+        <ActionMenu.Content
+          menu={menu}
+          classNames={{ list: 'min-w-[100px]' }}
+        />
+      </ActionMenu.Positioner>
+    </ActionMenu.Root>
   )
 }
 
@@ -202,7 +204,7 @@ export function FilterOperatorController<TData, TType extends ColumnDataType>({
   }
 }
 
-function FilterOperatorOptionController<TData>({
+function createOptionOperatorMenu<TData>({
   filter,
   column,
   actions,
@@ -220,17 +222,39 @@ function FilterOperatorOptionController<TData>({
     closeController()
   }
 
-  return (
-    <CommandGroup heading={t('operators', locale)}>
-      {relatedFilters.map((r) => {
-        return (
-          <CommandItem onSelect={changeOperator} value={r.value} key={r.value}>
-            {t(r.key, locale)}
-          </CommandItem>
-        )
-      })}
-    </CommandGroup>
-  )
+  return {
+    id: 'root',
+    title: 'Operators',
+    inputPlaceholder: 'Operators...',
+    hideSearchUntilActive: true,
+    nodes: relatedFilters.map((r) => {
+      return {
+        kind: 'item',
+        id: r.value,
+        keywords: [t(r.key, locale)],
+        label: t(r.key, locale),
+        data: { label: t(r.key, locale) },
+        onSelect: () => changeOperator(r.value),
+      }
+      // return (
+      //   <CommandItem onSelect={changeOperator} value={r.value} key={r.value}>
+      //     {t(r.key, locale)}
+      //   </CommandItem>
+      // )
+    }),
+  } satisfies MenuData<FilterOperatorDetails<any, any>>
+
+  // return (
+  //   <CommandGroup heading={t('operators', locale)}>
+  //     {relatedFilters.map((r) => {
+  //       return (
+  //         <CommandItem onSelect={changeOperator} value={r.value} key={r.value}>
+  //           {t(r.key, locale)}
+  //         </CommandItem>
+  //       )
+  //     })}
+  //   </CommandGroup>
+  // )
 }
 
 function FilterOperatorMultiOptionController<TData>({
