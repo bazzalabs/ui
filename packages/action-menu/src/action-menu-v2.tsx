@@ -68,6 +68,7 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
   Renderable & {
     data?: T
     title?: string
+    inputPlaceholder?: string
     nodes: MenuNode<TChild>[]
   }
 
@@ -75,6 +76,7 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
 export type MenuData<T = unknown> = {
   id: string
   title?: string
+  inputPlaceholder?: string
   nodes?: MenuNode<T>[]
 }
 
@@ -489,7 +491,10 @@ function createSurfaceStore(): SurfaceStore {
   const listRef = React.createRef<HTMLDivElement | null>()
   const inputRef = React.createRef<HTMLInputElement | null>()
 
-  const emit = () => listeners.forEach((l) => l())
+  const emit = () =>
+    listeners.forEach((l) => {
+      l()
+    })
 
   const snapshot = () => state
 
@@ -1379,6 +1384,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
           onChange={setValue}
           renderer={renderers.input}
           classNames={classNames}
+          inputPlaceholder={menu.inputPlaceholder}
         />
       ) : null}
       <ListView<T>
@@ -1790,9 +1796,7 @@ function renderMenu<T>(
                     />
                     <SubmenuContent
                       menu={{
-                        id: child.id,
-                        title: child.title ?? child.label,
-                        nodes: child.nodes,
+                        ...child,
                       }}
                       renderers={renderers as any}
                       classNames={classNames}
@@ -1805,9 +1809,7 @@ function renderMenu<T>(
         }
         if (node.kind === 'submenu') {
           const childMenu: MenuData<any> = {
-            id: node.id,
-            title: node.title ?? node.label,
-            nodes: node.nodes,
+            ...node,
           }
           return (
             <Sub key={node.id}>
@@ -1930,12 +1932,14 @@ function InputView<T>({
   value,
   onChange,
   renderer,
+  inputPlaceholder,
   classNames,
 }: {
   store: SurfaceStore
   value: string
   onChange: (v: string) => void
   renderer: Renderers<T>['input']
+  inputPlaceholder?: string
   classNames?: Partial<SlotClassNames>
 }) {
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
@@ -1944,14 +1948,15 @@ function InputView<T>({
 
   const baseInputProps = {
     ref: store.inputRef as any,
-    role: 'combobox' as const,
-    'data-slot': 'action-menu-input' as const,
-    'data-action-menu-input': true as const,
-    'aria-autocomplete': 'list' as const,
-    'aria-expanded': true as const,
+    role: 'combobox',
+    'data-slot': 'action-menu-input',
+    'data-action-menu-input': true,
+    'aria-autocomplete': 'list',
+    'aria-expanded': true,
     'aria-controls': listId,
     'aria-activedescendant': activeId,
-    className: classNames?.input ?? {},
+    className: classNames?.input,
+    placeholder: inputPlaceholder ?? 'Filter...',
     value,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
       onChange(e.target.value),
@@ -1967,7 +1972,6 @@ function InputView<T>({
   if (!isElementWithProp(el, 'data-action-menu-input')) {
     return (
       <input
-        placeholder="Filter..."
         {...(bind.getInputProps({
           value,
           onChange: (e: any) => onChange(e.target.value),
@@ -1983,6 +1987,7 @@ function ListView<T>({
   menu,
   renderers,
   classNames,
+
   query,
 }: {
   store: SurfaceStore
@@ -2173,9 +2178,7 @@ function ListView<T>({
           }
           // submenu result should behave like a real submenu
           const childMenu: MenuData<any> = {
-            id: res.node.id,
-            title: res.node.title ?? res.node.label,
-            nodes: res.node.nodes,
+            ...res.node,
           }
 
           return (
