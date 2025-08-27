@@ -4,11 +4,11 @@ import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as DismissableLayer from '@radix-ui/react-dismissable-layer'
 import * as Popper from '@radix-ui/react-popper'
+import { Portal } from '@radix-ui/react-portal'
 import { Presence } from '@radix-ui/react-presence'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
-import { createPortal } from 'react-dom'
 import { flat, partition, pipe, prop, sortBy } from 'remeda'
 import { cn } from './cn.js'
 import { commandScore } from './command-score.js'
@@ -72,6 +72,11 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
     /** When true, hide the input until the user starts typing on that surface. */
     hideSearchUntilActive?: boolean
     nodes: MenuNode<TChild>[]
+    ui?: {
+      slots?: Partial<MenuSlots<TChild>>
+      slotProps?: Partial<MenuSlotProps>
+      classNames?: Partial<SlotClassNames>
+    }
   }
 
 /** A menu surface carrying items with payload `T` */
@@ -82,6 +87,11 @@ export type MenuData<T = unknown> = {
   /** When true, hide the input until the user starts typing on that surface. */
   hideSearchUntilActive?: boolean
   nodes?: MenuNode<T>[]
+  ui?: {
+    slots?: Partial<MenuSlots<T>>
+    slotProps?: Partial<MenuSlotProps>
+    classNames?: Partial<SlotClassNames>
+  }
 }
 
 /** Nodes that can appear on a surface with payload `T` */
@@ -172,6 +182,8 @@ export type ListBindAPI = {
     'data-action-menu-list': true
     'aria-activedescendant'?: string
   }
+  getItemOrder: () => string[]
+  getActiveId: () => string | null
 }
 
 export type SlotClassNames = {
@@ -186,32 +198,46 @@ export type SlotClassNames = {
   groupHeading?: string
 }
 
-export type Renderers<T = unknown> = {
+export type MenuSlotProps = {
+  content?: React.HTMLAttributes<HTMLElement>
+  header?: React.HTMLAttributes<HTMLElement>
+  input?: React.InputHTMLAttributes<HTMLInputElement>
+  list?: React.HTMLAttributes<HTMLElement>
+  footer?: React.HTMLAttributes<HTMLElement>
+}
+
+export type MenuSlots<T = unknown> = {
   /** Item renderer for nodes with payload `T`. */
-  item: (args: {
+  Item: (args: {
     node: ItemNode<T>
     search?: SearchContext
     bind: RowBindAPI
   }) => React.ReactNode
   /** Content renderer for a surface whose items use payload `T`. */
-  content: (args: {
+  Content: (args: {
     menu: MenuData<T>
     children: React.ReactNode
     bind: ContentBindAPI
   }) => React.ReactNode
+  /** Header rendered above the input. **/
+  Header?: (args: { menu: MenuData<T> }) => React.ReactNode
   /** Input renderer for the surface. */
-  input: (args: {
+  Input: (args: {
     value: string
     onChange: (v: string) => void
     bind: InputBindAPI
   }) => React.ReactNode
+  /** Empty state when no results match (inside the list area). */
+  Empty?: (args: { query: string }) => React.ReactNode
   /** List renderer that wraps all rows. */
-  list: (args: {
+  List: (args: {
     children: React.ReactNode
     bind: ListBindAPI
   }) => React.ReactNode
+  /** Optional surface footer: rendered BELOW the list (not inside it). */
+  Footer?: (args: { menu: MenuData<T> }) => React.ReactNode
   /** Submenu trigger renderer */
-  submenuTrigger: (args: {
+  SubmenuTrigger: (args: {
     node: SubmenuNode<any>
     search?: SearchContext
     bind: RowBindAPI
@@ -219,25 +245,47 @@ export type Renderers<T = unknown> = {
 }
 
 /* Default minimal renderers (safe fallbacks) */
-function defaultRenderers<T>(): Renderers<T> {
+function defaultSlots<T>(): Required<MenuSlots<T>> {
   return {
-    item: ({ node }) =>
-      node.render ? (
-        node.render()
-      ) : (
-        <span>{node.label ?? String(node.id)}</span>
-      ),
-    content: ({ children }) => <>{children}</>,
-    input: ({ value, onChange }) => (
-      <input value={value} onChange={(e) => onChange(e.target.value)} />
+    Content: ({ children, bind }) => (
+      <div {...bind.getContentProps()}>{children}</div>
     ),
-    list: ({ children }) => <div>{children}</div>,
-    submenuTrigger: ({ node }) =>
-      node.render ? (
-        node.render()
-      ) : (
-        <span>{node.label ?? node.title ?? String(node.id)}</span>
-      ),
+    Item: ({ node, bind }) => (
+      <div {...bind.getRowProps()}>
+        {node.render ? (
+          node.render()
+        ) : (
+          <span>{node.label ?? String(node.id)}</span>
+        )}
+      </div>
+    ),
+    Header: () => null,
+    Input: ({ value, onChange, bind }) => (
+      <input
+        {...bind.getInputProps({
+          value,
+          onChange: (e) => onChange(e.target.value),
+        })}
+      />
+    ),
+    Empty: ({ query }) => (
+      <div data-slot="action-menu-empty">
+        No results{query ? ` for “${query}”` : ''}.
+      </div>
+    ),
+    List: ({ children, bind }) => (
+      <div {...bind.getListProps()}>{children}</div>
+    ),
+    Footer: () => null,
+    SubmenuTrigger: ({ node, bind }) => (
+      <div {...bind.getRowProps()}>
+        {node.render ? (
+          node.render()
+        ) : (
+          <span>{node.label ?? node.title ?? String(node.id)}</span>
+        )}
+      </div>
+    ),
   }
 }
 
@@ -262,22 +310,23 @@ const HANDLER_KEYS = [
 function mergeProps<
   A extends Record<string, any>,
   B extends Record<string, any>,
->(base: A, overrides?: B): A & B {
-  if (!overrides) return base as A & B
-  const merged: any = { ...base, ...overrides }
+>(base: A | undefined, overrides?: B): A & B {
+  const a: any = base ?? {}
+  const b: any = overrides ?? {}
+  const merged: any = { ...a, ...b }
   // merge className
-  if (base.className || (overrides as any).className) {
-    merged.className = cn(base.className, (overrides as any).className)
+  if (a.className || b.className) {
+    merged.className = cn(a.className, b.className)
   }
   // compose known handlers (base first, then override)
   for (const key of HANDLER_KEYS) {
-    const a = (base as any)[key]
-    const b = (overrides as any)[key]
-    if (a || b) merged[key] = composeEventHandlers(a, b)
+    const aH = a[key]
+    const bH = b[key]
+    if (aH || bH) merged[key] = composeEventHandlers(aH, bH)
   }
   // compose ref
-  if (base.ref || (overrides as any).ref) {
-    merged.ref = composeRefs(base.ref, (overrides as any).ref)
+  if (a.ref || b.ref) {
+    merged.ref = composeRefs(a.ref, b.ref)
   }
   return merged
 }
@@ -395,6 +444,7 @@ type ActionMenuRootContextValue = {
   onOpenToggle: () => void
   modal: boolean
   anchorRef: React.RefObject<HTMLElement | null>
+  debug: boolean
 }
 
 const RootCtx = React.createContext<ActionMenuRootContextValue | null>(null)
@@ -891,11 +941,15 @@ function willHitSubmenu(
 type IntentZoneProps = {
   parentRef: React.RefObject<HTMLElement | null>
   triggerRef: React.RefObject<HTMLElement | null>
-  debug?: boolean
+  visible?: boolean
 }
 
 /** Visual-only debug polygon; no event handlers and no hit-testing. */
-function IntentZone({ parentRef, triggerRef, debug }: IntentZoneProps) {
+function IntentZone({
+  parentRef,
+  triggerRef,
+  visible = false,
+}: IntentZoneProps) {
   const [mx, my] = useMousePosition()
 
   const isCoarse = React.useMemo(
@@ -934,7 +988,7 @@ function IntentZone({ parentRef, triggerRef, debug }: IntentZoneProps) {
       ? `polygon(100% 0%, 0% ${pct}%, 100% 100%)`
       : `polygon(0% 0%, 0% 100%, 100% ${pct}%)`
 
-  const polygon = (
+  const Polygon = (
     <div
       data-action-menu-intent-zone
       aria-hidden
@@ -947,13 +1001,13 @@ function IntentZone({ parentRef, triggerRef, debug }: IntentZoneProps) {
         pointerEvents: 'none', // IMPORTANT: no events, pure visual
         clipPath: clip,
         zIndex: Number.MAX_SAFE_INTEGER,
-        background: debug ? 'rgba(0, 136, 255, 0.15)' : 'transparent',
+        background: visible ? 'rgba(0, 136, 255, 0.15)' : 'transparent',
         transform: 'translateZ(0)',
       }}
     />
   )
 
-  return createPortal(polygon, document.body)
+  return <Portal>{Polygon}</Portal>
 }
 
 /* ================================================================================================
@@ -965,6 +1019,7 @@ export interface ActionMenuProps extends Children {
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
   modal?: boolean
+  debug?: boolean
 }
 
 export const Root = ({
@@ -973,6 +1028,7 @@ export const Root = ({
   defaultOpen,
   onOpenChange,
   modal = true,
+  debug = false,
 }: ActionMenuProps) => {
   const [open, setOpen] = useControllableState({
     prop: openProp,
@@ -990,6 +1046,7 @@ export const Root = ({
         onOpenToggle: () => setOpen((v) => !v),
         anchorRef,
         modal,
+        debug,
       }}
     >
       <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
@@ -1085,12 +1142,6 @@ export interface ActionMenuPositionerProps {
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
-  /** Root-only: keep menu open when clicking the trigger/anchor unless true */
-  closeOnAnchorPointerDown?: boolean
-  /** Enable diagonal-intent guard for submenus (safe polygon). */
-  intentZone?: boolean
-  /** Show the intent zone triangle for debugging. */
-  intentZoneDebug?: boolean
 }
 
 export const Positioner: React.FC<ActionMenuPositionerProps> = ({
@@ -1101,32 +1152,14 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
-  closeOnAnchorPointerDown = true,
-  intentZone = true,
-  intentZoneDebug = DEBUG_MODE,
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
-  const { setOwnerId } = React.useContext(FocusOwnerCtx)!
 
   const isSub = !!sub
   const present = isSub ? sub!.open : root.open
   const defaultSide = isSub ? 'right' : 'bottom'
   const resolvedSide = side ?? defaultSide
-
-  // const close = React.useCallback(() => {
-  //   if (!isSub) return
-  //   sub!.onOpenChange(false)
-  //   // Return focus to parent surface
-  //   setOwnerId(sub!.parentSurfaceId)
-  //   const parentEl = document.querySelector<HTMLElement>(
-  //     `[data-surface-id="${sub!.parentSurfaceId}"]`,
-  //   )
-  //   requestAnimationFrame(() => {
-  //     const { input, list } = findWidgetsWithinSurface(parentEl)
-  //     ;(input ?? list)?.focus()
-  //   })
-  // }, [isSub, root, sub, setOwnerId])
 
   const content = isSub ? (
     <DismissableLayer.Branch asChild>
@@ -1159,11 +1192,11 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
     <>
       <Presence present={present}>{content}</Presence>
       {/* Safe polygon overlay only for open submenus */}
-      {isSub && present && intentZone ? (
+      {isSub && present ? (
         <IntentZone
           parentRef={sub!.contentRef as React.RefObject<HTMLElement | null>}
           triggerRef={sub!.triggerRef as React.RefObject<HTMLElement | null>}
-          debug={intentZoneDebug}
+          visible={root.debug}
         />
       ) : null}
     </>
@@ -1178,33 +1211,45 @@ export interface ActionMenuContentProps<T = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
   /** Surface items’ data shape for this menu */
   menu: MenuData<T>
-  /** Per-instance renderers (merged over sensible defaults). */
-  renderers?: Partial<Renderers<T>>
+  /** Per-instance slots (merged over sensible defaults). */
+  slots?: Partial<MenuSlots<T>>
+  /** Per-instance slotProps merged with slot output via bind/get*Props or wrappers. */
+  slotProps?: Partial<MenuSlotProps>
   /** Vim-style keybindings (Ctrl+N/P, Ctrl+J/K). */
   vimBindings?: boolean
   /** Text direction. If omitted, falls back to document.dir */
   dir?: Direction
   /** Slot class names */
   classNames?: Partial<SlotClassNames>
+  value?: string
+  defaultValue?: string
+  onValueChange?: (value: string) => void
+  onOpenAutoFocus?: boolean
+  onCloseAutoClear?: boolean
 }
 
 type ActionMenuContentInternalProps<T = unknown> = ActionMenuContentProps<T> & {
   /** internal: allows SubmenuContent to pin the child surface id */
   surfaceIdProp?: string
   suppressHoverOpenOnMount?: boolean
-  classNames?: Partial<SlotClassNames>
 }
 
 /** Internal generic base so `createActionMenu<T>()` can close over `T` */
 const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   {
     menu,
-    renderers: rOverrides,
+    slots: slotOverrides,
+    slotProps: slotPropsOverrides,
     vimBindings = true,
     dir: dirProp,
     surfaceIdProp,
     suppressHoverOpenOnMount,
     classNames,
+    value: valueProp,
+    defaultValue,
+    onValueChange,
+    onOpenAutoFocus = true,
+    onCloseAutoClear = true,
     ...props
   }: ActionMenuContentInternalProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>,
@@ -1225,11 +1270,40 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   )
   const dir = getDir(dirProp)
 
-  const [value, setValue] = React.useState('')
+  const [value, setValue] = useControllableState({
+    prop: valueProp,
+    defaultProp: defaultValue ?? '',
+    onChange: onValueChange,
+  })
 
-  const renderers = React.useMemo<Renderers<T>>(
-    () => ({ ...defaultRenderers<T>(), ...(rOverrides as any) }),
-    [rOverrides],
+  React.useEffect(() => {
+    if (!root.open && onCloseAutoClear) setValue('')
+  }, [root.open])
+
+  const slots = React.useMemo<Required<MenuSlots<T>>>(
+    () => ({
+      ...defaultSlots<T>(),
+      ...(slotOverrides as any),
+      ...(menu.ui?.slots as any),
+    }),
+    [slotOverrides, menu.ui?.slots],
+  )
+
+  const slotProps = React.useMemo<Partial<MenuSlotProps>>(
+    () => ({
+      ...(slotPropsOverrides ?? {}),
+      ...(menu.ui?.slotProps ?? {}),
+    }),
+    [slotPropsOverrides, menu.ui?.slotProps],
+  )
+
+  // Allow per-submenu classNames to override/extend
+  const mergedClassNames = React.useMemo(
+    () => ({
+      ...classNames,
+      ...(menu.ui?.classNames ?? {}),
+    }),
+    [classNames, menu.ui?.classNames],
   )
 
   const isSubmenu = !!sub
@@ -1339,7 +1413,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         'data-state': root.open ? 'open' : 'closed',
         'data-action-menu-surface': true as const,
         'data-surface-id': surfaceId,
-        className: classNames?.content ?? {},
+        className: mergedClassNames?.content,
         onMouseMove: (e: React.MouseEvent) => {
           clearSuppression()
           const rect = surfaceRef.current?.getBoundingClientRect()
@@ -1353,51 +1427,89 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
 
   const contentBind: ContentBindAPI = {
     getContentProps: (overrides) =>
-      mergeProps(baseContentProps as any, overrides),
+      mergeProps(
+        baseContentProps as any,
+        mergeProps(slotProps.content as any, overrides as any),
+      ),
   }
 
-  // Compose children (Input + List). These are components so hooks are top-level there.
+  const headerEl = slots.Header ? (
+    <div
+      data-slot="action-menu-header"
+      {...(slotProps.header as any)}
+      className={cn(
+        'data-[slot=action-menu-header]:block',
+        slotProps.header?.className,
+      )}
+    >
+      {slots.Header({ menu })}
+    </div>
+  ) : null
+
+  const inputEl = inputActive ? (
+    <InputView<T>
+      store={store}
+      value={value}
+      onChange={setValue}
+      slot={slots.Input}
+      slotProps={slotProps}
+      classNames={mergedClassNames}
+      inputPlaceholder={menu.inputPlaceholder}
+    />
+  ) : null
+
+  const listEl = (
+    <ListView<T>
+      store={store}
+      menu={menu}
+      slots={slots}
+      slotProps={slotProps}
+      query={value}
+      classNames={mergedClassNames}
+      inputActive={inputActive}
+      onTypeStart={(seed) => {
+        // First typed key while input is hidden: show input, seed it, focus it
+        if (!inputActive && ownerId === surfaceId) {
+          setInputActive(true)
+          setValue(seed)
+          requestAnimationFrame(() => {
+            store.inputRef.current?.focus()
+          })
+        }
+      }}
+    />
+  )
+
+  const footerEl = slots.Footer ? (
+    <div
+      data-slot="action-menu-footer"
+      {...(slotProps.footer as any)}
+      className={cn(
+        'data-[slot=action-menu-footer]:block',
+        slotProps.footer?.className,
+      )}
+    >
+      {slots.Footer({ menu })}
+    </div>
+  ) : null
+
   const childrenNoProvider = (
     <>
-      {inputActive ? (
-        <InputView<T>
-          store={store}
-          value={value}
-          onChange={setValue}
-          renderer={renderers.input}
-          classNames={classNames}
-          inputPlaceholder={menu.inputPlaceholder}
-        />
-      ) : null}
-      <ListView<T>
-        store={store}
-        menu={menu}
-        renderers={renderers}
-        query={value}
-        classNames={classNames}
-        inputActive={inputActive}
-        onTypeStart={(seed) => {
-          // First typed key while input is hidden: show input, seed it, focus it
-          if (!inputActive && ownerId === surfaceId) {
-            setInputActive(true)
-            setValue(seed)
-            requestAnimationFrame(() => {
-              store.inputRef.current?.focus()
-            })
-          }
-        }}
-      />
+      {headerEl}
+      {inputEl}
+      {listEl}
+      {footerEl}
     </>
   )
 
-  const body = renderers.content({
+  const body = slots.Content({
     menu,
     children: childrenNoProvider,
     bind: contentBind,
   })
 
   const wrapped = !isElementWithProp(body, 'data-action-menu-surface') ? (
-    <Primitive.div {...(baseContentProps as any)}>
+    <Primitive.div {...(contentBind.getContentProps() as any)}>
       <SurfaceCtx.Provider value={store}>{body}</SurfaceCtx.Provider>
     </Primitive.div>
   ) : (
@@ -1484,12 +1596,12 @@ function Sub({ children }: { children: React.ReactNode }) {
 
 function SubTriggerRow<T>({
   node,
-  renderer,
+  slot,
   classNames,
   search,
 }: {
   node: SubmenuNode<T>
-  renderer: Renderers<T>['submenuTrigger']
+  slot: NonNullable<MenuSlots<T>['SubmenuTrigger']>
   classNames?: Partial<SlotClassNames>
   search?: SearchContext
 }) {
@@ -1573,7 +1685,7 @@ function SubTriggerRow<T>({
         'aria-selected': focused,
         'aria-disabled': false,
         'data-subtrigger': 'true',
-        className: classNames?.subtrigger ?? {},
+        className: classNames?.subtrigger,
         onPointerDown: (e: React.PointerEvent) => {
           if (e.button === 0 && e.ctrlKey === false) {
             e.preventDefault()
@@ -1670,7 +1782,7 @@ function SubTriggerRow<T>({
       mergeProps(baseRowProps as any, overrides as any),
   }
 
-  const visual = renderer({ node, bind, search })
+  const visual = slot({ node, bind, search })
 
   // Auto-wrap with Popper.Anchor so submenu positions relative to this row
   const content = isElementWithProp(visual, 'data-action-menu-item-id') ? (
@@ -1686,11 +1798,11 @@ function SubTriggerRow<T>({
 
 function SubmenuContent<T>({
   menu,
-  renderers,
+  slots,
   classNames,
 }: {
   menu: MenuData<T>
-  renderers: Renderers<T>
+  slots: Required<MenuSlots<T>>
   classNames?: Partial<SlotClassNames>
 }) {
   const sub = useSubCtx()!
@@ -1704,7 +1816,7 @@ function SubmenuContent<T>({
   const content = (
     <ContentBase<T>
       menu={menu}
-      renderers={renderers as any}
+      slots={slots as any}
       classNames={classNames}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
@@ -1731,7 +1843,7 @@ function makeRowId(
 
 function renderMenu<T>(
   menu: MenuData<T>,
-  renderers: Renderers<T>,
+  slots: Required<MenuSlots<T>>,
   classNames: Partial<SlotClassNames> | undefined,
   store: SurfaceStore,
 ) {
@@ -1744,7 +1856,7 @@ function renderMenu<T>(
             <ItemRow
               key={node.id}
               node={node}
-              renderer={renderers.item}
+              slot={slots.Item}
               classNames={classNames}
               store={store}
             />
@@ -1773,7 +1885,7 @@ function renderMenu<T>(
                     <ItemRow
                       key={child.id}
                       node={child as ItemNode<T>}
-                      renderer={renderers.item}
+                      slot={slots.Item}
                       classNames={classNames}
                       store={store}
                     />
@@ -1784,14 +1896,14 @@ function renderMenu<T>(
                   <Sub key={child.id}>
                     <SubTriggerRow
                       node={child as SubmenuNode<any>}
-                      renderer={renderers.submenuTrigger as any}
+                      slot={slots.SubmenuTrigger as any}
                       classNames={classNames}
                     />
                     <SubmenuContent
                       menu={{
                         ...child,
                       }}
-                      renderers={renderers as any}
+                      slots={slots as any}
                       classNames={classNames}
                     />
                   </Sub>
@@ -1808,12 +1920,12 @@ function renderMenu<T>(
             <Sub key={node.id}>
               <SubTriggerRow
                 node={node as SubmenuNode<any>}
-                renderer={renderers.submenuTrigger as any}
+                slot={slots.SubmenuTrigger as any}
                 classNames={classNames}
               />
               <SubmenuContent
                 menu={childMenu}
-                renderers={renderers as any}
+                slots={slots as any}
                 classNames={classNames}
               />
             </Sub>
@@ -1827,13 +1939,13 @@ function renderMenu<T>(
 
 function ItemRow<T>({
   node,
-  renderer,
+  slot,
   classNames,
   store,
   search,
 }: {
   node: ItemNode<T>
-  renderer: Renderers<T>['item']
+  slot: NonNullable<MenuSlots<T>['Item']>
   classNames?: Partial<SlotClassNames>
   store: SurfaceStore
   search?: SearchContext
@@ -1877,7 +1989,7 @@ function ItemRow<T>({
         'data-focused': focused,
         'aria-selected': focused,
         'aria-disabled': false,
-        className: classNames?.item ?? {},
+        className: classNames?.item,
         onPointerDown: (e: React.PointerEvent) => {
           // keep click semantics predictable
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
@@ -1901,7 +2013,7 @@ function ItemRow<T>({
       mergeProps(baseRowProps as any, overrides as any),
   }
 
-  const visual = renderer({ node, bind, search })
+  const visual = slot({ node, bind, search })
 
   // If they *did* call bind.getRowProps(), their returned element will carry
   // data-action-menu-item-id. Otherwise, auto-wrap with our wired <div>.
@@ -1924,14 +2036,16 @@ function InputView<T>({
   store,
   value,
   onChange,
-  renderer,
+  slot,
+  slotProps,
   inputPlaceholder,
   classNames,
 }: {
   store: SurfaceStore
   value: string
   onChange: (v: string) => void
-  renderer: Renderers<T>['input']
+  slot: NonNullable<MenuSlots<T>['Input']>
+  slotProps: Partial<MenuSlotProps>
   inputPlaceholder?: string
   classNames?: Partial<SlotClassNames>
 }) {
@@ -1958,19 +2072,15 @@ function InputView<T>({
 
   const bind: InputBindAPI = {
     getInputProps: (overrides) =>
-      mergeProps(baseInputProps as any, overrides as any),
+      mergeProps(
+        baseInputProps as any,
+        mergeProps(slotProps?.input as any, overrides as any),
+      ),
   }
 
-  const el = renderer({ value, onChange, bind })
+  const el = slot({ value, onChange, bind })
   if (!isElementWithProp(el, 'data-action-menu-input')) {
-    return (
-      <input
-        {...(bind.getInputProps({
-          value,
-          onChange: (e: any) => onChange(e.target.value),
-        }) as any)}
-      />
-    )
+    return <input {...(bind.getInputProps(slotProps?.input as any) as any)} />
   }
   return el as React.ReactElement
 }
@@ -1978,7 +2088,8 @@ function InputView<T>({
 function ListView<T>({
   store,
   menu,
-  renderers,
+  slots,
+  slotProps,
   classNames,
   query,
   inputActive,
@@ -1986,7 +2097,8 @@ function ListView<T>({
 }: {
   store: SurfaceStore
   menu: MenuData<T>
-  renderers: Renderers<T>
+  slots: Required<MenuSlots<T>>
+  slotProps?: Partial<MenuSlotProps>
   classNames?: Partial<SlotClassNames>
   query?: string
   inputActive: boolean
@@ -2042,12 +2154,17 @@ function ListView<T>({
     'data-slot': 'action-menu-list' as const,
     'data-action-menu-list': true as const,
     'aria-activedescendant': hasInput ? undefined : activeId,
-    className: classNames?.list ?? {},
+    className: classNames?.list,
     onKeyDown,
   }
   const bind: ListBindAPI = {
     getListProps: (overrides) =>
-      mergeProps(baseListProps as any, overrides as any),
+      mergeProps(
+        baseListProps as any,
+        mergeProps(slotProps?.list as any, overrides as any),
+      ),
+    getItemOrder: () => store.getOrder(),
+    getActiveId: () => store.snapshot().activeId,
   }
 
   const norm = (s: string) => s.toLowerCase()
@@ -2103,7 +2220,7 @@ function ListView<T>({
               score,
             })
         } else if (n.kind === 'group') {
-          out.push(...collect((n as GroupNode<T>).nodes, q, bc))
+          out.push(...collect((n as GroupNode<T>).nodes, q, bc, bcIds))
         } else if (n.kind === 'submenu') {
           const sub = n as SubmenuNode<any>
           const score = commandScore(n.id, q, n.keywords)
@@ -2173,67 +2290,74 @@ function ListView<T>({
   }, [store, q])
 
   if (q.length === 0) {
-    // default render
-    children = renderMenu<T>(menu, renderers, classNames, store)
+    const hasAnyNodes = (menu.nodes ?? []).some((n) => !n.hidden)
+    children = hasAnyNodes
+      ? renderMenu<T>(menu, slots, classNames, store)
+      : slots.Empty({ query: '' })
   } else {
-    children = (
-      // biome-ignore lint/complexity/noUselessFragments: <explanation>
-      <>
-        {results.map((res) => {
-          const searchCtx: SearchContext = {
-            query: q,
-            isDeep: res.breadcrumbs.length > 0,
-            breadcrumbs: res.breadcrumbs,
-            breadcrumbIds: res.breadcrumbIds,
-          }
-          if (res.type === 'item') {
-            return (
-              <ItemRow
-                key={`deep-${res.node.id}`}
-                node={res.node}
-                renderer={renderers.item}
-                store={store}
-                search={searchCtx} // NEW (search)
-                classNames={classNames}
-              />
-            )
-          }
-          // submenu result should behave like a real submenu
-          const childMenu: MenuData<any> = {
-            ...res.node,
-          }
+    children =
+      results.length === 0 ? (
+        slots.Empty({ query: q })
+      ) : (
+        // biome-ignore lint/complexity/noUselessFragments: <explanation>
+        <>
+          {results.map((res) => {
+            const searchCtx: SearchContext = {
+              query: q,
+              isDeep: res.breadcrumbs.length > 0,
+              breadcrumbs: res.breadcrumbs,
+              breadcrumbIds: res.breadcrumbIds,
+            }
+            if (res.type === 'item') {
+              return (
+                <ItemRow
+                  key={`deep-${res.node.id}`}
+                  node={res.node}
+                  slot={slots.Item}
+                  store={store}
+                  search={searchCtx} // NEW (search)
+                  classNames={classNames}
+                />
+              )
+            }
+            // submenu result should behave like a real submenu
+            const childMenu: MenuData<any> = {
+              ...res.node,
+            }
 
-          return (
-            <Sub key={`deep-${res.node.id}`}>
-              <SubTriggerRow
-                node={res.node}
-                renderer={renderers.submenuTrigger as any}
-                search={searchCtx} // NEW (search)
-                classNames={classNames}
-              />
-              <SubmenuContent
-                menu={childMenu}
-                renderers={renderers as any}
-                classNames={classNames}
-              />
-            </Sub>
-          )
-        })}
-      </>
-    )
+            return (
+              <Sub key={`deep-${res.node.id}`}>
+                <SubTriggerRow
+                  node={res.node}
+                  slot={slots.SubmenuTrigger as any}
+                  search={searchCtx} // NEW (search)
+                  classNames={classNames}
+                />
+                <SubmenuContent
+                  menu={childMenu}
+                  slots={slots as any}
+                  classNames={classNames}
+                />
+              </Sub>
+            )
+          })}
+        </>
+      )
   }
 
-  const el = renderers.list({ children, bind })
+  const el = slots.List({ children, bind })
   if (!isElementWithProp(el, 'data-action-menu-list')) {
     return (
       <div
-        {...(bind.getListProps({
-          // Prevent non-item clicks in the list from blurring the menu input
-          // e.g. clicking in the list component padding, if present
-          onPointerDown: (e: React.PointerEvent) => {
-            e.preventDefault()
-          },
-        }) as any)}
+        {...(bind.getListProps(
+          mergeProps(slotProps?.list as any, {
+            // Prevent non-item clicks in the list from blurring the menu input
+            // e.g. clicking in the list component padding, if present
+            onPointerDown: (e: React.PointerEvent) => {
+              e.preventDefault()
+            },
+          }),
+        ) as any)}
       >
         {children}
       </div>
@@ -2251,26 +2375,33 @@ function ListView<T>({
  * You can also provide per-instance default renderers here.
  */
 export function createActionMenu<T>(opts?: {
-  renderers?: Partial<Renderers<T>>
+  slots?: Partial<MenuSlots<T>>
+  slotProps?: Partial<MenuSlotProps>
   defaults?: {
     content?: Pick<ActionMenuContentProps<T>, 'vimBindings' | 'dir'>
   }
   classNames?: Partial<SlotClassNames>
 }) {
-  const baseRenderers = {
-    ...defaultRenderers<T>(),
-    ...(opts?.renderers as any),
-  } as Renderers<T>
+  const baseSlots = {
+    ...defaultSlots<T>(),
+    ...(opts?.slots as any),
+  } as Required<MenuSlots<T>>
+  const baseSlotProps = ((opts?.slotProps as any) ??
+    {}) as Partial<MenuSlotProps>
   const baseDefaults = opts?.defaults?.content ?? {}
   const baseClassNames = opts?.classNames
 
   const ContentTyped = React.forwardRef<
     HTMLDivElement,
     ActionMenuContentProps<T>
-  >(({ renderers, classNames, ...rest }, ref) => {
-    const mergedRenderers = React.useMemo<Renderers<T>>(
-      () => ({ ...baseRenderers, ...(renderers as any) }),
-      [renderers],
+  >(({ slots, slotProps, classNames, ...rest }, ref) => {
+    const mergedSlots = React.useMemo<MenuSlots<T>>(
+      () => ({ ...baseSlots, ...(slots as any) }),
+      [slots],
+    )
+    const mergedSlotProps = React.useMemo<Partial<MenuSlotProps>>(
+      () => ({ ...baseSlotProps, ...(slotProps ?? {}) }),
+      [slotProps],
     )
     const mergedClassNames = React.useMemo<Partial<SlotClassNames>>(
       () => ({
@@ -2298,7 +2429,8 @@ export function createActionMenu<T>(opts?: {
         {...(rest as any)}
         vimBindings={vimBindings}
         dir={dir}
-        renderers={mergedRenderers}
+        slots={mergedSlots}
+        slotProps={mergedSlotProps}
         classNames={mergedClassNames}
         ref={ref}
       />

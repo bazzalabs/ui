@@ -38,7 +38,7 @@ export const LabelWithBreadcrumbs = ({
   </div>
 )
 
-export const ActionMenu = createActionMenu({
+export const ActionMenu = createActionMenu<any>({
   classNames: {
     content: cn(
       'border bg-popover z-50 rounded-lg text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
@@ -60,12 +60,11 @@ export const ActionMenu = createActionMenu({
       'relative',
     ),
   },
-  renderers: {
-    item: ({ node, bind, search }) => {
+  slots: {
+    Item: ({ node, bind, search }) => {
       const props = bind.getRowProps()
 
       const data = node.data!
-      // @ts-expect-error
       const Icon = data?.icon ?? null
 
       return (
@@ -80,14 +79,13 @@ export const ActionMenu = createActionMenu({
             </div>
           )}
           <LabelWithBreadcrumbs
-            // @ts-expect-error
             label={data.label}
             breadcrumbs={search?.breadcrumbs}
           />
         </div>
       )
     },
-    submenuTrigger: ({ node, bind, search }) => {
+    SubmenuTrigger: ({ node, bind, search }) => {
       const props = bind.getRowProps({})
 
       const data = node.data
@@ -115,5 +113,10 @@ export const ActionMenu = createActionMenu({
         </div>
       )
     },
+    Empty: () => (
+      <div className="flex items-center justify-center h-10 text-muted-foreground">
+        No matching options.
+      </div>
+    ),
   },
 })

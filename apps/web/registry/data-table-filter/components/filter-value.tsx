@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: <explanation> */
+
 import type { SubmenuNode } from '@bazza-ui/action-menu'
 import {
   type Column,
@@ -450,7 +452,7 @@ export function filterValueOptionMenu<TData>({
   locale = 'en',
   strategy,
 }: FilterValueControllerProps<any, 'option'>): SubmenuNode<
-  Column<TData, 'option'>,
+  Column<any, 'option'>,
   ColumnOptionExtended
 > {
   // Derive the initial selected values on mount
@@ -510,7 +512,7 @@ export function filterValueMultiOptionMenu<TData>({
   locale = 'en',
   strategy,
 }: FilterValueControllerProps<any, 'multiOption'>): SubmenuNode<
-  Column<TData, 'multiOption'>,
+  Column<any, 'multiOption'>,
   ColumnOptionExtended
 > {
   // Derive the initial selected values on mount
