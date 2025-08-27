@@ -1,4 +1,4 @@
-import type { MenuData } from '@bazza-ui/action-menu'
+import { type MenuData, renderIcon, SubmenuNode } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
@@ -67,7 +67,7 @@ function __FilterSelector_v2<TData>({
 
   const hasVisibleFilters = visibleFilters.length > 0
 
-  const menu: MenuData<Column<any, ColumnDataType>> = {
+  const menu: MenuData = {
     id: 'properties',
     nodes: columns
       .filter((c) => isAnyOf(c.type, ['option', 'multiOption']))
@@ -114,7 +114,10 @@ function __FilterSelector_v2<TData>({
               const props = bind.getRowProps()
 
               const data = node.data! as ColumnOptionExtended
-              const Icon = data.icon ?? null
+              const Icon = renderIcon(
+                node.icon,
+                'size-4 shrink-0 data-[focused=true]:text-primary',
+              )
 
               return (
                 <div {...props}>
@@ -124,11 +127,7 @@ function __FilterSelector_v2<TData>({
                   />
 
                   <div className="size-4 flex items-center justify-center">
-                    {!Icon ? null : isValidElement(Icon) ? (
-                      Icon
-                    ) : (
-                      <Icon className="size-4 shrink-0 data-[focused=true]:text-primary" />
-                    )}
+                    {Icon}
                   </div>
                   <LabelWithBreadcrumbs
                     label={data.label}

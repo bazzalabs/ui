@@ -28,4 +28,4 @@ export type {
 
 export { useRow } from './action-menu.js'
 
-export { createActionMenu } from './action-menu-v2.js'
+export { renderIcon, createActionMenu } from './action-menu-v2.js'

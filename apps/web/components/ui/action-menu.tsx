@@ -1,4 +1,4 @@
-import { createActionMenu } from '@bazza-ui/action-menu'
+import { createActionMenu, renderIcon } from '@bazza-ui/action-menu'
 import { ChevronRightIcon } from 'lucide-react'
 import { Fragment, isValidElement } from 'react'
 import { cn } from '@/lib/utils'
@@ -64,22 +64,20 @@ export const ActionMenu = createActionMenu<any>({
     Item: ({ node, bind, search }) => {
       const props = bind.getRowProps()
 
-      const data = node.data!
-      const Icon = data?.icon ?? null
+      const Icon = renderIcon(
+        node.icon,
+        'size-4 shrink-0 data-[focused=true]:text-primary',
+      )
 
       return (
         <div {...props}>
           {Icon && (
             <div className="size-4 flex items-center justify-center">
-              {isValidElement(Icon) ? (
-                Icon
-              ) : (
-                <Icon className="size-4 shrink-0 data-[focused=true]:text-primary" />
-              )}
+              {Icon}
             </div>
           )}
           <LabelWithBreadcrumbs
-            label={data.label}
+            label={node.label!}
             breadcrumbs={search?.breadcrumbs}
           />
         </div>
@@ -88,18 +86,16 @@ export const ActionMenu = createActionMenu<any>({
     SubmenuTrigger: ({ node, bind, search }) => {
       const props = bind.getRowProps({})
 
-      const data = node.data
-      const Icon = data?.icon
+      const Icon = renderIcon(
+        node.icon,
+        'size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary',
+      )
 
       return (
         <div {...props}>
           <div className="flex items-center gap-2">
             <div className="size-4 flex items-center justify-center">
-              {!Icon ? null : isValidElement(Icon) ? (
-                Icon
-              ) : (
-                <Icon className="size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary" />
-              )}
+              {Icon}
             </div>
             <LabelWithBreadcrumbs
               label={node.label ?? ''}

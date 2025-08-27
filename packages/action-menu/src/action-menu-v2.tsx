@@ -52,6 +52,7 @@ export type Renderable = {
 export type ItemNode<T = unknown> = BaseNode<'item'> &
   Searchable &
   Renderable & {
+    icon?: Iconish
     data?: T
     onSelect?: () => void
   }
@@ -67,6 +68,7 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
   Searchable &
   Renderable & {
     data?: T
+    icon?: Iconish
     title?: string
     inputPlaceholder?: string
     /** When true, hide the input until the user starts typing on that surface. */
@@ -98,7 +100,7 @@ export type MenuData<T = unknown> = {
 export type MenuNode<T = unknown> =
   | ItemNode<T>
   | GroupNode<T>
-  | SubmenuNode<any>
+  | SubmenuNode<T, any>
 
 export type SearchContext = {
   query: string
@@ -117,6 +119,25 @@ export type SearchContext = {
 type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.button>
 type Children = Pick<DivProps, 'children'>
+
+export type Iconish =
+  | React.ReactNode
+  | React.ReactElement
+  | React.ElementType
+  | React.ComponentType<{ className?: string }>
+
+export function renderIcon(icon?: Iconish, className?: string) {
+  if (!icon) return null
+
+  // Already a JSX element: merge className via clone
+  if (React.isValidElement(icon)) {
+    return React.cloneElement(icon)
+  }
+
+  // A component or intrinsic type (e.g. lucide Icon, 'svg', forwardRef, memo, etc.)
+  const Comp = icon as React.ElementType
+  return <Comp className={className} />
+}
 
 export type RowBindAPI = {
   /** Whether our internal focus thinks this row is focused (fake focus) */
@@ -250,15 +271,6 @@ function defaultSlots<T>(): Required<MenuSlots<T>> {
     Content: ({ children, bind }) => (
       <div {...bind.getContentProps()}>{children}</div>
     ),
-    Item: ({ node, bind }) => (
-      <div {...bind.getRowProps()}>
-        {node.render ? (
-          node.render()
-        ) : (
-          <span>{node.label ?? String(node.id)}</span>
-        )}
-      </div>
-    ),
     Header: () => null,
     Input: ({ value, onChange, bind }) => (
       <input
@@ -268,17 +280,38 @@ function defaultSlots<T>(): Required<MenuSlots<T>> {
         })}
       />
     ),
+    List: ({ children, bind }) => (
+      <div {...bind.getListProps()}>{children}</div>
+    ),
     Empty: ({ query }) => (
       <div data-slot="action-menu-empty">
         No results{query ? ` for “${query}”` : ''}.
       </div>
     ),
-    List: ({ children, bind }) => (
-      <div {...bind.getListProps()}>{children}</div>
+    Item: ({ node, bind }) => (
+      <div {...bind.getRowProps()}>
+        {/* Only render if provided */}
+        {node.icon ? (
+          <span aria-hidden>
+            {renderIcon(
+              node.icon /*, 'size-4 shrink-0' (add your classes if you want) */,
+            )}
+          </span>
+        ) : null}
+        {node.render ? (
+          node.render()
+        ) : (
+          <span>{node.label ?? String(node.id)}</span>
+        )}
+      </div>
     ),
-    Footer: () => null,
     SubmenuTrigger: ({ node, bind }) => (
       <div {...bind.getRowProps()}>
+        {node.icon ? (
+          <span aria-hidden>
+            {renderIcon(node.icon /*, 'size-4 shrink-0' */)}
+          </span>
+        ) : null}
         {node.render ? (
           node.render()
         ) : (
@@ -286,6 +319,7 @@ function defaultSlots<T>(): Required<MenuSlots<T>> {
         )}
       </div>
     ),
+    Footer: () => null,
   }
 }
 
