@@ -1176,6 +1176,7 @@ export interface ActionMenuPositionerProps {
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
+  alignToFirstItem?: boolean
 }
 
 export const Positioner: React.FC<ActionMenuPositionerProps> = ({
@@ -1186,6 +1187,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
+  alignToFirstItem = true,
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
@@ -1195,13 +1197,95 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   const defaultSide = isSub ? 'right' : 'bottom'
   const resolvedSide = side ?? defaultSide
 
+  const [firstRowAlignOffset, setFirstRowAlignOffset] = React.useState(0)
+  const findContentEl = React.useCallback((): HTMLElement | null => {
+    if (!sub) return null
+    const byRef = sub.contentRef.current
+    if (byRef) return byRef
+    // Fallback: look up by surface id (works even if a custom Content forgot the bind)
+    try {
+      return document.querySelector<HTMLElement>(
+        `[data-surface-id="${sub.childSurfaceId}"]`,
+      )
+    } catch {
+      return null
+    }
+  }, [sub])
+
+  // Measure with retries until DOM exists.
+  React.useLayoutEffect(() => {
+    if (!isSub || !present || !alignToFirstItem) {
+      setFirstRowAlignOffset(0)
+      return
+    }
+    // Only vertical offsetting matters for left/right submenus.
+    if (!(resolvedSide === 'right' || resolvedSide === 'left')) {
+      setFirstRowAlignOffset(0)
+      return
+    }
+
+    let cancelled = false
+    let attempts = 0
+    const MAX_ATTEMPTS = 8
+
+    const measure = () => {
+      if (cancelled) return
+      const contentEl = findContentEl()
+      if (!contentEl) {
+        if (attempts++ < MAX_ATTEMPTS) {
+          requestAnimationFrame(measure)
+        }
+        return
+      }
+      // Require a visible input for this behavior; otherwise use 0 offset.
+      const inputEl = contentEl.querySelector<HTMLElement>(
+        '[data-action-menu-input]',
+      )
+      const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
+
+      const firstRow = contentEl.querySelector<HTMLElement>(
+        '[data-action-menu-list] [data-action-menu-item-id]',
+      )
+      if (!firstRow || !hasVisibleInput) {
+        setFirstRowAlignOffset(0)
+        return
+      }
+
+      const cr = contentEl.getBoundingClientRect()
+      const fr = firstRow.getBoundingClientRect()
+      const delta = Math.round(fr.top - cr.top)
+      setFirstRowAlignOffset(-delta)
+    }
+
+    // Kick off a few frames of retries; handles portals & async layout.
+    requestAnimationFrame(measure)
+
+    // Re-measure on resize; layout of input/list might change after open.
+    let ro: ResizeObserver | undefined
+    const contentEl = findContentEl()
+    if (contentEl && 'ResizeObserver' in window) {
+      ro = new ResizeObserver(
+        () => !cancelled && requestAnimationFrame(measure),
+      )
+      ro.observe(contentEl)
+    }
+
+    return () => {
+      cancelled = true
+      ro?.disconnect()
+    }
+  }, [isSub, present, alignToFirstItem, resolvedSide, findContentEl])
+
+  const effectiveAlignOffset =
+    isSub && alignToFirstItem ? firstRowAlignOffset : alignOffset
+
   const content = isSub ? (
     <DismissableLayer.Branch asChild>
       <Popper.Content
         side={resolvedSide}
         align={align}
         sideOffset={sideOffset}
-        alignOffset={alignOffset}
+        alignOffset={effectiveAlignOffset}
         avoidCollisions={avoidCollisions}
         collisionPadding={collisionPadding}
       >
@@ -1214,7 +1298,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
       side={resolvedSide}
       align={align}
       sideOffset={sideOffset}
-      alignOffset={alignOffset}
+      alignOffset={effectiveAlignOffset}
       avoidCollisions={avoidCollisions}
       collisionPadding={collisionPadding}
     >
