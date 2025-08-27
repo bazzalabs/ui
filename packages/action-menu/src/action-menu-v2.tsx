@@ -676,7 +676,7 @@ function useNavKeydown(source: 'input' | 'list') {
   return React.useCallback(
     (e: React.KeyboardEvent) => {
       // Only the focus-owning surface handles keys.
-      if (ownerId && ownerId !== surfaceId) return
+      if (ownerId !== surfaceId) return
 
       const k = e.key
 
@@ -993,7 +993,28 @@ export const Root = ({
       }}
     >
       <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
-        <Popper.Root>{children}</Popper.Root>
+        <DismissableLayer.Root
+          asChild
+          disableOutsidePointerEvents={modal}
+          onEscapeKeyDown={() => setOpen(false)}
+          onInteractOutside={(event) => {
+            // This won't be the trigger when the menu opens -- it'll be the focused element
+            // i.e. the menu input or list (if input is not present)
+            const target = event.target as Node | null
+            const rootMenuSurface = document.querySelector(
+              '[data-action-menu-surface=true]',
+            )
+
+            // If the target is inside the menu surface, do nothing
+            if (rootMenuSurface?.contains(target)) return
+
+            // Otherwise, we're clicking outside the menu -- close the menu
+            event.preventDefault()
+            setOpen(false)
+          }}
+        >
+          <Popper.Root>{children}</Popper.Root>
+        </DismissableLayer.Root>
       </FocusOwnerCtx.Provider>
     </RootCtx.Provider>
   )
@@ -1093,106 +1114,50 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   const defaultSide = isSub ? 'right' : 'bottom'
   const resolvedSide = side ?? defaultSide
 
-  const close = React.useCallback(() => {
-    if (isSub) {
-      sub!.onOpenChange(false)
-      // Return focus to parent surface
-      setOwnerId(sub!.parentSurfaceId)
-      const parentEl = document.querySelector<HTMLElement>(
-        `[data-surface-id="${sub!.parentSurfaceId}"]`,
-      )
-      requestAnimationFrame(() => {
-        const { input, list } = findWidgetsWithinSurface(parentEl)
-        ;(input ?? list)?.focus()
-      })
-    } else {
-      root.onOpenChange(false)
-    }
-  }, [isSub, root, sub, setOwnerId])
+  // const close = React.useCallback(() => {
+  //   if (!isSub) return
+  //   sub!.onOpenChange(false)
+  //   // Return focus to parent surface
+  //   setOwnerId(sub!.parentSurfaceId)
+  //   const parentEl = document.querySelector<HTMLElement>(
+  //     `[data-surface-id="${sub!.parentSurfaceId}"]`,
+  //   )
+  //   requestAnimationFrame(() => {
+  //     const { input, list } = findWidgetsWithinSurface(parentEl)
+  //     ;(input ?? list)?.focus()
+  //   })
+  // }, [isSub, root, sub, setOwnerId])
+
+  const content = isSub ? (
+    <DismissableLayer.Branch asChild>
+      <Popper.Content
+        side={resolvedSide}
+        align={align}
+        sideOffset={sideOffset}
+        alignOffset={alignOffset}
+        avoidCollisions={avoidCollisions}
+        collisionPadding={collisionPadding}
+      >
+        {children}
+      </Popper.Content>
+    </DismissableLayer.Branch>
+  ) : (
+    <Popper.Content
+      asChild
+      side={resolvedSide}
+      align={align}
+      sideOffset={sideOffset}
+      alignOffset={alignOffset}
+      avoidCollisions={avoidCollisions}
+      collisionPadding={collisionPadding}
+    >
+      {children}
+    </Popper.Content>
+  )
 
   return (
     <>
-      <Presence present={present}>
-        <Popper.Content
-          asChild
-          side={resolvedSide}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          avoidCollisions={avoidCollisions}
-          collisionPadding={collisionPadding}
-        >
-          <DismissableLayer.Root
-            asChild
-            onEscapeKeyDown={close}
-            onDismiss={closeOnAnchorPointerDown ? close : undefined}
-            disableOutsidePointerEvents={isSub ? undefined : root.modal}
-            onInteractOutside={
-              isSub
-                ? (event) => {
-                    const target = event.target as Node | null
-                    const trigger = sub!.triggerRef.current
-
-                    // Opening via hover or click means the pointer/focus is still on the trigger.
-                    // Treat interactions on the trigger as *inside* to avoid instant dismiss.
-                    if (trigger && target && trigger.contains(target)) {
-                      event.preventDefault()
-                    }
-                  }
-                : (event) => {
-                    const target = event.target as Node | null
-                    const anchor = root.anchorRef.current
-
-                    const realTarget = event.detail.originalEvent
-                      ?.target as Node | null
-
-                    if (!anchor) return
-
-                    const { x, y } = event.detail.originalEvent as PointerEvent
-                    const interactingWithTrigger = isInBounds(
-                      x,
-                      y,
-                      anchor?.getBoundingClientRect(),
-                    )
-
-                    // Debug
-                    // console.log('realTarget:', realTarget)
-                    //
-                    // console.log('anchor:', anchor)
-                    // console.log('target:', target)
-                    //
-                    // console.log('event:', event)
-                    if (interactingWithTrigger) {
-                      console.log('HERE!!!!')
-                      event.preventDefault()
-                      root.onOpenToggle()
-                    }
-                  }
-            }
-            onFocusOutside={
-              isSub
-                ? (event) => {
-                    const target = event.target as Node | null
-                    const trigger = sub!.triggerRef.current
-                    const parentSurface = document.querySelector<HTMLElement>(
-                      `[data-surface-id="${sub!.parentSurfaceId}"]`,
-                    )
-                    if (
-                      (trigger && target && trigger.contains(target)) ||
-                      (parentSurface &&
-                        target &&
-                        parentSurface.contains(target))
-                    ) {
-                      event.preventDefault()
-                    }
-                  }
-                : undefined
-            }
-          >
-            {children}
-          </DismissableLayer.Root>
-        </Popper.Content>
-      </Presence>
+      <Presence present={present}>{content}</Presence>
       {/* Safe polygon overlay only for open submenus */}
       {isSub && present && intentZone ? (
         <IntentZone
@@ -1412,8 +1377,8 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
         classNames={classNames}
         inputActive={inputActive}
         onTypeStart={(seed) => {
-          // first typed key while input is hidden: show input, seed it, focus it
-          if (!inputActive) {
+          // First typed key while input is hidden: show input, seed it, focus it
+          if (!inputActive && ownerId === surfaceId) {
             setInputActive(true)
             setValue(seed)
             requestAnimationFrame(() => {
@@ -2033,9 +1998,14 @@ function ListView<T>({
   const hasInput = useSurfaceSel(store, (s) => s.hasInput)
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
   const navKeydown = useNavKeydown('list')
+  const { ownerId } = useFocusOwner()
+  const surfaceId = useSurfaceId() ?? 'root'
 
   const onKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
+      // Only run when the menu is the focus owner
+      if (ownerId !== surfaceId) return
+
       // While the input is hidden, start search on first printable key or Backspace.
       if (!inputActive && !e.altKey && !e.ctrlKey && !e.metaKey) {
         if (e.key === 'Backspace') {
@@ -2051,7 +2021,7 @@ function ListView<T>({
       }
       navKeydown(e)
     },
-    [inputActive, onTypeStart, navKeydown],
+    [surfaceId, ownerId, inputActive, onTypeStart, navKeydown],
   )
 
   React.useEffect(() => {
