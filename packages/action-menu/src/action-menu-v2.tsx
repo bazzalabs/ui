@@ -2,7 +2,7 @@
 
 import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
-import { DismissableLayer } from '@radix-ui/react-dismissable-layer'
+import * as DismissableLayer from '@radix-ui/react-dismissable-layer'
 import * as Popper from '@radix-ui/react-popper'
 import { Presence } from '@radix-ui/react-presence'
 import { Primitive } from '@radix-ui/react-primitive'
@@ -106,6 +106,7 @@ export type SearchContext = {
 
 type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.button>
+type Children = Pick<DivProps, 'children'>
 
 export type RowBindAPI = {
   /** Whether our internal focus thinks this row is focused (fake focus) */
@@ -393,7 +394,7 @@ type ActionMenuRootContextValue = {
   onOpenChange: (open: boolean) => void
   onOpenToggle: () => void
   modal: boolean
-  anchorRef: React.RefObject<HTMLButtonElement | null>
+  anchorRef: React.RefObject<HTMLElement | null>
 }
 
 const RootCtx = React.createContext<ActionMenuRootContextValue | null>(null)
@@ -959,55 +960,44 @@ function IntentZone({ parentRef, triggerRef, debug }: IntentZoneProps) {
  * Root
  * ============================================================================================== */
 
-export interface ActionMenuProps extends DivProps {
+export interface ActionMenuProps extends Children {
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
   modal?: boolean
 }
 
-export const Root = React.forwardRef<HTMLDivElement, ActionMenuProps>(
-  (
-    {
-      children,
-      open: openProp,
-      defaultOpen,
-      onOpenChange,
-      modal = true,
-      ...props
-    },
-    ref,
-  ) => {
-    const [open, setOpen] = useControllableState({
-      prop: openProp,
-      defaultProp: defaultOpen ?? false,
-      onChange: onOpenChange,
-    })
-    const anchorRef = React.useRef<HTMLButtonElement | null>(null)
-    const [ownerId, setOwnerId] = React.useState<string | null>(null)
+export const Root = ({
+  children,
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
+  modal = true,
+}: ActionMenuProps) => {
+  const [open, setOpen] = useControllableState({
+    prop: openProp,
+    defaultProp: defaultOpen ?? false,
+    onChange: onOpenChange,
+  })
+  const anchorRef = React.useRef<HTMLButtonElement | null>(null)
+  const [ownerId, setOwnerId] = React.useState<string | null>(null)
 
-    return (
-      <RootCtx.Provider
-        value={{
-          open,
-          onOpenChange: setOpen,
-          onOpenToggle: () => setOpen((v) => !v),
-          anchorRef,
-          modal,
-        }}
-      >
-        <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
-          <Popper.Root>
-            <Primitive.div ref={ref} {...props}>
-              {children}
-            </Primitive.div>
-          </Popper.Root>
-        </FocusOwnerCtx.Provider>
-      </RootCtx.Provider>
-    )
-  },
-)
-Root.displayName = 'ActionMenu.Root'
+  return (
+    <RootCtx.Provider
+      value={{
+        open,
+        onOpenChange: setOpen,
+        onOpenToggle: () => setOpen((v) => !v),
+        anchorRef,
+        modal,
+      }}
+    >
+      <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
+        <Popper.Root>{children}</Popper.Root>
+      </FocusOwnerCtx.Provider>
+    </RootCtx.Provider>
+  )
+}
 
 /* ================================================================================================
  * Trigger (Popper anchor)
@@ -1026,32 +1016,35 @@ export const Trigger = React.forwardRef<
     const root = useRootCtx()
 
     return (
-      <Popper.Anchor asChild>
-        <Primitive.button
-          {...props}
-          data-slot="action-menu-trigger"
-          ref={composeRefs(forwardedRef, root.anchorRef)}
-          disabled={disabled}
-          onPointerDown={composeEventHandlers(onPointerDown, (event) => {
-            if (!disabled && event.button === 0 && event.ctrlKey === false) {
-              const willOpen = !root.open
-              root.onOpenToggle()
-              if (willOpen) event.preventDefault()
-            }
-          })}
-          onKeyDown={composeEventHandlers(onKeyDown, (event) => {
-            if (disabled) return
-            if (event.key === 'Enter' || event.key === ' ') root.onOpenToggle()
-            if (event.key === 'ArrowDown') root.onOpenChange(true)
-            if (['Enter', ' ', 'ArrowDown'].includes(event.key))
-              event.preventDefault()
-          })}
-          aria-haspopup="menu"
-          aria-expanded={root.open}
-        >
-          {children}
-        </Primitive.button>
-      </Popper.Anchor>
+      <DismissableLayer.Branch asChild>
+        <Popper.Anchor asChild>
+          <Primitive.button
+            {...props}
+            data-slot="action-menu-trigger"
+            ref={composeRefs(forwardedRef, root.anchorRef)}
+            disabled={disabled}
+            onPointerDown={composeEventHandlers(onPointerDown, (event) => {
+              if (!disabled && event.button === 0 && event.ctrlKey === false) {
+                const willOpen = !root.open
+                root.onOpenToggle()
+                if (willOpen) event.preventDefault()
+              }
+            })}
+            onKeyDown={composeEventHandlers(onKeyDown, (event) => {
+              if (disabled) return
+              if (event.key === 'Enter' || event.key === ' ')
+                root.onOpenToggle()
+              if (event.key === 'ArrowDown') root.onOpenChange(true)
+              if (['Enter', ' ', 'ArrowDown'].includes(event.key))
+                event.preventDefault()
+            })}
+            aria-haspopup="menu"
+            aria-expanded={root.open}
+          >
+            {children}
+          </Primitive.button>
+        </Popper.Anchor>
+      </DismissableLayer.Branch>
     )
   },
 )
@@ -1129,7 +1122,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
           avoidCollisions={avoidCollisions}
           collisionPadding={collisionPadding}
         >
-          <DismissableLayer
+          <DismissableLayer.Root
             asChild
             onEscapeKeyDown={close}
             onDismiss={closeOnAnchorPointerDown ? close : undefined}
@@ -1149,13 +1142,30 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
                 : (event) => {
                     const target = event.target as Node | null
                     const anchor = root.anchorRef.current
-                    if (
-                      !closeOnAnchorPointerDown &&
-                      anchor &&
-                      target &&
-                      anchor.contains(target)
-                    ) {
+
+                    const realTarget = event.detail.originalEvent
+                      ?.target as Node | null
+
+                    if (!anchor) return
+
+                    const { x, y } = event.detail.originalEvent as PointerEvent
+                    const interactingWithTrigger = isInBounds(
+                      x,
+                      y,
+                      anchor?.getBoundingClientRect(),
+                    )
+
+                    // Debug
+                    // console.log('realTarget:', realTarget)
+                    //
+                    // console.log('anchor:', anchor)
+                    // console.log('target:', target)
+                    //
+                    // console.log('event:', event)
+                    if (interactingWithTrigger) {
+                      console.log('HERE!!!!')
                       event.preventDefault()
+                      root.onOpenToggle()
                     }
                   }
             }
@@ -1180,7 +1190,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
             }
           >
             {children}
-          </DismissableLayer>
+          </DismissableLayer.Root>
         </Popper.Content>
       </Presence>
       {/* Safe polygon overlay only for open submenus */}
@@ -2245,7 +2255,19 @@ function ListView<T>({
 
   const el = renderers.list({ children, bind })
   if (!isElementWithProp(el, 'data-action-menu-list')) {
-    return <div {...(bind.getListProps() as any)}>{children}</div>
+    return (
+      <div
+        {...(bind.getListProps({
+          // Prevent non-item clicks in the list from blurring the menu input
+          // e.g. clicking in the list component padding, if present
+          onPointerDown: (e: React.PointerEvent) => {
+            e.preventDefault()
+          },
+        }) as any)}
+      >
+        {children}
+      </div>
+    )
   }
   return el as React.ReactElement
 }

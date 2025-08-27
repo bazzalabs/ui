@@ -46,7 +46,14 @@ export default function Page() {
             {/* Content here! */}
             <ActionMenu.Root>
               <ActionMenu.Trigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-fit"
+                  onMouseMove={(e) => {
+                    console.log('here!')
+                  }}
+                >
                   <FilterIcon />
                   Filter
                 </Button>

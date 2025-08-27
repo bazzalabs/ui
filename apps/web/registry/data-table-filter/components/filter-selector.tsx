@@ -11,7 +11,7 @@ import {
   type Locale,
   t,
 } from '@bazzaui/filters'
-import { ArrowRightIcon, ChevronRightIcon, FilterIcon } from 'lucide-react'
+import { ArrowRightIcon, ChevronRightIcon, ListFilterIcon } from 'lucide-react'
 import React, {
   isValidElement,
   memo,
@@ -125,7 +125,7 @@ function __FilterSelector_v2<TData>({
           variant="outline"
           className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
         >
-          <FilterIcon className="size-4" />
+          <ListFilterIcon className="size-4" />
           {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
       </ActionMenu.Trigger>
@@ -276,7 +276,7 @@ function __FilterSelector<TData>({
           variant="outline"
           className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
         >
-          <FilterIcon className="size-4" />
+          <ListFilterIcon className="size-4" />
           {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
       </PopoverTrigger>
