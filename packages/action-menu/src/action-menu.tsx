@@ -1575,7 +1575,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
         return
       }
 
-      requestAnimationFrame(measure)
+      measure()
     }
 
     document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true) // capture so we catch all
