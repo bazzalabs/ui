@@ -1,5 +1,8 @@
 'use client'
 
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { DiscordIcon, GithubIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,9 +20,6 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import logoSrc from '@/public/bazzaui-v3-color.png'
-import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { ThemeToggle } from './theme-toggle'
 
 const items = [
@@ -87,6 +87,17 @@ export function AppSidebar() {
           <SidebarGroupLabel>Components</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={'/docs/action-menu' === pathname}
+                  className="font-medium text-muted-foreground"
+                >
+                  <a href={'/docs/action-menu'}>
+                    <span>Action Menu</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild

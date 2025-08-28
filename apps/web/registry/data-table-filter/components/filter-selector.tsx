@@ -1,4 +1,4 @@
-import { type MenuData, renderIcon, SubmenuNode } from '@bazza-ui/action-menu'
+import { type MenuData, renderIcon } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
@@ -11,11 +11,11 @@ import {
   t,
 } from '@bazzaui/filters'
 import { ListFilterIcon } from 'lucide-react'
-import { isValidElement, memo, useEffect, useMemo, useState } from 'react'
-import { ActionMenu, LabelWithBreadcrumbs } from '@/components/ui/action-menu'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+import { ActionMenu, LabelWithBreadcrumbs } from '@/registry/action-menu'
 import {
   filterValueMultiOptionMenu,
   filterValueOptionMenu,

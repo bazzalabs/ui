@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
+
 import { cn } from '@/lib/utils'
 
 export const StatusIcon = () => (

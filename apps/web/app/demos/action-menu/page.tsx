@@ -1,8 +1,8 @@
 'use client'
 
 import { NavBar } from '@/components/nav-bar'
-import { ActionMenu } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
+import { ActionMenu } from '@/registry/action-menu'
 import { menuData } from './menu'
 
 const FilterIcon = () => (

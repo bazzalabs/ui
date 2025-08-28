@@ -17,8 +17,8 @@ import {
   textFilterOperators,
 } from '@bazzaui/filters'
 import { useState } from 'react'
-import { ActionMenu } from '@/components/ui/action-menu'
 import { Button } from '@/components/ui/button'
+import { ActionMenu } from '@/registry/action-menu'
 
 interface FilterOperatorProps<TData, TType extends ColumnDataType> {
   column: Column<TData, TType>
