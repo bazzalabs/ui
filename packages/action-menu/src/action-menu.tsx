@@ -1487,7 +1487,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
-  alignToFirstItem = 'always',
+  alignToFirstItem = 'on-open',
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
@@ -1551,15 +1551,33 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
 
   // Listen globally for “input visibility change” so we can re-measure alignment when inputs show/hide.
   React.useEffect(() => {
-    if (!isSub || !present || alignToFirstItem !== 'always') return
+    if (!isSub || !present || !alignToFirstItem) return
     const handle = (e: Event) => {
-      const customEvent = e as CustomEvent<{ surfaceId?: string }>
+      const customEvent = e as CustomEvent<{
+        surfaceId?: string
+        hideSearchUntilActive?: boolean
+        inputActive?: boolean
+      }>
       const target = e.target as HTMLElement | null
+
       const ok =
         customEvent.detail?.surfaceId === sub!.childSurfaceId ||
         target?.closest?.(`[data-surface-id="${sub!.childSurfaceId}"]`) !== null
-      if (ok) requestAnimationFrame(measure)
+
+      if (!ok) return
+
+      // If we only want to align on menu open, don't re-measure when the input becomes visible after typing.
+      if (
+        alignToFirstItem === 'on-open' &&
+        customEvent.detail?.hideSearchUntilActive &&
+        customEvent.detail?.inputActive
+      ) {
+        return
+      }
+
+      requestAnimationFrame(measure)
     }
+
     document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true) // capture so we catch all
     return () =>
       document.removeEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
@@ -1747,10 +1765,14 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
       new CustomEvent(INPUT_VISIBILITY_CHANGE_EVENT, {
         bubbles: true,
         composed: true,
-        detail: { surfaceId },
+        detail: {
+          surfaceId,
+          hideSearchUntilActive: menu.hideSearchUntilActive,
+          inputActive,
+        },
       }),
     )
-  }, [inputActive])
+  }, [inputActive, menu.hideSearchUntilActive])
 
   // Create per-surface store once.
   const storeRef = React.useRef<SurfaceStore | null>(null)
