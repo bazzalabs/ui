@@ -29,7 +29,7 @@
   "engines": {
     "node": ">=22"
   },
-  "packageManager": "bun@1.2.4",
+  "packageManager": "bun@1.2.21",
   "workspaces": [
     "apps/*",
     "packages/*"

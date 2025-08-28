@@ -455,6 +455,8 @@ const useKeyboardOpts = () => React.useContext(KeyboardCtx)
  * ============================================================================================== */
 const OPEN_SUB_EVENT = 'actionmenu-open-sub' as const
 const SELECT_ITEM_EVENT = 'actionmenu-select-item' as const
+const INPUT_VISIBILITY_CHANGE_EVENT =
+  'actionmenu-input-visibility-change' as const
 
 function dispatch(node: HTMLElement | null | undefined, type: string) {
   if (!node) return
@@ -1176,7 +1178,7 @@ export interface ActionMenuPositionerProps {
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
-  alignToFirstItem?: boolean
+  alignToFirstItem?: false | 'on-open' | 'always'
 }
 
 export const Positioner: React.FC<ActionMenuPositionerProps> = ({
@@ -1187,7 +1189,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
-  alignToFirstItem = true,
+  alignToFirstItem = 'always',
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
@@ -1212,69 +1214,49 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
     }
   }, [sub])
 
-  // Measure with retries until DOM exists.
-  React.useLayoutEffect(() => {
+  const measure = React.useCallback(() => {
     if (!isSub || !present || !alignToFirstItem) {
       setFirstRowAlignOffset(0)
       return
     }
-    // Only vertical offsetting matters for left/right submenus.
     if (!(resolvedSide === 'right' || resolvedSide === 'left')) {
       setFirstRowAlignOffset(0)
       return
     }
 
-    let cancelled = false
-    let attempts = 0
-    const MAX_ATTEMPTS = 8
+    const el = findContentEl()
 
-    const measure = () => {
-      if (cancelled) return
-      const contentEl = findContentEl()
-      if (!contentEl) {
-        if (attempts++ < MAX_ATTEMPTS) {
-          requestAnimationFrame(measure)
-        }
-        return
-      }
-      // Require a visible input for this behavior; otherwise use 0 offset.
-      const inputEl = contentEl.querySelector<HTMLElement>(
-        '[data-action-menu-input]',
-      )
-      const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
-
-      const firstRow = contentEl.querySelector<HTMLElement>(
-        '[data-action-menu-list] [data-action-menu-item-id]',
-      )
-      if (!firstRow || !hasVisibleInput) {
-        setFirstRowAlignOffset(0)
-        return
-      }
-
-      const cr = contentEl.getBoundingClientRect()
-      const fr = firstRow.getBoundingClientRect()
-      const delta = Math.round(fr.top - cr.top)
-      setFirstRowAlignOffset(-delta)
+    if (!el) return
+    const inputEl = el.querySelector<HTMLElement>('[data-action-menu-input]')
+    const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
+    const firstRow = el.querySelector<HTMLElement>(
+      '[data-action-menu-list] [data-action-menu-item-id]',
+    )
+    if (!hasVisibleInput || !firstRow) {
+      setFirstRowAlignOffset(0)
+      return
     }
 
-    // Kick off a few frames of retries; handles portals & async layout.
-    requestAnimationFrame(measure)
+    const cr = el.getBoundingClientRect()
+    const fr = firstRow.getBoundingClientRect()
+    setFirstRowAlignOffset(-Math.round(fr.top - cr.top))
+  }, [isSub, present, alignToFirstItem, resolvedSide, sub])
 
-    // Re-measure on resize; layout of input/list might change after open.
-    let ro: ResizeObserver | undefined
-    const contentEl = findContentEl()
-    if (contentEl && 'ResizeObserver' in window) {
-      ro = new ResizeObserver(
-        () => !cancelled && requestAnimationFrame(measure),
-      )
-      ro.observe(contentEl)
+  // Listen globally so we never miss the event
+  React.useEffect(() => {
+    if (!isSub || !present || alignToFirstItem !== 'always') return
+    const handle = (e: Event) => {
+      const customEvent = e as CustomEvent<{ surfaceId?: string }>
+      const target = e.target as HTMLElement | null
+      const ok =
+        customEvent.detail?.surfaceId === sub!.childSurfaceId ||
+        target?.closest?.(`[data-surface-id="${sub!.childSurfaceId}"]`) !== null
+      if (ok) requestAnimationFrame(measure)
     }
-
-    return () => {
-      cancelled = true
-      ro?.disconnect()
-    }
-  }, [isSub, present, alignToFirstItem, resolvedSide, findContentEl])
+    document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true) // capture so we catch all
+    return () =>
+      document.removeEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
+  }, [isSub, sub, present, alignToFirstItem, measure])
 
   const effectiveAlignOffset =
     isSub && alignToFirstItem ? firstRowAlignOffset : alignOffset
@@ -1430,6 +1412,20 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
   const [inputActive, setInputActive] = React.useState(
     !menu.hideSearchUntilActive,
   )
+
+  React.useLayoutEffect(() => {
+    const target: EventTarget =
+      surfaceRef.current ??
+      (typeof document !== 'undefined' ? document : ({} as any))
+    // fire even if a custom Content forgot to spread bind.getContentProps
+    target.dispatchEvent(
+      new CustomEvent(INPUT_VISIBILITY_CHANGE_EVENT, {
+        bubbles: true,
+        composed: true,
+        detail: { surfaceId },
+      }),
+    )
+  }, [inputActive])
 
   // Create per-surface store
   const storeRef = React.useRef<SurfaceStore | null>(null)

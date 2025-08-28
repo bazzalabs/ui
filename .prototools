@@ -1,4 +1,4 @@
-bun = "1.2.4"
+bun = "1.2.21"
 node = "~22"
 
 [settings]
