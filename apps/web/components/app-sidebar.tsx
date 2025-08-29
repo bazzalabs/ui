@@ -16,7 +16,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import logoSrc from '@/public/bazzaui-v3-color.png'

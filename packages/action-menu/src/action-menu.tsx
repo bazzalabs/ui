@@ -175,6 +175,8 @@ export type Iconish =
 export function renderIcon(icon?: Iconish, className?: string) {
   if (!icon) return null
 
+  if (typeof icon === 'string') return icon
+
   // Already a JSX element: merge className via clone.
   if (React.isValidElement(icon)) {
     const prev = (icon.props as any)?.className
@@ -1469,7 +1471,8 @@ export interface ActionMenuPositionerProps {
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
   /**
    * Align the submenu to the first row rather than the top.
-   * - 'on-open' (deprecated here) or 'always' keeps it aligned with the first row even when input becomes visible.
+   * - 'on-open' aligns it to the first row when the menu opens.
+   * - 'always' keeps it aligned with the first row even when input becomes visible.
    * - false disables this behavior.
    */
   alignToFirstItem?: false | 'on-open' | 'always'
@@ -1487,7 +1490,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
-  alignToFirstItem = 'on-open',
+  alignToFirstItem = false,
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()

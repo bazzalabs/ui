@@ -1,11 +1,12 @@
+import type { MDXComponents } from 'mdx/types'
+import Image from 'next/image'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
 import { TypeTable } from '@/components/type-table'
 import { cn } from '@/lib/utils'
 import type { NpmCommands } from '@/types/unist'
-import type { MDXComponents } from 'mdx/types'
-import Image from 'next/image'
 import { CodeBlockCommand } from './code-block-command'
 import CollapsibleCodeBlock from './collapsible-code-block'
+import { Examples } from './examples'
 import { ResponsiveImage } from './responsive-image'
 
 export const components: Readonly<MDXComponents> = {
@@ -195,4 +196,31 @@ export const components: Readonly<MDXComponents> = {
   CollapsibleCodeBlock,
   TypeTable,
   IssuesTableWrapper,
+  // @ts-expect-error
+  Examples,
+  Frame: ({
+    containerClassName,
+    innerClassName,
+    children,
+    ...props
+  }: Omit<React.ComponentProps<'div'>, 'className'> & {
+    containerClassName?: string
+    innerClassName?: string
+  }) => {
+    return (
+      <div
+        className={cn(
+          'rounded-2xl border p-8 2xl:-mx-16 h-fit relative overflow-clip',
+          containerClassName,
+        )}
+        {...props}
+      >
+        <div className={cn('h-full w-full z-[10] relative', innerClassName)}>
+          {children}
+        </div>
+        <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
+        <div className="absolute h-full w-full  bg-white dark:bg-black top-0 left-0 z-[1]" />
+      </div>
+    )
+  },
 }

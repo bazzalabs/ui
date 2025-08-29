@@ -61,7 +61,9 @@ export const ActionMenu = createActionMenu<any>({
   },
   slots: {
     Item: ({ node, bind, search }) => {
-      const props = bind.getRowProps()
+      const props = bind.getRowProps({
+        className: 'group/row',
+      })
 
       return (
         <div {...props}>
@@ -69,7 +71,7 @@ export const ActionMenu = createActionMenu<any>({
             <div className="size-4 flex items-center justify-center">
               {renderIcon(
                 node.icon,
-                'size-4 shrink-0 data-[focused=true]:text-primary',
+                'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
               )}
             </div>
           )}
