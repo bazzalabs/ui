@@ -50,6 +50,8 @@ export const ActionMenu = createActionMenu<any>({
     input: cn(
       'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
     ),
+    group: cn('mb-2'),
+    groupHeading: cn('text-xs font-medium text-muted-foreground px-3 my-1'),
     item: cn(
       'group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm select-none',
       'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
