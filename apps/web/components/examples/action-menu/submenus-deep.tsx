@@ -11,6 +11,7 @@ import {
   Keyboard,
   Languages,
   Lightbulb,
+  MenuIcon,
   Moon,
   Palette,
   Presentation,
@@ -34,7 +35,10 @@ export function ActionMenu_SubmenusDeep() {
   return (
     <ActionMenu.Root defaultOpen modal={false}>
       <ActionMenu.Trigger asChild>
-        <Button variant="secondary">Trigger</Button>
+        <Button variant="secondary" className="group">
+          <MenuIcon className="size-4 shrink-0 group-hover:text-primary group-aria-[expanded=true]:text-primary text-muted-foreground" />
+          Menu
+        </Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner>
         <ActionMenu.Content

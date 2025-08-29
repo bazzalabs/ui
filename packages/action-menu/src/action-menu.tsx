@@ -1371,14 +1371,10 @@ export const Root = ({
           disableOutsidePointerEvents={modal}
           onEscapeKeyDown={() => setOpen(false)}
           onInteractOutside={(event) => {
-            // If the target is inside the root menu surface, ignore.
-            const target = event.target as Node | null
-            const rootMenuSurface = document.querySelector(
-              '[data-action-menu-surface=true]',
-            )
-            if (rootMenuSurface?.contains(target)) return
+            const target = event.target as HTMLElement | null
+            // If the interaction happened inside *any* action-menu surface, do not dismiss.
+            if (target?.closest?.('[data-action-menu-surface]')) return
 
-            // Otherwise, close on outside interaction.
             event.preventDefault()
             setOpen(false)
           }}
