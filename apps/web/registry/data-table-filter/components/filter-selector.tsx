@@ -67,7 +67,7 @@ function __FilterSelector_v2<TData>({
 
   const hasVisibleFilters = visibleFilters.length > 0
 
-  const menu: MenuData = {
+  const menu: MenuData<any> = {
     id: 'properties',
     nodes: columns
       .filter((c) => isAnyOf(c.type, ['option', 'multiOption']))
