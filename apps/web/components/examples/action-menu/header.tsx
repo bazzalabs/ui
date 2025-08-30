@@ -26,10 +26,6 @@ function getMenuItems(menu: MenuData<any>): ItemNode[] {
 export function ActionMenu_Header() {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
 
-  function selectAll(menu: MenuData) {
-    setSelectedItems(getMenuItems(menu).map((item) => item.id))
-  }
-
   function deselectAll() {
     setSelectedItems([])
   }
@@ -77,7 +73,10 @@ export function ActionMenu_Header() {
 
               return (
                 <div {...props}>
-                  <Checkbox checked={selectedItems.includes(node.id)} />
+                  <Checkbox
+                    className="border-muted group-data-[focused=true]:border-muted-foreground/25"
+                    checked={selectedItems.includes(node.id)}
+                  />
                   <span>{node.icon as string}</span>
                   <span>{node.label}</span>
                 </div>
