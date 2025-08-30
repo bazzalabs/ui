@@ -3,9 +3,11 @@
 'use client'
 
 import type { GroupNode, ItemNode, MenuData } from '@bazza-ui/action-menu'
+import { ListXIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 
 function getMenuItems(menu: MenuData<any>): ItemNode[] {
@@ -24,6 +26,14 @@ function getMenuItems(menu: MenuData<any>): ItemNode[] {
 export function ActionMenu_Header() {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
 
+  function selectAll(menu: MenuData) {
+    setSelectedItems(getMenuItems(menu).map((item) => item.id))
+  }
+
+  function deselectAll() {
+    setSelectedItems([])
+  }
+
   return (
     <ActionMenu.Root defaultOpen modal={false}>
       <ActionMenu.Trigger asChild>
@@ -37,37 +47,37 @@ export function ActionMenu_Header() {
                 <div className="px-4 py-1.5 dark:bg-neutral-800 bg-neutral-200/75 rounded-t-lg rounded-b-xl text-xs border-b shadow-xs flex items-center justify-between select-none">
                   {menu.title}
                   <span className="text-muted-foreground">
-                    {menu.nodes?.length} items
+                    {getMenuItems(menu).length} items
                   </span>
                 </div>
               )
             },
-            Footer: ({ menu }) => {
-              const items = getMenuItems(menu)
+            Footer: () => {
+              if (selectedItems.length === 0) return null
               return (
-                <div className="px-4 py-1.5 rounded-b-lg border-t text-sm items-center flex gap-2 justify-end">
-                  <span>Select all</span>
-
-                  <Checkbox />
+                <div className="p-1 rounded-b-lg border-t">
+                  <button
+                    type="button"
+                    onClick={deselectAll}
+                    className={cn(
+                      'group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm select-none justify-between w-full',
+                      'hover:bg-accent',
+                    )}
+                  >
+                    <span>Clear selection</span>
+                    <ListXIcon className="size-4 shrink-0 text-muted-foreground group-hover:text-primary" />
+                  </button>
                 </div>
               )
             },
-            Item: ({ node, search, bind }) => {
+            Item: ({ node, bind }) => {
               const props = bind.getRowProps({
                 className: 'flex items-center gap-2',
               })
+
               return (
                 <div {...props}>
-                  <Checkbox
-                    checked={selectedItems.includes(node.id)}
-                    onCheckedChange={(checked) =>
-                      setSelectedItems((prev) => {
-                        return !checked
-                          ? prev.filter((id) => id !== node.id)
-                          : prev.concat(node.id)
-                      })
-                    }
-                  />
+                  <Checkbox checked={selectedItems.includes(node.id)} />
                   <span>{node.icon as string}</span>
                   <span>{node.label}</span>
                 </div>
@@ -77,6 +87,18 @@ export function ActionMenu_Header() {
           menu={{
             id: 'root',
             title: 'Fruits',
+            defaults: {
+              item: {
+                onSelect: ({ node }) => {
+                  const checked = selectedItems.includes(node.id)
+                  setSelectedItems((prev) => {
+                    return checked
+                      ? prev.filter((id) => id !== node.id)
+                      : prev.concat(node.id)
+                  })
+                },
+              },
+            },
             nodes: [
               {
                 kind: 'group',

@@ -73,7 +73,7 @@ export type ItemNode<T = unknown> = BaseNode<'item'> &
     /** Arbitrary payload for the consumer (command, entity, etc.). */
     data?: T
     /** Invoked when the item is selected via keyboard or click. */
-    onSelect?: () => void
+    onSelect?: ({ node }: { node: Omit<ItemNode<T>, 'onSelect'> }) => void
   }
 
 /** A group on the current surface; children share the same item payload `T`. */
@@ -98,6 +98,8 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
     inputPlaceholder?: string
     /** When true, hide the input until the user starts typing on that surface. */
     hideSearchUntilActive?: boolean
+    /** Per-instance defaults for nodes. */
+    defaults?: MenuNodeDefaults<T>
     /** Child nodes that will render inside the submenu surface. */
     nodes: MenuNode<TChild>[]
     /** Per-node UI overrides scoped to this submenu. */
@@ -123,6 +125,8 @@ export type MenuData<T = unknown> = {
   hideSearchUntilActive?: boolean
   /** Nodes rendered on this surface (items, groups, submenus). */
   nodes?: MenuNode<T>[]
+  /** Per-instance defaults for nodes. */
+  defaults?: MenuNodeDefaults<T>
   /** Per-surface UI overrides (slots, props, and class names). */
   ui?: {
     /** Partial slot renderers that override the defaults for this surface. */
@@ -150,6 +154,10 @@ export type SearchContext = {
   breadcrumbs: string[]
   /** Breadcrumb *ids* parallel to `breadcrumbs`. */
   breadcrumbIds: string[]
+}
+
+export type MenuNodeDefaults<T = unknown> = {
+  item?: Pick<ItemNode<T>, 'onSelect'>
 }
 
 /* =========================================================================== */
@@ -1644,6 +1652,8 @@ export interface ActionMenuContentProps<T = unknown>
   vimBindings?: boolean
   /** Text direction. Falls back to document.dir when omitted. */
   dir?: Direction
+  /** Optional defaults for the nodes. */
+  defaults?: Partial<MenuNodeDefaults<T>>
   /** Optional classNames per slot (merged with per-menu classNames). */
   classNames?: Partial<SlotClassNames>
   /** Controlled search value for the surface input. */
@@ -1683,6 +1693,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
     dir: dirProp,
     surfaceIdProp,
     suppressHoverOpenOnMount,
+    defaults: defaultsOverrides,
     classNames,
     value: valueProp,
     defaultValue,
@@ -1735,6 +1746,14 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
       ...(menu.ui?.slotProps ?? {}),
     }),
     [slotPropsOverrides, menu.ui?.slotProps],
+  )
+
+  const defaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
+    () => ({
+      ...defaultsOverrides,
+      ...(menu.defaults ?? {}),
+    }),
+    [defaultsOverrides, menu.defaults],
   )
 
   // Allow per-submenu classNames to override/extend.
@@ -1931,6 +1950,7 @@ const ContentBase = React.forwardRef(function ContentBaseInner<T>(
       menu={menu}
       slots={slots}
       slotProps={slotProps}
+      defaults={menu.defaults}
       query={value}
       classNames={mergedClassNames}
       inputActive={inputActive}
@@ -2283,12 +2303,15 @@ function SubTriggerRow<T>({
 function SubmenuContent<T>({
   menu,
   slots,
+  defaults,
   classNames,
 }: {
   /** Menu data for the child surface. */
   menu: MenuData<T>
   /** Slot renderers inherited/merged from above. */
   slots: Required<MenuSlots<T>>
+  /** Optional defaults for the nodes. */
+  defaults?: Partial<MenuNodeDefaults<T>>
   /** Optional class names for styling. */
   classNames?: Partial<SlotClassNames>
 }) {
@@ -2305,6 +2328,7 @@ function SubmenuContent<T>({
     <ContentBase<T>
       menu={menu}
       slots={slots as any}
+      defaults={defaults}
       classNames={classNames}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
@@ -2338,6 +2362,7 @@ function makeRowId(
 function renderMenu<T>(
   menu: MenuData<T>,
   slots: Required<MenuSlots<T>>,
+  defaults: Partial<MenuNodeDefaults<T>> | undefined,
   classNames: Partial<SlotClassNames> | undefined,
   store: SurfaceStore,
 ) {
@@ -2351,6 +2376,7 @@ function renderMenu<T>(
               key={node.id}
               node={node}
               slot={slots.Item}
+              defaults={defaults}
               classNames={classNames}
               store={store}
             />
@@ -2380,6 +2406,7 @@ function renderMenu<T>(
                       key={child.id}
                       node={child as ItemNode<T>}
                       slot={slots.Item}
+                      defaults={defaults}
                       classNames={classNames}
                       store={store}
                     />
@@ -2440,6 +2467,7 @@ function ItemRow<T>({
   node,
   slot,
   classNames,
+  defaults,
   store,
   search,
 }: {
@@ -2449,6 +2477,8 @@ function ItemRow<T>({
   slot: NonNullable<MenuSlots<T>['Item']>
   /** Optional class names for styling. */
   classNames?: Partial<SlotClassNames>
+  /** Optional defaults for the node. */
+  defaults?: Partial<MenuNodeDefaults<T>>
   /** Surface store to register with. */
   store: SurfaceStore
   /** Optional search context (for deep matches). */
@@ -2458,16 +2488,18 @@ function ItemRow<T>({
   const surfaceId = useSurfaceId()
   const rowId = makeRowId(node.id, search, surfaceId)
 
+  const onSelect = node.onSelect ?? defaults?.item?.onSelect
+
   // Listen for synthetic SELECT_ITEM_EVENT (dispatched by keyboard Enter).
   React.useEffect(() => {
     const el = ref.current
     if (!el) return
     const onSelectFromKey: EventListener = () => {
-      node.onSelect?.()
+      onSelect?.({ node })
     }
     el.addEventListener(SELECT_ITEM_EVENT, onSelectFromKey)
     return () => el.removeEventListener(SELECT_ITEM_EVENT, onSelectFromKey)
-  }, [node.onSelect])
+  }, [onSelect])
 
   // Register/unregister with the surface store for roving focus.
   React.useEffect(() => {
@@ -2505,10 +2537,10 @@ function ItemRow<T>({
         },
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
-          node.onSelect?.()
+          onSelect?.({ node })
         },
       }) as const,
-    [rowId, node.onSelect, aimGuardActive, focused, store, classNames?.item],
+    [rowId, onSelect, aimGuardActive, focused, store, classNames?.item],
   )
 
   const bind: RowBindAPI = {
@@ -2609,6 +2641,7 @@ function ListView<T>({
   menu,
   slots,
   slotProps,
+  defaults,
   classNames,
   query,
   inputActive,
@@ -2622,6 +2655,8 @@ function ListView<T>({
   slots: Required<MenuSlots<T>>
   /** Optional extra props to forward to the list element. */
   slotProps?: Partial<MenuSlotProps>
+  /** Optional defaults for the nodes. */
+  defaults?: Partial<MenuNodeDefaults<T>>
   /** Optional class names for styling. */
   classNames?: Partial<SlotClassNames>
   /** Current search query string. */
@@ -2837,7 +2872,7 @@ function ListView<T>({
   if (q.length === 0) {
     const hasAnyNodes = (menu.nodes ?? []).some((n) => !n.hidden)
     children = hasAnyNodes
-      ? renderMenu<T>(menu, slots, classNames, store)
+      ? renderMenu<T>(menu, slots, defaults, classNames, store)
       : slots.Empty({ query: '' })
   } else {
     children =
