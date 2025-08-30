@@ -40,7 +40,7 @@ export function ActionMenu_Header() {
           slots={{
             Header: ({ menu }) => {
               return (
-                <div className="px-4 py-1.5 dark:bg-neutral-800 bg-neutral-200/75 rounded-t-lg rounded-b-xl text-xs border-b shadow-xs flex items-center justify-between select-none">
+                <div className="px-4 py-1.5 dark:bg-neutral-800 bg-neutral-200/75 rounded-t-lg rounded-b-xl text-xs border-b shadow-xs flex items-center justify-between select-none mb-1">
                   {menu.title}
                   <span className="text-muted-foreground">
                     {getMenuItems(menu).length} items
