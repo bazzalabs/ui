@@ -52,7 +52,7 @@ export default function Page() {
                 </Button>
               </ActionMenu.Trigger>
               <ActionMenu.Positioner>
-                <ActionMenu.Content menu={menuData} />
+                <ActionMenu.Surface menu={menuData} />
               </ActionMenu.Positioner>
             </ActionMenu.Root>
           </div>
