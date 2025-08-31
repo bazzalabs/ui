@@ -13,7 +13,7 @@ import {
 
 export function ActionMenu_KitchenSink01() {
   return (
-    <ActionMenu.Root defaultOpen modal={false}>
+    <ActionMenu.Root modal={false}>
       <ActionMenu.Trigger asChild>
         <Button variant="ghost" size="sm" className="w-fit">
           <FilterIcon />
@@ -21,7 +21,7 @@ export function ActionMenu_KitchenSink01() {
         </Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner alignToFirstItem={false}>
-        <ActionMenu.Content menu={menuData} />
+        <ActionMenu.Surface menu={menuData} />
       </ActionMenu.Positioner>
     </ActionMenu.Root>
   )

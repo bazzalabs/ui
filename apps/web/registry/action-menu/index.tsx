@@ -39,62 +39,34 @@ export const LabelWithBreadcrumbs = ({
 )
 
 export const ActionMenu = createActionMenu<any>({
-  classNames: {
-    content: cn(
-      'border bg-popover z-50 rounded-lg text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full',
-      'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
-    ),
-    list: cn(
-      'p-1 flex flex-col w-full min-w-[200px] max-w-[500px] max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
-    ),
-    input: cn(
-      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
-    ),
-    group: cn('mb-2'),
-    groupHeading: cn('text-xs font-medium text-muted-foreground px-3 my-1'),
-    item: cn(
-      'group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm select-none',
-      'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
-    ),
-    subtrigger: cn(
-      "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-md px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-      'relative',
-    ),
-  },
-  slots: {
-    Item: ({ node, bind, search }) => {
-      const props = bind.getRowProps({
-        className: 'group/row',
-      })
-
-      return (
-        <div {...props}>
-          {node.icon && (
-            <div className="size-4 flex items-center justify-center">
-              {renderIcon(
-                node.icon,
-                'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
-              )}
-            </div>
-          )}
-          <LabelWithBreadcrumbs
-            label={node.label ?? ''}
-            breadcrumbs={search?.breadcrumbs}
-          />
-        </div>
-      )
+  shell: {
+    classNames: {
+      overlay: cn(
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/40 h-full w-full',
+      ),
+      drawerContent: cn(
+        'group/drawer-content bg-background fixed z-50 flex h-auto flex-col min-h-0 overflow-hidden',
+        'data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=top]:border-b',
+        'data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t',
+        'data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=right]:sm:max-w-sm',
+        'data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm',
+      ),
     },
-    SubmenuTrigger: ({ node, bind, search }) => {
-      const props = bind.getRowProps({})
+  },
+  surface: {
+    slots: {
+      Item: ({ node, bind, search }) => {
+        const props = bind.getRowProps({
+          className: 'group/row',
+        })
 
-      return (
-        <div {...props}>
-          <div className="flex items-center gap-2">
+        return (
+          <div {...props}>
             {node.icon && (
               <div className="size-4 flex items-center justify-center">
                 {renderIcon(
                   node.icon,
-                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary',
+                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
                 )}
               </div>
             )}
@@ -103,14 +75,61 @@ export const ActionMenu = createActionMenu<any>({
               breadcrumbs={search?.breadcrumbs}
             />
           </div>
-          <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
+        )
+      },
+      SubmenuTrigger: ({ node, bind, search }) => {
+        const props = bind.getRowProps({})
+
+        return (
+          <div {...props}>
+            <div className="flex items-center gap-2">
+              {node.icon && (
+                <div className="size-4 flex items-center justify-center">
+                  {renderIcon(
+                    node.icon,
+                    'size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary',
+                  )}
+                </div>
+              )}
+              <LabelWithBreadcrumbs
+                label={node.label ?? ''}
+                breadcrumbs={search?.breadcrumbs}
+              />
+            </div>
+            <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
+          </div>
+        )
+      },
+      Empty: () => (
+        <div className="flex items-center justify-center h-10 text-muted-foreground">
+          No matching options.
         </div>
-      )
+      ),
     },
-    Empty: () => (
-      <div className="flex items-center justify-center h-10 text-muted-foreground">
-        No matching options.
-      </div>
-    ),
+    classNames: {
+      content: cn(
+        'border bg-popover z-50 rounded-lg text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full min-h-0 overflow-hidden',
+        'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
+      ),
+
+      list: cn(
+        'p-1 flex flex-col w-full scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
+        'data-[mode=dropdown]:min-w-[200px] data-[mode=dropdown]:max-w-[500px] data-[mode=dropdown]:max-h-[300px]',
+        'data-[mode=drawer]:flex-1 data-[mode=drawer]:max-w-full',
+      ),
+      input: cn(
+        'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
+      ),
+      group: cn('mb-2'),
+      groupHeading: cn('text-xs font-medium text-muted-foreground px-3 my-1'),
+      item: cn(
+        'group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm select-none',
+        'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
+      ),
+      subtrigger: cn(
+        "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-md px-3 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+        'relative',
+      ),
+    },
   },
 })

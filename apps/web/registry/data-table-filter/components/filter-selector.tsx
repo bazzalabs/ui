@@ -107,7 +107,7 @@ function __FilterSelector_v2<TData>({
         </Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner side="bottom">
-        <ActionMenu.Content
+        <ActionMenu.Surface
           menu={menu}
           slots={{
             Item: ({ node, bind, search }) => {

@@ -5,12 +5,12 @@ import { ActionMenu } from '@/registry/action-menu'
 
 export function ActionMenu_Basic() {
   return (
-    <ActionMenu.Root defaultOpen modal={false}>
+    <ActionMenu.Root modal={false}>
       <ActionMenu.Trigger asChild>
         <Button variant="secondary">Trigger</Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner align="center">
-        <ActionMenu.Content
+        <ActionMenu.Surface
           menu={{
             id: 'root',
             nodes: [

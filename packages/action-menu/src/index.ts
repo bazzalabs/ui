@@ -1,20 +1,11 @@
 /** biome-ignore-all assist/source/organizeImports: manual order */
 'use client'
 
-import { Root, Trigger, Positioner, Content } from './action-menu.js'
-
-export const ActionMenu = {
-  Root,
-  Trigger,
-  Positioner,
-  Content,
-}
-
 export type {
   ActionMenuProps,
   ActionMenuTriggerProps,
   ActionMenuPositionerProps,
-  ActionMenuContentProps,
+  ActionMenuSurfaceProps,
 } from './action-menu.js'
 
 export type {
@@ -24,6 +15,7 @@ export type {
   SubmenuNode,
   ItemNode,
   GroupNode,
+  CreateActionMenuResult,
 } from './action-menu.js'
 
 export { renderIcon, createActionMenu } from './action-menu.js'

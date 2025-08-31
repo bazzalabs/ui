@@ -76,9 +76,11 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
         </Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner>
-        <ActionMenu.Content
+        <ActionMenu.Surface
           menu={menu}
-          classNames={{ list: 'min-w-[100px]' }}
+          surfaceClassNames={{
+            list: 'min-w-[100px]',
+          }}
         />
       </ActionMenu.Positioner>
     </ActionMenu.Root>

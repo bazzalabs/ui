@@ -31,12 +31,12 @@ export function ActionMenu_Header() {
   }
 
   return (
-    <ActionMenu.Root defaultOpen modal={false}>
+    <ActionMenu.Root modal={false}>
       <ActionMenu.Trigger asChild>
         <Button variant="secondary">Trigger</Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner align="center">
-        <ActionMenu.Content
+        <ActionMenu.Surface
           slots={{
             Header: ({ menu }) => {
               return (

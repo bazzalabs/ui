@@ -33,7 +33,7 @@ import { ActionMenu } from '@/registry/action-menu'
 
 export function ActionMenu_SubmenusDeep() {
   return (
-    <ActionMenu.Root defaultOpen modal={false}>
+    <ActionMenu.Root modal={false}>
       <ActionMenu.Trigger asChild>
         <Button variant="secondary" className="group">
           <MenuIcon className="size-4 shrink-0 group-hover:text-primary group-aria-[expanded=true]:text-primary text-muted-foreground" />
@@ -41,7 +41,7 @@ export function ActionMenu_SubmenusDeep() {
         </Button>
       </ActionMenu.Trigger>
       <ActionMenu.Positioner>
-        <ActionMenu.Content
+        <ActionMenu.Surface
           menu={{
             id: 'root',
             nodes: [
