@@ -1557,6 +1557,8 @@ function Sub({ children }: { children: React.ReactNode }) {
     null,
   )
   const intentZoneActiveRef = React.useRef<boolean>(false)
+  const { setOwnerId } = useFocusOwner()
+  const mode = useDisplayMode()
 
   const value: SubContextValue = React.useMemo(
     () => ({
@@ -1581,6 +1583,43 @@ function Sub({ children }: { children: React.ReactNode }) {
       childSurfaceId,
     ],
   )
+
+  if (mode === 'drawer') {
+    // Use Vaul nested drawer for submenu layers
+    return (
+      <SubCtx.Provider value={value}>
+        <Drawer.NestedRoot
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o)
+            if (o) {
+              // Claim focus for the child surface when the nested drawer opens
+              setOwnerId(childSurfaceId)
+              // focus input/list shortly after mount
+              requestAnimationFrame(() => {
+                const content = contentRef.current
+                const { input, list } = findWidgetsWithinSurface(content!)
+                ;(input ?? list)?.focus()
+              })
+            } else {
+              // returning focus/selection to parent surface
+              setOwnerId(parentSurfaceId)
+              parentStore.setActiveId(triggerItemId)
+              requestAnimationFrame(() => {
+                const parentEl = document.querySelector<HTMLElement>(
+                  `[data-surface-id="${parentSurfaceId}"]`,
+                )
+                const { input, list } = findWidgetsWithinSurface(parentEl)
+                ;(input ?? list)?.focus()
+              })
+            }
+          }}
+        >
+          {children}
+        </Drawer.NestedRoot>
+      </SubCtx.Provider>
+    )
+  }
 
   return (
     <SubCtx.Provider value={value}>
@@ -1613,6 +1652,8 @@ function SubTriggerRow<T>({
   const ref = React.useRef<HTMLElement | null>(null)
   const surfaceId = useSurfaceId()
   const { ownerId } = useFocusOwner()
+  const mode = useDisplayMode()
+
   const rowId = makeRowId(node.id, search, surfaceId)
 
   React.useEffect(() => {
@@ -1660,101 +1701,119 @@ function SubTriggerRow<T>({
   const focused = activeId === rowId
   const menuFocused = sub.childSurfaceId === ownerId
 
-  const baseRowProps = React.useMemo(
-    () =>
-      ({
-        id: rowId,
-        ref: composeRefs(ref as any, sub.triggerRef as any),
-        role: 'option' as const,
-        tabIndex: -1,
-        'data-action-menu-item-id': rowId,
-        'data-focused': focused,
-        'data-menu-state': sub.open ? 'open' : 'closed',
-        'data-menu-focused': menuFocused,
-        'aria-selected': focused,
-        'aria-disabled': false,
-        'data-subtrigger': 'true',
-        className: classNames?.subtrigger,
-        onPointerDown: (e: React.PointerEvent) => {
-          if (e.button === 0 && e.ctrlKey === false) {
-            e.preventDefault()
-            sub.pendingOpenModalityRef.current = 'pointer'
-            sub.onOpenToggle()
+  const baseRowProps = React.useMemo(() => {
+    const common = {
+      id: rowId,
+      ref: composeRefs(ref as any, sub.triggerRef as any),
+      role: 'option' as const,
+      tabIndex: -1,
+      'data-action-menu-item-id': rowId,
+      'data-focused': focused,
+      'data-menu-state': sub.open ? 'open' : 'closed',
+      'data-menu-focused': menuFocused,
+      'aria-selected': focused,
+      'aria-disabled': false,
+      'data-subtrigger': 'true',
+      'data-mode': mode,
+      className: classNames?.subtrigger,
+    } as const
+
+    if (mode === 'drawer') {
+      // Drawer mode: click (or Enter) opens nested drawer via Drawer.Trigger
+      return {
+        ...common,
+        onPointerDown: undefined, // let Drawer.Trigger handle it
+        onPointerEnter: undefined,
+        onPointerMove: undefined,
+        onPointerLeave: undefined,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          // Keep keyboard navigation; Enter will bubble to Drawer.Trigger
+          if (
+            e.key === 'ArrowUp' ||
+            e.key === 'ArrowDown' ||
+            e.key === 'Home' ||
+            e.key === 'End'
+          ) {
+            // let list/input handlers deal with it via useNavKeydown
           }
         },
-        onPointerEnter: () => {
-          if (
-            aimGuardActiveRef.current &&
-            guardedTriggerIdRef.current !== rowId
-          )
-            return
-          if (!focused) store.setActiveId(rowId, 'pointer')
+      } as const
+    }
+
+    // Dropdown (Popper) mode: keep your original hover + aim-guard behavior
+    return {
+      ...common,
+      onPointerDown: (e: React.PointerEvent) => {
+        if (e.button === 0 && e.ctrlKey === false) {
+          e.preventDefault()
+          sub.pendingOpenModalityRef.current = 'pointer'
+          sub.onOpenToggle()
+        }
+      },
+      onPointerEnter: () => {
+        if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+          return
+        if (!focused) store.setActiveId(rowId, 'pointer')
+        clearAimGuard()
+        if (!sub.open) sub.onOpenChange(true)
+      },
+      onPointerMove: () => {
+        if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+          return
+        if (!focused) store.setActiveId(rowId, 'pointer')
+        if (!sub.open) sub.onOpenChange(true)
+      },
+      onPointerLeave: (e: React.PointerEvent) => {
+        if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+          return
+        const contentRect = sub.contentRef.current?.getBoundingClientRect()
+        if (!contentRect) {
           clearAimGuard()
-          if (!sub.open) sub.onOpenChange(true)
-        },
-        onPointerMove: () => {
-          if (
-            aimGuardActiveRef.current &&
-            guardedTriggerIdRef.current !== rowId
-          )
-            return
-          if (!focused) store.setActiveId(rowId, 'pointer')
-          if (!sub.open) sub.onOpenChange(true)
-        },
-        onPointerLeave: (e: React.PointerEvent) => {
-          if (
-            aimGuardActiveRef.current &&
-            guardedTriggerIdRef.current !== rowId
-          )
-            return
-          const contentRect = sub.contentRef.current?.getBoundingClientRect()
-          if (!contentRect) {
-            clearAimGuard()
-            return
-          }
-          const tRect =
-            (
-              sub.triggerRef.current as HTMLElement | null
-            )?.getBoundingClientRect() ?? null
-          const anchor = resolveAnchorSide(contentRect, tRect, e.clientX)
-          const heading = getSmoothedHeading(
-            mouseTrailRef.current,
-            e.clientX,
-            e.clientY,
-            anchor,
-            tRect,
-            contentRect,
-          )
-          const hit = willHitSubmenu(
-            e.clientX,
-            e.clientY,
-            heading,
-            contentRect,
-            anchor,
-            tRect,
-          )
-          if (hit) {
-            activateAimGuard(rowId, 600)
-            store.setActiveId(rowId, 'pointer')
-            sub.onOpenChange(true)
-          } else {
-            clearAimGuard()
-          }
-        },
-      }) as const,
-    [
-      rowId,
-      focused,
-      menuFocused,
-      classNames?.subtrigger,
-      store,
-      sub,
-      activateAimGuard,
-      clearAimGuard,
-      aimGuardActiveRef,
-      guardedTriggerIdRef,
-    ],
-  )
+          return
+        }
+        const tRect =
+          (
+            sub.triggerRef.current as HTMLElement | null
+          )?.getBoundingClientRect() ?? null
+        const anchor = resolveAnchorSide(contentRect, tRect, e.clientX)
+        const heading = getSmoothedHeading(
+          mouseTrailRef.current,
+          e.clientX,
+          e.clientY,
+          anchor,
+          tRect,
+          contentRect,
+        )
+        const hit = willHitSubmenu(
+          e.clientX,
+          e.clientY,
+          heading,
+          contentRect,
+          anchor,
+          tRect,
+        )
+        if (hit) {
+          activateAimGuard(rowId, 600)
+          store.setActiveId(rowId, 'pointer')
+          sub.onOpenChange(true)
+        } else {
+          clearAimGuard()
+        }
+      },
+    } as const
+  }, [
+    mode,
+    rowId,
+    focused,
+    menuFocused,
+    classNames?.subtrigger,
+    store,
+    sub,
+    activateAimGuard,
+    clearAimGuard,
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+  ])
 
   const bind: RowBindAPI = {
     focused,
@@ -1772,7 +1831,11 @@ function SubTriggerRow<T>({
     </div>
   )
 
-  return <Popper.Anchor asChild>{content as any}</Popper.Anchor>
+  return mode === 'drawer' ? (
+    <Drawer.Trigger asChild>{content as any}</Drawer.Trigger>
+  ) : (
+    <Popper.Anchor asChild>{content as any}</Popper.Anchor>
+  )
 }
 
 function SubmenuContent<T>({
@@ -1787,11 +1850,15 @@ function SubmenuContent<T>({
   classNames?: Partial<SurfaceClassNames>
 }) {
   const sub = useSubCtx()!
+  const mode = useDisplayMode()
+  const root = useRootCtx()
+
   const suppressHover = sub.pendingOpenModalityRef.current === 'keyboard'
   React.useEffect(() => {
     sub.pendingOpenModalityRef.current = null
   }, [sub])
-  const content = (
+
+  const inner = (
     <SurfaceBase<T>
       menu={menu}
       slots={slots as any}
@@ -1801,7 +1868,40 @@ function SubmenuContent<T>({
       suppressHoverOpenOnMount={suppressHover}
     />
   )
-  return <Positioner side="right">{content as any}</Positioner>
+
+  if (mode === 'drawer') {
+    return (
+      <Drawer.Portal>
+        <Drawer.Overlay
+          data-slot="action-menu-overlay"
+          className={root.shellClassNames?.overlay}
+          {...root.shellSlotProps?.drawerOverlay}
+        />
+        <Drawer.Content
+          data-slot="action-menu-drawer"
+          ref={sub.contentRef as any}
+          className={cn(
+            'flex flex-col min-h-0 overflow-hidden', // ensure internal list scrolls, footer is fixed
+            root.shellClassNames?.drawerContent,
+          )}
+          {...root.shellSlotProps?.drawerContent}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+          }}
+        >
+          <Drawer.Title className="sr-only">
+            {menu.title ?? 'Action Menu'}
+          </Drawer.Title>
+          {inner as any}
+        </Drawer.Content>
+      </Drawer.Portal>
+    )
+  }
+
+  return <Positioner side="right">{inner as any}</Positioner>
 }
 
 /* ================================================================================================
@@ -1929,6 +2029,7 @@ function ItemRow<T>({
 }) {
   const ref = React.useRef<HTMLElement | null>(null)
   const surfaceId = useSurfaceId()
+  const mode = useDisplayMode()
   const rowId = makeRowId(node.id, search, surfaceId)
   const onSelect = node.onSelect ?? defaults?.item?.onSelect
 
@@ -1966,6 +2067,7 @@ function ItemRow<T>({
         'data-focused': focused,
         'aria-selected': focused,
         'aria-disabled': false,
+        'data-mode': mode,
         className: classNames?.item,
         onPointerDown: (e: React.PointerEvent) => {
           if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
@@ -2018,6 +2120,7 @@ function InputView<T>({
 }) {
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
   const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)
+  const mode = useDisplayMode()
   const onKeyDown = useNavKeydown('input')
   const baseInputProps = {
     ref: store.inputRef as any,
@@ -2028,6 +2131,7 @@ function InputView<T>({
     'aria-expanded': true,
     'aria-controls': listId,
     'aria-activedescendant': activeId,
+    'data-mode': mode,
     className: classNames?.input,
     placeholder: inputPlaceholder ?? 'Filter...',
     value,
@@ -2384,6 +2488,12 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
           data-slot="action-menu-drawer"
           className={root.shellClassNames?.drawerContent}
           {...root.shellSlotProps?.drawerContent}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+          }}
         >
           {/* Optional accessible title; hidden visually */}
           <Drawer.Title className="sr-only">Action Menu</Drawer.Title>
