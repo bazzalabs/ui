@@ -544,3 +544,24 @@
     var(--grid-size) var(--grid-size);
   background-repeat: repeat;
 }
+
+/* This utility extends the hover/click area on all sides */
+@utility hover-expand-* {
+  position: relative;
+
+  --hover-radius: --spacing(--value(integer) * -1);
+  --hover-radius: calc(--value([*]) * -1);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: var(--hover-radius);
+    left: var(--hover-radius);
+    right: var(--hover-radius);
+    bottom: var(--hover-radius);
+    /* By not setting background or borders, this pseudo-element is invisible,
+       but because it's part of the element's subtree, hovering over it
+       triggers the parent's :hover state. */
+    pointer-events: auto;
+  }
+}

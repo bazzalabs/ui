@@ -71,7 +71,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={item.url === pathname}
-                    className="font-medium text-muted-foreground"
+                    className="font-medium text-muted-foreground hover-expand-[2px]"
                   >
                     <a href={item.url}>
                       <span>{item.title}</span>
@@ -90,7 +90,7 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={'/docs/action-menu' === pathname}
-                  className="font-medium text-muted-foreground"
+                  className="font-medium text-muted-foreground hover-expand-[2px]"
                 >
                   <a href={'/docs/action-menu'}>
                     <span>Action Menu</span>
@@ -101,7 +101,7 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={'/docs/data-table-filter' === pathname}
-                  className="font-medium text-muted-foreground"
+                  className="font-medium text-muted-foreground hover-expand-[2px]"
                 >
                   <a href={'/docs/data-table-filter'}>
                     <span>Data Table Filter</span>
