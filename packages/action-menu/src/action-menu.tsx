@@ -2069,7 +2069,9 @@ function ItemRow<T>({
         'aria-disabled': false,
         'data-mode': mode,
         className: classNames?.item,
-        onPointerDown: (e: React.PointerEvent) => {},
+        onPointerDown: (e: React.PointerEvent) => {
+          e.preventDefault()
+        },
         onMouseMove: () => {
           if (aimGuardActiveRef.current) return
           if (!focused) store.setActiveId(rowId, 'pointer')

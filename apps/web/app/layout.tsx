@@ -1,15 +1,16 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import OneDollarStatsScript from '@/app/stats'
-import ThemeColorUpdater from '@/components/theme-color-updater'
-import { META_THEME_COLORS } from '@/lib/config'
-import { env } from '@/lib/env'
-import { berkeleyMono, inter } from '@/lib/fonts'
-import { ThemeProvider } from '@/providers/theme-provider'
 import type { Viewport } from 'next'
 import Head from 'next/head'
 import Script from 'next/script'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import OneDollarStatsScript from '@/app/stats'
+import ThemeColorUpdater from '@/components/theme-color-updater'
+import { Toaster } from '@/components/ui/sonner'
+import { META_THEME_COLORS } from '@/lib/config'
+import { env } from '@/lib/env'
+import { berkeleyMono, inter } from '@/lib/fonts'
+import { ThemeProvider } from '@/providers/theme-provider'
 
 const title = 'bazza/ui — Hand-crafted, modern React components'
 const description =
@@ -110,6 +111,7 @@ export default function RootLayout({
               </div>
             </div>
           </NuqsAdapter>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
