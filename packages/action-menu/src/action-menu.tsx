@@ -2344,11 +2344,9 @@ function ListView<T>({
       : slots.Empty({ query: '' })
   } else {
     children =
-      results.length === 0 ? (
-        slots.Empty({ query: q })
-      ) : (
-        <>
-          {results.map((res) => {
+      results.length === 0
+        ? slots.Empty({ query: q })
+        : results.map((res) => {
             const searchCtx: SearchContext = {
               query: q,
               isDeep: res.breadcrumbs.length > 0,
@@ -2364,6 +2362,7 @@ function ListView<T>({
                   store={store}
                   search={searchCtx}
                   classNames={classNames}
+                  defaults={defaults}
                 />
               )
             }
@@ -2383,9 +2382,7 @@ function ListView<T>({
                 />
               </Sub>
             )
-          })}
-        </>
-      )
+          })
   }
 
   const el = slots.List({ children, bind })
