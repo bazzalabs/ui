@@ -2069,9 +2069,7 @@ function ItemRow<T>({
         'aria-disabled': false,
         'data-mode': mode,
         className: classNames?.item,
-        onPointerDown: (e: React.PointerEvent) => {
-          if (e.button === 0 && e.ctrlKey === false) e.preventDefault()
-        },
+        onPointerDown: (e: React.PointerEvent) => {},
         onMouseMove: () => {
           if (aimGuardActiveRef.current) return
           if (!focused) store.setActiveId(rowId, 'pointer')
@@ -2396,9 +2394,7 @@ function ListView<T>({
       <div
         {...(bind.getListProps(
           mergeProps(slotProps?.list as any, {
-            onPointerDown: (e: React.PointerEvent) => {
-              e.preventDefault()
-            },
+            onPointerDown: (e: React.PointerEvent) => {},
           }),
         ) as any)}
       >
