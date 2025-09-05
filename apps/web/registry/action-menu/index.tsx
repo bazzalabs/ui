@@ -39,6 +39,11 @@ export const LabelWithBreadcrumbs = ({
 )
 
 export const ActionMenu = createActionMenu<any>({
+  defaults: {
+    content: {
+      onCloseAutoClear: 300,
+    },
+  },
   shell: {
     classNames: {
       overlay: cn(

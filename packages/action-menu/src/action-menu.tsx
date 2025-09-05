@@ -1,30 +1,3 @@
-/**
- * Action Menu (Refactored, single-file edition)
- *
- * Goals of this refactor:
- *  - Separate “Shell” concerns (mounting, portal, overlay, dismissal) from “Surface” concerns (search, roving focus, items/groups/submenus, keyboard nav).
- *  - Keep the same feature set (drawer + dropdown, nested submenus, aim guard, align-to-first-row, vim bindings).
- *  - Allow passing drawer-related classNames and slotProps **via createActionMenu** (new: `shell` defaults).
- *  - Collapse to a single file as requested, but keep clear sections and comments.
- *
- * Breaking API changes (summarized):
- *  - `ActionMenu.Root` → `ActionMenu` (entry component).
- *  - `ActionMenu.Content` → `ActionMenu.Surface` (the actual menu “surface”, formerly ContentBase).
- *  - `classNames` & `slotProps` split:
- *      - Shell-level (overlay/drawer): `shellClassNames`, `shellSlotProps`
- *      - Surface-level (content/list/item/etc.): `surfaceClassNames`, `surfaceSlotProps`
- *  - `ActionMenu.Positioner` is **dropdown-only for the root surface**. In drawer mode it’s a pass-through for the root surface.
- *    Submenus **always** use Popper (even in drawer mode) for correct in-drawer positioning.
- *  - `createActionMenu` accepts new structured defaults:
- *      createActionMenu<T>({
- *        slots,
- *        surfaceSlotProps,
- *        surfaceClassNames,
- *        defaults: { content: { vimBindings, dir } },
- *        shell: { classNames, slotProps }
- *      })
- */
-
 /** biome-ignore-all lint/a11y/useSemanticElements: This library renders ARIA-only primitives intentionally. */
 
 import { composeEventHandlers } from '@radix-ui/primitive'
@@ -1195,7 +1168,7 @@ export interface ActionMenuSurfaceProps<T = unknown>
   defaultValue?: string
   onValueChange?: (value: string) => void
   onOpenAutoFocus?: boolean
-  onCloseAutoClear?: boolean
+  onCloseAutoClear?: boolean | number
   /** @internal Forced surface id; used by submenus. */
   surfaceIdProp?: string
   /** @internal Suppress hover-open until first pointer move; used by submenus opened via keyboard. */
@@ -1253,9 +1226,33 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
   })
 
   // Clear input on menu close
+  const clearTimeoutRef = React.useRef<number | null>(null)
   React.useEffect(() => {
-    if (!root.open && onCloseAutoClear) setValue('')
-  }, [root.open])
+    if (clearTimeoutRef.current) {
+      window.clearTimeout(clearTimeoutRef.current)
+      clearTimeoutRef.current = null
+    }
+    if (!root.open && onCloseAutoClear) {
+      if (typeof onCloseAutoClear === 'number') {
+        console.log('clearing after', onCloseAutoClear, 'ms')
+        clearTimeoutRef.current = window.setTimeout(() => {
+          console.log('clearing now!')
+          setValue('')
+          clearTimeoutRef.current = null
+        }, onCloseAutoClear)
+      } else {
+        setValue('')
+      }
+    }
+  }, [root.open, onCloseAutoClear])
+
+  React.useEffect(() => {
+    return () => {
+      if (clearTimeoutRef.current) {
+        window.clearTimeout(clearTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const slots = React.useMemo<Required<MenuSlots<T>>>(
     () => ({
@@ -2677,7 +2674,10 @@ export type CreateActionMenuResult<T = unknown> = {
 export function createActionMenu<T>(opts?: {
   /** Default content-level options such as `vimBindings` and `dir`. */
   defaults?: {
-    content?: Pick<ActionMenuSurfaceProps<T>, 'vimBindings' | 'dir'>
+    content?: Pick<
+      ActionMenuSurfaceProps<T>,
+      'vimBindings' | 'dir' | 'onCloseAutoClear'
+    >
   }
   surface?: {
     slots?: Partial<MenuSlots<T>>
@@ -2736,12 +2736,15 @@ export function createActionMenu<T>(opts?: {
 
     const vimBindings = rest.vimBindings ?? baseDefaults.vimBindings ?? true
     const dir = (rest.dir ?? baseDefaults.dir) as Direction | undefined
+    const onCloseAutoClear =
+      rest.onCloseAutoClear ?? baseDefaults.onCloseAutoClear ?? true
 
     return (
       <SurfaceBase<T>
         {...(rest as any)}
         vimBindings={vimBindings}
         dir={dir}
+        onCloseAutoClear={onCloseAutoClear}
         slots={mergedSlots}
         surfaceSlotProps={mergedSlotProps}
         surfaceClassNames={mergedClassNames}
