@@ -63,6 +63,7 @@ export type BaseNode<K extends MenuNodeKind> = {
   id: string
   kind: K
   hidden?: boolean
+  menu?: MenuData<any> | SubmenuNode<any>
 }
 
 /** Properties that participate in text search. */
@@ -89,7 +90,10 @@ export type ItemNode<T = unknown> = BaseNode<'item'> &
   Renderable & {
     icon?: Iconish
     data?: T
-    onSelect?: ({ node }: { node: Omit<ItemNode<T>, 'onSelect'> }) => void
+    onSelect?: (args: {
+      node: Omit<ItemNode<T>, 'onSelect'>
+      search?: SearchContext
+    }) => void
     closeOnSelect?: boolean
   }
 
@@ -1924,11 +1928,14 @@ function renderMenu<T>(
   defaults: Partial<MenuNodeDefaults<T>> | undefined,
   classNames: Partial<SurfaceClassNames> | undefined,
   store: SurfaceStore,
+  search?: SearchContext,
 ) {
   return (
     <React.Fragment>
       {(menu.nodes ?? []).map((node) => {
         if (node.hidden) return null
+        // Set the menu reference for the node
+        node.menu = menu
         if (node.kind === 'item') {
           return (
             <ItemRow
@@ -1938,6 +1945,7 @@ function renderMenu<T>(
               defaults={defaults}
               classNames={classNames}
               store={store}
+              search={search}
             />
           )
         }
@@ -1960,6 +1968,8 @@ function renderMenu<T>(
               ) : null}
               {node.nodes.map((child) => {
                 if (child.hidden) return null
+                // Set the menu reference for the child node
+                child.menu = menu
                 if (child.kind === 'item') {
                   return (
                     <ItemRow
@@ -1969,6 +1979,7 @@ function renderMenu<T>(
                       defaults={defaults}
                       classNames={classNames}
                       store={store}
+                      search={search}
                     />
                   )
                 }
@@ -1978,11 +1989,13 @@ function renderMenu<T>(
                       node={child as SubmenuNode<any>}
                       slot={slots.SubmenuTrigger as any}
                       classNames={classNames}
+                      search={search}
                     />
                     <SubmenuContent
                       menu={{ ...(child as SubmenuNode<any>) }}
                       slots={slots as any}
                       classNames={classNames}
+                      defaults={defaults as any}
                     />
                   </Sub>
                 )
@@ -1995,13 +2008,14 @@ function renderMenu<T>(
           return (
             <Sub key={node.id}>
               <SubTriggerRow
-                node={node as SubmenuNode<any>}
-                slot={slots.SubmenuTrigger as any}
+                node={node}
+                slot={slots.SubmenuTrigger}
                 classNames={classNames}
+                search={search}
               />
               <SubmenuContent
                 menu={childMenu}
-                slots={slots as any}
+                slots={slots}
                 classNames={classNames}
                 defaults={defaults}
               />
@@ -2039,11 +2053,11 @@ function ItemRow<T>({
     node.closeOnSelect ?? defaults?.item?.closeOnSelect ?? false
 
   const handleSelect = React.useCallback(() => {
-    onSelect?.({ node })
+    onSelect?.({ node, search })
     if (closeOnSelect) {
       root.onOpenChange(false)
     }
-  }, [onSelect, node, closeOnSelect, root])
+  }, [onSelect, node, search, closeOnSelect, root])
 
   React.useEffect(() => {
     const el = ref.current
@@ -2270,6 +2284,7 @@ function ListView<T>({
       q: string,
       bc: string[] = [],
       bcIds: string[] = [],
+      currentMenu: MenuData<T> = menu,
     ): SR[] => {
       const out: SR[] = []
       for (const n of nodes ?? []) {
@@ -2282,6 +2297,7 @@ function ListView<T>({
               node: {
                 ...n,
                 id: bcIds.at(-1) ? `${bcIds.at(-1)}-${n.id}` : n.id,
+                menu: currentMenu,
               } as ItemNode<T>,
               breadcrumbs: bc,
               breadcrumbIds: bcIds,
@@ -2295,14 +2311,20 @@ function ListView<T>({
           if (score > 0)
             out.push({
               type: 'submenu',
-              node: sub,
+              node: { ...sub, menu: currentMenu },
               breadcrumbs: bc,
               breadcrumbIds: bcIds,
               score,
             })
           const title = sub.title ?? sub.label ?? sub.id ?? ''
           out.push(
-            ...collect(sub.nodes as any, q, [...bc, title], [...bcIds, sub.id]),
+            ...collect(
+              sub.nodes as any,
+              q,
+              [...bc, title],
+              [...bcIds, sub.id],
+              { ...sub } as MenuData<any>,
+            ),
           )
         }
       }
@@ -2315,7 +2337,7 @@ function ListView<T>({
     () =>
       q
         ? pipe(
-            collect(menu.nodes, q),
+            collect(menu.nodes, q, [], [], menu),
             sortBy([prop('score'), 'desc']),
             partition((v) => v.type === 'submenu'),
             flat(),
@@ -2354,7 +2376,7 @@ function ListView<T>({
   if (q.length === 0) {
     const hasAnyNodes = (menu.nodes ?? []).some((n) => !n.hidden)
     children = hasAnyNodes
-      ? renderMenu<T>(menu, slots, defaults, classNames, store)
+      ? renderMenu<T>(menu, slots, defaults, classNames, store, undefined)
       : slots.Empty({ query: '' })
   } else {
     children =
@@ -2406,7 +2428,7 @@ function ListView<T>({
       <div
         {...(bind.getListProps(
           mergeProps(slotProps?.list as any, {
-            onPointerDown: (e: React.PointerEvent) => {},
+            onPointerDown: () => {},
           }),
         ) as any)}
       >

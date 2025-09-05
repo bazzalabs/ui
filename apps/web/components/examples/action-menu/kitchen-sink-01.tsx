@@ -1,6 +1,11 @@
 'use client'
 
-import type { MenuData, SubmenuNode } from '@bazza-ui/action-menu'
+import {
+  type MenuData,
+  renderIcon,
+  type SubmenuNode,
+} from '@bazza-ui/action-menu'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 import {
@@ -145,5 +150,15 @@ const projectPropertiesMenu: SubmenuNode = {
 
 export const menuData: MenuData = {
   id: 'issue-properties',
+  defaults: {
+    item: {
+      closeOnSelect: true,
+      onSelect: ({ node }) => {
+        toast(`Changed ${node.menu?.title?.toLowerCase()} to ${node.label}.`, {
+          icon: renderIcon(node.icon),
+        })
+      },
+    },
+  },
   nodes: [statusMenu, projectPropertiesMenu],
 }
