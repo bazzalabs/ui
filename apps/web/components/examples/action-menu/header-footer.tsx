@@ -23,7 +23,7 @@ function getMenuItems(menu: MenuData<any>): ItemNode[] {
   return [...items, ...groupItems] as ItemNode[]
 }
 
-export function ActionMenu_Header() {
+export function ActionMenu_HeaderFooter() {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
 
   function deselectAll() {

@@ -16,8 +16,9 @@ export function ActionMenu_Basic() {
             id: 'root',
             defaults: {
               item: {
+                closeOnSelect: true,
                 onSelect: ({ node }) => {
-                  toast(`Selected: ${node.label}`)
+                  toast(`${node.icon} ${node.label}`)
                 },
               },
             },

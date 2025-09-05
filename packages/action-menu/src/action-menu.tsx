@@ -90,6 +90,7 @@ export type ItemNode<T = unknown> = BaseNode<'item'> &
     icon?: Iconish
     data?: T
     onSelect?: ({ node }: { node: Omit<ItemNode<T>, 'onSelect'> }) => void
+    closeOnSelect?: boolean
   }
 
 /** A group on the current surface; children share the same item payload `T`. */
@@ -147,7 +148,7 @@ export type SearchContext = {
 
 /** Defaulted parts of nodes for convenience. */
 export type MenuNodeDefaults<T = unknown> = {
-  item?: Pick<ItemNode<T>, 'onSelect'>
+  item?: Pick<ItemNode<T>, 'onSelect' | 'closeOnSelect'>
 }
 
 /* ================================================================================================
@@ -1456,7 +1457,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
       menu={menu}
       slots={slots}
       slotProps={slotProps}
-      defaults={menu.defaults}
+      defaults={defaults}
       query={value}
       classNames={mergedClassNames}
       inputActive={inputActive}
@@ -2002,6 +2003,7 @@ function renderMenu<T>(
                 menu={childMenu}
                 slots={slots as any}
                 classNames={classNames}
+                defaults={defaults}
               />
             </Sub>
           )
@@ -2031,17 +2033,27 @@ function ItemRow<T>({
   const surfaceId = useSurfaceId()
   const mode = useDisplayMode()
   const rowId = makeRowId(node.id, search, surfaceId)
+  const root = useRootCtx()
   const onSelect = node.onSelect ?? defaults?.item?.onSelect
+  const closeOnSelect =
+    node.closeOnSelect ?? defaults?.item?.closeOnSelect ?? false
+
+  const handleSelect = React.useCallback(() => {
+    onSelect?.({ node })
+    if (closeOnSelect) {
+      root.onOpenChange(false)
+    }
+  }, [onSelect, node, closeOnSelect, root])
 
   React.useEffect(() => {
     const el = ref.current
     if (!el) return
     const onSelectFromKey: EventListener = () => {
-      onSelect?.({ node })
+      handleSelect()
     }
     el.addEventListener(SELECT_ITEM_EVENT, onSelectFromKey)
     return () => el.removeEventListener(SELECT_ITEM_EVENT, onSelectFromKey)
-  }, [onSelect])
+  }, [handleSelect])
 
   React.useEffect(() => {
     store.registerRow(rowId, {
@@ -2078,10 +2090,10 @@ function ItemRow<T>({
         },
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
-          onSelect?.({ node })
+          handleSelect()
         },
       }) as const,
-    [rowId, onSelect, focused, store, classNames?.item, aimGuardActiveRef],
+    [rowId, handleSelect, focused, store, classNames?.item, aimGuardActiveRef],
   )
 
   const bind: RowBindAPI = {
@@ -2380,6 +2392,7 @@ function ListView<T>({
                 <SubmenuContent
                   menu={childMenu}
                   slots={slots as any}
+                  defaults={defaults}
                   classNames={classNames}
                 />
               </Sub>

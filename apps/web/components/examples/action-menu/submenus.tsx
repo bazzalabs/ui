@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
@@ -13,6 +14,14 @@ export function ActionMenu_Submenus() {
         <ActionMenu.Surface
           menu={{
             id: 'root',
+            defaults: {
+              item: {
+                closeOnSelect: true,
+                onSelect: ({ node }) => {
+                  toast(`${node.icon} ${node.label}`)
+                },
+              },
+            },
             nodes: [
               {
                 kind: 'submenu',
