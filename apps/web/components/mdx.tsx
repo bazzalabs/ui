@@ -215,7 +215,7 @@ export const components: Readonly<MDXComponents> = {
         )}
         {...props}
       >
-        <div className={cn('h-full w-full z-[10] relative', innerClassName)}>
+        <div className={cn('h-fit w-full z-[10] relative', innerClassName)}>
           {children}
         </div>
         <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
