@@ -1,8 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import type { Viewport } from 'next'
-import Head from 'next/head'
-import Script from 'next/script'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import OneDollarStatsScript from '@/app/stats'
 import ThemeColorUpdater from '@/components/theme-color-updater'

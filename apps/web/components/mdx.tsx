@@ -56,7 +56,10 @@ export const components: Readonly<MDXComponents> = {
   h6: (props) => <h6 {...props} />,
   p: (props) => <p className="mb-4 last:mb-0 leading-7" {...props} />,
   a: (props) => (
-    <a className="underline decoration-[0.5px] underline-offset-2" {...props} />
+    <a
+      className="underline decoration-[0.5px] underline-offset-2 decoration-inherit hover:decoration-primary hover:decoration-[1px] hover:underline-offset-[2.25px]"
+      {...props}
+    />
   ),
   u: (props) => <u className="underline underline-offset-2" {...props} />,
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
@@ -199,27 +202,37 @@ export const components: Readonly<MDXComponents> = {
   // @ts-expect-error
   Examples,
   Frame: ({
+    className,
     containerClassName,
     innerClassName,
     children,
+    caption,
     ...props
-  }: Omit<React.ComponentProps<'div'>, 'className'> & {
+  }: React.ComponentProps<'div'> & {
     containerClassName?: string
     innerClassName?: string
+    caption?: React.ReactNode
   }) => {
     return (
-      <div
-        className={cn(
-          'rounded-2xl border p-8 2xl:-mx-16 h-fit relative overflow-clip',
-          containerClassName,
-        )}
-        {...props}
-      >
-        <div className={cn('h-fit w-full z-[10] relative', innerClassName)}>
-          {children}
+      <div className={cn('h-fit flex flex-col gap-4 w-full', className)}>
+        <div
+          className={cn(
+            'rounded-2xl border p-8 2xl:-mx-16 h-fit relative overflow-clip',
+            containerClassName,
+          )}
+          {...props}
+        >
+          <div className={cn('h-fit w-full z-[10] relative', innerClassName)}>
+            {children}
+          </div>
+          <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
+          <div className="absolute h-full w-full  bg-white dark:bg-black top-0 left-0 z-[1]" />
         </div>
-        <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
-        <div className="absolute h-full w-full  bg-white dark:bg-black top-0 left-0 z-[1]" />
+        {caption && (
+          <div className="text-sm text-muted-foreground w-full text-center">
+            {caption}
+          </div>
+        )}
       </div>
     )
   },

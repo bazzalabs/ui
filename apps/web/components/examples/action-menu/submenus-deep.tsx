@@ -28,6 +28,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
@@ -43,17 +44,28 @@ export function ActionMenu_SubmenusDeep() {
       <ActionMenu.Positioner>
         <ActionMenu.Surface
           menu={{
-            id: 'root',
+            id: 'menu',
+            title: 'Menu',
+            defaults: {
+              item: {
+                closeOnSelect: true,
+                onSelect: ({ node }) => {
+                  toast(`Selected ${node.label} from ${node.menu?.title}.`)
+                },
+              },
+            },
             nodes: [
               {
                 kind: 'submenu',
                 id: 'file',
                 label: 'File',
+                title: 'File',
                 nodes: [
                   {
                     kind: 'submenu',
                     id: 'new',
                     label: 'New',
+                    title: 'New',
                     nodes: [
                       {
                         kind: 'item',
@@ -79,6 +91,7 @@ export function ActionMenu_SubmenusDeep() {
                     kind: 'submenu',
                     id: 'export',
                     label: 'Export',
+                    title: 'Export',
                     nodes: [
                       {
                         kind: 'item',
@@ -96,6 +109,7 @@ export function ActionMenu_SubmenusDeep() {
                         kind: 'submenu',
                         id: 'export-image',
                         label: 'Image',
+                        title: 'Image',
                         nodes: [
                           {
                             kind: 'item',
@@ -113,6 +127,7 @@ export function ActionMenu_SubmenusDeep() {
                             kind: 'submenu',
                             id: 'export-vector',
                             label: 'Vector',
+                            title: 'Vector',
                             nodes: [
                               {
                                 kind: 'item',
@@ -139,6 +154,7 @@ export function ActionMenu_SubmenusDeep() {
                 kind: 'submenu',
                 id: 'edit',
                 label: 'Edit',
+                title: 'Edit',
                 nodes: [
                   { kind: 'item', id: 'undo', label: 'Undo', icon: Undo },
                   { kind: 'item', id: 'redo', label: 'Redo', icon: Redo },
@@ -146,6 +162,7 @@ export function ActionMenu_SubmenusDeep() {
                     kind: 'submenu',
                     id: 'find-replace',
                     label: 'Find & Replace',
+                    title: 'Find & Replace',
                     nodes: [
                       { kind: 'item', id: 'find', label: 'Find', icon: Search },
                       {
@@ -162,6 +179,7 @@ export function ActionMenu_SubmenusDeep() {
                 kind: 'submenu',
                 id: 'view',
                 label: 'View',
+                title: 'View',
                 nodes: [
                   {
                     kind: 'item',
@@ -179,6 +197,7 @@ export function ActionMenu_SubmenusDeep() {
                     kind: 'submenu',
                     id: 'themes',
                     label: 'Themes',
+                    title: 'Themes',
                     nodes: [
                       {
                         kind: 'item',
@@ -196,6 +215,7 @@ export function ActionMenu_SubmenusDeep() {
                         kind: 'submenu',
                         id: 'custom-theme',
                         label: 'Custom',
+                        title: 'Custom',
                         nodes: [
                           {
                             kind: 'item',
@@ -219,6 +239,7 @@ export function ActionMenu_SubmenusDeep() {
                 kind: 'submenu',
                 id: 'tools',
                 label: 'Tools',
+                title: 'Tools',
                 nodes: [
                   {
                     kind: 'item',
@@ -230,6 +251,7 @@ export function ActionMenu_SubmenusDeep() {
                     kind: 'submenu',
                     id: 'translate',
                     label: 'Translate',
+                    title: 'Translate',
                     nodes: [
                       {
                         kind: 'item',
@@ -257,6 +279,7 @@ export function ActionMenu_SubmenusDeep() {
                 kind: 'submenu',
                 id: 'help',
                 label: 'Help',
+                title: 'Help',
                 nodes: [
                   {
                     kind: 'item',
@@ -274,6 +297,7 @@ export function ActionMenu_SubmenusDeep() {
                     kind: 'submenu',
                     id: 'feedback',
                     label: 'Feedback',
+                    title: 'Feedback',
                     nodes: [
                       {
                         kind: 'item',
