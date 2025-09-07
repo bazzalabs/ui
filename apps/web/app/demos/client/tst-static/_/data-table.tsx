@@ -17,7 +17,7 @@ export function DataTable({ table }: { table: TanStackTable<any> }) {
 
   return (
     <>
-      <div className="rounded-md border bg-site-background overflow-scroll">
+      <div className="rounded-md border bg-site-background">
         <Table className="rounded-md">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
