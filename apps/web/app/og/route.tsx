@@ -42,12 +42,12 @@ export async function GET(request: Request) {
     <div style={{ width: 1200, height: 628 }} tw="bg-neutral-900 flex flex-col">
       <div tw="flex-1 flex flex-col m-12 border border-neutral-50 rounded-2xl relative justify-center">
         <div tw="flex flex-col m-16">
-          <span
+          <p
             tw="text-6xl text-neutral-50 flex items-center"
             style={{ fontFamily: 'Inter Display', textWrap: 'balance' }}
           >
             {title}
-          </span>
+          </p>
           <span
             tw="mt-8 text-4xl text-neutral-200 leading-[1.3]"
             style={{ fontFamily: 'Inter' }}
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
           </span>
         </div>
         <img
-          // @ts-ignore
+          // @ts-expect-error
           src={logoSrc}
           tw="absolute bottom-8 right-8"
           alt="bazza/ui"

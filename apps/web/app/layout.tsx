@@ -12,7 +12,7 @@ import { ThemeProvider } from '@/providers/theme-provider'
 
 const title = 'bazza/ui — Hand-crafted, modern React components'
 const description =
-  'A collection of beautiful, modern React components. Open source. Open code. Free to use.'
+  'A collection of powerful, modern React components. Open source. Open code. Free to use.'
 
 export const metadata: Metadata = {
   title: {
@@ -20,8 +20,7 @@ export const metadata: Metadata = {
     template: '%s — bazza/ui',
   },
   metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
-  description:
-    'A collection of beautiful, modern React components. Open source. Open code. Free to use.',
+  description,
   keywords: [
     'React',
     'shadcn/ui',

@@ -5,9 +5,13 @@ summary: A composable menu with deep search and multi-level submenus.
 badge: alpha
 ---
 
-<Frame className='mb-16' containerClassName='h-104' caption={<>A subset of <a href="https://linear.app/homepage">Linear</a>'s filter menu, recreated with action menu.</>}>
+<ComponentFrame 
+  className='mb-16' 
+  containerClassName='h-104' 
+  caption={<>A subset of <a href="https://linear.app/homepage">Linear</a>'s filter menu, recreated with the bazza/ui action menu.</>}
+>
   <Examples.ActionMenu.KitchenSink01 />
-</Frame>
+</ComponentFrame>
 
 The action menu is a primitive component for building menu interfaces.
 
@@ -45,27 +49,42 @@ npx shadcn@latest add https://ui.bazza.dev/r/action-menu
 
 ### Basic
 
-<Frame innerClassName='sm:h-64 w-full flex justify-center'>
+<ComponentFrame
+  containerClassName='sm:h-64' 
+  previewClassName='w-full flex justify-center' 
+  src="components/examples/action-menu/basic.tsx"
+>
   <Examples.ActionMenu.Basic />
-</Frame>
+</ComponentFrame>
 
 ### Submenus
 
-<Frame innerClassName='sm:h-84 w-full flex justify-center'>
+<ComponentFrame 
+  containerClassName='sm:h-84' 
+  previewClassName='w-full flex justify-center'   
+  src="components/examples/action-menu/submenus.tsx"
+>
   <Examples.ActionMenu.Submenus />
-</Frame>
+</ComponentFrame>
 
 ### Nested submenus
 
-<Frame innerClassName='sm:h-128'>
+<ComponentFrame 
+  containerClassName='sm:h-124' 
+  src="components/examples/action-menu/submenus-deep.tsx"
+>
   <Examples.ActionMenu.SubmenusDeep />
-</Frame>
+</ComponentFrame>
 
 ### Header + footer
 
-<Frame innerClassName='sm:h-104 w-full flex justify-center'>
+<ComponentFrame 
+  containerClassName='sm:h-104' 
+  previewClassName='w-full flex justify-center'   
+  src="components/examples/action-menu/header-footer.tsx"
+>
   <Examples.ActionMenu.HeaderFooter />
-</Frame>
+</ComponentFrame>
 
 ## References
 
