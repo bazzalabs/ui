@@ -421,6 +421,8 @@ export const isVimNext = (e: React.KeyboardEvent) =>
   e.ctrlKey && (e.key === 'n' || e.key === 'j')
 export const isVimPrev = (e: React.KeyboardEvent) =>
   e.ctrlKey && (e.key === 'p' || e.key === 'k')
+export const isVimOpen = (e: React.KeyboardEvent) => e.ctrlKey && e.key === 'l'
+export const isVimClose = (e: React.KeyboardEvent) => e.ctrlKey && e.key === 'h'
 
 export const getDir = (explicit?: Direction): Direction => {
   if (explicit) return explicit
@@ -906,6 +908,37 @@ function useNavKeydown(source: 'input' | 'list') {
           stop()
           store.prev()
           return
+        }
+        if (isVimOpen(e)) {
+          stop()
+          const activeId = store.snapshot().activeId
+          if (isSelectionKey(k)) {
+            const el = activeId ? document.getElementById(activeId) : null
+            if (el && el.dataset.subtrigger === 'true') {
+              openSubmenuForActive(activeId)
+            } else {
+              dispatch(el, SELECT_ITEM_EVENT)
+            }
+          } else {
+            openSubmenuForActive(activeId)
+          }
+          return
+        }
+        if (isVimClose(e)) {
+          if (sub) {
+            stop()
+            setOwnerId(sub.parentSurfaceId)
+            sub.onOpenChange(false)
+            sub.parentSetActiveId(sub.triggerItemId)
+            const parentEl = document.querySelector<HTMLElement>(
+              `[data-surface-id="${sub.parentSurfaceId}"]`,
+            )
+            requestAnimationFrame(() => {
+              const { input, list } = findWidgetsWithinSurface(parentEl)
+              ;(input ?? list)?.focus()
+            })
+            return
+          }
         }
       }
       if (k === 'Tab') {
