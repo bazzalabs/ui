@@ -19,7 +19,7 @@ export const ComponentFrame = ({
   src?: string
 }) => {
   const tabsList = (
-    <TabsList className="bg-transparent px-0 gap-4">
+    <TabsList className="bg-transparent px-0 gap-4 font-medium mx-3 2xl:-mx-12">
       <TabsTrigger
         className="text-muted-foreground/75 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 font-mono tracking-tighter"
         value="preview"

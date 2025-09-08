@@ -24,6 +24,7 @@ At its core, it combines the best features of the dropdown and command menus ava
 - Deep search across submenus; descendants are searchable from ancestors.
 - Fully typed with generics for your own menu data, customizable per submenu.
 - Full keyboard navigation with vim-style keybindings built-in.
+- Responsive design; renders a dropdown on desktop and a [drawer](https://vaul.emilkowal.ski) on mobile.
 - Supports modal and non-modal modes.
 - Customize side, alignment, offsets, collision handling.
 - Focus is fully managed; follows the `aria-activedescendant` pattern.
@@ -44,6 +45,101 @@ Want something styled with sensible defaults? Install from our registry with one
 ```bash
 npx shadcn@latest add https://ui.bazza.dev/r/action-menu
 ```
+
+## Anatomy
+
+```tsx
+<ActionMenu.Root>
+  <ActionMenu.Trigger />
+  <ActionMenu.Positioner>
+    <ActionMenu.Surface menu={menu} />
+  </ActionMenu.Positioner>
+</ActionMenu.Root>
+```
+
+### Root
+
+Provides the shell (dropdown or drawer), the open/close state, and cross-surface focus ownership.
+
+You can control visibility with `defaultOpen` for uncontrolled state, or `open` and `onOpenChange` for controlled state.
+
+You can determine whether pointer events outside the menu are blocked by setting `modal` (defaults to `true`).
+
+### Trigger
+
+A button that toggles the menu.
+
+In dropdown mode, it acts as the `Popper` anchor, and in drawer mode it renders as a Vaul `Drawer.Trigger`.
+
+### Positioner
+
+Positions a surface in dropdown mode and is used automatically for submenus.
+
+It is a no-op for the root surface in drawer mode.
+
+### Surface
+
+Contains the search input, menu groups and rows, as well as an optional header and footer. 
+
+You render one surface for the root menu. Submenus automatically render their own surfaces.
+
+## Data
+
+This component uses a data-first API. You define your menu as a `MenuData` object and pass it to the root `ActionMenu.Surface` component:
+
+```tsx {17}
+const menu: MenuData = {
+  id: 'root',
+  nodes: [
+    { kind: 'item', id: 'Apple', label: 'Apple', icon: '🍎' },
+    { kind: 'item', id: 'Banana', label: 'Banana', icon: '🍌' },
+    { kind: 'item', id: 'Orange', label: 'Orange', icon: '🍊' },
+    { kind: 'item', id: 'Pineapple', label: 'Pineapple', icon: '🍍' },
+    { kind: 'item', id: 'Strawberry', label: 'Strawberry', icon: '🍓' },
+  ],
+}
+
+const FruitsMenu = () => {
+  return (
+    <ActionMenu.Root>
+      <ActionMenu.Trigger>Open</ActionMenu.Trigger>
+      <ActionMenu.Positioner>
+        <ActionMenu.Surface menu={menu} />
+      </ActionMenu.Positioner>
+    </ActionMenu.Root>
+  )
+}
+```
+
+## Menu nodes
+
+Action menus are defined as plain data.
+
+Each node in your MenuData describes what to render and how it should behave.
+
+The library ships three first-class node kinds — item, group, and submenu.
+
+### Item
+
+An action that the user can run.
+
+<TypeTable pkg="@bazza-ui/action-menu" type="ItemNode" />
+
+### Group
+
+A group of actions that the user can run.
+
+<TypeTable pkg="@bazza-ui/action-menu" type="GroupNode" />
+
+### Submenu
+
+A submenu of actions that the user can run.
+
+<TypeTable pkg="@bazza-ui/action-menu" type="SubmenuNode" />
+
+## Factory
+
+_In progress._
 
 ## Examples
 

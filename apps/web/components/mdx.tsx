@@ -5,10 +5,13 @@ import { TypeTable } from '@/components/type-table'
 import { cn } from '@/lib/utils'
 import type { NpmCommands } from '@/types/unist'
 import { CodeBlockCommand } from './code-block-command'
+import CodeInline from './code-inline'
 import CollapsibleCodeBlock from './collapsible-code-block'
 import ComponentCode from './component-code'
 import { ComponentFrame } from './component-frame'
 import { Examples } from './examples'
+import PropRow from './prop-row'
+import { PropsTable } from './props-table'
 import { ResponsiveImage } from './responsive-image'
 
 export const components: Readonly<MDXComponents> = {
@@ -109,12 +112,9 @@ export const components: Readonly<MDXComponents> = {
     <hr className="my-4 md:my-8" {...props} />
   ),
   table: ({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
-    <div className="my-6 w-full overflow-y-auto">
+    <div className="my-6 w-full overflow-y-auto bg-background rounded-lg border shadow-xs">
       <table
-        className={cn(
-          'relative w-full overflow-hidden border-none text-sm',
-          className,
-        )}
+        className={cn('relative w-full overflow-hidden text-sm', className)}
         {...props}
       />
     </div>
@@ -128,7 +128,7 @@ export const components: Readonly<MDXComponents> = {
   th: ({ className, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
     <th
       className={cn(
-        'px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right',
+        'bg-muted px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right',
         className,
       )}
       {...props}
@@ -205,4 +205,7 @@ export const components: Readonly<MDXComponents> = {
   Examples,
   ComponentCode: ComponentCode,
   ComponentFrame,
+  CodeInline,
+  PropRow,
+  PropsTable,
 }

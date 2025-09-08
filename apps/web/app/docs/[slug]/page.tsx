@@ -2,15 +2,18 @@ export const dynamic = 'force-static'
 
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { components } from '@/components/mdx'
 import { compileMDX } from 'next-mdx-remote/rsc'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeCallouts from 'rehype-callouts'
-import rehypePrettyCode from 'rehype-pretty-code'
 import type { Options as RehypePrettyCodeOptions } from 'rehype-pretty-code'
+import rehypePrettyCode from 'rehype-pretty-code'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
+import { components } from '@/components/mdx'
 import 'rehype-callouts/theme/github'
+import { transformerNotationDiff } from '@shikijs/transformers'
+import type { Metadata } from 'next'
+import { visit } from 'unist-util-visit'
 import { DashboardTableOfContents } from '@/components/toc'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -22,10 +25,8 @@ import {
 } from '@/components/ui/breadcrumb'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { rehypeNpmCommand } from '@/lib/rehype-npm-command'
+import { remarkTypeTable } from '@/lib/remark-type-table'
 import { getTableOfContents } from '@/lib/toc'
-import { transformerNotationDiff } from '@shikijs/transformers'
-import type { Metadata } from 'next'
-import { visit } from 'unist-util-visit'
 
 export async function generateMetadata({
   params,
@@ -106,7 +107,7 @@ export default async function Page({
     options: {
       parseFrontmatter: true,
       mdxOptions: {
-        remarkPlugins: [remarkGfm],
+        remarkPlugins: [remarkGfm, remarkTypeTable],
         rehypePlugins: [
           rehypeSlug,
           rehypeCallouts,
