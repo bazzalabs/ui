@@ -20,7 +20,6 @@ export default function PropRow({
   description,
   className,
 }: Props) {
-  console.log('PropRow:', name, required)
   return (
     <Collapsible.Root
       className={cn('grid grid-cols-subgrid col-span-2 gap-x-12', className)}

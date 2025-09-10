@@ -465,6 +465,22 @@ function isElementWithProp(node: React.ReactNode, propName: string) {
   return React.isValidElement(node) && propName in (node.props as any)
 }
 
+/** True when any descendant element carries `propName`. */
+function hasDescendantWithProp(
+  node: React.ReactNode,
+  propName: string,
+): boolean {
+  if (!node) return false
+  if (Array.isArray(node))
+    return node.some((n) => hasDescendantWithProp(n, propName))
+  if (React.isValidElement(node)) {
+    if (propName in (node.props as any)) return true
+    const ch = (node.props as any)?.children
+    return hasDescendantWithProp(ch, propName)
+  }
+  return false
+}
+
 /** Render an icon from heterogeneous inputs (node, element, component). */
 export function renderIcon(icon?: Iconish, className?: string) {
   if (!icon) return null
@@ -1965,7 +1981,7 @@ function SubTriggerRow<T>({
   }
 
   const visual = slot({ node, bind, search })
-  const content = isElementWithProp(visual, 'data-action-menu-item-id') ? (
+  const content = hasDescendantWithProp(visual, 'data-action-menu-item-id') ? (
     visual
   ) : (
     <div {...(baseRowProps as any)}>
@@ -2251,8 +2267,10 @@ function ItemRow<T>({
   }
 
   const visual = slot({ node, bind, search })
-  if (isElementWithProp(visual, 'data-action-menu-item-id'))
+  // If the slot placed `getRowProps` on any nested node, just return it as-is.
+  if (hasDescendantWithProp(visual, 'data-action-menu-item-id')) {
     return visual as React.ReactElement
+  }
   const fallbackVisual =
     visual ??
     (node.render ? node.render() : <span>{node.label ?? String(node.id)}</span>)

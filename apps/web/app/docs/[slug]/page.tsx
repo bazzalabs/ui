@@ -175,17 +175,17 @@ export default async function Page({
       <div className="flex flex-col gap-8 w-full max-w-screen-md mx-auto col-span-1 my-4 md:my-8 xl:my-16 no-scrollbar">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="md:hidden" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>Docs</BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>{metadata.section}</BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{metadata.title}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          {/* <Breadcrumb> */}
+          {/*   <BreadcrumbList> */}
+          {/*     <BreadcrumbItem>Docs</BreadcrumbItem> */}
+          {/*     <BreadcrumbSeparator /> */}
+          {/*     <BreadcrumbItem>{metadata.section}</BreadcrumbItem> */}
+          {/*     <BreadcrumbSeparator /> */}
+          {/*     <BreadcrumbItem> */}
+          {/*       <BreadcrumbPage>{metadata.title}</BreadcrumbPage> */}
+          {/*     </BreadcrumbItem> */}
+          {/*   </BreadcrumbList> */}
+          {/* </Breadcrumb> */}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -209,7 +209,7 @@ export default async function Page({
         <div>{content}</div>
       </div>
 
-      <div className="hidden xl:block col-span-1 max-w-sm sticky mt-16 ml-16 min-2xl:ml-8 top-16 h-[calc(100vh-8rem)]">
+      <div className="hidden xl:block col-span-1 sticky mt-16 ml-auto mr-16 top-16 h-[calc(100vh-8rem)]">
         {toc && <DashboardTableOfContents toc={toc} />}
       </div>
     </div>
