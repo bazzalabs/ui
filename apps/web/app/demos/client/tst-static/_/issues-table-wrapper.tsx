@@ -1,6 +1,6 @@
 'use client'
 
-import type { FiltersState } from '@bazzaui/filters'
+import type { FiltersState } from '@bazza-ui/filters'
 import { useState } from 'react'
 import { IssuesTable } from './issues-table'
 

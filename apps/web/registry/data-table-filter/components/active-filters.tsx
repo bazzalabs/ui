@@ -6,8 +6,8 @@ import type {
   FilterStrategy,
   FiltersState,
   Locale,
-} from '@bazzaui/filters'
-import { getColumn } from '@bazzaui/filters'
+} from '@bazza-ui/filters'
+import { getColumn } from '@bazza-ui/filters'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'

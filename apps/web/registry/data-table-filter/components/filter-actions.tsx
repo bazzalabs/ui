@@ -1,4 +1,4 @@
-import { type DataTableFilterActions, type Locale, t } from '@bazzaui/filters'
+import { type DataTableFilterActions, type Locale, t } from '@bazza-ui/filters'
 import { FilterXIcon } from 'lucide-react'
 import { memo } from 'react'
 import { Button } from '@/components/ui/button'
