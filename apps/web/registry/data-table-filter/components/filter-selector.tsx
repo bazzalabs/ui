@@ -1,4 +1,4 @@
-import { type MenuData, renderIcon } from '@bazza-ui/action-menu'
+import { type MenuDef, renderIcon } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
@@ -67,7 +67,7 @@ function __FilterSelector_v2<TData>({
 
   const hasVisibleFilters = visibleFilters.length > 0
 
-  const menu: MenuData<any> = {
+  const menu: MenuDef<any> = {
     id: 'properties',
     nodes: columns
       .filter((c) => isAnyOf(c.type, ['option', 'multiOption']))

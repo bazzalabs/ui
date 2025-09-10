@@ -1,6 +1,6 @@
 'use client'
 
-import type { MenuData, SubmenuNode } from '@bazza-ui/action-menu'
+import type { MenuDef, SubmenuDef } from '@bazza-ui/action-menu'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 import {
@@ -42,7 +42,7 @@ export const ActionMenuCompoennt = () => (
   </ActionMenu.Root>
 )
 
-const statusMenu: SubmenuNode = {
+const statusMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'status',
   icon: <StatusIcon />,
@@ -83,7 +83,7 @@ const statusMenu: SubmenuNode = {
   ],
 }
 
-const projectStatusMenu: SubmenuNode = {
+const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'project-status',
   icon: <ProjectStatusIcon />,
@@ -131,7 +131,7 @@ const projectStatusMenu: SubmenuNode = {
   ],
 }
 
-const projectPropertiesMenu: SubmenuNode = {
+const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'project-properties',
   icon: <ProjectPropertiesIcon />,
@@ -141,7 +141,7 @@ const projectPropertiesMenu: SubmenuNode = {
   nodes: [projectStatusMenu],
 }
 
-export const menuData: MenuData = {
+export const menuData: MenuDef = {
   id: 'issue-properties',
   nodes: [statusMenu, projectPropertiesMenu],
 }

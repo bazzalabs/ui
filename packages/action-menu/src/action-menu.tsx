@@ -16,91 +16,42 @@ import { commandScore } from './command-score.js'
 import { useMediaQuery } from './use-media-query.js'
 
 /* ================================================================================================
- * Debug helpers
- * ============================================================================================== */
-
-const DEBUG_MODE = false
-const DBG = (...args: any[]) => {
-  if (DEBUG_MODE) console.log('[AM]', ...args)
-}
-
-/* ================================================================================================
  * Types — Menu model (generic)
  * ============================================================================================== */
 
-/** Allowed kinds of nodes that appear in a menu tree. */
 export type MenuNodeKind = 'item' | 'group' | 'submenu'
 
-/** Base shape for any node in the menu tree. */
-export type BaseNode<K extends MenuNodeKind> = {
-  id: string
+export type BaseDef<K extends MenuNodeKind> = {
+  /** The kind of node. */
   kind: K
+  /** Unique id for this node. */
+  id: string
   hidden?: boolean
-  menu?: MenuData<any> | SubmenuNode<any>
 }
 
-/** Properties that participate in text search. */
 export type Searchable = {
+  /** A human-readable label for the searchable item. */
   label?: string
+  /** A list of aliases for the node, used when searching/filtering. */
   keywords?: string[]
 }
 
-/** Properties describing how a node should render. */
 export type Renderable = {
   render?: () => React.ReactNode
 }
 
-/** Values accepted where an icon is expected. */
 export type Iconish =
   | React.ReactNode
   | React.ReactElement
   | React.ElementType
   | React.ComponentType<{ className?: string }>
 
-/** Item row with per-instance data payload `T`. */
-export type ItemNode<T = unknown> = BaseNode<'item'> &
-  Searchable &
-  Renderable & {
-    icon?: Iconish
-    data?: T
-    onSelect?: (args: {
-      node: Omit<ItemNode<T>, 'onSelect'>
-      search?: SearchContext
-    }) => void
-    closeOnSelect?: boolean
-  }
-
-/** A group on the current surface; children share the same item payload `T`. */
-export type GroupNode<T = unknown> = BaseNode<'group'> & {
-  heading?: string
-  nodes: (ItemNode<T> | SubmenuNode<any>)[]
-}
-
-/** Submenu whose children can have a *different* payload shape `TChild`. */
-export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<'submenu'> &
-  Searchable &
-  Renderable & {
-    data?: T
-    icon?: Iconish
-    title?: string
-    inputPlaceholder?: string
-    hideSearchUntilActive?: boolean
-    defaults?: MenuNodeDefaults<T>
-    nodes: MenuNode<TChild>[]
-    ui?: {
-      slots?: Partial<MenuSlots<TChild>>
-      slotProps?: Partial<SurfaceSlotProps>
-      classNames?: Partial<SurfaceClassNames>
-    }
-  }
-
-/** A menu surface carrying items with payload `T`. */
-export type MenuData<T = unknown> = {
+export type MenuDef<T = unknown> = {
   id: string
   title?: string
   inputPlaceholder?: string
   hideSearchUntilActive?: boolean
-  nodes?: MenuNode<T>[]
+  nodes?: NodeDef<T>[]
   defaults?: MenuNodeDefaults<T>
   ui?: {
     slots?: Partial<MenuSlots<T>>
@@ -109,11 +60,81 @@ export type MenuData<T = unknown> = {
   }
 }
 
-/** Nodes that can appear on a surface with payload `T`. */
-export type MenuNode<T = unknown> =
-  | ItemNode<T>
-  | GroupNode<T>
-  | SubmenuNode<T, any>
+export type ItemDef<T = unknown> = BaseDef<'item'> &
+  Searchable &
+  Renderable & {
+    icon?: Iconish
+    /** Arman is a bitch. */
+    data?: T
+    onSelect?: (args: {
+      node: Omit<ItemNode<T>, 'onSelect'>
+      search?: SearchContext
+    }) => void
+    closeOnSelect?: boolean
+  }
+
+export type GroupDef<T = unknown> = BaseDef<'group'> & {
+  nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
+  heading?: string
+}
+
+export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
+  Searchable &
+  Renderable & {
+    nodes: NodeDef<TChild>[]
+    data?: T
+    icon?: Iconish
+    title?: string
+    inputPlaceholder?: string
+    hideSearchUntilActive?: boolean
+    defaults?: MenuNodeDefaults<T>
+    ui?: {
+      slots?: Partial<MenuSlots<TChild>>
+      slotProps?: Partial<SurfaceSlotProps>
+      classNames?: Partial<SurfaceClassNames>
+    }
+  }
+
+export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
+  nodes: Node<T>[]
+  surfaceId: string
+  depth: number
+}
+
+/** Runtime node (instance) */
+export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
+  /** The kind of node. **/
+  kind: K
+  /** Unique id for this node. */
+  id: string
+  hidden?: boolean
+  /** Owning menu surface at runtime */
+  parent: Menu<any>
+  /** Original author definition for this node */
+  def: D
+}
+
+export type ItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
+  Omit<ItemDef<T>, 'kind' | 'hidden'>
+
+export type GroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
+  heading?: string
+  nodes: (ItemNode<T> | SubmenuNode<any>)[]
+}
+
+/** NOTE: Submenu node exposes its runtime child menu as `child` */
+export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
+  'submenu',
+  SubmenuDef<T, TChild>
+> &
+  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {
+    child: Menu<TChild>
+    nodes: Node<TChild>[]
+  }
+
+export type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
+
+export type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
 
 /** Additional context passed to item/submenu renderers during search. */
 export type SearchContext = {
@@ -126,6 +147,88 @@ export type SearchContext = {
 /** Defaulted parts of nodes for convenience. */
 export type MenuNodeDefaults<T = unknown> = {
   item?: Pick<ItemNode<T>, 'onSelect' | 'closeOnSelect'>
+}
+
+function instantiateMenuFromDef<T>(
+  def: MenuDef<T>,
+  surfaceId: string,
+  depth: number,
+): Menu<T> {
+  const parentless: Menu<T> = {
+    id: def.id,
+    title: def.title,
+    inputPlaceholder: def.inputPlaceholder,
+    hideSearchUntilActive: def.hideSearchUntilActive,
+    defaults: def.defaults,
+    ui: def.ui,
+    nodes: [] as Node<T>[],
+    surfaceId,
+    depth,
+  }
+
+  function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
+    if (d.kind === 'item') {
+      const node: ItemNode<U> = {
+        ...(d as ItemDef<U>),
+        kind: 'item',
+        parent,
+        def: d,
+      }
+      return node
+    }
+
+    if (d.kind === 'group') {
+      const children = (d.nodes ?? []).map((c) =>
+        inst<any>(c as NodeDef<any>, parent),
+      )
+      const node: GroupNode<U> = {
+        id: d.id,
+        kind: 'group',
+        hidden: d.hidden,
+        parent,
+        def: d as GroupDef<U>,
+        heading: (d as GroupDef<U>).heading,
+        nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
+      }
+      return node
+    }
+
+    // submenu
+    const subDef = d as SubmenuDef<any, any>
+    const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
+
+    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
+    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
+    const child = instantiateMenuFromDef(
+      {
+        id: subDef.id,
+        title: subDef.title,
+        inputPlaceholder: subDef.inputPlaceholder,
+        hideSearchUntilActive: subDef.hideSearchUntilActive,
+        nodes: subDef.nodes as NodeDef<any>[],
+        defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
+        ui: subDef.ui as MenuDef<any>['ui'],
+      } as MenuDef<any>,
+      childSurfaceId,
+      parent.depth + 1,
+    ) as Menu<any>
+
+    const node: SubmenuNode<any, any> = {
+      ...(subDef as SubmenuDef<any, any>),
+      kind: 'submenu',
+      parent,
+      def: d,
+      child,
+      nodes: child.nodes,
+    }
+
+    return node as Node<U>
+  }
+
+  parentless.nodes = (def.nodes ?? []).map((n) =>
+    inst(n as any, parentless),
+  ) as any
+  return parentless
 }
 
 /* ================================================================================================
@@ -250,11 +353,11 @@ export type MenuSlots<T = unknown> = {
     bind: RowBindAPI
   }) => React.ReactNode
   Content: (args: {
-    menu: MenuData<T>
+    menu: Menu<T>
     children: React.ReactNode
     bind: ContentBindAPI
   }) => React.ReactNode
-  Header?: (args: { menu: MenuData<T> }) => React.ReactNode
+  Header?: (args: { menu: Menu<T> }) => React.ReactNode
   Input: (args: {
     value: string
     onChange: (v: string) => void
@@ -265,9 +368,9 @@ export type MenuSlots<T = unknown> = {
     children: React.ReactNode
     bind: ListBindAPI
   }) => React.ReactNode
-  Footer?: (args: { menu: MenuData<T> }) => React.ReactNode
+  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
   SubmenuTrigger: (args: {
-    node: SubmenuNode<any>
+    node: SubmenuNode<T>
     search?: SearchContext
     bind: RowBindAPI
   }) => React.ReactNode
@@ -1190,7 +1293,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
 
 export interface ActionMenuSurfaceProps<T = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
-  menu: MenuData<T>
+  menu: MenuDef<T> | Menu<T>
   slots?: Partial<MenuSlots<T>>
   surfaceSlotProps?: Partial<SurfaceSlotProps>
   vimBindings?: boolean
@@ -1217,7 +1320,7 @@ const useSurface = () => {
 
 const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
   {
-    menu,
+    menu: menuProp,
     slots: slotOverrides,
     surfaceSlotProps: slotPropsOverrides,
     vimBindings = true,
@@ -1241,6 +1344,12 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     () => surfaceIdProp ?? sub?.childSurfaceId ?? 'root',
     [surfaceIdProp, sub],
   )
+  const menu = React.useMemo<Menu<T>>(() => {
+    if ((menuProp as any)?.surfaceId) return menuProp as Menu<T>
+    // depth: root = 0, submenu = parent.depth + 1 (if you have access to parent via sub)
+    const depth = sub ? 1 : 0
+    return instantiateMenuFromDef(menuProp as MenuDef<T>, surfaceId, depth)
+  }, [menuProp, surfaceId, sub])
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId
@@ -1267,9 +1376,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     }
     if (!root.open && onCloseAutoClear) {
       if (typeof onCloseAutoClear === 'number') {
-        console.log('clearing after', onCloseAutoClear, 'ms')
         clearTimeoutRef.current = window.setTimeout(() => {
-          console.log('clearing now!')
           setValue('')
           clearTimeoutRef.current = null
         }, onCloseAutoClear)
@@ -1879,7 +1986,7 @@ function SubmenuContent<T>({
   defaults,
   classNames,
 }: {
-  menu: MenuData<T>
+  menu: SubmenuNode<T>
   slots: Required<MenuSlots<T>>
   defaults?: Partial<MenuNodeDefaults<T>>
   classNames?: Partial<SurfaceClassNames>
@@ -1895,7 +2002,7 @@ function SubmenuContent<T>({
 
   const inner = (
     <SurfaceBase<T>
-      menu={menu}
+      menu={menu.child as Menu<T>}
       slots={slots as any}
       defaults={defaults}
       surfaceClassNames={classNames}
@@ -1953,7 +2060,7 @@ function makeRowId(
 }
 
 function renderMenu<T>(
-  menu: MenuData<T>,
+  menu: Menu<T>,
   slots: Required<MenuSlots<T>>,
   defaults: Partial<MenuNodeDefaults<T>> | undefined,
   classNames: Partial<SurfaceClassNames> | undefined,
@@ -1964,8 +2071,6 @@ function renderMenu<T>(
     <React.Fragment>
       {(menu.nodes ?? []).map((node) => {
         if (node.hidden) return null
-        // Set the menu reference for the node
-        node.menu = menu
         if (node.kind === 'item') {
           return (
             <ItemRow
@@ -1999,7 +2104,6 @@ function renderMenu<T>(
               {node.nodes.map((child) => {
                 if (child.hidden) return null
                 // Set the menu reference for the child node
-                child.menu = menu
                 if (child.kind === 'item') {
                   return (
                     <ItemRow
@@ -2022,7 +2126,7 @@ function renderMenu<T>(
                       search={search}
                     />
                     <SubmenuContent
-                      menu={{ ...(child as SubmenuNode<any>) }}
+                      menu={child}
                       slots={slots as any}
                       classNames={classNames}
                       defaults={defaults as any}
@@ -2034,7 +2138,6 @@ function renderMenu<T>(
           )
         }
         if (node.kind === 'submenu') {
-          const childMenu: MenuData<any> = { ...node }
           return (
             <Sub key={node.id}>
               <SubTriggerRow
@@ -2044,7 +2147,7 @@ function renderMenu<T>(
                 search={search}
               />
               <SubmenuContent
-                menu={childMenu}
+                menu={node}
                 slots={slots}
                 classNames={classNames}
                 defaults={defaults}
@@ -2221,7 +2324,7 @@ function ListView<T>({
   onTypeStart,
 }: {
   store: SurfaceStore
-  menu: MenuData<T>
+  menu: Menu<T>
   slots: Required<MenuSlots<T>>
   slotProps?: Partial<SurfaceSlotProps>
   defaults?: Partial<MenuNodeDefaults<T>>
@@ -2310,11 +2413,11 @@ function ListView<T>({
 
   const collect = React.useCallback(
     (
-      nodes: MenuNode<T>[] | undefined,
+      nodes: Node<T>[] | undefined,
       q: string,
       bc: string[] = [],
       bcIds: string[] = [],
-      currentMenu: MenuData<T> = menu,
+      currentMenu: Menu<T> = menu,
     ): SR[] => {
       const out: SR[] = []
       for (const n of nodes ?? []) {
@@ -2341,7 +2444,7 @@ function ListView<T>({
           if (score > 0)
             out.push({
               type: 'submenu',
-              node: { ...sub, menu: currentMenu },
+              node: { ...sub, parent: currentMenu, def: sub.def },
               breadcrumbs: bc,
               breadcrumbIds: bcIds,
               score,
@@ -2353,7 +2456,7 @@ function ListView<T>({
               q,
               [...bc, title],
               [...bcIds, sub.id],
-              { ...sub } as MenuData<any>,
+              sub.child as Menu<any>,
             ),
           )
         }
@@ -2432,7 +2535,7 @@ function ListView<T>({
                 />
               )
             }
-            const childMenu: MenuData<any> = { ...res.node }
+            const childMenu: SubmenuNode<any> = { ...res.node }
             return (
               <Sub key={`deep-${res.node.id}`}>
                 <SubTriggerRow

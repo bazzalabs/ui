@@ -9,12 +9,15 @@ export type {
 } from './action-menu.js'
 
 export type {
-  MenuData,
-  MenuNode,
-  MenuNodeKind,
-  SubmenuNode,
-  ItemNode,
+  MenuDef,
+  GroupDef,
+  ItemDef,
+  SubmenuDef,
+  Menu,
   GroupNode,
+  ItemNode,
+  SubmenuNode,
+  MenuNodeKind,
   CreateActionMenuResult,
 } from './action-menu.js'
 

@@ -80,8 +80,8 @@
             "required": false
           },
           {
-            "name": "onSelect",
-            "type": "ReactEventHandler<HTMLButtonElement> | undefined",
+            "name": "hidden",
+            "type": "boolean | undefined",
             "required": false
           },
           {
@@ -90,8 +90,8 @@
             "required": false
           },
           {
-            "name": "hidden",
-            "type": "boolean | undefined",
+            "name": "onSelect",
+            "type": "ReactEventHandler<HTMLButtonElement> | undefined",
             "required": false
           },
           {
@@ -1633,7 +1633,7 @@
         "props": [
           {
             "name": "menu",
-            "type": "MenuData<T>",
+            "type": "MenuDef<T> | Menu<T>",
             "required": true
           },
           {
@@ -1717,8 +1717,8 @@
             "required": false
           },
           {
-            "name": "onSelect",
-            "type": "ReactEventHandler<HTMLDivElement> | undefined",
+            "name": "hidden",
+            "type": "boolean | undefined",
             "required": false
           },
           {
@@ -1727,8 +1727,8 @@
             "required": false
           },
           {
-            "name": "hidden",
-            "type": "boolean | undefined",
+            "name": "onSelect",
+            "type": "ReactEventHandler<HTMLDivElement> | undefined",
             "required": false
           },
           {
@@ -3152,8 +3152,8 @@
           }
         ]
       },
-      "MenuData": {
-        "name": "MenuData",
+      "MenuDef": {
+        "name": "MenuDef",
         "kind": "typealias",
         "typeParams": [
           {
@@ -3161,8 +3161,7 @@
             "default": "unknown"
           }
         ],
-        "doc": "A menu surface carrying items with payload `T`.",
-        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    nodes?: MenuNode<T>[];\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    nodes?: NodeDef<T>[];\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
         "props": [
           {
             "name": "id",
@@ -3186,7 +3185,7 @@
           },
           {
             "name": "nodes",
-            "type": "MenuNode<T>[] | undefined",
+            "type": "NodeDef<T>[] | undefined",
             "required": false
           },
           {
@@ -3201,8 +3200,8 @@
           }
         ]
       },
-      "MenuNode": {
-        "name": "MenuNode",
+      "GroupDef": {
+        "name": "GroupDef",
         "kind": "typealias",
         "typeParams": [
           {
@@ -3210,17 +3209,107 @@
             "default": "unknown"
           }
         ],
-        "doc": "Nodes that can appear on a surface with payload `T`.",
-        "definition": "ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>"
+        "definition": "BaseDef<'group'> & {\n    nodes: (ItemDef<T> | SubmenuDef<any, any>)[];\n    heading?: string;\n}",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"group\"",
+            "required": true,
+            "description": "The kind of node."
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique id for this node."
+          },
+          {
+            "name": "hidden",
+            "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "nodes",
+            "type": "(ItemDef<T> | SubmenuDef<any, any>)[]",
+            "required": true
+          },
+          {
+            "name": "heading",
+            "type": "string | undefined",
+            "required": false
+          }
+        ]
       },
-      "MenuNodeKind": {
-        "name": "MenuNodeKind",
+      "ItemDef": {
+        "name": "ItemDef",
         "kind": "typealias",
-        "doc": "Allowed kinds of nodes that appear in a menu tree.",
-        "definition": "'item' | 'group' | 'submenu'"
+        "typeParams": [
+          {
+            "name": "T",
+            "default": "unknown"
+          }
+        ],
+        "definition": "BaseDef<'item'> & Searchable & Renderable & {\n    icon?: Iconish;\n    /** Arman is a bitch. */\n    data?: T;\n    onSelect?: (args: {\n        node: Omit<ItemNode<T>, 'onSelect'>;\n        search?: SearchContext;\n    }) => void;\n    closeOnSelect?: boolean;\n}",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"item\"",
+            "required": true,
+            "description": "The kind of node."
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique id for this node."
+          },
+          {
+            "name": "hidden",
+            "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "required": false,
+            "description": "A human-readable label for the searchable item."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "required": false,
+            "description": "A list of aliases for the node, used when searching/filtering."
+          },
+          {
+            "name": "render",
+            "type": "(() => ReactNode) | undefined",
+            "required": false
+          },
+          {
+            "name": "icon",
+            "type": "Iconish",
+            "required": false
+          },
+          {
+            "name": "data",
+            "type": "T | undefined",
+            "required": false,
+            "description": "Arman is a bitch."
+          },
+          {
+            "name": "onSelect",
+            "type": "((args: { node: Omit<ItemNode<T>, \"onSelect\">; search?: SearchContext | undefined; }) => void) | undefined",
+            "required": false
+          },
+          {
+            "name": "closeOnSelect",
+            "type": "boolean | undefined",
+            "required": false
+          }
+        ]
       },
-      "SubmenuNode": {
-        "name": "SubmenuNode",
+      "SubmenuDef": {
+        "name": "SubmenuDef",
         "kind": "typealias",
         "typeParams": [
           {
@@ -3232,18 +3321,19 @@
             "default": "unknown"
           }
         ],
-        "doc": "Submenu whose children can have a *different* payload shape `TChild`.",
-        "definition": "BaseNode<'submenu'> & Searchable & Renderable & {\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    nodes: MenuNode<TChild>[];\n    ui?: {\n        slots?: Partial<MenuSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & Renderable & {\n    nodes: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
         "props": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": true
-          },
           {
             "name": "kind",
             "type": "\"submenu\"",
-            "required": true
+            "required": true,
+            "description": "The kind of node."
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique id for this node."
           },
           {
             "name": "hidden",
@@ -3251,24 +3341,26 @@
             "required": false
           },
           {
-            "name": "menu",
-            "type": "MenuData<any> | SubmenuNode<any, unknown> | undefined",
-            "required": false
-          },
-          {
             "name": "label",
             "type": "string | undefined",
-            "required": false
+            "required": false,
+            "description": "A human-readable label for the searchable item."
           },
           {
             "name": "keywords",
             "type": "string[] | undefined",
-            "required": false
+            "required": false,
+            "description": "A list of aliases for the node, used when searching/filtering."
           },
           {
             "name": "render",
             "type": "(() => ReactNode) | undefined",
             "required": false
+          },
+          {
+            "name": "nodes",
+            "type": "NodeDef<TChild>[]",
+            "required": true
           },
           {
             "name": "data",
@@ -3301,14 +3393,119 @@
             "required": false
           },
           {
-            "name": "nodes",
-            "type": "MenuNode<TChild>[]",
-            "required": true
-          },
-          {
             "name": "ui",
             "type": "{ slots?: Partial<MenuSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
             "required": false
+          }
+        ]
+      },
+      "Menu": {
+        "name": "Menu",
+        "kind": "typealias",
+        "typeParams": [
+          {
+            "name": "T",
+            "default": "unknown"
+          }
+        ],
+        "definition": "Omit<MenuDef<T>, 'nodes'> & {\n    nodes: Node<T>[];\n    surfaceId: string;\n    depth: number;\n}",
+        "props": [
+          {
+            "name": "title",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "inputPlaceholder",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "hideSearchUntilActive",
+            "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "defaults",
+            "type": "MenuNodeDefaults<T> | undefined",
+            "required": false
+          },
+          {
+            "name": "ui",
+            "type": "{ slots?: Partial<MenuSlots<T>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<SurfaceClassNames> | undefined; } | undefined",
+            "required": false
+          },
+          {
+            "name": "nodes",
+            "type": "Node<T>[]",
+            "required": true
+          },
+          {
+            "name": "surfaceId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "depth",
+            "type": "number",
+            "required": true
+          }
+        ]
+      },
+      "GroupNode": {
+        "name": "GroupNode",
+        "kind": "typealias",
+        "typeParams": [
+          {
+            "name": "T",
+            "default": "unknown"
+          }
+        ],
+        "definition": "BaseNode<'group', GroupDef<T>> & {\n    heading?: string;\n    nodes: (ItemNode<T> | SubmenuNode<any>)[];\n}",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"group\"",
+            "required": true,
+            "description": "The kind of node. *"
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique id for this node."
+          },
+          {
+            "name": "hidden",
+            "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "parent",
+            "type": "Menu<any>",
+            "required": true,
+            "description": "Owning menu surface at runtime"
+          },
+          {
+            "name": "def",
+            "type": "GroupDef<T>",
+            "required": true,
+            "description": "Original author definition for this node"
+          },
+          {
+            "name": "heading",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "nodes",
+            "type": "(ItemNode<T> | SubmenuNode<any, unknown>)[]",
+            "required": true
           }
         ]
       },
@@ -3321,18 +3518,19 @@
             "default": "unknown"
           }
         ],
-        "doc": "Item row with per-instance data payload `T`.",
-        "definition": "BaseNode<'item'> & Searchable & Renderable & {\n    icon?: Iconish;\n    data?: T;\n    onSelect?: (args: {\n        node: Omit<ItemNode<T>, 'onSelect'>;\n        search?: SearchContext;\n    }) => void;\n    closeOnSelect?: boolean;\n}",
+        "definition": "BaseNode<'item', ItemDef<T>> & Omit<ItemDef<T>, 'kind' | 'hidden'>",
         "props": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": true
-          },
           {
             "name": "kind",
             "type": "\"item\"",
-            "required": true
+            "required": true,
+            "description": "The kind of node. *"
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique id for this node."
           },
           {
             "name": "hidden",
@@ -3340,19 +3538,34 @@
             "required": false
           },
           {
-            "name": "menu",
-            "type": "MenuData<any> | SubmenuNode<any, unknown> | undefined",
-            "required": false
+            "name": "parent",
+            "type": "Menu<any>",
+            "required": true,
+            "description": "Owning menu surface at runtime"
+          },
+          {
+            "name": "def",
+            "type": "ItemDef<T>",
+            "required": true,
+            "description": "Original author definition for this node"
+          },
+          {
+            "name": "data",
+            "type": "T | undefined",
+            "required": false,
+            "description": "Arman is a bitch."
           },
           {
             "name": "label",
             "type": "string | undefined",
-            "required": false
+            "required": false,
+            "description": "A human-readable label for the searchable item."
           },
           {
             "name": "keywords",
             "type": "string[] | undefined",
-            "required": false
+            "required": false,
+            "description": "A list of aliases for the node, used when searching/filtering."
           },
           {
             "name": "render",
@@ -3362,11 +3575,6 @@
           {
             "name": "icon",
             "type": "Iconish",
-            "required": false
-          },
-          {
-            "name": "data",
-            "type": "T | undefined",
             "required": false
           },
           {
@@ -3381,27 +3589,33 @@
           }
         ]
       },
-      "GroupNode": {
-        "name": "GroupNode",
+      "SubmenuNode": {
+        "name": "SubmenuNode",
         "kind": "typealias",
         "typeParams": [
           {
             "name": "T",
             "default": "unknown"
+          },
+          {
+            "name": "TChild",
+            "default": "unknown"
           }
         ],
-        "doc": "A group on the current surface; children share the same item payload `T`.",
-        "definition": "BaseNode<'group'> & {\n    heading?: string;\n    nodes: (ItemNode<T> | SubmenuNode<any>)[];\n}",
+        "doc": "NOTE: Submenu node exposes its runtime child menu as `child`",
+        "definition": "BaseNode<'submenu', SubmenuDef<T, TChild>> & Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {\n    child: Menu<TChild>;\n    nodes: Node<TChild>[];\n}",
         "props": [
+          {
+            "name": "kind",
+            "type": "\"submenu\"",
+            "required": true,
+            "description": "The kind of node. *"
+          },
           {
             "name": "id",
             "type": "string",
-            "required": true
-          },
-          {
-            "name": "kind",
-            "type": "\"group\"",
-            "required": true
+            "required": true,
+            "description": "Unique id for this node."
           },
           {
             "name": "hidden",
@@ -3409,21 +3623,85 @@
             "required": false
           },
           {
-            "name": "menu",
-            "type": "MenuData<any> | SubmenuNode<any, unknown> | undefined",
+            "name": "parent",
+            "type": "Menu<any>",
+            "required": true,
+            "description": "Owning menu surface at runtime"
+          },
+          {
+            "name": "def",
+            "type": "SubmenuDef<T, TChild>",
+            "required": true,
+            "description": "Original author definition for this node"
+          },
+          {
+            "name": "data",
+            "type": "T | undefined",
             "required": false
           },
           {
-            "name": "heading",
+            "name": "label",
+            "type": "string | undefined",
+            "required": false,
+            "description": "A human-readable label for the searchable item."
+          },
+          {
+            "name": "title",
             "type": "string | undefined",
             "required": false
           },
           {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "required": false,
+            "description": "A list of aliases for the node, used when searching/filtering."
+          },
+          {
+            "name": "render",
+            "type": "(() => ReactNode) | undefined",
+            "required": false
+          },
+          {
+            "name": "icon",
+            "type": "Iconish",
+            "required": false
+          },
+          {
+            "name": "inputPlaceholder",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "hideSearchUntilActive",
+            "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "defaults",
+            "type": "MenuNodeDefaults<T> | undefined",
+            "required": false
+          },
+          {
+            "name": "ui",
+            "type": "{ slots?: Partial<MenuSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
+            "required": false
+          },
+          {
+            "name": "child",
+            "type": "Menu<TChild>",
+            "required": true
+          },
+          {
             "name": "nodes",
-            "type": "(SubmenuNode<any, unknown> | ItemNode<T>)[]",
+            "type": "Node<TChild>[]",
             "required": true
           }
         ]
+      },
+      "MenuNodeKind": {
+        "name": "MenuNodeKind",
+        "kind": "typealias",
+        "definition": "'item' | 'group' | 'submenu'"
       },
       "CreateActionMenuResult": {
         "name": "CreateActionMenuResult",

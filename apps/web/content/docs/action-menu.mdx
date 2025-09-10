@@ -85,11 +85,10 @@ You render one surface for the root menu. Submenus automatically render their ow
 
 ## Data
 
-This component uses a data-first API. You define your menu as a `MenuData` object and pass it to the root `ActionMenu.Surface` component:
+This component uses a data-first API. You define your menu as a `MenuDef` object and pass it to the root `ActionMenu.Surface` component:
 
 ```tsx {17}
-const menu: MenuData = {
-  id: 'root',
+const menu: MenuDef = {
   nodes: [
     { kind: 'item', id: 'Apple', label: 'Apple', icon: '🍎' },
     { kind: 'item', id: 'Banana', label: 'Banana', icon: '🍌' },
@@ -111,31 +110,64 @@ const FruitsMenu = () => {
 }
 ```
 
-## Menu nodes
+## Nodes
 
-Action menus are defined as plain data.
+Each node in the `MenuDef` describes what to render and how it should behave.
 
-Each node in your MenuData describes what to render and how it should behave.
+The library ships three kinds of nodes — item, group, and submenu.
 
-The library ships three first-class node kinds — item, group, and submenu.
+Their shapes are defined by the `ItemDef`, `GroupDef`, and `SubmenuDef` types.
 
 ### Item
 
-An action that the user can run.
+```ts
+{
+  kind: 'item',
+  id: 'done',
+  label: 'Done',
+  icon: <Status.Done />,
+  onSelect: ({ node, search }) => {
+    setStatus('done')
+    toast(`Changed status to ${node.label}.`)
+  }
+  closeOnSelect: true
+}
+```
+
+The atomic unit of the menu. It is a single row which performs an action when selected.
+
+Each item must have a unique `id` among other sibling items. It does **not** have to be unique across submenus.
+
+The action is defined by the `onSelect` handler, which gives you access to:
+
+- The `node` instance, typed as `ItemNode<T>`.
+- The `search` context, if the item is appearing in a filtered menu.
+
+#### API reference
+
+##### ItemDef
+
+<TypeTable pkg="@bazza-ui/action-menu" type="ItemDef" />
+
+##### ItemNode
 
 <TypeTable pkg="@bazza-ui/action-menu" type="ItemNode" />
 
 ### Group
 
-A group of actions that the user can run.
+Groups items and submenus together with a `heading`.
 
-<TypeTable pkg="@bazza-ui/action-menu" type="GroupNode" />
+##### API reference
+
+<TypeTable pkg="@bazza-ui/action-menu" type="GroupDef" />
 
 ### Submenu
 
 A submenu of actions that the user can run.
 
-<TypeTable pkg="@bazza-ui/action-menu" type="SubmenuNode" />
+##### API reference
+
+<TypeTable pkg="@bazza-ui/action-menu" type="SubmenuDef" />
 
 ## Factory
 

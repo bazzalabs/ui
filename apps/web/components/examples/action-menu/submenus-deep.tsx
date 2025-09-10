@@ -50,7 +50,7 @@ export function ActionMenu_SubmenusDeep() {
               item: {
                 closeOnSelect: true,
                 onSelect: ({ node }) => {
-                  toast(`Selected ${node.label} from ${node.menu?.title}.`)
+                  toast(`Selected ${node.label} from ${node.parent.title}.`)
                 },
               },
             },

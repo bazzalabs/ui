@@ -1,4 +1,4 @@
-import type { MenuData } from '@bazza-ui/action-menu'
+import type { MenuDef } from '@bazza-ui/action-menu'
 import {
   booleanFilterOperators,
   type Column,
@@ -166,5 +166,5 @@ function createOperatorMenu<TData>({
         onSelect: () => changeOperator(r.value),
       }
     }),
-  } satisfies MenuData<any>
+  } satisfies MenuDef<any>
 }

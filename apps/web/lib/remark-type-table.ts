@@ -120,18 +120,16 @@ export const remarkTypeTable: Plugin<[], Root> = () => {
         return row
       }) as any[]
 
-      console.log('rows:', rows)
-
       // Container for rows (handy for styling layout)
       const container: MdxJsxFlowElement = {
         type: 'mdxJsxFlowElement',
         name: 'PropsTable',
         attributes: [
-          {
-            type: 'mdxJsxAttribute',
-            name: 'className',
-            value: 'grid grid-cols-[auto_1fr]',
-          },
+          // {
+          //   type: 'mdxJsxAttribute',
+          //   name: 'name',
+          //   value: meta.name,
+          // },
         ],
         children: rows,
       }

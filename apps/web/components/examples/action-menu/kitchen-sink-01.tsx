@@ -1,8 +1,9 @@
 'use client'
 
 import {
-  type MenuData,
+  type MenuDef,
   renderIcon,
+  type SubmenuDef,
   type SubmenuNode,
 } from '@bazza-ui/action-menu'
 import { toast } from 'sonner'
@@ -49,7 +50,7 @@ const FilterIcon = () => (
   </svg>
 )
 
-const statusMenu: SubmenuNode = {
+const statusMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'status',
   icon: <StatusIcon />,
@@ -90,7 +91,7 @@ const statusMenu: SubmenuNode = {
   ],
 }
 
-const projectStatusMenu: SubmenuNode = {
+const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'project-status',
   icon: <ProjectStatusIcon />,
@@ -138,7 +139,7 @@ const projectStatusMenu: SubmenuNode = {
   ],
 }
 
-const projectPropertiesMenu: SubmenuNode = {
+const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'project-properties',
   icon: <ProjectPropertiesIcon />,
@@ -148,13 +149,13 @@ const projectPropertiesMenu: SubmenuNode = {
   nodes: [projectStatusMenu],
 }
 
-export const menuData: MenuData = {
+export const menuData: MenuDef = {
   id: 'issue-properties',
   defaults: {
     item: {
       closeOnSelect: true,
       onSelect: ({ node }) => {
-        toast(`Changed ${node.menu?.title?.toLowerCase()} to ${node.label}.`, {
+        toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
           icon: renderIcon(node.icon),
         })
       },

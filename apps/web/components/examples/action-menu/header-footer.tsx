@@ -2,7 +2,7 @@
 
 'use client'
 
-import type { GroupNode, ItemNode, MenuData } from '@bazza-ui/action-menu'
+import type { GroupDef, ItemDef, MenuDef } from '@bazza-ui/action-menu'
 import { ListXIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -10,17 +10,17 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 
-function getMenuItems(menu: MenuData<any>): ItemNode[] {
+function getMenuItems(menu: MenuDef<any>): ItemDef[] {
   const items =
     menu.nodes?.filter((node) => !node.hidden && node.kind === 'item') ?? []
   const groups = (menu.nodes?.filter(
     (node) => !node.hidden && node.kind === 'group',
-  ) ?? []) as GroupNode[]
+  ) ?? []) as GroupDef[]
   const groupItems = groups?.flatMap((group) =>
     group.nodes.filter((n) => n.kind === 'item'),
   )
 
-  return [...items, ...groupItems] as ItemNode[]
+  return [...items, ...groupItems] as ItemDef[]
 }
 
 export function ActionMenu_HeaderFooter() {

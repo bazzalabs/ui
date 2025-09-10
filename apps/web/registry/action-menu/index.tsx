@@ -52,7 +52,7 @@ export const ActionMenu = createActionMenu<any>({
       drawerContent: cn(
         'group/drawer-content bg-background fixed z-50 flex h-auto flex-col min-h-0 overflow-hidden shadow-lg',
         'data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80svh] data-[vaul-drawer-direction=top]:rounded-lg',
-        'data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-4 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80svh] data-[vaul-drawer-direction=bottom]:rounded-xl data-[vaul-drawer-direction=bottom]:mx-4',
+        'data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-4 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80svh] data-[vaul-drawer-direction=bottom]:rounded-lg data-[vaul-drawer-direction=bottom]:mx-4',
       ),
     },
   },
@@ -111,7 +111,7 @@ export const ActionMenu = createActionMenu<any>({
     },
     classNames: {
       content: cn(
-        'border bg-popover z-50 rounded-lg text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full min-h-0 overflow-hidden',
+        'border bg-popover rounded-lg z-50 text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full min-h-0 overflow-hidden',
         'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
       ),
 

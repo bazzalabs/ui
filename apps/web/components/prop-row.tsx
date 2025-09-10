@@ -23,10 +23,10 @@ export default function PropRow({
   console.log('PropRow:', name, required)
   return (
     <Collapsible.Root
-      className={cn('grid grid-cols-subgrid col-span-2 gap-x-4', className)}
+      className={cn('grid grid-cols-subgrid col-span-2 gap-x-12', className)}
     >
       <Collapsible.Trigger
-        className="group w-full items-center justify-between gap-x-4 px-3 py-2 hover:bg-muted/75 grid-cols-subgrid grid col-span-2"
+        className="group w-full items-center justify-between gap-x-12 px-3 py-2 hover:bg-muted/75 grid-cols-subgrid grid col-span-2"
         aria-label={`Toggle ${name}`}
       >
         <div className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function PropRow({
       </Collapsible.Trigger>
 
       <Collapsible.Content className="p-3 grid grid-cols-subgrid col-span-2 border-y bg-muted-foreground/5">
-        <dl className="grid grid-cols-subgrid col-span-2 items-start gap-x-4 gap-y-4 text-sm">
+        <dl className="grid grid-cols-subgrid col-span-2 items-start gap-x-12 gap-y-4 text-sm">
           <dt className="text-muted-foreground">Name</dt>
           <dd className="overflow-x-auto">
             <code>{name}</code>
