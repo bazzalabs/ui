@@ -3249,7 +3249,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseDef<'item'> & Searchable & Renderable & {\n    icon?: Iconish;\n    /** Arman is a bitch. */\n    data?: T;\n    onSelect?: (args: {\n        node: Omit<ItemNode<T>, 'onSelect'>;\n        search?: SearchContext;\n    }) => void;\n    closeOnSelect?: boolean;\n}",
+        "definition": "BaseDef<'item'> & Searchable & {\n    icon?: Iconish;\n    /** Arman is a bitch. */\n    data?: T;\n    onSelect?: (args: {\n        node: Omit<ItemNode<T>, 'onSelect'>;\n        search?: SearchContext;\n    }) => void;\n    closeOnSelect?: boolean;\n}",
         "props": [
           {
             "name": "kind",
@@ -3279,11 +3279,6 @@
             "type": "string[] | undefined",
             "required": false,
             "description": "A list of aliases for the node, used when searching/filtering."
-          },
-          {
-            "name": "render",
-            "type": "(() => ReactNode) | undefined",
-            "required": false
           },
           {
             "name": "icon",
@@ -3321,7 +3316,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseDef<'submenu'> & Searchable & Renderable & {\n    nodes: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & {\n    nodes: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
         "props": [
           {
             "name": "kind",
@@ -3351,11 +3346,6 @@
             "type": "string[] | undefined",
             "required": false,
             "description": "A list of aliases for the node, used when searching/filtering."
-          },
-          {
-            "name": "render",
-            "type": "(() => ReactNode) | undefined",
-            "required": false
           },
           {
             "name": "nodes",
@@ -3568,11 +3558,6 @@
             "description": "A list of aliases for the node, used when searching/filtering."
           },
           {
-            "name": "render",
-            "type": "(() => ReactNode) | undefined",
-            "required": false
-          },
-          {
             "name": "icon",
             "type": "Iconish",
             "required": false
@@ -3655,11 +3640,6 @@
             "type": "string[] | undefined",
             "required": false,
             "description": "A list of aliases for the node, used when searching/filtering."
-          },
-          {
-            "name": "render",
-            "type": "(() => ReactNode) | undefined",
-            "required": false
           },
           {
             "name": "icon",

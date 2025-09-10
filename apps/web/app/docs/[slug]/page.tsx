@@ -151,7 +151,10 @@ export default async function Page({
             })
           },
           rehypeNpmCommand,
-          rehypeAutolinkHeadings,
+          // () =>
+          //   rehypeAutolinkHeadings({
+          //     behavior: 'wrap',
+          //   }),
         ],
       },
     },
@@ -209,7 +212,7 @@ export default async function Page({
         <div>{content}</div>
       </div>
 
-      <div className="hidden xl:block col-span-1 sticky mt-16 ml-auto mr-16 top-16 h-[calc(100vh-8rem)]">
+      <div className="hidden xl:block col-span-1 sticky mt-16 ml-auto mr-32 top-16 h-[calc(100vh-8rem)]">
         {toc && <DashboardTableOfContents toc={toc} />}
       </div>
     </div>

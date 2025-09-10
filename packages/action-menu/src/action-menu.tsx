@@ -36,10 +36,6 @@ export type Searchable = {
   keywords?: string[]
 }
 
-export type Renderable = {
-  render?: () => React.ReactNode
-}
-
 export type Iconish =
   | React.ReactNode
   | React.ReactElement
@@ -61,8 +57,7 @@ export type MenuDef<T = unknown> = {
 }
 
 export type ItemDef<T = unknown> = BaseDef<'item'> &
-  Searchable &
-  Renderable & {
+  Searchable & {
     icon?: Iconish
     /** Arman is a bitch. */
     data?: T
@@ -79,8 +74,7 @@ export type GroupDef<T = unknown> = BaseDef<'group'> & {
 }
 
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
-  Searchable &
-  Renderable & {
+  Searchable & {
     nodes: NodeDef<TChild>[]
     data?: T
     icon?: Iconish
@@ -404,21 +398,13 @@ function defaultSlots<T>(): Required<MenuSlots<T>> {
     Item: ({ node, bind }) => (
       <div {...bind.getRowProps()}>
         {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
-        {node.render ? (
-          node.render()
-        ) : (
-          <span>{node.label ?? String(node.id)}</span>
-        )}
+        <span>{node.label ?? String(node.id)}</span>
       </div>
     ),
     SubmenuTrigger: ({ node, bind }) => (
       <div {...bind.getRowProps()}>
         {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
-        {node.render ? (
-          node.render()
-        ) : (
-          <span>{node.label ?? node.title ?? String(node.id)}</span>
-        )}
+        <span>{node.label ?? node.title ?? String(node.id)}</span>
       </div>
     ),
     Footer: () => null,
@@ -1986,9 +1972,7 @@ function SubTriggerRow<T>({
   const content = hasDescendantWithProp(visual, 'data-action-menu-item-id') ? (
     visual
   ) : (
-    <div {...(baseRowProps as any)}>
-      {visual ?? (node.render ? node.render() : (node.label ?? node.title))}
-    </div>
+    <div {...(baseRowProps as any)}>{visual ?? node.label ?? node.title}</div>
   )
 
   return mode === 'drawer' ? (
@@ -2274,9 +2258,7 @@ function ItemRow<T>({
   if (hasDescendantWithProp(visual, 'data-action-menu-item-id')) {
     return visual as React.ReactElement
   }
-  const fallbackVisual =
-    visual ??
-    (node.render ? node.render() : <span>{node.label ?? String(node.id)}</span>)
+  const fallbackVisual = visual ?? <span>{node.label ?? String(node.id)}</span>
   return <div {...(baseRowProps as any)}>{fallbackVisual}</div>
 }
 

@@ -65,7 +65,7 @@ export function ActionMenu_Notion() {
 
               const ItemRow = (
                 <button {...props}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 select-none">
                     {Icon}
                     <span>{node.label}</span>
                     {node.data?.tag && (
@@ -87,7 +87,7 @@ export function ActionMenu_Notion() {
 
               return (
                 <HoverCard open={bind.focused} openDelay={2000}>
-                  <HoverCardTrigger>{ItemRow}</HoverCardTrigger>
+                  <HoverCardTrigger asChild>{ItemRow}</HoverCardTrigger>
                   <HoverCardContent
                     side="right"
                     align="center"
