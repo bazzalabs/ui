@@ -6,7 +6,7 @@ import type {
   FilterStrategy,
   FiltersState,
   Locale,
-} from '@bazzaui/filters'
+} from '@bazza-ui/filters'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ActiveFilters, ActiveFiltersMobileContainer } from './active-filters'
 import { FilterActions } from './filter-actions'

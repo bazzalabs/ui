@@ -13,7 +13,7 @@ import {
   optionFilterOperators,
   t,
   textFilterOperators,
-} from '@bazzaui/filters'
+} from '@bazza-ui/filters'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {

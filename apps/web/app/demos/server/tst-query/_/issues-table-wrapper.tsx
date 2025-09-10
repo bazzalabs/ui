@@ -1,6 +1,6 @@
 'use client'
 
-import type { FiltersState } from '@bazzaui/filters'
+import type { FiltersState } from '@bazza-ui/filters'
 import { parseAsJson, useQueryState } from 'nuqs'
 import { z } from 'zod'
 import { IssuesTable } from './issues-table'

@@ -1,11 +1,11 @@
-import type { FiltersState } from '@bazzaui/filters'
+import type { FiltersState } from '@bazza-ui/filters'
 import {
   dateFilterFn,
   multiOptionFilterFn,
   numberFilterFn,
   optionFilterFn,
   textFilterFn,
-} from '@bazzaui/filters'
+} from '@bazza-ui/filters'
 import { generateIssues, ISSUE_LABELS, ISSUE_STATUSES, USERS } from './data'
 import type { Issue } from './types'
 import { isAnyOf, sleep } from './utils'

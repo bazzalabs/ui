@@ -1,10 +1,10 @@
 'use client'
 
-import { CodeBlock } from '@/components/code-block'
-import { NavBar } from '@/components/nav-bar'
-import type { FiltersState } from '@bazzaui/filters'
+import type { FiltersState } from '@bazza-ui/filters'
 import { parseAsJson, useQueryState } from 'nuqs'
 import { z } from 'zod'
+import { CodeBlock } from '@/components/code-block'
+import { NavBar } from '@/components/nav-bar'
 import { IssuesTable } from './_/issues-table'
 
 const filtersSchema = z.custom<FiltersState>()

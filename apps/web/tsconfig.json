@@ -1,5 +1,5 @@
 {
-  "extends": "@bazzaui/typescript-config/nextjs.json",
+  "extends": "@bazza-ui/typescript-config/nextjs.json",
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],

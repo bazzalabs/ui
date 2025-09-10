@@ -1,4 +1,4 @@
-import type { DataTableFilterActions } from '@bazzaui/filters'
+import type { DataTableFilterActions } from '@bazza-ui/filters'
 import { flexRender, type Table as TanStackTable } from '@tanstack/react-table'
 import { XIcon } from 'lucide-react'
 import { EmptyTableIcon } from '@/components/icons'
