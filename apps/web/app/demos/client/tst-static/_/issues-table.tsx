@@ -1,11 +1,11 @@
 'use client'
 
-import type { FiltersState } from '@bazzaui/filters'
-import { createTypedDataTableFilters } from '@bazzaui/filters'
+import type { FiltersState } from '@bazza-ui/filters'
+import { createTypedDataTableFilters } from '@bazza-ui/filters'
 import {
   createTSTColumns,
   createTSTFilters,
-} from '@bazzaui/filters/tanstack-table'
+} from '@bazza-ui/filters/tanstack-table'
 import {
   getCoreRowModel,
   getFilteredRowModel,

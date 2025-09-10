@@ -1,4 +1,4 @@
-import { createColumnConfigHelper } from '@bazzaui/filters'
+import { createColumnConfigHelper } from '@bazza-ui/filters'
 import {
   CalendarArrowUpIcon,
   CircleDotDashedIcon,

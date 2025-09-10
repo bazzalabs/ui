@@ -13,7 +13,7 @@ import {
   numberFilterOperators,
   t,
   take,
-} from '@bazzaui/filters'
+} from '@bazza-ui/filters'
 import { format, isEqual } from 'date-fns'
 import { Ellipsis } from 'lucide-react'
 import {

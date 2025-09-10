@@ -1,9 +1,9 @@
 'use client'
 
+import type { FiltersState } from '@bazza-ui/filters'
+import { useState } from 'react'
 import { CodeBlock } from '@/components/code-block'
 import { NavBar } from '@/components/nav-bar'
-import type { FiltersState } from '@bazzaui/filters'
-import { useState } from 'react'
 import { IssuesTable } from './_/issues-table'
 
 export default function SSRPage() {

@@ -1,4 +1,4 @@
-import { createColumnConfigHelper } from '@bazzaui/filters'
+import { createColumnConfigHelper } from '@bazza-ui/filters'
 import {
   CalendarArrowUpIcon,
   CircleAlertIcon,
@@ -14,7 +14,7 @@ import { LABEL_STYLES_BG, type TW_COLOR } from './columns'
 import { ISSUE_STATUSES } from './data'
 import type { Issue } from './types'
 
-declare module '@bazzaui/filters' {
+declare module '@bazza-ui/filters' {
   interface ColumnMeta {
     foo?: string
   }

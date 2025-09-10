@@ -1,4 +1,4 @@
-import type { FiltersState } from '@bazzaui/filters'
+import type { FiltersState } from '@bazza-ui/filters'
 import type { QueryOptions } from '@tanstack/react-query'
 import {
   fetchFacetedHours,
