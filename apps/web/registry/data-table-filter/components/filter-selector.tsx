@@ -8,7 +8,7 @@ import {
   isAnyOf,
   type Locale,
   t,
-} from '@bazzaui/filters'
+} from '@bazza-ui/filters'
 import { ArrowRightIcon, ChevronRightIcon, FilterIcon } from 'lucide-react'
 import React, {
   isValidElement,

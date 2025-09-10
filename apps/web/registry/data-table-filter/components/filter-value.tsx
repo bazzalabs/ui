@@ -10,10 +10,11 @@ import {
   type FilterStrategy,
   filterTypeOperatorDetails,
   type Locale,
+  type MinMaxReturn,
   numberFilterOperators,
   t,
   take,
-} from '@bazzaui/filters'
+} from '@bazza-ui/filters'
 import { format, isEqual } from 'date-fns'
 import { Ellipsis } from 'lucide-react'
 import {
@@ -743,7 +744,10 @@ export function FilterValueNumberController<TData>({
   actions,
   locale = 'en',
 }: FilterValueControllerProps<TData, 'number'>) {
-  const minMax = useMemo(() => column.getFacetedMinMaxValues(), [column])
+  const minMax = useMemo(
+    () => column.getFacetedMinMaxValues() as MinMaxReturn<'number'>,
+    [column],
+  )
   const [sliderMin, sliderMax] = [
     minMax ? minMax[0] : 0,
     minMax ? minMax[1] : 0,
@@ -926,3 +930,5 @@ export function FilterValueBooleanController<TData>({
     </Command>
   )
 }
+
+// TODO: Add support for `bigint` filtering

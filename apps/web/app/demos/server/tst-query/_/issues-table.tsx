@@ -1,9 +1,6 @@
 'use client'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { cn } from '@/lib/utils'
-import { DataTableFilter } from '@/registry/data-table-filter'
-import { type FiltersState, useDataTableFilters } from '@bazzaui/filters'
+import { type FiltersState, useDataTableFilters } from '@bazza-ui/filters'
 import { useQuery } from '@tanstack/react-query'
 import {
   getCoreRowModel,
@@ -11,6 +8,9 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useState } from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
+import { DataTableFilter } from '@/registry/data-table-filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'

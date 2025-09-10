@@ -1,7 +1,10 @@
 {
-  "name": "@bazzaui/filters",
-  "version": "0.3.2025080802",
+  "name": "@bazza-ui/filters",
+  "version": "0.3.2025091001",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -46,7 +49,7 @@
     "publish-package:dry": "bun scripts/publish.ts . --dry-run"
   },
   "devDependencies": {
-    "@bazzaui/typescript-config": "*",
+    "@bazza-ui/typescript-config": "*",
     "@ndaidong/txtgen": "^4.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.3.0",

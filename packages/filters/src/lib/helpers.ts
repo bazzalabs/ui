@@ -28,6 +28,15 @@ export function createNumberFilterValue(
   return [values[0], values[1]!]
 }
 
+export function createBigIntFilterValue(
+  values: bigint[] | undefined,
+): bigint[] {
+  if (!values || values.length === 0 || values[0] === undefined) return []
+  if (values.length === 1) return [values[0]]
+  if (values.length === 2) return createBigIntRange(values)
+  throw new Error('Cannot create bigint filter value from more than 2 values')
+}
+
 export function createDateFilterValue(
   values: [Date, Date] | [Date] | [] | undefined,
 ) {
@@ -47,6 +56,23 @@ export function createDateRange(values: [Date, Date]) {
 export function createNumberRange(values: number[] | undefined) {
   let a = 0
   let b = 0
+
+  if (!values || values.length === 0) return [a, b]
+  if (values.length === 1) {
+    a = values[0]!
+  } else {
+    a = values[0]!
+    b = values[1]!
+  }
+
+  const [min, max] = a < b ? [a, b] : [b, a]
+
+  return [min, max]
+}
+
+export function createBigIntRange(values: bigint[] | undefined) {
+  let a = 0n
+  let b = 0n
 
   if (!values || values.length === 0) return [a, b]
   if (values.length === 1) {
@@ -115,6 +141,19 @@ export function getValidNumber(value: any): number | undefined {
 
 export function isValidNumber(value: any): value is number {
   return typeof value === 'number' && !Number.isNaN(value)
+}
+
+export function getValidBigInt(value: any): bigint | undefined {
+  if (value === null || value === undefined) return undefined
+  if (typeof value === 'bigint') return value
+  if (typeof value === 'string' || typeof value === 'number') {
+    try {
+      return BigInt(value)
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
 }
 
 export function filterRow(row: any, filters: FiltersState) {

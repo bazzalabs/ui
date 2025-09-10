@@ -8,7 +8,9 @@ import type {
   ColumnOption,
   ElementType,
   FilterStrategy,
+  MinMaxReturn,
   Nullable,
+  NumericValue,
 } from '../types.js'
 
 /**
@@ -197,29 +199,47 @@ export class ColumnDataService<TData> {
   }
 
   /**
-   * Computes faceted min/max values for number columns
+   * Computes faceted min/max values for number/bigint columns
    */
   computeFacetedMinMaxValues<TType extends ColumnDataType, TVal>(
     column: ColumnConfig<TData, TType, TVal>,
-  ): [number, number] | undefined {
-    if (column.type !== 'number') return undefined
+  ): MinMaxReturn<TType> {
+    if (!isAnyOf(column.type, ['number', 'bigint'])) {
+      return undefined as MinMaxReturn<TType>
+    }
 
-    if (typeof column.min === 'number' && typeof column.max === 'number') {
-      return [column.min, column.max]
+    // Check for static min/max values
+    if (column.min !== undefined && column.max !== undefined) {
+      return [column.min, column.max] as MinMaxReturn<TType>
     }
 
     if (this.strategy === 'server') {
-      return undefined
+      return undefined as MinMaxReturn<TType>
     }
 
-    const values = this.data
-      .flatMap((row) => column.accessor(row) as Nullable<number>)
-      .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v))
+    // Extract values using the accessor
+    const rawValues = this.data
+      .flatMap((row) => column.accessor(row) as Nullable<NumericValue>)
+      .filter(
+        (v): v is NumericValue =>
+          (typeof v === 'number' && !Number.isNaN(v)) || typeof v === 'bigint',
+      )
 
-    if (values.length === 0) {
-      return [0, 0]
+    if (rawValues.length === 0) {
+      const defaultValue = column.type === 'bigint' ? [0n, 0n] : [0, 0]
+      return defaultValue as MinMaxReturn<TType>
     }
 
-    return minMax(values)
+    // Filter to ensure type consistency
+    if (column.type === 'number') {
+      const numberValues = rawValues.filter(
+        (v): v is number => typeof v === 'number',
+      )
+      return minMax(numberValues) as MinMaxReturn<TType>
+    }
+    const bigintValues = rawValues.filter(
+      (v): v is bigint => typeof v === 'bigint',
+    )
+    return minMax(bigintValues) as MinMaxReturn<TType>
   }
 }

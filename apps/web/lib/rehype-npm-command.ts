@@ -115,21 +115,21 @@ export function rehypeNpmCommand() {
       }
 
       if (
-        node.properties?.['__rawString__']?.includes('@bazzaui/filters') &&
+        node.properties?.['__rawString__']?.includes('@bazza-ui/filters') &&
         env.NEXT_PUBLIC_APP_URL !== 'https://ui.bazza.dev'
       ) {
         node.properties['__npmCommand__'] = node.properties[
           '__npmCommand__'
-        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        ]?.replace('@bazza-ui/filters', '@bazza-ui/filters@canary')
         node.properties['__yarnCommand__'] = node.properties[
           '__yarnCommand__'
-        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        ]?.replace('@bazza-ui/filters', '@bazza-ui/filters@canary')
         node.properties['__pnpmCommand__'] = node.properties[
           '__pnpmCommand__'
-        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        ]?.replace('@bazza-ui/filters', '@bazza-ui/filters@canary')
         node.properties['__bunCommand__'] = node.properties[
           '__bunCommand__'
-        ]?.replace('@bazzaui/filters', '@bazzaui/filters@canary')
+        ]?.replace('@bazza-ui/filters', '@bazza-ui/filters@canary')
       }
     })
   }

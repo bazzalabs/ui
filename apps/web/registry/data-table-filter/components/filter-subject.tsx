@@ -1,4 +1,4 @@
-import type { Column, ColumnDataType } from '@bazzaui/filters'
+import type { Column, ColumnDataType } from '@bazza-ui/filters'
 import { isValidElement } from 'react'
 
 interface FilterSubjectProps<TData, TType extends ColumnDataType> {
