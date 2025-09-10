@@ -314,6 +314,7 @@ export type ShellClassNames = {
   root?: string
   overlay?: string
   drawerContent?: string
+  drawerHandle?: string
   trigger?: string
 }
 
@@ -350,6 +351,7 @@ export type MenuSlots<T = unknown> = {
   Item: (args: {
     node: ItemNode<T>
     search?: SearchContext
+    mode: Omit<ResponsiveMode, 'auto'>
     bind: RowBindAPI
   }) => React.ReactNode
   Content: (args: {
@@ -2053,6 +2055,7 @@ function SubmenuContent<T>({
           <Drawer.Title className="sr-only">
             {menu.title ?? 'Action Menu'}
           </Drawer.Title>
+          <div className={root.shellClassNames?.drawerHandle} />
           {inner as any}
         </Drawer.Content>
       </Drawer.Portal>
@@ -2266,7 +2269,7 @@ function ItemRow<T>({
       mergeProps(baseRowProps as any, overrides as any),
   }
 
-  const visual = slot({ node, bind, search })
+  const visual = slot({ node, bind, search, mode })
   // If the slot placed `getRowProps` on any nested node, just return it as-is.
   if (hasDescendantWithProp(visual, 'data-action-menu-item-id')) {
     return visual as React.ReactElement
@@ -2678,6 +2681,7 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
         >
           {/* Optional accessible title; hidden visually */}
           <Drawer.Title className="sr-only">Action Menu</Drawer.Title>
+          <div className={root.shellClassNames?.drawerHandle} />
           {body}
         </Drawer.Content>
       </Drawer.Portal>
@@ -2916,6 +2920,10 @@ export function createActionMenu<T>(opts?: {
       drawerContent: cn(
         baseShellClassNames?.drawerContent,
         p.shellClassNames?.drawerContent,
+      ),
+      drawerHandle: cn(
+        baseShellClassNames?.drawerHandle,
+        p.shellClassNames?.drawerHandle,
       ),
       trigger: cn(baseShellClassNames?.trigger, p.shellClassNames?.trigger),
     }

@@ -52,37 +52,42 @@ export function ActionMenu_Notion() {
               },
             },
           }}
+          surfaceClassNames={{
+            list: 'data-[mode=dropdown]:min-w-[300px]',
+          }}
           slots={{
-            Item: ({ node, bind }) => {
+            Item: ({ node, mode, bind }) => {
               const props = bind.getRowProps({
-                className: 'min-w-[300px] w-full justify-between gap-16',
+                className: 'w-full justify-between gap-16',
               })
 
               const Icon = renderIcon(node.icon, 'size-4 shrink-0')
 
-              if (node.data?.description === undefined)
-                return <button {...props}>{node.label}</button>
+              const ItemRow = (
+                <button {...props}>
+                  <div className="flex items-center gap-2">
+                    {Icon}
+                    <span>{node.label}</span>
+                    {node.data?.tag && (
+                      <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
+                        {node.data?.tag}
+                      </div>
+                    )}
+                  </div>
+                  {node.data?.kbd && (
+                    <span className="text-muted-foreground text-xs">
+                      {node.data?.kbd}
+                    </span>
+                  )}
+                </button>
+              )
+
+              if (mode !== 'dropdown' || node.data?.description === undefined)
+                return ItemRow
 
               return (
                 <HoverCard open={bind.focused} openDelay={2000}>
-                  <HoverCardTrigger>
-                    <button {...props}>
-                      <div className="flex items-center gap-2">
-                        {Icon}
-                        <span>{node.label}</span>
-                        {node.data?.tag && (
-                          <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
-                            {node.data?.tag}
-                          </div>
-                        )}
-                      </div>
-                      {node.data?.kbd && (
-                        <span className="text-muted-foreground text-xs">
-                          {node.data?.kbd}
-                        </span>
-                      )}
-                    </button>
-                  </HoverCardTrigger>
+                  <HoverCardTrigger>{ItemRow}</HoverCardTrigger>
                   <HoverCardContent
                     side="right"
                     align="center"
