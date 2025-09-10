@@ -1,6 +1,4 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: <explanation> */
-
-import type { SubmenuDef } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
@@ -8,7 +6,9 @@ import {
   createNumberRange,
   type DataTableFilterActions,
   type FilterModel,
+  type FilterOperators,
   type FilterStrategy,
+  filterTypeOperatorDetails,
   type Locale,
   numberFilterOperators,
   t,
@@ -28,11 +28,15 @@ import {
 import type { DateRange } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
+  CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui/command'
 import {
   Popover,
@@ -408,6 +412,26 @@ function __FilterValueController<TData, TType extends ColumnDataType>({
   locale = 'en',
 }: FilterValueControllerProps<TData, TType>) {
   switch (column.type) {
+    case 'option':
+      return (
+        <FilterValueOptionController
+          filter={filter as FilterModel<'option'>}
+          column={column as Column<TData, 'option'>}
+          actions={actions}
+          strategy={strategy}
+          locale={locale}
+        />
+      )
+    case 'multiOption':
+      return (
+        <FilterValueMultiOptionController
+          filter={filter as FilterModel<'multiOption'>}
+          column={column as Column<TData, 'multiOption'>}
+          actions={actions}
+          strategy={strategy}
+          locale={locale}
+        />
+      )
     case 'date':
       return (
         <FilterValueDateController
@@ -438,85 +462,64 @@ function __FilterValueController<TData, TType extends ColumnDataType>({
           locale={locale}
         />
       )
-    case 'option':
-    case 'multiOption':
     default:
       return null
   }
 }
 
-export function filterValueOptionMenu<TData>({
-  filter,
-  column,
-  actions,
-  locale = 'en',
-  strategy,
-}: FilterValueControllerProps<any, 'option'>): SubmenuDef<
-  Column<any, 'option'>,
-  ColumnOptionExtended
-> {
-  // Derive the initial selected values on mount
-  const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
-
-  // Separate the selected and unselected options
-  const { selectedOptions, unselectedOptions } = useMemo(() => {
-    const counts = column.getFacetedUniqueValues()
-    const allOptions = column.getOptions().map((o) => {
-      const currentlySelected = filter?.values.includes(o.value) ?? false
-      return {
-        ...o,
-        selected: currentlySelected,
-        count: counts?.get(o.value) ?? 0,
-      }
-    })
-
-    const selected = allOptions.filter((o) =>
-      initialSelectedValues.has(o.value),
-    )
-    const unselected = allOptions.filter(
-      (o) => !initialSelectedValues.has(o.value),
-    )
-    return { selectedOptions: selected, unselectedOptions: unselected }
-  }, [column, filter?.values, initialSelectedValues])
-
-  const handleToggle = useCallback(
-    (value: string, checked: boolean) => {
-      if (checked) actions.addFilterValue(column, [value])
-      else actions.removeFilterValue(column, [value])
-    },
-    [actions, column],
-  )
-
-  return {
-    kind: 'submenu',
-    id: column.id,
-    label: column.displayName,
-    title: column.displayName,
-    icon: column.icon,
-    inputPlaceholder: `${column.displayName}...`,
-    data: column,
-    nodes: [...selectedOptions, ...unselectedOptions].map((option) => ({
-      kind: 'item',
-      id: option.value,
-      icon: option.icon,
-      label: option.label,
-      keywords: [option.label],
-      data: option,
-      onSelect: () => handleToggle(option.value, !option.selected),
-    })),
-  }
+interface OptionItemProps {
+  option: ColumnOptionExtended
+  onToggle: (value: string, checked: boolean) => void
 }
 
-export function filterValueMultiOptionMenu<TData>({
+// Memoized option item to prevent re-renders unless its own props change
+const OptionItem = memo(function OptionItem({
+  option,
+  onToggle,
+}: OptionItemProps) {
+  const { value, label, icon: Icon, selected, count } = option
+  const handleSelect = useCallback(() => {
+    onToggle(value, !selected)
+  }, [onToggle, value, selected])
+
+  return (
+    <CommandItem
+      key={value}
+      onSelect={handleSelect}
+      className="group flex items-center justify-between gap-4"
+    >
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <Checkbox
+          checked={selected}
+          className="opacity-0 data-[state=checked]:opacity-100 group-data-[selected=true]:opacity-100 dark:border-ring mr-1 shrink-0"
+        />
+        <div className="shrink-0">
+          {Icon &&
+            (isValidElement(Icon) ? (
+              Icon
+            ) : (
+              <Icon className="size-4 text-primary" />
+            ))}
+        </div>
+        <span className="overflow-ellipsis whitespace-nowrap overflow-x-hidden">
+          {label}
+        </span>
+      </div>
+      {count && (
+        <span className="tabular-nums text-muted-foreground tracking-tight text-xs">
+          {new Intl.NumberFormat().format(count)}
+        </span>
+      )}
+    </CommandItem>
+  )
+})
+
+export function FilterValueOptionController<TData>({
   filter,
   column,
   actions,
   locale = 'en',
-  strategy,
-}: FilterValueControllerProps<any, 'multiOption'>): SubmenuDef<
-  Column<any, 'multiOption'>,
-  ColumnOptionExtended
-> {
+}: FilterValueControllerProps<TData, 'option'>) {
   // Derive the initial selected values on mount
   const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
 
@@ -549,24 +552,116 @@ export function filterValueMultiOptionMenu<TData>({
     [actions, column],
   )
 
-  return {
-    kind: 'submenu',
-    id: column.id,
-    label: column.displayName,
-    title: column.displayName,
-    icon: column.icon,
-    inputPlaceholder: `${column.displayName}...`,
-    data: column,
-    nodes: [...selectedOptions, ...unselectedOptions].map((option) => ({
-      kind: 'item',
-      id: option.value,
-      icon: option.icon,
-      label: option.label,
-      keywords: [option.label],
-      data: option,
-      onSelect: () => handleToggle(option.value, !option.selected),
-    })),
-  }
+  return (
+    <Command className="max-w-[300px]" loop>
+      <CommandInput autoFocus placeholder={t('search', locale)} />
+      <CommandEmpty>{t('noresults', locale)}</CommandEmpty>
+      <CommandList>
+        <CommandGroup className={cn(selectedOptions.length === 0 && 'hidden')}>
+          {selectedOptions.map((option) => (
+            <OptionItem
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </CommandGroup>
+        {/* Only show separator if there are both selected AND unselected options */}
+        <CommandSeparator
+          className={cn(
+            (unselectedOptions.length === 0 || selectedOptions.length === 0) &&
+              'hidden',
+          )}
+        />
+        <CommandGroup
+          className={cn(unselectedOptions.length === 0 && 'hidden')}
+        >
+          {unselectedOptions.map((option) => (
+            <OptionItem
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  )
+}
+
+export function FilterValueMultiOptionController<TData>({
+  filter,
+  column,
+  actions,
+  locale = 'en',
+}: FilterValueControllerProps<TData, 'multiOption'>) {
+  // Derive the initial selected values on mount
+  const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
+
+  // Separate the selected and unselected options
+  const { selectedOptions, unselectedOptions } = useMemo(() => {
+    const counts = column.getFacetedUniqueValues()
+    const allOptions = column.getOptions().map((o) => {
+      const currentlySelected = filter?.values.includes(o.value) ?? false
+      return {
+        ...o,
+        selected: currentlySelected,
+        count: counts?.get(o.value) ?? 0,
+      }
+    })
+
+    const selected = allOptions.filter((o) =>
+      initialSelectedValues.has(o.value),
+    )
+    const unselected = allOptions.filter(
+      (o) => !initialSelectedValues.has(o.value),
+    )
+    return { selectedOptions: selected, unselectedOptions: unselected }
+  }, [column, filter?.values, initialSelectedValues])
+
+  const handleToggle = useCallback(
+    (value: string, checked: boolean) => {
+      if (checked) actions.addFilterValue(column, [value])
+      else actions.removeFilterValue(column, [value])
+    },
+    [actions, column],
+  )
+
+  return (
+    <Command className="max-w-[300px]" loop>
+      <CommandInput autoFocus placeholder={t('search', locale)} />
+      <CommandEmpty>{t('noresults', locale)}</CommandEmpty>
+      <CommandList>
+        <CommandGroup className={cn(selectedOptions.length === 0 && 'hidden')}>
+          {selectedOptions.map((option) => (
+            <OptionItem
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </CommandGroup>
+        {/* Only show separator if there are both selected AND unselected options */}
+        <CommandSeparator
+          className={cn(
+            (unselectedOptions.length === 0 || selectedOptions.length === 0) &&
+              'hidden',
+          )}
+        />
+        <CommandGroup
+          className={cn(unselectedOptions.length === 0 && 'hidden')}
+        >
+          {unselectedOptions.map((option) => (
+            <OptionItem
+              key={option.value}
+              option={option}
+              onToggle={handleToggle}
+            />
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  )
 }
 
 export function FilterValueDateController<TData>({
