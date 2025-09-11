@@ -42,12 +42,16 @@ export type Iconish =
   | React.ElementType
   | React.ComponentType<{ className?: string }>
 
+export type NodeLoader<T = unknown> = () => Promise<NodeDef<T>[]>
+
+export type MaybeAsyncNodes<T = unknown> = NodeDef<T>[] | NodeLoader<T>
+
 export type MenuDef<T = unknown> = {
   id: string
   title?: string
   inputPlaceholder?: string
   hideSearchUntilActive?: boolean
-  nodes?: NodeDef<T>[]
+  nodes?: MaybeAsyncNodes<T>
   defaults?: MenuNodeDefaults<T>
   ui?: {
     slots?: Partial<MenuSlots<T>>
@@ -69,13 +73,13 @@ export type ItemDef<T = unknown> = BaseDef<'item'> &
   }
 
 export type GroupDef<T = unknown> = BaseDef<'group'> & {
-  nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
+  nodes: MaybeAsyncNodes<T>
   heading?: string
 }
 
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
   Searchable & {
-    nodes: NodeDef<TChild>[]
+    nodes: MaybeAsyncNodes<TChild>
     data?: T
     icon?: Iconish
     title?: string
@@ -93,6 +97,9 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
   nodes: Node<T>[]
   surfaceId: string
   depth: number
+  load?: NodeLoader<T>
+  loaded?: boolean
+  loading?: Promise<void>
 }
 
 /** Runtime node (instance) */
@@ -114,6 +121,9 @@ export type ItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
 export type GroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
   heading?: string
   nodes: (ItemNode<T> | SubmenuNode<any>)[]
+  load?: NodeLoader<T>
+  loaded?: boolean
+  loading?: Promise<void>
 }
 
 /** NOTE: Submenu node exposes its runtime child menu as `child` */
@@ -158,71 +168,84 @@ function instantiateMenuFromDef<T>(
     nodes: [] as Node<T>[],
     surfaceId,
     depth,
+    load: undefined,
+    loaded: true,
+    loading: undefined,
   }
 
-  function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
-    if (d.kind === 'item') {
-      const node: ItemNode<U> = {
-        ...(d as ItemDef<U>),
-        kind: 'item',
-        parent,
-        def: d,
-      }
-      return node
-    }
+  if (typeof def.nodes === 'function') {
+    parentless.load = def.nodes as NodeLoader<T>
+    parentless.loaded = false
+  } else {
+    parentless.nodes = (def.nodes ?? []).map((n) =>
+      instantiateNode(n as any, parentless),
+    ) as any
+    parentless.loaded = true
+  }
 
-    if (d.kind === 'group') {
-      const children = (d.nodes ?? []).map((c) =>
-        inst<any>(c as NodeDef<any>, parent),
-      )
-      const node: GroupNode<U> = {
-        id: d.id,
-        kind: 'group',
-        hidden: d.hidden,
-        parent,
-        def: d as GroupDef<U>,
-        heading: (d as GroupDef<U>).heading,
-        nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
-      }
-      return node
-    }
+  return parentless
+}
 
-    // submenu
-    const subDef = d as SubmenuDef<any, any>
-    const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
-
-    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
-    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
-    const child = instantiateMenuFromDef(
-      {
-        id: subDef.id,
-        title: subDef.title,
-        inputPlaceholder: subDef.inputPlaceholder,
-        hideSearchUntilActive: subDef.hideSearchUntilActive,
-        nodes: subDef.nodes as NodeDef<any>[],
-        defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
-        ui: subDef.ui as MenuDef<any>['ui'],
-      } as MenuDef<any>,
-      childSurfaceId,
-      parent.depth + 1,
-    ) as Menu<any>
-
-    const node: SubmenuNode<any, any> = {
-      ...(subDef as SubmenuDef<any, any>),
-      kind: 'submenu',
+function instantiateNode<T>(d: NodeDef<T>, parent: Menu<any>): Node<T> {
+  if (d.kind === 'item') {
+    const node: ItemNode<T> = {
+      ...(d as ItemDef<T>),
+      kind: 'item',
       parent,
       def: d,
-      child,
-      nodes: child.nodes,
     }
-
-    return node as Node<U>
+    return node
   }
 
-  parentless.nodes = (def.nodes ?? []).map((n) =>
-    inst(n as any, parentless),
-  ) as any
-  return parentless
+  if (d.kind === 'group') {
+    const gDef = d as GroupDef<any>
+    const node: GroupNode<any> = {
+      id: gDef.id,
+      kind: 'group',
+      hidden: gDef.hidden,
+      parent,
+      def: gDef,
+      heading: gDef.heading,
+      nodes: [],
+      load: typeof gDef.nodes === 'function' ? (gDef.nodes as NodeLoader<any>) : undefined,
+      loaded: typeof gDef.nodes === 'function' ? false : true,
+      loading: undefined,
+    }
+    if (Array.isArray(gDef.nodes)) {
+      node.nodes = (gDef.nodes as any).map((c) =>
+        instantiateNode(c as any, parent),
+      ) as any
+    }
+    return node as any
+  }
+
+  const subDef = d as SubmenuDef<any, any>
+  const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
+
+  const child = instantiateMenuFromDef(
+    {
+      id: subDef.id,
+      title: subDef.title,
+      inputPlaceholder: subDef.inputPlaceholder,
+      hideSearchUntilActive: subDef.hideSearchUntilActive,
+      nodes: subDef.nodes as any,
+      defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
+      ui: subDef.ui as MenuDef<any>['ui'],
+    } as MenuDef<any>,
+    childSurfaceId,
+    parent.depth + 1,
+  ) as Menu<any>
+
+  const node: SubmenuNode<any, any> = {
+    ...(subDef as SubmenuDef<any, any>),
+    kind: 'submenu',
+    parent,
+    def: d,
+    child,
+    nodes: child.nodes,
+  }
+
+  return node as any
 }
 
 /* ================================================================================================
@@ -2314,6 +2337,60 @@ function InputView<T>({
   return el as React.ReactElement
 }
 
+async function loadGroup<T>(group: GroupNode<T>) {
+  if (group.loaded) return
+  if (group.loading) return group.loading
+  if (!group.load) {
+    group.loaded = true
+    return
+  }
+  group.loading = group
+    .load()
+    .then((defs) => {
+      group.nodes = defs.map((d) => instantiateNode(d as any, group.parent) as any)
+      group.loaded = true
+    })
+    .finally(() => {
+      group.loading = undefined
+    })
+  await group.loading
+}
+
+async function loadMenu<T>(menu: Menu<T>) {
+  if (menu.loaded) return
+  if (menu.loading) return menu.loading
+  if (!menu.load) {
+    menu.loaded = true
+    return
+  }
+  menu.loading = menu
+    .load()
+    .then((defs) => {
+      menu.nodes = defs.map((d) => instantiateNode(d as any, menu)) as any
+      menu.loaded = true
+    })
+    .finally(() => {
+      menu.loading = undefined
+    })
+  await menu.loading
+  for (const n of menu.nodes) {
+    if (n.kind === 'group') await loadGroup(n)
+  }
+}
+
+async function ensureAllLoaded(menu: Menu<any>): Promise<void> {
+  await loadMenu(menu)
+  for (const node of menu.nodes) {
+    if (node.kind === 'group') {
+      for (const child of node.nodes) {
+        if (child.kind === 'submenu') await ensureAllLoaded(child.child)
+      }
+    } else if (node.kind === 'submenu') {
+      await ensureAllLoaded(node.child)
+    }
+  }
+}
+
 /** List view that renders the unfiltered tree or flattened search results. */
 function ListView<T>({
   store,
@@ -2344,6 +2421,7 @@ function ListView<T>({
   const { ownerId } = useFocusOwner()
   const surfaceId = useSurfaceId() ?? 'root'
   const mode = useDisplayMode()
+  const [version, force] = React.useReducer((x) => x + 1, 0)
 
   const onKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
@@ -2397,6 +2475,27 @@ function ListView<T>({
   }
 
   const q = (query ?? '').trim()
+
+  React.useEffect(() => {
+    let cancelled = false
+    loadMenu(menu).then(() => {
+      if (!cancelled) force()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [menu])
+
+  React.useEffect(() => {
+    if (!q) return
+    let cancelled = false
+    ensureAllLoaded(menu).then(() => {
+      if (!cancelled) force()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [q, menu])
 
   type SRItem = {
     type: 'item'
@@ -2479,7 +2578,7 @@ function ListView<T>({
             flat(),
           )
         : [],
-    [q, menu.nodes],
+    [q, menu.nodes, version],
   )
   const firstRowId = React.useMemo(
     () => results[0]?.node.id ?? null,
@@ -2510,52 +2609,62 @@ function ListView<T>({
   }, [store, q])
 
   if (q.length === 0) {
-    const hasAnyNodes = (menu.nodes ?? []).some((n) => !n.hidden)
-    children = hasAnyNodes
-      ? renderMenu<T>(menu, slots, defaults, classNames, store, undefined)
-      : slots.Empty({ query: '' })
+    const loading = !menu.loaded
+    if (loading) {
+      children = null
+    } else {
+      const hasAnyNodes = (menu.nodes ?? []).some((n) => !n.hidden)
+      children = hasAnyNodes
+        ? renderMenu<T>(menu, slots, defaults, classNames, store, undefined)
+        : slots.Empty({ query: '' })
+    }
   } else {
-    children =
-      results.length === 0
-        ? slots.Empty({ query: q })
-        : results.map((res) => {
-            const searchCtx: SearchContext = {
-              query: q,
-              isDeep: res.breadcrumbs.length > 0,
-              breadcrumbs: res.breadcrumbs,
-              breadcrumbIds: res.breadcrumbIds,
-            }
-            if (res.type === 'item') {
+    const loading = !menu.loaded
+    if (loading) {
+      children = null
+    } else {
+      children =
+        results.length === 0
+          ? slots.Empty({ query: q })
+          : results.map((res) => {
+              const searchCtx: SearchContext = {
+                query: q,
+                isDeep: res.breadcrumbs.length > 0,
+                breadcrumbs: res.breadcrumbs,
+                breadcrumbIds: res.breadcrumbIds,
+              }
+              if (res.type === 'item') {
+                return (
+                  <ItemRow
+                    key={`deep-${res.node.id}`}
+                    node={res.node}
+                    slot={slots.Item}
+                    store={store}
+                    search={searchCtx}
+                    classNames={classNames}
+                    defaults={defaults}
+                  />
+                )
+              }
+              const childMenu: SubmenuNode<any> = { ...res.node }
               return (
-                <ItemRow
-                  key={`deep-${res.node.id}`}
-                  node={res.node}
-                  slot={slots.Item}
-                  store={store}
-                  search={searchCtx}
-                  classNames={classNames}
-                  defaults={defaults}
-                />
+                <Sub key={`deep-${res.node.id}`}>
+                  <SubTriggerRow
+                    node={res.node}
+                    slot={slots.SubmenuTrigger as any}
+                    search={searchCtx}
+                    classNames={classNames}
+                  />
+                  <SubmenuContent
+                    menu={childMenu}
+                    slots={slots as any}
+                    defaults={defaults}
+                    classNames={classNames}
+                  />
+                </Sub>
               )
-            }
-            const childMenu: SubmenuNode<any> = { ...res.node }
-            return (
-              <Sub key={`deep-${res.node.id}`}>
-                <SubTriggerRow
-                  node={res.node}
-                  slot={slots.SubmenuTrigger as any}
-                  search={searchCtx}
-                  classNames={classNames}
-                />
-                <SubmenuContent
-                  menu={childMenu}
-                  slots={slots as any}
-                  defaults={defaults}
-                  classNames={classNames}
-                />
-              </Sub>
-            )
-          })
+            })
+    }
   }
 
   const el = slots.List({ children, bind })
