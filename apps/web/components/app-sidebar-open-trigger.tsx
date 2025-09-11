@@ -1,7 +1,7 @@
 'use client'
 
-import { useSidebar } from '@/components/ui/sidebar'
 import { PanelLeftOpenIcon } from 'lucide-react'
+import { useSidebar } from '@/components/ui/sidebar'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 

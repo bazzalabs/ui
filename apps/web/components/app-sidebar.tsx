@@ -16,7 +16,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from '@/components/ui/sidebar'
 import logoSrc from '@/public/bazzaui-v3-color.png'
 import { ThemeToggle } from './theme-toggle'
@@ -58,7 +57,6 @@ export function AppSidebar() {
                 <span className="text-xl text-border">/</span>
                 <span>ui</span>
               </Link>
-              <SidebarTrigger />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>

@@ -1,5 +1,6 @@
 // apps/web/components/CodeInline.tsx
 import { highlightInline } from '@/lib/highlighter'
+import { cn } from '@/lib/utils'
 
 type Props = {
   code: string
@@ -15,5 +16,5 @@ export default async function CodeInline({
   // If empty, render nothing-ish to keep tables tidy
   if (!code) return <code className={className} />
   const el = await highlightInline(code, lang)
-  return <span className={className}>{el}</span>
+  return <span className={cn('**:font-mono', className)}>{el}</span>
 }

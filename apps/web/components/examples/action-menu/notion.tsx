@@ -118,7 +118,9 @@ export function ActionMenu_Notion() {
                       kind: 'item',
                       id: 'ai-meeting-notes',
                       label: 'AI Meeting Notes',
-                      icon: <MicrophoneTextIcon className="size-4.5" />,
+                      icon: (
+                        <MicrophoneTextIcon className="size-4.5 fill-primary" />
+                      ),
                       data: {
                         description: 'Turn meetings into organized notes.',
                         tag: 'Beta',
@@ -128,7 +130,7 @@ export function ActionMenu_Notion() {
                       kind: 'item',
                       id: 'ai-block',
                       label: 'AI Block',
-                      icon: <AIBlockIcon className="size-4.5" />,
+                      icon: <AIBlockIcon className="size-4.5 fill-primary" />,
                       data: {
                         description: 'Generate content from any instruction.',
                         tag: 'New',

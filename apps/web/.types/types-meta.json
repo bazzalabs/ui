@@ -3462,7 +3462,7 @@
             "name": "kind",
             "type": "\"group\"",
             "required": true,
-            "description": "The kind of node. *"
+            "description": "The kind of node."
           },
           {
             "name": "id",
@@ -3479,13 +3479,13 @@
             "name": "parent",
             "type": "Menu<any>",
             "required": true,
-            "description": "Owning menu surface at runtime"
+            "description": "Owning menu surface at runtime."
           },
           {
             "name": "def",
             "type": "GroupDef<T>",
             "required": true,
-            "description": "Original author definition for this node"
+            "description": "Original author definition for this node."
           },
           {
             "name": "heading",
@@ -3514,7 +3514,7 @@
             "name": "kind",
             "type": "\"item\"",
             "required": true,
-            "description": "The kind of node. *"
+            "description": "The kind of node."
           },
           {
             "name": "id",
@@ -3531,13 +3531,13 @@
             "name": "parent",
             "type": "Menu<any>",
             "required": true,
-            "description": "Owning menu surface at runtime"
+            "description": "Owning menu surface at runtime."
           },
           {
             "name": "def",
             "type": "ItemDef<T>",
             "required": true,
-            "description": "Original author definition for this node"
+            "description": "Original author definition for this node."
           },
           {
             "name": "data",
@@ -3594,7 +3594,7 @@
             "name": "kind",
             "type": "\"submenu\"",
             "required": true,
-            "description": "The kind of node. *"
+            "description": "The kind of node."
           },
           {
             "name": "id",
@@ -3611,13 +3611,13 @@
             "name": "parent",
             "type": "Menu<any>",
             "required": true,
-            "description": "Owning menu surface at runtime"
+            "description": "Owning menu surface at runtime."
           },
           {
             "name": "def",
             "type": "SubmenuDef<T, TChild>",
             "required": true,
-            "description": "Original author definition for this node"
+            "description": "Original author definition for this node."
           },
           {
             "name": "data",

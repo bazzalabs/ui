@@ -97,14 +97,14 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
 
 /** Runtime node (instance) */
 export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
-  /** The kind of node. **/
+  /** The kind of node. */
   kind: K
   /** Unique id for this node. */
   id: string
   hidden?: boolean
-  /** Owning menu surface at runtime */
+  /** Owning menu surface at runtime. */
   parent: Menu<any>
-  /** Original author definition for this node */
+  /** Original author definition for this node. */
   def: D
 }
 
