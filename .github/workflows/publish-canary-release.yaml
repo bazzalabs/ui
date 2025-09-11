@@ -3,11 +3,28 @@ name: Publish canary release
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Which package(s) to release"
+        type: choice
+        options: [filters, action-menu, both]
+        default: both
+        required: true
+      bump_type:
+        description: "Bump type"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+        required: true
+      npm_tag:
+        description: "npm dist-tag"
+        type: choice
+        options: [canary, latest]
+        default: canary
+        required: true
       dry_run:
-        description: 'Run in dry-run mode (no actual publishing or git commits)'
-        required: false
-        default: false
+        description: "Run in dry-run mode (no publish or git push)"
         type: boolean
+        default: false
   pull_request:
     branches: [canary]
 
@@ -16,6 +33,19 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-24.04
+    # serialize matrix to avoid concurrent commits/tags racing
+    strategy:
+      max-parallel: 1
+      matrix:
+        package: [filters, action-menu]
+
+    # Skip matrix rows not selected by input
+    if: >
+      github.event_name == 'pull_request' ||
+      inputs.package == 'both' ||
+      (inputs.package == 'filters' && matrix.package == 'filters') ||
+      (inputs.package == 'action-menu' && matrix.package == 'action-menu')
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +55,7 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "${{ github.actor }}"
+          git config user.name  "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Setup Bun
@@ -47,24 +77,46 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Build and publish
+      - name: Build & release ${{ matrix.package }}
+        working-directory: packages/${{ matrix.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          cd packages/filters
+          # build (your publish.ts runs tests again as well)
           bun run build
-          if [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ inputs.dry_run }}" == "true" ]]; then
-            bun run release:patch:canary --no-git-tag --dry-run
-          else
-            bun run release:patch:canary --no-git-tag
+
+          # Decide flags based on event + dry_run
+          EXTRA_FLAGS="--no-git-tag --tag ${{ inputs.npm_tag }}"
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ inputs.dry_run }}" == "true" ]]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS --dry-run"
           fi
 
-      - name: Commit version changes
+          # Call your release script directly (uses your custom versioning)
+          bun scripts/release.ts --bump ${{ inputs.bump_type }} --path . $EXTRA_FLAGS
+
+      - name: Commit version bump for ${{ matrix.package }}
+        if: github.event_name != 'pull_request' && !inputs.dry_run
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          PKG_NAME=$(jq -r '.name' package.json)
+          NEXT_VERSION=$(jq -r '.version' package.json)
+
+          git add package.json
+          git commit -m "release(${PKG_NAME}): v${NEXT_VERSION}"
+
+      - name: Create per-package tag for ${{ matrix.package }}
+        if: github.event_name != 'pull_request' && !inputs.dry_run
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          PKG_NAME=$(jq -r '.name' package.json)
+          NEXT_VERSION=$(jq -r '.version' package.json)
+          # Sanitize tag so it doesn't contain '/'
+          TAG_NAME="${PKG_NAME}@${NEXT_VERSION}"
+
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
+      - name: Push branch (after commit)
         if: github.event_name != 'pull_request' && !inputs.dry_run
         run: |
-          NEXT_VERSION="v$(cat packages/filters/package.json | jq ".version" -r)"
-          git add packages/filters/package.json
-          git commit --amend --no-edit --no-verify
-          git tag $NEXT_VERSION
-          git push origin HEAD --force-with-lease --no-verify
-          git push origin $NEXT_VERSION --no-verify
+          git push origin HEAD
