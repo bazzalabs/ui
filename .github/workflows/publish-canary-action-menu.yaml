@@ -90,8 +90,8 @@ jobs:
           NEXT_VERSION=$(jq -r '.version' package.json)
           TAG_NAME="${PKG_NAME}@${NEXT_VERSION}"
           git tag "$TAG_NAME"
-          git push origin "$TAG_NAME"
+          git push origin "$TAG_NAME" --no-verify
 
       - name: Push branch
         if: ${{ github.event_name != 'pull_request' && !inputs.dry_run }}
-        run: git push origin HEAD
+        run: git push origin HEAD --no-verify
