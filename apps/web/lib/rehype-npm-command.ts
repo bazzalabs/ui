@@ -131,6 +131,24 @@ export function rehypeNpmCommand() {
           '__bunCommand__'
         ]?.replace('@bazza-ui/filters', '@bazza-ui/filters@canary')
       }
+
+      if (
+        node.properties?.['__rawString__']?.includes('@bazza-ui/action-menu') &&
+        env.NEXT_PUBLIC_APP_URL !== 'https://ui.bazza.dev'
+      ) {
+        node.properties['__npmCommand__'] = node.properties[
+          '__npmCommand__'
+        ]?.replace('@bazza-ui/action-menu', '@bazza-ui/action-menu@canary')
+        node.properties['__yarnCommand__'] = node.properties[
+          '__yarnCommand__'
+        ]?.replace('@bazza-ui/action-menu', '@bazza-ui/action-menu@canary')
+        node.properties['__pnpmCommand__'] = node.properties[
+          '__pnpmCommand__'
+        ]?.replace('@bazza-ui/action-menu', '@bazza-ui/action-menu@canary')
+        node.properties['__bunCommand__'] = node.properties[
+          '__bunCommand__'
+        ]?.replace('@bazza-ui/action-menu', '@bazza-ui/action-menu@canary')
+      }
     })
   }
 }
