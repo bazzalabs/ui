@@ -96,8 +96,13 @@ async function publishPackage({
       // Tag git commit
       if (!noGitTag) {
         try {
-          execSync(`git tag v${packageJson.version}`, { stdio: 'pipe' })
-          execSync(`git push origin v${packageJson.version}`, { stdio: 'pipe' })
+          execSync(`git tag ${packageJson.name}@${packageJson.version}`, {
+            stdio: 'pipe',
+          })
+          execSync(
+            `git push origin ${packageJson.name}@${packageJson.version}`,
+            { stdio: 'pipe' },
+          )
           console.log(`🏷 Created git tag v${packageJson.version}`)
         } catch (error) {
           console.warn('! Failed to create git tag:', error)
@@ -147,7 +152,7 @@ async function main() {
   }
 }
 
-// @ts-ignore
+// @ts-expect-error
 if (import.meta.main) {
   main()
 }
