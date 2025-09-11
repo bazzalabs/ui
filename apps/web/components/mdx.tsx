@@ -1,61 +1,124 @@
+import { LinkIcon } from 'lucide-react'
+import type { MDXComponents } from 'mdx/types'
+import Image from 'next/image'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
 import { TypeTable } from '@/components/type-table'
 import { cn } from '@/lib/utils'
 import type { NpmCommands } from '@/types/unist'
-import type { MDXComponents } from 'mdx/types'
-import Image from 'next/image'
 import { CodeBlockCommand } from './code-block-command'
+import CodeInline from './code-inline'
 import CollapsibleCodeBlock from './collapsible-code-block'
+import ComponentCode from './component-code'
+import { ComponentFrame } from './component-frame'
+import { ComponentsList } from './components-list'
+import { Examples } from './examples'
+import PropRow from './prop-row'
+import { PropsTable } from './props-table'
 import { ResponsiveImage } from './responsive-image'
+
+const HeadingAnchor = ({
+  id,
+  children,
+  iconClassName,
+}: {
+  id: string
+  children?: React.ReactNode
+  iconClassName?: string
+}) => (
+  <a href={`#${id}`} className="flex items-center gap-3 group">
+    {children}
+    <LinkIcon
+      className={cn(
+        'size-4 text-muted-foreground/50 inline align-middle group-hover:text-muted-foreground pointer-events-none',
+        iconClassName,
+      )}
+    />
+  </a>
+)
 
 export const components: Readonly<MDXComponents> = {
   h1: (props) => (
     <h2 className={cn('text-2xl mt-4', props.className)} {...props} />
   ),
-  h2: (props) => (
-    <h2
-      className={cn(
-        'text-3xl font-semibold tracking-[-0.02em] drop-shadow-xs first:mt-0 mt-20 mb-8',
-        '[&>code]:text-2xl',
-        props.className,
-      )}
-      {...props}
-    />
-  ),
-  h3: (props) => (
+  h2: ({ children, className, ...props }) => {
+    return (
+      <h2
+        className={cn(
+          'text-3xl font-semibold tracking-[-0.02em] drop-shadow-xs first:mt-0 mt-20 mb-8',
+          '[&>code]:text-2xl',
+          className,
+        )}
+        {...props}
+      >
+        {props.id ? (
+          <HeadingAnchor id={props.id}>{children}</HeadingAnchor>
+        ) : (
+          children
+        )}
+      </h2>
+    )
+  },
+  h3: ({ children, className, ...props }) => (
     <h3
       className={cn(
-        'text-2xl font-semibold tracking-[-0.02em] mt-18 mb-6',
+        'group/heading text-2xl font-semibold tracking-[-0.02em] mt-18 mb-6 [&>a]:no-underline flex items-center gap-2',
         '[&>code]:text-xl',
-        props.className,
+        className,
       )}
       {...props}
-    />
+    >
+      {props.id ? (
+        <HeadingAnchor id={props.id} iconClassName="size-3.5">
+          {children}
+        </HeadingAnchor>
+      ) : (
+        children
+      )}
+    </h3>
   ),
-  h4: (props) => (
+  h4: ({ children, className, ...props }) => (
     <h4
       className={cn(
-        'text-xl font-semibold tracking-[-0.02em] mt-16 mb-6',
+        'text-xl font-semibold tracking-[-0.02em] mt-16 mb-6 [&>a]:no-underline flex items-center gap-2',
         '[&>code]:text-lg',
-        props.className,
+        className,
       )}
       {...props}
-    />
+    >
+      {props.id ? (
+        <HeadingAnchor id={props.id} iconClassName="size-3">
+          {children}
+        </HeadingAnchor>
+      ) : (
+        children
+      )}
+    </h4>
   ),
-  h5: (props) => (
+  h5: ({ children, className, ...props }) => (
     <h5
       className={cn(
         'text-lg font-semibold tracking-[-0.01em] mt-14 mb-4',
         '[&>code]:text-base',
-        props.className,
+        className,
       )}
       {...props}
-    />
+    >
+      {props.id ? (
+        <HeadingAnchor id={props.id} iconClassName="size-3">
+          {children}
+        </HeadingAnchor>
+      ) : (
+        children
+      )}
+    </h5>
   ),
   h6: (props) => <h6 {...props} />,
   p: (props) => <p className="mb-4 last:mb-0 leading-7" {...props} />,
   a: (props) => (
-    <a className="underline decoration-[0.5px] underline-offset-2" {...props} />
+    <a
+      className="underline decoration-[0.5px] underline-offset-2 decoration-inherit hover:decoration-primary hover:decoration-[1px] hover:underline-offset-[2.25px]"
+      {...props}
+    />
   ),
   u: (props) => <u className="underline underline-offset-2" {...props} />,
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
@@ -103,12 +166,9 @@ export const components: Readonly<MDXComponents> = {
     <hr className="my-4 md:my-8" {...props} />
   ),
   table: ({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
-    <div className="my-6 w-full overflow-y-auto">
+    <div className="my-6 w-full overflow-y-auto bg-background rounded-lg border shadow-xs">
       <table
-        className={cn(
-          'relative w-full overflow-hidden border-none text-sm',
-          className,
-        )}
+        className={cn('relative w-full overflow-hidden text-sm', className)}
         {...props}
       />
     </div>
@@ -122,7 +182,7 @@ export const components: Readonly<MDXComponents> = {
   th: ({ className, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
     <th
       className={cn(
-        'px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right',
+        'bg-muted px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right',
         className,
       )}
       {...props}
@@ -195,4 +255,12 @@ export const components: Readonly<MDXComponents> = {
   CollapsibleCodeBlock,
   TypeTable,
   IssuesTableWrapper,
+  // @ts-expect-error
+  Examples,
+  ComponentCode: ComponentCode,
+  ComponentFrame,
+  CodeInline,
+  PropRow,
+  PropsTable,
+  ComponentsList,
 }

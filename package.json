@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "dev:up": "turbo run dev test:watch",
+    "dev:up": "turbo run dev test:watch types:meta:watch",
+    "types:meta": "turbo run types:meta",
+    "types:meta:watch": "turbo run types:meta:watch",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
     "bench": "turbo run bench",
@@ -18,7 +20,7 @@
     "filters:llm": "repomix --include \"packages/filters/**/*\" --ignore \"**/locales/*.json\" --copy --stdout"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.6",
+    "@biomejs/biome": "2.2.2",
     "@types/node": "^22",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
@@ -29,7 +31,7 @@
   "engines": {
     "node": ">=22"
   },
-  "packageManager": "bun@1.2.4",
+  "packageManager": "bun@1.2.21",
   "workspaces": [
     "apps/*",
     "packages/*"

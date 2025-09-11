@@ -120,11 +120,11 @@ export const ISSUE_STATUSES: IssueStatus[] = [
 ] as const
 
 export const ISSUE_LABELS: IssueLabel[] = [
-  {
-    id: '550e8401-e29b-41d4-a716-446655440000',
-    name: 'A super, duper long label for testing overflow behaviour and truncating',
-    color: 'red',
-  },
+  // {
+  //   id: '550e8401-e29b-41d4-a716-446655440000',
+  //   name: 'A super, duper long label for testing overflow behaviour and truncating',
+  //   color: 'red',
+  // },
   { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Bug', color: 'red' },
   {
     id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
@@ -553,7 +553,7 @@ export function generateSampleIssue(): Issue {
   const title = generateIssueTitle()
   const description = lorem(4, 8)
 
-  const labelsCount = randomInteger(0, 5)
+  const labelsCount = randomInteger(0, 1)
   const labels =
     labelsCount > 0
       ? (sample(ISSUE_LABELS, labelsCount) as IssueLabel[])
@@ -602,5 +602,5 @@ export function generateIssues(count: number) {
 }
 
 export const ISSUES = generateIssues(
-  process.env.NODE_ENV === 'production' ? 30000 : 5000,
+  process.env.NODE_ENV === 'production' ? 100_000 : 30_000,
 )

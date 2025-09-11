@@ -13,7 +13,6 @@ export const CodeBlockWrapper = ({
   className,
   children,
   loading,
-  ...props
 }: CodeBlockWrapperProps) => {
   return (
     <div
@@ -37,9 +36,11 @@ export const CodeBlockWrapper = ({
 export function CodeBlock({
   code,
   lang,
+  className,
 }: {
   code: string
   lang: BundledLanguage
+  className?: string
 }) {
   const [nodes, setNodes] = useState<JSX.Element | null>(null)
 
@@ -47,5 +48,9 @@ export function CodeBlock({
     void highlight(code, lang).then(setNodes)
   }, [code, lang])
 
-  return <CodeBlockWrapper loading={!nodes}>{nodes}</CodeBlockWrapper>
+  return (
+    <CodeBlockWrapper className={className} loading={!nodes}>
+      {nodes}
+    </CodeBlockWrapper>
+  )
 }

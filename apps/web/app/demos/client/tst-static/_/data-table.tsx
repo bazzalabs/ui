@@ -1,3 +1,4 @@
+import { flexRender, type Table as TanStackTable } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -7,16 +8,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { type Table as TanStackTable, flexRender } from '@tanstack/react-table'
+import { format } from './utils'
 
 export function DataTable({ table }: { table: TanStackTable<any> }) {
+  const selectedRows = format(table.getFilteredSelectedRowModel().rows.length)
+  const totalAvailableRows = format(table.getFilteredRowModel().rows.length)
+  const totalRows = format(table.getCoreRowModel().rows.length)
+
   return (
     <>
-      <div className="rounded-md border bg-white dark:bg-inherit">
-        <Table>
+      <div className="rounded-md border bg-site-background">
+        <Table className="rounded-md">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-popover">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>
@@ -65,10 +70,9 @@ export function DataTable({ table }: { table: TanStackTable<any> }) {
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground tabular-nums">
-          {table.getFilteredSelectedRowModel().rows.length} of{' '}
-          {table.getFilteredRowModel().rows.length} row(s) selected.{' '}
+          {selectedRows} of {totalAvailableRows} row(s) selected.{' '}
           <span className="text-primary font-medium">
-            Total row count: {table.getCoreRowModel().rows.length}
+            Total row count: {totalRows}
           </span>
         </div>
         <div className="space-x-2">

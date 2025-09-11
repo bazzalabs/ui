@@ -1,5 +1,8 @@
 'use client'
 
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { DiscordIcon, GithubIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,13 +16,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
-  SidebarTrigger,
 } from '@/components/ui/sidebar'
 import logoSrc from '@/public/bazzaui-v3-color.png'
-import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { ThemeToggle } from './theme-toggle'
 
 const items = [
@@ -30,6 +28,10 @@ const items = [
   {
     title: 'Getting Started',
     url: '/docs/getting-started',
+  },
+  {
+    title: 'Components',
+    url: '/docs/components',
   },
   {
     title: 'Feedback',
@@ -59,7 +61,6 @@ export function AppSidebar() {
                 <span className="text-xl text-border">/</span>
                 <span>ui</span>
               </Link>
-              <SidebarTrigger />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
@@ -72,7 +73,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={item.url === pathname}
-                    className="font-medium text-muted-foreground"
+                    className="font-medium text-muted-foreground hover-expand-[2px]"
                   >
                     <a href={item.url}>
                       <span>{item.title}</span>
@@ -90,8 +91,19 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  isActive={'/docs/action-menu' === pathname}
+                  className="font-medium text-muted-foreground hover-expand-[2px]"
+                >
+                  <a href={'/docs/action-menu'}>
+                    <span>Action Menu</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
                   isActive={'/docs/data-table-filter' === pathname}
-                  className="font-medium text-muted-foreground"
+                  className="font-medium text-muted-foreground hover-expand-[2px]"
                 >
                   <a href={'/docs/data-table-filter'}>
                     <span>Data Table Filter</span>

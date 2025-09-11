@@ -9,12 +9,10 @@ export default function RootLayout({
 }>) {
   return (
     <SidebarProvider>
-      <div className="md:grid md:grid-cols-[max-content_1fr] xl:grid-cols-[1fr_2fr_1fr] gap-8 w-full">
+      <div className="lg:grid lg:grid-cols-[240px_1fr] w-full px-4 lg:px-0">
         <AppSidebar />
         <AppSidebarOpenTrigger />
-        <main className="md:grid md:grid-cols-subgrid xl:col-span-2 no-scrollbar">
-          {children}
-        </main>
+        <main className="no-scrollbar">{children}</main>
       </div>
     </SidebarProvider>
   )

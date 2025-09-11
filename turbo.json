@@ -15,6 +15,13 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*", "registry.json"],
       "outputs": ["public/r/**"]
     },
+    "types:meta": {
+      "outputs": ["apps/web/.types/**"]
+    },
+    "types:meta:watch": {
+      "cache": false,
+      "persistent": true
+    },
     "dev": {
       "cache": false,
       "persistent": true

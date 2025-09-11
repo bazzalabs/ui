@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
       permanent: false,
     },
     {
+      source: '/r/action-menu',
+      destination: '/r/action-menu.json',
+      permanent: false,
+    },
+    {
       source: '/changelog',
       destination: '/changelog/latest',
       permanent: false,

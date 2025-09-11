@@ -2,30 +2,23 @@ export const dynamic = 'force-static'
 
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { components } from '@/components/mdx'
 import { compileMDX } from 'next-mdx-remote/rsc'
-import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeCallouts from 'rehype-callouts'
-import rehypePrettyCode from 'rehype-pretty-code'
 import type { Options as RehypePrettyCodeOptions } from 'rehype-pretty-code'
+import rehypePrettyCode from 'rehype-pretty-code'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
+import { components } from '@/components/mdx'
 import 'rehype-callouts/theme/github'
-import { DashboardTableOfContents } from '@/components/toc'
-import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { rehypeNpmCommand } from '@/lib/rehype-npm-command'
-import { getTableOfContents } from '@/lib/toc'
 import { transformerNotationDiff } from '@shikijs/transformers'
 import type { Metadata } from 'next'
 import { visit } from 'unist-util-visit'
+import { DashboardTableOfContents } from '@/components/toc'
+import { Badge } from '@/components/ui/badge'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { rehypeNpmCommand } from '@/lib/rehype-npm-command'
+import { remarkTypeTable } from '@/lib/remark-type-table'
+import { getTableOfContents } from '@/lib/toc'
 
 export async function generateMetadata({
   params,
@@ -106,7 +99,7 @@ export default async function Page({
     options: {
       parseFrontmatter: true,
       mdxOptions: {
-        remarkPlugins: [remarkGfm],
+        remarkPlugins: [remarkGfm, remarkTypeTable],
         rehypePlugins: [
           rehypeSlug,
           rehypeCallouts,
@@ -150,7 +143,6 @@ export default async function Page({
             })
           },
           rehypeNpmCommand,
-          rehypeAutolinkHeadings,
         ],
       },
     },
@@ -170,21 +162,10 @@ export default async function Page({
   const toc = await getTableOfContents(rawContent)
 
   return (
-    <div className="md:col-span-1 xl:col-span-2 md:grid md:grid-cols-subgrid xl:gap-4 px-4 xl:p-0">
+    <div className="flex">
       <div className="flex flex-col gap-8 w-full max-w-screen-md mx-auto col-span-1 my-4 md:my-8 xl:my-16 no-scrollbar">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="md:hidden" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>Docs</BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>{metadata.section}</BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{metadata.title}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -208,7 +189,7 @@ export default async function Page({
         <div>{content}</div>
       </div>
 
-      <div className="hidden xl:block col-span-1 max-w-sm sticky mt-16 ml-16 min-2xl:ml-8 top-16 h-[calc(100vh-8rem)]">
+      <div className="hidden 2xl:block w-[240px] sticky mt-16 top-16 mr-8 h-[calc(100vh-8rem)]">
         {toc && <DashboardTableOfContents toc={toc} />}
       </div>
     </div>

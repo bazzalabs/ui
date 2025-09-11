@@ -4,6 +4,19 @@
   "homepage": "https://ui.bazza.dev",
   "items": [
     {
+      "name": "action-menu",
+      "title": "Action menu",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/action-menu@canary", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/action-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/action-menu.tsx"
+        }
+      ]
+    },
+    {
       "name": "data-table-filter",
       "title": "Data table filter",
       "description": "A powerful data table filter component inspired by Linear.",
