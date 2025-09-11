@@ -7,9 +7,11 @@ import {
   type SubmenuNode,
 } from '@bazza-ui/action-menu'
 import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 import {
+  AssigneeIcon,
   ProjectPropertiesIcon,
   ProjectStatus,
   ProjectStatusIcon,
@@ -91,6 +93,64 @@ const statusMenu: SubmenuDef = {
   ],
 }
 
+const assigneeMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'assignee',
+  icon: <AssigneeIcon />,
+  label: 'Assignee',
+  title: 'Assignee',
+  inputPlaceholder: 'Assignee...',
+  nodes: [
+    {
+      kind: 'item',
+      id: '@kianbazza',
+      label: 'Kian Bazza',
+      icon: (
+        <Avatar>
+          <AvatarImage
+            src="https://github.com/kianbazza.png"
+            alt="@kianbazza"
+          />
+          <AvatarFallback>KB</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@shadcn',
+      label: 'shadcn',
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@rauchg',
+      label: 'Guillermo Rauch',
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
+          <AvatarFallback>RG</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@t3dotgg',
+      label: 'Theo Browne',
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
+          <AvatarFallback>TB</AvatarFallback>
+        </Avatar>
+      ),
+    },
+  ],
+}
+
 const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'project-status',
@@ -161,5 +221,5 @@ export const menuData: MenuDef = {
       },
     },
   },
-  nodes: [statusMenu, projectPropertiesMenu],
+  nodes: [statusMenu, assigneeMenu, projectPropertiesMenu],
 }

@@ -10,6 +10,7 @@ import CodeInline from './code-inline'
 import CollapsibleCodeBlock from './collapsible-code-block'
 import ComponentCode from './component-code'
 import { ComponentFrame } from './component-frame'
+import { ComponentsList } from './components-list'
 import { Examples } from './examples'
 import PropRow from './prop-row'
 import { PropsTable } from './props-table'
@@ -261,4 +262,5 @@ export const components: Readonly<MDXComponents> = {
   CodeInline,
   PropRow,
   PropsTable,
+  ComponentsList,
 }

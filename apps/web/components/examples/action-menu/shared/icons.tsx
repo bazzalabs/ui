@@ -405,3 +405,23 @@ export const ProjectPropertiesIcon = () => (
     <path d="M11 10a1 1 0 1 1 0 2 1 1 0 0 1 0-2ZM14 10a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"></path>
   </svg>
 )
+
+export const AssigneeIcon = () => (
+  <svg
+    className={cn(
+      'size-4 fill-muted-foreground group-data-[focused=true]:fill-primary',
+    )}
+    viewBox="0 0 16 16"
+    role="img"
+    focusable="false"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M8 4a2 2 0 0 0-2 2v.5a2 2 0 0 0 4 0V6a2 2 0 0 0-2-2Z"></path>
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm-2.879-4.121-1.01 1.01a5.5 5.5 0 1 1 7.778 0l-1.01-1.01A3 3 0 0 0 8.757 10H7.243a3 3 0 0 0-2.122.879Z"
+    ></path>
+  </svg>
+)
