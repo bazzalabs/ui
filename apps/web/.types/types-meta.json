@@ -1638,7 +1638,7 @@
           },
           {
             "name": "slots",
-            "type": "Partial<MenuSlots<T>> | undefined",
+            "type": "Partial<SurfaceSlots<T>> | undefined",
             "required": false
           },
           {
@@ -3161,7 +3161,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    nodes?: NodeDef<T>[];\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    nodes?: NodeDef<T>[];\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<SurfaceSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
         "props": [
           {
             "name": "id",
@@ -3195,7 +3195,7 @@
           },
           {
             "name": "ui",
-            "type": "{ slots?: Partial<MenuSlots<T>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<SurfaceClassNames> | undefined; } | undefined",
+            "type": "{ slots?: Partial<SurfaceSlots<T>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<SurfaceClassNames> | undefined; } | undefined",
             "required": false
           }
         ]
@@ -3316,7 +3316,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseDef<'submenu'> & Searchable & {\n    nodes: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<MenuSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & {\n    nodes: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<SurfaceSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
         "props": [
           {
             "name": "kind",
@@ -3384,7 +3384,7 @@
           },
           {
             "name": "ui",
-            "type": "{ slots?: Partial<MenuSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
+            "type": "{ slots?: Partial<SurfaceSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
             "required": false
           }
         ]
@@ -3427,7 +3427,7 @@
           },
           {
             "name": "ui",
-            "type": "{ slots?: Partial<MenuSlots<T>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<SurfaceClassNames> | undefined; } | undefined",
+            "type": "{ slots?: Partial<SurfaceSlots<T>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<SurfaceClassNames> | undefined; } | undefined",
             "required": false
           },
           {
@@ -3663,7 +3663,7 @@
           },
           {
             "name": "ui",
-            "type": "{ slots?: Partial<MenuSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
+            "type": "{ slots?: Partial<SurfaceSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
             "required": false
           },
           {
@@ -3682,6 +3682,226 @@
         "name": "MenuNodeKind",
         "kind": "typealias",
         "definition": "'item' | 'group' | 'submenu'"
+      },
+      "SurfaceSlots": {
+        "name": "SurfaceSlots",
+        "kind": "typealias",
+        "typeParams": [
+          {
+            "name": "T",
+            "default": "unknown"
+          }
+        ],
+        "doc": "Slot renderers to customize visuals.",
+        "definition": "{\n    Item: (args: {\n        node: ItemNode<T>;\n        search?: SearchContext;\n        mode: Omit<ResponsiveMode, 'auto'>;\n        bind: RowBindAPI;\n    }) => React.ReactNode;\n    Content: (args: {\n        menu: Menu<T>;\n        children: React.ReactNode;\n        bind: ContentBindAPI;\n    }) => React.ReactNode;\n    Header?: (args: {\n        menu: Menu<T>;\n    }) => React.ReactNode;\n    Input: (args: {\n        value: string;\n        onChange: (v: string) => void;\n        bind: InputBindAPI;\n    }) => React.ReactNode;\n    Empty?: (args: {\n        query: string;\n    }) => React.ReactNode;\n    List: (args: {\n        children: React.ReactNode;\n        bind: ListBindAPI;\n    }) => React.ReactNode;\n    Footer?: (args: {\n        menu: Menu<T>;\n    }) => React.ReactNode;\n    SubmenuTrigger: (args: {\n        node: SubmenuNode<T>;\n        search?: SearchContext;\n        bind: RowBindAPI;\n    }) => React.ReactNode;\n}",
+        "props": [
+          {
+            "name": "Item",
+            "type": "(args: { node: ItemNode<T>; search?: SearchContext | undefined; mode: Omit<ResponsiveMode, \"auto\">; bind: RowBindAPI; }) => ReactNode",
+            "required": true
+          },
+          {
+            "name": "Content",
+            "type": "(args: { menu: Menu<T>; children: ReactNode; bind: ContentBindAPI; }) => ReactNode",
+            "required": true
+          },
+          {
+            "name": "Header",
+            "type": "((args: { menu: Menu<T>; }) => ReactNode) | undefined",
+            "required": false
+          },
+          {
+            "name": "Input",
+            "type": "(args: { value: string; onChange: (v: string) => void; bind: InputBindAPI; }) => ReactNode",
+            "required": true
+          },
+          {
+            "name": "Empty",
+            "type": "((args: { query: string; }) => ReactNode) | undefined",
+            "required": false
+          },
+          {
+            "name": "List",
+            "type": "(args: { children: ReactNode; bind: ListBindAPI; }) => ReactNode",
+            "required": true
+          },
+          {
+            "name": "Footer",
+            "type": "((args: { menu: Menu<T>; }) => ReactNode) | undefined",
+            "required": false
+          },
+          {
+            "name": "SubmenuTrigger",
+            "type": "(args: { node: SubmenuNode<T, unknown>; search?: SearchContext | undefined; bind: RowBindAPI; }) => ReactNode",
+            "required": true
+          }
+        ]
+      },
+      "SurfaceSlotProps": {
+        "name": "SurfaceSlotProps",
+        "kind": "typealias",
+        "doc": "Slot props forwarded to *surface* slots (Input/List/Content/Header/Footer).",
+        "definition": "{\n    content?: React.HTMLAttributes<HTMLElement>;\n    header?: React.HTMLAttributes<HTMLElement>;\n    input?: React.InputHTMLAttributes<HTMLInputElement>;\n    list?: React.HTMLAttributes<HTMLElement>;\n    footer?: React.HTMLAttributes<HTMLElement>;\n}",
+        "props": [
+          {
+            "name": "content",
+            "type": "HTMLAttributes<HTMLElement> | undefined",
+            "required": false
+          },
+          {
+            "name": "header",
+            "type": "HTMLAttributes<HTMLElement> | undefined",
+            "required": false
+          },
+          {
+            "name": "input",
+            "type": "InputHTMLAttributes<HTMLInputElement> | undefined",
+            "required": false
+          },
+          {
+            "name": "list",
+            "type": "HTMLAttributes<HTMLElement> | undefined",
+            "required": false
+          },
+          {
+            "name": "footer",
+            "type": "HTMLAttributes<HTMLElement> | undefined",
+            "required": false
+          }
+        ]
+      },
+      "SurfaceClassNames": {
+        "name": "SurfaceClassNames",
+        "kind": "typealias",
+        "doc": "ClassNames that style the *surface* (content/list/items/etc.).",
+        "definition": "{\n    root?: string; // (reserved) if you wrap the entire surface\n    content?: string;\n    input?: string;\n    list?: string;\n    item?: string;\n    subtrigger?: string;\n    group?: string;\n    groupHeading?: string;\n}",
+        "props": [
+          {
+            "name": "root",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "content",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "input",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "list",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "item",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "subtrigger",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "group",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "groupHeading",
+            "type": "string | undefined",
+            "required": false
+          }
+        ]
+      },
+      "ShellSlotProps": {
+        "name": "ShellSlotProps",
+        "kind": "typealias",
+        "doc": "Slot props forwarded to the *shell* (Vaul).",
+        "definition": "{\n    drawerRoot?: Partial<React.ComponentProps<typeof Drawer.Root>>;\n    drawerOverlay?: React.ComponentPropsWithoutRef<typeof Drawer.Overlay>;\n    drawerContent?: React.ComponentPropsWithoutRef<typeof Drawer.Content>;\n}",
+        "props": [
+          {
+            "name": "drawerRoot",
+            "type": "Partial<DialogProps> | undefined",
+            "required": false
+          },
+          {
+            "name": "drawerOverlay",
+            "type": "Omit<Omit<DialogOverlayProps & RefAttributes<HTMLDivElement>, \"ref\"> & RefAttributes<HTMLDivElement>, \"ref\"> | undefined",
+            "required": false
+          },
+          {
+            "name": "drawerContent",
+            "type": "Omit<Omit<DialogContentProps & RefAttributes<HTMLDivElement>, \"ref\"> & RefAttributes<HTMLDivElement>, \"ref\"> | undefined",
+            "required": false
+          }
+        ]
+      },
+      "ShellClassNames": {
+        "name": "ShellClassNames",
+        "kind": "typealias",
+        "doc": "ClassNames that style the *shell* (overlay / drawer container / trigger).",
+        "definition": "{\n    root?: string;\n    overlay?: string;\n    drawerContent?: string;\n    drawerHandle?: string;\n    trigger?: string;\n}",
+        "props": [
+          {
+            "name": "root",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "overlay",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "drawerContent",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "drawerHandle",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "trigger",
+            "type": "string | undefined",
+            "required": false
+          }
+        ]
+      },
+      "CreateActionMenuOptions": {
+        "name": "CreateActionMenuOptions",
+        "kind": "typealias",
+        "typeParams": [
+          {
+            "name": "T"
+          }
+        ],
+        "definition": "{\n    /** Default content-level options such as `vimBindings` and `dir`. */\n    defaults?: {\n        content?: Pick<ActionMenuSurfaceProps<T>, 'vimBindings' | 'dir' | 'onCloseAutoClear'>;\n    };\n    surface?: {\n        slots?: Partial<SurfaceSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n    /** NEW: Defaults for the Vaul/overlay shell. */\n    shell?: {\n        classNames?: Partial<ShellClassNames>;\n        slotProps?: Partial<ShellSlotProps>;\n    };\n}",
+        "props": [
+          {
+            "name": "defaults",
+            "type": "{ content?: Pick<ActionMenuSurfaceProps<T>, \"dir\" | \"vimBindings\" | \"onCloseAutoClear\"> | undefined; } | undefined",
+            "required": false,
+            "description": "Default content-level options such as `vimBindings` and `dir`."
+          },
+          {
+            "name": "surface",
+            "type": "{ slots?: Partial<SurfaceSlots<T>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<SurfaceClassNames> | undefined; } | undefined",
+            "required": false
+          },
+          {
+            "name": "shell",
+            "type": "{ classNames?: Partial<ShellClassNames> | undefined; slotProps?: Partial<ShellSlotProps> | undefined; } | undefined",
+            "required": false,
+            "description": "NEW: Defaults for the Vaul/overlay shell."
+          }
+        ]
       },
       "CreateActionMenuResult": {
         "name": "CreateActionMenuResult",
@@ -3712,6 +3932,106 @@
           {
             "name": "Surface",
             "type": "ForwardRefExoticComponent<ActionMenuSurfaceProps<T> & RefAttributes<HTMLDivElement>>",
+            "required": true
+          }
+        ]
+      },
+      "SearchContext": {
+        "name": "SearchContext",
+        "kind": "typealias",
+        "doc": "Additional context passed to item/submenu renderers during search.",
+        "definition": "{\n    query: string;\n    isDeep: boolean;\n    breadcrumbs: string[];\n    breadcrumbIds: string[];\n}",
+        "props": [
+          {
+            "name": "query",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "isDeep",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "name": "breadcrumbs",
+            "type": "string[]",
+            "required": true
+          },
+          {
+            "name": "breadcrumbIds",
+            "type": "string[]",
+            "required": true
+          }
+        ]
+      },
+      "RowBindAPI": {
+        "name": "RowBindAPI",
+        "kind": "typealias",
+        "doc": "Row interaction & wiring helpers provided to slot renderers.",
+        "definition": "{\n    focused: boolean;\n    disabled: boolean;\n    getRowProps: <T extends React.HTMLAttributes<HTMLElement>>(overrides?: T) => T & {\n        ref: React.Ref<any>;\n        id: string;\n        role: 'option';\n        tabIndex: -1;\n        'data-action-menu-item-id': string;\n        'data-focused'?: 'true';\n        'aria-selected'?: boolean;\n        'aria-disabled'?: boolean;\n    };\n}",
+        "props": [
+          {
+            "name": "focused",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "name": "getRowProps",
+            "type": "<T extends React.HTMLAttributes<HTMLElement>>(overrides?: T | undefined) => T & { ref: Ref<any>; id: string; role: \"option\"; tabIndex: -1; 'data-action-menu-item-id': string; 'data-focused'?: \"true\" | undefined; 'aria-selected'?: boolean | undefined; 'aria-disabled'?: boolean | undefined; }",
+            "required": true
+          }
+        ]
+      },
+      "ContentBindAPI": {
+        "name": "ContentBindAPI",
+        "kind": "typealias",
+        "doc": "Content/surface wiring helpers provided to slot renderers.",
+        "definition": "{\n    getContentProps: <T extends React.HTMLAttributes<HTMLElement>>(overrides?: T) => T & {\n        ref: React.Ref<any>;\n        role: 'menu';\n        tabIndex: -1;\n        'data-slot': 'action-menu-content';\n        'data-state': 'open' | 'closed';\n        'data-action-menu-surface': true;\n        'data-surface-id': string;\n    };\n}",
+        "props": [
+          {
+            "name": "getContentProps",
+            "type": "<T extends React.HTMLAttributes<HTMLElement>>(overrides?: T | undefined) => T & { ref: Ref<any>; role: \"menu\"; tabIndex: -1; 'data-slot': \"action-menu-content\"; 'data-state': \"open\" | \"closed\"; 'data-action-menu-surface': true; 'data-surface-id': string; }",
+            "required": true
+          }
+        ]
+      },
+      "InputBindAPI": {
+        "name": "InputBindAPI",
+        "kind": "typealias",
+        "doc": "Search input wiring helpers provided to slot renderers.",
+        "definition": "{\n    getInputProps: <T extends React.InputHTMLAttributes<HTMLInputElement>>(overrides?: T) => T & {\n        ref: React.Ref<any>;\n        role: 'combobox';\n        'data-slot': 'action-menu-input';\n        'data-action-menu-input': true;\n        'aria-autocomplete': 'list';\n        'aria-expanded': true;\n        'aria-controls'?: string;\n        'aria-activedescendant'?: string;\n    };\n}",
+        "props": [
+          {
+            "name": "getInputProps",
+            "type": "<T extends React.InputHTMLAttributes<HTMLInputElement>>(overrides?: T | undefined) => T & { ref: Ref<any>; role: \"combobox\"; 'data-slot': \"action-menu-input\"; 'data-action-menu-input': true; 'aria-autocomplete': \"list\"; 'aria-expanded': true; 'aria-controls'?: string | undefined; 'aria-activedescendant'?: string | u...",
+            "required": true
+          }
+        ]
+      },
+      "ListBindAPI": {
+        "name": "ListBindAPI",
+        "kind": "typealias",
+        "doc": "List wiring helpers provided to slot renderers.",
+        "definition": "{\n    getListProps: <T extends React.HTMLAttributes<HTMLElement>>(overrides?: T) => T & {\n        ref: React.Ref<any>;\n        role: 'listbox';\n        id: string;\n        tabIndex: number;\n        'data-slot': 'action-menu-list';\n        'data-action-menu-list': true;\n        'aria-activedescendant'?: string;\n    };\n    getItemOrder: () => string[];\n    getActiveId: () => string | null;\n}",
+        "props": [
+          {
+            "name": "getListProps",
+            "type": "<T extends React.HTMLAttributes<HTMLElement>>(overrides?: T | undefined) => T & { ref: Ref<any>; role: \"listbox\"; id: string; tabIndex: number; 'data-slot': \"action-menu-list\"; 'data-action-menu-list': true; 'aria-activedescendant'?: string | undefined; }",
+            "required": true
+          },
+          {
+            "name": "getItemOrder",
+            "type": "() => string[]",
+            "required": true
+          },
+          {
+            "name": "getActiveId",
+            "type": "() => string | null",
             "required": true
           }
         ]

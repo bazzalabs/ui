@@ -18,7 +18,18 @@ export type {
   ItemNode,
   SubmenuNode,
   MenuNodeKind,
+  SurfaceSlots,
+  SurfaceSlotProps,
+  SurfaceClassNames,
+  ShellSlotProps,
+  ShellClassNames,
+  CreateActionMenuOptions,
   CreateActionMenuResult,
+  SearchContext,
+  RowBindAPI,
+  ContentBindAPI,
+  InputBindAPI,
+  ListBindAPI,
 } from './action-menu.js'
 
 export { renderIcon, createActionMenu } from './action-menu.js'

@@ -143,35 +143,22 @@ The action is defined by the `onSelect` handler, which gives you access to:
 - The `node` instance, typed as `ItemNode<T>`.
 - The `search` context, if the item is appearing in a filtered menu.
 
-#### API reference
-
-##### ItemDef
-
-<TypeTable pkg="@bazza-ui/action-menu" type="ItemDef" />
-
-##### ItemNode
-
-<TypeTable pkg="@bazza-ui/action-menu" type="ItemNode" />
-
 ### Group
 
 Groups items and submenus together with a `heading`.
-
-##### API reference
-
-<TypeTable pkg="@bazza-ui/action-menu" type="GroupDef" />
 
 ### Submenu
 
 A submenu of actions that the user can run.
 
-##### API reference
+## Rendering
 
-<TypeTable pkg="@bazza-ui/action-menu" type="SubmenuDef" />
+Once you have your menu data, the next step is to render it.
 
-## Factory
+The library provides three mechanisms to customize the menu's appearance and behavior:
 
-_In progress._
+- Create a reusable, styled action menu in your design system with `createActionMenu()`.
+- Further customize for each instance/menu/submenu with the the `ui` prop on `MenuDef` and `SubmenuDef`.
 
 ## Examples
 
@@ -204,6 +191,16 @@ _In progress._
   <Examples.ActionMenu.SubmenusDeep />
 </ComponentFrame>
 
+### Customized submenus
+
+<ComponentFrame 
+  containerClassName='sm:h-104' 
+  previewClassName='w-full flex justify-center'   
+  src="components/examples/action-menu/submenus-customized.tsx"
+>
+  <Examples.ActionMenu.SubmenusCustomized />
+</ComponentFrame>
+
 ### Header + footer
 
 <ComponentFrame 
@@ -223,5 +220,100 @@ _In progress._
 >
   <Examples.ActionMenu.Notion />
 </ComponentFrame>
+
+## API reference
+
+### MenuNodeKind
+
+```ts
+type MenuNodeKind = 'item' | 'group' | 'submenu'
+```
+
+### Iconish
+
+```ts
+type Iconish =
+  | React.ReactNode
+  | React.ReactElement
+  | React.ElementType
+  | React.ComponentType<{ className?: string }>
+```
+
+### Node
+
+```ts
+type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
+```
+
+### NodeDef
+
+```ts
+type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
+```
+
+### MenuDef
+
+<TypeTable pkg="@bazza-ui/action-menu" type="MenuDef" />
+
+### GroupDef
+
+<TypeTable pkg="@bazza-ui/action-menu" type="GroupDef" />
+
+### ItemDef
+<TypeTable pkg="@bazza-ui/action-menu" type="ItemDef" />
+
+### SubmenuDef
+<TypeTable pkg="@bazza-ui/action-menu" type="SubmenuDef" />
+
+### Menu
+
+<TypeTable pkg="@bazza-ui/action-menu" type="Menu" />
+
+### GroupNode
+<TypeTable pkg="@bazza-ui/action-menu" type="GroupNode" />
+
+### ItemNode
+
+<TypeTable pkg="@bazza-ui/action-menu" type="ItemNode" />
+
+### SubmenuNode
+
+<TypeTable pkg="@bazza-ui/action-menu" type="SubmenuNode" />
+
+### SurfaceSlots
+<TypeTable pkg="@bazza-ui/action-menu" type="SurfaceSlots" />
+
+### SurfaceSlotProps
+<TypeTable pkg="@bazza-ui/action-menu" type="SurfaceSlotProps" />
+
+### SurfaceClassNames
+<TypeTable pkg="@bazza-ui/action-menu" type="SurfaceClassNames" />
+
+### ShellSlotProps
+<TypeTable pkg="@bazza-ui/action-menu" type="ShellSlotProps" />
+
+### ShellClassNames
+<TypeTable pkg="@bazza-ui/action-menu" type="ShellClassNames" />
+
+### CreateActionMenuOptions
+<TypeTable pkg="@bazza-ui/action-menu" type="CreateActionMenuOptions" />
+
+### CreateActionMenuResult
+<TypeTable pkg="@bazza-ui/action-menu" type="CreateActionMenuResult" />
+
+### SearchContext
+<TypeTable pkg="@bazza-ui/action-menu" type="SearchContext" />
+
+### RowBindAPI
+<TypeTable pkg="@bazza-ui/action-menu" type="RowBindAPI" />
+
+### ContentBindAPI
+<TypeTable pkg="@bazza-ui/action-menu" type="ContentBindAPI" />
+
+### InputBindAPI
+<TypeTable pkg="@bazza-ui/action-menu" type="InputBindAPI" />
+
+### ListBindAPI
+<TypeTable pkg="@bazza-ui/action-menu" type="ListBindAPI" />
 
 <div className='mt-32' />

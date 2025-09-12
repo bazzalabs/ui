@@ -24,7 +24,7 @@ export const PropsTable = ({
         )}
         {...props}
       >
-        <div className="w-full items-center px-3 py-2 bg-muted grid-cols-subgrid grid col-span-2 text-sm font-medium">
+        <div className="w-full items-center px-3 py-2 bg-muted dark:bg-muted/50 grid-cols-subgrid grid col-span-2 text-sm font-medium">
           <span>Name</span>
           <span>Type</span>
         </div>
