@@ -10,6 +10,7 @@ import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { flat, partition, pipe, prop, sortBy } from 'remeda'
+import type { ClassNameValue } from 'tailwind-merge'
 import { Drawer } from 'vaul'
 import { cn } from './cn.js'
 import { commandScore } from './command-score.js'
@@ -50,7 +51,7 @@ export type MenuDef<T = unknown> = {
   nodes?: NodeDef<T>[]
   defaults?: MenuNodeDefaults<T>
   ui?: {
-    slots?: Partial<MenuSlots<T>>
+    slots?: Partial<SurfaceSlots<T>>
     slotProps?: Partial<SurfaceSlotProps>
     classNames?: Partial<SurfaceClassNames>
   }
@@ -83,7 +84,7 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     hideSearchUntilActive?: boolean
     defaults?: MenuNodeDefaults<T>
     ui?: {
-      slots?: Partial<MenuSlots<TChild>>
+      slots?: Partial<SurfaceSlots<TChild>>
       slotProps?: Partial<SurfaceSlotProps>
       classNames?: Partial<SurfaceClassNames>
     }
@@ -341,7 +342,7 @@ export type SurfaceSlotProps = {
 }
 
 /** Slot renderers to customize visuals. */
-export type MenuSlots<T = unknown> = {
+export type SurfaceSlots<T = unknown> = {
   Item: (args: {
     node: ItemNode<T>
     search?: SearchContext
@@ -373,7 +374,7 @@ export type MenuSlots<T = unknown> = {
 }
 
 /* Default minimal renderers (safe fallbacks) */
-function defaultSlots<T>(): Required<MenuSlots<T>> {
+function defaultSlots<T>(): Required<SurfaceSlots<T>> {
   return {
     Content: ({ children, bind }) => (
       <div {...bind.getContentProps()}>{children}</div>
@@ -445,6 +446,20 @@ function mergeProps<
     if (aH || bH) merged[key] = composeEventHandlers(aH, bH)
   }
   if (a.ref || b.ref) merged.ref = composeRefs(a.ref, b.ref)
+  return merged
+}
+
+function mergeClassNames<T extends Record<string, ClassNameValue>>(a: T, b: T) {
+  const merged: Record<string, ClassNameValue> = {}
+
+  Object.keys(a).forEach((key) => {
+    merged[key] = a[key]
+  })
+
+  Object.keys(b).forEach((key) => {
+    merged[key] = cn(a[key] ?? '', b[key])
+  })
+
   return merged
 }
 
@@ -1298,7 +1313,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
 export interface ActionMenuSurfaceProps<T = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
   menu: MenuDef<T> | Menu<T>
-  slots?: Partial<MenuSlots<T>>
+  slots?: Partial<SurfaceSlots<T>>
   surfaceSlotProps?: Partial<SurfaceSlotProps>
   vimBindings?: boolean
   dir?: Direction
@@ -1398,7 +1413,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     }
   }, [])
 
-  const slots = React.useMemo<Required<MenuSlots<T>>>(
+  const slots = React.useMemo<Required<SurfaceSlots<T>>>(
     () => ({
       ...defaultSlots<T>(),
       ...(slotOverrides as any),
@@ -1418,7 +1433,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
   )
 
   const mergedClassNames = React.useMemo(
-    () => ({ ...(surfaceClassNames ?? {}), ...(menu.ui?.classNames ?? {}) }),
+    () => mergeClassNames(surfaceClassNames ?? {}, menu.ui?.classNames ?? {}),
     [surfaceClassNames, menu.ui?.classNames],
   )
 
@@ -1781,7 +1796,7 @@ function SubTriggerRow<T>({
   search,
 }: {
   node: SubmenuNode<T>
-  slot: NonNullable<MenuSlots<T>['SubmenuTrigger']>
+  slot: NonNullable<SurfaceSlots<T>['SubmenuTrigger']>
   classNames?: Partial<SurfaceClassNames>
   search?: SearchContext
 }) {
@@ -1989,7 +2004,7 @@ function SubmenuContent<T>({
   classNames,
 }: {
   menu: SubmenuNode<T>
-  slots: Required<MenuSlots<T>>
+  slots: Required<SurfaceSlots<T>>
   defaults?: Partial<MenuNodeDefaults<T>>
   classNames?: Partial<SurfaceClassNames>
 }) {
@@ -2064,7 +2079,7 @@ function makeRowId(
 
 function renderMenu<T>(
   menu: Menu<T>,
-  slots: Required<MenuSlots<T>>,
+  slots: Required<SurfaceSlots<T>>,
   defaults: Partial<MenuNodeDefaults<T>> | undefined,
   classNames: Partial<SurfaceClassNames> | undefined,
   store: SurfaceStore,
@@ -2173,7 +2188,7 @@ function ItemRow<T>({
   search,
 }: {
   node: ItemNode<T>
-  slot: NonNullable<MenuSlots<T>['Item']>
+  slot: NonNullable<SurfaceSlots<T>['Item']>
   classNames?: Partial<SurfaceClassNames>
   defaults?: Partial<MenuNodeDefaults<T>>
   store: SurfaceStore
@@ -2275,7 +2290,7 @@ function InputView<T>({
   store: SurfaceStore
   value: string
   onChange: (v: string) => void
-  slot: NonNullable<MenuSlots<T>['Input']>
+  slot: NonNullable<SurfaceSlots<T>['Input']>
   slotProps: Partial<SurfaceSlotProps>
   inputPlaceholder?: string
   classNames?: Partial<SurfaceClassNames>
@@ -2328,7 +2343,7 @@ function ListView<T>({
 }: {
   store: SurfaceStore
   menu: Menu<T>
-  slots: Required<MenuSlots<T>>
+  slots: Required<SurfaceSlots<T>>
   slotProps?: Partial<SurfaceSlotProps>
   defaults?: Partial<MenuNodeDefaults<T>>
   classNames?: Partial<SurfaceClassNames>
@@ -2811,7 +2826,7 @@ export type CreateActionMenuResult<T = unknown> = {
   >
 }
 
-export function createActionMenu<T>(opts?: {
+export type CreateActionMenuOptions<T> = {
   /** Default content-level options such as `vimBindings` and `dir`. */
   defaults?: {
     content?: Pick<
@@ -2820,7 +2835,7 @@ export function createActionMenu<T>(opts?: {
     >
   }
   surface?: {
-    slots?: Partial<MenuSlots<T>>
+    slots?: Partial<SurfaceSlots<T>>
     slotProps?: Partial<SurfaceSlotProps>
     classNames?: Partial<SurfaceClassNames>
   }
@@ -2829,11 +2844,15 @@ export function createActionMenu<T>(opts?: {
     classNames?: Partial<ShellClassNames>
     slotProps?: Partial<ShellSlotProps>
   }
-}): CreateActionMenuResult<T> {
+}
+
+export function createActionMenu<T = unknown>(
+  opts?: CreateActionMenuOptions<T>,
+): CreateActionMenuResult<T> {
   const baseSlots = {
     ...defaultSlots<T>(),
     ...(opts?.surface?.slots as any),
-  } as Required<MenuSlots<T>>
+  } as Required<SurfaceSlots<T>>
   const baseSurfaceSlotProps = ((opts?.surface?.slotProps as any) ??
     {}) as Partial<SurfaceSlotProps>
   const baseDefaults = opts?.defaults?.content ?? {}
@@ -2846,7 +2865,7 @@ export function createActionMenu<T>(opts?: {
     HTMLDivElement,
     ActionMenuSurfaceProps<T>
   >(({ slots, surfaceSlotProps, surfaceClassNames, ...rest }, ref) => {
-    const mergedSlots = React.useMemo<MenuSlots<T>>(
+    const mergedSlots = React.useMemo<SurfaceSlots<T>>(
       () => ({ ...baseSlots, ...(slots as any) }),
       [slots],
     )
