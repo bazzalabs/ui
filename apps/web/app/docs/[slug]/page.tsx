@@ -189,7 +189,7 @@ export default async function Page({
         <div>{content}</div>
       </div>
 
-      <div className="hidden 2xl:block w-[240px] sticky mt-16 top-16 mr-8 h-[calc(100vh-8rem)]">
+      <div className="hidden 2xl:block w-[240px] sticky mt-16 top-16 mr-8 pb-8 h-[calc(100vh-4rem)] overflow-y-auto">
         {toc && <DashboardTableOfContents toc={toc} />}
       </div>
     </div>
