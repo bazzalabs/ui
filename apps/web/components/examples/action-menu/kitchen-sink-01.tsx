@@ -216,7 +216,7 @@ export const menuData: MenuDef = {
       closeOnSelect: true,
       onSelect: ({ node }) => {
         toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
-          icon: renderIcon(node.icon),
+          icon: renderIcon(node.icon, 'size-4'),
         })
       },
     },
