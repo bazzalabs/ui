@@ -16,6 +16,23 @@ import { cn } from './cn.js'
 import { commandScore } from './command-score.js'
 import { useMediaQuery } from './use-media-query.js'
 
+export const AM_DIAG = {
+  lastLeaveTs: 0,
+  lastLeaveId: null as string | null,
+  sample(label: string, startTs: number) {
+    const endTs = performance.now()
+    const ms = endTs - startTs
+    // Console + Performance timeline
+    console.log(`[AM] ${label}: ${ms.toFixed(1)}ms`)
+    performance.mark(`${label}-end`)
+    performance.measure(label, {
+      start: `${label}-start`,
+      end: `${label}-end`,
+    })
+    return ms
+  },
+}
+
 /* ================================================================================================
  * Types — Menu model (generic)
  * ============================================================================================== */
@@ -1925,6 +1942,9 @@ function SubTriggerRow<T>({
         if (!sub.open) sub.onOpenChange(true)
       },
       onPointerLeave: (e: React.PointerEvent) => {
+        AM_DIAG.lastLeaveTs = performance.now()
+        AM_DIAG.lastLeaveId = rowId
+        performance.mark('am-hover2paint-start') // visible in DevTools
         if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
           return
         const contentRect = sub.contentRef.current?.getBoundingClientRect()
@@ -2016,6 +2036,46 @@ function SubmenuContent<T>({
   React.useEffect(() => {
     sub.pendingOpenModalityRef.current = null
   }, [sub])
+
+  React.useEffect(() => {
+    if (!sub.open) return
+
+    // Optional: only measure when this submenu corresponds to the trigger
+    // the pointer just left/entered during a vertical sweep.
+    // sub.triggerItemId is already set in SubTriggerRow
+    const newTriggerId = sub.triggerItemId
+
+    // Schedule after the DOM/state flip → next paint boundary.
+    // rAF #1: commit JS & layout; rAF #2: after the next paint.
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => {
+        // Touch a layout property to guarantee the element is in the render tree
+        const painted = sub.contentRef.current
+        painted?.getBoundingClientRect()
+
+        // Build a label that ties old→new triggers (optional)
+        const label = newTriggerId
+          ? `am-hover2paint:${AM_DIAG.lastLeaveId ?? 'prev'}→${newTriggerId}`
+          : 'am-hover2paint'
+
+        // Seed the start mark only once (optional but helps DevTools)
+        try {
+          performance.mark('am-hover2paint-start')
+        } catch {}
+
+        // Compute and record
+        const start = AM_DIAG.lastLeaveTs || performance.now()
+        AM_DIAG.sample(label, start)
+      })
+      ;(SubmenuContent as any).__raf2 = id2
+    })
+    ;(SubmenuContent as any).__raf1 = id1
+
+    return () => {
+      cancelAnimationFrame((SubmenuContent as any).__raf1)
+      cancelAnimationFrame((SubmenuContent as any).__raf2)
+    }
+  }, [sub.open, sub.triggerItemId])
 
   const inner = (
     <SurfaceBase<T>
