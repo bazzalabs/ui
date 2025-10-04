@@ -1,6 +1,7 @@
-import ComponentCode from '@/components/component-code'
+'use client'
+
+import { Examples } from '@/components/examples'
 import { NavBar } from '@/components/nav-bar'
-import { ActionMenuCompoennt } from './menu'
 
 export default function Page() {
   return (
@@ -21,10 +22,12 @@ export default function Page() {
       </div>
 
       <div className="border-b border-border border-dashed bg-site-background flex-1 flex flex-col">
-        <div className="px-4 py-2 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x flex-1">
-          <div className="flex flex-col gap-8 p-8">
+        <div className="px-4 py-2 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x flex-1 flex flex-col">
+          <div className="flex flex-col gap-8 p-8 flex-1 w-fit">
             {/* Content here! */}
-            <ActionMenuCompoennt />
+            <Examples.ActionMenu.Massive numItems={10_000} />
+            <Examples.ActionMenu.KitchenSink01 />
+            <Examples.ActionMenu.Submenus />
           </div>
         </div>
       </div>

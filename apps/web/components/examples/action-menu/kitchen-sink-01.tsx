@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  type GroupDef,
   type MenuDef,
   renderIcon,
   type SubmenuDef,
@@ -8,10 +9,13 @@ import {
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
+import { generateItems } from './shared/generate-items'
 import {
   AssigneeIcon,
+  DurationIcon,
   LabelsIcon,
   ProjectPropertiesIcon,
   ProjectStatus,
@@ -106,6 +110,7 @@ const assigneeMenu: SubmenuDef = {
       kind: 'item',
       id: '@kianbazza',
       label: 'Kian Bazza',
+      keywords: ['Kian Bazza'],
       icon: (
         <Avatar>
           <AvatarImage
@@ -120,6 +125,7 @@ const assigneeMenu: SubmenuDef = {
       kind: 'item',
       id: '@shadcn',
       label: 'shadcn',
+      keywords: ['shadcn'],
       icon: (
         <Avatar>
           <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
@@ -131,6 +137,7 @@ const assigneeMenu: SubmenuDef = {
       kind: 'item',
       id: '@rauchg',
       label: 'Guillermo Rauch',
+      keywords: ['Guillermo Rauch'],
       icon: (
         <Avatar>
           <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
@@ -142,6 +149,7 @@ const assigneeMenu: SubmenuDef = {
       kind: 'item',
       id: '@t3dotgg',
       label: 'Theo Browne',
+      keywords: ['Theo Browne'],
       icon: (
         <Avatar>
           <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
@@ -150,6 +158,29 @@ const assigneeMenu: SubmenuDef = {
       ),
     },
   ],
+}
+
+const durationMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'duration',
+  icon: <DurationIcon />,
+  label: 'Duration',
+  title: 'Duration',
+  render: () => {
+    return (
+      <div className="w-[300px] h-[200px] p-4">
+        <Slider />
+      </div>
+    )
+  },
+  // nodes: [
+  //   {
+  //     kind: 'item',
+  //     id: 'duration-controller',
+  //     render: ({ node, bind, search }) => {
+  //     },
+  //   },
+  // ],
 }
 
 export const LABEL_STYLES_BG = {
@@ -714,9 +745,30 @@ const projectPropertiesMenu: SubmenuDef = {
   id: 'project-properties',
   icon: <ProjectPropertiesIcon />,
   title: 'Project properties',
-  label: 'Project properties',
+  label: 'Project properties super duper long!',
   inputPlaceholder: 'Project properties...',
   nodes: [projectStatusMenu],
+}
+
+const groupAMenu: GroupDef = {
+  kind: 'group',
+  id: 'group-a',
+  heading: 'Group A',
+  nodes: generateItems(3),
+}
+
+const groupBMenu: GroupDef = {
+  kind: 'group',
+  id: 'group-b',
+  heading: 'Group B',
+  nodes: generateItems(5),
+}
+
+const groupCMenu: GroupDef = {
+  kind: 'group',
+  id: 'group-c',
+  heading: 'Group C',
+  nodes: generateItems(7),
 }
 
 export const menuData: MenuDef = {
@@ -731,5 +783,13 @@ export const menuData: MenuDef = {
       },
     },
   },
-  nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu],
+  nodes: [
+    // groupAMenu,
+    statusMenu,
+    assigneeMenu,
+    durationMenu,
+    labelsMenu,
+    projectPropertiesMenu,
+    // groupCMenu,
+  ],
 }

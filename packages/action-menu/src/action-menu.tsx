@@ -8,6 +8,7 @@ import { Portal } from '@radix-ui/react-portal'
 import { Presence } from '@radix-ui/react-presence'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { flat, partition, pipe, prop, sortBy } from 'remeda'
 import type { ClassNameValue } from 'tailwind-merge'
@@ -15,23 +16,6 @@ import { Drawer } from 'vaul'
 import { cn } from './cn.js'
 import { commandScore } from './command-score.js'
 import { useMediaQuery } from './use-media-query.js'
-
-export const AM_DIAG = {
-  lastLeaveTs: 0,
-  lastLeaveId: null as string | null,
-  sample(label: string, startTs: number) {
-    const endTs = performance.now()
-    const ms = endTs - startTs
-    // Console + Performance timeline
-    console.log(`[AM] ${label}: ${ms.toFixed(1)}ms`)
-    performance.mark(`${label}-end`)
-    performance.measure(label, {
-      start: `${label}-start`,
-      end: `${label}-end`,
-    })
-    return ms
-  },
-}
 
 /* ================================================================================================
  * Types — Menu model (generic)
@@ -60,7 +44,17 @@ export type Iconish =
   | React.ElementType
   | React.ComponentType<{ className?: string }>
 
-export type MenuDef<T = unknown> = {
+type StateDescriptor<T> = {
+  value: T
+  onValueChange: React.Dispatch<React.SetStateAction<T>>
+  defaultValue?: T
+}
+
+export type MenuState = {
+  input?: StateDescriptor<string>
+}
+
+export type MenuDef<T = unknown> = MenuState & {
   id: string
   title?: string
   inputPlaceholder?: string
@@ -84,6 +78,12 @@ export type ItemDef<T = unknown> = BaseDef<'item'> &
       search?: SearchContext
     }) => void
     closeOnSelect?: boolean
+    render?: (args: {
+      node: ItemNode<T>
+      search?: SearchContext
+      mode: Omit<ResponsiveMode, 'auto'>
+      bind: RowBindAPI
+    }) => React.ReactNode
   }
 
 export type GroupDef<T = unknown> = BaseDef<'group'> & {
@@ -92,8 +92,9 @@ export type GroupDef<T = unknown> = BaseDef<'group'> & {
 }
 
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
-  Searchable & {
-    nodes: NodeDef<TChild>[]
+  Searchable &
+  MenuState & {
+    nodes?: NodeDef<TChild>[]
     data?: T
     icon?: Iconish
     title?: string
@@ -105,12 +106,22 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
       slotProps?: Partial<SurfaceSlotProps>
       classNames?: Partial<SurfaceClassNames>
     }
+    render?: () => React.ReactNode
   }
 
 export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
   nodes: Node<T>[]
   surfaceId: string
   depth: number
+}
+
+/** Additional context passed to item/submenu renderers during search. */
+export type SearchContext = {
+  query: string
+  isDeep: boolean
+  score: number
+  breadcrumbs: string[]
+  breadcrumbIds: string[]
 }
 
 /** Runtime node (instance) */
@@ -127,7 +138,9 @@ export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
 }
 
 export type ItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
-  Omit<ItemDef<T>, 'kind' | 'hidden'>
+  Omit<ItemDef<T>, 'kind' | 'hidden'> & {
+    search?: SearchContext
+  }
 
 export type GroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
   heading?: string
@@ -142,19 +155,12 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
   Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {
     child: Menu<TChild>
     nodes: Node<TChild>[]
+    search?: SearchContext
   }
 
 export type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
 
 export type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
-
-/** Additional context passed to item/submenu renderers during search. */
-export type SearchContext = {
-  query: string
-  isDeep: boolean
-  breadcrumbs: string[]
-  breadcrumbIds: string[]
-}
 
 /** Defaulted parts of nodes for convenience. */
 export type MenuNodeDefaults<T = unknown> = {
@@ -176,6 +182,7 @@ function instantiateMenuFromDef<T>(
     nodes: [] as Node<T>[],
     surfaceId,
     depth,
+    input: def.input,
   }
 
   function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
@@ -220,6 +227,7 @@ function instantiateMenuFromDef<T>(
         nodes: subDef.nodes as NodeDef<any>[],
         defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
         ui: subDef.ui as MenuDef<any>['ui'],
+        input: subDef.input,
       } as MenuDef<any>,
       childSurfaceId,
       parent.depth + 1,
@@ -336,7 +344,9 @@ export type SurfaceClassNames = {
   content?: string
   input?: string
   list?: string
+  itemWrapper?: string
   item?: string
+  subtriggerWrapper?: string
   subtrigger?: string
   group?: string
   groupHeading?: string
@@ -358,14 +368,16 @@ export type SurfaceSlotProps = {
   footer?: React.HTMLAttributes<HTMLElement>
 }
 
+export interface ItemSlotProps<T = unknown> {
+  node: ItemNode<T>
+  search?: SearchContext
+  mode: Omit<ResponsiveMode, 'auto'>
+  bind: RowBindAPI
+}
+
 /** Slot renderers to customize visuals. */
 export type SurfaceSlots<T = unknown> = {
-  Item: (args: {
-    node: ItemNode<T>
-    search?: SearchContext
-    mode: Omit<ResponsiveMode, 'auto'>
-    bind: RowBindAPI
-  }) => React.ReactNode
+  Item: (args: ItemSlotProps<T>) => React.ReactNode
   Content: (args: {
     menu: Menu<T>
     children: React.ReactNode
@@ -414,16 +426,16 @@ function defaultSlots<T>(): Required<SurfaceSlots<T>> {
       </div>
     ),
     Item: ({ node, bind }) => (
-      <div {...bind.getRowProps()}>
+      <li {...bind.getRowProps()}>
         {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
         <span>{node.label ?? String(node.id)}</span>
-      </div>
+      </li>
     ),
     SubmenuTrigger: ({ node, bind }) => (
-      <div {...bind.getRowProps()}>
+      <li {...bind.getRowProps()}>
         {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
         <span>{node.label ?? node.title ?? String(node.id)}</span>
-      </div>
+      </li>
     ),
     Footer: () => null,
   }
@@ -1228,9 +1240,10 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
     if (!el) return
     const inputEl = el.querySelector<HTMLElement>('[data-action-menu-input]')
     const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
-    const firstRow = el.querySelector<HTMLElement>(
-      '[data-action-menu-list] [data-action-menu-item-id]',
+    const listEl = el.querySelector<HTMLElement>(
+      '[data-slot="action-menu-list"]',
     )
+    const firstRow = listEl?.querySelector('li')
     if (!hasVisibleInput || !firstRow) {
       setFirstRowAlignOffset(0)
       return
@@ -1242,6 +1255,9 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
 
   React.useEffect(() => {
     if (!isSub || !present || !alignToFirstItem) return
+
+    let af: number
+
     const handle = (e: Event) => {
       const customEvent = e as CustomEvent<{
         surfaceId?: string
@@ -1260,53 +1276,68 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
       ) {
         return
       }
-      measure()
+
+      af = requestAnimationFrame(() => {
+        measure()
+      })
     }
     document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
-    return () =>
+    return () => {
+      cancelAnimationFrame(af)
       document.removeEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
+    }
   }, [isSub, sub, present, alignToFirstItem, measure])
 
   const effectiveAlignOffset =
     isSub && alignToFirstItem ? firstRowAlignOffset : alignOffset
 
-  // IMPORTANT: For the root surface in drawer mode, Positioner is a no-op pass-through.
-  // For submenus, we always position with Popper (even in drawer mode).
-  const shouldBypassForRoot = mode === 'drawer' && !isSub
+  const contentProps: React.ComponentProps<typeof Popper.Content> =
+    React.useMemo(
+      () => ({
+        asChild: true,
+        side: resolvedSide,
+        align: align,
+        sideOffset: sideOffset,
+        alignOffset: effectiveAlignOffset,
+        avoidCollisions: avoidCollisions,
+        collisionPadding: collisionPadding,
+        style: {
+          '--action-menu-available-height':
+            'var(--radix-popper-available-height, 0px)',
+          '--action-menu-available-width':
+            'var(--radix-popper-available-width, 0px)',
+        } as React.CSSProperties,
+      }),
+      [
+        resolvedSide,
+        align,
+        sideOffset,
+        effectiveAlignOffset,
+        avoidCollisions,
+        collisionPadding,
+      ],
+    )
 
-  if (shouldBypassForRoot) {
+  // NOTE: For the root surface in drawer mode, Positioner is a no-op pass-through.
+  // For submenus, we always position with Popper (even in drawer mode).
+  if (mode === 'drawer' && !isSub) {
     return <>{children}</>
   }
 
   const content = isSub ? (
-    <Presence present={present}>
-      <DismissableLayer.Branch asChild>
-        <Popper.Content
-          side={resolvedSide}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={effectiveAlignOffset}
-          avoidCollisions={avoidCollisions}
-          collisionPadding={collisionPadding}
-        >
-          {children}
-        </Popper.Content>
-      </DismissableLayer.Branch>
-    </Presence>
+    <Portal>
+      <Presence present={present}>
+        <DismissableLayer.Branch asChild>
+          <Popper.Content {...contentProps}>{children}</Popper.Content>
+        </DismissableLayer.Branch>
+      </Presence>
+    </Portal>
   ) : (
-    <Presence present={present}>
-      <Popper.Content
-        asChild
-        side={resolvedSide}
-        align={align}
-        sideOffset={sideOffset}
-        alignOffset={effectiveAlignOffset}
-        avoidCollisions={avoidCollisions}
-        collisionPadding={collisionPadding}
-      >
-        {children}
-      </Popper.Content>
-    </Presence>
+    <Portal>
+      <Presence present={present}>
+        <Popper.Content {...contentProps}>{children}</Popper.Content>
+      </Presence>
+    </Portal>
   )
 
   return (
@@ -1330,15 +1361,13 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
 export interface ActionMenuSurfaceProps<T = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
   menu: MenuDef<T> | Menu<T>
+  render?: () => React.ReactNode
   slots?: Partial<SurfaceSlots<T>>
   surfaceSlotProps?: Partial<SurfaceSlotProps>
   vimBindings?: boolean
   dir?: Direction
   defaults?: Partial<MenuNodeDefaults<T>>
   surfaceClassNames?: Partial<SurfaceClassNames>
-  value?: string
-  defaultValue?: string
-  onValueChange?: (value: string) => void
   onOpenAutoFocus?: boolean
   onCloseAutoClear?: boolean | number
   /** @internal Forced surface id; used by submenus. */
@@ -1357,6 +1386,7 @@ const useSurface = () => {
 const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
   {
     menu: menuProp,
+    render: renderProp,
     slots: slotOverrides,
     surfaceSlotProps: slotPropsOverrides,
     vimBindings = true,
@@ -1365,9 +1395,6 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     suppressHoverOpenOnMount,
     defaults: defaultsOverrides,
     surfaceClassNames,
-    value: valueProp,
-    defaultValue,
-    onValueChange,
     onOpenAutoFocus = true, // reserved
     onCloseAutoClear = true,
     ...props
@@ -1398,21 +1425,21 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
   const dir = getDir(dirProp)
 
   const [value, setValue] = useControllableState({
-    prop: valueProp,
-    defaultProp: defaultValue ?? '',
-    onChange: onValueChange,
+    prop: menu.input?.value,
+    defaultProp: menu.input?.defaultValue ?? '',
+    onChange: menu.input?.onValueChange,
   })
 
   // Clear input on menu close
-  const clearTimeoutRef = React.useRef<number | null>(null)
+  const clearTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   React.useEffect(() => {
     if (clearTimeoutRef.current) {
-      window.clearTimeout(clearTimeoutRef.current)
+      clearTimeout(clearTimeoutRef.current)
       clearTimeoutRef.current = null
     }
     if (!root.open && onCloseAutoClear) {
       if (typeof onCloseAutoClear === 'number') {
-        clearTimeoutRef.current = window.setTimeout(() => {
+        clearTimeoutRef.current = setTimeout(() => {
           setValue('')
           clearTimeoutRef.current = null
         }, onCloseAutoClear)
@@ -1420,15 +1447,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
         setValue('')
       }
     }
-  }, [root.open, onCloseAutoClear])
-
-  React.useEffect(() => {
-    return () => {
-      if (clearTimeoutRef.current) {
-        window.clearTimeout(clearTimeoutRef.current)
-      }
-    }
-  }, [])
+  }, [root.open, sub?.open, onCloseAutoClear])
 
   const slots = React.useMemo<Required<SurfaceSlots<T>>>(
     () => ({
@@ -1672,11 +1691,14 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     </>
   )
 
-  const body = slots.Content({
-    menu,
-    children: childrenNoProvider,
-    bind: contentBind,
-  })
+  const body =
+    isSubmenu && renderProp
+      ? renderProp()
+      : slots.Content({
+          menu,
+          children: childrenNoProvider,
+          bind: contentBind,
+        })
 
   const wrapped = !isElementWithProp(body, 'data-action-menu-surface') ? (
     <Primitive.div {...(contentBind.getContentProps() as any)}>
@@ -1811,11 +1833,13 @@ function SubTriggerRow<T>({
   slot,
   classNames,
   search,
+  ref: refProp,
 }: {
   node: SubmenuNode<T>
   slot: NonNullable<SurfaceSlots<T>['SubmenuTrigger']>
   classNames?: Partial<SurfaceClassNames>
   search?: SearchContext
+  ref?: React.Ref<HTMLDivElement>
 }) {
   const store = useSurface()
   const sub = useSubCtx()!
@@ -1882,7 +1906,7 @@ function SubTriggerRow<T>({
   const baseRowProps = React.useMemo(() => {
     const common = {
       id: rowId,
-      ref: composeRefs(ref as any, sub.triggerRef as any),
+      ref: composeRefs(refProp as any, ref as any, sub.triggerRef as any),
       role: 'option' as const,
       tabIndex: -1,
       'data-action-menu-item-id': rowId,
@@ -1942,9 +1966,6 @@ function SubTriggerRow<T>({
         if (!sub.open) sub.onOpenChange(true)
       },
       onPointerLeave: (e: React.PointerEvent) => {
-        AM_DIAG.lastLeaveTs = performance.now()
-        AM_DIAG.lastLeaveId = rowId
-        performance.mark('am-hover2paint-start') // visible in DevTools
         if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
           return
         const contentRect = sub.contentRef.current?.getBoundingClientRect()
@@ -2037,49 +2058,10 @@ function SubmenuContent<T>({
     sub.pendingOpenModalityRef.current = null
   }, [sub])
 
-  React.useEffect(() => {
-    if (!sub.open) return
-
-    // Optional: only measure when this submenu corresponds to the trigger
-    // the pointer just left/entered during a vertical sweep.
-    // sub.triggerItemId is already set in SubTriggerRow
-    const newTriggerId = sub.triggerItemId
-
-    // Schedule after the DOM/state flip → next paint boundary.
-    // rAF #1: commit JS & layout; rAF #2: after the next paint.
-    const id1 = requestAnimationFrame(() => {
-      const id2 = requestAnimationFrame(() => {
-        // Touch a layout property to guarantee the element is in the render tree
-        const painted = sub.contentRef.current
-        painted?.getBoundingClientRect()
-
-        // Build a label that ties old→new triggers (optional)
-        const label = newTriggerId
-          ? `am-hover2paint:${AM_DIAG.lastLeaveId ?? 'prev'}→${newTriggerId}`
-          : 'am-hover2paint'
-
-        // Seed the start mark only once (optional but helps DevTools)
-        try {
-          performance.mark('am-hover2paint-start')
-        } catch {}
-
-        // Compute and record
-        const start = AM_DIAG.lastLeaveTs || performance.now()
-        AM_DIAG.sample(label, start)
-      })
-      ;(SubmenuContent as any).__raf2 = id2
-    })
-    ;(SubmenuContent as any).__raf1 = id1
-
-    return () => {
-      cancelAnimationFrame((SubmenuContent as any).__raf1)
-      cancelAnimationFrame((SubmenuContent as any).__raf2)
-    }
-  }, [sub.open, sub.triggerItemId])
-
   const inner = (
     <SurfaceBase<T>
       menu={menu.child as Menu<T>}
+      render={menu.render}
       slots={slots as any}
       defaults={defaults}
       surfaceClassNames={classNames}
@@ -2240,6 +2222,7 @@ function renderMenu<T>(
 }
 
 function ItemRow<T>({
+  ref: refProp,
   node,
   slot,
   classNames,
@@ -2247,6 +2230,7 @@ function ItemRow<T>({
   store,
   search,
 }: {
+  ref?: React.Ref<HTMLElement>
   node: ItemNode<T>
   slot: NonNullable<SurfaceSlots<T>['Item']>
   classNames?: Partial<SurfaceClassNames>
@@ -2297,7 +2281,7 @@ function ItemRow<T>({
     () =>
       ({
         id: rowId,
-        ref: ref as any,
+        ref: composeRefs(refProp as any, ref as any),
         role: 'option' as const,
         tabIndex: -1,
         'data-action-menu-item-id': rowId,
@@ -2318,7 +2302,15 @@ function ItemRow<T>({
           handleSelect()
         },
       }) as const,
-    [rowId, handleSelect, focused, store, classNames?.item, aimGuardActiveRef],
+    [
+      rowId,
+      refProp,
+      handleSelect,
+      focused,
+      store,
+      classNames?.item,
+      aimGuardActiveRef,
+    ],
   )
 
   const bind: RowBindAPI = {
@@ -2326,6 +2318,10 @@ function ItemRow<T>({
     disabled: false,
     getRowProps: (overrides) =>
       mergeProps(baseRowProps as any, overrides as any),
+  }
+
+  if (node.render) {
+    return node.render({ node, bind, search, mode })
   }
 
   const visual = slot({ node, bind, search, mode })
@@ -2389,6 +2385,97 @@ function InputView<T>({
   return el as React.ReactElement
 }
 
+function px(n: number) {
+  return `${Math.ceil(n)}px`
+}
+
+function useStickyRowWidth(opts: {
+  containerRef: React.RefObject<HTMLElement | null> // the .listViewport element
+  designMaxPx?: number // optional hard cap, e.g. 560
+}) {
+  const { containerRef, designMaxPx } = opts
+  const maxSeenRef = React.useRef(0)
+  const frame = React.useRef<number | null>(null)
+
+  // Read Radix available width (optional—works because Radix sets a real value)
+  const readRadixMax = React.useCallback(() => {
+    const el = containerRef.current
+    if (!el) return Number.POSITIVE_INFINITY
+    const cs = getComputedStyle(
+      (el.closest('[role="dialog"]') as Element) ?? el,
+    )
+    const raw = cs.getPropertyValue('--radix-popper-available-width')?.trim()
+    const v = raw?.endsWith('px') ? Number.parseFloat(raw) : Number.NaN
+    return Number.isFinite(v) ? v : Number.POSITIVE_INFINITY
+  }, [containerRef])
+
+  const applyVar = React.useCallback(
+    (n: number) => {
+      const el = containerRef.current
+      if (!el) return
+      const radixCap = readRadixMax()
+      const hardCap = Number.isFinite(designMaxPx ?? Number.NaN)
+        ? designMaxPx!
+        : Number.POSITIVE_INFINITY
+      const capped = Math.min(n, radixCap, hardCap)
+      el.style.setProperty('--row-width', px(capped))
+
+      const surface = el.closest<HTMLElement>(
+        '[data-slot="action-menu-content"]',
+      )
+      if (!surface) return
+      surface.style.setProperty('--row-width', px(capped))
+    },
+    [containerRef, designMaxPx, readRadixMax],
+  )
+
+  const updateIfLarger = React.useCallback(
+    (naturalWidth: number) => {
+      if (naturalWidth <= maxSeenRef.current) return
+      maxSeenRef.current = naturalWidth
+      // batch to next frame to avoid thrash while scrolling
+      if (frame.current != null) cancelAnimationFrame(frame.current)
+      frame.current = requestAnimationFrame(() => applyVar(maxSeenRef.current))
+    },
+    [applyVar],
+  )
+
+  // Re-apply cap when the container/popover resizes (viewport changes)
+  React.useLayoutEffect(() => {
+    const dialog =
+      containerRef.current?.closest('[role="dialog"]') ?? containerRef.current
+    if (!dialog) return
+    const ro = new ResizeObserver(() => {
+      if (maxSeenRef.current > 0) applyVar(maxSeenRef.current)
+    })
+    ro.observe(dialog)
+    return () => ro.disconnect()
+  }, [containerRef, applyVar])
+
+  // Public API: call this for each mounted row to measure its *natural* width.
+  const measureRow = React.useCallback(
+    (rowEl: HTMLElement | null) => {
+      if (!rowEl) return
+      // Prefer a dedicated child with width:max-content to reflect natural width.
+      const probe = rowEl.querySelector<HTMLElement>('.rowContent') ?? rowEl
+      const prevWidth = probe.style.width
+      probe.style.width = 'max-content'
+
+      // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
+      const w = Math.max(
+        probe.scrollWidth,
+        probe.getBoundingClientRect().width,
+        probe.offsetWidth,
+      )
+      probe.style.width = prevWidth
+      updateIfLarger(w)
+    },
+    [updateIfLarger],
+  )
+
+  return { measureRow }
+}
+
 /** List view that renders the unfiltered tree or flattened search results. */
 function ListView<T>({
   store,
@@ -2448,45 +2535,23 @@ function ListView<T>({
 
   const effectiveListId =
     store.snapshot().listId ?? `action-menu-list-${localId}`
-
-  const baseListProps = {
-    ref: store.listRef as any,
-    role: 'listbox' as const,
-    id: effectiveListId,
-    tabIndex: hasInput ? -1 : 0,
-    'data-slot': 'action-menu-list' as const,
-    'data-action-menu-list': true as const,
-    'aria-activedescendant': hasInput ? undefined : activeId,
-    'data-mode': mode,
-    className: classNames?.list,
-    onKeyDown,
-  }
-  const bind: ListBindAPI = {
-    getListProps: (overrides) =>
-      mergeProps(
-        baseListProps as any,
-        mergeProps(slotProps?.list as any, overrides as any),
-      ),
-    getItemOrder: () => store.getOrder(),
-    getActiveId: () => store.snapshot().activeId,
-  }
-
   const q = (query ?? '').trim()
 
-  type SRItem = {
+  type SRContext = {
+    breadcrumbs: string[]
+    breadcrumbIds: string[]
+    score: number
+  }
+
+  type SRItem = SRContext & {
     type: 'item'
     node: ItemNode<T>
-    breadcrumbs: string[]
-    breadcrumbIds: string[]
-    score: number
   }
-  type SRSub = {
+  type SRSub = SRContext & {
     type: 'submenu'
     node: SubmenuNode<any>
-    breadcrumbs: string[]
-    breadcrumbIds: string[]
-    score: number
   }
+
   type SR = SRItem | SRSub
 
   const collect = React.useCallback(
@@ -2561,8 +2626,6 @@ function ListView<T>({
     [results[0]],
   )
 
-  let children: React.ReactNode
-
   React.useLayoutEffect(() => {
     if (!q) return
     if (!firstRowId) return
@@ -2572,68 +2635,228 @@ function ListView<T>({
     return () => cancelAnimationFrame(raf)
   }, [q])
 
-  React.useLayoutEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const listEl = store.listRef.current
-      if (!listEl) return
-      const ids = Array.from(
-        listEl.querySelectorAll<HTMLElement>('[data-action-menu-item-id]'),
-      ).map((el) => el.id)
-      store.resetOrder(ids)
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [store, q])
+  const flattenedNodes = React.useMemo(() => {
+    const acc: Node<T>[] = []
 
-  if (q.length === 0) {
-    const hasAnyNodes = (menu.nodes ?? []).some((n) => !n.hidden)
-    children = hasAnyNodes
-      ? renderMenu<T>(menu, slots, defaults, classNames, store, undefined)
-      : slots.Empty({ query: '' })
-  } else {
-    children =
-      results.length === 0
-        ? slots.Empty({ query: q })
-        : results.map((res) => {
-            const searchCtx: SearchContext = {
-              query: q,
-              isDeep: res.breadcrumbs.length > 0,
-              breadcrumbs: res.breadcrumbs,
-              breadcrumbIds: res.breadcrumbIds,
-            }
-            if (res.type === 'item') {
-              return (
-                <ItemRow
-                  key={`deep-${res.node.id}`}
-                  node={res.node}
-                  slot={slots.Item}
-                  store={store}
-                  search={searchCtx}
-                  classNames={classNames}
-                  defaults={defaults}
-                />
-              )
-            }
-            const childMenu: SubmenuNode<any> = { ...res.node }
+    if (q) {
+      if (results.length === 0) return []
+      for (const sr of results) {
+        acc.push({
+          ...sr.node,
+          search: {
+            query: q,
+            score: sr.score,
+            isDeep: sr.breadcrumbs.length > 0,
+            breadcrumbs: sr.breadcrumbs,
+            breadcrumbIds: sr.breadcrumbIds,
+          },
+        })
+      }
+    } else {
+      for (const node of menu.nodes) {
+        if (node.kind === 'item' || node.kind === 'submenu') acc.push(node)
+        else acc.push(node, ...node.nodes)
+      }
+    }
+
+    return acc
+  }, [q, menu.nodes])
+
+  const virtualizer = useVirtualizer({
+    count: flattenedNodes.length,
+    estimateSize: () => 32,
+    getScrollElement: () => store.listRef.current,
+    overscan: 6,
+  })
+
+  const totalSize = virtualizer.getTotalSize()
+  const totalSizePx = React.useMemo(() => `${totalSize}px`, [totalSize])
+
+  const { measureRow } = useStickyRowWidth({ containerRef: store.listRef })
+
+  const baseListProps = React.useMemo(
+    () => ({
+      ref: store.listRef as any,
+      role: 'listbox' as const,
+      id: effectiveListId,
+      tabIndex: hasInput ? -1 : 0,
+      'data-slot': 'action-menu-list' as const,
+      'data-action-menu-list': true as const,
+      'aria-activedescendant': hasInput ? undefined : activeId,
+      'data-mode': mode,
+      className: classNames?.list,
+      onKeyDown,
+      style: {
+        '--total-size': totalSizePx,
+      } as React.CSSProperties,
+    }),
+    [
+      mode,
+      onKeyDown,
+      store.listRef,
+      effectiveListId,
+      activeId,
+      classNames?.list,
+      hasInput,
+      totalSizePx,
+    ],
+  )
+
+  const bind = React.useMemo(
+    () =>
+      ({
+        getListProps: (overrides) =>
+          mergeProps(
+            baseListProps as any,
+            mergeProps(slotProps?.list as any, overrides as any),
+          ),
+        getItemOrder: () => store.getOrder(),
+        getActiveId: () => store.snapshot().activeId,
+      }) satisfies ListBindAPI,
+    [baseListProps, slotProps?.list, store],
+  )
+
+  const virtualItems = virtualizer.getVirtualItems()
+
+  const listRows = React.useMemo(
+    () => (
+      <ul
+        style={
+          {
+            '--total-size': totalSizePx,
+            height: totalSizePx,
+            position: 'relative',
+          } as React.CSSProperties
+        }
+      >
+        {virtualItems.map((virtualRow) => {
+          const node = flattenedNodes[virtualRow.index]!
+
+          if (node.kind === 'group') {
             return (
-              <Sub key={`deep-${res.node.id}`}>
-                <SubTriggerRow
-                  node={res.node}
-                  slot={slots.SubmenuTrigger as any}
-                  search={searchCtx}
-                  classNames={classNames}
-                />
-                <SubmenuContent
-                  menu={childMenu}
-                  slots={slots as any}
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div
+                  ref={measureRow}
+                  data-action-menu-group-heading
+                  data-index={virtualRow.index}
+                  role="presentation"
+                  className={classNames?.group}
+                >
+                  <span className={classNames?.groupHeading}>
+                    {node.heading}
+                  </span>
+                </div>
+              </div>
+            )
+          }
+
+          if (node.kind === 'item') {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className={classNames?.itemWrapper}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <ItemRow
+                  ref={measureRow}
+                  key={node.id}
+                  node={node}
+                  slot={slots.Item}
                   defaults={defaults}
                   classNames={classNames}
+                  store={store}
+                  search={node.search}
                 />
-              </Sub>
+              </div>
             )
-          })
-  }
+          }
 
-  const el = slots.List({ children, bind })
+          if (node.kind === 'submenu') {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <Sub>
+                  <SubTriggerRow
+                    ref={measureRow}
+                    key={virtualRow.key}
+                    node={node}
+                    slot={slots.SubmenuTrigger}
+                    classNames={classNames}
+                    search={node.search}
+                  />
+                  <SubmenuContent
+                    menu={node}
+                    slots={slots}
+                    classNames={classNames}
+                    defaults={defaults}
+                  />
+                </Sub>
+              </div>
+            )
+          }
+
+          return null
+        })}
+      </ul>
+    ),
+    [
+      slots,
+      slots.Item,
+      slots.SubmenuTrigger,
+      store,
+      flattenedNodes,
+      virtualizer.measureElement,
+      virtualItems,
+      totalSizePx,
+      measureRow,
+      defaults,
+      classNames,
+    ],
+  )
+
+  const children: React.ReactNode = React.useMemo(
+    () => (flattenedNodes.length > 0 ? listRows : slots.Empty({ query: q })),
+    [listRows, slots.Empty, q, flattenedNodes],
+  )
+
+  const el = React.useMemo(
+    () =>
+      slots.List({
+        children,
+        bind,
+      }),
+    [bind, slots.List, children],
+  )
+
   if (!isElementWithProp(el, 'data-action-menu-list')) {
     return (
       <div
@@ -2643,7 +2866,7 @@ function ListView<T>({
           }),
         ) as any)}
       >
-        {children}
+        {listRows}
       </div>
     )
   }
@@ -2939,7 +3162,15 @@ export function createActionMenu<T = unknown>(
         content: cn(baseSurfaceClassNames?.content, surfaceClassNames?.content),
         input: cn(baseSurfaceClassNames?.input, surfaceClassNames?.input),
         list: cn(baseSurfaceClassNames?.list, surfaceClassNames?.list),
+        itemWrapper: cn(
+          baseSurfaceClassNames?.itemWrapper,
+          surfaceClassNames?.itemWrapper,
+        ),
         item: cn(baseSurfaceClassNames?.item, surfaceClassNames?.item),
+        subtriggerWrapper: cn(
+          baseSurfaceClassNames?.subtriggerWrapper,
+          surfaceClassNames?.subtriggerWrapper,
+        ),
         subtrigger: cn(
           baseSurfaceClassNames?.subtrigger,
           surfaceClassNames?.subtrigger,

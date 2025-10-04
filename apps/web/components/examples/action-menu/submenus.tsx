@@ -1,12 +1,30 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
 export function ActionMenu_Submenus() {
+  const [input, setInput] = useState('')
+  const [fruitsInput, setFruitsInput] = useState('')
+  const [vegetablesInput, setVegetablesInput] = useState('')
+  const [meatsInput, setMeatsInput] = useState('')
+
+  useEffect(() => {
+    console.log('root input:', input)
+  }, [input])
+
+  useEffect(() => {
+    console.log('fruits input:', fruitsInput)
+  }, [fruitsInput])
+
+  useEffect(() => {
+    console.log('vegetables input:', vegetablesInput)
+  }, [vegetablesInput])
+
   return (
-    <ActionMenu.Root modal={false}>
+    <ActionMenu.Root modal={true}>
       <ActionMenu.Trigger asChild>
         <Button variant="secondary">Trigger</Button>
       </ActionMenu.Trigger>
@@ -22,11 +40,19 @@ export function ActionMenu_Submenus() {
                 },
               },
             },
+            input: {
+              value: input,
+              onValueChange: setInput,
+            },
             nodes: [
               {
                 kind: 'submenu',
                 id: 'fruits',
                 label: 'Fruits',
+                input: {
+                  value: fruitsInput,
+                  onValueChange: setFruitsInput,
+                },
                 nodes: [
                   {
                     kind: 'item',
@@ -64,6 +90,10 @@ export function ActionMenu_Submenus() {
                 kind: 'submenu',
                 id: 'vegetables',
                 label: 'Vegetables',
+                input: {
+                  value: vegetablesInput,
+                  onValueChange: setVegetablesInput,
+                },
                 nodes: [
                   {
                     kind: 'item',
@@ -95,6 +125,10 @@ export function ActionMenu_Submenus() {
                 kind: 'submenu',
                 id: 'meats',
                 label: 'Meats',
+                input: {
+                  value: meatsInput,
+                  onValueChange: setMeatsInput,
+                },
                 nodes: [
                   {
                     kind: 'item',

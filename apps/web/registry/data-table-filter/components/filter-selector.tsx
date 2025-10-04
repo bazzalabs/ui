@@ -1,7 +1,10 @@
+import { ItemNode, type MenuDef, renderIcon } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
+  ColumnOptionExtended,
   type DataTableFilterActions,
+  type FilterModel,
   type FilterStrategy,
   type FiltersState,
   getColumn,
@@ -35,7 +38,15 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { FilterValueController } from './filter-value'
+import { ActionMenu, LabelWithBreadcrumbs } from '@/registry/action-menu'
+import {
+  createMultiOptionMenu,
+  createOptionMenu,
+  createTextMenu,
+  FilterValueController,
+  FilterValueTextController_v2,
+  OptionItem_v2,
+} from './filter-value'
 
 interface FilterSelectorProps<TData> {
   filters: FiltersState
@@ -43,6 +54,104 @@ interface FilterSelectorProps<TData> {
   actions: DataTableFilterActions
   strategy: FilterStrategy
   locale?: Locale
+}
+
+export const FilterSelector_v2 = memo(
+  __FilterSelector_v2,
+) as typeof __FilterSelector_v2
+
+function __FilterSelector_v2<TData>({
+  filters,
+  columns,
+  actions,
+  strategy,
+  locale = 'en',
+}: FilterSelectorProps<TData>) {
+  const visibleColumns = useMemo(
+    () => columns.filter((c) => !c.hidden),
+    [columns],
+  )
+
+  const visibleFilters = useMemo(
+    () =>
+      filters.filter((f) => visibleColumns.find((c) => c.id === f.columnId)),
+    [filters, visibleColumns],
+  )
+
+  const hasVisibleFilters = visibleFilters.length > 0
+
+  const menu: MenuDef = {
+    id: 'filter-selector',
+    ui: {
+      slots: {
+        Item: OptionItem_v2,
+      },
+    },
+    nodes: columns.map((column) => {
+      const filter = filters.find((f) => f.columnId === column.id)
+      return {
+        kind: 'submenu',
+        id: column.id,
+        icon: column.icon,
+        label: column.displayName,
+        // render:
+        //   column.type === 'text'
+        //     ? () => (
+        //         <FilterValueTextController_v2
+        //           column={column as Column<TData, 'text'>}
+        //           filter={filter as FilterModel<'text'>}
+        //           actions={actions}
+        //           locale={locale}
+        //           strategy={strategy}
+        //         />
+        //       )
+        //     : undefined,
+        nodes:
+          column.type === 'option'
+            ? createOptionMenu({
+                filter: filter as FilterModel,
+                column: column as Column<TData, 'option'>,
+                actions,
+                locale,
+                strategy,
+              })
+            : column.type === 'multiOption'
+              ? createMultiOptionMenu({
+                  filter: filter as FilterModel,
+                  column: column as Column<TData, 'multiOption'>,
+                  actions,
+                  locale,
+                  strategy,
+                })
+              : column.type === 'text'
+                ? createTextMenu({
+                    filter: filter as FilterModel,
+                    column: column as Column<TData, 'text'>,
+                    actions,
+                    locale,
+                    strategy,
+                  })
+                : [],
+      }
+    }),
+  }
+
+  return (
+    <ActionMenu.Root>
+      <ActionMenu.Trigger asChild>
+        <Button
+          variant="outline"
+          className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
+        >
+          <FilterIcon className="size-4" />
+          {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
+        </Button>
+      </ActionMenu.Trigger>
+      <ActionMenu.Positioner>
+        <ActionMenu.Surface menu={menu} />
+      </ActionMenu.Positioner>
+    </ActionMenu.Root>
+  )
 }
 
 export const FilterSelector = memo(__FilterSelector) as typeof __FilterSelector

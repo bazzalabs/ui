@@ -167,6 +167,16 @@ The library provides three mechanisms to customize the menu's appearance and beh
 <ComponentFrame
   containerClassName='sm:h-64' 
   previewClassName='w-full flex justify-center' 
+  src="components/examples/action-menu/massive.tsx"
+>
+  <Examples.ActionMenu.Massive numItems={10_000} />
+</ComponentFrame>
+
+### Basic
+
+<ComponentFrame
+  containerClassName='sm:h-64' 
+  previewClassName='w-full flex justify-center' 
   src="components/examples/action-menu/basic.tsx"
 >
   <Examples.ActionMenu.Basic />
@@ -252,11 +262,9 @@ type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
 ```
 
 ### MenuDef
-
 <TypeTable pkg="@bazza-ui/action-menu" type="MenuDef" />
 
 ### GroupDef
-
 <TypeTable pkg="@bazza-ui/action-menu" type="GroupDef" />
 
 ### ItemDef
@@ -266,18 +274,15 @@ type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
 <TypeTable pkg="@bazza-ui/action-menu" type="SubmenuDef" />
 
 ### Menu
-
 <TypeTable pkg="@bazza-ui/action-menu" type="Menu" />
 
 ### GroupNode
 <TypeTable pkg="@bazza-ui/action-menu" type="GroupNode" />
 
 ### ItemNode
-
 <TypeTable pkg="@bazza-ui/action-menu" type="ItemNode" />
 
 ### SubmenuNode
-
 <TypeTable pkg="@bazza-ui/action-menu" type="SubmenuNode" />
 
 ### SurfaceSlots

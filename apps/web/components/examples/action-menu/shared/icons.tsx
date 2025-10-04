@@ -441,3 +441,22 @@ export const LabelsIcon = () => (
     <path d="M5.5 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"></path>
   </svg>
 )
+
+export const DurationIcon = () => (
+  <svg
+    className={cn(
+      'size-4 fill-muted-foreground group-data-[focused=true]:fill-primary',
+    )}
+    viewBox="0 0 16 16"
+    role="img"
+    focusable="false"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      d="M3.741 14.5h8.521c1.691 0 2.778-1.795 1.993-3.293l-4.26-8.134c-.842-1.608-3.144-1.608-3.986 0l-4.26 8.134C.962 12.705 2.05 14.5 3.74 14.5ZM8 3.368a.742.742 0 0 0-.663.402l-4.26 8.134A.75.75 0 0 0 3.741 13H8V3.367Z"
+      clipRule="evenodd"
+    />
+  </svg>
+)

@@ -27,14 +27,14 @@ export const LabelWithBreadcrumbs = ({
   label: string
   breadcrumbs?: string[]
 }) => (
-  <div className="flex items-center gap-1">
+  <div className="flex items-center gap-1 truncate">
     {breadcrumbs?.map((crumb, idx) => (
       <Fragment key={`${idx}-${crumb}`}>
-        <span className="text-muted-foreground">{crumb}</span>
-        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px]" />
+        <span className="text-muted-foreground truncate">{crumb}</span>
+        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0" />
       </Fragment>
     ))}
-    <span>{label}</span>
+    <span className="truncate">{label}</span>
   </div>
 )
 
@@ -72,7 +72,7 @@ export const ActionMenu = createActionMenu<any>({
         })
 
         return (
-          <div {...props}>
+          <li {...props}>
             {node.icon && (
               <div className="size-4 flex items-center justify-center">
                 {renderIcon(
@@ -85,15 +85,15 @@ export const ActionMenu = createActionMenu<any>({
               label={node.label ?? ''}
               breadcrumbs={search?.breadcrumbs}
             />
-          </div>
+          </li>
         )
       },
       SubmenuTrigger: ({ node, bind, search }) => {
         const props = bind.getRowProps({})
 
         return (
-          <div {...props}>
-            <div className="flex items-center gap-2">
+          <li {...props}>
+            <div className="flex items-center gap-2 min-w-0">
               {node.icon && (
                 <div className="size-4 flex items-center justify-center">
                   {renderIcon(
@@ -107,8 +107,8 @@ export const ActionMenu = createActionMenu<any>({
                 breadcrumbs={search?.breadcrumbs}
               />
             </div>
-            <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out" />
-          </div>
+            <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out shrink-0" />
+          </li>
         )
       },
       Empty: () => (
@@ -119,32 +119,41 @@ export const ActionMenu = createActionMenu<any>({
     },
     classNames: {
       content: cn(
-        'data-[mode=dropdown]:border bg-popover rounded-lg z-50 text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col h-full w-full min-h-0 overflow-hidden',
+        'data-[mode=dropdown]:border bg-popover rounded-lg z-50 text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col',
         'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
+        'max-h-[min(500px,var(--action-menu-available-height))]',
+        'box-content',
+        'w-[min(300px,max(var(--row-width),175px))]',
       ),
 
       list: cn(
-        'p-1 flex flex-col w-full scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
-        'data-[mode=dropdown]:min-w-[200px] data-[mode=dropdown]:max-w-[500px] data-[mode=dropdown]:max-h-[300px]',
+        'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
+        '[-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
         'data-[mode=drawer]:flex-1 data-[mode=drawer]:max-w-full',
-        'data-[mode=drawer]:[&_[data-action-menu-group-heading]]:px-5',
+        // 'data-[mode=drawer]:[&_[data-action-menu-group-heading]]:px-5',
+        'w-full flex-1',
+        'py-1',
       ),
       input: cn(
         'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
         'data-[mode=drawer]:px-6',
+        'w-full',
+        // 'w-[max(100%,var(--row-width))]',
       ),
-      group: cn('not-last:mb-2'),
-      groupHeading: cn('text-xs font-medium text-muted-foreground px-3 my-1'),
+      group: cn('mt-3 data-[index=0]:mt-1 mb-2'),
+      groupHeading: cn('text-xs font-medium text-muted-foreground px-3'),
       item: cn(
-        'group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm select-none',
-        'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground',
-        'data-[mode=drawer]:px-5',
+        'group flex items-center w-full gap-2 text-sm select-none',
+        'data-[focused=true]:text-accent-foreground',
+        'py-1.5 data-[mode=dropdown]:px-4 data-[mode=drawer]:px-5',
+        'truncate w-full relative z-1',
+        'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:before:bg-accent before:rounded-md before:z-[-1]',
       ),
       subtrigger: cn(
-        "group w-full flex items-center justify-between data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground relative cursor-default gap-4 rounded-md py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-        'data-[mode=dropdown]:px-3',
-        'data-[mode=drawer]:px-5',
-        'relative',
+        "group flex items-center justify-between data-[focused=true]:text-accent-foreground relative cursor-default gap-4 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+        'py-1.5 data-[mode=drawer]:px-5 data-[mode=dropdown]:px-4',
+        'overflow-x-hidden w-full relative z-1',
+        'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:before:bg-accent before:rounded-md before:z-[-1]',
       ),
     },
   },

@@ -26,6 +26,7 @@ export type {
   CreateActionMenuOptions,
   CreateActionMenuResult,
   SearchContext,
+  ItemSlotProps,
   RowBindAPI,
   ContentBindAPI,
   InputBindAPI,
