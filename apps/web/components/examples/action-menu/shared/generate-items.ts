@@ -1,11 +1,11 @@
-import { randomUUID } from 'node:crypto'
 import type { ItemDef } from '@bazza-ui/action-menu'
+import { v7 as uuidv7 } from 'uuid'
 
 export function generateItems(count: number) {
   const emojis = ['🍎', '🍌', '🍊', '🍍', '🍓', '🍇', '🍉', '🥝', '🍒', '🍑']
   const final = Array.from({ length: count }, (_, i) => {
     const n = i + 1
-    const uuid = crypto.randomUUID()
+    const uuid = uuidv7()
     const id = `${uuid}`
     return {
       kind: 'item',
