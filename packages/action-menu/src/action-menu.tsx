@@ -334,6 +334,7 @@ export type ShellClassNames = {
   root?: string
   overlay?: string
   drawerContent?: string
+  drawerContentInner?: string
   drawerHandle?: string
   trigger?: string
 }
@@ -661,9 +662,22 @@ type SubContextValue = {
   childSurfaceId: string
   pendingOpenModalityRef: React.RefObject<'keyboard' | 'pointer' | null>
   intentZoneActiveRef: React.RefObject<boolean>
+  parentSub: SubContextValue | null
 }
 const SubCtx = React.createContext<SubContextValue | null>(null)
 const useSubCtx = () => React.useContext(SubCtx)
+
+function closeSubmenuChain(
+  sub: SubContextValue | null,
+  root: ActionMenuRootContextValue,
+) {
+  let current = sub
+  while (current) {
+    current.onOpenChange(false)
+    current = current.parentSub
+  }
+  root.onOpenChange(false)
+}
 
 /** Focus owner context (which surface owns real DOM focus). */
 type FocusOwnerCtxValue = {
@@ -1292,7 +1306,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   const effectiveAlignOffset =
     isSub && alignToFirstItem ? firstRowAlignOffset : alignOffset
 
-  const contentProps: React.ComponentProps<typeof Popper.Content> =
+  const popperContentProps: React.ComponentProps<typeof Popper.Content> =
     React.useMemo(
       () => ({
         asChild: true,
@@ -1329,7 +1343,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
     <Portal>
       <Presence present={present}>
         <InteractionGuard.Branch asChild scopeId={root.scopeId}>
-          <Popper.Content {...contentProps}>{children}</Popper.Content>
+          <Popper.Content {...popperContentProps}>{children}</Popper.Content>
         </InteractionGuard.Branch>
       </Presence>
     </Portal>
@@ -1351,7 +1365,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
             root.onOpenChange(false)
           }}
         >
-          <Popper.Content {...contentProps}>{children}</Popper.Content>
+          <Popper.Content {...popperContentProps}>{children}</Popper.Content>
         </InteractionGuard.Root>
       </Presence>
     </Portal>
@@ -1776,6 +1790,7 @@ function Sub({ children }: { children: React.ReactNode }) {
   const intentZoneActiveRef = React.useRef<boolean>(false)
   const { setOwnerId } = useFocusOwner()
   const mode = useDisplayMode()
+  const parentSubCtx = useSubCtx()
 
   const value: SubContextValue = React.useMemo(
     () => ({
@@ -1791,6 +1806,7 @@ function Sub({ children }: { children: React.ReactNode }) {
       childSurfaceId,
       pendingOpenModalityRef,
       intentZoneActiveRef,
+      parentSub: parentSubCtx,
     }),
     [
       open,
@@ -1798,6 +1814,7 @@ function Sub({ children }: { children: React.ReactNode }) {
       triggerItemId,
       parentStore.setActiveId,
       childSurfaceId,
+      parentSubCtx,
     ],
   )
 
@@ -2096,12 +2113,9 @@ function SubmenuContent<T>({
           {...root.shellSlotProps?.drawerOverlay}
         />
         <Drawer.Content
-          data-slot="action-menu-drawer"
+          data-slot="action-menu-drawer-content"
           ref={sub.contentRef as any}
-          className={cn(
-            'flex flex-col min-h-0 overflow-hidden', // ensure internal list scrolls, footer is fixed
-            root.shellClassNames?.drawerContent,
-          )}
+          className={cn(root.shellClassNames?.drawerContent)}
           {...root.shellSlotProps?.drawerContent}
           onOpenAutoFocus={(event) => {
             event.preventDefault()
@@ -2110,11 +2124,16 @@ function SubmenuContent<T>({
             event.preventDefault()
           }}
         >
-          <Drawer.Title className="sr-only">
-            {menu.title ?? 'Action Menu'}
-          </Drawer.Title>
-          <div className={root.shellClassNames?.drawerHandle} />
-          {inner as any}
+          <div
+            data-slot="action-menu-drawer-content-inner"
+            className={cn(root.shellClassNames?.drawerContentInner)}
+          >
+            <Drawer.Title className="sr-only">
+              {menu.title ?? 'Action Menu'}
+            </Drawer.Title>
+            <div className={root.shellClassNames?.drawerHandle} />
+            {inner as any}
+          </div>
         </Drawer.Content>
       </Drawer.Portal>
     )
@@ -2260,6 +2279,7 @@ function ItemRow<T>({
   const mode = useDisplayMode()
   const rowId = makeRowId(node.id, search, surfaceId)
   const root = useRootCtx()
+  const sub = useSubCtx()
   const onSelect = node.onSelect ?? defaults?.item?.onSelect
   const closeOnSelect =
     node.closeOnSelect ?? defaults?.item?.closeOnSelect ?? false
@@ -2267,7 +2287,7 @@ function ItemRow<T>({
   const handleSelect = React.useCallback(() => {
     onSelect?.({ node, search })
     if (closeOnSelect) {
-      root.onOpenChange(false)
+      closeSubmenuChain(sub, root)
     }
   }, [onSelect, node, search, closeOnSelect, root])
 
@@ -2944,7 +2964,7 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
           {...root.shellSlotProps?.drawerOverlay}
         />
         <Drawer.Content
-          data-slot="action-menu-drawer"
+          data-slot="action-menu-drawer-content"
           className={root.shellClassNames?.drawerContent}
           {...root.shellSlotProps?.drawerContent}
           onOpenAutoFocus={(event) => {
@@ -2954,10 +2974,14 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
             event.preventDefault()
           }}
         >
-          {/* Optional accessible title; hidden visually */}
-          <Drawer.Title className="sr-only">Action Menu</Drawer.Title>
-          <div className={root.shellClassNames?.drawerHandle} />
-          {body}
+          <div
+            data-slot="action-menu-drawer-content-inner"
+            className={cn(root.shellClassNames?.drawerContentInner)}
+          >
+            <Drawer.Title className="sr-only">Action Menu</Drawer.Title>
+            <div className={root.shellClassNames?.drawerHandle} />
+            {body}
+          </div>
         </Drawer.Content>
       </Drawer.Portal>
     </Drawer.Root>
@@ -3210,6 +3234,10 @@ export function createActionMenu<T = unknown>(
       drawerContent: cn(
         baseShellClassNames?.drawerContent,
         p.shellClassNames?.drawerContent,
+      ),
+      drawerContentInner: cn(
+        baseShellClassNames?.drawerContentInner,
+        p.shellClassNames?.drawerContentInner,
       ),
       drawerHandle: cn(
         baseShellClassNames?.drawerHandle,

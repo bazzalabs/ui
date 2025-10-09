@@ -50,10 +50,13 @@ export const ActionMenu = createActionMenu<any>({
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/40 h-full w-full',
       ),
       drawerContent: cn(
-        'group/drawer-content border rounded-lg bg-popover fixed z-50 flex h-auto flex-col min-h-0 overflow-hidden shadow-lg',
-        '[--action-menu-drawer-handle-height:theme(spacing.8)]',
+        'fixed z-50',
         'data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80svh] data-[vaul-drawer-direction=top]:rounded-lg',
-        'data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-4 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80svh] data-[vaul-drawer-direction=bottom]:rounded-lg data-[vaul-drawer-direction=bottom]:mx-4',
+        'data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80svh] data-[vaul-drawer-direction=bottom]:rounded-lg data-[vaul-drawer-direction=bottom]:mx-4',
+      ),
+      drawerContentInner: cn(
+        'border rounded-lg bg-popover flex h-auto flex-col min-h-0 overflow-hidden shadow-lg mb-4',
+        '[--action-menu-drawer-handle-height:theme(spacing.8)]',
       ),
       drawerHandle: cn(
         'h-(--action-menu-drawer-handle-height) w-full relative',
@@ -122,7 +125,7 @@ export const ActionMenu = createActionMenu<any>({
         'data-[mode=dropdown]:max-h-[min(500px,var(--action-menu-available-height))]',
         'box-content',
         'data-[mode=dropdown]:w-[min(300px,max(var(--row-width),175px))]',
-        'data-[mode=drawer]:max-h-[calc(80svh-var(--action-menu-drawer-handle-height))]',
+        'data-[mode=drawer]:max-h-[calc(80svh-var(--action-menu-drawer-handle-height)-calc(var(--spacing)*4))]',
       ),
 
       list: cn(
@@ -135,6 +138,7 @@ export const ActionMenu = createActionMenu<any>({
       ),
       input: cn(
         'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
+        'data-[mode=drawer]:text-[16px]',
         'data-[mode=drawer]:px-6',
         'w-full',
         // 'w-[max(100%,var(--row-width))]',
