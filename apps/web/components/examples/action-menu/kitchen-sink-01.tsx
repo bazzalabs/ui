@@ -745,7 +745,8 @@ const projectPropertiesMenu: SubmenuDef = {
   id: 'project-properties',
   icon: <ProjectPropertiesIcon />,
   title: 'Project properties',
-  label: 'Project properties super duper long!',
+  label:
+    'Project properties super duper long super duper long super duper long super duper long!',
   inputPlaceholder: 'Project properties...',
   nodes: [projectStatusMenu],
 }
