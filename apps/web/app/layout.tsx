@@ -101,7 +101,7 @@ export default function RootLayout({
           enableColorScheme
         >
           <NuqsAdapter>
-            <div data-vaul-drawer-wrapper="true">
+            <div data-vaul-drawer-wrapper="">
               <div className="relative flex min-h-svh flex-col bg-site-background">
                 <ThemeColorUpdater />
                 {children}

@@ -51,17 +51,15 @@ export const ActionMenu = createActionMenu<any>({
       ),
       drawerContent: cn(
         'group/drawer-content border rounded-lg bg-popover fixed z-50 flex h-auto flex-col min-h-0 overflow-hidden shadow-lg',
+        '[--action-menu-drawer-handle-height:theme(spacing.8)]',
         'data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80svh] data-[vaul-drawer-direction=top]:rounded-lg',
         'data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-4 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80svh] data-[vaul-drawer-direction=bottom]:rounded-lg data-[vaul-drawer-direction=bottom]:mx-4',
       ),
       drawerHandle: cn(
-        'bg-muted mx-auto mt-4 mb-2 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block',
+        'h-(--action-menu-drawer-handle-height) w-full relative',
+        'before:absolute before:top-4 before:left-1/2 before:-translate-x-1/2',
+        'before:bg-muted before:h-2 before:w-[100px] before:shrink-0 before:rounded-full',
       ),
-    },
-    slotProps: {
-      drawerRoot: {
-        shouldScaleBackground: true,
-      },
     },
   },
   surface: {
@@ -119,17 +117,18 @@ export const ActionMenu = createActionMenu<any>({
     },
     classNames: {
       content: cn(
-        'data-[mode=dropdown]:border bg-popover rounded-lg z-50 text-sm shadow-md origin-(--radix-popper-transform-origin) flex flex-col',
+        'data-[mode=dropdown]:border bg-popover rounded-lg z-50 flex flex-col text-sm shadow-md origin-(--radix-popper-transform-origin)',
         'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
-        'max-h-[min(500px,var(--action-menu-available-height))]',
+        'data-[mode=dropdown]:max-h-[min(500px,var(--action-menu-available-height))]',
         'box-content',
-        'w-[min(300px,max(var(--row-width),175px))]',
+        'data-[mode=dropdown]:w-[min(300px,max(var(--row-width),175px))]',
+        'data-[mode=drawer]:max-h-[calc(80svh-var(--action-menu-drawer-handle-height))]',
       ),
 
       list: cn(
         'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
         '[-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
-        'data-[mode=drawer]:flex-1 data-[mode=drawer]:max-w-full',
+        // 'data-[mode=drawer]:flex-1 data-[mode=drawer]:max-w-full',
         // 'data-[mode=drawer]:[&_[data-action-menu-group-heading]]:px-5',
         'w-full flex-1',
         'py-1',
