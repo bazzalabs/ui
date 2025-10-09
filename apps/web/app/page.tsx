@@ -1,3 +1,8 @@
+import { ArrowRightIcon } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Suspense } from 'react'
+import { BazzaUIAsciiLogo } from '@/components/bazza-ui-ascii-logo'
 import {
   BazzaUIIcon,
   DiscordIcon,
@@ -9,10 +14,6 @@ import { NavBar } from '@/components/nav-bar'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import logoSrc from '@/public/bazzaui-v3-color.png'
-import { ArrowRightIcon } from 'lucide-react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { Suspense } from 'react'
 import { IssuesTableFallback } from './demos/server/tst-query/_/issues-table-fallback'
 import { IssuesTableWrapper } from './demos/server/tst-query/_/issues-table-wrapper'
 
@@ -117,9 +118,16 @@ export default function Page() {
           </p>
         </div>
       </div>
-      <div className="border-border border-dashed flex flex-col flex-1">
-        <div className="px-4 py-12 flex-1 h-full max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x"></div>
-      </div>
+      {/* <div className="border-border border-dashed flex flex-col flex-1"> */}
+      {/*   <div className="px-4 py-32 flex-1 h-full max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x"> */}
+      {/*     <div className="flex items-center justify-center gap-24"> */}
+      {/*       <BazzaUIAsciiLogo className="text-[5px] leading-none" /> */}
+      {/*       <div> */}
+      {/*         <span className="font-mono">bazza/ui</span> */}
+      {/*       </div> */}
+      {/*     </div> */}
+      {/*   </div> */}
+      {/* </div> */}
     </div>
   )
 }

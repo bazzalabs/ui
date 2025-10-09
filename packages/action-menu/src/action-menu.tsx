@@ -2,7 +2,6 @@
 
 import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
-import * as DismissableLayer from '@radix-ui/react-dismissable-layer'
 import * as Popper from '@radix-ui/react-popper'
 import { Portal } from '@radix-ui/react-portal'
 import { Presence } from '@radix-ui/react-presence'
@@ -15,6 +14,7 @@ import type { ClassNameValue } from 'tailwind-merge'
 import { Drawer } from 'vaul'
 import { cn } from './cn.js'
 import { commandScore } from './command-score.js'
+import { InteractionGuard } from './interaction-guard.js'
 import { useMediaQuery } from './use-media-query.js'
 
 /* ================================================================================================
@@ -621,6 +621,7 @@ export type ResponsiveMode = 'auto' | 'drawer' | 'dropdown'
 export type ResponsiveConfig = { mode: ResponsiveMode; query: string }
 
 type ActionMenuRootContextValue = {
+  scopeId: string
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenToggle: () => void
@@ -1327,15 +1328,31 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   const content = isSub ? (
     <Portal>
       <Presence present={present}>
-        <DismissableLayer.Branch asChild>
+        <InteractionGuard.Branch asChild scopeId={root.scopeId}>
           <Popper.Content {...contentProps}>{children}</Popper.Content>
-        </DismissableLayer.Branch>
+        </InteractionGuard.Branch>
       </Presence>
     </Portal>
   ) : (
     <Portal>
       <Presence present={present}>
-        <Popper.Content {...contentProps}>{children}</Popper.Content>
+        <InteractionGuard.Root
+          asChild
+          scopeId={root.scopeId}
+          disableOutsidePointerEvents={root.modal}
+          onEscapeKeyDown={() => {
+            root.onOpenChange(false)
+          }}
+          onInteractOutside={(event) => {
+            console.log('here!')
+            const target = event.target as HTMLElement | null
+            if (target?.closest?.('[data-action-menu-surface]')) return
+            event.preventDefault()
+            root.onOpenChange(false)
+          }}
+        >
+          <Popper.Content {...contentProps}>{children}</Popper.Content>
+        </InteractionGuard.Root>
       </Presence>
     </Portal>
   )
@@ -2890,30 +2907,8 @@ export interface ActionMenuProps extends Children {
   debug?: boolean
 }
 
-function DropdownShell({
-  children,
-  disableOutsidePointerEvents,
-  onClose,
-}: {
-  children: React.ReactNode
-  disableOutsidePointerEvents: boolean
-  onClose: () => void
-}) {
-  return (
-    <DismissableLayer.Root
-      asChild
-      disableOutsidePointerEvents={disableOutsidePointerEvents}
-      onEscapeKeyDown={() => onClose()}
-      onInteractOutside={(event) => {
-        const target = event.target as HTMLElement | null
-        if (target?.closest?.('[data-action-menu-surface]')) return
-        event.preventDefault()
-        onClose()
-      }}
-    >
-      <Popper.Root>{children}</Popper.Root>
-    </DismissableLayer.Root>
-  )
+function DropdownShell({ children }: { children: React.ReactNode }) {
+  return <Popper.Root>{children}</Popper.Root>
 }
 
 /** Drawer shell that mounts everything except the Trigger inside Vaul.Content. */
@@ -2981,6 +2976,7 @@ export const ActionMenu = ({
   shellSlotProps,
   debug = false,
 }: ActionMenuProps) => {
+  const scopeId = React.useId()
   const [open, setOpen] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen ?? false,
@@ -3006,6 +3002,7 @@ export const ActionMenu = ({
         : 'dropdown'
 
   const rootCtxValue: ActionMenuRootContextValue = {
+    scopeId,
     open,
     onOpenChange: setOpen,
     onOpenToggle: () => setOpen((v) => !v),
@@ -3019,12 +3016,7 @@ export const ActionMenu = ({
 
   const content =
     resolvedMode === 'dropdown' ? (
-      <DropdownShell
-        disableOutsidePointerEvents={modal}
-        onClose={() => setOpen(false)}
-      >
-        {children}
-      </DropdownShell>
+      <DropdownShell>{children}</DropdownShell>
     ) : (
       <DrawerShell>{children}</DrawerShell>
     )
@@ -3058,39 +3050,45 @@ export const Trigger = React.forwardRef<
     const root = useRootCtx()
     const mode = useDisplayMode()
     const ResponsiveTrigger = mode === 'drawer' ? Drawer.Trigger : Popper.Anchor
+    const content = (
+      <ResponsiveTrigger asChild>
+        <Primitive.button
+          {...props}
+          data-slot="action-menu-trigger"
+          data-action-menu-trigger
+          ref={composeRefs(forwardedRef, root.anchorRef)}
+          disabled={disabled}
+          className={cn(root.shellClassNames?.trigger, className)}
+          onPointerDown={composeEventHandlers(onPointerDown, (event) => {
+            if (!disabled && event.button === 0 && event.ctrlKey === false) {
+              const willOpen = !root.open
+              root.onOpenToggle()
+              if (willOpen) event.preventDefault()
+            }
+          })}
+          onKeyDown={composeEventHandlers(onKeyDown, (event) => {
+            if (disabled) return
+            if (event.key === 'Enter' || event.key === ' ') root.onOpenToggle()
+            if (event.key === 'ArrowDown') root.onOpenChange(true)
+            if (['Enter', ' ', 'ArrowDown'].includes(event.key))
+              event.preventDefault()
+          })}
+          aria-haspopup="menu"
+          aria-expanded={root.open}
+        >
+          {children}
+        </Primitive.button>
+      </ResponsiveTrigger>
+    )
+
+    if (mode === 'drawer') {
+      return content
+    }
 
     return (
-      <DismissableLayer.Branch asChild>
-        <ResponsiveTrigger asChild>
-          <Primitive.button
-            {...props}
-            data-slot="action-menu-trigger"
-            data-action-menu-trigger
-            ref={composeRefs(forwardedRef, root.anchorRef)}
-            disabled={disabled}
-            className={cn(root.shellClassNames?.trigger, className)}
-            onPointerDown={composeEventHandlers(onPointerDown, (event) => {
-              if (!disabled && event.button === 0 && event.ctrlKey === false) {
-                const willOpen = !root.open
-                root.onOpenToggle()
-                if (willOpen) event.preventDefault()
-              }
-            })}
-            onKeyDown={composeEventHandlers(onKeyDown, (event) => {
-              if (disabled) return
-              if (event.key === 'Enter' || event.key === ' ')
-                root.onOpenToggle()
-              if (event.key === 'ArrowDown') root.onOpenChange(true)
-              if (['Enter', ' ', 'ArrowDown'].includes(event.key))
-                event.preventDefault()
-            })}
-            aria-haspopup="menu"
-            aria-expanded={root.open}
-          >
-            {children}
-          </Primitive.button>
-        </ResponsiveTrigger>
-      </DismissableLayer.Branch>
+      <InteractionGuard.Branch asChild scopeId={root.scopeId}>
+        {content}
+      </InteractionGuard.Branch>
     )
   },
 )
