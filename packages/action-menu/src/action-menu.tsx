@@ -597,6 +597,7 @@ const useKeyboardOpts = () => React.useContext(KeyboardCtx)
  * Custom events (open/select/internal notifications)
  * ============================================================================================== */
 
+const CLOSE_MENU_EVENT = 'actionmenu-close' as const
 const OPEN_SUB_EVENT = 'actionmenu-open-sub' as const
 const SELECT_ITEM_EVENT = 'actionmenu-select-item' as const
 const INPUT_VISIBILITY_CHANGE_EVENT =
@@ -621,7 +622,7 @@ function openSubmenuForActive(activeId: string | null) {
 export type ResponsiveMode = 'auto' | 'drawer' | 'dropdown'
 export type ResponsiveConfig = { mode: ResponsiveMode; query: string }
 
-type ActionMenuRootContextValue = {
+type RootContextValue = {
   scopeId: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -632,8 +633,12 @@ type ActionMenuRootContextValue = {
   responsive: ResponsiveConfig
   shellClassNames?: Partial<ShellClassNames>
   shellSlotProps?: Partial<ShellSlotProps>
+  openSurfaceIds: React.RefObject<Map<string, number>>
+  registerSurface: (surfaceId: string, depth: number) => void
+  unregisterSurface: (surfaceId: string) => void
+  closeAllSurfaces: () => void
 }
-const RootCtx = React.createContext<ActionMenuRootContextValue | null>(null)
+const RootCtx = React.createContext<RootContextValue | null>(null)
 const useRootCtx = () => {
   const ctx = React.useContext(RootCtx)
   if (!ctx) throw new Error('useActionMenu must be used within an ActionMenu')
@@ -669,7 +674,7 @@ const useSubCtx = () => React.useContext(SubCtx)
 
 function closeSubmenuChain(
   sub: SubContextValue | null,
-  root: ActionMenuRootContextValue,
+  root: RootContextValue,
 ) {
   let current = sub
   while (current) {
@@ -1358,11 +1363,11 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
             root.onOpenChange(false)
           }}
           onInteractOutside={(event) => {
-            console.log('here!')
             const target = event.target as HTMLElement | null
             if (target?.closest?.('[data-action-menu-surface]')) return
             event.preventDefault()
-            root.onOpenChange(false)
+            console.log('here! closing all menus')
+            root.closeAllSurfaces()
           }}
         >
           <Popper.Content {...popperContentProps}>{children}</Popper.Content>
@@ -1535,6 +1540,24 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
   React.useEffect(() => {
     store.set('hasInput', inputActive)
   }, [inputActive, store])
+
+  React.useEffect(() => {
+    root.registerSurface(surfaceId, menu.depth)
+
+    return () => {
+      root.unregisterSurface(surfaceId)
+    }
+  }, [root.registerSurface, root.unregisterSurface, surfaceId, menu.depth])
+
+  React.useEffect(() => {
+    const handle = () => {
+      sub?.onOpenChange(false)
+    }
+    document.addEventListener(CLOSE_MENU_EVENT, handle, true)
+    return () => {
+      document.removeEventListener(CLOSE_MENU_EVENT, handle, true)
+    }
+  }, [sub?.onOpenChange])
 
   // On open, claim focus ownership for the first surface and focus input/list.
   React.useEffect(() => {
@@ -3025,7 +3048,45 @@ export const ActionMenu = ({
         ? 'drawer'
         : 'dropdown'
 
-  const rootCtxValue: ActionMenuRootContextValue = {
+  const openSurfaceIds = React.useRef<Map<string, number>>(new Map())
+
+  const registerSurface = React.useCallback(
+    (surfaceId: string, depth: number) => {
+      openSurfaceIds.current.set(surfaceId, depth)
+      // console.log('[registerSurface] registered', surfaceId, 'at depth', depth)
+      // console.log('[registerSurface] openSurfaceIds', openSurfaceIds.current)
+    },
+    [],
+  )
+
+  const unregisterSurface = React.useCallback((surfaceId: string) => {
+    openSurfaceIds.current.delete(surfaceId)
+    // console.log('[unregisterSurface] unregistered', surfaceId)
+    // console.log('[unregisterSurface] openSurfacesById', openSurfaceIds.current)
+  }, [])
+
+  const closeAllSurfaces = React.useCallback(() => {
+    console.log('[closeAllSurfaces] closing all menus')
+    const ordered = [...openSurfaceIds.current.entries()].sort(
+      (a, b) => b[1] - a[1],
+    )
+
+    console.log('ordered surfaces:', ordered)
+
+    for (const [surfaceId] of ordered) {
+      console.log('trying to close', surfaceId)
+      const el = document.querySelector<HTMLElement>(
+        `[data-surface-id="${surfaceId}"]`,
+      )
+      if (el) {
+        console.log('dispatching close event')
+        dispatch(el, CLOSE_MENU_EVENT)
+      }
+    }
+    setOpen(false)
+  }, [setOpen])
+
+  const rootCtxValue: RootContextValue = {
     scopeId,
     open,
     onOpenChange: setOpen,
@@ -3036,6 +3097,10 @@ export const ActionMenu = ({
     responsive,
     shellClassNames,
     shellSlotProps,
+    openSurfaceIds,
+    registerSurface,
+    unregisterSurface,
+    closeAllSurfaces,
   }
 
   const content =
