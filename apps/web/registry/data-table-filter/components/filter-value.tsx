@@ -5,6 +5,7 @@ import {
   type ItemNode,
   type ItemSlotProps,
   renderIcon,
+  type SubmenuDef,
 } from '@bazza-ui/action-menu'
 import {
   type Column,
@@ -512,6 +513,25 @@ export function OptionItem_v2({ node: nodeProp, bind, search }: ItemSlotProps) {
   )
 }
 
+export function TextItem_v2({
+  node: nodeProp,
+  bind,
+  search,
+}: ItemSlotProps<FilterModel<'text'>>) {
+  const props = bind.getRowProps({
+    className: 'group/row gap-1 min-w-0',
+  })
+
+  const node = nodeProp as ItemNode<FilterModel<'text'>>
+
+  return (
+    <li {...props}>
+      <span className="text-muted-foreground">{node.data?.operator}</span>
+      <span>{node.data?.values[0]}</span>
+    </li>
+  )
+}
+
 interface OptionItemProps {
   option: ColumnOptionExtended
   onToggle: (value: string, checked: boolean) => void
@@ -900,20 +920,51 @@ export function createTextMenu<TData>({
   actions,
   locale = 'en',
 }: FilterValueControllerProps<TData, 'text'>) {
+  const [search, setSearch] = useState('')
+
   const changeText = (value: string | number) => {
     actions.setFilterValue(column, [String(value)])
+    setSearch(String(value))
   }
 
-  const value = filter?.values[0] ?? ''
-
-  return [
-    {
-      kind: 'item',
-      id: `${column.id}-text`,
-      label: `contains ${value}`,
-      keywords: [value],
-    } satisfies ItemDef,
-  ]
+  return {
+    kind: 'submenu',
+    id: column.id,
+    icon: column.icon,
+    label: column.displayName,
+    input: {
+      value: search,
+      onValueChange: setSearch,
+    },
+    inputPlaceholder: `Enter ${column.displayName.toLowerCase()}...`,
+    ui: {
+      slots: {
+        Item: TextItem_v2 as any,
+      },
+      slotProps: {
+        positioner: {
+          alignToFirstItem: false,
+        },
+      },
+    },
+    nodes: search
+      ? [
+          {
+            kind: 'item',
+            id: `${column.id}-text`,
+            label: `contains ${search}`,
+            data: {
+              operator: 'contains',
+              values: [search],
+            },
+            keywords: [search],
+            onSelect: () => {
+              changeText(search)
+            },
+          },
+        ]
+      : [],
+  } satisfies SubmenuDef
 }
 
 export function FilterValueTextController_v2<TData>({

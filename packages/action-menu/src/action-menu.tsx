@@ -103,8 +103,8 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     defaults?: MenuNodeDefaults<T>
     ui?: {
       slots?: Partial<SurfaceSlots<TChild>>
-      slotProps?: Partial<SurfaceSlotProps>
-      classNames?: Partial<SurfaceClassNames>
+      slotProps?: Partial<ShellSlotProps & SurfaceSlotProps>
+      classNames?: Partial<ShellClassNames & SurfaceClassNames>
     }
     render?: () => React.ReactNode
   }
@@ -164,6 +164,10 @@ export type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
 
 /** Defaulted parts of nodes for convenience. */
 export type MenuNodeDefaults<T = unknown> = {
+  surface?: Pick<
+    ActionMenuSurfaceProps<T>,
+    'vimBindings' | 'dir' | 'onOpenAutoFocus' | 'onCloseAutoClear'
+  >
   item?: Pick<ItemNode<T>, 'onSelect' | 'closeOnSelect'>
 }
 
@@ -331,8 +335,8 @@ export type ListBindAPI = {
 
 /** ClassNames that style the *shell* (overlay / drawer container / trigger). */
 export type ShellClassNames = {
-  root?: string
-  overlay?: string
+  // root?: string
+  drawerOverlay?: string
   drawerContent?: string
   drawerContentInner?: string
   drawerHandle?: string
@@ -341,7 +345,7 @@ export type ShellClassNames = {
 
 /** ClassNames that style the *surface* (content/list/items/etc.). */
 export type SurfaceClassNames = {
-  root?: string // (reserved) if you wrap the entire surface
+  // root?: string // (reserved) if you wrap the entire surface
   content?: string
   input?: string
   list?: string
@@ -353,8 +357,11 @@ export type SurfaceClassNames = {
   groupHeading?: string
 }
 
+export type ActionMenuClassNames = ShellClassNames & SurfaceClassNames
+
 /** Slot props forwarded to the *shell* (Vaul). */
 export type ShellSlotProps = {
+  positioner?: Partial<Omit<ActionMenuPositionerProps, 'children'>>
   drawerRoot?: Partial<React.ComponentProps<typeof Drawer.Root>>
   drawerOverlay?: React.ComponentPropsWithoutRef<typeof Drawer.Overlay>
   drawerContent?: React.ComponentPropsWithoutRef<typeof Drawer.Content>
@@ -369,6 +376,8 @@ export type SurfaceSlotProps = {
   footer?: React.HTMLAttributes<HTMLElement>
 }
 
+export type ActionMenuSlotProps = ShellSlotProps & SurfaceSlotProps
+
 export interface ItemSlotProps<T = unknown> {
   node: ItemNode<T>
   search?: SearchContext
@@ -376,9 +385,15 @@ export interface ItemSlotProps<T = unknown> {
   bind: RowBindAPI
 }
 
+export interface ListSlotProps<T = unknown> {
+  query?: string
+  nodes: Node<T>[]
+  children: React.ReactNode
+  bind: ListBindAPI
+}
+
 /** Slot renderers to customize visuals. */
 export type SurfaceSlots<T = unknown> = {
-  Item: (args: ItemSlotProps<T>) => React.ReactNode
   Content: (args: {
     menu: Menu<T>
     children: React.ReactNode
@@ -390,21 +405,20 @@ export type SurfaceSlots<T = unknown> = {
     onChange: (v: string) => void
     bind: InputBindAPI
   }) => React.ReactNode
+  List: (args: ListSlotProps<T>) => React.ReactNode
   Empty?: (args: { query: string }) => React.ReactNode
-  List: (args: {
-    children: React.ReactNode
-    bind: ListBindAPI
-  }) => React.ReactNode
-  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
+  Item: (args: ItemSlotProps<T>) => React.ReactNode
   SubmenuTrigger: (args: {
     node: SubmenuNode<T>
     search?: SearchContext
     bind: RowBindAPI
   }) => React.ReactNode
+  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
 }
 
-/* Default minimal renderers (safe fallbacks) */
-function defaultSlots<T>(): Required<SurfaceSlots<T>> {
+export type ActionMenuSlots<T = unknown> = SurfaceSlots<T>
+
+export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
   return {
     Content: ({ children, bind }) => (
       <div {...bind.getContentProps()}>{children}</div>
@@ -1221,7 +1235,7 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
-  alignToFirstItem = false,
+  alignToFirstItem = 'on-open',
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
@@ -1360,13 +1374,12 @@ export const Positioner: React.FC<ActionMenuPositionerProps> = ({
           scopeId={root.scopeId}
           disableOutsidePointerEvents={root.modal}
           onEscapeKeyDown={() => {
-            root.onOpenChange(false)
+            root.closeAllSurfaces()
           }}
           onInteractOutside={(event) => {
             const target = event.target as HTMLElement | null
             if (target?.closest?.('[data-action-menu-surface]')) return
             event.preventDefault()
-            console.log('here! closing all menus')
             root.closeAllSurfaces()
           }}
         >
@@ -1398,12 +1411,12 @@ export interface ActionMenuSurfaceProps<T = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
   menu: MenuDef<T> | Menu<T>
   render?: () => React.ReactNode
-  slots?: Partial<SurfaceSlots<T>>
-  surfaceSlotProps?: Partial<SurfaceSlotProps>
   vimBindings?: boolean
   dir?: Direction
   defaults?: Partial<MenuNodeDefaults<T>>
-  surfaceClassNames?: Partial<SurfaceClassNames>
+  slots?: Partial<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
   onOpenAutoFocus?: boolean
   onCloseAutoClear?: boolean | number
   /** @internal Forced surface id; used by submenus. */
@@ -1419,18 +1432,22 @@ const useSurface = () => {
   return ctx
 }
 
-const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
+const Surface = React.forwardRef(function Surface<T>(
   {
     menu: menuProp,
     render: renderProp,
-    slots: slotOverrides,
-    surfaceSlotProps: slotPropsOverrides,
     vimBindings = true,
     dir: dirProp,
     surfaceIdProp,
     suppressHoverOpenOnMount,
     defaults: defaultsOverrides,
-    surfaceClassNames,
+    slots: slotOverrides,
+    slotProps: slotPropOverrides,
+    classNames: classNameOverrides,
+    // shellSlotProps: shellSlotPropsOverrides,
+    // surfaceSlots: surfaceSlotOverrides,
+    // surfaceSlotProps: surfaceSlotPropsOverrides,
+    // classNames,
     onOpenAutoFocus = true, // reserved
     onCloseAutoClear = true,
     ...props
@@ -1494,9 +1511,17 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     [slotOverrides, menu.ui?.slots],
   )
 
-  const slotProps = React.useMemo<Partial<SurfaceSlotProps>>(
-    () => ({ ...(slotPropsOverrides ?? {}), ...(menu.ui?.slotProps ?? {}) }),
-    [slotPropsOverrides, menu.ui?.slotProps],
+  const slotProps = React.useMemo<Partial<ActionMenuSlotProps>>(
+    () => ({
+      ...(slotPropOverrides ?? {}),
+      ...(menu.ui?.slotProps ?? {}),
+    }),
+    [slotPropOverrides, menu.ui?.slotProps],
+  )
+
+  const classNames = React.useMemo(
+    () => mergeClassNames(classNameOverrides ?? {}, menu.ui?.classNames ?? {}),
+    [classNameOverrides, menu.ui?.classNames],
   )
 
   const defaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
@@ -1504,10 +1529,26 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     [defaultsOverrides, menu.defaults],
   )
 
-  const mergedClassNames = React.useMemo(
-    () => mergeClassNames(surfaceClassNames ?? {}, menu.ui?.classNames ?? {}),
-    [surfaceClassNames, menu.ui?.classNames],
-  )
+  // const shellSlotProps = React.useMemo<Partial<ShellSlotProps>>(
+  //   () => ({
+  //     ...(shellSlotPropsOverrides ?? {}),
+  //   }),
+  //   [shellSlotPropsOverrides],
+  // )
+  //
+  // const surfaceSlotProps = React.useMemo<Partial<SurfaceSlotProps>>(
+  //   () => ({
+  //     ...(surfaceSlotPropsOverrides ?? {}),
+  //     ...(menu.ui?.slotProps ?? {}),
+  //   }),
+  //   [surfaceSlotPropsOverrides, menu.ui?.slotProps],
+  // )
+  //
+  //
+  // const mergedClassNames = React.useMemo(
+  //   () => mergeClassNames(classNames ?? {}, menu.ui?.classNames ?? {}),
+  //   [classNames, menu.ui?.classNames],
+  // )
 
   const isSubmenu = !!sub
   const [inputActive, setInputActive] = React.useState(
@@ -1640,12 +1681,13 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
         role: 'menu',
         tabIndex: -1,
         'data-slot': 'action-menu-content',
-        'data-root-menu': !isSubmenu ? 'true' : undefined,
+        'data-root-menu': isSubmenu ? undefined : true,
+        'data-sub-menu': isSubmenu ? 'true' : undefined,
         'data-state': root.open ? 'open' : 'closed',
         'data-action-menu-surface': true as const,
         'data-surface-id': surfaceId,
         'data-mode': mode,
-        className: mergedClassNames?.content,
+        className: classNames?.content,
         onMouseMove: (e: React.MouseEvent) => {
           clearSuppression()
           const rect = (
@@ -1664,7 +1706,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
       setOwnerId,
       props,
       mode,
-      mergedClassNames?.content,
+      classNames?.content,
     ],
   )
 
@@ -1696,7 +1738,7 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
       onChange={setValue}
       slot={slots.Input}
       slotProps={slotProps}
-      classNames={mergedClassNames}
+      classNames={classNames}
       inputPlaceholder={menu.inputPlaceholder}
     />
   ) : null
@@ -1705,11 +1747,15 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
     <ListView<T>
       store={store}
       menu={menu}
+      query={value}
+      defaults={defaults}
       slots={slots}
       slotProps={slotProps}
-      defaults={defaults}
-      query={value}
-      classNames={mergedClassNames}
+      classNames={classNames}
+      // shellSlotProps={shellSlotProps}
+      // surfaceSlots={slots}
+      // surfaceSlotProps={surfaceSlotProps}
+      // classNames={mergedClassNames}
       inputActive={inputActive}
       onTypeStart={(seed) => {
         if (!inputActive && ownerId === surfaceId) {
@@ -1786,12 +1832,6 @@ const SurfaceBase = React.forwardRef(function SurfaceBaseInner<T>(
 }) as <T>(
   p: ActionMenuSurfaceProps<T> & { ref?: React.Ref<HTMLDivElement> },
 ) => ReturnType<typeof Primitive.div>
-
-export const Surface = React.forwardRef<
-  HTMLDivElement,
-  ActionMenuSurfaceProps<any>
->((p, ref) => <SurfaceBase {...p} ref={ref} />)
-Surface.displayName = 'ActionMenu.Surface'
 
 /* ================================================================================================
  * Submenu plumbing (provider and rows)
@@ -2095,17 +2135,21 @@ function SubTriggerRow<T>({
   )
 }
 
+interface SubmenuContentProps<T> {
+  menu: SubmenuNode<T>
+  defaults?: Partial<MenuNodeDefaults<T>>
+  slots: Required<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+}
+
 function SubmenuContent<T>({
   menu,
-  slots,
   defaults,
+  slots,
+  slotProps,
   classNames,
-}: {
-  menu: SubmenuNode<T>
-  slots: Required<SurfaceSlots<T>>
-  defaults?: Partial<MenuNodeDefaults<T>>
-  classNames?: Partial<SurfaceClassNames>
-}) {
+}: SubmenuContentProps<T>) {
   const sub = useSubCtx()!
   const mode = useDisplayMode()
   const root = useRootCtx()
@@ -2116,12 +2160,13 @@ function SubmenuContent<T>({
   }, [sub])
 
   const inner = (
-    <SurfaceBase<T>
+    <Surface<T>
       menu={menu.child as Menu<T>}
       render={menu.render}
-      slots={slots as any}
       defaults={defaults}
-      surfaceClassNames={classNames}
+      slots={slots}
+      slotProps={slotProps}
+      classNames={classNames}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
     />
@@ -2132,7 +2177,7 @@ function SubmenuContent<T>({
       <Drawer.Portal>
         <Drawer.Overlay
           data-slot="action-menu-overlay"
-          className={root.shellClassNames?.overlay}
+          className={root.shellClassNames?.drawerOverlay}
           {...root.shellSlotProps?.drawerOverlay}
         />
         <Drawer.Content
@@ -2162,7 +2207,11 @@ function SubmenuContent<T>({
     )
   }
 
-  return <Positioner side="right">{inner as any}</Positioner>
+  return (
+    <Positioner side="right" {...slotProps?.positioner}>
+      {inner as any}
+    </Positioner>
+  )
 }
 
 /* ================================================================================================
@@ -2176,108 +2225,6 @@ function makeRowId(
 ) {
   if (!search || !search.isDeep || !surfaceId) return baseId
   return baseId // keep stable to avoid breaking references
-}
-
-function renderMenu<T>(
-  menu: Menu<T>,
-  slots: Required<SurfaceSlots<T>>,
-  defaults: Partial<MenuNodeDefaults<T>> | undefined,
-  classNames: Partial<SurfaceClassNames> | undefined,
-  store: SurfaceStore,
-  search?: SearchContext,
-) {
-  return (
-    <React.Fragment>
-      {(menu.nodes ?? []).map((node) => {
-        if (node.hidden) return null
-        if (node.kind === 'item') {
-          return (
-            <ItemRow
-              key={node.id}
-              node={node}
-              slot={slots.Item}
-              defaults={defaults}
-              classNames={classNames}
-              store={store}
-              search={search}
-            />
-          )
-        }
-        if (node.kind === 'group') {
-          return (
-            <div
-              key={node.id}
-              role="group"
-              data-action-menu-group
-              className={classNames?.group}
-            >
-              {node.heading ? (
-                <div
-                  data-action-menu-group-heading
-                  role="presentation"
-                  className={classNames?.groupHeading}
-                >
-                  {node.heading}
-                </div>
-              ) : null}
-              {node.nodes.map((child) => {
-                if (child.hidden) return null
-                // Set the menu reference for the child node
-                if (child.kind === 'item') {
-                  return (
-                    <ItemRow
-                      key={child.id}
-                      node={child as ItemNode<T>}
-                      slot={slots.Item}
-                      defaults={defaults}
-                      classNames={classNames}
-                      store={store}
-                      search={search}
-                    />
-                  )
-                }
-                return (
-                  <Sub key={child.id}>
-                    <SubTriggerRow
-                      node={child as SubmenuNode<any>}
-                      slot={slots.SubmenuTrigger as any}
-                      classNames={classNames}
-                      search={search}
-                    />
-                    <SubmenuContent
-                      menu={child}
-                      slots={slots as any}
-                      classNames={classNames}
-                      defaults={defaults as any}
-                    />
-                  </Sub>
-                )
-              })}
-            </div>
-          )
-        }
-        if (node.kind === 'submenu') {
-          return (
-            <Sub key={node.id}>
-              <SubTriggerRow
-                node={node}
-                slot={slots.SubmenuTrigger}
-                classNames={classNames}
-                search={search}
-              />
-              <SubmenuContent
-                menu={node}
-                slots={slots}
-                classNames={classNames}
-                defaults={defaults}
-              />
-            </Sub>
-          )
-        }
-        return null
-      })}
-    </React.Fragment>
-  )
 }
 
 function ItemRow<T>({
@@ -2536,28 +2483,30 @@ function useStickyRowWidth(opts: {
   return { measureRow }
 }
 
+interface ListViewProps<T> {
+  store: SurfaceStore
+  menu: Menu<T>
+  slots: Required<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+  defaults?: Partial<MenuNodeDefaults<T>>
+  query?: string
+  inputActive: boolean
+  onTypeStart: (seed: string) => void
+}
+
 /** List view that renders the unfiltered tree or flattened search results. */
-function ListView<T>({
+function ListView<T = unknown>({
   store,
   menu,
+  defaults,
   slots,
   slotProps,
-  defaults,
   classNames,
   query,
   inputActive,
   onTypeStart,
-}: {
-  store: SurfaceStore
-  menu: Menu<T>
-  slots: Required<SurfaceSlots<T>>
-  slotProps?: Partial<SurfaceSlotProps>
-  defaults?: Partial<MenuNodeDefaults<T>>
-  classNames?: Partial<SurfaceClassNames>
-  query?: string
-  inputActive: boolean
-  onTypeStart: (seed: string) => void
-}) {
+}: ListViewProps<T>) {
   const localId = React.useId()
   const listId = useSurfaceSel(store, (s) => s.listId)
   const hasInput = useSurfaceSel(store, (s) => s.hasInput)
@@ -2874,7 +2823,8 @@ function ListView<T>({
                     search={node.search}
                   />
                   <SubmenuContent
-                    menu={node}
+                    menu={node as any}
+                    slotProps={slotProps}
                     slots={slots}
                     classNames={classNames}
                     defaults={defaults}
@@ -2911,11 +2861,15 @@ function ListView<T>({
   const el = React.useMemo(
     () =>
       slots.List({
+        query: q,
+        nodes: flattenedNodes,
         children,
         bind,
       }),
-    [bind, slots.List, children],
+    [bind, slots.List, children, flattenedNodes, q],
   )
+
+  if (el === null) return null
 
   if (!isElementWithProp(el, 'data-action-menu-list')) {
     return (
@@ -2983,7 +2937,7 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
       <Drawer.Portal>
         <Drawer.Overlay
           data-slot="action-menu-overlay"
-          className={root.shellClassNames?.overlay}
+          className={root.shellClassNames?.drawerOverlay}
           {...root.shellSlotProps?.drawerOverlay}
         />
         <Drawer.Content
@@ -3053,35 +3007,24 @@ export const ActionMenu = ({
   const registerSurface = React.useCallback(
     (surfaceId: string, depth: number) => {
       openSurfaceIds.current.set(surfaceId, depth)
-      // console.log('[registerSurface] registered', surfaceId, 'at depth', depth)
-      // console.log('[registerSurface] openSurfaceIds', openSurfaceIds.current)
     },
     [],
   )
 
   const unregisterSurface = React.useCallback((surfaceId: string) => {
     openSurfaceIds.current.delete(surfaceId)
-    // console.log('[unregisterSurface] unregistered', surfaceId)
-    // console.log('[unregisterSurface] openSurfacesById', openSurfaceIds.current)
   }, [])
 
   const closeAllSurfaces = React.useCallback(() => {
-    console.log('[closeAllSurfaces] closing all menus')
     const ordered = [...openSurfaceIds.current.entries()].sort(
       (a, b) => b[1] - a[1],
     )
 
-    console.log('ordered surfaces:', ordered)
-
     for (const [surfaceId] of ordered) {
-      console.log('trying to close', surfaceId)
       const el = document.querySelector<HTMLElement>(
         `[data-surface-id="${surfaceId}"]`,
       )
-      if (el) {
-        console.log('dispatching close event')
-        dispatch(el, CLOSE_MENU_EVENT)
-      }
+      if (el) dispatch(el, CLOSE_MENU_EVENT)
     }
     setOpen(false)
   }, [setOpen])
@@ -3197,23 +3140,9 @@ export type CreateActionMenuResult<T = unknown> = {
 }
 
 export type CreateActionMenuOptions<T> = {
-  /** Default content-level options such as `vimBindings` and `dir`. */
-  defaults?: {
-    content?: Pick<
-      ActionMenuSurfaceProps<T>,
-      'vimBindings' | 'dir' | 'onCloseAutoClear'
-    >
-  }
-  surface?: {
-    slots?: Partial<SurfaceSlots<T>>
-    slotProps?: Partial<SurfaceSlotProps>
-    classNames?: Partial<SurfaceClassNames>
-  }
-  /** NEW: Defaults for the Vaul/overlay shell. */
-  shell?: {
-    classNames?: Partial<ShellClassNames>
-    slotProps?: Partial<ShellSlotProps>
-  }
+  slots?: Partial<SurfaceSlots<T>>
+  slotProps?: Partial<ShellSlotProps & SurfaceSlotProps>
+  classNames?: Partial<ShellClassNames & SurfaceClassNames>
 }
 
 export function createActionMenu<T = unknown>(
@@ -3221,99 +3150,83 @@ export function createActionMenu<T = unknown>(
 ): CreateActionMenuResult<T> {
   const baseSlots = {
     ...defaultSlots<T>(),
-    ...(opts?.surface?.slots as any),
+    ...(opts?.slots as any),
   } as Required<SurfaceSlots<T>>
-  const baseSurfaceSlotProps = ((opts?.surface?.slotProps as any) ??
-    {}) as Partial<SurfaceSlotProps>
-  const baseDefaults = opts?.defaults?.content ?? {}
-  const baseSurfaceClassNames = opts?.surface?.classNames
-  const baseShellClassNames = opts?.shell?.classNames
-  const baseShellSlotProps = opts?.shell?.slotProps
 
-  /** Typed Surface that merges factory defaults with per-instance props. */
-  const SurfaceTyped = React.forwardRef<
+  const baseSlotProps = opts?.slotProps
+  const baseClassNames = opts?.classNames
+
+  const SurfaceStyled = React.forwardRef<
     HTMLDivElement,
     ActionMenuSurfaceProps<T>
-  >(({ slots, surfaceSlotProps, surfaceClassNames, ...rest }, ref) => {
-    const mergedSlots = React.useMemo<SurfaceSlots<T>>(
+  >(({ slots, slotProps, classNames, ...rest }, ref) => {
+    const mergedSlots = React.useMemo<ActionMenuSlots<T>>(
       () => ({ ...baseSlots, ...(slots as any) }),
       [slots],
     )
-    const mergedSlotProps = React.useMemo<Partial<SurfaceSlotProps>>(
-      () => ({ ...baseSurfaceSlotProps, ...(surfaceSlotProps ?? {}) }),
-      [surfaceSlotProps],
+    const mergedSlotProps = React.useMemo<Partial<ActionMenuSlotProps>>(
+      () => ({ ...baseSlotProps, ...(slotProps ?? {}) }),
+      [slotProps],
     )
-    const mergedClassNames = React.useMemo<Partial<SurfaceClassNames>>(
+    const mergedClassNames = React.useMemo<Partial<ActionMenuClassNames>>(
       () => ({
-        root: cn(baseSurfaceClassNames?.root, surfaceClassNames?.root),
-        content: cn(baseSurfaceClassNames?.content, surfaceClassNames?.content),
-        input: cn(baseSurfaceClassNames?.input, surfaceClassNames?.input),
-        list: cn(baseSurfaceClassNames?.list, surfaceClassNames?.list),
-        itemWrapper: cn(
-          baseSurfaceClassNames?.itemWrapper,
-          surfaceClassNames?.itemWrapper,
-        ),
-        item: cn(baseSurfaceClassNames?.item, surfaceClassNames?.item),
+        content: cn(baseClassNames?.content, classNames?.content),
+        input: cn(baseClassNames?.input, classNames?.input),
+        list: cn(baseClassNames?.list, classNames?.list),
+        itemWrapper: cn(baseClassNames?.itemWrapper, classNames?.itemWrapper),
+        item: cn(baseClassNames?.item, classNames?.item),
         subtriggerWrapper: cn(
-          baseSurfaceClassNames?.subtriggerWrapper,
-          surfaceClassNames?.subtriggerWrapper,
+          baseClassNames?.subtriggerWrapper,
+          classNames?.subtriggerWrapper,
         ),
-        subtrigger: cn(
-          baseSurfaceClassNames?.subtrigger,
-          surfaceClassNames?.subtrigger,
-        ),
-        group: cn(baseSurfaceClassNames?.group, surfaceClassNames?.group),
+        subtrigger: cn(baseClassNames?.subtrigger, classNames?.subtrigger),
+        group: cn(baseClassNames?.group, classNames?.group),
         groupHeading: cn(
-          baseSurfaceClassNames?.groupHeading,
-          surfaceClassNames?.groupHeading,
+          baseClassNames?.groupHeading,
+          classNames?.groupHeading,
         ),
       }),
-      [surfaceClassNames, baseSurfaceClassNames],
+      [classNames],
     )
 
-    const vimBindings = rest.vimBindings ?? baseDefaults.vimBindings ?? true
-    const dir = (rest.dir ?? baseDefaults.dir) as Direction | undefined
-    const onCloseAutoClear =
-      rest.onCloseAutoClear ?? baseDefaults.onCloseAutoClear ?? true
-
     return (
-      <SurfaceBase<T>
+      <Surface<T>
         {...(rest as any)}
-        vimBindings={vimBindings}
-        dir={dir}
-        onCloseAutoClear={onCloseAutoClear}
         slots={mergedSlots}
-        surfaceSlotProps={mergedSlotProps}
-        surfaceClassNames={mergedClassNames}
+        slotProps={mergedSlotProps}
+        classNames={mergedClassNames}
         ref={ref}
       />
     )
   })
-  SurfaceTyped.displayName = 'ActionMenu.Surface'
+  SurfaceStyled.displayName = 'ActionMenu.Surface'
 
   /** Typed ActionMenu wrapper that injects default *shell* props. */
   const ActionMenuTyped: React.FC<ActionMenuProps> = (p) => {
-    const mergedShellClassNames: Partial<ShellClassNames> = {
-      root: cn(baseShellClassNames?.root, p.shellClassNames?.root),
-      overlay: cn(baseShellClassNames?.overlay, p.shellClassNames?.overlay),
+    const mergedShellClassNames: Partial<ActionMenuClassNames> = {
+      drawerOverlay: cn(
+        baseClassNames?.drawerOverlay,
+        p.shellClassNames?.drawerOverlay,
+      ),
       drawerContent: cn(
-        baseShellClassNames?.drawerContent,
+        baseClassNames?.drawerContent,
         p.shellClassNames?.drawerContent,
       ),
       drawerContentInner: cn(
-        baseShellClassNames?.drawerContentInner,
+        baseClassNames?.drawerContentInner,
         p.shellClassNames?.drawerContentInner,
       ),
       drawerHandle: cn(
-        baseShellClassNames?.drawerHandle,
+        baseClassNames?.drawerHandle,
         p.shellClassNames?.drawerHandle,
       ),
-      trigger: cn(baseShellClassNames?.trigger, p.shellClassNames?.trigger),
+      trigger: cn(baseClassNames?.trigger, p.shellClassNames?.trigger),
     }
     const mergedShellSlotProps: Partial<ShellSlotProps> = {
-      ...(baseShellSlotProps ?? {}),
+      ...(baseSlotProps ?? {}),
       ...(p.shellSlotProps ?? {}),
     }
+
     return (
       <ActionMenu
         {...p}
@@ -3327,6 +3240,6 @@ export function createActionMenu<T = unknown>(
     Root: ActionMenuTyped,
     Trigger,
     Positioner,
-    Surface: SurfaceTyped,
+    Surface: SurfaceStyled,
   }
 }

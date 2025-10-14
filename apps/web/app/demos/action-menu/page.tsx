@@ -28,6 +28,7 @@ export default function Page() {
             <Examples.ActionMenu.Massive numItems={10_000} />
             <Examples.ActionMenu.KitchenSink01 />
             <Examples.ActionMenu.Submenus />
+            <Examples.ActionMenu.SubmenusDeep />
           </div>
         </div>
       </div>

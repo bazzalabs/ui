@@ -33,4 +33,4 @@ export type {
   ListBindAPI,
 } from './action-menu.js'
 
-export { renderIcon, createActionMenu } from './action-menu.js'
+export { renderIcon, createActionMenu, defaultSlots } from './action-menu.js'

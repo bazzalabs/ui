@@ -89,23 +89,22 @@ function __FilterSelector_v2<TData>({
     },
     nodes: columns.map((column) => {
       const filter = filters.find((f) => f.columnId === column.id)
+
+      if (column.type === 'text') {
+        return createTextMenu({
+          filter: filter as FilterModel,
+          column: column as Column<TData, 'text'>,
+          actions,
+          locale,
+          strategy,
+        })
+      }
+
       return {
         kind: 'submenu',
         id: column.id,
         icon: column.icon,
         label: column.displayName,
-        // render:
-        //   column.type === 'text'
-        //     ? () => (
-        //         <FilterValueTextController_v2
-        //           column={column as Column<TData, 'text'>}
-        //           filter={filter as FilterModel<'text'>}
-        //           actions={actions}
-        //           locale={locale}
-        //           strategy={strategy}
-        //         />
-        //       )
-        //     : undefined,
         nodes:
           column.type === 'option'
             ? createOptionMenu({
@@ -123,15 +122,7 @@ function __FilterSelector_v2<TData>({
                   locale,
                   strategy,
                 })
-              : column.type === 'text'
-                ? createTextMenu({
-                    filter: filter as FilterModel,
-                    column: column as Column<TData, 'text'>,
-                    actions,
-                    locale,
-                    strategy,
-                  })
-                : [],
+              : [],
       }
     }),
   }

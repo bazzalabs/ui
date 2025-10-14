@@ -28,7 +28,6 @@ export function ActionMenu_Massive({ numItems = 100_000 }: MassiveMenuProps) {
       } satisfies ItemDef
     })
 
-    // console.log('massive nodes:', final)
     return final
   }, [numItems])
 
@@ -42,20 +41,16 @@ export function ActionMenu_Massive({ numItems = 100_000 }: MassiveMenuProps) {
 
       <ActionMenu.Positioner>
         <ActionMenu.Surface
-          surfaceClassNames={{
-            content: 'min-w-[200px]',
-          }}
           menu={{
             id: 'root',
-            // defaults: {
-            //   item: {
-            //     closeOnSelect: true,
-            //     onSelect: ({ node }) => {
-            //       // node.icon may be a string emoji per our generator
-            //       toast(`${node.icon ?? ''} ${node.label ?? node.id}`)
-            //     },
-            //   },
-            // },
+            defaults: {
+              item: {
+                closeOnSelect: true,
+                onSelect: ({ node }) => {
+                  toast(`${node.icon ?? ''} ${node.label ?? node.id}`)
+                },
+              },
+            },
             nodes,
           }}
         />
