@@ -52,7 +52,7 @@ export function ActionMenu_Notion() {
               },
             },
           }}
-          surfaceClassNames={{
+          classNames={{
             list: 'data-[mode=dropdown]:min-w-[300px]',
           }}
           slots={{
@@ -61,6 +61,15 @@ export function ActionMenu_Notion() {
                 className: 'w-full justify-between gap-16',
               })
 
+              const data = node.data as
+                | {
+                    description?: string
+                    tag?: string
+                    kbd?: string
+                    imageUrl?: string
+                  }
+                | undefined
+
               const Icon = renderIcon(node.icon, 'size-4 shrink-0')
 
               const ItemRow = (
@@ -68,21 +77,21 @@ export function ActionMenu_Notion() {
                   <div className="flex items-center gap-2 select-none">
                     {Icon}
                     <span>{node.label}</span>
-                    {node.data?.tag && (
+                    {data?.tag && (
                       <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
-                        {node.data?.tag}
+                        {data?.tag}
                       </div>
                     )}
                   </div>
-                  {node.data?.kbd && (
+                  {data?.kbd && (
                     <span className="text-muted-foreground text-xs">
-                      {node.data?.kbd}
+                      {data?.kbd}
                     </span>
                   )}
                 </button>
               )
 
-              if (mode !== 'dropdown' || node.data?.description === undefined)
+              if (mode !== 'dropdown' || data?.description === undefined)
                 return ItemRow
 
               return (
@@ -93,12 +102,12 @@ export function ActionMenu_Notion() {
                     align="center"
                     className="data-[state=closed]:!animate-none data-[state=open]:!animate-none font-medium text-xs bg-neutral-950 text-neutral-50 p-2 w-[170px] h-fit flex flex-col gap-2"
                   >
-                    {node.data?.imageUrl && (
+                    {data?.imageUrl && (
                       <div className="h-fit w-fit rounded-sm overflow-clip">
-                        <img src={node.data?.imageUrl} alt={node.label} />
+                        <img src={data?.imageUrl} alt={node.label} />
                       </div>
                     )}
-                    {node.data?.description}
+                    {data?.description}
                   </HoverCardContent>
                 </HoverCard>
               )
