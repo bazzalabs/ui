@@ -24,142 +24,136 @@ export function ActionMenu_Submenus() {
   }, [vegetablesInput])
 
   return (
-    <ActionMenu.Root modal={true}>
-      <ActionMenu.Trigger asChild>
-        <Button variant="secondary">Trigger</Button>
-      </ActionMenu.Trigger>
-      <ActionMenu.Positioner align="center">
-        <ActionMenu.Surface
-          menu={{
-            id: 'root',
-            defaults: {
-              item: {
-                closeOnSelect: true,
-                onSelect: ({ node }) => {
-                  toast(`${node.icon} ${node.label}`)
-                },
-              },
+    <ActionMenu
+      trigger={<Button variant="secondary">Trigger</Button>}
+      menu={{
+        id: 'root',
+        defaults: {
+          item: {
+            closeOnSelect: true,
+            onSelect: ({ node }) => {
+              toast(`${node.icon} ${node.label}`)
             },
+          },
+        },
+        input: {
+          value: input,
+          onValueChange: setInput,
+        },
+        nodes: [
+          {
+            kind: 'submenu',
+            id: 'fruits',
+            label: 'Fruits',
             input: {
-              value: input,
-              onValueChange: setInput,
+              value: fruitsInput,
+              onValueChange: setFruitsInput,
             },
             nodes: [
               {
-                kind: 'submenu',
-                id: 'fruits',
-                label: 'Fruits',
-                input: {
-                  value: fruitsInput,
-                  onValueChange: setFruitsInput,
-                },
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'Apple',
-                    label: 'Apple',
-                    icon: '🍎',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Banana',
-                    label: 'Banana',
-                    icon: '🍌',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Orange',
-                    label: 'Orange',
-                    icon: '🍊',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Pineapple',
-                    label: 'Pineapple',
-                    icon: '🍍',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Strawberry',
-                    label: 'Strawberry',
-                    icon: '🍓',
-                  },
-                ],
+                kind: 'item',
+                id: 'Apple',
+                label: 'Apple',
+                icon: '🍎',
               },
               {
-                kind: 'submenu',
-                id: 'vegetables',
-                label: 'Vegetables',
-                input: {
-                  value: vegetablesInput,
-                  onValueChange: setVegetablesInput,
-                },
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'Carrot',
-                    label: 'Carrot',
-                    icon: '🥕',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Broccoli',
-                    label: 'Broccoli',
-                    icon: '🥦',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Cauliflower',
-                    label: 'Cauliflower',
-                    icon: '🥐',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Tomato',
-                    label: 'Tomato',
-                    icon: '🍅',
-                  },
-                ],
+                kind: 'item',
+                id: 'Banana',
+                label: 'Banana',
+                icon: '🍌',
               },
               {
-                kind: 'submenu',
-                id: 'meats',
-                label: 'Meats',
-                input: {
-                  value: meatsInput,
-                  onValueChange: setMeatsInput,
-                },
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'Chicken',
-                    label: 'Chicken',
-                    icon: '🐔',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Beef',
-                    label: 'Beef',
-                    icon: '🐮',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Pork',
-                    label: 'Pork',
-                    icon: '🐷',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'Lamb',
-                    label: 'Lamb',
-                    icon: '🐶',
-                  },
-                ],
+                kind: 'item',
+                id: 'Orange',
+                label: 'Orange',
+                icon: '🍊',
+              },
+              {
+                kind: 'item',
+                id: 'Pineapple',
+                label: 'Pineapple',
+                icon: '🍍',
+              },
+              {
+                kind: 'item',
+                id: 'Strawberry',
+                label: 'Strawberry',
+                icon: '🍓',
               },
             ],
-          }}
-        />
-      </ActionMenu.Positioner>
-    </ActionMenu.Root>
+          },
+          {
+            kind: 'submenu',
+            id: 'vegetables',
+            label: 'Vegetables',
+            input: {
+              value: vegetablesInput,
+              onValueChange: setVegetablesInput,
+            },
+            nodes: [
+              {
+                kind: 'item',
+                id: 'Carrot',
+                label: 'Carrot',
+                icon: '🥕',
+              },
+              {
+                kind: 'item',
+                id: 'Broccoli',
+                label: 'Broccoli',
+                icon: '🥦',
+              },
+              {
+                kind: 'item',
+                id: 'Cauliflower',
+                label: 'Cauliflower',
+                icon: '🥐',
+              },
+              {
+                kind: 'item',
+                id: 'Tomato',
+                label: 'Tomato',
+                icon: '🍅',
+              },
+            ],
+          },
+          {
+            kind: 'submenu',
+            id: 'meats',
+            label: 'Meats',
+            input: {
+              value: meatsInput,
+              onValueChange: setMeatsInput,
+            },
+            nodes: [
+              {
+                kind: 'item',
+                id: 'Chicken',
+                label: 'Chicken',
+                icon: '🐔',
+              },
+              {
+                kind: 'item',
+                id: 'Beef',
+                label: 'Beef',
+                icon: '🐮',
+              },
+              {
+                kind: 'item',
+                id: 'Pork',
+                label: 'Pork',
+                icon: '🐷',
+              },
+              {
+                kind: 'item',
+                id: 'Lamb',
+                label: 'Lamb',
+                icon: '🐶',
+              },
+            ],
+          },
+        ],
+      }}
+    />
   )
 }

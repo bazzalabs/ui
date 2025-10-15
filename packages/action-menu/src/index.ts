@@ -2,7 +2,7 @@
 'use client'
 
 export type {
-  ActionMenuProps,
+  ActionMenuRootProps,
   ActionMenuTriggerProps,
   ActionMenuPositionerProps,
   ActionMenuSurfaceProps,

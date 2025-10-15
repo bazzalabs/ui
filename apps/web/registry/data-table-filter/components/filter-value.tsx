@@ -20,6 +20,7 @@ import {
   type Locale,
   type MinMaxReturn,
   numberFilterOperators,
+  type TextFilterOperator,
   t,
   take,
 } from '@bazza-ui/filters'
@@ -922,8 +923,11 @@ export function createTextMenu<TData>({
 }: FilterValueControllerProps<TData, 'text'>) {
   const [search, setSearch] = useState('')
 
-  const changeText = (value: string | number) => {
-    actions.setFilterValue(column, [String(value)])
+  const changeText = (value: string | number, operator: TextFilterOperator) => {
+    actions.batch((tx) => {
+      tx.setFilterValue(column, [String(value)])
+      tx.setFilterOperator(column.id, operator)
+    })
     setSearch(String(value))
   }
 
@@ -943,7 +947,7 @@ export function createTextMenu<TData>({
       },
       slotProps: {
         positioner: {
-          alignToFirstItem: false,
+          alignToFirstItem: 'always',
         },
       },
     },
@@ -951,7 +955,7 @@ export function createTextMenu<TData>({
       ? [
           {
             kind: 'item',
-            id: `${column.id}-text`,
+            id: `${column.id}-text-contains`,
             label: `contains ${search}`,
             data: {
               operator: 'contains',
@@ -959,7 +963,20 @@ export function createTextMenu<TData>({
             },
             keywords: [search],
             onSelect: () => {
-              changeText(search)
+              changeText(search, 'contains')
+            },
+          },
+          {
+            kind: 'item',
+            id: `${column.id}-text-does-not-contain`,
+            label: `does not contain ${search}`,
+            data: {
+              operator: 'does not contain',
+              values: [search],
+            },
+            keywords: [search],
+            onSelect: () => {
+              changeText(search, 'does not contain')
             },
           },
         ]

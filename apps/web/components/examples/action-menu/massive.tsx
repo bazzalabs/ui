@@ -32,29 +32,24 @@ export function ActionMenu_Massive({ numItems = 100_000 }: MassiveMenuProps) {
   }, [numItems])
 
   return (
-    <ActionMenu.Root modal={false}>
-      <ActionMenu.Trigger asChild>
+    <ActionMenu
+      trigger={
         <Button variant="secondary">
           Open {numItems.toLocaleString()} items
         </Button>
-      </ActionMenu.Trigger>
-
-      <ActionMenu.Positioner>
-        <ActionMenu.Surface
-          menu={{
-            id: 'root',
-            defaults: {
-              item: {
-                closeOnSelect: true,
-                onSelect: ({ node }) => {
-                  toast(`${node.icon ?? ''} ${node.label ?? node.id}`)
-                },
-              },
+      }
+      menu={{
+        id: 'root',
+        defaults: {
+          item: {
+            closeOnSelect: true,
+            onSelect: ({ node }) => {
+              toast(`${node.icon ?? ''} ${node.label ?? node.id}`)
             },
-            nodes,
-          }}
-        />
-      </ActionMenu.Positioner>
-    </ActionMenu.Root>
+          },
+        },
+        nodes,
+      }}
+    />
   )
 }

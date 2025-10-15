@@ -62,9 +62,9 @@ export type MenuDef<T = unknown> = MenuState & {
   nodes?: NodeDef<T>[]
   defaults?: MenuNodeDefaults<T>
   ui?: {
-    slots?: Partial<SurfaceSlots<T>>
-    slotProps?: Partial<SurfaceSlotProps>
-    classNames?: Partial<SurfaceClassNames>
+    slots?: Partial<ActionMenuSlots<T>>
+    slotProps?: Partial<ActionMenuSlotProps>
+    classNames?: Partial<ActionMenuClassNames>
   }
 }
 
@@ -102,9 +102,9 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     hideSearchUntilActive?: boolean
     defaults?: MenuNodeDefaults<T>
     ui?: {
-      slots?: Partial<SurfaceSlots<TChild>>
-      slotProps?: Partial<ShellSlotProps & SurfaceSlotProps>
-      classNames?: Partial<ShellClassNames & SurfaceClassNames>
+      slots?: Partial<ActionMenuSlots<TChild>>
+      slotProps?: Partial<ActionMenuSlotProps>
+      classNames?: Partial<ActionMenuClassNames>
     }
     render?: () => React.ReactNode
   }
@@ -645,8 +645,8 @@ type RootContextValue = {
   anchorRef: React.RefObject<HTMLElement | null>
   debug: boolean
   responsive: ResponsiveConfig
-  shellClassNames?: Partial<ShellClassNames>
-  shellSlotProps?: Partial<ShellSlotProps>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
   openSurfaceIds: React.RefObject<Map<string, number>>
   registerSurface: (surfaceId: string, depth: number) => void
   unregisterSurface: (surfaceId: string) => void
@@ -2177,14 +2177,14 @@ function SubmenuContent<T>({
       <Drawer.Portal>
         <Drawer.Overlay
           data-slot="action-menu-overlay"
-          className={root.shellClassNames?.drawerOverlay}
-          {...root.shellSlotProps?.drawerOverlay}
+          className={root.classNames?.drawerOverlay}
+          {...root.slotProps?.drawerOverlay}
         />
         <Drawer.Content
           data-slot="action-menu-drawer-content"
           ref={sub.contentRef as any}
-          className={cn(root.shellClassNames?.drawerContent)}
-          {...root.shellSlotProps?.drawerContent}
+          className={cn(root.classNames?.drawerContent)}
+          {...root.slotProps?.drawerContent}
           onOpenAutoFocus={(event) => {
             event.preventDefault()
           }}
@@ -2194,12 +2194,12 @@ function SubmenuContent<T>({
         >
           <div
             data-slot="action-menu-drawer-content-inner"
-            className={cn(root.shellClassNames?.drawerContentInner)}
+            className={cn(root.classNames?.drawerContentInner)}
           >
             <Drawer.Title className="sr-only">
               {menu.title ?? 'Action Menu'}
             </Drawer.Title>
-            <div className={root.shellClassNames?.drawerHandle} />
+            <div className={root.classNames?.drawerHandle} />
             {inner as any}
           </div>
         </Drawer.Content>
@@ -2891,19 +2891,6 @@ function ListView<T = unknown>({
  * Shells & Entry (ActionMenu)
  * ============================================================================================== */
 
-export interface ActionMenuProps extends Children {
-  open?: boolean
-  defaultOpen?: boolean
-  onOpenChange?: (open: boolean) => void
-  modal?: boolean
-  responsive?: Partial<ResponsiveConfig>
-  /** Drawer/overlay styles */
-  shellClassNames?: Partial<ShellClassNames>
-  /** Drawer-specific slot props */
-  shellSlotProps?: Partial<ShellSlotProps>
-  debug?: boolean
-}
-
 function DropdownShell({ children }: { children: React.ReactNode }) {
   return <Popper.Root>{children}</Popper.Root>
 }
@@ -2931,19 +2918,19 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
     <Drawer.Root
       open={root.open}
       onOpenChange={root.onOpenChange}
-      {...root.shellSlotProps?.drawerRoot}
+      {...root.slotProps?.drawerRoot}
     >
       {triggers}
       <Drawer.Portal>
         <Drawer.Overlay
           data-slot="action-menu-overlay"
-          className={root.shellClassNames?.drawerOverlay}
-          {...root.shellSlotProps?.drawerOverlay}
+          className={root.classNames?.drawerOverlay}
+          {...root.slotProps?.drawerOverlay}
         />
         <Drawer.Content
           data-slot="action-menu-drawer-content"
-          className={root.shellClassNames?.drawerContent}
-          {...root.shellSlotProps?.drawerContent}
+          className={root.classNames?.drawerContent}
+          {...root.slotProps?.drawerContent}
           onOpenAutoFocus={(event) => {
             event.preventDefault()
           }}
@@ -2953,10 +2940,10 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
         >
           <div
             data-slot="action-menu-drawer-content-inner"
-            className={cn(root.shellClassNames?.drawerContentInner)}
+            className={cn(root.classNames?.drawerContentInner)}
           >
             <Drawer.Title className="sr-only">Action Menu</Drawer.Title>
-            <div className={root.shellClassNames?.drawerHandle} />
+            <div className={root.classNames?.drawerHandle} />
             {body}
           </div>
         </Drawer.Content>
@@ -2965,23 +2952,39 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
   )
 }
 
+export interface ActionMenuRootProps extends Children {
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  modal?: boolean
+  responsive?: Partial<ResponsiveConfig>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+  debug?: boolean
+}
+
 /** Entry component: chooses the shell and provides root/display/focus contexts. */
-export const ActionMenu = ({
+export const Root = ({
   children,
   open: openProp,
   defaultOpen,
   onOpenChange,
   modal = true,
   responsive: responsiveProp,
-  shellClassNames,
-  shellSlotProps,
+  slotProps,
+  classNames,
   debug = false,
-}: ActionMenuProps) => {
+}: ActionMenuRootProps) => {
   const scopeId = React.useId()
   const [open, setOpen] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen ?? false,
-    onChange: onOpenChange,
+    onChange: (value) => {
+      if (!value) closeAllSurfaces()
+
+      if (onOpenChange) onOpenChange?.(value)
+      else setOpen(value)
+    },
   })
   const anchorRef = React.useRef<HTMLButtonElement | null>(null)
   const [ownerId, setOwnerId] = React.useState<string | null>(null)
@@ -3037,9 +3040,9 @@ export const ActionMenu = ({
     anchorRef,
     modal,
     debug,
+    slotProps,
+    classNames,
     responsive,
-    shellClassNames,
-    shellSlotProps,
     openSurfaceIds,
     registerSurface,
     unregisterSurface,
@@ -3090,7 +3093,7 @@ export const Trigger = React.forwardRef<
           data-action-menu-trigger
           ref={composeRefs(forwardedRef, root.anchorRef)}
           disabled={disabled}
-          className={cn(root.shellClassNames?.trigger, className)}
+          className={cn(root.classNames?.trigger, className)}
           onPointerDown={composeEventHandlers(onPointerDown, (event) => {
             if (!disabled && event.button === 0 && event.ctrlKey === false) {
               const willOpen = !root.open
@@ -3130,19 +3133,17 @@ Trigger.displayName = 'ActionMenu.Trigger'
  * Factory — createActionMenu<T>
  * ============================================================================================== */
 
-export type CreateActionMenuResult<T = unknown> = {
-  Root: React.FC<ActionMenuProps>
-  Trigger: typeof Trigger
-  Positioner: typeof Positioner
-  Surface: React.ForwardRefExoticComponent<
-    ActionMenuSurfaceProps<T> & React.RefAttributes<HTMLDivElement>
-  >
-}
+export type CreateActionMenuResult<T = unknown> = React.FC<ActionMenuProps<T>>
 
 export type CreateActionMenuOptions<T> = {
   slots?: Partial<SurfaceSlots<T>>
   slotProps?: Partial<ShellSlotProps & SurfaceSlotProps>
   classNames?: Partial<ShellClassNames & SurfaceClassNames>
+}
+
+export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps {
+  trigger?: React.ReactNode
+  menu: MenuDef<T>
 }
 
 export function createActionMenu<T = unknown>(
@@ -3151,95 +3152,25 @@ export function createActionMenu<T = unknown>(
   const baseSlots = {
     ...defaultSlots<T>(),
     ...(opts?.slots as any),
-  } as Required<SurfaceSlots<T>>
-
+  } as Required<ActionMenuSlots<T>>
   const baseSlotProps = opts?.slotProps
   const baseClassNames = opts?.classNames
 
-  const SurfaceStyled = React.forwardRef<
-    HTMLDivElement,
-    ActionMenuSurfaceProps<T>
-  >(({ slots, slotProps, classNames, ...rest }, ref) => {
-    const mergedSlots = React.useMemo<ActionMenuSlots<T>>(
-      () => ({ ...baseSlots, ...(slots as any) }),
-      [slots],
-    )
-    const mergedSlotProps = React.useMemo<Partial<ActionMenuSlotProps>>(
-      () => ({ ...baseSlotProps, ...(slotProps ?? {}) }),
-      [slotProps],
-    )
-    const mergedClassNames = React.useMemo<Partial<ActionMenuClassNames>>(
-      () => ({
-        content: cn(baseClassNames?.content, classNames?.content),
-        input: cn(baseClassNames?.input, classNames?.input),
-        list: cn(baseClassNames?.list, classNames?.list),
-        itemWrapper: cn(baseClassNames?.itemWrapper, classNames?.itemWrapper),
-        item: cn(baseClassNames?.item, classNames?.item),
-        subtriggerWrapper: cn(
-          baseClassNames?.subtriggerWrapper,
-          classNames?.subtriggerWrapper,
-        ),
-        subtrigger: cn(baseClassNames?.subtrigger, classNames?.subtrigger),
-        group: cn(baseClassNames?.group, classNames?.group),
-        groupHeading: cn(
-          baseClassNames?.groupHeading,
-          classNames?.groupHeading,
-        ),
-      }),
-      [classNames],
-    )
-
+  function ActionMenu<T = unknown>(props: ActionMenuProps<T>) {
     return (
-      <Surface<T>
-        {...(rest as any)}
-        slots={mergedSlots}
-        slotProps={mergedSlotProps}
-        classNames={mergedClassNames}
-        ref={ref}
-      />
-    )
-  })
-  SurfaceStyled.displayName = 'ActionMenu.Surface'
-
-  /** Typed ActionMenu wrapper that injects default *shell* props. */
-  const ActionMenuTyped: React.FC<ActionMenuProps> = (p) => {
-    const mergedShellClassNames: Partial<ActionMenuClassNames> = {
-      drawerOverlay: cn(
-        baseClassNames?.drawerOverlay,
-        p.shellClassNames?.drawerOverlay,
-      ),
-      drawerContent: cn(
-        baseClassNames?.drawerContent,
-        p.shellClassNames?.drawerContent,
-      ),
-      drawerContentInner: cn(
-        baseClassNames?.drawerContentInner,
-        p.shellClassNames?.drawerContentInner,
-      ),
-      drawerHandle: cn(
-        baseClassNames?.drawerHandle,
-        p.shellClassNames?.drawerHandle,
-      ),
-      trigger: cn(baseClassNames?.trigger, p.shellClassNames?.trigger),
-    }
-    const mergedShellSlotProps: Partial<ShellSlotProps> = {
-      ...(baseSlotProps ?? {}),
-      ...(p.shellSlotProps ?? {}),
-    }
-
-    return (
-      <ActionMenu
-        {...p}
-        shellClassNames={mergedShellClassNames}
-        shellSlotProps={mergedShellSlotProps}
-      />
+      <Root {...props} slotProps={baseSlotProps} classNames={baseClassNames}>
+        <Trigger asChild>{props.trigger}</Trigger>
+        <Positioner {...props.menu.ui?.slotProps?.positioner}>
+          <Surface
+            menu={props.menu as any}
+            slots={baseSlots}
+            slotProps={baseSlotProps}
+            classNames={baseClassNames}
+          />
+        </Positioner>
+      </Root>
     )
   }
 
-  return {
-    Root: ActionMenuTyped,
-    Trigger,
-    Positioner,
-    Surface: SurfaceStyled,
-  }
+  return ActionMenu
 }

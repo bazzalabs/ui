@@ -128,8 +128,8 @@ function __FilterSelector_v2<TData>({
   }
 
   return (
-    <ActionMenu.Root>
-      <ActionMenu.Trigger asChild>
+    <ActionMenu
+      trigger={
         <Button
           variant="outline"
           className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
@@ -137,11 +137,9 @@ function __FilterSelector_v2<TData>({
           <FilterIcon className="size-4" />
           {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
-      </ActionMenu.Trigger>
-      <ActionMenu.Positioner>
-        <ActionMenu.Surface menu={menu} />
-      </ActionMenu.Positioner>
-    </ActionMenu.Root>
+      }
+      menu={menu}
+    />
   )
 }
 
