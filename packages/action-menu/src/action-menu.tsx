@@ -457,6 +457,80 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
 }
 
 /* ================================================================================================
+ * Themes
+ * ============================================================================================== */
+
+type ActionMenuThemeDef<T = unknown> = {
+  slots?: Partial<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+}
+
+type ActionMenuTheme<T = unknown> = {
+  slots: Required<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+}
+
+const mergeTheme = <T,>(
+  a?: ActionMenuTheme<T>,
+  b?: ActionMenuThemeDef<T> | ActionMenuTheme<T>,
+): ActionMenuTheme<T> => ({
+  slots: { ...(a?.slots as any), ...(b?.slots as any) },
+  slotProps: { ...(a?.slotProps ?? {}), ...(b?.slotProps ?? {}) },
+  classNames: mergeClassNames(a?.classNames ?? {}, b?.classNames ?? {}),
+})
+
+const GlobalThemeContext = React.createContext<ActionMenuTheme<any>>({
+  slots: defaultSlots(),
+})
+export const useGlobalTheme = <T,>() =>
+  React.useContext(GlobalThemeContext) as ActionMenuTheme<T>
+
+function GlobalThemeProvider<T>({
+  theme,
+  children,
+}: {
+  theme: ActionMenuTheme<T>
+  children: React.ReactNode
+}) {
+  return (
+    <GlobalThemeContext.Provider value={theme}>
+      {children}
+    </GlobalThemeContext.Provider>
+  )
+}
+
+const ScopedThemeContext = React.createContext<ActionMenuTheme<any>>({
+  slots: defaultSlots(),
+})
+export const useScopedTheme = <T,>() =>
+  React.useContext(ScopedThemeContext) as ActionMenuTheme<T>
+
+function ScopedThemeProvider<T>({
+  theme,
+  children,
+  __scopeId,
+}: {
+  theme: ActionMenuTheme<T>
+  children: React.ReactNode
+  __scopeId?: string
+}) {
+  const globalTheme = useGlobalTheme()
+  const scopedTheme = mergeTheme(globalTheme, theme as any)
+
+  // console.log(`[ScopedThemeProvider] [${__scopeId}] globalTheme:`, globalTheme)
+  // console.log(`[ScopedThemeProvider] [${__scopeId}] theme:`, theme)
+  // console.log(`[ScopedThemeProvider] [${__scopeId}] scopedTheme:`, scopedTheme)
+
+  return (
+    <ScopedThemeContext.Provider value={scopedTheme}>
+      {children}
+    </ScopedThemeContext.Provider>
+  )
+}
+
+/* ================================================================================================
  * Utils
  * ============================================================================================== */
 
@@ -674,6 +748,7 @@ type SubContextValue = {
   onOpenToggle: () => void
   triggerRef: React.RefObject<HTMLDivElement | HTMLButtonElement | null>
   contentRef: React.RefObject<HTMLDivElement | null>
+  def: SubmenuDef
   parentSurfaceId: string
   triggerItemId: string | null
   setTriggerItemId: (id: string | null) => void
@@ -1215,7 +1290,7 @@ function useNavKeydown(source: 'input' | 'list') {
  * ============================================================================================== */
 
 export interface ActionMenuPositionerProps {
-  children: React.ReactElement
+  children: React.ReactNode
   side?: 'top' | 'right' | 'bottom' | 'left'
   align?: 'start' | 'center' | 'end'
   sideOffset?: number
@@ -1227,7 +1302,15 @@ export interface ActionMenuPositionerProps {
   alignToFirstItem?: false | 'on-open' | 'always'
 }
 
-export const Positioner: React.FC<ActionMenuPositionerProps> = ({
+export const Positioner = ({ children }: Children) => {
+  const theme = useScopedTheme()
+
+  return (
+    <PositionerImpl {...theme.slotProps?.positioner}>{children}</PositionerImpl>
+  )
+}
+
+export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   children,
   side,
   align = 'start',
@@ -1414,9 +1497,9 @@ export interface ActionMenuSurfaceProps<T = unknown>
   vimBindings?: boolean
   dir?: Direction
   defaults?: Partial<MenuNodeDefaults<T>>
-  slots?: Partial<ActionMenuSlots<T>>
-  slotProps?: Partial<ActionMenuSlotProps>
-  classNames?: Partial<ActionMenuClassNames>
+  // slots?: Partial<ActionMenuSlots<T>>
+  // slotProps?: Partial<ActionMenuSlotProps>
+  // classNames?: Partial<ActionMenuClassNames>
   onOpenAutoFocus?: boolean
   onCloseAutoClear?: boolean | number
   /** @internal Forced surface id; used by submenus. */
@@ -1441,13 +1524,6 @@ const Surface = React.forwardRef(function Surface<T>(
     surfaceIdProp,
     suppressHoverOpenOnMount,
     defaults: defaultsOverrides,
-    slots: slotOverrides,
-    slotProps: slotPropOverrides,
-    classNames: classNameOverrides,
-    // shellSlotProps: shellSlotPropsOverrides,
-    // surfaceSlots: surfaceSlotOverrides,
-    // surfaceSlotProps: surfaceSlotPropsOverrides,
-    // classNames,
     onOpenAutoFocus = true, // reserved
     onCloseAutoClear = true,
     ...props
@@ -1502,53 +1578,14 @@ const Surface = React.forwardRef(function Surface<T>(
     }
   }, [root.open, sub?.open, onCloseAutoClear])
 
-  const slots = React.useMemo<Required<SurfaceSlots<T>>>(
-    () => ({
-      ...defaultSlots<T>(),
-      ...(slotOverrides as any),
-      ...(menu.ui?.slots as any),
-    }),
-    [slotOverrides, menu.ui?.slots],
-  )
+  const theme = useScopedTheme<T>()
 
-  const slotProps = React.useMemo<Partial<ActionMenuSlotProps>>(
-    () => ({
-      ...(slotPropOverrides ?? {}),
-      ...(menu.ui?.slotProps ?? {}),
-    }),
-    [slotPropOverrides, menu.ui?.slotProps],
-  )
-
-  const classNames = React.useMemo(
-    () => mergeClassNames(classNameOverrides ?? {}, menu.ui?.classNames ?? {}),
-    [classNameOverrides, menu.ui?.classNames],
-  )
+  const { slots, slotProps, classNames } = theme
 
   const defaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
     () => ({ ...defaultsOverrides, ...(menu.defaults ?? {}) }),
     [defaultsOverrides, menu.defaults],
   )
-
-  // const shellSlotProps = React.useMemo<Partial<ShellSlotProps>>(
-  //   () => ({
-  //     ...(shellSlotPropsOverrides ?? {}),
-  //   }),
-  //   [shellSlotPropsOverrides],
-  // )
-  //
-  // const surfaceSlotProps = React.useMemo<Partial<SurfaceSlotProps>>(
-  //   () => ({
-  //     ...(surfaceSlotPropsOverrides ?? {}),
-  //     ...(menu.ui?.slotProps ?? {}),
-  //   }),
-  //   [surfaceSlotPropsOverrides, menu.ui?.slotProps],
-  // )
-  //
-  //
-  // const mergedClassNames = React.useMemo(
-  //   () => mergeClassNames(classNames ?? {}, menu.ui?.classNames ?? {}),
-  //   [classNames, menu.ui?.classNames],
-  // )
 
   const isSubmenu = !!sub
   const [inputActive, setInputActive] = React.useState(
@@ -1721,10 +1758,10 @@ const Surface = React.forwardRef(function Surface<T>(
   const headerEl = slots.Header ? (
     <div
       data-slot="action-menu-header"
-      {...(slotProps.header as any)}
+      {...(slotProps?.header as any)}
       className={cn(
         'data-[slot=action-menu-header]:block',
-        slotProps.header?.className,
+        slotProps?.header?.className,
       )}
     >
       {slots.Header({ menu })}
@@ -1737,8 +1774,8 @@ const Surface = React.forwardRef(function Surface<T>(
       value={value}
       onChange={setValue}
       slot={slots.Input}
-      slotProps={slotProps}
-      classNames={classNames}
+      slotProps={slotProps?.input}
+      className={classNames?.input}
       inputPlaceholder={menu.inputPlaceholder}
     />
   ) : null
@@ -1749,13 +1786,9 @@ const Surface = React.forwardRef(function Surface<T>(
       menu={menu}
       query={value}
       defaults={defaults}
-      slots={slots}
-      slotProps={slotProps}
-      classNames={classNames}
-      // shellSlotProps={shellSlotProps}
-      // surfaceSlots={slots}
-      // surfaceSlotProps={surfaceSlotProps}
-      // classNames={mergedClassNames}
+      // slots={slots}
+      // slotProps={slotProps}
+      // classNames={classNames}
       inputActive={inputActive}
       onTypeStart={(seed) => {
         if (!inputActive && ownerId === surfaceId) {
@@ -1772,10 +1805,10 @@ const Surface = React.forwardRef(function Surface<T>(
   const footerEl = slots.Footer ? (
     <div
       data-slot="action-menu-footer"
-      {...(slotProps.footer as any)}
+      {...(slotProps?.footer as any)}
       className={cn(
         'data-[slot=action-menu-footer]:block',
-        slotProps.footer?.className,
+        slotProps?.footer?.className,
       )}
     >
       {slots.Footer({ menu })}
@@ -1837,7 +1870,13 @@ const Surface = React.forwardRef(function Surface<T>(
  * Submenu plumbing (provider and rows)
  * ============================================================================================== */
 
-function Sub({ children }: { children: React.ReactNode }) {
+function Sub({
+  def,
+  children,
+}: {
+  def: SubmenuDef
+  children: React.ReactNode
+}) {
   const [open, setOpen] = React.useState(false)
   const triggerRef = React.useRef<HTMLDivElement | HTMLButtonElement | null>(
     null,
@@ -1862,6 +1901,7 @@ function Sub({ children }: { children: React.ReactNode }) {
       onOpenToggle: () => setOpen((v) => !v),
       triggerRef,
       contentRef,
+      def,
       parentSurfaceId,
       triggerItemId,
       setTriggerItemId,
@@ -2164,9 +2204,9 @@ function SubmenuContent<T>({
       menu={menu.child as Menu<T>}
       render={menu.render}
       defaults={defaults}
-      slots={slots}
-      slotProps={slotProps}
-      classNames={classNames}
+      // slots={slots}
+      // slotProps={slotProps}
+      // classNames={classNames}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
     />
@@ -2207,11 +2247,7 @@ function SubmenuContent<T>({
     )
   }
 
-  return (
-    <Positioner side="right" {...slotProps?.positioner}>
-      {inner as any}
-    </Positioner>
-  )
+  return <Positioner>{inner as any}</Positioner>
 }
 
 /* ================================================================================================
@@ -2231,7 +2267,7 @@ function ItemRow<T>({
   ref: refProp,
   node,
   slot,
-  classNames,
+  className,
   defaults,
   store,
   search,
@@ -2239,8 +2275,8 @@ function ItemRow<T>({
   ref?: React.Ref<HTMLElement>
   node: ItemNode<T>
   slot: NonNullable<SurfaceSlots<T>['Item']>
-  classNames?: Partial<SurfaceClassNames>
-  defaults?: Partial<MenuNodeDefaults<T>>
+  className?: string
+  defaults?: MenuNodeDefaults<T>['item']
   store: SurfaceStore
   search?: SearchContext
 }) {
@@ -2250,9 +2286,8 @@ function ItemRow<T>({
   const rowId = makeRowId(node.id, search, surfaceId)
   const root = useRootCtx()
   const sub = useSubCtx()
-  const onSelect = node.onSelect ?? defaults?.item?.onSelect
-  const closeOnSelect =
-    node.closeOnSelect ?? defaults?.item?.closeOnSelect ?? false
+  const onSelect = node.onSelect ?? defaults?.onSelect
+  const closeOnSelect = node.closeOnSelect ?? defaults?.closeOnSelect ?? false
 
   const handleSelect = React.useCallback(() => {
     onSelect?.({ node, search })
@@ -2296,7 +2331,7 @@ function ItemRow<T>({
         'aria-selected': focused,
         'aria-disabled': false,
         'data-mode': mode,
-        className: classNames?.item,
+        className,
         onPointerDown: (e: React.PointerEvent) => {
           e.preventDefault()
         },
@@ -2315,7 +2350,7 @@ function ItemRow<T>({
       handleSelect,
       focused,
       store,
-      classNames?.item,
+      className,
       aimGuardActiveRef,
     ],
   )
@@ -2348,15 +2383,15 @@ function InputView<T>({
   slot,
   slotProps,
   inputPlaceholder,
-  classNames,
+  className,
 }: {
   store: SurfaceStore
   value: string
   onChange: (v: string) => void
   slot: NonNullable<SurfaceSlots<T>['Input']>
-  slotProps: Partial<SurfaceSlotProps>
+  slotProps: SurfaceSlotProps['input']
   inputPlaceholder?: string
-  classNames?: Partial<SurfaceClassNames>
+  className?: string
 }) {
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
   const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)
@@ -2372,7 +2407,7 @@ function InputView<T>({
     'aria-controls': listId,
     'aria-activedescendant': activeId,
     'data-mode': mode,
-    className: classNames?.input,
+    className: className,
     placeholder: inputPlaceholder ?? 'Filter...',
     value,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -2383,12 +2418,12 @@ function InputView<T>({
     getInputProps: (overrides) =>
       mergeProps(
         baseInputProps as any,
-        mergeProps(slotProps?.input as any, overrides as any),
+        mergeProps(slotProps as any, overrides as any),
       ),
   }
   const el = slot({ value, onChange, bind })
   if (!isElementWithProp(el, 'data-action-menu-input'))
-    return <input {...(bind.getInputProps(slotProps?.input as any) as any)} />
+    return <input {...(bind.getInputProps(slotProps as any) as any)} />
   return el as React.ReactElement
 }
 
@@ -2486,9 +2521,9 @@ function useStickyRowWidth(opts: {
 interface ListViewProps<T> {
   store: SurfaceStore
   menu: Menu<T>
-  slots: Required<ActionMenuSlots<T>>
-  slotProps?: Partial<ActionMenuSlotProps>
-  classNames?: Partial<ActionMenuClassNames>
+  // slots: Required<ActionMenuSlots<T>>
+  // slotProps?: Partial<ActionMenuSlotProps>
+  // classNames?: Partial<ActionMenuClassNames>
   defaults?: Partial<MenuNodeDefaults<T>>
   query?: string
   inputActive: boolean
@@ -2500,9 +2535,9 @@ function ListView<T = unknown>({
   store,
   menu,
   defaults,
-  slots,
-  slotProps,
-  classNames,
+  // slots,
+  // slotProps,
+  // classNames,
   query,
   inputActive,
   onTypeStart,
@@ -2671,6 +2706,9 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
+  const globalTheme = useGlobalTheme<T>()
+  const { slots, slotProps, classNames } = useScopedTheme<T>()
+
   const virtualizer = useVirtualizer({
     count: flattenedNodes.length,
     estimateSize: () => 32,
@@ -2790,8 +2828,8 @@ function ListView<T = unknown>({
                   key={node.id}
                   node={node}
                   slot={slots.Item}
-                  defaults={defaults}
-                  classNames={classNames}
+                  defaults={defaults?.item}
+                  className={classNames?.item}
                   store={store}
                   search={node.search}
                 />
@@ -2813,23 +2851,25 @@ function ListView<T = unknown>({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <Sub>
-                  <SubTriggerRow
-                    ref={measureRow}
-                    key={virtualRow.key}
-                    node={node}
-                    slot={slots.SubmenuTrigger}
-                    classNames={classNames}
-                    search={node.search}
-                  />
-                  <SubmenuContent
-                    menu={node as any}
-                    slotProps={slotProps}
-                    slots={slots}
-                    classNames={classNames}
-                    defaults={defaults}
-                  />
-                </Sub>
+                <ScopedThemeProvider __scopeId={node.id} theme={node.ui as any}>
+                  <Sub def={node as any}>
+                    <SubTriggerRow
+                      ref={measureRow}
+                      key={virtualRow.key}
+                      node={node}
+                      slot={slots.SubmenuTrigger}
+                      classNames={classNames}
+                      search={node.search}
+                    />
+                    <SubmenuContent
+                      menu={node as any}
+                      slotProps={globalTheme.slotProps}
+                      slots={globalTheme.slots}
+                      classNames={globalTheme.classNames}
+                      // defaults={defaults}
+                    />
+                  </Sub>
+                </ScopedThemeProvider>
               </div>
             )
           }
@@ -2958,6 +2998,7 @@ export interface ActionMenuRootProps extends Children {
   onOpenChange?: (open: boolean) => void
   modal?: boolean
   responsive?: Partial<ResponsiveConfig>
+  slots?: Partial<ActionMenuSlots>
   slotProps?: Partial<ActionMenuSlotProps>
   classNames?: Partial<ActionMenuClassNames>
   debug?: boolean
@@ -3137,8 +3178,8 @@ export type CreateActionMenuResult<T = unknown> = React.FC<ActionMenuProps<T>>
 
 export type CreateActionMenuOptions<T> = {
   slots?: Partial<SurfaceSlots<T>>
-  slotProps?: Partial<ShellSlotProps & SurfaceSlotProps>
-  classNames?: Partial<ShellClassNames & SurfaceClassNames>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
 }
 
 export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps {
@@ -3149,26 +3190,36 @@ export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps {
 export function createActionMenu<T = unknown>(
   opts?: CreateActionMenuOptions<T>,
 ): CreateActionMenuResult<T> {
-  const baseSlots = {
-    ...defaultSlots<T>(),
-    ...(opts?.slots as any),
-  } as Required<ActionMenuSlots<T>>
-  const baseSlotProps = opts?.slotProps
-  const baseClassNames = opts?.classNames
+  const factoryTheme: ActionMenuTheme = {
+    slots: { ...defaultSlots<T>(), ...(opts?.slots as any) },
+    slotProps: opts?.slotProps,
+    classNames: opts?.classNames,
+  }
 
   function ActionMenu<T = unknown>(props: ActionMenuProps<T>) {
+    const instanceTheme: ActionMenuTheme = React.useMemo(
+      () =>
+        mergeTheme(factoryTheme, {
+          slots: props.slots,
+          slotProps: props.slotProps,
+          classNames: props.classNames,
+        }),
+      [props.slots, props.slotProps, props.classNames],
+    )
+
+    const scopedTheme = props.menu.ui as ActionMenuTheme
+
     return (
-      <Root {...props} slotProps={baseSlotProps} classNames={baseClassNames}>
-        <Trigger asChild>{props.trigger}</Trigger>
-        <Positioner {...props.menu.ui?.slotProps?.positioner}>
-          <Surface
-            menu={props.menu as any}
-            slots={baseSlots}
-            slotProps={baseSlotProps}
-            classNames={baseClassNames}
-          />
-        </Positioner>
-      </Root>
+      <GlobalThemeProvider theme={instanceTheme}>
+        <ScopedThemeProvider __scopeId="root" theme={scopedTheme}>
+          <Root {...props}>
+            <Trigger asChild>{props.trigger}</Trigger>
+            <PositionerImpl>
+              <Surface menu={props.menu as any} />
+            </PositionerImpl>
+          </Root>
+        </ScopedThemeProvider>
+      </GlobalThemeProvider>
     )
   }
 
