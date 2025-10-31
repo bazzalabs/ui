@@ -2185,18 +2185,9 @@ function SubTriggerRow<T>({
 interface SubmenuContentProps<T> {
   menu: SubmenuNode<T>
   defaults?: Partial<MenuNodeDefaults<T>>
-  slots: Required<ActionMenuSlots<T>>
-  slotProps?: Partial<ActionMenuSlotProps>
-  classNames?: Partial<ActionMenuClassNames>
 }
 
-function SubmenuContent<T>({
-  menu,
-  defaults,
-  slots,
-  slotProps,
-  classNames,
-}: SubmenuContentProps<T>) {
+function SubmenuContent<T>({ menu, defaults }: SubmenuContentProps<T>) {
   const sub = useSubCtx()!
   const mode = useDisplayMode()
   const root = useRootCtx()
@@ -2211,9 +2202,6 @@ function SubmenuContent<T>({
       menu={menu.child as Menu<T>}
       render={menu.render}
       defaults={defaults}
-      // slots={slots}
-      // slotProps={slotProps}
-      // classNames={classNames}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
     />
@@ -2868,13 +2856,7 @@ function ListView<T = unknown>({
                       classNames={classNames}
                       search={node.search}
                     />
-                    <SubmenuContent
-                      menu={node as any}
-                      slotProps={globalTheme.slotProps}
-                      slots={globalTheme.slots}
-                      classNames={globalTheme.classNames}
-                      // defaults={defaults}
-                    />
+                    <SubmenuContent menu={node as any} />
                   </Sub>
                 </ScopedThemeProvider>
               </div>
