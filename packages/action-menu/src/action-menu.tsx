@@ -477,7 +477,7 @@ const mergeTheme = <T,>(
   b?: ActionMenuThemeDef<T> | ActionMenuTheme<T>,
 ): ActionMenuTheme<T> => ({
   slots: { ...(a?.slots as any), ...(b?.slots as any) },
-  slotProps: { ...(a?.slotProps ?? {}), ...(b?.slotProps ?? {}) },
+  slotProps: mergeSlotProps(a?.slotProps, b?.slotProps),
   classNames: mergeClassNames(a?.classNames ?? {}, b?.classNames ?? {}),
 })
 
@@ -487,7 +487,7 @@ const GlobalThemeContext = React.createContext<ActionMenuTheme<any>>({
 export const useGlobalTheme = <T,>() =>
   React.useContext(GlobalThemeContext) as ActionMenuTheme<T>
 
-function GlobalThemeProvider<T>({
+const GlobalThemeProvider = React.memo(function GlobalThemeProvider<T>({
   theme,
   children,
 }: {
@@ -499,7 +499,7 @@ function GlobalThemeProvider<T>({
       {children}
     </GlobalThemeContext.Provider>
   )
-}
+})
 
 const ScopedThemeContext = React.createContext<ActionMenuTheme<any>>({
   slots: defaultSlots(),
@@ -507,7 +507,7 @@ const ScopedThemeContext = React.createContext<ActionMenuTheme<any>>({
 export const useScopedTheme = <T,>() =>
   React.useContext(ScopedThemeContext) as ActionMenuTheme<T>
 
-function ScopedThemeProvider<T>({
+const ScopedThemeProvider = React.memo(function ScopedThemeProvider<T>({
   theme,
   children,
   __scopeId,
@@ -519,16 +519,12 @@ function ScopedThemeProvider<T>({
   const globalTheme = useGlobalTheme()
   const scopedTheme = mergeTheme(globalTheme, theme as any)
 
-  // console.log(`[ScopedThemeProvider] [${__scopeId}] globalTheme:`, globalTheme)
-  // console.log(`[ScopedThemeProvider] [${__scopeId}] theme:`, theme)
-  // console.log(`[ScopedThemeProvider] [${__scopeId}] scopedTheme:`, scopedTheme)
-
   return (
     <ScopedThemeContext.Provider value={scopedTheme}>
       {children}
     </ScopedThemeContext.Provider>
   )
-}
+})
 
 /* ================================================================================================
  * Utils
@@ -577,6 +573,26 @@ function mergeClassNames<T extends Record<string, ClassNameValue>>(a: T, b: T) {
   Object.keys(b).forEach((key) => {
     merged[key] = cn(a[key] ?? '', b[key])
   })
+
+  return merged
+}
+
+function mergeSlotProps(
+  a?: Partial<ActionMenuSlotProps>,
+  b?: Partial<ActionMenuSlotProps>,
+): Partial<ActionMenuSlotProps> {
+  if (!a && !b) return {}
+  if (!a) return b ?? {}
+  if (!b) return a
+
+  const merged: Partial<ActionMenuSlotProps> = {}
+  const allKeys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<
+    keyof ActionMenuSlotProps
+  >
+
+  for (const key of allKeys) {
+    merged[key] = mergeProps(a[key], b[key]) as any
+  }
 
   return merged
 }
