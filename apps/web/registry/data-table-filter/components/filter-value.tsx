@@ -941,13 +941,18 @@ export function createTextMenu<TData>({
       onValueChange: setSearch,
     },
     inputPlaceholder: `Enter ${column.displayName.toLowerCase()}...`,
+    defaults: {
+      item: {
+        closeOnSelect: true,
+      },
+    },
     ui: {
       slots: {
         Item: TextItem_v2 as any,
       },
       slotProps: {
         positioner: {
-          alignToFirstItem: 'always',
+          alignToFirstItem: false,
         },
       },
     },
