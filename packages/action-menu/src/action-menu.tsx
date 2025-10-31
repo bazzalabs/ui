@@ -696,9 +696,16 @@ function dispatch(node: HTMLElement | null | undefined, type: string) {
   node.dispatchEvent(new CustomEvent(type, { bubbles: true }))
 }
 
-function openSubmenuForActive(activeId: string | null) {
-  const el = activeId ? document.getElementById(activeId) : null
-  if (el && (el as HTMLElement).dataset.subtrigger === 'true') {
+function openSubmenuForActive(activeId: string | null, surfaceId: string) {
+  if (!activeId) return
+  const surface = document.querySelector<HTMLElement>(
+    `[data-surface-id="${surfaceId}"]`,
+  )
+  if (!surface) return
+  const el = surface.querySelector<HTMLElement>(
+    `[data-action-menu-item-id="${activeId}"]`,
+  )
+  if (el && el.dataset.subtrigger === 'true') {
     dispatch(el, OPEN_SUB_EVENT)
   }
 }
@@ -1175,12 +1182,12 @@ function useNavKeydown(source: 'input' | 'list') {
           if (isSelectionKey(k)) {
             const el = activeId ? document.getElementById(activeId) : null
             if (el && el.dataset.subtrigger === 'true') {
-              openSubmenuForActive(activeId)
+              openSubmenuForActive(activeId, surfaceId)
             } else {
               dispatch(el, SELECT_ITEM_EVENT)
             }
           } else {
-            openSubmenuForActive(activeId)
+            openSubmenuForActive(activeId, surfaceId)
           }
           return
         }
@@ -1232,12 +1239,12 @@ function useNavKeydown(source: 'input' | 'list') {
         if (isSelectionKey(k)) {
           const el = activeId ? document.getElementById(activeId) : null
           if (el && el.dataset.subtrigger === 'true') {
-            openSubmenuForActive(activeId)
+            openSubmenuForActive(activeId, surfaceId)
           } else {
             dispatch(el, SELECT_ITEM_EVENT)
           }
         } else {
-          openSubmenuForActive(activeId)
+          openSubmenuForActive(activeId, surfaceId)
         }
         return
       }
@@ -1264,7 +1271,7 @@ function useNavKeydown(source: 'input' | 'list') {
         const activeId = store.snapshot().activeId
         const el = activeId ? document.getElementById(activeId) : null
         if (el && el.dataset.subtrigger === 'true') {
-          openSubmenuForActive(activeId)
+          openSubmenuForActive(activeId, surfaceId)
         } else {
           dispatch(el, SELECT_ITEM_EVENT)
         }
