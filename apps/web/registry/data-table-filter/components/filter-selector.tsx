@@ -105,6 +105,13 @@ function __FilterSelector_v2<TData>({
         id: column.id,
         icon: column.icon,
         label: column.displayName,
+        ui: {
+          slotProps: {
+            positioner: {
+              alignToFirstItem: 'on-open',
+            },
+          },
+        },
         nodes:
           column.type === 'option'
             ? createOptionMenu({

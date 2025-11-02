@@ -494,8 +494,9 @@ const GlobalThemeProvider = React.memo(function GlobalThemeProvider<T>({
   theme: ActionMenuTheme<T>
   children: React.ReactNode
 }) {
+  const value = React.useMemo(() => theme, [theme])
   return (
-    <GlobalThemeContext.Provider value={theme}>
+    <GlobalThemeContext.Provider value={value}>
       {children}
     </GlobalThemeContext.Provider>
   )
@@ -517,7 +518,10 @@ const ScopedThemeProvider = React.memo(function ScopedThemeProvider<T>({
   __scopeId?: string
 }) {
   const globalTheme = useGlobalTheme()
-  const scopedTheme = mergeTheme(globalTheme, theme as any)
+  const scopedTheme = React.useMemo(
+    () => mergeTheme(globalTheme, theme as any),
+    [globalTheme, theme],
+  )
 
   return (
     <ScopedThemeContext.Provider value={scopedTheme}>
@@ -1391,10 +1395,12 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
     const cr = el.getBoundingClientRect()
     const fr = firstRow.getBoundingClientRect()
     setFirstRowAlignOffset(-Math.round(fr.top - cr.top))
-  }, [isSub, present, alignToFirstItem, resolvedSide, sub])
+  }, [isSub, present, alignToFirstItem, resolvedSide, findContentEl])
 
-  React.useEffect(() => {
-    if (!isSub || !present || !alignToFirstItem) return
+  React.useLayoutEffect(() => {
+    if (!isSub || !present || !alignToFirstItem) {
+      return
+    }
 
     let af: number
 
@@ -1734,6 +1740,18 @@ const Surface = React.forwardRef(function Surface<T>(
     [],
   )
 
+  const handleMouseMove = React.useCallback(
+    (e: React.MouseEvent) => {
+      clearSuppression()
+      const rect = (
+        surfaceRef.current as HTMLElement | null
+      )?.getBoundingClientRect()
+      if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
+      setOwnerId(surfaceId)
+    },
+    [clearSuppression, surfaceId, setOwnerId],
+  )
+
   const baseContentProps = React.useMemo(
     () =>
       ({
@@ -1748,35 +1766,31 @@ const Surface = React.forwardRef(function Surface<T>(
         'data-surface-id': surfaceId,
         'data-mode': mode,
         className: classNames?.content,
-        onMouseMove: (e: React.MouseEvent) => {
-          clearSuppression()
-          const rect = (
-            surfaceRef.current as HTMLElement | null
-          )?.getBoundingClientRect()
-          if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
-          setOwnerId(surfaceId)
-        },
+        onMouseMove: handleMouseMove,
         ...props,
       }) as const,
     [
       composedRef,
+      isSubmenu,
       root.open,
-      clearSuppression,
       surfaceId,
-      setOwnerId,
-      props,
       mode,
       classNames?.content,
+      handleMouseMove,
+      props,
     ],
   )
 
-  const contentBind: ContentBindAPI = {
-    getContentProps: (overrides) =>
-      mergeProps(
-        baseContentProps as any,
-        mergeProps(slotProps?.content as any, overrides as any),
-      ),
-  }
+  const contentBind: ContentBindAPI = React.useMemo(
+    () => ({
+      getContentProps: (overrides) =>
+        mergeProps(
+          baseContentProps as any,
+          mergeProps(slotProps?.content as any, overrides as any),
+        ),
+    }),
+    [baseContentProps, slotProps?.content],
+  )
 
   const headerEl = slots.Header ? (
     <div
@@ -1864,22 +1878,38 @@ const Surface = React.forwardRef(function Surface<T>(
     <SurfaceCtx.Provider value={store}>{body}</SurfaceCtx.Provider>
   )
 
+  const keyboardCtxValue = React.useMemo(
+    () => ({ dir, vimBindings }),
+    [dir, vimBindings],
+  )
+
+  const hoverPolicyValue = React.useMemo(
+    () => ({
+      suppressHoverOpen,
+      clearSuppression,
+      aimGuardActive,
+      guardedTriggerId,
+      activateAimGuard,
+      clearAimGuard,
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      isGuardBlocking,
+    }),
+    [
+      suppressHoverOpen,
+      clearSuppression,
+      aimGuardActive,
+      guardedTriggerId,
+      activateAimGuard,
+      clearAimGuard,
+      isGuardBlocking,
+    ],
+  )
+
   return (
-    <KeyboardCtx.Provider value={{ dir, vimBindings }}>
+    <KeyboardCtx.Provider value={keyboardCtxValue}>
       <SurfaceIdCtx.Provider value={surfaceId}>
-        <HoverPolicyCtx.Provider
-          value={{
-            suppressHoverOpen,
-            clearSuppression,
-            aimGuardActive,
-            guardedTriggerId,
-            activateAimGuard,
-            clearAimGuard,
-            aimGuardActiveRef,
-            guardedTriggerIdRef,
-            isGuardBlocking,
-          }}
-        >
+        <HoverPolicyCtx.Provider value={hoverPolicyValue}>
           {wrapped}
         </HoverPolicyCtx.Provider>
       </SurfaceIdCtx.Provider>
@@ -1917,11 +1947,13 @@ function Sub({
   const mode = useDisplayMode()
   const parentSubCtx = useSubCtx()
 
+  const onOpenToggle = React.useCallback(() => setOpen((v) => !v), [])
+
   const value: SubContextValue = React.useMemo(
     () => ({
       open,
       onOpenChange: setOpen,
-      onOpenToggle: () => setOpen((v) => !v),
+      onOpenToggle,
       triggerRef,
       contentRef,
       def,
@@ -1936,6 +1968,8 @@ function Sub({
     }),
     [
       open,
+      onOpenToggle,
+      def,
       parentSurfaceId,
       triggerItemId,
       parentStore.setActiveId,
@@ -2063,6 +2097,102 @@ function SubTriggerRow<T>({
   const focused = activeId === rowId
   const menuFocused = sub.childSurfaceId === ownerId
 
+  const onPointerDown = React.useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button === 0 && e.ctrlKey === false) {
+        e.preventDefault()
+        sub.pendingOpenModalityRef.current = 'pointer'
+        sub.onOpenToggle()
+      }
+    },
+    [sub],
+  )
+
+  const onPointerEnter = React.useCallback(() => {
+    if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+      return
+    if (!focused) store.setActiveId(rowId, 'pointer')
+    clearAimGuard()
+    if (!sub.open) sub.onOpenChange(true)
+  }, [
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+    rowId,
+    focused,
+    store,
+    clearAimGuard,
+    sub,
+  ])
+
+  const onPointerMove = React.useCallback(() => {
+    if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+      return
+    if (!focused) store.setActiveId(rowId, 'pointer')
+    if (!sub.open) sub.onOpenChange(true)
+  }, [aimGuardActiveRef, guardedTriggerIdRef, rowId, focused, store, sub])
+
+  const onPointerLeave = React.useCallback(
+    (e: React.PointerEvent) => {
+      if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+        return
+      const contentRect = sub.contentRef.current?.getBoundingClientRect()
+      if (!contentRect) {
+        clearAimGuard()
+        return
+      }
+      const tRect =
+        (
+          sub.triggerRef.current as HTMLElement | null
+        )?.getBoundingClientRect() ?? null
+      const anchor = resolveAnchorSide(contentRect, tRect, e.clientX)
+      const heading = getSmoothedHeading(
+        mouseTrailRef.current,
+        e.clientX,
+        e.clientY,
+        anchor,
+        tRect,
+        contentRect,
+      )
+      const hit = willHitSubmenu(
+        e.clientX,
+        e.clientY,
+        heading,
+        contentRect,
+        anchor,
+        tRect,
+      )
+      if (hit) {
+        activateAimGuard(rowId, 600)
+        store.setActiveId(rowId, 'pointer')
+        sub.onOpenChange(true)
+      } else {
+        clearAimGuard()
+      }
+    },
+    [
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      rowId,
+      sub,
+      clearAimGuard,
+      mouseTrailRef,
+      activateAimGuard,
+      store,
+    ],
+  )
+
+  const onKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+    // Keep keyboard navigation; Enter will bubble to Drawer.Trigger
+    if (
+      e.key === 'ArrowUp' ||
+      e.key === 'ArrowDown' ||
+      e.key === 'Home' ||
+      e.key === 'End'
+    ) {
+      // let list/input handlers deal with it via useNavKeydown
+    }
+  }, [])
+
   const baseRowProps = React.useMemo(() => {
     const common = {
       id: rowId,
@@ -2088,101 +2218,42 @@ function SubTriggerRow<T>({
         onPointerEnter: undefined,
         onPointerMove: undefined,
         onPointerLeave: undefined,
-        onKeyDown: (e: React.KeyboardEvent) => {
-          // Keep keyboard navigation; Enter will bubble to Drawer.Trigger
-          if (
-            e.key === 'ArrowUp' ||
-            e.key === 'ArrowDown' ||
-            e.key === 'Home' ||
-            e.key === 'End'
-          ) {
-            // let list/input handlers deal with it via useNavKeydown
-          }
-        },
+        onKeyDown,
       } as const
     }
 
     // Dropdown (Popper) mode: keep your original hover + aim-guard behavior
     return {
       ...common,
-      onPointerDown: (e: React.PointerEvent) => {
-        if (e.button === 0 && e.ctrlKey === false) {
-          e.preventDefault()
-          sub.pendingOpenModalityRef.current = 'pointer'
-          sub.onOpenToggle()
-        }
-      },
-      onPointerEnter: () => {
-        if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
-          return
-        if (!focused) store.setActiveId(rowId, 'pointer')
-        clearAimGuard()
-        if (!sub.open) sub.onOpenChange(true)
-      },
-      onPointerMove: () => {
-        if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
-          return
-        if (!focused) store.setActiveId(rowId, 'pointer')
-        if (!sub.open) sub.onOpenChange(true)
-      },
-      onPointerLeave: (e: React.PointerEvent) => {
-        if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
-          return
-        const contentRect = sub.contentRef.current?.getBoundingClientRect()
-        if (!contentRect) {
-          clearAimGuard()
-          return
-        }
-        const tRect =
-          (
-            sub.triggerRef.current as HTMLElement | null
-          )?.getBoundingClientRect() ?? null
-        const anchor = resolveAnchorSide(contentRect, tRect, e.clientX)
-        const heading = getSmoothedHeading(
-          mouseTrailRef.current,
-          e.clientX,
-          e.clientY,
-          anchor,
-          tRect,
-          contentRect,
-        )
-        const hit = willHitSubmenu(
-          e.clientX,
-          e.clientY,
-          heading,
-          contentRect,
-          anchor,
-          tRect,
-        )
-        if (hit) {
-          activateAimGuard(rowId, 600)
-          store.setActiveId(rowId, 'pointer')
-          sub.onOpenChange(true)
-        } else {
-          clearAimGuard()
-        }
-      },
+      onPointerDown,
+      onPointerEnter,
+      onPointerMove,
+      onPointerLeave,
     } as const
   }, [
     mode,
     rowId,
+    refProp,
+    sub,
     focused,
     menuFocused,
     classNames?.subtrigger,
-    store,
-    sub,
-    activateAimGuard,
-    clearAimGuard,
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
+    onPointerDown,
+    onPointerEnter,
+    onPointerMove,
+    onPointerLeave,
+    onKeyDown,
   ])
 
-  const bind: RowBindAPI = {
-    focused,
-    disabled: false,
-    getRowProps: (overrides) =>
-      mergeProps(baseRowProps as any, overrides as any),
-  }
+  const bind: RowBindAPI = React.useMemo(
+    () => ({
+      focused,
+      disabled: false,
+      getRowProps: (overrides) =>
+        mergeProps(baseRowProps as any, overrides as any),
+    }),
+    [focused, baseRowProps],
+  )
 
   const visual = slot({ node, bind, search })
   const content = hasDescendantWithProp(visual, 'data-action-menu-item-id') ? (
@@ -2305,7 +2376,7 @@ function ItemRow<T>({
     if (closeOnSelect) {
       closeSubmenuChain(sub, root)
     }
-  }, [onSelect, node, search, closeOnSelect, root])
+  }, [onSelect, node, search, closeOnSelect, sub, root])
 
   React.useEffect(() => {
     const el = ref.current
@@ -2330,6 +2401,23 @@ function ItemRow<T>({
   const focused = activeId === rowId
   const { aimGuardActiveRef } = useHoverPolicy()
 
+  const onPointerDown = React.useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+  }, [])
+
+  const onMouseMove = React.useCallback(() => {
+    if (aimGuardActiveRef.current) return
+    if (!focused) store.setActiveId(rowId, 'pointer')
+  }, [aimGuardActiveRef, focused, store, rowId])
+
+  const onClick = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      handleSelect()
+    },
+    [handleSelect],
+  )
+
   const baseRowProps = React.useMemo(
     () =>
       ({
@@ -2343,35 +2431,31 @@ function ItemRow<T>({
         'aria-disabled': false,
         'data-mode': mode,
         className,
-        onPointerDown: (e: React.PointerEvent) => {
-          e.preventDefault()
-        },
-        onMouseMove: () => {
-          if (aimGuardActiveRef.current) return
-          if (!focused) store.setActiveId(rowId, 'pointer')
-        },
-        onClick: (e: React.MouseEvent) => {
-          e.preventDefault()
-          handleSelect()
-        },
+        onPointerDown,
+        onMouseMove,
+        onClick,
       }) as const,
     [
       rowId,
       refProp,
-      handleSelect,
       focused,
-      store,
+      mode,
       className,
-      aimGuardActiveRef,
+      onPointerDown,
+      onMouseMove,
+      onClick,
     ],
   )
 
-  const bind: RowBindAPI = {
-    focused,
-    disabled: false,
-    getRowProps: (overrides) =>
-      mergeProps(baseRowProps as any, overrides as any),
-  }
+  const bind: RowBindAPI = React.useMemo(
+    () => ({
+      focused,
+      disabled: false,
+      getRowProps: (overrides) =>
+        mergeProps(baseRowProps as any, overrides as any),
+    }),
+    [focused, baseRowProps],
+  )
 
   if (node.render) {
     return node.render({ node, bind, search, mode })
@@ -2408,30 +2492,53 @@ function InputView<T>({
   const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)
   const mode = useDisplayMode()
   const onKeyDown = useNavKeydown('input')
-  const baseInputProps = {
-    ref: store.inputRef as any,
-    role: 'combobox',
-    'data-slot': 'action-menu-input',
-    'data-action-menu-input': true,
-    'aria-autocomplete': 'list',
-    'aria-expanded': true,
-    'aria-controls': listId,
-    'aria-activedescendant': activeId,
-    'data-mode': mode,
-    className: className,
-    placeholder: inputPlaceholder ?? 'Filter...',
-    value,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-      onChange(e.target.value),
-    onKeyDown,
-  }
-  const bind: InputBindAPI = {
-    getInputProps: (overrides) =>
-      mergeProps(
-        baseInputProps as any,
-        mergeProps(slotProps as any, overrides as any),
-      ),
-  }
+
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    [onChange],
+  )
+
+  const baseInputProps = React.useMemo(
+    () => ({
+      ref: store.inputRef as any,
+      role: 'combobox' as const,
+      'data-slot': 'action-menu-input' as const,
+      'data-action-menu-input': true as const,
+      'aria-autocomplete': 'list' as const,
+      'aria-expanded': true,
+      'aria-controls': listId,
+      'aria-activedescendant': activeId,
+      'data-mode': mode,
+      className: className,
+      placeholder: inputPlaceholder ?? 'Filter...',
+      value,
+      onChange: handleChange,
+      onKeyDown,
+    }),
+    [
+      store.inputRef,
+      listId,
+      activeId,
+      mode,
+      className,
+      inputPlaceholder,
+      value,
+      handleChange,
+      onKeyDown,
+    ],
+  )
+
+  const bind: InputBindAPI = React.useMemo(
+    () => ({
+      getInputProps: (overrides) =>
+        mergeProps(
+          baseInputProps as any,
+          mergeProps(slotProps as any, overrides as any),
+        ),
+    }),
+    [baseInputProps, slotProps],
+  )
+
   const el = slot({ value, onChange, bind })
   if (!isElementWithProp(el, 'data-action-menu-input'))
     return <input {...(bind.getInputProps(slotProps as any) as any)} />
@@ -2532,9 +2639,6 @@ function useStickyRowWidth(opts: {
 interface ListViewProps<T> {
   store: SurfaceStore
   menu: Menu<T>
-  // slots: Required<ActionMenuSlots<T>>
-  // slotProps?: Partial<ActionMenuSlotProps>
-  // classNames?: Partial<ActionMenuClassNames>
   defaults?: Partial<MenuNodeDefaults<T>>
   query?: string
   inputActive: boolean
@@ -2546,9 +2650,6 @@ function ListView<T = unknown>({
   store,
   menu,
   defaults,
-  // slots,
-  // slotProps,
-  // classNames,
   query,
   inputActive,
   onTypeStart,
@@ -2717,7 +2818,6 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
-  const globalTheme = useGlobalTheme<T>()
   const { slots, slotProps, classNames } = useScopedTheme<T>()
 
   const virtualizer = useVirtualizer({
@@ -2775,6 +2875,9 @@ function ListView<T = unknown>({
   )
 
   const virtualItems = virtualizer.getVirtualItems()
+
+  const ItemSlot = slots.Item
+  const SubmenuTriggerSlot = slots.SubmenuTrigger
 
   const listRows = React.useMemo(
     () => (
@@ -2838,7 +2941,7 @@ function ListView<T = unknown>({
                   ref={measureRow}
                   key={node.id}
                   node={node}
-                  slot={slots.Item}
+                  slot={ItemSlot}
                   defaults={defaults?.item}
                   className={classNames?.item}
                   store={store}
@@ -2868,7 +2971,7 @@ function ListView<T = unknown>({
                       ref={measureRow}
                       key={virtualRow.key}
                       node={node}
-                      slot={slots.SubmenuTrigger}
+                      slot={SubmenuTriggerSlot}
                       classNames={classNames}
                       search={node.search}
                     />
@@ -2884,9 +2987,8 @@ function ListView<T = unknown>({
       </ul>
     ),
     [
-      slots,
-      slots.Item,
-      slots.SubmenuTrigger,
+      ItemSlot,
+      SubmenuTriggerSlot,
       store,
       flattenedNodes,
       virtualizer.measureElement,
@@ -2898,20 +3000,22 @@ function ListView<T = unknown>({
     ],
   )
 
+  const EmptySlot = slots.Empty
   const children: React.ReactNode = React.useMemo(
-    () => (flattenedNodes.length > 0 ? listRows : slots.Empty({ query: q })),
-    [listRows, slots.Empty, q, flattenedNodes],
+    () => (flattenedNodes.length > 0 ? listRows : EmptySlot({ query: q })),
+    [listRows, EmptySlot, q, flattenedNodes.length],
   )
 
+  const ListSlot = slots.List
   const el = React.useMemo(
     () =>
-      slots.List({
+      ListSlot({
         query: q,
         nodes: flattenedNodes,
         children,
         bind,
       }),
-    [bind, slots.List, children, flattenedNodes, q],
+    [bind, ListSlot, children, flattenedNodes, q],
   )
 
   if (el === null) return null
@@ -3078,22 +3182,40 @@ export const Root = ({
     setOpen(false)
   }, [setOpen])
 
-  const rootCtxValue: RootContextValue = {
-    scopeId,
-    open,
-    onOpenChange: setOpen,
-    onOpenToggle: () => setOpen((v) => !v),
-    anchorRef,
-    modal,
-    debug,
-    slotProps,
-    classNames,
-    responsive,
-    openSurfaceIds,
-    registerSurface,
-    unregisterSurface,
-    closeAllSurfaces,
-  }
+  const onOpenToggle = React.useCallback(() => setOpen((v) => !v), [setOpen])
+
+  const rootCtxValue: RootContextValue = React.useMemo(
+    () => ({
+      scopeId,
+      open,
+      onOpenChange: setOpen,
+      onOpenToggle,
+      anchorRef,
+      modal,
+      debug,
+      slotProps,
+      classNames,
+      responsive,
+      openSurfaceIds,
+      registerSurface,
+      unregisterSurface,
+      closeAllSurfaces,
+    }),
+    [
+      scopeId,
+      open,
+      setOpen,
+      onOpenToggle,
+      modal,
+      debug,
+      slotProps,
+      classNames,
+      responsive,
+      registerSurface,
+      unregisterSurface,
+      closeAllSurfaces,
+    ],
+  )
 
   const content =
     resolvedMode === 'dropdown' ? (
@@ -3212,7 +3334,10 @@ export function createActionMenu<T = unknown>(
       [props.slots, props.slotProps, props.classNames],
     )
 
-    const scopedTheme = props.menu.ui as ActionMenuTheme
+    const scopedTheme = React.useMemo(
+      () => props.menu.ui as ActionMenuTheme,
+      [props.menu.ui],
+    )
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>
