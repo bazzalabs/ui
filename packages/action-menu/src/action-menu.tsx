@@ -7,7 +7,11 @@ import { Portal } from '@radix-ui/react-portal'
 import { Presence } from '@radix-ui/react-presence'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import {
+  useVirtualizer,
+  type VirtualItem,
+  type Virtualizer,
+} from '@tanstack/react-virtual'
 import * as React from 'react'
 import { flat, partition, pipe, prop, sortBy } from 'remeda'
 import type { ClassNameValue } from 'tailwind-merge'
@@ -837,6 +841,9 @@ type SurfaceStore = {
   snapshot(): SurfaceState
   set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
 
+  getValidItems(): Element[]
+  getSelectedItem(): Element | null
+
   registerRow(id: string, rec: RowRecord): void
   unregisterRow(id: string): void
   getOrder(): string[]
@@ -852,6 +859,10 @@ type SurfaceStore = {
   readonly rows: Map<string, RowRecord>
   readonly inputRef: React.RefObject<HTMLInputElement | null>
   readonly listRef: React.RefObject<HTMLDivElement | null>
+  readonly virtualizerRef: React.RefObject<Virtualizer<
+    HTMLDivElement,
+    Element
+  > | null>
 }
 
 function createSurfaceStore(): SurfaceStore {
@@ -861,6 +872,10 @@ function createSurfaceStore(): SurfaceStore {
   const order: string[] = []
   const listRef = React.createRef<HTMLDivElement | null>()
   const inputRef = React.createRef<HTMLInputElement | null>()
+  const virtualizerRef = React.createRef<Virtualizer<
+    HTMLDivElement,
+    Element
+  > | null>()
 
   const emit = () =>
     listeners.forEach((l) => {
@@ -873,10 +888,27 @@ function createSurfaceStore(): SurfaceStore {
     emit()
   }
 
+  const ITEM_SELECTOR = `[action-menu-row=""]`
+  const VALID_ITEM_SELECTOR = `${ITEM_SELECTOR}:not([aria-disabled="true"])`
+  const SELECTED_ITEM_SELECTOR = `${ITEM_SELECTOR}[data-focused="true"]`
+
+  const getValidItems = () => {
+    if (!listRef.current) return []
+    return Array.from(
+      listRef.current.querySelectorAll(VALID_ITEM_SELECTOR) || [],
+    )
+  }
+
+  const getSelectedItem = () => {
+    if (!listRef.current) return null
+    return listRef.current.querySelector(SELECTED_ITEM_SELECTOR)
+  }
+
   const getOrder = () => order.slice()
   const resetOrder = (ids: string[]) => {
     order.splice(0)
     order.push(...ids)
+    console.log('[resetOrder] reset order to:', order)
     emit()
   }
 
@@ -900,6 +932,7 @@ function createSurfaceStore(): SurfaceStore {
         } catch {}
       }
     }
+    console.log('setting active ID to:', id)
     emit()
     // Scroll active row into view when keyboard navigating
     if (cause !== 'keyboard') return
@@ -926,16 +959,36 @@ function createSurfaceStore(): SurfaceStore {
   const last = (cause: ActivationCause = 'keyboard') =>
     setActiveByIndex(order.length - 1, cause)
   const next = (cause: ActivationCause = 'keyboard') => {
-    if (!order.length) return setActiveId(null, cause)
-    const i = state.activeId ? order.indexOf(state.activeId) : -1
-    const n = i === -1 ? 0 : (i + 1) % order.length
-    setActiveId(order[n]!, cause)
+    // const selected = getSelectedItem()
+    // const items = getValidItems()
+    // const index = selected ? items.indexOf(selected) : -1
+    //
+    // const nextIndex = index + 1 < items.length ? index + 1 : 0
+    //
+    // let newSelected = items[nextIndex]
+    // if (nextIndex === 0) virtualizerRef.current?.scrollToIndex(0)
+    // setActiveId(newSelected?.getAttribute('id') ?? null, cause)
+
+    const index = state.activeId ? order.indexOf(state.activeId) : -1
+    const nextIndex = index + 1 < order.length ? index + 1 : 0
+
+    const nextActiveId = order[nextIndex]
+
+    console.log('[next()] order:', order)
+    console.log('[next()] next active ID:', nextActiveId)
+
+    setActiveId(nextActiveId!, cause)
   }
   const prev = (cause: ActivationCause = 'keyboard') => {
-    if (!order.length) return setActiveId(null, cause)
-    const i = state.activeId ? order.indexOf(state.activeId) : 0
-    const p = i <= 0 ? order.length - 1 : i - 1
-    setActiveId(order[p]!, cause)
+    const selected = getSelectedItem()
+    const items = getValidItems()
+    const index = selected ? items.indexOf(selected) : -1
+
+    const nextIndex = index > 1 ? index - 1 : 0
+
+    const newSelected = items[nextIndex]
+    if (nextIndex === 0) virtualizerRef.current?.scrollToIndex(0)
+    setActiveId(newSelected?.getAttribute('id') ?? null, cause)
   }
 
   return {
@@ -945,6 +998,16 @@ function createSurfaceStore(): SurfaceStore {
     },
     snapshot,
     set,
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    getValidItems,
+    getSelectedItem,
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
     registerRow(id, rec) {
       if (!rows.has(id)) order.push(id)
       rows.set(id, rec)
@@ -973,6 +1036,7 @@ function createSurfaceStore(): SurfaceStore {
     rows,
     inputRef,
     listRef,
+    virtualizerRef,
   }
 }
 
@@ -1641,7 +1705,10 @@ const Surface = React.forwardRef(function Surface<T>(
 
   // Create per-surface store once
   const storeRef = React.useRef<SurfaceStore | null>(null)
-  if (!storeRef.current) storeRef.current = createSurfaceStore()
+  if (!storeRef.current) {
+    console.log('creating new surface store for', surfaceId)
+    storeRef.current = createSurfaceStore()
+  }
   const store = storeRef.current
 
   React.useEffect(() => {
@@ -1823,9 +1890,6 @@ const Surface = React.forwardRef(function Surface<T>(
       menu={menu}
       query={value}
       defaults={defaults}
-      // slots={slots}
-      // slotProps={slotProps}
-      // classNames={classNames}
       inputActive={inputActive}
       onTypeStart={(seed) => {
         if (!inputActive && ownerId === surfaceId) {
@@ -2023,12 +2087,14 @@ function Sub({
 }
 
 function SubTriggerRow<T>({
+  virtualItem,
   node,
   slot,
   classNames,
   search,
   ref: refProp,
 }: {
+  virtualItem?: VirtualItem
   node: SubmenuNode<T>
   slot: NonNullable<SurfaceSlots<T>['SubmenuTrigger']>
   classNames?: Partial<SurfaceClassNames>
@@ -2199,6 +2265,8 @@ function SubTriggerRow<T>({
       ref: composeRefs(refProp as any, ref as any, sub.triggerRef as any),
       role: 'option' as const,
       tabIndex: -1,
+      'action-menu-row': '',
+      'data-index': virtualItem?.index,
       'data-action-menu-item-id': rowId,
       'data-focused': focused,
       'data-menu-state': sub.open ? 'open' : 'closed',
@@ -2233,6 +2301,7 @@ function SubTriggerRow<T>({
   }, [
     mode,
     rowId,
+    virtualItem?.index,
     refProp,
     sub,
     focused,
@@ -2347,6 +2416,7 @@ function makeRowId(
 
 function ItemRow<T>({
   ref: refProp,
+  virtualItem,
   node,
   slot,
   className,
@@ -2355,6 +2425,7 @@ function ItemRow<T>({
   search,
 }: {
   ref?: React.Ref<HTMLElement>
+  virtualItem?: VirtualItem
   node: ItemNode<T>
   slot: NonNullable<SurfaceSlots<T>['Item']>
   className?: string
@@ -2425,6 +2496,8 @@ function ItemRow<T>({
         ref: composeRefs(refProp as any, ref as any),
         role: 'option' as const,
         tabIndex: -1,
+        'action-menu-row': '',
+        'data-index': virtualItem?.index,
         'data-action-menu-item-id': rowId,
         'data-focused': focused,
         'aria-selected': focused,
@@ -2437,6 +2510,7 @@ function ItemRow<T>({
       }) as const,
     [
       rowId,
+      virtualItem?.index,
       refProp,
       focused,
       mode,
@@ -2777,20 +2851,6 @@ function ListView<T = unknown>({
         : [],
     [q, menu.nodes],
   )
-  const firstRowId = React.useMemo(
-    () => results[0]?.node.id ?? null,
-    [results[0]],
-  )
-
-  React.useLayoutEffect(() => {
-    if (!q) return
-    if (!firstRowId) return
-    const raf = requestAnimationFrame(() =>
-      store.setActiveId(firstRowId, 'keyboard'),
-    )
-    return () => cancelAnimationFrame(raf)
-  }, [q])
-
   const flattenedNodes = React.useMemo(() => {
     const acc: Node<T>[] = []
 
@@ -2818,14 +2878,38 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
+  const firstRowId = React.useMemo(
+    () => flattenedNodes[0]?.id ?? null,
+    [flattenedNodes[0]],
+  )
+
+  React.useLayoutEffect(() => {
+    if (!q) return
+    if (!firstRowId) return
+    const raf = requestAnimationFrame(() =>
+      store.setActiveId(firstRowId, 'keyboard'),
+    )
+    return () => cancelAnimationFrame(raf)
+  }, [q])
+
+  React.useEffect(() => {
+    const ids = flattenedNodes.map((n) => n.id)
+    store.resetOrder(ids)
+  }, [flattenedNodes, store.resetOrder])
+
   const { slots, slotProps, classNames } = useScopedTheme<T>()
 
   const virtualizer = useVirtualizer({
     count: flattenedNodes.length,
     estimateSize: () => 32,
     getScrollElement: () => store.listRef.current,
-    overscan: 6,
+    overscan: 12,
   })
+
+  // Store the virtualizer reference in the store
+  React.useEffect(() => {
+    store.virtualizerRef.current = virtualizer
+  }, [virtualizer, store])
 
   const totalSize = virtualizer.getTotalSize()
   const totalSizePx = React.useMemo(() => `${totalSize}px`, [totalSize])
@@ -2940,6 +3024,7 @@ function ListView<T = unknown>({
                 <ItemRow
                   ref={measureRow}
                   key={node.id}
+                  virtualItem={virtualRow}
                   node={node}
                   slot={ItemSlot}
                   defaults={defaults?.item}
@@ -2970,6 +3055,7 @@ function ListView<T = unknown>({
                     <SubTriggerRow
                       ref={measureRow}
                       key={virtualRow.key}
+                      virtualItem={virtualRow}
                       node={node}
                       slot={SubmenuTriggerSlot}
                       classNames={classNames}

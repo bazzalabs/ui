@@ -676,7 +676,7 @@ const labelsMenu: SubmenuDef = {
     },
   ].map((label) => ({
     kind: 'item',
-    id: label.id,
+    id: label.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
     label: label.name,
     keywords: [label.name],
     icon: (
