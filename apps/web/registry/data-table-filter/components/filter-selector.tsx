@@ -82,11 +82,6 @@ function __FilterSelector_v2<TData>({
 
   const menu: MenuDef = {
     id: 'filter-selector',
-    ui: {
-      slots: {
-        Item: OptionItem_v2,
-      },
-    },
     nodes: columns.map((column) => {
       const filter = filters.find((f) => f.columnId === column.id)
 
@@ -145,6 +140,9 @@ function __FilterSelector_v2<TData>({
           {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
       }
+      slots={{
+        Item: OptionItem_v2,
+      }}
       menu={menu}
     />
   )

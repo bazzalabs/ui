@@ -51,7 +51,7 @@ export const ActionMenu = createActionMenu({
 
       return (
         <li {...props}>
-          <span className="absolute top-0 right-1 text-[9px]">{node.id}</span>
+          {/* <span className="absolute top-0 right-1 text-[9px]">{node.id}</span> */}
           {node.icon && (
             <div className="size-4 flex items-center justify-center">
               {renderIcon(
@@ -74,7 +74,7 @@ export const ActionMenu = createActionMenu({
 
       return (
         <li {...props}>
-          <span className="absolute top-0 right-1 text-[9px]">{node.id}</span>
+          {/* <span className="absolute top-0 right-1 text-[9px]">{node.id}</span> */}
           <div className="flex items-center gap-2 min-w-0">
             {node.icon && (
               <div className="size-4 flex items-center justify-center">

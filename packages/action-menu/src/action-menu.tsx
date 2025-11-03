@@ -13,7 +13,7 @@ import {
   type Virtualizer,
 } from '@tanstack/react-virtual'
 import * as React from 'react'
-import { flat, partition, pipe, prop, sortBy } from 'remeda'
+import { flat, isShallowEqual, partition, pipe, prop, sortBy } from 'remeda'
 import type { ClassNameValue } from 'tailwind-merge'
 import { Drawer } from 'vaul'
 import { cn } from './cn.js'
@@ -56,6 +56,7 @@ type StateDescriptor<T> = {
 
 export type MenuState = {
   input?: StateDescriptor<string>
+  open?: StateDescriptor<boolean>
 }
 
 export type MenuDef<T = unknown> = MenuState & {
@@ -828,6 +829,7 @@ type SurfaceState = {
 
 type RowRecord = {
   ref: React.RefObject<HTMLElement>
+  virtualItem?: VirtualItem
   disabled?: boolean
   kind: 'item' | 'submenu'
   openSub?: () => void
@@ -836,13 +838,16 @@ type RowRecord = {
 
 type ActivationCause = 'keyboard' | 'pointer' | 'programmatic'
 
-type SurfaceStore = {
+type SurfaceStore<T> = {
   subscribe(cb: () => void): () => void
   snapshot(): SurfaceState
   set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
 
   getValidItems(): Element[]
   getSelectedItem(): Element | null
+
+  getNodes(): Node<T>[]
+  setNodes(nodes: Node<T>[]): void
 
   registerRow(id: string, rec: RowRecord): void
   unregisterRow(id: string): void
@@ -865,10 +870,11 @@ type SurfaceStore = {
   > | null>
 }
 
-function createSurfaceStore(): SurfaceStore {
+function createSurfaceStore<T>(): SurfaceStore<T> {
   const state: SurfaceState = { activeId: null, hasInput: true, listId: null }
   const listeners = new Set<() => void>()
   const rows = new Map<string, RowRecord>()
+  const nodes: Node<T>[] = []
   const order: string[] = []
   const listRef = React.createRef<HTMLDivElement | null>()
   const inputRef = React.createRef<HTMLInputElement | null>()
@@ -904,11 +910,19 @@ function createSurfaceStore(): SurfaceStore {
     return listRef.current.querySelector(SELECTED_ITEM_SELECTOR)
   }
 
+  function getNodes() {
+    return nodes
+  }
+
+  const setNodes = (all: Node<T>[]) => {
+    nodes.splice(0)
+    nodes.push(...all)
+  }
+
   const getOrder = () => order.slice()
   const resetOrder = (ids: string[]) => {
     order.splice(0)
     order.push(...ids)
-    console.log('[resetOrder] reset order to:', order)
     emit()
   }
 
@@ -932,17 +946,25 @@ function createSurfaceStore(): SurfaceStore {
         } catch {}
       }
     }
-    console.log('setting active ID to:', id)
     emit()
     // Scroll active row into view when keyboard navigating
     if (cause !== 'keyboard') return
-    const el = id ? rows.get(id)?.ref.current : null
+    if (id === null) return
+
+    const row = rows.get(id)
+    const index = order.indexOf(id)
+    const el = row?.ref.current
     const listEl = listRef.current
     if (el && listEl) {
       try {
         const inList = listEl.contains(el)
         if (inList) el.scrollIntoView({ block: 'nearest' })
       } catch {}
+      return
+    }
+
+    if (index === 0 || index === order.length - 1) {
+      virtualizerRef.current?.scrollToIndex(index)
     }
   }
 
@@ -959,36 +981,20 @@ function createSurfaceStore(): SurfaceStore {
   const last = (cause: ActivationCause = 'keyboard') =>
     setActiveByIndex(order.length - 1, cause)
   const next = (cause: ActivationCause = 'keyboard') => {
-    // const selected = getSelectedItem()
-    // const items = getValidItems()
-    // const index = selected ? items.indexOf(selected) : -1
-    //
-    // const nextIndex = index + 1 < items.length ? index + 1 : 0
-    //
-    // let newSelected = items[nextIndex]
-    // if (nextIndex === 0) virtualizerRef.current?.scrollToIndex(0)
-    // setActiveId(newSelected?.getAttribute('id') ?? null, cause)
-
     const index = state.activeId ? order.indexOf(state.activeId) : -1
     const nextIndex = index + 1 < order.length ? index + 1 : 0
 
     const nextActiveId = order[nextIndex]
 
-    console.log('[next()] order:', order)
-    console.log('[next()] next active ID:', nextActiveId)
-
     setActiveId(nextActiveId!, cause)
   }
   const prev = (cause: ActivationCause = 'keyboard') => {
-    const selected = getSelectedItem()
-    const items = getValidItems()
-    const index = selected ? items.indexOf(selected) : -1
+    const index = state.activeId ? order.indexOf(state.activeId) : order.length
+    const nextIndex = index > 0 ? index - 1 : order.length - 1
 
-    const nextIndex = index > 1 ? index - 1 : 0
+    const nextActiveId = order[nextIndex]
 
-    const newSelected = items[nextIndex]
-    if (nextIndex === 0) virtualizerRef.current?.scrollToIndex(0)
-    setActiveId(newSelected?.getAttribute('id') ?? null, cause)
+    setActiveId(nextActiveId!, cause)
   }
 
   return {
@@ -1004,26 +1010,19 @@ function createSurfaceStore(): SurfaceStore {
     ///////////////////////////////////////////
     getValidItems,
     getSelectedItem,
+    getNodes,
+    setNodes,
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     registerRow(id, rec) {
-      if (!rows.has(id)) order.push(id)
       rows.set(id, rec)
-      ensureActiveExists()
       emit()
     },
     unregisterRow(id) {
       rows.delete(id)
-      const idx = order.indexOf(id)
-      if (idx >= 0) order.splice(idx, 1)
-      if (state.activeId === id) {
-        ensureActiveExists()
-        emit()
-      } else {
-        emit()
-      }
+      emit()
     },
     getOrder,
     resetOrder,
@@ -1040,7 +1039,10 @@ function createSurfaceStore(): SurfaceStore {
   }
 }
 
-function useSurfaceSel<T>(store: SurfaceStore, sel: (s: SurfaceState) => T): T {
+function useSurfaceSel<T, K>(
+  store: SurfaceStore<T>,
+  sel: (s: SurfaceState) => K,
+): K {
   const get = React.useCallback(() => sel(store.snapshot()), [store, sel])
   return React.useSyncExternalStore(store.subscribe, get, get)
 }
@@ -1601,7 +1603,7 @@ export interface ActionMenuSurfaceProps<T = unknown>
   suppressHoverOpenOnMount?: boolean
 }
 
-const SurfaceCtx = React.createContext<SurfaceStore | null>(null)
+const SurfaceCtx = React.createContext<SurfaceStore<any> | null>(null)
 const useSurface = () => {
   const ctx = React.useContext(SurfaceCtx)
   if (!ctx) throw new Error('SurfaceCtx missing')
@@ -1618,13 +1620,15 @@ const Surface = React.forwardRef(function Surface<T>(
     suppressHoverOpenOnMount,
     defaults: defaultsOverrides,
     onOpenAutoFocus = true, // reserved
-    onCloseAutoClear = true,
+    onCloseAutoClear = 300,
     ...props
   }: ActionMenuSurfaceProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const root = useRootCtx()
   const sub = useSubCtx()
+  const isSub = React.useMemo(() => sub !== null, [sub])
+  const open = React.useMemo(() => (sub ? sub.open : root.open), [isSub, root])
   const surfaceId = React.useMemo(
     () => surfaceIdProp ?? sub?.childSurfaceId ?? 'root',
     [surfaceIdProp, sub],
@@ -1654,26 +1658,38 @@ const Surface = React.forwardRef(function Surface<T>(
 
   // Clear input on menu close
   const clearTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+
   React.useEffect(() => {
+    // Clear any existing timeout
     if (clearTimeoutRef.current) {
       clearTimeout(clearTimeoutRef.current)
       clearTimeoutRef.current = null
     }
-    if (!root.open && onCloseAutoClear) {
+
+    if (!open && onCloseAutoClear) {
       if (typeof onCloseAutoClear === 'number') {
+        // Schedule timeout that persists after component unmounts
         clearTimeoutRef.current = setTimeout(() => {
+          // Call the onChange handler directly since component may be unmounted
           setValue('')
           clearTimeoutRef.current = null
         }, onCloseAutoClear)
       } else {
+        // Clear immediately
         setValue('')
       }
     }
-  }, [root.open, sub?.open, onCloseAutoClear])
 
-  const theme = useScopedTheme<T>()
+    // Cleanup: clear timeout on unmount
+    return () => {
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current)
+        clearTimeoutRef.current = null
+      }
+    }
+  }, [root.open, sub?.open, onCloseAutoClear, setValue])
 
-  const { slots, slotProps, classNames } = theme
+  const { slots, slotProps, classNames } = useScopedTheme<T>()
 
   const defaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
     () => ({ ...defaultsOverrides, ...(menu.defaults ?? {}) }),
@@ -1704,9 +1720,8 @@ const Surface = React.forwardRef(function Surface<T>(
   }, [inputActive, menu.hideSearchUntilActive])
 
   // Create per-surface store once
-  const storeRef = React.useRef<SurfaceStore | null>(null)
+  const storeRef = React.useRef<SurfaceStore<T> | null>(null)
   if (!storeRef.current) {
-    console.log('creating new surface store for', surfaceId)
     storeRef.current = createSurfaceStore()
   }
   const store = storeRef.current
@@ -1994,7 +2009,16 @@ function Sub({
   def: SubmenuDef
   children: React.ReactNode
 }) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = useControllableState({
+    prop: def.open?.value,
+    defaultProp: def.open?.defaultValue ?? false,
+    onChange: def.open?.onValueChange,
+    // onChange: (value) => {
+    //   console.log(`[${def.id}] [onChange] setting open: ${value}`)
+    //   if (def.open?.onValueChange) def.open?.onValueChange?.(value)
+    //   else setOpen(value)
+    // },
+  })
   const triggerRef = React.useRef<HTMLDivElement | HTMLButtonElement | null>(
     null,
   )
@@ -2011,7 +2035,9 @@ function Sub({
   const mode = useDisplayMode()
   const parentSubCtx = useSubCtx()
 
-  const onOpenToggle = React.useCallback(() => setOpen((v) => !v), [])
+  const onOpenToggle = React.useCallback(() => {
+    setOpen(!open)
+  }, [setOpen, open])
 
   const value: SubContextValue = React.useMemo(
     () => ({
@@ -2032,6 +2058,7 @@ function Sub({
     }),
     [
       open,
+      setOpen,
       onOpenToggle,
       def,
       parentSurfaceId,
@@ -2121,10 +2148,14 @@ function SubTriggerRow<T>({
   React.useEffect(() => {
     store.registerRow(rowId, {
       ref: ref as any,
+      virtualItem,
       disabled: false,
       kind: 'submenu',
       openSub: () => sub.onOpenChange(true),
-      closeSub: () => sub.onOpenChange(false),
+      closeSub: () => {
+        // console.log('closing submenu:', node.def.id)
+        sub.onOpenChange(false)
+      },
     })
     return () => store.unregisterRow(rowId)
   }, [store, rowId])
@@ -2430,7 +2461,7 @@ function ItemRow<T>({
   slot: NonNullable<SurfaceSlots<T>['Item']>
   className?: string
   defaults?: MenuNodeDefaults<T>['item']
-  store: SurfaceStore
+  store: SurfaceStore<T>
   search?: SearchContext
 }) {
   const ref = React.useRef<HTMLElement | null>(null)
@@ -2462,6 +2493,7 @@ function ItemRow<T>({
   React.useEffect(() => {
     store.registerRow(rowId, {
       ref: ref as any,
+      virtualItem,
       disabled: false,
       kind: 'item',
     })
@@ -2554,7 +2586,7 @@ function InputView<T>({
   inputPlaceholder,
   className,
 }: {
-  store: SurfaceStore
+  store: SurfaceStore<T>
   value: string
   onChange: (v: string) => void
   slot: NonNullable<SurfaceSlots<T>['Input']>
@@ -2711,7 +2743,7 @@ function useStickyRowWidth(opts: {
 }
 
 interface ListViewProps<T> {
-  store: SurfaceStore
+  store: SurfaceStore<T>
   menu: Menu<T>
   defaults?: Partial<MenuNodeDefaults<T>>
   query?: string
@@ -2878,24 +2910,26 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
-  const firstRowId = React.useMemo(
-    () => flattenedNodes[0]?.id ?? null,
-    [flattenedNodes[0]],
+  const __nodeIds = React.useMemo(
+    () => flattenedNodes.map((n) => n.id),
+    [flattenedNodes],
   )
+
+  const nodeIds = React.useMemo(() => __nodeIds, [__nodeIds])
 
   React.useLayoutEffect(() => {
     if (!q) return
-    if (!firstRowId) return
-    const raf = requestAnimationFrame(() =>
-      store.setActiveId(firstRowId, 'keyboard'),
-    )
-    return () => cancelAnimationFrame(raf)
+    store.first('keyboard')
   }, [q])
 
   React.useEffect(() => {
-    const ids = flattenedNodes.map((n) => n.id)
-    store.resetOrder(ids)
-  }, [flattenedNodes, store.resetOrder])
+    const order = store.getOrder()
+
+    if (order.length !== nodeIds.length || !isShallowEqual(order, nodeIds)) {
+      store.resetOrder(nodeIds)
+      store.setActiveByIndex(0, 'keyboard')
+    }
+  }, [nodeIds])
 
   const { slots, slotProps, classNames } = useScopedTheme<T>()
 
@@ -3187,7 +3221,8 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-export interface ActionMenuRootProps extends Children {
+export interface ActionMenuRootProps<T = unknown> extends Children {
+  menu: MenuDef<T>
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
@@ -3200,7 +3235,8 @@ export interface ActionMenuRootProps extends Children {
 }
 
 /** Entry component: chooses the shell and provides root/display/focus contexts. */
-export const Root = ({
+export function Root<T>({
+  menu,
   children,
   open: openProp,
   defaultOpen,
@@ -3210,15 +3246,16 @@ export const Root = ({
   slotProps,
   classNames,
   debug = false,
-}: ActionMenuRootProps) => {
+}: ActionMenuRootProps<T>) {
   const scopeId = React.useId()
   const [open, setOpen] = useControllableState({
-    prop: openProp,
+    prop: openProp ?? menu.open?.value,
     defaultProp: defaultOpen ?? false,
     onChange: (value) => {
       if (!value) closeAllSurfaces()
 
       if (onOpenChange) onOpenChange?.(value)
+      else if (menu.open?.onValueChange) menu.open?.onValueChange?.(value)
       else setOpen(value)
     },
   })
@@ -3274,7 +3311,7 @@ export const Root = ({
     () => ({
       scopeId,
       open,
-      onOpenChange: setOpen,
+      onOpenChange: (value) => setOpen(value),
       onOpenToggle,
       anchorRef,
       modal,
@@ -3395,7 +3432,7 @@ export type CreateActionMenuOptions<T> = {
   classNames?: Partial<ActionMenuClassNames>
 }
 
-export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps {
+export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps<T> {
   trigger?: React.ReactNode
   menu: MenuDef<T>
 }

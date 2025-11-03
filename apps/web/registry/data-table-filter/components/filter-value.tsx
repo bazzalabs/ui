@@ -922,6 +922,7 @@ export function createTextMenu<TData>({
   locale = 'en',
 }: FilterValueControllerProps<TData, 'text'>) {
   const [search, setSearch] = useState('')
+  const [open, setOpen] = useState(false)
 
   const changeText = (value: string | number, operator: TextFilterOperator) => {
     actions.batch((tx) => {
@@ -939,6 +940,14 @@ export function createTextMenu<TData>({
     input: {
       value: search,
       onValueChange: setSearch,
+    },
+    open: {
+      value: open,
+      onValueChange: setOpen,
+      // onValueChange: (value) => {
+      //   if (!value) setSearch('')
+      //   setOpen(value)
+      // },
     },
     inputPlaceholder: `Enter ${column.displayName.toLowerCase()}...`,
     defaults: {
