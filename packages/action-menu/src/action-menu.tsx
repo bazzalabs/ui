@@ -937,8 +937,9 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
   ) => {
     const prev = state.activeId
     if (Object.is(prev, id)) return
-    state.activeId = id
-    // Close any open submenu that is not the active trigger
+
+    // Close any open submenu that is not the active trigger BEFORE updating activeId
+    // This ensures controlled submenus have a chance to close before we activate a new one
     for (const [rid, rec] of rows) {
       if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
         try {
@@ -946,6 +947,8 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
         } catch {}
       }
     }
+
+    state.activeId = id
     emit()
     // Scroll active row into view when keyboard navigating
     if (cause !== 'keyboard') return
@@ -2158,7 +2161,7 @@ function SubTriggerRow<T>({
       },
     })
     return () => store.unregisterRow(rowId)
-  }, [store, rowId])
+  }, [store, rowId, sub, virtualItem])
 
   React.useEffect(() => {
     const nodeEl = ref.current
@@ -2208,7 +2211,12 @@ function SubTriggerRow<T>({
   const onPointerEnter = React.useCallback(() => {
     if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
       return
-    if (!focused) store.setActiveId(rowId, 'pointer')
+
+    if (!focused) {
+      // setActiveId will close other submenus
+      store.setActiveId(rowId, 'pointer')
+    }
+
     clearAimGuard()
     if (!sub.open) sub.onOpenChange(true)
   }, [
@@ -2224,7 +2232,10 @@ function SubTriggerRow<T>({
   const onPointerMove = React.useCallback(() => {
     if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
       return
-    if (!focused) store.setActiveId(rowId, 'pointer')
+    if (!focused) {
+      // setActiveId will close other submenus
+      store.setActiveId(rowId, 'pointer')
+    }
     if (!sub.open) sub.onOpenChange(true)
   }, [aimGuardActiveRef, guardedTriggerIdRef, rowId, focused, store, sub])
 

@@ -943,11 +943,11 @@ export function createTextMenu<TData>({
     },
     open: {
       value: open,
-      onValueChange: setOpen,
-      // onValueChange: (value) => {
-      //   if (!value) setSearch('')
-      //   setOpen(value)
-      // },
+      // onValueChange: setOpen,
+      onValueChange: (value) => {
+        if (!value) setSearch('')
+        setOpen(value)
+      },
     },
     inputPlaceholder: `Enter ${column.displayName.toLowerCase()}...`,
     defaults: {
