@@ -757,6 +757,7 @@ type RootContextValue = {
   registerSurface: (surfaceId: string, depth: number) => void
   unregisterSurface: (surfaceId: string) => void
   closeAllSurfaces: () => void
+  onCloseAutoFocus?: (event: Event) => void
 }
 const RootCtx = React.createContext<RootContextValue | null>(null)
 const useRootCtx = () => {
@@ -2422,7 +2423,11 @@ function SubmenuContent<T>({ menu, defaults }: SubmenuContentProps<T>) {
             event.preventDefault()
           }}
           onCloseAutoFocus={(event) => {
-            event.preventDefault()
+            if (root.onCloseAutoFocus) {
+              root.onCloseAutoFocus(event)
+            } else {
+              event.preventDefault()
+            }
           }}
         >
           <div
@@ -3215,7 +3220,11 @@ function DrawerShell({ children }: { children: React.ReactNode }) {
             event.preventDefault()
           }}
           onCloseAutoFocus={(event) => {
-            event.preventDefault()
+            if (root.onCloseAutoFocus) {
+              root.onCloseAutoFocus(event)
+            } else {
+              event.preventDefault()
+            }
           }}
         >
           <div
@@ -3243,6 +3252,7 @@ export interface ActionMenuRootProps<T = unknown> extends Children {
   slotProps?: Partial<ActionMenuSlotProps>
   classNames?: Partial<ActionMenuClassNames>
   debug?: boolean
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 /** Entry component: chooses the shell and provides root/display/focus contexts. */
@@ -3257,6 +3267,7 @@ export function Root<T>({
   slotProps,
   classNames,
   debug = false,
+  onCloseAutoFocus,
 }: ActionMenuRootProps<T>) {
   const scopeId = React.useId()
   const [open, setOpen] = useControllableState({
@@ -3318,6 +3329,28 @@ export function Root<T>({
 
   const onOpenToggle = React.useCallback(() => setOpen((v) => !v), [setOpen])
 
+  // Handle focus return to trigger on close (dropdown mode only)
+  const prevOpenRef = React.useRef(open)
+  React.useEffect(() => {
+    // Only run when transitioning from open to closed
+    if (prevOpenRef.current && !open && resolvedMode === 'dropdown') {
+      // Create a synthetic event for the callback
+      const event = new Event('closeAutoFocus', { cancelable: true })
+
+      if (onCloseAutoFocus) {
+        onCloseAutoFocus(event)
+      }
+
+      // If not prevented, return focus to the trigger
+      if (!event.defaultPrevented && anchorRef.current) {
+        requestAnimationFrame(() => {
+          anchorRef.current?.focus()
+        })
+      }
+    }
+    prevOpenRef.current = open
+  }, [open, resolvedMode, onCloseAutoFocus])
+
   const rootCtxValue: RootContextValue = React.useMemo(
     () => ({
       scopeId,
@@ -3334,6 +3367,7 @@ export function Root<T>({
       registerSurface,
       unregisterSurface,
       closeAllSurfaces,
+      onCloseAutoFocus,
     }),
     [
       scopeId,
@@ -3348,6 +3382,7 @@ export function Root<T>({
       registerSurface,
       unregisterSurface,
       closeAllSurfaces,
+      onCloseAutoFocus,
     ],
   )
 

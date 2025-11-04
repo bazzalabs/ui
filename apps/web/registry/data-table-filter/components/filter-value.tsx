@@ -943,7 +943,6 @@ export function createTextMenu<TData>({
     },
     open: {
       value: open,
-      // onValueChange: setOpen,
       onValueChange: (value) => {
         if (!value) setSearch('')
         setOpen(value)
