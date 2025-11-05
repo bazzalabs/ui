@@ -853,6 +853,7 @@ type SurfaceStore<T> = {
   unregisterRow(id: string): void
   getOrder(): string[]
   resetOrder(ids: string[]): void
+  resetVirtualIndexMap(map: Map<string, number>): void
 
   setActiveId(id: string | null, cause?: ActivationCause): void
   setActiveByIndex(idx: number, cause?: ActivationCause): void
@@ -862,6 +863,7 @@ type SurfaceStore<T> = {
   prev(cause?: ActivationCause): void
 
   readonly rows: Map<string, RowRecord>
+  readonly rowIdToVirtualIndex: Map<string, number>
   readonly inputRef: React.RefObject<HTMLInputElement | null>
   readonly listRef: React.RefObject<HTMLDivElement | null>
   readonly virtualizerRef: React.RefObject<Virtualizer<
@@ -874,6 +876,7 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
   const state: SurfaceState = { activeId: null, hasInput: true, listId: null }
   const listeners = new Set<() => void>()
   const rows = new Map<string, RowRecord>()
+  const rowIdToVirtualIndex = new Map<string, number>()
   const nodes: Node<T>[] = []
   const order: string[] = []
   const listRef = React.createRef<HTMLDivElement | null>()
@@ -908,6 +911,13 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     order.splice(0)
     order.push(...ids)
     emit()
+  }
+
+  const resetVirtualIndexMap = (map: Map<string, number>) => {
+    rowIdToVirtualIndex.clear()
+    for (const [id, virtualIndex] of map) {
+      rowIdToVirtualIndex.set(id, virtualIndex)
+    }
   }
 
   const setActiveId = (
@@ -945,8 +955,13 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
       return
     }
 
-    if (index === 0 || index === order.length - 1) {
-      virtualizerRef.current?.scrollToIndex(index)
+    // Use virtual index for scrolling (accounts for separators, headings, etc.)
+    const virtualIndex = rowIdToVirtualIndex.get(id)
+    if (
+      virtualIndex !== undefined &&
+      (index === 0 || index === order.length - 1)
+    ) {
+      virtualizerRef.current?.scrollToIndex(virtualIndex)
     }
   }
 
@@ -994,6 +1009,7 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     const nextIndex = index > 0 ? index - 1 : order.length - 1
 
     const nextId = order[nextIndex]
+
     if (!nextId) return
 
     setActiveId(nextId, cause)
@@ -1026,6 +1042,7 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     },
     getOrder,
     resetOrder,
+    resetVirtualIndexMap,
     setActiveId,
     setActiveByIndex,
     first,
@@ -1033,6 +1050,7 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     next,
     prev,
     rows,
+    rowIdToVirtualIndex,
     inputRef,
     listRef,
     virtualizerRef,
@@ -2013,11 +2031,6 @@ function Sub({
     prop: def.open?.value,
     defaultProp: def.open?.defaultValue ?? false,
     onChange: def.open?.onValueChange,
-    // onChange: (value) => {
-    //   console.log(`[${def.id}] [onChange] setting open: ${value}`)
-    //   if (def.open?.onValueChange) def.open?.onValueChange?.(value)
-    //   else setOpen(value)
-    // },
   })
   const triggerRef = React.useRef<HTMLDivElement | HTMLButtonElement | null>(
     null,
@@ -2152,10 +2165,7 @@ function SubTriggerRow<T>({
       disabled: false,
       kind: 'submenu',
       openSub: () => sub.onOpenChange(true),
-      closeSub: () => {
-        // console.log('closing submenu:', node.def.id)
-        sub.onOpenChange(false)
-      },
+      closeSub: () => sub.onOpenChange(false),
     })
     return () => store.unregisterRow(rowId)
   }, [store, rowId, sub, virtualItem])
@@ -2928,18 +2938,6 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
-  const __validNodeIds = React.useMemo(
-    () =>
-      flattenedNodes
-        .filter(
-          (n) => (n.kind === 'item' || n.kind === 'submenu') && !n.disabled,
-        )
-        .map((n) => n.id),
-    [flattenedNodes],
-  )
-
-  const validNodeIds = React.useMemo(() => __validNodeIds, [__validNodeIds])
-
   React.useLayoutEffect(() => {
     if (!q) return
     store.first('keyboard')
@@ -2947,15 +2945,27 @@ function ListView<T = unknown>({
 
   React.useEffect(() => {
     const order = store.getOrder()
+    const validRows = flattenedNodes.filter(
+      (n) => (n.kind === 'item' || n.kind === 'submenu') && !n.disabled,
+    )
+    const validRowIds = validRows.map((n) => n.id)
+
+    const virtualIndexMap = new Map<string, number>()
+    flattenedNodes.forEach((node, index) => {
+      if (node.kind === 'item' || node.kind === 'submenu') {
+        virtualIndexMap.set(node.id, index)
+      }
+    })
 
     if (
-      order.length !== validNodeIds.length ||
-      !isShallowEqual(order, validNodeIds)
+      order.length !== validRowIds.length ||
+      !isShallowEqual(order, validRowIds)
     ) {
-      store.resetOrder(validNodeIds)
+      store.resetOrder(validRowIds)
+      store.resetVirtualIndexMap(virtualIndexMap)
       store.setActiveByIndex(0, 'keyboard')
     }
-  }, [validNodeIds])
+  }, [flattenedNodes])
 
   const { slots, slotProps, classNames } = useScopedTheme<T>()
 

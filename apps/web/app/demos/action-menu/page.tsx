@@ -29,7 +29,7 @@ export default function Page() {
             {/* <Examples.ActionMenu.Submenus /> */}
             <Examples.ActionMenu.KitchenSink01 />
             {/* <Examples.ActionMenu.Notion /> */}
-            {/* <Examples.ActionMenu.HeaderFooter /> */}
+            <Examples.ActionMenu.HeaderFooter />
             {/* <Examples.ActionMenu.Massive numItems={10_000} /> */}
             {/* <Examples.ActionMenu.SubmenusDeep /> */}
           </div>
