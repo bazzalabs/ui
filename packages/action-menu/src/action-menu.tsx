@@ -75,15 +75,12 @@ export type MenuDef<T = unknown> = MenuState & {
 
 export type ItemVariant = 'button' | 'checkbox' | 'radio'
 
-export type ItemDef<T = unknown> = BaseDef<'item'> &
+type BaseItemDef<T = unknown> = BaseDef<'item'> &
   Searchable & {
     icon?: Iconish
     /** Arman is a bitch. */
     data?: T
     disabled?: boolean
-    /** The visual/behavioral variant of this item. Defaults to 'button'. */
-    variant?: ItemVariant
-    value?: string
     onSelect?: (args: {
       node: Omit<ItemNode<T>, 'onSelect'>
       search?: SearchContext
@@ -97,11 +94,46 @@ export type ItemDef<T = unknown> = BaseDef<'item'> &
     }) => React.ReactNode
   }
 
-export type GroupDef<T = unknown> = BaseDef<'group'> & {
+export type ButtonItemDef<T = unknown> = BaseItemDef<T> & {
+  /** The visual/behavioral variant of this item. Defaults to 'button'. */
+  variant?: 'button'
+  value?: never
+}
+
+export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
+  /** The visual/behavioral variant of this item. */
+  variant: 'checkbox'
+  value?: never
+}
+
+export type RadioItemDef<T = unknown> = BaseItemDef<T> & {
+  /** The visual/behavioral variant of this item. */
+  variant: 'radio'
+  /** Value for this radio item. Falls back to id if not provided. */
+  value?: string
+}
+
+export type ItemDef<T = unknown> =
+  | ButtonItemDef<T>
+  | CheckboxItemDef<T>
+  | RadioItemDef<T>
+
+type BaseGroupDef<T = unknown> = BaseDef<'group'> & {
   nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
   heading?: string
+}
+
+export type DefaultGroupDef<T = unknown> = BaseGroupDef<T> & {
+  /** The variant of this group. Defaults to 'default'. */
+  variant?: 'default'
+  value?: never
+  defaultValue?: never
+  onValueChange?: never
+}
+
+export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
   /** The variant of this group. Use 'radio' to create a radio group. */
-  variant?: 'radio'
+  variant: 'radio'
   /** Controlled value for radio groups (the selected radio item's value). */
   value?: string
   /** Default value for radio groups (uncontrolled). */
@@ -109,6 +141,8 @@ export type GroupDef<T = unknown> = BaseDef<'group'> & {
   /** Callback when radio group value changes. */
   onValueChange?: (value: string) => void
 }
+
+export type GroupDef<T = unknown> = DefaultGroupDef<T> | RadioGroupDef<T>
 
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
   Searchable &
@@ -157,22 +191,54 @@ export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
   def: D
 }
 
-export type ItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
-  Omit<ItemDef<T>, 'kind' | 'hidden' | 'variant'> & {
-    variant: ItemVariant
+type BaseItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
+  Omit<BaseItemDef<T>, 'kind' | 'hidden'> & {
     search?: SearchContext
     /** Reference to the row's belonging group, if applicable. */
     group?: GroupNode<T>
   }
 
-export type GroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
+export type ButtonItemNode<T = unknown> = BaseItemNode<T> & {
+  variant: 'button'
+  value?: never
+}
+
+export type CheckboxItemNode<T = unknown> = BaseItemNode<T> & {
+  variant: 'checkbox'
+  value?: never
+}
+
+export type RadioItemNode<T = unknown> = BaseItemNode<T> & {
+  variant: 'radio'
+  /** Value for this radio item. Required at runtime (uses id as fallback). */
+  value: string
+}
+
+export type ItemNode<T = unknown> =
+  | ButtonItemNode<T>
+  | CheckboxItemNode<T>
+  | RadioItemNode<T>
+
+type BaseGroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
   heading?: string
   nodes: (ItemNode<T> | SubmenuNode<any>)[]
-  variant?: 'radio'
+}
+
+export type DefaultGroupNode<T = unknown> = BaseGroupNode<T> & {
+  variant: 'default'
+  value?: never
+  defaultValue?: never
+  onValueChange?: never
+}
+
+export type RadioGroupNode<T = unknown> = BaseGroupNode<T> & {
+  variant: 'radio'
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
 }
+
+export type GroupNode<T = unknown> = DefaultGroupNode<T> | RadioGroupNode<T>
 
 /** NOTE: Submenu node exposes its runtime child menu as `child` */
 export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
@@ -220,18 +286,22 @@ function instantiateMenuFromDef<T>(
 
   function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
     if (d.kind === 'item') {
+      const itemDef = d as ItemDef<U>
+      const variant = itemDef.variant ?? 'button'
+
       const node: ItemNode<U> = {
-        ...(d as ItemDef<U>),
-        variant: d.variant ?? 'button',
+        ...itemDef,
+        variant,
         kind: 'item',
         parent,
-        def: d,
-      }
-
-      // For radio items, use the `id` as a fallback if `value` is not specified.
-      if (node.variant === 'radio') {
-        node.value = d.value ?? d.id
-      }
+        def: itemDef,
+        ...(variant === 'radio'
+          ? {
+              value:
+                itemDef.variant === 'radio' ? (itemDef.value ?? d.id) : d.id,
+            }
+          : {}),
+      } as ItemNode<U>
 
       return node
     }
@@ -241,6 +311,9 @@ function instantiateMenuFromDef<T>(
       const children = (d.nodes ?? []).map((c) =>
         inst<any>(c as NodeDef<any>, parent),
       )
+
+      const variant = groupDef.variant ?? 'default'
+
       const node: GroupNode<U> = {
         id: d.id,
         kind: 'group',
@@ -249,11 +322,21 @@ function instantiateMenuFromDef<T>(
         def: groupDef,
         heading: groupDef.heading,
         nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
-        variant: groupDef.variant,
-        value: groupDef.value,
-        defaultValue: groupDef.defaultValue,
-        onValueChange: groupDef.onValueChange,
-      }
+        variant,
+        ...(variant === 'radio'
+          ? {
+              value: groupDef.variant === 'radio' ? groupDef.value : undefined,
+              defaultValue:
+                groupDef.variant === 'radio'
+                  ? groupDef.defaultValue
+                  : undefined,
+              onValueChange:
+                groupDef.variant === 'radio'
+                  ? groupDef.onValueChange
+                  : undefined,
+            }
+          : {}),
+      } as GroupNode<U>
 
       // For groups, set group reference on all child nodes
       for (const child of node.nodes) {
@@ -3009,7 +3092,7 @@ function ListView<T = unknown>({
               node: {
                 ...n,
                 id: bcIds.at(-1) ? `${bcIds.at(-1)}-${n.id}` : n.id,
-                menu: currentMenu,
+                parent: currentMenu,
               } as ItemNode<T>,
               breadcrumbs: bc,
               breadcrumbIds: bcIds,
