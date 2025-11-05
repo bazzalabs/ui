@@ -4,6 +4,7 @@ import { ActionMenu_HeaderFooter } from './header-footer'
 import { ActionMenu_KitchenSink01 } from './kitchen-sink-01'
 import { ActionMenu_Massive } from './massive'
 import { ActionMenu_Notion } from './notion'
+import { ActionMenu_RadioGroups } from './radio-groups'
 import { ActionMenu_Submenus } from './submenus'
 import { ActionMenu_SubmenusCustomized } from './submenus-customized'
 import { ActionMenu_SubmenusDeep } from './submenus-deep'
@@ -11,6 +12,7 @@ import { ActionMenu_SubmenusDeep } from './submenus-deep'
 export const ActionMenu = {
   Basic: ActionMenu_Basic,
   DisabledItems: ActionMenu_DisabledItems,
+  RadioGroups: ActionMenu_RadioGroups,
   Massive: ActionMenu_Massive,
   Submenus: ActionMenu_Submenus,
   SubmenusDeep: ActionMenu_SubmenusDeep,

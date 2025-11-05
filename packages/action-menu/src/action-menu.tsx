@@ -73,12 +73,17 @@ export type MenuDef<T = unknown> = MenuState & {
   }
 }
 
+export type ItemVariant = 'button' | 'checkbox' | 'radio'
+
 export type ItemDef<T = unknown> = BaseDef<'item'> &
   Searchable & {
     icon?: Iconish
     /** Arman is a bitch. */
     data?: T
     disabled?: boolean
+    /** The visual/behavioral variant of this item. Defaults to 'button'. */
+    variant?: ItemVariant
+    value?: string
     onSelect?: (args: {
       node: Omit<ItemNode<T>, 'onSelect'>
       search?: SearchContext
@@ -95,6 +100,14 @@ export type ItemDef<T = unknown> = BaseDef<'item'> &
 export type GroupDef<T = unknown> = BaseDef<'group'> & {
   nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
   heading?: string
+  /** The variant of this group. Use 'radio' to create a radio group. */
+  variant?: 'radio'
+  /** Controlled value for radio groups (the selected radio item's value). */
+  value?: string
+  /** Default value for radio groups (uncontrolled). */
+  defaultValue?: string
+  /** Callback when radio group value changes. */
+  onValueChange?: (value: string) => void
 }
 
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
@@ -145,13 +158,20 @@ export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
 }
 
 export type ItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
-  Omit<ItemDef<T>, 'kind' | 'hidden'> & {
+  Omit<ItemDef<T>, 'kind' | 'hidden' | 'variant'> & {
+    variant: ItemVariant
     search?: SearchContext
+    /** Reference to the row's belonging group, if applicable. */
+    group?: GroupNode<T>
   }
 
 export type GroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
   heading?: string
   nodes: (ItemNode<T> | SubmenuNode<any>)[]
+  variant?: 'radio'
+  value?: string
+  defaultValue?: string
+  onValueChange?: (value: string) => void
 }
 
 /** NOTE: Submenu node exposes its runtime child menu as `child` */
@@ -163,6 +183,8 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
     child: Menu<TChild>
     nodes: Node<TChild>[]
     search?: SearchContext
+    /** Reference to the row's belonging group, if applicable. */
+    group?: GroupNode<T>
   }
 
 export type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
@@ -200,14 +222,22 @@ function instantiateMenuFromDef<T>(
     if (d.kind === 'item') {
       const node: ItemNode<U> = {
         ...(d as ItemDef<U>),
+        variant: d.variant ?? 'button',
         kind: 'item',
         parent,
         def: d,
       }
+
+      // For radio items, use the `id` as a fallback if `value` is not specified.
+      if (node.variant === 'radio') {
+        node.value = d.value ?? d.id
+      }
+
       return node
     }
 
     if (d.kind === 'group') {
+      const groupDef = d as GroupDef<U>
       const children = (d.nodes ?? []).map((c) =>
         inst<any>(c as NodeDef<any>, parent),
       )
@@ -216,10 +246,20 @@ function instantiateMenuFromDef<T>(
         kind: 'group',
         hidden: d.hidden,
         parent,
-        def: d as GroupDef<U>,
-        heading: (d as GroupDef<U>).heading,
+        def: groupDef,
+        heading: groupDef.heading,
         nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
+        variant: groupDef.variant,
+        value: groupDef.value,
+        defaultValue: groupDef.defaultValue,
+        onValueChange: groupDef.onValueChange,
       }
+
+      // For groups, set group reference on all child nodes
+      for (const child of node.nodes) {
+        child.group = node
+      }
+
       return node
     }
 
@@ -279,11 +319,14 @@ export type RowBindAPI = {
   ) => T & {
     ref: React.Ref<any>
     id: string
-    role: 'option'
+    role: 'option' | 'menuitemcheckbox'
     tabIndex: -1
     'data-action-menu-item-id': string
     'data-focused'?: 'true'
+    'data-variant'?: 'button' | 'checkbox' | 'radio'
+    'data-checked'?: boolean
     'aria-selected'?: boolean
+    'aria-checked'?: boolean
     'aria-disabled'?: boolean
   }
 }
@@ -447,12 +490,28 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
         No results{query ? ` for “${query}”` : ''}.
       </div>
     ),
-    Item: ({ node, bind }) => (
-      <li {...bind.getRowProps()}>
-        {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
-        <span>{node.label ?? String(node.id)}</span>
-      </li>
-    ),
+    Item: ({ node, bind }) => {
+      const props = bind.getRowProps()
+      const variant = node.variant ?? 'button'
+      const isChecked = props['data-checked'] ?? false
+
+      return (
+        <li {...props}>
+          {variant === 'checkbox' && (
+            <span aria-hidden data-indicator="checkbox">
+              {isChecked ? '☑' : '☐'}
+            </span>
+          )}
+          {variant === 'radio' && (
+            <span aria-hidden data-indicator="radio">
+              {isChecked ? '◉' : '○'}
+            </span>
+          )}
+          {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
+          <span>{node.label ?? String(node.id)}</span>
+        </li>
+      )
+    },
     SubmenuTrigger: ({ node, bind }) => (
       <li {...bind.getRowProps()}>
         {node.icon ? <span aria-hidden>{renderIcon(node.icon)}</span> : null}
@@ -707,6 +766,16 @@ const KeyboardCtx = React.createContext<KeyboardOptions>({
   vimBindings: true,
 })
 const useKeyboardOpts = () => React.useContext(KeyboardCtx)
+
+/** Radio group context (for managing radio item selection within a group) */
+type RadioGroupContextValue = {
+  value: string | undefined
+  onValueChange: ((value: string) => void) | undefined
+}
+const RadioGroupContext = React.createContext<RadioGroupContextValue | null>(
+  null,
+)
+const useRadioGroup = () => React.useContext(RadioGroupContext)
 
 /* ================================================================================================
  * Custom events (open/select/internal notifications)
@@ -2493,14 +2562,30 @@ function ItemRow<T>({
   const root = useRootCtx()
   const sub = useSubCtx()
   const onSelect = node.onSelect ?? defaults?.onSelect
-  const closeOnSelect = node.closeOnSelect ?? defaults?.closeOnSelect ?? false
+
+  // Determine variant (defaults to 'button')
+  const variant = node.variant ?? 'button'
+
+  // Radio group context (for group-level value management)
+  const radioGroup = useRadioGroup()
+
+  // For checkbox/radio, default to NOT closing; for button, respect the prop or default to false
+  const defaultCloseOnSelect = variant === 'button'
+  const closeOnSelect =
+    node.closeOnSelect ?? defaults?.closeOnSelect ?? defaultCloseOnSelect
 
   const handleSelect = React.useCallback(() => {
+    if (variant === 'radio') {
+      if (radioGroup && node.value) {
+        radioGroup.onValueChange?.(node.value)
+      }
+    }
+
     onSelect?.({ node, search })
     if (closeOnSelect) {
       closeSubmenuChain(sub, root)
     }
-  }, [onSelect, node, search, closeOnSelect, sub, root])
+  }, [variant, radioGroup, node, onSelect, search, closeOnSelect, sub, root])
 
   React.useEffect(() => {
     const el = ref.current
@@ -2552,12 +2637,16 @@ function ItemRow<T>({
       ({
         id: rowId,
         ref: composeRefs(refProp as any, ref as any),
-        role: 'option' as const,
+        role:
+          variant === 'checkbox' || variant === 'radio'
+            ? ('menuitemcheckbox' as const)
+            : ('option' as const),
         tabIndex: -1,
         'action-menu-row': '',
         'data-index': virtualItem?.index,
         'data-action-menu-item-id': rowId,
         'data-focused': focused,
+        'data-variant': variant,
         'aria-selected': focused,
         disabled: node.disabled ?? false,
         'aria-disabled': node.disabled ?? false,
@@ -2572,6 +2661,7 @@ function ItemRow<T>({
       virtualItem?.index,
       refProp,
       focused,
+      variant,
       node.disabled,
       mode,
       className,
@@ -2797,6 +2887,62 @@ function ListView<T = unknown>({
   const surfaceId = useSurfaceId() ?? 'root'
   const mode = useDisplayMode()
 
+  // Controllable state management for radio groups
+  // Initialize uncontrolled state for groups that need it
+  const [uncontrolledGroupStates, setUncontrolledGroupStates] = React.useState<
+    Map<string, string>
+  >(() => {
+    const map = new Map<string, string>()
+    const initGroups = (nodes: Node<T>[]) => {
+      for (const node of nodes) {
+        if (node.kind === 'group' && node.variant === 'radio') {
+          // Only initialize if uncontrolled (no value prop)
+          if (node.value === undefined && node.defaultValue) {
+            map.set(node.id, node.defaultValue)
+          }
+        }
+      }
+    }
+    initGroups(menu.nodes)
+    return map
+  })
+
+  // Track previous controlled values to detect external changes
+  const prevControlledValuesRef = React.useRef<Map<string, string | undefined>>(
+    new Map(),
+  )
+
+  // Update uncontrolled state when controlled values change externally
+  React.useEffect(() => {
+    const prev = prevControlledValuesRef.current
+    const current = new Map<string, string | undefined>()
+
+    const checkNodes = (nodes: Node<T>[]) => {
+      for (const node of nodes) {
+        if (
+          node.kind === 'group' &&
+          node.variant === 'radio' &&
+          node.value !== undefined
+        ) {
+          current.set(node.id, node.value)
+          // If value changed externally and we were using uncontrolled, sync it
+          if (prev.get(node.id) !== node.value) {
+            setUncontrolledGroupStates((prevStates) => {
+              const next = new Map(prevStates)
+              if (node.value !== undefined) {
+                next.set(node.id, node.value)
+              }
+              return next
+            })
+          }
+        }
+      }
+    }
+
+    checkNodes(menu.nodes)
+    prevControlledValuesRef.current = current
+  }, [menu.nodes])
+
   const onKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
       if (ownerId !== surfaceId) return
@@ -2930,13 +3076,69 @@ function ListView<T = unknown>({
       }
     } else {
       for (const node of menu.nodes) {
-        if (node.kind === 'item' || node.kind === 'submenu') acc.push(node)
-        else acc.push(node, ...node.nodes)
+        if (node.kind === 'item' || node.kind === 'submenu') {
+          acc.push(node)
+        } else if (node.kind === 'group') {
+          // Only push group node if it has a heading to render
+          if (node.heading) acc.push(node)
+          // Add child items
+          acc.push(...node.nodes)
+        }
       }
     }
 
     return acc
   }, [q, menu.nodes])
+
+  // Create enhanced state map for radio groups using controllable state pattern
+  const radioGroupEnhancedState = React.useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        value: string | undefined
+        onValueChange: ((value: string) => void) | undefined
+      }
+    >()
+
+    const processNodes = (nodes: Node<T>[]) => {
+      for (const node of nodes) {
+        if (node.kind === 'group' && node.variant === 'radio') {
+          // Determine if this group is controlled or uncontrolled
+          const isControlled = node.value !== undefined
+
+          // Get the effective value (controlled value or uncontrolled state)
+          const effectiveValue = isControlled
+            ? node.value
+            : uncontrolledGroupStates.get(node.id)
+
+          // Create the change handler following controllable state pattern
+          const effectiveOnValueChange = (value: string) => {
+            // If controlled, call the provided onChange
+            if (node.onValueChange) {
+              node.onValueChange(value)
+            }
+
+            // Always update uncontrolled state (for uncontrolled components, this is the source of truth)
+            if (!isControlled) {
+              setUncontrolledGroupStates((prev) => {
+                const next = new Map(prev)
+                next.set(node.id, value)
+                return next
+              })
+            }
+          }
+
+          map.set(node.id, {
+            value: effectiveValue,
+            onValueChange: effectiveOnValueChange,
+          })
+        }
+      }
+    }
+
+    processNodes(menu.nodes)
+    return map
+  }, [menu.nodes, uncontrolledGroupStates])
 
   React.useLayoutEffect(() => {
     if (!q) return
@@ -3077,6 +3279,27 @@ function ListView<T = unknown>({
           }
 
           if (node.kind === 'item') {
+            const group = node.group
+            const isRadioGroup = group?.variant === 'radio'
+            const enhancedGroupState =
+              isRadioGroup && group
+                ? radioGroupEnhancedState.get(group.id)
+                : undefined
+
+            const itemRow = (
+              <ItemRow
+                ref={measureRow}
+                key={node.id}
+                virtualItem={virtualRow}
+                node={node}
+                slot={ItemSlot}
+                defaults={defaults?.item}
+                className={classNames?.item}
+                store={store}
+                search={node.search}
+              />
+            )
+
             return (
               <div
                 key={virtualRow.key}
@@ -3091,17 +3314,18 @@ function ListView<T = unknown>({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <ItemRow
-                  ref={measureRow}
-                  key={node.id}
-                  virtualItem={virtualRow}
-                  node={node}
-                  slot={ItemSlot}
-                  defaults={defaults?.item}
-                  className={classNames?.item}
-                  store={store}
-                  search={node.search}
-                />
+                {isRadioGroup && enhancedGroupState ? (
+                  <RadioGroupContext.Provider
+                    value={{
+                      value: enhancedGroupState.value,
+                      onValueChange: enhancedGroupState.onValueChange,
+                    }}
+                  >
+                    {itemRow}
+                  </RadioGroupContext.Provider>
+                ) : (
+                  itemRow
+                )}
               </div>
             )
           }
@@ -3153,6 +3377,7 @@ function ListView<T = unknown>({
       measureRow,
       defaults,
       classNames,
+      radioGroupEnhancedState,
     ],
   )
 

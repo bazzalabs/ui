@@ -3,7 +3,7 @@ import {
   defaultSlots,
   renderIcon,
 } from '@bazza-ui/action-menu'
-import { ChevronRightIcon } from 'lucide-react'
+import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Fragment } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +49,9 @@ export const ActionMenu = createActionMenu({
         className: 'group/row relative',
       })
 
+      const isRadioItem = node.group && node.group.variant === 'radio'
+      const isRadioChecked = isRadioItem && node.group?.value === node.id
+
       return (
         <li {...props}>
           {/* <span className="absolute top-0 right-1 text-[9px]">{node.id}</span> */}
@@ -64,6 +67,7 @@ export const ActionMenu = createActionMenu({
             label={node.label ?? ''}
             breadcrumbs={search?.breadcrumbs}
           />
+          {isRadioChecked && <CheckIcon className="size-4 ml-auto" />}
         </li>
       )
     },

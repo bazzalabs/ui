@@ -87,6 +87,7 @@ export function ActionMenu_HeaderFooter() {
 
         defaults: {
           item: {
+            closeOnSelect: false,
             onSelect: ({ node }) => {
               const checked = selectedItems.includes(node.id)
               setSelectedItems((prev) => {
