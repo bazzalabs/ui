@@ -78,6 +78,7 @@ export type ItemDef<T = unknown> = BaseDef<'item'> &
     icon?: Iconish
     /** Arman is a bitch. */
     data?: T
+    disabled?: boolean
     onSelect?: (args: {
       node: Omit<ItemNode<T>, 'onSelect'>
       search?: SearchContext
@@ -101,6 +102,7 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
   MenuState & {
     nodes?: NodeDef<TChild>[]
     data?: T
+    disabled?: boolean
     icon?: Iconish
     title?: string
     inputPlaceholder?: string
@@ -844,9 +846,6 @@ type SurfaceStore<T> = {
   snapshot(): SurfaceState
   set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
 
-  getValidItems(): Element[]
-  getSelectedItem(): Element | null
-
   getNodes(): Node<T>[]
   setNodes(nodes: Node<T>[]): void
 
@@ -895,22 +894,6 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     emit()
   }
 
-  const ITEM_SELECTOR = `[action-menu-row=""]`
-  const VALID_ITEM_SELECTOR = `${ITEM_SELECTOR}:not([aria-disabled="true"])`
-  const SELECTED_ITEM_SELECTOR = `${ITEM_SELECTOR}[data-focused="true"]`
-
-  const getValidItems = () => {
-    if (!listRef.current) return []
-    return Array.from(
-      listRef.current.querySelectorAll(VALID_ITEM_SELECTOR) || [],
-    )
-  }
-
-  const getSelectedItem = () => {
-    if (!listRef.current) return null
-    return listRef.current.querySelector(SELECTED_ITEM_SELECTOR)
-  }
-
   function getNodes() {
     return nodes
   }
@@ -925,11 +908,6 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     order.splice(0)
     order.push(...ids)
     emit()
-  }
-
-  const ensureActiveExists = () => {
-    if (state.activeId && rows.has(state.activeId)) return
-    state.activeId = order[0] ?? null
   }
 
   const setActiveId = (
@@ -980,25 +958,45 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     const clamped = idx < 0 ? 0 : idx >= order.length ? order.length - 1 : idx
     setActiveId(order[clamped]!, cause)
   }
-  const first = (cause: ActivationCause = 'keyboard') =>
-    setActiveByIndex(0, cause)
-  const last = (cause: ActivationCause = 'keyboard') =>
-    setActiveByIndex(order.length - 1, cause)
+
+  const first = (cause: ActivationCause = 'keyboard') => {
+    if (!order.length) return
+
+    const id = order[0]
+    if (!id) return
+
+    setActiveId(id, cause)
+  }
+
+  const last = (cause: ActivationCause = 'keyboard') => {
+    if (!order.length) return
+
+    const id = order[order.length - 1]
+    if (!id) return
+
+    setActiveId(id, cause)
+  }
   const next = (cause: ActivationCause = 'keyboard') => {
+    if (!order.length) return
     const index = state.activeId ? order.indexOf(state.activeId) : -1
     const nextIndex = index + 1 < order.length ? index + 1 : 0
 
-    const nextActiveId = order[nextIndex]
+    const nextId = order[nextIndex]
+    if (!nextId) return
 
-    setActiveId(nextActiveId!, cause)
+    setActiveId(nextId, cause)
   }
   const prev = (cause: ActivationCause = 'keyboard') => {
-    const index = state.activeId ? order.indexOf(state.activeId) : order.length
+    if (!order.length) return
+    const index = state.activeId
+      ? order.indexOf(state.activeId)
+      : order.length - 1
     const nextIndex = index > 0 ? index - 1 : order.length - 1
 
-    const nextActiveId = order[nextIndex]
+    const nextId = order[nextIndex]
+    if (!nextId) return
 
-    setActiveId(nextActiveId!, cause)
+    setActiveId(nextId, cause)
   }
 
   return {
@@ -1012,8 +1010,6 @@ function createSurfaceStore<T>(): SurfaceStore<T> {
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
-    getValidItems,
-    getSelectedItem,
     getNodes,
     setNodes,
     ///////////////////////////////////////////
@@ -2510,31 +2506,35 @@ function ItemRow<T>({
     store.registerRow(rowId, {
       ref: ref as any,
       virtualItem,
-      disabled: false,
+      disabled: node.disabled ?? false,
       kind: 'item',
     })
     return () => store.unregisterRow(rowId)
-  }, [store, rowId])
+  }, [store, rowId, node.disabled])
 
   const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === rowId
   const { aimGuardActiveRef } = useHoverPolicy()
+
+  const disabled = node.disabled ?? false
 
   const onPointerDown = React.useCallback((e: React.PointerEvent) => {
     e.preventDefault()
   }, [])
 
   const onMouseMove = React.useCallback(() => {
+    if (disabled) return
     if (aimGuardActiveRef.current) return
     if (!focused) store.setActiveId(rowId, 'pointer')
-  }, [aimGuardActiveRef, focused, store, rowId])
+  }, [disabled, aimGuardActiveRef, focused, store, rowId])
 
   const onClick = React.useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
+      if (disabled) return
       handleSelect()
     },
-    [handleSelect],
+    [disabled, handleSelect],
   )
 
   const baseRowProps = React.useMemo(
@@ -2549,7 +2549,8 @@ function ItemRow<T>({
         'data-action-menu-item-id': rowId,
         'data-focused': focused,
         'aria-selected': focused,
-        'aria-disabled': false,
+        disabled: node.disabled ?? false,
+        'aria-disabled': node.disabled ?? false,
         'data-mode': mode,
         className,
         onPointerDown,
@@ -2561,6 +2562,7 @@ function ItemRow<T>({
       virtualItem?.index,
       refProp,
       focused,
+      node.disabled,
       mode,
       className,
       onPointerDown,
@@ -2572,11 +2574,11 @@ function ItemRow<T>({
   const bind: RowBindAPI = React.useMemo(
     () => ({
       focused,
-      disabled: false,
+      disabled: node.disabled ?? false,
       getRowProps: (overrides) =>
         mergeProps(baseRowProps as any, overrides as any),
     }),
-    [focused, baseRowProps],
+    [focused, node.disabled, baseRowProps],
   )
 
   if (node.render) {
@@ -2926,12 +2928,17 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
-  const __nodeIds = React.useMemo(
-    () => flattenedNodes.map((n) => n.id),
+  const __validNodeIds = React.useMemo(
+    () =>
+      flattenedNodes
+        .filter(
+          (n) => (n.kind === 'item' || n.kind === 'submenu') && !n.disabled,
+        )
+        .map((n) => n.id),
     [flattenedNodes],
   )
 
-  const nodeIds = React.useMemo(() => __nodeIds, [__nodeIds])
+  const validNodeIds = React.useMemo(() => __validNodeIds, [__validNodeIds])
 
   React.useLayoutEffect(() => {
     if (!q) return
@@ -2941,11 +2948,14 @@ function ListView<T = unknown>({
   React.useEffect(() => {
     const order = store.getOrder()
 
-    if (order.length !== nodeIds.length || !isShallowEqual(order, nodeIds)) {
-      store.resetOrder(nodeIds)
+    if (
+      order.length !== validNodeIds.length ||
+      !isShallowEqual(order, validNodeIds)
+    ) {
+      store.resetOrder(validNodeIds)
       store.setActiveByIndex(0, 'keyboard')
     }
-  }, [nodeIds])
+  }, [validNodeIds])
 
   const { slots, slotProps, classNames } = useScopedTheme<T>()
 

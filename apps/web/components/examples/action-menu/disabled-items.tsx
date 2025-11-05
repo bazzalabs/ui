@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
-export function ActionMenu_Basic() {
+export function ActionMenu_DisabledItems() {
   return (
     <ActionMenu
       trigger={<Button variant="secondary">Trigger</Button>}
@@ -30,6 +30,7 @@ export function ActionMenu_Basic() {
             id: 'Banana',
             label: 'Banana',
             icon: '🍌',
+            disabled: true,
           },
           {
             kind: 'item',
@@ -42,6 +43,7 @@ export function ActionMenu_Basic() {
             id: 'Pineapple',
             label: 'Pineapple',
             icon: '🍍',
+            disabled: true,
           },
           {
             kind: 'item',

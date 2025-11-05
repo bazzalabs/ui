@@ -2,7 +2,11 @@
 /** biome-ignore-all lint/performance/noImgElement: allowed */
 'use client'
 
-import { type MenuDef, renderIcon } from '@bazza-ui/action-menu'
+import {
+  type ItemSlotProps,
+  type MenuDef,
+  renderIcon,
+} from '@bazza-ui/action-menu'
 import {
   Heading1Icon,
   Heading2Icon,
@@ -22,26 +26,12 @@ import {
 } from '@/components/ui/hover-card'
 import { ActionMenu } from '@/registry/action-menu'
 
-const MicrophoneTextIcon = (props: React.ComponentProps<'svg'>) => (
-  <svg aria-hidden="true" viewBox="0 0 20 20" {...props}>
-    <path d="M18.174 11.39a.626.626 0 0 1 1.028.712 6.58 6.58 0 0 1-4.8 2.815v1.933h3.425l.126.012a.625.625 0 0 1 0 1.225l-.126.013h-8.1a.625.625 0 0 1 0-1.25h3.425v-1.933a6.58 6.58 0 0 1-4.566-2.5l-.232-.315-.061-.112a.626.626 0 0 1 1.008-.695l.082.096.187.255a5.33 5.33 0 0 0 4.208 2.053 5.33 5.33 0 0 0 4.396-2.308"></path>
-    <path d="M8.756 14.375a7.9 7.9 0 0 0 1.965 1.2l.13.05H.902a.625.625 0 1 1 0-1.25zm-1.624-3.333a1.88 1.88 0 0 0-.056 1.25H.9a.625.625 0 0 1 0-1.25zm6.645-8.867a2.875 2.875 0 0 1 2.875 2.875v4.1a2.875 2.875 0 1 1-5.75 0v-4.1a2.875 2.875 0 0 1 2.875-2.875m0 1.25c-.897 0-1.624.728-1.625 1.625v4.1a1.625 1.625 0 0 0 3.25 0v-4.1c0-.898-.727-1.625-1.625-1.625M9.652 8.958H.9a.625.625 0 1 1 0-1.25h8.752zm.171-4.583c-.11.372-.17.767-.17 1.175v.075H.9a.625.625 0 1 1 0-1.25z"></path>
-  </svg>
-)
-
-const AIBlockIcon = (props: React.ComponentProps<'svg'>) => (
-  <svg aria-hidden="true" viewBox="0 0 20 20" {...props}>
-    <path d="M5.25 3.125A2.125 2.125 0 0 0 3.125 5.25v9.5c0 1.174.951 2.125 2.125 2.125H7.5v-1.25H5.25a.875.875 0 0 1-.875-.875v-9.5c0-.483.392-.875.875-.875h9.5c.483 0 .875.392.875.875V7.5h1.25V5.25a2.125 2.125 0 0 0-2.125-2.125zm9.667 10.362a.827.827 0 1 0 .264-1.632.827.827 0 0 0-.264 1.632"></path>
-    <path d="M11.508 12.097a.827.827 0 1 1-1.633-.264.827.827 0 0 1 1.633.264m1.716-1.807a2.935 2.935 0 0 1 5.052.026.625.625 0 1 1-1.08.63 1.685 1.685 0 0 0-2.9-.014L10.65 17.02l2.67.432a.625.625 0 0 1-.2 1.234l-3.58-.58a.625.625 0 0 1-.436-.938zm-.86-1.802a2.94 2.94 0 0 0-3.464.329.625.625 0 0 0 .833.932 1.686 1.686 0 0 1 2.397.153.625.625 0 0 0 .945-.819 3 3 0 0 0-.71-.595"></path>
-  </svg>
-)
-
 export function ActionMenu_Notion() {
   return (
     <ActionMenu
       trigger={<Button>Open / Menu</Button>}
-      classNames={{
-        list: 'data-[mode=dropdown]:min-w-[300px]',
+      slots={{
+        Item: NotionMenuItem,
       }}
       menu={
         {
@@ -55,66 +45,7 @@ export function ActionMenu_Notion() {
               },
             },
           },
-          ui: {
-            slots: {
-              Item: ({ node, mode, bind }) => {
-                const props = bind.getRowProps({
-                  className: 'w-full justify-between gap-16',
-                })
-
-                const data = node.data as
-                  | {
-                      description?: string
-                      tag?: string
-                      kbd?: string
-                      imageUrl?: string
-                    }
-                  | undefined
-
-                const Icon = renderIcon(node.icon, 'size-4 shrink-0')
-
-                const ItemRow = (
-                  <button {...props}>
-                    <div className="flex items-center gap-2 select-none">
-                      {Icon}
-                      <span>{node.label}</span>
-                      {data?.tag && (
-                        <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
-                          {data?.tag}
-                        </div>
-                      )}
-                    </div>
-                    {data?.kbd && (
-                      <span className="text-muted-foreground text-xs">
-                        {data?.kbd}
-                      </span>
-                    )}
-                  </button>
-                )
-
-                if (mode !== 'dropdown' || data?.description === undefined)
-                  return ItemRow
-
-                return (
-                  <HoverCard open={bind.focused} openDelay={2000}>
-                    <HoverCardTrigger asChild>{ItemRow}</HoverCardTrigger>
-                    <HoverCardContent
-                      side="right"
-                      align="center"
-                      className="data-[state=closed]:!animate-none data-[state=open]:!animate-none font-medium text-xs bg-neutral-950 text-neutral-50 p-2 w-[170px] h-fit flex flex-col gap-2"
-                    >
-                      {data?.imageUrl && (
-                        <div className="h-fit w-fit rounded-sm overflow-clip">
-                          <img src={data?.imageUrl} alt={node.label} />
-                        </div>
-                      )}
-                      {data?.description}
-                    </HoverCardContent>
-                  </HoverCard>
-                )
-              },
-            },
-          },
+          ui: {},
           nodes: [
             {
               id: 'suggested',
@@ -250,5 +181,73 @@ export function ActionMenu_Notion() {
         } satisfies MenuDef
       }
     />
+  )
+}
+
+const MicrophoneTextIcon = (props: React.ComponentProps<'svg'>) => (
+  <svg aria-hidden="true" viewBox="0 0 20 20" {...props}>
+    <path d="M18.174 11.39a.626.626 0 0 1 1.028.712 6.58 6.58 0 0 1-4.8 2.815v1.933h3.425l.126.012a.625.625 0 0 1 0 1.225l-.126.013h-8.1a.625.625 0 0 1 0-1.25h3.425v-1.933a6.58 6.58 0 0 1-4.566-2.5l-.232-.315-.061-.112a.626.626 0 0 1 1.008-.695l.082.096.187.255a5.33 5.33 0 0 0 4.208 2.053 5.33 5.33 0 0 0 4.396-2.308"></path>
+    <path d="M8.756 14.375a7.9 7.9 0 0 0 1.965 1.2l.13.05H.902a.625.625 0 1 1 0-1.25zm-1.624-3.333a1.88 1.88 0 0 0-.056 1.25H.9a.625.625 0 0 1 0-1.25zm6.645-8.867a2.875 2.875 0 0 1 2.875 2.875v4.1a2.875 2.875 0 1 1-5.75 0v-4.1a2.875 2.875 0 0 1 2.875-2.875m0 1.25c-.897 0-1.624.728-1.625 1.625v4.1a1.625 1.625 0 0 0 3.25 0v-4.1c0-.898-.727-1.625-1.625-1.625M9.652 8.958H.9a.625.625 0 1 1 0-1.25h8.752zm.171-4.583c-.11.372-.17.767-.17 1.175v.075H.9a.625.625 0 1 1 0-1.25z"></path>
+  </svg>
+)
+
+const AIBlockIcon = (props: React.ComponentProps<'svg'>) => (
+  <svg aria-hidden="true" viewBox="0 0 20 20" {...props}>
+    <path d="M5.25 3.125A2.125 2.125 0 0 0 3.125 5.25v9.5c0 1.174.951 2.125 2.125 2.125H7.5v-1.25H5.25a.875.875 0 0 1-.875-.875v-9.5c0-.483.392-.875.875-.875h9.5c.483 0 .875.392.875.875V7.5h1.25V5.25a2.125 2.125 0 0 0-2.125-2.125zm9.667 10.362a.827.827 0 1 0 .264-1.632.827.827 0 0 0-.264 1.632"></path>
+    <path d="M11.508 12.097a.827.827 0 1 1-1.633-.264.827.827 0 0 1 1.633.264m1.716-1.807a2.935 2.935 0 0 1 5.052.026.625.625 0 1 1-1.08.63 1.685 1.685 0 0 0-2.9-.014L10.65 17.02l2.67.432a.625.625 0 0 1-.2 1.234l-3.58-.58a.625.625 0 0 1-.436-.938zm-.86-1.802a2.94 2.94 0 0 0-3.464.329.625.625 0 0 0 .833.932 1.686 1.686 0 0 1 2.397.153.625.625 0 0 0 .945-.819 3 3 0 0 0-.71-.595"></path>
+  </svg>
+)
+
+const NotionMenuItem = ({ bind, node, mode }: ItemSlotProps) => {
+  const props = bind.getRowProps({
+    className: 'w-full justify-between gap-16',
+  })
+
+  const data = node.data as
+    | {
+        description?: string
+        tag?: string
+        kbd?: string
+        imageUrl?: string
+      }
+    | undefined
+
+  const Icon = renderIcon(node.icon, 'size-4 shrink-0')
+
+  const ItemRow = (
+    <button {...props}>
+      <div className="flex items-center gap-2 select-none">
+        {Icon}
+        <span>{node.label}</span>
+        {data?.tag && (
+          <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
+            {data?.tag}
+          </div>
+        )}
+      </div>
+      {data?.kbd && (
+        <span className="text-muted-foreground text-xs">{data?.kbd}</span>
+      )}
+    </button>
+  )
+
+  if (mode !== 'dropdown' || data?.description === undefined) return ItemRow
+
+  return (
+    <HoverCard open={bind.focused} openDelay={2000}>
+      <HoverCardTrigger asChild>{ItemRow}</HoverCardTrigger>
+      <HoverCardContent
+        side="right"
+        align="center"
+        className="data-[state=closed]:!animate-none data-[state=open]:!animate-none font-medium text-xs bg-neutral-950 text-neutral-50 p-2 w-[170px] h-fit flex flex-col gap-2"
+      >
+        {data?.imageUrl && (
+          <div className="h-fit w-fit rounded-sm overflow-clip">
+            <img src={data?.imageUrl} alt={node.label} />
+          </div>
+        )}
+        {data?.description}
+      </HoverCardContent>
+    </HoverCard>
   )
 }

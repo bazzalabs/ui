@@ -148,11 +148,11 @@ export const ActionMenu = createActionMenu({
     group: cn('mt-3 data-[index=0]:mt-1 mb-2'),
     groupHeading: cn('text-xs font-medium text-muted-foreground px-3'),
     item: cn(
-      'group flex items-center w-full gap-2 text-sm select-none',
-      'data-[focused=true]:text-accent-foreground',
+      'group flex items-center w-full gap-2 text-sm select-none aria-disabled:opacity-50',
+      'data-[focused=true]:not-disabled:text-accent-foreground',
       'py-1.5 data-[mode=dropdown]:px-4 data-[mode=drawer]:px-5',
       'truncate w-full relative z-1',
-      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:before:bg-accent before:rounded-md before:z-[-1]',
+      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:not-disabled:before:bg-accent before:rounded-md before:z-[-1]',
     ),
     subtrigger: cn(
       "group flex items-center justify-between data-[focused=true]:text-accent-foreground relative cursor-default gap-4 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
