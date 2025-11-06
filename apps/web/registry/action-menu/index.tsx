@@ -5,6 +5,7 @@ import {
 } from '@bazza-ui/action-menu'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Fragment } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
 const TriangleRightIcon = ({
@@ -52,9 +53,18 @@ export const ActionMenu = createActionMenu({
       const isRadioItem = node.group && node.group.variant === 'radio'
       const isRadioChecked = isRadioItem && node.group?.value === node.id
 
+      const isCheckboxItem = node.variant === 'checkbox'
+
       return (
         <li {...props}>
           {/* <span className="absolute top-0 right-1 text-[9px]">{node.id}</span> */}
+          {isCheckboxItem && (
+            <Checkbox
+              checked={Boolean(node.checked)}
+              className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]/row:opacity-100 dark:border-ring shrink-0"
+            />
+          )}
+
           {node.icon && (
             <div className="size-4 flex items-center justify-center">
               {renderIcon(

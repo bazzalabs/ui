@@ -12,6 +12,7 @@ export function ActionMenu_RadioGroups() {
       trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
+        hideSearchUntilActive: true,
         nodes: [
           {
             id: 'fruits',

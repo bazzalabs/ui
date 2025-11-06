@@ -31,6 +31,7 @@ export default function Page() {
             {/* <Examples.ActionMenu.Notion /> */}
             <Examples.ActionMenu.HeaderFooter />
             <Examples.ActionMenu.RadioGroups />
+            <Examples.ActionMenu.CheckboxItems />
             {/* <Examples.ActionMenu.Massive numItems={10_000} /> */}
             {/* <Examples.ActionMenu.SubmenusDeep /> */}
           </div>

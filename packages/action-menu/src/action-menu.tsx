@@ -2660,7 +2660,7 @@ function ItemRow<T>({
   const radioGroup = useRadioGroup()
 
   // Checkbox state management (controlled/uncontrolled)
-  const [checkedState, setCheckedState] = useControllableState({
+  const [checked, setChecked] = useControllableState({
     prop:
       node.variant === 'checkbox'
         ? (node as CheckboxItemNode).checked
@@ -2676,14 +2676,15 @@ function ItemRow<T>({
   })
 
   // For checkbox/radio, default to NOT closing; for button, respect the prop or default to false
-  const defaultCloseOnSelect = node.variant === 'button'
+  const defaultCloseOnSelect =
+    node.variant === 'button' || node.variant === 'radio'
   const closeOnSelect =
     node.closeOnSelect ?? defaults?.closeOnSelect ?? defaultCloseOnSelect
 
   const handleSelect = React.useCallback(() => {
     if (node.variant === 'checkbox') {
       // Toggle checkbox state
-      setCheckedState(!checkedState)
+      setChecked(!checked)
     } else if (node.variant === 'radio') {
       if (radioGroup && node.value) {
         radioGroup.onValueChange?.(node.value)
@@ -2696,8 +2697,8 @@ function ItemRow<T>({
     }
   }, [
     node.variant,
-    checkedState,
-    setCheckedState,
+    checked,
+    setChecked,
     radioGroup,
     node,
     onSelect,
@@ -2756,7 +2757,7 @@ function ItemRow<T>({
     // Compute checked state for checkbox and radio items
     const isChecked =
       node.variant === 'checkbox'
-        ? checkedState
+        ? checked
         : node.variant === 'radio'
           ? radioGroup?.value === node.value
           : undefined
@@ -2791,7 +2792,7 @@ function ItemRow<T>({
     refProp,
     focused,
     node.variant,
-    checkedState,
+    checked,
     radioGroup?.value,
     (node as RadioItemNode).value,
     node.disabled,
@@ -2812,11 +2813,26 @@ function ItemRow<T>({
     [focused, node.disabled, baseRowProps],
   )
 
+  // Create an enriched node with live reactive state for slot renderers
+  const enrichedNode = React.useMemo(() => {
+    if (node.variant === 'checkbox') {
+      return {
+        ...node,
+        checked: checked,
+      } as CheckboxItemNode<T>
+    }
+    if (node.variant === 'radio') {
+      // Radio items don't have a checked prop, but we can add the selection state to the base node
+      return node
+    }
+    return node
+  }, [node, checked, node.variant]) as ItemNode<T>
+
   if (node.render) {
-    return node.render({ node, bind, search, mode })
+    return node.render({ node: enrichedNode, bind, search, mode })
   }
 
-  const visual = slot({ node, bind, search, mode })
+  const visual = slot({ node: enrichedNode, bind, search, mode })
   // If the slot placed `getRowProps` on any nested node, just return it as-is.
   if (hasDescendantWithProp(visual, 'data-action-menu-item-id')) {
     return visual as React.ReactElement

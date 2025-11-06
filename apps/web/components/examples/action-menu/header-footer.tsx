@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: <explanation> */
+/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: no need */
 
 'use client'
 
