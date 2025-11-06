@@ -103,7 +103,12 @@ export type ButtonItemDef<T = unknown> = BaseItemDef<T> & {
 export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
   /** The visual/behavioral variant of this item. */
   variant: 'checkbox'
-  value?: never
+  /** Controlled checked state. */
+  checked?: boolean
+  /** Default checked state for uncontrolled usage. */
+  defaultChecked?: boolean
+  /** Callback when checked state changes. */
+  onCheckedChange?: (checked: boolean) => void
 }
 
 export type RadioItemDef<T = unknown> = BaseItemDef<T> & {
@@ -205,7 +210,12 @@ export type ButtonItemNode<T = unknown> = BaseItemNode<T> & {
 
 export type CheckboxItemNode<T = unknown> = BaseItemNode<T> & {
   variant: 'checkbox'
-  value?: never
+  /** Controlled checked state. */
+  checked?: boolean
+  /** Default checked state for uncontrolled usage. */
+  defaultChecked?: boolean
+  /** Callback when checked state changes. */
+  onCheckedChange?: (checked: boolean) => void
 }
 
 export type RadioItemNode<T = unknown> = BaseItemNode<T> & {
@@ -2646,19 +2656,35 @@ function ItemRow<T>({
   const sub = useSubCtx()
   const onSelect = node.onSelect ?? defaults?.onSelect
 
-  // Determine variant (defaults to 'button')
-  const variant = node.variant ?? 'button'
-
   // Radio group context (for group-level value management)
   const radioGroup = useRadioGroup()
 
+  // Checkbox state management (controlled/uncontrolled)
+  const [checkedState, setCheckedState] = useControllableState({
+    prop:
+      node.variant === 'checkbox'
+        ? (node as CheckboxItemNode).checked
+        : undefined,
+    defaultProp:
+      node.variant === 'checkbox'
+        ? ((node as CheckboxItemNode).defaultChecked ?? false)
+        : false,
+    onChange:
+      node.variant === 'checkbox'
+        ? (node as CheckboxItemNode).onCheckedChange
+        : undefined,
+  })
+
   // For checkbox/radio, default to NOT closing; for button, respect the prop or default to false
-  const defaultCloseOnSelect = variant === 'button'
+  const defaultCloseOnSelect = node.variant === 'button'
   const closeOnSelect =
     node.closeOnSelect ?? defaults?.closeOnSelect ?? defaultCloseOnSelect
 
   const handleSelect = React.useCallback(() => {
-    if (variant === 'radio') {
+    if (node.variant === 'checkbox') {
+      // Toggle checkbox state
+      setCheckedState(!checkedState)
+    } else if (node.variant === 'radio') {
       if (radioGroup && node.value) {
         radioGroup.onValueChange?.(node.value)
       }
@@ -2668,7 +2694,18 @@ function ItemRow<T>({
     if (closeOnSelect) {
       closeSubmenuChain(sub, root)
     }
-  }, [variant, radioGroup, node, onSelect, search, closeOnSelect, sub, root])
+  }, [
+    node.variant,
+    checkedState,
+    setCheckedState,
+    radioGroup,
+    node,
+    onSelect,
+    search,
+    closeOnSelect,
+    sub,
+    root,
+  ])
 
   React.useEffect(() => {
     const el = ref.current
@@ -2715,44 +2752,55 @@ function ItemRow<T>({
     [disabled, handleSelect],
   )
 
-  const baseRowProps = React.useMemo(
-    () =>
-      ({
-        id: rowId,
-        ref: composeRefs(refProp as any, ref as any),
-        role:
-          variant === 'checkbox' || variant === 'radio'
-            ? ('menuitemcheckbox' as const)
-            : ('option' as const),
-        tabIndex: -1,
-        'action-menu-row': '',
-        'data-index': virtualItem?.index,
-        'data-action-menu-item-id': rowId,
-        'data-focused': focused,
-        'data-variant': variant,
-        'aria-selected': focused,
-        disabled: node.disabled ?? false,
-        'aria-disabled': node.disabled ?? false,
-        'data-mode': mode,
-        className,
-        onPointerDown,
-        onMouseMove,
-        onClick,
-      }) as const,
-    [
-      rowId,
-      virtualItem?.index,
-      refProp,
-      focused,
-      variant,
-      node.disabled,
-      mode,
+  const baseRowProps = React.useMemo(() => {
+    // Compute checked state for checkbox and radio items
+    const isChecked =
+      node.variant === 'checkbox'
+        ? checkedState
+        : node.variant === 'radio'
+          ? radioGroup?.value === node.value
+          : undefined
+
+    return {
+      id: rowId,
+      ref: composeRefs(refProp as any, ref as any),
+      role:
+        node.variant === 'checkbox' || node.variant === 'radio'
+          ? ('menuitemcheckbox' as const)
+          : ('option' as const),
+      tabIndex: -1,
+      'action-menu-row': '',
+      'data-index': virtualItem?.index,
+      'data-action-menu-item-id': rowId,
+      'data-focused': focused,
+      'data-variant': node.variant,
+      'data-checked': isChecked,
+      'aria-selected': focused,
+      'aria-checked': isChecked,
+      disabled: node.disabled ?? false,
+      'aria-disabled': node.disabled ?? false,
+      'data-mode': mode,
       className,
       onPointerDown,
       onMouseMove,
       onClick,
-    ],
-  )
+    } as const
+  }, [
+    rowId,
+    virtualItem?.index,
+    refProp,
+    focused,
+    node.variant,
+    checkedState,
+    radioGroup?.value,
+    (node as RadioItemNode).value,
+    node.disabled,
+    mode,
+    className,
+    onPointerDown,
+    onMouseMove,
+    onClick,
+  ])
 
   const bind: RowBindAPI = React.useMemo(
     () => ({
