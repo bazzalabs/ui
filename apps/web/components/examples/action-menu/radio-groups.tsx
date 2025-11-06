@@ -13,6 +13,11 @@ export function ActionMenu_RadioGroups() {
       menu={{
         id: 'root',
         hideSearchUntilActive: true,
+        defaults: {
+          item: {
+            closeOnSelect: false,
+          },
+        },
         nodes: [
           {
             id: 'fruits',
@@ -44,6 +49,7 @@ export function ActionMenu_RadioGroups() {
                 id: 'orange',
                 label: 'Orange',
                 icon: '🍊',
+                disabled: true,
               },
               {
                 kind: 'item',
