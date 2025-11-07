@@ -26,7 +26,7 @@ export default function Page() {
           <div className="flex flex-col gap-8 p-8 flex-1 w-fit">
             {/* Content here! */}
             {/* <Examples.ActionMenu.Basic /> */}
-            {/* <Examples.ActionMenu.Submenus /> */}
+            <Examples.ActionMenu.Submenus />
             <Examples.ActionMenu.KitchenSink01 />
             {/* <Examples.ActionMenu.Notion /> */}
             <Examples.ActionMenu.HeaderFooter />

@@ -1,28 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
 export function ActionMenu_Submenus() {
-  const [input, setInput] = useState('')
-  const [fruitsInput, setFruitsInput] = useState('')
-  const [vegetablesInput, setVegetablesInput] = useState('')
-  const [meatsInput, setMeatsInput] = useState('')
-
-  useEffect(() => {
-    console.log('root input:', input)
-  }, [input])
-
-  useEffect(() => {
-    console.log('fruits input:', fruitsInput)
-  }, [fruitsInput])
-
-  useEffect(() => {
-    console.log('vegetables input:', vegetablesInput)
-  }, [vegetablesInput])
-
   return (
     <ActionMenu
       trigger={<Button variant="secondary">Trigger</Button>}
@@ -30,55 +13,59 @@ export function ActionMenu_Submenus() {
         id: 'root',
         defaults: {
           item: {
-            closeOnSelect: true,
+            closeOnSelect: false,
             onSelect: ({ node }) => {
               toast(`${node.icon} ${node.label}`)
             },
           },
-        },
-        input: {
-          value: input,
-          onValueChange: setInput,
         },
         nodes: [
           {
             kind: 'submenu',
             id: 'fruits',
             label: 'Fruits',
-            input: {
-              value: fruitsInput,
-              onValueChange: setFruitsInput,
-            },
             nodes: [
               {
-                kind: 'item',
-                id: 'Apple',
-                label: 'Apple',
-                icon: '🍎',
-              },
-              {
-                kind: 'item',
-                id: 'Banana',
-                label: 'Banana',
-                icon: '🍌',
-              },
-              {
-                kind: 'item',
-                id: 'Orange',
-                label: 'Orange',
-                icon: '🍊',
-              },
-              {
-                kind: 'item',
-                id: 'Pineapple',
-                label: 'Pineapple',
-                icon: '🍍',
-              },
-              {
-                kind: 'item',
-                id: 'Strawberry',
-                label: 'Strawberry',
-                icon: '🍓',
+                kind: 'group',
+                variant: 'radio',
+                id: 'fruits-group',
+                nodes: [
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Apple',
+                    label: 'Apple',
+                    icon: '🍎',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Banana',
+                    label: 'Banana',
+                    icon: '🍌',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Orange',
+                    label: 'Orange',
+                    icon: '🍊',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Pineapple',
+                    label: 'Pineapple',
+                    icon: '🍍',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Strawberry',
+                    label: 'Strawberry',
+                    icon: '🍓',
+                  },
+                ],
               },
             ],
           },
@@ -86,34 +73,41 @@ export function ActionMenu_Submenus() {
             kind: 'submenu',
             id: 'vegetables',
             label: 'Vegetables',
-            input: {
-              value: vegetablesInput,
-              onValueChange: setVegetablesInput,
-            },
             nodes: [
               {
-                kind: 'item',
-                id: 'Carrot',
-                label: 'Carrot',
-                icon: '🥕',
-              },
-              {
-                kind: 'item',
-                id: 'Broccoli',
-                label: 'Broccoli',
-                icon: '🥦',
-              },
-              {
-                kind: 'item',
-                id: 'Cauliflower',
-                label: 'Cauliflower',
-                icon: '🥐',
-              },
-              {
-                kind: 'item',
-                id: 'Tomato',
-                label: 'Tomato',
-                icon: '🍅',
+                kind: 'group',
+                variant: 'radio',
+                id: 'vegetables-group',
+                nodes: [
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Carrot',
+                    label: 'Carrot',
+                    icon: '🥕',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Broccoli',
+                    label: 'Broccoli',
+                    icon: '🥦',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Cauliflower',
+                    label: 'Cauliflower',
+                    icon: '🥐',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Tomato',
+                    label: 'Tomato',
+                    icon: '🍅',
+                  },
+                ],
               },
             ],
           },
@@ -121,34 +115,41 @@ export function ActionMenu_Submenus() {
             kind: 'submenu',
             id: 'meats',
             label: 'Meats',
-            input: {
-              value: meatsInput,
-              onValueChange: setMeatsInput,
-            },
             nodes: [
               {
-                kind: 'item',
-                id: 'Chicken',
-                label: 'Chicken',
-                icon: '🐔',
-              },
-              {
-                kind: 'item',
-                id: 'Beef',
-                label: 'Beef',
-                icon: '🐮',
-              },
-              {
-                kind: 'item',
-                id: 'Pork',
-                label: 'Pork',
-                icon: '🐷',
-              },
-              {
-                kind: 'item',
-                id: 'Lamb',
-                label: 'Lamb',
-                icon: '🐶',
+                kind: 'group',
+                variant: 'radio',
+                id: 'meats-group',
+                nodes: [
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Chicken',
+                    label: 'Chicken',
+                    icon: '🐔',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Beef',
+                    label: 'Beef',
+                    icon: '🐮',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Pork',
+                    label: 'Pork',
+                    icon: '🐷',
+                  },
+                  {
+                    kind: 'item',
+                    variant: 'radio',
+                    id: 'Lamb',
+                    label: 'Lamb',
+                    icon: '🐶',
+                  },
+                ],
               },
             ],
           },
