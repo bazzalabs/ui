@@ -1,4 +1,3 @@
-import * as React from 'react'
 import type { SurfaceSlots } from '../types.js'
 import { renderIcon } from './react-utils.js'
 

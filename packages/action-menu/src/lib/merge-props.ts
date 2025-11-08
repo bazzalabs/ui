@@ -1,7 +1,7 @@
 import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import type { ClassNameValue } from 'tailwind-merge'
-import type { ActionMenuClassNames, ActionMenuSlotProps } from '../types.js'
+import type { ActionMenuSlotProps } from '../types.js'
 import { cn } from './cn.js'
 
 export const HANDLER_KEYS = [

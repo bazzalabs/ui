@@ -7,13 +7,11 @@ import {
   GlobalThemeProvider,
   mergeTheme,
   ScopedThemeProvider,
-  useScopedTheme,
 } from './contexts/theme-context.js'
 import { defaultSlots } from './lib/slots.js'
 import type {
   ActionMenuClassNames,
   ActionMenuSlotProps,
-  ActionMenuSlots,
   ActionMenuTheme,
   MenuDef,
   SurfaceSlots,

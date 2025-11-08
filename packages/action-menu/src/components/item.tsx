@@ -7,7 +7,6 @@ import {
   useHoverPolicy,
   useRootCtx,
   useSubCtx,
-  useSurface,
   useSurfaceId,
 } from '../contexts/index.js'
 import { useSurfaceSel } from '../hooks/use-surface-sel.js'

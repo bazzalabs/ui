@@ -21,7 +21,7 @@ import {
   isVimPrev,
 } from '../lib/keyboard.js'
 
-export function useNavKeydown(source: 'input' | 'list') {
+export function useNavKeydown(_source: 'input' | 'list') {
   const store = useSurface()
   const root = useRootCtx()
   const sub = useSubCtx()

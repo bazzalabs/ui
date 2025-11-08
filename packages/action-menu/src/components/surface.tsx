@@ -26,7 +26,6 @@ import { createSurfaceStore } from '../store/surface-store.js'
 import type {
   ActionMenuSurfaceProps,
   ContentBindAPI,
-  Direction,
   Menu,
   MenuDef,
   MenuNodeDefaults,
