@@ -51,6 +51,9 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
         <span>{node.label ?? node.title ?? String(node.id)}</span>
       </li>
     ),
+    GroupHeading: ({ node, bind }) => (
+      <span {...bind.getGroupHeadingProps()}>{node.heading}</span>
+    ),
     Footer: () => null,
   }
 }

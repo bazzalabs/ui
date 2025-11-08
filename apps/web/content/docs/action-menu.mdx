@@ -240,14 +240,18 @@ Available slots:
 - `Header` - Optional header above the search input
 - `Input` - The search/filter input field
 - `List` - The scrollable list container
+- `Empty` - Shown when search returns no results
 - `Item` - Individual menu items (with variants for checkbox, radio, etc.)
 - `SubmenuTrigger` - Items that open submenus
-- `Group` - Groups of items
 - `GroupHeading` - Headings for groups
 - `Footer` - Optional footer below the list
-- `Empty` - Shown when search returns no results
 
-Each slot receives props specific to what it renders. For example, `Item` receives `{ node, bind, search, mode }` while `Header` receives `{ menu }`.
+Each slot receives props specific to what it renders. For example:
+- `Item` receives `{ node, bind, search, mode }`
+- `GroupHeading` receives `{ node, childCount, bind }`
+- `Header` receives `{ menu }`
+
+The `bind` object provides methods for getting properly configured props (with ARIA attributes, data attributes, refs, etc.) that should be spread onto your elements.
 
 #### Slot props
 
@@ -309,6 +313,9 @@ Data attributes are available on slots, which can be used for powerful condition
 | `[data-mode]` | `dropdown`, `drawer` | Display mode (desktop/mobile) |
 | `[data-variant]` | `button`, `checkbox`, `radio` | Item type |
 | `[data-checked]` | `true`, `false` | Checkbox/radio checked state |
+| `[data-group-position]` | `first`, `middle`, `last`, `only` | Position within group (if in a group) |
+| `[data-group-index]` | `number` | Zero-based index within group (if in a group) |
+| `[data-group-size]` | `number` | Total number of items in group (if in a group) |
 | `[data-index]` | `number` | Virtual index in the list |
 | `[data-action-menu-item-id]` | `string` | Unique item identifier |
 | `[aria-disabled]` | `true`, `false` | Item is disabled |
@@ -324,6 +331,9 @@ Data attributes are available on slots, which can be used for powerful condition
 | `[data-menu-state]` | `open`, `closed` | Submenu open/closed state |
 | `[data-menu-focused]` | `true`, `false` | Submenu itself has focus |
 | `[data-subtrigger]` | `true` | Identifies element as submenu trigger |
+| `[data-group-position]` | `first`, `middle`, `last`, `only` | Position within group (if in a group) |
+| `[data-group-index]` | `number` | Zero-based index within group (if in a group) |
+| `[data-group-size]` | `number` | Total number of items in group (if in a group) |
 | `[data-index]` | `number` | Virtual index in the list |
 | `[data-action-menu-item-id]` | `string` | Unique trigger identifier |
 | `[aria-selected]` | `true`, `false` | Trigger is selected/focused |
@@ -357,12 +367,13 @@ Data attributes are available on slots, which can be used for powerful condition
 | `[data-slot]` | `action-menu-list` | Slot identifier |
 | `[data-action-menu-list]` | `true` | Identifies element as menu list |
 
-#### Group
+#### GroupHeading
+
+The `GroupHeading` slot renders the heading content for a group. Use `bind.getGroupHeadingProps()` to get configured props.
 
 | Attribute | Values | Description |
 |-----------|--------|-------------|
-| `[data-index]` | `number` | Group index in the list |
-| `[data-action-menu-group-heading]` | `true` | Identifies element as group heading |
+| `[data-group-size]` | `number` | Total number of items in the group |
 
 #### Drawer overlay
 
@@ -400,9 +411,21 @@ Combine multiple conditions:
 item: 'data-[focused=true]:data-[variant=checkbox]:font-semibold'
 ```
 
-Use arbitrary variants for groups:
+Style group headings:
 ```tsx
-group: 'data-[index=0]:mt-0 data-[index=0]:pt-0'
+groupHeading: 'text-xs font-medium uppercase tracking-wide text-muted-foreground'
+```
+
+Style items based on group position (visual grouping):
+```tsx
+// Rounded corners on first/last items in groups
+item: 'data-[group-position=first]:rounded-t-md data-[group-position=last]:rounded-b-md data-[group-position=only]:rounded-md'
+```
+
+Add borders between grouped items:
+```tsx
+// Border on all but the last item
+item: 'data-[group-position=first]:border-b data-[group-position=middle]:border-b'
 ```
 
 ### Theming

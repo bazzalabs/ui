@@ -164,6 +164,18 @@ export type SearchContext = {
  * Runtime Node Types
  * ============================================================================================== */
 
+/** Group membership metadata for items/submenus rendered within groups. */
+export type GroupedNode<T = unknown> = {
+  /** Reference to the row's belonging group, if applicable. */
+  group?: GroupNode<T>
+  /** Position within the group: 'first', 'middle', 'last', or 'only'. */
+  groupPosition?: 'first' | 'middle' | 'last' | 'only'
+  /** Zero-based index within the group. */
+  groupIndex?: number
+  /** Total number of items/submenus in the group. */
+  groupSize?: number
+}
+
 /** Runtime node (instance) */
 export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
   /** The kind of node. */
@@ -178,10 +190,9 @@ export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
 }
 
 export type BaseItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
-  Omit<BaseItemDef<T>, 'kind' | 'hidden'> & {
+  Omit<BaseItemDef<T>, 'kind' | 'hidden'> &
+  GroupedNode<T> & {
     search?: SearchContext
-    /** Reference to the row's belonging group, if applicable. */
-    group?: GroupNode<T>
   }
 
 export type ButtonItemNode<T = unknown> = BaseItemNode<T> & {
@@ -232,12 +243,11 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
   'submenu',
   SubmenuDef<T, TChild>
 > &
-  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {
+  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> &
+  GroupedNode<T> & {
     child: Menu<TChild>
     nodes: Node<TChild>[]
     search?: SearchContext
-    /** Reference to the row's belonging group, if applicable. */
-    group?: GroupNode<T>
   }
 
 export type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
@@ -269,6 +279,9 @@ export type RowBindAPI = {
     'data-focused'?: 'true'
     'data-variant'?: 'button' | 'checkbox' | 'radio'
     'data-checked'?: boolean
+    'data-group-position'?: 'first' | 'middle' | 'last' | 'only'
+    'data-group-index'?: number
+    'data-group-size'?: number
     'aria-selected'?: boolean
     'aria-checked'?: boolean
     'aria-disabled'?: boolean
@@ -323,6 +336,16 @@ export type ListBindAPI = {
   getActiveId: () => string | null
 }
 
+/** Group heading wiring helpers provided to slot renderers. */
+export type GroupHeadingBindAPI = {
+  getGroupHeadingProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    className?: string
+    'data-group-size'?: number
+  }
+}
+
 /* ================================================================================================
  * ClassNames & SlotProps Types
  * ============================================================================================== */
@@ -345,7 +368,6 @@ export type SurfaceClassNames = {
   item?: string
   subtriggerWrapper?: string
   subtrigger?: string
-  group?: string
   groupHeading?: string
 }
 
@@ -404,6 +426,10 @@ export type SurfaceSlots<T = unknown> = {
     node: SubmenuNode<T>
     search?: SearchContext
     bind: RowBindAPI
+  }) => React.ReactNode
+  GroupHeading?: (args: {
+    node: GroupNode<T>
+    bind: GroupHeadingBindAPI
   }) => React.ReactNode
   Footer?: (args: { menu: Menu<T> }) => React.ReactNode
 }

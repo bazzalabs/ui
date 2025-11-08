@@ -45,6 +45,12 @@ export const LabelWithBreadcrumbs = ({
 
 export const ActionMenu = createActionMenu({
   slots: {
+    GroupHeading: ({ node, bind }) => (
+      <div {...bind.getGroupHeadingProps()}>
+        <span>{node.heading}</span>
+      </div>
+    ),
+
     Item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: 'group/row',
@@ -159,8 +165,10 @@ export const ActionMenu = createActionMenu({
       'data-[mode=drawer]:px-6',
       'w-full',
     ),
-    group: cn('mt-3 data-[index=0]:mt-1 mb-2'),
-    groupHeading: cn('text-xs font-medium text-muted-foreground px-3'),
+    groupHeading: cn(
+      'mt-3 data-[index=0]:mt-1 mb-2',
+      'text-xs font-medium text-muted-foreground px-3',
+    ),
     item: cn(
       'group flex items-center w-full gap-2 text-sm select-none aria-disabled:opacity-50',
       'data-[focused=true]:not-disabled:text-accent-foreground',

@@ -15,6 +15,7 @@ import { commandScore } from '../lib/command-score.js'
 import { mergeProps } from '../lib/merge-props.js'
 import { isElementWithProp } from '../lib/react-utils.js'
 import type {
+  GroupHeadingBindAPI,
   GroupNode,
   ItemNode,
   ListBindAPI,
@@ -193,8 +194,24 @@ export function List<T = unknown>({
         } else if (node.kind === 'group') {
           // Only push group node if it has a heading to render
           if (node.heading) acc.push(node)
-          // Add child items
-          acc.push(...node.nodes)
+          // Add child items with group position metadata
+          const groupSize = node.nodes.length
+          node.nodes.forEach((child, index) => {
+            const groupPosition =
+              groupSize === 1
+                ? 'only'
+                : index === 0
+                  ? 'first'
+                  : index === groupSize - 1
+                    ? 'last'
+                    : 'middle'
+            acc.push({
+              ...child,
+              groupPosition,
+              groupIndex: index,
+              groupSize,
+            } as Node<T>)
+          })
         }
       }
     }
@@ -296,6 +313,7 @@ export function List<T = unknown>({
 
   const ItemSlot = slots.Item
   const SubmenuTriggerSlot = slots.SubmenuTrigger
+  const GroupHeadingSlot = slots.GroupHeading
 
   const listRows = React.useMemo(
     () => (
@@ -312,6 +330,22 @@ export function List<T = unknown>({
           const node = flattenedNodes[virtualRow.index]!
 
           if (node.kind === 'group') {
+            const childCount = node.nodes.length
+
+            const headingBind: GroupHeadingBindAPI = {
+              getGroupHeadingProps: (overrides) =>
+                mergeProps(
+                  {
+                    role: 'presentation',
+                    'data-index': virtualRow.index,
+                    'data-action-menu-group-heading': '',
+                    className: classNames?.groupHeading,
+                    'data-group-size': childCount,
+                  },
+                  overrides as any,
+                ),
+            }
+
             return (
               <div
                 key={virtualRow.key}
@@ -325,17 +359,7 @@ export function List<T = unknown>({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div
-                  ref={measureRow}
-                  data-action-menu-group-heading
-                  data-index={virtualRow.index}
-                  role="presentation"
-                  className={classNames?.group}
-                >
-                  <span className={classNames?.groupHeading}>
-                    {node.heading}
-                  </span>
-                </div>
+                {GroupHeadingSlot({ node, bind: headingBind })}
               </div>
             )
           }
@@ -409,6 +433,7 @@ export function List<T = unknown>({
     [
       ItemSlot,
       SubmenuTriggerSlot,
+      GroupHeadingSlot,
       store,
       flattenedNodes,
       virtualizer.measureElement,
