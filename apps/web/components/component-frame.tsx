@@ -1,6 +1,7 @@
 import { CodeXmlIcon, FrameIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ComponentCode from './component-code'
+import { ComponentFrameLazy } from './component-frame-lazy'
 import { ScrollArea, ScrollBar } from './ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 
@@ -11,12 +12,14 @@ export const ComponentFrame = ({
   children,
   caption,
   src,
+  lazy = false,
   ...props
 }: React.ComponentProps<'div'> & {
   containerClassName?: string
   previewClassName?: string
   caption?: React.ReactNode
   src?: string
+  lazy?: boolean
 }) => {
   const tabsList = (
     <TabsList className="bg-transparent px-0 gap-4 font-medium mx-3 2xl:-mx-12">
@@ -37,6 +40,12 @@ export const ComponentFrame = ({
     </TabsList>
   )
 
+  const content = lazy ? (
+    <ComponentFrameLazy>{children}</ComponentFrameLazy>
+  ) : (
+    children
+  )
+
   return (
     <div className={cn('h-fit flex flex-col gap-4 w-full', className)}>
       <Tabs defaultValue="preview">
@@ -55,7 +64,7 @@ export const ComponentFrame = ({
                 previewClassName,
               )}
             >
-              {children}
+              {content}
             </div>
             <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
             <div className="absolute h-full w-full  bg-white dark:bg-black top-0 left-0 z-[1]" />
