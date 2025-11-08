@@ -1,6 +1,7 @@
 import { ActionMenu_Basic } from './basic'
 import { ActionMenu_CheckboxItems } from './checkbox-items'
 import { ActionMenu_DisabledItems } from './disabled-items'
+import { ActionMenu_Groups } from './groups'
 import { ActionMenu_HeaderFooter } from './header-footer'
 import { ActionMenu_KitchenSink01 } from './kitchen-sink-01'
 import { ActionMenu_Massive } from './massive'
@@ -14,6 +15,7 @@ export const ActionMenu = {
   Basic: ActionMenu_Basic,
   DisabledItems: ActionMenu_DisabledItems,
   CheckboxItems: ActionMenu_CheckboxItems,
+  Groups: ActionMenu_Groups,
   RadioGroups: ActionMenu_RadioGroups,
   Massive: ActionMenu_Massive,
   Submenus: ActionMenu_Submenus,

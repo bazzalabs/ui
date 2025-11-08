@@ -31,12 +31,6 @@ At its core, it combines the best features of the dropdown and command menus ava
 
 ## Installation
 
-Install the unstyled, primitive component as an npm package:
-
-```bash
-npm install @bazza-ui/action-menu
-```
-
 Want something styled with sensible defaults? Install from our registry with one command.
 
 - Installs the `@bazza-ui/action-menu` package
@@ -46,48 +40,17 @@ Want something styled with sensible defaults? Install from our registry with one
 npx shadcn@latest add https://ui.bazza.dev/r/action-menu
 ```
 
-## Anatomy
+Install the unstyled, primitive component as an npm package:
 
-```tsx
-<ActionMenu.Root>
-  <ActionMenu.Trigger />
-  <ActionMenu.Positioner>
-    <ActionMenu.Surface menu={menu} />
-  </ActionMenu.Positioner>
-</ActionMenu.Root>
+```bash
+npm install @bazza-ui/action-menu
 ```
-
-### Root
-
-Provides the shell (dropdown or drawer), the open/close state, and cross-surface focus ownership.
-
-You can control visibility with `defaultOpen` for uncontrolled state, or `open` and `onOpenChange` for controlled state.
-
-You can determine whether pointer events outside the menu are blocked by setting `modal` (defaults to `true`).
-
-### Trigger
-
-A button that toggles the menu.
-
-In dropdown mode, it acts as the `Popper` anchor, and in drawer mode it renders as a Vaul `Drawer.Trigger`.
-
-### Positioner
-
-Positions a surface in dropdown mode and is used automatically for submenus.
-
-It is a no-op for the root surface in drawer mode.
-
-### Surface
-
-Contains the search input, menu groups and rows, as well as an optional header and footer. 
-
-You render one surface for the root menu. Submenus automatically render their own surfaces.
 
 ## Data
 
-This component uses a data-first API. You define your menu as a `MenuDef` object and pass it to the root `ActionMenu.Surface` component:
+This component uses a data-first API. You define your menu as a `MenuDef` object and pass it to the `ActionMenu` component:
 
-```tsx {17}
+```tsx
 const menu: MenuDef = {
   nodes: [
     { kind: 'item', id: 'Apple', label: 'Apple', icon: '🍎' },
@@ -100,12 +63,10 @@ const menu: MenuDef = {
 
 const FruitsMenu = () => {
   return (
-    <ActionMenu.Root>
-      <ActionMenu.Trigger>Open</ActionMenu.Trigger>
-      <ActionMenu.Positioner>
-        <ActionMenu.Surface menu={menu} />
-      </ActionMenu.Positioner>
-    </ActionMenu.Root>
+    <ActionMenu
+      trigger={<Button>Fruits</Button>}
+      menu={menu}
+    />
   )
 }
 ```
@@ -114,7 +75,7 @@ const FruitsMenu = () => {
 
 Each node in the `MenuDef` describes what to render and how it should behave.
 
-The library ships three kinds of nodes — item, group, and submenu.
+The library ships three kinds (`kind`) of nodes — `item`, `group`, and `submenu`.
 
 Their shapes are defined by the `ItemDef`, `GroupDef`, and `SubmenuDef` types.
 
@@ -126,7 +87,7 @@ Their shapes are defined by the `ItemDef`, `GroupDef`, and `SubmenuDef` types.
   id: 'done',
   label: 'Done',
   icon: <Status.Done />,
-  onSelect: ({ node, search }) => {
+  onSelect: ({ node }) => {
     setStatus('done')
     toast(`Changed status to ${node.label}.`)
   }
@@ -143,22 +104,156 @@ The action is defined by the `onSelect` handler, which gives you access to:
 - The `node` instance, typed as `ItemNode<T>`.
 - The `search` context, if the item is appearing in a filtered menu.
 
+Optionally, you can specify an item `variant` to customize the look & functionality.
+
+#### Button item
+
+The default item variant is a `button`. You don't need to specify this, it is the default.
+
+#### Checkbox item
+
+```tsx {7,11,12}
+const [checked, setChecked] = useState(false)
+
+/* ... */
+
+{
+  kind: 'item',
+  variant: 'checkbox',
+  id: 'done',
+  label: 'Done',
+  icon: <Status.Done />,
+  checked,
+  onCheckedChange: setChecked,
+}
+```
+
+Adds a checkbox field to the item.
+
+You must use this in a controlled manner by specifying `checked` and `onCheckedChange` props.
+
+#### Radio item
+
+```ts {3}
+{
+  kind: 'item',
+  variant: 'radio',
+  id: 'done',
+  label: 'Done',
+  icon: <Status.Done />,
+}
+```
+
+To be used within a [radio group](#radio-group).
+
+You can specify a `value` to be used. If omitted, the `id` will be used.
+
 ### Group
 
-Groups items and submenus together with a `heading`.
+```ts
+{
+  kind: 'group',
+  id: 'fruits',
+  heading: 'Fruits', // optional!
+  nodes: [
+    { kind: 'item', id: 'apple',  label: 'Apple',  icon: '🍎' },
+    { kind: 'item', id: 'banana', label: 'Banana', icon: '🍌' },
+    { kind: 'item', id: 'orange', label: 'Orange', icon: '🍊' },
+  ],
+}
+```
+
+Group items and submenus together with a optional `heading`.
+
+You cannot nest groups.
+
+#### Radio group
+
+```tsx {7,9,10}
+const [fruit, setFruit] = useState<string>('apple')
+
+/* ... */
+
+{
+  kind: 'group',
+  variant: 'radio',
+  id: 'fruits',
+  value: fruit,
+  onValueChange: setFruit,
+}
+```
+
+You can specify `variant: radio` for radio group functionality. 
+
+This requires the `value` and `onValueChange` props on the group.
 
 ### Submenu
 
+```ts {2,10}
+{
+  kind: 'submenu',
+  id: 'export-image',
+  label: 'Image',
+  title: 'Export Image',
+  nodes: [
+    { kind: 'item', id: 'export-png', label: 'PNG', icon: Image },
+    { kind: 'item', id: 'export-jpg', label: 'JPG', icon: Image },
+    {
+      kind: 'submenu',
+      id: 'export-vector',
+      label: 'Vector',
+      title: 'Vector',
+      nodes: [
+        { kind: 'item', id: 'export-svg', label: 'SVG', icon: Shapes },
+        { kind: 'item', id: 'export-eps', label: 'EPS', icon: Ruler },
+      ],
+    },
+  ],
+}
+```
+
 A submenu of actions that the user can run.
+
+The `label` property is used for the submenu's trigger.
+
+You can specify the submenu content with the `nodes` property.
+
+Submenus can be nested.
 
 ## Rendering
 
 Once you have your menu data, the next step is to render it.
 
-The library provides three mechanisms to customize the menu's appearance and behavior:
+The library provides four mechanisms to customize the menu's appearance and behavior:
 
-- Create a reusable, styled action menu in your design system with `createActionMenu()`.
-- Further customize for each instance/menu/submenu with the the `ui` prop on `MenuDef` and `SubmenuDef`.
+1. **Global theme:** create a reusable, styled action menu in your design system with `createActionMenu()`.
+2. **Instance theme:** Override your styled action menu's defaults for each component instance.
+3. **Surface theme:** Override per menu/submenu with the the `ui` prop on `MenuDef` and `SubmenuDef`.
+4. Pass a custom `render()` function to each node definition.
+
+When you install the component from the bazza/ui registry, we use the first mechanism, `createActionMenu()`, to create a styled action menu with sensible defaults.
+
+While #1 may be enough in most cases, you may need additional customization on a per-instance basis. This is where #2 comes in.
+
+#3 is used when you want to customize a specific menu or submenu within an action menu instance -- for example, to render all items in submenu `x` with a blue background.
+
+Finally, #4 is used when you want to customize the rendering of a specific node within a menu or submenu.
+
+### Overview
+
+#### Slots
+
+#### Slot props
+
+#### Class names
+
+### Global theme
+
+### Instance theme
+
+### Surface theme
+
+### Using the `render()` function
 
 ## Examples
 
@@ -190,6 +285,16 @@ The library provides three mechanisms to customize the menu's appearance and beh
   src="components/examples/action-menu/checkbox-items.tsx"
 >
   <Examples.ActionMenu.CheckboxItems />
+</ComponentFrame>
+
+### Groups
+
+<ComponentFrame
+  containerClassName='sm:h-64' 
+  previewClassName='w-full flex justify-center' 
+  src="components/examples/action-menu/groups.tsx"
+>
+  <Examples.ActionMenu.Groups />
 </ComponentFrame>
 
 ### Radio groups
