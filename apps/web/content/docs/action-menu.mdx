@@ -711,16 +711,6 @@ Custom render functions completely replace the slot rendering for that specific 
 type MenuNodeKind = 'item' | 'group' | 'submenu'
 ```
 
-### Iconish
-
-```ts
-type Iconish =
-  | React.ReactNode
-  | React.ReactElement
-  | React.ElementType
-  | React.ComponentType<{ className?: string }>
-```
-
 ### Node
 
 ```ts
@@ -733,3 +723,12 @@ type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
 type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
 ```
 
+### Iconish
+
+```ts
+type Iconish =
+  | React.ReactNode
+  | React.ReactElement
+  | React.ElementType
+  | React.ComponentType<{ className?: string }>
+```
