@@ -1,0 +1,506 @@
+import { useVirtualizer } from '@tanstack/react-virtual'
+import * as React from 'react'
+import { flat, isShallowEqual, partition, pipe, prop, sortBy } from 'remeda'
+import {
+  RadioGroupContext,
+  useDisplayMode,
+  useFocusOwner,
+  useScopedTheme,
+  useSurfaceId,
+} from '../contexts/index.js'
+import { ScopedThemeProvider } from '../contexts/theme-context.js'
+import { useNavKeydown } from '../hooks/use-nav-keydown.js'
+import { useStickyRowWidth } from '../hooks/use-sticky-row-width.js'
+import { useSurfaceSel } from '../hooks/use-surface-sel.js'
+import { commandScore } from '../lib/command-score.js'
+import { mergeProps } from '../lib/merge-props.js'
+import { isElementWithProp } from '../lib/react-utils.js'
+import type {
+  GroupNode,
+  ItemNode,
+  ListBindAPI,
+  Menu,
+  MenuNodeDefaults,
+  Node,
+  SubmenuNode,
+  SurfaceStore,
+} from '../types.js'
+import { Item } from './item.js'
+import { Sub } from './submenu.js'
+import { SubmenuContent } from './submenu-content.js'
+import { SubmenuTrigger } from './submenu-trigger.js'
+
+interface ListProps<T> {
+  store: SurfaceStore<T>
+  menu: Menu<T>
+  defaults?: Partial<MenuNodeDefaults<T>>
+  query?: string
+  inputActive: boolean
+  onTypeStart: (seed: string) => void
+}
+
+export function List<T = unknown>({
+  store,
+  menu,
+  defaults,
+  query,
+  inputActive,
+  onTypeStart,
+}: ListProps<T>) {
+  const localId = React.useId()
+  const listId = useSurfaceSel(store, (s) => s.listId)
+  const hasInput = useSurfaceSel(store, (s) => s.hasInput)
+  const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
+  const navKeydown = useNavKeydown('list')
+  const { ownerId } = useFocusOwner()
+  const surfaceId = useSurfaceId() ?? 'root'
+  const mode = useDisplayMode()
+
+  const onKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (ownerId !== surfaceId) return
+      if (!inputActive && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === 'Backspace') {
+          e.preventDefault()
+          onTypeStart('')
+          return
+        }
+        if (e.key.length === 1) {
+          e.preventDefault()
+          onTypeStart(e.key)
+          return
+        }
+      }
+      navKeydown(e)
+    },
+    [surfaceId, ownerId, inputActive, onTypeStart, navKeydown],
+  )
+
+  React.useEffect(() => {
+    const id = listId ?? `action-menu-list-${localId}`
+    store.set('listId', id)
+    return () => store.set('listId', null)
+  }, [localId])
+
+  const effectiveListId =
+    store.snapshot().listId ?? `action-menu-list-${localId}`
+  const q = (query ?? '').trim()
+
+  type SRContext = {
+    breadcrumbs: string[]
+    breadcrumbIds: string[]
+    score: number
+  }
+
+  type SRItem = SRContext & {
+    type: 'item'
+    node: ItemNode<T>
+  }
+  type SRSub = SRContext & {
+    type: 'submenu'
+    node: SubmenuNode<any>
+  }
+
+  type SR = SRItem | SRSub
+
+  const collect = React.useCallback(
+    (
+      nodes: Node<T>[] | undefined,
+      q: string,
+      bc: string[] = [],
+      bcIds: string[] = [],
+      currentMenu: Menu<T> = menu,
+    ): SR[] => {
+      const out: SR[] = []
+      for (const n of nodes ?? []) {
+        if ((n as any).hidden) continue
+        if (n.kind === 'item') {
+          const score = commandScore(n.id, q, n.keywords)
+          if (score > 0)
+            out.push({
+              type: 'item',
+              node: {
+                ...n,
+                id: bcIds.at(-1) ? `${bcIds.at(-1)}-${n.id}` : n.id,
+                parent: currentMenu,
+              } as ItemNode<T>,
+              breadcrumbs: bc,
+              breadcrumbIds: bcIds,
+              score,
+            })
+        } else if (n.kind === 'group') {
+          out.push(...collect((n as GroupNode<T>).nodes, q, bc, bcIds))
+        } else if (n.kind === 'submenu') {
+          const sub = n as SubmenuNode<any>
+          const score = commandScore(n.id, q, n.keywords)
+          if (score > 0)
+            out.push({
+              type: 'submenu',
+              node: { ...sub, parent: currentMenu, def: sub.def },
+              breadcrumbs: bc,
+              breadcrumbIds: bcIds,
+              score,
+            })
+          const title = sub.title ?? sub.label ?? sub.id ?? ''
+          out.push(
+            ...collect(
+              sub.nodes as any,
+              q,
+              [...bc, title],
+              [...bcIds, sub.id],
+              sub.child as Menu<any>,
+            ),
+          )
+        }
+      }
+      return out
+    },
+    [],
+  )
+
+  const results = React.useMemo(
+    () =>
+      q
+        ? pipe(
+            collect(menu.nodes, q, [], [], menu),
+            sortBy([prop('score'), 'desc']),
+            partition((v) => v.type === 'submenu'),
+            flat(),
+          )
+        : [],
+    [q, menu.nodes],
+  )
+  const flattenedNodes = React.useMemo(() => {
+    const acc: Node<T>[] = []
+
+    if (q) {
+      if (results.length === 0) return []
+      for (const sr of results) {
+        acc.push({
+          ...sr.node,
+          search: {
+            query: q,
+            score: sr.score,
+            isDeep: sr.breadcrumbs.length > 0,
+            breadcrumbs: sr.breadcrumbs,
+            breadcrumbIds: sr.breadcrumbIds,
+          },
+        })
+      }
+    } else {
+      for (const node of menu.nodes) {
+        if (node.kind === 'item' || node.kind === 'submenu') {
+          acc.push(node)
+        } else if (node.kind === 'group') {
+          // Only push group node if it has a heading to render
+          if (node.heading) acc.push(node)
+          // Add child items
+          acc.push(...node.nodes)
+        }
+      }
+    }
+
+    return acc
+  }, [q, menu.nodes])
+
+  // Create enhanced state map for radio groups (controlled only)
+  const radioGroupEnhancedState = React.useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        value: string
+        onValueChange: (value: string) => void
+      }
+    >()
+
+    const processNodes = (nodes: Node<T>[]) => {
+      for (const node of nodes) {
+        if (node.kind === 'group' && node.variant === 'radio') {
+          map.set(node.id, {
+            value: node.value,
+            onValueChange: node.onValueChange,
+          })
+        }
+      }
+    }
+
+    processNodes(menu.nodes)
+    return map
+  }, [menu.nodes])
+
+  React.useLayoutEffect(() => {
+    if (!q) return
+    store.first('keyboard')
+  }, [q])
+
+  React.useEffect(() => {
+    const order = store.getOrder()
+    const validRows = flattenedNodes.filter(
+      (n) => (n.kind === 'item' || n.kind === 'submenu') && !n.disabled,
+    )
+    const validRowIds = validRows.map((n) => n.id)
+
+    const virtualIndexMap = new Map<string, number>()
+    flattenedNodes.forEach((node, index) => {
+      if (node.kind === 'item' || node.kind === 'submenu') {
+        virtualIndexMap.set(node.id, index)
+      }
+    })
+
+    if (
+      order.length !== validRowIds.length ||
+      !isShallowEqual(order, validRowIds)
+    ) {
+      store.resetOrder(validRowIds)
+      store.resetVirtualIndexMap(virtualIndexMap)
+      store.setActiveByIndex(0, 'keyboard')
+    }
+  }, [flattenedNodes])
+
+  const { slots, slotProps, classNames } = useScopedTheme<T>()
+
+  const virtualizer = useVirtualizer({
+    count: flattenedNodes.length,
+    estimateSize: () => 32,
+    getScrollElement: () => store.listRef.current,
+    overscan: 12,
+  })
+
+  // Store the virtualizer reference in the store
+  React.useEffect(() => {
+    store.virtualizerRef.current = virtualizer
+  }, [virtualizer, store])
+
+  const totalSize = virtualizer.getTotalSize()
+  const totalSizePx = React.useMemo(() => `${totalSize}px`, [totalSize])
+
+  const { measureRow } = useStickyRowWidth({ containerRef: store.listRef })
+
+  const baseListProps = React.useMemo(
+    () => ({
+      ref: store.listRef as any,
+      role: 'listbox' as const,
+      id: effectiveListId,
+      tabIndex: hasInput ? -1 : 0,
+      'data-slot': 'action-menu-list' as const,
+      'data-action-menu-list': true as const,
+      'aria-activedescendant': hasInput ? undefined : activeId,
+      'data-mode': mode,
+      className: classNames?.list,
+      onKeyDown,
+      style: {
+        '--total-size': totalSizePx,
+      } as React.CSSProperties,
+    }),
+    [
+      mode,
+      onKeyDown,
+      store.listRef,
+      effectiveListId,
+      activeId,
+      classNames?.list,
+      hasInput,
+      totalSizePx,
+    ],
+  )
+
+  const bind = React.useMemo(
+    () =>
+      ({
+        getListProps: (overrides) =>
+          mergeProps(
+            baseListProps as any,
+            mergeProps(slotProps?.list as any, overrides as any),
+          ),
+        getItemOrder: () => store.getOrder(),
+        getActiveId: () => store.snapshot().activeId,
+      }) satisfies ListBindAPI,
+    [baseListProps, slotProps?.list, store],
+  )
+
+  const virtualItems = virtualizer.getVirtualItems()
+
+  const ItemSlot = slots.Item
+  const SubmenuTriggerSlot = slots.SubmenuTrigger
+
+  const listRows = React.useMemo(
+    () => (
+      <ul
+        style={
+          {
+            '--total-size': totalSizePx,
+            height: totalSizePx,
+            position: 'relative',
+          } as React.CSSProperties
+        }
+      >
+        {virtualItems.map((virtualRow) => {
+          const node = flattenedNodes[virtualRow.index]!
+
+          if (node.kind === 'group') {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div
+                  ref={measureRow}
+                  data-action-menu-group-heading
+                  data-index={virtualRow.index}
+                  role="presentation"
+                  className={classNames?.group}
+                >
+                  <span className={classNames?.groupHeading}>
+                    {node.heading}
+                  </span>
+                </div>
+              </div>
+            )
+          }
+
+          if (node.kind === 'item') {
+            const group = node.group
+            const isRadioGroup = group?.variant === 'radio'
+            const enhancedGroupState =
+              isRadioGroup && group
+                ? radioGroupEnhancedState.get(group.id)
+                : undefined
+
+            const itemRow = (
+              <Item
+                ref={measureRow}
+                key={node.id}
+                virtualItem={virtualRow}
+                node={node}
+                slot={ItemSlot}
+                defaults={defaults?.item}
+                className={classNames?.item}
+                store={store}
+                search={node.search}
+              />
+            )
+
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className={classNames?.itemWrapper}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                {isRadioGroup && enhancedGroupState ? (
+                  <RadioGroupContext.Provider
+                    value={{
+                      value: enhancedGroupState.value,
+                      onValueChange: enhancedGroupState.onValueChange,
+                    }}
+                  >
+                    {itemRow}
+                  </RadioGroupContext.Provider>
+                ) : (
+                  itemRow
+                )}
+              </div>
+            )
+          }
+
+          if (node.kind === 'submenu') {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <ScopedThemeProvider __scopeId={node.id} theme={node.ui as any}>
+                  <Sub def={node as any}>
+                    <SubmenuTrigger
+                      ref={measureRow}
+                      key={virtualRow.key}
+                      virtualItem={virtualRow}
+                      node={node}
+                      slot={SubmenuTriggerSlot}
+                      classNames={classNames}
+                      search={node.search}
+                    />
+                    <SubmenuContent menu={node as any} />
+                  </Sub>
+                </ScopedThemeProvider>
+              </div>
+            )
+          }
+
+          return null
+        })}
+      </ul>
+    ),
+    [
+      ItemSlot,
+      SubmenuTriggerSlot,
+      store,
+      flattenedNodes,
+      virtualizer.measureElement,
+      virtualItems,
+      totalSizePx,
+      measureRow,
+      defaults,
+      classNames,
+      radioGroupEnhancedState,
+    ],
+  )
+
+  const EmptySlot = slots.Empty
+  const children: React.ReactNode = React.useMemo(
+    () => (flattenedNodes.length > 0 ? listRows : EmptySlot({ query: q })),
+    [listRows, EmptySlot, q, flattenedNodes.length],
+  )
+
+  const ListSlot = slots.List
+  const el = React.useMemo(
+    () =>
+      ListSlot({
+        query: q,
+        nodes: flattenedNodes,
+        children,
+        bind,
+      }),
+    [bind, ListSlot, children, flattenedNodes, q],
+  )
+
+  if (el === null) return null
+
+  if (!isElementWithProp(el, 'data-action-menu-list')) {
+    return (
+      <div
+        {...(bind.getListProps(
+          mergeProps(slotProps?.list as any, {
+            onPointerDown: () => {},
+          }),
+        ) as any)}
+      >
+        {listRows}
+      </div>
+    )
+  }
+  return el as React.ReactElement
+}

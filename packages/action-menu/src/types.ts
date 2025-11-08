@@ -1,0 +1,707 @@
+import type { Primitive } from '@radix-ui/react-primitive'
+import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual'
+import type * as React from 'react'
+import type { ClassNameValue } from 'tailwind-merge'
+import type { Drawer } from 'vaul'
+
+/* ================================================================================================
+ * Menu Model Types
+ * ============================================================================================== */
+
+export type MenuNodeKind = 'item' | 'group' | 'submenu'
+
+export type BaseDef<K extends MenuNodeKind> = {
+  /** The kind of node. */
+  kind: K
+  /** Unique id for this node. */
+  id: string
+  hidden?: boolean
+}
+
+export type Searchable = {
+  /** A human-readable label for the searchable item. */
+  label?: string
+  /** A list of aliases for the node, used when searching/filtering. */
+  keywords?: string[]
+}
+
+export type Iconish =
+  | React.ReactNode
+  | React.ReactElement
+  | React.ElementType
+  | React.ComponentType<{ className?: string }>
+
+export type StateDescriptor<T> = {
+  value: T
+  onValueChange: React.Dispatch<React.SetStateAction<T>>
+  defaultValue?: T
+}
+
+export type MenuState = {
+  input?: StateDescriptor<string>
+  open?: StateDescriptor<boolean>
+}
+
+export type MenuDef<T = unknown> = MenuState & {
+  id: string
+  title?: string
+  inputPlaceholder?: string
+  hideSearchUntilActive?: boolean
+  nodes?: NodeDef<T>[]
+  defaults?: MenuNodeDefaults<T>
+  ui?: {
+    slots?: Partial<ActionMenuSlots<T>>
+    slotProps?: Partial<ActionMenuSlotProps>
+    classNames?: Partial<ActionMenuClassNames>
+  }
+}
+
+export type ItemVariant = 'button' | 'checkbox' | 'radio'
+
+export type BaseItemDef<T = unknown> = BaseDef<'item'> &
+  Searchable & {
+    icon?: Iconish
+    data?: T
+    disabled?: boolean
+    onSelect?: (args: {
+      node: Omit<ItemNode<T>, 'onSelect'>
+      search?: SearchContext
+    }) => void
+    closeOnSelect?: boolean
+    render?: (args: {
+      node: ItemNode<T>
+      search?: SearchContext
+      mode: Omit<ResponsiveMode, 'auto'>
+      bind: RowBindAPI
+    }) => React.ReactNode
+  }
+
+export type ButtonItemDef<T = unknown> = BaseItemDef<T> & {
+  /** The visual/behavioral variant of this item. Defaults to 'button'. */
+  variant?: 'button'
+  value?: never
+}
+
+export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
+  /** The visual/behavioral variant of this item. */
+  variant: 'checkbox'
+  /** Controlled checked state. */
+  checked: boolean
+  /** Callback when checked state changes. */
+  onCheckedChange: (checked: boolean) => void
+}
+
+export type RadioItemDef<T = unknown> = BaseItemDef<T> & {
+  /** The visual/behavioral variant of this item. */
+  variant: 'radio'
+  /** Value for this radio item. Falls back to id if not provided. */
+  value?: string
+}
+
+export type ItemDef<T = unknown> =
+  | ButtonItemDef<T>
+  | CheckboxItemDef<T>
+  | RadioItemDef<T>
+
+export type BaseGroupDef<T = unknown> = BaseDef<'group'> & {
+  nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
+  heading?: string
+}
+
+export type DefaultGroupDef<T = unknown> = BaseGroupDef<T> & {
+  /** The variant of this group. Defaults to 'default'. */
+  variant?: 'default'
+  value?: never
+  onValueChange?: never
+}
+
+export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
+  /** The variant of this group. Use 'radio' to create a radio group. */
+  variant: 'radio'
+  /** Controlled value for radio groups (the selected radio item's value). */
+  value: string
+  /** Callback when radio group value changes. */
+  onValueChange: (value: string) => void
+}
+
+export type GroupDef<T = unknown> = DefaultGroupDef<T> | RadioGroupDef<T>
+
+export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
+  Searchable &
+  MenuState & {
+    nodes?: NodeDef<TChild>[]
+    data?: T
+    disabled?: boolean
+    icon?: Iconish
+    title?: string
+    inputPlaceholder?: string
+    hideSearchUntilActive?: boolean
+    defaults?: MenuNodeDefaults<T>
+    ui?: {
+      slots?: Partial<ActionMenuSlots<TChild>>
+      slotProps?: Partial<ActionMenuSlotProps>
+      classNames?: Partial<ActionMenuClassNames>
+    }
+    render?: () => React.ReactNode
+  }
+
+export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
+  nodes: Node<T>[]
+  surfaceId: string
+  depth: number
+}
+
+/** Additional context passed to item/submenu renderers during search. */
+export type SearchContext = {
+  query: string
+  isDeep: boolean
+  score: number
+  breadcrumbs: string[]
+  breadcrumbIds: string[]
+}
+
+/* ================================================================================================
+ * Runtime Node Types
+ * ============================================================================================== */
+
+/** Runtime node (instance) */
+export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
+  /** The kind of node. */
+  kind: K
+  /** Unique id for this node. */
+  id: string
+  hidden?: boolean
+  /** Owning menu surface at runtime. */
+  parent: Menu<any>
+  /** Original author definition for this node. */
+  def: D
+}
+
+export type BaseItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
+  Omit<BaseItemDef<T>, 'kind' | 'hidden'> & {
+    search?: SearchContext
+    /** Reference to the row's belonging group, if applicable. */
+    group?: GroupNode<T>
+  }
+
+export type ButtonItemNode<T = unknown> = BaseItemNode<T> & {
+  variant: 'button'
+  value?: never
+}
+
+export type CheckboxItemNode<T = unknown> = BaseItemNode<T> & {
+  variant: 'checkbox'
+  /** Controlled checked state. */
+  checked: boolean
+  /** Callback when checked state changes. */
+  onCheckedChange: (checked: boolean) => void
+}
+
+export type RadioItemNode<T = unknown> = BaseItemNode<T> & {
+  variant: 'radio'
+  /** Value for this radio item. Required at runtime (uses id as fallback). */
+  value: string
+}
+
+export type ItemNode<T = unknown> =
+  | ButtonItemNode<T>
+  | CheckboxItemNode<T>
+  | RadioItemNode<T>
+
+export type BaseGroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
+  heading?: string
+  nodes: (ItemNode<T> | SubmenuNode<any>)[]
+}
+
+export type DefaultGroupNode<T = unknown> = BaseGroupNode<T> & {
+  variant: 'default'
+  value?: never
+  onValueChange?: never
+}
+
+export type RadioGroupNode<T = unknown> = BaseGroupNode<T> & {
+  variant: 'radio'
+  value: string
+  onValueChange: (value: string) => void
+}
+
+export type GroupNode<T = unknown> = DefaultGroupNode<T> | RadioGroupNode<T>
+
+/** NOTE: Submenu node exposes its runtime child menu as `child` */
+export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
+  'submenu',
+  SubmenuDef<T, TChild>
+> &
+  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {
+    child: Menu<TChild>
+    nodes: Node<TChild>[]
+    search?: SearchContext
+    /** Reference to the row's belonging group, if applicable. */
+    group?: GroupNode<T>
+  }
+
+export type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
+
+export type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
+
+/* ================================================================================================
+ * Bind API Types
+ * ============================================================================================== */
+
+export type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
+export type ButtonProps = React.ComponentPropsWithoutRef<
+  typeof Primitive.button
+>
+export type Children = Pick<DivProps, 'children'>
+
+/** Row interaction & wiring helpers provided to slot renderers. */
+export type RowBindAPI = {
+  focused: boolean
+  disabled: boolean
+  getRowProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.Ref<any>
+    id: string
+    role: 'option' | 'menuitemcheckbox'
+    tabIndex: -1
+    'data-action-menu-item-id': string
+    'data-focused'?: 'true'
+    'data-variant'?: 'button' | 'checkbox' | 'radio'
+    'data-checked'?: boolean
+    'aria-selected'?: boolean
+    'aria-checked'?: boolean
+    'aria-disabled'?: boolean
+  }
+}
+
+/** Content/surface wiring helpers provided to slot renderers. */
+export type ContentBindAPI = {
+  getContentProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.Ref<any>
+    role: 'menu'
+    tabIndex: -1
+    'data-slot': 'action-menu-content'
+    'data-state': 'open' | 'closed'
+    'data-action-menu-surface': true
+    'data-surface-id': string
+  }
+}
+
+/** Search input wiring helpers provided to slot renderers. */
+export type InputBindAPI = {
+  getInputProps: <T extends React.InputHTMLAttributes<HTMLInputElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.Ref<any>
+    role: 'combobox'
+    'data-slot': 'action-menu-input'
+    'data-action-menu-input': true
+    'aria-autocomplete': 'list'
+    'aria-expanded': true
+    'aria-controls'?: string
+    'aria-activedescendant'?: string
+  }
+}
+
+/** List wiring helpers provided to slot renderers. */
+export type ListBindAPI = {
+  getListProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.Ref<any>
+    role: 'listbox'
+    id: string
+    tabIndex: number
+    'data-slot': 'action-menu-list'
+    'data-action-menu-list': true
+    'aria-activedescendant'?: string
+  }
+  getItemOrder: () => string[]
+  getActiveId: () => string | null
+}
+
+/* ================================================================================================
+ * ClassNames & SlotProps Types
+ * ============================================================================================== */
+
+/** ClassNames that style the *shell* (overlay / drawer container / trigger). */
+export type ShellClassNames = {
+  drawerOverlay?: string
+  drawerContent?: string
+  drawerContentInner?: string
+  drawerHandle?: string
+  trigger?: string
+}
+
+/** ClassNames that style the *surface* (content/list/items/etc.). */
+export type SurfaceClassNames = {
+  content?: string
+  input?: string
+  list?: string
+  itemWrapper?: string
+  item?: string
+  subtriggerWrapper?: string
+  subtrigger?: string
+  group?: string
+  groupHeading?: string
+}
+
+export type ActionMenuClassNames = ShellClassNames & SurfaceClassNames
+
+/** Slot props forwarded to the *shell* (Vaul). */
+export type ShellSlotProps = {
+  positioner?: Partial<Omit<ActionMenuPositionerProps, 'children'>>
+  drawerRoot?: Partial<React.ComponentProps<typeof Drawer.Root>>
+  drawerOverlay?: React.ComponentPropsWithoutRef<typeof Drawer.Overlay>
+  drawerContent?: React.ComponentPropsWithoutRef<typeof Drawer.Content>
+}
+
+/** Slot props forwarded to *surface* slots (Input/List/Content/Header/Footer). */
+export type SurfaceSlotProps = {
+  content?: React.HTMLAttributes<HTMLElement>
+  header?: React.HTMLAttributes<HTMLElement>
+  input?: React.InputHTMLAttributes<HTMLInputElement>
+  list?: React.HTMLAttributes<HTMLElement>
+  footer?: React.HTMLAttributes<HTMLElement>
+}
+
+export type ActionMenuSlotProps = ShellSlotProps & SurfaceSlotProps
+
+export interface ItemSlotProps<T = unknown> {
+  node: ItemNode<T>
+  search?: SearchContext
+  mode: Omit<ResponsiveMode, 'auto'>
+  bind: RowBindAPI
+}
+
+export interface ListSlotProps<T = unknown> {
+  query?: string
+  nodes: Node<T>[]
+  children: React.ReactNode
+  bind: ListBindAPI
+}
+
+/** Slot renderers to customize visuals. */
+export type SurfaceSlots<T = unknown> = {
+  Content: (args: {
+    menu: Menu<T>
+    children: React.ReactNode
+    bind: ContentBindAPI
+  }) => React.ReactNode
+  Header?: (args: { menu: Menu<T> }) => React.ReactNode
+  Input: (args: {
+    value: string
+    onChange: (v: string) => void
+    bind: InputBindAPI
+  }) => React.ReactNode
+  List: (args: ListSlotProps<T>) => React.ReactNode
+  Empty?: (args: { query: string }) => React.ReactNode
+  Item: (args: ItemSlotProps<T>) => React.ReactNode
+  SubmenuTrigger: (args: {
+    node: SubmenuNode<T>
+    search?: SearchContext
+    bind: RowBindAPI
+  }) => React.ReactNode
+  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
+}
+
+export type ActionMenuSlots<T = unknown> = SurfaceSlots<T>
+
+/* ================================================================================================
+ * Theme Types
+ * ============================================================================================== */
+
+export type ActionMenuThemeDef<T = unknown> = {
+  slots?: Partial<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+}
+
+export type ActionMenuTheme<T = unknown> = {
+  slots: Required<ActionMenuSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+}
+
+/* ================================================================================================
+ * Component Props Types
+ * ============================================================================================== */
+
+export type ResponsiveMode = 'auto' | 'drawer' | 'dropdown'
+export type ResponsiveConfig = { mode: ResponsiveMode; query: string }
+
+export type Direction = 'ltr' | 'rtl'
+
+export interface ActionMenuPositionerProps {
+  children: React.ReactNode
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  align?: 'start' | 'center' | 'end'
+  sideOffset?: number
+  alignOffset?: number
+  avoidCollisions?: boolean
+  collisionPadding?:
+    | number
+    | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
+  alignToFirstItem?: false | 'on-open' | 'always'
+}
+
+export interface ActionMenuSurfaceProps<T = unknown>
+  extends Omit<DivProps, 'dir' | 'children'> {
+  menu: MenuDef<T> | Menu<T>
+  render?: () => React.ReactNode
+  vimBindings?: boolean
+  dir?: Direction
+  defaults?: Partial<MenuNodeDefaults<T>>
+  onOpenAutoFocus?: boolean
+  onCloseAutoClear?: boolean | number
+  /** @internal Forced surface id; used by submenus. */
+  surfaceIdProp?: string
+  /** @internal Suppress hover-open until first pointer move; used by submenus opened via keyboard. */
+  suppressHoverOpenOnMount?: boolean
+}
+
+/** Defaulted parts of nodes for convenience. */
+export type MenuNodeDefaults<T = unknown> = {
+  surface?: Pick<
+    ActionMenuSurfaceProps<T>,
+    'vimBindings' | 'dir' | 'onOpenAutoFocus' | 'onCloseAutoClear'
+  >
+  item?: Pick<ItemNode<T>, 'onSelect' | 'closeOnSelect'>
+}
+
+/* ================================================================================================
+ * Internal Types
+ * ============================================================================================== */
+
+export type SurfaceState = {
+  activeId: string | null
+  hasInput: boolean
+  listId: string | null
+}
+
+export type RowRecord = {
+  ref: React.RefObject<HTMLElement>
+  virtualItem?: VirtualItem
+  disabled?: boolean
+  kind: 'item' | 'submenu'
+  openSub?: () => void
+  closeSub?: () => void
+}
+
+export type ActivationCause = 'keyboard' | 'pointer' | 'programmatic'
+
+export type SurfaceStore<T> = {
+  subscribe(cb: () => void): () => void
+  snapshot(): SurfaceState
+  set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
+
+  getNodes(): Node<T>[]
+  setNodes(nodes: Node<T>[]): void
+
+  registerRow(id: string, rec: RowRecord): void
+  unregisterRow(id: string): void
+  getOrder(): string[]
+  resetOrder(ids: string[]): void
+  resetVirtualIndexMap(map: Map<string, number>): void
+
+  setActiveId(id: string | null, cause?: ActivationCause): void
+  setActiveByIndex(idx: number, cause?: ActivationCause): void
+  first(cause?: ActivationCause): void
+  last(cause?: ActivationCause): void
+  next(cause?: ActivationCause): void
+  prev(cause?: ActivationCause): void
+
+  readonly rows: Map<string, RowRecord>
+  readonly rowIdToVirtualIndex: Map<string, number>
+  readonly inputRef: React.RefObject<HTMLInputElement | null>
+  readonly listRef: React.RefObject<HTMLDivElement | null>
+  readonly virtualizerRef: React.RefObject<Virtualizer<
+    HTMLDivElement,
+    Element
+  > | null>
+}
+
+export type HoverPolicy = {
+  suppressHoverOpen: boolean
+  clearSuppression: () => void
+  aimGuardActive: boolean
+  guardedTriggerId: string | null
+  activateAimGuard: (triggerId: string, timeoutMs?: number) => void
+  clearAimGuard: () => void
+  aimGuardActiveRef: React.RefObject<boolean | null>
+  guardedTriggerIdRef: React.RefObject<string | null>
+  isGuardBlocking: (rowId: string) => boolean
+}
+
+export type AnchorSide = 'left' | 'right'
+
+export type KeyboardOptions = { dir: Direction; vimBindings: boolean }
+
+export type RadioGroupContextValue = {
+  value: string
+  onValueChange: (value: string) => void
+}
+
+export type RootContextValue = {
+  scopeId: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onOpenToggle: () => void
+  modal: boolean
+  anchorRef: React.RefObject<HTMLElement | null>
+  debug: boolean
+  responsive: ResponsiveConfig
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+  openSurfaceIds: React.RefObject<Map<string, number>>
+  registerSurface: (surfaceId: string, depth: number) => void
+  unregisterSurface: (surfaceId: string) => void
+  closeAllSurfaces: () => void
+  onCloseAutoFocus?: (event: Event) => void
+}
+
+export type MenuDisplayMode = Omit<ResponsiveMode, 'auto'>
+
+export type SubContextValue = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onOpenToggle: () => void
+  triggerRef: React.RefObject<HTMLDivElement | HTMLButtonElement | null>
+  contentRef: React.RefObject<HTMLDivElement | null>
+  def: SubmenuDef
+  parentSurfaceId: string
+  triggerItemId: string | null
+  setTriggerItemId: (id: string | null) => void
+  parentSetActiveId: (id: string | null, cause?: ActivationCause) => void
+  childSurfaceId: string
+  pendingOpenModalityRef: React.RefObject<'keyboard' | 'pointer' | null>
+  intentZoneActiveRef: React.RefObject<boolean>
+  parentSub: SubContextValue | null
+}
+
+export type FocusOwnerCtxValue = {
+  ownerId: string | null
+  setOwnerId: (id: string | null) => void
+}
+
+/* ================================================================================================
+ * Menu Instantiation Function
+ * ============================================================================================== */
+
+export function instantiateMenuFromDef<T>(
+  def: MenuDef<T>,
+  surfaceId: string,
+  depth: number,
+): Menu<T> {
+  const parentless: Menu<T> = {
+    id: def.id,
+    title: def.title,
+    inputPlaceholder: def.inputPlaceholder,
+    hideSearchUntilActive: def.hideSearchUntilActive,
+    defaults: def.defaults,
+    ui: def.ui,
+    nodes: [] as Node<T>[],
+    surfaceId,
+    depth,
+    input: def.input,
+  }
+
+  function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
+    if (d.kind === 'item') {
+      const itemDef = d as ItemDef<U>
+      const variant = itemDef.variant ?? 'button'
+
+      const node: ItemNode<U> = {
+        ...itemDef,
+        variant,
+        kind: 'item',
+        parent,
+        def: itemDef,
+        ...(variant === 'radio'
+          ? {
+              value:
+                itemDef.variant === 'radio' ? (itemDef.value ?? d.id) : d.id,
+            }
+          : {}),
+      } as ItemNode<U>
+
+      return node
+    }
+
+    if (d.kind === 'group') {
+      const groupDef = d as GroupDef<U>
+      const children = (d.nodes ?? []).map((c) =>
+        inst<any>(c as NodeDef<any>, parent),
+      )
+
+      const variant = groupDef.variant ?? 'default'
+
+      const node: GroupNode<U> = {
+        id: d.id,
+        kind: 'group',
+        hidden: d.hidden,
+        parent,
+        def: groupDef,
+        heading: groupDef.heading,
+        nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
+        variant,
+        ...(variant === 'radio'
+          ? {
+              value: groupDef.variant === 'radio' ? groupDef.value : '',
+              onValueChange:
+                groupDef.variant === 'radio'
+                  ? groupDef.onValueChange
+                  : () => {},
+            }
+          : {}),
+      } as GroupNode<U>
+
+      // For groups, set group reference on all child nodes
+      for (const child of node.nodes) {
+        child.group = node
+      }
+
+      return node
+    }
+
+    // submenu
+    const subDef = d as SubmenuDef<any, any>
+    const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
+
+    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
+    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
+    const child = instantiateMenuFromDef(
+      {
+        id: subDef.id,
+        title: subDef.title,
+        inputPlaceholder: subDef.inputPlaceholder,
+        hideSearchUntilActive: subDef.hideSearchUntilActive,
+        nodes: subDef.nodes as NodeDef<any>[],
+        defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
+        ui: subDef.ui as MenuDef<any>['ui'],
+        input: subDef.input,
+      } as MenuDef<any>,
+      childSurfaceId,
+      parent.depth + 1,
+    ) as Menu<any>
+
+    const node: SubmenuNode<any, any> = {
+      ...(subDef as SubmenuDef<any, any>),
+      kind: 'submenu',
+      parent,
+      def: d,
+      child,
+      nodes: child.nodes,
+    }
+
+    return node as Node<U>
+  }
+
+  parentless.nodes = (def.nodes ?? []).map((n) =>
+    inst(n as any, parentless),
+  ) as any
+  return parentless
+}

@@ -1,0 +1,75 @@
+import * as React from 'react'
+import { PositionerImpl } from './components/positioner.js'
+import { type ActionMenuRootProps, Root } from './components/root.js'
+import { Surface } from './components/surface.js'
+import { Trigger } from './components/trigger.js'
+import {
+  GlobalThemeProvider,
+  mergeTheme,
+  ScopedThemeProvider,
+  useScopedTheme,
+} from './contexts/theme-context.js'
+import { defaultSlots } from './lib/slots.js'
+import type {
+  ActionMenuClassNames,
+  ActionMenuSlotProps,
+  ActionMenuSlots,
+  ActionMenuTheme,
+  MenuDef,
+  SurfaceSlots,
+} from './types.js'
+
+export type CreateActionMenuResult<T = unknown> = React.FC<ActionMenuProps<T>>
+
+export type CreateActionMenuOptions<T> = {
+  slots?: Partial<SurfaceSlots<T>>
+  slotProps?: Partial<ActionMenuSlotProps>
+  classNames?: Partial<ActionMenuClassNames>
+}
+
+export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps<T> {
+  trigger?: React.ReactNode
+  menu: MenuDef<T>
+}
+
+export function createActionMenu<T = unknown>(
+  opts?: CreateActionMenuOptions<T>,
+): CreateActionMenuResult<T> {
+  const factoryTheme: ActionMenuTheme = {
+    slots: { ...defaultSlots<T>(), ...(opts?.slots as any) },
+    slotProps: opts?.slotProps,
+    classNames: opts?.classNames,
+  }
+
+  function ActionMenu<T = unknown>(props: ActionMenuProps<T>) {
+    const instanceTheme: ActionMenuTheme = React.useMemo(
+      () =>
+        mergeTheme(factoryTheme, {
+          slots: props.slots,
+          slotProps: props.slotProps,
+          classNames: props.classNames,
+        }),
+      [props.slots, props.slotProps, props.classNames],
+    )
+
+    const scopedTheme = React.useMemo(
+      () => props.menu.ui as ActionMenuTheme,
+      [props.menu.ui],
+    )
+
+    return (
+      <GlobalThemeProvider theme={instanceTheme}>
+        <ScopedThemeProvider __scopeId="root" theme={scopedTheme}>
+          <Root {...props}>
+            <Trigger asChild>{props.trigger}</Trigger>
+            <PositionerImpl>
+              <Surface menu={props.menu as any} />
+            </PositionerImpl>
+          </Root>
+        </ScopedThemeProvider>
+      </GlobalThemeProvider>
+    )
+  }
+
+  return ActionMenu as CreateActionMenuResult<T>
+}
