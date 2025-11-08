@@ -123,7 +123,7 @@ const [checked, setChecked] = useState(false)
   id: 'done',
   label: 'Done',
   icon: <Status.Done />,
-  checked,
+  checked: checked,
   onCheckedChange: setChecked,
 }
 ```
@@ -224,7 +224,190 @@ Submenus can be nested.
 
 Once you have your menu data, the next step is to render it.
 
-The library provides four mechanisms to customize the menu's appearance and behavior:
+### Concepts
+
+The action menu's rendering system is built on three core concepts that work together to give you complete control over appearance and behavior.
+
+Those are **slots**, **slot props**, and **classnames**.
+
+#### Slots
+
+Slots are render functions that define what gets rendered for each part of the menu. Think of them as customizable "components" for different menu elements.
+
+Available slots:
+
+- `Content` - Wraps the entire menu content
+- `Header` - Optional header above the search input
+- `Input` - The search/filter input field
+- `List` - The scrollable list container
+- `Item` - Individual menu items (with variants for checkbox, radio, etc.)
+- `SubmenuTrigger` - Items that open submenus
+- `Group` - Groups of items
+- `GroupHeading` - Headings for groups
+- `Footer` - Optional footer below the list
+- `Empty` - Shown when search returns no results
+
+Each slot receives props specific to what it renders. For example, `Item` receives `{ node, bind, search, mode }` while `Header` receives `{ menu }`.
+
+#### Slot props
+
+Slot props are forwarded to the underlying elements. Use these to customize behavior without replacing the entire slot.
+
+For instance, you might want to add ARIA attributes, event handlers, or other HTML props to the input or list elements:
+
+```tsx
+slotProps: {
+  input: {
+    'aria-label': 'Search menu items',
+    autoComplete: 'off',
+  },
+  positioner: {
+    sideOffset: 8,
+    alignToFirstItem: true,
+  }
+}
+```
+
+#### Classnames
+
+Classnames let you style individual parts of the menu using utility classes. Each part of the menu has a corresponding `className` key:
+
+```tsx
+classNames: {
+  // Shell (wrapper/container)
+  root: 'custom-root',
+  trigger: 'custom-trigger',
+
+  // Drawer (mobile)
+  drawerOverlay: 'custom-drawer-overlay',
+  drawerContent: 'custom-drawer-content',
+  drawerContentInner: 'custom-drawer-inner',
+  drawerHandle: 'custom-drawer-handle',
+
+  // Surface (menu content)
+  content: 'bg-popover rounded-lg',
+  input: 'px-4 py-2 border-b',
+  list: 'py-1 overflow-y-auto',
+
+  // Items and groups
+  item: 'px-4 py-2',
+  subtrigger: 'px-4 py-2',
+  group: 'mt-3',
+  groupHeading: 'text-xs font-medium',
+}
+```
+
+### Data attributes
+
+Data attributes are available on slots, which can be used for powerful conditional styling.
+
+#### Item
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-focused]` | `true` | Item has keyboard/pointer focus |
+| `[data-mode]` | `dropdown`, `drawer` | Display mode (desktop/mobile) |
+| `[data-variant]` | `button`, `checkbox`, `radio` | Item type |
+| `[data-checked]` | `true`, `false` | Checkbox/radio checked state |
+| `[data-index]` | `number` | Virtual index in the list |
+| `[data-action-menu-item-id]` | `string` | Unique item identifier |
+| `[aria-disabled]` | `true`, `false` | Item is disabled |
+| `[aria-selected]` | `true`, `false` | Item is selected/focused |
+| `[disabled]` | `true`, `false` | Native disabled attribute |
+
+#### Submenu trigger
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-focused]` | `true`, `false` | Trigger has keyboard/pointer focus |
+| `[data-mode]` | `dropdown`, `drawer` | Display mode (desktop/mobile) |
+| `[data-menu-state]` | `open`, `closed` | Submenu open/closed state |
+| `[data-menu-focused]` | `true`, `false` | Submenu itself has focus |
+| `[data-subtrigger]` | `true` | Identifies element as submenu trigger |
+| `[data-index]` | `number` | Virtual index in the list |
+| `[data-action-menu-item-id]` | `string` | Unique trigger identifier |
+| `[aria-selected]` | `true`, `false` | Trigger is selected/focused |
+| `[aria-disabled]` | `true`, `false` | Trigger is disabled |
+
+#### Content
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-state]` | `open`, `closed` | Menu state |
+| `[data-mode]` | `dropdown`, `drawer` | Display mode (desktop/mobile) |
+| `[data-root-menu]` | `true` | Is the root menu |
+| `[data-sub-menu]` | `true` | Is a submenu |
+| `[data-side]` | `top`, `right`, `bottom`, `left` | Popper positioning side |
+| `[data-action-menu-surface]` | `true` | Identifies element as menu surface |
+| `[data-surface-id]` | `string` | Unique surface identifier |
+| `[data-slot]` | `action-menu-content` | Slot identifier |
+
+#### Input
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-mode]` | `dropdown`, `drawer` | Display mode (desktop/mobile) |
+| `[data-slot]` | `action-menu-input` | Slot identifier |
+| `[data-action-menu-input]` | `true` | Identifies element as menu input |
+
+#### List
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-slot]` | `action-menu-list` | Slot identifier |
+| `[data-action-menu-list]` | `true` | Identifies element as menu list |
+
+#### Group
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-index]` | `number` | Group index in the list |
+| `[data-action-menu-group-heading]` | `true` | Identifies element as group heading |
+
+#### Drawer overlay
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-state]` | `open`, `closed` | Drawer state |
+| `[data-slot]` | `action-menu-overlay` | Slot identifier |
+
+#### Drawer content
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `[data-vaul-drawer-direction]` | `top`, `bottom` | Drawer slide direction |
+| `[data-slot]` | `action-menu-drawer-content` | Slot identifier |
+
+#### Examples
+
+Style focused items:
+```tsx
+item: 'data-[focused=true]:bg-accent data-[focused=true]:text-accent-foreground'
+```
+
+Style by display mode:
+```tsx
+item: 'data-[mode=dropdown]:px-4 data-[mode=drawer]:px-6'
+```
+
+Style submenu triggers when open:
+```tsx
+subtrigger: 'data-[menu-state=open]:bg-accent'
+```
+
+Combine multiple conditions:
+```tsx
+item: 'data-[focused=true]:data-[variant=checkbox]:font-semibold'
+```
+
+Use arbitrary variants for groups:
+```tsx
+group: 'data-[index=0]:mt-0 data-[index=0]:pt-0'
+```
+
+### Theming
+
+The library provides four layers of theming to customize the menu's appearance and behavior:
 
 1. **Global theme:** create a reusable, styled action menu in your design system with `createActionMenu()`.
 2. **Instance theme:** Override your styled action menu's defaults for each component instance.
@@ -239,21 +422,185 @@ While #1 may be enough in most cases, you may need additional customization on a
 
 Finally, #4 is used when you want to customize the rendering of a specific node within a menu or submenu.
 
-### Overview
+#### Global theme
 
-#### Slots
+Create a reusable, styled action menu component for your design system using `createActionMenu()`:
 
-#### Slot props
+```tsx
+import { createActionMenu, defaultSlots, renderIcon } from '@bazza-ui/action-menu'
 
-#### Class names
+export const ActionMenu = createActionMenu({
+  slots: {
+    Item: ({ node, bind, search }) => {
+      const props = bind.getRowProps({
+        className: 'group/row',
+      })
 
-### Global theme
+      return (
+        <li {...props}>
+          {node.icon && (
+            <div className="size-4">
+              {renderIcon(node.icon, 'size-4 text-muted-foreground')}
+            </div>
+          )}
+          <span>{node.label}</span>
+        </li>
+      )
+    },
+    Empty: ({ query }) =>
+      query ? <div>No results found.</div> : null,
+  },
+  slotProps: {
+    positioner: {
+      sideOffset: 4,
+    },
+  },
+  classNames: {
+    content: 'bg-popover border rounded-lg shadow-md',
+    input: 'px-4 py-2 border-b',
+    list: 'py-1 max-h-[300px] overflow-y-auto',
+    item: 'px-4 py-2 cursor-pointer hover:bg-accent',
+  },
+})
+```
 
-### Instance theme
+This creates a styled `ActionMenu` component that you can use throughout your application:
 
-### Surface theme
+```tsx
+<ActionMenu
+  trigger={<Button>Open menu</Button>}
+  menu={{ id: 'root', nodes: [...] }}
+/>
+```
 
-### Using the `render()` function
+The `bind` object provides methods like `getRowProps()` and `getContentProps()` that handle all the necessary ARIA attributes, event handlers, and virtualization for you. Always spread these props onto your elements.
+
+You can reference the default slots using `defaultSlots()` when you want to conditionally override behavior:
+
+```tsx
+slots: {
+  List: (args) =>
+    args.nodes.length === 0 ? null : defaultSlots().List(args),
+}
+```
+
+#### Instance theme
+
+Override your global theme for specific action menu instances by passing `slots`, `slotProps`, or `classNames` directly to the component:
+
+```tsx
+<ActionMenu
+  trigger={<Button>Custom menu</Button>}
+  menu={{ id: 'root', nodes: [...] }}
+  slots={{
+    Header: () => <div className="px-4 py-2 font-bold">Custom Header</div>,
+  }}
+  slotProps={{
+    positioner: {
+      side: 'right',
+      sideOffset: 8,
+    },
+  }}
+  classNames={{
+    content: 'w-[500px]',
+    item: 'text-lg',
+  }}
+/>
+```
+
+Instance-level customizations are merged with (and override) your global theme. This is useful when you need a one-off variation without creating a new themed component.
+
+#### Surface theme
+
+Customize individual menus or submenus using the `ui` prop on `MenuDef` or `SubmenuDef`:
+
+```tsx
+const menu: MenuDef = {
+  id: 'root',
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'danger-zone',
+      label: 'Danger Zone',
+      ui: {
+        classNames: {
+          input: 'bg-red-950 border-red-800',
+          item: 'data-[focused=true]:bg-red-950',
+          content: 'border-red-800',
+        },
+      },
+      nodes: [
+        { kind: 'item', id: 'delete', label: 'Delete' },
+        { kind: 'item', id: 'archive', label: 'Archive' },
+      ],
+    },
+  ],
+}
+```
+
+You can also use slots and slotProps at the surface level:
+
+```tsx
+const menu: MenuDef = {
+  id: 'root',
+  ui: {
+    slots: {
+      Header: ({ menu }) => (
+        <div className="px-4 py-2 border-b">
+          {menu.title}
+        </div>
+      ),
+      Footer: () => (
+        <div className="px-4 py-2 border-t text-xs text-muted-foreground">
+          Press ? for help
+        </div>
+      ),
+    },
+  },
+  nodes: [...],
+}
+```
+
+Surface-level customizations only affect that specific menu/submenu and its descendants (unless overridden).
+
+#### Using the `render()` function
+
+For maximum control, use the `render()` function on individual node definitions:
+
+```tsx
+{
+  kind: 'item',
+  id: 'custom-item',
+  label: 'Custom Item',
+  render: ({ node, bind, mode, search }) => {
+    const props = bind.getRowProps()
+
+    return (
+      <li {...props} className="flex items-center gap-2 px-4 py-2">
+        <CustomIcon />
+        <div>
+          <div className="font-semibold">{node.label}</div>
+          <div className="text-xs text-muted-foreground">
+            Custom description
+          </div>
+        </div>
+        {search && <Badge>Match</Badge>}
+      </li>
+    )
+  }
+}
+```
+
+The `render()` function receives:
+
+- `node` - The node instance with all its properties
+- `bind` - Binding API with methods like `getRowProps()`
+- `mode` - Current responsive mode (`'dropdown'` or `'drawer'`)
+- `search` - Search context if item is visible via search (includes `query`, `score`, `breadcrumbs`)
+
+Always use `bind.getRowProps()` and spread the result onto your root element to ensure proper keyboard navigation, focus management, and accessibility.
+
+Custom render functions completely replace the slot rendering for that specific node, giving you full control while maintaining the menu's core functionality.
 
 ## Examples
 
