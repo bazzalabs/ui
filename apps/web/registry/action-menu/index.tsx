@@ -20,7 +20,7 @@ const TriangleRightIcon = ({
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
+      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
     </svg>
   )
 }
@@ -47,7 +47,7 @@ export const ActionMenu = createActionMenu({
   slots: {
     Item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
-        className: 'group/row relative',
+        className: 'group/row',
       })
 
       const isRadioItem = node.group && node.group.variant === 'radio'
@@ -57,7 +57,6 @@ export const ActionMenu = createActionMenu({
 
       return (
         <li {...props}>
-          {/* <span className="absolute top-0 right-1 text-[9px]">{node.id}</span> */}
           {isCheckboxItem && (
             <Checkbox
               checked={Boolean(node.checked)}
@@ -83,12 +82,11 @@ export const ActionMenu = createActionMenu({
     },
     SubmenuTrigger: ({ node, bind, search }) => {
       const props = bind.getRowProps({
-        className: 'group/row relative',
+        className: 'group/row',
       })
 
       return (
         <li {...props}>
-          {/* <span className="absolute top-0 right-1 text-[9px]">{node.id}</span> */}
           <div className="flex items-center gap-2 min-w-0">
             {node.icon && (
               <div className="size-4 flex items-center justify-center">
@@ -119,6 +117,7 @@ export const ActionMenu = createActionMenu({
   slotProps: {
     positioner: {
       sideOffset: -2,
+      alignToFirstItem: false,
     },
   },
   classNames: {

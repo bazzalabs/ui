@@ -21,6 +21,7 @@
   ],
   "scripts": {
     "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run --run --mode test",
     "test:watch": "vitest --mode test --watch --disable-console-intercept",

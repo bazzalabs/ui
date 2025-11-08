@@ -104,11 +104,9 @@ export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
   /** The visual/behavioral variant of this item. */
   variant: 'checkbox'
   /** Controlled checked state. */
-  checked?: boolean
-  /** Default checked state for uncontrolled usage. */
-  defaultChecked?: boolean
+  checked: boolean
   /** Callback when checked state changes. */
-  onCheckedChange?: (checked: boolean) => void
+  onCheckedChange: (checked: boolean) => void
 }
 
 export type RadioItemDef<T = unknown> = BaseItemDef<T> & {
@@ -132,7 +130,6 @@ export type DefaultGroupDef<T = unknown> = BaseGroupDef<T> & {
   /** The variant of this group. Defaults to 'default'. */
   variant?: 'default'
   value?: never
-  defaultValue?: never
   onValueChange?: never
 }
 
@@ -140,11 +137,9 @@ export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
   /** The variant of this group. Use 'radio' to create a radio group. */
   variant: 'radio'
   /** Controlled value for radio groups (the selected radio item's value). */
-  value?: string
-  /** Default value for radio groups (uncontrolled). */
-  defaultValue?: string
+  value: string
   /** Callback when radio group value changes. */
-  onValueChange?: (value: string) => void
+  onValueChange: (value: string) => void
 }
 
 export type GroupDef<T = unknown> = DefaultGroupDef<T> | RadioGroupDef<T>
@@ -211,11 +206,9 @@ export type ButtonItemNode<T = unknown> = BaseItemNode<T> & {
 export type CheckboxItemNode<T = unknown> = BaseItemNode<T> & {
   variant: 'checkbox'
   /** Controlled checked state. */
-  checked?: boolean
-  /** Default checked state for uncontrolled usage. */
-  defaultChecked?: boolean
+  checked: boolean
   /** Callback when checked state changes. */
-  onCheckedChange?: (checked: boolean) => void
+  onCheckedChange: (checked: boolean) => void
 }
 
 export type RadioItemNode<T = unknown> = BaseItemNode<T> & {
@@ -237,15 +230,13 @@ type BaseGroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
 export type DefaultGroupNode<T = unknown> = BaseGroupNode<T> & {
   variant: 'default'
   value?: never
-  defaultValue?: never
   onValueChange?: never
 }
 
 export type RadioGroupNode<T = unknown> = BaseGroupNode<T> & {
   variant: 'radio'
-  value?: string
-  defaultValue?: string
-  onValueChange?: (value: string) => void
+  value: string
+  onValueChange: (value: string) => void
 }
 
 export type GroupNode<T = unknown> = DefaultGroupNode<T> | RadioGroupNode<T>
@@ -335,15 +326,11 @@ function instantiateMenuFromDef<T>(
         variant,
         ...(variant === 'radio'
           ? {
-              value: groupDef.variant === 'radio' ? groupDef.value : undefined,
-              defaultValue:
-                groupDef.variant === 'radio'
-                  ? groupDef.defaultValue
-                  : undefined,
+              value: groupDef.variant === 'radio' ? groupDef.value : '',
               onValueChange:
                 groupDef.variant === 'radio'
                   ? groupDef.onValueChange
-                  : undefined,
+                  : () => {},
             }
           : {}),
       } as GroupNode<U>
@@ -862,8 +849,8 @@ const useKeyboardOpts = () => React.useContext(KeyboardCtx)
 
 /** Radio group context (for managing radio item selection within a group) */
 type RadioGroupContextValue = {
-  value: string | undefined
-  onValueChange: ((value: string) => void) | undefined
+  value: string
+  onValueChange: (value: string) => void
 }
 const RadioGroupContext = React.createContext<RadioGroupContextValue | null>(
   null,
@@ -2659,21 +2646,9 @@ function ItemRow<T>({
   // Radio group context (for group-level value management)
   const radioGroup = useRadioGroup()
 
-  // Checkbox state management (controlled/uncontrolled)
-  const [checked, setChecked] = useControllableState({
-    prop:
-      node.variant === 'checkbox'
-        ? (node as CheckboxItemNode).checked
-        : undefined,
-    defaultProp:
-      node.variant === 'checkbox'
-        ? ((node as CheckboxItemNode).defaultChecked ?? false)
-        : false,
-    onChange:
-      node.variant === 'checkbox'
-        ? (node as CheckboxItemNode).onCheckedChange
-        : undefined,
-  })
+  // Checkbox state (controlled only)
+  const checked =
+    node.variant === 'checkbox' ? (node as CheckboxItemNode).checked : false
 
   // For checkbox/radio, default to NOT closing; for button, respect the prop or default to false
   const defaultCloseOnSelect =
@@ -2684,10 +2659,10 @@ function ItemRow<T>({
   const handleSelect = React.useCallback(() => {
     if (node.variant === 'checkbox') {
       // Toggle checkbox state
-      setChecked(!checked)
+      ;(node as CheckboxItemNode).onCheckedChange(!checked)
     } else if (node.variant === 'radio') {
       if (radioGroup && node.value) {
-        radioGroup.onValueChange?.(node.value)
+        radioGroup.onValueChange(node.value)
       }
     }
 
@@ -2698,7 +2673,6 @@ function ItemRow<T>({
   }, [
     node.variant,
     checked,
-    setChecked,
     radioGroup,
     node,
     onSelect,
@@ -3034,62 +3008,6 @@ function ListView<T = unknown>({
   const surfaceId = useSurfaceId() ?? 'root'
   const mode = useDisplayMode()
 
-  // Controllable state management for radio groups
-  // Initialize uncontrolled state for groups that need it
-  const [uncontrolledGroupStates, setUncontrolledGroupStates] = React.useState<
-    Map<string, string>
-  >(() => {
-    const map = new Map<string, string>()
-    const initGroups = (nodes: Node<T>[]) => {
-      for (const node of nodes) {
-        if (node.kind === 'group' && node.variant === 'radio') {
-          // Only initialize if uncontrolled (no value prop)
-          if (node.value === undefined && node.defaultValue) {
-            map.set(node.id, node.defaultValue)
-          }
-        }
-      }
-    }
-    initGroups(menu.nodes)
-    return map
-  })
-
-  // Track previous controlled values to detect external changes
-  const prevControlledValuesRef = React.useRef<Map<string, string | undefined>>(
-    new Map(),
-  )
-
-  // Update uncontrolled state when controlled values change externally
-  React.useEffect(() => {
-    const prev = prevControlledValuesRef.current
-    const current = new Map<string, string | undefined>()
-
-    const checkNodes = (nodes: Node<T>[]) => {
-      for (const node of nodes) {
-        if (
-          node.kind === 'group' &&
-          node.variant === 'radio' &&
-          node.value !== undefined
-        ) {
-          current.set(node.id, node.value)
-          // If value changed externally and we were using uncontrolled, sync it
-          if (prev.get(node.id) !== node.value) {
-            setUncontrolledGroupStates((prevStates) => {
-              const next = new Map(prevStates)
-              if (node.value !== undefined) {
-                next.set(node.id, node.value)
-              }
-              return next
-            })
-          }
-        }
-      }
-    }
-
-    checkNodes(menu.nodes)
-    prevControlledValuesRef.current = current
-  }, [menu.nodes])
-
   const onKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
       if (ownerId !== surfaceId) return
@@ -3237,47 +3155,22 @@ function ListView<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
-  // Create enhanced state map for radio groups using controllable state pattern
+  // Create enhanced state map for radio groups (controlled only)
   const radioGroupEnhancedState = React.useMemo(() => {
     const map = new Map<
       string,
       {
-        value: string | undefined
-        onValueChange: ((value: string) => void) | undefined
+        value: string
+        onValueChange: (value: string) => void
       }
     >()
 
     const processNodes = (nodes: Node<T>[]) => {
       for (const node of nodes) {
         if (node.kind === 'group' && node.variant === 'radio') {
-          // Determine if this group is controlled or uncontrolled
-          const isControlled = node.value !== undefined
-
-          // Get the effective value (controlled value or uncontrolled state)
-          const effectiveValue = isControlled
-            ? node.value
-            : uncontrolledGroupStates.get(node.id)
-
-          // Create the change handler following controllable state pattern
-          const effectiveOnValueChange = (value: string) => {
-            // If controlled, call the provided onChange
-            if (node.onValueChange) {
-              node.onValueChange(value)
-            }
-
-            // Always update uncontrolled state (for uncontrolled components, this is the source of truth)
-            if (!isControlled) {
-              setUncontrolledGroupStates((prev) => {
-                const next = new Map(prev)
-                next.set(node.id, value)
-                return next
-              })
-            }
-          }
-
           map.set(node.id, {
-            value: effectiveValue,
-            onValueChange: effectiveOnValueChange,
+            value: node.value,
+            onValueChange: node.onValueChange,
           })
         }
       }
@@ -3285,7 +3178,7 @@ function ListView<T = unknown>({
 
     processNodes(menu.nodes)
     return map
-  }, [menu.nodes, uncontrolledGroupStates])
+  }, [menu.nodes])
 
   React.useLayoutEffect(() => {
     if (!q) return

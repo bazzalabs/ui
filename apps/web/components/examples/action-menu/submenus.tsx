@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
 export function ActionMenu_Submenus() {
+  const [fruit, setFruit] = useState<string>('apple')
+  const [vegetable, setVegetable] = useState<string>('carrot')
+  const [meat, setMeat] = useState<string>('beef')
+
   return (
     <ActionMenu
       trigger={<Button variant="secondary">Trigger</Button>}
@@ -29,39 +33,41 @@ export function ActionMenu_Submenus() {
                 kind: 'group',
                 variant: 'radio',
                 id: 'fruits-group',
+                value: fruit,
+                onValueChange: setFruit,
                 nodes: [
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Apple',
+                    id: 'apple',
                     label: 'Apple',
                     icon: '🍎',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Banana',
+                    id: 'banana',
                     label: 'Banana',
                     icon: '🍌',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Orange',
+                    id: 'orange',
                     label: 'Orange',
                     icon: '🍊',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Pineapple',
+                    id: 'pineapple',
                     label: 'Pineapple',
                     icon: '🍍',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Strawberry',
+                    id: 'strawberry',
                     label: 'Strawberry',
                     icon: '🍓',
                   },
@@ -78,32 +84,34 @@ export function ActionMenu_Submenus() {
                 kind: 'group',
                 variant: 'radio',
                 id: 'vegetables-group',
+                value: vegetable,
+                onValueChange: setVegetable,
                 nodes: [
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Carrot',
+                    id: 'carrot',
                     label: 'Carrot',
                     icon: '🥕',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Broccoli',
+                    id: 'broccoli',
                     label: 'Broccoli',
                     icon: '🥦',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Cauliflower',
+                    id: 'cauliflower',
                     label: 'Cauliflower',
                     icon: '🥐',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Tomato',
+                    id: 'tomato',
                     label: 'Tomato',
                     icon: '🍅',
                   },
@@ -120,32 +128,34 @@ export function ActionMenu_Submenus() {
                 kind: 'group',
                 variant: 'radio',
                 id: 'meats-group',
+                value: meat,
+                onValueChange: setMeat,
                 nodes: [
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Chicken',
+                    id: 'chicken',
                     label: 'Chicken',
                     icon: '🐔',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Beef',
+                    id: 'beef',
                     label: 'Beef',
                     icon: '🐮',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Pork',
+                    id: 'pork',
                     label: 'Pork',
                     icon: '🐷',
                   },
                   {
                     kind: 'item',
                     variant: 'radio',
-                    id: 'Lamb',
+                    id: 'lamb',
                     label: 'Lamb',
                     icon: '🐶',
                   },
