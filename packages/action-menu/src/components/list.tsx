@@ -2,7 +2,6 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { flat, isShallowEqual, partition, pipe, prop, sortBy } from 'remeda'
 import {
-  RadioGroupContext,
   useDisplayMode,
   useFocusOwner,
   useScopedTheme,
@@ -203,31 +202,6 @@ export function List<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
-  // Create enhanced state map for radio groups (controlled only)
-  const radioGroupEnhancedState = React.useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        value: string
-        onValueChange: (value: string) => void
-      }
-    >()
-
-    const processNodes = (nodes: Node<T>[]) => {
-      for (const node of nodes) {
-        if (node.kind === 'group' && node.variant === 'radio') {
-          map.set(node.id, {
-            value: node.value,
-            onValueChange: node.onValueChange,
-          })
-        }
-      }
-    }
-
-    processNodes(menu.nodes)
-    return map
-  }, [menu.nodes])
-
   React.useLayoutEffect(() => {
     if (!q) return
     store.first('keyboard')
@@ -367,27 +341,6 @@ export function List<T = unknown>({
           }
 
           if (node.kind === 'item') {
-            const group = node.group
-            const isRadioGroup = group?.variant === 'radio'
-            const enhancedGroupState =
-              isRadioGroup && group
-                ? radioGroupEnhancedState.get(group.id)
-                : undefined
-
-            const itemRow = (
-              <Item
-                ref={measureRow}
-                key={node.id}
-                virtualItem={virtualRow}
-                node={node}
-                slot={ItemSlot}
-                defaults={defaults?.item}
-                className={classNames?.item}
-                store={store}
-                search={node.search}
-              />
-            )
-
             return (
               <div
                 key={virtualRow.key}
@@ -402,18 +355,17 @@ export function List<T = unknown>({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                {isRadioGroup && enhancedGroupState ? (
-                  <RadioGroupContext.Provider
-                    value={{
-                      value: enhancedGroupState.value,
-                      onValueChange: enhancedGroupState.onValueChange,
-                    }}
-                  >
-                    {itemRow}
-                  </RadioGroupContext.Provider>
-                ) : (
-                  itemRow
-                )}
+                <Item
+                  ref={measureRow}
+                  key={node.id}
+                  virtualItem={virtualRow}
+                  node={node}
+                  slot={ItemSlot}
+                  defaults={defaults?.item}
+                  className={classNames?.item}
+                  store={store}
+                  search={node.search}
+                />
               </div>
             )
           }
@@ -465,7 +417,6 @@ export function List<T = unknown>({
       measureRow,
       defaults,
       classNames,
-      radioGroupEnhancedState,
     ],
   )
 

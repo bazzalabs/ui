@@ -5,7 +5,6 @@ import {
   closeSubmenuChain,
   useDisplayMode,
   useHoverPolicy,
-  useRadioGroup,
   useRootCtx,
   useSubCtx,
   useSurface,
@@ -64,9 +63,6 @@ export function Item<T>({
   const sub = useSubCtx()
   const onSelect = node.onSelect ?? defaults?.onSelect
 
-  // Radio group context (for group-level value management)
-  const radioGroup = useRadioGroup()
-
   // Checkbox state (controlled only)
   const checked =
     node.variant === 'checkbox' ? (node as CheckboxItemNode).checked : false
@@ -82,8 +78,8 @@ export function Item<T>({
       // Toggle checkbox state
       ;(node as CheckboxItemNode).onCheckedChange(!checked)
     } else if (node.variant === 'radio') {
-      if (radioGroup && node.value) {
-        radioGroup.onValueChange(node.value)
+      if (node.group?.variant === 'radio' && node.value) {
+        node.group.onValueChange(node.value)
       }
     }
 
@@ -91,17 +87,7 @@ export function Item<T>({
     if (closeOnSelect) {
       closeSubmenuChain(sub, root)
     }
-  }, [
-    node.variant,
-    checked,
-    radioGroup,
-    node,
-    onSelect,
-    search,
-    closeOnSelect,
-    sub,
-    root,
-  ])
+  }, [node.variant, checked, node, onSelect, search, closeOnSelect, sub, root])
 
   React.useEffect(() => {
     const el = ref.current
@@ -154,7 +140,7 @@ export function Item<T>({
       node.variant === 'checkbox'
         ? checked
         : node.variant === 'radio'
-          ? radioGroup?.value === node.value
+          ? node.group?.variant === 'radio' && node.group.value === node.value
           : undefined
 
     return {
@@ -188,7 +174,7 @@ export function Item<T>({
     focused,
     node.variant,
     checked,
-    radioGroup?.value,
+    node.group,
     (node as RadioItemNode).value,
     node.disabled,
     mode,
