@@ -57,19 +57,43 @@ export const Surface = React.forwardRef(function Surface<T>(
     () => surfaceIdProp ?? sub?.childSurfaceId ?? 'root',
     [surfaceIdProp, sub],
   )
+
+  // Initialize value state before menu (since menu depends on value for function loaders)
+  const [value, setValue] = useControllableState({
+    prop: (menuProp as MenuDef<T>).input?.value,
+    defaultProp: (menuProp as MenuDef<T>).input?.defaultValue ?? '',
+    onChange: (menuProp as MenuDef<T>).input?.onValueChange,
+  })
+
   const menu = React.useMemo<Menu<T>>(() => {
     if ((menuProp as any)?.surfaceId) return menuProp as Menu<T>
     // depth: root = 0, submenu = parent.depth + 1 (if you have access to parent via sub)
     const depth = sub ? 1 : 0
-    return instantiateMenuFromDef(menuProp as MenuDef<T>, surfaceId, depth)
+
+    // Resolve function loaders with current query context and open state
+    const resolvedMenuDef = { ...menuProp } as MenuDef<T>
+    if (typeof resolvedMenuDef.loader === 'function') {
+      resolvedMenuDef.loader = resolvedMenuDef.loader({ query: value, open })
+    }
+
+    return instantiateMenuFromDef(
+      resolvedMenuDef,
+      surfaceId,
+      depth,
+      value,
+      open,
+    )
   }, [
     menuProp,
     surfaceId,
     sub,
-    // Re-instantiate when async loader data changes
-    (menuProp as MenuDef<T>)?.loader?.data,
-    (menuProp as MenuDef<T>)?.loader?.isLoading,
-    (menuProp as MenuDef<T>)?.loader?.isError,
+    value,
+    open,
+    // Re-instantiate when async loader data changes (for static loaders)
+    (menuProp as MenuDef<T>)?.loader &&
+    typeof (menuProp as MenuDef<T>).loader !== 'function'
+      ? (menuProp as MenuDef<T>).loader
+      : undefined,
   ])
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
@@ -81,12 +105,6 @@ export const Surface = React.forwardRef(function Surface<T>(
     sub ? (sub.contentRef as any) : undefined,
   )
   const dir = getDir(dirProp)
-
-  const [value, setValue] = useControllableState({
-    prop: menu.input?.value,
-    defaultProp: menu.input?.defaultValue ?? '',
-    onChange: menu.input?.onValueChange,
-  })
 
   // Clear input on menu close
   const clearTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)

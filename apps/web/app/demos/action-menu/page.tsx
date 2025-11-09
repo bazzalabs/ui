@@ -27,6 +27,7 @@ export default function Page() {
             {/* Content here! */}
             <Examples.ActionMenu.AsyncBasic />
             <Examples.ActionMenu.AsyncSubmenus />
+            <Examples.ActionMenu.AsyncDeepSearch />
             {/* <Examples.ActionMenu.ItemDescriptions /> */}
             {/* <Examples.ActionMenu.AIModelSwitcher /> */}
             {/* <Examples.ActionMenu.Basic /> */}

@@ -20,15 +20,23 @@ export function instantiateMenuFromDef<T>(
   def: MenuDef<T>,
   surfaceId: string,
   depth: number,
+  query = '',
+  open = false,
 ): Menu<T> {
+  // Resolve function loaders with query context and open state
+  const resolvedLoader =
+    def.loader && typeof def.loader === 'function'
+      ? def.loader({ query, open })
+      : def.loader
+
   // Determine source of nodes: either static (sync) or from loader (async)
-  const sourceNodes = def.loader ? def.loader.data : def.nodes
-  const loadingState = def.loader
+  const sourceNodes = resolvedLoader ? resolvedLoader.data : def.nodes
+  const loadingState = resolvedLoader
     ? {
-        isLoading: def.loader.isLoading,
-        isError: def.loader.isError,
-        error: def.loader.error,
-        isFetching: def.loader.isFetching,
+        isLoading: resolvedLoader.isLoading,
+        isError: resolvedLoader.isError,
+        error: resolvedLoader.error,
+        isFetching: resolvedLoader.isFetching,
       }
     : undefined
 
@@ -110,6 +118,9 @@ export function instantiateMenuFromDef<T>(
     const subDef = d as SubmenuDef<any, any>
     const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
 
+    // Determine submenu open state (from state descriptor or default to false)
+    const subOpen = subDef.open?.value ?? false
+
     // ! In TSX, don't write instantiateMenuFromDef<any>(...)
     // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
     const child = instantiateMenuFromDef(
@@ -127,6 +138,8 @@ export function instantiateMenuFromDef<T>(
       } as MenuDef<any>,
       childSurfaceId,
       parent.depth + 1,
+      query,
+      subOpen,
     ) as Menu<any>
 
     const node: SubmenuNode<any, any> = {

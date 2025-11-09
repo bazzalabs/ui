@@ -1,8 +1,7 @@
 'use client'
 
 import type { ItemDef } from '@bazza-ui/action-menu'
-import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { createLoader } from '@bazza-ui/action-menu/react-query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -10,53 +9,34 @@ import { ActionMenu } from '@/registry/action-menu'
 import { LABEL_STYLES_BG, type TW_COLOR } from './kitchen-sink-01'
 
 export function ActionMenu_AsyncBasic() {
-  const [search, setSearch] = useState('')
-
-  const labelsQuery = useQuery({
-    queryKey: ['labels', search],
-    queryFn: () => fetchLabels(search),
-    retry: false,
-    select: (data) =>
-      data.map((label) => ({
-        kind: 'item' as const,
-        id: label.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
-        label: label.name,
-        keywords: [label.name],
-        icon: (
-          <div
-            className={cn(
-              'rounded-full !size-2.5',
-              LABEL_STYLES_BG[label.color as TW_COLOR],
-            )}
-          />
-        ),
-      })) as ItemDef[],
-  })
-
   return (
     <ActionMenu
       trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
-        input: {
-          value: search,
-          onValueChange: setSearch,
-        },
-        loader: labelsQuery,
+        loader: createLoader(({ query }) => ({
+          queryKey: ['labels', query],
+          queryFn: () => fetchLabels(query),
+          retry: false,
+          select: (data) =>
+            data.map((label) => ({
+              kind: 'item' as const,
+              id: label.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
+              label: label.name,
+              keywords: [label.name],
+              icon: (
+                <div
+                  className={cn(
+                    'rounded-full !size-2.5',
+                    LABEL_STYLES_BG[label.color as TW_COLOR],
+                  )}
+                />
+              ),
+            })) as ItemDef[],
+        })),
       }}
     />
   )
-}
-
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-
-  return debouncedValue
 }
 
 const LABELS = [

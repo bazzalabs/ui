@@ -48,8 +48,8 @@ export function List<T = unknown>(props: ListProps<T>) {
   const { slots } = useScopedTheme<T>()
   const { menu } = props
 
-  // Handle loading state
-  if (menu.loadingState?.isLoading && !menu.loader?.data) {
+  // Handle loading state (initial load without data)
+  if (menu.loadingState?.isLoading && menu.nodes.length === 0) {
     const LoadingSlot = slots.Loading
     if (LoadingSlot) {
       return LoadingSlot({
@@ -66,7 +66,7 @@ export function List<T = unknown>(props: ListProps<T>) {
     if (ErrorSlot) {
       return ErrorSlot({
         menu,
-        error: menu.loadingState.error,
+        error: menu.loadingState.error ?? undefined,
       }) as React.ReactElement
     }
     return null

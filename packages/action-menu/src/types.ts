@@ -42,10 +42,19 @@ export type MenuState = {
 }
 
 /**
- * Async node loader interface compatible with TanStack Query and similar libraries.
- * Used to load menu nodes asynchronously.
+ * Context provided to async node loader functions.
  */
-export type AsyncNodeLoader<T = unknown> = {
+export type AsyncNodeLoaderContext = {
+  /** The current search query string. */
+  query: string
+  /** Whether the menu/submenu is currently open. */
+  open: boolean
+}
+
+/**
+ * Async node loader result interface compatible with TanStack Query and similar libraries.
+ */
+export type AsyncNodeLoaderResult<T = unknown> = {
   /** The loaded nodes (undefined while loading, array when loaded). */
   data?: NodeDef<T>[]
   /** Whether the initial load is in progress. */
@@ -57,6 +66,18 @@ export type AsyncNodeLoader<T = unknown> = {
   /** Whether data is being refetched (after initial load). */
   isFetching?: boolean
 }
+
+/**
+ * Async node loader interface compatible with TanStack Query and similar libraries.
+ * Used to load menu nodes asynchronously.
+ *
+ * Can be either:
+ * - A static loader result object (for manual query control)
+ * - A function that receives context and returns a loader result (for automatic query reactivity)
+ */
+export type AsyncNodeLoader<T = unknown> =
+  | AsyncNodeLoaderResult<T>
+  | ((context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult<T>)
 
 export type MenuDef<T = unknown> = MenuState & {
   id: string

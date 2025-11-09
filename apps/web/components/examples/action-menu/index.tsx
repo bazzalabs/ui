@@ -1,5 +1,6 @@
 import { ActionMenu_AIModelSwitcher } from './ai-model-switcher'
 import { ActionMenu_AsyncBasic } from './async-basic'
+import { ActionMenu_AsyncDeepSearch } from './async-deep-search'
 import { ActionMenu_AsyncSubmenus } from './async-submenus'
 import { ActionMenu_Basic } from './basic'
 import { ActionMenu_CheckboxItems } from './checkbox-items'
@@ -30,6 +31,7 @@ export const ActionMenu = {
   /** Async */
   AsyncBasic: ActionMenu_AsyncBasic,
   AsyncSubmenus: ActionMenu_AsyncSubmenus,
+  AsyncDeepSearch: ActionMenu_AsyncDeepSearch,
   /***** Kitchen sink examples *****/
   KitchenSink01: ActionMenu_KitchenSink01,
   Notion: ActionMenu_Notion,

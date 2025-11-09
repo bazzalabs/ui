@@ -1,0 +1,177 @@
+'use client'
+
+import type { ItemDef, SubmenuDef } from '@bazza-ui/action-menu'
+import { createLoader } from '@bazza-ui/action-menu/react-query'
+import { sleep } from '@/app/demos/server/tst-query/_/utils'
+import { Button } from '@/components/ui/button'
+import { ActionMenu } from '@/registry/action-menu'
+
+/**
+ * This example demonstrates deep search across multiple async submenus
+ * using the createLoader API from @bazza-ui/action-menu/react-query.
+ *
+ * Benefits of the createLoader approach:
+ * - No need to manually manage search state
+ * - Query keys automatically update with the search query
+ * - Access to `open` state for conditional loading
+ * - Follows React's Rules of Hooks correctly
+ * - Cleaner, more declarative code
+ * - Each submenu's loader is self-contained
+ * - No direct hook calls in loader definitions
+ */
+export function ActionMenu_AsyncDeepSearch() {
+  const submenus: SubmenuDef[] = [
+    {
+      kind: 'submenu',
+      id: 'fruits',
+      label: 'Fruits',
+      icon: '🍎',
+      title: 'Fruits',
+      // createLoader receives context and returns React Query config
+      loader: createLoader(({ query, open }) => ({
+        queryKey: ['fruits', query],
+        queryFn: () => fetchFruits(query),
+        retry: false,
+        enabled: open, // Only fetch when submenu is open
+      })),
+    },
+    {
+      kind: 'submenu',
+      id: 'vegetables',
+      label: 'Vegetables',
+      icon: '🥕',
+      title: 'Vegetables',
+      loader: createLoader(({ query, open }) => ({
+        queryKey: ['vegetables', query],
+        queryFn: () => fetchVegetables(query),
+        retry: false,
+        enabled: open,
+      })),
+    },
+    {
+      kind: 'submenu',
+      id: 'meats',
+      label: 'Meats',
+      icon: '🥩',
+      title: 'Meats',
+      loader: createLoader(({ query, open }) => ({
+        queryKey: ['meats', query],
+        queryFn: () => fetchMeats(query),
+        retry: false,
+        enabled: open,
+      })),
+    },
+  ]
+
+  return (
+    <ActionMenu
+      trigger={<Button variant="secondary">Food Menu (Deep Search)</Button>}
+      menu={{
+        id: 'root',
+        inputPlaceholder: 'Search all categories...',
+        nodes: submenus,
+      }}
+    />
+  )
+}
+
+// Mock data and fetch functions
+
+const FRUITS = [
+  { id: '1', name: 'Apple', color: 'red', emoji: '🍎' },
+  { id: '2', name: 'Banana', color: 'yellow', emoji: '🍌' },
+  { id: '3', name: 'Orange', color: 'orange', emoji: '🍊' },
+  { id: '4', name: 'Grape', color: 'purple', emoji: '🍇' },
+  { id: '5', name: 'Strawberry', color: 'red', emoji: '🍓' },
+  { id: '6', name: 'Watermelon', color: 'green', emoji: '🍉' },
+  { id: '7', name: 'Pineapple', color: 'yellow', emoji: '🍍' },
+  { id: '8', name: 'Mango', color: 'orange', emoji: '🥭' },
+  { id: '9', name: 'Peach', color: 'pink', emoji: '🍑' },
+  { id: '10', name: 'Cherry', color: 'red', emoji: '🍒' },
+]
+
+const VEGETABLES = [
+  { id: '11', name: 'Carrot', color: 'orange', emoji: '🥕' },
+  { id: '12', name: 'Broccoli', color: 'green', emoji: '🥦' },
+  { id: '13', name: 'Spinach', color: 'green', emoji: '🥬' },
+  { id: '14', name: 'Tomato', color: 'red', emoji: '🍅' },
+  { id: '15', name: 'Cucumber', color: 'green', emoji: '🥒' },
+  { id: '16', name: 'Bell Pepper', color: 'red', emoji: '🫑' },
+  { id: '17', name: 'Lettuce', color: 'green', emoji: '🥗' },
+  { id: '18', name: 'Onion', color: 'purple', emoji: '🧅' },
+  { id: '19', name: 'Garlic', color: 'white', emoji: '🧄' },
+  { id: '20', name: 'Potato', color: 'yellow', emoji: '🥔' },
+]
+
+const MEATS = [
+  { id: '21', name: 'Chicken', color: 'yellow', emoji: '🍗' },
+  { id: '22', name: 'Beef', color: 'red', emoji: '🥩' },
+  { id: '23', name: 'Pork', color: 'pink', emoji: '🥓' },
+  { id: '24', name: 'Turkey', color: 'brown', emoji: '🦃' },
+  { id: '25', name: 'Lamb', color: 'red', emoji: '🍖' },
+  { id: '26', name: 'Duck', color: 'brown', emoji: '🦆' },
+  { id: '27', name: 'Fish', color: 'blue', emoji: '🐟' },
+  { id: '28', name: 'Shrimp', color: 'pink', emoji: '🦐' },
+  { id: '29', name: 'Bacon', color: 'red', emoji: '🥓' },
+  { id: '30', name: 'Sausage', color: 'brown', emoji: '🌭' },
+]
+
+async function fetchFruits(search?: string): Promise<ItemDef[]> {
+  // Simulate network delay
+  await sleep(800)
+
+  const filtered = search
+    ? FRUITS.filter((fruit) =>
+        fruit.name.toLowerCase().includes(search.toLowerCase()),
+      )
+    : FRUITS
+
+  return filtered.map((fruit) => ({
+    kind: 'item' as const,
+    id: fruit.id,
+    label: fruit.name,
+    keywords: [fruit.name.toLowerCase()],
+    icon: fruit.emoji,
+    onSelect: () => console.log('Selected:', fruit.name),
+  }))
+}
+
+async function fetchVegetables(search?: string): Promise<ItemDef[]> {
+  // Simulate different network delay
+  await sleep(1200)
+
+  const filtered = search
+    ? VEGETABLES.filter((veg) =>
+        veg.name.toLowerCase().includes(search.toLowerCase()),
+      )
+    : VEGETABLES
+
+  return filtered.map((veg) => ({
+    kind: 'item' as const,
+    id: veg.id,
+    label: veg.name,
+    keywords: [veg.name.toLowerCase()],
+    icon: veg.emoji,
+    onSelect: () => console.log('Selected:', veg.name),
+  }))
+}
+
+async function fetchMeats(search?: string): Promise<ItemDef[]> {
+  // Simulate yet another network delay
+  await sleep(1000)
+
+  const filtered = search
+    ? MEATS.filter((meat) =>
+        meat.name.toLowerCase().includes(search.toLowerCase()),
+      )
+    : MEATS
+
+  return filtered.map((meat) => ({
+    kind: 'item' as const,
+    id: meat.id,
+    label: meat.name,
+    keywords: [meat.name.toLowerCase()],
+    icon: meat.emoji,
+    onSelect: () => console.log('Selected:', meat.name),
+  }))
+}
