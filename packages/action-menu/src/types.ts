@@ -58,6 +58,9 @@ export type MenuDef<T = unknown> = MenuState & {
 
 export type ItemVariant = 'button' | 'checkbox' | 'radio'
 
+// biome-ignore lint/suspicious/noEmptyInterface: to be extended
+export interface ItemExtendedProperties {}
+
 export type BaseItemDef<T = unknown> = BaseDef<'item'> &
   Searchable & {
     icon?: Iconish
@@ -74,7 +77,7 @@ export type BaseItemDef<T = unknown> = BaseDef<'item'> &
       mode: Omit<ResponsiveMode, 'auto'>
       bind: RowBindAPI
     }) => React.ReactNode
-  }
+  } & ItemExtendedProperties
 
 export type ButtonItemDef<T = unknown> = BaseItemDef<T> & {
   /** The visual/behavioral variant of this item. Defaults to 'button'. */

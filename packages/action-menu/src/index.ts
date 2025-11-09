@@ -15,6 +15,7 @@ export type {
 // Menu model types
 export type {
   MenuDef,
+  NodeDef,
   GroupDef,
   DefaultGroupDef,
   RadioGroupDef,
@@ -22,8 +23,10 @@ export type {
   ButtonItemDef,
   CheckboxItemDef,
   RadioItemDef,
+  ItemExtendedProperties,
   SubmenuDef,
   Menu,
+  Node,
   GroupNode,
   DefaultGroupNode,
   RadioGroupNode,
@@ -56,3 +59,4 @@ export type {
 export { renderIcon } from './lib/react-utils.js'
 export { defaultSlots } from './lib/slots.js'
 export { createActionMenu } from './create-action-menu.js'
+export { flatten } from './lib/menu-utils.js'

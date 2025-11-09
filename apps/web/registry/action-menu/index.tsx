@@ -43,6 +43,12 @@ export const LabelWithBreadcrumbs = ({
   </div>
 )
 
+declare module '@bazza-ui/action-menu' {
+  interface ItemExtendedProperties {
+    description?: string
+  }
+}
+
 export const ActionMenu = createActionMenu({
   slots: {
     GroupHeading: ({ node, bind }) => (
@@ -53,7 +59,7 @@ export const ActionMenu = createActionMenu({
 
     Item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
-        className: 'group/row',
+        className: cn('group/row', node.description && 'gap-3'),
       })
 
       const isRadioItem = node.group && node.group.variant === 'radio'
@@ -78,10 +84,17 @@ export const ActionMenu = createActionMenu({
               )}
             </div>
           )}
-          <LabelWithBreadcrumbs
-            label={node.label ?? ''}
-            breadcrumbs={search?.breadcrumbs}
-          />
+          <div className="flex flex-col">
+            <LabelWithBreadcrumbs
+              label={node.label ?? ''}
+              breadcrumbs={search?.breadcrumbs}
+            />
+            {node.description && (
+              <span className="text-muted-foreground text-xs">
+                {node.description}
+              </span>
+            )}
+          </div>
           {isRadioChecked && <CheckIcon className="size-4 ml-auto" />}
         </li>
       )
