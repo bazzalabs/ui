@@ -1,4 +1,5 @@
 import { ActionMenu_AIModelSwitcher } from './ai-model-switcher'
+import { ActionMenu_AsyncBasic } from './async-basic'
 import { ActionMenu_Basic } from './basic'
 import { ActionMenu_CheckboxItems } from './checkbox-items'
 import { ActionMenu_DisabledItems } from './disabled-items'
@@ -25,6 +26,7 @@ export const ActionMenu = {
   SubmenusDeep: ActionMenu_SubmenusDeep,
   SubmenusCustomized: ActionMenu_SubmenusCustomized,
   HeaderFooter: ActionMenu_HeaderFooter,
+  AsyncBasic: ActionMenu_AsyncBasic,
   /***** Kitchen sink examples *****/
   KitchenSink01: ActionMenu_KitchenSink01,
   Notion: ActionMenu_Notion,

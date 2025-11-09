@@ -5,17 +5,33 @@ import type {
   ItemNode,
   Menu,
   MenuDef,
+  MenuNodeDefaults,
   Node,
   NodeDef,
   SubmenuDef,
   SubmenuNode,
 } from '../types.js'
 
+/* ================================================================================================
+ * Menu Instantiation Function
+ * ============================================================================================== */
+
 export function instantiateMenuFromDef<T>(
   def: MenuDef<T>,
   surfaceId: string,
   depth: number,
 ): Menu<T> {
+  // Determine source of nodes: either static (sync) or from loader (async)
+  const sourceNodes = def.loader ? def.loader.data : def.nodes
+  const loadingState = def.loader
+    ? {
+        isLoading: def.loader.isLoading,
+        isError: def.loader.isError,
+        error: def.loader.error,
+        isFetching: def.loader.isFetching,
+      }
+    : undefined
+
   const parentless: Menu<T> = {
     id: def.id,
     title: def.title,
@@ -27,6 +43,9 @@ export function instantiateMenuFromDef<T>(
     surfaceId,
     depth,
     input: def.input,
+    open: def.open,
+    loader: def.loader,
+    loadingState,
   }
 
   function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
@@ -91,6 +110,8 @@ export function instantiateMenuFromDef<T>(
     const subDef = d as SubmenuDef<any, any>
     const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
 
+    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
+    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
     const child = instantiateMenuFromDef(
       {
         id: subDef.id,
@@ -98,9 +119,11 @@ export function instantiateMenuFromDef<T>(
         inputPlaceholder: subDef.inputPlaceholder,
         hideSearchUntilActive: subDef.hideSearchUntilActive,
         nodes: subDef.nodes as NodeDef<any>[],
-        defaults: subDef.defaults,
-        ui: subDef.ui,
+        loader: subDef.loader,
+        defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
+        ui: subDef.ui as MenuDef<any>['ui'],
         input: subDef.input,
+        open: subDef.open,
       } as MenuDef<any>,
       childSurfaceId,
       parent.depth + 1,
@@ -118,9 +141,10 @@ export function instantiateMenuFromDef<T>(
     return node as Node<U>
   }
 
-  parentless.nodes = (def.nodes ?? []).map((n) =>
+  parentless.nodes = (sourceNodes ?? []).map((n) =>
     inst(n as any, parentless),
   ) as any
+
   return parentless
 }
 

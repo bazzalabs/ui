@@ -42,12 +42,32 @@ export type MenuState = {
   open?: StateDescriptor<boolean>
 }
 
+/**
+ * Async node loader interface compatible with TanStack Query and similar libraries.
+ * Used to load menu nodes asynchronously.
+ */
+export type AsyncNodeLoader<T = unknown> = {
+  /** The loaded nodes (undefined while loading, array when loaded). */
+  data?: NodeDef<T>[]
+  /** Whether the initial load is in progress. */
+  isLoading?: boolean
+  /** Error object if loading failed. */
+  error?: Error
+  /** Whether an error occurred. */
+  isError?: boolean
+  /** Whether data is being refetched (after initial load). */
+  isFetching?: boolean
+}
+
 export type MenuDef<T = unknown> = MenuState & {
   id: string
   title?: string
   inputPlaceholder?: string
   hideSearchUntilActive?: boolean
+  /** Static nodes (sync mode). Mutually exclusive with `loader`. */
   nodes?: NodeDef<T>[]
+  /** Async node loader (async mode). Mutually exclusive with `nodes`. */
+  loader?: AsyncNodeLoader<T>
   defaults?: MenuNodeDefaults<T>
   ui?: {
     slots?: Partial<ActionMenuSlots<T>>
@@ -132,7 +152,10 @@ export type GroupDef<T = unknown> = DefaultGroupDef<T> | RadioGroupDef<T>
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
   Searchable &
   MenuState & {
+    /** Static nodes (sync mode). Mutually exclusive with `loader`. */
     nodes?: NodeDef<TChild>[]
+    /** Async node loader (async mode). Mutually exclusive with `nodes`. */
+    loader?: AsyncNodeLoader<TChild>
     data?: T
     disabled?: boolean
     icon?: Iconish
@@ -152,6 +175,13 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
   nodes: Node<T>[]
   surfaceId: string
   depth: number
+  /** Loading state metadata (present when menu is in async mode). */
+  loadingState?: {
+    isLoading?: boolean
+    isError?: boolean
+    error?: Error
+    isFetching?: boolean
+  }
 }
 
 /** Additional context passed to item/submenu renderers during search. */
@@ -423,7 +453,12 @@ export type SurfaceSlots<T = unknown> = {
     bind: InputBindAPI
   }) => React.ReactNode
   List: (args: ListSlotProps<T>) => React.ReactNode
+  /** Shown when no nodes are available after loading completes. */
   Empty?: (args: { query: string }) => React.ReactNode
+  /** Shown during initial async load (when isLoading && !data). */
+  Loading?: (args: { menu: Menu<T>; isFetching?: boolean }) => React.ReactNode
+  /** Shown when async load fails (when isError). */
+  Error?: (args: { menu: Menu<T>; error?: Error }) => React.ReactNode
   Item: (args: ItemSlotProps<T>) => React.ReactNode
   SubmenuTrigger: (args: {
     node: SubmenuNode<T>
@@ -614,123 +649,4 @@ export type SubContextValue = {
 export type FocusOwnerCtxValue = {
   ownerId: string | null
   setOwnerId: (id: string | null) => void
-}
-
-/* ================================================================================================
- * Menu Instantiation Function
- * ============================================================================================== */
-
-export function instantiateMenuFromDef<T>(
-  def: MenuDef<T>,
-  surfaceId: string,
-  depth: number,
-): Menu<T> {
-  const parentless: Menu<T> = {
-    id: def.id,
-    title: def.title,
-    inputPlaceholder: def.inputPlaceholder,
-    hideSearchUntilActive: def.hideSearchUntilActive,
-    defaults: def.defaults,
-    ui: def.ui,
-    nodes: [] as Node<T>[],
-    surfaceId,
-    depth,
-    input: def.input,
-  }
-
-  function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
-    if (d.kind === 'item') {
-      const itemDef = d as ItemDef<U>
-      const variant = itemDef.variant ?? 'button'
-
-      const node: ItemNode<U> = {
-        ...itemDef,
-        variant,
-        kind: 'item',
-        parent,
-        def: itemDef,
-        ...(variant === 'radio'
-          ? {
-              value:
-                itemDef.variant === 'radio' ? (itemDef.value ?? d.id) : d.id,
-            }
-          : {}),
-      } as ItemNode<U>
-
-      return node
-    }
-
-    if (d.kind === 'group') {
-      const groupDef = d as GroupDef<U>
-      const children = (d.nodes ?? []).map((c) =>
-        inst<any>(c as NodeDef<any>, parent),
-      )
-
-      const variant = groupDef.variant ?? 'default'
-
-      const node: GroupNode<U> = {
-        id: d.id,
-        kind: 'group',
-        hidden: d.hidden,
-        parent,
-        def: groupDef,
-        heading: groupDef.heading,
-        nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
-        variant,
-        ...(variant === 'radio'
-          ? {
-              value: groupDef.variant === 'radio' ? groupDef.value : '',
-              onValueChange:
-                groupDef.variant === 'radio'
-                  ? groupDef.onValueChange
-                  : () => {},
-            }
-          : {}),
-      } as GroupNode<U>
-
-      // For groups, set group reference on all child nodes
-      for (const child of node.nodes) {
-        child.group = node
-      }
-
-      return node
-    }
-
-    // submenu
-    const subDef = d as SubmenuDef<any, any>
-    const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
-
-    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
-    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
-    const child = instantiateMenuFromDef(
-      {
-        id: subDef.id,
-        title: subDef.title,
-        inputPlaceholder: subDef.inputPlaceholder,
-        hideSearchUntilActive: subDef.hideSearchUntilActive,
-        nodes: subDef.nodes as NodeDef<any>[],
-        defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
-        ui: subDef.ui as MenuDef<any>['ui'],
-        input: subDef.input,
-      } as MenuDef<any>,
-      childSurfaceId,
-      parent.depth + 1,
-    ) as Menu<any>
-
-    const node: SubmenuNode<any, any> = {
-      ...(subDef as SubmenuDef<any, any>),
-      kind: 'submenu',
-      parent,
-      def: d,
-      child,
-      nodes: child.nodes,
-    }
-
-    return node as Node<U>
-  }
-
-  parentless.nodes = (def.nodes ?? []).map((n) =>
-    inst(n as any, parentless),
-  ) as any
-  return parentless
 }

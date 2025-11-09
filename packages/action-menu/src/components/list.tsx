@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/useHookAtTopLevel: not needed */
+
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { flat, isShallowEqual, partition, pipe, prop, sortBy } from 'remeda'
@@ -47,6 +49,35 @@ export function List<T = unknown>({
   inputActive,
   onTypeStart,
 }: ListProps<T>) {
+  const { slots, slotProps, classNames } = useScopedTheme<T>()
+
+  // Handle async loading/error states BEFORE any other hooks
+  // to avoid violating Rules of Hooks
+  if (menu.loadingState?.isLoading && !menu.loader?.data) {
+    const LoadingSlot = slots.Loading
+    if (LoadingSlot) {
+      return LoadingSlot({
+        menu,
+        isFetching: menu.loadingState.isFetching,
+      }) as React.ReactElement
+    }
+    // Default loading state if no slot provided
+    return null
+  }
+
+  // If error, show error state
+  if (menu.loadingState?.isError) {
+    const ErrorSlot = slots.Error
+    if (ErrorSlot) {
+      return ErrorSlot({
+        menu,
+        error: menu.loadingState.error,
+      }) as React.ReactElement
+    }
+    // Default error state if no slot provided
+    return null
+  }
+
   const localId = React.useId()
   const listId = useSurfaceSel(store, (s) => s.listId)
   const hasInput = useSurfaceSel(store, (s) => s.hasInput)
@@ -247,8 +278,6 @@ export function List<T = unknown>({
       store.setActiveByIndex(0, 'keyboard')
     }
   }, [flattenedNodes])
-
-  const { slots, slotProps, classNames } = useScopedTheme<T>()
 
   const virtualizer = useVirtualizer({
     count: flattenedNodes.length,

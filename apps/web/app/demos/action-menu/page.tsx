@@ -25,8 +25,9 @@ export default function Page() {
         <div className="px-4 py-2 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x flex-1 flex flex-col">
           <div className="flex flex-col gap-8 p-8 flex-1 w-fit">
             {/* Content here! */}
-            <Examples.ActionMenu.ItemDescriptions />
-            <Examples.ActionMenu.AIModelSwitcher />
+            <Examples.ActionMenu.AsyncBasic />
+            {/* <Examples.ActionMenu.ItemDescriptions /> */}
+            {/* <Examples.ActionMenu.AIModelSwitcher /> */}
             {/* <Examples.ActionMenu.Basic /> */}
             {/* <Examples.ActionMenu.Submenus /> */}
             {/* <Examples.ActionMenu.KitchenSink01 /> */}

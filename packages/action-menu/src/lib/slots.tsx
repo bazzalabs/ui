@@ -23,6 +23,16 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
         No results{query ? ` for "${query}"` : ''}.
       </div>
     ),
+    Loading: ({ isFetching }) => (
+      <div data-slot="action-menu-loading">
+        {isFetching ? 'Refreshing...' : 'Loading...'}
+      </div>
+    ),
+    Error: ({ error }) => (
+      <div data-slot="action-menu-error">
+        Error: {error?.message ?? 'Failed to load items'}
+      </div>
+    ),
     Item: ({ node, bind }) => {
       const props = bind.getRowProps()
       const variant = node.variant ?? 'button'

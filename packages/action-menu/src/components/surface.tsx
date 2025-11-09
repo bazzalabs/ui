@@ -62,7 +62,15 @@ export const Surface = React.forwardRef(function Surface<T>(
     // depth: root = 0, submenu = parent.depth + 1 (if you have access to parent via sub)
     const depth = sub ? 1 : 0
     return instantiateMenuFromDef(menuProp as MenuDef<T>, surfaceId, depth)
-  }, [menuProp, surfaceId, sub])
+  }, [
+    menuProp,
+    surfaceId,
+    sub,
+    // Re-instantiate when async loader data changes
+    (menuProp as MenuDef<T>)?.loader?.data,
+    (menuProp as MenuDef<T>)?.loader?.isLoading,
+    (menuProp as MenuDef<T>)?.loader?.isError,
+  ])
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId

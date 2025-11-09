@@ -3,8 +3,8 @@ import {
   defaultSlots,
   renderIcon,
 } from '@bazza-ui/action-menu'
-import { CheckIcon, ChevronRightIcon } from 'lucide-react'
-import { Fragment } from 'react'
+import { CheckIcon, ChevronRightIcon, Loader2Icon } from 'lucide-react'
+import { Fragment, useEffect, useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +24,50 @@ const TriangleRightIcon = ({
     </svg>
   )
 }
+
+const AnimatedLoader = ({
+  className,
+  ...props
+}: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    className={cn('fill-muted-foreground size-6', className)}
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <rect x="1" y="4" width="6" height="14" opacity="1">
+      {/** biome-ignore lint/correctness/useUniqueElementIds: <explanation> */}
+      <animate
+        id="spinner_rQ7m"
+        begin="0;spinner_2dMV.end-0.25s"
+        attributeName="opacity"
+        dur="0.75s"
+        values="1;.2"
+        fill="freeze"
+      />
+    </rect>
+    <rect x="9" y="4" width="6" height="14" opacity=".4">
+      <animate
+        begin="spinner_rQ7m.begin+0.15s"
+        attributeName="opacity"
+        dur="0.75s"
+        values="1;.2"
+        fill="freeze"
+      />
+    </rect>
+    <rect x="17" y="4" width="6" height="14" opacity=".3">
+      {/** biome-ignore lint/correctness/useUniqueElementIds: <explanation> */}
+      <animate
+        id="spinner_2dMV"
+        begin="spinner_rQ7m.begin+0.3s"
+        attributeName="opacity"
+        dur="0.75s"
+        values="1;.2"
+        fill="freeze"
+      />
+    </rect>
+  </svg>
+)
 
 export const LabelWithBreadcrumbs = ({
   label,
@@ -77,20 +121,20 @@ export const ActionMenu = createActionMenu({
           )}
 
           {node.icon && (
-            <div className="size-4 flex items-center justify-center">
+            <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
               {renderIcon(
                 node.icon,
                 'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
               )}
             </div>
           )}
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <LabelWithBreadcrumbs
               label={node.label ?? ''}
               breadcrumbs={search?.breadcrumbs}
             />
             {node.description && (
-              <span className="text-muted-foreground text-xs">
+              <span className="text-muted-foreground text-xs truncate">
                 {node.description}
               </span>
             )}
@@ -122,6 +166,14 @@ export const ActionMenu = createActionMenu({
           </div>
           <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out shrink-0" />
         </li>
+      )
+    },
+    Loading: () => {
+      return (
+        <div className="flex items-center justify-center gap-2 h-10 text-muted-foreground ">
+          <AnimatedLoader className="size-5" />
+          <span>Loading...</span>
+        </div>
       )
     },
     Empty: ({ query }) =>
