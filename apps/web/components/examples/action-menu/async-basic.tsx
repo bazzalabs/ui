@@ -2,7 +2,7 @@
 
 import type { ItemDef } from '@bazza-ui/action-menu'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -15,6 +15,7 @@ export function ActionMenu_AsyncBasic() {
   const labelsQuery = useQuery({
     queryKey: ['labels', search],
     queryFn: () => fetchLabels(search),
+    retry: false,
     select: (data) =>
       data.map((label) => ({
         kind: 'item' as const,
@@ -45,6 +46,17 @@ export function ActionMenu_AsyncBasic() {
       }}
     />
   )
+}
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+
+  return debouncedValue
 }
 
 const LABELS = [
@@ -513,7 +525,11 @@ const LABELS = [
 ]
 
 export async function fetchLabels(search?: string) {
-  await sleep(750)
+  await sleep(1000)
+
+  // if (Math.random() > 0.5) {
+  //   throw new Error('Failed to fetch labels')
+  // }
 
   if (!search) return LABELS.slice(0, 20)
 

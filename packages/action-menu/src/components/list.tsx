@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/correctness/useHookAtTopLevel: not needed */
-
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { flat, isShallowEqual, partition, pipe, prop, sortBy } from 'remeda'
@@ -41,18 +39,16 @@ interface ListProps<T> {
   onTypeStart: (seed: string) => void
 }
 
-export function List<T = unknown>({
-  store,
-  menu,
-  defaults,
-  query,
-  inputActive,
-  onTypeStart,
-}: ListProps<T>) {
-  const { slots, slotProps, classNames } = useScopedTheme<T>()
+/**
+ * Wrapper component that handles loading/error states before rendering the main list.
+ * This ensures we don't violate React's Rules of Hooks by returning early before
+ * all hooks in ListContent are called.
+ */
+export function List<T = unknown>(props: ListProps<T>) {
+  const { slots } = useScopedTheme<T>()
+  const { menu } = props
 
-  // Handle async loading/error states BEFORE any other hooks
-  // to avoid violating Rules of Hooks
+  // Handle loading state
   if (menu.loadingState?.isLoading && !menu.loader?.data) {
     const LoadingSlot = slots.Loading
     if (LoadingSlot) {
@@ -61,11 +57,10 @@ export function List<T = unknown>({
         isFetching: menu.loadingState.isFetching,
       }) as React.ReactElement
     }
-    // Default loading state if no slot provided
     return null
   }
 
-  // If error, show error state
+  // Handle error state
   if (menu.loadingState?.isError) {
     const ErrorSlot = slots.Error
     if (ErrorSlot) {
@@ -74,9 +69,25 @@ export function List<T = unknown>({
         error: menu.loadingState.error,
       }) as React.ReactElement
     }
-    // Default error state if no slot provided
     return null
   }
+
+  return <ListContent {...props} />
+}
+
+/**
+ * Main list component with all hooks called unconditionally.
+ * This component is only rendered when we're not in loading/error states.
+ */
+function ListContent<T = unknown>({
+  store,
+  menu,
+  defaults,
+  query,
+  inputActive,
+  onTypeStart,
+}: ListProps<T>) {
+  const { slots, slotProps, classNames } = useScopedTheme<T>()
 
   const localId = React.useId()
   const listId = useSurfaceSel(store, (s) => s.listId)

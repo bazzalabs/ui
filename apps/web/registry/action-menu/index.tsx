@@ -3,8 +3,8 @@ import {
   defaultSlots,
   renderIcon,
 } from '@bazza-ui/action-menu'
-import { CheckIcon, ChevronRightIcon, Loader2Icon } from 'lucide-react'
-import { Fragment, useEffect, useState } from 'react'
+import { CheckIcon, ChevronRightIcon } from 'lucide-react'
+import { Fragment } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
@@ -170,7 +170,7 @@ export const ActionMenu = createActionMenu({
     },
     Loading: () => {
       return (
-        <div className="flex items-center justify-center gap-2 h-10 text-muted-foreground ">
+        <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground ">
           <AnimatedLoader className="size-5" />
           <span>Loading...</span>
         </div>

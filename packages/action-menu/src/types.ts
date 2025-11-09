@@ -1,7 +1,6 @@
 import type { Primitive } from '@radix-ui/react-primitive'
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual'
 import type * as React from 'react'
-import type { ClassNameValue } from 'tailwind-merge'
 import type { Drawer } from 'vaul'
 
 /* ================================================================================================
@@ -52,7 +51,7 @@ export type AsyncNodeLoader<T = unknown> = {
   /** Whether the initial load is in progress. */
   isLoading?: boolean
   /** Error object if loading failed. */
-  error?: Error
+  error?: Error | null
   /** Whether an error occurred. */
   isError?: boolean
   /** Whether data is being refetched (after initial load). */
@@ -179,7 +178,7 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
   loadingState?: {
     isLoading?: boolean
     isError?: boolean
-    error?: Error
+    error?: Error | null
     isFetching?: boolean
   }
 }
