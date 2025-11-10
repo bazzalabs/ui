@@ -3,7 +3,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import type {
   AsyncNodeLoaderContext,
   AsyncNodeLoaderResult,
@@ -80,8 +80,10 @@ export type LoaderFactory<TQueryFnData = NodeDef[]> = (
  */
 export function createLoader<TQueryFnData = NodeDef[]>(
   loaderFactory: LoaderFactory<TQueryFnData>,
-): (context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult {
-  return (context: AsyncNodeLoaderContext): AsyncNodeLoaderResult => {
+): ((context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult) & {
+  __loaderFactory?: LoaderFactory<TQueryFnData>
+} {
+  const loader = (context: AsyncNodeLoaderContext): AsyncNodeLoaderResult => {
     // Call the factory with context to get React Query options
     const queryOptions = loaderFactory({
       query: context.query,
@@ -102,4 +104,52 @@ export function createLoader<TQueryFnData = NodeDef[]>(
       isFetching: queryResult.isFetching,
     }
   }
+
+  // Attach the factory for eager loading support
+  loader.__loaderFactory = loaderFactory
+
+  return loader
+}
+
+/**
+ * Executes multiple query factories in parallel using useQueries.
+ * This is used for eager loading of submenus during deep search.
+ *
+ * @internal
+ */
+export function useEagerQueries(
+  configs: Array<{
+    path: string[]
+    factory: LoaderFactory<any>
+    context: AsyncNodeLoaderContext
+  }>,
+): Map<string, AsyncNodeLoaderResult> {
+  const results = useQueries({
+    queries: configs.map((config) =>
+      config.factory({
+        query: config.context.query,
+        open: config.context.open,
+      }),
+    ),
+  })
+
+  // Transform results to Map
+  const resultMap = new Map<string, AsyncNodeLoaderResult>()
+  for (let i = 0; i < configs.length; i++) {
+    const config = configs[i]
+    const result = results[i]
+    if (!config || !result) continue
+
+    const pathKey = config.path.join('.')
+
+    resultMap.set(pathKey, {
+      data: result.data,
+      isLoading: result.isLoading,
+      error: result.error ?? null,
+      isError: result.isError,
+      isFetching: result.isFetching,
+    })
+  }
+
+  return resultMap
 }

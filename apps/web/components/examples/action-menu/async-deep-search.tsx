@@ -127,7 +127,7 @@ const MEATS = [
 ]
 
 async function fetchFruits(search?: string): Promise<ItemDef[]> {
-  console.log('Fetching fruits...')
+  console.log(`Fetching fruits${search ? ` matching "${search}"` : ''}...`)
 
   // Simulate network delay
   await sleep(800)
@@ -149,7 +149,7 @@ async function fetchFruits(search?: string): Promise<ItemDef[]> {
 }
 
 async function fetchVegetables(search?: string): Promise<ItemDef[]> {
-  console.log('Fetching vegetables...')
+  console.log(`Fetching vegetables${search ? ` matching "${search}"` : ''}...`)
 
   // Simulate different network delay
   await sleep(1200)
@@ -171,7 +171,7 @@ async function fetchVegetables(search?: string): Promise<ItemDef[]> {
 }
 
 async function fetchMeats(search?: string): Promise<ItemDef[]> {
-  console.log('Fetching meats...')
+  console.log(`Fetching meats${search ? ` matching "${search}"` : ''}...`)
 
   // Simulate yet another network delay
   await sleep(1000)

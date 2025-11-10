@@ -3,6 +3,7 @@
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
+import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import {
   HoverPolicyCtx,
@@ -15,11 +16,11 @@ import {
   useScopedTheme,
   useSubCtx,
 } from '../contexts/index.js'
+import { useEagerQueries } from '../integrations/react-query.js'
 import { cn } from '../lib/cn.js'
 import {
   aggregateLoaderResults,
   collectEagerLoaders,
-  executeEagerLoaders,
   injectLoaderResults,
 } from '../lib/deep-search-utils.js'
 import { isInBounds } from '../lib/dom-utils.js'
@@ -35,6 +36,7 @@ import type {
   Menu,
   MenuDef,
   MenuNodeDefaults,
+  NodeDef,
   SurfaceStore,
 } from '../types.js'
 import { Input } from './input.js'
@@ -71,26 +73,71 @@ export const Surface = React.forwardRef(function Surface<T>(
     onChange: (menuProp as MenuDef<T>).input?.onValueChange,
   })
 
-  // Call function loader at top level (before useMemo) to respect Rules of Hooks
-  // This is the critical fix: hooks must be called at the top level
-  const resolvedLoader = React.useMemo(() => {
+  // Extract loader configuration
+  const { hasFactory, factory, staticResult } = React.useMemo(() => {
     // Check if it's already a Menu instance
     if ((menuProp as any)?.surfaceId) {
       const menu = menuProp as Menu<T>
-      // If it's a Menu instance but has a function loader, we need to call it
       if (menu.loader && typeof menu.loader === 'function') {
-        return menu.loader
+        const loaderFactory = (menu.loader as any).__loaderFactory
+        return {
+          hasFactory: !!loaderFactory,
+          factory: loaderFactory,
+          staticResult: undefined,
+        }
       }
-      return undefined
+      return { hasFactory: false, factory: undefined, staticResult: undefined }
     }
 
     // It's a MenuDef
     const menuDef = menuProp as MenuDef<T>
-    if (!menuDef.loader) return undefined
-    if (typeof menuDef.loader !== 'function') return menuDef.loader
-    // Don't call the function here - return it to be called below
-    return menuDef.loader
+    if (!menuDef.loader) {
+      return { hasFactory: false, factory: undefined, staticResult: undefined }
+    }
+    if (typeof menuDef.loader === 'function') {
+      const loaderFactory = (menuDef.loader as any).__loaderFactory
+      return {
+        hasFactory: !!loaderFactory,
+        factory: loaderFactory,
+        staticResult: undefined,
+      }
+    }
+    return {
+      hasFactory: false,
+      factory: undefined,
+      staticResult: menuDef.loader,
+    }
   }, [menuProp])
+
+  // ALWAYS call useQuery (unconditional to maintain hook order)
+  // When we don't have a factory, use a disabled query
+  const queryConfig = React.useMemo(() => {
+    if (hasFactory && factory) {
+      return factory({ query: value, open })
+    }
+    // Dummy query config (disabled)
+    return {
+      queryKey: ['__dummy__', surfaceId],
+      queryFn: () => Promise.resolve([]),
+      enabled: false,
+    }
+  }, [hasFactory, factory, value, open, surfaceId])
+
+  const queryResult = useQuery(queryConfig)
+
+  // Build the final loader result
+  const finalLoaderResult = React.useMemo(() => {
+    if (hasFactory) {
+      return {
+        data: queryResult.data as NodeDef<T>[] | undefined,
+        isLoading: queryResult.isLoading,
+        error: queryResult.error ?? null,
+        isError: queryResult.isError,
+        isFetching: queryResult.isFetching,
+      }
+    }
+    return staticResult
+  }, [hasFactory, queryResult, staticResult])
 
   // Collect eager loaders from the menu tree (respecting Rules of Hooks)
   const eagerLoaderEntries = React.useMemo(() => {
@@ -101,17 +148,18 @@ export const Surface = React.forwardRef(function Surface<T>(
     return collectEagerLoaders(menuDef)
   }, [menuProp, value])
 
-  // Call the main loader function at top level if it exists (this calls useQuery)
-  const loaderResult =
-    typeof resolvedLoader === 'function'
-      ? resolvedLoader({ query: value, open })
-      : resolvedLoader
+  // Call all eager loaders at top level using useEagerQueries (single hook call)
+  const eagerLoaderConfigs = React.useMemo(
+    () =>
+      eagerLoaderEntries.map((entry) => ({
+        path: entry.path,
+        factory: entry.factory,
+        context: { query: value, open },
+      })),
+    [eagerLoaderEntries, value, open],
+  )
 
-  // Call all eager loaders at top level (respects Rules of Hooks)
-  const eagerLoaderResults = React.useMemo(() => {
-    if (eagerLoaderEntries.length === 0) return new Map()
-    return executeEagerLoaders(eagerLoaderEntries, { query: value, open })
-  }, [eagerLoaderEntries, value, open])
+  const eagerLoaderResults = useEagerQueries(eagerLoaderConfigs)
 
   // Aggregate eager loader states
   const aggregatedState = React.useMemo(() => {
@@ -125,7 +173,7 @@ export const Surface = React.forwardRef(function Surface<T>(
       const existingMenu = menuProp as Menu<T>
 
       // If we resolved a new loader result, rebuild the menu with it
-      if (loaderResult) {
+      if (finalLoaderResult) {
         const depth = sub ? 1 : 0
 
         // Create a MenuDef from the existing Menu
@@ -138,7 +186,7 @@ export const Surface = React.forwardRef(function Surface<T>(
           ui: existingMenu.ui,
           input: existingMenu.input,
           open: existingMenu.open,
-          loader: loaderResult, // Use the new loader result
+          loader: finalLoaderResult, // Use the new loader result
         }
 
         return instantiateMenuFromDef(
@@ -169,8 +217,8 @@ export const Surface = React.forwardRef(function Surface<T>(
     }
 
     // Then apply the main loader result
-    if (loaderResult) {
-      resolvedMenuDef.loader = loaderResult
+    if (finalLoaderResult) {
+      resolvedMenuDef.loader = finalLoaderResult
     }
 
     const instantiatedMenu = instantiateMenuFromDef(
@@ -199,7 +247,15 @@ export const Surface = React.forwardRef(function Surface<T>(
     }
 
     return instantiatedMenu
-  }, [menuProp, surfaceId, sub, value, open, loaderResult, aggregatedState])
+  }, [
+    menuProp,
+    surfaceId,
+    sub,
+    value,
+    open,
+    finalLoaderResult,
+    aggregatedState,
+  ])
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId

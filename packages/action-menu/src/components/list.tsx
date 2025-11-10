@@ -46,15 +46,22 @@ interface ListProps<T> {
  */
 export function List<T = unknown>(props: ListProps<T>) {
   const { slots } = useScopedTheme<T>()
-  const { menu } = props
+  const { menu, query } = props
 
-  // Handle loading state (initial load without data)
-  if (menu.loadingState?.isLoading && menu.nodes.length === 0) {
+  // Handle loading state
+  // Show loading when:
+  // 1. Initial load without data (nodes.length === 0)
+  // 2. Deep search with eager loading (query exists, indicating deep search is active)
+  const shouldShowLoading =
+    menu.loadingState?.isLoading &&
+    (menu.nodes.length === 0 || (query && query.trim().length > 0))
+
+  if (shouldShowLoading) {
     const LoadingSlot = slots.Loading
     if (LoadingSlot) {
       return LoadingSlot({
         menu,
-        isFetching: menu.loadingState.isFetching,
+        isFetching: menu.loadingState?.isFetching,
       }) as React.ReactElement
     }
     return null

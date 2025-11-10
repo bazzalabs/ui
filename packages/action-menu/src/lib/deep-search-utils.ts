@@ -56,10 +56,19 @@ function collectEagerLoadersFromNode(
     const loader = submenu.loader
     // Only add function loaders (not static loader results)
     if (typeof loader === 'function') {
-      entries.push({
-        path: currentPath,
-        loader,
-      })
+      // Extract the factory from the loader (set by createLoader)
+      const factory = (loader as any).__loaderFactory
+      if (factory) {
+        entries.push({
+          path: currentPath,
+          factory,
+        })
+      } else {
+        console.warn(
+          `Eager loader at path ${currentPath.join('.')} does not have a factory. ` +
+            'Make sure you are using createLoader() from @bazza-ui/action-menu/react-query',
+        )
+      }
     }
   }
 
@@ -76,42 +85,6 @@ function collectEagerLoadersFromNode(
       }
     }
   }
-}
-
-/**
- * Calls all eager loaders in parallel with the given context.
- * Returns a map of path (joined) to loader result.
- */
-export function executeEagerLoaders(
-  loaders: EagerLoaderEntry[],
-  context: AsyncNodeLoaderContext,
-): Map<string, AsyncNodeLoaderResult> {
-  const results = new Map<string, AsyncNodeLoaderResult>()
-
-  for (const entry of loaders) {
-    try {
-      const result = entry.loader(context)
-      const pathKey = entry.path.join('.')
-      results.set(pathKey, result)
-    } catch (error) {
-      // Silent error handling - log but continue
-      console.error(
-        `Error executing eager loader at path ${entry.path.join('.')}:`,
-        error,
-      )
-      // Store an error result
-      const pathKey = entry.path.join('.')
-      results.set(pathKey, {
-        data: undefined,
-        isLoading: false,
-        isError: true,
-        error: error instanceof Error ? error : new Error(String(error)),
-        isFetching: false,
-      })
-    }
-  }
-
-  return results
 }
 
 /**

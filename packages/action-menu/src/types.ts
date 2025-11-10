@@ -86,8 +86,8 @@ export type AsyncNodeLoader<T = unknown> =
 export type EagerLoaderEntry = {
   /** Path to the submenu (array of submenu ids from root). */
   path: string[]
-  /** The loader function to call. */
-  loader: (context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult
+  /** The loader factory function (extracted from createLoader). */
+  factory: any
 }
 
 /**
