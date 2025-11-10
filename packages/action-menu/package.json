@@ -30,6 +30,7 @@
     "build": "tsup",
     "test": "vitest run --run --mode test",
     "test:watch": "vitest --mode test --watch --disable-console-intercept",
+    "test:coverage": "vitest run --coverage --mode test",
     "bench": "vitest bench --run",
     "bench:watch": "vitest bench --watch",
     "/**** Version Bumping (Recommended)": "",
