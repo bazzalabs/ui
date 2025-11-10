@@ -60,3 +60,14 @@ export { renderIcon } from './lib/react-utils.js'
 export { defaultSlots } from './lib/slots.js'
 export { createActionMenu } from './create-action-menu.js'
 export { flatten } from './lib/menu-utils.js'
+
+// Middleware
+export { composeMiddleware, createNew } from './middleware/index.js'
+export type {
+  MenuMiddleware,
+  TransformNodesContext,
+  BeforeFilterContext,
+  AfterFilterContext,
+  SearchResult,
+  CreateNewConfig,
+} from './middleware/index.js'

@@ -1,12 +1,15 @@
 'use client'
 
 import {
+  composeMiddleware,
+  createNew,
   type GroupDef,
   type ItemNode,
   type MenuDef,
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/action-menu'
+import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -690,19 +693,40 @@ const labelsMenu: SubmenuDef = {
   title: 'Labels',
   label: 'Labels',
   inputPlaceholder: 'Labels...',
-  nodes: [
-    ...labelNodes,
-    {
-      kind: 'item',
-      id: '__create-new-item',
-      render: () => (
-        <div className="flex items-center gap-2">
-          <div className="rounded-full !size-2.5 bg-emerald-500" />
-          <span>Create new label</span>
-        </div>
-      ),
-    },
-  ],
+  nodes: labelNodes,
+  middleware: composeMiddleware([
+    createNew({
+      showWhen: 'no-exact-match',
+      position: 'bottom',
+      label: (query) => `Create label: ${query}`,
+      render: ({ query, bind, nodes }) => {
+        const props = bind.getRowProps({
+          className: cn('group/row'),
+        })
+
+        return (
+          <>
+            {nodes.length > 0 && <div className="w-full h-px bg-border my-1" />}
+            <li {...props}>
+              <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
+                {renderIcon(
+                  PlusIcon,
+                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
+                )}
+              </div>
+              <div className="inline-block">
+                <span className="text-muted-foreground">Create label: </span>
+                <span className="text-primary">{query}</span>
+              </div>
+            </li>
+          </>
+        )
+      },
+      onCreate: (query) => {
+        toast.success(`Created label "${query}"`)
+      },
+    }),
+  ]),
 }
 
 const projectStatusMenu: SubmenuDef = {
@@ -763,27 +787,6 @@ const projectPropertiesMenu: SubmenuDef = {
   nodes: [projectStatusMenu],
 }
 
-const groupAMenu: GroupDef = {
-  kind: 'group',
-  id: 'group-a',
-  heading: 'Group A',
-  nodes: generateItems(3),
-}
-
-const groupBMenu: GroupDef = {
-  kind: 'group',
-  id: 'group-b',
-  heading: 'Group B',
-  nodes: generateItems(5),
-}
-
-const groupCMenu: GroupDef = {
-  kind: 'group',
-  id: 'group-c',
-  heading: 'Group C',
-  nodes: generateItems(7),
-}
-
 export const menuData: MenuDef = {
   id: 'issue-properties',
   defaults: {
@@ -797,12 +800,10 @@ export const menuData: MenuDef = {
     },
   },
   nodes: [
-    // groupAMenu,
     statusMenu,
     assigneeMenu,
-    durationMenu,
+    // durationMenu,
     labelsMenu,
     projectPropertiesMenu,
-    // groupCMenu,
   ],
 }

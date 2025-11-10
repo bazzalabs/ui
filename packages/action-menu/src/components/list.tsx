@@ -12,8 +12,15 @@ import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 import { useStickyRowWidth } from '../hooks/use-sticky-row-width.js'
 import { useSurfaceSel } from '../hooks/use-surface-sel.js'
 import { commandScore } from '../lib/command-score.js'
+import { instantiateSingleNode } from '../lib/menu-utils.js'
 import { mergeProps } from '../lib/merge-props.js'
 import { isElementWithProp } from '../lib/react-utils.js'
+import type {
+  AfterFilterContext,
+  BeforeFilterContext,
+  SearchResult,
+  TransformNodesContext,
+} from '../middleware/types.js'
 import type {
   GroupHeadingBindAPI,
   GroupNode,
@@ -154,6 +161,25 @@ function ListContent<T = unknown>({
 
   type SR = SRItem | SRSub
 
+  // Apply beforeFilter middleware (pre-filter nodes before search)
+  const processedNodes = React.useMemo(() => {
+    if (!menu.middleware?.beforeFilter) {
+      return menu.nodes
+    }
+
+    try {
+      const context: BeforeFilterContext<T> = {
+        nodes: menu.nodes,
+        query: q,
+        menu,
+      }
+      return menu.middleware.beforeFilter(context)
+    } catch (error) {
+      console.error('[ActionMenu] Error in beforeFilter middleware:', error)
+      return menu.nodes
+    }
+  }, [menu.nodes, menu.middleware, q, menu])
+
   const collect = React.useCallback(
     (
       nodes: Node<T>[] | undefined,
@@ -222,7 +248,7 @@ function ListContent<T = unknown>({
     if (searchMode === 'server') {
       // Map nodes directly without scoring (server already filtered)
       const serverResults: SR[] = []
-      for (const node of menu.nodes) {
+      for (const node of processedNodes) {
         if (node.kind === 'item') {
           serverResults.push({
             type: 'item',
@@ -246,18 +272,37 @@ function ListContent<T = unknown>({
 
     // Client or hybrid mode: Apply client-side filtering
     return pipe(
-      collect(menu.nodes, q, [], [], menu),
+      collect(processedNodes, q, [], [], menu),
       sortBy([prop('score'), 'desc']),
       partition((v) => v.type === 'submenu'),
       flat(),
     )
-  }, [q, menu.nodes, menu.search?.mode])
+  }, [q, processedNodes, menu.search?.mode, collect, menu])
+
+  // Apply afterFilter middleware (post-filter search results)
+  const filteredResults = React.useMemo(() => {
+    if (!menu.middleware?.afterFilter || !q) {
+      return results
+    }
+
+    try {
+      const context: AfterFilterContext<T> = {
+        results: results as SearchResult<T>[],
+        query: q,
+        menu,
+      }
+      return menu.middleware.afterFilter(context) as SR[]
+    } catch (error) {
+      console.error('[ActionMenu] Error in afterFilter middleware:', error)
+      return results
+    }
+  }, [results, menu.middleware, q, menu])
   const flattenedNodes = React.useMemo(() => {
     const acc: Node<T>[] = []
 
     if (q) {
-      if (results.length === 0) return []
-      for (const sr of results) {
+      if (filteredResults.length === 0) return []
+      for (const sr of filteredResults) {
         acc.push({
           ...sr.node,
           search: {
@@ -270,7 +315,7 @@ function ListContent<T = unknown>({
         })
       }
     } else {
-      for (const node of menu.nodes) {
+      for (const node of processedNodes) {
         if (node.kind === 'item' || node.kind === 'submenu') {
           acc.push(node)
         } else if (node.kind === 'group') {
@@ -278,7 +323,7 @@ function ListContent<T = unknown>({
           if (node.heading) acc.push(node)
           // Add child items with group position metadata
           const groupSize = node.nodes.length
-          node.nodes.forEach((child, index) => {
+          node.nodes.forEach((child: Node<T>, index: number) => {
             const groupPosition =
               groupSize === 1
                 ? 'only'
@@ -299,7 +344,37 @@ function ListContent<T = unknown>({
     }
 
     return acc
-  }, [q, menu.nodes])
+  }, [q, filteredResults, processedNodes])
+
+  // Apply transformNodes middleware (transform flattened nodes before rendering)
+  const transformedNodes = React.useMemo(() => {
+    if (!menu.middleware?.transformNodes) {
+      return flattenedNodes
+    }
+
+    try {
+      const context: TransformNodesContext<T> = {
+        nodes: flattenedNodes,
+        query: q,
+        mode: q ? 'search' : 'browse',
+        allNodes: menu.nodes,
+        menu,
+        createNode: <U = T>(def: import('../types.js').ItemDef<U>) =>
+          instantiateSingleNode(def, menu) as import('../types.js').ItemNode<U>,
+        hasExactMatch: (query: string) =>
+          flattenedNodes.some(
+            (node) =>
+              node.kind === 'item' &&
+              node.label?.toLowerCase() === query.toLowerCase(),
+          ),
+      }
+
+      return menu.middleware.transformNodes(context)
+    } catch (error) {
+      console.error('[ActionMenu] Error in transformNodes middleware:', error)
+      return flattenedNodes
+    }
+  }, [flattenedNodes, q, menu])
 
   // Whenever the query changes, ensure the first menu row is selected.
   React.useLayoutEffect(() => {
@@ -308,13 +383,13 @@ function ListContent<T = unknown>({
 
   React.useEffect(() => {
     const order = store.getOrder()
-    const validRows = flattenedNodes.filter(
+    const validRows = transformedNodes.filter(
       (n) => (n.kind === 'item' || n.kind === 'submenu') && !n.disabled,
     )
     const validRowIds = validRows.map((n) => n.id)
 
     const virtualIndexMap = new Map<string, number>()
-    flattenedNodes.forEach((node, index) => {
+    transformedNodes.forEach((node, index) => {
       if (node.kind === 'item' || node.kind === 'submenu') {
         virtualIndexMap.set(node.id, index)
       }
@@ -328,10 +403,10 @@ function ListContent<T = unknown>({
       store.resetVirtualIndexMap(virtualIndexMap)
       store.setActiveByIndex(0, 'keyboard')
     }
-  }, [flattenedNodes])
+  }, [transformedNodes, store])
 
   const virtualizer = useVirtualizer({
-    count: flattenedNodes.length,
+    count: transformedNodes.length,
     estimateSize: () => menu.virtualization?.estimateSize ?? 32,
     getScrollElement: () => store.listRef.current,
     overscan: menu.virtualization?.overscan ?? 12,
@@ -407,7 +482,7 @@ function ListContent<T = unknown>({
         }
       >
         {virtualItems.map((virtualRow) => {
-          const node = flattenedNodes[virtualRow.index]!
+          const node = transformedNodes[virtualRow.index]!
 
           if (node.kind === 'group') {
             const childCount = node.nodes.length
@@ -515,7 +590,7 @@ function ListContent<T = unknown>({
       SubmenuTriggerSlot,
       GroupHeadingSlot,
       store,
-      flattenedNodes,
+      transformedNodes,
       virtualizer.measureElement,
       virtualItems,
       totalSizePx,
@@ -527,8 +602,8 @@ function ListContent<T = unknown>({
 
   const EmptySlot = slots.Empty
   const children: React.ReactNode = React.useMemo(
-    () => (flattenedNodes.length > 0 ? listRows : EmptySlot({ query: q })),
-    [listRows, EmptySlot, q, flattenedNodes.length],
+    () => (transformedNodes.length > 0 ? listRows : EmptySlot({ query: q })),
+    [listRows, EmptySlot, q, transformedNodes.length],
   )
 
   const ListSlot = slots.List
@@ -536,11 +611,11 @@ function ListContent<T = unknown>({
     () =>
       ListSlot({
         query: q,
-        nodes: flattenedNodes,
+        nodes: transformedNodes,
         children,
         bind,
       }),
-    [bind, ListSlot, children, flattenedNodes, q],
+    [bind, ListSlot, children, transformedNodes, q],
   )
 
   if (el === null) return null

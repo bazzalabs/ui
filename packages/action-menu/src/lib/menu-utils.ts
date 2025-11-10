@@ -12,14 +12,129 @@ import type {
 } from '../types.js'
 
 /* ================================================================================================
- * Menu Instantiation Function
+ * Menu Instantiation Functions
  * ============================================================================================== */
+
+/**
+ * Instantiates a single node definition into a runtime node.
+ * Used internally by instantiateMenuFromDef and exposed for middleware use.
+ *
+ * @param def - The node definition to instantiate
+ * @param parent - The parent menu this node belongs to
+ * @returns The instantiated runtime node
+ */
+export function instantiateSingleNode<T>(
+  def: NodeDef<T>,
+  parent: Menu<any>,
+): Node<T> {
+  if (def.kind === 'item') {
+    const itemDef = def as ItemDef<T>
+    const variant = itemDef.variant ?? 'button'
+
+    const node: ItemNode<T> = {
+      ...itemDef,
+      variant,
+      kind: 'item',
+      parent,
+      def: itemDef,
+      ...(variant === 'radio'
+        ? {
+            value:
+              itemDef.variant === 'radio' ? (itemDef.value ?? def.id) : def.id,
+          }
+        : {}),
+    } as ItemNode<T>
+
+    return node
+  }
+
+  if (def.kind === 'group') {
+    const groupDef = def as GroupDef<T>
+    const children = (def.nodes ?? []).map((c) =>
+      instantiateSingleNode<any>(c as NodeDef<any>, parent),
+    )
+
+    const variant = groupDef.variant ?? 'default'
+
+    const node: GroupNode<T> = {
+      id: def.id,
+      kind: 'group',
+      hidden: def.hidden,
+      parent,
+      def: groupDef,
+      heading: groupDef.heading,
+      nodes: children as (ItemNode<T> | SubmenuNode<any>)[],
+      variant,
+      ...(variant === 'radio'
+        ? {
+            value: groupDef.variant === 'radio' ? groupDef.value : '',
+            onValueChange:
+              groupDef.variant === 'radio' ? groupDef.onValueChange : () => {},
+          }
+        : {}),
+    } as GroupNode<T>
+
+    // For groups, set group reference on all child nodes
+    for (const child of node.nodes) {
+      child.group = node
+    }
+
+    return node
+  }
+
+  // submenu
+  const subDef = {
+    ...def,
+    deepSearch: def.deepSearch === undefined ? true : def.deepSearch,
+  } as SubmenuDef<any, any>
+  const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
+
+  // ! In TSX, don't write instantiateMenuFromDef<any>(...)
+  // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
+  const child = instantiateMenuFromDef(
+    {
+      id: subDef.id,
+      title: subDef.title,
+      inputPlaceholder: subDef.inputPlaceholder,
+      hideSearchUntilActive: subDef.hideSearchUntilActive,
+      search: subDef.search,
+      deepSearch: subDef.deepSearch === undefined ? true : subDef.deepSearch,
+      nodes: subDef.nodes as NodeDef<any>[],
+      loader: subDef.loader,
+      defaults: subDef.defaults,
+      ui: subDef.ui,
+      input: subDef.input,
+      open: subDef.open,
+      middleware: subDef.middleware,
+    } as MenuDef<any>,
+    childSurfaceId,
+    parent.depth + 1,
+  ) as Menu<any>
+
+  // Destructure to exclude properties that shouldn't be on the node
+  const {
+    nodes: _nodes,
+    search: _search,
+    virtualization: _virtualization,
+    ...subDefRest
+  } = subDef as SubmenuDef<any, any>
+
+  const node: SubmenuNode<any, any> = {
+    ...subDefRest,
+    kind: 'submenu',
+    parent,
+    def,
+    child,
+    nodes: child.nodes,
+  }
+
+  return node as Node<T>
+}
 
 export function instantiateMenuFromDef<T>(
   def: MenuDef<T>,
   surfaceId: string,
   depth: number,
-  query = '',
 ): Menu<T> {
   // Only resolve loader if it's NOT a function
   // Function loaders should already be resolved by Surface component
@@ -55,117 +170,12 @@ export function instantiateMenuFromDef<T>(
     open: def.open,
     loader: def.loader,
     loadingState,
+    middleware: def.middleware,
   }
 
-  function inst<U>(d: NodeDef<U>, parent: Menu<any>): Node<U> {
-    if (d.kind === 'item') {
-      const itemDef = d as ItemDef<U>
-      const variant = itemDef.variant ?? 'button'
-
-      const node: ItemNode<U> = {
-        ...itemDef,
-        variant,
-        kind: 'item',
-        parent,
-        def: itemDef,
-        ...(variant === 'radio'
-          ? {
-              value:
-                itemDef.variant === 'radio' ? (itemDef.value ?? d.id) : d.id,
-            }
-          : {}),
-      } as ItemNode<U>
-
-      return node
-    }
-
-    if (d.kind === 'group') {
-      const groupDef = d as GroupDef<U>
-      const children = (d.nodes ?? []).map((c) =>
-        inst<any>(c as NodeDef<any>, parent),
-      )
-
-      const variant = groupDef.variant ?? 'default'
-
-      const node: GroupNode<U> = {
-        id: d.id,
-        kind: 'group',
-        hidden: d.hidden,
-        parent,
-        def: groupDef,
-        heading: groupDef.heading,
-        nodes: children as (ItemNode<U> | SubmenuNode<any>)[],
-        variant,
-        ...(variant === 'radio'
-          ? {
-              value: groupDef.variant === 'radio' ? groupDef.value : '',
-              onValueChange:
-                groupDef.variant === 'radio'
-                  ? groupDef.onValueChange
-                  : () => {},
-            }
-          : {}),
-      } as GroupNode<U>
-
-      // For groups, set group reference on all child nodes
-      for (const child of node.nodes) {
-        child.group = node
-      }
-
-      return node
-    }
-
-    // submenu
-    const subDef = {
-      ...d,
-      deepSearch: d.deepSearch === undefined ? true : d.deepSearch,
-    } as SubmenuDef<any, any>
-    const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
-
-    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
-    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
-    const child = instantiateMenuFromDef(
-      {
-        id: subDef.id,
-        title: subDef.title,
-        inputPlaceholder: subDef.inputPlaceholder,
-        hideSearchUntilActive: subDef.hideSearchUntilActive,
-        search: subDef.search,
-        deepSearch: subDef.deepSearch === undefined ? true : subDef.deepSearch,
-        nodes: subDef.nodes as NodeDef<any>[],
-        loader: subDef.loader,
-        defaults: subDef.defaults,
-        ui: subDef.ui,
-        input: subDef.input,
-        open: subDef.open,
-      } as MenuDef<any>,
-      childSurfaceId,
-      parent.depth + 1,
-      query,
-    ) as Menu<any>
-
-    // Destructure to exclude properties that shouldn't be on the node
-    const {
-      nodes: _nodes,
-      search: _search,
-      virtualization: _virtualization,
-      ...subDefRest
-    } = subDef as SubmenuDef<any, any>
-
-    const node: SubmenuNode<any, any> = {
-      ...subDefRest,
-      kind: 'submenu',
-      parent,
-      def: d,
-      child,
-      nodes: child.nodes,
-    }
-
-    return node as Node<U>
-  }
-
+  // Use the extracted instantiateSingleNode function
   parentless.nodes = (sourceNodes ?? []).map((n: any) =>
-    inst(n as any, parentless),
+    instantiateSingleNode(n as any, parentless),
   ) as any
 
   return parentless

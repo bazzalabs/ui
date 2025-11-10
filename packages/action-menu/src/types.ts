@@ -39,6 +39,7 @@ export type StateDescriptor<T> = {
 export type MenuState = {
   input?: StateDescriptor<string>
   open?: StateDescriptor<boolean>
+  middleware?: import('./middleware/types.js').MenuMiddleware<any>
 }
 
 /**

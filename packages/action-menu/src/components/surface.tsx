@@ -161,12 +161,7 @@ export const Surface = React.forwardRef(function Surface<T>(
           loader: finalLoaderResult, // Use the new loader result
         }
 
-        return instantiateMenuFromDef(
-          menuDefFromExisting,
-          surfaceId,
-          depth,
-          value,
-        )
+        return instantiateMenuFromDef(menuDefFromExisting, surfaceId, depth)
       }
 
       // No new loader result, return existing menu as-is
@@ -196,7 +191,6 @@ export const Surface = React.forwardRef(function Surface<T>(
       resolvedMenuDef,
       surfaceId,
       depth,
-      value,
     )
 
     // If we have aggregated loading state, merge it with the menu's loading state
