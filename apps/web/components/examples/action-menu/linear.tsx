@@ -1,59 +1,216 @@
 'use client'
 
 import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/action-menu/react-query'
-import { sleep } from '@/app/demos/server/tst-query/_/utils'
+  type GroupDef,
+  type ItemNode,
+  type MenuDef,
+  renderIcon,
+  type SubmenuDef,
+} from '@bazza-ui/action-menu'
+import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
-import { LABEL_STYLES_BG, type TW_COLOR } from './linear'
+import { generateItems } from './shared/generate-items'
+import {
+  AssigneeIcon,
+  DurationIcon,
+  LabelsIcon,
+  ProjectPropertiesIcon,
+  ProjectStatus,
+  ProjectStatusIcon,
+  Status,
+  StatusIcon,
+} from './shared/icons'
 
-type Label = {
-  id: string
-  name: string
-  color: string
-}
-
-export function ActionMenu_AsyncBasic() {
+export function ActionMenu_Linear() {
   return (
     <ActionMenu
-      loaderAdapter={ReactQueryLoaderAdapter}
-      trigger={<Button variant="secondary">Trigger</Button>}
-      menu={{
-        id: 'root',
-        loader: createLoader<Label[]>(({ query }) => ({
-          queryKey: ['labels', query],
-          queryFn: () => fetchLabels(query),
-          retry: false,
-          select: (data) =>
-            data.map((label) => ({
-              kind: 'item' as const,
-              id: label.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
-              label: label.name,
-              keywords: [label.name],
-              icon: (
-                <div
-                  className={cn(
-                    'rounded-full !size-2.5',
-                    LABEL_STYLES_BG[label.color as TW_COLOR],
-                  )}
-                />
-              ),
-            })),
-        })),
-      }}
+      trigger={
+        <Button variant="ghost" size="sm" className="w-fit">
+          <FilterIcon />
+          Filter
+        </Button>
+      }
+      menu={menuData}
     />
   )
 }
 
-const LABELS = [
-  {
-    id: '550e8401-e29b-41d4-a716-446655440000',
-    name: 'A super, duper long label for testing overflow behaviour and truncating',
-    color: 'red',
+const FilterIcon = () => (
+  <svg
+    className="fill-muted-foreground size-4"
+    viewBox="0 0 16 16"
+    role="img"
+    focusable="false"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"
+    ></path>
+  </svg>
+)
+
+const statusMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'status',
+  icon: <StatusIcon />,
+  label: 'Status',
+  title: 'Status',
+  inputPlaceholder: 'Status...',
+  nodes: [
+    {
+      kind: 'item',
+      id: 'icebox',
+      label: 'Icebox',
+      icon: <Status.Icebox />,
+    },
+    {
+      kind: 'item',
+      id: 'backlog',
+      label: 'Backlog',
+      icon: <Status.Backlog />,
+    },
+    {
+      kind: 'item',
+      id: 'todo',
+      label: 'Todo',
+      icon: <Status.Todo />,
+    },
+    {
+      kind: 'item',
+      id: 'in-progress',
+      label: 'In Progress',
+      icon: <Status.InProgress />,
+    },
+    {
+      kind: 'item',
+      id: 'done',
+      label: 'Done',
+      icon: <Status.Done />,
+    },
+  ],
+}
+
+const assigneeMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'assignee',
+  icon: <AssigneeIcon />,
+  label: 'Assignee',
+  title: 'Assignee',
+  inputPlaceholder: 'Assignee...',
+  nodes: [
+    {
+      kind: 'item',
+      id: '@kianbazza',
+      label: 'Kian Bazza',
+      keywords: ['Kian Bazza'],
+      icon: (
+        <Avatar>
+          <AvatarImage
+            src="https://github.com/kianbazza.png"
+            alt="@kianbazza"
+          />
+          <AvatarFallback>KB</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@shadcn',
+      label: 'shadcn',
+      keywords: ['shadcn'],
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@rauchg',
+      label: 'Guillermo Rauch',
+      keywords: ['Guillermo Rauch'],
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
+          <AvatarFallback>RG</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@t3dotgg',
+      label: 'Theo Browne',
+      keywords: ['Theo Browne'],
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
+          <AvatarFallback>TB</AvatarFallback>
+        </Avatar>
+      ),
+    },
+  ],
+}
+
+const durationMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'duration',
+  icon: <DurationIcon />,
+  label: 'Duration',
+  title: 'Duration',
+  render: () => {
+    return (
+      <div className="w-[300px] h-[200px] p-4">
+        <Slider />
+      </div>
+    )
   },
+  // nodes: [
+  //   {
+  //     kind: 'item',
+  //     id: 'duration-controller',
+  //     render: ({ node, bind, search }) => {
+  //     },
+  //   },
+  // ],
+}
+
+export const LABEL_STYLES_BG = {
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  amber: 'bg-amber-500',
+  yellow: 'bg-yellow-500',
+  lime: 'bg-lime-500',
+  green: 'bg-green-500',
+  emerald: 'bg-emerald-500',
+  teal: 'bg-teal-500',
+  cyan: 'bg-cyan-500',
+  sky: 'bg-sky-500',
+  blue: 'bg-blue-500',
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  purple: 'bg-purple-500',
+  fuchsia: 'bg-fuchsia-500',
+  pink: 'bg-pink-500',
+  rose: 'bg-rose-500',
+  neutral: 'bg-neutral-500',
+}
+
+export type TW_COLOR = keyof typeof LABEL_STYLES_BG
+
+const labelNodes = [
+  // {
+  //   id: '550e8401-e29b-41d4-a716-446655440000',
+  //   name: 'A super, duper long label for testing overflow behaviour and truncating',
+  //   color: 'red',
+  // },
   { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Bug', color: 'red' },
   {
     id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
@@ -511,18 +668,141 @@ const LABELS = [
     name: 'Proof of Concept',
     color: 'emerald',
   },
-]
+].map((label) => ({
+  kind: 'item',
+  id: label.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
+  label: label.name,
+  keywords: [label.name],
+  icon: (
+    <div
+      className={cn(
+        'rounded-full !size-2.5',
+        LABEL_STYLES_BG[label.color as TW_COLOR],
+      )}
+    />
+  ),
+})) as ItemNode[]
 
-export async function fetchLabels(search?: string) {
-  await sleep(1000)
+const labelsMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'labels',
+  icon: LabelsIcon,
+  title: 'Labels',
+  label: 'Labels',
+  inputPlaceholder: 'Labels...',
+  nodes: [
+    ...labelNodes,
+    {
+      kind: 'item',
+      id: '__create-new-item',
+      render: () => (
+        <div className="flex items-center gap-2">
+          <div className="rounded-full !size-2.5 bg-emerald-500" />
+          <span>Create new label</span>
+        </div>
+      ),
+    },
+  ],
+}
 
-  // if (Math.random() > 0.5) {
-  //   throw new Error('Failed to fetch labels')
-  // }
+const projectStatusMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'project-status',
+  icon: <ProjectStatusIcon />,
+  title: 'Project status',
+  label: 'Project status',
+  inputPlaceholder: 'Project status...',
+  hideSearchUntilActive: true,
+  nodes: [
+    {
+      kind: 'item',
+      id: 'failed',
+      label: 'Failed',
+      icon: <ProjectStatus.Failed />,
+    },
+    {
+      kind: 'item',
+      id: 'backlog',
+      label: 'Backlog',
+      icon: <ProjectStatus.Backlog />,
+    },
+    {
+      kind: 'item',
+      id: 'planned',
+      label: 'Planned',
+      icon: <ProjectStatus.Planned />,
+    },
+    {
+      kind: 'item',
+      id: 'in-progress',
+      label: 'In Progress',
+      icon: <ProjectStatus.InProgress />,
+    },
+    {
+      kind: 'item',
+      id: 'completed',
+      label: 'Completed',
+      icon: <ProjectStatus.Completed />,
+    },
+    {
+      kind: 'item',
+      id: 'canceled',
+      label: 'Canceled',
+      icon: <ProjectStatus.Canceled />,
+    },
+  ],
+}
 
-  if (!search) return LABELS.slice(0, 20)
+const projectPropertiesMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'project-properties',
+  icon: <ProjectPropertiesIcon />,
+  title: 'Project properties',
+  label: 'Project properties',
+  inputPlaceholder: 'Project properties...',
+  nodes: [projectStatusMenu],
+}
 
-  return LABELS.filter((label) =>
-    label.name.toLowerCase().includes(search.toLowerCase()),
-  ).splice(0, 20)
+const groupAMenu: GroupDef = {
+  kind: 'group',
+  id: 'group-a',
+  heading: 'Group A',
+  nodes: generateItems(3),
+}
+
+const groupBMenu: GroupDef = {
+  kind: 'group',
+  id: 'group-b',
+  heading: 'Group B',
+  nodes: generateItems(5),
+}
+
+const groupCMenu: GroupDef = {
+  kind: 'group',
+  id: 'group-c',
+  heading: 'Group C',
+  nodes: generateItems(7),
+}
+
+export const menuData: MenuDef = {
+  id: 'issue-properties',
+  defaults: {
+    item: {
+      closeOnSelect: true,
+      onSelect: ({ node }) => {
+        toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
+          icon: renderIcon(node.icon, 'size-4'),
+        })
+      },
+    },
+  },
+  nodes: [
+    // groupAMenu,
+    statusMenu,
+    assigneeMenu,
+    durationMenu,
+    labelsMenu,
+    projectPropertiesMenu,
+    // groupCMenu,
+  ],
 }

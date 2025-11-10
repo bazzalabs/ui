@@ -27,14 +27,15 @@ export default function Page() {
           <div className="flex flex-col gap-8 p-8 flex-1 w-fit">
             <DiamondSpinner className="text-primary size-24" />
             {/* Content here! */}
-            <Examples.ActionMenu.AsyncBasic />
-            <Examples.ActionMenu.AsyncSubmenus />
-            <Examples.ActionMenu.AsyncDeepSearch />
+            {/*<Examples.ActionMenu.AsyncBasic />*/}
+            {/*<Examples.ActionMenu.AsyncSubmenus />*/}
+            {/*<Examples.ActionMenu.AsyncDeepSearch />*/}
             {/* <Examples.ActionMenu.ItemDescriptions /> */}
             {/* <Examples.ActionMenu.AIModelSwitcher /> */}
             {/* <Examples.ActionMenu.Basic /> */}
-            <Examples.ActionMenu.Submenus />
-            {/* <Examples.ActionMenu.KitchenSink01 /> */}
+            {/*<Examples.ActionMenu.Submenus />*/}
+            <Examples.ActionMenu.Linear />
+            <Examples.ActionMenu.LinearAsync />
             {/* <Examples.ActionMenu.Notion /> */}
             {/* <Examples.ActionMenu.HeaderFooter /> */}
             {/* <Examples.ActionMenu.RadioGroups /> */}

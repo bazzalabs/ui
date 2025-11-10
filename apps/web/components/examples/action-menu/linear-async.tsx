@@ -1,18 +1,22 @@
 'use client'
 
 import {
-  type GroupDef,
   type MenuDef,
+  type NodeDef,
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/action-menu'
+import {
+  createLoader,
+  ReactQueryLoaderAdapter,
+} from '@bazza-ui/action-menu/react-query'
+import { ListFilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
-import { generateItems } from './shared/generate-items'
 import {
   AssigneeIcon,
   DurationIcon,
@@ -24,36 +28,20 @@ import {
   StatusIcon,
 } from './shared/icons'
 
-export function ActionMenu_KitchenSink01() {
+export function ActionMenu_LinearAsync() {
   return (
     <ActionMenu
       trigger={
         <Button variant="ghost" size="sm" className="w-fit">
-          <FilterIcon />
+          <ListFilterIcon className="size-4 fill-muted-foreground" />
           Filter
         </Button>
       }
+      loaderAdapter={ReactQueryLoaderAdapter}
       menu={menuData}
     />
   )
 }
-
-const FilterIcon = () => (
-  <svg
-    className="fill-muted-foreground size-4"
-    viewBox="0 0 16 16"
-    role="img"
-    focusable="false"
-    aria-hidden="true"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"
-    ></path>
-  </svg>
-)
 
 const statusMenu: SubmenuDef = {
   kind: 'submenu',
@@ -96,6 +84,80 @@ const statusMenu: SubmenuDef = {
   ],
 }
 
+// Simulate fetching assignees from an API
+async function fetchAssignees(): Promise<NodeDef[]> {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  const users = [
+    { username: 'kianbazza', name: 'Kian Bazza' },
+    { username: 'shadcn', name: 'shadcn' },
+    { username: 'rauchg', name: 'Guillermo Rauch' },
+    { username: 't3dotgg', name: 'Theo Browne' },
+    { username: 'leerob', name: 'Lee Robinson' },
+    { username: 'kentcdodds', name: 'Kent C. Dodds' },
+    { username: 'wesbos', name: 'Wes Bos' },
+    { username: 'sindresorhus', name: 'Sindre Sorhus' },
+    { username: 'addyosmani', name: 'Addy Osmani' },
+    { username: 'stolinski', name: 'Scott Tolinski' },
+    { username: 'ryanflorence', name: 'Ryan Florence' },
+    { username: 'mjackson', name: 'Michael Jackson' },
+    { username: 'timneutkens', name: 'Tim Neutkens' },
+    { username: 'skve', name: 'Luke Shiels' },
+    { username: 'adamwathan', name: 'Adam Wathan' },
+    { username: 'emilwidlund', name: 'Emil Widlund' },
+    { username: 'aboodman', name: 'Aaron Boodman' },
+    { username: 'raunofreiberg', name: 'Rauno Freiberg' },
+    { username: 'jaredpalmer', name: 'Jared Palmer' },
+    { username: 'pqoqubbw', name: 'dmytro' },
+    { username: 'sebmarkbage', name: 'Sebastian Markbåge' },
+    { username: 'sophiebits', name: 'Sophie Alpert' },
+    { username: 'acdlite', name: 'Andrew Clark' },
+    { username: 'gaearon', name: 'Dan Abramov' },
+    { username: 'BrendanEich', name: 'Brendan Eich' },
+    { username: 'dhh', name: 'DHH' },
+    { username: 'paulg', name: 'Paul Graham' },
+    { username: 'getify', name: 'Kyle Simpson' },
+    { username: 'rem', name: 'Remy Sharp' },
+    { username: 'chriscoyier', name: 'Chris Coyier' },
+    { username: 'samselikoff', name: 'Sam Selikoff' },
+    { username: 'artman', name: 'Tuomas Artman' },
+    { username: 'pacocoursey', name: 'Paco Coursey' },
+    { username: 'pontusab', name: 'Pontus Abrahamsson' },
+    { username: 'ryanburgess', name: 'Ryan Burgess' },
+    { username: 'brianleroux', name: 'Brian LeRoux' },
+    { username: 'jlengstorf', name: 'Jason Lengstorf' },
+    { username: 'swyx', name: 'Shawn Wang' },
+    { username: 'cassidoo', name: 'Cassidy Williams' },
+    { username: 'pilcrowonpaper', name: 'Pilcrow' },
+    { username: 'mgechev', name: 'Minko Gechev' },
+    { username: 'youyuxi', name: 'Evan You' },
+    { username: 'sebmck', name: 'Sebastian McKenzie' },
+    { username: 'slicknet', name: 'Nicholas C. Zakas' },
+  ]
+
+  return users.map((user) => ({
+    kind: 'item',
+    id: `@${user.username}`,
+    label: user.name,
+    keywords: [user.name],
+    icon: (
+      <Avatar>
+        <AvatarImage
+          src={`https://github.com/${user.username}.png`}
+          alt={`@${user.username}`}
+        />
+        <AvatarFallback>
+          {user.name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+    ),
+  }))
+}
+
 const assigneeMenu: SubmenuDef = {
   kind: 'submenu',
   id: 'assignee',
@@ -103,59 +165,11 @@ const assigneeMenu: SubmenuDef = {
   label: 'Assignee',
   title: 'Assignee',
   inputPlaceholder: 'Assignee...',
-  nodes: [
-    {
-      kind: 'item',
-      id: '@kianbazza',
-      label: 'Kian Bazza',
-      keywords: ['Kian Bazza'],
-      icon: (
-        <Avatar>
-          <AvatarImage
-            src="https://github.com/kianbazza.png"
-            alt="@kianbazza"
-          />
-          <AvatarFallback>KB</AvatarFallback>
-        </Avatar>
-      ),
-    },
-    {
-      kind: 'item',
-      id: '@shadcn',
-      label: 'shadcn',
-      keywords: ['shadcn'],
-      icon: (
-        <Avatar>
-          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-          <AvatarFallback>CN</AvatarFallback>
-        </Avatar>
-      ),
-    },
-    {
-      kind: 'item',
-      id: '@rauchg',
-      label: 'Guillermo Rauch',
-      keywords: ['Guillermo Rauch'],
-      icon: (
-        <Avatar>
-          <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
-          <AvatarFallback>RG</AvatarFallback>
-        </Avatar>
-      ),
-    },
-    {
-      kind: 'item',
-      id: '@t3dotgg',
-      label: 'Theo Browne',
-      keywords: ['Theo Browne'],
-      icon: (
-        <Avatar>
-          <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
-          <AvatarFallback>TB</AvatarFallback>
-        </Avatar>
-      ),
-    },
-  ],
+  loader: createLoader(() => ({
+    queryKey: ['assignees'],
+    queryFn: fetchAssignees,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })),
 }
 
 const durationMenu: SubmenuDef = {
@@ -171,14 +185,6 @@ const durationMenu: SubmenuDef = {
       </div>
     )
   },
-  // nodes: [
-  //   {
-  //     kind: 'item',
-  //     id: 'duration-controller',
-  //     render: ({ node, bind, search }) => {
-  //     },
-  //   },
-  // ],
 }
 
 export const LABEL_STYLES_BG = {
@@ -204,14 +210,11 @@ export const LABEL_STYLES_BG = {
 
 export type TW_COLOR = keyof typeof LABEL_STYLES_BG
 
-const labelsMenu: SubmenuDef = {
-  kind: 'submenu',
-  id: 'labels',
-  icon: LabelsIcon,
-  title: 'Labels',
-  label: 'Labels',
-  inputPlaceholder: 'Labels...',
-  nodes: [
+// Simulate fetching labels from an API
+async function fetchLabels(query?: string): Promise<NodeDef[]> {
+  await new Promise((resolve) => setTimeout(resolve, 800))
+
+  const labels = [
     // {
     //   id: '550e8401-e29b-41d4-a716-446655440000',
     //   name: 'A super, duper long label for testing overflow behaviour and truncating',
@@ -674,8 +677,10 @@ const labelsMenu: SubmenuDef = {
       name: 'Proof of Concept',
       color: 'emerald',
     },
-  ].map((label) => ({
-    kind: 'item',
+  ]
+
+  const menuItems = labels.map((label) => ({
+    kind: 'item' as const,
     id: label.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
     label: label.name,
     keywords: [label.name],
@@ -687,6 +692,25 @@ const labelsMenu: SubmenuDef = {
         )}
       />
     ),
+  }))
+
+  if (!query) return menuItems.slice(0, 20)
+
+  return menuItems
+    .filter((item) => item.label.toLowerCase().includes(query.toLowerCase()))
+    .slice(0, 20)
+}
+
+const labelsMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'labels',
+  icon: LabelsIcon,
+  title: 'Labels',
+  label: 'Labels',
+  inputPlaceholder: 'Labels...',
+  loader: createLoader(({ query }) => ({
+    queryKey: ['labels', query],
+    queryFn: () => fetchLabels(query),
   })),
 }
 
@@ -748,27 +772,6 @@ const projectPropertiesMenu: SubmenuDef = {
   nodes: [projectStatusMenu],
 }
 
-const groupAMenu: GroupDef = {
-  kind: 'group',
-  id: 'group-a',
-  heading: 'Group A',
-  nodes: generateItems(3),
-}
-
-const groupBMenu: GroupDef = {
-  kind: 'group',
-  id: 'group-b',
-  heading: 'Group B',
-  nodes: generateItems(5),
-}
-
-const groupCMenu: GroupDef = {
-  kind: 'group',
-  id: 'group-c',
-  heading: 'Group C',
-  nodes: generateItems(7),
-}
-
 export const menuData: MenuDef = {
   id: 'issue-properties',
   defaults: {
@@ -782,12 +785,10 @@ export const menuData: MenuDef = {
     },
   },
   nodes: [
-    // groupAMenu,
     statusMenu,
     assigneeMenu,
-    durationMenu,
+    // durationMenu,
     labelsMenu,
     projectPropertiesMenu,
-    // groupCMenu,
   ],
 }

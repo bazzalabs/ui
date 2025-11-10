@@ -301,8 +301,8 @@ function ListContent<T = unknown>({
     return acc
   }, [q, menu.nodes])
 
+  // Whenever the query changes, ensure the first menu row is selected.
   React.useLayoutEffect(() => {
-    if (!q) return
     store.first('keyboard')
   }, [q])
 

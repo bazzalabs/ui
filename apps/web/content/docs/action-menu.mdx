@@ -5,12 +5,12 @@ summary: A composable menu with deep search and multi-level submenus.
 badge: alpha
 ---
 
-<ComponentFrame 
-  className='mb-16' 
-  containerClassName='h-104' 
+<ComponentFrame
+  className='mb-16'
+  containerClassName='h-104'
   caption={<>A subset of <a href="https://linear.app/homepage">Linear</a>'s filter menu, recreated with the bazza/ui action menu.</>}
 >
-  <Examples.ActionMenu.KitchenSink01 />
+  <Examples.ActionMenu.Linear />
 </ComponentFrame>
 
 The action menu is a primitive component for building menu interfaces.
@@ -183,7 +183,7 @@ const [fruit, setFruit] = useState<string>('apple')
 }
 ```
 
-You can specify `variant: radio` for radio group functionality. 
+You can specify `variant: radio` for radio group functionality.
 
 This requires the `value` and `onValueChange` props on the group.
 
@@ -236,7 +236,7 @@ The simplest way to use a loader is to provide an async function that returns an
   loader: async ({ query, open }) => {
     const response = await fetch('/api/projects')
     const projects = await response.json()
-    
+
     return projects.map(project => ({
       kind: 'item',
       id: project.id,

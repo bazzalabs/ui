@@ -8,7 +8,8 @@ import { ActionMenu_DisabledItems } from './disabled-items'
 import { ActionMenu_Groups } from './groups'
 import { ActionMenu_HeaderFooter } from './header-footer'
 import { ActionMenu_ItemDescriptions } from './item-descriptions'
-import { ActionMenu_KitchenSink01 } from './kitchen-sink-01'
+import { ActionMenu_Linear } from './linear'
+import { ActionMenu_LinearAsync } from './linear-async'
 import { ActionMenu_Massive } from './massive'
 import { ActionMenu_Notion } from './notion'
 import { ActionMenu_RadioGroups } from './radio-groups'
@@ -33,7 +34,8 @@ export const ActionMenu = {
   AsyncSubmenus: ActionMenu_AsyncSubmenus,
   AsyncDeepSearch: ActionMenu_AsyncDeepSearch,
   /***** Kitchen sink examples *****/
-  KitchenSink01: ActionMenu_KitchenSink01,
+  Linear: ActionMenu_Linear,
+  LinearAsync: ActionMenu_LinearAsync,
   Notion: ActionMenu_Notion,
   AIModelSwitcher: ActionMenu_AIModelSwitcher,
 }
