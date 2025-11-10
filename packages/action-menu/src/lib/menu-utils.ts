@@ -139,7 +139,6 @@ export function instantiateMenuFromDef<T>(
       childSurfaceId,
       parent.depth + 1,
       query,
-      subOpen,
     ) as Menu<any>
 
     // Destructure to exclude properties that shouldn't be on the node

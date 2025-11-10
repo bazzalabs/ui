@@ -240,7 +240,6 @@ export const Surface = React.forwardRef(function Surface<T>(
           surfaceId,
           depth,
           value,
-          open,
         )
       }
 
@@ -272,7 +271,6 @@ export const Surface = React.forwardRef(function Surface<T>(
       surfaceId,
       depth,
       value,
-      open,
     )
 
     // If we have aggregated loading state, merge it with the menu's loading state

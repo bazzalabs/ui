@@ -94,6 +94,7 @@ export const ActionMenu = createActionMenu({
         return progress.isLoading ? acc : acc + 1
       }, 0)
       const total = args.progress?.length ?? 0
+
       return (
         <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground">
           <DiamondSpinner className="size-10 text-primary" />
