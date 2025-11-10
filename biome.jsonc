@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/node_modules"]
+    "includes": ["**", "!**/node_modules", "!apps/web/app/globals.css"]
   },
   "formatter": {
     "enabled": true,
