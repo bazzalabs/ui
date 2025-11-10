@@ -21,7 +21,6 @@ export function instantiateMenuFromDef<T>(
   surfaceId: string,
   depth: number,
   query = '',
-  open = false,
 ): Menu<T> {
   // Only resolve loader if it's NOT a function
   // Function loaders should already be resolved by Surface component
@@ -143,8 +142,16 @@ export function instantiateMenuFromDef<T>(
       subOpen,
     ) as Menu<any>
 
+    // Destructure to exclude properties that shouldn't be on the node
+    const {
+      nodes: _nodes,
+      search: _search,
+      virtualization: _virtualization,
+      ...subDefRest
+    } = subDef as SubmenuDef<any, any>
+
     const node: SubmenuNode<any, any> = {
-      ...(subDef as SubmenuDef<any, any>),
+      ...subDefRest,
       kind: 'submenu',
       parent,
       def: d,

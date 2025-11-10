@@ -8,85 +8,6 @@ import { Fragment } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
-const TriangleRightIcon = ({
-  ...props
-}: React.HTMLAttributes<SVGSVGElement>) => {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 15 15"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
-      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
-    </svg>
-  )
-}
-
-const AnimatedLoader = ({
-  className,
-  ...props
-}: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    className={cn('fill-muted-foreground size-6', className)}
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    <rect x="1" y="4" width="6" height="14" opacity="1">
-      {/** biome-ignore lint/correctness/useUniqueElementIds: <explanation> */}
-      <animate
-        id="spinner_rQ7m"
-        begin="0;spinner_2dMV.end-0.25s"
-        attributeName="opacity"
-        dur="0.75s"
-        values="1;.2"
-        fill="freeze"
-      />
-    </rect>
-    <rect x="9" y="4" width="6" height="14" opacity=".4">
-      <animate
-        begin="spinner_rQ7m.begin+0.15s"
-        attributeName="opacity"
-        dur="0.75s"
-        values="1;.2"
-        fill="freeze"
-      />
-    </rect>
-    <rect x="17" y="4" width="6" height="14" opacity=".3">
-      {/** biome-ignore lint/correctness/useUniqueElementIds: <explanation> */}
-      <animate
-        id="spinner_2dMV"
-        begin="spinner_rQ7m.begin+0.3s"
-        attributeName="opacity"
-        dur="0.75s"
-        values="1;.2"
-        fill="freeze"
-      />
-    </rect>
-  </svg>
-)
-
-export const LabelWithBreadcrumbs = ({
-  label,
-  breadcrumbs,
-}: {
-  label: React.ReactNode
-  breadcrumbs?: string[]
-}) => (
-  <div className="flex items-center gap-1 truncate">
-    {breadcrumbs?.map((crumb, idx) => (
-      <Fragment key={`${idx}-${crumb}`}>
-        <span className="text-muted-foreground truncate">{crumb}</span>
-        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0" />
-      </Fragment>
-    ))}
-    <span className="truncate">{label}</span>
-  </div>
-)
-
 declare module '@bazza-ui/action-menu' {
   interface ItemExtendedProperties {
     description?: string
@@ -168,11 +89,17 @@ export const ActionMenu = createActionMenu({
         </li>
       )
     },
-    Loading: () => {
+    Loading: (args) => {
+      const count = args.progress?.reduce((acc, progress) => {
+        return progress.isLoading ? acc : acc + 1
+      }, 0)
+      const total = args.progress?.length ?? 0
       return (
-        <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground ">
-          <AnimatedLoader className="size-5" />
-          <span>Loading...</span>
+        <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground">
+          <DiamondSpinner className="size-10 text-primary" />
+          <span className="tabular-nums">
+            Loading {total > 0 ? `${count}/${total}` : ''}...
+          </span>
         </div>
       )
     },
@@ -249,3 +176,113 @@ export const ActionMenu = createActionMenu({
     ),
   },
 })
+
+const TriangleRightIcon = ({
+  ...props
+}: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
+    </svg>
+  )
+}
+
+const diamondCoords = [
+  { x: 3, y: 48 },
+  { x: 18, y: 33 },
+  { x: 18, y: 48 },
+  { x: 18, y: 63 },
+  { x: 33, y: 48 },
+  { x: 33, y: 18 },
+  { x: 33, y: 33 },
+  { x: 33, y: 63 },
+  { x: 33, y: 78 },
+  { x: 48, y: 3 },
+  { x: 48, y: 18 },
+  { x: 48, y: 33 },
+  { x: 48, y: 48 },
+  { x: 48, y: 63 },
+  { x: 48, y: 78 },
+  { x: 48, y: 93 },
+  { x: 63, y: 18 },
+  { x: 63, y: 33 },
+  { x: 63, y: 48 },
+  { x: 63, y: 63 },
+  { x: 63, y: 78 },
+  { x: 78, y: 33 },
+  { x: 78, y: 48 },
+  { x: 78, y: 63 },
+  { x: 93, y: 48 },
+] as const
+
+export const DiamondSpinner = ({
+  className,
+  ...props
+}: React.SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      className={cn('fill-current size-6', className)}
+      viewBox="0 0 96 96"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <style>
+        {`
+          @keyframes diamond-spin {
+            25% { transform: translate(30px, -30px); }
+            50% { transform: translate(60px, 0px); }
+            75% { transform: translate(30px, 30px); }
+          }
+        `}
+      </style>
+      {/* Background squares */}
+      {diamondCoords.map((c) => (
+        <rect
+          key={`bg-${c.x}-${c.y}`}
+          x={c.x - 2.5}
+          y={c.y - 2.5}
+          width={5}
+          height={5}
+          className="fill-current/30"
+        />
+      ))}
+      {/* Animated squares */}
+      <g style={{ animation: 'diamond-spin 1.4s steps(2, end) infinite' }}>
+        {diamondCoords.slice(0, 5).map((c) => (
+          <rect
+            key={`fg-${c.x}-${c.y}`}
+            x={c.x - 3.5}
+            y={c.y - 3.5}
+            width={7}
+            height={7}
+          />
+        ))}
+      </g>
+    </svg>
+  )
+}
+
+export const LabelWithBreadcrumbs = ({
+  label,
+  breadcrumbs,
+}: {
+  label: React.ReactNode
+  breadcrumbs?: string[]
+}) => (
+  <div className="flex items-center gap-1 truncate">
+    {breadcrumbs?.map((crumb, idx) => (
+      <Fragment key={`${idx}-${crumb}`}>
+        <span className="text-muted-foreground truncate">{crumb}</span>
+        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0" />
+      </Fragment>
+    ))}
+    <span className="truncate">{label}</span>
+  </div>
+)

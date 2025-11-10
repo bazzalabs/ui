@@ -93,7 +93,10 @@ export function createLoader<TQueryFnData = NodeDef[]>(
     // Call useQuery with the options - this is valid because this function
     // is called during render in the Surface component
     // TQueryFnData is the raw data type, NodeDef<T>[] is the selected/transformed type
-    const queryResult: UseQueryResult<NodeDef[], Error> = useQuery(queryOptions)
+    const queryResult: UseQueryResult<NodeDef[], Error> = useQuery({
+      refetchOnMount: false,
+      ...queryOptions,
+    })
 
     // Transform React Query result to AsyncNodeLoaderResult
     return {

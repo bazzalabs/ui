@@ -2,6 +2,7 @@
 
 import { Examples } from '@/components/examples'
 import { NavBar } from '@/components/nav-bar'
+import { DiamondSpinner } from '@/registry/action-menu'
 
 export default function Page() {
   return (
@@ -24,6 +25,7 @@ export default function Page() {
       <div className="border-b border-border border-dashed bg-site-background flex-1 flex flex-col">
         <div className="px-4 py-2 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x flex-1 flex flex-col">
           <div className="flex flex-col gap-8 p-8 flex-1 w-fit">
+            <DiamondSpinner className="text-primary size-24" />
             {/* Content here! */}
             <Examples.ActionMenu.AsyncBasic />
             <Examples.ActionMenu.AsyncSubmenus />

@@ -62,6 +62,8 @@ export function List<T = unknown>(props: ListProps<T>) {
       return LoadingSlot({
         menu,
         isFetching: menu.loadingState?.isFetching,
+        progress: menu.loadingState?.progress,
+        query,
       }) as React.ReactElement
     }
     return null
@@ -207,18 +209,45 @@ function ListContent<T = unknown>({
     [],
   )
 
-  const results = React.useMemo(
-    () =>
-      q
-        ? pipe(
-            collect(menu.nodes, q, [], [], menu),
-            sortBy([prop('score'), 'desc']),
-            partition((v) => v.type === 'submenu'),
-            flat(),
-          )
-        : [],
-    [q, menu.nodes],
-  )
+  const results = React.useMemo(() => {
+    if (!q) return []
+
+    const searchMode = menu.search?.mode ?? 'client'
+
+    // Server mode: Skip client-side filtering, use nodes as-is
+    if (searchMode === 'server') {
+      // Map nodes directly without scoring (server already filtered)
+      const serverResults: SR[] = []
+      for (const node of menu.nodes) {
+        if (node.kind === 'item') {
+          serverResults.push({
+            type: 'item',
+            node: node as ItemNode<T>,
+            breadcrumbs: [],
+            breadcrumbIds: [],
+            score: 1, // All server results have equal score
+          })
+        } else if (node.kind === 'submenu') {
+          serverResults.push({
+            type: 'submenu',
+            node: node as SubmenuNode<any>,
+            breadcrumbs: [],
+            breadcrumbIds: [],
+            score: 1,
+          })
+        }
+      }
+      return serverResults
+    }
+
+    // Client or hybrid mode: Apply client-side filtering
+    return pipe(
+      collect(menu.nodes, q, [], [], menu),
+      sortBy([prop('score'), 'desc']),
+      partition((v) => v.type === 'submenu'),
+      flat(),
+    )
+  }, [q, menu.nodes, menu.search?.mode])
   const flattenedNodes = React.useMemo(() => {
     const acc: Node<T>[] = []
 
@@ -299,9 +328,9 @@ function ListContent<T = unknown>({
 
   const virtualizer = useVirtualizer({
     count: flattenedNodes.length,
-    estimateSize: () => 32,
+    estimateSize: () => menu.virtualization?.estimateSize ?? 32,
     getScrollElement: () => store.listRef.current,
-    overscan: 12,
+    overscan: menu.virtualization?.overscan ?? 12,
   })
 
   // Store the virtualizer reference in the store

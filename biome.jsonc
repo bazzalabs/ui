@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/node_modules", "!apps/web/app/globals.css"]
+    "includes": ["**", "!**/node_modules"]
   },
   "formatter": {
     "enabled": true,
@@ -69,7 +69,6 @@
   },
   "css": {
     "parser": {
-      "cssModules": true,
       "tailwindDirectives": true
     },
     "formatter": {

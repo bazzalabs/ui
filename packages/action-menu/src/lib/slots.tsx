@@ -23,9 +23,19 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
         No results{query ? ` for "${query}"` : ''}.
       </div>
     ),
-    Loading: ({ isFetching }) => (
+    Loading: ({ isFetching, progress, query }) => (
       <div data-slot="action-menu-loading">
-        {isFetching ? 'Refreshing...' : 'Loading...'}
+        <div>{isFetching ? 'Refreshing...' : 'Loading...'}</div>
+        {progress && progress.length > 0 && (
+          <div style={{ fontSize: '0.875em', marginTop: '0.5em' }}>
+            {query && <div>Searching for "{query}"...</div>}
+            {progress.map((p) => (
+              <div key={p.path.join('-')} style={{ opacity: 0.7 }}>
+                {p.isLoading ? '⏳' : '✓'} {p.breadcrumbs.join(' › ')}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     ),
     Error: ({ error }) => (

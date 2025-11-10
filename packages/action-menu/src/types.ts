@@ -91,7 +91,23 @@ export type EagerLoaderEntry = {
 }
 
 /**
- * Aggregated state of multiple eager loaders.
+ * Progress information for a single loader during deep search.
+ */
+export type LoaderProgress = {
+  /** Path to the submenu (e.g., ['settings', 'advanced']) */
+  path: string[]
+  /** Human-readable path (e.g., ['Settings', 'Advanced']) */
+  breadcrumbs: string[]
+  /** Loading state for this specific loader */
+  isLoading: boolean
+  /** Whether data is being refetched */
+  isFetching: boolean
+  /** Error if this loader failed */
+  error?: Error | null
+}
+
+/**
+ * Aggregated state of multiple deep search loaders.
  * @internal
  */
 export type AggregatedLoaderState = {
@@ -103,6 +119,38 @@ export type AggregatedLoaderState = {
   isFetching: boolean
   /** Map of path (joined by '.') to loader result. */
   results: Map<string, AsyncNodeLoaderResult>
+  /** Progress details for each loader (useful for Loading slot) */
+  progress: LoaderProgress[]
+}
+
+/**
+ * Configuration for virtualizing large lists.
+ */
+export type VirtualizationConfig = {
+  /** Number of items to render outside the visible area. Default: 12 */
+  overscan?: number
+  /** Estimated height of each item in pixels. Default: 32 */
+  estimateSize?: number
+}
+
+/**
+ * Search mode for filtering results.
+ * - 'client': Search is performed locally on the client (default)
+ * - 'server': Search is delegated to the server via async loaders
+ * - 'hybrid': Both client-side filtering AND server-side search
+ */
+export type SearchMode = 'client' | 'server' | 'hybrid'
+
+/**
+ * Configuration for search behavior.
+ */
+export type SearchConfig = {
+  /** Search mode. Default: 'client' */
+  mode?: SearchMode
+  /** Debounce delay in milliseconds. Default: 0 (no debounce) */
+  debounce?: number
+  /** Minimum query length before search activates. Default: 0 */
+  minLength?: number
 }
 
 export type MenuDef<T = unknown> = MenuState & {
@@ -115,6 +163,10 @@ export type MenuDef<T = unknown> = MenuState & {
   /** Async node loader (async mode). Mutually exclusive with `nodes`. */
   loader?: AsyncNodeLoader<T>
   defaults?: MenuNodeDefaults<T>
+  /** Virtualization configuration for the list. */
+  virtualization?: VirtualizationConfig
+  /** Search configuration for filtering behavior. */
+  search?: SearchConfig
   ui?: {
     slots?: Partial<ActionMenuSlots<T>>
     slotProps?: Partial<ActionMenuSlotProps>
@@ -203,11 +255,12 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     /** Async node loader (async mode). Mutually exclusive with `nodes`. */
     loader?: AsyncNodeLoader<TChild>
     /**
-     * When true, this submenu's loader will be called in parallel with ancestor/sibling loaders
-     * during deep search. This enables faster deep search across multiple async submenus.
+     * When true, this submenu's children are searchable from ancestor menus (deep search).
+     * - For async loaders: Triggers parallel loading during search
+     * - For static nodes: Children are always searchable (deep search is implicit)
      * @default false
      */
-    eager?: boolean
+    deepSearch?: boolean
     data?: T
     disabled?: boolean
     icon?: Iconish
@@ -215,6 +268,10 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     inputPlaceholder?: string
     hideSearchUntilActive?: boolean
     defaults?: MenuNodeDefaults<T>
+    /** Virtualization configuration for the submenu's list. */
+    virtualization?: VirtualizationConfig
+    /** Search configuration for filtering behavior. */
+    search?: SearchConfig
     ui?: {
       slots?: Partial<ActionMenuSlots<TChild>>
       slotProps?: Partial<ActionMenuSlotProps>
@@ -233,6 +290,8 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
     isError?: boolean
     error?: Error | null
     isFetching?: boolean
+    /** Progress details for deep search loaders */
+    progress?: LoaderProgress[]
   }
 }
 
@@ -328,7 +387,7 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
   'submenu',
   SubmenuDef<T, TChild>
 > &
-  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> &
+  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes' | 'search'> &
   GroupedNode<T> & {
     child: Menu<TChild>
     nodes: Node<TChild>[]
@@ -508,7 +567,15 @@ export type SurfaceSlots<T = unknown> = {
   /** Shown when no nodes are available after loading completes. */
   Empty?: (args: { query: string }) => React.ReactNode
   /** Shown during initial async load (when isLoading && !data). */
-  Loading?: (args: { menu: Menu<T>; isFetching?: boolean }) => React.ReactNode
+  Loading?: (args: {
+    menu: Menu<T>
+    /** Whether any loader is currently fetching */
+    isFetching?: boolean
+    /** Deep search progress (which submenus are being searched) */
+    progress?: LoaderProgress[]
+    /** Query that triggered the search (if deep search is active) */
+    query?: string
+  }) => React.ReactNode
   /** Shown when async load fails (when isError). */
   Error?: (args: { menu: Menu<T>; error?: Error }) => React.ReactNode
   Item: (args: ItemSlotProps<T>) => React.ReactNode

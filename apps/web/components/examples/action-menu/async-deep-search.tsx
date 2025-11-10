@@ -11,11 +11,11 @@ import { ActionMenu } from '@/registry/action-menu'
  * using the createLoader API from @bazza-ui/action-menu/react-query.
  *
  * Key features:
- * - **Eager loading**: Setting `eager: true` enables parallel loading of all submenus
+ * - **Deep search**: Setting `deepSearch: true` enables parallel loading of all submenus
  *   when a search query is active, instead of loading them one-by-one
- * - **Aggregated loading state**: Shows loading indicator until ALL eager loaders complete
+ * - **Aggregated loading state**: Shows loading indicator until ALL deep search loaders complete
  * - **Silent error handling**: If one loader fails, results from successful loaders are shown
- * - **Automatic query propagation**: Search query is passed to all eager loaders automatically
+ * - **Automatic query propagation**: Search query is passed to all deep search loaders automatically
  *
  * Benefits of the createLoader approach:
  * - No need to manually manage search state
@@ -36,8 +36,8 @@ export function ActionMenu_AsyncDeepSearch() {
       label: 'Fruits',
       icon: '🍎',
       title: 'Fruits',
-      // eager: true enables parallel loading during deep search
-      eager: true,
+      // deepSearch: true enables parallel loading during deep search
+      deepSearch: true,
       // createLoader receives context and returns React Query config
       loader: createLoader(({ query }) => ({
         queryKey: ['fruits', query],
@@ -51,7 +51,7 @@ export function ActionMenu_AsyncDeepSearch() {
       label: 'Vegetables',
       icon: '🥕',
       title: 'Vegetables',
-      eager: true,
+      deepSearch: true,
       loader: createLoader(({ query }) => ({
         queryKey: ['vegetables', query],
         queryFn: () => fetchVegetables(query),
@@ -64,7 +64,7 @@ export function ActionMenu_AsyncDeepSearch() {
       label: 'Meats',
       icon: '🥩',
       title: 'Meats',
-      eager: true,
+      deepSearch: true,
       loader: createLoader(({ query }) => ({
         queryKey: ['meats', query],
         queryFn: () => fetchMeats(query),
@@ -78,7 +78,6 @@ export function ActionMenu_AsyncDeepSearch() {
       trigger={<Button variant="secondary">Food Menu (Deep Search)</Button>}
       menu={{
         id: 'root',
-        inputPlaceholder: 'Search all categories...',
         nodes: submenus,
       }}
     />
