@@ -78,12 +78,23 @@ export const Surface = React.forwardRef(function Surface<T>(
     // Check if it's already a Menu instance
     if ((menuProp as any)?.surfaceId) {
       const menu = menuProp as Menu<T>
-      if (menu.loader && typeof menu.loader === 'function') {
+      if (menu.loader) {
+        // Check for factory on function loaders or static results with factory metadata
         const loaderFactory = (menu.loader as any).__loaderFactory
-        return {
-          hasFactory: !!loaderFactory,
-          factory: loaderFactory,
-          staticResult: undefined,
+        if (loaderFactory) {
+          return {
+            hasFactory: true,
+            factory: loaderFactory,
+            staticResult: undefined,
+          }
+        }
+        // It's a static result without factory
+        if (typeof menu.loader !== 'function') {
+          return {
+            hasFactory: false,
+            factory: undefined,
+            staticResult: menu.loader,
+          }
         }
       }
       return { hasFactory: false, factory: undefined, staticResult: undefined }
@@ -94,18 +105,31 @@ export const Surface = React.forwardRef(function Surface<T>(
     if (!menuDef.loader) {
       return { hasFactory: false, factory: undefined, staticResult: undefined }
     }
-    if (typeof menuDef.loader === 'function') {
-      const loaderFactory = (menuDef.loader as any).__loaderFactory
+
+    // Check for factory on function loaders or static results with factory metadata
+    const loaderFactory = (menuDef.loader as any).__loaderFactory
+    if (loaderFactory) {
       return {
-        hasFactory: !!loaderFactory,
+        hasFactory: true,
         factory: loaderFactory,
         staticResult: undefined,
       }
     }
+
+    // It's a static result without factory
+    if (typeof menuDef.loader !== 'function') {
+      return {
+        hasFactory: false,
+        factory: undefined,
+        staticResult: menuDef.loader,
+      }
+    }
+
+    // Should not reach here, but return default
     return {
       hasFactory: false,
       factory: undefined,
-      staticResult: menuDef.loader,
+      staticResult: undefined,
     }
   }, [menuProp])
 

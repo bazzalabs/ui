@@ -172,11 +172,24 @@ function injectLoaderResultsIntoSubmenu(
   const result = eagerResults.get(pathKey)
 
   if (result && submenu.eager) {
-    // Replace the loader with the static result
+    // Preserve the original loader function so the submenu can reload
+    // when opened independently. We attach the factory metadata to the static result.
+    const originalLoader = submenu.loader
+
+    // Create a static result object that includes the factory metadata
+    const staticResultWithFactory = {
+      ...result,
+      // Preserve the factory from the original loader so the submenu can reload
+      __loaderFactory:
+        typeof originalLoader === 'function'
+          ? (originalLoader as any).__loaderFactory
+          : undefined,
+    }
+
     const newSubmenu: SubmenuDef<any, any> = {
       ...submenu,
-      // Replace function loader with static loader result
-      loader: result,
+      // Use static result but preserve factory for future loads
+      loader: staticResultWithFactory as any,
     }
 
     // Process children if they exist
