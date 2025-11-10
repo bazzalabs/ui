@@ -789,6 +789,7 @@ const projectPropertiesMenu: SubmenuDef = {
 
 export const menuData: MenuDef = {
   id: 'issue-properties',
+  search: { minLength: 2 },
   defaults: {
     item: {
       closeOnSelect: true,
@@ -805,5 +806,5 @@ export const menuData: MenuDef = {
     // durationMenu,
     labelsMenu,
     projectPropertiesMenu,
-  ],
+  ].map((node) => ({ ...node, search: { minLength: 2 } })),
 }

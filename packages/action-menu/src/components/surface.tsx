@@ -42,6 +42,29 @@ import type {
 import { Input } from './input.js'
 import { List } from './list.js'
 
+/**
+ * Normalizes minLength configuration to separate local and deep thresholds.
+ * - number: Applies to deep search only, local is immediate (0)
+ * - object: Use specified values, default to 0
+ * - undefined: Both default to 0
+ */
+function normalizeMinLength(
+  minLength: number | { local?: number; deep?: number } | undefined,
+): { local: number; deep: number } {
+  if (minLength === undefined) {
+    return { local: 0, deep: 0 }
+  }
+  if (typeof minLength === 'number') {
+    // Number applies to deep search only, local is immediate (0)
+    return { local: 0, deep: minLength }
+  }
+  // Object form: use specified values, default to 0
+  return {
+    local: minLength.local ?? 0,
+    deep: minLength.deep ?? 0,
+  }
+}
+
 export const Surface = React.forwardRef(function Surface<T>(
   {
     menu: menuProp,
@@ -60,7 +83,10 @@ export const Surface = React.forwardRef(function Surface<T>(
   const root = useRootCtx()
   const sub = useSubCtx()
   const isSub = React.useMemo(() => sub !== null, [sub])
-  const open = React.useMemo(() => (sub ? sub.open : root.open), [isSub, root])
+  const open = React.useMemo(
+    () => (sub ? sub.open : root.open),
+    [sub, sub?.open, root, root.open],
+  )
   const surfaceId = React.useMemo(
     () => surfaceIdProp ?? sub?.childSurfaceId ?? 'root',
     [surfaceIdProp, sub],
@@ -85,8 +111,8 @@ export const Surface = React.forwardRef(function Surface<T>(
 
   // Apply minLength threshold - only pass query to loaders if it meets the minimum length
   const effectiveQuery = React.useMemo(() => {
-    const minLength = searchConfig.minLength ?? 0
-    return debouncedValue.length >= minLength ? debouncedValue : ''
+    const { local } = normalizeMinLength(searchConfig.minLength)
+    return debouncedValue.length >= local ? debouncedValue : ''
   }, [debouncedValue, searchConfig.minLength])
 
   // Get the loader adapter (always returns an adapter, defaults to NativeLoaderAdapter)
@@ -94,6 +120,14 @@ export const Surface = React.forwardRef(function Surface<T>(
 
   // Extract the loader from the menu
   const menuLoader = React.useMemo(() => {
+    // IMPORTANT: If this is a submenu Surface, use the original loader (before deep search injection)
+    // This prevents using cached deep search results when the submenu is opened
+    if (sub?.def) {
+      const submenuDef = sub.def as any
+      // Use __originalLoader if it exists (set by deep search injection), otherwise use loader
+      return submenuDef.__originalLoader || submenuDef.loader
+    }
+
     // Check if it's already a Menu instance
     if ((menuProp as any)?.surfaceId) {
       const menu = menuProp as Menu<T>
@@ -103,7 +137,7 @@ export const Surface = React.forwardRef(function Surface<T>(
     // It's a MenuDef
     const menuDef = menuProp as MenuDef<T>
     return menuDef.loader
-  }, [menuProp])
+  }, [menuProp, sub])
 
   // Create loader context
   const loaderContext = React.useMemo<AsyncNodeLoaderContext>(
@@ -118,21 +152,47 @@ export const Surface = React.forwardRef(function Surface<T>(
   const deepSearchLoaderEntries = React.useMemo(() => {
     const menuDef = menuProp as MenuDef<T>
     if ((menuProp as any)?.surfaceId) return [] // Already a Menu instance
-    // Only collect deep search loaders when there's an effective query (deep search active)
-    if (!effectiveQuery) return []
+    // Collect deep search loaders when there's any query (we'll filter per-submenu minLength later)
+    // Don't use effectiveQuery here - submenus may have different minLength values
+    if (!debouncedValue) return []
     return collectDeepSearchLoaders(menuDef)
-  }, [menuProp, effectiveQuery])
+  }, [menuProp, debouncedValue])
 
   // Prepare deep search loader configs for parallel execution
-  const deepSearchLoaderConfigs = React.useMemo(
-    () =>
-      deepSearchLoaderEntries.map((entry) => ({
-        path: entry.path,
-        loader: entry.loader,
-        context: loaderContext,
-      })),
-    [deepSearchLoaderEntries, loaderContext],
-  )
+  // Each loader gets its own context with effectiveQuery calculated from its own minLength
+  // IMPORTANT: Filter out loaders that don't meet their minLength threshold
+  const deepSearchLoaderConfigs = React.useMemo(() => {
+    // Get the root menu's deep threshold
+    const rootDeepThreshold = normalizeMinLength(searchConfig.minLength).deep
+
+    return deepSearchLoaderEntries
+      .map((entry) => {
+        // Each submenu can have its own minLength config
+        const submenuMinLength = normalizeMinLength(
+          entry.searchConfig?.minLength,
+        )
+
+        // Use the submenu's deep threshold, or fall back to root's deep threshold
+        const effectiveDeepThreshold =
+          entry.searchConfig?.minLength !== undefined
+            ? submenuMinLength.deep
+            : rootDeepThreshold
+
+        const meetsMinLength = debouncedValue.length >= effectiveDeepThreshold
+
+        // Only include this loader if the query meets its minLength
+        if (!meetsMinLength) {
+          return null
+        }
+
+        return {
+          path: entry.path,
+          loader: entry.loader,
+          context: { query: debouncedValue, open },
+        }
+      })
+      .filter((config): config is NonNullable<typeof config> => config !== null)
+  }, [deepSearchLoaderEntries, debouncedValue, open, searchConfig.minLength])
 
   // Execute all deep search loaders using the adapter (always defined, never null)
   const deepSearchLoaderResults = loaderAdapter.useLoaders(
@@ -174,8 +234,10 @@ export const Surface = React.forwardRef(function Surface<T>(
     // Start with the menu def
     let resolvedMenuDef = { ...menuProp } as MenuDef<T>
 
-    // Inject deep search loader results first
-    if (aggregatedState && aggregatedState.results.size > 0) {
+    // IMPORTANT: Only inject deep search results in the ROOT menu, not in submenus
+    // When a submenu is opened, it should use its own loader function with its own query,
+    // not the cached deep search results from the parent menu's query
+    if (!sub && aggregatedState && aggregatedState.results.size > 0) {
       resolvedMenuDef = injectLoaderResults(
         resolvedMenuDef,
         aggregatedState.results,
@@ -194,7 +256,8 @@ export const Surface = React.forwardRef(function Surface<T>(
     )
 
     // If we have aggregated loading state, merge it with the menu's loading state
-    if (aggregatedState) {
+    // Only apply this to root menus (submenus should have their own independent loading state)
+    if (!sub && aggregatedState) {
       return {
         ...instantiatedMenu,
         loadingState: {
@@ -212,15 +275,7 @@ export const Surface = React.forwardRef(function Surface<T>(
     }
 
     return instantiatedMenu
-  }, [
-    menuProp,
-    surfaceId,
-    sub,
-    value,
-    open,
-    finalLoaderResult,
-    aggregatedState,
-  ])
+  }, [menuProp, surfaceId, sub, finalLoaderResult, aggregatedState])
 
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
@@ -480,7 +535,7 @@ export const Surface = React.forwardRef(function Surface<T>(
     <List<T>
       store={store}
       menu={menu}
-      query={value}
+      query={effectiveQuery}
       defaults={defaults}
       inputActive={inputActive}
       onTypeStart={(seed) => {

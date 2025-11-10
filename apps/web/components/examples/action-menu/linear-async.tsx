@@ -784,6 +784,9 @@ export const menuData: MenuDef = {
       },
     },
   },
+  search: {
+    minLength: 2,
+  },
   nodes: [
     statusMenu,
     assigneeMenu,

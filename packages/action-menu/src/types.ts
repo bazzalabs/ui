@@ -215,8 +215,12 @@ export type SearchConfig = {
   mode?: SearchMode
   /** Debounce delay in milliseconds. Default: 0 (no debounce) */
   debounce?: number
-  /** Minimum query length before search activates. Default: 0 */
-  minLength?: number
+  /**
+   * Minimum query length before search activates.
+   * - number: Applies to deep search only (local search is immediate). Default: 0
+   * - object: Specify separate thresholds for local and deep search
+   */
+  minLength?: number | { local?: number; deep?: number }
 }
 
 export type MenuDef<T = unknown> = MenuState & {

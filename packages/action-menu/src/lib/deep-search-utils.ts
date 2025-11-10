@@ -16,6 +16,8 @@ export type DeepSearchLoaderEntry<T = unknown> = {
   path: string[]
   /** The loader to execute */
   loader: AsyncNodeLoader<T>
+  /** Search configuration from the submenu (for minLength, debounce, etc.) */
+  searchConfig?: import('../types.js').SearchConfig
 }
 
 /**
@@ -67,11 +69,12 @@ function collectDeepSearchLoadersFromNode<T = unknown>(
     return
   }
 
-  // If this submenu has a loader, add it to deep search
+  // If this submenu has a loader, add it to deep search with its search config
   if (submenu.loader) {
     entries.push({
       path: currentPath,
       loader: submenu.loader,
+      searchConfig: submenu.search,
     })
   }
 
@@ -218,11 +221,14 @@ function injectLoaderResultsIntoSubmenu(
   const result = deepSearchResults.get(pathKey)
 
   if (result && isDeepSearchEnabled) {
-    // Replace the loader with the static result
+    // Store both the original loader and the injected result
+    // The Surface component will use the original loader for submenus
     const newSubmenu: SubmenuDef<any, any> = {
       ...submenu,
       loader: result as any,
-    }
+      // Store the original loader in a special property
+      __originalLoader: submenu.loader,
+    } as any
 
     // Process children if they exist
     if (submenu.nodes) {
