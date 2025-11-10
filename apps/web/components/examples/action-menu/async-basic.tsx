@@ -8,13 +8,19 @@ import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 import { LABEL_STYLES_BG, type TW_COLOR } from './kitchen-sink-01'
 
+type Label = {
+  id: string
+  name: string
+  color: string
+}
+
 export function ActionMenu_AsyncBasic() {
   return (
     <ActionMenu
       trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
-        loader: createLoader(({ query }) => ({
+        loader: createLoader<Label[]>(({ query }) => ({
           queryKey: ['labels', query],
           queryFn: () => fetchLabels(query),
           retry: false,
