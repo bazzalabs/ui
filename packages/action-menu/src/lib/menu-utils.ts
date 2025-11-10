@@ -23,11 +23,12 @@ export function instantiateMenuFromDef<T>(
   query = '',
   open = false,
 ): Menu<T> {
-  // Resolve function loaders with query context and open state
+  // Only resolve loader if it's NOT a function
+  // Function loaders should already be resolved by Surface component
+  // If we encounter a function loader here (e.g., for submenus during instantiation),
+  // we skip it and let the submenu's Surface component resolve it
   const resolvedLoader =
-    def.loader && typeof def.loader === 'function'
-      ? def.loader({ query, open })
-      : def.loader
+    def.loader && typeof def.loader !== 'function' ? def.loader : undefined
 
   // Determine source of nodes: either static (sync) or from loader (async)
   const sourceNodes = resolvedLoader ? resolvedLoader.data : def.nodes

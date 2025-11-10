@@ -117,6 +117,7 @@
       },
       "devDependencies": {
         "@bazza-ui/typescript-config": "*",
+        "@tanstack/react-query": "^5.62.14",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/react": "^16.3.0",
         "@types/react": "^19.1.1",

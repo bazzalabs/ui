@@ -79,6 +79,32 @@ export type AsyncNodeLoader<T = unknown> =
   | AsyncNodeLoaderResult<T>
   | ((context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult<T>)
 
+/**
+ * Metadata for an eager loader that will be executed in parallel.
+ * @internal
+ */
+export type EagerLoaderEntry = {
+  /** Path to the submenu (array of submenu ids from root). */
+  path: string[]
+  /** The loader function to call. */
+  loader: (context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult
+}
+
+/**
+ * Aggregated state of multiple eager loaders.
+ * @internal
+ */
+export type AggregatedLoaderState = {
+  /** True if ANY loader is still loading. */
+  isLoading: boolean
+  /** True if ANY loader has an error. */
+  isError: boolean
+  /** True if ANY loader is fetching. */
+  isFetching: boolean
+  /** Map of path (joined by '.') to loader result. */
+  results: Map<string, AsyncNodeLoaderResult>
+}
+
 export type MenuDef<T = unknown> = MenuState & {
   id: string
   title?: string
@@ -176,6 +202,12 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     nodes?: NodeDef<TChild>[]
     /** Async node loader (async mode). Mutually exclusive with `nodes`. */
     loader?: AsyncNodeLoader<TChild>
+    /**
+     * When true, this submenu's loader will be called in parallel with ancestor/sibling loaders
+     * during deep search. This enables faster deep search across multiple async submenus.
+     * @default false
+     */
+    eager?: boolean
     data?: T
     disabled?: boolean
     icon?: Iconish

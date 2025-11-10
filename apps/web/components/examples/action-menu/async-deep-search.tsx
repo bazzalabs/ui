@@ -10,6 +10,13 @@ import { ActionMenu } from '@/registry/action-menu'
  * This example demonstrates deep search across multiple async submenus
  * using the createLoader API from @bazza-ui/action-menu/react-query.
  *
+ * Key features:
+ * - **Eager loading**: Setting `eager: true` enables parallel loading of all submenus
+ *   when a search query is active, instead of loading them one-by-one
+ * - **Aggregated loading state**: Shows loading indicator until ALL eager loaders complete
+ * - **Silent error handling**: If one loader fails, results from successful loaders are shown
+ * - **Automatic query propagation**: Search query is passed to all eager loaders automatically
+ *
  * Benefits of the createLoader approach:
  * - No need to manually manage search state
  * - Query keys automatically update with the search query
@@ -18,6 +25,8 @@ import { ActionMenu } from '@/registry/action-menu'
  * - Cleaner, more declarative code
  * - Each submenu's loader is self-contained
  * - No direct hook calls in loader definitions
+ *
+ * Try it: Type "chicken" to see all loaders execute in parallel and results combined!
  */
 export function ActionMenu_AsyncDeepSearch() {
   const submenus: SubmenuDef[] = [
@@ -27,12 +36,13 @@ export function ActionMenu_AsyncDeepSearch() {
       label: 'Fruits',
       icon: '🍎',
       title: 'Fruits',
+      // eager: true enables parallel loading during deep search
+      eager: true,
       // createLoader receives context and returns React Query config
-      loader: createLoader(({ query, open }) => ({
+      loader: createLoader(({ query }) => ({
         queryKey: ['fruits', query],
         queryFn: () => fetchFruits(query),
         retry: false,
-        enabled: open, // Only fetch when submenu is open
       })),
     },
     {
@@ -41,11 +51,11 @@ export function ActionMenu_AsyncDeepSearch() {
       label: 'Vegetables',
       icon: '🥕',
       title: 'Vegetables',
-      loader: createLoader(({ query, open }) => ({
+      eager: true,
+      loader: createLoader(({ query }) => ({
         queryKey: ['vegetables', query],
         queryFn: () => fetchVegetables(query),
         retry: false,
-        enabled: open,
       })),
     },
     {
@@ -54,11 +64,11 @@ export function ActionMenu_AsyncDeepSearch() {
       label: 'Meats',
       icon: '🥩',
       title: 'Meats',
-      loader: createLoader(({ query, open }) => ({
+      eager: true,
+      loader: createLoader(({ query }) => ({
         queryKey: ['meats', query],
         queryFn: () => fetchMeats(query),
         retry: false,
-        enabled: open,
       })),
     },
   ]
@@ -117,6 +127,8 @@ const MEATS = [
 ]
 
 async function fetchFruits(search?: string): Promise<ItemDef[]> {
+  console.log('Fetching fruits...')
+
   // Simulate network delay
   await sleep(800)
 
@@ -137,6 +149,8 @@ async function fetchFruits(search?: string): Promise<ItemDef[]> {
 }
 
 async function fetchVegetables(search?: string): Promise<ItemDef[]> {
+  console.log('Fetching vegetables...')
+
   // Simulate different network delay
   await sleep(1200)
 
@@ -157,6 +171,8 @@ async function fetchVegetables(search?: string): Promise<ItemDef[]> {
 }
 
 async function fetchMeats(search?: string): Promise<ItemDef[]> {
+  console.log('Fetching meats...')
+
   // Simulate yet another network delay
   await sleep(1000)
 

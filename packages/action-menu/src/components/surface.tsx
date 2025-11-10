@@ -16,6 +16,12 @@ import {
   useSubCtx,
 } from '../contexts/index.js'
 import { cn } from '../lib/cn.js'
+import {
+  aggregateLoaderResults,
+  collectEagerLoaders,
+  executeEagerLoaders,
+  injectLoaderResults,
+} from '../lib/deep-search-utils.js'
 import { isInBounds } from '../lib/dom-utils.js'
 import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
 import { getDir } from '../lib/keyboard.js'
@@ -65,36 +71,135 @@ export const Surface = React.forwardRef(function Surface<T>(
     onChange: (menuProp as MenuDef<T>).input?.onValueChange,
   })
 
-  const menu = React.useMemo<Menu<T>>(() => {
-    if ((menuProp as any)?.surfaceId) return menuProp as Menu<T>
-    // depth: root = 0, submenu = parent.depth + 1 (if you have access to parent via sub)
-    const depth = sub ? 1 : 0
-
-    // Resolve function loaders with current query context and open state
-    const resolvedMenuDef = { ...menuProp } as MenuDef<T>
-    if (typeof resolvedMenuDef.loader === 'function') {
-      resolvedMenuDef.loader = resolvedMenuDef.loader({ query: value, open })
+  // Call function loader at top level (before useMemo) to respect Rules of Hooks
+  // This is the critical fix: hooks must be called at the top level
+  const resolvedLoader = React.useMemo(() => {
+    // Check if it's already a Menu instance
+    if ((menuProp as any)?.surfaceId) {
+      const menu = menuProp as Menu<T>
+      // If it's a Menu instance but has a function loader, we need to call it
+      if (menu.loader && typeof menu.loader === 'function') {
+        return menu.loader
+      }
+      return undefined
     }
 
-    return instantiateMenuFromDef(
+    // It's a MenuDef
+    const menuDef = menuProp as MenuDef<T>
+    if (!menuDef.loader) return undefined
+    if (typeof menuDef.loader !== 'function') return menuDef.loader
+    // Don't call the function here - return it to be called below
+    return menuDef.loader
+  }, [menuProp])
+
+  // Collect eager loaders from the menu tree (respecting Rules of Hooks)
+  const eagerLoaderEntries = React.useMemo(() => {
+    const menuDef = menuProp as MenuDef<T>
+    if ((menuProp as any)?.surfaceId) return [] // Already a Menu instance
+    // Only collect eager loaders when there's a query (deep search active)
+    if (!value) return []
+    return collectEagerLoaders(menuDef)
+  }, [menuProp, value])
+
+  // Call the main loader function at top level if it exists (this calls useQuery)
+  const loaderResult =
+    typeof resolvedLoader === 'function'
+      ? resolvedLoader({ query: value, open })
+      : resolvedLoader
+
+  // Call all eager loaders at top level (respects Rules of Hooks)
+  const eagerLoaderResults = React.useMemo(() => {
+    if (eagerLoaderEntries.length === 0) return new Map()
+    return executeEagerLoaders(eagerLoaderEntries, { query: value, open })
+  }, [eagerLoaderEntries, value, open])
+
+  // Aggregate eager loader states
+  const aggregatedState = React.useMemo(() => {
+    if (eagerLoaderResults.size === 0) return null
+    return aggregateLoaderResults(eagerLoaderResults)
+  }, [eagerLoaderResults])
+
+  const menu = React.useMemo<Menu<T>>(() => {
+    // If it's already a Menu instance and we have a new loader result, rebuild it
+    if ((menuProp as any)?.surfaceId) {
+      const existingMenu = menuProp as Menu<T>
+
+      // If we resolved a new loader result, rebuild the menu with it
+      if (loaderResult) {
+        const depth = sub ? 1 : 0
+
+        // Create a MenuDef from the existing Menu
+        const menuDefFromExisting: MenuDef<T> = {
+          id: existingMenu.id,
+          title: existingMenu.title,
+          inputPlaceholder: existingMenu.inputPlaceholder,
+          hideSearchUntilActive: existingMenu.hideSearchUntilActive,
+          defaults: existingMenu.defaults,
+          ui: existingMenu.ui,
+          input: existingMenu.input,
+          open: existingMenu.open,
+          loader: loaderResult, // Use the new loader result
+        }
+
+        return instantiateMenuFromDef(
+          menuDefFromExisting,
+          surfaceId,
+          depth,
+          value,
+          open,
+        )
+      }
+
+      // No new loader result, return existing menu as-is
+      return existingMenu
+    }
+
+    // It's a MenuDef, proceed with normal instantiation
+    const depth = sub ? 1 : 0
+
+    // Start with the menu def
+    let resolvedMenuDef = { ...menuProp } as MenuDef<T>
+
+    // Inject eager loader results first
+    if (aggregatedState && aggregatedState.results.size > 0) {
+      resolvedMenuDef = injectLoaderResults(
+        resolvedMenuDef,
+        aggregatedState.results,
+      )
+    }
+
+    // Then apply the main loader result
+    if (loaderResult) {
+      resolvedMenuDef.loader = loaderResult
+    }
+
+    const instantiatedMenu = instantiateMenuFromDef(
       resolvedMenuDef,
       surfaceId,
       depth,
       value,
       open,
     )
-  }, [
-    menuProp,
-    surfaceId,
-    sub,
-    value,
-    open,
-    // Re-instantiate when async loader data changes (for static loaders)
-    (menuProp as MenuDef<T>)?.loader &&
-    typeof (menuProp as MenuDef<T>).loader !== 'function'
-      ? (menuProp as MenuDef<T>).loader
-      : undefined,
-  ])
+
+    // If we have aggregated loading state, merge it with the menu's loading state
+    if (aggregatedState) {
+      return {
+        ...instantiatedMenu,
+        loadingState: {
+          ...instantiatedMenu.loadingState,
+          isLoading:
+            instantiatedMenu.loadingState?.isLoading ||
+            aggregatedState.isLoading,
+          isFetching:
+            instantiatedMenu.loadingState?.isFetching ||
+            aggregatedState.isFetching,
+          // Keep isError from main loader only (we fail silently on eager loaders)
+        },
+      }
+    }
+
+    return instantiatedMenu
+  }, [menuProp, surfaceId, sub, value, open, loaderResult, aggregatedState])
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId
