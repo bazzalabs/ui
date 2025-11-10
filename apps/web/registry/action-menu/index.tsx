@@ -4,7 +4,7 @@ import {
   renderIcon,
 } from '@bazza-ui/action-menu'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
-import { Fragment } from 'react'
+import { Fragment, useCallback } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
@@ -97,7 +97,7 @@ export const ActionMenu = createActionMenu({
 
       return (
         <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground">
-          <DiamondSpinner className="size-10 text-primary" />
+          <DiamondSpinner className="size-5 text-primary rotate-45" />
           <span className="tabular-nums">
             Loading {total > 0 ? `${count}/${total}` : ''}...
           </span>
@@ -227,6 +227,18 @@ export const DiamondSpinner = ({
   className,
   ...props
 }: React.SVGProps<SVGSVGElement>) => {
+  const getRectProps = useCallback(
+    (size: number, coord: { x: number; y: number }) => {
+      return {
+        x: coord.x - size / 2,
+        y: coord.y - size / 2,
+        width: size,
+        height: size,
+      }
+    },
+    [],
+  )
+
   return (
     <svg
       className={cn('fill-current size-6', className)}
@@ -247,23 +259,14 @@ export const DiamondSpinner = ({
       {diamondCoords.map((c) => (
         <rect
           key={`bg-${c.x}-${c.y}`}
-          x={c.x - 2.5}
-          y={c.y - 2.5}
-          width={5}
-          height={5}
           className="fill-current/30"
+          {...getRectProps(7, c)}
         />
       ))}
       {/* Animated squares */}
       <g style={{ animation: 'diamond-spin 1.4s steps(2, end) infinite' }}>
         {diamondCoords.slice(0, 5).map((c) => (
-          <rect
-            key={`fg-${c.x}-${c.y}`}
-            x={c.x - 3.5}
-            y={c.y - 3.5}
-            width={7}
-            height={7}
-          />
+          <rect key={`fg-${c.x}-${c.y}`} {...getRectProps(9, c)} />
         ))}
       </g>
     </svg>

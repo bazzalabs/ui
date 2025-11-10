@@ -192,16 +192,20 @@ function ListContent<T = unknown>({
               breadcrumbIds: bcIds,
               score,
             })
-          const title = sub.title ?? sub.label ?? sub.id ?? ''
-          out.push(
-            ...collect(
-              sub.nodes as any,
-              q,
-              [...bc, title],
-              [...bcIds, sub.id],
-              sub.child as Menu<any>,
-            ),
-          )
+
+          // deepSearch defaults to true, so only exclude if explicitly set to false
+          if (sub.deepSearch) {
+            const title = sub.title ?? sub.label ?? sub.id ?? ''
+            out.push(
+              ...collect(
+                sub.nodes as any,
+                q,
+                [...bc, title],
+                [...bcIds, sub.id],
+                sub.child as Menu<any>,
+              ),
+            )
+          }
         }
       }
       return out

@@ -1,7 +1,10 @@
 'use client'
 
 import type { ItemDef, SubmenuDef } from '@bazza-ui/action-menu'
-import { createLoader } from '@bazza-ui/action-menu/react-query'
+import {
+  createLoader,
+  ReactQueryLoaderAdapter,
+} from '@bazza-ui/action-menu/react-query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
@@ -75,6 +78,7 @@ export function ActionMenu_AsyncDeepSearch() {
 
   return (
     <ActionMenu
+      loaderAdapter={ReactQueryLoaderAdapter}
       trigger={<Button variant="secondary">Food Menu (Deep Search)</Button>}
       menu={{
         id: 'root',

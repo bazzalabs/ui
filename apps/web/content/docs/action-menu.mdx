@@ -220,6 +220,218 @@ You can specify the submenu content with the `nodes` property.
 
 Submenus can be nested.
 
+## Async loading
+
+Submenus can load their content asynchronously using the `loader` prop. This is useful for lazy-loading menu data, fetching from APIs, or computing expensive menu structures on-demand.
+
+### Basic async loading
+
+The simplest way to use a loader is to provide an async function that returns an array of `NodeDef`:
+
+```tsx
+{
+  kind: 'submenu',
+  id: 'projects',
+  label: 'Projects',
+  loader: async ({ query, open }) => {
+    const response = await fetch('/api/projects')
+    const projects = await response.json()
+    
+    return projects.map(project => ({
+      kind: 'item',
+      id: project.id,
+      label: project.name,
+      icon: <Folder />,
+      onSelect: () => navigateToProject(project.id)
+    }))
+  },
+  nodes: [], // Optional: provide static fallback nodes
+}
+```
+
+The loader function receives a context object with:
+- `query` - The current search query (empty string if no search)
+- `open` - Whether the submenu is currently open
+
+### Loading and error states
+
+Use the `Loading` and `Error` slots to customize what's shown during loading and error states:
+
+```tsx
+<ActionMenu
+  trigger={<Button>Open menu</Button>}
+  menu={menu}
+  slots={{
+    Loading: () => (
+      <div className="flex items-center justify-center py-8">
+        <Spinner className="size-4" />
+        <span className="ml-2 text-sm text-muted-foreground">
+          Loading...
+        </span>
+      </div>
+    ),
+    Error: ({ error }) => (
+      <div className="px-4 py-8 text-center">
+        <AlertCircle className="mx-auto size-8 text-destructive" />
+        <p className="mt-2 text-sm font-medium">Failed to load</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {error?.message}
+        </p>
+      </div>
+    ),
+  }}
+/>
+```
+
+The `Error` slot receives:
+- `error` - The error object that was thrown
+- `menu` - The current menu definition
+
+### Static loader results
+
+You can also provide static loader results directly. This is useful when you already have the data but want to use the same loader API:
+
+```tsx
+{
+  kind: 'submenu',
+  id: 'projects',
+  label: 'Projects',
+  loader: {
+    data: [
+      { kind: 'item', id: 'p1', label: 'Project 1' },
+      { kind: 'item', id: 'p2', label: 'Project 2' },
+    ],
+    isLoading: false,
+    error: null,
+    isError: false,
+    isFetching: false,
+  },
+}
+```
+
+### React Query integration
+
+For advanced use cases like caching, refetching, and optimistic updates, integrate with React Query using the `ReactQueryLoaderAdapter`:
+
+```tsx
+import { ActionMenu } from '@/components/ui/action-menu'
+import { ReactQueryLoaderAdapter, createLoader } from '@bazza-ui/action-menu/integrations/react-query'
+
+const menu: MenuDef = {
+  id: 'root',
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'projects',
+      label: 'Projects',
+      loader: createLoader((context) => ({
+        queryKey: ['projects', context.query],
+        queryFn: async () => {
+          const response = await fetch(
+            `/api/projects?q=${context.query}`
+          )
+          return response.json()
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000,   // 10 minutes
+      })),
+    },
+  ],
+}
+
+function MyComponent() {
+  return (
+    <ActionMenu
+      trigger={<Button>Projects</Button>}
+      menu={menu}
+      loaderAdapter={ReactQueryLoaderAdapter}
+    />
+  )
+}
+```
+
+The `createLoader()` helper provides full TypeScript support for React Query options, including autocomplete and type checking.
+
+**Why use React Query?**
+- **Caching**: Query results are cached and shared across components
+- **Background refetching**: Keep data fresh with automatic refetching
+- **Deduplication**: Multiple identical requests are automatically deduplicated
+- **Stale-while-revalidate**: Show cached data while fetching fresh data
+- **Full React Query features**: Access to all React Query configuration options
+
+**Without React Query:**
+- Simpler API with zero dependencies
+- Every loader call fetches fresh data
+- No caching or request deduplication
+- Perfect for simple use cases
+
+### Deep search
+
+By default, submenus with loaders have deep search enabled, making their descendants searchable from parent menus:
+
+```tsx
+{
+  kind: 'submenu',
+  id: 'settings',
+  label: 'Settings',
+  // deepSearch defaults to true - no need to specify it
+  loader: async () => {
+    return [
+      {
+        kind: 'submenu',
+        id: 'appearance',
+        label: 'Appearance',
+        nodes: [
+          { kind: 'item', id: 'theme', label: 'Theme' },
+          { kind: 'item', id: 'font-size', label: 'Font Size' },
+        ],
+      },
+      {
+        kind: 'submenu',
+        id: 'privacy',
+        label: 'Privacy',
+        nodes: [
+          { kind: 'item', id: 'tracking', label: 'Tracking' },
+          { kind: 'item', id: 'cookies', label: 'Cookies' },
+        ],
+      },
+    ]
+  },
+}
+```
+
+With deep search enabled (the default):
+- When the user searches "theme" from the root menu, it will find the "Theme" item nested inside Settings > Appearance
+- Search results show breadcrumbs indicating the path: "Settings > Appearance > Theme"
+- All descendant loaders are executed in parallel when searching
+- Works with both native and React Query loaders
+
+#### Disabling deep search
+
+Set `deepSearch: false` to make a submenu's nodes only browsable/searchable from within that submenu:
+
+```tsx
+{
+  kind: 'submenu',
+  id: 'admin',
+  label: 'Admin Panel',
+  deepSearch: false, // Exclude from ancestor menu searches
+  loader: async () => {
+    return [
+      { kind: 'item', id: 'users', label: 'Manage Users' },
+      { kind: 'item', id: 'settings', label: 'System Settings' },
+    ]
+  },
+}
+```
+
+When `deepSearch: false`:
+- The submenu's items won't appear when searching from parent menus
+- Descendant submenus are also excluded from deep search
+- Users must navigate into the submenu to search its contents
+
+**Performance note:** Deep search loads all descendant submenus simultaneously. Use React Query for caching to avoid redundant API calls when the user navigates back and forth.
+
 ## Rendering
 
 Once you have your menu data, the next step is to render it.

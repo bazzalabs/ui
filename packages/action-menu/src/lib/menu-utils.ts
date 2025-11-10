@@ -5,7 +5,6 @@ import type {
   ItemNode,
   Menu,
   MenuDef,
-  MenuNodeDefaults,
   Node,
   NodeDef,
   SubmenuDef,
@@ -27,7 +26,9 @@ export function instantiateMenuFromDef<T>(
   // If we encounter a function loader here (e.g., for submenus during instantiation),
   // we skip it and let the submenu's Surface component resolve it
   const resolvedLoader =
-    def.loader && typeof def.loader !== 'function' ? def.loader : undefined
+    def.loader && typeof def.loader !== 'function'
+      ? (def.loader as import('../types.js').AsyncNodeLoaderResult<T>)
+      : undefined
 
   // Determine source of nodes: either static (sync) or from loader (async)
   const sourceNodes = resolvedLoader ? resolvedLoader.data : def.nodes
@@ -115,11 +116,11 @@ export function instantiateMenuFromDef<T>(
     }
 
     // submenu
-    const subDef = d as SubmenuDef<any, any>
+    const subDef = {
+      ...d,
+      deepSearch: d.deepSearch === undefined ? true : d.deepSearch,
+    } as SubmenuDef<any, any>
     const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
-
-    // Determine submenu open state (from state descriptor or default to false)
-    const subOpen = subDef.open?.value ?? false
 
     // ! In TSX, don't write instantiateMenuFromDef<any>(...)
     // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
@@ -129,10 +130,12 @@ export function instantiateMenuFromDef<T>(
         title: subDef.title,
         inputPlaceholder: subDef.inputPlaceholder,
         hideSearchUntilActive: subDef.hideSearchUntilActive,
+        search: subDef.search,
+        deepSearch: subDef.deepSearch === undefined ? true : subDef.deepSearch,
         nodes: subDef.nodes as NodeDef<any>[],
         loader: subDef.loader,
-        defaults: subDef.defaults as MenuNodeDefaults<any> | undefined,
-        ui: subDef.ui as MenuDef<any>['ui'],
+        defaults: subDef.defaults,
+        ui: subDef.ui,
         input: subDef.input,
         open: subDef.open,
       } as MenuDef<any>,
@@ -161,7 +164,7 @@ export function instantiateMenuFromDef<T>(
     return node as Node<U>
   }
 
-  parentless.nodes = (sourceNodes ?? []).map((n) =>
+  parentless.nodes = (sourceNodes ?? []).map((n: any) =>
     inst(n as any, parentless),
   ) as any
 

@@ -1,34 +1,17 @@
 'use client'
 
 import type { ItemDef } from '@bazza-ui/action-menu'
-import { useQuery } from '@tanstack/react-query'
+import { ReactQueryLoaderAdapter } from '@bazza-ui/action-menu/react-query'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
 export function ActionMenu_AsyncSubmenus() {
-  const fruitsQuery = useQuery({
-    queryKey: ['fruits'],
-    queryFn: () => fetchFruits(),
-    retry: false,
-  })
-
-  const vegetablesQuery = useQuery({
-    queryKey: ['vegetables'],
-    queryFn: () => fetchVegetables(),
-    retry: false,
-  })
-
-  const meatsQuery = useQuery({
-    queryKey: ['meats'],
-    queryFn: () => fetchMeats(),
-    retry: false,
-  })
-
   return (
     <ActionMenu
       trigger={<Button variant="secondary">Trigger</Button>}
+      loaderAdapter={ReactQueryLoaderAdapter}
       menu={{
         id: 'root',
         defaults: {
@@ -44,19 +27,31 @@ export function ActionMenu_AsyncSubmenus() {
             kind: 'submenu',
             id: 'fruits',
             label: 'Fruits',
-            loader: fruitsQuery,
+            loader: {
+              queryKey: ['fruits'],
+              queryFn: () => fetchFruits(),
+              retry: false,
+            },
           },
           {
             kind: 'submenu',
             id: 'vegetables',
             label: 'Vegetables',
-            loader: vegetablesQuery,
+            loader: {
+              queryKey: ['vegetables'],
+              queryFn: () => fetchVegetables(),
+              retry: false,
+            },
           },
           {
             kind: 'submenu',
             id: 'meats',
             label: 'Meats',
-            loader: meatsQuery,
+            loader: {
+              queryKey: ['meats'],
+              queryFn: () => fetchMeats(),
+              retry: false,
+            },
           },
         ],
       }}

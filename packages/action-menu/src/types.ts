@@ -71,13 +71,78 @@ export type AsyncNodeLoaderResult<T = unknown> = {
  * Async node loader interface compatible with TanStack Query and similar libraries.
  * Used to load menu nodes asynchronously.
  *
- * Can be either:
- * - A static loader result object (for manual query control)
- * - A function that receives context and returns a loader result (for automatic query reactivity)
+ * @typeParam T - The data type for each node
+ * @typeParam TAdapterConfig - Optional type for adapter-specific configuration (e.g., UseQueryOptions)
+ *
+ * @example Native async function loader
+ * ```tsx
+ * loader: async ({ query }) => {
+ *   const items = await fetchItems(query)
+ *   return items // NodeDef[]
+ * }
+ * ```
+ *
+ * @example Static result loader
+ * ```tsx
+ * loader: {
+ *   data: [...],
+ *   isLoading: false
+ * }
+ * ```
+ *
+ * @example React Query adapter with function
+ * ```tsx
+ * loader: ({ query }) => ({
+ *   queryKey: ['items', query],
+ *   queryFn: () => fetchItems(query)
+ * })
+ * ```
+ *
+ * @example React Query adapter with static options
+ * ```tsx
+ * loader: {
+ *   queryKey: ['items'],
+ *   queryFn: () => fetchItems()
+ * }
+ * ```
  */
 export type AsyncNodeLoader<T = unknown> =
-  | AsyncNodeLoaderResult<T>
-  | ((context: AsyncNodeLoaderContext) => AsyncNodeLoaderResult<T>)
+  | AsyncNodeLoaderResult<T> // Static result
+  | ((context: AsyncNodeLoaderContext) =>
+      | AsyncNodeLoaderResult<T> // Function returning static result
+      | Promise<NodeDef<T>[]> // Async function returning data
+      | any) // Function returning adapter config (e.g., React Query options)
+  | any // Static adapter config (e.g., React Query options)
+
+/**
+ * Loader adapter interface for pluggable async loading strategies.
+ * Allows using different data fetching libraries (React Query, SWR, etc.) or custom implementations.
+ */
+export type LoaderAdapter = {
+  /**
+   * Execute a single async loader and return its result.
+   * @param loader - The loader to execute (can be a function, static result, or adapter-specific config)
+   * @param context - The loader context (query, open state)
+   * @returns The loader result with loading states
+   */
+  useLoader<T>(
+    loader: AsyncNodeLoader<T> | undefined,
+    context: AsyncNodeLoaderContext,
+  ): AsyncNodeLoaderResult<T> | undefined
+
+  /**
+   * Execute multiple async loaders in parallel (for deep search).
+   * @param loaders - Array of loaders with their paths and contexts
+   * @returns Map of path (joined by '.') to loader results
+   */
+  useLoaders<T>(
+    loaders: Array<{
+      path: string[]
+      loader: AsyncNodeLoader<T>
+      context: AsyncNodeLoaderContext
+    }>,
+  ): Map<string, AsyncNodeLoaderResult<T>>
+}
 
 /**
  * Metadata for an eager loader that will be executed in parallel.
@@ -258,7 +323,10 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
      * When true, this submenu's children are searchable from ancestor menus (deep search).
      * - For async loaders: Triggers parallel loading during search
      * - For static nodes: Children are always searchable (deep search is implicit)
-     * @default false
+     *
+     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,
+     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.
+     * @default true
      */
     deepSearch?: boolean
     data?: T

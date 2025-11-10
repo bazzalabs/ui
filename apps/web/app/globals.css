@@ -318,7 +318,7 @@
 
     figcaption[data-rehype-pretty-code-title] {
       @apply relative text-xs text-muted-foreground font-mono w-fit border-x border-t border-border rounded-t-md px-4 py-1.5 translate-y-[1px] select-none;
-      @apply bg-white dark:bg-black;
+      @apply bg-white dark:bg-neutral-900;
 
       & + pre {
         @apply rounded-tl-none;
@@ -330,7 +330,7 @@
     }
 
     & > pre {
-      @apply bg-white dark:bg-black;
+      @apply bg-white dark:bg-neutral-900;
       @apply max-h-[650px] overflow-x-auto rounded-xl border border-border;
       @apply py-4;
 
@@ -340,7 +340,7 @@
 
       & > code {
         @apply grid min-w-full break-words rounded-none border-0 bg-transparent !p-0;
-        @apply !bg-white dark:!bg-black text-sm;
+        @apply !bg-white dark:!bg-neutral-900 text-sm;
       }
 
       [data-highlighted-line] {

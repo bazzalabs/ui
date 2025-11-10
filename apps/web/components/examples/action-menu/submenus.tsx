@@ -23,11 +23,15 @@ export function ActionMenu_Submenus() {
             },
           },
         },
+        search: {
+          minLength: 2,
+        },
         nodes: [
           {
             kind: 'submenu',
             id: 'fruits',
             label: 'Fruits',
+            deepSearch: false,
             nodes: [
               {
                 kind: 'group',

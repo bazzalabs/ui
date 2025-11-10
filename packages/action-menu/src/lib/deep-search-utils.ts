@@ -1,7 +1,7 @@
 import type {
   AggregatedLoaderState,
+  AsyncNodeLoader,
   AsyncNodeLoaderResult,
-  EagerLoaderEntry,
   GroupDef,
   MenuDef,
   NodeDef,
@@ -9,14 +9,24 @@ import type {
 } from '../types.js'
 
 /**
+ * Metadata for a deep search loader that will be executed in parallel.
+ */
+export type DeepSearchLoaderEntry<T = unknown> = {
+  /** Path to the submenu (array of submenu ids from root). */
+  path: string[]
+  /** The loader to execute */
+  loader: AsyncNodeLoader<T>
+}
+
+/**
  * Recursively collects all deep search loaders from a menu definition tree.
  * Returns an array of loader entries with their paths.
  */
-export function collectDeepSearchLoaders(
-  menuDef: MenuDef<any>,
+export function collectDeepSearchLoaders<T = unknown>(
+  menuDef: MenuDef<T>,
   parentPath: string[] = [],
-): EagerLoaderEntry[] {
-  const entries: EagerLoaderEntry[] = []
+): DeepSearchLoaderEntry<T>[] {
+  const entries: DeepSearchLoaderEntry<T>[] = []
 
   // If this menu itself has a loader, we don't include it here
   // (it's handled separately by the Surface component)
@@ -42,32 +52,27 @@ export function collectDeepSearchLoaders(
 /**
  * Helper to collect deep search loaders from a submenu node.
  */
-function collectDeepSearchLoadersFromNode(
+function collectDeepSearchLoadersFromNode<T = unknown>(
   submenu: SubmenuDef<any, any>,
   parentPath: string[],
-  entries: EagerLoaderEntry[],
+  entries: DeepSearchLoaderEntry<T>[],
 ): void {
   const currentPath = [...parentPath, submenu.id]
 
-  // If this submenu has deepSearch flag and a function loader, add it
-  if (submenu.deepSearch && submenu.loader) {
-    const loader = submenu.loader
-    // Only add function loaders (not static loader results)
-    if (typeof loader === 'function') {
-      // Extract the factory from the loader (set by createLoader)
-      const factory = (loader as any).__loaderFactory
-      if (factory) {
-        entries.push({
-          path: currentPath,
-          factory,
-        })
-      } else {
-        console.warn(
-          `Deep search loader at path ${currentPath.join('.')} does not have a factory. ` +
-            'Make sure you are using createLoader() from @bazza-ui/action-menu/react-query',
-        )
-      }
-    }
+  // deepSearch defaults to true, so only exclude if explicitly set to false
+  const isDeepSearchEnabled = submenu.deepSearch !== false
+
+  // If deepSearch is disabled, stop here - don't include this submenu or its descendants
+  if (!isDeepSearchEnabled) {
+    return
+  }
+
+  // If this submenu has a loader, add it to deep search
+  if (submenu.loader) {
+    entries.push({
+      path: currentPath,
+      loader: submenu.loader,
+    })
   }
 
   // Recursively search this submenu's children for more deep search loaders
@@ -94,7 +99,6 @@ function collectDeepSearchLoadersFromNode(
  */
 export function aggregateLoaderResults(
   results: Map<string, AsyncNodeLoaderResult>,
-  loaderEntries: EagerLoaderEntry[],
   menuDef: MenuDef<any>,
 ): AggregatedLoaderState {
   let isLoading = false
@@ -207,28 +211,17 @@ function injectLoaderResultsIntoSubmenu(
   const currentPath = [...parentPath, submenu.id]
   const pathKey = currentPath.join('.')
 
+  // deepSearch defaults to true, so only exclude if explicitly set to false
+  const isDeepSearchEnabled = submenu.deepSearch !== false
+
   // Check if we have a result for this submenu
   const result = deepSearchResults.get(pathKey)
 
-  if (result && submenu.deepSearch) {
-    // Preserve the original loader function so the submenu can reload
-    // when opened independently. We attach the factory metadata to the static result.
-    const originalLoader = submenu.loader
-
-    // Create a static result object that includes the factory metadata
-    const staticResultWithFactory = {
-      ...result,
-      // Preserve the factory from the original loader so the submenu can reload
-      __loaderFactory:
-        typeof originalLoader === 'function'
-          ? (originalLoader as any).__loaderFactory
-          : undefined,
-    }
-
+  if (result && isDeepSearchEnabled) {
+    // Replace the loader with the static result
     const newSubmenu: SubmenuDef<any, any> = {
       ...submenu,
-      // Use static result but preserve factory for future loads
-      loader: staticResultWithFactory as any,
+      loader: result as any,
     }
 
     // Process children if they exist
@@ -241,8 +234,8 @@ function injectLoaderResultsIntoSubmenu(
     return newSubmenu
   }
 
-  // No result for this submenu, but still process its children
-  if (submenu.nodes) {
+  // No result for this submenu, but still process its children if deepSearch is enabled
+  if (submenu.nodes && isDeepSearchEnabled) {
     const newSubmenu: SubmenuDef<any, any> = {
       ...submenu,
       nodes: submenu.nodes.map((child: NodeDef<any>) =>

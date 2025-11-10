@@ -1,7 +1,9 @@
 'use client'
 
-import type { ItemDef } from '@bazza-ui/action-menu'
-import { createLoader } from '@bazza-ui/action-menu/react-query'
+import {
+  createLoader,
+  ReactQueryLoaderAdapter,
+} from '@bazza-ui/action-menu/react-query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -17,6 +19,7 @@ type Label = {
 export function ActionMenu_AsyncBasic() {
   return (
     <ActionMenu
+      loaderAdapter={ReactQueryLoaderAdapter}
       trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
@@ -38,7 +41,7 @@ export function ActionMenu_AsyncBasic() {
                   )}
                 />
               ),
-            })) as ItemDef[],
+            })),
         })),
       }}
     />

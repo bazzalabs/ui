@@ -3,6 +3,7 @@ import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { DisplayModeCtx } from '../contexts/display-mode-context.js'
 import { FocusOwnerCtx } from '../contexts/focus-owner-context.js'
+import { LoaderAdapterProvider } from '../contexts/loader-adapter-context.js'
 import { RootCtx } from '../contexts/root-context.js'
 import { useMediaQuery } from '../hooks/use-media-query.js'
 import { dispatch } from '../lib/events.js'
@@ -11,6 +12,7 @@ import type {
   ActionMenuSlotProps,
   ActionMenuSlots,
   Children,
+  LoaderAdapter,
   MenuDef,
   MenuDisplayMode,
   ResponsiveConfig,
@@ -30,6 +32,21 @@ export interface ActionMenuRootProps<T = unknown> extends Children {
   classNames?: Partial<ActionMenuClassNames>
   debug?: boolean
   onCloseAutoFocus?: (event: Event) => void
+  /**
+   * Optional loader adapter for custom async loading behavior.
+   * When provided, all surfaces will use this adapter for executing loaders.
+   * Use this to integrate with React Query or other data fetching libraries.
+   *
+   * @example
+   * ```tsx
+   * import { ReactQueryLoaderAdapter } from '@bazzalabs/action-menu/react-query'
+   *
+   * <ActionMenu.Root loaderAdapter={ReactQueryLoaderAdapter}>
+   *   {/\* All surfaces will use React Query for loaders *\/}
+   * </ActionMenu.Root>
+   * ```
+   */
+  loaderAdapter?: LoaderAdapter
 }
 
 const CLOSE_MENU_EVENT = 'actionmenu-close' as const
@@ -47,6 +64,7 @@ export function Root<T>({
   classNames,
   debug = false,
   onCloseAutoFocus,
+  loaderAdapter,
 }: ActionMenuRootProps<T>) {
   const scopeId = React.useId()
   const [open, setOpen] = useControllableState({
@@ -172,7 +190,7 @@ export function Root<T>({
       <DrawerShell>{children}</DrawerShell>
     )
 
-  return (
+  const contextTree = (
     <RootCtx.Provider value={rootCtxValue}>
       <DisplayModeCtx.Provider value={resolvedMode}>
         <FocusOwnerCtx.Provider value={{ ownerId, setOwnerId }}>
@@ -181,4 +199,15 @@ export function Root<T>({
       </DisplayModeCtx.Provider>
     </RootCtx.Provider>
   )
+
+  // Wrap with loader adapter provider if provided
+  if (loaderAdapter) {
+    return (
+      <LoaderAdapterProvider adapter={loaderAdapter}>
+        {contextTree}
+      </LoaderAdapterProvider>
+    )
+  }
+
+  return contextTree
 }

@@ -3,7 +3,6 @@
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import { Primitive } from '@radix-ui/react-primitive'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
-import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import {
   HoverPolicyCtx,
@@ -12,12 +11,12 @@ import {
   SurfaceIdCtx,
   useDisplayMode,
   useFocusOwner,
+  useLoaderAdapter,
   useRootCtx,
   useScopedTheme,
   useSubCtx,
 } from '../contexts/index.js'
 import { useDebounced } from '../hooks/use-debounced.js'
-import { useEagerQueries } from '../integrations/react-query.js'
 import { cn } from '../lib/cn.js'
 import {
   aggregateLoaderResults,
@@ -33,11 +32,11 @@ import { isElementWithProp } from '../lib/react-utils.js'
 import { createSurfaceStore } from '../store/surface-store.js'
 import type {
   ActionMenuSurfaceProps,
+  AsyncNodeLoaderContext,
   ContentBindAPI,
   Menu,
   MenuDef,
   MenuNodeDefaults,
-  NodeDef,
   SurfaceStore,
 } from '../types.js'
 import { Input } from './input.js'
@@ -90,95 +89,30 @@ export const Surface = React.forwardRef(function Surface<T>(
     return debouncedValue.length >= minLength ? debouncedValue : ''
   }, [debouncedValue, searchConfig.minLength])
 
-  // Extract loader configuration
-  const { hasFactory, factory, staticResult } = React.useMemo(() => {
+  // Get the loader adapter (always returns an adapter, defaults to NativeLoaderAdapter)
+  const loaderAdapter = useLoaderAdapter()
+
+  // Extract the loader from the menu
+  const menuLoader = React.useMemo(() => {
     // Check if it's already a Menu instance
     if ((menuProp as any)?.surfaceId) {
       const menu = menuProp as Menu<T>
-      if (menu.loader) {
-        // Check for factory on function loaders or static results with factory metadata
-        const loaderFactory = (menu.loader as any).__loaderFactory
-        if (loaderFactory) {
-          return {
-            hasFactory: true,
-            factory: loaderFactory,
-            staticResult: undefined,
-          }
-        }
-        // It's a static result without factory
-        if (typeof menu.loader !== 'function') {
-          return {
-            hasFactory: false,
-            factory: undefined,
-            staticResult: menu.loader,
-          }
-        }
-      }
-      return { hasFactory: false, factory: undefined, staticResult: undefined }
+      return menu.loader
     }
 
     // It's a MenuDef
     const menuDef = menuProp as MenuDef<T>
-    if (!menuDef.loader) {
-      return { hasFactory: false, factory: undefined, staticResult: undefined }
-    }
-
-    // Check for factory on function loaders or static results with factory metadata
-    const loaderFactory = (menuDef.loader as any).__loaderFactory
-    if (loaderFactory) {
-      return {
-        hasFactory: true,
-        factory: loaderFactory,
-        staticResult: undefined,
-      }
-    }
-
-    // It's a static result without factory
-    if (typeof menuDef.loader !== 'function') {
-      return {
-        hasFactory: false,
-        factory: undefined,
-        staticResult: menuDef.loader,
-      }
-    }
-
-    // Should not reach here, but return default
-    return {
-      hasFactory: false,
-      factory: undefined,
-      staticResult: undefined,
-    }
+    return menuDef.loader
   }, [menuProp])
 
-  // ALWAYS call useQuery (unconditional to maintain hook order)
-  // When we don't have a factory, use a disabled query
-  const queryConfig = React.useMemo(() => {
-    if (hasFactory && factory) {
-      return factory({ query: effectiveQuery, open })
-    }
-    // Dummy query config (disabled)
-    return {
-      queryKey: ['__dummy__', surfaceId],
-      queryFn: () => Promise.resolve([]),
-      enabled: false,
-    }
-  }, [hasFactory, factory, effectiveQuery, open, surfaceId])
+  // Create loader context
+  const loaderContext = React.useMemo<AsyncNodeLoaderContext>(
+    () => ({ query: effectiveQuery, open }),
+    [effectiveQuery, open],
+  )
 
-  const queryResult = useQuery(queryConfig)
-
-  // Build the final loader result
-  const finalLoaderResult = React.useMemo(() => {
-    if (hasFactory) {
-      return {
-        data: queryResult.data as NodeDef<T>[] | undefined,
-        isLoading: queryResult.isLoading,
-        error: queryResult.error ?? null,
-        isError: queryResult.isError,
-        isFetching: queryResult.isFetching,
-      }
-    }
-    return staticResult
-  }, [hasFactory, queryResult, staticResult])
+  // Execute the loader using the adapter (always defined, never null)
+  const finalLoaderResult = loaderAdapter.useLoader(menuLoader, loaderContext)
 
   // Collect deep search loaders from the menu tree (respecting Rules of Hooks)
   const deepSearchLoaderEntries = React.useMemo(() => {
@@ -189,29 +123,28 @@ export const Surface = React.forwardRef(function Surface<T>(
     return collectDeepSearchLoaders(menuDef)
   }, [menuProp, effectiveQuery])
 
-  // Call all deep search loaders at top level using useEagerQueries (single hook call)
+  // Prepare deep search loader configs for parallel execution
   const deepSearchLoaderConfigs = React.useMemo(
     () =>
       deepSearchLoaderEntries.map((entry) => ({
         path: entry.path,
-        factory: entry.factory,
-        context: { query: effectiveQuery, open },
+        loader: entry.loader,
+        context: loaderContext,
       })),
-    [deepSearchLoaderEntries, effectiveQuery, open],
+    [deepSearchLoaderEntries, loaderContext],
   )
 
-  const deepSearchLoaderResults = useEagerQueries(deepSearchLoaderConfigs)
+  // Execute all deep search loaders using the adapter (always defined, never null)
+  const deepSearchLoaderResults = loaderAdapter.useLoaders(
+    deepSearchLoaderConfigs,
+  )
 
   // Aggregate deep search loader states
   const aggregatedState = React.useMemo(() => {
     if (deepSearchLoaderResults.size === 0) return null
     const menuDef = menuProp as MenuDef<T>
-    return aggregateLoaderResults(
-      deepSearchLoaderResults,
-      deepSearchLoaderEntries,
-      menuDef,
-    )
-  }, [deepSearchLoaderResults, deepSearchLoaderEntries, menuProp])
+    return aggregateLoaderResults(deepSearchLoaderResults, menuDef)
+  }, [deepSearchLoaderResults, menuProp])
 
   const menu = React.useMemo<Menu<T>>(() => {
     // If it's already a Menu instance and we have a new loader result, rebuild it
@@ -224,14 +157,7 @@ export const Surface = React.forwardRef(function Surface<T>(
 
         // Create a MenuDef from the existing Menu
         const menuDefFromExisting: MenuDef<T> = {
-          id: existingMenu.id,
-          title: existingMenu.title,
-          inputPlaceholder: existingMenu.inputPlaceholder,
-          hideSearchUntilActive: existingMenu.hideSearchUntilActive,
-          defaults: existingMenu.defaults,
-          ui: existingMenu.ui,
-          input: existingMenu.input,
-          open: existingMenu.open,
+          ...(existingMenu as any),
           loader: finalLoaderResult, // Use the new loader result
         }
 
@@ -301,6 +227,7 @@ export const Surface = React.forwardRef(function Surface<T>(
     finalLoaderResult,
     aggregatedState,
   ])
+
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
   const isOwner = ownerId === surfaceId

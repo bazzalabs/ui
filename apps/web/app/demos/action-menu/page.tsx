@@ -33,7 +33,7 @@ export default function Page() {
             {/* <Examples.ActionMenu.ItemDescriptions /> */}
             {/* <Examples.ActionMenu.AIModelSwitcher /> */}
             {/* <Examples.ActionMenu.Basic /> */}
-            {/* <Examples.ActionMenu.Submenus /> */}
+            <Examples.ActionMenu.Submenus />
             {/* <Examples.ActionMenu.KitchenSink01 /> */}
             {/* <Examples.ActionMenu.Notion /> */}
             {/* <Examples.ActionMenu.HeaderFooter /> */}
