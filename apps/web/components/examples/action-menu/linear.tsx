@@ -30,15 +30,14 @@ import {
 
 export function ActionMenu_Linear() {
   return (
-    <ActionMenu
-      trigger={
+    <ActionMenu menu={menuData}>
+      <ActionMenu.Trigger asChild>
         <Button variant="ghost" size="sm" className="w-fit">
           <FilterIcon />
           Filter
         </Button>
-      }
-      menu={menuData}
-    />
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

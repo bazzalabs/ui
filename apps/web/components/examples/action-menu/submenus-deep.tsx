@@ -35,12 +35,6 @@ import { ActionMenu } from '@/registry/action-menu'
 export function ActionMenu_SubmenusDeep() {
   return (
     <ActionMenu
-      trigger={
-        <Button variant="secondary" className="group">
-          <MenuIcon className="size-4 shrink-0 group-hover:text-primary group-aria-[expanded=true]:text-primary text-muted-foreground" />
-          Menu
-        </Button>
-      }
       menu={{
         id: 'menu',
         title: 'Menu',
@@ -315,6 +309,13 @@ export function ActionMenu_SubmenusDeep() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary" className="group">
+          <MenuIcon className="size-4 shrink-0 group-hover:text-primary group-aria-[expanded=true]:text-primary text-muted-foreground" />
+          Menu
+        </Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

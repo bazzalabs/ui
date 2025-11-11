@@ -70,7 +70,6 @@ export function MultiSelect({ items: itemsProp }: MultiSelectProps) {
 
   return (
     <ActionMenu
-      trigger={trigger}
       slots={{
         Input: ({ bind, value, onChange }) => {
           const props = bind.getInputProps({
@@ -129,6 +128,8 @@ export function MultiSelect({ items: itemsProp }: MultiSelectProps) {
         id: 'root',
         nodes: items,
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>{trigger}</ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

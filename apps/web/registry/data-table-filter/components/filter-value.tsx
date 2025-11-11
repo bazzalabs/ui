@@ -192,7 +192,18 @@ function __FilterValue<TData, TType extends ColumnDataType>({
 
   return (
     <ActionMenu
-      trigger={
+      slots={{
+        Item: (column.type === 'text' ? TextItem_v2 : OptionItem_v2) as any,
+      }}
+      menu={menu}
+      onOpenChange={(open) => {
+        // Reset initial selected values when menu closes to capture fresh state on next open
+        if (!open) {
+          initialSelectedValuesRef.current = null
+        }
+      }}
+    >
+      <ActionMenu.Trigger asChild>
         <Button
           variant="ghost"
           className={cn(
@@ -209,18 +220,8 @@ function __FilterValue<TData, TType extends ColumnDataType>({
             entityName={entityName}
           />
         </Button>
-      }
-      slots={{
-        Item: (column.type === 'text' ? TextItem_v2 : OptionItem_v2) as any,
-      }}
-      menu={menu}
-      onOpenChange={(open) => {
-        // Reset initial selected values when menu closes to capture fresh state on next open
-        if (!open) {
-          initialSelectedValuesRef.current = null
-        }
-      }}
-    />
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

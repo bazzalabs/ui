@@ -9,7 +9,6 @@ export function ActionMenu_RadioGroups() {
 
   return (
     <ActionMenu
-      trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
         hideSearchUntilActive: true,
@@ -69,6 +68,10 @@ export function ActionMenu_RadioGroups() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

@@ -29,7 +29,6 @@ import { ActionMenu } from '@/registry/action-menu'
 export function ActionMenu_Notion() {
   return (
     <ActionMenu
-      trigger={<Button>Open / Menu</Button>}
       slots={{
         Item: NotionMenuItem,
       }}
@@ -180,7 +179,11 @@ export function ActionMenu_Notion() {
           ],
         } satisfies MenuDef
       }
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button>Open / Menu</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

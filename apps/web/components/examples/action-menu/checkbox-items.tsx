@@ -18,7 +18,6 @@ export function ActionMenu_CheckboxItems() {
 
   return (
     <ActionMenu
-      trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
         nodes: [
@@ -90,6 +89,10 @@ export function ActionMenu_CheckboxItems() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

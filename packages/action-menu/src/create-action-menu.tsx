@@ -17,7 +17,11 @@ import type {
   SurfaceSlots,
 } from './types.js'
 
-export type CreateActionMenuResult<T = unknown> = React.FC<ActionMenuProps<T>>
+export type CreateActionMenuResult<T = unknown> = React.FC<
+  ActionMenuProps<T>
+> & {
+  Trigger: typeof Trigger
+}
 
 export type CreateActionMenuOptions<T> = {
   slots?: Partial<SurfaceSlots<T>>
@@ -26,7 +30,7 @@ export type CreateActionMenuOptions<T> = {
 }
 
 export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps<T> {
-  trigger?: React.ReactNode
+  children: React.ReactNode
   menu: MenuDef<T>
 }
 
@@ -59,7 +63,7 @@ export function createActionMenu<T = unknown>(
       <GlobalThemeProvider theme={instanceTheme}>
         <ScopedThemeProvider __scopeId="root" theme={scopedTheme}>
           <Root {...props}>
-            <Trigger asChild>{props.trigger}</Trigger>
+            {props.children}
             <PositionerImpl>
               <Surface menu={props.menu} render={props.menu.render} />
             </PositionerImpl>
@@ -69,5 +73,8 @@ export function createActionMenu<T = unknown>(
     )
   }
 
-  return ActionMenu as CreateActionMenuResult<T>
+  const CompoundActionMenu = ActionMenu as CreateActionMenuResult<T>
+  CompoundActionMenu.Trigger = Trigger
+
+  return CompoundActionMenu
 }

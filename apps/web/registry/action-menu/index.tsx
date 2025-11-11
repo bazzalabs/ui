@@ -140,7 +140,7 @@ export const ActionMenu = createActionMenu({
     ),
     content: cn(
       'data-[mode=dropdown]:border bg-popover rounded-lg z-50 flex flex-col text-sm data-[root-menu]:drop-shadow-md data-[sub-menu]:drop-shadow-xl origin-(--radix-popper-transform-origin)',
-      'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2',
+      'data-[root-menu]:data-[state=open]:animate-in data-[root-menu]:data-[state=closed]:animate-out data-[root-menu]:data-[state=closed]:fade-out-0 data-[root-menu]:data-[state=open]:fade-in-0 data-[root-menu]:data-[state=closed]:zoom-out-95 data-[root-menu]:data-[state=open]:zoom-in-95 data-[root-menu]:data-[side=bottom]:slide-in-from-top-2 data-[root-menu]:data-[side=left]:slide-in-from-right-2 data-[root-menu]:data-[side=right]:slide-in-from-left-2 data-[root-menu]:data-[side=top]:slide-in-from-bottom-2 data-[root-menu]:data-[state=open]:transition-[opacity,scale] data-[root-menu]:data-[state=open]:duration-150 data-[root-menu]:data-[state=closed]:transition-[opacity,scale] data-[root-menu]:data-[state=closed]:duration-150',
       'data-[mode=dropdown]:max-h-[min(500px,var(--action-menu-available-height))]',
       'box-content',
       'data-[mode=dropdown]:w-[min(400px,max(var(--row-width),175px))]',

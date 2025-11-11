@@ -79,12 +79,15 @@ export function ActionMenu_AsyncDeepSearch() {
   return (
     <ActionMenu
       loaderAdapter={ReactQueryLoaderAdapter}
-      trigger={<Button variant="secondary">Food Menu (Deep Search)</Button>}
       menu={{
         id: 'root',
         nodes: submenus,
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Food Menu (Deep Search)</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

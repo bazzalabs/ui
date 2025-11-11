@@ -20,7 +20,6 @@ export function ActionMenu_AsyncBasic() {
   return (
     <ActionMenu
       loaderAdapter={ReactQueryLoaderAdapter}
-      trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
         loader: createLoader<Label[]>(({ query }) => ({
@@ -44,7 +43,11 @@ export function ActionMenu_AsyncBasic() {
             })),
         })),
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

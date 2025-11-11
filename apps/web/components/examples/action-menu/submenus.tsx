@@ -12,7 +12,6 @@ export function ActionMenu_Submenus() {
 
   return (
     <ActionMenu
-      trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
         defaults: {
@@ -169,6 +168,10 @@ export function ActionMenu_Submenus() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

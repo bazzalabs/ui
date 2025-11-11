@@ -47,7 +47,6 @@ export function ActionMenu_HeaderFooter() {
 
   return (
     <ActionMenu
-      trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
         title: 'Fruits',
@@ -313,6 +312,10 @@ export function ActionMenu_HeaderFooter() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

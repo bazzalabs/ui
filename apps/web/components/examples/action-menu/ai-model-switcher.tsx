@@ -180,7 +180,17 @@ export function ActionMenu_AIModelSwitcher() {
 
   return (
     <ActionMenu
-      trigger={
+      slots={{
+        // biome-ignore lint/correctness/noNestedComponentDefinitions: let it be!
+        Item: (args) => <AIModelItem {...args} value={value} />,
+      }}
+      menu={{
+        id: 'ai-models-submenu',
+        inputPlaceholder: 'Choose a model...',
+        nodes,
+      }}
+    >
+      <ActionMenu.Trigger asChild>
         <Button variant="secondary" className="group w-fit">
           {selectedModel ? (
             <>
@@ -206,17 +216,8 @@ export function ActionMenu_AIModelSwitcher() {
             </>
           )}
         </Button>
-      }
-      slots={{
-        // biome-ignore lint/correctness/noNestedComponentDefinitions: let it be!
-        Item: (args) => <AIModelItem {...args} value={value} />,
-      }}
-      menu={{
-        id: 'ai-models-submenu',
-        inputPlaceholder: 'Choose a model...',
-        nodes,
-      }}
-    />
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

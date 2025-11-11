@@ -33,11 +33,6 @@ export function ActionMenu_Massive({ numItems = 100_000 }: MassiveMenuProps) {
 
   return (
     <ActionMenu
-      trigger={
-        <Button variant="secondary">
-          Open {numItems.toLocaleString()} items
-        </Button>
-      }
       menu={{
         id: 'root',
         defaults: {
@@ -50,6 +45,12 @@ export function ActionMenu_Massive({ numItems = 100_000 }: MassiveMenuProps) {
         },
         nodes,
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">
+          Open {numItems.toLocaleString()} items
+        </Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

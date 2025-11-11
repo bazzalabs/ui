@@ -173,23 +173,6 @@ export function ActionMenu_ItemDescriptions() {
 
   return (
     <ActionMenu
-      trigger={
-        <Button variant="secondary" className="group w-fit">
-          {selectedModel ? (
-            <>
-              {renderIcon(selectedModel.icon, 'size-4')}
-              <span>{selectedModel.label}</span>
-            </>
-          ) : (
-            <>
-              <BrainIcon className="text-muted-foreground" />
-              <span className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary">
-                Model
-              </span>
-            </>
-          )}
-        </Button>
-      }
       slots={{
         // biome-ignore lint/correctness/noNestedComponentDefinitions: let it be!
         Item: (args) => <AIModelItem {...args} value={value} />,
@@ -210,7 +193,25 @@ export function ActionMenu_ItemDescriptions() {
         },
         nodes,
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary" className="group w-fit">
+          {selectedModel ? (
+            <>
+              {renderIcon(selectedModel.icon, 'size-4')}
+              <span>{selectedModel.label}</span>
+            </>
+          ) : (
+            <>
+              <BrainIcon className="text-muted-foreground" />
+              <span className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary">
+                Model
+              </span>
+            </>
+          )}
+        </Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

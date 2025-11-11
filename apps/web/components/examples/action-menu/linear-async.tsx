@@ -30,16 +30,14 @@ import {
 
 export function ActionMenu_LinearAsync() {
   return (
-    <ActionMenu
-      trigger={
+    <ActionMenu loaderAdapter={ReactQueryLoaderAdapter} menu={menuData}>
+      <ActionMenu.Trigger asChild>
         <Button variant="ghost" size="sm" className="w-fit">
           <ListFilterIcon className="size-4 fill-muted-foreground" />
           Filter
         </Button>
-      }
-      loaderAdapter={ReactQueryLoaderAdapter}
-      menu={menuData}
-    />
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

@@ -10,7 +10,6 @@ import { ActionMenu } from '@/registry/action-menu'
 export function ActionMenu_AsyncSubmenus() {
   return (
     <ActionMenu
-      trigger={<Button variant="secondary">Trigger</Button>}
       loaderAdapter={ReactQueryLoaderAdapter}
       menu={{
         id: 'root',
@@ -55,7 +54,11 @@ export function ActionMenu_AsyncSubmenus() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

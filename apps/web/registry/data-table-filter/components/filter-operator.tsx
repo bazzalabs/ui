@@ -91,8 +91,8 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
   return (
-    <ActionMenu
-      trigger={
+    <ActionMenu menu={menu}>
+      <ActionMenu.Trigger asChild>
         <Button
           variant="ghost"
           className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
@@ -116,9 +116,8 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
             locale={locale}
           />
         </Button>
-      }
-      menu={menu}
-    />
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 

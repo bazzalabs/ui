@@ -7,7 +7,6 @@ import { ActionMenu } from '@/registry/action-menu'
 export function ActionMenu_SubmenusCustomized() {
   return (
     <ActionMenu
-      trigger={<Button variant="secondary">Trigger</Button>}
       menu={{
         id: 'root',
         defaults: {
@@ -126,6 +125,10 @@ export function ActionMenu_SubmenusCustomized() {
           },
         ],
       }}
-    />
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

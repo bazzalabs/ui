@@ -255,7 +255,12 @@ function __FilterSelector_v2<TData>({
 
   return (
     <ActionMenu
-      trigger={
+      slots={{
+        Item: OptionItem_v2,
+      }}
+      menu={menu}
+    >
+      <ActionMenu.Trigger asChild>
         <Button
           variant="outline"
           className={cn('h-7', hasVisibleFilters && 'w-fit !px-2')}
@@ -263,12 +268,8 @@ function __FilterSelector_v2<TData>({
           <ListFilterIcon className="size-4" />
           {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
         </Button>
-      }
-      slots={{
-        Item: OptionItem_v2,
-      }}
-      menu={menu}
-    />
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }
 
