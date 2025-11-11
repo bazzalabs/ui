@@ -242,6 +242,8 @@ export type MenuDef<T = unknown> = MenuState & {
     slotProps?: Partial<ActionMenuSlotProps>
     classNames?: Partial<ActionMenuClassNames>
   }
+  /** Custom render function for the menu content. */
+  render?: () => React.ReactNode
 }
 
 export interface ItemVariantMap {

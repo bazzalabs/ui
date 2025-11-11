@@ -61,7 +61,7 @@ export function createActionMenu<T = unknown>(
           <Root {...props}>
             <Trigger asChild>{props.trigger}</Trigger>
             <PositionerImpl>
-              <Surface menu={props.menu as any} />
+              <Surface menu={props.menu} render={props.menu.render} />
             </PositionerImpl>
           </Root>
         </ScopedThemeProvider>

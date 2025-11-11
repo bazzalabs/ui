@@ -49,12 +49,7 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -97,83 +92,107 @@ function __FilterValue<TData, TType extends ColumnDataType>({
     if (column.type === 'boolean') e.preventDefault()
   }
 
-  // Use ActionMenu for text, option, and multiOption types
-  if (
-    column.type === 'text' ||
-    column.type === 'option' ||
-    column.type === 'multiOption'
-  ) {
-    const menu: MenuDef = useMemo(
-      () => ({
+  // Create menu configuration for all column types
+  const menu: MenuDef = useMemo(() => {
+    // For text, option, and multiOption types, use the existing menu creators
+    if (column.type === 'text') {
+      return {
         id: `filter-value-${column.id}`,
-        ...(column.type === 'text'
-          ? (createTextMenu({
-              filter: filter as FilterModel<'text'>,
-              column: column as Column<TData, 'text'>,
-              actions,
-              locale,
-              strategy,
-            }) as any)
-          : column.type === 'option'
-            ? createOptionMenu({
-                filter: undefined as any,
-                column: column as Column<TData, 'option'>,
-                actions,
-                locale,
-                strategy,
-                getFilter: () =>
-                  filterRef.current as FilterModel<'option'> | undefined,
-                initialSelectedValuesRef,
-              })
-            : createMultiOptionMenu({
-                filter: undefined as any,
-                column: column as Column<TData, 'multiOption'>,
-                actions,
-                locale,
-                strategy,
-                getFilter: () =>
-                  filterRef.current as FilterModel<'multiOption'> | undefined,
-                initialSelectedValuesRef,
-              })),
-      }),
-      [column, locale, strategy],
-    )
+        ...(createTextMenu({
+          filter: filter as FilterModel<'text'>,
+          column: column as Column<TData, 'text'>,
+          actions,
+          locale,
+          strategy,
+        }) as any),
+      }
+    }
 
-    return (
-      <ActionMenu
-        trigger={
-          <Button
-            variant="ghost"
-            className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
-          >
-            <FilterValueDisplay
-              filter={filter}
-              column={column}
-              actions={actions}
-              locale={locale}
-              entityName={entityName}
-            />
-          </Button>
-        }
-        slots={{
-          Item: (column.type === 'text' ? TextItem_v2 : OptionItem_v2) as any,
-        }}
-        menu={menu}
-        onOpenChange={(open) => {
-          // Reset initial selected values when menu closes to capture fresh state on next open
-          if (!open) {
-            initialSelectedValuesRef.current = null
-          }
-        }}
-      />
-    )
-  }
+    if (column.type === 'option') {
+      return {
+        id: `filter-value-${column.id}`,
+        ...createOptionMenu({
+          filter: undefined as any,
+          column: column as Column<TData, 'option'>,
+          actions,
+          locale,
+          strategy,
+          getFilter: () =>
+            filterRef.current as FilterModel<'option'> | undefined,
+          initialSelectedValuesRef,
+        }),
+      }
+    }
 
-  // Use Popover for other types with custom UI (date, number, boolean)
+    if (column.type === 'multiOption') {
+      return {
+        id: `filter-value-${column.id}`,
+        ...createMultiOptionMenu({
+          filter: undefined as any,
+          column: column as Column<TData, 'multiOption'>,
+          actions,
+          locale,
+          strategy,
+          getFilter: () =>
+            filterRef.current as FilterModel<'multiOption'> | undefined,
+          initialSelectedValuesRef,
+        }),
+      }
+    }
+
+    // For date type, use custom render function
+    if (column.type === 'date') {
+      return {
+        id: `filter-value-${column.id}`,
+        nodes: [],
+        render: () => (
+          <FilterValueDateController
+            filter={filter as FilterModel<'date'>}
+            column={column as Column<TData, 'date'>}
+            actions={actions}
+            strategy={strategy}
+            locale={locale}
+          />
+        ),
+      }
+    }
+
+    // For number type, use custom render function
+    if (column.type === 'number') {
+      return {
+        id: `filter-value-${column.id}`,
+        nodes: [],
+        render: () => (
+          <FilterValueNumberController
+            filter={filter as FilterModel<'number'>}
+            column={column as Column<TData, 'number'>}
+            actions={actions}
+            strategy={strategy}
+            locale={locale}
+          />
+        ),
+      }
+    }
+
+    // For boolean type, use a custom render function
+    return {
+      id: `filter-value-${column.id}`,
+      nodes: [],
+      render: () => (
+        <FilterValueController
+          filter={filter as any}
+          column={column as any}
+          actions={actions}
+          strategy={strategy}
+          locale={locale}
+        />
+      ),
+    }
+  }, [column, filter, actions, locale, strategy])
+
   return (
-    <Popover>
-      <PopoverAnchor className="h-full" />
-      <PopoverTrigger asChild>
+    <ActionMenu
+      trigger={
         <Button
           variant="ghost"
           className={cn(
@@ -190,21 +209,18 @@ function __FilterValue<TData, TType extends ColumnDataType>({
             entityName={entityName}
           />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        side="bottom"
-        className="w-fit p-0 origin-(--radix-popover-content-transform-origin)"
-      >
-        <FilterValueController
-          filter={filter}
-          column={column}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      </PopoverContent>
-    </Popover>
+      }
+      slots={{
+        Item: (column.type === 'text' ? TextItem_v2 : OptionItem_v2) as any,
+      }}
+      menu={menu}
+      onOpenChange={(open) => {
+        // Reset initial selected values when menu closes to capture fresh state on next open
+        if (!open) {
+          initialSelectedValuesRef.current = null
+        }
+      }}
+    />
   )
 }
 

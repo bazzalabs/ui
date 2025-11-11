@@ -572,14 +572,13 @@ export const Surface = React.forwardRef(function Surface<T>(
     </>
   )
 
-  const body =
-    isSubmenu && renderProp
-      ? renderProp()
-      : slots.Content({
-          menu,
-          children: childrenNoProvider,
-          bind: contentBind,
-        })
+  const body = renderProp
+    ? renderProp()
+    : slots.Content({
+        menu,
+        children: childrenNoProvider,
+        bind: contentBind,
+      })
 
   const wrapped = !isElementWithProp(body, 'data-action-menu-surface') ? (
     <Primitive.div {...(contentBind.getContentProps() as any)}>
