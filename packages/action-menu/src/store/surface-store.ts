@@ -1,5 +1,7 @@
 import type { Virtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
+import { create } from 'zustand'
+import { subscribeWithSelector } from 'zustand/middleware'
 import type {
   ActivationCause,
   Node,
@@ -8,179 +10,232 @@ import type {
   SurfaceStore,
 } from '../types.js'
 
+type SurfaceStoreState<T> = {
+  // State
+  state: SurfaceState
+  rows: Map<string, RowRecord>
+  rowIdToVirtualIndex: Map<string, number>
+  nodes: Node<T>[]
+  order: string[]
+
+  // Refs (not reactive)
+  inputRef: React.RefObject<HTMLInputElement | null>
+  listRef: React.RefObject<HTMLDivElement | null>
+  virtualizerRef: React.RefObject<Virtualizer<HTMLDivElement, Element> | null>
+
+  // Actions
+  set: <K extends keyof SurfaceState>(k: K, v: SurfaceState[K]) => void
+  getNodes: () => Node<T>[]
+  setNodes: (nodes: Node<T>[]) => void
+  registerRow: (id: string, rec: RowRecord) => void
+  unregisterRow: (id: string) => void
+  getOrder: () => string[]
+  resetOrder: (ids: string[]) => void
+  resetVirtualIndexMap: (map: Map<string, number>) => void
+  setActiveId: (id: string | null, cause?: ActivationCause) => void
+  setActiveByIndex: (idx: number, cause?: ActivationCause) => void
+  first: (cause?: ActivationCause) => void
+  last: (cause?: ActivationCause) => void
+  next: (cause?: ActivationCause) => void
+  prev: (cause?: ActivationCause) => void
+}
+
 export function createSurfaceStore<T>(): SurfaceStore<T> {
-  const state: SurfaceState = { activeId: null, hasInput: true, listId: null }
-  const listeners = new Set<() => void>()
-  const rows = new Map<string, RowRecord>()
-  const rowIdToVirtualIndex = new Map<string, number>()
-  const nodes: Node<T>[] = []
-  const order: string[] = []
-  const listRef = React.createRef<HTMLDivElement | null>()
+  // Create refs outside of Zustand store
   const inputRef = React.createRef<HTMLInputElement | null>()
+  const listRef = React.createRef<HTMLDivElement | null>()
   const virtualizerRef = React.createRef<Virtualizer<
     HTMLDivElement,
     Element
   > | null>()
 
-  const emit = () =>
-    listeners.forEach((l) => {
-      l()
-    })
-  const snapshot = () => state
-  const set = <K extends keyof SurfaceState>(k: K, v: SurfaceState[K]) => {
-    if (Object.is((state as any)[k], v)) return
-    ;(state as any)[k] = v
-    emit()
-  }
+  // Create Zustand store
+  const useStore = create<SurfaceStoreState<T>>()(
+    subscribeWithSelector((set, get) => ({
+      // Initial state
+      state: { activeId: null, hasInput: true, listId: null },
+      rows: new Map(),
+      rowIdToVirtualIndex: new Map(),
+      nodes: [],
+      order: [],
+      inputRef,
+      listRef,
+      virtualizerRef,
 
-  function getNodes() {
-    return nodes
-  }
+      // Actions
+      set: <K extends keyof SurfaceState>(k: K, v: SurfaceState[K]) => {
+        set((prev) => {
+          if (Object.is(prev.state[k], v)) return prev
+          return {
+            state: { ...prev.state, [k]: v },
+          }
+        })
+      },
 
-  const setNodes = (all: Node<T>[]) => {
-    nodes.splice(0)
-    nodes.push(...all)
-  }
+      getNodes: () => get().nodes,
 
-  const getOrder = () => order.slice()
-  const resetOrder = (ids: string[]) => {
-    order.splice(0)
-    order.push(...ids)
-    emit()
-  }
+      setNodes: (newNodes: Node<T>[]) => {
+        set({ nodes: newNodes })
+      },
 
-  const resetVirtualIndexMap = (map: Map<string, number>) => {
-    rowIdToVirtualIndex.clear()
-    for (const [id, virtualIndex] of map) {
-      rowIdToVirtualIndex.set(id, virtualIndex)
-    }
-  }
+      registerRow: (id: string, rec: RowRecord) => {
+        set((prev) => {
+          const newRows = new Map(prev.rows)
+          newRows.set(id, rec)
+          return { rows: newRows }
+        })
+      },
 
-  const setActiveId = (
-    id: string | null,
-    cause: ActivationCause = 'keyboard',
-  ) => {
-    const prev = state.activeId
-    if (Object.is(prev, id)) return
+      unregisterRow: (id: string) => {
+        set((prev) => {
+          const newRows = new Map(prev.rows)
+          newRows.delete(id)
+          return { rows: newRows }
+        })
+      },
 
-    // Close any open submenu that is not the active trigger BEFORE updating activeId
-    // This ensures controlled submenus have a chance to close before we activate a new one
-    for (const [rid, rec] of rows) {
-      if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
-        try {
-          rec.closeSub()
-        } catch {}
-      }
-    }
+      getOrder: () => get().order.slice(),
 
-    state.activeId = id
-    emit()
-    // Scroll active row into view when keyboard navigating
-    if (cause !== 'keyboard') return
-    if (id === null) return
+      resetOrder: (ids: string[]) => {
+        set({ order: ids })
+      },
 
-    const row = rows.get(id)
-    const index = order.indexOf(id)
-    const el = row?.ref.current
-    const listEl = listRef.current
-    if (el && listEl) {
-      try {
-        const inList = listEl.contains(el)
-        if (inList) el.scrollIntoView({ block: 'nearest' })
-      } catch {}
-      return
-    }
+      resetVirtualIndexMap: (map: Map<string, number>) => {
+        const newMap = new Map(map)
+        set({ rowIdToVirtualIndex: newMap })
+      },
 
-    // Use virtual index for scrolling (accounts for separators, headings, etc.)
-    const virtualIndex = rowIdToVirtualIndex.get(id)
-    if (
-      virtualIndex !== undefined &&
-      (index === 0 || index === order.length - 1)
-    ) {
-      virtualizerRef.current?.scrollToIndex(virtualIndex)
-    }
-  }
+      setActiveId: (id: string | null, cause: ActivationCause = 'keyboard') => {
+        const { state: currentState, rows, order } = get()
+        const prev = currentState.activeId
 
-  const setActiveByIndex = (
-    idx: number,
-    cause: ActivationCause = 'keyboard',
-  ) => {
-    if (!order.length) return setActiveId(null, cause)
-    const clamped = idx < 0 ? 0 : idx >= order.length ? order.length - 1 : idx
-    setActiveId(order[clamped]!, cause)
-  }
+        if (Object.is(prev, id)) return
 
-  const first = (cause: ActivationCause = 'keyboard') => {
-    if (!order.length) return
+        // Close any open submenu that is not the active trigger BEFORE updating activeId
+        for (const [rid, rec] of rows) {
+          if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
+            try {
+              rec.closeSub()
+            } catch {}
+          }
+        }
 
-    const id = order[0]
-    if (!id) return
+        set((prev) => ({
+          state: { ...prev.state, activeId: id },
+        }))
 
-    setActiveId(id, cause)
-  }
+        // Scroll active row into view when keyboard navigating
+        if (cause !== 'keyboard') return
+        if (id === null) return
 
-  const last = (cause: ActivationCause = 'keyboard') => {
-    if (!order.length) return
+        const row = rows.get(id)
+        const index = order.indexOf(id)
+        const el = row?.ref.current
+        const listEl = listRef.current
+        if (el && listEl) {
+          try {
+            const inList = listEl.contains(el)
+            if (inList) el.scrollIntoView({ block: 'nearest' })
+          } catch {}
+          return
+        }
 
-    const id = order[order.length - 1]
-    if (!id) return
+        // Use virtual index for scrolling
+        const { rowIdToVirtualIndex } = get()
+        const virtualIndex = rowIdToVirtualIndex.get(id)
+        if (
+          virtualIndex !== undefined &&
+          (index === 0 || index === order.length - 1)
+        ) {
+          virtualizerRef.current?.scrollToIndex(virtualIndex)
+        }
+      },
 
-    setActiveId(id, cause)
-  }
-  const next = (cause: ActivationCause = 'keyboard') => {
-    if (!order.length) return
-    const index = state.activeId ? order.indexOf(state.activeId) : -1
-    const nextIndex = index + 1 < order.length ? index + 1 : 0
+      setActiveByIndex: (idx: number, cause: ActivationCause = 'keyboard') => {
+        const { order, setActiveId } = get()
+        if (!order.length) return setActiveId(null, cause)
+        const clamped =
+          idx < 0 ? 0 : idx >= order.length ? order.length - 1 : idx
+        setActiveId(order[clamped]!, cause)
+      },
 
-    const nextId = order[nextIndex]
-    if (!nextId) return
+      first: (cause: ActivationCause = 'keyboard') => {
+        const { order, setActiveId } = get()
+        if (!order.length) return
+        const id = order[0]
+        if (!id) return
+        setActiveId(id, cause)
+      },
 
-    setActiveId(nextId, cause)
-  }
-  const prev = (cause: ActivationCause = 'keyboard') => {
-    if (!order.length) return
-    const index = state.activeId
-      ? order.indexOf(state.activeId)
-      : order.length - 1
-    const nextIndex = index > 0 ? index - 1 : order.length - 1
+      last: (cause: ActivationCause = 'keyboard') => {
+        const { order, setActiveId } = get()
+        if (!order.length) return
+        const id = order[order.length - 1]
+        if (!id) return
+        setActiveId(id, cause)
+      },
 
-    const nextId = order[nextIndex]
+      next: (cause: ActivationCause = 'keyboard') => {
+        const { state: currentState, order, setActiveId } = get()
+        if (!order.length) return
+        const index = currentState.activeId
+          ? order.indexOf(currentState.activeId)
+          : -1
+        const nextIndex = index + 1 < order.length ? index + 1 : 0
+        const nextId = order[nextIndex]
+        if (!nextId) return
+        setActiveId(nextId, cause)
+      },
 
-    if (!nextId) return
+      prev: (cause: ActivationCause = 'keyboard') => {
+        const { state: currentState, order, setActiveId } = get()
+        if (!order.length) return
+        const index = currentState.activeId
+          ? order.indexOf(currentState.activeId)
+          : order.length - 1
+        const nextIndex = index > 0 ? index - 1 : order.length - 1
+        const nextId = order[nextIndex]
+        if (!nextId) return
+        setActiveId(nextId, cause)
+      },
+    })),
+  )
 
-    setActiveId(nextId, cause)
-  }
-
-  return {
-    subscribe(cb) {
-      listeners.add(cb)
-      return () => listeners.delete(cb)
+  // Create a compatibility wrapper that matches the old SurfaceStore interface
+  const store: SurfaceStore<T> = {
+    subscribe(cb: () => void) {
+      return useStore.subscribe(() => cb())
     },
-    snapshot,
-    set,
-    getNodes,
-    setNodes,
-    registerRow(id, rec) {
-      rows.set(id, rec)
-      emit()
+    snapshot() {
+      return useStore.getState().state
     },
-    unregisterRow(id) {
-      rows.delete(id)
-      emit()
+    set: useStore.getState().set,
+    getNodes: useStore.getState().getNodes,
+    setNodes: useStore.getState().setNodes,
+    registerRow: useStore.getState().registerRow,
+    unregisterRow: useStore.getState().unregisterRow,
+    getOrder: useStore.getState().getOrder,
+    resetOrder: useStore.getState().resetOrder,
+    resetVirtualIndexMap: useStore.getState().resetVirtualIndexMap,
+    setActiveId: useStore.getState().setActiveId,
+    setActiveByIndex: useStore.getState().setActiveByIndex,
+    first: useStore.getState().first,
+    last: useStore.getState().last,
+    next: useStore.getState().next,
+    prev: useStore.getState().prev,
+    get rows() {
+      return useStore.getState().rows
     },
-    getOrder,
-    resetOrder,
-    resetVirtualIndexMap,
-    setActiveId,
-    setActiveByIndex,
-    first,
-    last,
-    next,
-    prev,
-    rows,
-    rowIdToVirtualIndex,
+    get rowIdToVirtualIndex() {
+      return useStore.getState().rowIdToVirtualIndex
+    },
     inputRef,
     listRef,
     virtualizerRef,
   }
+
+  // Store the Zustand hook internally for optimized access
+  ;(store as any).__useStore = useStore
+
+  return store
 }
