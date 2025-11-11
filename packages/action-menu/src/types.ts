@@ -624,9 +624,17 @@ export type SurfaceClassNames = {
 
 export type ActionMenuClassNames = ShellClassNames & SurfaceClassNames
 
+/** Positioner slot props - supports both flat and conditional (root/sub) configurations */
+export type PositionerSlotProps =
+  | Partial<Omit<ActionMenuPositionerProps, 'children'>>
+  | {
+      root?: Partial<Omit<ActionMenuPositionerProps, 'children'>>
+      sub?: Partial<Omit<ActionMenuPositionerProps, 'children'>>
+    }
+
 /** Slot props forwarded to the *shell* (Vaul). */
 export type ShellSlotProps = {
-  positioner?: Partial<Omit<ActionMenuPositionerProps, 'children'>>
+  positioner?: PositionerSlotProps
   drawerRoot?: Partial<React.ComponentProps<typeof Drawer.Root>>
   drawerOverlay?: React.ComponentPropsWithoutRef<typeof Drawer.Overlay>
   drawerContent?: React.ComponentPropsWithoutRef<typeof Drawer.Content>
@@ -729,7 +737,7 @@ export type Direction = 'ltr' | 'rtl'
 export interface ActionMenuPositionerProps {
   children: React.ReactNode
   side?: 'top' | 'right' | 'bottom' | 'left'
-  align?: 'start' | 'center' | 'end' | 'list-top'
+  align?: 'start' | 'center' | 'end' | 'list'
   sideOffset?: number
   alignOffset?: number
   avoidCollisions?: boolean

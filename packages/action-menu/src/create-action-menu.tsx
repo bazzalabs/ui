@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { PositionerImpl } from './components/positioner.js'
+import { Positioner } from './components/positioner.js'
 import { type ActionMenuRootProps, Root } from './components/root.js'
 import { Surface } from './components/surface.js'
 import { Trigger } from './components/trigger.js'
@@ -64,9 +64,9 @@ export function createActionMenu<T = unknown>(
         <ScopedThemeProvider __scopeId="root" theme={scopedTheme}>
           <Root {...props}>
             {props.children}
-            <PositionerImpl>
+            <Positioner>
               <Surface menu={props.menu} render={props.menu.render} />
-            </PositionerImpl>
+            </Positioner>
           </Root>
         </ScopedThemeProvider>
       </GlobalThemeProvider>

@@ -115,9 +115,8 @@ export const ActionMenu = createActionMenu({
   },
   slotProps: {
     positioner: {
-      sideOffset: -2,
-      alignOffset: -4,
-      alignToFirstItem: false,
+      root: { sideOffset: 8, side: 'bottom', alignOffset: -4 },
+      sub: { sideOffset: -2, align: 'list', alignOffset: -4 },
     },
   },
   classNames: {

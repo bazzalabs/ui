@@ -13,10 +13,23 @@ import { InteractionGuard } from './interaction-guard.js'
 
 export const Positioner = ({ children }: Children) => {
   const theme = useScopedTheme()
+  const sub = useSubCtx()
+  const isSub = !!sub
 
-  return (
-    <PositionerImpl {...theme.slotProps?.positioner}>{children}</PositionerImpl>
-  )
+  const positionerProps = React.useMemo(() => {
+    const slotPropsConfig = theme.slotProps?.positioner
+    if (!slotPropsConfig) return undefined
+
+    // Check if it's conditional (has 'root' or 'sub' keys)
+    if ('root' in slotPropsConfig || 'sub' in slotPropsConfig) {
+      return isSub ? slotPropsConfig.sub : slotPropsConfig.root
+    }
+
+    // Flat config - apply to both
+    return slotPropsConfig
+  }, [theme.slotProps?.positioner, isSub])
+
+  return <PositionerImpl {...positionerProps}>{children}</PositionerImpl>
 }
 
 export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
@@ -35,7 +48,7 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   const present = isSub ? sub!.open : root.open
   const defaultSide = isSub ? 'right' : 'bottom'
   const resolvedSide = side ?? defaultSide
-  const defaultAlign = isSub ? 'list-top' : 'start'
+  const defaultAlign = isSub ? 'list' : 'start'
   const resolvedAlign = align ?? defaultAlign
   const mode = useDisplayMode()
 
@@ -55,8 +68,8 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   }, [sub])
 
   const measure = React.useCallback(() => {
-    // Only measure when align is 'list-top'
-    if (resolvedAlign !== 'list-top') {
+    // Only measure when align is 'list'
+    if (resolvedAlign !== 'list') {
       setListTopOffset(0)
       return
     }
@@ -118,7 +131,7 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
     if (!present) {
       return
     }
-    if (resolvedAlign !== 'list-top') {
+    if (resolvedAlign !== 'list') {
       return
     }
 
@@ -149,11 +162,11 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
     }
   }, [isSub, sub, present, resolvedAlign, measure])
 
-  // When align is 'list-top', use computed offset + user's alignOffset
+  // When align is 'list', use computed offset + user's alignOffset
   // Otherwise, just use user's alignOffset
-  const effectiveAlign = resolvedAlign === 'list-top' ? 'start' : resolvedAlign
+  const effectiveAlign = resolvedAlign === 'list' ? 'start' : resolvedAlign
   const effectiveAlignOffset =
-    resolvedAlign === 'list-top' ? listTopOffset + alignOffset : alignOffset
+    resolvedAlign === 'list' ? listTopOffset + alignOffset : alignOffset
 
   const popperContentProps: React.ComponentProps<typeof Popper.Content> =
     React.useMemo(
