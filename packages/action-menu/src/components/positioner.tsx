@@ -63,30 +63,53 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
       return
     }
     const el = findContentEl()
+    console.log(`[${sub?.def.id}] el:`, el)
+
     if (!el) return
+
     const inputEl = el.querySelector<HTMLElement>('[data-action-menu-input]')
     const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
-    const listEl = el.querySelector<HTMLElement>(
-      '[data-slot="action-menu-list"]',
-    )
-    const firstRow = listEl?.querySelector('li')
-    if (!hasVisibleInput || !firstRow) {
+
+    if (!hasVisibleInput) {
+      console.log(`[${sub?.def.id}] no visible input`)
       setFirstRowAlignOffset(0)
       return
     }
-    const cr = el.getBoundingClientRect()
-    const fr = firstRow.getBoundingClientRect()
-    setFirstRowAlignOffset(-Math.round(fr.top - cr.top))
-  }, [isSub, present, alignToFirstItem, resolvedSide, findContentEl])
 
-  React.useLayoutEffect(() => {
-    if (!isSub || !present || !alignToFirstItem) {
+    // Check if there are any rows in the list
+    const listEl = el.querySelector<HTMLElement>(
+      '[data-slot="action-menu-list"]',
+    )
+    const hasRows = listEl?.querySelector('li') !== null
+
+    if (!hasRows) {
+      console.log(`[${sub?.def.id}] no rows - using normal alignment`)
+      setFirstRowAlignOffset(0)
       return
     }
 
-    let af: number
+    // Calculate offset from input's bottom edge to content's top edge
+    // This accounts for any padding/margin between input and list
+    const contentRect = el.getBoundingClientRect()
+    const inputRect = inputEl.getBoundingClientRect()
+    const computedOffset = -Math.round(inputRect.bottom - contentRect.top)
+    console.log(`[${sub?.def.id}] computedOffset:`, computedOffset)
+    setFirstRowAlignOffset(computedOffset)
+  }, [isSub, present, alignToFirstItem, resolvedSide, findContentEl, sub])
+
+  React.useLayoutEffect(() => {
+    if (!isSub) {
+      return
+    }
+    if (!present) {
+      return
+    }
+    if (!alignToFirstItem) {
+      return
+    }
 
     const handle = (e: Event) => {
+      console.log(`[${sub?.def.id}] handle:`, e)
       const customEvent = e as CustomEvent<{
         surfaceId?: string
         hideSearchUntilActive?: boolean
@@ -105,13 +128,12 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
         return
       }
 
-      af = requestAnimationFrame(() => {
-        measure()
-      })
+      // No need for requestAnimationFrame since we only measure the input element
+      // which exists immediately when the surface is mounted
+      measure()
     }
     document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
     return () => {
-      cancelAnimationFrame(af)
       document.removeEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
     }
   }, [isSub, sub, present, alignToFirstItem, measure])
