@@ -1,6 +1,7 @@
 'use client'
 
 import { Examples } from '@/components/examples'
+import { MultiSelect } from '@/components/examples/action-menu/multiselect'
 import { NavBar } from '@/components/nav-bar'
 import { DiamondSpinner } from '@/registry/action-menu'
 
@@ -44,6 +45,13 @@ export default function Page() {
             {/* <Examples.ActionMenu.CheckboxItems /> */}
             {/* <Examples.ActionMenu.Massive numItems={10_000} /> */}
             {/* <Examples.ActionMenu.SubmenusDeep /> */}
+            <MultiSelect
+              items={[
+                { label: 'Option 1', id: 'option1' },
+                { label: 'Option 2', id: 'option2' },
+                { label: 'Option 3', id: 'option3' },
+              ]}
+            />
           </div>
         </div>
       </div>

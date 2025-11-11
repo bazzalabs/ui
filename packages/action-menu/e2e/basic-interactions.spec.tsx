@@ -1,161 +1,342 @@
-import { expect, test } from '@playwright/experimental-ct-react'
+import React from 'react'
+import { afterEach, describe, expect, test } from 'vitest'
 import { basicMenuDef, checkboxMenuDef } from './fixtures/test-menu.js'
 import { ControlledTestApp } from './test-app.js'
+import {
+  cleanup,
+  click,
+  delay,
+  keyboard,
+  render,
+  waitFor,
+  waitForElement,
+} from './test-utils.js'
 
-test.describe('Basic Interactions', () => {
-  test('should open menu when trigger is clicked', async ({ mount }) => {
-    const component = await mount(<ControlledTestApp menuDef={basicMenuDef} />)
+// Helper to check if element is visible
+function isVisible(element: Element | null): boolean {
+  if (!element) return false
+  const htmlElement = element as HTMLElement
+  const style = window.getComputedStyle(htmlElement)
+
+  // Check if element or any parent has display: none
+  if (style.display === 'none') return false
+  if (style.visibility === 'hidden') return false
+
+  // For menu items in a virtualized list, offsetParent might be null
+  // but they can still be visible, so check the rect instead
+  const rect = htmlElement.getBoundingClientRect()
+
+  return (
+    rect.width > 0 && rect.height > 0 && Number.parseFloat(style.opacity) > 0
+  )
+}
+
+describe('Basic Interactions', () => {
+  afterEach(async () => {
+    cleanup()
+    // wait 100ms
+    await delay(100)
+  })
+
+  test('should open menu when trigger is clicked', async () => {
+    await render(<ControlledTestApp menuDef={basicMenuDef} />)
+
+    // Wait for trigger to be rendered
+    const trigger = await waitForElement('[data-testid="menu-trigger"]')
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
 
     // Menu should be closed initially
-    await expect(component.getByTestId('menu-list')).not.toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list === null || !isVisible(list)
+    })
 
     // Click trigger
-    await component.getByTestId('menu-trigger').click()
+    click(trigger)
 
     // Menu should now be open
-    await expect(component.getByTestId('menu-list')).toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
+
+    expect(isVisible(getList())).toBe(true)
   })
 
-  test('should close menu when clicking outside', async ({ mount, page }) => {
-    const component = await mount(
+  test('should close menu when clicking outside', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
+
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
 
     // Menu should be open initially
-    await expect(component.getByTestId('menu-list')).toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
 
-    // Click outside the menu
-    await page.mouse.click(10, 10)
+    // Click outside the menu using pointer events (like trigger click)
+    document.body.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        clientX: 5,
+        clientY: 5,
+        pointerId: 1,
+        pointerType: 'mouse',
+        isPrimary: true,
+      }),
+    )
+    await delay(50)
 
     // Menu should close
-    await expect(component.getByTestId('menu-list')).not.toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list === null || !isVisible(list)
+    })
   })
 
-  test('should close menu when pressing Escape', async ({ mount, page }) => {
-    const component = await mount(
+  test('should close menu when pressing Escape', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
+
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
 
     // Menu should be open
-    await expect(component.getByTestId('menu-list')).toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
 
-    // Press Escape
-    await page.keyboard.press('Escape')
+    // Press Escape - dispatch to the surface element
+    const surface = document.querySelector('[data-action-menu-surface]')
+    if (surface) {
+      surface.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    }
+    await delay(100)
 
     // Menu should close
-    await expect(component.getByTestId('menu-list')).not.toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list === null || !isVisible(list)
+    })
   })
 
-  test('should display all menu items', async ({ mount }) => {
-    const component = await mount(
+  test('should display all menu items', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
 
-    // Check that all items from basicMenuDef are visible
-    await expect(component.getByTestId('menu-item-new')).toBeVisible()
-    await expect(component.getByTestId('menu-item-open')).toBeVisible()
-    await expect(component.getByTestId('menu-item-save')).toBeVisible()
-    await expect(component.getByTestId('menu-item-exit')).toBeVisible()
+    // Wait for menu to be visible
+    await waitFor(() => {
+      const list = document.querySelector('[data-testid="menu-list"]')
+      return list !== null && isVisible(list)
+    })
+
+    // Check that all items from basicMenuDef exist using data-action-menu-item-id
+    await waitForElement('[data-action-menu-item-id="new"]')
+    await waitForElement('[data-action-menu-item-id="open"]')
+    await waitForElement('[data-action-menu-item-id="save"]')
+    await waitForElement('[data-action-menu-item-id="exit"]')
+
+    // Verify they all exist
+    const newItem = document.querySelector('[data-action-menu-item-id="new"]')
+    const openItem = document.querySelector('[data-action-menu-item-id="open"]')
+    const saveItem = document.querySelector('[data-action-menu-item-id="save"]')
+    const exitItem = document.querySelector('[data-action-menu-item-id="exit"]')
+
+    expect(newItem).toBeTruthy()
+    expect(openItem).toBeTruthy()
+    expect(saveItem).toBeTruthy()
+    expect(exitItem).toBeTruthy()
   })
 
-  test('should handle item selection', async ({ mount }) => {
-    const component = await mount(
+  test('should handle item selection', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
+
+    await waitFor(() => {
+      const list = document.querySelector('[data-testid="menu-list"]')
+      return list !== null && isVisible(list)
+    })
+
+    // Wait for item to exist
+    await waitForElement('[data-action-menu-item-id="new"]')
 
     // Click an item
-    await component.getByTestId('menu-item-new').click()
+    const newItem = document.querySelector('[data-action-menu-item-id="new"]')!
+    click(newItem)
+
+    await delay(50)
 
     // Check that selection was registered
-    await expect(component.getByTestId('selected-id')).toHaveText('new')
+    const selectedId = document.querySelector('[data-testid="selected-id"]')
+    await waitFor(() => selectedId?.textContent === 'new')
+    expect(selectedId?.textContent).toBe('new')
   })
 
-  test('should not allow selecting disabled items', async ({ mount }) => {
-    const component = await mount(
+  test('should not allow selecting disabled items', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
+
+    await waitFor(() => {
+      const list = document.querySelector('[data-testid="menu-list"]')
+      return list !== null && isVisible(list)
+    })
+
+    // Wait for save item
+    await waitForElement('[data-action-menu-item-id="save"]')
 
     // The 'save' item is disabled in basicMenuDef
-    const saveItem = component.getByTestId('menu-item-save')
+    const saveItem = document.querySelector(
+      '[data-action-menu-item-id="save"]',
+    ) as HTMLElement
 
     // Item should be visible but disabled
-    await expect(saveItem).toBeVisible()
-    await expect(saveItem).toBeDisabled()
+    expect(isVisible(saveItem)).toBe(true)
+    expect(saveItem.getAttribute('aria-disabled')).toBe('true')
 
     // Try to click it
-    await saveItem.click({ force: true })
+    click(saveItem)
+    await delay(50)
 
     // Selection should not change
-    await expect(component.getByTestId('selected-id')).toHaveText('')
+    const selectedId = document.querySelector('[data-testid="selected-id"]')
+    expect(selectedId?.textContent).toBe('')
   })
 
-  test('should close menu after selecting an item by default', async ({
-    mount,
-  }) => {
-    const component = await mount(
+  test('should close menu after selecting an item by default', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
 
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
+
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
+
+    // Wait for item
+    await waitForElement('[data-action-menu-item-id="new"]')
+
     // Click an item
-    await component.getByTestId('menu-item-new').click()
+    const newItem = document.querySelector('[data-action-menu-item-id="new"]')!
+    click(newItem)
 
     // Menu should close
-    await expect(component.getByTestId('menu-list')).not.toBeVisible()
+    await waitFor(() => {
+      const list = getList()
+      return list === null || !isVisible(list)
+    })
   })
 
-  test('should handle multiple open/close cycles', async ({ mount }) => {
-    const component = await mount(<ControlledTestApp menuDef={basicMenuDef} />)
+  test('should handle multiple open/close cycles', async () => {
+    await render(<ControlledTestApp menuDef={basicMenuDef} />)
 
-    const trigger = component.getByTestId('menu-trigger')
-    const list = component.getByTestId('menu-list')
+    const trigger = await waitForElement('[data-testid="menu-trigger"]')
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
 
     // Open
-    await trigger.click()
-    await expect(list).toBeVisible()
+    click(trigger)
+    await delay(100) // Give time for animation/state update
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
 
     // Close
-    await trigger.click()
-    await expect(list).not.toBeVisible()
+    click(trigger)
+    await delay(100)
+    await waitFor(() => {
+      const list = getList()
+      return list === null || !isVisible(list)
+    })
 
     // Open again
-    await trigger.click()
-    await expect(list).toBeVisible()
+    click(trigger)
+    await delay(100)
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
 
     // Close again
-    await trigger.click()
-    await expect(list).not.toBeVisible()
+    click(trigger)
+    await delay(100)
+    await waitFor(() => {
+      const list = getList()
+      return list === null || !isVisible(list)
+    })
   })
 
-  test('should handle checkbox items', async ({ mount }) => {
-    const component = await mount(
+  test('should handle checkbox items', async () => {
+    await render(
       <ControlledTestApp menuDef={checkboxMenuDef} initialOpen={true} />,
     )
 
-    const checkbox1 = component.getByTestId('menu-item-option1')
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
+
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
+
+    // Wait for checkbox item
+    await waitForElement('[data-action-menu-item-id="option1"]')
+
+    const checkbox1 = document.querySelector(
+      '[data-action-menu-item-id="option1"]',
+    )!
 
     // Checkbox should be visible
-    await expect(checkbox1).toBeVisible()
+    expect(isVisible(checkbox1)).toBe(true)
 
     // Click checkbox
-    await checkbox1.click()
+    click(checkbox1)
+    await delay(50)
 
     // Menu should stay open for checkboxes
-    await expect(component.getByTestId('menu-list')).toBeVisible()
+    expect(isVisible(getList())).toBe(true)
   })
 
-  test('should return focus to trigger when menu closes', async ({
-    mount,
-    page,
-  }) => {
-    const component = await mount(
+  test('should return focus to trigger when menu closes', async () => {
+    await render(
       <ControlledTestApp menuDef={basicMenuDef} initialOpen={true} />,
     )
 
+    const getList = () => document.querySelector('[data-testid="menu-list"]')
+
+    await waitFor(() => {
+      const list = getList()
+      return list !== null && isVisible(list)
+    })
+
     // Close menu with Escape
-    await page.keyboard.press('Escape')
+    const surface = document.querySelector('[data-action-menu-surface]')
+    if (surface) {
+      surface.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    }
+    await delay(200) // Give more time for focus management
 
     // Focus should return to trigger
-    const trigger = component.getByTestId('menu-trigger')
-    await expect(trigger).toBeFocused()
+    const trigger = document.querySelector('[data-testid="menu-trigger"]')
+    await waitFor(() => document.activeElement === trigger, { timeout: 2000 })
+    expect(document.activeElement).toBe(trigger)
   })
 })

@@ -71,7 +71,8 @@ export function Root<T>({
     prop: openProp ?? menu.open?.value,
     defaultProp: defaultOpen ?? false,
     onChange: (value) => {
-      if (!value) closeAllSurfaces()
+      // Don't call closeAllSurfaces here - it creates an infinite loop
+      // because closeAllSurfaces calls setOpen(false) which triggers this onChange
 
       if (onOpenChange) onOpenChange?.(value)
       else if (menu.open?.onValueChange) menu.open?.onValueChange?.(value)
@@ -121,6 +122,8 @@ export function Root<T>({
       )
       if (el) dispatch(el, CLOSE_MENU_EVENT)
     }
+    // Close the root menu by setting open to false
+    // This will trigger onChange which will notify the parent component
     setOpen(false)
   }, [setOpen])
 

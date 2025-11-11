@@ -3,7 +3,7 @@ import { useDisplayMode } from '../contexts/display-mode-context.js'
 import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 import { useSurfaceSel } from '../hooks/use-surface-sel.js'
 import { mergeProps } from '../lib/merge-props.js'
-import { isElementWithProp } from '../lib/react-utils.js'
+import { hasDescendantWithProp } from '../lib/react-utils.js'
 import type {
   InputBindAPI,
   SurfaceSlotProps,
@@ -80,7 +80,7 @@ export function Input<T>({
   )
 
   const el = slot({ value, onChange, bind })
-  if (!isElementWithProp(el, 'data-action-menu-input'))
+  if (!hasDescendantWithProp(el, 'data-action-menu-input'))
     return <input {...(bind.getInputProps(slotProps as any) as any)} />
   return el as React.ReactElement
 }

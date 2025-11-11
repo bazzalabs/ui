@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "dev:up": "turbo run dev test:watch types:meta:watch",
+    "dev:up": "turbo run dev test:watch test:e2e:watch",
     "types:meta": "turbo run types:meta",
     "types:meta:watch": "turbo run types:meta:watch",
     "test": "turbo run test",

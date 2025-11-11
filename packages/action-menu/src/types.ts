@@ -244,13 +244,26 @@ export type MenuDef<T = unknown> = MenuState & {
   }
 }
 
-export type ItemVariant = 'button' | 'checkbox' | 'radio'
+export interface ItemVariantMap {
+  button: true
+  checkbox: true
+  radio: true
+}
+
+// biome-ignore lint/suspicious/noEmptyInterface: to be extended
+export interface ExtendedItemVariantMap {}
+
+export type ItemVariant = keyof ItemVariantMap | keyof ExtendedItemVariantMap
+
+// biome-ignore lint/suspicious/noEmptyInterface: to be extended
+export interface ExtendedItemVariant {}
 
 // biome-ignore lint/suspicious/noEmptyInterface: to be extended
 export interface ItemExtendedProperties {}
 
 export type BaseItemDef<T = unknown> = BaseDef<'item'> &
   Searchable & {
+    variant?: ItemVariant
     icon?: Iconish
     data?: T
     disabled?: boolean

@@ -34,6 +34,14 @@
       "cache": false,
       "persistent": true
     },
+    "test:e2e": {
+      "cache": false,
+      "persistent": false
+    },
+    "test:e2e:watch": {
+      "cache": false,
+      "persistent": true
+    },
     "bench": {
       "cache": false,
       "persistent": false

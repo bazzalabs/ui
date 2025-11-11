@@ -44,6 +44,7 @@ export function DrawerShell({ children }: { children: React.ReactNode }) {
           data-slot="action-menu-drawer-content"
           className={root.classNames?.drawerContent}
           {...root.slotProps?.drawerContent}
+          aria-describedby={undefined}
           onOpenAutoFocus={(event) => {
             event.preventDefault()
           }}
