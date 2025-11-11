@@ -82,7 +82,6 @@ export const Surface = React.forwardRef(function Surface<T>(
 ) {
   const root = useRootCtx()
   const sub = useSubCtx()
-  const isSub = React.useMemo(() => sub !== null, [sub])
   const open = React.useMemo(
     () => (sub ? sub.open : root.open),
     [sub, sub?.open, root, root.open],

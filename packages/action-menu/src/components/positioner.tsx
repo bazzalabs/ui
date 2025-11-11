@@ -22,12 +22,11 @@ export const Positioner = ({ children }: Children) => {
 export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   children,
   side,
-  align = 'start',
+  align,
   sideOffset = 8,
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
-  alignToFirstItem = 'on-open',
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
@@ -36,9 +35,11 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   const present = isSub ? sub!.open : root.open
   const defaultSide = isSub ? 'right' : 'bottom'
   const resolvedSide = side ?? defaultSide
+  const defaultAlign = isSub ? 'list-top' : 'start'
+  const resolvedAlign = align ?? defaultAlign
   const mode = useDisplayMode()
 
-  const [firstRowAlignOffset, setFirstRowAlignOffset] = React.useState(0)
+  const [listTopOffset, setListTopOffset] = React.useState(0)
 
   const findContentEl = React.useCallback((): HTMLElement | null => {
     if (!sub) return null
@@ -54,48 +55,61 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   }, [sub])
 
   const measure = React.useCallback(() => {
-    if (!isSub || !present || !alignToFirstItem) {
-      setFirstRowAlignOffset(0)
+    // Only measure when align is 'list-top'
+    if (resolvedAlign !== 'list-top') {
+      setListTopOffset(0)
       return
     }
-    if (!(resolvedSide === 'right' || resolvedSide === 'left')) {
-      setFirstRowAlignOffset(0)
-      return
-    }
-    const el = findContentEl()
-    console.log(`[${sub?.def.id}] el:`, el)
 
+    // Only applies to submenus
+    if (!isSub || !present) {
+      setListTopOffset(0)
+      return
+    }
+
+    // Only applies to horizontal positioning
+    if (!(resolvedSide === 'right' || resolvedSide === 'left')) {
+      setListTopOffset(0)
+      return
+    }
+
+    const el = findContentEl()
     if (!el) return
 
+    const contentRect = el.getBoundingClientRect()
+
+    // Check for input element (if it exists, align to bottom of input)
     const inputEl = el.querySelector<HTMLElement>('[data-action-menu-input]')
     const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
 
-    if (!hasVisibleInput) {
-      console.log(`[${sub?.def.id}] no visible input`)
-      setFirstRowAlignOffset(0)
+    if (hasVisibleInput) {
+      // Align to bottom of input
+      const inputRect = inputEl.getBoundingClientRect()
+      const computedOffset = -Math.round(inputRect.bottom - contentRect.top)
+      setListTopOffset(computedOffset)
       return
     }
 
-    // Check if there are any rows in the list
+    // No input, check for list element
     const listEl = el.querySelector<HTMLElement>(
       '[data-slot="action-menu-list"]',
     )
-    const hasRows = listEl?.querySelector('li') !== null
 
-    if (!hasRows) {
-      console.log(`[${sub?.def.id}] no rows - using normal alignment`)
-      setFirstRowAlignOffset(0)
+    if (listEl) {
+      // Align to top of list (inside padding)
+      const listRect = listEl.getBoundingClientRect()
+      const listStyles = getComputedStyle(listEl)
+      const listPaddingTop = Number.parseFloat(listStyles.paddingTop)
+      const computedOffset = -Math.round(
+        listRect.top + listPaddingTop - contentRect.top,
+      )
+      setListTopOffset(computedOffset)
       return
     }
 
-    // Calculate offset from input's bottom edge to content's top edge
-    // This accounts for any padding/margin between input and list
-    const contentRect = el.getBoundingClientRect()
-    const inputRect = inputEl.getBoundingClientRect()
-    const computedOffset = -Math.round(inputRect.bottom - contentRect.top)
-    console.log(`[${sub?.def.id}] computedOffset:`, computedOffset)
-    setFirstRowAlignOffset(computedOffset)
-  }, [isSub, present, alignToFirstItem, resolvedSide, findContentEl, sub])
+    // Fallback: no offset
+    setListTopOffset(0)
+  }, [resolvedAlign, isSub, present, resolvedSide, findContentEl, sub])
 
   React.useLayoutEffect(() => {
     if (!isSub) {
@@ -104,12 +118,11 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
     if (!present) {
       return
     }
-    if (!alignToFirstItem) {
+    if (resolvedAlign !== 'list-top') {
       return
     }
 
     const handle = (e: Event) => {
-      console.log(`[${sub?.def.id}] handle:`, e)
       const customEvent = e as CustomEvent<{
         surfaceId?: string
         hideSearchUntilActive?: boolean
@@ -120,33 +133,34 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
         customEvent.detail?.surfaceId === sub!.childSurfaceId ||
         target?.closest?.(`[data-surface-id="${sub!.childSurfaceId}"]`) !== null
       if (!ok) return
-      if (
-        alignToFirstItem === 'on-open' &&
-        customEvent.detail?.hideSearchUntilActive &&
-        customEvent.detail?.inputActive
-      ) {
+
+      // Skip measurement when hideSearchUntilActive is true
+      // This prevents repositioning when the input appears/disappears during typing
+      if (customEvent.detail?.hideSearchUntilActive) {
         return
       }
 
-      // No need for requestAnimationFrame since we only measure the input element
-      // which exists immediately when the surface is mounted
+      // Measure immediately (input exists when event fires)
       measure()
     }
     document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
     return () => {
       document.removeEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
     }
-  }, [isSub, sub, present, alignToFirstItem, measure])
+  }, [isSub, sub, present, resolvedAlign, measure])
 
+  // When align is 'list-top', use computed offset + user's alignOffset
+  // Otherwise, just use user's alignOffset
+  const effectiveAlign = resolvedAlign === 'list-top' ? 'start' : resolvedAlign
   const effectiveAlignOffset =
-    isSub && alignToFirstItem ? firstRowAlignOffset : alignOffset
+    resolvedAlign === 'list-top' ? listTopOffset + alignOffset : alignOffset
 
   const popperContentProps: React.ComponentProps<typeof Popper.Content> =
     React.useMemo(
       () => ({
         asChild: true,
         side: resolvedSide,
-        align: align,
+        align: effectiveAlign,
         sideOffset: sideOffset,
         alignOffset: effectiveAlignOffset,
         avoidCollisions: avoidCollisions,
@@ -160,7 +174,7 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
       }),
       [
         resolvedSide,
-        align,
+        effectiveAlign,
         sideOffset,
         effectiveAlignOffset,
         avoidCollisions,

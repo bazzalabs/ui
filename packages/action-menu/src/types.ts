@@ -729,14 +729,13 @@ export type Direction = 'ltr' | 'rtl'
 export interface ActionMenuPositionerProps {
   children: React.ReactNode
   side?: 'top' | 'right' | 'bottom' | 'left'
-  align?: 'start' | 'center' | 'end'
+  align?: 'start' | 'center' | 'end' | 'list-top'
   sideOffset?: number
   alignOffset?: number
   avoidCollisions?: boolean
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
-  alignToFirstItem?: false | 'on-open' | 'always'
 }
 
 export interface ActionMenuSurfaceProps<T = unknown>
