@@ -153,9 +153,10 @@ export const ActionMenu = createActionMenu({
       'py-1',
     ),
     input: cn(
-      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out border-b caret-blue-500',
-      'data-[mode=drawer]:text-[16px]',
-      'data-[mode=drawer]:px-6',
+      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 border-b',
+      'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+      'data-[mode=drawer]:text-[16px] data-[mode=drawer]:px-6',
+      'caret-blue-500',
       'w-full',
     ),
     groupHeading: cn(
@@ -276,17 +277,43 @@ export const DiamondSpinner = ({
 export const LabelWithBreadcrumbs = ({
   label,
   breadcrumbs,
+  classNames,
 }: {
   label: React.ReactNode
   breadcrumbs?: string[]
+  classNames?: {
+    label?: string
+    breadcrumb?: string
+    separator?: string
+  }
 }) => (
   <div className="flex items-center gap-1 truncate">
     {breadcrumbs?.map((crumb, idx) => (
       <Fragment key={`${idx}-${crumb}`}>
-        <span className="text-muted-foreground truncate">{crumb}</span>
-        <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0" />
+        <span
+          className={cn(
+            'text-muted-foreground truncate',
+            classNames?.breadcrumb,
+          )}
+        >
+          {crumb}
+        </span>
+        <ChevronRightIcon
+          className={cn(
+            'size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0',
+            classNames?.separator,
+          )}
+        />
       </Fragment>
     ))}
-    <span className="truncate">{label}</span>
+    <span
+      className={cn(
+        'truncate',
+        'text-primary/90 group-data-[focused=true]/row:text-primary',
+        classNames?.label,
+      )}
+    >
+      {label}
+    </span>
   </div>
 )

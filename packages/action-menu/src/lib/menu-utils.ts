@@ -82,6 +82,19 @@ export function instantiateSingleNode<T>(
     return node
   }
 
+  if (def.kind === 'separator') {
+    const separatorDef = def as import('../types.js').SeparatorDef
+    const node: import('../types.js').SeparatorNode = {
+      kind: 'separator',
+      id: def.id,
+      hidden: def.hidden,
+      parent,
+      def: separatorDef,
+      label: separatorDef.label,
+    }
+    return node as Node<T>
+  }
+
   // submenu
   const subDef = {
     ...def,

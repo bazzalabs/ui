@@ -10,7 +10,7 @@ import type {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ActiveFilters, ActiveFiltersMobileContainer } from './active-filters'
 import { FilterActions } from './filter-actions'
-import { FilterSelector, FilterSelector_v2 } from './filter-selector'
+import { FilterSelector_v2 } from './filter-selector'
 
 interface DataTableFilterProps<TData> {
   columns: Column<TData>[]

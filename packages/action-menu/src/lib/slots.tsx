@@ -74,6 +74,12 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
     GroupHeading: ({ node, bind }) => (
       <span {...bind.getGroupHeadingProps()}>{node.heading}</span>
     ),
+    Separator: () => (
+      // biome-ignore lint/a11y/useFocusableInteractive: not needed
+      // biome-ignore lint/a11y/useAriaPropsForRole: not needed
+      // biome-ignore lint/a11y/useSemanticElements: not needed
+      <div role="separator" data-slot="action-menu-separator" />
+    ),
     Footer: () => null,
   }
 }

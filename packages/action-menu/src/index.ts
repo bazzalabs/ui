@@ -30,6 +30,8 @@ export type {
   ExtendedItemVariant,
   ItemExtendedProperties,
   SubmenuDef,
+  SeparatorDef,
+  SeparatorNode,
   Menu,
   Node,
   GroupNode,

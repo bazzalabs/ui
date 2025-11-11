@@ -127,7 +127,10 @@ export function Root<T>({
     setOpen(false)
   }, [setOpen])
 
-  const onOpenToggle = React.useCallback(() => setOpen((v) => !v), [setOpen])
+  const onOpenToggle = React.useCallback(
+    () => (open ? closeAllSurfaces() : setOpen(true)),
+    [open, closeAllSurfaces, setOpen],
+  )
 
   // Handle focus return to trigger on close (dropdown mode only)
   const prevOpenRef = React.useRef(open)

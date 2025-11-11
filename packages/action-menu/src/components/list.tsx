@@ -318,6 +318,9 @@ function ListContent<T = unknown>({
       for (const node of processedNodes) {
         if (node.kind === 'item' || node.kind === 'submenu') {
           acc.push(node)
+        } else if (node.kind === 'separator') {
+          // Separators are always included in the flattened list
+          acc.push(node)
         } else if (node.kind === 'group') {
           // Only push group node if it has a heading to render
           if (node.heading) acc.push(node)
@@ -469,6 +472,7 @@ function ListContent<T = unknown>({
   const ItemSlot = slots.Item
   const SubmenuTriggerSlot = slots.SubmenuTrigger
   const GroupHeadingSlot = slots.GroupHeading
+  const SeparatorSlot = slots.Separator
 
   const listRows = React.useMemo(
     () => (
@@ -515,6 +519,26 @@ function ListContent<T = unknown>({
                 }}
               >
                 {GroupHeadingSlot({ node, bind: headingBind })}
+              </div>
+            )
+          }
+
+          if (node.kind === 'separator') {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className={classNames?.separator}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                {SeparatorSlot?.({ node })}
               </div>
             )
           }
@@ -589,6 +613,7 @@ function ListContent<T = unknown>({
       ItemSlot,
       SubmenuTriggerSlot,
       GroupHeadingSlot,
+      SeparatorSlot,
       store,
       transformedNodes,
       virtualizer.measureElement,

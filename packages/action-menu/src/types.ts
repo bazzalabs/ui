@@ -7,7 +7,7 @@ import type { Drawer } from 'vaul'
  * Menu Model Types
  * ============================================================================================== */
 
-export type MenuNodeKind = 'item' | 'group' | 'submenu'
+export type MenuNodeKind = 'item' | 'group' | 'submenu' | 'separator'
 
 export type BaseDef<K extends MenuNodeKind> = {
   /** The kind of node. */
@@ -330,6 +330,11 @@ export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
 
 export type GroupDef<T = unknown> = DefaultGroupDef<T> | RadioGroupDef<T>
 
+export type SeparatorDef = BaseDef<'separator'> & {
+  /** Optional label for the separator (can be used for section headers). */
+  label?: string
+}
+
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
   Searchable &
   MenuState & {
@@ -468,6 +473,11 @@ export type RadioGroupNode<T = unknown> = BaseGroupNode<T> & {
 
 export type GroupNode<T = unknown> = DefaultGroupNode<T> | RadioGroupNode<T>
 
+export type SeparatorNode = BaseNode<'separator', SeparatorDef> & {
+  /** Optional label for the separator (can be used for section headers). */
+  label?: string
+}
+
 /** NOTE: Submenu node exposes its runtime child menu as `child` */
 export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
   'submenu',
@@ -480,9 +490,17 @@ export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
     search?: SearchContext
   }
 
-export type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
+export type Node<T = unknown> =
+  | ItemNode<T>
+  | GroupNode<T>
+  | SubmenuNode<T, any>
+  | SeparatorNode
 
-export type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
+export type NodeDef<T = unknown> =
+  | ItemDef<T>
+  | GroupDef<T>
+  | SubmenuDef<T, any>
+  | SeparatorDef
 
 /* ================================================================================================
  * Bind API Types
@@ -599,6 +617,7 @@ export type SurfaceClassNames = {
   subtriggerWrapper?: string
   subtrigger?: string
   groupHeading?: string
+  separator?: string
 }
 
 export type ActionMenuClassNames = ShellClassNames & SurfaceClassNames
@@ -674,6 +693,7 @@ export type SurfaceSlots<T = unknown> = {
     node: GroupNode<T>
     bind: GroupHeadingBindAPI
   }) => React.ReactNode
+  Separator?: (args: { node: SeparatorNode }) => React.ReactNode
   Footer?: (args: { menu: Menu<T> }) => React.ReactNode
 }
 

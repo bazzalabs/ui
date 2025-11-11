@@ -1,11 +1,13 @@
-/** biome-ignore-all lint/correctness/useUniqueElementIds: <explanation> */
+/** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
 import {
   type ItemDef,
   type ItemNode,
   type ItemSlotProps,
+  type MenuDef,
+  type MenuMiddleware,
+  type NodeDef,
   renderIcon,
-  type SubmenuDef,
 } from '@bazza-ui/action-menu'
 import {
   type Column,
@@ -14,9 +16,7 @@ import {
   createNumberRange,
   type DataTableFilterActions,
   type FilterModel,
-  type FilterOperators,
   type FilterStrategy,
-  filterTypeOperatorDetails,
   type Locale,
   type MinMaxReturn,
   numberFilterOperators,
@@ -33,6 +33,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import type { DateRange } from 'react-day-picker'
@@ -58,7 +59,7 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { LabelWithBreadcrumbs } from '@/registry/action-menu'
+import { ActionMenu, LabelWithBreadcrumbs } from '@/registry/action-menu'
 import { useDebounceCallback } from '../hooks/use-debounce-callback'
 import { DebouncedInput } from '../ui/debounced-input'
 
@@ -81,12 +82,94 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   locale,
   entityName,
 }: FilterValueProps<TData, TType>) {
+  // Use ref to capture current filter value for loaders
+  const filterRef = useRef(filter)
+  useEffect(() => {
+    filterRef.current = filter
+  }, [filter])
+
+  // Use ref to persist initial selected values across re-renders for sticky grouping
+  const initialSelectedValuesRef = useRef<Set<string> | null>(null)
+
   // Don't open the value controller for boolean columns
   // We can toggle the filter operator instead
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     if (column.type === 'boolean') e.preventDefault()
   }
 
+  // Use ActionMenu for text, option, and multiOption types
+  if (
+    column.type === 'text' ||
+    column.type === 'option' ||
+    column.type === 'multiOption'
+  ) {
+    const menu: MenuDef = useMemo(
+      () => ({
+        id: `filter-value-${column.id}`,
+        ...(column.type === 'text'
+          ? (createTextMenu({
+              filter: filter as FilterModel<'text'>,
+              column: column as Column<TData, 'text'>,
+              actions,
+              locale,
+              strategy,
+            }) as any)
+          : column.type === 'option'
+            ? createOptionMenu({
+                filter: undefined as any,
+                column: column as Column<TData, 'option'>,
+                actions,
+                locale,
+                strategy,
+                getFilter: () =>
+                  filterRef.current as FilterModel<'option'> | undefined,
+                initialSelectedValuesRef,
+              })
+            : createMultiOptionMenu({
+                filter: undefined as any,
+                column: column as Column<TData, 'multiOption'>,
+                actions,
+                locale,
+                strategy,
+                getFilter: () =>
+                  filterRef.current as FilterModel<'multiOption'> | undefined,
+                initialSelectedValuesRef,
+              })),
+      }),
+      [column, locale, strategy],
+    )
+
+    return (
+      <ActionMenu
+        trigger={
+          <Button
+            variant="ghost"
+            className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
+          >
+            <FilterValueDisplay
+              filter={filter}
+              column={column}
+              actions={actions}
+              locale={locale}
+              entityName={entityName}
+            />
+          </Button>
+        }
+        slots={{
+          Item: (column.type === 'text' ? TextItem_v2 : OptionItem_v2) as any,
+        }}
+        menu={menu}
+        onOpenChange={(open) => {
+          // Reset initial selected values when menu closes to capture fresh state on next open
+          if (!open) {
+            initialSelectedValuesRef.current = null
+          }
+        }}
+      />
+    )
+  }
+
+  // Use Popover for other types with custom UI (date, number, boolean)
   return (
     <Popover>
       <PopoverAnchor className="h-full" />
@@ -580,74 +663,114 @@ const OptionItem = memo(function OptionItem({
   )
 })
 
+/**
+ * Creates option menu with sticky grouping
+ * Uses loader to capture initial state and generate items
+ * Uses middleware to group filtered items with separators
+ */
 export function createOptionMenu<TData>({
   filter,
   column,
   actions,
   locale = 'en',
-}: FilterValueControllerProps<TData, 'option'>) {
-  // Derive the initial selected values on mount
-  const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
+  getFilter,
+  initialSelectedValuesRef,
+}: FilterValueControllerProps<TData, 'option'> & {
+  getFilter?: () => FilterModel<'option'> | undefined
+  initialSelectedValuesRef: React.MutableRefObject<Set<string> | null>
+}) {
+  const loader = async () => {
+    // Capture initial state when menu opens (only if not already set)
+    const currentFilter = (getFilter ? getFilter() : filter) || filter
+    if (!initialSelectedValuesRef.current) {
+      initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
+    }
 
-  // Separate the selected and unselected options
-  const { selectedOptions, unselectedOptions } = useMemo(() => {
     const counts = column.getFacetedUniqueValues()
-    const allOptions = column.getOptions().map((o) => {
-      const currentlySelected = filter?.values.includes(o.value) ?? false
+    return column.getOptions().map((option) => {
+      const wasInitiallySelected = initialSelectedValuesRef.current!.has(
+        option.value,
+      )
+
       return {
-        ...o,
-        selected: currentlySelected,
-        count: counts?.get(o.value) ?? 0,
-      }
+        kind: 'item' as const,
+        id: option.value,
+        label: option.label,
+        keywords: [option.value, option.label],
+        icon: option.icon,
+        data: {
+          value: option.value,
+          label: option.label,
+          icon: option.icon,
+          count: counts?.get(option.value) ?? 0,
+          initialGroup: wasInitiallySelected ? 'selected' : 'unselected',
+          selected: wasInitiallySelected,
+        } as ColumnOptionExtended,
+        closeOnSelect: false,
+        onSelect: () => {
+          const currentFilter = getFilter ? getFilter() : filter
+          const currentlySelected =
+            currentFilter?.values.includes(option.value) ?? false
+          if (currentlySelected) {
+            actions.removeFilterValue(column, [option.value])
+          } else {
+            actions.addFilterValue(column, [option.value])
+          }
+        },
+      } as ItemDef<ColumnOptionExtended>
     })
+  }
 
-    const selected = allOptions.filter((o) =>
-      initialSelectedValues.has(o.value),
-    )
-    const unselected = allOptions.filter(
-      (o) => !initialSelectedValues.has(o.value),
-    )
-    return { selectedOptions: selected, unselectedOptions: unselected }
-  }, [column, filter?.values, initialSelectedValues])
+  const middleware: MenuMiddleware = {
+    transformNodes: (context) => {
+      const { nodes: filteredNodes } = context
 
-  const handleToggle = useCallback(
-    (value: string, checked: boolean) => {
-      if (checked) actions.addFilterValue(column, [value])
-      else actions.removeFilterValue(column, [value])
+      // Group the filtered items by their initialGroup metadata
+      const selectedItems = filteredNodes.filter(
+        (node: any) => node.data?.initialGroup === 'selected',
+      )
+      const unselectedItems = filteredNodes.filter(
+        (node: any) => node.data?.initialGroup === 'unselected',
+      )
+
+      // Update selected state for all items based on current filter
+      const currentFilter = getFilter ? getFilter() : filter
+      for (const node of filteredNodes as any[]) {
+        if (node.data) {
+          node.data.selected =
+            currentFilter?.values.includes(node.data.value) ?? false
+        }
+      }
+
+      const result: any[] = []
+
+      // Add selected items
+      if (selectedItems.length > 0) {
+        result.push(...selectedItems)
+      }
+
+      // Add separator between selected and unselected if both exist
+      if (selectedItems.length > 0 && unselectedItems.length > 0) {
+        result.push({
+          kind: 'separator' as const,
+          id: `${column.id}-separator`,
+        })
+      }
+
+      // Add unselected items
+      if (unselectedItems.length > 0) {
+        result.push(...unselectedItems)
+      }
+
+      return result
     },
-    [actions, column],
-  )
+  }
 
-  return [
-    ...selectedOptions.map((option) => {
-      return {
-        kind: 'item' as const,
-        id: option.value,
-        label: option.label,
-        keywords: [option.value, option.label],
-        icon: option.icon,
-        data: option,
-        closeOnSelect: false,
-        onSelect: ({ node }) => {
-          return handleToggle(node.data!.value, !option.selected)
-        },
-      } satisfies ItemDef<ColumnOptionExtended>
-    }),
-    ...unselectedOptions.map((option) => {
-      return {
-        kind: 'item' as const,
-        id: option.value,
-        label: option.label,
-        keywords: [option.value, option.label],
-        icon: option.icon,
-        data: option,
-        closeOnSelect: false,
-        onSelect: ({ node }) => {
-          return handleToggle(node.data!.value, !option.selected)
-        },
-      } satisfies ItemDef<ColumnOptionExtended>
-    }),
-  ]
+  return {
+    nodes: [],
+    loader,
+    middleware,
+  }
 }
 
 export function FilterValueOptionController<TData>({
@@ -725,74 +848,114 @@ export function FilterValueOptionController<TData>({
   )
 }
 
+/**
+ * Creates multiOption menu with sticky grouping
+ * Uses loader to capture initial state and generate items
+ * Uses middleware to group filtered items with separators
+ */
 export function createMultiOptionMenu<TData>({
   filter,
   column,
   actions,
   locale = 'en',
-}: FilterValueControllerProps<TData, 'multiOption'>) {
-  // Derive the initial selected values on mount
-  const initialSelectedValues = useMemo(() => new Set(filter?.values || []), [])
+  getFilter,
+  initialSelectedValuesRef,
+}: FilterValueControllerProps<TData, 'multiOption'> & {
+  getFilter?: () => FilterModel<'multiOption'> | undefined
+  initialSelectedValuesRef: React.RefObject<Set<string> | null>
+}) {
+  const loader = async (): Promise<NodeDef<ColumnOptionExtended>[]> => {
+    // Capture initial state when menu opens (only if not already set)
+    const currentFilter = (getFilter ? getFilter() : filter) || filter
+    if (!initialSelectedValuesRef.current) {
+      initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
+    }
 
-  // Separate the selected and unselected options
-  const { selectedOptions, unselectedOptions } = useMemo(() => {
     const counts = column.getFacetedUniqueValues()
-    const allOptions = column.getOptions().map((o) => {
-      const currentlySelected = filter?.values.includes(o.value) ?? false
+    return column.getOptions().map((option) => {
+      const wasInitiallySelected = initialSelectedValuesRef.current!.has(
+        option.value,
+      )
+
       return {
-        ...o,
-        selected: currentlySelected,
-        count: counts?.get(o.value) ?? 0,
-      }
+        kind: 'item' as const,
+        id: option.value,
+        label: option.label,
+        keywords: [option.value, option.label],
+        icon: option.icon,
+        data: {
+          value: option.value,
+          label: option.label,
+          icon: option.icon,
+          count: counts?.get(option.value) ?? 0,
+          initialGroup: wasInitiallySelected ? 'selected' : 'unselected',
+          selected: wasInitiallySelected,
+        } as ColumnOptionExtended,
+        closeOnSelect: false,
+        onSelect: () => {
+          const currentFilter = getFilter ? getFilter() : filter
+          const currentlySelected =
+            currentFilter?.values.includes(option.value) ?? false
+          if (currentlySelected) {
+            actions.removeFilterValue(column, [option.value])
+          } else {
+            actions.addFilterValue(column, [option.value])
+          }
+        },
+      } as ItemDef<ColumnOptionExtended>
     })
+  }
 
-    const selected = allOptions.filter((o) =>
-      initialSelectedValues.has(o.value),
-    )
-    const unselected = allOptions.filter(
-      (o) => !initialSelectedValues.has(o.value),
-    )
-    return { selectedOptions: selected, unselectedOptions: unselected }
-  }, [column, filter?.values, initialSelectedValues])
+  const middleware: MenuMiddleware = {
+    transformNodes: (context) => {
+      const { nodes: filteredNodes } = context
 
-  const handleToggle = useCallback(
-    (value: string, checked: boolean) => {
-      if (checked) actions.addFilterValue(column, [value])
-      else actions.removeFilterValue(column, [value])
+      // Group the filtered items by their initialGroup metadata
+      const selectedItems = filteredNodes.filter(
+        (node: any) => node.data?.initialGroup === 'selected',
+      )
+      const unselectedItems = filteredNodes.filter(
+        (node: any) => node.data?.initialGroup === 'unselected',
+      )
+
+      // Update selected state for all items based on current filter
+      const currentFilter = getFilter ? getFilter() : filter
+      for (const node of filteredNodes as any[]) {
+        if (node.data) {
+          node.data.selected =
+            currentFilter?.values.includes(node.data.value) ?? false
+        }
+      }
+
+      const result: any[] = []
+
+      // Add selected items
+      if (selectedItems.length > 0) {
+        result.push(...selectedItems)
+      }
+
+      // Add separator between selected and unselected if both exist
+      if (selectedItems.length > 0 && unselectedItems.length > 0) {
+        result.push({
+          kind: 'separator' as const,
+          id: `${column.id}-separator`,
+        })
+      }
+
+      // Add unselected items
+      if (unselectedItems.length > 0) {
+        result.push(...unselectedItems)
+      }
+
+      return result
     },
-    [actions, column],
-  )
+  }
 
-  return [
-    ...selectedOptions.map((option) => {
-      return {
-        kind: 'item' as const,
-        id: option.value,
-        label: option.label,
-        keywords: [option.value, option.label],
-        icon: option.icon,
-        data: option,
-        closeOnSelect: false,
-        onSelect: ({ node }) => {
-          return handleToggle(node.data!.value, !option.selected)
-        },
-      } satisfies ItemDef<ColumnOptionExtended>
-    }),
-    ...unselectedOptions.map((option) => {
-      return {
-        kind: 'item' as const,
-        id: option.value,
-        label: option.label,
-        keywords: [option.value, option.label],
-        icon: option.icon,
-        data: option,
-        closeOnSelect: false,
-        onSelect: ({ node }) => {
-          return handleToggle(node.data!.value, !option.selected)
-        },
-      } satisfies ItemDef<ColumnOptionExtended>
-    }),
-  ]
+  return {
+    nodes: [],
+    loader,
+    middleware,
+  }
 }
 
 export function FilterValueMultiOptionController<TData>({
@@ -915,39 +1078,75 @@ export function FilterValueDateController<TData>({
   )
 }
 
+/**
+ * Middleware that generates filter operator options based on search query
+ */
+function createTextFilterMiddleware<TData>({
+  column,
+  actions,
+}: {
+  column: Column<TData, 'text'>
+  actions: DataTableFilterActions
+}): MenuMiddleware<FilterModel<'text'>> {
+  return {
+    transformNodes: (context) => {
+      const { query, mode, createNode } = context
+
+      // Only inject items in search mode when there's a query
+      if (mode !== 'search' || !query?.trim()) {
+        return []
+      }
+
+      const changeText = (value: string, operator: TextFilterOperator) => {
+        actions.batch((tx) => {
+          tx.setFilterValue(column, [String(value)])
+          tx.setFilterOperator(column.id, operator)
+        })
+      }
+
+      return [
+        createNode({
+          kind: 'item',
+          id: `${column.id}-text-contains`,
+          label: `contains ${query}`,
+          data: {
+            operator: 'contains',
+            values: [query],
+          } as FilterModel<'text'>,
+          keywords: [query],
+          onSelect: () => {
+            changeText(query, 'contains')
+          },
+        }),
+        createNode({
+          kind: 'item',
+          id: `${column.id}-text-does-not-contain`,
+          label: `does not contain ${query}`,
+          data: {
+            operator: 'does not contain',
+            values: [query],
+          } as FilterModel<'text'>,
+          keywords: [query],
+          onSelect: () => {
+            changeText(query, 'does not contain')
+          },
+        }),
+      ]
+    },
+  }
+}
+
 export function createTextMenu<TData>({
   filter,
   column,
   actions,
   locale = 'en',
 }: FilterValueControllerProps<TData, 'text'>) {
-  const [search, setSearch] = useState('')
-  const [open, setOpen] = useState(false)
-
-  const changeText = (value: string | number, operator: TextFilterOperator) => {
-    actions.batch((tx) => {
-      tx.setFilterValue(column, [String(value)])
-      tx.setFilterOperator(column.id, operator)
-    })
-    setSearch(String(value))
-  }
-
   return {
-    kind: 'submenu',
+    kind: 'submenu' as const,
     id: column.id,
     icon: column.icon,
     label: column.displayName,
-    input: {
-      value: search,
-      onValueChange: setSearch,
-    },
-    open: {
-      value: open,
-      onValueChange: (value) => {
-        if (!value) setSearch('')
-        setOpen(value)
-      },
-    },
     inputPlaceholder: `Enter ${column.displayName.toLowerCase()}...`,
     defaults: {
       item: {
@@ -960,42 +1159,12 @@ export function createTextMenu<TData>({
       },
       slotProps: {
         positioner: {
-          alignToFirstItem: false,
           alignOffset: -3,
         },
       },
     },
-    nodes: search
-      ? [
-          {
-            kind: 'item',
-            id: `${column.id}-text-contains`,
-            label: `contains ${search}`,
-            data: {
-              operator: 'contains',
-              values: [search],
-            },
-            keywords: [search],
-            onSelect: () => {
-              changeText(search, 'contains')
-            },
-          },
-          {
-            kind: 'item',
-            id: `${column.id}-text-does-not-contain`,
-            label: `does not contain ${search}`,
-            data: {
-              operator: 'does not contain',
-              values: [search],
-            },
-            keywords: [search],
-            onSelect: () => {
-              changeText(search, 'does not contain')
-            },
-          },
-        ]
-      : [],
-  } satisfies SubmenuDef
+    middleware: createTextFilterMiddleware({ column, actions }),
+  }
 }
 
 export function FilterValueTextController_v2<TData>({
