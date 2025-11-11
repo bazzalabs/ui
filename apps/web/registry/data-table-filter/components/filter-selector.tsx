@@ -1,8 +1,7 @@
-import { ItemNode, type MenuDef, renderIcon } from '@bazza-ui/action-menu'
+import type { MenuDef, SubmenuDef } from '@bazza-ui/action-menu'
 import {
   type Column,
   type ColumnDataType,
-  ColumnOptionExtended,
   type DataTableFilterActions,
   type FilterModel,
   type FilterStrategy,
@@ -43,7 +42,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { ActionMenu, LabelWithBreadcrumbs } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/action-menu'
 import {
   createMultiOptionMenu,
   createOptionMenu,
@@ -51,7 +50,6 @@ import {
   FilterValueController,
   FilterValueDateController,
   FilterValueNumberController,
-  FilterValueTextController_v2,
   OptionItem_v2,
 } from './filter-value'
 
@@ -75,9 +73,9 @@ function createDateMenu<TData>({
   actions: DataTableFilterActions
   locale?: Locale
   strategy: FilterStrategy
-}) {
+}): SubmenuDef {
   return {
-    kind: 'submenu' as const,
+    kind: 'submenu',
     id: column.id,
     icon: column.icon,
     label: column.displayName,
@@ -106,7 +104,7 @@ function createNumberMenu<TData>({
   actions: DataTableFilterActions
   locale?: Locale
   strategy: FilterStrategy
-}) {
+}): SubmenuDef {
   return {
     kind: 'submenu' as const,
     id: column.id,
@@ -209,17 +207,10 @@ function __FilterSelector_v2<TData>({
         })
 
         return {
-          kind: 'submenu' as const,
+          kind: 'submenu',
           id: column.id,
           icon: column.icon,
           label: column.displayName,
-          ui: {
-            slotProps: {
-              positioner: {
-                alignToFirstItem: 'on-open',
-              },
-            },
-          },
           ...(column.type === 'option'
             ? createOptionMenu({
                 filter: undefined as any, // Not used, middleware reads from ref
@@ -247,7 +238,7 @@ function __FilterSelector_v2<TData>({
                   initialSelectedValuesRef: getColumnRef(column.id) as any,
                 })
               : {}),
-        }
+        } as SubmenuDef
       }),
     }),
     [columns, actions, locale, strategy],

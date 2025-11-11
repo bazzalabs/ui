@@ -8,6 +8,7 @@ import {
   type MenuMiddleware,
   type NodeDef,
   renderIcon,
+  type SubmenuDef,
 } from '@bazza-ui/action-menu'
 import {
   type Column,
@@ -695,7 +696,7 @@ export function createOptionMenu<TData>({
 }: FilterValueControllerProps<TData, 'option'> & {
   getFilter?: () => FilterModel<'option'> | undefined
   initialSelectedValuesRef: React.MutableRefObject<Set<string> | null>
-}) {
+}): Pick<SubmenuDef, 'loader' | 'middleware'> {
   const loader = async () => {
     // Capture initial state when menu opens (only if not already set)
     const currentFilter = (getFilter ? getFilter() : filter) || filter
@@ -784,7 +785,6 @@ export function createOptionMenu<TData>({
   }
 
   return {
-    nodes: [],
     loader,
     middleware,
   }
@@ -880,7 +880,7 @@ export function createMultiOptionMenu<TData>({
 }: FilterValueControllerProps<TData, 'multiOption'> & {
   getFilter?: () => FilterModel<'multiOption'> | undefined
   initialSelectedValuesRef: React.RefObject<Set<string> | null>
-}) {
+}): Pick<SubmenuDef, 'loader' | 'middleware'> {
   const loader = async (): Promise<NodeDef<ColumnOptionExtended>[]> => {
     // Capture initial state when menu opens (only if not already set)
     const currentFilter = (getFilter ? getFilter() : filter) || filter
@@ -969,7 +969,6 @@ export function createMultiOptionMenu<TData>({
   }
 
   return {
-    nodes: [],
     loader,
     middleware,
   }
@@ -1158,9 +1157,9 @@ export function createTextMenu<TData>({
   column,
   actions,
   locale = 'en',
-}: FilterValueControllerProps<TData, 'text'>) {
+}: FilterValueControllerProps<TData, 'text'>): SubmenuDef {
   return {
-    kind: 'submenu' as const,
+    kind: 'submenu',
     id: column.id,
     icon: column.icon,
     label: column.displayName,
@@ -1176,7 +1175,7 @@ export function createTextMenu<TData>({
       },
       slotProps: {
         positioner: {
-          align: 'top',
+          align: 'start',
           alignOffset: 0,
         },
       },
