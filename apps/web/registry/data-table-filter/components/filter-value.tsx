@@ -1176,7 +1176,6 @@ export function createTextMenu<TData>({
       slotProps: {
         positioner: {
           align: 'start',
-          alignOffset: 0,
         },
       },
     },
