@@ -95,10 +95,10 @@ export const ReactQueryLoaderAdapter: LoaderAdapter = {
 
       // If the function returns React Query options, use them
       if (isReactQueryOptions(result)) {
-        const queryResult: UseQueryResult<NodeDef<T>[], Error> = useQuery({
+        const queryResult = useQuery({
           refetchOnMount: false,
           ...result,
-        } as any)
+        } as any) as UseQueryResult<NodeDef<T>[], Error>
 
         return {
           data: queryResult.data,
@@ -120,10 +120,10 @@ export const ReactQueryLoaderAdapter: LoaderAdapter = {
 
     // React Query options object
     if (isReactQueryOptions(loader)) {
-      const queryResult: UseQueryResult<NodeDef<T>[], Error> = useQuery({
+      const queryResult = useQuery({
         refetchOnMount: false,
         ...loader,
-      } as any)
+      } as any) as UseQueryResult<NodeDef<T>[], Error>
 
       return {
         data: queryResult.data,

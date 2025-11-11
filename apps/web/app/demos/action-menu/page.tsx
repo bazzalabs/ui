@@ -31,12 +31,12 @@ export default function Page() {
             {/* Content here! */}
             {/*<Examples.ActionMenu.AsyncBasic />*/}
             {/*<Examples.ActionMenu.AsyncSubmenus />*/}
-            <Examples.ActionMenu.AsyncDeepSearch />
+            {/*<Examples.ActionMenu.AsyncDeepSearch />*/}
             {/* <Examples.ActionMenu.ItemDescriptions /> */}
-            <Examples.ActionMenu.AIModelSwitcher />
+            {/*<Examples.ActionMenu.AIModelSwitcher />*/}
             {/*<Examples.ActionMenu.Basic /> */}
             {/*<Examples.ActionMenu.Submenus />*/}
-            <Examples.ActionMenu.Linear />
+            {/*<Examples.ActionMenu.Linear />*/}
             <Examples.ActionMenu.LinearAsync />
             {/* <Examples.ActionMenu.Notion /> */}
             {/* <Examples.ActionMenu.HeaderFooter /> */}

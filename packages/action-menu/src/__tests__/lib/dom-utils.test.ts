@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isInBounds } from '../../lib/dom-utils'
+import { isInBounds } from '../../lib/dom-utils.js'
 
 describe('isInBounds', () => {
   // Helper to create a DOMRect-like object
