@@ -161,6 +161,11 @@ function __FilterSelector_v2<TData>({
   const menu: MenuDef = useMemo(
     () => ({
       id: 'filter-selector',
+      search: {
+        minLength: {
+          deep: 3,
+        },
+      },
       nodes: columns.map((column) => {
         if (column.type === 'text') {
           const textFilter = filters.find((f) => f.columnId === column.id)

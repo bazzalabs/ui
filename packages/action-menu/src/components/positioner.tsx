@@ -254,46 +254,50 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
 
   const content = isSub ? (
     <Popover.Portal>
-      <InteractionGuard.Branch asChild scopeId={root.scopeId}>
-        <Popover.Positioner
-          {...positionerProps}
-          data-slot="action-menu-positioner"
-        >
-          <Popover.Popup
-            initialFocus={false}
-            style={popupStyle}
-            render={children as any}
-          />
-        </Popover.Positioner>
-      </InteractionGuard.Branch>
+      <Presence present={present}>
+        <InteractionGuard.Branch asChild scopeId={root.scopeId}>
+          <Popover.Positioner
+            {...positionerProps}
+            data-slot="action-menu-positioner"
+          >
+            <Popover.Popup
+              initialFocus={false}
+              style={popupStyle}
+              render={children as any}
+            />
+          </Popover.Positioner>
+        </InteractionGuard.Branch>
+      </Presence>
     </Popover.Portal>
   ) : (
     <Popover.Portal>
-      <InteractionGuard.Root
-        asChild
-        scopeId={root.scopeId}
-        disableOutsidePointerEvents={root.modal}
-        onEscapeKeyDown={() => {
-          root.closeAllSurfaces()
-        }}
-        onInteractOutside={(event) => {
-          const target = event.target as HTMLElement | null
-          if (target?.closest?.('[data-action-menu-surface]')) return
-          event.preventDefault()
-          root.closeAllSurfaces()
-        }}
-      >
-        <Popover.Positioner
-          {...positionerProps}
-          data-slot="action-menu-positioner"
+      <Presence present={present}>
+        <InteractionGuard.Root
+          asChild
+          scopeId={root.scopeId}
+          disableOutsidePointerEvents={root.modal}
+          onEscapeKeyDown={() => {
+            root.closeAllSurfaces()
+          }}
+          onInteractOutside={(event) => {
+            const target = event.target as HTMLElement | null
+            if (target?.closest?.('[data-action-menu-surface]')) return
+            event.preventDefault()
+            root.closeAllSurfaces()
+          }}
         >
-          <Popover.Popup
-            initialFocus={false}
-            style={popupStyle}
-            render={children as any}
-          />
-        </Popover.Positioner>
-      </InteractionGuard.Root>
+          <Popover.Positioner
+            {...positionerProps}
+            data-slot="action-menu-positioner"
+          >
+            <Popover.Popup
+              initialFocus={false}
+              style={popupStyle}
+              render={children as any}
+            />
+          </Popover.Positioner>
+        </InteractionGuard.Root>
+      </Presence>
     </Popover.Portal>
   )
 

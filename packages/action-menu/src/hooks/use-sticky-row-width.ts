@@ -12,8 +12,8 @@ export function useStickyRowWidth(opts: {
   const maxSeenRef = React.useRef(0)
   const frame = React.useRef<number | null>(null)
 
-  // Read Base UI available width (Base UI sets --available-width CSS variable)
-  const readBaseUIMax = React.useCallback(() => {
+  // Read Radix available width (optional—works because Radix sets a real value)
+  const readRadixMax = React.useCallback(() => {
     const el = containerRef.current
     if (!el) return Number.POSITIVE_INFINITY
     const cs = getComputedStyle(
@@ -28,21 +28,20 @@ export function useStickyRowWidth(opts: {
     (n: number) => {
       const el = containerRef.current
       if (!el) return
-      const baseUICap = readBaseUIMax()
+      const radixCap = readRadixMax()
       const hardCap = Number.isFinite(designMaxPx ?? Number.NaN)
         ? designMaxPx!
         : Number.POSITIVE_INFINITY
-      const capped = Math.min(n, baseUICap, hardCap)
+      const capped = Math.min(n, radixCap, hardCap)
       el.style.setProperty('--row-width', px(capped))
 
       const surface = el.closest<HTMLElement>(
         '[data-slot="action-menu-content"]',
       )
       if (!surface) return
-      console.log('--row-width:', px(capped))
       surface.style.setProperty('--row-width', px(capped))
     },
-    [containerRef, designMaxPx, readBaseUIMax],
+    [containerRef, designMaxPx, readRadixMax],
   )
 
   const updateIfLarger = React.useCallback(
@@ -72,39 +71,14 @@ export function useStickyRowWidth(opts: {
   const measureRow = React.useCallback(
     (rowEl: HTMLElement | null) => {
       if (!rowEl) return
-
-      // Find the content element - it constrains the row width via --row-width
-      const content = rowEl.closest<HTMLElement>(
-        '[data-slot="action-menu-content"]',
-      )
-
-      // Temporarily remove --row-width constraint to allow true max-content measurement
-      const prevRowWidth = content?.style.getPropertyValue('--row-width')
-      const prevContentWidth = content?.style.width
-      // if (content) {
-      //   content.style.removeProperty('--row-width')
-      //   content.style.width = '100%'
-      // }
-
-      // Set row to max-content
+      // Prefer a dedicated child with width:max-content to reflect natural width.
       const probe = rowEl
       const prevWidth = probe.style.width
       probe.style.width = 'max-content'
 
-      // Force layout recalculation
-      void probe.offsetHeight
-
-      // Use offsetWidth and scrollWidth - both return pre-transform dimensions
-      // Do NOT use getBoundingClientRect() as it returns post-transform (scaled) dimensions
-      const w = Math.max(probe.scrollWidth, probe.offsetWidth)
-
-      // Restore original styles
+      // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
+      const w = Math.max(probe.scrollWidth, probe.offsetWidth) + 1
       probe.style.width = prevWidth
-      // if (content && prevRowWidth && prevContentWidth) {
-      //   content.style.setProperty('--row-width', prevRowWidth)
-      //   content.style.width = prevContentWidth
-      // }
-
       updateIfLarger(w)
     },
     [updateIfLarger],

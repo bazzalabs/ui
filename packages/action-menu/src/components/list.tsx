@@ -408,11 +408,20 @@ function ListContent<T = unknown>({
     }
   }, [transformedNodes, store])
 
+  const count = React.useMemo(() => transformedNodes.length, [transformedNodes])
+
+  const getItemKey = React.useCallback(
+    (index: number) => transformedNodes[index]?.id ?? index,
+    [transformedNodes],
+  )
+
   const virtualizer = useVirtualizer({
-    count: transformedNodes.length,
+    count,
     estimateSize: () => menu.virtualization?.estimateSize ?? 32,
     getScrollElement: () => store.listRef.current,
+    getItemKey,
     overscan: menu.virtualization?.overscan ?? 12,
+    initialRect: { width: 0, height: 500 },
   })
 
   // Store the virtualizer reference in the store
@@ -474,7 +483,7 @@ function ListContent<T = unknown>({
   const GroupHeadingSlot = slots.GroupHeading
   const SeparatorSlot = slots.Separator
 
-  const listRows = React.useMemo(
+  const listRows = useDebugMemo(
     () => (
       <ul
         style={
@@ -623,6 +632,7 @@ function ListContent<T = unknown>({
       defaults,
       classNames,
     ],
+    'listRows',
   )
 
   const EmptySlot = slots.Empty
@@ -659,4 +669,25 @@ function ListContent<T = unknown>({
     )
   }
   return el as React.ReactElement
+}
+
+function useDebugMemo<T>(factory: () => T, deps: any[], label: string): T {
+  const prevDeps = React.useRef<any[]>(deps)
+
+  React.useEffect(() => {
+    deps.forEach((dep, i) => {
+      if (dep !== prevDeps.current[i]) {
+        console.log(`[${label}] Dependency ${i} changed:`, {
+          old: prevDeps.current[i],
+          new: dep,
+        })
+      }
+    })
+    prevDeps.current = deps
+  }, deps)
+
+  return React.useMemo(() => {
+    console.log(`[${label}] recomputing`)
+    return factory()
+  }, deps)
 }
