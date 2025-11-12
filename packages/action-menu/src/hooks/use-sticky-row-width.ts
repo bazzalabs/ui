@@ -39,6 +39,7 @@ export function useStickyRowWidth(opts: {
         '[data-slot="action-menu-content"]',
       )
       if (!surface) return
+      console.log('--row-width:', px(capped))
       surface.style.setProperty('--row-width', px(capped))
     },
     [containerRef, designMaxPx, readBaseUIMax],
@@ -72,31 +73,38 @@ export function useStickyRowWidth(opts: {
     (rowEl: HTMLElement | null) => {
       if (!rowEl) return
 
-      // Find the content element that might have entrance animations
+      // Find the content element - it constrains the row width via --row-width
       const content = rowEl.closest<HTMLElement>(
         '[data-slot="action-menu-content"]',
       )
 
-      // Prefer a dedicated child with width:max-content to reflect natural width.
+      // Temporarily remove --row-width constraint to allow true max-content measurement
+      const prevRowWidth = content?.style.getPropertyValue('--row-width')
+      const prevContentWidth = content?.style.width
+      // if (content) {
+      //   content.style.removeProperty('--row-width')
+      //   content.style.width = '100%'
+      // }
+
+      // Set row to max-content
       const probe = rowEl
       const prevWidth = probe.style.width
-      const prevW = Math.max(
-        probe.offsetWidth,
-        probe.scrollWidth,
-        probe.getBoundingClientRect().width,
-      )
       probe.style.width = 'max-content'
+
+      // Force layout recalculation
+      void probe.offsetHeight
 
       // Use offsetWidth and scrollWidth - both return pre-transform dimensions
       // Do NOT use getBoundingClientRect() as it returns post-transform (scaled) dimensions
-      const w = Math.max(probe.scrollWidth, probe.offsetWidth) + 1
+      const w = Math.max(probe.scrollWidth, probe.offsetWidth)
 
-      console.log({
-        before: prevW,
-        after: w,
-      })
-
+      // Restore original styles
       probe.style.width = prevWidth
+      // if (content && prevRowWidth && prevContentWidth) {
+      //   content.style.setProperty('--row-width', prevRowWidth)
+      //   content.style.width = prevContentWidth
+      // }
+
       updateIfLarger(w)
     },
     [updateIfLarger],
