@@ -77,36 +77,27 @@ export function useStickyRowWidth(opts: {
         '[data-slot="action-menu-content"]',
       )
 
-      // Helper to perform the actual measurement
-      const performMeasurement = () => {
-        const probe = rowEl
-        const prevWidth = probe.style.width
-        probe.style.width = 'max-content'
+      // Prefer a dedicated child with width:max-content to reflect natural width.
+      const probe = rowEl
+      const prevWidth = probe.style.width
+      const prevW = Math.max(
+        probe.offsetWidth,
+        probe.scrollWidth,
+        probe.getBoundingClientRect().width,
+      )
+      probe.style.width = 'max-content'
 
-        // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
-        const w = Math.max(
-          probe.scrollWidth,
-          probe.getBoundingClientRect().width,
-          probe.offsetWidth,
-        )
+      // Use offsetWidth and scrollWidth - both return pre-transform dimensions
+      // Do NOT use getBoundingClientRect() as it returns post-transform (scaled) dimensions
+      const w = Math.max(probe.scrollWidth, probe.offsetWidth) + 1
 
-        probe.style.width = prevWidth
-        updateIfLarger(w)
-      }
+      console.log({
+        before: prevW,
+        after: w,
+      })
 
-      // Measure immediately first (even if scaled during animation)
-      performMeasurement()
-
-      // If animations are running, schedule a second measurement after completion
-      // This ensures we get the accurate width at final scale (1.0)
-      if (content) {
-        const animations = content.getAnimations()
-        if (animations.length > 0) {
-          Promise.all(animations.map((a) => a.finished)).then(() => {
-            performMeasurement()
-          })
-        }
-      }
+      probe.style.width = prevWidth
+      updateIfLarger(w)
     },
     [updateIfLarger],
   )
