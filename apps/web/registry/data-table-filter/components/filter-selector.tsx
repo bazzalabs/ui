@@ -241,7 +241,7 @@ function __FilterSelector_v2<TData>({
         } as SubmenuDef
       }),
     }),
-    [columns, actions, locale, strategy],
+    [columns, filters, actions, locale, strategy],
   )
 
   return (

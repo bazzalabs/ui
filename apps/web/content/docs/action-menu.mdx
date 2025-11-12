@@ -17787,5 +17787,28 @@ At its core, it combines the best features of the dropdown and command menus ava
 ## API reference
 
 ### MenuNodeKind
+```ts
+type MenuNodeKind = 'item' | 'group' | 'submenu'
+```
 
-<span>hello</span>
+### Iconish
+
+```ts
+type Iconish =
+  | React.ReactNode
+  | React.ReactElement
+  | React.ElementType
+  | React.ComponentType<{ className?: string }>
+```
+
+### Node
+
+```ts
+type Node<T = unknown> = ItemNode<T> | GroupNode<T> | SubmenuNode<T, any>
+```
+
+### NodeDef
+
+```ts
+type NodeDef<T = unknown> = ItemDef<T> | GroupDef<T> | SubmenuDef<T, any>
+```

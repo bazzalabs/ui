@@ -113,7 +113,7 @@ export const ISSUE_LABELS: IssueLabel[] = [
   },
   {
     id: '6ba7b81c-9dad-11d1-80b4-00c04fd430c8',
-    name: 'Ethics',
+    name: 'Ethics a super duper long name here to see what happens hello hi there hiiiiiiiiiii',
     color: 'fuchsia',
   },
   {

@@ -142,39 +142,54 @@ export function SubmenuTrigger<T>({
     [sub],
   )
 
-  const onPointerEnter = React.useCallback(() => {
-    if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
-      return
+  const onPointerEnter = React.useCallback(
+    (e: any) => {
+      // Prevent Base UI's handler to avoid focus interference
+      e.preventBaseUIHandler?.()
 
-    if (!focused) {
-      // setActiveId will close other submenus
-      store.setActiveId(rowId, 'pointer')
-    }
+      if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+        return
 
-    clearAimGuard()
-    if (!sub.open) sub.onOpenChange(true)
-  }, [
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
-    rowId,
-    focused,
-    store,
-    clearAimGuard,
-    sub,
-  ])
+      if (!focused) {
+        // setActiveId will close other submenus
+        store.setActiveId(rowId, 'pointer')
+      }
 
-  const onPointerMove = React.useCallback(() => {
-    if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
-      return
-    if (!focused) {
-      // setActiveId will close other submenus
-      store.setActiveId(rowId, 'pointer')
-    }
-    if (!sub.open) sub.onOpenChange(true)
-  }, [aimGuardActiveRef, guardedTriggerIdRef, rowId, focused, store, sub])
+      clearAimGuard()
+      if (!sub.open) sub.onOpenChange(true)
+    },
+    [
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      rowId,
+      focused,
+      store,
+      clearAimGuard,
+      sub,
+    ],
+  )
+
+  const onPointerMove = React.useCallback(
+    (e: any) => {
+      // Prevent Base UI's handler to avoid focus interference
+      e.preventBaseUIHandler?.()
+
+      if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
+        return
+      if (!focused) {
+        // setActiveId will close other submenus
+        store.setActiveId(rowId, 'pointer')
+      }
+      if (!sub.open) sub.onOpenChange(true)
+    },
+    [aimGuardActiveRef, guardedTriggerIdRef, rowId, focused, store, sub],
+  )
 
   const onPointerLeave = React.useCallback(
-    (e: React.PointerEvent) => {
+    (e: any) => {
+      // Prevent Base UI's handler to avoid focus interference
+      e.preventBaseUIHandler?.()
+
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
       const contentRect = sub.contentRef.current?.getBoundingClientRect()

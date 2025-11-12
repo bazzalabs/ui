@@ -129,11 +129,11 @@ export function Item<T>({
   const onClick = React.useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
+      e.stopPropagation() // Prevent event from bubbling to wrapper
       if (disabled) return
-      console.log('here!!!!')
       handleSelect()
     },
-    [disabled, handleSelect],
+    [disabled, handleSelect, rowId],
   )
 
   const baseRowProps = React.useMemo(() => {
@@ -221,11 +221,14 @@ export function Item<T>({
     return node.render({ node: enrichedNode, bind, search, mode })
   }
 
-  const visual = slot({ node: enrichedNode, bind, search, mode })
+  const slotArgs = { node: enrichedNode, bind, search, mode }
+  const visual = slot(slotArgs)
+
   // If the slot placed `getRowProps` on any nested node, just return it as-is.
   if (hasDescendantWithProp(visual, 'data-action-menu-item-id')) {
     return visual as React.ReactElement
   }
+
   const fallbackVisual = visual ?? <span>{node.label ?? String(node.id)}</span>
   return <div {...(baseRowProps as any)}>{fallbackVisual}</div>
 }

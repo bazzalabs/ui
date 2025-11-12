@@ -586,15 +586,19 @@ export function OptionItem_v2({ node: nodeProp, bind, search }: ItemSlotProps) {
 
   const node = nodeProp as ItemNode<ColumnOptionExtended>
 
+  // For checkbox items, the checked state comes from node.checked (if variant is checkbox)
+  const isChecked =
+    (node as any).variant === 'checkbox' ? (node as any).checked : false
+
   return (
     <li {...props}>
       <div className="flex items-center gap-2 truncate">
         <Checkbox
-          checked={Boolean(node.data?.selected)}
+          checked={isChecked}
           className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]/row:opacity-100 dark:border-ring shrink-0"
         />
         {node.icon && (
-          <div className="size-4 flex items-center justify-center">
+          <div className="size-4 min-h-4 min-w-4 flex items-center justify-center">
             {renderIcon(
               node.icon,
               'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
@@ -683,8 +687,8 @@ const OptionItem = memo(function OptionItem({
 
 /**
  * Creates option menu with sticky grouping
- * Uses loader to capture initial state and generate items
- * Uses middleware to group filtered items with separators
+ * Sticky grouping keeps items in their original groups (selected/unselected) based on initial state
+ * Uses nodes for reactive updates and middleware to maintain grouping during search
  */
 export function createOptionMenu<TData>({
   filter,
@@ -696,69 +700,59 @@ export function createOptionMenu<TData>({
 }: FilterValueControllerProps<TData, 'option'> & {
   getFilter?: () => FilterModel<'option'> | undefined
   initialSelectedValuesRef: React.MutableRefObject<Set<string> | null>
-}): Pick<SubmenuDef, 'loader' | 'middleware'> {
-  const loader = async () => {
-    // Capture initial state when menu opens (only if not already set)
-    const currentFilter = (getFilter ? getFilter() : filter) || filter
-    if (!initialSelectedValuesRef.current) {
-      initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
-    }
+}): Pick<SubmenuDef, 'nodes' | 'middleware'> {
+  const currentFilter = (getFilter ? getFilter() : filter) || filter
 
-    const counts = column.getFacetedUniqueValues()
-    return column.getOptions().map((option) => {
-      const wasInitiallySelected = initialSelectedValuesRef.current!.has(
-        option.value,
-      )
-
-      return {
-        kind: 'item' as const,
-        id: option.value,
-        label: option.label,
-        keywords: [option.value, option.label],
-        icon: option.icon,
-        data: {
-          value: option.value,
-          label: option.label,
-          icon: option.icon,
-          count: counts?.get(option.value) ?? 0,
-          initialGroup: wasInitiallySelected ? 'selected' : 'unselected',
-          selected: wasInitiallySelected,
-        } as ColumnOptionExtended,
-        closeOnSelect: false,
-        onSelect: () => {
-          const currentFilter = getFilter ? getFilter() : filter
-          const currentlySelected =
-            currentFilter?.values.includes(option.value) ?? false
-          if (currentlySelected) {
-            actions.removeFilterValue(column, [option.value])
-          } else {
-            actions.addFilterValue(column, [option.value])
-          }
-        },
-      } as ItemDef<ColumnOptionExtended>
-    })
+  // Capture initial state for sticky grouping (only once when menu first opens)
+  if (!initialSelectedValuesRef.current) {
+    initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
   }
+
+  const counts = column.getFacetedUniqueValues()
+  const nodes = column.getOptions().map((option) => {
+    const wasInitiallySelected = initialSelectedValuesRef.current!.has(
+      option.value,
+    )
+    const isCurrentlySelected =
+      currentFilter?.values.includes(option.value) ?? false
+
+    return {
+      kind: 'item' as const,
+      variant: 'checkbox' as const,
+      id: option.value,
+      label: option.label,
+      keywords: [option.value, option.label],
+      icon: option.icon,
+      checked: isCurrentlySelected,
+      onCheckedChange: (checked: boolean) => {
+        if (checked) {
+          actions.addFilterValue(column, [option.value])
+        } else {
+          actions.removeFilterValue(column, [option.value])
+        }
+      },
+      data: {
+        value: option.value,
+        label: option.label,
+        icon: option.icon,
+        count: counts?.get(option.value) ?? 0,
+        initialGroup: wasInitiallySelected ? 'selected' : 'unselected',
+      } as ColumnOptionExtended,
+      closeOnSelect: false,
+    } as any
+  })
 
   const middleware: MenuMiddleware = {
     transformNodes: (context) => {
       const { nodes: filteredNodes } = context
 
-      // Group the filtered items by their initialGroup metadata
+      // Group the filtered items by their initialGroup metadata (sticky grouping)
       const selectedItems = filteredNodes.filter(
         (node: any) => node.data?.initialGroup === 'selected',
       )
       const unselectedItems = filteredNodes.filter(
         (node: any) => node.data?.initialGroup === 'unselected',
       )
-
-      // Update selected state for all items based on current filter
-      const currentFilter = getFilter ? getFilter() : filter
-      for (const node of filteredNodes as any[]) {
-        if (node.data) {
-          node.data.selected =
-            currentFilter?.values.includes(node.data.value) ?? false
-        }
-      }
 
       const result: any[] = []
 
@@ -785,7 +779,7 @@ export function createOptionMenu<TData>({
   }
 
   return {
-    loader,
+    nodes,
     middleware,
   }
 }
@@ -867,8 +861,8 @@ export function FilterValueOptionController<TData>({
 
 /**
  * Creates multiOption menu with sticky grouping
- * Uses loader to capture initial state and generate items
- * Uses middleware to group filtered items with separators
+ * Sticky grouping keeps items in their original groups (selected/unselected) based on initial state
+ * Uses nodes for reactive updates and middleware to maintain grouping during search
  */
 export function createMultiOptionMenu<TData>({
   filter,
@@ -880,69 +874,61 @@ export function createMultiOptionMenu<TData>({
 }: FilterValueControllerProps<TData, 'multiOption'> & {
   getFilter?: () => FilterModel<'multiOption'> | undefined
   initialSelectedValuesRef: React.RefObject<Set<string> | null>
-}): Pick<SubmenuDef, 'loader' | 'middleware'> {
-  const loader = async (): Promise<NodeDef<ColumnOptionExtended>[]> => {
-    // Capture initial state when menu opens (only if not already set)
-    const currentFilter = (getFilter ? getFilter() : filter) || filter
-    if (!initialSelectedValuesRef.current) {
-      initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
-    }
+}): Pick<SubmenuDef, 'nodes' | 'middleware'> {
+  const currentFilter = (getFilter ? getFilter() : filter) || filter
 
-    const counts = column.getFacetedUniqueValues()
-    return column.getOptions().map((option) => {
+  // Capture initial state for sticky grouping (only once when menu first opens)
+  if (!initialSelectedValuesRef.current) {
+    initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
+  }
+
+  const counts = column.getFacetedUniqueValues()
+  const nodes: NodeDef<ColumnOptionExtended>[] = column
+    .getOptions()
+    .map((option) => {
       const wasInitiallySelected = initialSelectedValuesRef.current!.has(
         option.value,
       )
+      const isCurrentlySelected =
+        currentFilter?.values.includes(option.value) ?? false
 
       return {
         kind: 'item' as const,
+        variant: 'checkbox' as const,
         id: option.value,
         label: option.label,
         keywords: [option.value, option.label],
         icon: option.icon,
+        checked: isCurrentlySelected,
+        onCheckedChange: (checked: boolean) => {
+          if (checked) {
+            actions.addFilterValue(column, [option.value])
+          } else {
+            actions.removeFilterValue(column, [option.value])
+          }
+        },
         data: {
           value: option.value,
           label: option.label,
           icon: option.icon,
           count: counts?.get(option.value) ?? 0,
           initialGroup: wasInitiallySelected ? 'selected' : 'unselected',
-          selected: wasInitiallySelected,
         } as ColumnOptionExtended,
         closeOnSelect: false,
-        onSelect: () => {
-          const currentFilter = getFilter ? getFilter() : filter
-          const currentlySelected =
-            currentFilter?.values.includes(option.value) ?? false
-          if (currentlySelected) {
-            actions.removeFilterValue(column, [option.value])
-          } else {
-            actions.addFilterValue(column, [option.value])
-          }
-        },
-      } as ItemDef<ColumnOptionExtended>
+      } as any
     })
-  }
 
   const middleware: MenuMiddleware = {
     transformNodes: (context) => {
       const { nodes: filteredNodes } = context
 
-      // Group the filtered items by their initialGroup metadata
+      // Group the filtered items by their initialGroup metadata (sticky grouping)
       const selectedItems = filteredNodes.filter(
         (node: any) => node.data?.initialGroup === 'selected',
       )
       const unselectedItems = filteredNodes.filter(
         (node: any) => node.data?.initialGroup === 'unselected',
       )
-
-      // Update selected state for all items based on current filter
-      const currentFilter = getFilter ? getFilter() : filter
-      for (const node of filteredNodes as any[]) {
-        if (node.data) {
-          node.data.selected =
-            currentFilter?.values.includes(node.data.value) ?? false
-        }
-      }
 
       const result: any[] = []
 
@@ -969,7 +955,7 @@ export function createMultiOptionMenu<TData>({
   }
 
   return {
-    loader,
+    nodes,
     middleware,
   }
 }
@@ -1080,7 +1066,6 @@ export function FilterValueDateController<TData>({
         <CommandGroup>
           <div>
             <Calendar
-              initialFocus
               mode="range"
               defaultMonth={date?.from}
               selected={date}

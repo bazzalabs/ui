@@ -71,19 +71,42 @@ export function useStickyRowWidth(opts: {
   const measureRow = React.useCallback(
     (rowEl: HTMLElement | null) => {
       if (!rowEl) return
-      // Prefer a dedicated child with width:max-content to reflect natural width.
-      const probe = rowEl.querySelector<HTMLElement>('.rowContent') ?? rowEl
-      const prevWidth = probe.style.width
-      probe.style.width = 'max-content'
 
-      // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
-      const w = Math.max(
-        probe.scrollWidth,
-        probe.getBoundingClientRect().width,
-        probe.offsetWidth,
+      // Find the content element that might have entrance animations
+      const content = rowEl.closest<HTMLElement>(
+        '[data-slot="action-menu-content"]',
       )
-      probe.style.width = prevWidth
-      updateIfLarger(w)
+
+      // Helper to perform the actual measurement
+      const performMeasurement = () => {
+        const probe = rowEl
+        const prevWidth = probe.style.width
+        probe.style.width = 'max-content'
+
+        // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
+        const w = Math.max(
+          probe.scrollWidth,
+          probe.getBoundingClientRect().width,
+          probe.offsetWidth,
+        )
+
+        probe.style.width = prevWidth
+        updateIfLarger(w)
+      }
+
+      // Measure immediately first (even if scaled during animation)
+      performMeasurement()
+
+      // If animations are running, schedule a second measurement after completion
+      // This ensures we get the accurate width at final scale (1.0)
+      if (content) {
+        const animations = content.getAnimations()
+        if (animations.length > 0) {
+          Promise.all(animations.map((a) => a.finished)).then(() => {
+            performMeasurement()
+          })
+        }
+      }
     },
     [updateIfLarger],
   )
