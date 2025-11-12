@@ -51,6 +51,7 @@
       "persistent": true
     },
     "start": {
+      "dependsOn": ["build", "registry:build"],
       "cache": false,
       "persistent": true
     }
