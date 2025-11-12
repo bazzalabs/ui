@@ -66,15 +66,12 @@ export function Item<T>({
   const checked =
     node.variant === 'checkbox' ? (node as CheckboxItemNode).checked : false
 
-  // For checkbox/radio, default to NOT closing; for button, respect the prop or default to false
-  const defaultCloseOnSelect =
-    node.variant === 'button' || node.variant === 'radio'
+  // For checkbox/radio, default to NOT closing; for button, default to closing
+  const defaultCloseOnSelect = node.variant === 'button'
   const closeOnSelect =
     node.closeOnSelect ?? defaults?.closeOnSelect ?? defaultCloseOnSelect
 
   const handleSelect = React.useCallback(() => {
-    console.log('handleSelect called from:', new Error().stack)
-
     if (node.variant === 'checkbox') {
       // Toggle checkbox state
       ;(node as CheckboxItemNode).onCheckedChange(!checked)

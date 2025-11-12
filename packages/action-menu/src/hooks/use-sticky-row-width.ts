@@ -1,8 +1,12 @@
 import * as React from 'react'
-import { logPerformance } from '../lib/performance.js'
 
 function px(n: number) {
   return `${Math.ceil(n)}px`
+}
+
+type MeasurementEntry = {
+  element: HTMLElement
+  id: string
 }
 
 export function useStickyRowWidth(opts: {
@@ -11,16 +15,21 @@ export function useStickyRowWidth(opts: {
 }) {
   const { containerRef, designMaxPx } = opts
   const maxSeenRef = React.useRef(0)
-  const frame = React.useRef<number | null>(null)
 
-  // Read Radix available width (optional—works because Radix sets a real value)
+  // RAF scheduler state
+  const readQueue = React.useRef<MeasurementEntry[]>([])
+  const writeQueue = React.useRef<Array<() => void>>([])
+  const scheduled = React.useRef(false)
+  const measuredIds = React.useRef<Set<string>>(new Set())
+
+  // Read Radix available width (cached per schedule cycle)
+  const radixCapCache = React.useRef<number | null>(null)
+
   const readRadixMax = React.useCallback(() => {
     const el = containerRef.current
     if (!el) return Number.POSITIVE_INFINITY
-    const cs = logPerformance(
-      'getComputedStyle',
-      'useStickyRowWidth.readRadixMax',
-      () => getComputedStyle((el.closest('[role="dialog"]') as Element) ?? el),
+    const cs = getComputedStyle(
+      (el.closest('[role="dialog"]') as Element) ?? el,
     )
     const raw = cs.getPropertyValue('--available-width')?.trim()
     const v = raw?.endsWith('px') ? Number.parseFloat(raw) : Number.NaN
@@ -28,10 +37,9 @@ export function useStickyRowWidth(opts: {
   }, [containerRef])
 
   const applyVar = React.useCallback(
-    (n: number) => {
+    (n: number, radixCap: number) => {
       const el = containerRef.current
       if (!el) return
-      const radixCap = readRadixMax()
       const hardCap = Number.isFinite(designMaxPx ?? Number.NaN)
         ? designMaxPx!
         : Number.POSITIVE_INFINITY
@@ -44,52 +52,99 @@ export function useStickyRowWidth(opts: {
       if (!surface) return
       surface.style.setProperty('--row-width', px(capped))
     },
-    [containerRef, designMaxPx, readRadixMax],
+    [containerRef, designMaxPx],
   )
 
-  const updateIfLarger = React.useCallback(
-    (naturalWidth: number) => {
-      if (naturalWidth <= maxSeenRef.current) return
-      maxSeenRef.current = naturalWidth
-      // batch to next frame to avoid thrash while scrolling
-      if (frame.current != null) cancelAnimationFrame(frame.current)
-      frame.current = requestAnimationFrame(() => applyVar(maxSeenRef.current))
-    },
-    [applyVar],
-  )
+  // RAF scheduler: batch reads, then batch writes
+  const schedule = React.useCallback(() => {
+    if (scheduled.current) return
+    scheduled.current = true
+
+    requestAnimationFrame(() => {
+      // === READ PHASE: Measure all queued rows at once ===
+      const measurements = readQueue.current
+      let maxWidth = maxSeenRef.current
+      let foundNewMax = false
+
+      if (measurements.length > 0) {
+        // Read radix cap ONCE for this batch
+        radixCapCache.current = readRadixMax()
+
+        for (const { element, id } of measurements) {
+          // Skip if already measured
+          if (measuredIds.current.has(id)) continue
+
+          // Read natural width without interleaving writes
+          const prevWidth = element.style.width
+          element.style.width = 'max-content'
+
+          const w = Math.max(element.scrollWidth, element.offsetWidth) + 1
+
+          element.style.width = prevWidth
+
+          if (w > maxWidth) {
+            maxWidth = w
+            foundNewMax = true
+          }
+
+          measuredIds.current.add(id)
+        }
+
+        readQueue.current = []
+      }
+
+      // === WRITE PHASE: Apply styles after all reads complete ===
+      if (foundNewMax) {
+        maxSeenRef.current = maxWidth
+        writeQueue.current.push(() =>
+          applyVar(maxWidth, radixCapCache.current!),
+        )
+      }
+
+      for (const write of writeQueue.current) {
+        write()
+      }
+      writeQueue.current = []
+      radixCapCache.current = null
+      scheduled.current = false
+    })
+  }, [readRadixMax, applyVar])
 
   // Re-apply cap when the container/popover resizes (viewport changes)
   React.useLayoutEffect(() => {
-    const dialog =
-      containerRef.current?.closest('[role="dialog"]') ?? containerRef.current
+    const dialog = containerRef.current?.querySelector(
+      '[data-slot="action-menu-list"]',
+    )
     if (!dialog) return
     const ro = new ResizeObserver(() => {
-      if (maxSeenRef.current > 0) applyVar(maxSeenRef.current)
+      if (maxSeenRef.current > 0) {
+        // Read radix cap and apply immediately (not in batch, as this is a resize event)
+        const radixCap = readRadixMax()
+        applyVar(maxSeenRef.current, radixCap)
+      }
     })
     ro.observe(dialog)
     return () => ro.disconnect()
-  }, [containerRef, applyVar])
+  }, [containerRef, applyVar, readRadixMax])
 
-  // Public API: call this for each mounted row to measure its *natural* width.
-  const measureRow = React.useCallback(
-    (rowEl: HTMLElement | null) => {
-      if (!rowEl) return
-      // Prefer a dedicated child with width:max-content to reflect natural width.
-      const probe = rowEl
-      const prevWidth = probe.style.width
-      probe.style.width = 'max-content'
+  // Public API: queue a row for measurement
+  const queueMeasurement = React.useCallback(
+    (element: HTMLElement, id: string) => {
+      // Skip if already measured
+      if (measuredIds.current.has(id)) return
 
-      // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
-      const w = logPerformance(
-        'scrollWidth+offsetWidth',
-        'useStickyRowWidth.measureRow',
-        () => Math.max(probe.scrollWidth, probe.offsetWidth) + 1,
-      )
-      probe.style.width = prevWidth
-      updateIfLarger(w)
+      // Add to read queue
+      readQueue.current.push({ element, id })
+      schedule()
     },
-    [updateIfLarger],
+    [schedule],
   )
 
-  return { measureRow }
+  // Reset measured IDs when the menu reopens or query changes
+  const resetMeasurements = React.useCallback(() => {
+    measuredIds.current.clear()
+    maxSeenRef.current = 0
+  }, [])
+
+  return { queueMeasurement, resetMeasurements }
 }

@@ -12,14 +12,19 @@ export function ActionMenu_Submenus() {
 
   return (
     <ActionMenu
+      defaults={{
+        item: {
+          onSelect: ({ node }) => {
+            toast(`${node.icon} ${node.label}`)
+          },
+          closeOnSelect: true,
+        },
+      }}
       menu={{
         id: 'root',
         defaults: {
           item: {
-            closeOnSelect: false,
-            onSelect: ({ node }) => {
-              toast(`${node.icon} ${node.label}`)
-            },
+            closeOnSelect: true,
           },
         },
         search: {

@@ -458,14 +458,7 @@ export const Surface = React.forwardRef(function Surface<T>(
     (e: React.MouseEvent) => {
       clearSuppression()
       const rect = surfaceRef.current
-        ? logPerformance(
-            'getBoundingClientRect',
-            'Surface.handleMouseMove',
-            () =>
-              (
-                surfaceRef.current as HTMLElement | null
-              )?.getBoundingClientRect(),
-          )
+        ? (surfaceRef.current as HTMLElement | null)?.getBoundingClientRect()
         : undefined
       if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
       setOwnerId(surfaceId)

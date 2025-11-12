@@ -14,6 +14,7 @@ import type {
   ActionMenuSlotProps,
   ActionMenuTheme,
   MenuDef,
+  MenuNodeDefaults,
   SurfaceSlots,
 } from './types.js'
 
@@ -27,11 +28,13 @@ export type CreateActionMenuOptions<T> = {
   slots?: Partial<SurfaceSlots<T>>
   slotProps?: Partial<ActionMenuSlotProps>
   classNames?: Partial<ActionMenuClassNames>
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 export interface ActionMenuProps<T = unknown> extends ActionMenuRootProps<T> {
   children: React.ReactNode
   menu: MenuDef<T>
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 export function createActionMenu<T = unknown>(
@@ -42,6 +45,8 @@ export function createActionMenu<T = unknown>(
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
   }
+
+  const factoryDefaults = opts?.defaults
 
   function ActionMenu<T = unknown>(props: ActionMenuProps<T>) {
     const instanceTheme: ActionMenuTheme = React.useMemo(
@@ -59,13 +64,29 @@ export function createActionMenu<T = unknown>(
       [props.menu.ui],
     )
 
+    // Merge factory defaults with instance defaults
+    const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
+      () => ({
+        surface: { ...factoryDefaults?.surface, ...props.defaults?.surface },
+        item: {
+          ...factoryDefaults?.item,
+          ...props.defaults?.item,
+        } as any,
+      }),
+      [props.defaults],
+    )
+
     return (
       <GlobalThemeProvider theme={instanceTheme}>
         <ScopedThemeProvider __scopeId="root" theme={scopedTheme}>
           <Root {...props}>
             {props.children}
             <Positioner>
-              <Surface menu={props.menu} render={props.menu.render} />
+              <Surface
+                menu={props.menu}
+                render={props.menu.render}
+                defaults={mergedDefaults}
+              />
             </Positioner>
           </Root>
         </ScopedThemeProvider>

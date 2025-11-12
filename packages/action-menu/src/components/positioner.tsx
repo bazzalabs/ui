@@ -326,7 +326,7 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   return (
     <>
       {content}
-      {isSub && present ? (
+      {isSub && present && root.debug ? (
         <IntentZone
           parentRef={sub!.contentRef as React.RefObject<HTMLElement | null>}
           triggerRef={sub!.triggerRef as React.RefObject<HTMLElement | null>}

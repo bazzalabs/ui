@@ -12,12 +12,10 @@ import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 import {
   AssigneeIcon,
-  DurationIcon,
   LabelsIcon,
   ProjectPropertiesIcon,
   ProjectStatus,
@@ -28,7 +26,22 @@ import {
 
 export function ActionMenu_Linear() {
   return (
-    <ActionMenu menu={menuData}>
+    <ActionMenu
+      menu={menuData}
+      defaults={{
+        item: {
+          closeOnSelect: true,
+          onSelect: ({ node }) => {
+            toast(
+              `Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`,
+              {
+                icon: renderIcon(node.icon, 'size-4'),
+              },
+            )
+          },
+        },
+      }}
+    >
       <ActionMenu.Trigger asChild>
         <Button variant="ghost" size="sm" className="w-fit">
           <FilterIcon />
@@ -764,16 +777,6 @@ const projectPropertiesMenu: SubmenuDef = {
 export const menuData: MenuDef = {
   id: 'issue-properties',
   search: { minLength: 2 },
-  defaults: {
-    item: {
-      closeOnSelect: true,
-      onSelect: ({ node }) => {
-        toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
-          icon: renderIcon(node.icon, 'size-4'),
-        })
-      },
-    },
-  },
   nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu].map(
     (node) => ({ ...node, search: { minLength: 2 } }),
   ),

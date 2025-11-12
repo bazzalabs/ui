@@ -454,6 +454,18 @@ function ListContent<T = unknown>({
   // Track the last pointer position to detect actual movement vs. items moving under cursor
   const lastPointerPosRef = React.useRef<{ x: number; y: number } | null>(null)
 
+  // Initialize sticky row width hook early (needed by effects below)
+  const { queueMeasurement, resetMeasurements } = useStickyRowWidth({
+    containerRef: store.listRef,
+  })
+
+  // Reset measurements when component unmounts (menu closes)
+  React.useEffect(() => {
+    return () => {
+      resetMeasurements()
+    }
+  }, [resetMeasurements])
+
   // Whenever the query changes, ensure the first menu row is selected.
   React.useLayoutEffect(() => {
     store.first('keyboard')
@@ -461,7 +473,7 @@ function ListContent<T = unknown>({
     if (q) {
       store.ignorePointerRef.current = true
     }
-  }, [q])
+  }, [q, store])
 
   // Re-enable pointer events immediately on actual mouse movement
   React.useEffect(() => {
@@ -542,7 +554,46 @@ function ListContent<T = unknown>({
   const totalSize = virtualizer.getTotalSize()
   const totalSizePx = React.useMemo(() => `${totalSize}px`, [totalSize])
 
-  const { measureRow } = useStickyRowWidth({ containerRef: store.listRef })
+  const virtualItems = virtualizer.getVirtualItems()
+
+  // Store refs to row elements during render for efficient measurement
+  const rowRefsMap = React.useRef<Map<string, HTMLElement>>(new Map())
+  const rowRefCallbacks = React.useRef<
+    Map<string, (el: HTMLElement | null) => void>
+  >(new Map())
+
+  // Ref callback factory for capturing row elements - memoized per ID
+  const getRowRefCallback = React.useCallback((id: string) => {
+    let callback = rowRefCallbacks.current.get(id)
+    if (!callback) {
+      callback = (el: HTMLElement | null) => {
+        if (el) {
+          rowRefsMap.current.set(id, el)
+        } else {
+          rowRefsMap.current.delete(id)
+        }
+      }
+      rowRefCallbacks.current.set(id, callback)
+    }
+    return callback
+  }, [])
+
+  // Measure visible rows in useLayoutEffect (after DOM commit, before paint)
+  React.useLayoutEffect(() => {
+    for (const virtualRow of virtualItems) {
+      const node = transformedNodes[virtualRow.index]
+      if (!node) continue
+
+      // Only measure items and submenu triggers
+      if (node.kind !== 'item' && node.kind !== 'submenu') continue
+
+      // Get the row element from our ref map
+      const rowEl = rowRefsMap.current.get(node.id)
+      if (rowEl) {
+        queueMeasurement(rowEl, node.id)
+      }
+    }
+  }, [virtualItems, transformedNodes, queueMeasurement])
 
   const baseListProps = React.useMemo(
     () => ({
@@ -586,8 +637,6 @@ function ListContent<T = unknown>({
       }) satisfies ListBindAPI,
     [baseListProps, slotProps?.list, store],
   )
-
-  const virtualItems = virtualizer.getVirtualItems()
 
   const ItemSlot = slots.Item
   const SubmenuTriggerSlot = slots.SubmenuTrigger
@@ -679,7 +728,7 @@ function ListContent<T = unknown>({
                 }}
               >
                 <Item
-                  ref={measureRow}
+                  ref={getRowRefCallback(node.id)}
                   key={node.id}
                   virtualItem={virtualRow}
                   node={node}
@@ -710,7 +759,7 @@ function ListContent<T = unknown>({
                 <ScopedThemeProvider __scopeId={node.id} theme={node.ui as any}>
                   <Sub def={node as any}>
                     <SubmenuTrigger
-                      ref={measureRow}
+                      ref={getRowRefCallback(node.id)}
                       key={virtualRow.key}
                       virtualItem={virtualRow}
                       node={node}
@@ -718,7 +767,7 @@ function ListContent<T = unknown>({
                       classNames={classNames}
                       search={node.search}
                     />
-                    <SubmenuContent menu={node as any} />
+                    <SubmenuContent menu={node as any} defaults={defaults} />
                   </Sub>
                 </ScopedThemeProvider>
               </div>
@@ -739,9 +788,9 @@ function ListContent<T = unknown>({
       virtualizer.measureElement,
       virtualItems,
       totalSizePx,
-      measureRow,
       defaults,
       classNames,
+      getRowRefCallback,
     ],
   )
 
