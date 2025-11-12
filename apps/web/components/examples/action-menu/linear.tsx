@@ -3,7 +3,6 @@
 import {
   composeMiddleware,
   createNew,
-  type GroupDef,
   type ItemNode,
   type MenuDef,
   renderIcon,
@@ -16,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
-import { generateItems } from './shared/generate-items'
 import {
   AssigneeIcon,
   DurationIcon,
@@ -159,29 +157,6 @@ const assigneeMenu: SubmenuDef = {
       ),
     },
   ],
-}
-
-const durationMenu: SubmenuDef = {
-  kind: 'submenu',
-  id: 'duration',
-  icon: <DurationIcon />,
-  label: 'Duration',
-  title: 'Duration',
-  render: () => {
-    return (
-      <div className="w-[300px] h-[200px] p-4">
-        <Slider />
-      </div>
-    )
-  },
-  // nodes: [
-  //   {
-  //     kind: 'item',
-  //     id: 'duration-controller',
-  //     render: ({ node, bind, search }) => {
-  //     },
-  //   },
-  // ],
 }
 
 export const LABEL_STYLES_BG = {
@@ -799,11 +774,7 @@ export const menuData: MenuDef = {
       },
     },
   },
-  nodes: [
-    statusMenu,
-    assigneeMenu,
-    // durationMenu,
-    labelsMenu,
-    projectPropertiesMenu,
-  ].map((node) => ({ ...node, search: { minLength: 2 } })),
+  nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu].map(
+    (node) => ({ ...node, search: { minLength: 2 } }),
+  ),
 }

@@ -558,6 +558,7 @@ function ListContent<T = unknown>({
       onKeyDown,
       style: {
         '--total-size': totalSizePx,
+        contain: 'layout style',
       } as React.CSSProperties,
     }),
     [

@@ -21,6 +21,7 @@ import {
 import { findWidgetsWithinSurface } from '../lib/dom-utils.js'
 import { OPEN_SUB_EVENT } from '../lib/events.js'
 import { mergeProps } from '../lib/merge-props.js'
+import { logPerformance } from '../lib/performance.js'
 import { hasDescendantWithProp } from '../lib/react-utils.js'
 import type {
   RowBindAPI,
@@ -195,15 +196,27 @@ export function SubmenuTrigger<T>({
       if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
-      const contentRect = sub.contentRef.current?.getBoundingClientRect()
+      const contentRect = sub.contentRef.current
+        ? logPerformance(
+            'getBoundingClientRect',
+            'SubmenuTrigger.onPointerLeave.content',
+            () => sub.contentRef.current?.getBoundingClientRect(),
+          )
+        : undefined
       if (!contentRect) {
         clearAimGuard()
         return
       }
-      const tRect =
-        (
-          sub.triggerRef.current as HTMLElement | null
-        )?.getBoundingClientRect() ?? null
+      const tRect = sub.triggerRef.current
+        ? logPerformance(
+            'getBoundingClientRect',
+            'SubmenuTrigger.onPointerLeave.trigger',
+            () =>
+              (
+                sub.triggerRef.current as HTMLElement | null
+              )?.getBoundingClientRect() ?? null,
+          )
+        : null
       const anchor = resolveAnchorSide(contentRect, tRect, e.clientX)
       const heading = getSmoothedHeading(
         mouseTrailRef.current,

@@ -18,7 +18,7 @@ export const HANDLER_KEYS = [
   'onBlur',
 ] as const
 
-/** Merge two sets of React props (className, handlers, refs are composed). */
+/** Merge two sets of React props (className, handlers, refs, styles are composed). */
 export function mergeProps<
   A extends Record<string, any>,
   B extends Record<string, any>,
@@ -34,6 +34,9 @@ export function mergeProps<
     if (aH || bH) merged[key] = composeEventHandlers(aH, bH)
   }
   if (a.ref || b.ref) merged.ref = composeRefs(a.ref, b.ref)
+  if (a.style || b.style) {
+    merged.style = { ...a.style, ...b.style }
+  }
   return merged
 }
 

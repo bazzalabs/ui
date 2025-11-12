@@ -28,6 +28,7 @@ import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
 import { getDir } from '../lib/keyboard.js'
 import { instantiateMenuFromDef } from '../lib/menu-utils.js'
 import { mergeProps } from '../lib/merge-props.js'
+import { logPerformance } from '../lib/performance.js'
 import { isElementWithProp } from '../lib/react-utils.js'
 import { createSurfaceStore } from '../store/surface-store.js'
 import type {
@@ -456,9 +457,16 @@ export const Surface = React.forwardRef(function Surface<T>(
   const handleMouseMove = React.useCallback(
     (e: React.MouseEvent) => {
       clearSuppression()
-      const rect = (
-        surfaceRef.current as HTMLElement | null
-      )?.getBoundingClientRect()
+      const rect = surfaceRef.current
+        ? logPerformance(
+            'getBoundingClientRect',
+            'Surface.handleMouseMove',
+            () =>
+              (
+                surfaceRef.current as HTMLElement | null
+              )?.getBoundingClientRect(),
+          )
+        : undefined
       if (!rect || !isInBounds(e.clientX, e.clientY, rect)) return
       setOwnerId(surfaceId)
     },
@@ -481,6 +489,10 @@ export const Surface = React.forwardRef(function Surface<T>(
         className: classNames?.content,
         onMouseMove: handleMouseMove,
         ...props,
+        style: {
+          ...props.style,
+          contain: 'layout style',
+        },
       }) as const,
     [
       composedRef,

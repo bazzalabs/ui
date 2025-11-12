@@ -6,6 +6,7 @@ import { useRootCtx } from '../contexts/root-context.js'
 import { useSubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
+import { logPerformance } from '../lib/performance.js'
 import type { ActionMenuPositionerProps, Children } from '../types.js'
 import { IntentZone } from './intent-zone.js'
 import { InteractionGuard } from './interaction-guard.js'
@@ -66,8 +67,10 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
     const byRef = sub.contentRef.current
     if (byRef) return byRef
     try {
-      return document.querySelector<HTMLElement>(
-        `[data-surface-id="${sub.childSurfaceId}"]`,
+      return logPerformance('querySelector', 'Positioner.findContentEl', () =>
+        document.querySelector<HTMLElement>(
+          `[data-surface-id="${sub.childSurfaceId}"]`,
+        ),
       )
     } catch {
       return null
@@ -96,29 +99,51 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
     const el = findContentEl()
     if (!el) return
 
-    const contentRect = el.getBoundingClientRect()
+    const contentRect = logPerformance(
+      'getBoundingClientRect',
+      'Positioner.measure.content',
+      () => el.getBoundingClientRect(),
+    )
 
     // Check for input element (if it exists, align to bottom of input)
-    const inputEl = el.querySelector<HTMLElement>('[data-action-menu-input]')
+    const inputEl = logPerformance(
+      'querySelector',
+      'Positioner.measure.input',
+      () => el.querySelector<HTMLElement>('[data-action-menu-input]'),
+    )
     const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
 
     if (hasVisibleInput) {
       // Align to bottom of input
-      const inputRect = inputEl.getBoundingClientRect()
+      const inputRect = logPerformance(
+        'getBoundingClientRect',
+        'Positioner.measure.inputRect',
+        () => inputEl.getBoundingClientRect(),
+      )
       const computedOffset = -Math.round(inputRect.bottom - contentRect.top)
       setListTopOffset(computedOffset)
       return
     }
 
     // No input, check for list element
-    const listEl = el.querySelector<HTMLElement>(
-      '[data-slot="action-menu-list"]',
+    const listEl = logPerformance(
+      'querySelector',
+      'Positioner.measure.list',
+      () => el.querySelector<HTMLElement>('[data-slot="action-menu-list"]'),
     )
 
     if (listEl) {
       // Align to top of list (inside padding)
-      const listRect = listEl.getBoundingClientRect()
-      const listStyles = getComputedStyle(listEl)
+      const listRect = logPerformance(
+        'getBoundingClientRect',
+        'Positioner.measure.listRect',
+        () => listEl.getBoundingClientRect(),
+      )
+      const listStyles = logPerformance(
+        'getComputedStyle',
+        'Positioner.measure.listStyles',
+        () => getComputedStyle(listEl),
+      )
       const listPaddingTop = Number.parseFloat(listStyles.paddingTop)
       const computedOffset = -Math.round(
         listRect.top + listPaddingTop - contentRect.top,

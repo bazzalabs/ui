@@ -1,3 +1,5 @@
+import { logPerformance } from './performance.js'
+
 export const CLOSE_MENU_EVENT = 'actionmenu-close' as const
 export const OPEN_SUB_EVENT = 'actionmenu-open-sub' as const
 export const SELECT_ITEM_EVENT = 'actionmenu-select-item' as const
@@ -14,12 +16,17 @@ export function openSubmenuForActive(
   surfaceId: string,
 ) {
   if (!activeId) return
-  const surface = document.querySelector<HTMLElement>(
-    `[data-surface-id="${surfaceId}"]`,
+  const surface = logPerformance(
+    'querySelector',
+    'openSubmenuForActive.surface',
+    () =>
+      document.querySelector<HTMLElement>(`[data-surface-id="${surfaceId}"]`),
   )
   if (!surface) return
-  const el = surface.querySelector<HTMLElement>(
-    `[data-action-menu-item-id="${activeId}"]`,
+  const el = logPerformance('querySelector', 'openSubmenuForActive.item', () =>
+    surface.querySelector<HTMLElement>(
+      `[data-action-menu-item-id="${activeId}"]`,
+    ),
   )
   if (el && el.dataset.subtrigger === 'true') {
     dispatch(el, OPEN_SUB_EVENT)

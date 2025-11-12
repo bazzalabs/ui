@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { logPerformance } from '../lib/performance.js'
 
 function px(n: number) {
   return `${Math.ceil(n)}px`
@@ -16,8 +17,10 @@ export function useStickyRowWidth(opts: {
   const readRadixMax = React.useCallback(() => {
     const el = containerRef.current
     if (!el) return Number.POSITIVE_INFINITY
-    const cs = getComputedStyle(
-      (el.closest('[role="dialog"]') as Element) ?? el,
+    const cs = logPerformance(
+      'getComputedStyle',
+      'useStickyRowWidth.readRadixMax',
+      () => getComputedStyle((el.closest('[role="dialog"]') as Element) ?? el),
     )
     const raw = cs.getPropertyValue('--available-width')?.trim()
     const v = raw?.endsWith('px') ? Number.parseFloat(raw) : Number.NaN
@@ -77,7 +80,11 @@ export function useStickyRowWidth(opts: {
       probe.style.width = 'max-content'
 
       // scrollWidth is robust for overflow cases; getBoundingClientRect for precision
-      const w = Math.max(probe.scrollWidth, probe.offsetWidth) + 1
+      const w = logPerformance(
+        'scrollWidth+offsetWidth',
+        'useStickyRowWidth.measureRow',
+        () => Math.max(probe.scrollWidth, probe.offsetWidth) + 1,
+      )
       probe.style.width = prevWidth
       updateIfLarger(w)
     },

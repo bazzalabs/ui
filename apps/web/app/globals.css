@@ -314,6 +314,8 @@
   }
 
   figure[data-rehype-pretty-code-figure] {
+    contain: layout style;
+    content-visibility: auto;
     @apply my-6 relative;
 
     figcaption[data-rehype-pretty-code-title] {
