@@ -91,7 +91,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${berkeleyMono.variable} font-sans antialiased bg-site-background min-h-svh`}
+        className={`${inter.variable} ${berkeleyMono.variable} font-sans antialiased bg-site-background min-h-svh isolate relative`}
       >
         <ThemeProvider
           attribute="class"

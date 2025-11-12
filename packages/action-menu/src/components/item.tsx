@@ -73,6 +73,8 @@ export function Item<T>({
     node.closeOnSelect ?? defaults?.closeOnSelect ?? defaultCloseOnSelect
 
   const handleSelect = React.useCallback(() => {
+    console.log('handleSelect called from:', new Error().stack)
+
     if (node.variant === 'checkbox') {
       // Toggle checkbox state
       ;(node as CheckboxItemNode).onCheckedChange(!checked)
@@ -128,6 +130,7 @@ export function Item<T>({
     (e: React.MouseEvent) => {
       e.preventDefault()
       if (disabled) return
+      console.log('here!!!!')
       handleSelect()
     },
     [disabled, handleSelect],

@@ -1,4 +1,4 @@
-import * as Popper from '@radix-ui/react-popper'
+import { Popover } from '@base-ui-components/react/popover'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { Drawer } from 'vaul'
@@ -114,7 +114,9 @@ export function Sub({
 
   return (
     <SubCtx.Provider value={value}>
-      <Popper.Root>{children}</Popper.Root>
+      <Popover.Root open={open} onOpenChange={setOpen} modal={false}>
+        {children}
+      </Popover.Root>
     </SubCtx.Provider>
   )
 }

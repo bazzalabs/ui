@@ -1,5 +1,5 @@
+import { Popover } from '@base-ui-components/react/popover'
 import { composeRefs } from '@radix-ui/react-compose-refs'
-import * as Popper from '@radix-ui/react-popper'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { Drawer } from 'vaul'
@@ -119,8 +119,20 @@ export function SubmenuTrigger<T>({
   const focused = activeId === rowId
   const menuFocused = sub.childSurfaceId === ownerId
 
+  const onClick = React.useCallback((e: any) => {
+    // Prevent Base UI's default toggle behavior using the official API
+    e.preventBaseUIHandler?.()
+  }, [])
+
+  const onPointerUp = React.useCallback((e: any) => {
+    // Also prevent on pointer up since Base UI may use this event
+    e.preventBaseUIHandler?.()
+  }, [])
+
   const onPointerDown = React.useCallback(
-    (e: React.PointerEvent) => {
+    (e: any) => {
+      // Prevent Base UI's handler on pointer down as well
+      e.preventBaseUIHandler?.()
       if (e.button === 0 && e.ctrlKey === false) {
         e.preventDefault()
         sub.pendingOpenModalityRef.current = 'pointer'
@@ -260,6 +272,8 @@ export function SubmenuTrigger<T>({
     // Dropdown (Popper) mode: keep your original hover + aim-guard behavior
     return {
       ...common,
+      onClick,
+      onPointerUp,
       onPointerDown,
       onPointerEnter,
       onPointerMove,
@@ -277,6 +291,8 @@ export function SubmenuTrigger<T>({
     node.groupIndex,
     node.groupSize,
     classNames?.subtrigger,
+    onClick,
+    onPointerUp,
     onPointerDown,
     onPointerEnter,
     onPointerMove,
@@ -304,6 +320,6 @@ export function SubmenuTrigger<T>({
   return mode === 'drawer' ? (
     <Drawer.Trigger asChild>{content as any}</Drawer.Trigger>
   ) : (
-    <Popper.Anchor asChild>{content as any}</Popper.Anchor>
+    <Popover.Trigger render={content as any} nativeButton={false} />
   )
 }

@@ -611,6 +611,7 @@ export type ShellClassNames = {
 
 /** ClassNames that style the *surface* (content/list/items/etc.). */
 export type SurfaceClassNames = {
+  positioner?: string
   content?: string
   input?: string
   list?: string
@@ -736,14 +737,25 @@ export type Direction = 'ltr' | 'rtl'
 
 export interface ActionMenuPositionerProps {
   children: React.ReactNode
-  side?: 'top' | 'right' | 'bottom' | 'left'
+  side?: 'top' | 'right' | 'bottom' | 'left' | 'inline-start' | 'inline-end'
   align?: 'start' | 'center' | 'end' | 'list'
   sideOffset?: number
   alignOffset?: number
+  sticky?: boolean
+  positionMethod?: 'absolute' | 'fixed'
+  trackAnchor?: boolean
+  /** Collision avoidance configuration. Can be a boolean for backward compatibility or an object for granular control. */
   avoidCollisions?: boolean
   collisionPadding?:
     | number
     | Partial<Record<'top' | 'right' | 'bottom' | 'left', number>>
+  collisionBoundary?: Element | 'clipping-ancestors' | Element[]
+  /** Structured collision avoidance strategy (Base UI format) */
+  collisionAvoidance?: {
+    side?: 'none' | 'flip' | 'shift'
+    align?: 'none' | 'flip' | 'shift'
+    fallbackAxisSide?: 'none' | 'start' | 'end'
+  }
 }
 
 export interface ActionMenuSurfaceProps<T = unknown>

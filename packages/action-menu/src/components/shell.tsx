@@ -1,11 +1,20 @@
-import * as Popper from '@radix-ui/react-popper'
+import { Popover } from '@base-ui-components/react/popover'
 import * as React from 'react'
 import { Drawer } from 'vaul'
 import { useRootCtx } from '../contexts/root-context.js'
 import { cn } from '../lib/cn.js'
 
 export function DropdownShell({ children }: { children: React.ReactNode }) {
-  return <Popper.Root>{children}</Popper.Root>
+  const root = useRootCtx()
+  return (
+    <Popover.Root
+      open={root.open}
+      onOpenChange={root.onOpenChange}
+      modal={false}
+    >
+      {children}
+    </Popover.Root>
+  )
 }
 
 /** Drawer shell that mounts everything except the Trigger inside Vaul.Content. */

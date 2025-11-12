@@ -12,14 +12,14 @@ export function useStickyRowWidth(opts: {
   const maxSeenRef = React.useRef(0)
   const frame = React.useRef<number | null>(null)
 
-  // Read Radix available width (optional—works because Radix sets a real value)
-  const readRadixMax = React.useCallback(() => {
+  // Read Base UI available width (Base UI sets --available-width CSS variable)
+  const readBaseUIMax = React.useCallback(() => {
     const el = containerRef.current
     if (!el) return Number.POSITIVE_INFINITY
     const cs = getComputedStyle(
       (el.closest('[role="dialog"]') as Element) ?? el,
     )
-    const raw = cs.getPropertyValue('--radix-popper-available-width')?.trim()
+    const raw = cs.getPropertyValue('--available-width')?.trim()
     const v = raw?.endsWith('px') ? Number.parseFloat(raw) : Number.NaN
     return Number.isFinite(v) ? v : Number.POSITIVE_INFINITY
   }, [containerRef])
@@ -28,11 +28,11 @@ export function useStickyRowWidth(opts: {
     (n: number) => {
       const el = containerRef.current
       if (!el) return
-      const radixCap = readRadixMax()
+      const baseUICap = readBaseUIMax()
       const hardCap = Number.isFinite(designMaxPx ?? Number.NaN)
         ? designMaxPx!
         : Number.POSITIVE_INFINITY
-      const capped = Math.min(n, radixCap, hardCap)
+      const capped = Math.min(n, baseUICap, hardCap)
       el.style.setProperty('--row-width', px(capped))
 
       const surface = el.closest<HTMLElement>(
@@ -41,7 +41,7 @@ export function useStickyRowWidth(opts: {
       if (!surface) return
       surface.style.setProperty('--row-width', px(capped))
     },
-    [containerRef, designMaxPx, readRadixMax],
+    [containerRef, designMaxPx, readBaseUIMax],
   )
 
   const updateIfLarger = React.useCallback(

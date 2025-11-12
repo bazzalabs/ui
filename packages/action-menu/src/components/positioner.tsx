@@ -1,5 +1,4 @@
-import * as Popper from '@radix-ui/react-popper'
-import { Portal } from '@radix-ui/react-portal'
+import { Popover } from '@base-ui-components/react/popover'
 import { Presence } from '@radix-ui/react-presence'
 import * as React from 'react'
 import { useDisplayMode } from '../contexts/display-mode-context.js'
@@ -40,6 +39,13 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   alignOffset = 0,
   avoidCollisions = true,
   collisionPadding = 8,
+  collisionBoundary,
+  collisionAvoidance = {
+    side: 'flip',
+  },
+  sticky = false,
+  positionMethod = 'fixed',
+  trackAnchor = false,
 }) => {
   const root = useRootCtx()
   const sub = useSubCtx()
@@ -168,32 +174,77 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   const effectiveAlignOffset =
     resolvedAlign === 'list' ? listTopOffset + alignOffset : alignOffset
 
-  const popperContentProps: React.ComponentProps<typeof Popper.Content> =
+  // Convert collision detection props to Base UI format
+  const baseUICollisionAvoidance = React.useMemo<
+    | {
+        side?: 'flip' | 'none'
+        align?: 'flip' | 'shift' | 'none'
+        fallbackAxisSide?: 'start' | 'end' | 'none'
+      }
+    | {
+        side?: 'shift' | 'none'
+        align?: 'shift' | 'none'
+        fallbackAxisSide?: 'start' | 'end' | 'none'
+      }
+    | undefined
+  >(() => {
+    if (collisionAvoidance) {
+      return collisionAvoidance as any
+    }
+    // Backward compatibility: convert avoidCollisions boolean to Base UI format
+    // Using SideFlipMode which allows both flip and shift on align axis
+    if (avoidCollisions) {
+      return {
+        side: 'flip',
+        align: 'shift',
+      }
+    }
+    return {
+      side: 'none',
+      align: 'none',
+    }
+  }, [avoidCollisions, collisionAvoidance])
+
+  const { classNames } = useScopedTheme()
+
+  const positionerProps: React.ComponentProps<typeof Popover.Positioner> =
     React.useMemo(
       () => ({
-        asChild: true,
         side: resolvedSide,
         align: effectiveAlign,
         sideOffset: sideOffset,
         alignOffset: effectiveAlignOffset,
-        avoidCollisions: avoidCollisions,
+        collisionBoundary: collisionBoundary,
         collisionPadding: collisionPadding,
-        style: {
-          '--action-menu-available-height':
-            'var(--radix-popper-available-height, 0px)',
-          '--action-menu-available-width':
-            'var(--radix-popper-available-width, 0px)',
-        } as React.CSSProperties,
+        collisionAvoidance: baseUICollisionAvoidance,
+        sticky: sticky,
+        positionMethod: positionMethod,
+        trackAnchor: trackAnchor,
+        className: classNames?.positioner,
       }),
       [
         resolvedSide,
         effectiveAlign,
         sideOffset,
         effectiveAlignOffset,
-        avoidCollisions,
+        collisionBoundary,
         collisionPadding,
+        baseUICollisionAvoidance,
+        sticky,
+        positionMethod,
+        trackAnchor,
+        classNames?.positioner,
       ],
     )
+
+  const popupStyle = React.useMemo(
+    () =>
+      ({
+        '--action-menu-available-height': 'var(--available-height, 0px)',
+        '--action-menu-available-width': 'var(--available-width, 0px)',
+      }) as React.CSSProperties,
+    [],
+  )
 
   // NOTE: For the root surface in drawer mode, Positioner is a no-op pass-through.
   // For submenus, we always position with Popper (even in drawer mode).
@@ -202,15 +253,24 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   }
 
   const content = isSub ? (
-    <Portal>
+    <Popover.Portal>
       <Presence present={present}>
         <InteractionGuard.Branch asChild scopeId={root.scopeId}>
-          <Popper.Content {...popperContentProps}>{children}</Popper.Content>
+          <Popover.Positioner
+            {...positionerProps}
+            data-slot="action-menu-positioner"
+          >
+            <Popover.Popup
+              initialFocus={false}
+              style={popupStyle}
+              render={children}
+            />
+          </Popover.Positioner>
         </InteractionGuard.Branch>
       </Presence>
-    </Portal>
+    </Popover.Portal>
   ) : (
-    <Portal>
+    <Popover.Portal>
       <Presence present={present}>
         <InteractionGuard.Root
           asChild
@@ -226,10 +286,19 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
             root.closeAllSurfaces()
           }}
         >
-          <Popper.Content {...popperContentProps}>{children}</Popper.Content>
+          <Popover.Positioner
+            {...positionerProps}
+            data-slot="action-menu-positioner"
+          >
+            <Popover.Popup
+              initialFocus={false}
+              style={popupStyle}
+              render={children}
+            />
+          </Popover.Positioner>
         </InteractionGuard.Root>
       </Presence>
-    </Portal>
+    </Popover.Portal>
   )
 
   return (
