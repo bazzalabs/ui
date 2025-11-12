@@ -137,7 +137,11 @@ export function SubmenuTrigger<T>({
       if (e.button === 0 && e.ctrlKey === false) {
         e.preventDefault()
         sub.pendingOpenModalityRef.current = 'pointer'
-        sub.onOpenToggle()
+        // Only open the submenu if it's not already open
+        // Clicking an already-open submenu trigger should not close it
+        if (!sub.open) {
+          sub.onOpenChange(true)
+        }
       }
     },
     [sub],
