@@ -147,6 +147,7 @@ export function SubmenuTrigger<T>({
       // Prevent Base UI's handler to avoid focus interference
       e.preventBaseUIHandler?.()
 
+      if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
 
@@ -174,6 +175,7 @@ export function SubmenuTrigger<T>({
       // Prevent Base UI's handler to avoid focus interference
       e.preventBaseUIHandler?.()
 
+      if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
       if (!focused) {
@@ -190,6 +192,7 @@ export function SubmenuTrigger<T>({
       // Prevent Base UI's handler to avoid focus interference
       e.preventBaseUIHandler?.()
 
+      if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
       const contentRect = sub.contentRef.current?.getBoundingClientRect()

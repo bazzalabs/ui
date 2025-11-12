@@ -122,6 +122,7 @@ export function Item<T>({
 
   const onMouseMove = React.useCallback(() => {
     if (disabled) return
+    if (store.ignorePointerRef.current) return
     if (aimGuardActiveRef.current) return
     if (!focused) store.setActiveId(rowId, 'pointer')
   }, [disabled, aimGuardActiveRef, focused, store, rowId])

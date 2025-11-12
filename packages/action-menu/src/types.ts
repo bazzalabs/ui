@@ -832,6 +832,7 @@ export type SurfaceStore<T> = {
     HTMLDivElement,
     Element
   > | null>
+  readonly ignorePointerRef: React.MutableRefObject<boolean>
 }
 
 export type HoverPolicy = {

@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
 import {
-  type ItemDef,
   type ItemNode,
   type ItemSlotProps,
   type MenuDef,
@@ -699,7 +698,7 @@ export function createOptionMenu<TData>({
   initialSelectedValuesRef,
 }: FilterValueControllerProps<TData, 'option'> & {
   getFilter?: () => FilterModel<'option'> | undefined
-  initialSelectedValuesRef: React.MutableRefObject<Set<string> | null>
+  initialSelectedValuesRef: React.RefObject<Set<string> | null>
 }): Pick<SubmenuDef, 'nodes' | 'middleware'> {
   const currentFilter = (getFilter ? getFilter() : filter) || filter
 
@@ -874,7 +873,7 @@ export function createMultiOptionMenu<TData>({
 }: FilterValueControllerProps<TData, 'multiOption'> & {
   getFilter?: () => FilterModel<'multiOption'> | undefined
   initialSelectedValuesRef: React.RefObject<Set<string> | null>
-}): Pick<SubmenuDef, 'nodes' | 'middleware'> {
+}): Pick<SubmenuDef<unknown, ColumnOptionExtended>, 'nodes' | 'middleware'> {
   const currentFilter = (getFilter ? getFilter() : filter) || filter
 
   // Capture initial state for sticky grouping (only once when menu first opens)
@@ -918,7 +917,7 @@ export function createMultiOptionMenu<TData>({
       } as any
     })
 
-  const middleware: MenuMiddleware = {
+  const middleware: MenuMiddleware<ColumnOptionExtended> = {
     transformNodes: (context) => {
       const { nodes: filteredNodes } = context
 

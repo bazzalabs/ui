@@ -184,6 +184,7 @@ export function instantiateMenuFromDef<T>(
     loader: def.loader,
     loadingState,
     middleware: def.middleware,
+    search: def.search,
   }
 
   // Use the extracted instantiateSingleNode function

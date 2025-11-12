@@ -42,6 +42,7 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
   collisionBoundary,
   collisionAvoidance = {
     side: 'flip',
+    align: 'shift',
   },
   sticky = false,
   positionMethod = 'fixed',
@@ -254,50 +255,46 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
 
   const content = isSub ? (
     <Popover.Portal>
-      <Presence present={present}>
-        <InteractionGuard.Branch asChild scopeId={root.scopeId}>
-          <Popover.Positioner
-            {...positionerProps}
-            data-slot="action-menu-positioner"
-          >
-            <Popover.Popup
-              initialFocus={false}
-              style={popupStyle}
-              render={children as any}
-            />
-          </Popover.Positioner>
-        </InteractionGuard.Branch>
-      </Presence>
+      <InteractionGuard.Branch asChild scopeId={root.scopeId}>
+        <Popover.Positioner
+          {...positionerProps}
+          data-slot="action-menu-positioner"
+        >
+          <Popover.Popup
+            initialFocus={false}
+            style={popupStyle}
+            render={children as any}
+          />
+        </Popover.Positioner>
+      </InteractionGuard.Branch>
     </Popover.Portal>
   ) : (
     <Popover.Portal>
-      <Presence present={present}>
-        <InteractionGuard.Root
-          asChild
-          scopeId={root.scopeId}
-          disableOutsidePointerEvents={root.modal}
-          onEscapeKeyDown={() => {
-            root.closeAllSurfaces()
-          }}
-          onInteractOutside={(event) => {
-            const target = event.target as HTMLElement | null
-            if (target?.closest?.('[data-action-menu-surface]')) return
-            event.preventDefault()
-            root.closeAllSurfaces()
-          }}
+      <InteractionGuard.Root
+        asChild
+        scopeId={root.scopeId}
+        disableOutsidePointerEvents={root.modal}
+        onEscapeKeyDown={() => {
+          root.closeAllSurfaces()
+        }}
+        onInteractOutside={(event) => {
+          const target = event.target as HTMLElement | null
+          if (target?.closest?.('[data-action-menu-surface]')) return
+          event.preventDefault()
+          root.closeAllSurfaces()
+        }}
+      >
+        <Popover.Positioner
+          {...positionerProps}
+          data-slot="action-menu-positioner"
         >
-          <Popover.Positioner
-            {...positionerProps}
-            data-slot="action-menu-positioner"
-          >
-            <Popover.Popup
-              initialFocus={false}
-              style={popupStyle}
-              render={children as any}
-            />
-          </Popover.Positioner>
-        </InteractionGuard.Root>
-      </Presence>
+          <Popover.Popup
+            initialFocus={false}
+            style={popupStyle}
+            render={children as any}
+          />
+        </Popover.Positioner>
+      </InteractionGuard.Root>
     </Popover.Portal>
   )
 

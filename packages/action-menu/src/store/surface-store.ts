@@ -48,6 +48,7 @@ export function createSurfaceStore<T>(): SurfaceStore<T> {
     HTMLDivElement,
     Element
   > | null>()
+  const ignorePointerRef = { current: false }
 
   // Create Zustand store
   const useStore = create<SurfaceStoreState<T>>()(
@@ -232,6 +233,7 @@ export function createSurfaceStore<T>(): SurfaceStore<T> {
     inputRef,
     listRef,
     virtualizerRef,
+    ignorePointerRef,
   }
 
   // Store the Zustand hook internally for optimized access

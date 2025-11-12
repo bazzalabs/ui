@@ -144,6 +144,24 @@ function ListContent<T = unknown>({
     store.snapshot().listId ?? `action-menu-list-${localId}`
   const q = (query ?? '').trim()
 
+  // Normalize minLength configuration
+  const minLengthConfig = React.useMemo(() => {
+    const raw = menu.search?.minLength
+    if (raw === undefined) return { local: 0, deep: 0 }
+    if (typeof raw === 'number') return { local: 0, deep: raw }
+    return { local: raw.local ?? 0, deep: raw.deep ?? 0 }
+  }, [menu.search?.minLength])
+
+  // Apply minLength.local threshold - only perform local search if query meets minimum length
+  const effectiveLocalQuery = React.useMemo(() => {
+    return q.length >= minLengthConfig.local ? q : ''
+  }, [q, minLengthConfig.local])
+
+  // Apply minLength.deep threshold - only perform deep search if query meets minimum length
+  const effectiveDeepQuery = React.useMemo(() => {
+    return q.length >= minLengthConfig.deep ? q : ''
+  }, [q, minLengthConfig.deep])
+
   type SRContext = {
     breadcrumbs: string[]
     breadcrumbIds: string[]
@@ -170,7 +188,7 @@ function ListContent<T = unknown>({
     try {
       const context: BeforeFilterContext<T> = {
         nodes: menu.nodes,
-        query: q,
+        query: effectiveLocalQuery,
         menu,
       }
       return menu.middleware.beforeFilter(context)
@@ -178,21 +196,29 @@ function ListContent<T = unknown>({
       console.error('[ActionMenu] Error in beforeFilter middleware:', error)
       return menu.nodes
     }
-  }, [menu.nodes, menu.middleware, q, menu])
+  }, [menu.nodes, menu.middleware, effectiveLocalQuery, menu])
 
   const collect = React.useCallback(
     (
       nodes: Node<T>[] | undefined,
-      q: string,
+      localQuery: string,
+      deepQuery: string,
+      originalQuery: string,
       bc: string[] = [],
       bcIds: string[] = [],
       currentMenu: Menu<T> = menu,
+      parentDeepThreshold: number = minLengthConfig.deep,
     ): SR[] => {
       const out: SR[] = []
+      // Use localQuery for items/submenus at the current level (not deep)
+      // Use deepQuery for recursing into submenus (deep search)
+      const isDeepSearch = bc.length > 0
+      const queryForCurrentLevel = isDeepSearch ? deepQuery : localQuery
+
       for (const n of nodes ?? []) {
         if ((n as any).hidden) continue
         if (n.kind === 'item') {
-          const score = commandScore(n.id, q, n.keywords)
+          const score = commandScore(n.id, queryForCurrentLevel, n.keywords)
           if (score > 0)
             out.push({
               type: 'item',
@@ -206,10 +232,21 @@ function ListContent<T = unknown>({
               score,
             })
         } else if (n.kind === 'group') {
-          out.push(...collect((n as GroupNode<T>).nodes, q, bc, bcIds))
+          out.push(
+            ...collect(
+              (n as GroupNode<T>).nodes,
+              localQuery,
+              deepQuery,
+              originalQuery,
+              bc,
+              bcIds,
+              currentMenu,
+              parentDeepThreshold,
+            ),
+          )
         } else if (n.kind === 'submenu') {
           const sub = n as SubmenuNode<any>
-          const score = commandScore(n.id, q, n.keywords)
+          const score = commandScore(n.id, queryForCurrentLevel, n.keywords)
           if (score > 0)
             out.push({
               type: 'submenu',
@@ -221,26 +258,45 @@ function ListContent<T = unknown>({
 
           // deepSearch defaults to true, so only exclude if explicitly set to false
           if (sub.deepSearch) {
-            const title = sub.title ?? sub.label ?? sub.id ?? ''
-            out.push(
-              ...collect(
-                sub.nodes as any,
-                q,
-                [...bc, title],
-                [...bcIds, sub.id],
-                sub.child as Menu<any>,
-              ),
-            )
+            // Check if this submenu has its own minLength config
+            const submenuMinLength = (sub.child as Menu<any>)?.search?.minLength
+            let effectiveDeepThreshold = parentDeepThreshold
+
+            if (submenuMinLength !== undefined) {
+              if (typeof submenuMinLength === 'number') {
+                effectiveDeepThreshold = submenuMinLength
+              } else {
+                effectiveDeepThreshold = submenuMinLength.deep ?? 0
+              }
+            }
+
+            // Only deep search if the ORIGINAL query meets the threshold
+            // (we check originalQuery not deepQuery because deepQuery might be filtered)
+            if (originalQuery.length >= effectiveDeepThreshold) {
+              const title = sub.title ?? sub.label ?? sub.id ?? ''
+              out.push(
+                ...collect(
+                  sub.nodes as any,
+                  localQuery,
+                  deepQuery,
+                  originalQuery,
+                  [...bc, title],
+                  [...bcIds, sub.id],
+                  sub.child as Menu<any>,
+                  effectiveDeepThreshold,
+                ),
+              )
+            }
           }
         }
       }
       return out
     },
-    [],
+    [minLengthConfig.deep],
   )
 
   const results = React.useMemo(() => {
-    if (!q) return []
+    if (!effectiveLocalQuery) return []
 
     const searchMode = menu.search?.mode ?? 'client'
 
@@ -272,23 +328,39 @@ function ListContent<T = unknown>({
 
     // Client or hybrid mode: Apply client-side filtering
     return pipe(
-      collect(processedNodes, q, [], [], menu),
+      collect(
+        processedNodes,
+        effectiveLocalQuery,
+        effectiveDeepQuery,
+        q,
+        [],
+        [],
+        menu,
+      ),
       sortBy([prop('score'), 'desc']),
       partition((v) => v.type === 'submenu'),
       flat(),
     )
-  }, [q, processedNodes, menu.search?.mode, collect, menu])
+  }, [
+    effectiveLocalQuery,
+    effectiveDeepQuery,
+    q,
+    processedNodes,
+    menu.search?.mode,
+    collect,
+    menu,
+  ])
 
   // Apply afterFilter middleware (post-filter search results)
   const filteredResults = React.useMemo(() => {
-    if (!menu.middleware?.afterFilter || !q) {
+    if (!menu.middleware?.afterFilter || !effectiveLocalQuery) {
       return results
     }
 
     try {
       const context: AfterFilterContext<T> = {
         results: results as SearchResult<T>[],
-        query: q,
+        query: effectiveLocalQuery,
         menu,
       }
       return menu.middleware.afterFilter(context) as SR[]
@@ -296,17 +368,17 @@ function ListContent<T = unknown>({
       console.error('[ActionMenu] Error in afterFilter middleware:', error)
       return results
     }
-  }, [results, menu.middleware, q, menu])
+  }, [results, menu.middleware, effectiveLocalQuery, menu])
   const flattenedNodes = React.useMemo(() => {
     const acc: Node<T>[] = []
 
-    if (q) {
+    if (effectiveLocalQuery) {
       if (filteredResults.length === 0) return []
       for (const sr of filteredResults) {
         acc.push({
           ...sr.node,
           search: {
-            query: q,
+            query: effectiveLocalQuery,
             score: sr.score,
             isDeep: sr.breadcrumbs.length > 0,
             breadcrumbs: sr.breadcrumbs,
@@ -347,7 +419,7 @@ function ListContent<T = unknown>({
     }
 
     return acc
-  }, [q, filteredResults, processedNodes])
+  }, [effectiveLocalQuery, filteredResults, processedNodes])
 
   // Apply transformNodes middleware (transform flattened nodes before rendering)
   const transformedNodes = React.useMemo(() => {
@@ -359,7 +431,7 @@ function ListContent<T = unknown>({
       const context: TransformNodesContext<T> = {
         nodes: flattenedNodes,
         query: q,
-        mode: q ? 'search' : 'browse',
+        mode: effectiveLocalQuery ? 'search' : 'browse',
         allNodes: menu.nodes,
         menu,
         createNode: <U = T>(def: import('../types.js').ItemDef<U>) =>
@@ -377,12 +449,50 @@ function ListContent<T = unknown>({
       console.error('[ActionMenu] Error in transformNodes middleware:', error)
       return flattenedNodes
     }
-  }, [flattenedNodes, q, menu])
+  }, [flattenedNodes, q, effectiveLocalQuery, menu])
+
+  // Track the last pointer position to detect actual movement vs. items moving under cursor
+  const lastPointerPosRef = React.useRef<{ x: number; y: number } | null>(null)
 
   // Whenever the query changes, ensure the first menu row is selected.
   React.useLayoutEffect(() => {
     store.first('keyboard')
+    // Disable pointer events when typing
+    if (q) {
+      store.ignorePointerRef.current = true
+    }
   }, [q])
+
+  // Re-enable pointer events immediately on actual mouse movement
+  React.useEffect(() => {
+    const listEl = store.listRef.current
+    if (!listEl) return
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const lastPos = lastPointerPosRef.current
+
+      // Track position
+      const currentPos = { x: e.clientX, y: e.clientY }
+
+      // Check if pointer actually moved
+      if (lastPos) {
+        const deltaX = Math.abs(currentPos.x - lastPos.x)
+        const deltaY = Math.abs(currentPos.y - lastPos.y)
+
+        // Re-enable immediately if the mouse actually moved (not just items shifting under cursor)
+        if (deltaX > 2 || deltaY > 2) {
+          store.ignorePointerRef.current = false
+        }
+      }
+
+      lastPointerPosRef.current = currentPos
+    }
+
+    listEl.addEventListener('pointermove', handlePointerMove)
+    return () => {
+      listEl.removeEventListener('pointermove', handlePointerMove)
+    }
+  }, [store])
 
   React.useEffect(() => {
     const order = store.getOrder()
@@ -483,7 +593,7 @@ function ListContent<T = unknown>({
   const GroupHeadingSlot = slots.GroupHeading
   const SeparatorSlot = slots.Separator
 
-  const listRows = useDebugMemo(
+  const listRows = React.useMemo(
     () => (
       <ul
         style={
@@ -632,7 +742,6 @@ function ListContent<T = unknown>({
       defaults,
       classNames,
     ],
-    'listRows',
   )
 
   const EmptySlot = slots.Empty

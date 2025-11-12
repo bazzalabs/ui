@@ -162,9 +162,7 @@ function __FilterSelector_v2<TData>({
     () => ({
       id: 'filter-selector',
       search: {
-        minLength: {
-          deep: 3,
-        },
+        minLength: 2,
       },
       nodes: columns.map((column) => {
         if (column.type === 'text') {
