@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useRef } from 'react'
 import { DiscordIcon, GithubIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import logoSrc from '@/public/bazzaui-v3-color.png'
+import { FadeContainer } from './fade-container'
 import { ThemeToggle } from './theme-toggle'
 
 const items = [
@@ -130,135 +132,142 @@ const actionMenuItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const ref = useRef<HTMLDivElement | null>(null)
 
   return (
-    <Sidebar>
-      <SidebarContent>
-        <SidebarHeader className="px-4 text-sm pt-4">
-          <SidebarMenu>
-            <SidebarMenuItem className="inline-flex justify-between items-center">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-0.5 font-medium font-mono tracking-tight"
-              >
-                <Image
-                  className="size-5 mr-1.5 translate-y-[-0.5px]"
-                  src={logoSrc}
-                  alt="bazza/ui"
-                />
-                <span>bazza</span>
-                <span className="text-xl text-border">/</span>
-                <span>ui</span>
-              </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarGroup>
-          <SidebarGroupLabel>Basics</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+    <Sidebar className="h-svh flex flex-col">
+      <SidebarHeader className="px-4 text-sm pt-4 shrink-0">
+        <SidebarMenu>
+          <SidebarMenuItem className="inline-flex justify-between items-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-0.5 font-medium font-mono tracking-tight"
+            >
+              <Image
+                className="size-5 mr-1.5 translate-y-[-0.5px]"
+                src={logoSrc}
+                alt="bazza/ui"
+              />
+              <span>bazza</span>
+              <span className="text-xl text-border">/</span>
+              <span>ui</span>
+            </Link>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <FadeContainer scrollContainerRef={ref}>
+        <SidebarContent className="flex-1 min-h-0 no-scrollbar" ref={ref}>
+          <SidebarGroup>
+            <SidebarGroupLabel>Basics</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={item.url === pathname}
+                      className="font-medium text-muted-foreground hover-expand-[2px]"
+                    >
+                      <a href={item.url}>
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Components</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* Action Menu with nested pages */}
+                <Collapsible
+                  key="action-menu"
+                  asChild
+                  defaultOpen={pathname.startsWith('/docs/action-menu')}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        className="font-medium hover-expand-[2px]"
+                        // isActive={pathname === '/docs/action-menu'}
+                      >
+                        <a href="/docs/action-menu">Action Menu</a>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub className="last:mb-4">
+                        {actionMenuItems.map((group, index) => {
+                          return (
+                            <div
+                              key={group.groupName}
+                              className="flex flex-col"
+                            >
+                              <span
+                                className={cn(
+                                  'text-xs font-medium text-muted-foreground py-1 mb-1',
+                                  index === 0 ? 'mt-1' : 'mt-2',
+                                )}
+                              >
+                                {group.groupName}
+                              </span>
+                              <div className="flex flex-col gap-y-px -translate-x-1.5">
+                                {group.items.map((item) => (
+                                  <SidebarMenuSubButton
+                                    key={item.url}
+                                    isActive={
+                                      pathname === item.url ||
+                                      pathname.startsWith(`${item.url}/`)
+                                    }
+                                    href={item.url}
+                                  >
+                                    {item.title}
+                                  </SidebarMenuSubButton>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                          // return (
+                          //   <SidebarMenuSubItem key={item.url}>
+                          //     <SidebarMenuSubButton
+                          //       isActive={
+                          //         pathname === item.url ||
+                          //         pathname.startsWith(`${item.url}/`)
+                          //       }
+                          //       href={item.url}
+                          //     >
+                          //       {item.title}
+                          //     </SidebarMenuSubButton>
+                          //   </SidebarMenuSubItem>
+                          // )
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+
+                {/* Data Table Filter */}
+                <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={item.url === pathname}
+                    isActive={'/docs/data-table-filter' === pathname}
                     className="font-medium text-muted-foreground hover-expand-[2px]"
                   >
-                    <a href={item.url}>
-                      <span>{item.title}</span>
+                    <a href={'/docs/data-table-filter'}>
+                      <span>Data Table Filter</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Components</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {/* Action Menu with nested pages */}
-              <Collapsible
-                key="action-menu"
-                asChild
-                defaultOpen={pathname.startsWith('/docs/action-menu')}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      className="font-medium hover-expand-[2px]"
-                      // isActive={pathname === '/docs/action-menu'}
-                    >
-                      <a href="/docs/action-menu">Action Menu</a>
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub className="last:mb-4">
-                      {actionMenuItems.map((group, index) => {
-                        return (
-                          <div key={group.groupName} className="flex flex-col">
-                            <span
-                              className={cn(
-                                'text-xs font-medium text-muted-foreground py-1 mb-1',
-                                index === 0 ? 'mt-1' : 'mt-2',
-                              )}
-                            >
-                              {group.groupName}
-                            </span>
-                            <div className="flex flex-col gap-y-px -translate-x-1.5">
-                              {group.items.map((item) => (
-                                <SidebarMenuSubButton
-                                  key={item.url}
-                                  isActive={
-                                    pathname === item.url ||
-                                    pathname.startsWith(`${item.url}/`)
-                                  }
-                                  href={item.url}
-                                >
-                                  {item.title}
-                                </SidebarMenuSubButton>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                        // return (
-                        //   <SidebarMenuSubItem key={item.url}>
-                        //     <SidebarMenuSubButton
-                        //       isActive={
-                        //         pathname === item.url ||
-                        //         pathname.startsWith(`${item.url}/`)
-                        //       }
-                        //       href={item.url}
-                        //     >
-                        //       {item.title}
-                        //     </SidebarMenuSubButton>
-                        //   </SidebarMenuSubItem>
-                        // )
-                      })}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </FadeContainer>
 
-              {/* Data Table Filter */}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={'/docs/data-table-filter' === pathname}
-                  className="font-medium text-muted-foreground hover-expand-[2px]"
-                >
-                  <a href={'/docs/data-table-filter'}>
-                    <span>Data Table Filter</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="shrink-0">
         <SidebarMenu className="flex-row gap-0 justify-between">
           <SidebarMenuItem>
             <ThemeToggle />

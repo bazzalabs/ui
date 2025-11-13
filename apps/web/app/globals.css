@@ -58,6 +58,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --selection: oklch(92.2% 0 0);
 }
 
 .dark {
@@ -95,6 +96,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  --selection: oklch(26.9% 0 0);
 }
 
 @theme inline {
@@ -134,6 +136,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-selection: var(--selection);
 }
 
 @layer base {
@@ -162,6 +165,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  *::selection {
+    @apply bg-selection;
+  }
+
 
   code:not(h1 code, h2 code, h3 code, h4 code, .callout code) {
     @apply not-dark:font-[450];

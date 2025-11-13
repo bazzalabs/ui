@@ -88,37 +88,31 @@ export default async function Page({
   const toc = metadata.toc as any
 
   return (
-    <div className="flex">
-      <div className="flex flex-col gap-8 w-full max-w-screen-md mx-auto col-span-1 my-4 md:my-8 xl:my-16 no-scrollbar">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="md:hidden" />
-        </div>
+    <div className="flex flex-col gap-8 w-full max-w-screen-md mx-auto col-span-1 my-4 md:my-8 xl:my-16 no-scrollbar">
+      {/*<div className="flex items-center gap-2">
+        <SidebarTrigger className="md:hidden" />
+      </div>*/}
 
-        <div className="flex flex-col gap-4 mb-16">
-          <div className="flex items-start gap-2">
-            <span className="text-5xl font-[550] tracking-[-0.025em]">
-              {metadata.title}
-            </span>
-            {metadata.badge === 'alpha' && (
-              <Badge className="bg-pink-400 dark:bg-pink-500 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
-                <span>{metadata.badge}</span>
-              </Badge>
-            )}
-            {metadata.badge === 'beta' && (
-              <Badge className="bg-purple-500 dark:bg-purple-600 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
-                <span>{metadata.badge}</span>
-              </Badge>
-            )}
-          </div>
-          <div className="text-muted-foreground">{metadata.summary}</div>
+      <div className="flex flex-col gap-4 mb-16 mt-8">
+        <div className="flex items-start gap-2">
+          <span className="text-5xl font-[550] tracking-[-0.025em]">
+            {metadata.title}
+          </span>
+          {metadata.badge === 'alpha' && (
+            <Badge className="bg-pink-400 dark:bg-pink-500 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
+              <span>{metadata.badge}</span>
+            </Badge>
+          )}
+          {metadata.badge === 'beta' && (
+            <Badge className="bg-purple-500 dark:bg-purple-600 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
+              <span>{metadata.badge}</span>
+            </Badge>
+          )}
         </div>
-        <div>
-          <MDX components={useMDXComponents()} />
-        </div>
+        <div className="text-muted-foreground">{metadata.summary}</div>
       </div>
-
-      <div className="hidden xl:block w-[240px] sticky mt-16 top-16 mr-8 pb-8 h-[calc(100vh-4rem)] overflow-y-auto">
-        {toc && <DashboardTableOfContents toc={toc} />}
+      <div>
+        <MDX components={useMDXComponents()} />
       </div>
     </div>
   )
