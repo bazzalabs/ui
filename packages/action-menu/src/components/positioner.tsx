@@ -243,6 +243,8 @@ export const PositionerImpl: React.FC<ActionMenuPositionerProps> = ({
       ({
         '--action-menu-available-height': 'var(--available-height, 0px)',
         '--action-menu-available-width': 'var(--available-width, 0px)',
+        '--action-menu-trigger-height': 'var(--anchor-height, 0px)',
+        '--action-menu-trigger-width': 'var(--anchor-width, 0px)',
       }) as React.CSSProperties,
     [],
   )

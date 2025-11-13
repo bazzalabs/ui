@@ -4,6 +4,13 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
+  images: {
+    remotePatterns: [
+      new URL(
+        'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/**',
+      ),
+    ],
+  },
   redirects: async () => [
     {
       source: '/chat',

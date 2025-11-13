@@ -12,6 +12,8 @@ import { ActionMenu_Linear } from './linear'
 import { ActionMenu_LinearAsync } from './linear-async'
 import { ActionMenu_Massive } from './massive'
 import { ActionMenu_Notion } from './notion'
+import { ActionMenu_PokemonNative } from './pokemon-native'
+import { ActionMenu_PokemonReactQuery } from './pokemon-react-query'
 import { ActionMenu_RadioGroups } from './radio-groups'
 import { ActionMenu_Submenus } from './submenus'
 import { ActionMenu_SubmenusCustomized } from './submenus-customized'
@@ -33,6 +35,8 @@ export const ActionMenu = {
   AsyncBasic: ActionMenu_AsyncBasic,
   AsyncSubmenus: ActionMenu_AsyncSubmenus,
   AsyncDeepSearch: ActionMenu_AsyncDeepSearch,
+  PokemonReactQuery: ActionMenu_PokemonReactQuery,
+  PokemonNative: ActionMenu_PokemonNative,
   /***** Kitchen sink examples *****/
   Linear: ActionMenu_Linear,
   LinearAsync: ActionMenu_LinearAsync,

@@ -138,10 +138,19 @@ export const Surface = React.forwardRef(function Surface<T>(
     return menuDef.loader
   }, [menuProp, sub])
 
+  // Determine if we should pass query to the loader
+  // When search mode is 'client', the loader should only run once with no query
+  // The filtering happens client-side using the keywords array
+  const loaderQuery = React.useMemo(() => {
+    const searchMode = searchConfig.mode ?? 'client'
+    // Only pass query to loader for server/hybrid modes
+    return searchMode === 'client' ? '' : effectiveQuery
+  }, [searchConfig.mode, effectiveQuery])
+
   // Create loader context
   const loaderContext = React.useMemo<AsyncNodeLoaderContext>(
-    () => ({ query: effectiveQuery, open }),
-    [effectiveQuery, open],
+    () => ({ query: loaderQuery, open }),
+    [loaderQuery, open],
   )
 
   // Execute the loader using the adapter (always defined, never null)

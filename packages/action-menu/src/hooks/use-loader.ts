@@ -37,6 +37,11 @@ function useLoaderInternal<T>(
       return
     }
 
+    // Don't run loader when menu is closed
+    if (!context.open) {
+      return
+    }
+
     // Static result (already resolved)
     if (typeof loader === 'object' && 'data' in loader) {
       setData(loader.data)
