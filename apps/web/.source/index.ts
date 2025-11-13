@@ -2,13 +2,13 @@
 
 import { _runtime } from 'fumadocs-mdx/runtime/next'
 import * as changelog_0 from '../content/changelog/2025-05-05-v0.2.mdx?collection=changelog&hash=1763003340520'
-import * as docs_10 from '../content/docs/action-menu/(01-getting-started)/examples.mdx?collection=docs&hash=1763003340520'
-import * as docs_11 from '../content/docs/action-menu/(01-getting-started)/installation.mdx?collection=docs&hash=1763003340520'
-import * as docs_12 from '../content/docs/action-menu/(01-getting-started)/introduction.mdx?collection=docs&hash=1763003340520'
-import * as docs_5 from '../content/docs/action-menu/(02-concepts)/data-first-api.mdx?collection=docs&hash=1763003340520'
-import * as docs_6 from '../content/docs/action-menu/(02-concepts)/menu-structure.mdx?collection=docs&hash=1763003340520'
-import * as docs_7 from '../content/docs/action-menu/(02-concepts)/node-types.mdx?collection=docs&hash=1763003340520'
-import * as docs_8 from '../content/docs/action-menu/(02-concepts)/your-first-menu.mdx?collection=docs&hash=1763003340520'
+import * as docs_5 from '../content/docs/action-menu/(01-getting-started)/examples.mdx?collection=docs&hash=1763003340520'
+import * as docs_6 from '../content/docs/action-menu/(01-getting-started)/installation.mdx?collection=docs&hash=1763003340520'
+import * as docs_7 from '../content/docs/action-menu/(01-getting-started)/introduction.mdx?collection=docs&hash=1763003340520'
+import * as docs_8 from '../content/docs/action-menu/(02-concepts)/data-first-api.mdx?collection=docs&hash=1763003340520'
+import * as docs_9 from '../content/docs/action-menu/(02-concepts)/menu-structure.mdx?collection=docs&hash=1763003340520'
+import * as docs_10 from '../content/docs/action-menu/(02-concepts)/node-types.mdx?collection=docs&hash=1763003340520'
+import * as docs_11 from '../content/docs/action-menu/(02-concepts)/your-first-menu.mdx?collection=docs&hash=1763003340520'
 import * as docs_18 from '../content/docs/action-menu/(03-features)/async.mdx?collection=docs&hash=1763003340520'
 import * as docs_19 from '../content/docs/action-menu/(03-features)/defaults.mdx?collection=docs&hash=1763003340520'
 import * as docs_20 from '../content/docs/action-menu/(03-features)/extended-properties.mdx?collection=docs&hash=1763003340520'
@@ -24,7 +24,7 @@ import * as docs_14 from '../content/docs/action-menu/(04-guides)/custom-renderi
 import * as docs_15 from '../content/docs/action-menu/(04-guides)/dynamic-content.mdx?collection=docs&hash=1763003340520'
 import * as docs_16 from '../content/docs/action-menu/(04-guides)/multiselect.mdx?collection=docs&hash=1763003340520'
 import * as docs_17 from '../content/docs/action-menu/(04-guides)/performance.mdx?collection=docs&hash=1763003340520'
-import * as docs_9 from '../content/docs/action-menu/(05-reference)/api-reference.mdx?collection=docs&hash=1763003340520'
+import * as docs_12 from '../content/docs/action-menu/(05-reference)/api-reference.mdx?collection=docs&hash=1763003340520'
 import * as docs_0 from '../content/docs/components.mdx?collection=docs&hash=1763003340520'
 import * as docs_1 from '../content/docs/data-table-filter.mdx?collection=docs&hash=1763003340520'
 import * as docs_2 from '../content/docs/feedback.mdx?collection=docs&hash=1763003340520'
@@ -73,45 +73,10 @@ export const docs = _runtime.docs<typeof _source.docs>(
     },
     {
       info: {
-        path: 'action-menu/(02-concepts)/data-first-api.mdx',
-        fullPath: 'content/docs/action-menu/(02-concepts)/data-first-api.mdx',
-      },
-      data: docs_5,
-    },
-    {
-      info: {
-        path: 'action-menu/(02-concepts)/menu-structure.mdx',
-        fullPath: 'content/docs/action-menu/(02-concepts)/menu-structure.mdx',
-      },
-      data: docs_6,
-    },
-    {
-      info: {
-        path: 'action-menu/(02-concepts)/node-types.mdx',
-        fullPath: 'content/docs/action-menu/(02-concepts)/node-types.mdx',
-      },
-      data: docs_7,
-    },
-    {
-      info: {
-        path: 'action-menu/(02-concepts)/your-first-menu.mdx',
-        fullPath: 'content/docs/action-menu/(02-concepts)/your-first-menu.mdx',
-      },
-      data: docs_8,
-    },
-    {
-      info: {
-        path: 'action-menu/(05-reference)/api-reference.mdx',
-        fullPath: 'content/docs/action-menu/(05-reference)/api-reference.mdx',
-      },
-      data: docs_9,
-    },
-    {
-      info: {
         path: 'action-menu/(01-getting-started)/examples.mdx',
         fullPath: 'content/docs/action-menu/(01-getting-started)/examples.mdx',
       },
-      data: docs_10,
+      data: docs_5,
     },
     {
       info: {
@@ -119,13 +84,48 @@ export const docs = _runtime.docs<typeof _source.docs>(
         fullPath:
           'content/docs/action-menu/(01-getting-started)/installation.mdx',
       },
-      data: docs_11,
+      data: docs_6,
     },
     {
       info: {
         path: 'action-menu/(01-getting-started)/introduction.mdx',
         fullPath:
           'content/docs/action-menu/(01-getting-started)/introduction.mdx',
+      },
+      data: docs_7,
+    },
+    {
+      info: {
+        path: 'action-menu/(02-concepts)/data-first-api.mdx',
+        fullPath: 'content/docs/action-menu/(02-concepts)/data-first-api.mdx',
+      },
+      data: docs_8,
+    },
+    {
+      info: {
+        path: 'action-menu/(02-concepts)/menu-structure.mdx',
+        fullPath: 'content/docs/action-menu/(02-concepts)/menu-structure.mdx',
+      },
+      data: docs_9,
+    },
+    {
+      info: {
+        path: 'action-menu/(02-concepts)/node-types.mdx',
+        fullPath: 'content/docs/action-menu/(02-concepts)/node-types.mdx',
+      },
+      data: docs_10,
+    },
+    {
+      info: {
+        path: 'action-menu/(02-concepts)/your-first-menu.mdx',
+        fullPath: 'content/docs/action-menu/(02-concepts)/your-first-menu.mdx',
+      },
+      data: docs_11,
+    },
+    {
+      info: {
+        path: 'action-menu/(05-reference)/api-reference.mdx',
+        fullPath: 'content/docs/action-menu/(05-reference)/api-reference.mdx',
       },
       data: docs_12,
     },
