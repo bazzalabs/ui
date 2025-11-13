@@ -1,0 +1,73 @@
+---
+title: Getting Started
+section: Components
+summary: "Learn the basics of the action menu component."
+---
+
+## Quick Start
+
+The action menu is built on a **data-first API**. You define your menu structure as a JavaScript object, and the component handles the rest.
+
+Here's the simplest possible menu:
+
+```tsx
+import { ActionMenu } from '@/components/ui/action-menu'
+import { Button } from '@/components/ui/button'
+
+const menu = {
+  nodes: [
+    { kind: 'item', id: 'apple', label: 'Apple', icon: '🍎' },
+    { kind: 'item', id: 'banana', label: 'Banana', icon: '🍌' },
+    { kind: 'item', id: 'orange', label: 'Orange', icon: '🍊' },
+  ],
+}
+
+export function FruitsMenu() {
+  return (
+    <ActionMenu
+      trigger={<Button>Fruits</Button>}
+      menu={menu}
+    />
+  )
+}
+```
+
+## Core Concepts
+
+### 1. MenuDef
+
+The `MenuDef` object describes your entire menu structure. It contains an array of `nodes` that define what to render.
+
+### 2. Node Types
+
+There are four types of nodes:
+
+- **Item** - A single clickable menu item
+- **Group** - Groups items together with an optional heading
+- **Submenu** - A nested submenu that can be opened
+- **Separator** - A visual separator between items
+
+### 3. Data-First
+
+Instead of writing JSX for each menu item, you describe your menu as data. This makes it easy to:
+
+- Generate menus dynamically
+- Load menu structures from APIs
+- Transform and filter menu items
+- Implement search and filtering
+
+## Learning Path
+
+1. **[Your First Menu](/docs/action-menu/getting-started/your-first-menu)** - Create a basic menu with items and actions
+2. **[Data-First API](/docs/action-menu/getting-started/data-first-api)** - Understand the MenuDef structure
+3. **[Quick Examples](/docs/action-menu/getting-started/quick-examples)** - Common menu patterns
+
+## Common Pitfalls
+
+- **Missing IDs**: Each node must have a unique `id` within its siblings
+- **closeOnSelect**: By default, items don't close the menu on select. Set `closeOnSelect: true` if you want this behavior
+- **Deep search**: Submenus are searchable from parent menus by default. Set `deepSearch: false` to disable this
+
+## Next Steps
+
+Ready to dive in? Start with [Your First Menu](/docs/action-menu/getting-started/your-first-menu) to build something real.

@@ -1,0 +1,477 @@
+---
+title: Middleware
+section: Components
+summary: "Transform and extend menu behavior with middleware hooks."
+---
+
+## Overview
+
+Middleware provides powerful hooks to transform menu nodes at different stages of the rendering pipeline. Use middleware to:
+
+- Add dynamic "Create New" items to search results
+- Filter or transform nodes based on custom logic
+- Inject separator nodes or section headers
+- Modify search results after scoring
+- Implement custom behaviors (pinned items, recent items, etc.)
+
+## Middleware Interface
+
+```tsx
+interface MenuMiddleware<T = unknown> {
+  beforeFilter?: (context: BeforeFilterContext<T>) => Node<T>[]
+  afterFilter?: (context: AfterFilterContext<T>) => SearchResult<T>[]
+  transformNodes?: (context: TransformNodesContext<T>) => Node<T>[]
+}
+```
+
+### Hook Execution Order
+
+```
+1. beforeFilter()  →  Raw menu nodes before search
+2. Search/Filter   →  Built-in search scoring
+3. afterFilter()   →  Search results with scores
+4. Flatten         →  Groups expanded to flat list
+5. transformNodes() →  Final nodes before render
+```
+
+## Hooks
+
+### `beforeFilter`
+
+Transform nodes **before** search/filtering begins.
+
+```tsx
+const middleware: MenuMiddleware = {
+  beforeFilter: ({ nodes, query, menu }) => {
+    // Filter out disabled items when searching
+    if (query) {
+      return nodes.filter(node => !node.data?.disabled)
+    }
+    return nodes
+  },
+}
+```
+
+**Use cases:**
+- Pre-filter nodes based on conditions
+- Inject nodes before search runs
+- Modify node properties before scoring
+
+**Context:**
+- `nodes`: Raw menu nodes
+- `query`: Current search query
+- `menu`: Menu instance
+
+### `afterFilter`
+
+Transform search results **after** scoring and sorting.
+
+**Note**: This only runs in **search mode** (when `query` is present).
+
+```tsx
+const middleware: MenuMiddleware = {
+  afterFilter: ({ results, query, menu }) => {
+    // Boost results that are starred
+    return results.map(result => {
+      if (result.node.data?.starred) {
+        return { ...result, score: result.score * 1.5 }
+      }
+      return result
+    })
+  },
+}
+```
+
+**Use cases:**
+- Adjust search scores based on metadata
+- Filter results after scoring
+- Re-rank results based on custom logic
+
+**Context:**
+- `results`: Scored search results
+- `query`: Current search query
+- `menu`: Menu instance
+
+### `transformNodes`
+
+Transform flattened nodes **before rendering**.
+
+**Note**: This is the **most commonly used** hook. It runs in both browse and search modes.
+
+```tsx
+const middleware: MenuMiddleware = {
+  transformNodes: ({ nodes, query, mode, menu }) => {
+    // Add a separator at the top in search mode
+    if (mode === 'search') {
+      return [
+        createNode({
+          kind: 'separator',
+          id: 'search-header',
+          label: `Results for "${query}"`,
+        }),
+        ...nodes,
+      ]
+    }
+    return nodes
+  },
+}
+```
+
+**Use cases:**
+- Add dynamic items based on mode
+- Inject separators or section headers
+- Filter final nodes before rendering
+- Most general-purpose transformations
+
+**Context:**
+- `nodes`: Flattened nodes ready for rendering
+- `query`: Current search query (empty string if not searching)
+- `mode`: `'browse'` or `'search'`
+- `allNodes`: Original unfiltered nodes
+- `menu`: Menu instance
+- `createNode`: Helper to create properly instantiated nodes
+- `hasExactMatch`: Helper to check if query exactly matches any label
+
+## Built-in Middleware
+
+### `createNew`
+
+Add a "Create New" item to search results.
+
+```tsx
+import { createNew } from '@bazza-ui/action-menu/middleware'
+
+const menu = {
+  middleware: createNew({
+    showWhen: 'no-exact-match',
+    position: 'bottom',
+    label: (query) => `Create "${query}"`,
+    icon: <PlusIcon />,
+    onCreate: async (query) => {
+      const item = await api.createItem({ name: query })
+      console.log('Created:', item)
+    },
+  }),
+  nodes: [...],
+}
+```
+
+#### Configuration
+
+```tsx
+type CreateNewConfig = {
+  showWhen: 'always' | 'no-results' | 'has-query' | 'no-exact-match'
+  position?: 'top' | 'bottom' // Default: 'bottom'
+  label?: string | ((query: string) => string) // Default: `Create: ${query}`
+  icon?: Iconish
+  id?: string // Default: `__create-new-${query}`
+  minQueryLength?: number // Default: 1 (only for 'has-query')
+  closeOnSelect?: boolean // Default: false
+  onCreate: (query: string) => void | Promise<void>
+  render?: (args: RenderArgs) => React.ReactNode
+}
+```
+
+#### `showWhen` Conditions
+
+**`'no-exact-match'`** (Recommended)
+- Shows when query doesn't exactly match any existing label
+- Prevents duplicate creation
+- Best for most use cases
+
+```tsx
+createNew({
+  showWhen: 'no-exact-match',
+  onCreate: (query) => createLabel(query),
+})
+```
+
+**`'no-results'`**
+- Shows only when search returns no results
+- Useful for empty states
+
+```tsx
+createNew({
+  showWhen: 'no-results',
+  label: 'No matches found. Create new?',
+  onCreate: (query) => createLabel(query),
+})
+```
+
+**`'has-query'`**
+- Shows when query meets minimum length
+- Use with `minQueryLength` for control
+
+```tsx
+createNew({
+  showWhen: 'has-query',
+  minQueryLength: 3,
+  label: 'Create new item',
+  onCreate: (query) => createLabel(query),
+})
+```
+
+**`'always'`**
+- Always shows when searching
+- Use sparingly to avoid clutter
+
+```tsx
+createNew({
+  showWhen: 'always',
+  position: 'top',
+  label: (query) => `+ ${query}`,
+  onCreate: (query) => createLabel(query),
+})
+```
+
+#### Custom Rendering
+
+Use the `render` prop for full control:
+
+```tsx
+createNew({
+  showWhen: 'no-exact-match',
+  render: ({ query, bind }) => (
+    <li
+      {...bind.getRowProps()}
+      className="flex items-center gap-2 text-primary"
+    >
+      <PlusIcon className="size-4" />
+      <span>Create "{query}"</span>
+      <kbd className="ml-auto">↵</kbd>
+    </li>
+  ),
+  onCreate: (query) => createLabel(query),
+})
+```
+
+## Custom Middleware Examples
+
+### Pinned Items
+
+Pin important items to the top:
+
+```tsx
+const pinned: MenuMiddleware = {
+  transformNodes: ({ nodes, mode }) => {
+    if (mode === 'browse') {
+      const pinnedNodes = nodes.filter(n => n.data?.pinned)
+      const unpinnedNodes = nodes.filter(n => !n.data?.pinned)
+
+      return [
+        ...pinnedNodes,
+        ...(pinnedNodes.length > 0
+          ? [{ kind: 'separator', id: 'pin-sep' }]
+          : []),
+        ...unpinnedNodes,
+      ]
+    }
+    return nodes
+  },
+}
+```
+
+### Recent Items
+
+Show recently used items first:
+
+```tsx
+const recentItems: MenuMiddleware = {
+  beforeFilter: ({ nodes, query, menu }) => {
+    if (!query) {
+      const recentIds = getRecentItemIds() // Your storage logic
+      const recent = nodes.filter(n => recentIds.includes(n.id))
+      const other = nodes.filter(n => !recentIds.includes(n.id))
+
+      return [
+        ...recent,
+        { kind: 'separator', id: 'recent-sep', label: 'All Items' },
+        ...other,
+      ]
+    }
+    return nodes
+  },
+}
+```
+
+### Grouped Results
+
+Group search results by category:
+
+```tsx
+const groupByCategory: MenuMiddleware = {
+  transformNodes: ({ nodes, mode }) => {
+    if (mode !== 'search') return nodes
+
+    const grouped = groupBy(nodes, n => n.data?.category || 'Other')
+    const result = []
+
+    for (const [category, items] of Object.entries(grouped)) {
+      result.push({
+        kind: 'separator',
+        id: `cat-${category}`,
+        label: category,
+      })
+      result.push(...items)
+    }
+
+    return result
+  },
+}
+```
+
+### Conditional Nodes
+
+Show/hide nodes based on permissions:
+
+```tsx
+const permissionFilter: MenuMiddleware<MyData> = {
+  beforeFilter: ({ nodes, menu }) => {
+    const user = getCurrentUser()
+    return nodes.filter(node => {
+      const requiredPermission = node.data?.permission
+      return !requiredPermission || user.hasPermission(requiredPermission)
+    })
+  },
+}
+```
+
+### Search Score Boosting
+
+Boost items based on custom criteria:
+
+```tsx
+const boostStarred: MenuMiddleware = {
+  afterFilter: ({ results }) => {
+    return results.map(result => {
+      if (result.node.data?.starred) {
+        return { ...result, score: Math.min(1, result.score * 1.5) }
+      }
+      return result
+    })
+  },
+}
+```
+
+### Dynamic Separators
+
+Add contextual separators:
+
+```tsx
+const dynamicSections: MenuMiddleware = {
+  transformNodes: ({ nodes, query }) => {
+    if (!query) return nodes
+
+    const hasExactMatch = nodes.some(n =>
+      n.kind === 'item' && n.label?.toLowerCase() === query.toLowerCase()
+    )
+
+    if (!hasExactMatch) {
+      return [
+        { kind: 'separator', id: 'sep-1', label: 'Search Results' },
+        ...nodes,
+      ]
+    }
+
+    return nodes
+  },
+}
+```
+
+## Composing Middleware
+
+Combine multiple middleware by spreading them:
+
+```tsx
+const menu = {
+  middleware: {
+    ...pinned,
+    ...createNew({
+      showWhen: 'no-exact-match',
+      onCreate: (query) => createItem(query),
+    }),
+  },
+  nodes: [...],
+}
+```
+
+**Note**: Later middleware hooks override earlier ones. To run multiple hooks:
+
+```tsx
+const combined: MenuMiddleware = {
+  transformNodes: (context) => {
+    let nodes = context.nodes
+    nodes = pinned.transformNodes?.(context) ?? nodes
+    nodes = recents.transformNodes?.({ ...context, nodes }) ?? nodes
+    return nodes
+  },
+}
+```
+
+## Helper Functions
+
+### `createNode`
+
+Available in `transformNodes` context:
+
+```tsx
+const middleware: MenuMiddleware = {
+  transformNodes: ({ createNode }) => {
+    const newItem = createNode({
+      kind: 'item',
+      id: 'dynamic',
+      label: 'Dynamically created',
+      onSelect: () => console.log('Selected!'),
+    })
+
+    return [newItem, ...nodes]
+  },
+}
+```
+
+### `hasExactMatch`
+
+Check if query exactly matches any item:
+
+```tsx
+const middleware: MenuMiddleware = {
+  transformNodes: ({ query, hasExactMatch }) => {
+    if (query && !hasExactMatch(query)) {
+      // No exact match, show create option
+    }
+    return nodes
+  },
+}
+```
+
+## Best Practices
+
+1. **Use the right hook**
+   - `beforeFilter`: Pre-filter before search
+   - `afterFilter`: Adjust scores (search mode only)
+   - `transformNodes`: Most general transformations
+
+2. **Keep it pure**
+   - Don't mutate input nodes
+   - Return new arrays
+   - Avoid side effects
+
+3. **Performance**
+   - Middleware runs on every render
+   - Keep transformations lightweight
+   - Use memoization if needed
+
+4. **Type safety**
+   - Use generic `MenuMiddleware<YourDataType>`
+   - Ensures `node.data` is properly typed
+
+5. **Composition**
+   - Build small, focused middleware
+   - Combine them for complex behavior
+   - Order matters when composing
+
+## Related
+
+- [Search](/docs/action-menu/search) - Search configuration
+- [Theming](/docs/action-menu/theming) - Customizing node rendering
+- [Advanced](/docs/action-menu/advanced) - Other advanced features

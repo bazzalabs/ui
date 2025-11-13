@@ -12,10 +12,10 @@ import { useMDXComponents } from '@/mdx-components'
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug?: string[] }>
 }): Promise<Metadata> {
-  const slug = (await params).slug
-  const page = docsSource.getPage([slug])
+  const slug = (await params).slug || []
+  const page = docsSource.getPage(slug)
 
   if (!page) {
     return {}
@@ -38,7 +38,7 @@ export async function generateMetadata({
       title: `${metadata.title} — bazza/ui`,
       description: metadata.summary,
       type: 'article',
-      url: `https://ui.bazza.dev/docs/${slug}`,
+      url: `https://ui.bazza.dev/docs/${slug.join('/')}`,
       images: [
         {
           url: `/og?title=${encodeURIComponent(
@@ -66,10 +66,10 @@ export async function generateMetadata({
 export default async function Page({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug?: string[] }>
 }) {
-  const slug = (await params).slug
-  const page = docsSource.getPage([slug])
+  const slug = (await params).slug || []
+  const page = docsSource.getPage(slug)
 
   if (!page) {
     notFound()
@@ -94,7 +94,7 @@ export default async function Page({
           <SidebarTrigger className="md:hidden" />
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 mb-16">
           <div className="flex items-start gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}
@@ -126,7 +126,7 @@ export default async function Page({
 
 export async function generateStaticParams() {
   return docsSource.getPages().map((page) => ({
-    slug: page.slugs[0],
+    slug: page.slugs,
   }))
 }
 

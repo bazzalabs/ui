@@ -1,0 +1,366 @@
+---
+title: Search & Filtering
+section: Components
+summary: "Configure search behavior for client, server, and hybrid modes."
+---
+
+## Overview
+
+The action menu provides powerful search capabilities with three distinct modes: **client-side**, **server-side**, and **hybrid**. Search behavior is configured via the `search` property on your `MenuDef`.
+
+## Search Modes
+
+### Client Mode (Default)
+
+Client-side search performs filtering locally in the browser. This is the default mode and works great for static menus or when all data is already loaded.
+
+```tsx
+const menu = {
+  search: {
+    mode: 'client', // Default, can be omitted
+  },
+  nodes: [
+    { kind: 'item', id: '1', label: 'Apple' },
+    { kind: 'item', id: '2', label: 'Banana' },
+    { kind: 'item', id: '3', label: 'Cherry' },
+  ],
+}
+```
+
+**Features:**
+- Instant filtering with no network latency
+- Built-in fuzzy search scoring
+- Supports deep search across submenus
+- Works with static nodes
+
+### Server Mode
+
+Server-side search delegates all filtering to your backend API. The query is passed to your loader, and no client-side filtering is applied.
+
+```tsx
+const menu = {
+  search: {
+    mode: 'server',
+    debounce: 300, // Recommended for server mode
+  },
+  loader: async ({ query }) => {
+    if (!query) {
+      // Return default items when no search query
+      return fetchDefaultItems()
+    }
+    // Server performs the search
+    return fetchSearchResults(query)
+  },
+}
+```
+
+**Features:**
+- Search large datasets without loading everything
+- Server controls ranking and relevance
+- No client-side scoring applied
+- All results have equal score (1.0)
+
+**Best for:**
+- Large datasets that can't be loaded at once
+- Complex search logic (full-text search, database queries)
+- Real-time data that changes frequently
+
+### Hybrid Mode
+
+Hybrid mode combines both client and server search. The query is sent to the server AND client-side filtering is applied to the results.
+
+```tsx
+const menu = {
+  search: {
+    mode: 'hybrid',
+    debounce: 200,
+  },
+  loader: async ({ query }) => {
+    // Server performs initial filtering
+    const serverResults = await fetchFilteredItems(query)
+    return serverResults
+  },
+}
+```
+
+**Features:**
+- Server provides candidate results
+- Client applies additional fuzzy filtering
+- Best of both worlds for complex scenarios
+- Results are scored and ranked
+
+**Best for:**
+- Server provides broad matches, client refines them
+- Multi-stage filtering pipelines
+- Reducing network payload while maintaining relevance
+
+## Search Configuration
+
+### Type Definition
+
+```tsx
+type SearchConfig = {
+  mode?: 'client' | 'server' | 'hybrid' // Default: 'client'
+  debounce?: number // Default: 0 (milliseconds)
+  minLength?: number | { local?: number; deep?: number } // Default: 0
+}
+```
+
+### Debounce
+
+Delay search execution to avoid excessive updates:
+
+```tsx
+const menu = {
+  search: {
+    debounce: 300, // Wait 300ms after user stops typing
+  },
+  // ...
+}
+```
+
+**Recommended values:**
+- `0` - Instant (default, good for client mode)
+- `150-300` - Moderate delay (good for hybrid mode)
+- `300-500` - Longer delay (good for server mode)
+
+### Minimum Length
+
+Require a minimum query length before searching:
+
+```tsx
+// Simple number (applies to deep search only)
+const menu = {
+  search: {
+    minLength: 2, // Deep search requires 2+ characters
+  },
+  // ...
+}
+
+// Object with separate thresholds
+const menu = {
+  search: {
+    minLength: {
+      local: 0, // Local search is always active
+      deep: 3, // Deep search needs 3+ characters
+    },
+  },
+  // ...
+}
+```
+
+**Use cases:**
+- Prevent expensive deep searches on single characters
+- Improve performance for large menus
+- Control when async loaders are triggered
+
+## Deep Search
+
+Deep search allows searching into submenu contents from parent menus. It's enabled by default but can be controlled per submenu.
+
+### Enabling/Disabling Deep Search
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'settings',
+      label: 'Settings',
+      deepSearch: true, // Default: search this submenu from parent
+      nodes: [
+        { kind: 'item', id: 'profile', label: 'Profile' },
+        { kind: 'item', id: 'privacy', label: 'Privacy' },
+      ],
+    },
+    {
+      kind: 'submenu',
+      id: 'admin',
+      label: 'Admin',
+      deepSearch: false, // Don't search this submenu from parent
+      nodes: [
+        { kind: 'item', id: 'users', label: 'Users' },
+      ],
+    },
+  ],
+}
+```
+
+### Deep Search with Async Loaders
+
+When searching, the action menu automatically loads all deep-searchable submenus in parallel:
+
+```tsx
+const menu = {
+  search: {
+    minLength: { deep: 2 }, // Only trigger deep search after 2 characters
+  },
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'projects',
+      deepSearch: true, // Will be searched from parent
+      loader: async ({ query }) => {
+        return await fetchProjects(query)
+      },
+    },
+    {
+      kind: 'submenu',
+      id: 'files',
+      deepSearch: true,
+      loader: async ({ query }) => {
+        return await fetchFiles(query)
+      },
+    },
+  ],
+}
+```
+
+**How it works:**
+1. User types "test" in the root menu
+2. Action menu identifies all `deepSearch: true` submenus with loaders
+3. Calls all loaders in parallel with `query: "test"`
+4. Merges results with breadcrumbs for navigation
+5. Displays combined results in the root menu
+
+## Search Results
+
+### Result Scoring
+
+In client and hybrid modes, results are scored based on relevance:
+
+```tsx
+type SearchResult = {
+  type: 'item' | 'submenu'
+  node: ItemNode | SubmenuNode
+  score: number // 0-1, higher is better
+  breadcrumbs: string[] // Path to this result
+  breadcrumbIds: string[] // IDs for the path
+}
+```
+
+**Scoring factors:**
+- Exact matches score higher than partial matches
+- Matches at the start of words score higher
+- Shorter items with matches score higher
+- Custom scoring can be implemented via middleware
+
+### Breadcrumbs
+
+Results from nested submenus include breadcrumbs showing their path:
+
+```tsx
+// Result from deeply nested item
+{
+  type: 'item',
+  node: { id: 'profile', label: 'Profile Settings' },
+  breadcrumbs: ['Settings', 'Account'], // Human-readable path
+  breadcrumbIds: ['settings', 'account'], // ID path
+  score: 0.95
+}
+```
+
+Display breadcrumbs in your UI to show where results are located:
+
+```tsx
+const theme = {
+  slots: {
+    Item: ({ node, search }) => {
+      const breadcrumbs = search?.breadcrumbs || []
+      return (
+        <li {...bind.getRowProps()}>
+          <span>{node.label}</span>
+          {breadcrumbs.length > 0 && (
+            <span className="text-sm text-muted">
+              {breadcrumbs.join(' › ')}
+            </span>
+          )}
+        </li>
+      )
+    },
+  },
+}
+```
+
+## Advanced Patterns
+
+### Conditional Search Mode
+
+Switch search modes based on data size:
+
+```tsx
+const menu = {
+  search: {
+    mode: items.length > 1000 ? 'server' : 'client',
+  },
+  // ...
+}
+```
+
+### Search with Caching
+
+Use React Query or similar for intelligent caching:
+
+```tsx
+const menu = {
+  search: {
+    mode: 'server',
+    debounce: 300,
+  },
+  loader: ({ query }) => ({
+    queryKey: ['search', query],
+    queryFn: () => fetchSearchResults(query),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  }),
+}
+```
+
+### Progressive Search
+
+Start with local search, add deep search after threshold:
+
+```tsx
+const menu = {
+  search: {
+    mode: 'client',
+    minLength: {
+      local: 0, // Immediate local search
+      deep: 3, // Only search submenus after 3 characters
+    },
+  },
+  // ...
+}
+```
+
+## Best Practices
+
+1. **Choose the right mode:**
+   - Client: Static menus, < 1000 items
+   - Server: Large datasets, complex search logic
+   - Hybrid: Server filtering + client ranking
+
+2. **Use debounce for async search:**
+   - Prevents excessive API calls
+   - Improves user experience
+   - Recommended: 200-500ms
+
+3. **Set minimum length for deep search:**
+   - Prevents expensive searches on short queries
+   - Improves performance
+   - Recommended: 2-3 characters
+
+4. **Disable deep search when inappropriate:**
+   - Sensitive submenus (admin, settings)
+   - Very large nested datasets
+   - When navigation is preferred over search
+
+5. **Display breadcrumbs for nested results:**
+   - Helps users understand result context
+   - Improves discoverability
+   - Better UX for deep menus
+
+## Related
+
+- [Async Loading](/docs/action-menu/async) - Loading menu data asynchronously
+- [Theming](/docs/action-menu/theming) - Customizing search UI
+- [Advanced](/docs/action-menu/advanced) - Search middleware

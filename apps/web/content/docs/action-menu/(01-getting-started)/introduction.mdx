@@ -1,0 +1,30 @@
+---
+title: Action Menu
+section: Components
+summary: "A composable menu with deep search and multi-level submenus."
+badge: alpha
+---
+
+<ComponentFrame
+  className='mb-16'
+  containerClassName='h-104'
+  caption={<>A subset of <a href="https://linear.app/homepage">Linear</a>'s filter menu, recreated with the bazza/ui action menu.</>}
+>
+  <Examples.ActionMenu.Linear />
+</ComponentFrame>
+
+The action menu is a primitive component for building menu interfaces.
+
+At its core, it combines the best features of the dropdown and command menus available today, while adding deep search capabilities.
+
+## Features
+
+- Data-first API with headless, slot-based rendering.
+- Supports submenus with [intent zones](https://linear.app/now/invisible-details) for easy, fluid pointer navigation.
+- Deep search across submenus; descendants are searchable from ancestors.
+- Fully typed with generics for your own menu data, customizable per submenu.
+- Full keyboard navigation with vim-style keybindings built-in.
+- Responsive design; renders a dropdown on desktop and a [drawer](https://vaul.emilkowal.ski) on mobile.
+- Supports modal and non-modal modes.
+- Customize side, alignment, offsets, collision handling.
+- Focus is fully managed; follows the `aria-activedescendant` pattern.

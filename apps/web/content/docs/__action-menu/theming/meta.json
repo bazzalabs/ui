@@ -1,0 +1,11 @@
+{
+  "title": "Theming & Customization",
+  "pages": [
+    "index",
+    "layers",
+    "slots",
+    "classnames",
+    "data-attributes",
+    "bind-api"
+  ]
+}

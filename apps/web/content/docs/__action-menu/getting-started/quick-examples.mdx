@@ -1,0 +1,151 @@
+---
+title: Quick Examples
+section: Components
+summary: "Common action menu patterns."
+---
+
+## Simple Actions Menu
+
+```tsx
+const menu = {
+  nodes: [
+    { kind: 'item', id: 'edit', label: 'Edit', icon: Edit },
+    { kind: 'item', id: 'duplicate', label: 'Duplicate', icon: Copy },
+    { kind: 'item', id: 'delete', label: 'Delete', icon: Trash },
+  ],
+}
+```
+
+## With Groups
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'group',
+      id: 'edit-group',
+      heading: 'Edit',
+      nodes: [
+        { kind: 'item', id: 'cut', label: 'Cut', icon: Scissors },
+        { kind: 'item', id: 'copy', label: 'Copy', icon: Copy },
+        { kind: 'item', id: 'paste', label: 'Paste', icon: Clipboard },
+      ],
+    },
+    {
+      kind: 'group',
+      id: 'file-group',
+      heading: 'File',
+      nodes: [
+        { kind: 'item', id: 'save', label: 'Save', icon: Save },
+        { kind: 'item', id: 'export', label: 'Export', icon: Download },
+      ],
+    },
+  ],
+}
+```
+
+## With Submenus
+
+```tsx
+const menu = {
+  nodes: [
+    { kind: 'item', id: 'new', label: 'New File', icon: FilePlus },
+    {
+      kind: 'submenu',
+      id: 'export',
+      label: 'Export',
+      icon: Download,
+      nodes: [
+        { kind: 'item', id: 'pdf', label: 'PDF', icon: FileText },
+        { kind: 'item', id: 'png', label: 'PNG', icon: Image },
+        { kind: 'item', id: 'svg', label: 'SVG', icon: Shapes },
+      ],
+    },
+    { kind: 'item', id: 'print', label: 'Print', icon: Printer },
+  ],
+}
+```
+
+## With Checkboxes
+
+```tsx
+const [showHidden, setShowHidden] = useState(false)
+const [showSystem, setShowSystem] = useState(false)
+
+const menu = {
+  nodes: [
+    {
+      kind: 'item',
+      variant: 'checkbox',
+      id: 'hidden',
+      label: 'Show Hidden Files',
+      checked: showHidden,
+      onCheckedChange: setShowHidden,
+    },
+    {
+      kind: 'item',
+      variant: 'checkbox',
+      id: 'system',
+      label: 'Show System Files',
+      checked: showSystem,
+      onCheckedChange: setShowSystem,
+    },
+  ],
+}
+```
+
+## Radio Group
+
+```tsx
+const [theme, setTheme] = useState('light')
+
+const menu = {
+  nodes: [
+    {
+      kind: 'group',
+      variant: 'radio',
+      id: 'theme',
+      heading: 'Theme',
+      value: theme,
+      onValueChange: setTheme,
+      nodes: [
+        { kind: 'item', variant: 'radio', id: 'light', label: 'Light' },
+        { kind: 'item', variant: 'radio', id: 'dark', label: 'Dark' },
+        { kind: 'item', variant: 'radio', id: 'system', label: 'System' },
+      ],
+    },
+  ],
+}
+```
+
+## With Search
+
+The action menu automatically provides a search input. Users can type to filter items:
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'item',
+      id: 'apple',
+      label: 'Apple',
+      keywords: ['fruit', 'red'], // Custom search terms
+    },
+    {
+      kind: 'item',
+      id: 'banana',
+      label: 'Banana',
+      keywords: ['fruit', 'yellow'],
+    },
+  ],
+}
+```
+
+## Next Steps
+
+Explore more examples in the [Examples Gallery](/docs/action-menu/examples) or dive deeper into specific features:
+
+- **[Items](/docs/action-menu/nodes/items)** - Button, checkbox, and radio items
+- **[Groups](/docs/action-menu/nodes/groups)** - Grouping and radio groups
+- **[Submenus](/docs/action-menu/nodes/submenus)** - Nested navigation
+- **[Search](/docs/action-menu/search)** - Search and filtering options

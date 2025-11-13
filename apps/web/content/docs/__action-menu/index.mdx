@@ -1,0 +1,54 @@
+---
+title: Action Menu
+section: Components
+summary: "A composable menu with deep search and multi-level submenus."
+badge: alpha
+---
+
+<ComponentFrame
+  className='mb-16'
+  containerClassName='h-104'
+  caption={<>A subset of <a href="https://linear.app/homepage">Linear</a>'s filter menu, recreated with the bazza/ui action menu.</>}
+>
+  <Examples.ActionMenu.Linear />
+</ComponentFrame>
+
+The action menu is a primitive component for building menu interfaces.
+
+At its core, it combines the best features of the dropdown and command menus available today, while adding deep search capabilities.
+
+## Features
+
+- Data-first API with headless, slot-based rendering.
+- Supports submenus with [intent zones](https://linear.app/now/invisible-details) for easy, fluid pointer navigation.
+- Deep search across submenus; descendants are searchable from ancestors.
+- Fully typed with generics for your own menu data, customizable per submenu.
+- Full keyboard navigation with vim-style keybindings built-in.
+- Responsive design; renders a dropdown on desktop and a [drawer](https://vaul.emilkowal.ski) on mobile.
+- Supports modal and non-modal modes.
+- Customize side, alignment, offsets, collision handling.
+- Focus is fully managed; follows the `aria-activedescendant` pattern.
+
+## Next Steps
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <a href="/docs/action-menu/installation" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="font-semibold mb-2">Installation</h3>
+    <p className="text-sm text-muted-foreground">Install the action menu component in your project.</p>
+  </a>
+
+  <a href="/docs/action-menu/getting-started" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="font-semibold mb-2">Getting Started</h3>
+    <p className="text-sm text-muted-foreground">Learn the basics and create your first menu.</p>
+  </a>
+
+  <a href="/docs/action-menu/examples" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="font-semibold mb-2">Examples</h3>
+    <p className="text-sm text-muted-foreground">Browse interactive examples and use cases.</p>
+  </a>
+
+  <a href="/docs/action-menu/api-reference" className="block p-6 border rounded-lg hover:border-primary transition-colors">
+    <h3 className="font-semibold mb-2">API Reference</h3>
+    <p className="text-sm text-muted-foreground">Complete TypeScript API documentation.</p>
+  </a>
+</div>

@@ -1,0 +1,9 @@
+{
+  "title": "Core Concepts",
+  "pages": [
+    "node-types",
+    "menu-structure",
+    "state-management",
+    "responsive-behavior"
+  ]
+}

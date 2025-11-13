@@ -1,0 +1,24 @@
+{
+  "title": "Action Menu",
+  "pages": [
+    "index",
+    "installation",
+    "getting-started",
+    "---Core Concepts---",
+    "concepts",
+    "nodes",
+    "---Features---",
+    "async",
+    "search",
+    "theming",
+    "positioning",
+    "interaction",
+    "---Advanced---",
+    "advanced",
+    "guides",
+    "---Reference---",
+    "examples",
+    "api-reference"
+  ],
+  "defaultOpen": true
+}
