@@ -34,9 +34,9 @@ export default function Page() {
               <span>ui</span>
             </Link>
 
-            <h1 className="text-5xl font-[538] tracking-[-0.035rem] select-none">
+            {/*<h1 className="text-5xl font-[538] tracking-[-0.035rem] select-none">
               Playground
-            </h1>
+            </h1>*/}
           </div>
         </div>
       </div>

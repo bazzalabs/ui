@@ -14,12 +14,10 @@ import { ListFilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 import {
   AssigneeIcon,
-  DurationIcon,
   LabelsIcon,
   ProjectPropertiesIcon,
   ProjectStatus,
@@ -168,21 +166,6 @@ const assigneeMenu: SubmenuDef = {
     queryFn: fetchAssignees,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })),
-}
-
-const durationMenu: SubmenuDef = {
-  kind: 'submenu',
-  id: 'duration',
-  icon: <DurationIcon />,
-  label: 'Duration',
-  title: 'Duration',
-  render: () => {
-    return (
-      <div className="w-[300px] h-[200px] p-4">
-        <Slider />
-      </div>
-    )
-  },
 }
 
 export const LABEL_STYLES_BG = {
@@ -706,6 +689,7 @@ const labelsMenu: SubmenuDef = {
   title: 'Labels',
   label: 'Labels',
   inputPlaceholder: 'Labels...',
+  search: { mode: 'server' },
   loader: createLoader(({ query }) => ({
     queryKey: ['labels', query],
     queryFn: () => fetchLabels(query),
@@ -785,11 +769,5 @@ export const menuData: MenuDef = {
   search: {
     minLength: 2,
   },
-  nodes: [
-    statusMenu,
-    assigneeMenu,
-    // durationMenu,
-    labelsMenu,
-    projectPropertiesMenu,
-  ],
+  nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu],
 }

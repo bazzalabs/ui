@@ -5,6 +5,7 @@ import {
   createLoader,
   ReactQueryLoaderAdapter,
 } from '@bazza-ui/action-menu/react-query'
+import { UtensilsIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
@@ -156,7 +157,10 @@ export function ActionMenu_AsyncSubmenusStreaming() {
       }}
     >
       <ActionMenu.Trigger asChild>
-        <Button variant="secondary">Trigger</Button>
+        <Button variant="ghost" className="group">
+          <UtensilsIcon className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary" />
+          What's in the fridge?
+        </Button>
       </ActionMenu.Trigger>
     </ActionMenu>
   )
