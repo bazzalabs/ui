@@ -1,7 +1,7 @@
 import { ActionMenu_AIModelSwitcher } from './ai-model-switcher'
 import { ActionMenu_AsyncBasic } from './async-basic'
 import { ActionMenu_AsyncDeepSearch } from './async-deep-search'
-import { ActionMenu_AsyncSubmenus } from './async-submenus'
+import { ActionMenu_AsyncSubmenusStreaming } from './async-submenus-streaming'
 import { ActionMenu_Basic } from './basic'
 import { ActionMenu_CheckboxItems } from './checkbox-items'
 import { ActionMenu_DisabledItems } from './disabled-items'
@@ -33,8 +33,9 @@ export const ActionMenu = {
   HeaderFooter: ActionMenu_HeaderFooter,
   /** Async */
   AsyncBasic: ActionMenu_AsyncBasic,
-  AsyncSubmenus: ActionMenu_AsyncSubmenus,
+  // AsyncSubmenus: ActionMenu_AsyncSubmenus,
   AsyncDeepSearch: ActionMenu_AsyncDeepSearch,
+  AsyncSubmenusStreaming: ActionMenu_AsyncSubmenusStreaming,
   PokemonReactQuery: ActionMenu_PokemonReactQuery,
   PokemonNative: ActionMenu_PokemonNative,
   /***** Kitchen sink examples *****/

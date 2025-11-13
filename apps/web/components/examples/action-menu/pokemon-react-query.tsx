@@ -15,14 +15,6 @@ type Pokemon = {
   url: string
 }
 
-type PokemonDetails = {
-  id: number
-  name: string
-  sprites: {
-    front_default: string
-  }
-}
-
 type PokemonListResponse = {
   count: number
   next: string | null
@@ -31,7 +23,6 @@ type PokemonListResponse = {
 }
 
 const fetchPokemonList = async () => {
-  console.log('here!!!')
   await sleep(2000)
   const response = await fetch(
     'https://pokeapi.co/api/v2/pokemon/?limit=2000&offset=0',

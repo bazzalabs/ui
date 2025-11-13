@@ -39,8 +39,7 @@ export function ActionMenu_PokemonNative() {
           debounce: 500,
         },
         loader: async () => {
-          console.log('Calling loader!')
-          await sleep(10000)
+          await sleep(500)
           // Fetch Pokemon from PokeAPI
           const response = await fetch(
             'https://pokeapi.co/api/v2/pokemon?limit=1000&offset=0',
@@ -50,7 +49,8 @@ export function ActionMenu_PokemonNative() {
             throw new Error('Failed to fetch Pokemon')
           }
 
-          const filtered: PokemonListResponse = (await response.json()).results
+          const filtered = ((await response.json()) as PokemonListResponse)
+            .results
           // const data: PokemonListResponse = await response.json()
 
           // Filter Pokemon by search query

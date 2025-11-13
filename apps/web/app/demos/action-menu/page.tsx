@@ -29,7 +29,7 @@ export default function Page() {
             <Examples.ActionMenu.PokemonNative />
             <Examples.ActionMenu.PokemonReactQuery />
             <Examples.ActionMenu.AsyncBasic />
-            <Examples.ActionMenu.AsyncSubmenus />
+            <Examples.ActionMenu.AsyncSubmenusStreaming />
             <Examples.ActionMenu.AsyncDeepSearch />
             <Examples.ActionMenu.ItemDescriptions />
             <Examples.ActionMenu.AIModelSwitcher />

@@ -10,7 +10,7 @@ import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { ActionMenu } from '@/registry/action-menu'
 
-export function ActionMenu_AsyncSubmenus() {
+export function ActionMenu_AsyncSubmenusStreaming() {
   return (
     <ActionMenu
       loaderAdapter={ReactQueryLoaderAdapter}
