@@ -112,19 +112,19 @@ The default item variant is a `button`. You don't need to specify this, it is th
 
 #### Checkbox item
 
-```tsx {7,11,12}
+```tsx
 const [checked, setChecked] = useState(false)
 
 /* ... */
 
 {
   kind: 'item',
-  variant: 'checkbox',
+  variant: 'checkbox', // [!code highlight]
   id: 'done',
   label: 'Done',
   icon: <Status.Done />,
-  checked: checked,
-  onCheckedChange: setChecked,
+  checked: checked, // [!code highlight]
+  onCheckedChange: setChecked, // [!code highlight]
 }
 ```
 
@@ -134,10 +134,10 @@ You must use this in a controlled manner by specifying `checked` and `onCheckedC
 
 #### Radio item
 
-```ts {3}
+```ts
 {
   kind: 'item',
-  variant: 'radio',
+  variant: 'radio', // [!code highlight]
   id: 'done',
   label: 'Done',
   icon: <Status.Done />,
@@ -169,17 +169,17 @@ You cannot nest groups.
 
 #### Radio group
 
-```tsx {7,9,10}
+```tsx
 const [fruit, setFruit] = useState<string>('apple')
 
 /* ... */
 
 {
   kind: 'group',
-  variant: 'radio',
+  variant: 'radio', // [!code highlight]
   id: 'fruits',
-  value: fruit,
-  onValueChange: setFruit,
+  value: fruit, // [!code highlight]
+  onValueChange: setFruit, // [!code highlight]
 }
 ```
 
@@ -189,9 +189,9 @@ This requires the `value` and `onValueChange` props on the group.
 
 ### Submenu
 
-```ts {2,10}
+```ts
 {
-  kind: 'submenu',
+  kind: 'submenu', // [!code highlight]
   id: 'export-image',
   label: 'Image',
   title: 'Export Image',
@@ -199,7 +199,7 @@ This requires the `value` and `onValueChange` props on the group.
     { kind: 'item', id: 'export-png', label: 'PNG', icon: Image },
     { kind: 'item', id: 'export-jpg', label: 'JPG', icon: Image },
     {
-      kind: 'submenu',
+      kind: 'submenu', // [!code highlight]
       id: 'export-vector',
       label: 'Vector',
       title: 'Vector',

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { changelogSource } from '@/lib/source'
+import { useMDXComponents } from '@/mdx-components'
 
 export async function generateMetadata({
   params,
@@ -77,10 +78,10 @@ export default async function Page({
     slug?: string
     body: React.ComponentType
   }
-  const MDX = metadata.body
+  const MDX = page.data.body
 
-  const publishedAtDate = parse(metadata.publishedAt, 'yyyy-MM-dd', new Date())
-  const publishedAtFormatted = format(publishedAtDate, 'iiii, MMMM do, yyyy')
+  const date = metadata.publishedAt as unknown as Date
+  const formattedDate = format(date, 'iiii, MMMM do, yyyy')
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_4fr_1fr] gap-4 max-w-screen-xl w-full mx-auto border-x border-border border-dashed">
@@ -100,7 +101,7 @@ export default async function Page({
           <div className="px-4 py-12 max-w-screen-md w-full mx-auto border-border/0 border-dashed xl:border-x flex flex-col gap-12">
             <div className="flex flex-col gap-4">
               <span className="font-mono text-muted-foreground tracking-[-0.01em]">
-                {publishedAtFormatted}
+                {formattedDate}
               </span>
               <span className="text-4xl sm:text-5xl font-[550] tracking-[-0.02em] sm:tracking-[-0.025em]">
                 {metadata.title}
@@ -119,7 +120,7 @@ export default async function Page({
               </Link>
             </div>
             <article className="!select-text">
-              <MDX />
+              <MDX components={useMDXComponents()} />
             </article>
           </div>
         </div>
