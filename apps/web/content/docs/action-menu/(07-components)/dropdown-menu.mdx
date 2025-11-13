@@ -1,0 +1,128 @@
+---
+title: Dropdown Menu
+section: Components
+summary: Command and action menus for buttons and controls
+---
+
+# Dropdown Menu
+
+A dropdown menu component for displaying commands and actions, similar to traditional context menus but attached to a trigger button.
+
+## Basic Usage
+
+```tsx
+import { ActionMenu } from '@bazza-ui/action-menu'
+
+function DropdownMenuExample() {
+  return (
+    <ActionMenu.Root>
+      <ActionMenu.Trigger>
+        <button>Actions</button>
+      </ActionMenu.Trigger>
+      <ActionMenu.Surface
+        menu={{
+          nodes: [
+            {
+              variant: 'button',
+              label: 'Edit',
+              icon: <EditIcon />,
+              onSelect: () => console.log('Edit')
+            },
+            {
+              variant: 'button',
+              label: 'Delete',
+              icon: <TrashIcon />,
+              onSelect: () => console.log('Delete')
+            }
+          ]
+        }}
+      />
+    </ActionMenu.Root>
+  )
+}
+```
+
+## With Keyboard Shortcuts
+
+Display keyboard shortcuts alongside menu items:
+
+```tsx
+{
+  nodes: [
+    {
+      label: 'Copy',
+      keywords: ['copy', 'duplicate'],
+      icon: <CopyIcon />,
+      onSelect: handleCopy,
+      render: (props) => (
+        <ActionMenu.Item {...props}>
+          <span>{props.node.label}</span>
+          <kbd className="ml-auto">⌘C</kbd>
+        </ActionMenu.Item>
+      )
+    }
+  ]
+}
+```
+
+## Nested Submenus
+
+```tsx
+{
+  nodes: [
+    {
+      variant: 'submenu',
+      label: 'Export',
+      icon: <ExportIcon />,
+      nodes: [
+        { label: 'PDF', onSelect: () => exportPDF() },
+        { label: 'CSV', onSelect: () => exportCSV() },
+        { label: 'JSON', onSelect: () => exportJSON() }
+      ]
+    }
+  ]
+}
+```
+
+## With Separators
+
+```tsx
+{
+  nodes: [
+    { label: 'Profile', onSelect: viewProfile },
+    { label: 'Settings', onSelect: openSettings },
+    { variant: 'separator' },
+    { label: 'Sign Out', onSelect: signOut }
+  ]
+}
+```
+
+## Disabled Items
+
+```tsx
+{
+  label: 'Delete',
+  disabled: !canDelete,
+  onSelect: handleDelete
+}
+```
+
+## Positioning
+
+Control where the menu opens:
+
+```tsx
+<ActionMenu.Positioner
+  side="bottom"
+  align="start"
+  sideOffset={4}
+>
+  <ActionMenu.Surface menu={menu} />
+</ActionMenu.Positioner>
+```
+
+## Next Steps
+
+- See [Context Menu](/docs/action-menu/context-menu) for right-click menus
+- Learn about [Positioning](/docs/action-menu/positioning)
+- Explore [Node Types](/docs/action-menu/node-types)

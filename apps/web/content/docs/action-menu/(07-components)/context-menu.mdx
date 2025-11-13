@@ -1,0 +1,179 @@
+---
+title: Context Menu
+section: Components
+summary: Right-click context menus with ActionMenu
+---
+
+# Context Menu
+
+Display context-aware menus on right-click or long-press, commonly used for item-specific actions.
+
+## Basic Usage
+
+```tsx
+import { ActionMenu } from '@bazza-ui/action-menu'
+
+function ContextMenuExample() {
+  return (
+    <ActionMenu.Root>
+      <ActionMenu.Trigger asChild>
+        <div onContextMenu={(e) => {
+          e.preventDefault()
+          // Trigger opens at cursor position
+        }}>
+          Right-click me
+        </div>
+      </ActionMenu.Trigger>
+      <ActionMenu.Surface
+        menu={{
+          nodes: [
+            {
+              label: 'Open',
+              onSelect: () => console.log('Open')
+            },
+            {
+              label: 'Rename',
+              onSelect: () => console.log('Rename')
+            },
+            { variant: 'separator' },
+            {
+              label: 'Delete',
+              onSelect: () => console.log('Delete')
+            }
+          ]
+        }}
+      />
+    </ActionMenu.Root>
+  )
+}
+```
+
+## Dynamic Context
+
+Adjust menu based on the target:
+
+```tsx
+function FileContextMenu({ file }) {
+  const nodes = useMemo(() => {
+    const base = [
+      { label: 'Open', onSelect: () => open(file) },
+      { label: 'Rename', onSelect: () => rename(file) }
+    ]
+
+    if (file.canDelete) {
+      base.push(
+        { variant: 'separator' },
+        { label: 'Delete', onSelect: () => delete(file) }
+      )
+    }
+
+    return base
+  }, [file])
+
+  return (
+    <ActionMenu.Root>
+      <ActionMenu.Trigger asChild>
+        <div onContextMenu={(e) => e.preventDefault()}>
+          {file.name}
+        </div>
+      </ActionMenu.Trigger>
+      <ActionMenu.Surface menu={{ nodes }} />
+    </ActionMenu.Root>
+  )
+}
+```
+
+## Multi-Item Context Menu
+
+Context menu for multiple selected items:
+
+```tsx
+function MultiSelectContextMenu({ selectedItems }) {
+  return (
+    <ActionMenu.Surface
+      menu={{
+        nodes: [
+          {
+            label: `Delete ${selectedItems.length} items`,
+            onSelect: () => deleteItems(selectedItems)
+          },
+          {
+            label: 'Move to...',
+            variant: 'submenu',
+            loader: async () => getFolders()
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+## With Checkboxes
+
+```tsx
+{
+  nodes: [
+    {
+      variant: 'checkbox',
+      label: 'Show Hidden Files',
+      checked: showHidden,
+      onCheckedChange: setShowHidden
+    },
+    {
+      variant: 'checkbox',
+      label: 'Show File Extensions',
+      checked: showExtensions,
+      onCheckedChange: setShowExtensions
+    }
+  ]
+}
+```
+
+## Position at Cursor
+
+Open the menu at the cursor position:
+
+```tsx
+const [position, setPosition] = useState({ x: 0, y: 0 })
+
+<div onContextMenu={(e) => {
+  e.preventDefault()
+  setPosition({ x: e.clientX, y: e.clientY })
+}}>
+  <ActionMenu.Positioner
+    positionMethod="fixed"
+    style={{
+      left: position.x,
+      top: position.y
+    }}
+  >
+    <ActionMenu.Surface menu={menu} />
+  </ActionMenu.Positioner>
+</div>
+```
+
+## Mobile Long-Press
+
+Support long-press on touch devices:
+
+```tsx
+import { useLongPress } from 'use-long-press'
+
+const bind = useLongPress(() => {
+  // Open context menu
+  setOpen(true)
+}, {
+  threshold: 500
+})
+
+<div {...bind()}>
+  Long-press me
+</div>
+```
+
+## Next Steps
+
+- See [Dropdown Menu](/docs/action-menu/dropdown-menu) for button menus
+- Learn about [Positioning](/docs/action-menu/positioning)
+- Explore [Responsive Behavior](/docs/action-menu/responsive-behavior)

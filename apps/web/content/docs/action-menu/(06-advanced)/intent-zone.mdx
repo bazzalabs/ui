@@ -1,0 +1,165 @@
+---
+title: Intent Zone
+section: Components
+summary: Diagonal mouse movement tolerance for submenu navigation
+---
+
+# Intent Zone
+
+The intent zone (also called "aim guard") prevents accidental submenu closures when moving the mouse diagonally toward a submenu.
+
+## The Problem
+
+Without intent zones, moving your mouse diagonally from a menu item to its submenu often causes the submenu to close:
+
+1. Mouse is over "Users" menu item
+2. "Users" submenu opens to the right
+3. User moves mouse diagonally toward submenu
+4. Mouse briefly leaves "Users" item
+5. Submenu closes unexpectedly ❌
+
+## The Solution
+
+Intent zones create a triangular "safe zone" where the mouse can travel without closing the submenu:
+
+```
+Menu Item → [Safe Triangle Zone] → Submenu
+   Users    \                  /
+             \                /
+              \              /
+               \            /
+                \          /
+                 Submenu
+```
+
+## How It Works
+
+1. Mouse hovers over a menu item
+2. Submenu opens
+3. Intent zone calculates a triangle from:
+   - Current mouse position
+   - Top corner of submenu
+   - Bottom corner of submenu
+4. While mouse is inside triangle, submenu stays open
+5. Once mouse exits triangle, normal hover behavior resumes
+
+## Automatic Detection
+
+Intent zones only activate on devices with fine pointer control (mouse):
+
+```tsx
+// Automatically enabled for mouse users
+<ActionMenu.Root>
+  {/* Intent zones active on desktop */}
+</ActionMenu.Root>
+
+// Automatically disabled on touch devices
+// No configuration needed!
+```
+
+## Debug Mode
+
+Visualize the intent zone during development:
+
+```tsx
+<ActionMenu.Root debug>
+  {/* Shows the triangular safe zone as a visual overlay */}
+</ActionMenu.Root>
+```
+
+The debug visualization shows:
+- **Green triangle** - Active safe zone
+- **Red outline** - Submenu boundaries
+- Updates in real-time as mouse moves
+
+## Configuration
+
+Intent zones work automatically, but you can customize timing:
+
+```tsx
+<ActionMenu.Root
+  hoverPolicy={{
+    intentTimeout: 300 // ms to wait before closing
+  }}
+>
+  {/* Customize hover behavior */}
+</ActionMenu.Root>
+```
+
+## Performance
+
+Intent zones are highly optimized:
+
+- Uses pointer events (not mousemove)
+- Debounced position tracking
+- Efficient geometric calculations
+- No impact on touch devices
+
+## Browser Compatibility
+
+Intent zones work in all modern browsers:
+
+- Chrome/Edge 88+
+- Firefox 85+
+- Safari 14+
+
+## Accessibility
+
+Intent zones don't affect keyboard navigation:
+
+- Keyboard users navigate normally
+- Screen readers unaffected
+- Focus management unchanged
+
+## Best Practices
+
+- Enable debug mode during development
+- Test diagonal mouse movements
+- Ensure submenus are positioned consistently
+- Don't override hover policies unless necessary
+
+## Related Features
+
+Intent zones work seamlessly with:
+
+- **Positioning** - Automatically adapts to submenu position
+- **Responsive Behavior** - Only active in dropdown mode
+- **Keyboard Navigation** - Doesn't interfere with keyboard
+
+## Advanced: Custom Hover Policies
+
+For advanced use cases, implement custom hover behavior:
+
+```tsx
+import { HoverPolicyContext } from '@bazza-ui/action-menu'
+
+<HoverPolicyContext.Provider value={customPolicy}>
+  <ActionMenu.Root>
+    {/* Custom hover logic */}
+  </ActionMenu.Root>
+</HoverPolicyContext.Provider>
+```
+
+## Why It Matters
+
+Intent zones dramatically improve UX for nested menus:
+
+- **Fewer accidental closures** - Users can move freely
+- **Faster navigation** - Less precision required
+- **Less frustration** - Natural diagonal movements work
+- **Professional feel** - Matches native OS menus
+
+## Comparison
+
+| Without Intent Zone | With Intent Zone |
+|---------------------|------------------|
+| Must move in perfect L-shape | Can move diagonally |
+| Frequent accidental closes | Stays open reliably |
+| Requires precise mouse control | Forgiving and natural |
+| Frustrating for users | Smooth experience |
+
+## Next Steps
+
+- Try [Examples](/docs/action-menu/examples) with debug mode
+- Learn about [Positioning](/docs/action-menu/positioning)
+- Explore [Custom Rendering](/docs/action-menu/custom-rendering)

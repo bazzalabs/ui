@@ -1,0 +1,452 @@
+---
+title: TypeScript Types
+section: Components
+summary: Comprehensive guide to ActionMenu's TypeScript type system
+---
+
+# TypeScript Types
+
+ActionMenu is written in TypeScript with a rich, extensible type system that provides full type safety and excellent autocomplete.
+
+## Generic Type Parameter
+
+ActionMenu supports a generic type parameter for custom data:
+
+```tsx
+interface UserData {
+  id: string
+  email: string
+  role: 'admin' | 'user'
+}
+
+<ActionMenu.Surface<UserData>
+  menu={{
+    nodes: [
+      {
+        label: 'John Doe',
+        data: {
+          id: '1',
+          email: 'john@example.com',
+          role: 'admin'
+        },
+        onSelect: (node) => {
+          // node.data is fully typed as UserData
+          console.log(node.data.email)
+        }
+      }
+    ]
+  }}
+/>
+```
+
+## Core Types
+
+### MenuDef\<T\>
+
+Menu definition with all configuration:
+
+```tsx
+import type { MenuDef } from '@bazza-ui/action-menu'
+
+const menu: MenuDef<UserData> = {
+  id: 'user-menu',
+  title: 'Users',
+  nodes: [...],
+  search: {
+    mode: 'client',
+    debounce: 300
+  },
+  virtualization: {
+    overscan: 12
+  }
+}
+```
+
+### NodeDef\<T\>
+
+Union type of all node types:
+
+```tsx
+import type { NodeDef } from '@bazza-ui/action-menu'
+
+type NodeDef<T> =
+  | ButtonItemDef<T>
+  | CheckboxItemDef<T>
+  | RadioItemDef<T>
+  | DefaultGroupDef<T>
+  | RadioGroupDef<T>
+  | SubmenuDef<T>
+  | SeparatorDef
+```
+
+### Node Types
+
+Each node type has specific properties:
+
+```tsx
+import type {
+  ButtonItemDef,
+  CheckboxItemDef,
+  RadioItemDef,
+  DefaultGroupDef,
+  RadioGroupDef,
+  SubmenuDef,
+  SeparatorDef
+} from '@bazza-ui/action-menu'
+
+// Button item
+const button: ButtonItemDef = {
+  variant: 'button',
+  label: 'Click me',
+  onSelect: () => {}
+}
+
+// Checkbox item
+const checkbox: CheckboxItemDef = {
+  variant: 'checkbox',
+  label: 'Check me',
+  checked: true,
+  onCheckedChange: (checked) => {}
+}
+
+// Radio item
+const radio: RadioItemDef = {
+  variant: 'radio',
+  label: 'Option 1',
+  value: '1'
+}
+
+// Submenu
+const submenu: SubmenuDef = {
+  variant: 'submenu',
+  label: 'More',
+  nodes: [...] // or loader
+}
+```
+
+## Async Loading Types
+
+### AsyncNodeLoader\<T\>
+
+Flexible loader type supporting multiple patterns:
+
+```tsx
+import type { AsyncNodeLoader } from '@bazza-ui/action-menu'
+
+// Static array
+const loader1: AsyncNodeLoader<T> = [{ label: 'Item' }]
+
+// Function returning array
+const loader2: AsyncNodeLoader<T> = () => [{ label: 'Item' }]
+
+// Async function
+const loader3: AsyncNodeLoader<T> = async () => {
+  const data = await fetch('/api/items')
+  return data.json()
+}
+
+// Adapter-specific config (React Query)
+const loader4: AsyncNodeLoader<T> = {
+  queryKey: ['items'],
+  queryFn: async () => {...}
+}
+```
+
+### LoaderAdapter
+
+Interface for custom adapter implementations:
+
+```tsx
+import type { LoaderAdapter, LoaderState } from '@bazza-ui/action-menu'
+
+const adapter: LoaderAdapter = {
+  useLoader: (config, context) => {
+    // Return LoaderState
+    return {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: () => {}
+    }
+  },
+  useLoaders: (configs, context) => {
+    // Return AggregatedLoaderState
+  }
+}
+```
+
+## Search Types
+
+### SearchConfig
+
+Configure search behavior:
+
+```tsx
+import type { SearchConfig, SearchMode } from '@bazza-ui/action-menu'
+
+const searchConfig: SearchConfig = {
+  mode: 'hybrid' as SearchMode,
+  debounce: 300,
+  minLength: {
+    local: 0,
+    deep: 2
+  }
+}
+```
+
+### SearchContext
+
+Metadata attached to search results:
+
+```tsx
+import type { SearchContext } from '@bazza-ui/action-menu'
+
+interface SearchContext {
+  query: string
+  isDeep: boolean
+  score: number
+  breadcrumbs?: string[]
+}
+```
+
+## Middleware Types
+
+### MenuMiddleware\<T\>
+
+Interface for middleware:
+
+```tsx
+import type { MenuMiddleware } from '@bazza-ui/action-menu'
+
+const middleware: MenuMiddleware<UserData> = {
+  beforeFilter: (context) => {
+    return context.nodes // Transform before search
+  },
+  afterFilter: (context) => {
+    return context.nodes // Transform after search
+  },
+  transformNodes: (context) => {
+    return context.nodes // Transform before render
+  }
+}
+```
+
+### Middleware Contexts
+
+Each hook receives specific context:
+
+```tsx
+import type {
+  BeforeFilterContext,
+  AfterFilterContext,
+  TransformNodesContext
+} from '@bazza-ui/action-menu'
+
+const beforeFilter = (ctx: BeforeFilterContext<T>) => {
+  ctx.nodes      // Current nodes
+  ctx.query      // Search query
+  ctx.menu       // Menu instance
+  ctx.mode       // 'browse' | 'search'
+  ctx.allNodes   // Original unfiltered nodes
+  // ...
+}
+```
+
+## Theme Types
+
+### ActionMenuTheme\<T\>
+
+Complete theme definition:
+
+```tsx
+import type {
+  ActionMenuTheme,
+  ActionMenuSlots,
+  ActionMenuSlotProps,
+  ActionMenuClassNames
+} from '@bazza-ui/action-menu'
+
+const theme: ActionMenuTheme<UserData> = {
+  slots: {
+    Content: CustomContent,
+    Item: CustomItem,
+    // ... all slots
+  },
+  slotProps: {
+    item: { className: 'custom' },
+    // ... all slot props
+  },
+  classNames: {
+    item: 'menu-item',
+    itemActive: 'menu-item-active',
+    // ... all class names
+  }
+}
+```
+
+## Extended Properties
+
+Extend the type system with custom properties:
+
+```tsx
+// Define custom properties
+declare module '@bazza-ui/action-menu' {
+  interface ItemExtendedProperties {
+    badge?: string
+    color?: 'red' | 'blue' | 'green'
+  }
+
+  interface ExtendedItemVariantMap {
+    custom: {
+      customProp: string
+    }
+  }
+}
+
+// Use extended properties
+const menu: MenuDef = {
+  nodes: [
+    {
+      variant: 'button',
+      label: 'Item',
+      badge: '5',      // ✅ Type-safe
+      color: 'red'     // ✅ Type-safe
+    },
+    {
+      variant: 'custom',
+      label: 'Custom',
+      customProp: 'value' // ✅ Type-safe
+    }
+  ]
+}
+```
+
+## Utility Types
+
+### Node Runtime Types
+
+Differentiate between definitions and instances:
+
+```tsx
+import type {
+  NodeDef,    // Definition (input)
+  Node        // Instance (runtime)
+} from '@bazza-ui/action-menu'
+
+// Definition: What you pass in
+const def: NodeDef = {
+  label: 'Item'
+}
+
+// Instance: What the library creates
+const node: Node = createNode(def)
+node.id          // Generated ID
+node.level       // Computed level
+node.groupIndex  // Position in group
+```
+
+### Bind API Types
+
+Types for custom renderers:
+
+```tsx
+import type {
+  RowBindAPI,
+  ListBindAPI,
+  ContentBindAPI
+} from '@bazza-ui/action-menu'
+
+function CustomItem({ node, bind }: {
+  node: Node
+  bind: RowBindAPI
+}) {
+  const props = bind.getRowProps(node)
+  return <div {...props}>{node.label}</div>
+}
+```
+
+## React Query Types
+
+Type-safe React Query integration:
+
+```tsx
+import { createLoader } from '@bazza-ui/action-menu/react-query'
+import type { UseQueryOptions } from '@tanstack/react-query'
+
+const loader = createLoader<UserData[]>({
+  queryKey: ['users'],
+  queryFn: async () => {
+    const res = await fetch('/api/users')
+    return res.json()
+  },
+  staleTime: 5000
+} satisfies UseQueryOptions)
+```
+
+## Type Guards
+
+Check node types at runtime:
+
+```tsx
+import type { Node, ItemNode, GroupNode } from '@bazza-ui/action-menu'
+
+function isItemNode(node: Node): node is ItemNode {
+  return node.kind === 'item'
+}
+
+function isGroupNode(node: Node): node is GroupNode {
+  return node.kind === 'group'
+}
+
+// Usage
+nodes.forEach(node => {
+  if (isItemNode(node)) {
+    // node is ItemNode
+    console.log(node.onSelect)
+  }
+})
+```
+
+## Discriminated Unions
+
+Node types use discriminated unions for type safety:
+
+```tsx
+// Variant discriminates the type
+type NodeDef =
+  | { variant: 'button'; label: string; onSelect: () => void }
+  | { variant: 'checkbox'; label: string; checked: boolean }
+  | { variant: 'radio'; label: string; value: string }
+  | { variant: 'submenu'; label: string; nodes: NodeDef[] }
+
+// TypeScript knows which properties exist
+const node: NodeDef = { variant: 'button', label: 'Click' }
+
+if (node.variant === 'button') {
+  node.onSelect() // ✅ Available
+}
+
+if (node.variant === 'checkbox') {
+  node.checked // ✅ Available
+  node.onSelect // ❌ Type error
+}
+```
+
+## Best Practices
+
+- ✅ Use the generic type parameter for custom data
+- ✅ Leverage discriminated unions for type narrowing
+- ✅ Extend types via module augmentation
+- ✅ Use `satisfies` for better inference
+- ✅ Create type-safe wrappers with `createActionMenu`
+- ❌ Don't use `any` - the types are comprehensive
+- ❌ Don't bypass types with assertions
+- ❌ Don't forget to type custom middleware
+
+## Next Steps
+
+- Explore [Extended Properties](/docs/action-menu/extended-properties)
+- See [API Reference](/docs/action-menu/api-reference)
+- Learn about [Custom Rendering](/docs/action-menu/custom-rendering)

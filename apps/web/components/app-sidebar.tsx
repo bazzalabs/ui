@@ -55,6 +55,7 @@ const actionMenuItems = [
     items: [
       { title: 'Introduction', url: '/docs/action-menu/introduction' },
       { title: 'Installation', url: '/docs/action-menu/installation' },
+      { title: 'Quick Start', url: '/docs/action-menu/quick-start' },
       { title: 'Examples', url: '/docs/action-menu/examples' },
     ],
   },
@@ -62,25 +63,25 @@ const actionMenuItems = [
     groupName: 'Concepts',
     items: [
       { title: 'Data-First API', url: '/docs/action-menu/data-first-api' },
-      { title: 'Your First Menu', url: '/docs/action-menu/your-first-menu' },
       { title: 'Menu Structure', url: '/docs/action-menu/menu-structure' },
       { title: 'Node Types', url: '/docs/action-menu/node-types' },
-      // { title: 'State Management', url: '/docs/action-menu/state-management' },
-      // {
-      //   title: 'Responsive Behavior',
-      //   url: '/docs/action-menu/responsive-behavior',
-      // },
+      { title: 'State Management', url: '/docs/action-menu/state-management' },
+      {
+        title: 'Responsive Behavior',
+        url: '/docs/action-menu/responsive-behavior',
+      },
     ],
   },
   {
     groupName: 'Features',
     items: [
-      { title: 'Nodes', url: '/docs/action-menu/nodes' },
-      { title: 'Node loaders', url: '/docs/action-menu/async' },
-      { title: 'Search', url: '/docs/action-menu/search' },
-      { title: 'Theming', url: '/docs/action-menu/theming' },
+      { title: 'Node Configuration', url: '/docs/action-menu/nodes' },
+      { title: 'Async Loading', url: '/docs/action-menu/async' },
+      { title: 'Search & Filtering', url: '/docs/action-menu/search' },
+      { title: 'Keyboard Navigation', url: '/docs/action-menu/keyboard' },
+      { title: 'Focus Management', url: '/docs/action-menu/focus' },
       { title: 'Positioning', url: '/docs/action-menu/positioning' },
-      { title: 'Keyboard & Focus', url: '/docs/action-menu/keyboard' },
+      { title: 'Theming', url: '/docs/action-menu/theming' },
       { title: 'Virtualization', url: '/docs/action-menu/virtualization' },
       { title: 'Middleware', url: '/docs/action-menu/middleware' },
       {
@@ -91,10 +92,18 @@ const actionMenuItems = [
     ],
   },
   {
-    groupName: 'Guides',
+    groupName: 'Advanced',
     items: [
+      { title: 'Loader Adapters', url: '/docs/action-menu/loader-adapters' },
+      { title: 'Deep Search', url: '/docs/action-menu/deep-search' },
+      { title: 'Intent Zone', url: '/docs/action-menu/intent-zone' },
       { title: 'Custom Rendering', url: '/docs/action-menu/custom-rendering' },
-      { title: 'Performance', url: '/docs/action-menu/performance' },
+      {
+        title: 'Performance Optimization',
+        url: '/docs/action-menu/performance',
+      },
+      { title: 'Accessibility', url: '/docs/action-menu/accessibility' },
+      { title: 'RTL Support', url: '/docs/action-menu/rtl' },
     ],
   },
   {
@@ -104,13 +113,14 @@ const actionMenuItems = [
       { title: 'MultiSelect', url: '/docs/action-menu/multiselect' },
       { title: 'Dropdown Menu', url: '/docs/action-menu/dropdown-menu' },
       { title: 'Context Menu', url: '/docs/action-menu/context-menu' },
+      { title: 'Command Palette', url: '/docs/action-menu/command-palette' },
     ],
   },
   {
     groupName: 'Reference',
     items: [
-      { title: 'Examples', url: '/docs/action-menu/examples' },
       { title: 'API Reference', url: '/docs/action-menu/api-reference' },
+      { title: 'TypeScript Types', url: '/docs/action-menu/typescript' },
     ],
   },
 ] satisfies Array<{
