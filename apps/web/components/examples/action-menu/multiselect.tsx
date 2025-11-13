@@ -1,12 +1,11 @@
 import {
-  type BaseItemDef,
   type CheckboxItemDef,
   type CheckboxItemNode,
   type ItemDef,
   renderIcon,
 } from '@bazza-ui/action-menu'
 import { CheckIcon, SearchIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -50,7 +49,7 @@ export function MultiSelect({ items: itemsProp }: MultiSelectProps) {
   )
 
   const selectedItems = useMemo(
-    () => items.filter((item) => selected.includes(item.id)),
+    () => items.filter((item) => item.id && selected.includes(item.id)),
     [items, selected],
   )
 

@@ -887,7 +887,7 @@ export type MenuNodeDefaults<T = unknown> = {
     ActionMenuSurfaceProps<T>,
     'vimBindings' | 'dir' | 'onOpenAutoFocus' | 'onCloseAutoClear'
   >
-  item?: Pick<ItemNode<T>, 'onSelect' | 'closeOnSelect'>
+  item?: Pick<BaseItemDef<T>, 'onSelect' | 'closeOnSelect'>
 }
 
 /* ================================================================================================
