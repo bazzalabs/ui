@@ -829,24 +829,3 @@ function ListContent<T = unknown>({
   }
   return el as React.ReactElement
 }
-
-function useDebugMemo<T>(factory: () => T, deps: any[], label: string): T {
-  const prevDeps = React.useRef<any[]>(deps)
-
-  React.useEffect(() => {
-    deps.forEach((dep, i) => {
-      if (dep !== prevDeps.current[i]) {
-        console.log(`[${label}] Dependency ${i} changed:`, {
-          old: prevDeps.current[i],
-          new: dep,
-        })
-      }
-    })
-    prevDeps.current = deps
-  }, deps)
-
-  return React.useMemo(() => {
-    console.log(`[${label}] recomputing`)
-    return factory()
-  }, deps)
-}

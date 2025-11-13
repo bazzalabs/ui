@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
-/** biome-ignore-all lint/a11y/noStaticElementInteractions: <explanation> */
+/** biome-ignore-all lint/a11y/noStaticElementInteractions: needed for nested button */
 'use client'
 
 import {

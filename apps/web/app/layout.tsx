@@ -9,6 +9,7 @@ import { META_THEME_COLORS } from '@/lib/config'
 import { env } from '@/lib/env'
 import { berkeleyMono, inter } from '@/lib/fonts'
 import { ThemeProvider } from '@/providers/theme-provider'
+import QueryClientProvider from './demos/server/tst-query/_/query-client-provider'
 
 const title = 'bazza/ui — Hand-crafted, modern React components'
 const description =
@@ -101,12 +102,14 @@ export default function RootLayout({
           enableColorScheme
         >
           <NuqsAdapter>
-            <div data-vaul-drawer-wrapper="">
-              <div className="relative flex min-h-svh flex-col bg-site-background">
-                <ThemeColorUpdater />
-                {children}
+            <QueryClientProvider>
+              <div data-vaul-drawer-wrapper="">
+                <div className="relative flex min-h-svh flex-col bg-site-background">
+                  <ThemeColorUpdater />
+                  {children}
+                </div>
               </div>
-            </div>
+            </QueryClientProvider>
           </NuqsAdapter>
           <Toaster />
         </ThemeProvider>

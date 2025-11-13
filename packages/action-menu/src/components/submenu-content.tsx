@@ -25,7 +25,7 @@ export function SubmenuContent<T>({ menu, defaults }: SubmenuContentProps<T>) {
     <Surface<T>
       menu={menu.child as Menu<T>}
       render={menu.render}
-      defaults={defaults}
+      defaults={(menu.child.defaults as MenuNodeDefaults<T>) ?? defaults}
       surfaceIdProp={sub.childSurfaceId}
       suppressHoverOpenOnMount={suppressHover}
     />

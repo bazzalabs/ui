@@ -1,8 +1,9 @@
+import { createMDX } from 'fumadocs-mdx/next'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
-  transpilePackages: ['next-mdx-remote'],
+  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   redirects: async () => [
     {
       source: '/chat',
@@ -62,4 +63,6 @@ const nextConfig: NextConfig = {
   ],
 }
 
-export default nextConfig
+const withMDX = createMDX({})
+
+export default withMDX(nextConfig)

@@ -1,24 +1,13 @@
 export const dynamic = 'force-static'
 
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import { compileMDX } from 'next-mdx-remote/rsc'
-import rehypeCallouts from 'rehype-callouts'
-import type { Options as RehypePrettyCodeOptions } from 'rehype-pretty-code'
-import rehypePrettyCode from 'rehype-pretty-code'
-import rehypeSlug from 'rehype-slug'
-import remarkGfm from 'remark-gfm'
-import { components } from '@/components/mdx'
-import 'rehype-callouts/theme/github'
-import { transformerNotationDiff } from '@shikijs/transformers'
 import type { Metadata } from 'next'
-import { visit } from 'unist-util-visit'
+import { notFound } from 'next/navigation'
 import { DashboardTableOfContents } from '@/components/toc'
 import { Badge } from '@/components/ui/badge'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { rehypeNpmCommand } from '@/lib/rehype-npm-command'
-import { remarkTypeTable } from '@/lib/remark-type-table'
-import { getTableOfContents } from '@/lib/toc'
+import { docsSource } from '@/lib/source'
+import 'rehype-callouts/theme/github'
+import { useMDXComponents } from '@/mdx-components'
 
 export async function generateMetadata({
   params,
@@ -26,20 +15,20 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const slug = (await params).slug
-  const rawContent = await fs.readFile(
-    path.join(process.cwd(), 'content/docs', `${slug}.mdx`),
-    'utf-8',
-  )
+  const page = docsSource.getPage([slug])
 
-  const { frontmatter: metadata } = await compileMDX<MDXMetadata>({
-    source: rawContent,
-    options: {
-      parseFrontmatter: true,
-    },
-  })
-
-  if (!metadata) {
+  if (!page) {
     return {}
+  }
+
+  const metadata = page.data as {
+    title: string
+    summary: string
+    section: string
+    badge?: 'alpha' | 'beta'
+    image?: string
+    body: React.ComponentType
+    toc: unknown
   }
 
   return {
@@ -74,92 +63,29 @@ export async function generateMetadata({
   }
 }
 
-export type MDXMetadata = {
-  title: string
-  summary: string
-  section: string
-  badge?: string
-  image?: string
-}
-
 export default async function Page({
   params,
 }: {
   params: Promise<{ slug: string }>
 }) {
   const slug = (await params).slug
-  const rawContent = await fs.readFile(
-    path.join(process.cwd(), 'content/docs', `${slug}.mdx`),
-    'utf-8',
-  )
+  const page = docsSource.getPage([slug])
 
-  const { frontmatter: metadata, content } = await compileMDX<MDXMetadata>({
-    source: rawContent,
-    components,
-    options: {
-      parseFrontmatter: true,
-      mdxOptions: {
-        remarkPlugins: [remarkGfm, remarkTypeTable],
-        rehypePlugins: [
-          rehypeSlug,
-          rehypeCallouts,
-          () => (tree) => {
-            visit(tree, (node) => {
-              if (node?.type === 'element' && node?.tagName === 'pre') {
-                const [codeEl] = node.children
-                if (codeEl.tagName !== 'code') {
-                  return
-                }
+  if (!page) {
+    notFound()
+  }
 
-                node.__rawString__ = codeEl.children?.[0].value
-              }
-            })
-          },
-          [
-            rehypePrettyCode,
-            {
-              theme: {
-                light: 'github-light',
-                dark: 'github-dark',
-              },
-              keepBackground: false,
-              transformers: [transformerNotationDiff()],
-            } satisfies RehypePrettyCodeOptions,
-          ],
-          () => (tree) => {
-            visit(tree, (node) => {
-              if (node?.type === 'element' && node?.tagName === 'figure') {
-                if (!('data-rehype-pretty-code-figure' in node.properties)) {
-                  return
-                }
-
-                const preElement = node.children.at(-1)
-                if (preElement.tagName !== 'pre') {
-                  return
-                }
-
-                preElement.properties.__rawString__ = node.__rawString__
-              }
-            })
-          },
-          rehypeNpmCommand,
-        ],
-      },
-    },
-  })
-
-  const { content: summary } = await compileMDX<MDXMetadata>({
-    source: metadata.summary,
-    components,
-    options: {
-      parseFrontmatter: true,
-      mdxOptions: {
-        remarkPlugins: [remarkGfm],
-      },
-    },
-  })
-
-  const toc = await getTableOfContents(rawContent)
+  const metadata = page.data as {
+    title: string
+    summary: string
+    section: string
+    badge?: 'alpha' | 'beta'
+    image?: string
+    body: React.ComponentType
+    toc: unknown
+  }
+  const MDX = page.data.body
+  const toc = metadata.toc as any
 
   return (
     <div className="flex">
@@ -184,12 +110,14 @@ export default async function Page({
               </Badge>
             )}
           </div>
-          <div className="text-muted-foreground">{summary}</div>
+          <div className="text-muted-foreground">{metadata.summary}</div>
         </div>
-        <div>{content}</div>
+        <div>
+          <MDX components={useMDXComponents()} />
+        </div>
       </div>
 
-      <div className="hidden 2xl:block w-[240px] sticky mt-16 top-16 mr-8 pb-8 h-[calc(100vh-4rem)] overflow-y-auto">
+      <div className="hidden xl:block w-[240px] sticky mt-16 top-16 mr-8 pb-8 h-[calc(100vh-4rem)] overflow-y-auto">
         {toc && <DashboardTableOfContents toc={toc} />}
       </div>
     </div>
@@ -197,10 +125,9 @@ export default async function Page({
 }
 
 export async function generateStaticParams() {
-  const filenames = await fs.readdir(path.join(process.cwd(), 'content/docs'))
-  const slugs = filenames.map((filename) => filename.replace('.mdx', ''))
-
-  return slugs.map((slug) => ({ slug }))
+  return docsSource.getPages().map((page) => ({
+    slug: page.slugs[0],
+  }))
 }
 
 export const dynamicParams = false

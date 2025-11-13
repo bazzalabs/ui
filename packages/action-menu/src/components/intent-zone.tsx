@@ -2,7 +2,6 @@ import { Portal } from '@radix-ui/react-portal'
 import * as React from 'react'
 import { useMousePosition } from '../hooks/use-mouse-position.js'
 import { resolveAnchorSide } from '../lib/aim-guard.js'
-import { logPerformance } from '../lib/performance.js'
 
 /** Visual-only debug polygon showing the aim-guard band. */
 export function IntentZone({
@@ -23,16 +22,10 @@ export function IntentZone({
     [],
   )
   const content = parentRef.current
-  const rect = content
-    ? logPerformance('getBoundingClientRect', 'IntentZone.content', () =>
-        content.getBoundingClientRect(),
-      )
-    : undefined
+  const rect = content ? content.getBoundingClientRect() : undefined
   if (!rect || isCoarse) return null
   const tRect = triggerRef?.current
-    ? logPerformance('getBoundingClientRect', 'IntentZone.trigger', () =>
-        triggerRef.current!.getBoundingClientRect(),
-      )
+    ? triggerRef.current.getBoundingClientRect()
     : null
   const x = rect.left
   const y = rect.top

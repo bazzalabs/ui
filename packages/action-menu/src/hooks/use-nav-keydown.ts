@@ -20,7 +20,6 @@ import {
   isVimOpen,
   isVimPrev,
 } from '../lib/keyboard.js'
-import { logPerformance } from '../lib/performance.js'
 
 export function useNavKeydown(_source: 'input' | 'list') {
   const store = useSurface()
@@ -53,11 +52,7 @@ export function useNavKeydown(_source: 'input' | 'list') {
           stop()
           const activeId = store.snapshot().activeId
           if (isSelectionKey(k)) {
-            const el = activeId
-              ? logPerformance('getElementById', 'useNavKeydown.vimOpen', () =>
-                  document.getElementById(activeId),
-                )
-              : null
+            const el = activeId ? document.getElementById(activeId) : null
             if (el && el.dataset.subtrigger === 'true') {
               openSubmenuForActive(activeId, surfaceId)
             } else {
@@ -74,13 +69,8 @@ export function useNavKeydown(_source: 'input' | 'list') {
             setOwnerId(sub.parentSurfaceId)
             sub.onOpenChange(false)
             sub.parentSetActiveId(sub.triggerItemId)
-            const parentEl = logPerformance(
-              'querySelector',
-              'useNavKeydown.vimClose',
-              () =>
-                document.querySelector<HTMLElement>(
-                  `[data-surface-id="${sub.parentSurfaceId}"]`,
-                ),
+            const parentEl = document.querySelector<HTMLElement>(
+              `[data-surface-id="${sub.parentSurfaceId}"]`,
             )
             requestAnimationFrame(() => {
               const { input, list } = findWidgetsWithinSurface(parentEl)
@@ -119,11 +109,7 @@ export function useNavKeydown(_source: 'input' | 'list') {
         stop()
         const activeId = store.snapshot().activeId
         if (isSelectionKey(k)) {
-          const el = activeId
-            ? logPerformance('getElementById', 'useNavKeydown.openKey', () =>
-                document.getElementById(activeId),
-              )
-            : null
+          const el = activeId ? document.getElementById(activeId) : null
           if (el && el.dataset.subtrigger === 'true') {
             openSubmenuForActive(activeId, surfaceId)
           } else {
@@ -141,13 +127,8 @@ export function useNavKeydown(_source: 'input' | 'list') {
           setOwnerId(sub.parentSurfaceId)
           sub.onOpenChange(false)
           sub.parentSetActiveId(sub.triggerItemId)
-          const parentEl = logPerformance(
-            'querySelector',
-            'useNavKeydown.closeKey',
-            () =>
-              document.querySelector<HTMLElement>(
-                `[data-surface-id="${sub.parentSurfaceId}"]`,
-              ),
+          const parentEl = document.querySelector<HTMLElement>(
+            `[data-surface-id="${sub.parentSurfaceId}"]`,
           )
           requestAnimationFrame(() => {
             const { input, list } = findWidgetsWithinSurface(parentEl)
@@ -160,11 +141,7 @@ export function useNavKeydown(_source: 'input' | 'list') {
       if (k === 'Enter') {
         stop()
         const activeId = store.snapshot().activeId
-        const el = activeId
-          ? logPerformance('getElementById', 'useNavKeydown.enter', () =>
-              document.getElementById(activeId),
-            )
-          : null
+        const el = activeId ? document.getElementById(activeId) : null
         if (el && el.dataset.subtrigger === 'true') {
           openSubmenuForActive(activeId, surfaceId)
         } else {

@@ -28,7 +28,6 @@ import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
 import { getDir } from '../lib/keyboard.js'
 import { instantiateMenuFromDef } from '../lib/menu-utils.js'
 import { mergeProps } from '../lib/merge-props.js'
-import { logPerformance } from '../lib/performance.js'
 import { isElementWithProp } from '../lib/react-utils.js'
 import { createSurfaceStore } from '../store/surface-store.js'
 import type {
