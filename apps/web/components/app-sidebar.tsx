@@ -77,7 +77,7 @@ const actionMenuItems = [
     items: [
       { title: 'Nodes', url: '/docs/action-menu/nodes' },
       { title: 'Node loaders', url: '/docs/action-menu/async' },
-      { title: 'Search & Filtering', url: '/docs/action-menu/search' },
+      { title: 'Search', url: '/docs/action-menu/search' },
       { title: 'Theming', url: '/docs/action-menu/theming' },
       { title: 'Positioning', url: '/docs/action-menu/positioning' },
       { title: 'Keyboard & Focus', url: '/docs/action-menu/keyboard' },
@@ -93,11 +93,17 @@ const actionMenuItems = [
   {
     groupName: 'Guides',
     items: [
-      { title: 'Create New Items', url: '/docs/action-menu/create-new' },
       { title: 'Custom Rendering', url: '/docs/action-menu/custom-rendering' },
-      { title: 'Dynamic Content', url: '/docs/action-menu/dynamic-content' },
-      { title: 'Multiselect', url: '/docs/action-menu/multiselect' },
       { title: 'Performance', url: '/docs/action-menu/performance' },
+    ],
+  },
+  {
+    groupName: 'Components',
+    items: [
+      { title: 'Select', url: '/docs/action-menu/select' },
+      { title: 'MultiSelect', url: '/docs/action-menu/multiselect' },
+      { title: 'Dropdown Menu', url: '/docs/action-menu/dropdown-menu' },
+      { title: 'Context Menu', url: '/docs/action-menu/context-menu' },
     ],
   },
   {
@@ -109,7 +115,7 @@ const actionMenuItems = [
   },
 ] satisfies Array<{
   groupName: string
-  items: Array<{ title: string; url: string }>
+  items: Array<{ title: React.ReactNode; url: string }>
 }>
 
 export function AppSidebar() {
