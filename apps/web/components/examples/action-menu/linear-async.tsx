@@ -41,7 +41,6 @@ export function ActionMenu_LinearAsync() {
 
 const statusMenu: SubmenuDef = {
   kind: 'submenu',
-  id: 'status',
   icon: <StatusIcon />,
   label: 'Status',
   title: 'Status',
@@ -49,31 +48,26 @@ const statusMenu: SubmenuDef = {
   nodes: [
     {
       kind: 'item',
-      id: 'icebox',
       label: 'Icebox',
       icon: <Status.Icebox />,
     },
     {
       kind: 'item',
-      id: 'backlog',
       label: 'Backlog',
       icon: <Status.Backlog />,
     },
     {
       kind: 'item',
-      id: 'todo',
       label: 'Todo',
       icon: <Status.Todo />,
     },
     {
       kind: 'item',
-      id: 'in-progress',
       label: 'In Progress',
       icon: <Status.InProgress />,
     },
     {
       kind: 'item',
-      id: 'done',
       label: 'Done',
       icon: <Status.Done />,
     },
@@ -156,10 +150,8 @@ async function fetchAssignees(): Promise<NodeDef[]> {
 
 const assigneeMenu: SubmenuDef = {
   kind: 'submenu',
-  id: 'assignee',
   icon: <AssigneeIcon />,
   label: 'Assignee',
-  title: 'Assignee',
   inputPlaceholder: 'Assignee...',
   loader: createLoader(() => ({
     queryKey: ['assignees'],
@@ -684,9 +676,7 @@ async function fetchLabels(query?: string): Promise<NodeDef[]> {
 
 const labelsMenu: SubmenuDef = {
   kind: 'submenu',
-  id: 'labels',
   icon: LabelsIcon,
-  title: 'Labels',
   label: 'Labels',
   inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
@@ -698,46 +688,38 @@ const labelsMenu: SubmenuDef = {
 
 const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
-  id: 'project-status',
   icon: <ProjectStatusIcon />,
-  title: 'Project status',
   label: 'Project status',
   inputPlaceholder: 'Project status...',
   hideSearchUntilActive: true,
   nodes: [
     {
       kind: 'item',
-      id: 'failed',
       label: 'Failed',
       icon: <ProjectStatus.Failed />,
     },
     {
       kind: 'item',
-      id: 'backlog',
       label: 'Backlog',
       icon: <ProjectStatus.Backlog />,
     },
     {
       kind: 'item',
-      id: 'planned',
       label: 'Planned',
       icon: <ProjectStatus.Planned />,
     },
     {
       kind: 'item',
-      id: 'in-progress',
       label: 'In Progress',
       icon: <ProjectStatus.InProgress />,
     },
     {
       kind: 'item',
-      id: 'completed',
       label: 'Completed',
       icon: <ProjectStatus.Completed />,
     },
     {
       kind: 'item',
-      id: 'canceled',
       label: 'Canceled',
       icon: <ProjectStatus.Canceled />,
     },
@@ -746,7 +728,6 @@ const projectStatusMenu: SubmenuDef = {
 
 const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
-  id: 'project-properties',
   icon: <ProjectPropertiesIcon />,
   title: 'Project properties',
   label: 'Project properties',

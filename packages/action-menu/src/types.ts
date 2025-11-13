@@ -17,8 +17,8 @@ export type MenuNodeKind =
 export type BaseDef<K extends MenuNodeKind> = {
   /** The kind of node. */
   kind: K
-  /** Unique id for this node. */
-  id: string
+  /** Unique id for this node. Optional if the node has a label property. */
+  id?: string
   hidden?: boolean
 }
 
@@ -341,6 +341,8 @@ export type ItemDef<T = unknown> =
   | RadioItemDef<T>
 
 export type BaseGroupDef<T = unknown> = BaseDef<'group'> & {
+  /** Unique id for this group (required - groups don't have labels to auto-generate from). */
+  id: string
   nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
   heading?: string
 }
@@ -369,6 +371,8 @@ export type SeparatorDef = BaseDef<'separator'> & {
 }
 
 export type LoadingDef = BaseDef<'loading'> & {
+  /** Unique id for this loading node (required - loading nodes don't have labels to auto-generate from). */
+  id: string
   /** Progress information for in-progress loaders */
   progress?: LoaderProgress[]
   /** Paths of loaders that are still loading */

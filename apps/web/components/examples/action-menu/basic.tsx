@@ -20,31 +20,26 @@ export function ActionMenu_Basic() {
         nodes: [
           {
             kind: 'item',
-            id: 'Apple',
             label: 'Apple',
             icon: '🍎',
           },
           {
             kind: 'item',
-            id: 'Banana',
             label: 'Banana',
             icon: '🍌',
           },
           {
             kind: 'item',
-            id: 'Orange',
             label: 'Orange',
             icon: '🍊',
           },
           {
             kind: 'item',
-            id: 'Pineapple',
             label: 'Pineapple',
             icon: '🍍',
           },
           {
             kind: 'item',
-            id: 'Strawberry',
             label: 'Strawberry',
             icon: '🍓',
           },

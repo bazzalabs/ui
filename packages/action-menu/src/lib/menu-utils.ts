@@ -12,6 +12,33 @@ import type {
 } from '../types.js'
 
 /* ================================================================================================
+ * Utility Functions
+ * ============================================================================================== */
+
+/**
+ * Converts a label string into a valid ID.
+ * - Converts to lowercase
+ * - Removes non-alphanumeric characters (except spaces and hyphens)
+ * - Replaces spaces with hyphens
+ * - Trims leading/trailing hyphens
+ *
+ * @param label - The label string to convert
+ * @returns A valid ID string
+ *
+ * @example
+ * labelToId('Hello World') // 'hello-world'
+ * labelToId('My Item #1') // 'my-item-1'
+ * labelToId('  Spaced  ') // 'spaced'
+ */
+export function textToId(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric (keep spaces and hyphens)
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
+}
+
+/* ================================================================================================
  * Menu Instantiation Functions
  * ============================================================================================== */
 
@@ -31,16 +58,24 @@ export function instantiateSingleNode<T>(
     const itemDef = def as ItemDef<T>
     const variant = itemDef.variant ?? 'button'
 
+    // Generate ID from label if not provided
+    const id = def.id ?? (def.label ? textToId(def.label) : undefined)
+    if (!id) {
+      throw new Error(
+        'Item must have either an "id" or "label" property to generate an ID',
+      )
+    }
+
     const node: ItemNode<T> = {
       ...itemDef,
+      id,
       variant,
       kind: 'item',
       parent,
       def: itemDef,
       ...(variant === 'radio'
         ? {
-            value:
-              itemDef.variant === 'radio' ? (itemDef.value ?? def.id) : def.id,
+            value: itemDef.variant === 'radio' ? (itemDef.value ?? id) : id,
           }
         : {}),
     } as ItemNode<T>
@@ -84,9 +119,19 @@ export function instantiateSingleNode<T>(
 
   if (def.kind === 'separator') {
     const separatorDef = def as import('../types.js').SeparatorDef
+
+    // Generate ID from label if not provided
+    const id =
+      def.id ?? (separatorDef.label ? textToId(separatorDef.label) : undefined)
+    if (!id) {
+      throw new Error(
+        'Separator must have either an "id" or "label" property to generate an ID',
+      )
+    }
+
     const node: import('../types.js').SeparatorNode = {
       kind: 'separator',
-      id: def.id,
+      id,
       hidden: def.hidden,
       parent,
       def: separatorDef,
@@ -110,53 +155,74 @@ export function instantiateSingleNode<T>(
     return node as Node<T>
   }
 
-  // submenu
-  const subDef = {
-    ...def,
-    deepSearch: def.deepSearch === undefined ? true : def.deepSearch,
-  } as SubmenuDef<any, any>
-  const childSurfaceId = `${parent.surfaceId}::${subDef.id}`
+  if (def.kind === 'submenu') {
+    // submenu
+    const subDef = {
+      ...def,
+      deepSearch: def.deepSearch === undefined ? true : def.deepSearch,
+    } as SubmenuDef<any, any>
 
-  // ! In TSX, don't write instantiateMenuFromDef<any>(...)
-  // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
-  const child = instantiateMenuFromDef(
-    {
-      id: subDef.id,
-      title: subDef.title,
-      inputPlaceholder: subDef.inputPlaceholder,
-      hideSearchUntilActive: subDef.hideSearchUntilActive,
-      search: subDef.search,
-      deepSearch: subDef.deepSearch === undefined ? true : subDef.deepSearch,
-      nodes: subDef.nodes as NodeDef<any>[],
-      loader: subDef.loader,
-      defaults: subDef.defaults,
-      ui: subDef.ui,
-      input: subDef.input,
-      open: subDef.open,
-      middleware: subDef.middleware,
-    } as MenuDef<any>,
-    childSurfaceId,
-    parent.depth + 1,
-  ) as Menu<any>
+    // Generate ID from label/title if not provided
+    const id =
+      def.id ??
+      (subDef.label
+        ? textToId(subDef.label)
+        : subDef.title
+          ? textToId(subDef.title)
+          : undefined)
+    if (!id) {
+      throw new Error(
+        'Submenu must have either an "id" or "label" property to generate an ID',
+      )
+    }
 
-  // Destructure to exclude properties that shouldn't be on the node
-  const {
-    nodes: _nodes,
-    search: _search,
-    virtualization: _virtualization,
-    ...subDefRest
-  } = subDef as SubmenuDef<any, any>
+    const childSurfaceId = `${parent.surfaceId}::${id}`
 
-  const node: SubmenuNode<any, any> = {
-    ...subDefRest,
-    kind: 'submenu',
-    parent,
-    def,
-    child,
-    nodes: child.nodes,
+    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
+    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
+    const child = instantiateMenuFromDef(
+      {
+        id,
+        title: subDef.title,
+        inputPlaceholder: subDef.inputPlaceholder,
+        hideSearchUntilActive: subDef.hideSearchUntilActive,
+        search: subDef.search,
+        deepSearch: subDef.deepSearch === undefined ? true : subDef.deepSearch,
+        nodes: subDef.nodes as NodeDef<any>[],
+        loader: subDef.loader,
+        defaults: subDef.defaults,
+        ui: subDef.ui,
+        input: subDef.input,
+        open: subDef.open,
+        middleware: subDef.middleware,
+      } as MenuDef<any>,
+      childSurfaceId,
+      parent.depth + 1,
+    ) as Menu<any>
+
+    // Destructure to exclude properties that shouldn't be on the node
+    const {
+      nodes: _nodes,
+      search: _search,
+      virtualization: _virtualization,
+      ...subDefRest
+    } = subDef as SubmenuDef<any, any>
+
+    const node: SubmenuNode<any, any> = {
+      ...subDefRest,
+      id,
+      kind: 'submenu',
+      parent,
+      def,
+      child,
+      nodes: child.nodes,
+    }
+
+    return node as Node<T>
   }
 
-  return node as Node<T>
+  // Invalid node `kind` -- throw error
+  throw new Error('Invalid definition')
 }
 
 export function instantiateMenuFromDef<T>(

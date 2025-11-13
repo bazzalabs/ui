@@ -7,6 +7,7 @@ import type {
   NodeDef,
   SubmenuDef,
 } from '../types.js'
+import { textToId } from './menu-utils.js'
 
 /**
  * Metadata for a deep search loader that will be executed in parallel.
@@ -59,7 +60,15 @@ function collectDeepSearchLoadersFromNode<T = unknown>(
   parentPath: string[],
   entries: DeepSearchLoaderEntry<T>[],
 ): void {
-  const currentPath = [...parentPath, submenu.id]
+  // Generate ID from label if not provided
+  const id = submenu.id ?? (submenu.label ? textToId(submenu.label) : undefined)
+  if (!id) {
+    throw new Error(
+      'Submenu must have either an "id" or "label" property to generate an ID',
+    )
+  }
+
+  const currentPath = [...parentPath, id]
 
   // deepSearch defaults to true, so only exclude if explicitly set to false
   const isDeepSearchEnabled = submenu.deepSearch !== false
@@ -157,12 +166,19 @@ function buildBreadcrumbs(path: string[], menuDef: MenuDef<any>): string[] {
   let nodes = menuDef.nodes ?? []
 
   for (const id of path) {
-    const node = nodes.find((n) => n.id === id)
+    const node = nodes.find((n) => {
+      const nodeId =
+        n.id ??
+        (n.kind === 'submenu' && n.label ? textToId(n.label) : undefined)
+      return nodeId === id
+    })
     if (!node) break
 
     if (node.kind === 'submenu') {
       const submenu = node as SubmenuDef<any, any>
-      breadcrumbs.push(submenu.label || submenu.title || submenu.id)
+      const submenuId =
+        submenu.id ?? (submenu.label ? textToId(submenu.label) : '')
+      breadcrumbs.push(submenu.label || submenu.title || submenuId)
       nodes = submenu.nodes ?? []
     } else if (node.kind === 'group') {
       // For groups, continue searching in group's children
@@ -344,7 +360,15 @@ function injectCompletedLoaderResultsIntoSubmenu(
   completedResults: Map<string, AsyncNodeLoaderResult>,
   parentPath: string[],
 ): SubmenuDef<any, any> {
-  const currentPath = [...parentPath, submenu.id]
+  // Generate ID from label if not provided
+  const id = submenu.id ?? (submenu.label ? textToId(submenu.label) : undefined)
+  if (!id) {
+    throw new Error(
+      'Submenu must have either an "id" or "label" property to generate an ID',
+    )
+  }
+
+  const currentPath = [...parentPath, id]
   const pathKey = currentPath.join('.')
 
   // deepSearch defaults to true, so only exclude if explicitly set to false
@@ -439,7 +463,15 @@ function injectLoaderResultsIntoSubmenu(
   deepSearchResults: Map<string, AsyncNodeLoaderResult>,
   parentPath: string[],
 ): SubmenuDef<any, any> {
-  const currentPath = [...parentPath, submenu.id]
+  // Generate ID from label if not provided
+  const id = submenu.id ?? (submenu.label ? textToId(submenu.label) : undefined)
+  if (!id) {
+    throw new Error(
+      'Submenu must have either an "id" or "label" property to generate an ID',
+    )
+  }
+
+  const currentPath = [...parentPath, id]
   const pathKey = currentPath.join('.')
 
   // deepSearch defaults to true, so only exclude if explicitly set to false
