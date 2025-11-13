@@ -99,6 +99,8 @@ function collectDeepSearchLoadersFromNode<T = unknown>(
  * - isLoading = true if ANY loader is loading
  * - isError = true if ANY loader has an error (but we fail silently)
  * - isFetching = true if ANY loader is fetching
+ * - completedPaths = set of paths for loaders that have completed
+ * - inProgressPaths = set of paths for loaders that are still loading
  */
 export function aggregateLoaderResults(
   results: Map<string, AsyncNodeLoaderResult>,
@@ -108,9 +110,18 @@ export function aggregateLoaderResults(
   let isError = false
   let isFetching = false
   const progress: import('../types.js').LoaderProgress[] = []
+  const completedPaths = new Set<string>()
+  const inProgressPaths = new Set<string>()
 
   for (const [pathKey, result] of results.entries()) {
-    if (result.isLoading) isLoading = true
+    if (result.isLoading) {
+      isLoading = true
+      inProgressPaths.add(pathKey)
+    } else if (result.data !== undefined) {
+      // Loader has completed (has data and not loading)
+      completedPaths.add(pathKey)
+    }
+
     if (result.isError) isError = true
     if (result.isFetching) isFetching = true
 
@@ -133,6 +144,8 @@ export function aggregateLoaderResults(
     isFetching,
     results,
     progress,
+    completedPaths,
+    inProgressPaths,
   }
 }
 
@@ -162,6 +175,95 @@ function buildBreadcrumbs(path: string[], menuDef: MenuDef<any>): string[] {
 }
 
 /**
+ * Checks if streaming mode should be enabled for the given menu definition.
+ * Streaming is enabled when:
+ * 1. Streaming is configured (boolean true or StreamingConfig with enabled: true)
+ * 2. At least one loader in the menu tree uses 'server' or 'hybrid' search mode
+ */
+export function shouldEnableStreaming<T = unknown>(
+  menuDef: MenuDef<T>,
+): boolean {
+  // Check if streaming is configured
+  const searchConfig = menuDef.search
+  if (!searchConfig?.streaming) {
+    return false
+  }
+
+  const streamingEnabled =
+    typeof searchConfig.streaming === 'boolean'
+      ? searchConfig.streaming
+      : searchConfig.streaming.enabled
+
+  if (!streamingEnabled) {
+    return false
+  }
+
+  // Check if at least one loader uses 'server' or 'hybrid' mode
+  const hasServerLoader = checkForServerLoader(menuDef)
+  return hasServerLoader
+}
+
+/**
+ * Recursively checks if any loader in the menu tree uses 'server' or 'hybrid' mode.
+ */
+function checkForServerLoader<T = unknown>(menuDef: MenuDef<T>): boolean {
+  // Check root menu's own loader (if in server/hybrid mode)
+  if (menuDef.loader && menuDef.search?.mode !== 'client') {
+    return true
+  }
+
+  // Check submenus
+  const nodes = menuDef.nodes || []
+  for (const node of nodes) {
+    if (node.kind === 'submenu') {
+      const submenu = node as SubmenuDef<any, any>
+      // Only check if deepSearch is not explicitly disabled
+      if (submenu.deepSearch !== false) {
+        if (submenu.loader && submenu.search?.mode !== 'client') {
+          return true
+        }
+        // Recursively check children
+        if (checkForServerLoaderInNodes(submenu.nodes || [])) {
+          return true
+        }
+      }
+    } else if (node.kind === 'group') {
+      const group = node as GroupDef<any>
+      if (checkForServerLoaderInNodes(group.nodes as any)) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+/**
+ * Helper to check for server loaders in a list of nodes.
+ */
+function checkForServerLoaderInNodes(nodes: NodeDef<any>[]): boolean {
+  for (const node of nodes) {
+    if (node.kind === 'submenu') {
+      const submenu = node as SubmenuDef<any, any>
+      if (submenu.deepSearch !== false) {
+        if (submenu.loader && submenu.search?.mode !== 'client') {
+          return true
+        }
+        if (checkForServerLoaderInNodes(submenu.nodes || [])) {
+          return true
+        }
+      }
+    } else if (node.kind === 'group') {
+      const group = node as GroupDef<any>
+      if (checkForServerLoaderInNodes(group.nodes as any)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+/**
  * Injects deep search loader results back into a menu definition.
  * Creates a new menu definition with loader results replaced by static data.
  */
@@ -181,6 +283,132 @@ export function injectLoaderResults<T = unknown>(
   }
 
   return newMenuDef
+}
+
+/**
+ * Injects only completed loader results for streaming mode.
+ * Only replaces loaders that have finished loading (have data).
+ * In-progress loaders are left as-is.
+ */
+export function injectCompletedLoaderResults<T = unknown>(
+  menuDef: MenuDef<T>,
+  completedResults: Map<string, AsyncNodeLoaderResult>,
+  parentPath: string[] = [],
+): MenuDef<T> {
+  // Clone the menu def
+  const newMenuDef: MenuDef<T> = { ...menuDef }
+
+  // Process nodes
+  if (menuDef.nodes) {
+    newMenuDef.nodes = menuDef.nodes.map((node: NodeDef<any>) =>
+      injectCompletedLoaderResultsIntoNode(node, completedResults, parentPath),
+    ) as NodeDef<T>[]
+  }
+
+  return newMenuDef
+}
+
+/**
+ * Inject only completed results into a single node (streaming mode).
+ */
+function injectCompletedLoaderResultsIntoNode<T = unknown>(
+  node: NodeDef<T>,
+  completedResults: Map<string, AsyncNodeLoaderResult>,
+  parentPath: string[],
+): NodeDef<any> {
+  if (node.kind === 'submenu') {
+    return injectCompletedLoaderResultsIntoSubmenu(
+      node,
+      completedResults,
+      parentPath,
+    )
+  }
+
+  if (node.kind === 'group') {
+    return injectCompletedLoaderResultsIntoGroup(
+      node,
+      completedResults,
+      parentPath,
+    )
+  }
+
+  // Items don't need processing
+  return node
+}
+
+/**
+ * Inject completed results into a submenu node (streaming mode).
+ */
+function injectCompletedLoaderResultsIntoSubmenu(
+  submenu: SubmenuDef<any, any>,
+  completedResults: Map<string, AsyncNodeLoaderResult>,
+  parentPath: string[],
+): SubmenuDef<any, any> {
+  const currentPath = [...parentPath, submenu.id]
+  const pathKey = currentPath.join('.')
+
+  // deepSearch defaults to true, so only exclude if explicitly set to false
+  const isDeepSearchEnabled = submenu.deepSearch !== false
+
+  // Check if we have a COMPLETED result for this submenu
+  const result = completedResults.get(pathKey)
+
+  // Only inject if the result has data (is completed)
+  if (result && result.data !== undefined && isDeepSearchEnabled) {
+    // Store both the original loader and the injected result
+    const newSubmenu: SubmenuDef<any, any> = {
+      ...submenu,
+      loader: result as any,
+      // Store the original loader in a special property
+      __originalLoader: submenu.loader,
+    } as any
+
+    // Process children if they exist
+    if (submenu.nodes) {
+      newSubmenu.nodes = submenu.nodes.map((child: NodeDef<any>) =>
+        injectCompletedLoaderResultsIntoNode(
+          child,
+          completedResults,
+          currentPath,
+        ),
+      ) as any
+    }
+
+    return newSubmenu
+  }
+
+  // No completed result for this submenu, but still process its children if deepSearch is enabled
+  if (submenu.nodes && isDeepSearchEnabled) {
+    const newSubmenu: SubmenuDef<any, any> = {
+      ...submenu,
+      nodes: submenu.nodes.map((child: NodeDef<any>) =>
+        injectCompletedLoaderResultsIntoNode(
+          child,
+          completedResults,
+          currentPath,
+        ),
+      ) as any,
+    }
+    return newSubmenu
+  }
+
+  return submenu
+}
+
+/**
+ * Inject completed results into a group node (streaming mode).
+ */
+function injectCompletedLoaderResultsIntoGroup<T = unknown>(
+  group: GroupDef<T>,
+  completedResults: Map<string, AsyncNodeLoaderResult>,
+  parentPath: string[],
+): GroupDef<any> {
+  return {
+    ...group,
+    nodes: group.nodes.map((child: NodeDef<any>) =>
+      injectCompletedLoaderResultsIntoNode(child, completedResults, parentPath),
+    ) as any,
+  }
 }
 
 /**

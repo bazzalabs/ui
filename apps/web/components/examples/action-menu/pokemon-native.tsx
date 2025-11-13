@@ -40,7 +40,7 @@ export function ActionMenu_PokemonNative() {
         },
         loader: async () => {
           console.log('Calling loader!')
-          await sleep(1000)
+          await sleep(10000)
           // Fetch Pokemon from PokeAPI
           const response = await fetch(
             'https://pokeapi.co/api/v2/pokemon?limit=1000&offset=0',

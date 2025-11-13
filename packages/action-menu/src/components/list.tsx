@@ -58,9 +58,12 @@ export function List<T = unknown>(props: ListProps<T>) {
   // Handle loading state
   // Show loading when:
   // 1. Initial load without data (nodes.length === 0)
-  // 2. Deep search with eager loading (query exists, indicating deep search is active)
+  // 2. Deep search in BLOCKING mode (query exists, indicating deep search is active)
+  // In STREAMING mode, we show results as they come in, not a blocking loading screen
+  const isStreaming = menu.loadingState?.loadMode === 'streaming'
   const shouldShowLoading =
     menu.loadingState?.isLoading &&
+    !isStreaming &&
     (menu.nodes.length === 0 || (query && query.trim().length > 0))
 
   if (shouldShowLoading) {
@@ -71,6 +74,7 @@ export function List<T = unknown>(props: ListProps<T>) {
         isFetching: menu.loadingState?.isFetching,
         progress: menu.loadingState?.progress,
         query,
+        loadMode: menu.loadingState?.loadMode,
       }) as React.ReactElement
     }
     return null
@@ -194,6 +198,7 @@ function ListContent<T = unknown>({
       return menu.middleware.beforeFilter(context)
     } catch (error) {
       console.error('[ActionMenu] Error in beforeFilter middleware:', error)
+      console.log()
       return menu.nodes
     }
   }, [menu.nodes, menu.middleware, effectiveLocalQuery, menu])
@@ -326,17 +331,76 @@ function ListContent<T = unknown>({
       return serverResults
     }
 
+    // Check if we should skip re-sorting for streaming mode
+    const isStreaming = menu.loadingState?.loadMode === 'streaming'
+    const streamingConfig = menu.search?.streaming
+    const resortOnBatch =
+      typeof streamingConfig === 'object'
+        ? (streamingConfig.resortOnBatch ?? false)
+        : false
+
     // Client or hybrid mode: Apply client-side filtering
+    const collected = collect(
+      processedNodes,
+      effectiveLocalQuery,
+      effectiveDeepQuery,
+      q,
+      [],
+      [],
+      menu,
+    )
+
+    // In streaming mode with resortOnBatch=false, don't re-sort the results
+    // This prevents visual jumping as new batches arrive
+    if (isStreaming && !resortOnBatch) {
+      // Use completion order from loadingState if available
+      const completionOrder = (menu.loadingState as any)?.completionOrder as
+        | string[]
+        | undefined
+
+      if (completionOrder && completionOrder.length > 0) {
+        // Sort by completion order to prevent jumping
+        // Items from earlier-completed loaders appear first
+        const result = collected.slice().sort((a, b) => {
+          // Extract the submenu path from the breadcrumbIds
+          const aPath = a.breadcrumbIds[0] || ''
+          const bPath = b.breadcrumbIds[0] || ''
+
+          const aIndex = completionOrder.indexOf(aPath)
+          const bIndex = completionOrder.indexOf(bPath)
+
+          // If both are in completion order, sort by that
+          if (aIndex !== -1 && bIndex !== -1) {
+            return aIndex - bIndex
+          }
+
+          // If only one is in completion order, prioritize it
+          if (aIndex !== -1) return -1
+          if (bIndex !== -1) return 1
+
+          // Otherwise maintain collection order
+          return 0
+        })
+
+        // Still partition submenus to end
+        return pipe(
+          result,
+          partition((v) => v.type === 'submenu'),
+          flat(),
+        )
+      }
+
+      // Fallback: Still partition submenus to end, but don't sort by score
+      return pipe(
+        collected,
+        partition((v) => v.type === 'submenu'),
+        flat(),
+      )
+    }
+
+    // Default behavior: sort by score
     return pipe(
-      collect(
-        processedNodes,
-        effectiveLocalQuery,
-        effectiveDeepQuery,
-        q,
-        [],
-        [],
-        menu,
-      ),
+      collected,
       sortBy([prop('score'), 'desc']),
       partition((v) => v.type === 'submenu'),
       flat(),
@@ -347,6 +411,8 @@ function ListContent<T = unknown>({
     q,
     processedNodes,
     menu.search?.mode,
+    menu.search?.streaming,
+    menu.loadingState?.loadMode,
     collect,
     menu,
   ])
@@ -423,32 +489,77 @@ function ListContent<T = unknown>({
 
   // Apply transformNodes middleware (transform flattened nodes before rendering)
   const transformedNodes = React.useMemo(() => {
-    if (!menu.middleware?.transformNodes) {
-      return flattenedNodes
+    let nodes = flattenedNodes
+
+    // Apply middleware if present
+    if (menu.middleware?.transformNodes) {
+      try {
+        const context: TransformNodesContext<T> = {
+          nodes: flattenedNodes,
+          query: q,
+          mode: effectiveLocalQuery ? 'search' : 'browse',
+          allNodes: menu.nodes,
+          menu,
+          createNode: <U = T>(def: import('../types.js').ItemDef<U>) =>
+            instantiateSingleNode(
+              def,
+              menu,
+            ) as import('../types.js').ItemNode<U>,
+          hasExactMatch: (query: string) =>
+            flattenedNodes.some(
+              (node) =>
+                node.kind === 'item' &&
+                node.label?.toLowerCase() === query.toLowerCase(),
+            ),
+        }
+
+        nodes = menu.middleware.transformNodes(context)
+      } catch (error) {
+        console.error('[ActionMenu] Error in transformNodes middleware:', error)
+        nodes = flattenedNodes
+      }
     }
 
-    try {
-      const context: TransformNodesContext<T> = {
-        nodes: flattenedNodes,
-        query: q,
-        mode: effectiveLocalQuery ? 'search' : 'browse',
-        allNodes: menu.nodes,
-        menu,
-        createNode: <U = T>(def: import('../types.js').ItemDef<U>) =>
-          instantiateSingleNode(def, menu) as import('../types.js').ItemNode<U>,
-        hasExactMatch: (query: string) =>
-          flattenedNodes.some(
-            (node) =>
-              node.kind === 'item' &&
-              node.label?.toLowerCase() === query.toLowerCase(),
-          ),
+    // In streaming mode, append a LoadingNode at the end if there are loaders in progress
+    const isStreaming = menu.loadingState?.loadMode === 'streaming'
+    const hasInProgressLoaders =
+      menu.loadingState?.inProgressPaths &&
+      menu.loadingState.inProgressPaths.size > 0
+
+    if (
+      isStreaming &&
+      hasInProgressLoaders &&
+      effectiveLocalQuery &&
+      menu.loadingState
+    ) {
+      const loadingNode: import('../types.js').LoadingNode = {
+        kind: 'loading',
+        id: '__streaming-loading__',
+        parent: menu,
+        def: {
+          kind: 'loading',
+          id: '__streaming-loading__',
+          progress: menu.loadingState.progress,
+          inProgressPaths: menu.loadingState.inProgressPaths
+            ? Array.from(menu.loadingState.inProgressPaths)
+            : [],
+          completedPaths: menu.loadingState.completedPaths
+            ? Array.from(menu.loadingState.completedPaths)
+            : [],
+        },
+        progress: menu.loadingState.progress,
+        inProgressPaths: menu.loadingState.inProgressPaths
+          ? Array.from(menu.loadingState.inProgressPaths)
+          : [],
+        completedPaths: menu.loadingState.completedPaths
+          ? Array.from(menu.loadingState.completedPaths)
+          : [],
       }
 
-      return menu.middleware.transformNodes(context)
-    } catch (error) {
-      console.error('[ActionMenu] Error in transformNodes middleware:', error)
-      return flattenedNodes
+      nodes = [...nodes, loadingNode as any]
     }
+
+    return nodes
   }, [flattenedNodes, q, effectiveLocalQuery, menu])
 
   // Track the last pointer position to detect actual movement vs. items moving under cursor
@@ -509,12 +620,14 @@ function ListContent<T = unknown>({
   React.useEffect(() => {
     const order = store.getOrder()
     const validRows = transformedNodes.filter(
-      (n) => (n.kind === 'item' || n.kind === 'submenu') && !n.disabled,
+      (n) =>
+        (n.kind === 'item' || n.kind === 'submenu') && !(n as any).disabled,
     )
     const validRowIds = validRows.map((n) => n.id)
 
     const virtualIndexMap = new Map<string, number>()
     transformedNodes.forEach((node, index) => {
+      // Only items and submenus are navigable (not groups, separators, or loading nodes)
       if (node.kind === 'item' || node.kind === 'submenu') {
         virtualIndexMap.set(node.id, index)
       }
@@ -638,10 +751,13 @@ function ListContent<T = unknown>({
     [baseListProps, slotProps?.list, store],
   )
 
-  const ItemSlot = slots.Item
-  const SubmenuTriggerSlot = slots.SubmenuTrigger
-  const GroupHeadingSlot = slots.GroupHeading
-  const SeparatorSlot = slots.Separator
+  const {
+    Item: ItemSlot,
+    SubmenuTrigger: SubmenuTriggerSlot,
+    GroupHeading: GroupHeadingSlot,
+    Separator: SeparatorSlot,
+    InlineLoading: InlineLoadingSlot,
+  } = slots
 
   const listRows = React.useMemo(
     () => (
@@ -774,6 +890,30 @@ function ListContent<T = unknown>({
             )
           }
 
+          if (node.kind === 'loading') {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <InlineLoadingSlot
+                  progress={node.progress}
+                  inProgressPaths={node.inProgressPaths}
+                  completedPaths={node.completedPaths}
+                  query={q}
+                />
+              </div>
+            )
+          }
+
           return null
         })}
       </ul>
@@ -783,6 +923,7 @@ function ListContent<T = unknown>({
       SubmenuTriggerSlot,
       GroupHeadingSlot,
       SeparatorSlot,
+      InlineLoadingSlot,
       store,
       transformedNodes,
       virtualizer.measureElement,
@@ -791,6 +932,8 @@ function ListContent<T = unknown>({
       defaults,
       classNames,
       getRowRefCallback,
+      slots.InlineLoading,
+      q,
     ],
   )
 

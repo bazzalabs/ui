@@ -21,7 +21,9 @@ import { cn } from '../lib/cn.js'
 import {
   aggregateLoaderResults,
   collectDeepSearchLoaders,
+  injectCompletedLoaderResults,
   injectLoaderResults,
+  shouldEnableStreaming,
 } from '../lib/deep-search-utils.js'
 import { isInBounds } from '../lib/dom-utils.js'
 import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
@@ -207,12 +209,36 @@ export const Surface = React.forwardRef(function Surface<T>(
     deepSearchLoaderConfigs,
   )
 
+  // Determine if streaming mode should be enabled
+  const isStreamingEnabled = React.useMemo(() => {
+    const menuDef = menuProp as MenuDef<T>
+    if ((menuProp as any)?.surfaceId) return false // Already a Menu instance
+    return shouldEnableStreaming(menuDef)
+  }, [menuProp])
+
   // Aggregate deep search loader states
   const aggregatedState = React.useMemo(() => {
     if (deepSearchLoaderResults.size === 0) return null
     const menuDef = menuProp as MenuDef<T>
     return aggregateLoaderResults(deepSearchLoaderResults, menuDef)
   }, [deepSearchLoaderResults, menuProp])
+
+  // Track which loaders have been injected for streaming mode
+  // This allows us to incrementally inject completed results without re-processing
+  const injectedMenuDefRef = React.useRef<MenuDef<T> | null>(null)
+  const processedLoadersRef = React.useRef<Set<string>>(new Set())
+  const completionOrderRef = React.useRef<string[]>([]) // Track order of completion
+  const lastQueryRef = React.useRef<string>('')
+
+  // Reset tracking when query changes
+  React.useEffect(() => {
+    if (effectiveQuery !== lastQueryRef.current) {
+      injectedMenuDefRef.current = null
+      processedLoadersRef.current = new Set()
+      completionOrderRef.current = []
+      lastQueryRef.current = effectiveQuery
+    }
+  }, [effectiveQuery])
 
   const menu = React.useMemo<Menu<T>>(() => {
     // If it's already a Menu instance and we have a new loader result, rebuild it
@@ -246,10 +272,47 @@ export const Surface = React.forwardRef(function Surface<T>(
     // When a submenu is opened, it should use its own loader function with its own query,
     // not the cached deep search results from the parent menu's query
     if (!sub && aggregatedState && aggregatedState.results.size > 0) {
-      resolvedMenuDef = injectLoaderResults(
-        resolvedMenuDef,
-        aggregatedState.results,
-      )
+      if (isStreamingEnabled) {
+        // STREAMING MODE: Incrementally inject only newly completed loaders
+        // Build a map of ONLY the new completions (not previously processed)
+        const newCompletedResults = new Map<string, any>()
+
+        for (const [pathKey, result] of aggregatedState.results.entries()) {
+          if (
+            result.data !== undefined &&
+            !result.isLoading &&
+            !processedLoadersRef.current.has(pathKey)
+          ) {
+            newCompletedResults.set(pathKey, result)
+            processedLoadersRef.current.add(pathKey)
+            completionOrderRef.current.push(pathKey) // Track completion order
+          }
+        }
+
+        // If we have new completions, inject them into the accumulated menu def
+        if (newCompletedResults.size > 0) {
+          // Start with either the previously injected menu def, or the original
+          const baseMenuDef = injectedMenuDefRef.current || resolvedMenuDef
+
+          // Inject the new completions into the base
+          resolvedMenuDef = injectCompletedLoaderResults(
+            baseMenuDef,
+            newCompletedResults,
+          )
+
+          // Store the updated menu def for next iteration
+          injectedMenuDefRef.current = resolvedMenuDef
+        } else if (injectedMenuDefRef.current) {
+          // No new completions, but we have previously injected data - use it
+          resolvedMenuDef = injectedMenuDefRef.current
+        }
+      } else {
+        // BLOCKING MODE: Wait for all loaders, then inject all at once
+        resolvedMenuDef = injectLoaderResults(
+          resolvedMenuDef,
+          aggregatedState.results,
+        )
+      }
     }
 
     // Then apply the main loader result
@@ -266,6 +329,8 @@ export const Surface = React.forwardRef(function Surface<T>(
     // If we have aggregated loading state, merge it with the menu's loading state
     // Only apply this to root menus (submenus should have their own independent loading state)
     if (!sub && aggregatedState) {
+      const loadMode = isStreamingEnabled ? 'streaming' : 'blocking'
+
       return {
         ...instantiatedMenu,
         loadingState: {
@@ -278,12 +343,23 @@ export const Surface = React.forwardRef(function Surface<T>(
             aggregatedState.isFetching,
           // Keep isError from main loader only (we fail silently on deep search loaders)
           progress: aggregatedState.progress,
-        },
+          loadMode,
+          completedPaths: aggregatedState.completedPaths,
+          inProgressPaths: aggregatedState.inProgressPaths,
+          completionOrder: completionOrderRef.current, // Add completion order for stable streaming
+        } as any,
       }
     }
 
     return instantiatedMenu
-  }, [menuProp, surfaceId, sub, finalLoaderResult, aggregatedState])
+  }, [
+    menuProp,
+    surfaceId,
+    sub,
+    finalLoaderResult,
+    aggregatedState,
+    isStreamingEnabled,
+  ])
 
   const mode = useDisplayMode()
   const { ownerId, setOwnerId } = useFocusOwner()
@@ -527,9 +603,24 @@ export const Surface = React.forwardRef(function Surface<T>(
         slotProps?.header?.className,
       )}
     >
-      {slots.Header({ menu })}
+      {slots.Header({ menu, loadMode: menu.loadingState?.loadMode })}
     </div>
   ) : null
+
+  const searchState: import('../types.js').InputSearchState = React.useMemo(
+    () => ({
+      query: value,
+      isLoading: menu.loadingState?.isLoading,
+      isFetching: menu.loadingState?.isFetching,
+      isError: menu.loadingState?.isError,
+      error: menu.loadingState?.error,
+      loadMode: menu.loadingState?.loadMode,
+      progress: menu.loadingState?.progress,
+      completedPaths: menu.loadingState?.completedPaths,
+      inProgressPaths: menu.loadingState?.inProgressPaths,
+    }),
+    [value, menu.loadingState],
+  )
 
   const inputEl = inputActive ? (
     <Input<T>
@@ -540,6 +631,7 @@ export const Surface = React.forwardRef(function Surface<T>(
       slotProps={slotProps?.input}
       className={classNames?.input}
       inputPlaceholder={menu.inputPlaceholder}
+      searchState={searchState}
     />
   ) : null
 

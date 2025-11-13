@@ -95,6 +95,21 @@ export function instantiateSingleNode<T>(
     return node as Node<T>
   }
 
+  if (def.kind === 'loading') {
+    const loadingDef = def as import('../types.js').LoadingDef
+    const node: import('../types.js').LoadingNode = {
+      kind: 'loading',
+      id: def.id,
+      hidden: def.hidden,
+      parent,
+      def: loadingDef,
+      progress: loadingDef.progress,
+      inProgressPaths: loadingDef.inProgressPaths,
+      completedPaths: loadingDef.completedPaths,
+    }
+    return node as Node<T>
+  }
+
   // submenu
   const subDef = {
     ...def,

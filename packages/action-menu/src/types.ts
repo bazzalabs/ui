@@ -7,7 +7,12 @@ import type { Drawer } from 'vaul'
  * Menu Model Types
  * ============================================================================================== */
 
-export type MenuNodeKind = 'item' | 'group' | 'submenu' | 'separator'
+export type MenuNodeKind =
+  | 'item'
+  | 'group'
+  | 'submenu'
+  | 'separator'
+  | 'loading'
 
 export type BaseDef<K extends MenuNodeKind> = {
   /** The kind of node. */
@@ -187,6 +192,10 @@ export type AggregatedLoaderState = {
   results: Map<string, AsyncNodeLoaderResult>
   /** Progress details for each loader (useful for Loading slot) */
   progress: LoaderProgress[]
+  /** Set of paths for loaders that have completed (for streaming) */
+  completedPaths?: Set<string>
+  /** Set of paths for loaders that are still in progress (for streaming) */
+  inProgressPaths?: Set<string>
 }
 
 /**
@@ -208,6 +217,20 @@ export type VirtualizationConfig = {
 export type SearchMode = 'client' | 'server' | 'hybrid'
 
 /**
+ * Configuration for streaming search results.
+ */
+export type StreamingConfig = {
+  /** Enable streaming mode. Default: false */
+  enabled: boolean
+  /**
+   * Whether to re-sort the entire results list when a new batch arrives.
+   * - false (default): Each batch is sorted internally, then appended to end
+   * - true: Re-sort the entire results list on each batch (may cause visual jumping)
+   */
+  resortOnBatch?: boolean
+}
+
+/**
  * Configuration for search behavior.
  */
 export type SearchConfig = {
@@ -221,6 +244,14 @@ export type SearchConfig = {
    * - object: Specify separate thresholds for local and deep search
    */
   minLength?: number | { local?: number; deep?: number }
+  /**
+   * Streaming configuration for showing results as they load.
+   * - boolean: Enable/disable streaming with default config
+   * - object: Granular control over streaming behavior
+   *
+   * Note: Streaming only activates when at least one loader uses 'server' or 'hybrid' mode.
+   */
+  streaming?: boolean | StreamingConfig
 }
 
 export type MenuDef<T = unknown> = MenuState & {
@@ -337,6 +368,15 @@ export type SeparatorDef = BaseDef<'separator'> & {
   label?: string
 }
 
+export type LoadingDef = BaseDef<'loading'> & {
+  /** Progress information for in-progress loaders */
+  progress?: LoaderProgress[]
+  /** Paths of loaders that are still loading */
+  inProgressPaths?: string[]
+  /** Paths of loaders that have completed */
+  completedPaths?: string[]
+}
+
 export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
   Searchable &
   MenuState & {
@@ -373,6 +413,8 @@ export type SubmenuDef<T = unknown, TChild = unknown> = BaseDef<'submenu'> &
     render?: () => React.ReactNode
   }
 
+export type LoadMode = 'blocking' | 'streaming'
+
 export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
   nodes: Node<T>[]
   surfaceId: string
@@ -385,6 +427,12 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
     isFetching?: boolean
     /** Progress details for deep search loaders */
     progress?: LoaderProgress[]
+    /** Load mode: 'blocking' (wait for all) or 'streaming' (show as they arrive) */
+    loadMode?: LoadMode
+    /** Paths of completed loaders (streaming mode) */
+    completedPaths?: Set<string>
+    /** Paths of in-progress loaders (streaming mode) */
+    inProgressPaths?: Set<string>
   }
 }
 
@@ -480,6 +528,15 @@ export type SeparatorNode = BaseNode<'separator', SeparatorDef> & {
   label?: string
 }
 
+export type LoadingNode = BaseNode<'loading', LoadingDef> & {
+  /** Progress information for in-progress loaders */
+  progress?: LoaderProgress[]
+  /** Paths of loaders that are still loading */
+  inProgressPaths?: string[]
+  /** Paths of loaders that have completed */
+  completedPaths?: string[]
+}
+
 /** NOTE: Submenu node exposes its runtime child menu as `child` */
 export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
   'submenu',
@@ -497,12 +554,14 @@ export type Node<T = unknown> =
   | GroupNode<T>
   | SubmenuNode<T, any>
   | SeparatorNode
+  | LoadingNode
 
 export type NodeDef<T = unknown> =
   | ItemDef<T>
   | GroupDef<T>
   | SubmenuDef<T, any>
   | SeparatorDef
+  | LoadingDef
 
 /* ================================================================================================
  * Bind API Types
@@ -666,6 +725,30 @@ export interface ListSlotProps<T = unknown> {
   bind: ListBindAPI
 }
 
+/**
+ * Search state information provided to the Input slot.
+ */
+export interface InputSearchState {
+  /** Current query string */
+  query: string
+  /** Whether any loader is currently loading */
+  isLoading?: boolean
+  /** Whether any loader is currently fetching */
+  isFetching?: boolean
+  /** Whether any loader has an error */
+  isError?: boolean
+  /** Error from the loader (if any) */
+  error?: Error | null
+  /** Load mode: 'blocking' or 'streaming' */
+  loadMode?: LoadMode
+  /** Deep search progress (which submenus are being searched) */
+  progress?: LoaderProgress[]
+  /** Paths of completed loaders (streaming mode) */
+  completedPaths?: Set<string>
+  /** Paths of in-progress loaders (streaming mode) */
+  inProgressPaths?: Set<string>
+}
+
 /** Slot renderers to customize visuals. */
 export type SurfaceSlots<T = unknown> = {
   Content: (args: {
@@ -673,11 +756,16 @@ export type SurfaceSlots<T = unknown> = {
     children: React.ReactNode
     bind: ContentBindAPI
   }) => React.ReactNode
-  Header?: (args: { menu: Menu<T> }) => React.ReactNode
+  Header?: (args: {
+    menu: Menu<T>
+    /** Load mode: 'blocking' or 'streaming' */
+    loadMode?: LoadMode
+  }) => React.ReactNode
   Input: (args: {
     value: string
     onChange: (v: string) => void
     bind: InputBindAPI
+    search: InputSearchState
   }) => React.ReactNode
   List: (args: ListSlotProps<T>) => React.ReactNode
   /** Shown when no nodes are available after loading completes. */
@@ -690,6 +778,22 @@ export type SurfaceSlots<T = unknown> = {
     /** Deep search progress (which submenus are being searched) */
     progress?: LoaderProgress[]
     /** Query that triggered the search (if deep search is active) */
+    query?: string
+    /** Load mode: 'blocking' or 'streaming' */
+    loadMode?: LoadMode
+  }) => React.ReactNode
+  /**
+   * Shown inline at the end of the list during streaming mode.
+   * Renders as a node in the list while loaders are still in progress.
+   */
+  InlineLoading?: (args: {
+    /** Progress information for in-progress loaders */
+    progress?: LoaderProgress[]
+    /** Paths of loaders still loading */
+    inProgressPaths?: string[]
+    /** Paths of loaders that have completed */
+    completedPaths?: string[]
+    /** Query that triggered the search */
     query?: string
   }) => React.ReactNode
   /** Shown when async load fails (when isError). */

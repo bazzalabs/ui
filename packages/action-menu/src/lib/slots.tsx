@@ -7,7 +7,7 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
       <div {...bind.getContentProps()}>{children}</div>
     ),
     Header: () => null,
-    Input: ({ value, onChange, bind }) => (
+    Input: ({ value, onChange, bind, search }) => (
       <input
         {...bind.getInputProps({
           value,
@@ -23,8 +23,8 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
         No results{query ? ` for "${query}"` : ''}.
       </div>
     ),
-    Loading: ({ isFetching, progress, query }) => (
-      <div data-slot="action-menu-loading">
+    Loading: ({ isFetching, progress, query, loadMode }) => (
+      <div data-slot="action-menu-loading" data-load-mode={loadMode}>
         <div>{isFetching ? 'Refreshing...' : 'Loading...'}</div>
         {progress && progress.length > 0 && (
           <div style={{ fontSize: '0.875em', marginTop: '0.5em' }}>
@@ -34,6 +34,27 @@ export function defaultSlots<T>(): Required<SurfaceSlots<T>> {
                 {p.isLoading ? '⏳' : '✓'} {p.breadcrumbs.join(' › ')}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+    ),
+    InlineLoading: ({ progress, query }) => (
+      <div
+        data-slot="action-menu-inline-loading"
+        style={{
+          padding: '8px 16px',
+          opacity: 0.6,
+          fontSize: '0.875em',
+        }}
+      >
+        <div>Loading more results{query ? ` for "${query}"` : ''}...</div>
+        {progress && progress.length > 0 && (
+          <div style={{ marginTop: '0.25em' }}>
+            {progress
+              .filter((p) => p.isLoading)
+              .map((p) => (
+                <div key={p.path.join('-')}>⏳ {p.breadcrumbs.join(' › ')}</div>
+              ))}
           </div>
         )}
       </div>

@@ -16,6 +16,23 @@ declare module '@bazza-ui/action-menu' {
 
 export const ActionMenu = createActionMenu({
   slots: {
+    // Input: ({ bind, value, onChange, search }) => {
+    //   const props = bind.getInputProps()
+    //   return (
+    //     <div className="flex items-center justify-between">
+    //       <input
+    //         {...props}
+    //         value={value}
+    //         onChange={(event) => onChange(event.target.value)}
+    //       />
+    //       <div className="size-5 mr-2">
+    //         {search.isLoading && (
+    //           <DiamondSpinner className="size-4 text-primary rotate-45" />
+    //         )}
+    //       </div>
+    //     </div>
+    //   )
+    // },
     GroupHeading: ({ node, bind }) => (
       <div {...bind.getGroupHeadingProps()}>
         <span>{node.heading}</span>
@@ -87,6 +104,21 @@ export const ActionMenu = createActionMenu({
           </div>
           <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out shrink-0" />
         </li>
+      )
+    },
+    InlineLoading: (args) => {
+      const count = args.progress?.reduce((acc, progress) => {
+        return progress.isLoading ? acc : acc + 1
+      }, 0)
+      const total = args.progress?.length ?? 0
+
+      return (
+        <div className="flex items-center justify-center gap-2 h-10 text-muted-foreground">
+          <DiamondSpinner className="size-5 text-primary rotate-45" />
+          <span className="tabular-nums">
+            Loading {total > 0 ? `${count}/${total}` : ''}...
+          </span>
+        </div>
       )
     },
     Loading: (args) => {

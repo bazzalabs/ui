@@ -19,6 +19,7 @@ export function Input<T>({
   slotProps,
   inputPlaceholder,
   className,
+  searchState,
 }: {
   store: SurfaceStore<T>
   value: string
@@ -27,6 +28,7 @@ export function Input<T>({
   slotProps: SurfaceSlotProps['input']
   inputPlaceholder?: string
   className?: string
+  searchState: import('../types.js').InputSearchState
 }) {
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
   const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)
@@ -79,7 +81,7 @@ export function Input<T>({
     [baseInputProps, slotProps],
   )
 
-  const el = slot({ value, onChange, bind })
+  const el = slot({ value, onChange, bind, search: searchState })
   if (!hasDescendantWithProp(el, 'data-action-menu-input'))
     return <input {...(bind.getInputProps(slotProps as any) as any)} />
   return el as React.ReactElement
