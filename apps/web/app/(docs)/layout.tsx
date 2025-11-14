@@ -1,5 +1,4 @@
 import { AppSidebar } from '@/components/app-sidebar'
-import AppSidebarOpenTrigger from '@/components/app-sidebar-open-trigger'
 import { SidebarProvider } from '@/components/ui/sidebar'
 
 export default function RootLayout({

@@ -2,9 +2,6 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ComponentFrameSimple } from '@/components/component-frame-simple'
-import { Examples } from '@/components/examples'
-import { MultiSelect } from '@/components/examples/action-menu/multiselect'
 import { NavBar } from '@/components/nav-bar'
 import logoSrc from '@/public/bazzaui-v3-color.png'
 import { Playground } from './playground'
@@ -34,9 +31,9 @@ export default function Page() {
               <span>ui</span>
             </Link>
 
-            {/*<h1 className="text-5xl font-[538] tracking-[-0.035rem] select-none">
+            <h1 className="text-5xl font-[538] tracking-[-0.035rem] select-none">
               Playground
-            </h1>*/}
+            </h1>
           </div>
         </div>
       </div>

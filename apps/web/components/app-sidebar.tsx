@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronRight } from 'lucide-react'
+import { LayoutGroup, motion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -181,6 +182,19 @@ export function AppSidebar() {
             <SidebarGroupLabel>Components</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* Data Table Filter */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={'/docs/data-table-filter' === pathname}
+                    className="font-medium text-muted-foreground hover-expand-[2px]"
+                  >
+                    <a href={'/docs/data-table-filter'}>
+                      <span>Data Table Filter</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 {/* Action Menu with nested pages */}
                 <Collapsible
                   key="action-menu"
@@ -191,8 +205,8 @@ export function AppSidebar() {
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton
-                        className="font-medium hover-expand-[2px]"
-                        // isActive={pathname === '/docs/action-menu'}
+                        className="font-medium text-muted-foreground hover-expand-[2px] data-[active=true]:bg-sidebar-accent data-[active=true]:text-primary"
+                        isActive={pathname.startsWith('/docs/action-menu')}
                       >
                         <a href="/docs/action-menu">Action Menu</a>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -217,50 +231,21 @@ export function AppSidebar() {
                               <div className="flex flex-col gap-y-px -translate-x-1.5">
                                 {group.items.map((item) => (
                                   <SidebarMenuSubButton
+                                    asChild
                                     key={item.url}
-                                    isActive={
-                                      pathname === item.url ||
-                                      pathname.startsWith(`${item.url}/`)
-                                    }
-                                    href={item.url}
+                                    isActive={pathname === item.url}
                                   >
-                                    {item.title}
+                                    <Link href={item.url}>{item.title}</Link>
                                   </SidebarMenuSubButton>
                                 ))}
                               </div>
                             </div>
                           )
-                          // return (
-                          //   <SidebarMenuSubItem key={item.url}>
-                          //     <SidebarMenuSubButton
-                          //       isActive={
-                          //         pathname === item.url ||
-                          //         pathname.startsWith(`${item.url}/`)
-                          //       }
-                          //       href={item.url}
-                          //     >
-                          //       {item.title}
-                          //     </SidebarMenuSubButton>
-                          //   </SidebarMenuSubItem>
-                          // )
                         })}
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>
                 </Collapsible>
-
-                {/* Data Table Filter */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={'/docs/data-table-filter' === pathname}
-                    className="font-medium text-muted-foreground hover-expand-[2px]"
-                  >
-                    <a href={'/docs/data-table-filter'}>
-                      <span>Data Table Filter</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
