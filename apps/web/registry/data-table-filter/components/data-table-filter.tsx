@@ -10,7 +10,7 @@ import type {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ActiveFilters, ActiveFiltersMobileContainer } from './active-filters'
 import { FilterActions } from './filter-actions'
-import { FilterSelector_v2 } from './filter-selector'
+import { FilterMenu_v2 } from './filter-menu'
 
 interface DataTableFilterProps<TData> {
   columns: Column<TData>[]
@@ -34,7 +34,7 @@ export function DataTableFilter<TData>({
     return (
       <div className="flex w-full items-start justify-between gap-2">
         <div className="flex gap-1">
-          <FilterSelector_v2
+          <FilterMenu_v2
             columns={columns}
             filters={filters}
             actions={actions}
@@ -64,7 +64,7 @@ export function DataTableFilter<TData>({
   return (
     <div className="flex w-full items-start justify-between gap-2">
       <div className="flex md:flex-wrap gap-2 w-full flex-1">
-        <FilterSelector_v2
+        <FilterMenu_v2
           columns={columns}
           filters={filters}
           actions={actions}

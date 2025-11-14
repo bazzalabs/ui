@@ -51,9 +51,9 @@ import {
   FilterValueDateController,
   FilterValueNumberController,
   OptionItem_v2,
-} from './filter-value'
+} from './filter-value/index'
 
-interface FilterSelectorProps<TData> {
+interface FilterMenuProps<TData> {
   filters: FiltersState
   columns: Column<TData>[]
   actions: DataTableFilterActions
@@ -123,17 +123,15 @@ function createNumberMenu<TData>({
   }
 }
 
-export const FilterSelector_v2 = memo(
-  __FilterSelector_v2,
-) as typeof __FilterSelector_v2
+export const FilterMenu_v2 = memo(__FilterMenu_v2) as typeof __FilterMenu_v2
 
-function __FilterSelector_v2<TData>({
+function __FilterMenu_v2<TData>({
   filters,
   columns,
   actions,
   strategy,
   locale = 'en',
-}: FilterSelectorProps<TData>) {
+}: FilterMenuProps<TData>) {
   // Use ref to capture current filters value for loaders
   const filtersRef = useRef(filters)
   useEffect(() => {
@@ -160,7 +158,7 @@ function __FilterSelector_v2<TData>({
 
   const menu: MenuDef = useMemo(
     () => ({
-      id: 'filter-selector',
+      id: 'filter-menu',
       search: {
         minLength: 2,
       },
@@ -267,15 +265,15 @@ function __FilterSelector_v2<TData>({
   )
 }
 
-export const FilterSelector = memo(__FilterSelector) as typeof __FilterSelector
+export const FilterMenu = memo(__FilterMenu) as typeof __FilterMenu
 
-function __FilterSelector<TData>({
+function __FilterMenu<TData>({
   filters,
   columns,
   actions,
   strategy,
   locale = 'en',
-}: FilterSelectorProps<TData>) {
+}: FilterMenuProps<TData>) {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const [property, setProperty] = useState<string | undefined>(undefined)

@@ -1,114 +1,44 @@
-import type {
-  Column,
-  ColumnDataType,
-  DataTableFilterActions,
-  FilterModel,
-  FilterStrategy,
-  FiltersState,
-  Locale,
-} from '@bazza-ui/filters'
+'use client'
+
 import { getColumn } from '@bazza-ui/filters'
-import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { FilterOperator } from './filter-operator'
-import { FilterSubject } from './filter-subject'
-import { FilterValue } from './filter-value/index'
+import { useFilterContext } from '../../context'
+import { FilterListItem } from './filter-list-item'
 
-interface ActiveFiltersProps<TData> {
-  columns: Column<TData>[]
-  filters: FiltersState
-  actions: DataTableFilterActions
-  strategy: FilterStrategy
-  locale?: Locale
-  entityName?: string
-}
+export function FilterList() {
+  const { filters, columns } = useFilterContext()
 
-export function ActiveFilters<TData>({
-  columns,
-  filters,
-  actions,
-  strategy,
-  locale = 'en',
-  entityName,
-}: ActiveFiltersProps<TData>) {
   return (
     <>
       {filters.map((filter) => {
         const id = filter.columnId
-
         const column = getColumn(columns, id)
 
         // Skip if no filter value
         if (!filter.values) return null
 
         return (
-          <ActiveFilter
-            key={`active-filter-${filter.columnId}`}
+          <FilterListItem
+            key={`filter-list-item-${filter.columnId}`}
             filter={filter}
             column={column}
-            actions={actions}
-            strategy={strategy}
-            locale={locale}
-            entityName={entityName}
-          />
+          >
+            <FilterListItem.Subject />
+            <Separator orientation="vertical" />
+            <FilterListItem.Operator />
+            <Separator orientation="vertical" />
+            <FilterListItem.Value />
+            <Separator orientation="vertical" />
+            <FilterListItem.Remove />
+          </FilterListItem>
         )
       })}
     </>
   )
 }
 
-interface ActiveFilterProps<TData, TType extends ColumnDataType> {
-  filter: FilterModel<TType>
-  column: Column<TData, TType>
-  actions: DataTableFilterActions
-  strategy: FilterStrategy
-  locale?: Locale
-  entityName?: string
-}
-
-// Generic render function for a filter with type-safe value
-export function ActiveFilter<TData, TType extends ColumnDataType>({
-  filter,
-  column,
-  actions,
-  strategy,
-  locale = 'en',
-  entityName,
-}: ActiveFilterProps<TData, TType>) {
-  return (
-    <div className="flex h-7 items-center rounded-2xl border border-border bg-background shadow-xs text-xs">
-      <FilterSubject column={column} entityName={entityName} />
-      <Separator orientation="vertical" />
-      <FilterOperator
-        filter={filter}
-        column={column}
-        actions={actions}
-        locale={locale}
-      />
-      <Separator orientation="vertical" />
-      <FilterValue
-        filter={filter}
-        column={column}
-        actions={actions}
-        strategy={strategy}
-        locale={locale}
-        entityName={entityName}
-      />
-      <Separator orientation="vertical" />
-      <Button
-        variant="ghost"
-        className="rounded-none rounded-r-2xl text-xs w-7 h-full text-muted-foreground hover:text-primary"
-        onClick={() => actions.removeFilter(filter.columnId)}
-      >
-        <X className="size-4 -translate-x-0.5" />
-      </Button>
-    </div>
-  )
-}
-
-export function ActiveFiltersMobileContainer({
+export function FilterListMobileContainer({
   children,
 }: {
   children: React.ReactNode
@@ -131,11 +61,6 @@ export function ActiveFiltersMobileContainer({
       setShowRightBlur(scrollLeft + clientWidth < scrollWidth - 1)
     }
   }
-
-  // Log blur states for debugging
-  // useEffect(() => {
-  //   console.log('left:', showLeftBlur, '  right:', showRightBlur)
-  // }, [showLeftBlur, showRightBlur])
 
   // Set up ResizeObserver to monitor container size
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
