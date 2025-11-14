@@ -11,6 +11,7 @@
     "bench": "turbo run bench",
     "bench:watch": "turbo run bench:watch",
     "type-check": "turbo run type-check",
+    "clean": "zsh -c 'setopt nullglob && rm -rf **/node_modules **/dist **/.turbo **/.next **/.next-dev'",
     "check": "biome check .",
     "check:fix": "biome check --fix .",
     "vercel:install": "turbo run vercel:install",
