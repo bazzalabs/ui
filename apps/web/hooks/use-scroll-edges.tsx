@@ -8,7 +8,25 @@ type EdgeState = {
   right: boolean
 }
 
-export function useScrollEdges(ref?: React.RefObject<any>) {
+type UseScrollEdgesOptions = {
+  ref?: React.RefObject<any>
+  /**
+   * Delay in milliseconds before measuring scroll edges after resize/mutation events.
+   * Useful when elements inside the container are animating, to ensure measurements
+   * are taken after animations complete. Defaults to 0 (immediate measurement).
+   */
+  resizeMeasurementDelay?: number
+}
+
+export function useScrollEdges(
+  options?: UseScrollEdgesOptions | React.RefObject<any>,
+) {
+  // Support both old API (ref only) and new API (options object)
+  const ref = options && 'current' in options ? options : options?.ref
+  const resizeMeasurementDelay =
+    options && 'resizeMeasurementDelay' in options
+      ? (options.resizeMeasurementDelay ?? 0)
+      : 0
   const [edges, setEdges] = useState<EdgeState>({
     top: true,
     bottom: true,
@@ -20,6 +38,7 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
     // Determine if we're tracking window or container
     const container = ref?.current
     const isWindowScroll = !container
+    let debounceTimeout: ReturnType<typeof setTimeout> | null = null
 
     const checkScroll = () => {
       let scrollTop: number
@@ -75,6 +94,23 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
       })
     }
 
+    // Debounced version for resize/mutation observers
+    const debouncedCheckScroll = () => {
+      if (resizeMeasurementDelay === 0) {
+        checkScroll()
+        return
+      }
+
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+      }
+
+      debounceTimeout = setTimeout(() => {
+        checkScroll()
+        debounceTimeout = null
+      }, resizeMeasurementDelay)
+    }
+
     // Initial check - use requestAnimationFrame to ensure DOM is settled
     if (isWindowScroll) {
       // For window scroll, delay initial check to ensure DOM is fully laid out
@@ -93,14 +129,14 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
       })
 
       // Observe changes to document body that might affect scrollability
-      const resizeObserver = new ResizeObserver(checkScroll)
+      const resizeObserver = new ResizeObserver(debouncedCheckScroll)
       resizeObserver.observe(document.documentElement)
       if (document.body) {
         resizeObserver.observe(document.body)
       }
 
       // Observe DOM mutations that might change content size
-      const mutationObserver = new MutationObserver(checkScroll)
+      const mutationObserver = new MutationObserver(debouncedCheckScroll)
       mutationObserver.observe(document.body || document.documentElement, {
         childList: true,
         subtree: true,
@@ -114,6 +150,9 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
 
       // Cleanup for window
       return () => {
+        if (debounceTimeout) {
+          clearTimeout(debounceTimeout)
+        }
         window.removeEventListener('scroll', checkScroll)
         window.removeEventListener('resize', checkScroll)
         window.removeEventListener('load', checkScroll)
@@ -131,9 +170,9 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
     }
 
     // Observers
-    const resizeObserver = new ResizeObserver(checkScroll)
+    const resizeObserver = new ResizeObserver(debouncedCheckScroll)
     resizeObserver.observe(container)
-    const mutationObserver = new MutationObserver(checkScroll)
+    const mutationObserver = new MutationObserver(debouncedCheckScroll)
     mutationObserver.observe(container, {
       childList: true,
       subtree: true,
@@ -141,6 +180,9 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
 
     // Cleanup for container
     return () => {
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+      }
       container.removeEventListener('scroll', checkScroll)
       if (parent) {
         parent.removeEventListener('scroll', checkScroll)
@@ -148,7 +190,7 @@ export function useScrollEdges(ref?: React.RefObject<any>) {
       resizeObserver.disconnect()
       mutationObserver.disconnect()
     }
-  }, [ref])
+  }, [ref, resizeMeasurementDelay])
 
   // Return memoized object to prevent unnecessary re-renders in consuming components
   return useMemo(

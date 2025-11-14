@@ -11,12 +11,21 @@ import styles from './fade.module.css'
 export function FadeContainer({
   children,
   scrollContainerRef,
+  resizeMeasurementDelay = 0,
 }: {
   children: React.ReactNode
   scrollContainerRef?: React.RefObject<HTMLElement | null>
+  /**
+   * Delay in milliseconds before measuring scroll edges after resize/mutation events.
+   * Useful when elements inside the container are animating, to ensure measurements
+   * are taken after animations complete. Defaults to 100ms.
+   */
+  resizeMeasurementDelay?: number
 }) {
-  const { top: topEdgeTouched, bottom: bottomEdgeTouched } =
-    useScrollEdges(scrollContainerRef)
+  const { top: topEdgeTouched, bottom: bottomEdgeTouched } = useScrollEdges({
+    ref: scrollContainerRef,
+    resizeMeasurementDelay,
+  })
 
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
