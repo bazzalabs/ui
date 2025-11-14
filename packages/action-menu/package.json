@@ -37,22 +37,7 @@
     "test:all": "vitest run && vitest run --config=vitest.browser.config.ts",
     "bench": "vitest bench --run",
     "bench:watch": "vitest bench --watch",
-    "/**** Version Bumping (Recommended)": "",
-    "release:patch": "bun scripts/release.ts --bump patch --path .",
-    "release:minor": "bun scripts/release.ts --bump minor --path .",
-    "release:major": "bun scripts/release.ts --bump major --path .",
-    "/**** Dry runs": "",
-    "release:patch:dry": "bun scripts/release.ts --bump patch --path . --dry-run",
-    "release:minor:dry": "bun scripts/release.ts --bump minor --path . --dry-run",
-    "release:major:dry": "bun scripts/release.ts --bump major --path . --dry-run",
-    "/**** Canary releases": "",
-    "release:patch:canary": "bun scripts/release.ts --bump patch --path . --tag canary",
-    "release:minor:canary": "bun scripts/release.ts --bump minor --path . --tag canary",
-    "release:major:canary": "bun scripts/release.ts --bump major --path . --tag canary",
-    "/**** Utilities": "",
-    "version": "bun scripts/generate-version.ts 1 0 .",
-    "publish-package": "bun scripts/publish.ts .",
-    "publish-package:dry": "bun scripts/publish.ts . --dry-run"
+    "changeset": "changeset add"
   },
   "devDependencies": {
     "@bazza-ui/typescript-config": "*",

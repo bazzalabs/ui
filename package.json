@@ -17,10 +17,17 @@
     "registry:build": "turbo run registry:build",
     "start": "turbo run start",
     "prepare": "husky",
-    "filters:llm": "repomix --include \"packages/filters/**/*\" --ignore \"**/locales/*.json\" --copy --stdout"
+    "filters:llm": "repomix --include \"packages/filters/**/*\" --ignore \"**/locales/*.json\" --copy --stdout",
+    "changeset": "changeset add",
+    "version-packages": "changeset version",
+    "release": "turbo run build --filter='./packages/*' && changeset publish",
+    "release:canary": "changeset publish --tag canary",
+    "release:snapshot": "changeset publish --tag snapshot"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.7",
     "@types/node": "^22",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
