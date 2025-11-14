@@ -116,6 +116,20 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Canary Release (prerelease mode with git commits)
+      - name: Check for changesets
+        if: inputs.type == 'canary'
+        run: |
+          if [ ! "$(ls -A .changeset/*.md 2>/dev/null | grep -v README)" ]; then
+            echo "❌ No changesets found!"
+            echo "Canary releases require changesets to document changes."
+            echo ""
+            echo "To create a changeset, run:"
+            echo "  bun changeset"
+            echo ""
+            echo "Or create one manually in the .changeset directory."
+            exit 1
+          fi
+
       - name: Enter prerelease mode
         if: inputs.type == 'canary'
         run: bunx changeset pre enter canary
