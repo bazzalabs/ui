@@ -38,7 +38,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build packages
-        run: turbo run build --filter='./packages/*'
+        run: bunx --bun turbo run build --filter='./packages/*'
 
       - name: Publish to npm
         uses: changesets/action@v1

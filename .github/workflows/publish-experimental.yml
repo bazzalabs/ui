@@ -59,7 +59,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build packages
-        run: turbo run build --filter='./packages/*'
+        run: bunx --bun turbo run build --filter='./packages/*'
 
       # Snapshot Release (no git commits, quick testing)
       - name: Create snapshot versions
