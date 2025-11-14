@@ -47,7 +47,7 @@ export function parseRegistrySlug(slug: string[]): ParsedRegistrySlug {
 
   if (tagMatch) {
     return {
-      name: tagMatch[1],
+      name: tagMatch[1]!,
       tag: tagMatch[2] as RegistryTag,
       hasJsonExtension,
     }

@@ -5,7 +5,10 @@
   "title": "Data table filter",
   "author": "Kian Bazarjani <kian@bazza.dev>",
   "description": "A powerful data table filter component inspired by Linear.",
-  "dependencies": ["@bazza-ui/filters", "date-fns"],
+  "dependencies": [
+    "@bazza-ui/filters",
+    "date-fns"
+  ],
   "registryDependencies": [
     "button",
     "calendar",
