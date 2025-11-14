@@ -1,5 +1,5 @@
 import { AppSidebar } from '@/components/app-sidebar'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
 export default function RootLayout({
   children,
@@ -8,9 +8,11 @@ export default function RootLayout({
 }>) {
   return (
     <SidebarProvider>
-      <div className="lg:grid lg:grid-cols-[auto_1fr] w-full px-4 lg:px-0">
+      <div className="lg:grid lg:grid-cols-[auto_1fr] w-full h-svh lg:mr-2">
         <AppSidebar />
-        <main className="no-scrollbar">{children}</main>
+        <SidebarInset className="overflow-y-scroll lg:border-[0.5px] lg:border-border/75">
+          {children}
+        </SidebarInset>
       </div>
     </SidebarProvider>
   )
