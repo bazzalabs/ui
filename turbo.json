@@ -13,7 +13,7 @@
     "registry:build": {
       "cache": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*", "registry.json"],
-      "outputs": ["public/r/**"]
+      "outputs": ["public/r/base/**"]
     },
     "types:meta": {
       "outputs": ["apps/web/.types/**"]

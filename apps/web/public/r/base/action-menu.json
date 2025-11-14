@@ -3,7 +3,11 @@
   "name": "action-menu",
   "type": "registry:component",
   "title": "Action menu",
-  "dependencies": ["@bazza-ui/action-menu@canary", "lucide-react"],
+  "description": "A menu primitive with deep search, async node loading, and submenus.",
+  "dependencies": [
+    "@bazza-ui/action-menu",
+    "lucide-react"
+  ],
   "files": [
     {
       "path": "registry/action-menu/index.tsx",

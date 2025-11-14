@@ -6,8 +6,9 @@
     {
       "name": "action-menu",
       "title": "Action menu",
+      "description": "A menu primitive with deep search, async node loading, and submenus.",
       "type": "registry:component",
-      "dependencies": ["@bazza-ui/action-menu@canary", "lucide-react"],
+      "dependencies": ["@bazza-ui/action-menu", "lucide-react"],
       "files": [
         {
           "path": "registry/action-menu/index.tsx",
@@ -22,7 +23,7 @@
       "description": "A powerful data table filter component inspired by Linear.",
       "author": "Kian Bazarjani <kian@bazza.dev>",
       "type": "registry:block",
-      "dependencies": ["@bazza-ui/filters@canary", "date-fns"],
+      "dependencies": ["@bazza-ui/filters", "date-fns"],
       "registryDependencies": [
         "button",
         "calendar",
