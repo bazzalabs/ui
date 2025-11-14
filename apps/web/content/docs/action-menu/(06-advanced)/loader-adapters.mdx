@@ -1,0 +1,204 @@
+---
+title: Loader Adapters
+section: Components
+summary: Integrate ActionMenu with data fetching libraries like React Query
+---
+
+# Loader Adapters
+
+Loader adapters allow you to integrate ActionMenu with your preferred data fetching library, enabling powerful async loading patterns.
+
+## Built-in Adapters
+
+### Native Adapter (Default)
+
+Uses `useState` and `useEffect` for simple async operations:
+
+```tsx
+<ActionMenu.Root>
+  <ActionMenu.Surface
+    menu={{
+      loader: async () => {
+        const data = await fetch('/api/items')
+        return data.json()
+      }
+    }}
+  />
+</ActionMenu.Root>
+```
+
+### React Query Adapter
+
+Leverage React Query's caching, refetching, and state management:
+
+```tsx
+import { ReactQueryLoaderAdapter } from '@bazza-ui/action-menu/react-query'
+
+<ActionMenu.Root loaderAdapter={ReactQueryLoaderAdapter}>
+  <ActionMenu.Surface
+    menu={{
+      loader: {
+        queryKey: ['menu-items'],
+        queryFn: async () => {
+          const data = await fetch('/api/items')
+          return data.json()
+        },
+        staleTime: 5000
+      }
+    }}
+  />
+</ActionMenu.Root>
+```
+
+## Creating Custom Adapters
+
+Implement the `LoaderAdapter` interface:
+
+```tsx
+import type { LoaderAdapter } from '@bazza-ui/action-menu'
+
+const MyCustomAdapter: LoaderAdapter = {
+  useLoader: (config, context) => {
+    // Your custom loading logic
+    const [data, setData] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+      loadData()
+    }, [context.query])
+
+    return {
+      data,
+      isLoading,
+      isFetching: isLoading,
+      isError: !!error,
+      error,
+      refetch: loadData
+    }
+  },
+
+  useLoaders: (configs, context) => {
+    // Parallel loading for deep search
+    // ...
+  }
+}
+```
+
+## React Query Integration
+
+### Type-Safe Loaders
+
+Use the `createLoader` helper:
+
+```tsx
+import { createLoader } from '@bazza-ui/action-menu/react-query'
+
+const userLoader = createLoader({
+  queryKey: ['users'],
+  queryFn: async () => {
+    const res = await fetch('/api/users')
+    return res.json()
+  }
+})
+
+<ActionMenu.Surface
+  menu={{
+    loader: userLoader
+  }}
+/>
+```
+
+### Search with React Query
+
+Server-side search with debouncing:
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    search: {
+      mode: 'server',
+      debounce: 300
+    },
+    loader: {
+      queryKey: ['users', 'search'],
+      queryFn: async ({ queryKey, signal }) => {
+        const [, , query] = queryKey
+        const res = await fetch(
+          `/api/users?q=${query}`,
+          { signal }
+        )
+        return res.json()
+      }
+    }
+  }}
+/>
+```
+
+### Optimistic Updates
+
+Combine with React Query mutations:
+
+```tsx
+const queryClient = useQueryClient()
+
+const createItem = useMutation({
+  mutationFn: (item) => fetch('/api/items', {
+    method: 'POST',
+    body: JSON.stringify(item)
+  }),
+  onSuccess: () => {
+    queryClient.invalidateQueries(['menu-items'])
+  }
+})
+```
+
+## Adapter Context
+
+Adapters receive context for dynamic loading:
+
+- `query` - Current search query
+- `isDeep` - Whether this is deep search
+- `menu` - Menu instance
+- `signal` - Abort signal for cancellation
+
+```tsx
+loader: {
+  queryKey: ['items'],
+  queryFn: async ({ signal }, context) => {
+    // Use context.query for server-side filtering
+    const res = await fetch(
+      `/api/items?q=${context.query}`,
+      { signal }
+    )
+    return res.json()
+  }
+}
+```
+
+## Loading States
+
+All adapters must return:
+
+- `data` - The loaded nodes
+- `isLoading` - Initial load state
+- `isFetching` - Refetch state
+- `isError` - Error state
+- `error` - Error object
+- `refetch` - Function to refetch
+
+ActionMenu automatically shows loading/error states using themed slots.
+
+## Best Practices
+
+- Use React Query for complex data fetching
+- Leverage caching to avoid redundant requests
+- Implement proper error handling
+- Use abort signals for cancellation
+- Consider stale-while-revalidate patterns
+
+## Next Steps
+
+- Learn about [Async Loading](/docs/action-menu/async)
+- Explore [Deep Search](/docs/action-menu/deep-search)
+- See [Search & Filtering](/docs/action-menu/search)

@@ -1,18 +1,9 @@
-import {
-  BazzaUIIcon,
-  DiscordIcon,
-  GithubIcon,
-  UserJotIcon,
-  XIcon,
-} from '@/components/icons'
-import { NavBar } from '@/components/nav-bar'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import logoSrc from '@/public/bazzaui-v3-color.png'
 import { ArrowRightIcon } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { BazzaUIIcon, UserJotIcon } from '@/components/icons'
+import { NavBar } from '@/components/nav-bar'
+import { Button } from '@/components/ui/button'
 import { IssuesTableFallback } from './demos/server/tst-query/_/issues-table-fallback'
 import { IssuesTableWrapper } from './demos/server/tst-query/_/issues-table-wrapper'
 
@@ -116,9 +107,6 @@ export default function Page() {
             </Link>
           </p>
         </div>
-      </div>
-      <div className="border-border border-dashed flex flex-col flex-1">
-        <div className="px-4 py-12 flex-1 h-full max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x"></div>
       </div>
     </div>
   )

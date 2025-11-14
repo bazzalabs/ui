@@ -1,0 +1,120 @@
+---
+title: Focus Management
+section: Components
+summary: How ActionMenu manages keyboard focus across nested menus
+---
+
+# Focus Management
+
+ActionMenu provides sophisticated focus management to ensure keyboard navigation works seamlessly across nested menus and submenus.
+
+## Focus Ownership
+
+Each menu surface tracks which item has focus:
+
+```tsx
+// Focus is automatically managed
+<ActionMenu.Surface menu={menu}>
+  {/* Items receive focus as you navigate */}
+</ActionMenu.Surface>
+```
+
+## Auto Focus Behavior
+
+### On Open
+
+Control whether the first item receives focus when opening:
+
+```tsx
+<ActionMenu.Surface
+  menu={menu}
+  onOpenAutoFocus={(e) => {
+    // Prevent auto-focus
+    e.preventDefault()
+  }}
+/>
+```
+
+### On Close
+
+Control focus return when closing:
+
+```tsx
+<ActionMenu.Root
+  onCloseAutoFocus={(e) => {
+    // Prevent focus return to trigger
+    e.preventDefault()
+  }}
+>
+  {/* ... */}
+</ActionMenu.Root>
+```
+
+## Focus Tracking Across Submenus
+
+When opening a submenu:
+
+1. Parent surface releases focus ownership
+2. Child surface claims focus ownership
+3. First item in submenu receives focus
+
+When closing a submenu:
+
+1. Child surface releases focus ownership
+2. Parent surface reclaims focus ownership
+3. Submenu trigger receives focus
+
+## Programmatic Focus Control
+
+Access the surface store to control focus:
+
+```tsx
+import { useSurfaceStore } from '@bazza-ui/action-menu'
+
+function CustomComponent() {
+  const store = useSurfaceStore()
+
+  const focusFirstItem = () => {
+    store.first()
+  }
+
+  const focusLastItem = () => {
+    store.last()
+  }
+
+  const focusSpecificItem = (id: string) => {
+    store.setActiveId(id)
+  }
+
+  // ...
+}
+```
+
+## Focus with Virtualization
+
+When virtualization is enabled, focus management automatically:
+
+- Maps virtual indices to actual node IDs
+- Scrolls virtualized lists to keep focused item visible
+- Maintains focus position during filtering
+
+## Accessibility
+
+Focus management ensures:
+
+- Keyboard-only users can navigate all items
+- Focus is always visible (via `:focus-visible`)
+- Screen readers announce focused items
+- Focus never gets trapped
+
+## Best Practices
+
+- Let ActionMenu manage focus automatically
+- Only override auto-focus behavior when necessary
+- Ensure custom item renderers preserve focus styles
+- Test keyboard navigation thoroughly
+
+## Next Steps
+
+- Learn about [Keyboard Navigation](/docs/action-menu/keyboard)
+- Explore [Accessibility](/docs/action-menu/accessibility)

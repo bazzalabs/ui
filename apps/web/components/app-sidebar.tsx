@@ -1,10 +1,17 @@
 'use client'
 
+import { ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useRef } from 'react'
 import { DiscordIcon, GithubIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
@@ -16,8 +23,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 import logoSrc from '@/public/bazzaui-v3-color.png'
+import { FadeContainer } from './fade-container'
 import { ThemeToggle } from './theme-toggle'
 
 const items = [
@@ -39,82 +50,207 @@ const items = [
   },
 ]
 
+const actionMenuItems = [
+  {
+    groupName: 'Getting Started',
+    items: [
+      { title: 'Introduction', url: '/docs/action-menu/introduction' },
+      { title: 'Installation', url: '/docs/action-menu/installation' },
+      { title: 'Quick Start', url: '/docs/action-menu/quick-start' },
+      { title: 'Examples', url: '/docs/action-menu/examples' },
+    ],
+  },
+  {
+    groupName: 'Concepts',
+    items: [
+      { title: 'Data-First API', url: '/docs/action-menu/data-first-api' },
+      { title: 'Menu Structure', url: '/docs/action-menu/menu-structure' },
+      { title: 'Node Types', url: '/docs/action-menu/node-types' },
+      { title: 'State Management', url: '/docs/action-menu/state-management' },
+      {
+        title: 'Responsive Behavior',
+        url: '/docs/action-menu/responsive-behavior',
+      },
+    ],
+  },
+  {
+    groupName: 'Features',
+    items: [
+      { title: 'Node Configuration', url: '/docs/action-menu/nodes' },
+      { title: 'Async Loading', url: '/docs/action-menu/async' },
+      { title: 'Search & Filtering', url: '/docs/action-menu/search' },
+      { title: 'Keyboard Navigation', url: '/docs/action-menu/keyboard' },
+      { title: 'Focus Management', url: '/docs/action-menu/focus' },
+      { title: 'Positioning', url: '/docs/action-menu/positioning' },
+      { title: 'Theming', url: '/docs/action-menu/theming' },
+      { title: 'Virtualization', url: '/docs/action-menu/virtualization' },
+      { title: 'Middleware', url: '/docs/action-menu/middleware' },
+      {
+        title: 'Extended Properties',
+        url: '/docs/action-menu/extended-properties',
+      },
+      { title: 'Defaults', url: '/docs/action-menu/defaults' },
+    ],
+  },
+  {
+    groupName: 'Advanced',
+    items: [
+      { title: 'Loader Adapters', url: '/docs/action-menu/loader-adapters' },
+      { title: 'Deep Search', url: '/docs/action-menu/deep-search' },
+      { title: 'Intent Zone', url: '/docs/action-menu/intent-zone' },
+      { title: 'Custom Rendering', url: '/docs/action-menu/custom-rendering' },
+      {
+        title: 'Performance Optimization',
+        url: '/docs/action-menu/performance',
+      },
+      { title: 'Accessibility', url: '/docs/action-menu/accessibility' },
+      { title: 'RTL Support', url: '/docs/action-menu/rtl' },
+    ],
+  },
+  {
+    groupName: 'Components',
+    items: [
+      { title: 'Select', url: '/docs/action-menu/select' },
+      { title: 'MultiSelect', url: '/docs/action-menu/multiselect' },
+      { title: 'Dropdown Menu', url: '/docs/action-menu/dropdown-menu' },
+      { title: 'Context Menu', url: '/docs/action-menu/context-menu' },
+      { title: 'Command Palette', url: '/docs/action-menu/command-palette' },
+    ],
+  },
+  {
+    groupName: 'Reference',
+    items: [
+      { title: 'API Reference', url: '/docs/action-menu/api-reference' },
+      { title: 'TypeScript Types', url: '/docs/action-menu/typescript' },
+    ],
+  },
+] satisfies Array<{
+  groupName: string
+  items: Array<{ title: React.ReactNode; url: string }>
+}>
+
 export function AppSidebar() {
   const pathname = usePathname()
+  const ref = useRef<HTMLDivElement | null>(null)
 
   return (
-    <Sidebar>
-      <SidebarContent>
-        <SidebarHeader className="px-4 text-sm pt-4">
-          <SidebarMenu>
-            <SidebarMenuItem className="inline-flex justify-between items-center">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-0.5 font-medium font-mono tracking-tight"
-              >
-                <Image
-                  className="size-5 mr-1.5 translate-y-[-0.5px]"
-                  src={logoSrc}
-                  alt="bazza/ui"
-                />
-                <span>bazza</span>
-                <span className="text-xl text-border">/</span>
-                <span>ui</span>
-              </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarGroup>
-          <SidebarGroupLabel>Basics</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+    <Sidebar className="h-svh flex flex-col">
+      <SidebarHeader className="px-4 text-sm pt-4 shrink-0">
+        <SidebarMenu>
+          <SidebarMenuItem className="inline-flex justify-between items-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-0.5 font-medium font-mono tracking-tight"
+            >
+              <Image
+                className="size-5 mr-1.5 translate-y-[-0.5px]"
+                src={logoSrc}
+                alt="bazza/ui"
+              />
+              <span>bazza</span>
+              <span className="text-xl text-border">/</span>
+              <span>ui</span>
+            </Link>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <FadeContainer scrollContainerRef={ref} resizeMeasurementDelay={100}>
+        <SidebarContent className="flex-1 min-h-0 no-scrollbar" ref={ref}>
+          <SidebarGroup>
+            <SidebarGroupLabel>Basics</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={item.url === pathname}
+                      className="font-medium text-muted-foreground hover-expand-[2px]"
+                    >
+                      <a href={item.url}>
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Components</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* Data Table Filter */}
+                <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={item.url === pathname}
+                    isActive={'/docs/data-table-filter' === pathname}
                     className="font-medium text-muted-foreground hover-expand-[2px]"
                   >
-                    <a href={item.url}>
-                      <span>{item.title}</span>
+                    <a href={'/docs/data-table-filter'}>
+                      <span>Data Table Filter</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Components</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
+
+                {/* Action Menu with nested pages */}
+                <Collapsible
+                  key="action-menu"
                   asChild
-                  isActive={'/docs/action-menu' === pathname}
-                  className="font-medium text-muted-foreground hover-expand-[2px]"
+                  defaultOpen={pathname.startsWith('/docs/action-menu')}
+                  className="group/collapsible"
                 >
-                  <a href={'/docs/action-menu'}>
-                    <span>Action Menu</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={'/docs/data-table-filter' === pathname}
-                  className="font-medium text-muted-foreground hover-expand-[2px]"
-                >
-                  <a href={'/docs/data-table-filter'}>
-                    <span>Data Table Filter</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        className="font-medium text-muted-foreground hover-expand-[2px] data-[active=true]:bg-sidebar-accent data-[active=true]:text-primary"
+                        isActive={pathname.startsWith('/docs/action-menu')}
+                      >
+                        <a href="/docs/action-menu">Action Menu</a>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub className="last:mb-4">
+                        {actionMenuItems.map((group, index) => {
+                          return (
+                            <div
+                              key={group.groupName}
+                              className="flex flex-col"
+                            >
+                              <span
+                                className={cn(
+                                  'text-xs font-medium text-muted-foreground py-1 mb-1',
+                                  index === 0 ? 'mt-1' : 'mt-2',
+                                )}
+                              >
+                                {group.groupName}
+                              </span>
+                              <div className="flex flex-col gap-y-px -translate-x-1.5">
+                                {group.items.map((item) => (
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    key={item.url}
+                                    isActive={pathname === item.url}
+                                  >
+                                    <Link href={item.url}>{item.title}</Link>
+                                  </SidebarMenuSubButton>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </FadeContainer>
+
+      <SidebarFooter className="shrink-0">
         <SidebarMenu className="flex-row gap-0 justify-between">
           <SidebarMenuItem>
             <ThemeToggle />

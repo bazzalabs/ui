@@ -60,6 +60,11 @@
         "kind": "interface",
         "props": [
           {
+            "name": "style",
+            "type": "CSSProperties | undefined",
+            "required": false
+          },
+          {
             "name": "form",
             "type": "string | undefined",
             "required": false
@@ -70,12 +75,22 @@
             "required": false
           },
           {
-            "name": "style",
-            "type": "CSSProperties | undefined",
+            "name": "title",
+            "type": "string | undefined",
             "required": false
           },
           {
-            "name": "title",
+            "name": "asChild",
+            "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": false
+          },
+          {
+            "name": "dir",
             "type": "string | undefined",
             "required": false
           },
@@ -146,11 +161,6 @@
           },
           {
             "name": "contextMenu",
-            "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "dir",
             "type": "string | undefined",
             "required": false
           },
@@ -424,7 +434,7 @@
           },
           {
             "name": "aria-current",
-            "type": "boolean | \"time\" | \"true\" | \"false\" | \"date\" | \"page\" | \"step\" | \"location\" | undefined",
+            "type": "boolean | \"time\" | \"true\" | \"false\" | \"page\" | \"step\" | \"location\" | \"date\" | undefined",
             "required": false,
             "description": "Indicates the element that represents the current item within a container or set of related elements."
           },
@@ -454,7 +464,7 @@
           },
           {
             "name": "aria-dropeffect",
-            "type": "\"link\" | \"none\" | \"copy\" | \"execute\" | \"move\" | \"popup\" | undefined",
+            "type": "\"link\" | \"copy\" | \"none\" | \"execute\" | \"move\" | \"popup\" | undefined",
             "required": false,
             "description": "Indicates what functions can be performed when a dragged object is released on the drop target."
           },
@@ -586,7 +596,7 @@
           },
           {
             "name": "aria-relevant",
-            "type": "\"text\" | \"all\" | \"additions\" | \"additions removals\" | \"additions text\" | \"removals\" | \"removals additions\" | \"removals text\" | \"text additions\" | \"text removals\" | undefined",
+            "type": "\"text\" | \"additions\" | \"additions removals\" | \"additions text\" | \"all\" | \"removals\" | \"removals additions\" | \"removals text\" | \"text additions\" | \"text removals\" | undefined",
             "required": false,
             "description": "Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified."
           },
@@ -667,11 +677,6 @@
             "type": "string | undefined",
             "required": false,
             "description": "Defines the human readable text alternative of aria-valuenow for a range widget."
-          },
-          {
-            "name": "children",
-            "type": "ReactNode",
-            "required": false
           },
           {
             "name": "dangerouslySetInnerHTML",
@@ -1524,11 +1529,6 @@
             "required": false
           },
           {
-            "name": "asChild",
-            "type": "boolean | undefined",
-            "required": false
-          },
-          {
             "name": "disabled",
             "type": "boolean | undefined",
             "required": false
@@ -1565,7 +1565,7 @@
           },
           {
             "name": "type",
-            "type": "\"button\" | \"submit\" | \"reset\" | undefined",
+            "type": "\"button\" | \"reset\" | \"submit\" | undefined",
             "required": false
           },
           {
@@ -1637,6 +1637,11 @@
             "required": true
           },
           {
+            "name": "render",
+            "type": "(() => ReactNode) | undefined",
+            "required": false
+          },
+          {
             "name": "slots",
             "type": "Partial<SurfaceSlots<T>> | undefined",
             "required": false
@@ -1667,21 +1672,6 @@
             "required": false
           },
           {
-            "name": "value",
-            "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "defaultValue",
-            "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "onValueChange",
-            "type": "((value: string) => void) | undefined",
-            "required": false
-          },
-          {
             "name": "onOpenAutoFocus",
             "type": "boolean | undefined",
             "required": false
@@ -1702,18 +1692,23 @@
             "required": false
           },
           {
-            "name": "slot",
-            "type": "string | undefined",
-            "required": false
-          },
-          {
             "name": "style",
             "type": "CSSProperties | undefined",
             "required": false
           },
           {
+            "name": "slot",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
             "name": "title",
             "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "asChild",
+            "type": "boolean | undefined",
             "required": false
           },
           {
@@ -1739,6 +1734,11 @@
           {
             "name": "defaultChecked",
             "type": "boolean | undefined",
+            "required": false
+          },
+          {
+            "name": "defaultValue",
+            "type": "string | number | readonly string[] | undefined",
             "required": false
           },
           {
@@ -2051,7 +2051,7 @@
           },
           {
             "name": "aria-current",
-            "type": "boolean | \"time\" | \"true\" | \"false\" | \"date\" | \"page\" | \"step\" | \"location\" | undefined",
+            "type": "boolean | \"time\" | \"true\" | \"false\" | \"page\" | \"step\" | \"location\" | \"date\" | undefined",
             "required": false,
             "description": "Indicates the element that represents the current item within a container or set of related elements."
           },
@@ -2081,7 +2081,7 @@
           },
           {
             "name": "aria-dropeffect",
-            "type": "\"link\" | \"none\" | \"copy\" | \"execute\" | \"move\" | \"popup\" | undefined",
+            "type": "\"link\" | \"copy\" | \"none\" | \"execute\" | \"move\" | \"popup\" | undefined",
             "required": false,
             "description": "Indicates what functions can be performed when a dragged object is released on the drop target."
           },
@@ -2213,7 +2213,7 @@
           },
           {
             "name": "aria-relevant",
-            "type": "\"text\" | \"all\" | \"additions\" | \"additions removals\" | \"additions text\" | \"removals\" | \"removals additions\" | \"removals text\" | \"text additions\" | \"text removals\" | undefined",
+            "type": "\"text\" | \"additions\" | \"additions removals\" | \"additions text\" | \"all\" | \"removals\" | \"removals additions\" | \"removals text\" | \"text additions\" | \"text removals\" | undefined",
             "required": false,
             "description": "Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified."
           },
@@ -3144,11 +3144,6 @@
             "name": "onTransitionStartCapture",
             "type": "TransitionEventHandler<HTMLDivElement> | undefined",
             "required": false
-          },
-          {
-            "name": "asChild",
-            "type": "boolean | undefined",
-            "required": false
           }
         ]
       },
@@ -3161,8 +3156,13 @@
             "default": "unknown"
           }
         ],
-        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    nodes?: NodeDef<T>[];\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<SurfaceSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "MenuState & {\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    nodes?: NodeDef<T>[];\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<SurfaceSlots<T>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
         "props": [
+          {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false
+          },
           {
             "name": "id",
             "type": "string",
@@ -3249,7 +3249,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseDef<'item'> & Searchable & {\n    icon?: Iconish;\n    /** Arman is a bitch. */\n    data?: T;\n    onSelect?: (args: {\n        node: Omit<ItemNode<T>, 'onSelect'>;\n        search?: SearchContext;\n    }) => void;\n    closeOnSelect?: boolean;\n}",
+        "definition": "BaseDef<'item'> & Searchable & {\n    icon?: Iconish;\n    /** Arman is a bitch. */\n    data?: T;\n    onSelect?: (args: {\n        node: Omit<ItemNode<T>, 'onSelect'>;\n        search?: SearchContext;\n    }) => void;\n    closeOnSelect?: boolean;\n    render?: (args: {\n        node: ItemNode<T>;\n        search?: SearchContext;\n        mode: Omit<ResponsiveMode, 'auto'>;\n        bind: RowBindAPI;\n    }) => React.ReactNode;\n}",
         "props": [
           {
             "name": "kind",
@@ -3300,6 +3300,11 @@
             "name": "closeOnSelect",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "render",
+            "type": "((args: { node: ItemNode<T>; search?: SearchContext | undefined; mode: Omit<ResponsiveMode, \"auto\">; bind: RowBindAPI; }) => ReactNode) | undefined",
+            "required": false
           }
         ]
       },
@@ -3316,7 +3321,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseDef<'submenu'> & Searchable & {\n    nodes: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<SurfaceSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    nodes?: NodeDef<TChild>[];\n    data?: T;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    ui?: {\n        slots?: Partial<SurfaceSlots<TChild>>;\n        slotProps?: Partial<SurfaceSlotProps>;\n        classNames?: Partial<SurfaceClassNames>;\n    };\n    render?: () => React.ReactNode;\n}",
         "props": [
           {
             "name": "kind",
@@ -3348,9 +3353,14 @@
             "description": "A list of aliases for the node, used when searching/filtering."
           },
           {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false
+          },
+          {
             "name": "nodes",
-            "type": "NodeDef<TChild>[]",
-            "required": true
+            "type": "NodeDef<TChild>[] | undefined",
+            "required": false
           },
           {
             "name": "data",
@@ -3386,6 +3396,11 @@
             "name": "ui",
             "type": "{ slots?: Partial<SurfaceSlots<TChild>> | undefined; slotProps?: Partial<SurfaceSlotProps> | undefined; classNames?: Partial<...> | undefined; } | undefined",
             "required": false
+          },
+          {
+            "name": "render",
+            "type": "(() => ReactNode) | undefined",
+            "required": false
           }
         ]
       },
@@ -3400,6 +3415,11 @@
         ],
         "definition": "Omit<MenuDef<T>, 'nodes'> & {\n    nodes: Node<T>[];\n    surfaceId: string;\n    depth: number;\n}",
         "props": [
+          {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false
+          },
           {
             "name": "title",
             "type": "string | undefined",
@@ -3508,7 +3528,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseNode<'item', ItemDef<T>> & Omit<ItemDef<T>, 'kind' | 'hidden'>",
+        "definition": "BaseNode<'item', ItemDef<T>> & Omit<ItemDef<T>, 'kind' | 'hidden'> & {\n    search?: SearchContext;\n}",
         "props": [
           {
             "name": "kind",
@@ -3571,6 +3591,16 @@
             "name": "closeOnSelect",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "render",
+            "type": "((args: { node: ItemNode<T>; search?: SearchContext | undefined; mode: Omit<ResponsiveMode, \"auto\">; bind: RowBindAPI; }) => ReactNode) | undefined",
+            "required": false
+          },
+          {
+            "name": "search",
+            "type": "SearchContext | undefined",
+            "required": false
           }
         ]
       },
@@ -3588,7 +3618,7 @@
           }
         ],
         "doc": "NOTE: Submenu node exposes its runtime child menu as `child`",
-        "definition": "BaseNode<'submenu', SubmenuDef<T, TChild>> & Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {\n    child: Menu<TChild>;\n    nodes: Node<TChild>[];\n}",
+        "definition": "BaseNode<'submenu', SubmenuDef<T, TChild>> & Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes'> & {\n    child: Menu<TChild>;\n    nodes: Node<TChild>[];\n    search?: SearchContext;\n}",
         "props": [
           {
             "name": "kind",
@@ -3625,6 +3655,11 @@
             "required": false
           },
           {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false
+          },
+          {
             "name": "label",
             "type": "string | undefined",
             "required": false,
@@ -3644,6 +3679,11 @@
           {
             "name": "icon",
             "type": "Iconish",
+            "required": false
+          },
+          {
+            "name": "render",
+            "type": "(() => ReactNode) | undefined",
             "required": false
           },
           {
@@ -3675,6 +3715,11 @@
             "name": "nodes",
             "type": "Node<TChild>[]",
             "required": true
+          },
+          {
+            "name": "search",
+            "type": "SearchContext | undefined",
+            "required": false
           }
         ]
       },
@@ -3693,11 +3738,11 @@
           }
         ],
         "doc": "Slot renderers to customize visuals.",
-        "definition": "{\n    Item: (args: {\n        node: ItemNode<T>;\n        search?: SearchContext;\n        mode: Omit<ResponsiveMode, 'auto'>;\n        bind: RowBindAPI;\n    }) => React.ReactNode;\n    Content: (args: {\n        menu: Menu<T>;\n        children: React.ReactNode;\n        bind: ContentBindAPI;\n    }) => React.ReactNode;\n    Header?: (args: {\n        menu: Menu<T>;\n    }) => React.ReactNode;\n    Input: (args: {\n        value: string;\n        onChange: (v: string) => void;\n        bind: InputBindAPI;\n    }) => React.ReactNode;\n    Empty?: (args: {\n        query: string;\n    }) => React.ReactNode;\n    List: (args: {\n        children: React.ReactNode;\n        bind: ListBindAPI;\n    }) => React.ReactNode;\n    Footer?: (args: {\n        menu: Menu<T>;\n    }) => React.ReactNode;\n    SubmenuTrigger: (args: {\n        node: SubmenuNode<T>;\n        search?: SearchContext;\n        bind: RowBindAPI;\n    }) => React.ReactNode;\n}",
+        "definition": "{\n    Item: (args: ItemSlotProps<T>) => React.ReactNode;\n    Content: (args: {\n        menu: Menu<T>;\n        children: React.ReactNode;\n        bind: ContentBindAPI;\n    }) => React.ReactNode;\n    Header?: (args: {\n        menu: Menu<T>;\n    }) => React.ReactNode;\n    Input: (args: {\n        value: string;\n        onChange: (v: string) => void;\n        bind: InputBindAPI;\n    }) => React.ReactNode;\n    Empty?: (args: {\n        query: string;\n    }) => React.ReactNode;\n    List: (args: {\n        children: React.ReactNode;\n        bind: ListBindAPI;\n    }) => React.ReactNode;\n    Footer?: (args: {\n        menu: Menu<T>;\n    }) => React.ReactNode;\n    SubmenuTrigger: (args: {\n        node: SubmenuNode<T>;\n        search?: SearchContext;\n        bind: RowBindAPI;\n    }) => React.ReactNode;\n}",
         "props": [
           {
             "name": "Item",
-            "type": "(args: { node: ItemNode<T>; search?: SearchContext | undefined; mode: Omit<ResponsiveMode, \"auto\">; bind: RowBindAPI; }) => ReactNode",
+            "type": "(args: ItemSlotProps<T>) => ReactNode",
             "required": true
           },
           {
@@ -3774,7 +3819,7 @@
         "name": "SurfaceClassNames",
         "kind": "typealias",
         "doc": "ClassNames that style the *surface* (content/list/items/etc.).",
-        "definition": "{\n    root?: string; // (reserved) if you wrap the entire surface\n    content?: string;\n    input?: string;\n    list?: string;\n    item?: string;\n    subtrigger?: string;\n    group?: string;\n    groupHeading?: string;\n}",
+        "definition": "{\n    root?: string; // (reserved) if you wrap the entire surface\n    content?: string;\n    input?: string;\n    list?: string;\n    itemWrapper?: string;\n    item?: string;\n    subtriggerWrapper?: string;\n    subtrigger?: string;\n    group?: string;\n    groupHeading?: string;\n}",
         "props": [
           {
             "name": "root",
@@ -3797,7 +3842,17 @@
             "required": false
           },
           {
+            "name": "itemWrapper",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
             "name": "item",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "subtriggerWrapper",
             "type": "string | undefined",
             "required": false
           },
@@ -3845,7 +3900,7 @@
         "name": "ShellClassNames",
         "kind": "typealias",
         "doc": "ClassNames that style the *shell* (overlay / drawer container / trigger).",
-        "definition": "{\n    root?: string;\n    overlay?: string;\n    drawerContent?: string;\n    drawerHandle?: string;\n    trigger?: string;\n}",
+        "definition": "{\n    root?: string;\n    overlay?: string;\n    drawerContent?: string;\n    drawerContentInner?: string;\n    drawerHandle?: string;\n    trigger?: string;\n}",
         "props": [
           {
             "name": "root",
@@ -3859,6 +3914,11 @@
           },
           {
             "name": "drawerContent",
+            "type": "string | undefined",
+            "required": false
+          },
+          {
+            "name": "drawerContentInner",
             "type": "string | undefined",
             "required": false
           },
@@ -3940,7 +4000,7 @@
         "name": "SearchContext",
         "kind": "typealias",
         "doc": "Additional context passed to item/submenu renderers during search.",
-        "definition": "{\n    query: string;\n    isDeep: boolean;\n    breadcrumbs: string[];\n    breadcrumbIds: string[];\n}",
+        "definition": "{\n    query: string;\n    isDeep: boolean;\n    score: number;\n    breadcrumbs: string[];\n    breadcrumbIds: string[];\n}",
         "props": [
           {
             "name": "query",
@@ -3953,6 +4013,11 @@
             "required": true
           },
           {
+            "name": "score",
+            "type": "number",
+            "required": true
+          },
+          {
             "name": "breadcrumbs",
             "type": "string[]",
             "required": true
@@ -3960,6 +4025,38 @@
           {
             "name": "breadcrumbIds",
             "type": "string[]",
+            "required": true
+          }
+        ]
+      },
+      "ItemSlotProps": {
+        "name": "ItemSlotProps",
+        "kind": "interface",
+        "typeParams": [
+          {
+            "name": "T",
+            "default": "unknown"
+          }
+        ],
+        "props": [
+          {
+            "name": "node",
+            "type": "ItemNode<T>",
+            "required": true
+          },
+          {
+            "name": "search",
+            "type": "SearchContext | undefined",
+            "required": false
+          },
+          {
+            "name": "mode",
+            "type": "Omit<ResponsiveMode, \"auto\">",
+            "required": true
+          },
+          {
+            "name": "bind",
+            "type": "RowBindAPI",
             "required": true
           }
         ]

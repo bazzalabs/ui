@@ -1,0 +1,124 @@
+---
+title: Select
+section: Components
+summary: Single-selection dropdown component built with ActionMenu
+---
+
+# Select
+
+A single-selection dropdown component that uses ActionMenu internally for a rich, searchable selection experience.
+
+## Basic Usage
+
+```tsx
+import { ActionMenu } from '@bazza-ui/action-menu'
+
+function MySelect() {
+  const [value, setValue] = useState('')
+
+  return (
+    <ActionMenu.Root>
+      <ActionMenu.Trigger>
+        {value || 'Select an option...'}
+      </ActionMenu.Trigger>
+      <ActionMenu.Surface
+        menu={{
+          nodes: [
+            {
+              variant: 'button',
+              label: 'Option 1',
+              onSelect: () => setValue('option-1')
+            },
+            {
+              variant: 'button',
+              label: 'Option 2',
+              onSelect: () => setValue('option-2')
+            }
+          ]
+        }}
+      />
+    </ActionMenu.Root>
+  )
+}
+```
+
+## With Search
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    inputPlaceholder: 'Search options...',
+    search: {
+      mode: 'client',
+      debounce: 150
+    },
+    nodes: options
+  }}
+/>
+```
+
+## Controlled Value
+
+```tsx
+const [value, setValue] = useState<string>()
+
+<ActionMenu.Surface
+  menu={{
+    nodes: options.map(opt => ({
+      variant: 'button',
+      label: opt.label,
+      data: opt,
+      onSelect: () => {
+        setValue(opt.value)
+        // Menu closes automatically
+      }
+    }))
+  }}
+/>
+```
+
+## With Groups
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    nodes: [
+      {
+        variant: 'group',
+        label: 'Fruits',
+        nodes: [
+          { label: 'Apple', onSelect: () => setValue('apple') },
+          { label: 'Banana', onSelect: () => setValue('banana') }
+        ]
+      },
+      {
+        variant: 'group',
+        label: 'Vegetables',
+        nodes: [
+          { label: 'Carrot', onSelect: () => setValue('carrot') },
+          { label: 'Lettuce', onSelect: () => setValue('lettuce') }
+        ]
+      }
+    ]
+  }}
+/>
+```
+
+## Async Loading
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    loader: async () => {
+      const res = await fetch('/api/options')
+      return res.json()
+    }
+  }}
+/>
+```
+
+## Next Steps
+
+- See [MultiSelect](/docs/action-menu/multiselect) for multiple selection
+- Learn about [Search & Filtering](/docs/action-menu/search)
+- Explore [Async Loading](/docs/action-menu/async)

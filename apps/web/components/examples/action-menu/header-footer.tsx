@@ -1,16 +1,15 @@
-/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: <explanation> */
+/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: no need */
 
 'use client'
 
-import type { GroupDef, ItemDef, MenuDef } from '@bazza-ui/action-menu'
+import type { GroupDef, ItemDef, Menu } from '@bazza-ui/action-menu'
 import { ListXIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 
-function getMenuItems(menu: MenuDef<any>): ItemDef[] {
+function getMenuItems(menu: Menu): ItemDef[] {
   const items =
     menu.nodes?.filter((node) => !node.hidden && node.kind === 'item') ?? []
   const groups = (menu.nodes?.filter(
@@ -30,14 +29,29 @@ export function ActionMenu_HeaderFooter() {
     setSelectedItems([])
   }
 
+  function makeCheckboxItem(id: string, label: string, icon: string): ItemDef {
+    return {
+      kind: 'item',
+      variant: 'checkbox',
+      id,
+      label,
+      icon,
+      checked: selectedItems.includes(id),
+      onCheckedChange: () => {
+        setSelectedItems((prev) =>
+          prev.includes(id) ? prev.filter((i) => i !== id) : prev.concat(id),
+        )
+      },
+    }
+  }
+
   return (
-    <ActionMenu.Root modal={false}>
-      <ActionMenu.Trigger asChild>
-        <Button variant="secondary">Trigger</Button>
-      </ActionMenu.Trigger>
-      <ActionMenu.Positioner align="center">
-        <ActionMenu.Surface
-          slots={{
+    <ActionMenu
+      menu={{
+        id: 'root',
+        title: 'Fruits',
+        ui: {
+          slots: {
             Header: ({ menu }) => {
               return (
                 <div className="px-4 py-1.5 dark:bg-neutral-800 bg-neutral-200/75 rounded-t-lg rounded-b-xl text-xs border-b shadow-xs flex items-center justify-between select-none mb-1">
@@ -66,845 +80,242 @@ export function ActionMenu_HeaderFooter() {
                 </div>
               )
             },
-            Item: ({ node, bind }) => {
-              const props = bind.getRowProps({
-                className: 'flex items-center gap-2',
-              })
-
-              return (
-                <div {...props}>
-                  <Checkbox
-                    className="border-muted group-data-[focused=true]:border-muted-foreground/25"
-                    checked={selectedItems.includes(node.id)}
-                  />
-                  <span>{node.icon as string}</span>
-                  <span>{node.label}</span>
-                </div>
-              )
-            },
-          }}
-          menu={{
-            id: 'root',
-            title: 'Fruits',
-            defaults: {
-              item: {
-                onSelect: ({ node }) => {
-                  const checked = selectedItems.includes(node.id)
-                  setSelectedItems((prev) => {
-                    return checked
-                      ? prev.filter((id) => id !== node.id)
-                      : prev.concat(node.id)
-                  })
-                },
-              },
-            },
+          },
+        },
+        nodes: [
+          {
+            kind: 'group',
+            id: 'fruits',
+            heading: 'Fruits',
             nodes: [
-              {
-                kind: 'group',
-                id: 'fruits',
-                heading: 'Fruits',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'fruit-apple-red',
-                    label: 'Apple',
-                    icon: '🍎',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-apple-green',
-                    label: 'Green Apple',
-                    icon: '🍏',
-                  },
-                  { kind: 'item', id: 'fruit-pear', label: 'Pear', icon: '🍐' },
-                  {
-                    kind: 'item',
-                    id: 'fruit-tangerine',
-                    label: 'Tangerine',
-                    icon: '🍊',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-lemon',
-                    label: 'Lemon',
-                    icon: '🍋',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-banana',
-                    label: 'Banana',
-                    icon: '🍌',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-watermelon',
-                    label: 'Watermelon',
-                    icon: '🍉',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-grapes',
-                    label: 'Grapes',
-                    icon: '🍇',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-strawberry',
-                    label: 'Strawberry',
-                    icon: '🍓',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-blueberries',
-                    label: 'Blueberries',
-                    icon: '🫐',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-cherries',
-                    label: 'Cherries',
-                    icon: '🍒',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-peach',
-                    label: 'Peach',
-                    icon: '🍑',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-mango',
-                    label: 'Mango',
-                    icon: '🥭',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-pineapple',
-                    label: 'Pineapple',
-                    icon: '🍍',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-coconut',
-                    label: 'Coconut',
-                    icon: '🥥',
-                  },
-                  { kind: 'item', id: 'fruit-kiwi', label: 'Kiwi', icon: '🥝' },
-                  {
-                    kind: 'item',
-                    id: 'fruit-melon',
-                    label: 'Melon',
-                    icon: '🍈',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-tomato',
-                    label: 'Tomato',
-                    icon: '🍅',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'fruit-olive',
-                    label: 'Olive',
-                    icon: '🫒',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'vegetables',
-                heading: 'Vegetables',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'veg-eggplant',
-                    label: 'Eggplant',
-                    icon: '🍆',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-avocado',
-                    label: 'Avocado',
-                    icon: '🥑',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-broccoli',
-                    label: 'Broccoli',
-                    icon: '🥦',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-leafy-green',
-                    label: 'Leafy Green',
-                    icon: '🥬',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-cucumber',
-                    label: 'Cucumber',
-                    icon: '🥒',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-hot-pepper',
-                    label: 'Hot Pepper',
-                    icon: '🌶',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-bell-pepper',
-                    label: 'Bell Pepper',
-                    icon: '🫑',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-garlic',
-                    label: 'Garlic',
-                    icon: '🧄',
-                  },
-                  { kind: 'item', id: 'veg-onion', label: 'Onion', icon: '🧅' },
-                  {
-                    kind: 'item',
-                    id: 'veg-carrot',
-                    label: 'Carrot',
-                    icon: '🥕',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-corn',
-                    label: 'Ear of Corn',
-                    icon: '🌽',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-potato',
-                    label: 'Potato',
-                    icon: '🥔',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-mushroom',
-                    label: 'Mushroom',
-                    icon: '🍄',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-sweet-potato',
-                    label: 'Roasted Sweet Potato',
-                    icon: '🍠',
-                  },
-                  { kind: 'item', id: 'veg-beans', label: 'Beans', icon: '🫘' },
-                  {
-                    kind: 'item',
-                    id: 'veg-peas',
-                    label: 'Pea Pod',
-                    icon: '🫛',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'veg-ginger',
-                    label: 'Ginger Root',
-                    icon: '🫚',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'meats-protein',
-                heading: 'Meats & Protein',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'protein-bacon',
-                    label: 'Bacon',
-                    icon: '🥓',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'protein-cut-of-meat',
-                    label: 'Cut of Meat',
-                    icon: '🥩',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'protein-poultry-leg',
-                    label: 'Poultry Leg',
-                    icon: '🍗',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'protein-meat-on-bone',
-                    label: 'Meat on Bone',
-                    icon: '🍖',
-                  },
-                  { kind: 'item', id: 'protein-egg', label: 'Egg', icon: '🥚' },
-                  {
-                    kind: 'item',
-                    id: 'protein-fried-egg',
-                    label: 'Fried Egg',
-                    icon: '🍳',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'seafood',
-                heading: 'Seafood',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'seafood-fish',
-                    label: 'Fish',
-                    icon: '🐟',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-tropical-fish',
-                    label: 'Tropical Fish',
-                    icon: '🐠',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-shrimp',
-                    label: 'Shrimp',
-                    icon: '🦐',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-lobster',
-                    label: 'Lobster',
-                    icon: '🦞',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-crab',
-                    label: 'Crab',
-                    icon: '🦀',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-squid',
-                    label: 'Squid',
-                    icon: '🦑',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-oyster',
-                    label: 'Oyster',
-                    icon: '🦪',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'seafood-octopus',
-                    label: 'Octopus',
-                    icon: '🐙',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'bakery-grains',
-                heading: 'Bakery & Grains',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'bakery-bread',
-                    label: 'Bread',
-                    icon: '🍞',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'bakery-croissant',
-                    label: 'Croissant',
-                    icon: '🥐',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'bakery-baguette',
-                    label: 'Baguette',
-                    icon: '🥖',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'bakery-flatbread',
-                    label: 'Flatbread',
-                    icon: '🫓',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'bakery-bagel',
-                    label: 'Bagel',
-                    icon: '🥯',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'bakery-pancakes',
-                    label: 'Pancakes',
-                    icon: '🥞',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'bakery-waffle',
-                    label: 'Waffle',
-                    icon: '🧇',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'meals-prepared',
-                heading: 'Meals & Prepared',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'meal-hamburger',
-                    label: 'Hamburger',
-                    icon: '🍔',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-hot-dog',
-                    label: 'Hot Dog',
-                    icon: '🌭',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-fries',
-                    label: 'French Fries',
-                    icon: '🍟',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-pizza',
-                    label: 'Pizza',
-                    icon: '🍕',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-sandwich',
-                    label: 'Sandwich',
-                    icon: '🥪',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-stuffed-flatbread',
-                    label: 'Stuffed Flatbread',
-                    icon: '🥙',
-                  },
-                  { kind: 'item', id: 'meal-taco', label: 'Taco', icon: '🌮' },
-                  {
-                    kind: 'item',
-                    id: 'meal-burrito',
-                    label: 'Burrito',
-                    icon: '🌯',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-green-salad',
-                    label: 'Green Salad',
-                    icon: '🥗',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-shallow-pan',
-                    label: 'Shallow Pan of Food',
-                    icon: '🥘',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-pot-of-food',
-                    label: 'Pot of Food',
-                    icon: '🍲',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-curry-rice',
-                    label: 'Curry Rice',
-                    icon: '🍛',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-spaghetti',
-                    label: 'Spaghetti',
-                    icon: '🍝',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-steaming-bowl',
-                    label: 'Steaming Bowl (Ramen)',
-                    icon: '🍜',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-sushi',
-                    label: 'Sushi',
-                    icon: '🍣',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-bento',
-                    label: 'Bento Box',
-                    icon: '🍱',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-fried-shrimp',
-                    label: 'Fried Shrimp',
-                    icon: '🍤',
-                  },
-                  { kind: 'item', id: 'meal-oden', label: 'Oden', icon: '🍢' },
-                  {
-                    kind: 'item',
-                    id: 'meal-fish-cake',
-                    label: 'Fish Cake with Swirl',
-                    icon: '🍥',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-dumpling',
-                    label: 'Dumpling',
-                    icon: '🥟',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-fortune-cookie',
-                    label: 'Fortune Cookie',
-                    icon: '🥠',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-takeout',
-                    label: 'Takeout Box',
-                    icon: '🥡',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-tamale',
-                    label: 'Tamale',
-                    icon: '🫔',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-fondue',
-                    label: 'Fondue',
-                    icon: '🫕',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-falafel',
-                    label: 'Falafel',
-                    icon: '🧆',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'meal-bowl-with-spoon',
-                    label: 'Bowl with Spoon',
-                    icon: '🥣',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'sweets-desserts',
-                heading: 'Sweets & Desserts',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'sweet-soft-ice-cream',
-                    label: 'Soft Ice Cream',
-                    icon: '🍦',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-ice-cream',
-                    label: 'Ice Cream',
-                    icon: '🍨',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-shaved-ice',
-                    label: 'Shaved Ice',
-                    icon: '🍧',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-shortcake',
-                    label: 'Shortcake',
-                    icon: '🍰',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-birthday-cake',
-                    label: 'Birthday Cake',
-                    icon: '🎂',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-cupcake',
-                    label: 'Cupcake',
-                    icon: '🧁',
-                  },
-                  { kind: 'item', id: 'sweet-pie', label: 'Pie', icon: '🥧' },
-                  {
-                    kind: 'item',
-                    id: 'sweet-custard',
-                    label: 'Custard',
-                    icon: '🍮',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-chocolate',
-                    label: 'Chocolate Bar',
-                    icon: '🍫',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-candy',
-                    label: 'Candy',
-                    icon: '🍬',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-lollipop',
-                    label: 'Lollipop',
-                    icon: '🍭',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-doughnut',
-                    label: 'Doughnut',
-                    icon: '🍩',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'sweet-cookie',
-                    label: 'Cookie',
-                    icon: '🍪',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'snacks-nuts',
-                heading: 'Snacks & Nuts',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'snack-popcorn',
-                    label: 'Popcorn',
-                    icon: '🍿',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'snack-pretzel',
-                    label: 'Pretzel',
-                    icon: '🥨',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'snack-peanuts',
-                    label: 'Peanuts',
-                    icon: '🥜',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'snack-chestnut',
-                    label: 'Chestnut',
-                    icon: '🌰',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'dairy-eggs',
-                heading: 'Dairy & Eggs',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'dairy-cheese',
-                    label: 'Cheese',
-                    icon: '🧀',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'dairy-butter',
-                    label: 'Butter',
-                    icon: '🧈',
-                  },
-                  { kind: 'item', id: 'dairy-egg', label: 'Egg', icon: '🥚' },
-                  {
-                    kind: 'item',
-                    id: 'dairy-honey',
-                    label: 'Honey',
-                    icon: '🍯',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'dairy-jar',
-                    label: 'Jar (Jam/Preserve)',
-                    icon: '🫙',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'condiments-staples',
-                heading: 'Condiments & Staples',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'condiment-salt',
-                    label: 'Salt',
-                    icon: '🧂',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'condiment-pouring-liquid',
-                    label: 'Pouring Liquid (Oil/Sauce)',
-                    icon: '🫗',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'condiment-garlic',
-                    label: 'Garlic',
-                    icon: '🧄',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'condiment-onion',
-                    label: 'Onion',
-                    icon: '🧅',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'condiment-ginger',
-                    label: 'Ginger Root',
-                    icon: '🫚',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'condiment-chili',
-                    label: 'Chili Pepper',
-                    icon: '🌶',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'condiment-olive',
-                    label: 'Olive',
-                    icon: '🫒',
-                  },
-                ],
-              },
-              {
-                kind: 'group',
-                id: 'drinks',
-                heading: 'Drinks',
-                nodes: [
-                  {
-                    kind: 'item',
-                    id: 'drink-hot-beverage',
-                    label: 'Hot Beverage',
-                    icon: '☕',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-teacup',
-                    label: 'Teacup Without Handle',
-                    icon: '🍵',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-teapot',
-                    label: 'Teapot',
-                    icon: '🫖',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-bubble-tea',
-                    label: 'Bubble Tea',
-                    icon: '🧋',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-beverage-box',
-                    label: 'Beverage Box',
-                    icon: '🧃',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-straw-cup',
-                    label: 'Cup with Straw',
-                    icon: '🥤',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-milk',
-                    label: 'Glass of Milk',
-                    icon: '🥛',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-baby-bottle',
-                    label: 'Baby Bottle',
-                    icon: '🍼',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-ice-cube',
-                    label: 'Ice',
-                    icon: '🧊',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-beer',
-                    label: 'Beer Mug',
-                    icon: '🍺',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-beers',
-                    label: 'Clinking Beer Mugs',
-                    icon: '🍻',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-wine',
-                    label: 'Wine Glass',
-                    icon: '🍷',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-tumbler',
-                    label: 'Tumbler Glass',
-                    icon: '🥃',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-cocktail',
-                    label: 'Cocktail',
-                    icon: '🍸',
-                  },
-                  {
-                    kind: 'item',
-                    id: 'drink-tropical',
-                    label: 'Tropical Drink',
-                    icon: '🍹',
-                  },
-                  { kind: 'item', id: 'drink-sake', label: 'Sake', icon: '🍶' },
-                  {
-                    kind: 'item',
-                    id: 'drink-champagne',
-                    label: 'Bottle with Popping Cork',
-                    icon: '🍾',
-                  },
-                  { kind: 'item', id: 'drink-mate', label: 'Mate', icon: '🧉' },
-                ],
-              },
+              makeCheckboxItem('fruit-apple-red', 'Apple', '🍎'),
+              makeCheckboxItem('fruit-apple-green', 'Green Apple', '🍏'),
+              makeCheckboxItem('fruit-pear', 'Pear', '🍐'),
+              makeCheckboxItem('fruit-tangerine', 'Tangerine', '🍊'),
+              makeCheckboxItem('fruit-lemon', 'Lemon', '🍋'),
+              makeCheckboxItem('fruit-banana', 'Banana', '🍌'),
+              makeCheckboxItem('fruit-watermelon', 'Watermelon', '🍉'),
+              makeCheckboxItem('fruit-grapes', 'Grapes', '🍇'),
+              makeCheckboxItem('fruit-strawberry', 'Strawberry', '🍓'),
+              makeCheckboxItem('fruit-blueberries', 'Blueberries', '🫐'),
+              makeCheckboxItem('fruit-cherries', 'Cherries', '🍒'),
+              makeCheckboxItem('fruit-peach', 'Peach', '🍑'),
+              makeCheckboxItem('fruit-mango', 'Mango', '🥭'),
+              makeCheckboxItem('fruit-pineapple', 'Pineapple', '🍍'),
+              makeCheckboxItem('fruit-coconut', 'Coconut', '🥥'),
+              makeCheckboxItem('fruit-kiwi', 'Kiwi', '🥝'),
+              makeCheckboxItem('fruit-melon', 'Melon', '🍈'),
+              makeCheckboxItem('fruit-tomato', 'Tomato', '🍅'),
+              makeCheckboxItem('fruit-olive', 'Olive', '🫒'),
             ],
-          }}
-        />
-      </ActionMenu.Positioner>
-    </ActionMenu.Root>
+          },
+          {
+            kind: 'group',
+            id: 'vegetables',
+            heading: 'Vegetables',
+            nodes: [
+              makeCheckboxItem('veg-eggplant', 'Eggplant', '🍆'),
+              makeCheckboxItem('veg-avocado', 'Avocado', '🥑'),
+              makeCheckboxItem('veg-broccoli', 'Broccoli', '🥦'),
+              makeCheckboxItem('veg-leafy-green', 'Leafy Green', '🥬'),
+              makeCheckboxItem('veg-cucumber', 'Cucumber', '🥒'),
+              makeCheckboxItem('veg-hot-pepper', 'Hot Pepper', '🌶'),
+              makeCheckboxItem('veg-bell-pepper', 'Bell Pepper', '🫑'),
+              makeCheckboxItem('veg-garlic', 'Garlic', '🧄'),
+              makeCheckboxItem('veg-onion', 'Onion', '🧅'),
+              makeCheckboxItem('veg-carrot', 'Carrot', '🥕'),
+              makeCheckboxItem('veg-corn', 'Ear of Corn', '🌽'),
+              makeCheckboxItem('veg-potato', 'Potato', '🥔'),
+              makeCheckboxItem('veg-mushroom', 'Mushroom', '🍄'),
+              makeCheckboxItem(
+                'veg-sweet-potato',
+                'Roasted Sweet Potato',
+                '🍠',
+              ),
+              makeCheckboxItem('veg-beans', 'Beans', '🫘'),
+              makeCheckboxItem('veg-peas', 'Pea Pod', '🫛'),
+              makeCheckboxItem('veg-ginger', 'Ginger Root', '🫚'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'meats-protein',
+            heading: 'Meats & Protein',
+            nodes: [
+              makeCheckboxItem('protein-bacon', 'Bacon', '🥓'),
+              makeCheckboxItem('protein-cut-of-meat', 'Cut of Meat', '🥩'),
+              makeCheckboxItem('protein-poultry-leg', 'Poultry Leg', '🍗'),
+              makeCheckboxItem('protein-meat-on-bone', 'Meat on Bone', '🍖'),
+              makeCheckboxItem('protein-egg', 'Egg', '🥚'),
+              makeCheckboxItem('protein-fried-egg', 'Fried Egg', '🍳'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'seafood',
+            heading: 'Seafood',
+            nodes: [
+              makeCheckboxItem('seafood-fish', 'Fish', '🐟'),
+              makeCheckboxItem('seafood-tropical-fish', 'Tropical Fish', '🐠'),
+              makeCheckboxItem('seafood-shrimp', 'Shrimp', '🦐'),
+              makeCheckboxItem('seafood-lobster', 'Lobster', '🦞'),
+              makeCheckboxItem('seafood-crab', 'Crab', '🦀'),
+              makeCheckboxItem('seafood-squid', 'Squid', '🦑'),
+              makeCheckboxItem('seafood-oyster', 'Oyster', '🦪'),
+              makeCheckboxItem('seafood-octopus', 'Octopus', '🐙'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'bakery-grains',
+            heading: 'Bakery & Grains',
+            nodes: [
+              makeCheckboxItem('bakery-bread', 'Bread', '🍞'),
+              makeCheckboxItem('bakery-croissant', 'Croissant', '🥐'),
+              makeCheckboxItem('bakery-baguette', 'Baguette', '🥖'),
+              makeCheckboxItem('bakery-flatbread', 'Flatbread', '🫓'),
+              makeCheckboxItem('bakery-bagel', 'Bagel', '🥯'),
+              makeCheckboxItem('bakery-pancakes', 'Pancakes', '🥞'),
+              makeCheckboxItem('bakery-waffle', 'Waffle', '🧇'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'meals-prepared',
+            heading: 'Meals & Prepared',
+            nodes: [
+              makeCheckboxItem('meal-hamburger', 'Hamburger', '🍔'),
+              makeCheckboxItem('meal-hot-dog', 'Hot Dog', '🌭'),
+              makeCheckboxItem('meal-fries', 'French Fries', '🍟'),
+              makeCheckboxItem('meal-pizza', 'Pizza', '🍕'),
+              makeCheckboxItem('meal-sandwich', 'Sandwich', '🥪'),
+              makeCheckboxItem(
+                'meal-stuffed-flatbread',
+                'Stuffed Flatbread',
+                '🥙',
+              ),
+              makeCheckboxItem('meal-taco', 'Taco', '🌮'),
+              makeCheckboxItem('meal-burrito', 'Burrito', '🌯'),
+              makeCheckboxItem('meal-green-salad', 'Green Salad', '🥗'),
+              makeCheckboxItem('meal-shallow-pan', 'Shallow Pan of Food', '🥘'),
+              makeCheckboxItem('meal-pot-of-food', 'Pot of Food', '🍲'),
+              makeCheckboxItem('meal-curry-rice', 'Curry Rice', '🍛'),
+              makeCheckboxItem('meal-spaghetti', 'Spaghetti', '🍝'),
+              makeCheckboxItem(
+                'meal-steaming-bowl',
+                'Steaming Bowl (Ramen)',
+                '🍜',
+              ),
+              makeCheckboxItem('meal-sushi', 'Sushi', '🍣'),
+              makeCheckboxItem('meal-bento', 'Bento Box', '🍱'),
+              makeCheckboxItem('meal-fried-shrimp', 'Fried Shrimp', '🍤'),
+              makeCheckboxItem('meal-oden', 'Oden', '🍢'),
+              makeCheckboxItem('meal-fish-cake', 'Fish Cake with Swirl', '🍥'),
+              makeCheckboxItem('meal-dumpling', 'Dumpling', '🥟'),
+              makeCheckboxItem('meal-fortune-cookie', 'Fortune Cookie', '🥠'),
+              makeCheckboxItem('meal-takeout', 'Takeout Box', '🥡'),
+              makeCheckboxItem('meal-tamale', 'Tamale', '🫔'),
+              makeCheckboxItem('meal-fondue', 'Fondue', '🫕'),
+              makeCheckboxItem('meal-falafel', 'Falafel', '🧆'),
+              makeCheckboxItem('meal-bowl-with-spoon', 'Bowl with Spoon', '🥣'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'sweets-desserts',
+            heading: 'Sweets & Desserts',
+            nodes: [
+              makeCheckboxItem('sweet-soft-ice-cream', 'Soft Ice Cream', '🍦'),
+              makeCheckboxItem('sweet-ice-cream', 'Ice Cream', '🍨'),
+              makeCheckboxItem('sweet-shaved-ice', 'Shaved Ice', '🍧'),
+              makeCheckboxItem('sweet-shortcake', 'Shortcake', '🍰'),
+              makeCheckboxItem('sweet-birthday-cake', 'Birthday Cake', '🎂'),
+              makeCheckboxItem('sweet-cupcake', 'Cupcake', '🧁'),
+              makeCheckboxItem('sweet-pie', 'Pie', '🥧'),
+              makeCheckboxItem('sweet-custard', 'Custard', '🍮'),
+              makeCheckboxItem('sweet-chocolate', 'Chocolate Bar', '🍫'),
+              makeCheckboxItem('sweet-candy', 'Candy', '🍬'),
+              makeCheckboxItem('sweet-lollipop', 'Lollipop', '🍭'),
+              makeCheckboxItem('sweet-doughnut', 'Doughnut', '🍩'),
+              makeCheckboxItem('sweet-cookie', 'Cookie', '🍪'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'snacks-nuts',
+            heading: 'Snacks & Nuts',
+            nodes: [
+              makeCheckboxItem('snack-popcorn', 'Popcorn', '🍿'),
+              makeCheckboxItem('snack-pretzel', 'Pretzel', '🥨'),
+              makeCheckboxItem('snack-peanuts', 'Peanuts', '🥜'),
+              makeCheckboxItem('snack-chestnut', 'Chestnut', '🌰'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'dairy-eggs',
+            heading: 'Dairy & Eggs',
+            nodes: [
+              makeCheckboxItem('dairy-cheese', 'Cheese', '🧀'),
+              makeCheckboxItem('dairy-butter', 'Butter', '🧈'),
+              makeCheckboxItem('dairy-egg', 'Egg', '🥚'),
+              makeCheckboxItem('dairy-honey', 'Honey', '🍯'),
+              makeCheckboxItem('dairy-jar', 'Jar (Jam/Preserve)', '🫙'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'condiments-staples',
+            heading: 'Condiments & Staples',
+            nodes: [
+              makeCheckboxItem('condiment-salt', 'Salt', '🧂'),
+              makeCheckboxItem(
+                'condiment-pouring-liquid',
+                'Pouring Liquid (Oil/Sauce)',
+                '🫗',
+              ),
+              makeCheckboxItem('condiment-garlic', 'Garlic', '🧄'),
+              makeCheckboxItem('condiment-onion', 'Onion', '🧅'),
+              makeCheckboxItem('condiment-ginger', 'Ginger Root', '🫚'),
+              makeCheckboxItem('condiment-chili', 'Chili Pepper', '🌶'),
+              makeCheckboxItem('condiment-olive', 'Olive', '🫒'),
+            ],
+          },
+          {
+            kind: 'group',
+            id: 'drinks',
+            heading: 'Drinks',
+            nodes: [
+              makeCheckboxItem('drink-hot-beverage', 'Hot Beverage', '☕'),
+              makeCheckboxItem('drink-teacup', 'Teacup Without Handle', '🍵'),
+              makeCheckboxItem('drink-teapot', 'Teapot', '🫖'),
+              makeCheckboxItem('drink-bubble-tea', 'Bubble Tea', '🧋'),
+              makeCheckboxItem('drink-beverage-box', 'Beverage Box', '🧃'),
+              makeCheckboxItem('drink-straw-cup', 'Cup with Straw', '🥤'),
+              makeCheckboxItem('drink-milk', 'Glass of Milk', '🥛'),
+              makeCheckboxItem('drink-baby-bottle', 'Baby Bottle', '🍼'),
+              makeCheckboxItem('drink-ice-cube', 'Ice', '🧊'),
+              makeCheckboxItem('drink-beer', 'Beer Mug', '🍺'),
+              makeCheckboxItem('drink-beers', 'Clinking Beer Mugs', '🍻'),
+              makeCheckboxItem('drink-wine', 'Wine Glass', '🍷'),
+              makeCheckboxItem('drink-tumbler', 'Tumbler Glass', '🥃'),
+              makeCheckboxItem('drink-cocktail', 'Cocktail', '🍸'),
+              makeCheckboxItem('drink-tropical', 'Tropical Drink', '🍹'),
+              makeCheckboxItem('drink-sake', 'Sake', '🍶'),
+              makeCheckboxItem(
+                'drink-champagne',
+                'Bottle with Popping Cork',
+                '🍾',
+              ),
+              makeCheckboxItem('drink-mate', 'Mate', '🧉'),
+            ],
+          },
+        ],
+      }}
+    >
+      <ActionMenu.Trigger asChild>
+        <Button variant="secondary">Trigger</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
   )
 }

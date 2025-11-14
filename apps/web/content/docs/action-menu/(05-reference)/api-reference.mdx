@@ -1,0 +1,96 @@
+---
+title: API Reference
+section: Components
+summary: "Complete TypeScript API documentation for the action menu."
+---
+
+## Overview
+
+The action menu is fully typed with TypeScript. This section provides complete API documentation for all types, interfaces, and components.
+
+## Quick Links
+
+- **[Components](/docs/action-menu/api-reference/components)** - ActionMenu component props and createActionMenu function
+- **[Types](/docs/action-menu/api-reference/types)** - Core TypeScript types
+- **[Node Definitions](/docs/action-menu/api-reference/node-definitions)** - ItemDef, GroupDef, SubmenuDef, SeparatorDef
+- **[Theming Types](/docs/action-menu/api-reference/theming-types)** - Slots, SlotProps, ClassNames, BindAPI
+- **[Loader Types](/docs/action-menu/api-reference/loader-types)** - Async loading types and adapters
+- **[Middleware Types](/docs/action-menu/api-reference/middleware-types)** - Middleware system types
+- **[Utilities](/docs/action-menu/api-reference/utilities)** - Helper functions
+
+## Import Paths
+
+```tsx
+// Main component and createActionMenu
+import { ActionMenu, createActionMenu } from '@bazza-ui/action-menu'
+
+// Types
+import type {
+  MenuDef,
+  NodeDef,
+  ItemDef,
+  GroupDef,
+  SubmenuDef,
+  SeparatorDef,
+  // ... more types
+} from '@bazza-ui/action-menu'
+
+// Utilities
+import {
+  renderIcon,
+  defaultSlots,
+  flatten,
+  composeMiddleware,
+  createNew,
+} from '@bazza-ui/action-menu'
+
+// React Query integration
+import {
+  ReactQueryLoaderAdapter,
+  createLoader,
+} from '@bazza-ui/action-menu/integrations/react-query'
+```
+
+## TypeScript Configuration
+
+The action menu is built with strict TypeScript. Ensure your `tsconfig.json` has:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+## Generic Type Parameters
+
+Many types accept generic parameters for custom data:
+
+```tsx
+type CustomData = {
+  priority: 'low' | 'high'
+  category: string
+}
+
+// Use with MenuDef
+const menu: MenuDef<CustomData> = {
+  nodes: [
+    {
+      kind: 'item',
+      id: 'task',
+      label: 'Task',
+      data: {
+        priority: 'high',
+        category: 'work',
+      },
+    },
+  ],
+}
+```
+
+## Next Steps
+
+Browse the specific API reference pages for detailed documentation on each type and component.

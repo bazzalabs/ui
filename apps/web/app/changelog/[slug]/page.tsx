@@ -1,23 +1,13 @@
 export const dynamic = 'force-static'
 
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import { components } from '@/components/mdx'
-import { compileMDX } from 'next-mdx-remote/rsc'
-import rehypeAutolinkHeadings from 'rehype-autolink-headings'
-import rehypeCallouts from 'rehype-callouts'
-import rehypePrettyCode from 'rehype-pretty-code'
-import type { Options as RehypePrettyCodeOptions } from 'rehype-pretty-code'
-import rehypeSlug from 'rehype-slug'
-import remarkGfm from 'remark-gfm'
 import 'rehype-callouts/theme/github'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { rehypeNpmCommand } from '@/lib/rehype-npm-command'
-import { transformerNotationDiff } from '@shikijs/transformers'
 import { format, parse } from 'date-fns'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { visit } from 'unist-util-visit'
+import { notFound } from 'next/navigation'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { changelogSource } from '@/lib/source'
+import { useMDXComponents } from '@/mdx-components'
 
 export async function generateMetadata({
   params,
@@ -25,20 +15,19 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const slug = (await params).slug
-  const rawContent = await fs.readFile(
-    path.join(process.cwd(), 'content/changelog', `${slug}.mdx`),
-    'utf-8',
-  )
+  const page = changelogSource.getPage([slug])
 
-  const { frontmatter: metadata } = await compileMDX<MDXMetadata>({
-    source: rawContent,
-    options: {
-      parseFrontmatter: true,
-    },
-  })
-
-  if (!metadata) {
+  if (!page) {
     return {}
+  }
+
+  const metadata = page.data as {
+    title: string
+    summary?: string
+    publishedAt: string
+    ogImageUrl?: string
+    slug?: string
+    body: React.ComponentType
   }
 
   return {
@@ -69,82 +58,30 @@ export async function generateMetadata({
   }
 }
 
-export type MDXMetadata = {
-  title: string
-  summary: string
-  publishedAt: string
-  ogImageUrl?: string
-}
-
 export default async function Page({
   params,
 }: {
   params: Promise<{ slug: string }>
 }) {
   const slug = (await params).slug
-  const rawContent = await fs.readFile(
-    path.join(process.cwd(), 'content/changelog', `${slug}.mdx`),
-    'utf-8',
-  )
+  const page = changelogSource.getPage([slug])
 
-  const { frontmatter: metadata, content } = await compileMDX<MDXMetadata>({
-    source: rawContent,
-    components,
-    options: {
-      parseFrontmatter: true,
-      mdxOptions: {
-        remarkPlugins: [remarkGfm],
-        rehypePlugins: [
-          rehypeSlug,
-          rehypeCallouts,
-          () => (tree) => {
-            visit(tree, (node) => {
-              if (node?.type === 'element' && node?.tagName === 'pre') {
-                const [codeEl] = node.children
-                if (codeEl.tagName !== 'code') {
-                  return
-                }
+  if (!page) {
+    notFound()
+  }
 
-                node.__rawString__ = codeEl.children?.[0].value
-              }
-            })
-          },
-          [
-            rehypePrettyCode,
-            {
-              theme: {
-                light: 'github-light',
-                dark: 'github-dark',
-              },
-              keepBackground: false,
-              transformers: [transformerNotationDiff()],
-            } satisfies RehypePrettyCodeOptions,
-          ],
-          () => (tree) => {
-            visit(tree, (node) => {
-              if (node?.type === 'element' && node?.tagName === 'figure') {
-                if (!('data-rehype-pretty-code-figure' in node.properties)) {
-                  return
-                }
+  const metadata = page.data as {
+    title: string
+    summary?: string
+    publishedAt: string
+    ogImageUrl?: string
+    slug?: string
+    body: React.ComponentType
+  }
+  const MDX = page.data.body
 
-                const preElement = node.children.at(-1)
-                if (preElement.tagName !== 'pre') {
-                  return
-                }
-
-                preElement.properties.__rawString__ = node.__rawString__
-              }
-            })
-          },
-          rehypeNpmCommand,
-          rehypeAutolinkHeadings,
-        ],
-      },
-    },
-  })
-
-  const publishedAtDate = parse(metadata.publishedAt, 'yyyy-MM-dd', new Date())
-  const publishedAtFormatted = format(publishedAtDate, 'iiii, MMMM do, yyyy')
+  const date = metadata.publishedAt as unknown as Date
+  const formattedDate = format(date, 'iiii, MMMM do, yyyy')
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_4fr_1fr] gap-4 max-w-screen-xl w-full mx-auto border-x border-border border-dashed">
@@ -164,7 +101,7 @@ export default async function Page({
           <div className="px-4 py-12 max-w-screen-md w-full mx-auto border-border/0 border-dashed xl:border-x flex flex-col gap-12">
             <div className="flex flex-col gap-4">
               <span className="font-mono text-muted-foreground tracking-[-0.01em]">
-                {publishedAtFormatted}
+                {formattedDate}
               </span>
               <span className="text-4xl sm:text-5xl font-[550] tracking-[-0.02em] sm:tracking-[-0.025em]">
                 {metadata.title}
@@ -182,7 +119,9 @@ export default async function Page({
                 </span>
               </Link>
             </div>
-            <article className="!select-text">{content}</article>
+            <article className="!select-text">
+              <MDX components={useMDXComponents()} />
+            </article>
           </div>
         </div>
       </div>
@@ -191,12 +130,9 @@ export default async function Page({
 }
 
 export async function generateStaticParams() {
-  const filenames = await fs.readdir(
-    path.join(process.cwd(), 'content/changelog'),
-  )
-  const slugs = filenames.map((filename) => filename.replace('.mdx', ''))
-
-  return slugs.map((slug) => ({ slug }))
+  return changelogSource.getPages().map((page) => ({
+    slug: page.slugs[0],
+  }))
 }
 
 export const dynamicParams = false

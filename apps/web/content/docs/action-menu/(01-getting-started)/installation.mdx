@@ -1,0 +1,43 @@
+---
+title: Installation
+section: Components
+summary: "Install and set up the action menu component."
+---
+
+## Registry Installation (Recommended)
+
+Want something styled with sensible defaults? Install from our registry with one command.
+
+- Installs the `@bazza-ui/action-menu` package
+- Creates the `@/components/ui/action-menu.tsx` file with a styled `ActionMenu` component
+
+```bash
+npx shadcn@latest add https://ui.bazza.dev/r/action-menu
+```
+
+## NPM Installation
+
+Install the unstyled, primitive component as an npm package:
+
+```bash
+npm install @bazza-ui/action-menu
+```
+
+### Peer Dependencies
+
+The action menu has the following peer dependencies:
+
+- `react` ^18.0.0 or ^19.0.0
+- `react-dom` ^18.0.0 or ^19.0.0
+
+For the responsive drawer functionality on mobile, it uses:
+
+- `vaul` for the drawer component
+
+For positioning and collision detection:
+
+- `@floating-ui/react` for dropdown positioning
+
+## Next Steps
+
+Once installed, head over to [Getting Started](/docs/action-menu/getting-started) to create your first menu.

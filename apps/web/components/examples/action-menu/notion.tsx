@@ -2,7 +2,11 @@
 /** biome-ignore-all lint/performance/noImgElement: allowed */
 'use client'
 
-import { type MenuDef, renderIcon } from '@bazza-ui/action-menu'
+import {
+  type ItemSlotProps,
+  type MenuDef,
+  renderIcon,
+} from '@bazza-ui/action-menu'
 import {
   Heading1Icon,
   Heading2Icon,
@@ -22,6 +26,167 @@ import {
 } from '@/components/ui/hover-card'
 import { ActionMenu } from '@/registry/action-menu'
 
+export function ActionMenu_Notion() {
+  return (
+    <ActionMenu
+      slots={{
+        Item: NotionMenuItem,
+      }}
+      menu={
+        {
+          id: 'root',
+          hideSearchUntilActive: true,
+          defaults: {
+            item: {
+              closeOnSelect: true,
+              onSelect: ({ node }) => {
+                toast(`${node.label} selected.`)
+              },
+            },
+          },
+          ui: {},
+          nodes: [
+            {
+              id: 'suggested',
+              kind: 'group',
+              heading: 'Suggested',
+              nodes: [
+                {
+                  kind: 'item',
+                  id: 'ai-meeting-notes',
+                  label: 'AI Meeting Notes',
+                  icon: (
+                    <MicrophoneTextIcon className="size-4.5 fill-primary" />
+                  ),
+                  data: {
+                    description: 'Turn meetings into organized notes.',
+                    tag: 'Beta',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'ai-block',
+                  label: 'AI Block',
+                  icon: <AIBlockIcon className="size-4.5 fill-primary" />,
+                  data: {
+                    description: 'Generate content from any instruction.',
+                    tag: 'New',
+                  },
+                },
+              ],
+            },
+            {
+              id: 'basic-blocks',
+              kind: 'group',
+              heading: 'Basic blocks',
+              nodes: [
+                {
+                  kind: 'item',
+                  id: 'text',
+                  label: 'Text',
+                  icon: TypeIcon,
+                  data: {
+                    description: 'Just start writing with plain text.',
+                    imageUrl:
+                      'https://www.notion.so/images/tooltips/blocks/text/en-US.87e040db.png',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'heading-1',
+                  label: 'Heading 1',
+                  icon: Heading1Icon,
+                  data: {
+                    description: 'Big section heading.',
+                    imageUrl:
+                      'https://www.notion.so/images/tooltips/blocks/header/en-US.2f63ac1a.png',
+                    kbd: '#',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'heading-2',
+                  label: 'Heading 2',
+                  icon: Heading2Icon,
+                  data: {
+                    description: 'Medium section heading.',
+                    imageUrl:
+                      'https://notion.so/images/tooltips/blocks/sub-header/en-US.4ad81c48.png',
+                    kbd: '##',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'heading-3',
+                  label: 'Heading 3',
+                  icon: Heading3Icon,
+                  data: {
+                    description: 'Small section heading.',
+                    imageUrl:
+                      'https://notion.so/images/tooltips/blocks/subsubheader/en-US.4dec63f8.png',
+                    kbd: '###',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'bulleted-list',
+                  label: 'Bulleted list',
+                  icon: ListIcon,
+                  data: {
+                    description: 'Create a simple bulleted list.',
+                    imageUrl:
+                      'https://notion.so/images/tooltips/blocks/bulleted-list/en-US.f5ded41e.png',
+                    kbd: '-',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'numbered-list',
+                  label: 'Numbered list',
+                  icon: ListOrderedIcon,
+                  data: {
+                    description: 'Create a list with numbering.',
+                    imageUrl:
+                      'https://notion.so/images/tooltips/blocks/numbered-list/en-US.58fef67f.png',
+                    kbd: '1.',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'todo-list',
+                  label: 'To-do list',
+                  icon: ListTodoIcon,
+                  data: {
+                    description: 'Track tasks with a to-do list.',
+                    imageUrl:
+                      'https://notion.so/images/tooltips/blocks/to-do-list/en-US.52a514f9.png',
+                    kbd: '[]',
+                  },
+                },
+                {
+                  kind: 'item',
+                  id: 'table',
+                  label: 'Table',
+                  icon: TableIcon,
+                  data: {
+                    description: 'Add simple tabular content to your page.',
+                    imageUrl:
+                      'https://notion.so/images/tooltips/blocks/simple-table/en-US.da4792c9.png',
+                  },
+                },
+              ],
+            },
+          ],
+        } satisfies MenuDef
+      }
+    >
+      <ActionMenu.Trigger asChild>
+        <Button>Open / Menu</Button>
+      </ActionMenu.Trigger>
+    </ActionMenu>
+  )
+}
+
 const MicrophoneTextIcon = (props: React.ComponentProps<'svg'>) => (
   <svg aria-hidden="true" viewBox="0 0 20 20" {...props}>
     <path d="M18.174 11.39a.626.626 0 0 1 1.028.712 6.58 6.58 0 0 1-4.8 2.815v1.933h3.425l.126.012a.625.625 0 0 1 0 1.225l-.126.013h-8.1a.625.625 0 0 1 0-1.25h3.425v-1.933a6.58 6.58 0 0 1-4.566-2.5l-.232-.315-.061-.112a.626.626 0 0 1 1.008-.695l.082.096.187.255a5.33 5.33 0 0 0 4.208 2.053 5.33 5.33 0 0 0 4.396-2.308"></path>
@@ -36,214 +201,56 @@ const AIBlockIcon = (props: React.ComponentProps<'svg'>) => (
   </svg>
 )
 
-export function ActionMenu_Notion() {
+const NotionMenuItem = ({ bind, node, mode }: ItemSlotProps) => {
+  const props = bind.getRowProps({
+    className: 'w-full justify-between gap-16',
+  })
+
+  const data = node.data as
+    | {
+        description?: string
+        tag?: string
+        kbd?: string
+        imageUrl?: string
+      }
+    | undefined
+
+  const Icon = renderIcon(node.icon, 'size-4 shrink-0')
+
+  const ItemRow = (
+    <button {...props}>
+      <div className="flex items-center gap-2 select-none">
+        {Icon}
+        <span>{node.label}</span>
+        {data?.tag && (
+          <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
+            {data?.tag}
+          </div>
+        )}
+      </div>
+      {data?.kbd && (
+        <span className="text-muted-foreground text-xs">{data?.kbd}</span>
+      )}
+    </button>
+  )
+
+  if (mode !== 'dropdown' || data?.description === undefined) return ItemRow
+
   return (
-    <ActionMenu.Root>
-      <ActionMenu.Trigger asChild>
-        <Button>Open / Menu</Button>
-      </ActionMenu.Trigger>
-      <ActionMenu.Positioner align="center">
-        <ActionMenu.Surface
-          defaults={{
-            item: {
-              closeOnSelect: true,
-              onSelect: ({ node }) => {
-                toast(`${node.label} selected.`)
-              },
-            },
-          }}
-          surfaceClassNames={{
-            list: 'data-[mode=dropdown]:min-w-[300px]',
-          }}
-          slots={{
-            Item: ({ node, mode, bind }) => {
-              const props = bind.getRowProps({
-                className: 'w-full justify-between gap-16',
-              })
-
-              const Icon = renderIcon(node.icon, 'size-4 shrink-0')
-
-              const ItemRow = (
-                <button {...props}>
-                  <div className="flex items-center gap-2 select-none">
-                    {Icon}
-                    <span>{node.label}</span>
-                    {node.data?.tag && (
-                      <div className="px-1.5 py-0.5 bg-blue-500/10 text-blue-500 font-medium text-xs rounded-sm">
-                        {node.data?.tag}
-                      </div>
-                    )}
-                  </div>
-                  {node.data?.kbd && (
-                    <span className="text-muted-foreground text-xs">
-                      {node.data?.kbd}
-                    </span>
-                  )}
-                </button>
-              )
-
-              if (mode !== 'dropdown' || node.data?.description === undefined)
-                return ItemRow
-
-              return (
-                <HoverCard open={bind.focused} openDelay={2000}>
-                  <HoverCardTrigger asChild>{ItemRow}</HoverCardTrigger>
-                  <HoverCardContent
-                    side="right"
-                    align="center"
-                    className="data-[state=closed]:!animate-none data-[state=open]:!animate-none font-medium text-xs bg-neutral-950 text-neutral-50 p-2 w-[170px] h-fit flex flex-col gap-2"
-                  >
-                    {node.data?.imageUrl && (
-                      <div className="h-fit w-fit rounded-sm overflow-clip">
-                        <img src={node.data?.imageUrl} alt={node.label} />
-                      </div>
-                    )}
-                    {node.data?.description}
-                  </HoverCardContent>
-                </HoverCard>
-              )
-            },
-          }}
-          menu={
-            {
-              id: 'root',
-              hideSearchUntilActive: true,
-              nodes: [
-                {
-                  id: 'suggested',
-                  kind: 'group',
-                  heading: 'Suggested',
-                  nodes: [
-                    {
-                      kind: 'item',
-                      id: 'ai-meeting-notes',
-                      label: 'AI Meeting Notes',
-                      icon: (
-                        <MicrophoneTextIcon className="size-4.5 fill-primary" />
-                      ),
-                      data: {
-                        description: 'Turn meetings into organized notes.',
-                        tag: 'Beta',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'ai-block',
-                      label: 'AI Block',
-                      icon: <AIBlockIcon className="size-4.5 fill-primary" />,
-                      data: {
-                        description: 'Generate content from any instruction.',
-                        tag: 'New',
-                      },
-                    },
-                  ],
-                },
-                {
-                  id: 'basic-blocks',
-                  kind: 'group',
-                  heading: 'Basic blocks',
-                  nodes: [
-                    {
-                      kind: 'item',
-                      id: 'text',
-                      label: 'Text',
-                      icon: TypeIcon,
-                      data: {
-                        description: 'Just start writing with plain text.',
-                        imageUrl:
-                          'https://www.notion.so/images/tooltips/blocks/text/en-US.87e040db.png',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'heading-1',
-                      label: 'Heading 1',
-                      icon: Heading1Icon,
-                      data: {
-                        description: 'Big section heading.',
-                        imageUrl:
-                          'https://www.notion.so/images/tooltips/blocks/header/en-US.2f63ac1a.png',
-                        kbd: '#',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'heading-2',
-                      label: 'Heading 2',
-                      icon: Heading2Icon,
-                      data: {
-                        description: 'Medium section heading.',
-                        imageUrl:
-                          'https://notion.so/images/tooltips/blocks/sub-header/en-US.4ad81c48.png',
-                        kbd: '##',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'heading-3',
-                      label: 'Heading 3',
-                      icon: Heading3Icon,
-                      data: {
-                        description: 'Small section heading.',
-                        imageUrl:
-                          'https://notion.so/images/tooltips/blocks/subsubheader/en-US.4dec63f8.png',
-                        kbd: '###',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'bulleted-list',
-                      label: 'Bulleted list',
-                      icon: ListIcon,
-                      data: {
-                        description: 'Create a simple bulleted list.',
-                        imageUrl:
-                          'https://notion.so/images/tooltips/blocks/bulleted-list/en-US.f5ded41e.png',
-                        kbd: '-',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'numbered-list',
-                      label: 'Numbered list',
-                      icon: ListOrderedIcon,
-                      data: {
-                        description: 'Create a list with numbering.',
-                        imageUrl:
-                          'https://notion.so/images/tooltips/blocks/numbered-list/en-US.58fef67f.png',
-                        kbd: '1.',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'todo-list',
-                      label: 'To-do list',
-                      icon: ListTodoIcon,
-                      data: {
-                        description: 'Track tasks with a to-do list.',
-                        imageUrl:
-                          'https://notion.so/images/tooltips/blocks/to-do-list/en-US.52a514f9.png',
-                        kbd: '[]',
-                      },
-                    },
-                    {
-                      kind: 'item',
-                      id: 'table',
-                      label: 'Table',
-                      icon: TableIcon,
-                      data: {
-                        description: 'Add simple tabular content to your page.',
-                        imageUrl:
-                          'https://notion.so/images/tooltips/blocks/simple-table/en-US.da4792c9.png',
-                      },
-                    },
-                  ],
-                },
-              ],
-            } satisfies MenuDef
-          }
-        />
-      </ActionMenu.Positioner>
-    </ActionMenu.Root>
+    <HoverCard open={bind.focused} openDelay={2000}>
+      <HoverCardTrigger asChild>{ItemRow}</HoverCardTrigger>
+      <HoverCardContent
+        side="right"
+        align="center"
+        className="data-[state=closed]:!animate-none data-[state=open]:!animate-none font-medium text-xs bg-neutral-950 text-neutral-50 p-2 w-[170px] h-fit flex flex-col gap-2"
+      >
+        {data?.imageUrl && (
+          <div className="h-fit w-fit rounded-sm overflow-clip">
+            <img src={data?.imageUrl} alt={node.label} />
+          </div>
+        )}
+        {data?.description}
+      </HoverCardContent>
+    </HoverCard>
   )
 }

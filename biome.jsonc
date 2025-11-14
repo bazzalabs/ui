@@ -7,7 +7,12 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/node_modules", "!apps/web/app/globals.css"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!apps/web/app/globals.css",
+      "!packages/action-menu/__e2e_broken"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -69,7 +74,7 @@
   },
   "css": {
     "parser": {
-      "cssModules": true
+      "tailwindDirectives": true
     },
     "formatter": {
       "enabled": true

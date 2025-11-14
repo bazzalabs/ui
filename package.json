@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "dev:up": "turbo run dev test:watch types:meta:watch",
+    "dev:up": "turbo run dev test:watch test:e2e:watch",
     "types:meta": "turbo run types:meta",
     "types:meta:watch": "turbo run types:meta:watch",
     "test": "turbo run test",
@@ -20,7 +20,7 @@
     "filters:llm": "repomix --include \"packages/filters/**/*\" --ignore \"**/locales/*.json\" --copy --stdout"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.2",
+    "@biomejs/biome": "2.3.4",
     "@types/node": "^22",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",

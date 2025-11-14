@@ -1,0 +1,320 @@
+---
+title: RTL Support
+section: Components
+summary: Right-to-left language support and bidirectional text handling
+---
+
+# RTL Support
+
+ActionMenu has built-in support for right-to-left (RTL) languages like Arabic, Hebrew, and Persian.
+
+## Basic Usage
+
+Set the `dir` prop to enable RTL mode:
+
+```tsx
+<ActionMenu.Surface
+  dir="rtl"
+  menu={menu}
+/>
+```
+
+## Automatic Direction Detection
+
+Detect direction from HTML or context:
+
+```tsx
+// Option 1: Inherit from HTML
+<html dir="rtl">
+  <ActionMenu.Surface menu={menu} />
+  {/* Automatically uses RTL */}
+</html>
+
+// Option 2: Use React context
+import { DirectionProvider } from '@radix-ui/react-direction'
+
+<DirectionProvider dir="rtl">
+  <ActionMenu.Surface menu={menu} />
+</DirectionProvider>
+```
+
+## Affected Behaviors
+
+### Layout
+
+RTL mode flips the entire layout:
+
+- Menus open to the left instead of right
+- Submenus appear on the left side
+- Scrollbars appear on the left
+- Text aligns to the right
+
+### Keyboard Navigation
+
+Arrow keys are direction-aware:
+
+| LTR | RTL | Action |
+|-----|-----|--------|
+| `→` | `←` | Open submenu |
+| `←` | `→` | Close submenu |
+
+### Icons
+
+Position icons appropriately:
+
+```tsx
+{
+  label: 'Next',
+  icon: dir === 'rtl' ? <ChevronLeft /> : <ChevronRight />
+}
+```
+
+Or use logical properties:
+
+```css
+.icon {
+  margin-inline-start: 8px; /* Adapts to direction */
+}
+```
+
+## Styling for RTL
+
+### Logical Properties
+
+Use CSS logical properties for automatic adaptation:
+
+```css
+/* Instead of margin-left/right */
+.item {
+  margin-inline-start: 8px;
+  margin-inline-end: 16px;
+  padding-inline: 12px;
+}
+
+/* Instead of border-left/right */
+.separator {
+  border-inline-start: 1px solid;
+}
+
+/* Instead of text-align: left/right */
+.text {
+  text-align: start;
+}
+```
+
+### Direction-Specific Styles
+
+Apply styles based on direction:
+
+```tsx
+const theme = {
+  classNames: {
+    item: cn(
+      'px-4 py-2',
+      dir === 'rtl' ? 'text-right' : 'text-left'
+    )
+  }
+}
+```
+
+Or use CSS:
+
+```css
+[dir="rtl"] .menu-item {
+  text-align: right;
+}
+
+[dir="ltr"] .menu-item {
+  text-align: left;
+}
+```
+
+## Bidirectional Text
+
+Handle mixed LTR/RTL content:
+
+```tsx
+{
+  nodes: [
+    {
+      label: 'ملف (File)', // Arabic with English
+      // Uses Unicode bidirectional algorithm
+    },
+    {
+      label: 'פתח (Open)', // Hebrew with English
+    }
+  ]
+}
+```
+
+### Explicit Text Direction
+
+Use Unicode control characters when needed:
+
+```tsx
+{
+  label: '\u202B' + 'RTL text' + '\u202C', // Right-to-left override
+}
+```
+
+## Icons and Directional Elements
+
+### Flippable Icons
+
+Some icons should flip in RTL:
+
+```tsx
+import { ChevronRight } from 'lucide-react'
+
+function SubmenuIcon({ dir }) {
+  return (
+    <ChevronRight
+      className={dir === 'rtl' ? 'rotate-180' : ''}
+    />
+  )
+}
+```
+
+### Non-Flippable Icons
+
+Some icons stay the same:
+
+```tsx
+// These should NOT flip
+- Play button (▶)
+- Checkmarks (✓)
+- Close (×)
+- Search (🔍)
+```
+
+## Positioning
+
+Submenu positioning adapts automatically:
+
+```tsx
+<ActionMenu.Positioner
+  side="right" // Becomes "left" in RTL
+  align="start" // Becomes "end" in RTL
+/>
+```
+
+## Testing RTL
+
+### Browser DevTools
+
+Test in Chrome/Firefox DevTools:
+
+```js
+// In console
+document.dir = 'rtl'
+```
+
+### Component Testing
+
+Test both directions:
+
+```tsx
+describe('ActionMenu RTL', () => {
+  it('should render in RTL', () => {
+    render(
+      <ActionMenu.Surface dir="rtl" menu={menu} />
+    )
+    // Assertions
+  })
+
+  it('should open submenus to the left', () => {
+    // Test positioning
+  })
+})
+```
+
+## Common Pitfalls
+
+### ❌ Hardcoded Directions
+
+```tsx
+// Bad
+<div style={{ marginLeft: 8 }} />
+
+// Good
+<div style={{ marginInlineStart: 8 }} />
+```
+
+### ❌ Fixed Positioning
+
+```tsx
+// Bad
+<div style={{ right: 0 }} />
+
+// Good
+<div style={{ insetInlineEnd: 0 }} />
+```
+
+### ❌ Transform Assumptions
+
+```tsx
+// Bad
+transform: translateX(100%) // Always moves right
+
+// Good
+transform: translateX(${dir === 'rtl' ? '-' : ''}100%)
+```
+
+## Language Support
+
+ActionMenu works with all RTL languages:
+
+- **Arabic** - العربية
+- **Hebrew** - עברית
+- **Persian** - فارسی
+- **Urdu** - اردو
+- **Yiddish** - ייִדיש
+
+## Internationalization
+
+Combine with i18n libraries:
+
+```tsx
+import { useTranslation } from 'react-i18next'
+
+function MyMenu() {
+  const { t, i18n } = useTranslation()
+  const dir = i18n.dir()
+
+  return (
+    <ActionMenu.Surface
+      dir={dir}
+      menu={{
+        title: t('menu.title'),
+        nodes: [
+          { label: t('menu.profile') },
+          { label: t('menu.settings') }
+        ]
+      }}
+    />
+  )
+}
+```
+
+## Best Practices
+
+- ✅ Use logical CSS properties
+- ✅ Test with actual RTL content
+- ✅ Handle bidirectional text
+- ✅ Flip directional icons
+- ✅ Detect direction automatically
+- ❌ Don't assume left-to-right
+- ❌ Don't hardcode left/right values
+- ❌ Don't forget keyboard navigation
+
+## Resources
+
+- [CSS Logical Properties](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Logical_Properties)
+- [Unicode Bidirectional Algorithm](https://unicode.org/reports/tr9/)
+- [RTL Styling 101](https://rtlstyling.com/)
+
+## Next Steps
+
+- Learn about [Theming](/docs/action-menu/theming)
+- Explore [Keyboard Navigation](/docs/action-menu/keyboard)
+- See [Accessibility](/docs/action-menu/accessibility)

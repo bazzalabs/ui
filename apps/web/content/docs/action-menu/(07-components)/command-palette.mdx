@@ -1,0 +1,308 @@
+---
+title: Command Palette
+section: Components
+summary: Build keyboard-driven command palettes with ActionMenu
+---
+
+# Command Palette
+
+A command palette is a searchable overlay for quick actions and navigation, popularized by tools like VS Code, Spotlight, and Raycast.
+
+## Basic Usage
+
+```tsx
+import { ActionMenu } from '@bazza-ui/action-menu'
+import { useHotkeys } from 'react-hotkeys-hook'
+
+function CommandPalette() {
+  const [open, setOpen] = useState(false)
+
+  useHotkeys('mod+k', () => setOpen(true))
+
+  return (
+    <ActionMenu.Root
+      open={open}
+      onOpenChange={setOpen}
+      modal
+    >
+      <ActionMenu.Positioner
+        positionMethod="fixed"
+        style={{
+          top: '20%',
+          left: '50%',
+          transform: 'translateX(-50%)'
+        }}
+      >
+        <ActionMenu.Surface
+          menu={{
+            inputPlaceholder: 'Type a command or search...',
+            search: {
+              mode: 'client',
+              debounce: 150
+            },
+            nodes: commandNodes
+          }}
+        />
+      </ActionMenu.Positioner>
+    </ActionMenu.Root>
+  )
+}
+```
+
+## Command Structure
+
+```tsx
+const commandNodes = [
+  {
+    variant: 'group',
+    label: 'Navigation',
+    nodes: [
+      {
+        label: 'Go to Dashboard',
+        keywords: ['dashboard', 'home'],
+        icon: <HomeIcon />,
+        onSelect: () => router.push('/dashboard')
+      },
+      {
+        label: 'Go to Settings',
+        keywords: ['settings', 'preferences', 'config'],
+        icon: <SettingsIcon />,
+        onSelect: () => router.push('/settings')
+      }
+    ]
+  },
+  {
+    variant: 'group',
+    label: 'Actions',
+    nodes: [
+      {
+        label: 'Create New Project',
+        keywords: ['new', 'create', 'project'],
+        icon: <PlusIcon />,
+        onSelect: () => createProject()
+      },
+      {
+        label: 'Open Quick Search',
+        keywords: ['search', 'find'],
+        icon: <SearchIcon />,
+        onSelect: () => openSearch()
+      }
+    ]
+  }
+]
+```
+
+## Async Commands
+
+Load commands dynamically:
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    loader: async (context) => {
+      // Server-side command search
+      const res = await fetch(`/api/commands?q=${context.query}`)
+      return res.json()
+    },
+    search: {
+      mode: 'server',
+      debounce: 300
+    }
+  }}
+/>
+```
+
+## Recent Commands
+
+Track and display recent selections:
+
+```tsx
+function CommandPaletteWithRecents() {
+  const [recents, setRecents] = useState<Command[]>([])
+
+  const handleSelect = (command) => {
+    // Add to recents
+    setRecents([command, ...recents.slice(0, 4)])
+    command.onSelect()
+  }
+
+  const nodes = [
+    ...(recents.length > 0 ? [{
+      variant: 'group',
+      label: 'Recent',
+      nodes: recents.map(cmd => ({
+        ...cmd,
+        onSelect: () => handleSelect(cmd)
+      }))
+    }] : []),
+    ...commandGroups
+  ]
+
+  return <ActionMenu.Surface menu={{ nodes }} />
+}
+```
+
+## Keyboard Shortcuts
+
+Display shortcuts in the palette:
+
+```tsx
+{
+  label: 'Toggle Theme',
+  keywords: ['theme', 'dark', 'light'],
+  onSelect: toggleTheme,
+  render: (props) => (
+    <ActionMenu.Item {...props}>
+      <span>{props.node.label}</span>
+      <kbd className="ml-auto">⌘ T</kbd>
+    </ActionMenu.Item>
+  )
+}
+```
+
+## Nested Categories
+
+```tsx
+{
+  variant: 'submenu',
+  label: 'Quick Actions',
+  icon: <BoltIcon />,
+  nodes: [
+    {
+      label: 'Export Data',
+      variant: 'submenu',
+      nodes: [
+        { label: 'Export as PDF', onSelect: exportPDF },
+        { label: 'Export as CSV', onSelect: exportCSV }
+      ]
+    },
+    {
+      label: 'Import Data',
+      onSelect: openImport
+    }
+  ]
+}
+```
+
+## Page-Specific Commands
+
+Show different commands based on context:
+
+```tsx
+function usePageCommands() {
+  const pathname = usePathname()
+
+  return useMemo(() => {
+    const base = [...globalCommands]
+
+    if (pathname.startsWith('/projects')) {
+      base.push(...projectCommands)
+    }
+
+    if (pathname.startsWith('/settings')) {
+      base.push(...settingsCommands)
+    }
+
+    return base
+  }, [pathname])
+}
+```
+
+## With Middleware
+
+Add "Create new" functionality:
+
+```tsx
+import { createNew } from '@bazza-ui/action-menu'
+
+<ActionMenu.Surface
+  menu={{
+    nodes: items,
+    middleware: [
+      createNew({
+        condition: 'no-exact-match',
+        label: (query) => `Create "${query}"`,
+        icon: <PlusIcon />,
+        onCreate: (query) => createItem(query)
+      })
+    ]
+  }}
+/>
+```
+
+## Theming
+
+Customize appearance:
+
+```tsx
+const commandPaletteTheme = {
+  classNames: {
+    content: 'w-[640px] max-h-[480px] shadow-2xl rounded-lg',
+    input: 'text-lg px-4 py-3 border-b',
+    list: 'p-2',
+    item: 'px-4 py-2.5 rounded-md',
+    groupHeading: 'px-4 py-1.5 text-xs font-medium text-muted-foreground'
+  }
+}
+
+<ActionMenu.Surface
+  menu={{
+    ...menu,
+    ui: commandPaletteTheme
+  }}
+/>
+```
+
+## Best Practices
+
+- ✅ Use `modal` to trap focus
+- ✅ Center the palette on screen
+- ✅ Include rich search keywords
+- ✅ Group related commands
+- ✅ Show keyboard shortcuts
+- ✅ Track recent commands
+- ✅ Make it keyboard-first
+- ❌ Don't overcomplicate the UI
+- ❌ Don't make it too large
+
+## Example: VS Code Style
+
+```tsx
+<ActionMenu.Root
+  open={open}
+  onOpenChange={setOpen}
+  modal
+  responsive="dropdown"
+>
+  <ActionMenu.Positioner
+    positionMethod="fixed"
+    className="fixed inset-0 flex items-start justify-center pt-[15vh] bg-black/20"
+  >
+    <ActionMenu.Surface
+      menu={{
+        inputPlaceholder: 'Type a command...',
+        hideSearchUntilActive: false,
+        virtualization: {
+          overscan: 8,
+          estimateSize: () => 40
+        },
+        nodes: commands,
+        ui: {
+          classNames: {
+            content: 'w-[600px] bg-background border shadow-2xl rounded-md overflow-hidden',
+            input: 'px-4 py-3 text-base border-b',
+            list: 'max-h-[400px] p-1',
+            item: 'px-3 py-2 text-sm rounded-sm flex items-center gap-3'
+          }
+        }
+      }}
+    />
+  </ActionMenu.Positioner>
+</ActionMenu.Root>
+```
+
+## Next Steps
+
+- Learn about [Search & Filtering](/docs/action-menu/search)
+- Explore [Middleware](/docs/action-menu/middleware)
+- See [Keyboard Navigation](/docs/action-menu/keyboard)

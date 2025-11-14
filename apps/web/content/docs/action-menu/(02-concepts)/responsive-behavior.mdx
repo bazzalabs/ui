@@ -1,0 +1,104 @@
+---
+title: Responsive Behavior
+section: Components
+summary: How ActionMenu adapts between desktop and mobile devices
+---
+
+# Responsive Behavior
+
+ActionMenu automatically adapts its UI based on the device, switching between dropdown (desktop) and drawer (mobile) modes.
+
+## Display Modes
+
+### Dropdown Mode (Desktop)
+
+Used on devices with fine pointer control (mouse):
+
+- Positioned relative to trigger using Base UI Popover
+- Collision detection and avoidance
+- Pointer-based interactions
+- Intent zone for diagonal mouse movement
+
+### Drawer Mode (Mobile)
+
+Used on touch devices or small screens:
+
+- Bottom sheet UI using Vaul
+- Swipe to dismiss
+- Touch-optimized spacing
+- Full-width on mobile
+
+## Configuration
+
+### Auto Mode (Default)
+
+Automatically detects the appropriate mode:
+
+```tsx
+<ActionMenu.Root responsive="auto">
+  {/* Switches based on screen size and pointer type */}
+</ActionMenu.Root>
+```
+
+Default media query: `(max-width: 640px), (pointer: coarse)`
+
+### Force Specific Mode
+
+Override automatic detection:
+
+```tsx
+<ActionMenu.Root responsive="drawer">
+  {/* Always use drawer mode */}
+</ActionMenu.Root>
+
+<ActionMenu.Root responsive="dropdown">
+  {/* Always use dropdown mode */}
+</ActionMenu.Root>
+```
+
+### Custom Breakpoint
+
+Customize the responsive breakpoint:
+
+```tsx
+<ActionMenu.Root
+  responsive={{
+    mode: 'auto',
+    query: '(max-width: 768px)'
+  }}
+>
+  {/* Custom breakpoint */}
+</ActionMenu.Root>
+```
+
+## Behavioral Differences
+
+| Feature | Dropdown | Drawer |
+|---------|----------|--------|
+| Positioning | Relative to trigger | Bottom of screen |
+| Dismiss | Click outside / Esc | Swipe down / backdrop |
+| Intent Zone | Yes | No |
+| Collision Detection | Yes | N/A |
+
+## Styling for Each Mode
+
+Use the display mode context to style differently:
+
+```tsx
+import { useDisplayMode } from '@bazza-ui/action-menu'
+
+function CustomItem() {
+  const mode = useDisplayMode()
+
+  return (
+    <div className={mode === 'drawer' ? 'p-4' : 'p-2'}>
+      {/* Larger padding on mobile */}
+    </div>
+  )
+}
+```
+
+## Next Steps
+
+- Learn about [Positioning](/docs/action-menu/positioning) for dropdown mode
+- Explore [Theming](/docs/action-menu/theming) to customize appearance

@@ -1,3 +1,4 @@
+import { ListFilterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -8,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FilterIcon } from 'lucide-react'
 
 export interface TableSkeletonProps {
   numCols: number
@@ -70,7 +70,7 @@ export function TableFilterSkeleton() {
   return (
     <div>
       <Button variant="outline" className="h-7" disabled>
-        <FilterIcon className="size-4" />
+        <ListFilterIcon className="size-4" />
         <span>Filter</span>
       </Button>
     </div>

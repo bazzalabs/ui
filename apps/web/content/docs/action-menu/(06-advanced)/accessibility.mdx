@@ -1,0 +1,289 @@
+---
+title: Accessibility
+section: Components
+summary: Built-in ARIA support, keyboard navigation, and screen reader compatibility
+---
+
+# Accessibility
+
+ActionMenu is built with accessibility as a core principle, following WAI-ARIA best practices for menu patterns.
+
+## ARIA Support
+
+### Roles
+
+ActionMenu automatically applies appropriate ARIA roles:
+
+```tsx
+// Automatically applied
+<div role="menu">           {/* Menu container */}
+  <div role="menuitem">     {/* Button item */}
+  <div role="menuitemcheckbox" aria-checked="true">  {/* Checkbox */}
+  <div role="menuitemradio" aria-checked="false">    {/* Radio */}
+  <div role="group">        {/* Group */}
+  <div role="separator">    {/* Separator */}
+</div>
+```
+
+### States
+
+Items reflect their state via ARIA attributes:
+
+- `aria-disabled="true"` - Disabled items
+- `aria-checked="true"` - Selected checkboxes/radios
+- `aria-expanded="true"` - Open submenus
+- `aria-hidden="true"` - Hidden items
+
+### Labels
+
+Menus and items have proper labeling:
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    title: 'User Menu', // Sets aria-label
+    nodes: [
+      {
+        label: 'Profile',
+        // aria-label automatically set
+      }
+    ]
+  }}
+/>
+```
+
+## Keyboard Navigation
+
+Full keyboard support is built-in:
+
+| Key | Action |
+|-----|--------|
+| `↓` / `↑` | Navigate items |
+| `Home` / `End` | First / Last item |
+| `Enter` / `Space` | Activate item |
+| `Escape` | Close menu |
+| `→` | Open submenu |
+| `←` | Close submenu |
+| `Tab` | Close menu |
+
+### Type-ahead
+
+Single character typing searches items:
+
+```tsx
+// User types "p"
+// Jumps to first item starting with "p"
+<ActionMenu.Surface
+  menu={{
+    nodes: [
+      { label: 'Profile' },    // ← Matches!
+      { label: 'Settings' },
+      { label: 'Privacy' }     // ← Next match
+    ]
+  }}
+/>
+```
+
+### Vim Bindings
+
+Optional vim-style navigation:
+
+```tsx
+<ActionMenu.Surface
+  vimBindings
+  menu={menu}
+/>
+
+// j/k - Next/Previous
+// h/l - Close/Open submenu
+```
+
+## Screen Readers
+
+### Announcements
+
+ActionMenu provides context for screen reader users:
+
+- Menu opening/closing announced
+- Current item announced on focus
+- Item count announced
+- Selection state announced
+
+### Live Regions
+
+Search results use live regions:
+
+```tsx
+<div aria-live="polite" aria-atomic="true">
+  {/* Search results announced automatically */}
+  12 results found
+</div>
+```
+
+### Submenu Navigation
+
+Screen readers announce submenu context:
+
+```
+"Users submenu, 3 items"
+"John Doe, 1 of 3"
+```
+
+## Focus Management
+
+### Focus Visible
+
+Focus indicators only show for keyboard users:
+
+```css
+/* Automatically applied */
+.menu-item:focus-visible {
+  outline: 2px solid blue;
+}
+
+.menu-item:focus:not(:focus-visible) {
+  outline: none;
+}
+```
+
+### Focus Trap
+
+When modal, focus stays within the menu:
+
+```tsx
+<ActionMenu.Root modal>
+  {/* Tab only moves focus within menu */}
+</ActionMenu.Root>
+```
+
+### Focus Return
+
+Focus returns to trigger on close:
+
+```tsx
+// Automatic focus return
+<ActionMenu.Trigger>
+  Open Menu
+</ActionMenu.Trigger>
+
+// Or customize
+<ActionMenu.Root
+  onCloseAutoFocus={(e) => {
+    // Custom focus handling
+    document.getElementById('custom')?.focus()
+    e.preventDefault()
+  }}
+>
+```
+
+## Color Contrast
+
+Ensure sufficient contrast in your theme:
+
+```tsx
+const theme = {
+  classNames: {
+    item: 'text-foreground',           // 4.5:1 contrast
+    itemActive: 'bg-primary text-white', // 4.5:1 contrast
+    itemDisabled: 'text-muted'          // 3:1 contrast (UI elements)
+  }
+}
+```
+
+## Motion Preferences
+
+Respect `prefers-reduced-motion`:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .menu-surface {
+    animation: none;
+    transition: none;
+  }
+}
+```
+
+## Touch Targets
+
+Ensure adequate touch target sizes:
+
+```tsx
+const theme = {
+  slotProps: {
+    item: {
+      style: {
+        minHeight: '44px', // iOS minimum
+        minWidth: '44px'
+      }
+    }
+  }
+}
+```
+
+## Testing Accessibility
+
+### Automated Testing
+
+Use testing libraries:
+
+```tsx
+import { axe } from 'jest-axe'
+import { render } from '@testing-library/react'
+
+it('should have no accessibility violations', async () => {
+  const { container } = render(<ActionMenu.Root>...</ActionMenu.Root>)
+  const results = await axe(container)
+  expect(results).toHaveNoViolations()
+})
+```
+
+### Manual Testing
+
+Test with assistive technologies:
+
+- **macOS**: VoiceOver (Cmd + F5)
+- **Windows**: NVDA (free) or JAWS
+- **Linux**: Orca
+
+### Keyboard Testing
+
+Verify all interactions work keyboard-only:
+
+1. Tab to trigger
+2. Enter to open
+3. Arrow keys to navigate
+4. Enter to select
+5. Escape to close
+
+## Best Practices
+
+- ✅ Always provide meaningful labels
+- ✅ Test with screen readers
+- ✅ Ensure 4.5:1 color contrast
+- ✅ Provide focus indicators
+- ✅ Support keyboard navigation
+- ✅ Respect motion preferences
+- ✅ Use semantic HTML
+- ❌ Don't disable focus styles
+- ❌ Don't rely solely on color
+- ❌ Don't trap focus in non-modal menus
+
+## Compliance
+
+ActionMenu follows:
+
+- **WCAG 2.1 Level AA** - All success criteria
+- **WAI-ARIA 1.2** - Menu pattern
+- **Section 508** - US federal standard
+
+## Resources
+
+- [WAI-ARIA Menu Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu/)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- [WebAIM Screen Reader Guide](https://webaim.org/articles/screenreader_testing/)
+
+## Next Steps
+
+- Learn about [Keyboard Navigation](/docs/action-menu/keyboard)
+- Explore [Focus Management](/docs/action-menu/focus)
+- See [Theming](/docs/action-menu/theming) for accessible colors

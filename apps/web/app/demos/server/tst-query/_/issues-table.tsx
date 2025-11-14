@@ -25,7 +25,7 @@ function createLabelOptions(labels: IssueLabel[] | undefined) {
     icon: (
       <div
         className={cn(
-          'size-2.5 rounded-full',
+          '!size-2.5 rounded-full',
           LABEL_STYLES_BG[l.color as TW_COLOR],
         )}
       />

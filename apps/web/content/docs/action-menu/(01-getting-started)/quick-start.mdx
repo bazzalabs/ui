@@ -1,0 +1,149 @@
+---
+title: Your First Menu
+section: Components
+summary: "Create your first action menu step by step."
+---
+
+## Basic Menu
+
+Let's create a simple actions menu for a document editor:
+
+```tsx
+import { ActionMenu } from '@/components/ui/action-menu'
+import { Button } from '@/components/ui/button'
+import { Copy, Trash, Download, Share } from 'lucide-react'
+
+const menu = {
+  nodes: [
+    {
+      kind: 'item',
+      id: 'copy',
+      label: 'Copy',
+      icon: Copy,
+      onSelect: () => {
+        console.log('Copied!')
+      },
+    },
+    {
+      kind: 'item',
+      id: 'download',
+      label: 'Download',
+      icon: Download,
+      onSelect: () => {
+        console.log('Downloaded!')
+      },
+    },
+    {
+      kind: 'item',
+      id: 'share',
+      label: 'Share',
+      icon: Share,
+      onSelect: () => {
+        console.log('Shared!')
+      },
+    },
+    {
+      kind: 'item',
+      id: 'delete',
+      label: 'Delete',
+      icon: Trash,
+      onSelect: () => {
+        console.log('Deleted!')
+      },
+      closeOnSelect: true,
+    },
+  ],
+}
+
+export function DocumentMenu() {
+  return (
+    <ActionMenu
+      trigger={<Button>Actions</Button>}
+      menu={menu}
+    />
+  )
+}
+```
+
+## Adding Icons
+
+Icons can be:
+- React components (`Copy` from lucide-react)
+- String emojis (`'🍎'`)
+- React elements (`<CustomIcon />`)
+- Any React node
+
+## onSelect Handler
+
+The `onSelect` handler is called when an item is clicked or selected via keyboard.
+
+```tsx
+{
+  kind: 'item',
+  id: 'save',
+  label: 'Save',
+  onSelect: ({ node }) => {
+    // Access the node that was selected
+    console.log(`Selected: ${node.label}`)
+
+    // Perform your action
+    saveDocument()
+  },
+}
+```
+
+The handler receives:
+- `node` - The item node that was selected
+- `search` - Search context if the item was found via search
+
+## closeOnSelect
+
+By default, selecting an item does NOT close the menu. This allows users to select multiple items in a row.
+
+Set `closeOnSelect: true` on individual items to close the menu after selection:
+
+```tsx
+{
+  kind: 'item',
+  id: 'delete',
+  label: 'Delete',
+  onSelect: () => deleteItem(),
+  closeOnSelect: true, // Close menu after delete
+}
+```
+
+Or set it as a default for all items:
+
+```tsx
+<ActionMenu
+  trigger={<Button>Actions</Button>}
+  menu={{
+    nodes: [...],
+    defaults: {
+      item: {
+        closeOnSelect: true, // All items close menu by default
+      },
+    },
+  }}
+/>
+```
+
+## Disabled Items
+
+Disable items that aren't currently available:
+
+```tsx
+{
+  kind: 'item',
+  id: 'undo',
+  label: 'Undo',
+  disabled: !canUndo, // Conditionally disabled
+  onSelect: () => undo(),
+}
+```
+
+## Next Steps
+
+- **[Data-First API](/docs/action-menu/getting-started/data-first-api)** - Understand the MenuDef structure
+- **[Quick Examples](/docs/action-menu/getting-started/quick-examples)** - See more patterns
+- **[Node Types](/docs/action-menu/nodes/items)** - Learn about all node types

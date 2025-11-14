@@ -54,10 +54,11 @@
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(92.2% 0 0 / 75%);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --selection: oklch(92.2% 0 0);
 }
 
 .dark {
@@ -95,6 +96,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  --selection: oklch(26.9% 0 0);
 }
 
 @theme inline {
@@ -134,6 +136,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-selection: var(--selection);
 }
 
 @layer base {
@@ -162,6 +165,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  *::selection {
+    @apply bg-selection;
+  }
+
 
   code:not(h1 code, h2 code, h3 code, h4 code, .callout code) {
     @apply not-dark:font-[450];
@@ -227,18 +235,29 @@
     }
   }
 
-  html.dark .shiki,
-  html.dark .shiki span,
-  html.dark .shiki-inline,
-  html.dark .shiki-inline span {
-    color: var(--shiki-dark) !important;
-    background-color: transparent !important;
-    font-style: var(--shiki-dark-font-style) !important;
-    font-weight: var(--shiki-dark-font-weight) !important;
-    text-decoration: var(--shiki-dark-text-decoration) !important;
+  @layer base {
+    html.light .shiki,
+    html.light .shiki span {
+      color: var(--shiki-light) !important;
+      /* background-color: var(--shiki-dark-bg) !important; */
+      /* Optional, if you also want font styles */
+      font-style: var(--shiki-light-font-style) !important;
+      font-weight: var(--shiki-light-font-weight) !important;
+      text-decoration: var(--shiki-light-text-decoration) !important;
+    }
+
+    html.dark .shiki,
+    html.dark .shiki span {
+      color: var(--shiki-dark) !important;
+      /* background-color: var(--shiki-dark-bg) !important; */
+      /* Optional, if you also want font styles */
+      font-style: var(--shiki-dark-font-style) !important;
+      font-weight: var(--shiki-dark-font-weight) !important;
+      text-decoration: var(--shiki-dark-text-decoration) !important;
+    }
   }
 
-  .shiki {
+  /*.shiki {
     overflow: auto;
     position: relative;
     padding: theme(spacing.4);
@@ -293,7 +312,7 @@
         }
       }
     }
-  }
+  }*/
 }
 
 @layer base {
@@ -313,12 +332,14 @@
     }
   }
 
-  figure[data-rehype-pretty-code-figure] {
+  /*figure[data-rehype-pretty-code-figure] {
+    contain: layout style;
+    content-visibility: auto;
     @apply my-6 relative;
 
     figcaption[data-rehype-pretty-code-title] {
       @apply relative text-xs text-muted-foreground font-mono w-fit border-x border-t border-border rounded-t-md px-4 py-1.5 translate-y-[1px] select-none;
-      @apply bg-white dark:bg-black;
+      @apply bg-white dark:bg-neutral-900;
 
       & + pre {
         @apply rounded-tl-none;
@@ -330,7 +351,7 @@
     }
 
     & > pre {
-      @apply bg-white dark:bg-black;
+      @apply bg-white dark:bg-neutral-900;
       @apply max-h-[650px] overflow-x-auto rounded-xl border border-border;
       @apply py-4;
 
@@ -340,7 +361,7 @@
 
       & > code {
         @apply grid min-w-full break-words rounded-none border-0 bg-transparent !p-0;
-        @apply !bg-white dark:!bg-black text-sm;
+        @apply !bg-white dark:!bg-neutral-900 text-sm;
       }
 
       [data-highlighted-line] {
@@ -431,7 +452,6 @@
       }
 
       code[data-line-numbers-max-digits="2"] > [data-line]::before {
-        /*width: 1rem;*/
         width: calc(var(--spacing) * 4);
       }
 
@@ -443,7 +463,7 @@
         width: 1.75rem;
       }
     }
-  }
+  }*/
 }
 
 @layer utilities {
@@ -565,5 +585,14 @@
        but because it's part of the element's subtree, hovering over it
        triggers the parent's :hover state. */
     pointer-events: auto;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: 100%;
+  }
+  100% {
+    background-position: -100%;
   }
 }
