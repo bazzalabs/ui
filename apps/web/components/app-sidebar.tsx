@@ -134,7 +134,7 @@ export function AppSidebar() {
   const ref = useRef<HTMLDivElement | null>(null)
 
   return (
-    <Sidebar className="h-svh flex flex-col">
+    <Sidebar variant="inset" className="flex flex-col">
       <SidebarHeader className="px-4 text-sm pt-4 shrink-0">
         <SidebarMenu>
           <SidebarMenuItem className="inline-flex justify-between items-center">
@@ -206,7 +206,10 @@ export function AppSidebar() {
                         className="font-medium text-muted-foreground hover-expand-[2px] data-[active=true]:bg-sidebar-accent data-[active=true]:text-primary"
                         isActive={pathname.startsWith('/docs/action-menu')}
                       >
-                        <a href="/docs/action-menu">Action Menu</a>
+                        <div className="flex items-center gap-2">
+                          <span>Action Menu</span>
+                          <div className="size-2 bg-blue-500 rounded-full" />
+                        </div>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
