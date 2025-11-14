@@ -1,7 +1,6 @@
 'use client'
 
 import { ChevronRight } from 'lucide-react'
-import { LayoutGroup, motion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -26,7 +25,6 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import logoSrc from '@/public/bazzaui-v3-color.png'
