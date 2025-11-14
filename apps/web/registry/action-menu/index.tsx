@@ -16,23 +16,6 @@ declare module '@bazza-ui/action-menu' {
 
 export const ActionMenu = createActionMenu({
   slots: {
-    // Input: ({ bind, value, onChange, search }) => {
-    //   const props = bind.getInputProps()
-    //   return (
-    //     <div className="flex items-center justify-between">
-    //       <input
-    //         {...props}
-    //         value={value}
-    //         onChange={(event) => onChange(event.target.value)}
-    //       />
-    //       <div className="size-5 mr-2">
-    //         {search.isLoading && (
-    //           <DiamondSpinner className="size-4 text-primary rotate-45" />
-    //         )}
-    //       </div>
-    //     </div>
-    //   )
-    // },
     GroupHeading: ({ node, bind }) => (
       <div {...bind.getGroupHeadingProps()}>
         <span>{node.heading}</span>
@@ -175,9 +158,9 @@ export const ActionMenu = createActionMenu({
       'data-[root-menu]:drop-shadow-md data-[sub-menu]:drop-shadow-xl',
       'data-[root-menu]:data-[open]:animate-in data-[root-menu]:data-[open]:fade-in-0 data-[root-menu]:data-[open]:zoom-in-95',
       'data-[root-menu]:data-[closed]:animate-out data-[root-menu]:data-[closed]:fade-out-0 data-[root-menu]:data-[closed]:zoom-out-95',
-      'origin-(--transform-origin)',
-      'data-[root-menu]:data-[open]:transition-[filter,scale,opacity] data-[root-menu]:data-[open]:duration-75 data-[root-menu]:data-[open]:ease-out',
-      'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-75 data-[root-menu]:data-[open]:ease-in',
+      'data-[root-menu]:data-[open]:origin-(--transform-origin) data-[root-menu]:data-[closed]:origin-(--transform-origin)',
+      'data-[root-menu]:data-[open]:transition-[filter,scale,opacity] data-[root-menu]:data-[open]:duration-150 data-[root-menu]:data-[open]:ease-out',
+      'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-150 data-[root-menu]:data-[open]:ease-out',
       'data-[mode=dropdown]:max-h-[min(500px,var(--action-menu-available-height))]',
       'box-content',
       'data-[mode=dropdown]:w-[min(400px,max(var(--row-width),175px))]',
