@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/action-menu",
-  "version": "0.0.2025091200",
+  "version": "0.1.0",
   "private": false,
   "publishConfig": {
     "access": "public"
