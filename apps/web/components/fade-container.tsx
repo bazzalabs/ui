@@ -59,7 +59,7 @@ export function FadeContainer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
+              transition={{ duration: 0.3 }}
               background="var(--sidebar)"
               side="top"
               blur="4px"
@@ -74,7 +74,7 @@ export function FadeContainer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
+              transition={{ duration: 0.3 }}
               background="var(--sidebar)"
               side="bottom"
               blur="4px"
