@@ -62,6 +62,18 @@ jobs:
         run: bunx --bun turbo run build --filter='./packages/*'
 
       # Snapshot Release (no git commits, quick testing)
+      - name: Create temporary changeset for snapshot
+        if: inputs.type == 'snapshot'
+        run: |
+          cat <<EOF > .changeset/snapshot-release.md
+          ---
+          "@bazza-ui/action-menu": patch
+          "@bazza-ui/filters": patch
+          ---
+
+          Snapshot release for testing
+          EOF
+
       - name: Create snapshot versions
         if: inputs.type == 'snapshot'
         run: bunx changeset version --snapshot snapshot
