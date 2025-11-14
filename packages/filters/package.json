@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/filters",
-  "version": "0.3.2025091001",
+  "version": "0.4.0",
   "private": false,
   "publishConfig": {
     "access": "public"
