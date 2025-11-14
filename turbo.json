@@ -22,6 +22,10 @@
       "cache": false,
       "persistent": true
     },
+    "type-check": {
+      "cache": true,
+      "inputs": ["$TURBO_DEFAULT$", "tsconfig.json"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

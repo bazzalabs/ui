@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.docs.json --pkg @bazza-ui/action-menu=../../packages/action-menu/src/index.ts",
     "build": "next build --turbopack",
+    "type-check": "tsc --noEmit",
     "vercel:install": "./vercel-submodule.sh && bun install",
     "start": "next start",
     "lint": "next lint",
