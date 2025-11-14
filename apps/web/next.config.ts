@@ -33,31 +33,6 @@ const nextConfig: NextConfig = {
       permanent: false,
     },
     {
-      source: '/r/filters',
-      destination: '/r/data-table-filter.json',
-      permanent: false,
-    },
-    {
-      source: '/r/data-table-filter',
-      destination: '/r/data-table-filter.json',
-      permanent: false,
-    },
-    {
-      source: '/r/filters/i18n',
-      destination: '/r/data-table-filter-i18n.json',
-      permanent: false,
-    },
-    {
-      source: '/r/filters/tst',
-      destination: '/r/data-table-filter-tst.json',
-      permanent: false,
-    },
-    {
-      source: '/r/action-menu',
-      destination: '/r/action-menu.json',
-      permanent: false,
-    },
-    {
       source: '/changelog',
       destination: '/changelog/latest',
       permanent: false,
