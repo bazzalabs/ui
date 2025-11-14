@@ -1,0 +1,140 @@
+name: Publish Experimental Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - snapshot
+          - canary
+        default: 'snapshot'
+      packages:
+        description: 'Which packages to publish'
+        required: true
+        type: choice
+        options:
+          - filters
+          - action-menu
+          - both
+        default: 'both'
+      branch:
+        description: 'Branch to publish from'
+        required: false
+        default: 'canary'
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.type }} release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build packages
+        run: turbo run build --filter='./packages/*'
+
+      # Snapshot Release (no git commits, quick testing)
+      - name: Create snapshot versions
+        if: inputs.type == 'snapshot'
+        run: bunx changeset version --snapshot snapshot
+
+      - name: Publish snapshot to npm
+        if: inputs.type == 'snapshot'
+        run: |
+          if [ "${{ inputs.packages }}" = "filters" ]; then
+            cd packages/filters && npm publish --tag snapshot --access public
+          elif [ "${{ inputs.packages }}" = "action-menu" ]; then
+            cd packages/action-menu && npm publish --tag snapshot --access public
+          else
+            cd packages/filters && npm publish --tag snapshot --access public
+            cd ../action-menu && npm publish --tag snapshot --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Canary Release (prerelease mode with git commits)
+      - name: Enter prerelease mode
+        if: inputs.type == 'canary'
+        run: bunx changeset pre enter canary
+
+      - name: Version packages for canary
+        if: inputs.type == 'canary'
+        run: bunx changeset version
+
+      - name: Commit canary versions
+        if: inputs.type == 'canary'
+        run: |
+          git add .
+          git commit -m "chore: enter canary prerelease mode" || echo "No changes to commit"
+
+      - name: Publish canary to npm
+        if: inputs.type == 'canary'
+        run: |
+          if [ "${{ inputs.packages }}" = "filters" ]; then
+            cd packages/filters && npm publish --tag canary --access public
+          elif [ "${{ inputs.packages }}" = "action-menu" ]; then
+            cd packages/action-menu && npm publish --tag canary --access public
+          else
+            cd packages/filters && npm publish --tag canary --access public
+            cd ../action-menu && npm publish --tag canary --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Exit prerelease mode
+        if: inputs.type == 'canary'
+        run: bunx changeset pre exit
+
+      - name: Commit prerelease exit
+        if: inputs.type == 'canary'
+        run: |
+          git add .
+          git commit -m "chore: exit canary prerelease mode" || echo "No changes to commit"
+
+      - name: Push changes
+        if: inputs.type == 'canary'
+        run: git push origin ${{ inputs.branch }}
+
+      - name: Summary
+        run: |
+          echo "### ✅ Published ${{ inputs.type }} release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Type:** ${{ inputs.type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Packages:** ${{ inputs.packages }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ inputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.type }}" = "snapshot" ]; then
+            echo "Install with: \`npm install @bazza-ui/[package]@snapshot\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Install with: \`npm install @bazza-ui/[package]@canary\`" >> $GITHUB_STEP_SUMMARY
+          fi
