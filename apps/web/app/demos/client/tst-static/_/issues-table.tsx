@@ -13,7 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import { DataTableFilter } from '@/registry/data-table-filter'
+import { Filter } from '@/registry/data-table-filter'
 import { tstColumnDefs } from './columns'
 import { ISSUES } from './data'
 import { DataTable } from './data-table'
@@ -88,7 +88,7 @@ export function IssuesTable({
   return (
     <div className="w-full col-span-2">
       <div className="flex items-center pb-4 gap-2">
-        <DataTableFilter
+        <Filter
           filters={filters}
           columns={columns}
           actions={actions}

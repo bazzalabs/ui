@@ -10,13 +10,15 @@ import {
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { DataTableFilter } from '@/registry/data-table-filter'
+import { createTypedFilter } from '@/registry/data-table-filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'
 import { queries } from './queries'
 import { TableFilterSkeleton, TableSkeleton } from './table-skeleton'
-import type { IssueLabel, IssueStatus, User } from './types'
+import type { Issue, IssueLabel, IssueStatus, User } from './types'
+
+const Filter = createTypedFilter<Issue>()
 
 function createLabelOptions(labels: IssueLabel[] | undefined) {
   return labels?.map((l) => ({
@@ -142,12 +144,46 @@ export function IssuesTable({
         {isOptionsDataPending ? (
           <TableFilterSkeleton />
         ) : (
-          <DataTableFilter
-            filters={filters}
+          <Filter.Root
             columns={columns}
+            filters={filters}
             actions={actions}
             strategy={strategy}
-          />
+            locale="en"
+            variant="clean"
+          >
+            <div className="flex md:flex-wrap gap-2 w-full flex-1">
+              <Filter.Menu />
+              <Filter.List>
+                {/* OPTION A: CHILDREN AS FUNCTION */}
+                {({ filter, column }) => (
+                  <Filter.Block filter={filter} column={column}>
+                    <Filter.Block.Subject />
+                    <Filter.Block.Operator />
+                    <Filter.Block.Value />
+                    <Filter.Block.Remove />
+                  </Filter.Block>
+                )}
+                {/* OPTION B: ITERATE YOURSELF  */}
+                {/*{filters.map((filter) => {
+                  const id = filter.columnId
+                  const column = columns.find((col) => col.id === id)
+
+                  if (!column || !filter.values) return null
+
+                  return (
+                    <Filter.Block key={id} filter={filter} column={column}>
+                      <Filter.Block.Subject />
+                      <Filter.Block.Operator />
+                      <Filter.Block.Value />
+                      <Filter.Block.Remove />
+                    </Filter.Block>
+                  )
+                })}*/}
+              </Filter.List>
+            </div>
+            <Filter.Actions />
+          </Filter.Root>
         )}
       </div>
       {issues.isLoading ? (

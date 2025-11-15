@@ -31,11 +31,13 @@ export default function SSRPage() {
                 (TanStack Query + nuqs)
               </span>
             </h1>
-            <div className="grid grid-cols-3 gap-8">
-              <CodeBlock
+            <div
+            // className="grid grid-cols-3 gap-8"
+            >
+              {/*<CodeBlock
                 lang="json"
                 code={JSON.stringify(filters, null, '\t')}
-              />
+              />*/}
               <IssuesTable state={{ filters, setFilters }} />
             </div>
           </div>

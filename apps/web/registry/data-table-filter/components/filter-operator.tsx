@@ -15,10 +15,32 @@ import {
   t,
   textFilterOperators,
 } from '@bazza-ui/filters'
+import { cva, type VariantProps } from 'class-variance-authority'
+import type { ComponentPropsWithoutRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
+import { useFilterVariant } from '../context'
 
-interface FilterOperatorProps<TData, TType extends ColumnDataType> {
+const filterOperatorVariants = cva(
+  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs text-muted-foreground',
+  {
+    variants: {
+      variant: {
+        default: 'h-full rounded-none',
+        clean:
+          'border-none h-6 rounded-md shadow-xs bg-background hover:bg-background aria-expanded:bg-background aria-expanded:text-primary',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
+
+interface FilterOperatorProps<TData, TType extends ColumnDataType>
+  extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'>,
+    VariantProps<typeof filterOperatorVariants> {
   column: Column<TData, TType>
   filter: FilterModel<TType>
   actions: DataTableFilterActions
@@ -87,15 +109,27 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   filter,
   actions,
   locale = 'en',
+  className,
+  variant: variantProp,
+  ...props
 }: FilterOperatorProps<TData, TType>) {
+  const contextVariant = useFilterVariant()
+  const variant = variantProp ?? contextVariant ?? 'default'
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
   return (
     <ActionMenu menu={menu}>
       <ActionMenu.Trigger asChild>
         <Button
+          data-slot="filter-operator"
+          data-column-type={column.type}
+          data-operator={filter.operator}
           variant="ghost"
-          className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
+          className={cn(
+            filterOperatorVariants({ variant }),
+            variant === 'default' ? 'text-muted-foreground' : '',
+            className,
+          )}
           onClick={(e) => {
             if (column.type !== 'boolean') return
             e.preventDefault()
@@ -109,6 +143,7 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
               opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
             )
           }}
+          {...props}
         >
           <FilterOperatorDisplay
             filter={filter}
@@ -135,5 +170,5 @@ export function FilterOperatorDisplay<TType extends ColumnDataType>({
   const operator = filterTypeOperatorDetails[columnType][filter.operator]
   const label = t(operator.key, locale)
 
-  return <span className="text-muted-foreground">{label}</span>
+  return <span>{label}</span>
 }
