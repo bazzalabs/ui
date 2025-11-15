@@ -156,6 +156,7 @@ export function IssuesTable({
               actions,
               strategy,
               locale: 'en',
+              variant: 'clean',
             }}
           >
             <div className="flex w-full items-start justify-between gap-2">
@@ -169,18 +170,14 @@ export function IssuesTable({
 
                   return (
                     <Filter.Block
-                      className="bg-accent border-none shadow-none h-7.5 rounded-md gap-x-1"
                       key={`filter-block-${filter.columnId}`}
                       filter={filter}
                       column={column}
                     >
-                      <Filter.Subject className="text-primary/75" />
-                      <Filter.Operator
-                        variant="ghost"
-                        className="border-none h-6 rounded-md shadow-xs bg-background hover:bg-background aria-expanded:bg-background aria-expanded:text-primary"
-                      />
-                      <Filter.Value className="h-6 rounded-md text-primary/75 hover:text-primary hover:bg-background hover:shadow-xs aria-expanded:bg-background aria-expanded:text-primary" />
-                      <Filter.Block.Remove className="rounded-md h-6 mr-1 flex items-center justify-center" />
+                      <Filter.Subject />
+                      <Filter.Operator />
+                      <Filter.Value />
+                      <Filter.Block.Remove />
                     </Filter.Block>
                   )
                 })}

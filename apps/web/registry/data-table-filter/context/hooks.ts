@@ -48,3 +48,8 @@ export function useFilterEntityName() {
   const { entityName } = useFilterContext()
   return entityName
 }
+
+export function useFilterVariant() {
+  const { variant } = useFilterContext()
+  return variant
+}

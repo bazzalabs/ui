@@ -7,6 +7,7 @@ import type {
   Locale,
 } from '@bazza-ui/filters'
 import type { ComponentPropsWithoutRef } from 'react'
+import type { FilterVariant } from '../../../context'
 
 export interface FilterValueProps<TData, TType extends ColumnDataType> {
   filter: FilterModel<TType>
@@ -16,6 +17,7 @@ export interface FilterValueProps<TData, TType extends ColumnDataType> {
   locale?: Locale
   entityName?: string
   className?: string
+  variant?: FilterVariant
 }
 
 export interface FilterValueDisplayProps<TData, TType extends ColumnDataType> {

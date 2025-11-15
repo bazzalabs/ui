@@ -9,6 +9,8 @@ import type {
 } from '@bazza-ui/filters'
 import { createContext } from 'react'
 
+export type FilterVariant = 'default' | 'clean'
+
 export interface DataTableFilterContextValue<TData = unknown> {
   columns: Column<TData>[]
   filters: FiltersState
@@ -16,6 +18,7 @@ export interface DataTableFilterContextValue<TData = unknown> {
   strategy: FilterStrategy
   locale: Locale
   entityName?: string
+  variant?: FilterVariant
 }
 
 export const DataTableFilterContext =

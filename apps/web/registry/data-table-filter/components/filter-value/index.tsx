@@ -4,10 +4,12 @@
 
 import type { MenuDef } from '@bazza-ui/action-menu'
 import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
+import { cva } from 'class-variance-authority'
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
+import { useFilterVariant } from '../../context'
 import { FilterValueBooleanDisplay } from './boolean'
 import { FilterValueDateController, FilterValueDateDisplay } from './date'
 import {
@@ -25,6 +27,22 @@ import type {
 } from './shared/types'
 import { createTextMenu, FilterValueTextDisplay } from './text'
 
+const filterValueVariants = cva(
+  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs',
+  {
+    variants: {
+      variant: {
+        default: 'h-full rounded-none',
+        clean:
+          'h-6 rounded-md text-primary/75 hover:text-primary hover:bg-background hover:shadow-xs aria-expanded:bg-background aria-expanded:text-primary',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
+
 export const FilterValue = memo(__FilterValue) as typeof __FilterValue
 
 function __FilterValue<TData, TType extends ColumnDataType>({
@@ -35,7 +53,11 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   locale,
   entityName,
   className,
+  variant: variantProp,
 }: FilterValueProps<TData, TType>) {
+  const contextVariant = useFilterVariant()
+  const variant = variantProp ?? contextVariant ?? 'default'
+
   // Use ref to capture current filter value for loaders
   const filterRef = useRef(filter)
   useEffect(() => {
@@ -168,8 +190,10 @@ function __FilterValue<TData, TType extends ColumnDataType>({
           data-column-type={column.type}
           variant="ghost"
           className={cn(
-            'm-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs',
-            column.type === 'boolean' && 'hover:bg-inherit',
+            filterValueVariants({ variant }),
+            column.type === 'boolean' &&
+              variant === 'default' &&
+              'hover:bg-inherit',
             className,
           )}
           onClick={handleClick}

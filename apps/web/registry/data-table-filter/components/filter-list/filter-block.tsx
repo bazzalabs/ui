@@ -1,21 +1,48 @@
 'use client'
 
 import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
 import { type ComponentPropsWithoutRef, createContext, useContext } from 'react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import {
   useFilterActions,
-  useFilterContext,
   useFilterEntityName,
   useFilterLocale,
   useFilterStrategy,
+  useFilterVariant,
 } from '../../context'
 import { FilterOperator } from '../filter-operator'
 import { FilterSubject } from '../filter-subject'
 import { FilterValue } from '../filter-value'
+
+const filterBlockVariants = cva('flex items-center text-xs font-medium', {
+  variants: {
+    variant: {
+      default: 'h-7 rounded-2xl border border-border bg-background shadow-xs',
+      clean: 'h-7.5 rounded-md bg-accent border-none shadow-none gap-x-1 px-1',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+})
+
+const filterBlockRemoveVariants = cva(
+  'text-xs w-7 h-full text-muted-foreground hover:text-primary',
+  {
+    variants: {
+      variant: {
+        default: 'rounded-none rounded-r-2xl -translate-x-0.25',
+        clean: 'rounded-md h-6 -ml-1',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
 
 interface FilterBlockContextValue<
   TData = unknown,
@@ -41,7 +68,8 @@ function useFilterBlockContext<
 }
 
 export interface FilterBlockProps<TData, TType extends ColumnDataType>
-  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'>,
+    VariantProps<typeof filterBlockVariants> {
   filter: FilterModel<TType>
   column: Column<TData, TType>
   children?: React.ReactNode
@@ -52,8 +80,12 @@ export function FilterBlock<TData, TType extends ColumnDataType>({
   column,
   children,
   className,
+  variant: variantProp,
   ...props
 }: FilterBlockProps<TData, TType>) {
+  const contextVariant = useFilterVariant()
+  const variant = variantProp ?? contextVariant ?? 'default'
+
   return (
     <FilterBlockContext.Provider
       value={{ filter, column } as FilterBlockContextValue}
@@ -62,10 +94,7 @@ export function FilterBlock<TData, TType extends ColumnDataType>({
         data-slot="filter-block"
         data-column-id={column.id}
         data-column-type={column.type}
-        className={cn(
-          'flex h-7 items-center rounded-2xl border border-border bg-background shadow-xs text-xs',
-          className,
-        )}
+        className={cn(filterBlockVariants({ variant }), className)}
         {...props}
       >
         {children}
@@ -93,7 +122,7 @@ function Subject(props: FilterBlockSubjectProps = {}) {
 export interface FilterBlockOperatorProps
   extends Omit<
     ComponentPropsWithoutRef<typeof Button>,
-    'onClick' | 'children'
+    'onClick' | 'children' | 'variant'
   > {}
 
 function Operator(props: FilterBlockOperatorProps = {}) {
@@ -135,25 +164,24 @@ function Value({ className }: FilterBlockValueProps = {}) {
 }
 
 export interface FilterBlockRemoveProps
-  extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'> {
-  variant?: ComponentPropsWithoutRef<typeof Button>['variant']
-}
+  extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'>,
+    VariantProps<typeof filterBlockRemoveVariants> {}
 
 function Remove({
   className,
-  variant = 'ghost',
+  variant: variantProp,
   ...props
 }: FilterBlockRemoveProps = {}) {
   const { filter } = useFilterBlockContext()
   const actions = useFilterActions()
+  const contextVariant = useFilterVariant()
+  const variant = variantProp ?? contextVariant ?? 'default'
+
   return (
     <Button
       data-slot="filter-block-remove"
-      variant={variant}
-      className={cn(
-        'rounded-none rounded-r-2xl text-xs w-7 h-full text-muted-foreground hover:text-primary',
-        className,
-      )}
+      variant="ghost"
+      className={cn(filterBlockRemoveVariants({ variant }), className)}
       onClick={() => actions.removeFilter(filter.columnId)}
       {...props}
     >

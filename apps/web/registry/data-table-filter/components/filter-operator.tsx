@@ -15,13 +15,32 @@ import {
   t,
   textFilterOperators,
 } from '@bazza-ui/filters'
+import { cva, type VariantProps } from 'class-variance-authority'
 import type { ComponentPropsWithoutRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
+import { useFilterVariant } from '../context'
+
+const filterOperatorVariants = cva(
+  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs',
+  {
+    variants: {
+      variant: {
+        default: 'h-full rounded-none',
+        clean:
+          'border-none h-6 rounded-md shadow-xs bg-background hover:bg-background aria-expanded:bg-background aria-expanded:text-primary',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
 
 interface FilterOperatorProps<TData, TType extends ColumnDataType>
-  extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick'> {
+  extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'>,
+    VariantProps<typeof filterOperatorVariants> {
   column: Column<TData, TType>
   filter: FilterModel<TType>
   actions: DataTableFilterActions
@@ -91,9 +110,11 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   actions,
   locale = 'en',
   className,
-  variant = 'ghost',
+  variant: variantProp,
   ...props
 }: FilterOperatorProps<TData, TType>) {
+  const contextVariant = useFilterVariant()
+  const variant = variantProp ?? contextVariant ?? 'default'
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
   return (
@@ -103,10 +124,10 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
           data-slot="filter-operator"
           data-column-type={column.type}
           data-operator={filter.operator}
-          variant={variant}
+          variant="ghost"
           className={cn(
-            'm-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs',
-            variant === 'ghost' ? 'text-muted-foreground' : '',
+            filterOperatorVariants({ variant }),
+            variant === 'default' ? 'text-muted-foreground' : '',
             className,
           )}
           onClick={(e) => {

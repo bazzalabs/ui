@@ -29,6 +29,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
+import { type FilterVariant, useFilterVariant } from '../context'
 import {
   createMultiOptionMenu,
   createOptionMenu,
@@ -41,6 +42,7 @@ import {
 interface FilterMenuContextValue {
   hasVisibleFilters: boolean
   locale: Locale
+  variant?: FilterVariant
 }
 
 const FilterMenuContext = createContext<FilterMenuContextValue | null>(null)
@@ -63,6 +65,7 @@ interface FilterMenuProps<TData> {
   locale?: Locale
   children?: React.ReactNode
   actionMenuProps?: Partial<Omit<ActionMenuRootProps, 'menu' | 'children'>>
+  variant?: FilterVariant
 }
 
 function createDateMenu<TData>({
@@ -172,7 +175,11 @@ function __FilterMenu<TData>({
   locale = 'en',
   children,
   actionMenuProps,
+  variant: variantProp,
 }: FilterMenuProps<TData>) {
+  const contextVariant = useFilterVariant()
+  const variant = variantProp ?? contextVariant
+
   // Use ref to capture current filters value for loaders
   const filtersRef = useRef(filters)
   useEffect(() => {
@@ -198,8 +205,8 @@ function __FilterMenu<TData>({
   const hasVisibleFilters = visibleFilters.length > 0
 
   const contextValue: FilterMenuContextValue = useMemo(
-    () => ({ hasVisibleFilters, locale }),
-    [hasVisibleFilters, locale],
+    () => ({ hasVisibleFilters, locale, variant }),
+    [hasVisibleFilters, locale, variant],
   )
 
   const menu: MenuDef = useMemo(

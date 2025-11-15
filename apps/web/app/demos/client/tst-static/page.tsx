@@ -23,11 +23,13 @@ export default function SSRPage() {
               Client-side filtering{' '}
               <span className="text-muted-foreground">(TanStack Table)</span>
             </h1>
-            <div className="grid grid-cols-3 gap-8">
-              <CodeBlock
+            <div
+            // className="grid grid-cols-3 gap-8"
+            >
+              {/*<CodeBlock
                 lang="json"
                 code={JSON.stringify(filters, null, '\t')}
-              />
+              />*/}
               <IssuesTable state={{ filters, setFilters }} />
             </div>
           </div>
