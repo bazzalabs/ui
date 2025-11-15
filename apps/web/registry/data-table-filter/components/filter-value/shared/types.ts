@@ -6,6 +6,7 @@ import type {
   FilterStrategy,
   Locale,
 } from '@bazza-ui/filters'
+import type { ComponentPropsWithoutRef } from 'react'
 
 export interface FilterValueProps<TData, TType extends ColumnDataType> {
   filter: FilterModel<TType>
@@ -14,6 +15,7 @@ export interface FilterValueProps<TData, TType extends ColumnDataType> {
   strategy: FilterStrategy
   locale?: Locale
   entityName?: string
+  className?: string
 }
 
 export interface FilterValueDisplayProps<TData, TType extends ColumnDataType> {

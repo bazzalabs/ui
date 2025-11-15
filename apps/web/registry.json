@@ -47,16 +47,6 @@
           "target": "components/data-table-filter/index.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/active-filters.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/active-filters.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/components/data-table-filter.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/data-table-filter.tsx"
-        },
-        {
           "path": "registry/data-table-filter/components/data-table-filter/compound.tsx",
           "type": "registry:file",
           "target": "components/data-table-filter/components/data-table-filter/compound.tsx"
@@ -82,9 +72,9 @@
           "target": "components/data-table-filter/components/filter-list/filter-list.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-list/filter-list-item.tsx",
+          "path": "registry/data-table-filter/components/filter-list/filter-block.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-list/filter-list-item.tsx"
+          "target": "components/data-table-filter/components/filter-list/filter-block.tsx"
         },
         {
           "path": "registry/data-table-filter/components/filter-list/index.ts",
@@ -110,11 +100,6 @@
           "path": "registry/data-table-filter/components/filter-subject.tsx",
           "type": "registry:file",
           "target": "components/data-table-filter/components/filter-subject.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value.tsx"
         },
         {
           "path": "registry/data-table-filter/components/filter-value/index.tsx",
@@ -152,11 +137,6 @@
           "target": "components/data-table-filter/components/filter-value/date/index.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/multi-option/controller.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/multi-option/controller.tsx"
-        },
-        {
           "path": "registry/data-table-filter/components/filter-value/multi-option/display.tsx",
           "type": "registry:file",
           "target": "components/data-table-filter/components/filter-value/multi-option/display.tsx"
@@ -187,11 +167,6 @@
           "target": "components/data-table-filter/components/filter-value/number/index.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/option/controller.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/option/controller.tsx"
-        },
-        {
           "path": "registry/data-table-filter/components/filter-value/option/display.tsx",
           "type": "registry:file",
           "target": "components/data-table-filter/components/filter-value/option/display.tsx"
@@ -220,11 +195,6 @@
           "path": "registry/data-table-filter/components/filter-value/shared/types.ts",
           "type": "registry:file",
           "target": "components/data-table-filter/components/filter-value/shared/types.ts"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value/text/controller.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/text/controller.tsx"
         },
         {
           "path": "registry/data-table-filter/components/filter-value/text/display.tsx",

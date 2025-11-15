@@ -1,7 +1,9 @@
 import type { Column, ColumnDataType } from '@bazza-ui/filters'
-import { isValidElement } from 'react'
+import { type ComponentPropsWithoutRef, isValidElement } from 'react'
+import { cn } from '@/lib/utils'
 
-interface FilterSubjectProps<TData, TType extends ColumnDataType> {
+interface FilterSubjectProps<TData, TType extends ColumnDataType>
+  extends ComponentPropsWithoutRef<'span'> {
   column: Column<TData, TType>
   entityName?: string
 }
@@ -9,6 +11,8 @@ interface FilterSubjectProps<TData, TType extends ColumnDataType> {
 export function FilterSubject<TData, TType extends ColumnDataType>({
   column,
   entityName,
+  className,
+  ...props
 }: FilterSubjectProps<TData, TType>) {
   const subject = column.type === 'boolean' ? entityName : column.displayName
 
@@ -16,7 +20,15 @@ export function FilterSubject<TData, TType extends ColumnDataType>({
   const hasIcon = !!Icon
 
   return (
-    <span className="flex select-none items-center gap-1 whitespace-nowrap px-2 font-medium">
+    <span
+      data-slot="filter-subject"
+      data-column-type={column.type}
+      className={cn(
+        'flex select-none items-center gap-1 whitespace-nowrap px-2 font-medium',
+        className,
+      )}
+      {...props}
+    >
       {hasIcon &&
         (isValidElement(Icon) ? (
           Icon

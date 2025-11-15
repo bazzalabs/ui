@@ -1,9 +1,9 @@
 // Main compound component export
-export { DataTableFilter } from './components/data-table-filter/compound'
+export { Filter } from './components/data-table-filter/compound'
 // Compound component primitives for custom compositions
 export {
+  FilterBlock,
   FilterList,
-  FilterListItem,
   FilterListMobileContainer,
 } from './components/filter-list'
 export type {

@@ -5,7 +5,7 @@ import type {
   FilterModel,
   TextFilterOperator,
 } from '@bazza-ui/filters'
-import { TextItem_v2 } from '../shared/text-item'
+import { TextItem } from '../shared/text-item'
 import type { FilterValueControllerProps } from '../shared/types'
 
 /**
@@ -85,7 +85,7 @@ export function createTextMenu<TData>({
     },
     ui: {
       slots: {
-        Item: TextItem_v2 as any,
+        Item: TextItem as any,
       },
       slotProps: {
         positioner: {

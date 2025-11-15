@@ -15,10 +15,13 @@ import {
   t,
   textFilterOperators,
 } from '@bazza-ui/filters'
+import type { ComponentPropsWithoutRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { ActionMenu } from '@/registry/action-menu'
 
-interface FilterOperatorProps<TData, TType extends ColumnDataType> {
+interface FilterOperatorProps<TData, TType extends ColumnDataType>
+  extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick'> {
   column: Column<TData, TType>
   filter: FilterModel<TType>
   actions: DataTableFilterActions
@@ -87,6 +90,9 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   filter,
   actions,
   locale = 'en',
+  className,
+  variant = 'ghost',
+  ...props
 }: FilterOperatorProps<TData, TType>) {
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
@@ -94,8 +100,15 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
     <ActionMenu menu={menu}>
       <ActionMenu.Trigger asChild>
         <Button
-          variant="ghost"
-          className="m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs"
+          data-slot="filter-operator"
+          data-column-type={column.type}
+          data-operator={filter.operator}
+          variant={variant}
+          className={cn(
+            'm-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs',
+            variant === 'ghost' ? 'text-muted-foreground' : '',
+            className,
+          )}
           onClick={(e) => {
             if (column.type !== 'boolean') return
             e.preventDefault()
@@ -109,6 +122,7 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
               opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
             )
           }}
+          {...props}
         >
           <FilterOperatorDisplay
             filter={filter}
@@ -135,5 +149,5 @@ export function FilterOperatorDisplay<TType extends ColumnDataType>({
   const operator = filterTypeOperatorDetails[columnType][filter.operator]
   const label = t(operator.key, locale)
 
-  return <span className="text-muted-foreground">{label}</span>
+  return <span>{label}</span>
 }

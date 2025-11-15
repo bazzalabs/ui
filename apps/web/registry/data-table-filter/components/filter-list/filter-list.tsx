@@ -1,16 +1,29 @@
 'use client'
 
 import { getColumn } from '@bazza-ui/filters'
-import { useEffect, useRef, useState } from 'react'
+import {
+  type ComponentPropsWithoutRef,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { useFilterContext } from '../../context'
-import { FilterListItem } from './filter-list-item'
+import { FilterBlock } from './filter-block'
 
-export function FilterList() {
+interface FilterListProps
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {}
+
+export function FilterList({ className, ...props }: FilterListProps = {}) {
   const { filters, columns } = useFilterContext()
 
   return (
-    <>
+    <div
+      data-slot="filter-list"
+      className={cn('contents', className)}
+      {...props}
+    >
       {filters.map((filter) => {
         const id = filter.columnId
         const column = getColumn(columns, id)
@@ -19,30 +32,35 @@ export function FilterList() {
         if (!filter.values) return null
 
         return (
-          <FilterListItem
-            key={`filter-list-item-${filter.columnId}`}
+          <FilterBlock
+            key={`filter-block-${filter.columnId}`}
             filter={filter}
             column={column}
           >
-            <FilterListItem.Subject />
+            <FilterBlock.Subject />
             <Separator orientation="vertical" />
-            <FilterListItem.Operator />
+            <FilterBlock.Operator />
             <Separator orientation="vertical" />
-            <FilterListItem.Value />
+            <FilterBlock.Value />
             <Separator orientation="vertical" />
-            <FilterListItem.Remove />
-          </FilterListItem>
+            <FilterBlock.Remove />
+          </FilterBlock>
         )
       })}
-    </>
+    </div>
   )
+}
+
+interface FilterListMobileContainerProps
+  extends ComponentPropsWithoutRef<'div'> {
+  children: React.ReactNode
 }
 
 export function FilterListMobileContainer({
   children,
-}: {
-  children: React.ReactNode
-}) {
+  className,
+  ...props
+}: FilterListMobileContainerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [showLeftBlur, setShowLeftBlur] = useState(false)
   const [showRightBlur, setShowRightBlur] = useState(true)
@@ -83,7 +101,11 @@ export function FilterListMobileContainer({
   }, [children])
 
   return (
-    <div className="relative w-full overflow-x-hidden">
+    <div
+      data-slot="filter-list-mobile-container"
+      className={cn('relative w-full overflow-x-hidden', className)}
+      {...props}
+    >
       {/* Left blur effect */}
       {showLeftBlur && (
         <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-background to-transparent animate-in fade-in-0" />

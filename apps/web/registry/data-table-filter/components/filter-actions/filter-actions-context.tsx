@@ -1,5 +1,6 @@
 'use client'
 
+import type { ComponentPropsWithoutRef } from 'react'
 import {
   useFilterActions,
   useFilterContext,
@@ -7,7 +8,15 @@ import {
 } from '../../context'
 import { FilterActions } from '../filter-actions'
 
-export function FilterActionsWithContext() {
+interface FilterActionsWithContextProps
+  extends Omit<
+    ComponentPropsWithoutRef<typeof FilterActions>,
+    'hasFilters' | 'actions' | 'locale'
+  > {}
+
+export function FilterActionsWithContext(
+  props: FilterActionsWithContextProps = {},
+) {
   const { filters } = useFilterContext()
   const actions = useFilterActions()
   const locale = useFilterLocale()
@@ -17,6 +26,7 @@ export function FilterActionsWithContext() {
       hasFilters={filters.length > 0}
       actions={actions}
       locale={locale}
+      {...props}
     />
   )
 }

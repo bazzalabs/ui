@@ -3,7 +3,7 @@
 import type { ItemNode, ItemSlotProps } from '@bazza-ui/action-menu'
 import type { FilterModel } from '@bazza-ui/filters'
 
-export function TextItem_v2({
+export function TextItem({
   node: nodeProp,
   bind,
   search,

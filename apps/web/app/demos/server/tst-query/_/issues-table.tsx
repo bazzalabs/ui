@@ -1,16 +1,23 @@
 'use client'
 
-import { type FiltersState, useDataTableFilters } from '@bazza-ui/filters'
+import {
+  type FiltersState,
+  getColumn,
+  useDataTableFilters,
+} from '@bazza-ui/filters'
 import { useQuery } from '@tanstack/react-query'
 import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { FilterIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { DataTableFilter } from '@/registry/data-table-filter'
+import { Filter } from '@/registry/data-table-filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'
@@ -142,12 +149,45 @@ export function IssuesTable({
         {isOptionsDataPending ? (
           <TableFilterSkeleton />
         ) : (
-          <DataTableFilter
-            filters={filters}
-            columns={columns}
-            actions={actions}
-            strategy={strategy}
-          />
+          <Filter.Provider
+            value={{
+              columns,
+              filters,
+              actions,
+              strategy,
+              locale: 'en',
+            }}
+          >
+            <div className="flex w-full items-start justify-between gap-2">
+              <div className="flex md:flex-wrap gap-2 w-full flex-1">
+                <Filter.Menu />
+                {filters.map((filter) => {
+                  const column = getColumn(columns, filter.columnId)
+
+                  // Skip if no filter value
+                  if (!filter.values) return null
+
+                  return (
+                    <Filter.Block
+                      className="bg-accent border-none shadow-none h-7.5 rounded-md gap-x-1"
+                      key={`filter-block-${filter.columnId}`}
+                      filter={filter}
+                      column={column}
+                    >
+                      <Filter.Subject className="text-primary/75" />
+                      <Filter.Operator
+                        variant="ghost"
+                        className="border-none h-6 rounded-md shadow-xs bg-background hover:bg-background aria-expanded:bg-background aria-expanded:text-primary"
+                      />
+                      <Filter.Value className="h-6 rounded-md text-primary/75 hover:text-primary hover:bg-background hover:shadow-xs aria-expanded:bg-background aria-expanded:text-primary" />
+                      <Filter.Block.Remove className="rounded-md h-6 mr-1 flex items-center justify-center" />
+                    </Filter.Block>
+                  )
+                })}
+              </div>
+              <Filter.Actions />
+            </div>
+          </Filter.Provider>
         )}
       </div>
       {issues.isLoading ? (

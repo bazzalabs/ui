@@ -12,27 +12,18 @@ import { FilterValueBooleanDisplay } from './boolean'
 import { FilterValueDateController, FilterValueDateDisplay } from './date'
 import {
   createMultiOptionMenu,
-  FilterValueMultiOptionController,
   FilterValueMultiOptionDisplay,
 } from './multi-option'
 import { FilterValueNumberController, FilterValueNumberDisplay } from './number'
-import {
-  createOptionMenu,
-  FilterValueOptionController,
-  FilterValueOptionDisplay,
-} from './option'
-import { OptionItem_v2 } from './shared/option-item'
-import { TextItem_v2 } from './shared/text-item'
+import { createOptionMenu, FilterValueOptionDisplay } from './option'
+import { OptionItem } from './shared/option-item'
+import { TextItem } from './shared/text-item'
 import type {
   FilterValueControllerProps,
   FilterValueDisplayProps,
   FilterValueProps,
 } from './shared/types'
-import {
-  createTextMenu,
-  FilterValueTextController,
-  FilterValueTextDisplay,
-} from './text'
+import { createTextMenu, FilterValueTextDisplay } from './text'
 
 export const FilterValue = memo(__FilterValue) as typeof __FilterValue
 
@@ -43,6 +34,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   strategy,
   locale,
   entityName,
+  className,
 }: FilterValueProps<TData, TType>) {
   // Use ref to capture current filter value for loaders
   const filterRef = useRef(filter)
@@ -160,7 +152,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   return (
     <ActionMenu
       slots={{
-        Item: (column.type === 'text' ? TextItem_v2 : OptionItem_v2) as any,
+        Item: (column.type === 'text' ? TextItem : OptionItem) as any,
       }}
       menu={menu}
       onOpenChange={(open) => {
@@ -172,10 +164,13 @@ function __FilterValue<TData, TType extends ColumnDataType>({
     >
       <ActionMenu.Trigger asChild>
         <Button
+          data-slot="filter-value"
+          data-column-type={column.type}
           variant="ghost"
           className={cn(
             'm-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs',
             column.type === 'boolean' && 'hover:bg-inherit',
+            className,
           )}
           onClick={handleClick}
         >
@@ -272,41 +267,11 @@ function __FilterValueController<TData, TType extends ColumnDataType>({
   locale = 'en',
 }: FilterValueControllerProps<TData, TType>) {
   switch (column.type) {
-    case 'option':
-      return (
-        <FilterValueOptionController
-          filter={filter as FilterModel<'option'>}
-          column={column as Column<TData, 'option'>}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      )
-    case 'multiOption':
-      return (
-        <FilterValueMultiOptionController
-          filter={filter as FilterModel<'multiOption'>}
-          column={column as Column<TData, 'multiOption'>}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      )
     case 'date':
       return (
         <FilterValueDateController
           filter={filter as FilterModel<'date'>}
           column={column as Column<TData, 'date'>}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      )
-    case 'text':
-      return (
-        <FilterValueTextController
-          filter={filter as FilterModel<'text'>}
-          column={column as Column<TData, 'text'>}
           actions={actions}
           strategy={strategy}
           locale={locale}
@@ -339,18 +304,13 @@ export {
 } from './date'
 export {
   createMultiOptionMenu,
-  FilterValueMultiOptionController,
   FilterValueMultiOptionDisplay,
 } from './multi-option'
 export { FilterValueNumberController, FilterValueNumberDisplay } from './number'
-export {
-  createOptionMenu,
-  FilterValueOptionController,
-  FilterValueOptionDisplay,
-} from './option'
+export { createOptionMenu, FilterValueOptionDisplay } from './option'
 // Re-export utility components
-export { OptionItem, OptionItem_v2 } from './shared/option-item'
-export { TextItem_v2 } from './shared/text-item'
+export { OptionItem } from './shared/option-item'
+export { TextItem } from './shared/text-item'
 // Re-export types
 export type {
   FilterValueControllerProps,
@@ -363,7 +323,5 @@ export type {
 export {
   createTextFilterMiddleware,
   createTextMenu,
-  FilterValueTextController,
-  FilterValueTextController_v2,
   FilterValueTextDisplay,
 } from './text'

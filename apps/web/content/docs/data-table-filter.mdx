@@ -17,7 +17,8 @@ badge: alpha
 This library is an add-on to your existing data table for filtering your data, providing key building blocks for building a powerful filtering experience:
 
 - A React hook, `useDataTableFilters()`, which exposes your data table filters state.
-- A `<DataTableFilter />` component, built with [shadcn/ui](https://ui.shadcn.com) and inspired by [Linear](https://linear.app/homepage)'s design.
+- A `<Filter />` component, built with [shadcn/ui](https://ui.shadcn.com) and inspired by [Linear](https://linear.app/homepage)'s design.
+- A composable API with compound components for custom filter layouts.
 - Integrations for key libraries, such as [TanStack Table](https://tanstack.com/table) and [nuqs](https://nuqs.47ng.com/).
 
 Some answers to the most common questions:
@@ -213,21 +214,21 @@ The instance has the following properties:
 
 #### Component
 
-The visual component for the data table filter is the `<DataTableFilter />` component.
+The visual component for the data table filter is the `<Filter />` component.
 
 It takes the `columns`, `filters`, `actions` and `strategy` from the hook as input.
 
 ```tsx {6-11}
-import { DataTableFilter } from '@/components/data-table-filter'
+import { Filter } from '@/components/data-table-filter'
 
 export function IssuesTable() {
   return (
     <div>
-      <DataTableFilter 
-        filters={filters} 
-        columns={columns} 
-        actions={actions} 
-        strategy={strategy} 
+      <Filter
+        filters={filters}
+        columns={columns}
+        actions={actions}
+        strategy={strategy}
         entityName={entityName}
       />
       <DataTable />
@@ -235,6 +236,255 @@ export function IssuesTable() {
   )
 }
 ```
+
+The `<Filter />` component also supports a **composable API** for custom layouts using compound components:
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <Filter.Root>
+    <div className="flex gap-2">
+      <Filter.Menu />
+      <Filter.List />
+    </div>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+**Available compound components:**
+- `Filter.Provider` - Context provider for filter state
+- `Filter.Root` - Layout container with responsive handling
+- `Filter.Menu` - Filter selection menu
+  - `Filter.Menu.Trigger` - Customizable trigger button (supports `asChild` pattern)
+- `Filter.List` - Active filters list
+- `Filter.Actions` - Clear/reset actions
+- `Filter.Block` - Individual filter block container
+  - `Filter.Block.Remove` - Remove button for filter blocks
+- `Filter.Subject` - Filter subject/column name display
+- `Filter.Operator` - Filter operator display/editor
+- `Filter.Value` - Filter value display/editor
+
+#### Custom Menu Trigger
+
+The `Filter.Menu` component provides a customizable trigger using the Radix UI `asChild` pattern. The trigger automatically matches the height (`h-7`) of filter blocks:
+
+**Default trigger:**
+```tsx
+<Filter.Menu />
+```
+
+**Custom trigger with asChild:**
+```tsx
+<Filter.Menu>
+  <Filter.Menu.Trigger asChild>
+    <Button className="gap-2">
+      <FilterIcon className="size-4" />
+      <span>Add filter</span>
+    </Button>
+  </Filter.Menu.Trigger>
+</Filter.Menu>
+```
+
+**Custom ActionMenu props:**
+```tsx
+<Filter.Menu actionMenuProps={{ align: 'start', side: 'bottom' }}>
+  <Filter.Menu.Trigger asChild>
+    <CustomButton />
+  </Filter.Menu.Trigger>
+</Filter.Menu>
+```
+
+The trigger applies default styling (`h-7`, `variant="outline"`) which you can override using `className` or completely replace using `asChild`.
+
+#### Styling Composable Components
+
+All composable components accept styling props while providing sensible defaults:
+
+**Filter.Root**
+- Accepts `className` and all standard div props
+- Default: `flex w-full items-start justify-between gap-2`
+
+**Filter.Block**
+- Accepts `className` and all div props
+- Default: `flex h-7 items-center rounded-2xl border border-border bg-background shadow-xs text-xs`
+
+**Filter.Subject**
+- Accepts `className` and all span props
+- Default: `flex select-none items-center gap-1 whitespace-nowrap px-2 font-medium`
+
+**Filter.Operator**
+- Accepts `className` and all Button props (excluding `onClick`, `variant`, `children`)
+- Default: `m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs`, `variant="ghost"`
+
+**Filter.Value**
+- Accepts `className` and all div props
+
+**Filter.Block.Remove**
+- Accepts `className`, `variant`, and all Button props (excluding `onClick`)
+- Default: `rounded-none rounded-r-2xl text-xs w-7 h-full text-muted-foreground hover:text-primary`, `variant="ghost"`
+
+**Filter.Actions**
+- Accepts `className`, `variant`, and all Button props (excluding `onClick`, `children`)
+- Default: `h-7 !px-2`, `variant="destructive"`
+
+**Example - Custom styling:**
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy }}>
+  <Filter.Root className="flex-col gap-4">
+    <Filter.Block className="bg-muted h-8">
+      <Filter.Subject className="text-primary" />
+      <Separator orientation="vertical" />
+      <Filter.Operator className="text-sm" />
+      <Separator orientation="vertical" />
+      <Filter.Value />
+      <Separator orientation="vertical" />
+      <Filter.Block.Remove variant="destructive" />
+    </Filter.Block>
+    <Filter.Actions variant="outline" className="ml-auto" />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+#### Styling with Data Attributes
+
+All composable components include `data-slot` attributes for CSS targeting via attribute selectors. This provides a powerful and scoped way to style components without relying on class names.
+
+**Why use data attributes?**
+
+Data attributes offer several advantages:
+- **Scoped styling**: Target specific components without class name conflicts
+- **Contextual styling**: Apply styles based on component state or type
+- **Framework-agnostic**: Works with any CSS solution (vanilla CSS, Tailwind, CSS-in-JS)
+- **Type-safe targeting**: Less prone to breaking changes than class names
+
+**Available data-slot attributes:**
+
+- `[data-slot="filter-root"]` - Main filter container
+  - Additional: `data-mobile` - Present on mobile devices
+- `[data-slot="filter-menu-trigger"]` - Filter menu trigger button
+  - Additional: `data-state` - `"has-filters"` or `"empty"`
+- `[data-slot="filter-list"]` - Active filters container
+- `[data-slot="filter-list-mobile-container"]` - Mobile scrollable container
+- `[data-slot="filter-block"]` - Individual filter block
+  - Additional: `data-column-id` - The column ID
+  - Additional: `data-column-type` - The column data type (`text`, `number`, `date`, etc.)
+- `[data-slot="filter-subject"]` - Filter subject/column name
+  - Additional: `data-column-type` - The column data type
+- `[data-slot="filter-operator"]` - Filter operator button
+  - Additional: `data-column-type` - The column data type
+  - Additional: `data-operator` - The current operator (`is`, `is-not`, etc.)
+- `[data-slot="filter-value"]` - Filter value button
+  - Additional: `data-column-type` - The column data type
+- `[data-slot="filter-block-remove"]` - Remove filter button
+- `[data-slot="filter-actions"]` - Clear all filters button
+  - Additional: `data-state` - `"visible"` or `"hidden"`
+
+**Example - Vanilla CSS:**
+
+```css
+/* Target all filter blocks */
+[data-slot="filter-block"] {
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+/* Target filter blocks for text columns */
+[data-slot="filter-block"][data-column-type="text"] {
+  background-color: hsl(var(--blue-100));
+}
+
+/* Target filter blocks for date columns */
+[data-slot="filter-block"][data-column-type="date"] {
+  background-color: hsl(var(--green-100));
+}
+
+/* Target the menu trigger when filters are active */
+[data-slot="filter-menu-trigger"][data-state="has-filters"] {
+  border-color: hsl(var(--primary));
+}
+```
+
+**Example - Tailwind CSS:**
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy }}>
+  <div className="
+    [&_[data-slot='filter-block']]:rounded-lg
+    [&_[data-slot='filter-block'][data-column-type='text']]:bg-blue-100
+    [&_[data-slot='filter-block'][data-column-type='date']]:bg-green-100
+    [&_[data-slot='filter-menu-trigger'][data-state='has-filters']]:border-primary
+  ">
+    <Filter.Menu />
+    <Filter.List />
+  </div>
+</Filter.Provider>
+```
+
+**Example - Type-specific styling:**
+
+```css
+/* Style text column operators differently */
+[data-slot="filter-operator"][data-column-type="text"] {
+  font-style: italic;
+}
+
+/* Add visual indicator for "is not" operators */
+[data-slot="filter-operator"][data-operator="is-not"] {
+  color: hsl(var(--destructive));
+}
+
+/* Style filter values based on column type */
+[data-slot="filter-value"][data-column-type="option"] {
+  font-weight: 600;
+}
+
+[data-slot="filter-value"][data-column-type="number"] {
+  font-family: monospace;
+}
+```
+
+**Example - Mobile-specific styling:**
+
+```css
+/* Adjust layout on mobile */
+[data-slot="filter-root"][data-mobile] {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Hide certain elements on mobile */
+[data-slot="filter-root"][data-mobile] [data-slot="filter-subject"] {
+  display: none;
+}
+```
+
+This approach provides maximum flexibility for customizing component appearance while maintaining a clean separation between structure and styling.
+
+#### Custom Filter Blocks
+
+For even more control, you can build custom filter blocks using the granular components:
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <div className="flex gap-2">
+    <Filter.Menu />
+    {filters.map((filter) => {
+      const column = getColumn(columns, filter.columnId)
+      return (
+        <Filter.Block key={filter.columnId} filter={filter} column={column}>
+          <Filter.Subject />
+          <Separator orientation="vertical" />
+          <Filter.Operator />
+          <Separator orientation="vertical" />
+          <Filter.Value />
+        </Filter.Block>
+      )
+    })}
+  </div>
+</Filter.Provider>
+```
+
+This allows you to customize the layout, styling, and composition of each filter block individually.
 
 ## Guides
 
@@ -607,7 +857,7 @@ This hooks handles the logic for filtering the data (if using the `client` strat
 
 Think of it as the "brain" of the filters.
 
-You can use it completely independent of the `<DataTableFilter />` component, if you wish... but come on, we did all that work for you - might as well use it.
+You can use it completely independent of the `<Filter />` component, if you wish... but come on, we did all that work for you - might as well use it.
 
 #### Creating the instance
 
@@ -817,10 +1067,10 @@ This add-on:
 
 #### Usage
 
-You can specify the chosen `locale` for the `<DataTableFilter />` component and `useDataTableFilters()` hook:
+You can specify the chosen `locale` for the `<Filter />` component and `useDataTableFilters()` hook:
 
 ```tsx
-<DataTableFilter 
+<Filter
   filters={filters}
   columns={columns}
   actions={actions}
@@ -1026,3 +1276,305 @@ We can break down the `PropertyFilterValueController` as an example:
 />
 
 The `PropertyFilterOperatorController` has a similar composition and can be inferred from the above description and image. */}
+
+## Changelog
+
+### Version 2.0 - Composable API
+
+Version 2.0 introduces a major refactor that brings:
+
+- **Composable API**: Build custom filter layouts using compound components
+- **Customizable triggers**: `Filter.Menu.Trigger` with Radix UI `asChild` pattern and default styling
+- **Granular filter blocks**: Full control over individual filter block composition with `Filter.Block`, `Filter.Subject`, `Filter.Operator`, and `Filter.Value`
+- **Cleaner naming**: Removed all `_v2` suffixes
+- **ActionMenu pattern**: Full migration to ActionMenu for better UX
+- **Simplified architecture**: Removed duplicate code and legacy patterns
+
+#### Breaking Changes
+
+##### 1. Component Renamed
+
+The main component has been renamed from `DataTableFilter` to `Filter`:
+
+```tsx
+// Before
+import { DataTableFilter } from '@/registry/data-table-filter'
+
+<DataTableFilter
+  filters={filters}
+  columns={columns}
+  actions={actions}
+  strategy={strategy}
+/>
+
+// After
+import { Filter } from '@/registry/data-table-filter'
+
+<Filter
+  filters={filters}
+  columns={columns}
+  actions={actions}
+  strategy={strategy}
+/>
+```
+
+##### 2. Type Names Updated
+
+All type names have been simplified:
+
+```ts
+// Before
+import type { DataTableFilterProps } from '@/registry/data-table-filter'
+
+// After
+import type { FilterProps } from '@/registry/data-table-filter'
+```
+
+**Changed types:**
+- `DataTableFilterProps<TData>` → `FilterProps<TData>`
+- `DataTableFilterRootProps` → `FilterRootProps`
+
+##### 3. Internal Components Renamed
+
+All `_v2` suffixes have been removed from internal components:
+
+- `FilterMenu_v2` → `FilterMenu`
+- `OptionItem_v2` → `OptionItem`
+- `TextItem_v2` → `TextItem`
+
+**Note:** These are internal components. If you're not using custom compositions, this won't affect you.
+
+##### 4. Removed Components
+
+The following legacy components have been removed:
+
+- Old Command-based controllers (text, option, multi-option)
+- Old prop-drilling `DataTableFilter` implementation
+- Monolithic `filter-value.tsx` (replaced by modular structure)
+- Old Popover-based `FilterMenu`
+
+#### New Composable API
+
+The new `Filter` component now supports a compound component pattern for custom layouts.
+
+**Default Usage (No Changes Required)**
+
+The convenience component works the same as before:
+
+```tsx
+<Filter
+  filters={filters}
+  columns={columns}
+  actions={actions}
+  strategy={strategy}
+  entityName={entityName}
+/>
+```
+
+**Custom Compositions**
+
+You can now build custom filter layouts using the compound components:
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <Filter.Root>
+    <div className="flex gap-2">
+      <Filter.Menu />
+      <Filter.List />
+    </div>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+**Available Compound Components:**
+- `Filter.Provider` - Context provider for filter state
+- `Filter.Root` - Layout container with mobile/desktop handling
+- `Filter.Menu` - Filter selection menu
+  - `Filter.Menu.Trigger` - Customizable trigger (supports `asChild` pattern)
+- `Filter.List` - Active filters list
+- `Filter.Actions` - Clear/reset actions
+- `Filter.Block` - Individual filter block container
+  - `Filter.Block.Remove` - Remove button for filter blocks
+- `Filter.Subject` - Filter subject/column name display
+- `Filter.Operator` - Filter operator display/editor
+- `Filter.Value` - Filter value display/editor
+
+**Example: Custom Menu Trigger**
+
+```tsx
+import { Filter } from '@/registry/data-table-filter'
+import { FilterIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+<Filter.Provider value={{ columns, filters, actions, strategy }}>
+  <div className="flex gap-2">
+    <Filter.Menu>
+      <Filter.Menu.Trigger asChild>
+        <Button className="gap-2">
+          <FilterIcon className="size-4" />
+          <span>Add filter</span>
+        </Button>
+      </Filter.Menu.Trigger>
+    </Filter.Menu>
+    <Filter.List />
+  </div>
+</Filter.Provider>
+```
+
+The trigger uses Radix UI's `asChild` pattern and applies default styling (`h-7` height to match filter blocks, `variant="outline"`).
+
+**Example: Custom Layout**
+
+```tsx
+import { Filter } from '@/registry/data-table-filter'
+
+export function CustomFilterLayout() {
+  const { columns, filters, actions, strategy } = useDataTableFilters({
+    strategy: 'client',
+    data: issues.data ?? [],
+    columnsConfig,
+  })
+
+  return (
+    <Filter.Provider
+      value={{
+        columns,
+        filters,
+        actions,
+        strategy,
+        locale: 'en',
+        entityName: 'Issue'
+      }}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2>Filters</h2>
+          <Filter.Actions />
+        </div>
+        <div className="flex gap-2">
+          <Filter.Menu />
+          <Filter.List />
+        </div>
+      </div>
+    </Filter.Provider>
+  )
+}
+```
+
+**Example: Granular Filter Block Composition**
+
+For maximum control over each filter block, use the granular components:
+
+```tsx
+import { Filter, getColumn } from '@/registry/data-table-filter'
+
+export function CustomFilterBlocks() {
+  const { columns, filters, actions, strategy } = useDataTableFilters({
+    strategy: 'client',
+    data: issues.data ?? [],
+    columnsConfig,
+  })
+
+  return (
+    <Filter.Provider
+      value={{
+        columns,
+        filters,
+        actions,
+        strategy,
+        locale: 'en',
+        entityName: 'Issue'
+      }}
+    >
+      <div className="flex gap-2">
+        <Filter.Menu />
+        {filters.map((filter) => {
+          const column = getColumn(columns, filter.columnId)
+          return (
+            <Filter.Block key={filter.columnId} filter={filter} column={column}>
+              <Filter.Subject />
+              <Separator orientation="vertical" />
+              <Filter.Operator />
+              <Separator orientation="vertical" />
+              <Filter.Value />
+            </Filter.Block>
+          )
+        })}
+      </div>
+    </Filter.Provider>
+  )
+}
+```
+
+This granular approach allows you to:
+- Customize the layout of each filter block
+- Add custom components between filter parts
+- Apply conditional styling based on filter properties
+- Implement custom interactions for each filter part
+
+#### Migration Checklist
+
+- [ ] Replace `DataTableFilter` with `Filter` in imports
+- [ ] Update `DataTableFilter` component usage to `Filter`
+- [ ] Update type references from `DataTableFilterProps` to `FilterProps`
+- [ ] If using TypeScript, update type imports
+- [ ] Test your filter functionality
+- [ ] (Optional) Consider using the new composable API for custom layouts
+
+#### Why This Change?
+
+**Before: Prop Drilling**
+
+The old architecture relied on prop drilling, making it difficult to customize:
+
+```tsx
+// Hard to customize without modifying internals
+<DataTableFilter
+  filters={filters}
+  columns={columns}
+  actions={actions}
+  strategy={strategy}
+/>
+```
+
+**After: Composable Components**
+
+The new architecture uses React context and compound components:
+
+```tsx
+// Full control over layout and composition
+<Filter.Provider value={{ columns, filters, actions, strategy }}>
+  <CustomLayout>
+    <Filter.Menu />
+    <Filter.List />
+    <Filter.Actions />
+  </CustomLayout>
+</Filter.Provider>
+```
+
+#### Need Help?
+
+If you encounter any issues during migration:
+
+1. Review the [examples](#examples) section above
+2. Check the [Component](#component) section for usage patterns
+3. Open an issue on [GitHub](https://github.com/kianbazza/ui/issues)
+
+#### Rollback
+
+If you need to rollback, you can pin to the previous version:
+
+```bash
+# Pin to pre-v2.0 version
+npx shadcn@latest add https://ui.bazza.dev/r/filters@1.x
+```
+
+### Version 1.x - Initial Release
+
+The initial release of the data table filter component with support for:
+- Client and server-side filtering
+- Multiple column data types (text, number, date, boolean, option, multiOption)
+- TanStack Table integration
+- Internationalization support
+- shadcn/ui design system

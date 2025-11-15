@@ -1,1 +1,1 @@
-export { DataTableFilter } from './compound'
+export { Filter } from './compound'
