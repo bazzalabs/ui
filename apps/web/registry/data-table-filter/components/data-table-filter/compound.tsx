@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import {
   type DataTableFilterContextValue,
   DataTableFilterProvider,
+  type FilterVariant,
 } from '../../context'
 import { FilterActionsWithContext } from '../filter-actions/filter-actions-context'
 import {
@@ -32,7 +33,7 @@ export interface ProviderProps<TData = unknown> {
   children: React.ReactNode
 }
 
-function Provider<TData>({ value, children }: ProviderProps<TData>) {
+export function Provider<TData>({ value, children }: ProviderProps<TData>) {
   return (
     <DataTableFilterProvider value={value}>{children}</DataTableFilterProvider>
   )
@@ -43,12 +44,12 @@ export namespace Provider {
 }
 
 // Menu component (uses context)
-interface MenuProps {
+export interface MenuProps {
   children?: React.ReactNode
   actionMenuProps?: Partial<Omit<ActionMenuRootProps, 'menu' | 'children'>>
 }
 
-function Menu({ children, actionMenuProps }: MenuProps = {}) {
+export function Menu({ children, actionMenuProps }: MenuProps = {}) {
   return (
     <FilterMenuWithContext actionMenuProps={actionMenuProps}>
       {children}
@@ -61,7 +62,7 @@ export namespace Menu {
 }
 
 // List component (uses context)
-interface ListProps<TData = unknown>
+export interface ListProps<TData = unknown>
   extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   children?: (props: {
     filter: FilterModel
@@ -69,7 +70,7 @@ interface ListProps<TData = unknown>
   }) => React.ReactNode
 }
 
-function List<TData = unknown>(props: ListProps<TData> = {}) {
+export function List<TData = unknown>(props: ListProps<TData> = {}) {
   return <FilterList<TData> {...props} />
 }
 
@@ -78,7 +79,7 @@ export namespace List {
 }
 
 // Actions component (uses context)
-interface ActionsProps
+export interface ActionsProps
   extends Omit<
     ComponentPropsWithoutRef<typeof Button>,
     'onClick' | 'children'
@@ -86,32 +87,66 @@ interface ActionsProps
   variant?: ComponentPropsWithoutRef<typeof Button>['variant']
 }
 
-function Actions(props: ActionsProps = {}) {
+export function Actions(props: ActionsProps = {}) {
   return <FilterActionsWithContext {...props} />
 }
 
-// Main compound component for composition
-export interface FilterRootProps extends ComponentPropsWithoutRef<'div'> {
+// Root component that combines Provider and layout container
+export interface FilterRootProps<TData = unknown>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  columns: Column<TData>[]
+  filters: FiltersState
+  actions: DataTableFilterActions
+  strategy: FilterStrategy
+  locale?: Locale
+  entityName?: string
+  variant?: FilterVariant
   children: React.ReactNode
 }
 
-function Root({ children, className, ...props }: FilterRootProps) {
+export function Root<TData>({
+  children,
+  className,
+  columns,
+  filters,
+  actions,
+  strategy,
+  locale = 'en',
+  entityName,
+  variant,
+  ...props
+}: FilterRootProps<TData>) {
   const isMobile = useIsMobile()
 
+  const contextValue: DataTableFilterContextValue<TData> = {
+    columns,
+    filters,
+    actions,
+    strategy,
+    locale,
+    entityName,
+    variant,
+  }
+
   return (
-    <div
-      data-slot="filter-root"
-      data-mobile={isMobile}
-      className={cn('flex w-full items-start justify-between gap-2', className)}
-      {...props}
-    >
-      {children}
-    </div>
+    <Provider value={contextValue}>
+      <div
+        data-slot="filter-root"
+        data-mobile={isMobile}
+        className={cn(
+          'flex w-full items-start justify-between gap-2',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    </Provider>
   )
 }
 
 export namespace Root {
-  export type Props = FilterRootProps
+  export type Props<TData = unknown> = FilterRootProps<TData>
 }
 
 // Convenience component that provides default composition
@@ -188,21 +223,3 @@ Filter.Block = FilterBlock
 Filter.Subject = FilterBlock.Subject
 Filter.Operator = FilterBlock.Operator
 Filter.Value = FilterBlock.Value
-
-// Factory function to create typed filter components
-export function createTypedFilter<TData>() {
-  // Create a properly typed List component
-  const TypedList = (props: ListProps<TData> = {}) => {
-    return <FilterList<TData> {...props} />
-  }
-
-  // Return Filter with the typed List component
-  return {
-    ...Filter,
-    List: TypedList,
-  }
-}
-
-export namespace createTypedFilter {
-  export type TypedFilter<TData> = ReturnType<typeof createTypedFilter<TData>>
-}

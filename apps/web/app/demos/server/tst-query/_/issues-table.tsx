@@ -7,11 +7,8 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { FilterIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { createTypedFilter } from '@/registry/data-table-filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
@@ -147,33 +144,29 @@ export function IssuesTable({
         {isOptionsDataPending ? (
           <TableFilterSkeleton />
         ) : (
-          <Filter.Provider
-            value={{
-              columns,
-              filters,
-              actions,
-              strategy,
-              locale: 'en',
-              variant: 'clean',
-            }}
+          <Filter.Root
+            columns={columns}
+            filters={filters}
+            actions={actions}
+            strategy={strategy}
+            locale="en"
+            variant="clean"
           >
-            <div className="flex w-full items-start justify-between gap-2">
-              <div className="flex md:flex-wrap gap-2 w-full flex-1">
-                <Filter.Menu />
-                <Filter.List>
-                  {({ filter, column }) => (
-                    <Filter.Block filter={filter} column={column}>
-                      <Filter.Subject />
-                      <Filter.Operator />
-                      <Filter.Value />
-                      <Filter.Block.Remove />
-                    </Filter.Block>
-                  )}
-                </Filter.List>
-              </div>
-              <Filter.Actions />
+            <div className="flex md:flex-wrap gap-2 w-full flex-1">
+              <Filter.Menu />
+              <Filter.List>
+                {({ filter, column }) => (
+                  <Filter.Block filter={filter} column={column}>
+                    <Filter.Subject />
+                    <Filter.Operator />
+                    <Filter.Value />
+                    <Filter.Block.Remove />
+                  </Filter.Block>
+                )}
+              </Filter.List>
             </div>
-          </Filter.Provider>
+            <Filter.Actions />
+          </Filter.Root>
         )}
       </div>
       {issues.isLoading ? (

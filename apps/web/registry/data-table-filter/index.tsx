@@ -1,8 +1,5 @@
 // Main compound component export
-export {
-  createTypedFilter,
-  Filter,
-} from './components/data-table-filter/compound'
+export { Filter } from './components/data-table-filter/compound'
 // Compound component primitives for custom compositions
 export {
   FilterBlock,
@@ -25,3 +22,5 @@ export {
   useFilterStrategy,
   useFilterVariant,
 } from './context'
+// Factory function for typed filter components
+export { createTypedFilter, type TypedFilter } from './factory'

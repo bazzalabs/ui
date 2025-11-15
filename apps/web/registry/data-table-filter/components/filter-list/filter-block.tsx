@@ -113,7 +113,7 @@ export namespace FilterBlock {
 export interface FilterBlockSubjectProps
   extends Omit<ComponentPropsWithoutRef<'span'>, 'children'> {}
 
-function Subject(props: FilterBlockSubjectProps = {}) {
+function Subject(props: FilterBlockSubjectProps) {
   const { column } = useFilterBlockContext()
   const entityName = useFilterEntityName()
   return <FilterSubject column={column} entityName={entityName} {...props} />
@@ -125,7 +125,7 @@ export interface FilterBlockOperatorProps
     'onClick' | 'children' | 'variant'
   > {}
 
-function Operator(props: FilterBlockOperatorProps = {}) {
+function Operator(props: FilterBlockOperatorProps) {
   const { filter, column } = useFilterBlockContext()
   const actions = useFilterActions()
   const locale = useFilterLocale()
@@ -171,7 +171,7 @@ function Remove({
   className,
   variant: variantProp,
   ...props
-}: FilterBlockRemoveProps = {}) {
+}: FilterBlockRemoveProps) {
   const { filter } = useFilterBlockContext()
   const actions = useFilterActions()
   const contextVariant = useFilterVariant()
