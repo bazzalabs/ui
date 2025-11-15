@@ -1,5 +1,8 @@
 // Main compound component export
-export { Filter } from './components/data-table-filter/compound'
+export {
+  createTypedFilter,
+  Filter,
+} from './components/data-table-filter/compound'
 // Compound component primitives for custom compositions
 export {
   FilterBlock,
@@ -9,6 +12,7 @@ export {
 export type {
   DataTableFilterContextValue,
   DataTableFilterProviderProps,
+  FilterVariant,
 } from './context'
 // Context exports for advanced usage
 export {
@@ -19,4 +23,5 @@ export {
   useFilterEntityName,
   useFilterLocale,
   useFilterStrategy,
+  useFilterVariant,
 } from './context'

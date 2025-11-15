@@ -1,8 +1,9 @@
 'use client'
 
-import { getColumn } from '@bazza-ui/filters'
+import { type Column, type FilterModel, getColumn } from '@bazza-ui/filters'
 import {
   type ComponentPropsWithoutRef,
+  type ReactNode,
   useEffect,
   useRef,
   useState,
@@ -12,11 +13,22 @@ import { cn } from '@/lib/utils'
 import { useFilterContext } from '../../context'
 import { FilterBlock } from './filter-block'
 
-interface FilterListProps
-  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {}
+type FilterListRenderProps<TData = unknown> = {
+  filter: FilterModel
+  column: Column<TData>
+}
 
-export function FilterList({ className, ...props }: FilterListProps = {}) {
-  const { filters, columns } = useFilterContext()
+interface FilterListProps<TData = unknown>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  children?: (props: FilterListRenderProps<TData>) => ReactNode
+}
+
+export function FilterList<TData = unknown>({
+  className,
+  children,
+  ...props
+}: FilterListProps<TData> = {}) {
+  const { filters, columns } = useFilterContext<TData>()
 
   return (
     <div
@@ -31,6 +43,16 @@ export function FilterList({ className, ...props }: FilterListProps = {}) {
         // Skip if no filter value
         if (!filter.values) return null
 
+        // If children render function provided, use it
+        if (children) {
+          return (
+            <div key={`filter-block-${filter.columnId}`}>
+              {children({ filter, column })}
+            </div>
+          )
+        }
+
+        // Default rendering with separators
         return (
           <FilterBlock
             key={`filter-block-${filter.columnId}`}

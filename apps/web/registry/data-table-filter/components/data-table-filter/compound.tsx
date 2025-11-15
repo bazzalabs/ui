@@ -4,6 +4,7 @@ import type { ActionMenuRootProps } from '@bazza-ui/action-menu'
 import type {
   Column,
   DataTableFilterActions,
+  FilterModel,
   FilterStrategy,
   FiltersState,
   Locale,
@@ -60,10 +61,20 @@ export namespace Menu {
 }
 
 // List component (uses context)
-interface ListProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {}
+interface ListProps<TData = unknown>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  children?: (props: {
+    filter: FilterModel
+    column: Column<TData>
+  }) => React.ReactNode
+}
 
-function List(props: ListProps = {}) {
-  return <FilterList {...props} />
+function List<TData = unknown>(props: ListProps<TData> = {}) {
+  return <FilterList<TData> {...props} />
+}
+
+export namespace List {
+  export type Props<TData = unknown> = ListProps<TData>
 }
 
 // Actions component (uses context)
@@ -177,3 +188,21 @@ Filter.Block = FilterBlock
 Filter.Subject = FilterBlock.Subject
 Filter.Operator = FilterBlock.Operator
 Filter.Value = FilterBlock.Value
+
+// Factory function to create typed filter components
+export function createTypedFilter<TData>() {
+  // Create a properly typed List component
+  const TypedList = (props: ListProps<TData> = {}) => {
+    return <FilterList<TData> {...props} />
+  }
+
+  // Return Filter with the typed List component
+  return {
+    ...Filter,
+    List: TypedList,
+  }
+}
+
+export namespace createTypedFilter {
+  export type TypedFilter<TData> = ReturnType<typeof createTypedFilter<TData>>
+}

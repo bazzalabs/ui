@@ -23,7 +23,7 @@ import { ActionMenu } from '@/registry/action-menu'
 import { useFilterVariant } from '../context'
 
 const filterOperatorVariants = cva(
-  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs',
+  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs text-muted-foreground',
   {
     variants: {
       variant: {

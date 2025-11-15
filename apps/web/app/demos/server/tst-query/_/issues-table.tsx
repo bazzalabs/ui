@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  type FiltersState,
-  getColumn,
-  useDataTableFilters,
-} from '@bazza-ui/filters'
+import { type FiltersState, useDataTableFilters } from '@bazza-ui/filters'
 import { useQuery } from '@tanstack/react-query'
 import {
   getCoreRowModel,
@@ -17,13 +13,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { Filter } from '@/registry/data-table-filter'
+import { createTypedFilter } from '@/registry/data-table-filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'
 import { queries } from './queries'
 import { TableFilterSkeleton, TableSkeleton } from './table-skeleton'
-import type { IssueLabel, IssueStatus, User } from './types'
+import type { Issue, IssueLabel, IssueStatus, User } from './types'
+
+const Filter = createTypedFilter<Issue>()
 
 function createLabelOptions(labels: IssueLabel[] | undefined) {
   return labels?.map((l) => ({
@@ -162,25 +160,16 @@ export function IssuesTable({
             <div className="flex w-full items-start justify-between gap-2">
               <div className="flex md:flex-wrap gap-2 w-full flex-1">
                 <Filter.Menu />
-                {filters.map((filter) => {
-                  const column = getColumn(columns, filter.columnId)
-
-                  // Skip if no filter value
-                  if (!filter.values) return null
-
-                  return (
-                    <Filter.Block
-                      key={`filter-block-${filter.columnId}`}
-                      filter={filter}
-                      column={column}
-                    >
+                <Filter.List>
+                  {({ filter, column }) => (
+                    <Filter.Block filter={filter} column={column}>
                       <Filter.Subject />
                       <Filter.Operator />
                       <Filter.Value />
                       <Filter.Block.Remove />
                     </Filter.Block>
-                  )
-                })}
+                  )}
+                </Filter.List>
               </div>
               <Filter.Actions />
             </div>
