@@ -1,0 +1,440 @@
+---
+title: API Reference
+section: Reference
+summary: "Complete API documentation for Command Menu components."
+---
+
+# API Reference
+
+Complete reference for all Command Menu components and their props.
+
+## CommandMenu
+
+The main convenience component that combines all pieces.
+
+```tsx
+import { CommandMenu } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `open` | `boolean` | - | Controlled open state |
+| `onOpenChange` | `(open: boolean) => void` | - | Callback when open state changes |
+| `defaultOpen` | `boolean` | `false` | Default open state (uncontrolled) |
+| `menu` | `MenuDef` | *required* | Menu definition with nodes |
+| `theme` | `CommandMenuThemeDef` | - | Theme customization (slots, slotProps, classNames) |
+| `vimBindings` | `boolean` | `false` | Enable vim key bindings (Ctrl+j/k/n/p) |
+| `dir` | `'ltr' \| 'rtl'` | `'ltr'` | Text direction |
+| `showBreadcrumbs` | `boolean` | `true` | Show breadcrumbs when in submenus |
+| `onQueryChange` | `(query: string) => void` | - | Callback when query changes (for clearing on navigation) |
+| `onNavigationChange` | `(event: NavigationChangeEvent) => void` | - | Callback when navigating between submenus |
+| `shortcut` | `string \| string[]` | `'cmd+k'` | Global keyboard shortcut(s) to open menu |
+| `placeholder` | `string` | `'Type a command or search...'` | Input placeholder text |
+| `trigger` | `ReactNode` | - | Optional trigger button element |
+
+### Example
+
+```tsx
+<CommandMenu
+  open={open}
+  onOpenChange={setOpen}
+  shortcut={['cmd+k', 'ctrl+k']}
+  placeholder="Search commands..."
+  vimBindings={true}
+  menu={{
+    nodes: [
+      { kind: 'item', id: 'home', label: 'Home' }
+    ]
+  }}
+/>
+```
+
+## CommandMenuRoot
+
+Root component providing context. Use when you need more control with compound components.
+
+```tsx
+import { CommandMenuRoot } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `open` | `boolean` | - | Controlled open state |
+| `onOpenChange` | `(open: boolean) => void` | - | Callback when open state changes |
+| `defaultOpen` | `boolean` | `false` | Default open state |
+| `menu` | `MenuDef` | *required* | Menu definition |
+| `theme` | `CommandMenuThemeDef` | - | Theme customization |
+| `vimBindings` | `boolean` | `false` | Enable vim bindings |
+| `dir` | `'ltr' \| 'rtl'` | `'ltr'` | Text direction |
+| `showBreadcrumbs` | `boolean` | `true` | Show breadcrumbs |
+| `onQueryChange` | `(query: string) => void` | - | Callback when query changes |
+| `onNavigationChange` | `(event: NavigationChangeEvent) => void` | - | Callback when navigating between submenus |
+| `children` | `ReactNode` | - | Child components |
+
+### Example
+
+```tsx
+<CommandMenuRoot open={open} onOpenChange={setOpen} menu={menu}>
+  <CommandMenuTrigger shortcut="cmd+k" />
+  <CommandMenuContent>
+    <CommandMenuBreadcrumbs />
+    <CommandMenuInput />
+    <CommandMenuList />
+  </CommandMenuContent>
+</CommandMenuRoot>
+```
+
+## CommandMenuTrigger
+
+Handles global keyboard shortcuts and optional trigger button.
+
+```tsx
+import { CommandMenuTrigger } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `shortcut` | `string \| string[]` | `'cmd+k'` | Keyboard shortcut(s) to trigger menu |
+| `disabled` | `boolean` | `false` | Disable the trigger |
+| `children` | `ReactNode` | - | Optional button content |
+
+### Shortcut Format
+
+Shortcuts support modifier keys and single keys:
+- `cmd` / `meta` - Command (Mac) / Windows key
+- `ctrl` - Control key
+- `shift` - Shift key
+- `alt` - Alt/Option key
+- Any single key: `a-z`, `0-9`, `/`, etc.
+
+### Examples
+
+```tsx
+// Single shortcut
+<CommandMenuTrigger shortcut="cmd+k" />
+
+// Multiple shortcuts
+<CommandMenuTrigger shortcut={['cmd+k', 'ctrl+k', '/']} />
+
+// With button
+<CommandMenuTrigger shortcut="cmd+k">
+  <button>Open (⌘K)</button>
+</CommandMenuTrigger>
+
+// Hidden trigger (keyboard only)
+<CommandMenuTrigger shortcut="cmd+k" />
+```
+
+## CommandMenuContent
+
+Dialog content wrapper with overlay.
+
+```tsx
+import { CommandMenuContent } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | - | Content elements (Input, List, Breadcrumbs) |
+
+### Example
+
+```tsx
+<CommandMenuContent>
+  <CommandMenuBreadcrumbs />
+  <CommandMenuInput value={query} onValueChange={setQuery} />
+  <CommandMenuList query={query} />
+</CommandMenuContent>
+```
+
+## CommandMenuInput
+
+Search input component.
+
+```tsx
+import { CommandMenuInput } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `string` | - | Input value |
+| `onValueChange` | `(value: string) => void` | - | Value change handler |
+| `placeholder` | `string` | `'Type a command or search...'` | Placeholder text |
+| `className` | `string` | - | Additional CSS class |
+
+### Example
+
+```tsx
+const [query, setQuery] = useState('')
+
+<CommandMenuInput
+  value={query}
+  onValueChange={setQuery}
+  placeholder="Search..."
+/>
+```
+
+## CommandMenuList
+
+Renders the menu items with virtualization.
+
+```tsx
+import { CommandMenuList } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `query` | `string` | `''` | Current search query |
+| `onQueryChange` | `(query: string) => void` | - | Query change handler |
+
+### Example
+
+```tsx
+<CommandMenuList
+  query={query}
+  onQueryChange={setQuery}
+/>
+```
+
+## CommandMenuBreadcrumbs
+
+Shows navigation breadcrumbs when in a submenu with a back button.
+
+```tsx
+import { CommandMenuBreadcrumbs } from '@bazza-ui/command-menu'
+```
+
+### Props
+
+No props. Automatically shows/hides based on navigation stack and `showBreadcrumbs` setting.
+
+### Example
+
+```tsx
+<CommandMenuContent>
+  <CommandMenuBreadcrumbs />
+  <CommandMenuInput />
+  <CommandMenuList />
+</CommandMenuContent>
+```
+
+## MenuDef
+
+The menu definition object shape (from `@bazza-ui/menu`).
+
+```tsx
+type MenuDef<T = unknown> = {
+  id: string
+  title?: string
+  inputPlaceholder?: string
+  nodes?: NodeDef<T>[]
+  defaults?: MenuNodeDefaults<T>
+  virtualization?: VirtualizationConfig
+  search?: SearchConfig
+  ui?: CommandMenuThemeDef<T>
+}
+```
+
+### Node Types
+
+```tsx
+type NodeDef<T> =
+  | ItemDef<T>
+  | GroupDef<T>
+  | SubmenuDef<T>
+  | SeparatorDef
+
+// Item node
+type ItemDef<T> = {
+  kind: 'item'
+  id?: string
+  label: string
+  icon?: ReactNode
+  keywords?: string[]
+  disabled?: boolean
+  variant?: 'button' | 'checkbox' | 'radio'
+  checked?: boolean
+  onSelect?: (args: { node: ItemNode<T> }) => void
+  data?: T
+}
+
+// Group node
+type GroupDef<T> = {
+  kind: 'group'
+  id?: string
+  heading?: string
+  variant?: 'default' | 'radio'
+  value?: string
+  onValueChange?: (value: string) => void
+  nodes: NodeDef<T>[]
+}
+
+// Submenu node (paged navigation)
+type SubmenuDef<T> = {
+  kind: 'submenu'
+  id: string
+  label: string
+  title?: string  // Shows in breadcrumbs
+  icon?: ReactNode
+  nodes: NodeDef<T>[]
+}
+
+// Separator
+type SeparatorDef = {
+  kind: 'separator'
+  id?: string
+}
+```
+
+## CommandMenuThemeDef
+
+Theme customization object.
+
+```tsx
+type CommandMenuThemeDef<T = unknown> = {
+  slots?: Partial<CommandMenuSlots<T>>
+  slotProps?: Partial<MenuSlotProps>
+  classNames?: Partial<CommandMenuClassNames>
+}
+```
+
+### Slots
+
+```tsx
+type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
+  /** Customize the dialog inner wrapper (useful for animations) */
+  DialogInner?: (props: {
+    children: React.ReactNode
+    baseProps: {
+      ref: React.RefCallback<HTMLDivElement>
+      className?: string
+      'data-slot': 'command-menu-dialog-inner'
+      'data-command-menu-dialog-inner': true
+    }
+  }) => React.ReactElement
+}
+```
+
+Slots from `MenuSlots<T>` include: `Input`, `Header`, `Footer`, `Item`, `LoadingState`, `ErrorState`, `EmptyState`, and more.
+
+See [Theming](/docs/command-menu/theming) for complete slot documentation.
+
+### Class Names
+
+```tsx
+type CommandMenuClassNames = {
+  // Dialog
+  dialogOverlay?: string
+  dialogContent?: string
+  dialogInner?: string
+
+  // Breadcrumbs
+  breadcrumbs?: string
+  breadcrumbItem?: string
+  breadcrumbSeparator?: string
+  backButton?: string
+
+  // Menu elements (from MenuClassNames)
+  content?: string
+  list?: string
+  input?: string
+  itemWrapper?: string
+  item?: string
+  subtriggerWrapper?: string
+  subtrigger?: string
+  groupHeading?: string
+  separator?: string
+}
+```
+
+### Example
+
+```tsx
+const theme: CommandMenuThemeDef = {
+  classNames: {
+    dialogOverlay: 'bg-black/80',
+    dialogContent: 'max-w-2xl shadow-2xl',
+    input: 'text-lg px-6 py-4',
+    list: 'max-h-[500px]',
+    item: 'px-6 py-3 text-base',
+    breadcrumbs: 'bg-muted px-4 py-3'
+  },
+  slots: {
+    DialogInner: ({ children, baseProps }) => (
+      <div {...baseProps} className="animate-fade-in">
+        {children}
+      </div>
+    ),
+  },
+}
+```
+
+## NavigationChangeEvent
+
+Event object passed to `onNavigationChange` callback.
+
+```tsx
+type NavigationChangeEvent = {
+  /** Direction of navigation */
+  direction: 'forward' | 'back'
+  /** Previous navigation stack state */
+  prevBreadcrumbs: NavigationStackEntry[]
+  /** New navigation stack state */
+  nextBreadcrumbs: NavigationStackEntry[]
+}
+
+type NavigationStackEntry = {
+  menuId: string
+  menuTitle?: string
+  parentMenuId?: string
+}
+```
+
+### Example
+
+```tsx
+<CommandMenu
+  menu={menu}
+  onNavigationChange={({ direction, prevBreadcrumbs, nextBreadcrumbs }) => {
+    console.log('Navigating:', direction)
+    console.log('From depth:', prevBreadcrumbs.length)
+    console.log('To depth:', nextBreadcrumbs.length)
+  }}
+/>
+```
+
+See [Navigation Callback](/docs/command-menu/navigation-callback) for detailed usage.
+
+## Keyboard Navigation
+
+### Global Shortcuts
+
+- Customizable shortcuts to open menu (default: `cmd+k`)
+- Supports multiple shortcuts
+- Parses modifier keys: `cmd`, `ctrl`, `shift`, `alt`
+
+### Within Menu
+
+- `↑` / `↓` - Navigate items
+- `Enter` - Select item or enter submenu
+- `Escape` - Close menu or go back from submenu
+- `Ctrl+j` / `Ctrl+n` - Next item (vim bindings)
+- `Ctrl+k` / `Ctrl+p` - Previous item (vim bindings)
+
+## Related
+
+- [Examples](/docs/command-menu/examples)
+- [Introduction](/docs/command-menu/introduction)
+- [Menu Primitive](/docs/menu)

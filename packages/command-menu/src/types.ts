@@ -1,0 +1,103 @@
+import type {
+  MenuClassNames,
+  MenuDef,
+  MenuSlotProps,
+  MenuSlots,
+} from '@bazza-ui/menu'
+import type * as React from 'react'
+
+/**
+ * Command menu specific slots that extend MenuSlots
+ */
+export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
+  /**
+   * Slot for customizing the dialog inner content wrapper
+   * Useful for applying animations when navigating between submenus
+   */
+  DialogInner?: (props: {
+    children: React.ReactNode
+    /** Base props that must be applied for ResizeObserver to work */
+    baseProps: {
+      ref: React.RefCallback<HTMLDivElement>
+      className?: string
+      'data-slot': 'command-menu-dialog-inner'
+      'data-command-menu-dialog-inner': true
+    }
+  }) => React.ReactElement
+}
+
+export type CommandMenuThemeDef<T = unknown> = {
+  slots?: Partial<CommandMenuSlots<T>>
+  slotProps?: Partial<MenuSlotProps>
+  classNames?: Partial<CommandMenuClassNames>
+}
+
+export type CommandMenuTheme<T = unknown> = {
+  slots: CommandMenuSlots<T>
+  slotProps?: Partial<MenuSlotProps>
+  classNames?: Partial<CommandMenuClassNames>
+}
+
+export type CommandMenuClassNames = MenuClassNames & {
+  dialogOverlay?: string
+  dialogContent?: string
+  dialogInner?: string
+  breadcrumbs?: string
+  breadcrumbItem?: string
+  breadcrumbSeparator?: string
+  backButton?: string
+}
+
+export interface CommandMenuProps<T = unknown> {
+  /** Controlled open state */
+  open?: boolean
+  /** Callback when open state changes */
+  onOpenChange?: (open: boolean) => void
+  /** Default open state (uncontrolled) */
+  defaultOpen?: boolean
+  /** Menu definition */
+  menu: MenuDef<T>
+  /** Enable vim key bindings (Ctrl+j/k/n/p for navigation) */
+  vimBindings?: boolean
+  /** Text direction */
+  dir?: 'ltr' | 'rtl'
+  /** Whether to show breadcrumbs when navigating submenus */
+  showBreadcrumbs?: boolean
+  /** Callback when query changes (for clearing on navigation) */
+  onQueryChange?: (query: string) => void
+  /** Callback when submenu navigation occurs */
+  onNavigationChange?: (event: NavigationChangeEvent) => void
+  /** Children (optional trigger) */
+  children?: React.ReactNode
+}
+
+export interface CommandMenuTriggerProps {
+  /** Keyboard shortcut to open the command menu */
+  shortcut?: string | string[]
+  /** Whether the trigger is disabled */
+  disabled?: boolean
+  /** Children (optional button) */
+  children?: React.ReactNode
+}
+
+/**
+ * Navigation stack entry for paged navigation
+ * @internal
+ */
+export type NavigationStackEntry = {
+  menuId: string
+  menuTitle?: string
+  parentMenuId?: string
+}
+
+/**
+ * Event fired when submenu navigation occurs
+ */
+export type NavigationChangeEvent = {
+  /** Direction of navigation */
+  direction: 'forward' | 'back'
+  /** Previous navigation stack state */
+  prevBreadcrumbs: NavigationStackEntry[]
+  /** New navigation stack state */
+  nextBreadcrumbs: NavigationStackEntry[]
+}

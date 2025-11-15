@@ -1,0 +1,55 @@
+{
+  "name": "@bazza-ui/command-menu",
+  "version": "0.0.1",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./loaders/tanstack-query": {
+      "types": "./dist/loaders/tanstack-query.d.ts",
+      "import": "./dist/loaders/tanstack-query.js",
+      "require": "./dist/loaders/tanstack-query.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@bazza-ui/typescript-config": "*",
+    "@tanstack/react-query": "^5.62.14",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@bazza-ui/menu": "*",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-use-controllable-state": "^1.2.2",
+    "@radix-ui/react-visually-hidden": "^1.2.4"
+  }
+}

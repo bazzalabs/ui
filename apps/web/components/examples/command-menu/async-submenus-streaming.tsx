@@ -1,185 +1,215 @@
 'use client'
 
-import type { ItemDef } from '@bazza-ui/action-menu'
+import { LoaderAdapterProvider } from '@bazza-ui/command-menu'
 import {
   createLoader,
   ReactQueryLoaderAdapter,
-} from '@bazza-ui/action-menu/react-query'
+} from '@bazza-ui/command-menu/loaders/tanstack-query'
+import type { ItemDef } from '@bazza-ui/menu'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UtensilsIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { CommandMenu } from '@/registry/command-menu'
 
-export function ActionMenu_AsyncSubmenusStreaming() {
+const queryClient = new QueryClient()
+
+export function CommandMenu_AsyncSubmenusStreaming() {
   return (
-    <ActionMenu
-      loaderAdapter={ReactQueryLoaderAdapter}
-      menu={{
-        id: 'root',
-        search: {
-          streaming: {
-            enabled: true,
-            resortOnBatch: false,
-          },
-        },
-        defaults: {
-          item: {
-            closeOnSelect: false,
-            onSelect: ({ node }) => {
-              toast(`${node.icon} ${node.label}`)
+    <QueryClientProvider client={queryClient}>
+      <LoaderAdapterProvider adapter={ReactQueryLoaderAdapter}>
+        <CommandMenu
+          trigger={
+            <Button variant="ghost" className="group">
+              <UtensilsIcon className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary" />
+              What's in the fridge?
+            </Button>
+          }
+          menu={{
+            id: 'root',
+            search: {
+              streaming: {
+                enabled: true,
+                resortOnBatch: false,
+              },
             },
-          },
-        },
-        nodes: [
-          {
-            kind: 'submenu',
-            id: 'fruits',
-            label: 'Fruits',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['fruits', query],
-              queryFn: () => fetchFruits(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'vegetables',
-            label: 'Vegetables',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['vegetables', query],
-              queryFn: () => fetchVegetables(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'meats',
-            label: 'Meats & Protein',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['meats', query],
-              queryFn: () => fetchMeats(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'seafood',
-            label: 'Seafood',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['seafood', query],
-              queryFn: () => fetchSeafood(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'bakery',
-            label: 'Bakery & Grains',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['bakery', query],
-              queryFn: () => fetchBakery(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'meals',
-            label: 'Meals & Prepared',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['meals', query],
-              queryFn: () => fetchMeals(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'sweets',
-            label: 'Sweets & Desserts',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['sweets', query],
-              queryFn: () => fetchSweets(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'snacks',
-            label: 'Snacks & Nuts',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['snacks', query],
-              queryFn: () => fetchSnacks(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'dairy',
-            label: 'Dairy & Eggs',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['dairy', query],
-              queryFn: () => fetchDairy(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'condiments',
-            label: 'Condiments & Staples',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['condiments', query],
-              queryFn: () => fetchCondiments(query),
-              retry: false,
-            })),
-          },
-          {
-            kind: 'submenu',
-            id: 'drinks',
-            label: 'Drinks',
-            deepSearch: true,
-            search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
-              queryKey: ['drinks', query],
-              queryFn: () => fetchDrinks(query),
-              retry: false,
-            })),
-          },
-        ],
-      }}
-    >
-      <ActionMenu.Trigger asChild>
-        <Button variant="ghost" className="group">
-          <UtensilsIcon className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary" />
-          What's in the fridge?
-        </Button>
-      </ActionMenu.Trigger>
-    </ActionMenu>
+            defaults: {
+              item: {
+                onSelect: ({ node }) => {
+                  toast(`${node.icon} ${node.label}`)
+                },
+              },
+            },
+            nodes: [
+              {
+                kind: 'submenu',
+                id: 'fruits',
+                label: 'Fruits',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['fruits', query],
+                  queryFn: () => fetchFruits(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'vegetables',
+                label: 'Vegetables',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['vegetables', query],
+                  queryFn: () => fetchVegetables(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'meats',
+                label: 'Meats & Protein',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['meats', query],
+                  queryFn: () => fetchMeats(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'seafood',
+                label: 'Seafood',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                  streaming: {
+                    enabled: true,
+                    resortOnBatch: false,
+                  },
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['seafood', query],
+                  queryFn: () => fetchSeafood(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'bakery',
+                label: 'Bakery & Grains',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['bakery', query],
+                  queryFn: () => fetchBakery(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'meals',
+                label: 'Meals & Prepared',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['meals', query],
+                  queryFn: () => fetchMeals(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'sweets',
+                label: 'Sweets & Desserts',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['sweets', query],
+                  queryFn: () => fetchSweets(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'snacks',
+                label: 'Snacks & Nuts',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['snacks', query],
+                  queryFn: () => fetchSnacks(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'dairy',
+                label: 'Dairy & Eggs',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['dairy', query],
+                  queryFn: () => fetchDairy(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'condiments',
+                label: 'Condiments & Staples',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['condiments', query],
+                  queryFn: () => fetchCondiments(query),
+                  retry: false,
+                })),
+              },
+              {
+                kind: 'submenu',
+                id: 'drinks',
+                label: 'Drinks',
+                deepSearch: true,
+                search: {
+                  mode: 'server',
+                },
+                loader: createLoader(({ query }) => ({
+                  queryKey: ['drinks', query],
+                  queryFn: () => fetchDrinks(query),
+                  retry: false,
+                })),
+              },
+            ],
+          }}
+        />
+      </LoaderAdapterProvider>
+    </QueryClientProvider>
   )
 }
 
 // Mock data fetching functions
 async function fetchFruits(query?: string): Promise<ItemDef[]> {
-  console.log(`Fetching fruits ${query ? `for ${query}` : ''}...`)
   await sleep(2000)
 
   return [

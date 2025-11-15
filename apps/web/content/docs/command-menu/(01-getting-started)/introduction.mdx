@@ -1,0 +1,285 @@
+---
+title: Introduction
+section: Getting Started
+summary: "A keyboard-driven command palette with paged navigation and fuzzy search."
+---
+
+# Command Menu
+
+A command palette component built on the menu primitive, designed for keyboard-first command execution and navigation. Unlike dropdown menus, command menus use paged navigation with breadcrumbs instead of nested popovers.
+
+## Features
+
+- **Paged Navigation** - Submenus push to a navigation stack with breadcrumbs, not nested popovers
+- **Global Keyboard Shortcuts** - Customizable shortcuts (default: `cmd+k`)
+- **Fuzzy Search** - Built-in command-score algorithm for intelligent filtering
+- **Dialog Modal** - Uses Radix Dialog for accessible modal interface
+- **Breadcrumb Navigation** - Shows current path in submenus with back button
+- **Virtualized Lists** - TanStack Virtual for performance with large lists
+- **Full Theme Support** - slots, slotProps, classNames from menu primitive
+- **Vim Bindings** - Optional vim-style navigation (Ctrl+j/k/n/p)
+
+## Installation
+
+Install from the registry with styled defaults:
+
+```bash
+npx shadcn@latest add https://ui.bazza.dev/r/command-menu
+```
+
+Or install the unstyled primitive as an npm package:
+
+```bash
+npm install @bazza-ui/command-menu @bazza-ui/menu
+```
+
+## Basic Usage
+
+### Simple Command Menu
+
+```tsx
+import { CommandMenu } from '@bazza-ui/command-menu'
+import { useState } from 'react'
+
+function App() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <CommandMenu
+      open={open}
+      onOpenChange={setOpen}
+      shortcut="cmd+k"
+      placeholder="Type a command or search..."
+      menu={{
+        nodes: [
+          {
+            kind: 'item',
+            id: 'dashboard',
+            label: 'Go to Dashboard',
+            keywords: ['dashboard', 'home'],
+            onSelect: () => router.push('/dashboard')
+          },
+          {
+            kind: 'item',
+            id: 'settings',
+            label: 'Open Settings',
+            keywords: ['settings', 'preferences'],
+            onSelect: () => router.push('/settings')
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+### Compound Component Pattern
+
+For more control, use the compound component pattern:
+
+```tsx
+import {
+  CommandMenuRoot,
+  CommandMenuTrigger,
+  CommandMenuContent,
+  CommandMenuInput,
+  CommandMenuList,
+  CommandMenuBreadcrumbs
+} from '@bazza-ui/command-menu'
+
+function App() {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+
+  return (
+    <CommandMenuRoot
+      open={open}
+      onOpenChange={setOpen}
+      menu={menu}
+    >
+      <CommandMenuTrigger shortcut="cmd+k">
+        <button>Open Command Menu (⌘K)</button>
+      </CommandMenuTrigger>
+
+      <CommandMenuContent>
+        <CommandMenuBreadcrumbs />
+        <CommandMenuInput
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Type a command..."
+        />
+        <CommandMenuList
+          query={query}
+          onQueryChange={setQuery}
+        />
+      </CommandMenuContent>
+    </CommandMenuRoot>
+  )
+}
+```
+
+## Keyboard Shortcuts
+
+### Global Shortcuts
+
+The trigger component accepts single or multiple keyboard shortcuts:
+
+```tsx
+// Single shortcut
+<CommandMenuTrigger shortcut="cmd+k" />
+
+// Multiple shortcuts
+<CommandMenuTrigger shortcut={['cmd+k', 'ctrl+k', '/']} />
+```
+
+Shortcut format supports:
+- `cmd` / `meta` - Command/Windows key
+- `ctrl` - Control key
+- `shift` - Shift key
+- `alt` - Alt/Option key
+- Any single key: `a-z`, `/`, etc.
+
+Examples:
+- `"cmd+k"` - Command + K
+- `"ctrl+shift+p"` - Control + Shift + P
+- `"/"` - Forward slash
+
+### Internal Navigation
+
+Once open, the command menu supports:
+- `↑` / `↓` - Navigate up/down
+- `Enter` - Select item or enter submenu
+- `Escape` - Close menu or go back from submenu
+- `Ctrl+j/k/n/p` - Vim-style navigation (if enabled)
+
+## Paged Navigation
+
+Command menus use paged navigation instead of nested popovers. When you select a submenu, it pushes onto a navigation stack:
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'files',
+      label: 'Files',
+      title: 'File Operations', // Shows in breadcrumbs
+      nodes: [
+        {
+          kind: 'submenu',
+          id: 'export',
+          label: 'Export',
+          title: 'Export Options',
+          nodes: [
+            { kind: 'item', id: 'pdf', label: 'Export as PDF' },
+            { kind: 'item', id: 'csv', label: 'Export as CSV' }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+When navigating `Files → Export → Export as PDF`, breadcrumbs will show:
+```
+← Back / File Operations / Export Options
+```
+
+## Grouping Commands
+
+Use groups to organize commands:
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'group',
+      heading: 'Navigation',
+      nodes: [
+        { kind: 'item', id: 'home', label: 'Home' },
+        { kind: 'item', id: 'dashboard', label: 'Dashboard' }
+      ]
+    },
+    {
+      kind: 'group',
+      heading: 'Actions',
+      nodes: [
+        { kind: 'item', id: 'create', label: 'Create New' },
+        { kind: 'item', id: 'import', label: 'Import Data' }
+      ]
+    }
+  ]
+}
+```
+
+## Search & Keywords
+
+Add keywords to improve search matching:
+
+```tsx
+{
+  kind: 'item',
+  id: 'settings',
+  label: 'Settings',
+  keywords: ['settings', 'preferences', 'config', 'options'],
+  onSelect: () => openSettings()
+}
+```
+
+The command-score algorithm provides fuzzy matching:
+- `sett` → matches "Settings"
+- `pref` → matches "Settings" (via keywords)
+- `cfg` → matches "Settings" (via "config" keyword)
+
+## Configuration
+
+### Vim Bindings
+
+Enable vim-style navigation:
+
+```tsx
+<CommandMenu
+  menu={menu}
+  vimBindings={true}
+/>
+```
+
+With vim bindings enabled:
+- `Ctrl+j` / `Ctrl+n` - Next item
+- `Ctrl+k` / `Ctrl+p` - Previous item
+
+### Hide Breadcrumbs
+
+```tsx
+<CommandMenu
+  menu={menu}
+  showBreadcrumbs={false}
+/>
+```
+
+### Text Direction
+
+```tsx
+<CommandMenu
+  menu={menu}
+  dir="rtl"
+/>
+```
+
+## Comparison with Action Menu
+
+| Feature | Command Menu | Action Menu |
+|---------|--------------|-------------|
+| **Trigger** | Global keyboard shortcut | Click/right-click |
+| **Layout** | Modal dialog | Dropdown popover |
+| **Submenus** | Paged with breadcrumbs | Nested popovers |
+| **Use Case** | Global commands & actions | Contextual actions |
+| **Mobile** | Modal only | Drawer on mobile |
+| **Navigation** | Push/pop stack | Hover/click to open |
+
+## Next Steps
+
+- View [Examples](/docs/command-menu/examples)
+- Check the [API Reference](/docs/command-menu/api-reference)
+- Learn about the [Menu Primitive](/docs/menu)

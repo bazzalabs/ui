@@ -1,0 +1,503 @@
+---
+title: Theming
+section: Features
+summary: "Customize appearance using classNames, slots, and slotProps across three theming levels."
+---
+
+# Theming
+
+The command menu provides a comprehensive theming system with three levels of customization: **classNames** for styling, **slots** for custom rendering, and **slotProps** for HTML attributes.
+
+## Overview
+
+The theming system supports three levels:
+
+1. **Global (Factory)** - Set defaults when creating command menus via `createCommandMenu()`
+2. **Instance** - Override at the component level via `theme` prop
+3. **Surface** - Override at the menu/submenu level via `menu.theme`
+
+Lower levels merge with and override higher levels, allowing flexible theming hierarchies.
+
+## Three Customization Methods
+
+### 1. classNames - CSS Classes
+
+Apply CSS classes to specific elements:
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    classNames: {
+      dialogOverlay: 'bg-black/50 backdrop-blur-sm',
+      dialogContent: 'bg-white dark:bg-gray-900 rounded-lg shadow-xl',
+      dialogInner: 'p-4',
+      input: 'border-b border-gray-200',
+      item: 'hover:bg-gray-100 rounded-md px-3 py-2',
+    }
+  }}
+/>
+```
+
+### 2. slots - Custom Components
+
+Replace default rendering with custom components:
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    slots: {
+      DialogInner: ({ children, baseProps }) => (
+        <div {...baseProps} className="custom-wrapper">
+          {children}
+        </div>
+      ),
+      Input: ({ value, onChange, bind }) => (
+        <input
+          {...bind.getInputProps()}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="custom-input"
+        />
+      ),
+    }
+  }}
+/>
+```
+
+### 3. slotProps - HTML Attributes
+
+Forward HTML attributes to slot elements:
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    slotProps: {
+      input: {
+        autoComplete: 'off',
+        spellCheck: false,
+        'aria-label': 'Command input',
+      },
+      list: {
+        'data-test-id': 'command-list',
+      },
+    }
+  }}
+/>
+```
+
+## Available classNames
+
+### Dialog-Specific Classes
+
+| Key | Element | Description |
+|-----|---------|-------------|
+| `dialogOverlay` | Dialog backdrop | Modal overlay behind the dialog |
+| `dialogContent` | Dialog container | Main dialog wrapper (Radix Dialog.Content) |
+| `dialogInner` | Inner content wrapper | Contains breadcrumbs, input, and list |
+| `breadcrumbs` | Breadcrumb container | Wrapper for back button and breadcrumb trail |
+| `breadcrumbItem` | Breadcrumb item | Individual breadcrumb text |
+| `breadcrumbSeparator` | Breadcrumb separator | Separator between breadcrumbs (typically `/`) |
+| `backButton` | Back button | Button to navigate to parent menu |
+
+### Menu Primitive Classes (inherited from @bazza-ui/menu)
+
+| Key | Element | Description |
+|-----|---------|-------------|
+| `content` | Menu surface | Container for the menu list |
+| `input` | Search input | Text input for filtering |
+| `list` | List container | Scrollable list of items |
+| `itemWrapper` | Item wrapper | Wrapper around each item |
+| `item` | Menu item | Individual menu item (clickable) |
+| `subtriggerWrapper` | Submenu trigger wrapper | Wrapper around submenu triggers |
+| `subtrigger` | Submenu trigger | Submenu navigation item |
+| `groupHeading` | Group heading | Heading text for groups |
+| `separator` | Separator | Visual separator between items |
+
+## Available Slots
+
+### Command Menu Slots
+
+#### DialogInner
+
+Customize the inner dialog wrapper. **Critical for animations.**
+
+```typescript
+DialogInner?: (props: {
+  children: React.ReactNode
+  baseProps: {
+    ref: React.RefCallback<HTMLDivElement>
+    className?: string
+    'data-slot': 'command-menu-dialog-inner'
+    'data-command-menu-dialog-inner': true
+  }
+}) => React.ReactElement
+```
+
+**Important**: Must apply `baseProps` for ResizeObserver to work.
+
+```tsx
+theme={{
+  slots: {
+    DialogInner: ({ children, baseProps }) => (
+      <div {...baseProps} className={cn(baseProps.className, 'custom-class')}>
+        {children}
+      </div>
+    ),
+  },
+}}
+```
+
+See [Dialog Animations](/docs/command-menu/dialog-animations) for animation examples.
+
+### Menu Primitive Slots (inherited from @bazza-ui/menu)
+
+#### Input
+
+Custom search input component.
+
+```tsx
+theme={{
+  slots: {
+    Input: ({ value, onChange, bind, search }) => (
+      <input
+        {...bind.getInputProps()}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={`Search ${search.filteredCount} items...`}
+      />
+    ),
+  },
+}}
+```
+
+#### Header / Footer
+
+Add custom header/footer to the menu.
+
+```tsx
+theme={{
+  slots: {
+    Header: ({ menu }) => (
+      <div className="p-4 border-b">
+        <h3>{menu.title}</h3>
+      </div>
+    ),
+    Footer: ({ menu }) => (
+      <div className="p-2 text-xs text-gray-500">
+        {menu.nodes.length} commands available
+      </div>
+    ),
+  },
+}}
+```
+
+#### Item
+
+Custom item rendering.
+
+```tsx
+theme={{
+  slots: {
+    Item: ({ node, bind }) => (
+      <button {...bind.getItemProps()}>
+        {node.icon && <span className="icon">{node.icon}</span>}
+        <span className="label">{node.label}</span>
+        {node.shortcut && <kbd>{node.shortcut}</kbd>}
+      </button>
+    ),
+  },
+}}
+```
+
+## Theming Levels
+
+### Level 1: Global (Factory)
+
+Set defaults for all command menus in your app:
+
+```tsx
+// command-menu.tsx (in your component library)
+import { createCommandMenu } from '@bazza-ui/command-menu'
+
+const { CommandMenu, Root, Trigger, Content, Input, List, Breadcrumbs } = createCommandMenu({
+  classNames: {
+    dialogOverlay: 'bg-black/50',
+    dialogContent: 'bg-white rounded-lg shadow-xl max-w-2xl',
+    dialogInner: 'flex flex-col',
+    input: 'border-b border-gray-200 px-4 py-3',
+    item: 'px-4 py-2 hover:bg-gray-100 cursor-pointer',
+  },
+})
+
+export { CommandMenu, Root, Trigger, Content, Input, List, Breadcrumbs }
+```
+
+Now all imports use these defaults:
+
+```tsx
+import { CommandMenu } from '@/components/command-menu'
+
+// Uses factory defaults automatically
+<CommandMenu menu={menu} />
+```
+
+### Level 2: Instance
+
+Override factory defaults at the component level:
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    classNames: {
+      // Merges with factory defaults
+      dialogContent: 'bg-blue-50', // Overrides factory
+      item: 'px-6', // Overrides factory
+    },
+  }}
+/>
+```
+
+### Level 3: Surface (Menu/Submenu)
+
+Override at the menu or submenu level:
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'settings',
+      label: 'Settings',
+      // This theme only applies to the Settings submenu
+      theme: {
+        classNames: {
+          item: 'bg-gray-50',
+        },
+      },
+      nodes: [
+        { kind: 'item', id: 'profile', label: 'Profile' },
+        { kind: 'item', id: 'account', label: 'Account' },
+      ],
+    },
+  ],
+}
+```
+
+## Theme Merging
+
+Themes merge from global → instance → surface:
+
+```tsx
+// Factory level
+createCommandMenu({
+  classNames: {
+    item: 'px-4 py-2', // Base padding
+  },
+})
+
+// Instance level
+<CommandMenu
+  theme={{
+    classNames: {
+      item: 'hover:bg-gray-100', // Adds hover, keeps px-4 py-2
+    },
+  }}
+/>
+
+// Result: 'px-4 py-2 hover:bg-gray-100'
+```
+
+Classes are **concatenated**, not replaced. To completely override, use inline styles or CSS specificity.
+
+## Data Attributes for Styling
+
+Target elements using data attributes in your CSS:
+
+```css
+/* Dialog inner wrapper */
+[data-command-menu-dialog-inner] {
+  /* Your styles */
+}
+
+/* Input */
+[data-command-menu-input] {
+  /* Your styles */
+}
+
+/* Menu items */
+[data-menu-item] {
+  /* Your styles */
+}
+
+/* Selected item */
+[data-selected="true"] {
+  /* Your styles */
+}
+
+/* Submenu triggers */
+[data-menu-subtrigger] {
+  /* Your styles */
+}
+
+/* Group headings */
+[data-menu-group-heading] {
+  /* Your styles */
+}
+```
+
+### State Attributes
+
+```css
+/* Open/closed state */
+[data-state="open"] { }
+[data-state="closed"] { }
+
+/* Selection state */
+[data-selected="true"] { }
+[data-selected="false"] { }
+
+/* Disabled state */
+[data-disabled="true"] { }
+```
+
+## Examples
+
+### Dark Mode
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    classNames: {
+      dialogOverlay: 'bg-black/80',
+      dialogContent: cn(
+        'bg-white dark:bg-gray-900',
+        'text-gray-900 dark:text-gray-100',
+        'border border-gray-200 dark:border-gray-800'
+      ),
+      input: 'bg-transparent placeholder:text-gray-500 dark:placeholder:text-gray-400',
+      item: cn(
+        'hover:bg-gray-100 dark:hover:bg-gray-800',
+        'data-[selected=true]:bg-gray-200 dark:data-[selected=true]:bg-gray-700'
+      ),
+    },
+  }}
+/>
+```
+
+### Custom Animations
+
+```tsx
+<CommandMenu
+  menu={menu}
+  onNavigationChange={({ direction }) => setAnimDirection(direction)}
+  theme={{
+    slots: {
+      DialogInner: ({ children, baseProps }) => (
+        <div
+          {...baseProps}
+          className={cn(
+            baseProps.className,
+            animDirection === 'forward' && 'animate-slide-left',
+            animDirection === 'back' && 'animate-slide-right'
+          )}
+        >
+          {children}
+        </div>
+      ),
+    },
+  }}
+/>
+```
+
+See [Dialog Animations](/docs/command-menu/dialog-animations) for more examples.
+
+### Icon Support
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    slots: {
+      Item: ({ node, bind }) => (
+        <button {...bind.getItemProps()} className="flex items-center gap-3">
+          {node.icon && <span className="w-5 h-5">{node.icon}</span>}
+          <span className="flex-1">{node.label}</span>
+          {node.shortcut && <kbd className="text-xs">{node.shortcut}</kbd>}
+        </button>
+      ),
+    },
+  }}
+/>
+```
+
+### Custom Loading State
+
+```tsx
+<CommandMenu
+  menu={menu}
+  theme={{
+    slots: {
+      LoadingState: ({ progress }) => (
+        <div className="p-8 text-center">
+          <Spinner />
+          <p>Loading {progress?.[0]?.label || 'commands'}...</p>
+        </div>
+      ),
+    },
+  }}
+/>
+```
+
+## TypeScript
+
+The theme prop is fully typed with generics:
+
+```typescript
+import { CommandMenu, type CommandMenuTheme } from '@bazza-ui/command-menu'
+
+type MyData = {
+  id: string
+  label: string
+  icon?: React.ReactNode
+}
+
+const theme: CommandMenuTheme<MyData> = {
+  classNames: {
+    item: 'custom-class',
+  },
+  slots: {
+    Item: ({ node, bind }) => {
+      // node.data is typed as MyData
+      return (
+        <button {...bind.getItemProps()}>
+          {node.data.icon}
+          {node.data.label}
+        </button>
+      )
+    },
+  },
+}
+
+<CommandMenu<MyData> menu={menu} theme={theme} />
+```
+
+## Best Practices
+
+1. **Use factory for defaults** - Set base styles at the factory level
+2. **Use instance for variations** - Override for specific use cases
+3. **Use surface sparingly** - Only for menu-specific theming
+4. **Apply baseProps in slots** - Always spread baseProps for slots like DialogInner
+5. **Use data attributes** - More robust than class-based targeting
+6. **Leverage CSS variables** - For dynamic values like colors and spacing
+7. **Test dark mode** - Ensure themes work in both light and dark modes
+
+## Related
+
+- [Dialog Animations](/docs/command-menu/dialog-animations) - Animate with DialogInner slot
+- [createCommandMenu](/docs/command-menu/createCommandMenu) - Factory function reference
+- [API Reference](/docs/command-menu/api-reference) - Complete prop reference
