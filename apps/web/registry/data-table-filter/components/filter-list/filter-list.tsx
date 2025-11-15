@@ -20,7 +20,7 @@ type FilterListRenderProps<TData = unknown> = {
 
 interface FilterListProps<TData = unknown>
   extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
-  children?: (props: FilterListRenderProps<TData>) => ReactNode
+  children?: ReactNode | ((props: FilterListRenderProps<TData>) => ReactNode)
 }
 
 export function FilterList<TData = unknown>({
@@ -30,6 +30,20 @@ export function FilterList<TData = unknown>({
 }: FilterListProps<TData> = {}) {
   const { filters, columns } = useFilterContext<TData>()
 
+  // If regular children provided, just render them
+  if (children && typeof children !== 'function') {
+    return (
+      <div
+        data-slot="filter-list"
+        className={cn('contents', className)}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
+
+  // Otherwise, map over filters
   return (
     <div
       data-slot="filter-list"
@@ -44,7 +58,7 @@ export function FilterList<TData = unknown>({
         if (!filter.values) return null
 
         // If children render function provided, use it
-        if (children) {
+        if (typeof children === 'function') {
           return (
             <div key={`filter-block-${filter.columnId}`}>
               {children({ filter, column })}

@@ -64,10 +64,12 @@ export namespace Menu {
 // List component (uses context)
 export interface ListProps<TData = unknown>
   extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
-  children?: (props: {
-    filter: FilterModel
-    column: Column<TData>
-  }) => React.ReactNode
+  children?:
+    | React.ReactNode
+    | ((props: {
+        filter: FilterModel
+        column: Column<TData>
+      }) => React.ReactNode)
 }
 
 export function List<TData = unknown>(props: ListProps<TData> = {}) {
@@ -220,6 +222,3 @@ Filter.List = List
 Filter.Actions = Actions
 Filter.Root = Root
 Filter.Block = FilterBlock
-Filter.Subject = FilterBlock.Subject
-Filter.Operator = FilterBlock.Operator
-Filter.Value = FilterBlock.Value

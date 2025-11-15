@@ -259,10 +259,10 @@ The `<Filter />` component also supports a **composable API** for custom layouts
 - `Filter.List` - Active filters list
 - `Filter.Actions` - Clear/reset actions
 - `Filter.Block` - Individual filter block container
+  - `Filter.Block.Subject` - Filter subject/column name display
+  - `Filter.Block.Operator` - Filter operator display/editor
+  - `Filter.Block.Value` - Filter value display/editor
   - `Filter.Block.Remove` - Remove button for filter blocks
-- `Filter.Subject` - Filter subject/column name display
-- `Filter.Operator` - Filter operator display/editor
-- `Filter.Value` - Filter value display/editor
 
 #### Custom Menu Trigger
 
@@ -308,15 +308,15 @@ All composable components accept styling props while providing sensible defaults
 - Accepts `className` and all div props
 - Default: `flex h-7 items-center rounded-2xl border border-border bg-background shadow-xs text-xs`
 
-**Filter.Subject**
+**Filter.Block.Subject**
 - Accepts `className` and all span props
 - Default: `flex select-none items-center gap-1 whitespace-nowrap px-2 font-medium`
 
-**Filter.Operator**
+**Filter.Block.Operator**
 - Accepts `className` and all Button props (excluding `onClick`, `variant`, `children`)
 - Default: `m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs`, `variant="ghost"`
 
-**Filter.Value**
+**Filter.Block.Value**
 - Accepts `className` and all div props
 
 **Filter.Block.Remove**
@@ -332,11 +332,11 @@ All composable components accept styling props while providing sensible defaults
 <Filter.Provider value={{ columns, filters, actions, strategy }}>
   <Filter.Root className="flex-col gap-4">
     <Filter.Block className="bg-muted h-8">
-      <Filter.Subject className="text-primary" />
+      <Filter.Block.Subject className="text-primary" />
       <Separator orientation="vertical" />
-      <Filter.Operator className="text-sm" />
+      <Filter.Block.Operator className="text-sm" />
       <Separator orientation="vertical" />
-      <Filter.Value />
+      <Filter.Block.Value />
       <Separator orientation="vertical" />
       <Filter.Block.Remove variant="destructive" />
     </Filter.Block>
@@ -472,11 +472,11 @@ For even more control, you can build custom filter blocks using the granular com
       const column = getColumn(columns, filter.columnId)
       return (
         <Filter.Block key={filter.columnId} filter={filter} column={column}>
-          <Filter.Subject />
+          <Filter.Block.Subject />
           <Separator orientation="vertical" />
-          <Filter.Operator />
+          <Filter.Block.Operator />
           <Separator orientation="vertical" />
-          <Filter.Value />
+          <Filter.Block.Value />
         </Filter.Block>
       )
     })}
@@ -1285,7 +1285,7 @@ Version 2.0 introduces a major refactor that brings:
 
 - **Composable API**: Build custom filter layouts using compound components
 - **Customizable triggers**: `Filter.Menu.Trigger` with Radix UI `asChild` pattern and default styling
-- **Granular filter blocks**: Full control over individual filter block composition with `Filter.Block`, `Filter.Subject`, `Filter.Operator`, and `Filter.Value`
+- **Granular filter blocks**: Full control over individual filter block composition with `Filter.Block` and its sub-components (`Filter.Block.Subject`, `Filter.Block.Operator`, `Filter.Block.Value`, `Filter.Block.Remove`)
 - **Cleaner naming**: Removed all `_v2` suffixes
 - **ActionMenu pattern**: Full migration to ActionMenu for better UX
 - **Simplified architecture**: Removed duplicate code and legacy patterns
@@ -1395,10 +1395,10 @@ You can now build custom filter layouts using the compound components:
 - `Filter.List` - Active filters list
 - `Filter.Actions` - Clear/reset actions
 - `Filter.Block` - Individual filter block container
+  - `Filter.Block.Subject` - Filter subject/column name display
+  - `Filter.Block.Operator` - Filter operator display/editor
+  - `Filter.Block.Value` - Filter value display/editor
   - `Filter.Block.Remove` - Remove button for filter blocks
-- `Filter.Subject` - Filter subject/column name display
-- `Filter.Operator` - Filter operator display/editor
-- `Filter.Value` - Filter value display/editor
 
 **Example: Custom Menu Trigger**
 

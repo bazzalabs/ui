@@ -155,14 +155,31 @@ export function IssuesTable({
             <div className="flex md:flex-wrap gap-2 w-full flex-1">
               <Filter.Menu />
               <Filter.List>
+                {/* OPTION A: CHILDREN AS FUNCTION */}
                 {({ filter, column }) => (
                   <Filter.Block filter={filter} column={column}>
-                    <Filter.Subject />
-                    <Filter.Operator />
-                    <Filter.Value />
+                    <Filter.Block.Subject />
+                    <Filter.Block.Operator />
+                    <Filter.Block.Value />
                     <Filter.Block.Remove />
                   </Filter.Block>
                 )}
+                {/* OPTION B: ITERATE YOURSELF  */}
+                {/*{filters.map((filter) => {
+                  const id = filter.columnId
+                  const column = columns.find((col) => col.id === id)
+
+                  if (!column || !filter.values) return null
+
+                  return (
+                    <Filter.Block key={id} filter={filter} column={column}>
+                      <Filter.Block.Subject />
+                      <Filter.Block.Operator />
+                      <Filter.Block.Value />
+                      <Filter.Block.Remove />
+                    </Filter.Block>
+                  )
+                })}*/}
               </Filter.List>
             </div>
             <Filter.Actions />

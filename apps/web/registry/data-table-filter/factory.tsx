@@ -31,10 +31,9 @@ interface DataTableFilterContextValue<TData> {
 
 interface ListProps<TData>
   extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
-  children?: (props: {
-    filter: FilterModel
-    column: Column<TData>
-  }) => ReactNode
+  children?:
+    | ReactNode
+    | ((props: { filter: FilterModel; column: Column<TData> }) => ReactNode)
 }
 
 /**
@@ -115,6 +114,20 @@ export function createTypedFilter<TData>() {
   function List({ className, children, ...props }: ListProps<TData> = {}) {
     const { filters, columns } = useTypedFilterContext()
 
+    // If regular children provided, just render them
+    if (children && typeof children !== 'function') {
+      return (
+        <div
+          data-slot="filter-list"
+          className={cn('contents', className)}
+          {...props}
+        >
+          {children}
+        </div>
+      )
+    }
+
+    // Otherwise, map over filters
     return (
       <div
         data-slot="filter-list"
@@ -127,7 +140,8 @@ export function createTypedFilter<TData>() {
 
           if (!column || !filter.values) return null
 
-          if (children) {
+          // If children render function provided, use it
+          if (typeof children === 'function') {
             return (
               <div key={`filter-block-${filter.columnId}`}>
                 {children({ filter, column })}
@@ -243,9 +257,6 @@ export function createTypedFilter<TData>() {
     List,
     Actions,
     Block: FilterBlock,
-    Subject: FilterBlock.Subject,
-    Operator: FilterBlock.Operator,
-    Value: FilterBlock.Value,
     // Expose the context and hook for advanced usage
     Context: TypedFilterContext,
     useContext: useTypedFilterContext,
