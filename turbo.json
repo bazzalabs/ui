@@ -23,6 +23,7 @@
       "persistent": true
     },
     "type-check": {
+      "dependsOn": ["^build"],
       "cache": true,
       "inputs": ["$TURBO_DEFAULT$", "tsconfig.json"]
     },
