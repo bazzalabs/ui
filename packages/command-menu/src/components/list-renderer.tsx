@@ -123,13 +123,17 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
 
     store.resetOrder(validRowIds)
     store.resetVirtualIndexMap(virtualIndexMap)
-    if (validRowIds.length > 0) {
+
+    const activeId = store.snapshot().activeId
+    const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
+
+    if (validRowIds.length > 0 && !isActiveIdValid) {
       store.setActiveByIndex(0, 'keyboard')
     }
   }, [displayNodes, store])
 
   // Reset to first item when query changes
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     store.first('keyboard')
   }, [q, store])
 
