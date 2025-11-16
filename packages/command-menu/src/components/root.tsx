@@ -32,27 +32,57 @@ export function CommandMenuRoot<T = unknown>({
     NavigationStackEntry[]
   >([])
 
-  // Submenu storage
-  const submenuMapRef = React.useRef<Map<string, MenuDef<any>>>(new Map())
-
   // Shared input ref for focus management
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  // Current menu to display
+  // Current menu to display - derive from menu prop using navigation stack
   const currentMenu = React.useMemo(() => {
     if (navigationStack.length === 0) {
       return menu
     }
-    const currentEntry = navigationStack[navigationStack.length - 1]
-    return submenuMapRef.current.get(currentEntry!.menuId) ?? menu
+
+    // Traverse the navigation stack to find the current submenu
+    let currentMenuDef: MenuDef<any> = menu
+
+    for (const entry of navigationStack) {
+      // Find the submenu node in the current menu's nodes
+      const nodes = currentMenuDef.nodes || []
+      const submenuNode = nodes.find(
+        (n) => n.kind === 'submenu' && n.id === entry.menuId,
+      )
+
+      if (submenuNode && submenuNode.kind === 'submenu') {
+        // Convert SubmenuDef to MenuDef
+        currentMenuDef = {
+          id: submenuNode.id || entry.menuId,
+          title: submenuNode.title,
+          nodes: submenuNode.nodes,
+          loader: submenuNode.loader,
+          search: submenuNode.search,
+          defaults: submenuNode.defaults,
+          ui: submenuNode.ui,
+          virtualization: submenuNode.virtualization,
+          inputPlaceholder: submenuNode.inputPlaceholder,
+          hideSearchUntilActive: submenuNode.hideSearchUntilActive,
+          input: submenuNode.input,
+          open: submenuNode.open,
+          middleware: submenuNode.middleware,
+        } as MenuDef<any>
+      } else {
+        // Submenu not found - fallback to root menu
+        console.warn(`Submenu not found: ${entry.menuId}`)
+        return menu
+      }
+    }
+
+    return currentMenuDef
   }, [menu, navigationStack])
 
   // Push submenu onto stack
   const pushSubmenu = React.useCallback(
-    (entry: NavigationStackEntry, submenu: MenuDef<any>) => {
+    (entry: NavigationStackEntry) => {
       // Clear query when navigating to a submenu
       onQueryChange?.('')
-      submenuMapRef.current.set(entry.menuId, submenu)
       setNavigationStack((prev) => {
         const nextStack = [...prev, entry]
         // Fire navigation change callback
@@ -74,11 +104,6 @@ export function CommandMenuRoot<T = unknown>({
     setNavigationStack((prev) => {
       if (prev.length === 0) return prev
       const newStack = prev.slice(0, -1)
-      // Clean up the submenu from the map
-      const poppedEntry = prev[prev.length - 1]
-      if (poppedEntry) {
-        submenuMapRef.current.delete(poppedEntry.menuId)
-      }
       // Fire navigation change callback
       onNavigationChange?.({
         direction: 'back',
@@ -92,7 +117,6 @@ export function CommandMenuRoot<T = unknown>({
   // Clear stack
   const clearStack = React.useCallback(() => {
     setNavigationStack([])
-    submenuMapRef.current.clear()
   }, [])
 
   // Clear stack when dialog closes

@@ -91,7 +91,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     [customSlots],
   )
 
-  const q = query.trim()
+  const q = React.useMemo(() => query.trim(), [query])
 
   // Check for streaming mode
   const isStreaming = (menu as any).loadingState?.loadMode === 'streaming'
@@ -125,17 +125,23 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     store.resetVirtualIndexMap(virtualIndexMap)
 
     const activeId = store.snapshot().activeId
+    console.log({
+      activeId,
+      validRowIds,
+    })
     const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
 
     if (validRowIds.length > 0 && !isActiveIdValid) {
+      console.log('here!')
       store.setActiveByIndex(0, 'keyboard')
     }
   }, [displayNodes, store])
 
   // Reset to first item when query changes
   React.useEffect(() => {
+    console.log('query changed! resetting active id to first in list')
     store.first('keyboard')
-  }, [q, store])
+  }, [q])
 
   // Virtualization
   const virtualizer = useVirtualizer({

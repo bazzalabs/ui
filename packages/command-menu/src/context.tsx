@@ -1,6 +1,6 @@
 import type { MenuDef } from '@bazza-ui/menu'
 import * as React from 'react'
-import type { CommandMenuThemeDef, NavigationStackEntry } from './types.js'
+import type { NavigationStackEntry } from './types.js'
 
 export type CommandMenuContextValue<T = unknown> = {
   /** Current menu being displayed */
@@ -8,7 +8,7 @@ export type CommandMenuContextValue<T = unknown> = {
   /** Navigation stack for paged navigation */
   navigationStack: NavigationStackEntry[]
   /** Push a submenu onto the stack */
-  pushSubmenu: (entry: NavigationStackEntry, submenu: MenuDef<any>) => void
+  pushSubmenu: (entry: NavigationStackEntry) => void
   /** Pop the current submenu from the stack */
   popSubmenu: () => void
   /** Clear the entire navigation stack */

@@ -39,7 +39,7 @@ export function CommandMenuList<T = unknown>({
 
   // Create a surface store for the current menu
   // Recreate store when menu changes to avoid stale state
-  const store = React.useMemo(() => createSurfaceStore<T>(), [currentMenu])
+  const store = React.useMemo(() => createSurfaceStore<T>(), [currentMenu.id])
 
   // Extract the loader from the current menu
   const menuLoader = React.useMemo(() => {
@@ -138,14 +138,11 @@ export function CommandMenuList<T = unknown>({
         nodeCount: submenuToUse.nodes?.length,
       })
 
-      pushSubmenu(
-        {
-          menuId: submenuId,
-          menuTitle: title,
-          parentMenuId: menu.id,
-        },
-        submenuToUse,
-      )
+      pushSubmenu({
+        menuId: submenuId,
+        menuTitle: title,
+        parentMenuId: menu.id,
+      })
     },
     [menu, pushSubmenu],
   )
