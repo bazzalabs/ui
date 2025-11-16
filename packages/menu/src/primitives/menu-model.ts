@@ -1,4 +1,5 @@
 import type {
+  AsyncNodeLoaderResult,
   GroupDef,
   GroupNode,
   ItemDef,
@@ -9,6 +10,8 @@ import type {
   MenuDef,
   Node,
   NodeDef,
+  SeparatorDef,
+  SeparatorNode,
   SubmenuDef,
   SubmenuNode,
 } from '../types.js'
@@ -38,6 +41,84 @@ export function textToId(text: string): string {
     .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric (keep spaces and hyphens)
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
+}
+
+/**
+ * Normalizes a MenuDef by injecting inferred IDs into all nodes.
+ * This ensures that DEFs have the same IDs as their corresponding NODEs,
+ * preventing mismatches when searching for nodes by ID.
+ *
+ * @param menuDef - The menu definition to normalize
+ * @returns A new MenuDef with all inferred IDs injected
+ */
+export function normalizeMenuDef<T>(menuDef: MenuDef<T>): MenuDef<T> {
+  return {
+    ...menuDef,
+    nodes: menuDef.nodes?.map((node) => normalizeNodeDef(node)) as NodeDef<T>[],
+  }
+}
+
+/**
+ * Normalizes a NodeDef by injecting inferred IDs.
+ * Recursively processes child nodes and submenus.
+ */
+function normalizeNodeDef<T>(nodeDef: NodeDef<T>): NodeDef<T> {
+  if (nodeDef.kind === 'item') {
+    // Inject inferred ID if not present
+    const id =
+      nodeDef.id ?? (nodeDef.label ? textToId(nodeDef.label) : undefined)
+    if (!id) {
+      throw new Error(
+        'Item must have either an "id" or "label" property to generate an ID',
+      )
+    }
+    return { ...nodeDef, id }
+  }
+
+  if (nodeDef.kind === 'group') {
+    // Recursively normalize child nodes
+    const nodes = nodeDef.nodes?.map((child) => normalizeNodeDef(child))
+    return { ...nodeDef, nodes } as NodeDef<T>
+  }
+
+  if (nodeDef.kind === 'submenu') {
+    const subDef = nodeDef as SubmenuDef<any, any>
+
+    // Inject inferred ID if not present
+    const id =
+      subDef.id ??
+      (subDef.label
+        ? textToId(subDef.label)
+        : subDef.title
+          ? textToId(subDef.title)
+          : undefined)
+
+    if (!id) {
+      throw new Error(
+        'Submenu must have either an "id", "label", or "title" property to generate an ID',
+      )
+    }
+
+    // Recursively normalize child nodes if they exist
+    const nodes = subDef.nodes?.map((child) =>
+      normalizeNodeDef(child as NodeDef<any>),
+    )
+
+    return { ...subDef, id, nodes } as NodeDef<T>
+  }
+
+  if (nodeDef.kind === 'separator') {
+    // Separators can optionally have IDs
+    const id =
+      nodeDef.id ?? (nodeDef.label ? textToId(nodeDef.label) : undefined)
+    return id ? { ...nodeDef, id } : nodeDef
+  }
+
+  if (nodeDef.kind === 'loading') {
+    return nodeDef
+  }
+
+  return nodeDef
 }
 
 /* ================================================================================================
@@ -120,7 +201,7 @@ export function instantiateSingleNode<T>(
   }
 
   if (def.kind === 'separator') {
-    const separatorDef = def as import('../types.js').SeparatorDef
+    const separatorDef = def as SeparatorDef
 
     // Generate ID from label if not provided
     const id =
@@ -131,7 +212,7 @@ export function instantiateSingleNode<T>(
       )
     }
 
-    const node: import('../types.js').SeparatorNode = {
+    const node: SeparatorNode = {
       kind: 'separator',
       id,
       hidden: def.hidden,
@@ -238,7 +319,7 @@ export function instantiateMenuFromDef<T>(
   // we skip it and let the submenu's Surface component resolve it
   const resolvedLoader =
     def.loader && typeof def.loader !== 'function'
-      ? (def.loader as import('../types.js').AsyncNodeLoaderResult<T>)
+      ? (def.loader as AsyncNodeLoaderResult<T>)
       : undefined
 
   // Merge both static nodes AND loader data (if both exist)

@@ -4,8 +4,10 @@ import type {
   AsyncNodeLoader,
   AsyncNodeLoaderResult,
   GroupDef,
+  LoaderProgress,
   MenuDef,
   NodeDef,
+  SearchConfig,
   SubmenuDef,
 } from '../types.js'
 
@@ -18,7 +20,7 @@ export type DeepSearchLoaderEntry<T = unknown> = {
   /** The loader to execute */
   loader: AsyncNodeLoader<T>
   /** Search configuration from the submenu (for minLength, debounce, etc.) */
-  searchConfig?: import('../types.js').SearchConfig
+  searchConfig?: SearchConfig
 }
 
 /**
@@ -118,7 +120,7 @@ export function aggregateLoaderResults(
   let isLoading = false
   let isError = false
   let isFetching = false
-  const progress: import('../types.js').LoaderProgress[] = []
+  const progress: LoaderProgress[] = []
   const completedPaths = new Set<string>()
   const inProgressPaths = new Set<string>()
 

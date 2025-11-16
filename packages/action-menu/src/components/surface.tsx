@@ -36,6 +36,7 @@ import type {
   ActionMenuSurfaceProps,
   AsyncNodeLoaderContext,
   ContentBindAPI,
+  InputSearchState,
   Menu,
   MenuDef,
   MenuNodeDefaults,
@@ -607,7 +608,7 @@ export const Surface = React.forwardRef(function Surface<T>(
     </div>
   ) : null
 
-  const searchState: import('../types.js').InputSearchState = React.useMemo(
+  const searchState: InputSearchState = React.useMemo(
     () => ({
       query: value,
       isLoading: menu.loadingState?.isLoading,

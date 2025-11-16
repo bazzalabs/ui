@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/menu'
+import { type MenuDef, normalizeMenuDef } from '@bazza-ui/menu'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
@@ -12,7 +12,7 @@ export function CommandMenuRoot<T = unknown>({
   open: openProp,
   onOpenChange,
   defaultOpen,
-  menu,
+  menu: menuProp,
   vimBindings = true,
   dir = 'ltr',
   showBreadcrumbs = true,
@@ -20,6 +20,8 @@ export function CommandMenuRoot<T = unknown>({
   onNavigationChange,
   children,
 }: CommandMenuProps<T>) {
+  // Normalize the menu to inject inferred IDs into all nodes
+  const menu = React.useMemo(() => normalizeMenuDef(menuProp), [menuProp])
   // Controlled/uncontrolled open state
   const [open, setOpen] = useControllableState({
     prop: openProp,
@@ -52,12 +54,18 @@ export function CommandMenuRoot<T = unknown>({
       )
 
       if (submenuNode && submenuNode.kind === 'submenu') {
+        // Check if this submenu has injected deep search results
+        const hasInjectedResults = (submenuNode as any).__originalLoader
+
         // Convert SubmenuDef to MenuDef
+        // If deep search injected results, clear nodes and restore original loader
         currentMenuDef = {
           id: submenuNode.id || entry.menuId,
           title: submenuNode.title,
-          nodes: submenuNode.nodes,
-          loader: submenuNode.loader,
+          nodes: hasInjectedResults ? undefined : submenuNode.nodes,
+          loader: hasInjectedResults
+            ? (submenuNode as any).__originalLoader
+            : submenuNode.loader,
           search: submenuNode.search,
           defaults: submenuNode.defaults,
           ui: submenuNode.ui,

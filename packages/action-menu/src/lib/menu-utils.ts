@@ -1,12 +1,17 @@
 import type {
+  AsyncNodeLoaderResult,
   GroupDef,
   GroupNode,
   ItemDef,
   ItemNode,
+  LoadingDef,
+  LoadingNode,
   Menu,
   MenuDef,
   Node,
   NodeDef,
+  SeparatorDef,
+  SeparatorNode,
   SubmenuDef,
   SubmenuNode,
 } from '../types.js'
@@ -118,7 +123,7 @@ export function instantiateSingleNode<T>(
   }
 
   if (def.kind === 'separator') {
-    const separatorDef = def as import('../types.js').SeparatorDef
+    const separatorDef = def as SeparatorDef
 
     // Generate ID from label if not provided
     const id =
@@ -129,7 +134,7 @@ export function instantiateSingleNode<T>(
       )
     }
 
-    const node: import('../types.js').SeparatorNode = {
+    const node: SeparatorNode = {
       kind: 'separator',
       id,
       hidden: def.hidden,
@@ -141,8 +146,8 @@ export function instantiateSingleNode<T>(
   }
 
   if (def.kind === 'loading') {
-    const loadingDef = def as import('../types.js').LoadingDef
-    const node: import('../types.js').LoadingNode = {
+    const loadingDef = def as LoadingDef
+    const node: LoadingNode = {
       kind: 'loading',
       id: def.id,
       hidden: def.hidden,
@@ -236,7 +241,7 @@ export function instantiateMenuFromDef<T>(
   // we skip it and let the submenu's Surface component resolve it
   const resolvedLoader =
     def.loader && typeof def.loader !== 'function'
-      ? (def.loader as import('../types.js').AsyncNodeLoaderResult<T>)
+      ? (def.loader as AsyncNodeLoaderResult<T>)
       : undefined
 
   // Determine source of nodes: either static (sync) or from loader (async)

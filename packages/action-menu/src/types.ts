@@ -2,6 +2,7 @@ import type { Primitive } from '@radix-ui/react-primitive'
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual'
 import type * as React from 'react'
 import type { Drawer } from 'vaul'
+import type { MenuMiddleware } from './middleware/types.js'
 
 /* ================================================================================================
  * Menu Model Types
@@ -44,7 +45,7 @@ export type StateDescriptor<T> = {
 export type MenuState = {
   input?: StateDescriptor<string>
   open?: StateDescriptor<boolean>
-  middleware?: import('./middleware/types.js').MenuMiddleware<any>
+  middleware?: MenuMiddleware<any>
 }
 
 /**
