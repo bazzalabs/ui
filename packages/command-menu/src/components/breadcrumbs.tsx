@@ -1,4 +1,3 @@
-import { cn } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useCommandMenuContext } from '../context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
@@ -29,35 +28,40 @@ export function CommandMenuBreadcrumbs() {
 
   return (
     <div
-      className={cn(
-        'flex items-center gap-2 border-b px-3 py-2 text-sm text-muted-foreground',
-        theme?.classNames?.breadcrumbs,
-      )}
+      data-slot="command-menu-breadcrumbs"
+      className={theme?.classNames?.breadcrumbs}
     >
       <button
         type="button"
         onClick={handleBack}
-        className={cn(
-          'flex items-center gap-1 hover:text-foreground',
-          theme?.classNames?.backButton,
-        )}
+        data-slot="breadcrumb-back-button"
+        className={theme?.classNames?.backButton}
       >
         <span aria-hidden>←</span>
         <span>Back</span>
       </button>
       {navigationStack.length > 0 && (
         <>
-          <span className={cn(theme?.classNames?.breadcrumbSeparator)}>/</span>
-          <div className="flex items-center gap-2">
+          <span
+            data-slot="breadcrumb-separator"
+            className={theme?.classNames?.breadcrumbSeparator}
+          >
+            /
+          </span>
+          <div data-slot="breadcrumb-items">
             {navigationStack.map((entry, index) => (
               <React.Fragment key={entry.menuId}>
                 {index > 0 && (
-                  <span className={cn(theme?.classNames?.breadcrumbSeparator)}>
+                  <span
+                    data-slot="breadcrumb-separator"
+                    className={theme?.classNames?.breadcrumbSeparator}
+                  >
                     /
                   </span>
                 )}
                 <span
-                  className={cn('truncate', theme?.classNames?.breadcrumbItem)}
+                  data-slot="breadcrumb-item"
+                  className={theme?.classNames?.breadcrumbItem}
                 >
                   {entry.menuTitle ?? entry.menuId}
                 </span>
