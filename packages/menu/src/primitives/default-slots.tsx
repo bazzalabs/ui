@@ -1,5 +1,5 @@
 import type { MenuSlots } from '../types.js'
-import { renderIcon } from '../utils/react-utils.js'
+import { renderIcon } from '../utils/react.js'
 
 export function defaultSlots<T>(): Required<MenuSlots<T>> {
   return {

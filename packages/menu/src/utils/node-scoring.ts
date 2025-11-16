@@ -1,5 +1,5 @@
 import type { ItemNode, Node, ScoredNode, SubmenuNode } from '../types.js'
-import { buildBreadcrumbs } from './breadcrumb-utils.js'
+import { buildBreadcrumbs } from './breadcrumb.js'
 import { commandScore } from './command-score.js'
 
 /**

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { instantiateMenuFromDef } from '../primitives/menu-model.js'
 import type {
   AggregatedLoaderState,
   AsyncNodeLoaderContext,
@@ -9,12 +10,11 @@ import type {
 import {
   aggregateLoaderResults,
   collectDeepSearchLoaders,
+  type DeepSearchLoaderEntry,
   injectCompletedLoaderResults,
   injectLoaderResults,
   shouldEnableStreaming,
-  type DeepSearchLoaderEntry,
-} from '../utils/deep-search-utils.js'
-import { instantiateMenuFromDef } from '../primitives/menu-model.js'
+} from '../utils/deep-search.js'
 
 export interface DeepSearchOrchestrationConfig<T> {
   /**
@@ -196,7 +196,9 @@ export function useDeepSearchOrchestration<T>(
   // This ensures static content maintains stable order while async loaders append as they complete
   React.useEffect(() => {
     if (!isInitializedRef.current && streamingEnabled && query) {
-      const loaderPaths = new Set(deepSearchLoaderEntries.map(e => e.path.join('.')))
+      const loaderPaths = new Set(
+        deepSearchLoaderEntries.map((e) => e.path.join('.')),
+      )
 
       // Walk through submenus and add static ones (without loaders) to completion order
       const staticSubmenuIds: string[] = []
@@ -216,7 +218,10 @@ export function useDeepSearchOrchestration<T>(
       walkNodes(menuDef.nodes)
 
       if (staticSubmenuIds.length > 0) {
-        console.log('[MENU DEBUG] Initializing completion order with static submenus:', staticSubmenuIds)
+        console.log(
+          '[MENU DEBUG] Initializing completion order with static submenus:',
+          staticSubmenuIds,
+        )
         completionOrderRef.current = [...staticSubmenuIds]
       }
 
@@ -253,7 +258,10 @@ export function useDeepSearchOrchestration<T>(
               completionOrderRef.current.push(pathKey)
             }
             console.log('[MENU DEBUG] Loader completed:', pathKey)
-            console.log('[MENU DEBUG] Current completionOrder:', completionOrderRef.current)
+            console.log(
+              '[MENU DEBUG] Current completionOrder:',
+              completionOrderRef.current,
+            )
           }
         }
 

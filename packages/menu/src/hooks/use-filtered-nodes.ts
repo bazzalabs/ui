@@ -13,7 +13,7 @@ import {
   partitionByKind,
   sortByCompletionOrder,
   sortByScore,
-} from '../utils/sort-utils.js'
+} from '../utils/sort.js'
 
 /**
  * Filter mode for nodes.
