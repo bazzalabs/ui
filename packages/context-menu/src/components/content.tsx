@@ -24,33 +24,43 @@ export function ContextMenuContent<T = unknown>({
   const { open, closeAllSurfaces, anchorPoint } = useRootContext()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
+  // Keep the last valid anchor point for exit animations
+  const lastAnchorPoint = React.useRef<{ x: number; y: number } | null>(null)
+  if (anchorPoint) {
+    lastAnchorPoint.current = anchorPoint
+  }
+
+  // Use current or last anchor point for positioning
+  const activeAnchorPoint = anchorPoint ?? lastAnchorPoint.current
+
   // Create virtual anchor element for cursor position
   // Must be called unconditionally before early returns (Rules of Hooks)
   const virtualAnchor = React.useMemo(
     () =>
-      anchorPoint
+      activeAnchorPoint
         ? {
             getBoundingClientRect: () => ({
-              x: anchorPoint.x,
-              y: anchorPoint.y,
+              x: activeAnchorPoint.x,
+              y: activeAnchorPoint.y,
               width: 0,
               height: 0,
-              top: anchorPoint.y,
-              left: anchorPoint.x,
-              right: anchorPoint.x,
-              bottom: anchorPoint.y,
+              top: activeAnchorPoint.y,
+              left: activeAnchorPoint.x,
+              right: activeAnchorPoint.x,
+              bottom: activeAnchorPoint.y,
               toJSON: () => ({}),
             }),
           }
         : null,
-    [anchorPoint],
+    [activeAnchorPoint],
   )
 
   // Get menu from context (passed to Root) or props
   // For now, require it from Root via context
   // TODO: Add menu to root context if we want to support both patterns
 
-  if (!open || !anchorPoint || !virtualAnchor) {
+  // Only return null if we've never had an anchor point
+  if (!virtualAnchor) {
     return null
   }
 
@@ -79,12 +89,12 @@ export function ContextMenuContent<T = unknown>({
       </Positioner>
 
       {/* Debug visualization */}
-      {debug && (
+      {debug && activeAnchorPoint && (
         <div
           style={{
             position: 'fixed',
-            left: anchorPoint.x,
-            top: anchorPoint.y,
+            left: activeAnchorPoint.x,
+            top: activeAnchorPoint.y,
             width: 8,
             height: 8,
             background: 'red',

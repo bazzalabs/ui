@@ -71,6 +71,21 @@ export const ContextMenu = createContextMenu({
         <span>{node.heading}</span>
       </div>
     ),
+    InlineLoading: (args) => {
+      const count = args.progress?.reduce((acc, progress) => {
+        return progress.isLoading ? acc : acc + 1
+      }, 0)
+      const total = args.progress?.length ?? 0
+
+      return (
+        <div className="flex items-center justify-center gap-2 h-10 text-muted-foreground">
+          <DiamondSpinner className="size-5 text-primary rotate-45" />
+          <span className="tabular-nums">
+            Loading {total > 0 ? `${count}/${total}` : ''}...
+          </span>
+        </div>
+      )
+    },
     Loading: (args) => {
       const count = args.progress?.reduce((acc, progress) => {
         return progress.isLoading ? acc : acc + 1

@@ -62,6 +62,9 @@ export function PopupMenuList<T = unknown>({
     [subCtx],
   )
 
+  // Determine if this is a submenu (needed early for deep search orchestration)
+  const isSubmenu = !!subCtx
+
   // Get theme from scoped context
   const theme = useScopedTheme()
 
@@ -102,13 +105,12 @@ export function PopupMenuList<T = unknown>({
     open,
     loaderAdapter,
     surfaceId,
-    isSubmenu: false,
+    isSubmenu,
     rootLoaderResult: loaderResult,
   })
 
   // Check if we're already inside a FocusOwnerCtx (from parent surface)
   const existingFocusOwnerCtx = React.useContext(FocusOwnerCtx)
-  const isSubmenu = !!subCtx
 
   // Focus owner state - only create if we're the root (no existing context)
   const [localOwnerId, setLocalOwnerId] = React.useState<string | null>(null)

@@ -261,9 +261,13 @@
         "vitest": "^4.0.8",
       },
       "peerDependencies": {
+        "@tanstack/react-query": ">=5.0.0",
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0",
       },
+      "optionalPeers": [
+        "@tanstack/react-query",
+      ],
     },
     "packages/popup-menu": {
       "name": "@bazza-ui/popup-menu",

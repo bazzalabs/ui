@@ -20,13 +20,22 @@ export function PopupMenuSubmenuContent<T>({
   // Convert submenu node to menu def with required id
   const menuDef: MenuDef<any> = React.useMemo(() => {
     const def = node.def
+
+    // IMPORTANT: If this submenu has deep search injected results (__originalLoader),
+    // restore the original loader to prevent stale/filtered results when opening the submenu.
+    // The __originalLoader is set by deep search injection and contains the original loader function.
+    // When a submenu is opened, it should start fresh with its own query, not the parent's cached results.
+    const hasOriginalLoader = (def as any).__originalLoader
+
     return {
       id: node.id, // Use the node's id which is always defined
       title: def.title,
       inputPlaceholder: def.inputPlaceholder,
       hideSearchUntilActive: def.hideSearchUntilActive,
-      nodes: def.nodes,
-      loader: def.loader,
+      // Clear injected nodes if we have an original loader - they'll be loaded fresh with the submenu's own query
+      nodes: hasOriginalLoader ? undefined : def.nodes,
+      // Restore the original loader if it exists, otherwise use the current loader
+      loader: hasOriginalLoader ? (def as any).__originalLoader : def.loader,
       defaults: def.defaults,
       virtualization: def.virtualization,
       search: def.search,

@@ -1,7 +1,11 @@
 'use client'
 
 import type { MenuDef } from '@bazza-ui/context-menu'
-import { renderIcon, type SubmenuDef } from '@bazza-ui/menu'
+import {
+  LoaderAdapterProvider,
+  renderIcon,
+  type SubmenuDef,
+} from '@bazza-ui/menu'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -15,28 +19,31 @@ import {
   Status,
   StatusIcon,
 } from '../action-menu/shared/icons'
+import { ReactQueryLoaderAdapter } from '@bazza-ui/command-menu/loaders/tanstack-query'
 
 export function ContextMenu_Linear() {
   return (
-    <ContextMenu menu={menuData}>
-      <div className="relative h-48 w-full rounded-lg border p-4">
-        <div className="prose prose-sm dark:prose-invert">
-          <p className="font-semibold">Project Task Card</p>
-          <p className="text-muted-foreground text-sm">
-            Right-click on this card to change issue properties like status,
-            assignee, labels, and project settings.
-          </p>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <span className="text-xs bg-muted px-2 py-1 rounded">
-              Status: Todo
-            </span>
-            <span className="text-xs bg-muted px-2 py-1 rounded">
-              Assignee: None
-            </span>
+    <LoaderAdapterProvider adapter={ReactQueryLoaderAdapter}>
+      <ContextMenu menu={menuData}>
+        <div className="relative h-48 w-full rounded-lg border p-4">
+          <div className="prose prose-sm dark:prose-invert">
+            <p className="font-semibold">Project Task Card</p>
+            <p className="text-muted-foreground text-sm">
+              Right-click on this card to change issue properties like status,
+              assignee, labels, and project settings.
+            </p>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <span className="text-xs bg-muted px-2 py-1 rounded">
+                Status: Todo
+              </span>
+              <span className="text-xs bg-muted px-2 py-1 rounded">
+                Assignee: None
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </ContextMenu>
+      </ContextMenu>
+    </LoaderAdapterProvider>
   )
 }
 

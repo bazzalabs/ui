@@ -1,5 +1,5 @@
 /**
- * React Query adapter for command-menu loaders.
+ * React Query adapter for context-menu loaders.
  * This is a re-export from @bazza-ui/menu for convenience.
  *
  * The actual implementation lives in @bazza-ui/menu and is shared across

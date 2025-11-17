@@ -42,11 +42,29 @@ export function ContextMenuRoot<T = unknown>({
   } | null>(null)
 
   const scopeId = React.useId()
+  const clearAnchorTimeoutRef = React.useRef<number | null>(null)
 
   const closeAllSurfaces = React.useCallback(() => {
     setOpen(false)
-    setAnchorPoint(null)
+    // Clear any pending timeout
+    if (clearAnchorTimeoutRef.current !== null) {
+      clearTimeout(clearAnchorTimeoutRef.current)
+    }
+    // Delay clearing anchor point to allow exit animation to complete
+    clearAnchorTimeoutRef.current = setTimeout(() => {
+      setAnchorPoint(null)
+      clearAnchorTimeoutRef.current = null
+    }, 200) as any
   }, [setOpen])
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (clearAnchorTimeoutRef.current !== null) {
+        clearTimeout(clearAnchorTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const rootValue = React.useMemo(
     () => ({
