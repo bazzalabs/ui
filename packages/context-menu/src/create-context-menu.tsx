@@ -2,11 +2,11 @@ import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   defaultSlots,
   GlobalThemeProvider,
+  type InteractionGuardOptions,
   mergeTheme,
-  ScopedThemeProvider,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
-  type InteractionGuardOptions,
+  ScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { ContextMenuContent } from './components/content.js'
@@ -129,12 +129,6 @@ export function createContextMenu<T = unknown>(
       }),
       [defaults],
     )
-
-    console.log({
-      factoryDefaults: factoryDefaults,
-      instanceDefaults: defaults,
-      mergedDefaults: mergedDefaults,
-    })
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>

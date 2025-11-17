@@ -248,7 +248,6 @@ export function Positioner({
     (event: KeyboardEvent) => {
       onEscapeKeyDown?.(event)
       if (!event.defaultPrevented) {
-        console.log('Escape key pressed')
         root.closeAllSurfaces()
       }
     },
@@ -259,7 +258,6 @@ export function Positioner({
     (event: any) => {
       onPointerDownOutside?.(event)
       if (!event.defaultPrevented) {
-        console.log('Pointer down outside')
         root.closeAllSurfaces()
       }
     },

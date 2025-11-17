@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { CLOSE_MENU_EVENT, dispatch } from '../lib/events.js'
 import type { InteractionGuardProps } from '../components/interaction-guard.js'
+import { CLOSE_MENU_EVENT, dispatch } from '../lib/events.js'
 
 export interface RootContextValue {
   /** Unique scope ID for this menu instance */
@@ -62,10 +62,7 @@ export function RootProvider({
       const el = document.querySelector<HTMLElement>(
         `[data-surface-id="${surfaceId}"]`,
       )
-      if (el) {
-        console.log('[Root] closing surface', surfaceId)
-        dispatch(el, CLOSE_MENU_EVENT)
-      }
+      if (el) dispatch(el, CLOSE_MENU_EVENT)
     }
 
     // Close the root menu

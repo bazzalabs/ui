@@ -67,18 +67,6 @@ export function CommandMenuList<T = unknown>({
   // Execute the root menu loader using the adapter
   const loaderResult = loaderAdapter.useLoader(menuLoader, loaderContext)
 
-  React.useEffect(() => {
-    if (loaderResult?.data) {
-      console.log('📊 [CommandMenuList] Loader result:', {
-        menuId: currentMenu.id,
-        loaderType: typeof menuLoader,
-        dataCount: loaderResult.data?.length,
-        isLoading: loaderResult.isLoading,
-        query: loaderQuery,
-      })
-    }
-  }, [loaderResult?.data, currentMenu.id, loaderQuery, menuLoader])
-
   // Use centralized deep search orchestration from @bazza-ui/menu
   const { menu } = useDeepSearchOrchestration<T>({
     menuDef: currentMenu,
@@ -114,15 +102,6 @@ export function CommandMenuList<T = unknown>({
       // The __originalLoader is set by deep search injection and contains the original loader function
       const hasOriginalLoader = (submenu as any).__originalLoader
 
-      console.log('🔍 [handleSubmenuSelect]', {
-        submenuId,
-        hasOriginalLoader,
-        currentLoader: typeof submenu.loader,
-        originalLoader: typeof (submenu as any).__originalLoader,
-        hasNodes: !!submenu.nodes,
-        nodeCount: submenu.nodes?.length,
-      })
-
       const submenuToUse: MenuDef<any> = hasOriginalLoader
         ? {
             ...submenu,
@@ -149,7 +128,9 @@ export function CommandMenuList<T = unknown>({
 
   // Render header (if provided via slots)
   const headerEl = theme?.slots?.Header ? (
-    <div data-slot="command-menu-header">{theme.slots.Header({ menu: menu as any })}</div>
+    <div data-slot="command-menu-header">
+      {theme.slots.Header({ menu: menu as any })}
+    </div>
   ) : null
 
   // Render input
@@ -166,7 +147,9 @@ export function CommandMenuList<T = unknown>({
 
   // Render footer (if provided via slots)
   const footerEl = theme?.slots?.Footer ? (
-    <div data-slot="command-menu-footer">{theme.slots.Footer({ menu: menu as any })}</div>
+    <div data-slot="command-menu-footer">
+      {theme.slots.Footer({ menu: menu as any })}
+    </div>
   ) : null
 
   return (

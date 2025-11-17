@@ -13,10 +13,9 @@ declare module '@bazza-ui/context-menu' {
 export const ContextMenu = createContextMenu({
   defaults: {
     virtualization: {
-      enabled: false,
+      enabled: true,
     },
   },
-
   slots: {
     Item: ({ node, search, bind }) => {
       const props = bind.getRowProps({

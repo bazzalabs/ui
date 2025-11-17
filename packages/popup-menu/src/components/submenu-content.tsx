@@ -45,6 +45,9 @@ export function PopupMenuSubmenuContent<T>({
     }
   }, [node])
 
+  // Get parent menu's defaults to pass to submenu
+  const parentDefaults = node.parent?.defaults
+
   return (
     <Positioner>
       {(popupProps: React.HTMLAttributes<HTMLElement>) => (
@@ -53,6 +56,7 @@ export function PopupMenuSubmenuContent<T>({
           open={sub.open}
           contentRef={sub.contentRef}
           popupProps={popupProps}
+          defaults={parentDefaults}
         />
       )}
     </Positioner>

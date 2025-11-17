@@ -11,6 +11,7 @@ import {
 } from '@bazza-ui/menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
+import { useRoot } from '../contexts/root-context.js'
 import { useSub } from '../contexts/submenu-context.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
 import { useNavKeydown } from '../hooks/use-nav-keydown.js'
@@ -34,6 +35,7 @@ interface ListRendererProps {
 export function ListRenderer(props: ListRendererProps) {
   const { menu, slots: customSlots } = useSurface()
   const { query = '' } = props
+
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
     [customSlots],
@@ -90,6 +92,7 @@ function ListRendererContent({
     onSubmenuSelect,
   } = useSurface()
   const sub = useSub()
+  const rootCtx = useRoot()
 
   // Determine surface ID from submenu context or default to 'root'
   const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])
@@ -287,8 +290,17 @@ function ListRendererContent({
       if (node.onSelect && !node.disabled) {
         node.onSelect({ node })
       }
+
+      // Handle closeOnSelect behavior
+      // Default: button items close, checkbox/radio items don't
+      const defaultCloseOnSelect = node.variant === 'button'
+      const shouldClose = node.closeOnSelect ?? defaultCloseOnSelect
+
+      if (shouldClose) {
+        rootCtx.closeAllSurfaces()
+      }
     },
-    [],
+    [rootCtx],
   )
 
   // Handle submenu selection

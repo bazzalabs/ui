@@ -31,42 +31,8 @@ export function ContextMenuContent<T = unknown>({
   const vimBindings = defaults?.surface?.vimBindings ?? true
   const dir = defaults?.surface?.dir ?? 'ltr'
 
-  // Merge defaults with menu properties
-  // menu properties take precedence over passed defaults
-  // Return both merged menu and computed defaults for PopupMenuContent
-  const { mergedMenu, computedDefaults } = React.useMemo(() => {
-    if (!menuProp) return { mergedMenu: undefined, computedDefaults: undefined }
-
-    // If there are no defaults, return menu as-is
-    if (!defaults) return { mergedMenu: menuProp, computedDefaults: undefined }
-
-    // Merge defaults: factory+instance (defaults) + menu.defaults
-    const mergedDefaults = {
-      surface: { ...defaults.surface, ...menuProp.defaults?.surface },
-      item: { ...defaults.item, ...menuProp.defaults?.item },
-      virtualization: {
-        ...defaults.virtualization,
-        ...menuProp.defaults?.virtualization,
-      },
-    }
-
-    // Merge virtualization config: defaults first, then menu overrides
-    const mergedVirtualization = defaults.virtualization
-      ? {
-          ...defaults.virtualization,
-          ...menuProp.virtualization,
-        }
-      : menuProp.virtualization
-
-    return {
-      mergedMenu: {
-        ...menuProp,
-        defaults: mergedDefaults,
-        virtualization: mergedVirtualization,
-      },
-      computedDefaults: mergedDefaults as MenuNodeDefaults<T>,
-    }
-  }, [menuProp, defaults])
+  // No merging needed here - instantiateMenuFromDef will handle all defaults merging
+  // Just pass menu as-is and defaults separately
 
   // Keep the last valid anchor point for exit animations
   const lastAnchorPoint = React.useRef<{ x: number; y: number } | null>(null)
@@ -117,9 +83,9 @@ export function ContextMenuContent<T = unknown>({
         anchor={virtualAnchor}
       >
         {(popupProps: React.HTMLAttributes<HTMLElement>) =>
-          mergedMenu ? (
+          menuProp ? (
             <PopupMenuContent
-              menu={mergedMenu}
+              menu={menuProp}
               open={open}
               onClose={closeAllSurfaces}
               contentRef={contentRef as any}
@@ -127,7 +93,7 @@ export function ContextMenuContent<T = unknown>({
               popupProps={popupProps}
               vimBindings={vimBindings}
               dir={dir}
-              defaults={computedDefaults}
+              defaults={defaults}
             />
           ) : (
             <div {...popupProps} />

@@ -1,5 +1,6 @@
 'use client'
 
+import { ReactQueryLoaderAdapter } from '@bazza-ui/command-menu/loaders/tanstack-query'
 import type { MenuDef } from '@bazza-ui/context-menu'
 import {
   LoaderAdapterProvider,
@@ -19,7 +20,6 @@ import {
   Status,
   StatusIcon,
 } from '../action-menu/shared/icons'
-import { ReactQueryLoaderAdapter } from '@bazza-ui/command-menu/loaders/tanstack-query'
 
 export function ContextMenu_Linear() {
   return (
@@ -28,6 +28,9 @@ export function ContextMenu_Linear() {
         defaults={{
           virtualization: {
             enabled: true,
+          },
+          item: {
+            closeOnSelect: true,
           },
         }}
         menu={menuData}
@@ -58,6 +61,11 @@ const statusMenu: SubmenuDef = {
   kind: 'submenu',
   label: 'Status',
   icon: <StatusIcon />,
+  defaults: {
+    virtualization: {
+      enabled: false,
+    },
+  },
   nodes: [
     {
       kind: 'item',
@@ -379,6 +387,6 @@ const projectPropertiesMenu: SubmenuDef = {
 }
 
 export const menuData: MenuDef = {
-  id: 'unique',
+  id: 'linear',
   nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu],
 }

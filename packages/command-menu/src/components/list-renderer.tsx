@@ -132,14 +132,12 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
 
     if (validRowIds.length > 0 && !isActiveIdValid) {
-      console.log('here!')
       store.setActiveByIndex(0, 'keyboard')
     }
   }, [displayNodes, store])
 
   // Reset to first item when query changes
   React.useEffect(() => {
-    console.log('query changed! resetting active id to first in list')
     store.first('keyboard')
   }, [q])
 

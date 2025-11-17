@@ -25,15 +25,21 @@ export function mergeDefaults<T = unknown>(
   for (const defaults of defaultsList) {
     if (!defaults) continue
 
-    if (defaults.surface) {
+    // Only merge surface if it has actual properties
+    if (defaults.surface && Object.keys(defaults.surface).length > 0) {
       result.surface = { ...result.surface, ...defaults.surface }
     }
 
-    if (defaults.item) {
+    // Only merge item if it has actual properties
+    if (defaults.item && Object.keys(defaults.item).length > 0) {
       result.item = { ...result.item, ...defaults.item }
     }
 
-    if (defaults.virtualization) {
+    // Only merge virtualization if it has actual properties
+    if (
+      defaults.virtualization &&
+      Object.keys(defaults.virtualization).length > 0
+    ) {
       result.virtualization = {
         ...result.virtualization,
         ...defaults.virtualization,

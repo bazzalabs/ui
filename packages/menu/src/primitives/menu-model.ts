@@ -158,18 +158,6 @@ export function instantiateSingleNode<T>(
     const closeOnSelect =
       itemDef.closeOnSelect ?? computedDefaults?.item?.closeOnSelect
 
-    // Debug: Log when defaults are applied
-    if (computedDefaults?.item && !itemDef.onSelect) {
-      console.log(
-        `✨ [node augmentation] Applied default onSelect to item "${itemDef.label}"`,
-        {
-          nodeId: id,
-          hasDefaultOnSelect: !!computedDefaults.item.onSelect,
-          hasDefaultCloseOnSelect: !!computedDefaults.item.closeOnSelect,
-        },
-      )
-    }
-
     const node: ItemNode<T> = {
       ...itemDef,
       id,
@@ -344,22 +332,6 @@ export function instantiateMenuFromDef<T>(
   // This creates the three-level cascade: factory → instance → surface (home menu)
   const homeDefaults = mergeDefaults(parentDefaults, def.defaults)
 
-  // Debug: Log defaults merging at surface level
-  // if (parentDefaults || def.defaults) {
-  //   console.log(
-  //     `🏠 [surface defaults] Merging defaults for menu "${def.id || 'root'}"`,
-  //     {
-  //       depth,
-  //       surfaceId,
-  //       hasParentDefaults: !!parentDefaults,
-  //       hasMenuDefaults: !!def.defaults,
-  //       parentDefaults: parentDefaults,
-  //       menuDefaults: def.defaults,
-  //       mergedDefaults: homeDefaults,
-  //     },
-  //   )
-  // }
-
   // Only resolve loader if it's NOT a function
   // Function loaders should already be resolved by Surface component
   // If we encounter a function loader here (e.g., for submenus during instantiation),
@@ -398,12 +370,18 @@ export function instantiateMenuFromDef<T>(
       }
     : undefined
 
+  // Merge virtualization defaults with menu-specific virtualization
+  const mergedVirtualization = homeDefaults.virtualization
+    ? { ...homeDefaults.virtualization, ...def.virtualization }
+    : def.virtualization
+
   const parentless: Menu<T> = {
     id: def.id,
     title: def.title,
     inputPlaceholder: def.inputPlaceholder,
     hideSearchUntilActive: def.hideSearchUntilActive,
-    defaults: homeDefaults, // Store computed defaults on the Menu
+    defaults: homeDefaults, // Store computed defaults on the Menu (for reference)
+    virtualization: mergedVirtualization, // Merge virtualization defaults directly
     ui: def.ui,
     nodes: [] as Node<T>[],
     surfaceId,
