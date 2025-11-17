@@ -110,9 +110,7 @@ export function HoverPolicyProvider({
   )
 
   return (
-    <HoverPolicyCtx.Provider value={value}>
-      {children}
-    </HoverPolicyCtx.Provider>
+    <HoverPolicyCtx.Provider value={value}>{children}</HoverPolicyCtx.Provider>
   )
 }
 

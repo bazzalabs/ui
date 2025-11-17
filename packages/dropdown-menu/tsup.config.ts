@@ -12,6 +12,8 @@ export default defineConfig((options: Options) => ({
   splitting: false,
   external: ['react', 'react-dom'],
   outDir: 'dist/',
-  onSuccess: options.watch ? 'echo "✅ @bazza-ui/context-menu rebuilt"' : undefined,
+  onSuccess: options.watch
+    ? 'echo "✅ @bazza-ui/context-menu rebuilt"'
+    : undefined,
   ...options,
 }))

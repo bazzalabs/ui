@@ -17,9 +17,23 @@ export function CommandMenu_VimBindings() {
         <div className="text-sm text-muted-foreground">
           <p className="font-medium mb-1">Vim-style navigation enabled:</p>
           <ul className="list-disc list-inside space-y-0.5 text-xs">
-            <li><kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+j</kbd> or <kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+n</kbd> - Next item</li>
-            <li><kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+k</kbd> or <kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+p</kbd> - Previous item</li>
-            <li><kbd className="px-1 py-0.5 border rounded bg-muted">↑</kbd> / <kbd className="px-1 py-0.5 border rounded bg-muted">↓</kbd> - Also work</li>
+            <li>
+              <kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+j</kbd>{' '}
+              or{' '}
+              <kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+n</kbd>{' '}
+              - Next item
+            </li>
+            <li>
+              <kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+k</kbd>{' '}
+              or{' '}
+              <kbd className="px-1 py-0.5 border rounded bg-muted">Ctrl+p</kbd>{' '}
+              - Previous item
+            </li>
+            <li>
+              <kbd className="px-1 py-0.5 border rounded bg-muted">↑</kbd> /{' '}
+              <kbd className="px-1 py-0.5 border rounded bg-muted">↓</kbd> -
+              Also work
+            </li>
           </ul>
         </div>
       </div>

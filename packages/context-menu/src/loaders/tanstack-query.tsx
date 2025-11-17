@@ -6,4 +6,7 @@
  * all menu packages (command-menu, context-menu, action-menu, etc.).
  */
 
-export { ReactQueryLoaderAdapter, createLoader } from '@bazza-ui/menu/loaders/tanstack-query'
+export {
+  createLoader,
+  ReactQueryLoaderAdapter,
+} from '@bazza-ui/menu/loaders/tanstack-query'

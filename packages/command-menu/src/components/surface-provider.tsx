@@ -1,12 +1,12 @@
-import * as React from 'react'
 import type {
-  SurfaceStore,
   Menu,
-  MenuSlots,
   MenuClassNames,
-  MenuSlotProps,
   MenuDef,
+  MenuSlotProps,
+  MenuSlots,
+  SurfaceStore,
 } from '@bazza-ui/menu'
+import * as React from 'react'
 
 interface SurfaceContextValue<T = unknown> {
   store: SurfaceStore<T>
@@ -17,7 +17,9 @@ interface SurfaceContextValue<T = unknown> {
   onSubmenuSelect?: (submenuId: string, submenu: MenuDef<any>) => void
 }
 
-const SurfaceContext = React.createContext<SurfaceContextValue<any> | null>(null)
+const SurfaceContext = React.createContext<SurfaceContextValue<any> | null>(
+  null,
+)
 
 export function useSurface<T = unknown>(): SurfaceContextValue<T> {
   const ctx = React.useContext(SurfaceContext) as SurfaceContextValue<T> | null
@@ -57,5 +59,9 @@ export function SurfaceProvider<T = unknown>({
     [store, menu, slots, classNames, slotProps, onSubmenuSelect],
   )
 
-  return <SurfaceContext.Provider value={value as any}>{children}</SurfaceContext.Provider>
+  return (
+    <SurfaceContext.Provider value={value as any}>
+      {children}
+    </SurfaceContext.Provider>
+  )
 }

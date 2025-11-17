@@ -1,5 +1,5 @@
-import * as React from 'react'
 import { renderIcon } from '@bazza-ui/menu'
+import * as React from 'react'
 import type { CommandMenuSlots } from '../types.js'
 
 /**
@@ -107,6 +107,8 @@ export function defaultSlots<T>(): Required<CommandMenuSlots<T>> {
       <div role="separator" data-slot="menu-separator" />
     ),
     Footer: () => null,
-    DialogInner: ({ children, baseProps }) => <div {...baseProps}>{children}</div>,
+    DialogInner: ({ children, baseProps }) => (
+      <div {...baseProps}>{children}</div>
+    ),
   }
 }

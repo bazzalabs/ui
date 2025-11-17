@@ -13,6 +13,8 @@ export default defineConfig((options: Options) => ({
   splitting: false,
   external: ['react', 'react-dom', '@tanstack/react-query'],
   outDir: 'dist/',
-  onSuccess: options.watch ? 'echo "✅ @bazza-ui/command-menu rebuilt"' : undefined,
+  onSuccess: options.watch
+    ? 'echo "✅ @bazza-ui/command-menu rebuilt"'
+    : undefined,
   ...options,
 }))

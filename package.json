@@ -14,6 +14,8 @@
     "clean": "zsh -c 'setopt nullglob && rm -rf **/node_modules **/dist **/.turbo **/.next **/.next-dev'",
     "check": "biome check .",
     "check:fix": "biome check --fix .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
     "vercel:install": "turbo run vercel:install",
     "build": "turbo run build",
     "registry:build": "turbo run registry:build",

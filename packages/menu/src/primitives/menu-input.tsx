@@ -1,6 +1,6 @@
 import * as React from 'react'
+import type { InputBindAPI, InputSearchState, SurfaceStore } from '../types.js'
 import { mergeProps } from '../utils/merge-props.js'
-import type { SurfaceStore, InputBindAPI, InputSearchState } from '../types.js'
 
 export interface MenuInputPrimitiveProps<T = unknown> {
   /** Surface store for state management */
@@ -20,7 +20,10 @@ export interface MenuInputPrimitiveProps<T = unknown> {
   /** Keyboard event handler */
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
   /** Render prop for custom rendering with bind API */
-  children?: (bind: InputBindAPI, searchState: InputSearchState) => React.ReactElement
+  children?: (
+    bind: InputBindAPI,
+    searchState: InputSearchState,
+  ) => React.ReactElement
 }
 
 /**
@@ -89,7 +92,10 @@ export function MenuInputPrimitive<T = unknown>({
   const bind: InputBindAPI = React.useMemo(
     () => ({
       getInputProps: (overrides) =>
-        mergeProps(baseInputProps as any, mergeProps(inputProps as any, overrides as any)),
+        mergeProps(
+          baseInputProps as any,
+          mergeProps(inputProps as any, overrides as any),
+        ),
     }),
     [baseInputProps, inputProps],
   )
