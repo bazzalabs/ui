@@ -1,7 +1,10 @@
 import { Popover } from '@base-ui-components/react/popover'
 import {
   PopupMenuContent,
+  Positioner,
   GlobalThemeProvider,
+  RootProvider,
+  RootCloseProvider,
   defaultSlots,
   type PopupMenuTheme,
 } from '@bazza-ui/popup-menu'
@@ -24,6 +27,8 @@ export function ContextMenu<T = unknown>({
   placeholder = 'Search...',
   debug = false,
 }: ContextMenuProps<T>) {
+  const scopeId = React.useId()
+
   const [open, setOpen] = useControllableState({
     prop: controlledOpen,
     defaultProp: defaultOpen,
@@ -70,37 +75,41 @@ export function ContextMenu<T = unknown>({
 
       {/* Menu */}
       <Popover.Root open={open} onOpenChange={setOpen}>
-        {open && anchorPoint && (
-          <Popover.Positioner
-            side="bottom"
-            align="start"
-            sideOffset={4}
-            className={theme?.classNames?.positioner}
-            anchor={{
-              getBoundingClientRect: () => ({
-                x: anchorPoint.x,
-                y: anchorPoint.y,
-                width: 0,
-                height: 0,
-                top: anchorPoint.y,
-                left: anchorPoint.x,
-                right: anchorPoint.x,
-                bottom: anchorPoint.y,
-                toJSON: () => ({}),
-              }),
-            }}
-          >
-            <Popover.Popup>
-              <PopupMenuContent
-                menu={menu}
-                open={open}
-                onClose={handleClose}
-                contentRef={contentRef as any}
-                placeholder={placeholder}
-              />
-            </Popover.Popup>
-          </Popover.Positioner>
-        )}
+        <RootProvider scopeId={scopeId}>
+          <RootCloseProvider onClose={handleClose}>
+            {open && anchorPoint && (
+              <Positioner
+                side="bottom"
+                align="start"
+                sideOffset={4}
+                anchor={{
+                  getBoundingClientRect: () => ({
+                    x: anchorPoint.x,
+                    y: anchorPoint.y,
+                    width: 0,
+                    height: 0,
+                    top: anchorPoint.y,
+                    left: anchorPoint.x,
+                    right: anchorPoint.x,
+                    bottom: anchorPoint.y,
+                    toJSON: () => ({}),
+                  }),
+                }}
+              >
+                {(popupProps) => (
+                  <PopupMenuContent
+                    menu={menu}
+                    open={open}
+                    onClose={handleClose}
+                    contentRef={contentRef as any}
+                    placeholder={placeholder}
+                    popupProps={popupProps}
+                  />
+                )}
+              </Positioner>
+            )}
+          </RootCloseProvider>
+        </RootProvider>
       </Popover.Root>
 
       {/* Debug visualization */}

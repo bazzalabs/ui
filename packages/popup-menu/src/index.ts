@@ -45,6 +45,8 @@ export { PopupMenuSubmenuContent } from './components/submenu-content.js'
 // Contexts
 export { FocusOwnerCtx, useFocusOwner } from './contexts/focus-owner-context.js'
 export { HoverPolicyCtx, useHoverPolicy, HoverPolicyProvider } from './contexts/hover-policy-context.js'
+export { RootProvider, useRoot, type RootContextValue } from './contexts/root-context.js'
+export { RootCloseProvider, useRootClose, type RootCloseContextValue } from './contexts/root-close-context.js'
 export { SubCtx, useSubCtx, closeSubmenuChain } from './contexts/submenu-context.js'
 export {
   GlobalThemeProvider,

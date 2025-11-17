@@ -1,10 +1,13 @@
 import { Popover } from '@base-ui-components/react/popover'
 import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
+import { useRoot } from '../contexts/root-context.js'
+import { useRootClose } from '../contexts/root-close-context.js'
 import { useSubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
 import type { PopupMenuPositionerProps } from '../types.js'
+import { InteractionGuard } from './interaction-guard.js'
 
 export interface PositionerProps {
   side?: PopupMenuPositionerProps['side']
@@ -33,6 +36,8 @@ export function Positioner({
 }: PositionerProps) {
   const sub = useSubCtx()
   const { classNames, slotProps } = useScopedTheme()
+  const rootCtx = useRoot()
+  const rootCloseCtx = useRootClose()
 
   const isSub = !!sub
   const defaultSide = isSub ? 'right' : 'bottom'
@@ -218,14 +223,51 @@ export function Positioner({
   // Add anchor AFTER merge to ensure it's not overwritten (for root menus)
   const positionerProps = anchor ? { ...mergedProps, anchor } : mergedProps
 
-  return (
-    <Popover.Portal>
-      <Popover.Positioner {...positionerProps}>
-        <Popover.Popup
-          initialFocus={false}
-          render={(popupProps) => children(popupProps)}
-        />
-      </Popover.Positioner>
-    </Popover.Portal>
+  // Render the popup content
+  const popupContent = (
+    <Popover.Popup
+      initialFocus={false}
+      render={(popupProps) => children(popupProps)}
+    />
   )
+
+  // Debug logging
+  console.log('[Positioner] Debug:', {
+    isSub,
+    hasRootCtx: !!rootCtx,
+    hasRootCloseCtx: !!rootCloseCtx,
+    shouldWrapWithGuard: !isSub && rootCtx && rootCloseCtx,
+  })
+
+  // For root menus with close context, wrap with InteractionGuard
+  const wrappedContent =
+    !isSub && rootCtx && rootCloseCtx ? (
+      <InteractionGuard.Root
+        asChild
+        scopeId={rootCtx.scopeId}
+        surfaceSelector="[data-popup-menu-surface]"
+        onEscapeKeyDown={() => {
+          rootCloseCtx.closeAllSurfaces()
+        }}
+        onInteractOutside={() => {
+          rootCloseCtx.closeAllSurfaces()
+        }}
+      >
+        <Popover.Positioner {...positionerProps}>
+          {popupContent}
+        </Popover.Positioner>
+      </InteractionGuard.Root>
+    ) : isSub && rootCtx ? (
+      <InteractionGuard.Branch asChild scopeId={rootCtx.scopeId}>
+        <Popover.Positioner {...positionerProps}>
+          {popupContent}
+        </Popover.Positioner>
+      </InteractionGuard.Branch>
+    ) : (
+      <Popover.Positioner {...positionerProps}>
+        {popupContent}
+      </Popover.Positioner>
+    )
+
+  return <Popover.Portal>{wrappedContent}</Popover.Portal>
 }

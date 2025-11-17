@@ -190,6 +190,7 @@ const Root = React.forwardRef<HTMLElement, InteractionGuardProps>(
 
     // — Escape key
     React.useEffect(() => {
+      console.log('here!')
       const onKeyDown = (e: KeyboardEvent) => {
         if (e.key !== 'Escape') return
         onEscapeKeyDown?.(e)

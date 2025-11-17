@@ -3,6 +3,7 @@ import { useInputActivation } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
+import { useRootClose } from '../contexts/root-close-context.js'
 import { useSubCtx } from '../contexts/submenu-context.js'
 import {
   ScopedThemeProvider,
@@ -49,6 +50,25 @@ export function PopupMenuContent<T = unknown>({
   const { slots, classNames, slotProps } = useScopedTheme()
   const subCtx = useSubCtx()
   const isSubmenu = !!subCtx
+  const rootCloseCtx = useRootClose()
+
+  // Register/unregister this surface for tracking
+  React.useEffect(() => {
+    if (!rootCloseCtx || !open) return
+
+    const surfaceId = isSubmenu ? subCtx?.childSurfaceId : 'root'
+    if (!surfaceId) return
+
+    // Calculate depth: root = 0, submenus get parent depth + 1
+    // For now, we'll use a simple approach: root = 0, submenus = 1
+    // In the future, we could track depth more precisely through context
+    const depth = isSubmenu ? 1 : 0
+
+    rootCloseCtx.registerSurface(surfaceId, depth)
+    return () => {
+      rootCloseCtx.unregisterSurface(surfaceId)
+    }
+  }, [rootCloseCtx, isSubmenu, subCtx?.childSurfaceId, open])
 
   // Input activation hook
   const hideSearchUntilActive = menu.hideSearchUntilActive ?? false

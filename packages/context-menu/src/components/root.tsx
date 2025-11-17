@@ -1,5 +1,9 @@
 import type { MenuDef } from '@bazza-ui/menu'
 import { Popover } from '@base-ui-components/react/popover'
+import {
+  RootProvider,
+  RootCloseProvider,
+} from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { RootContextProvider } from '../contexts/root-context.js'
@@ -81,7 +85,11 @@ export function ContextMenuRoot<T = unknown>({
   return (
     <RootContextProvider value={rootValue}>
       <Popover.Root open={open} onOpenChange={setOpen}>
-        {children}
+        <RootProvider scopeId={scopeId}>
+          <RootCloseProvider onClose={closeAllSurfaces}>
+            {children}
+          </RootCloseProvider>
+        </RootProvider>
       </Popover.Root>
     </RootContextProvider>
   )
