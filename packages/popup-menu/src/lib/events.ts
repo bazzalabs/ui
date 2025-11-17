@@ -1,6 +1,8 @@
 export const OPEN_SUB_EVENT = 'popupmenu-open-sub' as const
 export const CLOSE_MENU_EVENT = 'popupmenu-close' as const
 export const SELECT_ITEM_EVENT = 'popupmenu-select-item' as const
+export const INPUT_VISIBILITY_CHANGE_EVENT =
+  'popupmenu-input-visibility-change' as const
 
 export function dispatch(node: HTMLElement | null | undefined, type: string) {
   if (!node) return

@@ -3,6 +3,7 @@ import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
 import { useSubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
+import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
 import type { PopupMenuPositionerProps } from '../types.js'
 
 export interface PositionerProps {
@@ -92,7 +93,7 @@ export function Positioner({
 
     // No input, check for list element
     const listEl = el.querySelector<HTMLElement>(
-      '[data-slot="action-menu-list"]',
+      '[data-slot="popup-menu-list"]',
     )
 
     if (listEl) {
@@ -125,9 +126,44 @@ export function Positioner({
     return () => cancelAnimationFrame(rafId)
   }, [isSub, sub?.open, resolvedAlign, measure])
 
-  // Calculate final align offset when using 'list' mode
-  const finalAlignOffset =
-    resolvedAlign === 'list' ? listTopOffset : alignOffset
+  React.useLayoutEffect(() => {
+    if (!isSub) {
+      return
+    }
+    if (!sub?.open) {
+      return
+    }
+    if (resolvedAlign !== 'list') {
+      return
+    }
+
+    const handle = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        surfaceId?: string
+        hideSearchUntilActive?: boolean
+        inputActive?: boolean
+      }>
+      const target = e.target as HTMLElement | null
+      const ok =
+        customEvent.detail?.surfaceId === sub!.childSurfaceId ||
+        target?.closest?.(`[data-surface-id="${sub!.childSurfaceId}"]`) !== null
+
+      if (!ok) return
+
+      // Skip measurement when hideSearchUntilActive is true
+      // This prevents repositioning when the input appears/disappears during typing
+      if (customEvent.detail?.hideSearchUntilActive) {
+        return
+      }
+
+      // Measure immediately (input exists when event fires)
+      measure()
+    }
+    document.addEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
+    return () => {
+      document.removeEventListener(INPUT_VISIBILITY_CHANGE_EVENT, handle, true)
+    }
+  }, [isSub, sub, sub?.open, resolvedAlign, measure])
 
   // Map 'list' to Base UI's 'start' for the actual positioning
   const baseUIAlign = resolvedAlign === 'list' ? 'start' : resolvedAlign
@@ -147,12 +183,12 @@ export function Positioner({
     return props
   }, [slotProps?.positioner, isSub])
 
-  // Merge positioner props with theme (without anchor first)
+  // Merge positioner props with theme (without alignOffset - we'll calculate it separately)
   const basePropsWithoutAnchor = {
     side: resolvedSide,
     align: baseUIAlign,
     sideOffset,
-    alignOffset: finalAlignOffset,
+    // Note: alignOffset is intentionally omitted here - calculated below
     sticky: true,
     positionMethod: 'fixed' as const,
     collisionPadding: 8,
@@ -161,7 +197,23 @@ export function Positioner({
     className: classNames?.positioner,
   }
 
-  const mergedProps = mergeProps(basePropsWithoutAnchor, positionerSlotProps)
+  const mergedProps = mergeProps(
+    basePropsWithoutAnchor,
+    positionerSlotProps,
+  ) as any
+
+  // Extract the merged alignOffset (from theme or use prop default)
+  const mergedAlignOffset = mergedProps.alignOffset ?? alignOffset
+
+  // Calculate effective align offset: when using 'list' mode, ADD listTopOffset to user's alignOffset
+  // This way, if user specifies alignOffset=10 and listTopOffset=-37, final = 10 + (-37) = -27
+  const effectiveAlignOffset =
+    resolvedAlign === 'list'
+      ? mergedAlignOffset + listTopOffset
+      : mergedAlignOffset
+
+  // Override alignOffset with our calculated value
+  mergedProps.alignOffset = effectiveAlignOffset
 
   // Add anchor AFTER merge to ensure it's not overwritten (for root menus)
   const positionerProps = anchor ? { ...mergedProps, anchor } : mergedProps
