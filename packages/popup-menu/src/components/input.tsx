@@ -1,6 +1,6 @@
 import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
 import * as React from 'react'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 
@@ -28,7 +28,7 @@ export function PopupMenuInput<T = unknown>({
   onClose,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
-  const sub = useSubCtx()
+  const sub = useSub()
 
   // Determine surface ID from submenu context or default to 'root'
   const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])

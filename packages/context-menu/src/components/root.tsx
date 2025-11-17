@@ -2,13 +2,14 @@ import type { MenuDef } from '@bazza-ui/menu'
 import { Popover } from '@base-ui-components/react/popover'
 import {
   RootProvider,
-  RootCloseProvider,
+  type InteractionGuardOptions,
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { RootContextProvider } from '../contexts/root-context.js'
 
-export interface ContextMenuRootProps<T = unknown> {
+export interface ContextMenuRootProps<T = unknown>
+  extends Partial<InteractionGuardOptions> {
   /** Menu definition */
   menu: MenuDef<T>
   /** Children (typically Trigger and Content) */
@@ -33,6 +34,16 @@ export function ContextMenuRoot<T = unknown>({
   open: controlledOpen,
   defaultOpen = false,
   modal = true,
+  // InteractionGuard options
+  scopeAttr,
+  disableOutsidePointerEvents,
+  onEscapeKeyDown,
+  onPointerDownOutside,
+  onFocusOutside,
+  onInteractOutside,
+  onDismiss,
+  surfaceSelector,
+  branchAttr,
 }: ContextMenuRootProps<T>) {
   const [open, setOpen] = useControllableState({
     prop: controlledOpen,
@@ -78,17 +89,46 @@ export function ContextMenuRoot<T = unknown>({
       closeAllSurfaces,
       anchorPoint,
       setAnchorPoint,
+      // InteractionGuard options
+      interactionGuardOptions: {
+        scopeAttr,
+        disableOutsidePointerEvents,
+        onEscapeKeyDown,
+        onPointerDownOutside,
+        onFocusOutside,
+        onInteractOutside,
+        onDismiss,
+        surfaceSelector,
+        branchAttr,
+      },
     }),
-    [scopeId, open, setOpen, closeAllSurfaces, anchorPoint],
+    [
+      scopeId,
+      open,
+      setOpen,
+      closeAllSurfaces,
+      anchorPoint,
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+    ],
   )
 
   return (
     <RootContextProvider value={rootValue}>
-      <Popover.Root open={open} onOpenChange={setOpen}>
-        <RootProvider scopeId={scopeId}>
-          <RootCloseProvider onClose={closeAllSurfaces}>
-            {children}
-          </RootCloseProvider>
+      <Popover.Root open={open} onOpenChange={setOpen} modal={false}>
+        <RootProvider
+          scopeId={scopeId}
+          onClose={closeAllSurfaces}
+          interactionGuardOptions={rootValue.interactionGuardOptions}
+        >
+          {children}
         </RootProvider>
       </Popover.Root>
     </RootContextProvider>

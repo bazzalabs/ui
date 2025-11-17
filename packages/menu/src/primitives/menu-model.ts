@@ -328,19 +328,19 @@ export function instantiateMenuFromDef<T>(
   const loaderNodes = resolvedLoader?.data ?? []
   const sourceNodes = [...staticNodes, ...loaderNodes]
 
-  if (depth > 0 && (staticNodes.length > 0 || loaderNodes.length > 0)) {
-    console.log('🏗️ [instantiateMenuFromDef] Submenu nodes:', {
-      menuId: def.id,
-      depth,
-      surfaceId,
-      staticNodesCount: staticNodes.length,
-      loaderNodesCount: loaderNodes.length,
-      totalSourceNodes: sourceNodes.length,
-      hasLoader: !!def.loader,
-      loaderType: typeof def.loader,
-      hasOriginalLoader: !!(def as any).__originalLoader,
-    })
-  }
+  // if (depth > 0 && (staticNodes.length > 0 || loaderNodes.length > 0)) {
+  //   console.log('🏗️ [instantiateMenuFromDef] Submenu nodes:', {
+  //     menuId: def.id,
+  //     depth,
+  //     surfaceId,
+  //     staticNodesCount: staticNodes.length,
+  //     loaderNodesCount: loaderNodes.length,
+  //     totalSourceNodes: sourceNodes.length,
+  //     hasLoader: !!def.loader,
+  //     loaderType: typeof def.loader,
+  //     hasOriginalLoader: !!(def as any).__originalLoader,
+  //   })
+  // }
 
   const loadingState = resolvedLoader
     ? {

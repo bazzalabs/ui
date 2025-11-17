@@ -17,7 +17,7 @@ export type FocusOutsideEvent = {
   defaultPrevented: boolean
 }
 
-type InteractionGuardProps = {
+export type InteractionGuardProps = {
   /** Unique id for this guard instance */
   scopeId: string
   /** Attribute used to mark the scope root on the wrapped content */
@@ -190,7 +190,6 @@ const Root = React.forwardRef<HTMLElement, InteractionGuardProps>(
 
     // — Escape key
     React.useEffect(() => {
-      console.log('here!')
       const onKeyDown = (e: KeyboardEvent) => {
         if (e.key !== 'Escape') return
         onEscapeKeyDown?.(e)

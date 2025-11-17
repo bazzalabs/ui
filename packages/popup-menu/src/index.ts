@@ -18,7 +18,29 @@ export type {
 } from './types.js'
 export type { SubContextValue } from './contexts/submenu-context.js'
 export type { ActivationCause } from './types.js'
-export type { PointerDownOutsideEvent, FocusOutsideEvent } from './components/interaction-guard.js'
+export type {
+  PointerDownOutsideEvent,
+  FocusOutsideEvent,
+  InteractionGuardProps,
+} from './components/interaction-guard.js'
+import type { InteractionGuardProps as _InteractionGuardProps } from './components/interaction-guard.js'
+
+/**
+ * Subset of InteractionGuard props that can be customized by consumers.
+ * Excludes internal props like scopeId, asChild, and children.
+ */
+export type InteractionGuardOptions = Pick<
+  _InteractionGuardProps,
+  | 'scopeAttr'
+  | 'disableOutsidePointerEvents'
+  | 'onEscapeKeyDown'
+  | 'onPointerDownOutside'
+  | 'onFocusOutside'
+  | 'onInteractOutside'
+  | 'onDismiss'
+  | 'surfaceSelector'
+  | 'branchAttr'
+>
 
 // Utilities
 export { resolveAnchorSide, getSmoothedHeading, willHitSubmenu } from './lib/aim-guard.js'
@@ -46,8 +68,7 @@ export { PopupMenuSubmenuContent } from './components/submenu-content.js'
 export { FocusOwnerCtx, useFocusOwner } from './contexts/focus-owner-context.js'
 export { HoverPolicyCtx, useHoverPolicy, HoverPolicyProvider } from './contexts/hover-policy-context.js'
 export { RootProvider, useRoot, type RootContextValue } from './contexts/root-context.js'
-export { RootCloseProvider, useRootClose, type RootCloseContextValue } from './contexts/root-close-context.js'
-export { SubCtx, useSubCtx, closeSubmenuChain } from './contexts/submenu-context.js'
+export { SubCtx, useSub as useSubCtx, closeSubmenuChain } from './contexts/submenu-context.js'
 export {
   GlobalThemeProvider,
   ScopedThemeProvider,

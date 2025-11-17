@@ -3,8 +3,8 @@ import { useInputActivation } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
-import { useRootClose } from '../contexts/root-close-context.js'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useRoot } from '../contexts/root-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import {
   ScopedThemeProvider,
   useScopedTheme,
@@ -48,13 +48,13 @@ export function PopupMenuContent<T = unknown>({
   popupProps,
 }: PopupMenuContentProps<T>) {
   const { slots, classNames, slotProps } = useScopedTheme()
-  const subCtx = useSubCtx()
+  const subCtx = useSub()
   const isSubmenu = !!subCtx
-  const rootCloseCtx = useRootClose()
+  const rootCtx = useRoot()
 
   // Register/unregister this surface for tracking
   React.useEffect(() => {
-    if (!rootCloseCtx || !open) return
+    if (!open) return
 
     const surfaceId = isSubmenu ? subCtx?.childSurfaceId : 'root'
     if (!surfaceId) return
@@ -64,11 +64,24 @@ export function PopupMenuContent<T = unknown>({
     // In the future, we could track depth more precisely through context
     const depth = isSubmenu ? 1 : 0
 
-    rootCloseCtx.registerSurface(surfaceId, depth)
+    rootCtx.registerSurface(surfaceId, depth)
     return () => {
-      rootCloseCtx.unregisterSurface(surfaceId)
+      rootCtx.unregisterSurface(surfaceId)
     }
-  }, [rootCloseCtx, isSubmenu, subCtx?.childSurfaceId, open])
+  }, [rootCtx, isSubmenu, subCtx?.childSurfaceId, open])
+
+  // Listen for close events (mirrors action-menu pattern)
+  React.useEffect(() => {
+    const handle = () => {
+      if (subCtx) {
+        subCtx.onOpenChange(false)
+      }
+    }
+    document.addEventListener('popupmenu-close', handle, true)
+    return () => {
+      document.removeEventListener('popupmenu-close', handle, true)
+    }
+  }, [subCtx?.onOpenChange])
 
   // Input activation hook
   const hideSearchUntilActive = menu.hideSearchUntilActive ?? false

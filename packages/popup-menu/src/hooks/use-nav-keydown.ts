@@ -11,14 +11,13 @@ import * as React from 'react'
 import { useSurface } from '../components/surface-provider.js'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useKeyboardOpts } from '../contexts/keyboard-context.js'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import {
   CLOSE_MENU_EVENT,
   dispatch,
   openSubmenuForActive,
   SELECT_ITEM_EVENT,
 } from '../lib/events.js'
-import { findWidgetsWithinSurface } from '../utils/dom.js'
 
 export function useNavKeydown(
   _source: 'input' | 'list',
@@ -27,7 +26,7 @@ export function useNavKeydown(
 ) {
   const surfaceCtx = useSurface()
   const store = surfaceCtx.store
-  const sub = useSubCtx()
+  const sub = useSub()
   const { ownerId, setOwnerId } = useFocusOwner()
   const { dir, vimBindings } = useKeyboardOpts()
 

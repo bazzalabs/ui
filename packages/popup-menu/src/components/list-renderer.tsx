@@ -10,7 +10,7 @@ import {
 } from '@bazza-ui/menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
 import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 import { PopupMenuSubmenu } from './submenu.js'
@@ -88,7 +88,7 @@ function ListRendererContent({
     classNames,
     onSubmenuSelect,
   } = useSurface()
-  const sub = useSubCtx()
+  const sub = useSub()
 
   // Determine surface ID from submenu context or default to 'root'
   const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])

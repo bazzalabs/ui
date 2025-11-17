@@ -71,6 +71,7 @@ export function Root<T>({
     prop: openProp ?? menu.open?.value,
     defaultProp: defaultOpen ?? false,
     onChange: (value) => {
+      console.log('root open changed:', value)
       // Don't call closeAllSurfaces here - it creates an infinite loop
       // because closeAllSurfaces calls setOpen(false) which triggers this onChange
 
@@ -120,7 +121,10 @@ export function Root<T>({
       const el = document.querySelector<HTMLElement>(
         `[data-surface-id="${surfaceId}"]`,
       )
-      if (el) dispatch(el, CLOSE_MENU_EVENT)
+      if (el) {
+        console.log('closing surface', surfaceId)
+        dispatch(el, CLOSE_MENU_EVENT)
+      }
     }
     // Close the root menu by setting open to false
     // This will trigger onChange which will notify the parent component

@@ -24,7 +24,13 @@ import { ReactQueryLoaderAdapter } from '@bazza-ui/command-menu/loaders/tanstack
 export function ContextMenu_Linear() {
   return (
     <LoaderAdapterProvider adapter={ReactQueryLoaderAdapter}>
-      <ContextMenu menu={menuData}>
+      <ContextMenu
+        menu={menuData}
+        disableOutsidePointerEvents
+        onEscapeKeyDown={() => {
+          console.log('escaping outside!!')
+        }}
+      >
         <div className="relative h-48 w-full rounded-lg border p-4">
           <div className="prose prose-sm dark:prose-invert">
             <p className="font-semibold">Project Task Card</p>

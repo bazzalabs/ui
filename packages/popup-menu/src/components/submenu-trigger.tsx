@@ -8,7 +8,7 @@ import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useHoverPolicy } from '../contexts/hover-policy-context.js'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import { useMouseTrail } from '../hooks/use-mouse-trail.js'
 import { useSurfaceSel } from '../hooks/use-surface-sel.js'
 import {
@@ -46,7 +46,7 @@ export function PopupMenuSubmenuTrigger<T>({
 }: PopupMenuSubmenuTriggerProps<T>) {
   const surfaceCtx = useSurface()
   const store = surfaceCtx.store
-  const sub = useSubCtx()!
+  const sub = useSub()!
   const { setOwnerId, ownerId } = useFocusOwner()
   const {
     guardedTriggerIdRef,

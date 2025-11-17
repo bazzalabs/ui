@@ -22,7 +22,7 @@ export type SubContextValue = {
 
 const SubCtx = React.createContext<SubContextValue | null>(null)
 
-export const useSubCtx = () => React.useContext(SubCtx)
+export const useSub = () => React.useContext(SubCtx)
 
 export function closeSubmenuChain(sub: SubContextValue | null) {
   let current = sub

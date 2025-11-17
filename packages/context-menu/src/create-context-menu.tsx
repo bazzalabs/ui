@@ -6,6 +6,7 @@ import {
   ScopedThemeProvider,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
+  type InteractionGuardOptions,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { ContextMenuContent } from './components/content.js'
@@ -26,7 +27,8 @@ export type CreateContextMenuOptions<T = unknown> = {
   classNames?: PopupMenuThemeDef<T>['classNames']
 }
 
-export interface ContextMenuOptions<T = unknown> {
+export interface ContextMenuOptions<T = unknown>
+  extends Partial<InteractionGuardOptions> {
   /** Menu definition */
   menu: MenuDef<T>
   /** Trigger element - will open context menu on right-click */
@@ -74,6 +76,16 @@ export function createContextMenu<T = unknown>(
     slots,
     slotProps,
     classNames,
+    // InteractionGuard options
+    scopeAttr,
+    disableOutsidePointerEvents,
+    onEscapeKeyDown,
+    onPointerDownOutside,
+    onFocusOutside,
+    onInteractOutside,
+    onDismiss,
+    surfaceSelector,
+    branchAttr,
     ...rootProps
   }: ContextMenuOptions<T>) {
     // Instance theme - merge factory with instance props
@@ -96,7 +108,19 @@ export function createContextMenu<T = unknown>(
     return (
       <GlobalThemeProvider theme={instanceTheme}>
         <ScopedThemeProvider theme={scopedTheme as any}>
-          <ContextMenuRoot {...rootProps} menu={menu}>
+          <ContextMenuRoot
+            {...rootProps}
+            menu={menu}
+            scopeAttr={scopeAttr}
+            disableOutsidePointerEvents={disableOutsidePointerEvents}
+            onEscapeKeyDown={onEscapeKeyDown}
+            onPointerDownOutside={onPointerDownOutside}
+            onFocusOutside={onFocusOutside}
+            onInteractOutside={onInteractOutside}
+            onDismiss={onDismiss}
+            surfaceSelector={surfaceSelector}
+            branchAttr={branchAttr}
+          >
             <ContextMenuTrigger>{children}</ContextMenuTrigger>
             <ContextMenuContent menu={menu} placeholder={placeholder} debug={debug} />
           </ContextMenuRoot>

@@ -4,8 +4,7 @@ import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import type { SubContextValue } from '../contexts/submenu-context.js'
-import { SubCtx, useSubCtx } from '../contexts/submenu-context.js'
-import { findWidgetsWithinSurface } from '../utils/dom.js'
+import { SubCtx, useSub } from '../contexts/submenu-context.js'
 import { useSurface } from './surface-provider.js'
 
 export interface PopupMenuSubmenuProps {
@@ -31,7 +30,7 @@ export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
 
   const parentSurface = useSurface()
   const parentStore = parentSurface.store
-  const parentSubCtx = useSubCtx()
+  const parentSubCtx = useSub()
 
   // Determine parent surface ID: if we're inside another submenu, use its childSurfaceId,
   // otherwise we're at the root level
@@ -47,8 +46,6 @@ export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
     null,
   )
   const intentZoneActiveRef = React.useRef<boolean>(false)
-
-  const { setOwnerId } = useFocusOwner()
 
   const onOpenToggle = React.useCallback(() => {
     setOpen(!open)

@@ -2,8 +2,7 @@ import { Popover } from '@base-ui-components/react/popover'
 import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
 import { useRoot } from '../contexts/root-context.js'
-import { useRootClose } from '../contexts/root-close-context.js'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
 import type { PopupMenuPositionerProps } from '../types.js'
@@ -34,10 +33,9 @@ export function Positioner({
   alignOffset = 0,
   anchor,
 }: PositionerProps) {
-  const sub = useSubCtx()
+  const root = useRoot()
+  const sub = useSub()
   const { classNames, slotProps } = useScopedTheme()
-  const rootCtx = useRoot()
-  const rootCloseCtx = useRootClose()
 
   const isSub = !!sub
   const defaultSide = isSub ? 'right' : 'bottom'
@@ -231,43 +229,91 @@ export function Positioner({
     />
   )
 
-  // Debug logging
-  console.log('[Positioner] Debug:', {
-    isSub,
-    hasRootCtx: !!rootCtx,
-    hasRootCloseCtx: !!rootCloseCtx,
-    shouldWrapWithGuard: !isSub && rootCtx && rootCloseCtx,
-  })
+  // Merge InteractionGuard options with defaults
+  const guardOptions = root.interactionGuardOptions ?? {}
+  const {
+    scopeAttr = 'data-interaction-scope',
+    disableOutsidePointerEvents = true,
+    onEscapeKeyDown,
+    onPointerDownOutside,
+    onFocusOutside,
+    onInteractOutside,
+    onDismiss,
+    surfaceSelector = '[data-popup-menu-surface]',
+    branchAttr = 'data-interaction-branch',
+  } = guardOptions
 
-  // For root menus with close context, wrap with InteractionGuard
-  const wrappedContent =
-    !isSub && rootCtx && rootCloseCtx ? (
-      <InteractionGuard.Root
-        asChild
-        scopeId={rootCtx.scopeId}
-        surfaceSelector="[data-popup-menu-surface]"
-        onEscapeKeyDown={() => {
-          rootCloseCtx.closeAllSurfaces()
-        }}
-        onInteractOutside={() => {
-          rootCloseCtx.closeAllSurfaces()
-        }}
-      >
-        <Popover.Positioner {...positionerProps}>
-          {popupContent}
-        </Popover.Positioner>
-      </InteractionGuard.Root>
-    ) : isSub && rootCtx ? (
-      <InteractionGuard.Branch asChild scopeId={rootCtx.scopeId}>
-        <Popover.Positioner {...positionerProps}>
-          {popupContent}
-        </Popover.Positioner>
-      </InteractionGuard.Branch>
-    ) : (
+  // Create default handlers that call closeAllSurfaces
+  const handleEscapeKeyDown = React.useCallback(
+    (event: KeyboardEvent) => {
+      onEscapeKeyDown?.(event)
+      if (!event.defaultPrevented) {
+        console.log('Escape key pressed')
+        root.closeAllSurfaces()
+      }
+    },
+    [onEscapeKeyDown, root],
+  )
+
+  const handlePointerDownOutside = React.useCallback(
+    (event: any) => {
+      onPointerDownOutside?.(event)
+      if (!event.defaultPrevented) {
+        console.log('Pointer down outside')
+        root.closeAllSurfaces()
+      }
+    },
+    [onPointerDownOutside, root],
+  )
+
+  const handleFocusOutside = React.useCallback(
+    (event: any) => {
+      onFocusOutside?.(event)
+    },
+    [onFocusOutside],
+  )
+
+  const handleInteractOutside = React.useCallback(
+    (event: any) => onInteractOutside?.(event),
+    [onInteractOutside],
+  )
+
+  const handleDismiss = React.useCallback(() => {
+    onDismiss?.()
+    root.closeAllSurfaces()
+  }, [onDismiss, root])
+
+  // For root menus, wrap with InteractionGuard.Root
+  // For submenus, wrap with InteractionGuard.Branch
+  const wrappedContent = !isSub ? (
+    <InteractionGuard.Root
+      asChild
+      scopeId={root.scopeId}
+      scopeAttr={scopeAttr}
+      surfaceSelector={surfaceSelector}
+      branchAttr={branchAttr}
+      disableOutsidePointerEvents={disableOutsidePointerEvents}
+      onPointerDownOutside={handlePointerDownOutside}
+      onEscapeKeyDown={handleEscapeKeyDown}
+      onFocusOutside={handleFocusOutside}
+      onInteractOutside={handleInteractOutside}
+      onDismiss={handleDismiss}
+    >
       <Popover.Positioner {...positionerProps}>
         {popupContent}
       </Popover.Positioner>
-    )
+    </InteractionGuard.Root>
+  ) : (
+    <InteractionGuard.Branch
+      asChild
+      scopeId={root.scopeId}
+      attrName={branchAttr}
+    >
+      <Popover.Positioner {...positionerProps}>
+        {popupContent}
+      </Popover.Positioner>
+    </InteractionGuard.Branch>
+  )
 
   return <Popover.Portal>{wrappedContent}</Popover.Portal>
 }

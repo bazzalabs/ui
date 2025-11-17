@@ -1,6 +1,6 @@
 import type { MenuDef, SubmenuNode } from '@bazza-ui/menu'
 import * as React from 'react'
-import { useSubCtx } from '../contexts/submenu-context.js'
+import { useSub } from '../contexts/submenu-context.js'
 import { PopupMenuContent } from './content.js'
 import { Positioner } from './positioner.js'
 
@@ -15,7 +15,7 @@ interface PopupMenuSubmenuContentProps<T> {
 export function PopupMenuSubmenuContent<T>({
   node,
 }: PopupMenuSubmenuContentProps<T>) {
-  const sub = useSubCtx()!
+  const sub = useSub()!
 
   // Convert submenu node to menu def with required id
   const menuDef: MenuDef<any> = React.useMemo(() => {

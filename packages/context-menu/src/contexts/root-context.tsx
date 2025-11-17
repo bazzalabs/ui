@@ -1,3 +1,4 @@
+import type { InteractionGuardOptions } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 
 export type RootContextValue = {
@@ -7,6 +8,7 @@ export type RootContextValue = {
   closeAllSurfaces: () => void
   anchorPoint: { x: number; y: number } | null
   setAnchorPoint: (point: { x: number; y: number } | null) => void
+  interactionGuardOptions: Partial<InteractionGuardOptions>
 }
 
 const RootContext = React.createContext<RootContextValue | null>(null)
