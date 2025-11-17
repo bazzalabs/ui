@@ -9,7 +9,6 @@ import {
   type PopupMenuThemeDef,
   ScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
-import type { Theme } from '@bazza-ui/theming'
 import * as React from 'react'
 import { ContextMenuContent } from './components/content.js'
 import { ContextMenuRoot } from './components/root.js'

@@ -1,5 +1,4 @@
 import { Examples } from '@/components/examples'
-import { MultiSelect } from '@/components/examples/action-menu/multiselect'
 
 export function Playground() {
   return (

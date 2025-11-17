@@ -1,4 +1,4 @@
-import * as React from 'react'
+import type * as React from 'react'
 import type { GroupNode } from '../types.js'
 
 export interface MenuGroupPrimitiveProps<T> {

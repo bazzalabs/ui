@@ -1,5 +1,4 @@
 import { Popover } from '@base-ui-components/react/popover'
-import { Presence } from '@radix-ui/react-presence'
 import * as React from 'react'
 import { useDisplayMode } from '../contexts/display-mode-context.js'
 import { useRootCtx } from '../contexts/root-context.js'

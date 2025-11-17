@@ -15,7 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { cva } from 'class-variance-authority'
 import { InfoIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'

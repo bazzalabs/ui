@@ -7,7 +7,6 @@ import { useMounted } from '@/hooks/use-mounted'
 import type { TableOfContents } from '@/lib/toc'
 import { cn } from '@/lib/utils'
 import { ListIcon } from 'lucide-react'
-import { Separator } from './ui/separator'
 
 interface TocProps {
   toc: TableOfContents

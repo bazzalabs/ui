@@ -1,4 +1,4 @@
-import * as React from 'react'
+
 import { renderIcon } from '@bazza-ui/menu'
 import type { PopupMenuSlots } from '../types.js'
 

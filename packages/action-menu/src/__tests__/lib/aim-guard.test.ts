@@ -4,7 +4,6 @@ import {
   resolveAnchorSide,
   willHitSubmenu,
 } from '../../lib/aim-guard.js'
-import type { AnchorSide } from '../../types.js'
 
 // Helper to create DOMRect
 const createRect = (

@@ -1,4 +1,4 @@
-import type { ItemNode, Menu, Node, SubmenuNode } from '../types.js'
+import type { ItemNode, Node, SubmenuNode } from '../types.js'
 
 /**
  * Breadcrumb trail extracted from a node's parent chain.

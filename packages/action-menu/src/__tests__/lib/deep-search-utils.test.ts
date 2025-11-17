@@ -7,7 +7,6 @@ import {
 import type {
   AsyncNodeLoaderResult,
   MenuDef,
-  NodeDef,
   SubmenuDef,
 } from '../../types.js'
 

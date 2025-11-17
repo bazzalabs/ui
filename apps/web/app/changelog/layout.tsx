@@ -1,17 +1,5 @@
-import {
-  BazzaUIIcon,
-  DiscordIcon,
-  GithubIcon,
-  UserJotIcon,
-  XIcon,
-} from '@/components/icons'
+
 import { NavBar } from '@/components/nav-bar'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import logoSrc from '@/public/bazzaui-v3-color.png'
-import { ArrowRightIcon } from 'lucide-react'
-import Image from 'next/image'
-import Link from 'next/link'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

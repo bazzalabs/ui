@@ -6,7 +6,6 @@ import type {
   FilterStrategy,
   Locale,
 } from '@bazza-ui/filters'
-import type { ComponentPropsWithoutRef } from 'react'
 import type { FilterVariant } from '../../../context'
 
 export interface FilterValueProps<TData, TType extends ColumnDataType> {
