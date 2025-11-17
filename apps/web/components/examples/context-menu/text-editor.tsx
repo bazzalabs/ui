@@ -10,8 +10,8 @@ import {
   Italic,
   Underline,
 } from 'lucide-react'
-import { ContextMenu } from '@/registry/context-menu'
 import { toast } from 'sonner'
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_TextEditor() {
   return (
@@ -19,9 +19,9 @@ export function ContextMenu_TextEditor() {
       <div className="relative h-48 w-full rounded-lg border p-4">
         <div className="prose prose-sm dark:prose-invert">
           <p>
-            Right-click anywhere in this text editor to access formatting options. This
-            demonstrates a typical text editing context menu with nested formatting
-            options.
+            Right-click anywhere in this text editor to access formatting
+            options. This demonstrates a typical text editing context menu with
+            nested formatting options.
           </p>
           <p className="text-muted-foreground">
             Try the submenu for text alignment and styling options.
@@ -33,6 +33,7 @@ export function ContextMenu_TextEditor() {
 }
 
 const menuDef: MenuDef = {
+  id: 'text-editor-context-menu',
   nodes: [
     {
       kind: 'item',
@@ -54,7 +55,7 @@ const menuDef: MenuDef = {
     {
       kind: 'submenu',
       label: 'Format',
-      children: [
+      nodes: [
         {
           kind: 'item',
           label: 'Bold',
@@ -77,7 +78,7 @@ const menuDef: MenuDef = {
         {
           kind: 'submenu',
           label: 'Text Alignment',
-          children: [
+          nodes: [
             {
               kind: 'item',
               label: 'Align Left',
@@ -101,7 +102,7 @@ const menuDef: MenuDef = {
         {
           kind: 'submenu',
           label: 'Font Size',
-          children: [
+          nodes: [
             {
               kind: 'item',
               label: 'Small',

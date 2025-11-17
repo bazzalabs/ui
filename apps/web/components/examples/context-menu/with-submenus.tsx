@@ -1,8 +1,8 @@
 'use client'
 
 import type { MenuDef } from '@bazza-ui/context-menu'
-import { ContextMenu } from '@/registry/context-menu'
 import { toast } from 'sonner'
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_WithSubmenus() {
   return (
@@ -15,6 +15,7 @@ export function ContextMenu_WithSubmenus() {
 }
 
 const menuDef: MenuDef = {
+  id: 'submenu-context-menu',
   nodes: [
     {
       kind: 'item',
@@ -30,7 +31,7 @@ const menuDef: MenuDef = {
     {
       kind: 'submenu',
       label: 'Share',
-      children: [
+      nodes: [
         {
           kind: 'item',
           label: 'Copy Link',
@@ -44,7 +45,7 @@ const menuDef: MenuDef = {
         {
           kind: 'submenu',
           label: 'Social Media',
-          children: [
+          nodes: [
             {
               kind: 'item',
               label: 'Twitter',
@@ -67,7 +68,7 @@ const menuDef: MenuDef = {
     {
       kind: 'submenu',
       label: 'Open with',
-      children: [
+      nodes: [
         {
           kind: 'item',
           label: 'VS Code',

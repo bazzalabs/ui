@@ -12,8 +12,8 @@ import {
   Star,
   Trash2,
 } from 'lucide-react'
-import { ContextMenu } from '@/registry/context-menu'
 import { toast } from 'sonner'
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_FileBrowser() {
   return (
@@ -37,8 +37,13 @@ const files = [
   { id: '3', name: 'Photo.jpg', size: '3.2 MB' },
 ]
 
-function getMenuForFile(file: { id: string; name: string; size: string }): MenuDef {
+function getMenuForFile(file: {
+  id: string
+  name: string
+  size: string
+}): MenuDef {
   return {
+    id: `file-menu-${file.id}`,
     nodes: [
       {
         kind: 'item',
@@ -70,7 +75,7 @@ function getMenuForFile(file: { id: string; name: string; size: string }): MenuD
         kind: 'submenu',
         label: 'Share',
         icon: <Share2 className="size-4" />,
-        children: [
+        nodes: [
           {
             kind: 'item',
             label: 'Get Link',
@@ -84,7 +89,7 @@ function getMenuForFile(file: { id: string; name: string; size: string }): MenuD
           {
             kind: 'submenu',
             label: 'Send to',
-            children: [
+            nodes: [
               {
                 kind: 'item',
                 label: 'Slack',
@@ -108,7 +113,7 @@ function getMenuForFile(file: { id: string; name: string; size: string }): MenuD
         kind: 'submenu',
         label: 'Move to',
         icon: <FolderPlus className="size-4" />,
-        children: [
+        nodes: [
           {
             kind: 'item',
             label: 'Documents',

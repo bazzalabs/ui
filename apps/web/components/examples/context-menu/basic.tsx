@@ -1,8 +1,8 @@
 'use client'
 
 import type { MenuDef } from '@bazza-ui/context-menu'
-import { ContextMenu } from '@/registry/context-menu'
 import { toast } from 'sonner'
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_Basic() {
   return (
@@ -15,6 +15,7 @@ export function ContextMenu_Basic() {
 }
 
 const menuDef: MenuDef = {
+  id: 'basic-context-menu',
   nodes: [
     {
       kind: 'item',
