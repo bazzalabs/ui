@@ -1,7 +1,5 @@
 import type { MenuDef } from '@bazza-ui/menu'
-import { Popover } from '@base-ui-components/react/popover'
-import { PopupMenuContent } from '@bazza-ui/popup-menu'
-import { useScopedTheme } from '@bazza-ui/popup-menu'
+import { PopupMenuContent, Positioner } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
 
@@ -16,6 +14,7 @@ export interface ContextMenuContentProps<T = unknown> {
 
 /**
  * ContextMenuContent - Renders the popup menu content at cursor position
+ * Uses popup-menu's Positioner for consistent theming integration
  */
 export function ContextMenuContent<T = unknown>({
   menu: menuProp,
@@ -23,26 +22,14 @@ export function ContextMenuContent<T = unknown>({
   debug = false,
 }: ContextMenuContentProps<T>) {
   const { open, closeAllSurfaces, anchorPoint } = useRootContext()
-  const theme = useScopedTheme()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
-  // Get menu from context (passed to Root) or props
-  // For now, require it from Root via context
-  // TODO: Add menu to root context if we want to support both patterns
-
-  if (!open || !anchorPoint) {
-    return null
-  }
-
-  return (
-    <>
-      <Popover.Portal>
-        <Popover.Positioner
-          side="bottom"
-          align="start"
-          sideOffset={4}
-          className={theme?.classNames?.positioner}
-          anchor={{
+  // Create virtual anchor element for cursor position
+  // Must be called unconditionally before early returns (Rules of Hooks)
+  const virtualAnchor = React.useMemo(
+    () =>
+      anchorPoint
+        ? {
             getBoundingClientRect: () => ({
               x: anchorPoint.x,
               y: anchorPoint.y,
@@ -54,21 +41,37 @@ export function ContextMenuContent<T = unknown>({
               bottom: anchorPoint.y,
               toJSON: () => ({}),
             }),
-          }}
-        >
-          <Popover.Popup>
-            {menuProp && (
-              <PopupMenuContent
-                menu={menuProp}
-                open={open}
-                onClose={closeAllSurfaces}
-                contentRef={contentRef as any}
-                placeholder={placeholder}
-              />
-            )}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
+          }
+        : null,
+    [anchorPoint],
+  )
+
+  // Get menu from context (passed to Root) or props
+  // For now, require it from Root via context
+  // TODO: Add menu to root context if we want to support both patterns
+
+  if (!open || !anchorPoint || !virtualAnchor) {
+    return null
+  }
+
+  return (
+    <>
+      <Positioner
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        anchor={virtualAnchor}
+      >
+        {menuProp && (
+          <PopupMenuContent
+            menu={menuProp}
+            open={open}
+            onClose={closeAllSurfaces}
+            contentRef={contentRef as any}
+            placeholder={placeholder}
+          />
+        )}
+      </Positioner>
 
       {/* Debug visualization */}
       {debug && (

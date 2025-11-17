@@ -1,7 +1,5 @@
 import type { MenuDef } from '@bazza-ui/menu'
-import { Popover } from '@base-ui-components/react/popover'
-import { PopupMenuContent } from '@bazza-ui/popup-menu'
-import { useScopedTheme } from '@bazza-ui/popup-menu'
+import { PopupMenuContent, Positioner } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
 
@@ -20,6 +18,7 @@ export interface DropdownMenuContentProps<T = unknown> {
 
 /**
  * DropdownMenuContent - Renders the popup menu content relative to trigger
+ * Uses popup-menu's Positioner for consistent theming integration
  */
 export function DropdownMenuContent<T = unknown>({
   menu: menuProp,
@@ -29,7 +28,6 @@ export function DropdownMenuContent<T = unknown>({
   sideOffset = 4,
 }: DropdownMenuContentProps<T>) {
   const { open, closeAllSurfaces, triggerRef } = useRootContext()
-  const theme = useScopedTheme()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   if (!open) {
@@ -37,26 +35,21 @@ export function DropdownMenuContent<T = unknown>({
   }
 
   return (
-    <Popover.Portal>
-      <Popover.Positioner
-        side={side}
-        align={align}
-        sideOffset={sideOffset}
-        className={theme?.classNames?.positioner}
-        anchor={triggerRef.current}
-      >
-        <Popover.Popup>
-          {menuProp && (
-            <PopupMenuContent
-              menu={menuProp}
-              open={open}
-              onClose={closeAllSurfaces}
-              contentRef={contentRef as any}
-              placeholder={placeholder}
-            />
-          )}
-        </Popover.Popup>
-      </Popover.Positioner>
-    </Popover.Portal>
+    <Positioner
+      side={side}
+      align={align}
+      sideOffset={sideOffset}
+      anchor={triggerRef.current}
+    >
+      {menuProp && (
+        <PopupMenuContent
+          menu={menuProp}
+          open={open}
+          onClose={closeAllSurfaces}
+          contentRef={contentRef as any}
+          placeholder={placeholder}
+        />
+      )}
+    </Positioner>
   )
 }

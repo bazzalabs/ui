@@ -1,6 +1,8 @@
 import { Popover } from '@base-ui-components/react/popover'
+import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
 import { useSubCtx } from '../contexts/submenu-context.js'
+import { useScopedTheme } from '../contexts/theme-context.js'
 import type { PopupMenuPositionerProps } from '../types.js'
 
 export interface PositionerProps extends Children {
@@ -8,6 +10,8 @@ export interface PositionerProps extends Children {
   align?: PopupMenuPositionerProps['align']
   sideOffset?: number
   alignOffset?: number
+  /** Custom anchor for root menus (e.g., trigger ref or virtual cursor position) */
+  anchor?: React.ComponentProps<typeof Popover.Positioner>['anchor']
 }
 
 type Children = {
@@ -16,6 +20,7 @@ type Children = {
 
 /**
  * Positioner wraps submenu content and handles positioning with "list" alignment support.
+ * Integrates with theming system to apply classNames and slotProps.
  */
 export function Positioner({
   children,
@@ -23,8 +28,10 @@ export function Positioner({
   align,
   sideOffset = 8,
   alignOffset = 0,
+  anchor,
 }: PositionerProps) {
   const sub = useSubCtx()
+  const { classNames, slotProps } = useScopedTheme()
 
   const isSub = !!sub
   const defaultSide = isSub ? 'right' : 'bottom'
@@ -124,17 +131,45 @@ export function Positioner({
   // Map 'list' to Base UI's 'start' for the actual positioning
   const baseUIAlign = resolvedAlign === 'list' ? 'start' : resolvedAlign
 
+  // Determine if this is a submenu or root positioner
+  // Handle both flat PositionerSlotProps and nested { root, sub } structure
+  const positionerSlotProps = React.useMemo(() => {
+    const props = slotProps?.positioner
+    if (!props) return {}
+
+    // Check if it has root/sub structure
+    if ('root' in props || 'sub' in props) {
+      return isSub ? props.sub ?? {} : props.root ?? {}
+    }
+
+    // Otherwise it's a flat object to apply to all
+    return props
+  }, [slotProps?.positioner, isSub])
+
+  // Merge positioner props with theme (without anchor first)
+  const basePropsWithoutAnchor = {
+    side: resolvedSide,
+    align: baseUIAlign,
+    sideOffset,
+    alignOffset: finalAlignOffset,
+    sticky: true,
+    positionMethod: 'fixed' as const,
+    collisionPadding: 8,
+    'data-slot': 'popup-menu-positioner',
+    'data-positioner-type': isSub ? 'submenu' : 'root',
+    className: classNames?.positioner,
+  }
+
+  const mergedProps = mergeProps(basePropsWithoutAnchor, positionerSlotProps)
+
+  // Add anchor AFTER merge to ensure it's not overwritten (for root menus)
+  const positionerProps = anchor ? { ...mergedProps, anchor } : mergedProps
+
   return (
-    <Popover.Positioner
-      side={resolvedSide}
-      align={baseUIAlign}
-      sideOffset={sideOffset}
-      alignOffset={finalAlignOffset}
-      sticky
-      positionMethod="fixed"
-      collisionPadding={8}
-    >
-      {children}
-    </Popover.Positioner>
+    <Popover.Portal>
+      <Popover.Positioner {...positionerProps}>
+        <Popover.Popup initialFocus={false} render={children as any} />
+      </Popover.Positioner>
+    </Popover.Portal>
   )
 }

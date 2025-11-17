@@ -8,6 +8,7 @@ import {
   type SubmenuNode,
   useFilteredNodes,
 } from '@bazza-ui/menu'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { useSurface } from './surface-provider.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
@@ -136,6 +137,31 @@ function ListRendererContent({
     store.first('keyboard')
   }, [q, store])
 
+  // Virtualization - enable if configured or if many items
+  const virtualizationConfig = (menu as any).virtualization
+  const enableVirtualization =
+    virtualizationConfig?.enabled ||
+    (virtualizationConfig?.enabled !== false && displayNodes.length > 50)
+
+  const virtualizer = useVirtualizer({
+    count: displayNodes.length,
+    estimateSize: virtualizationConfig?.estimateSize ?? (() => 40),
+    getScrollElement: () => store.listRef.current,
+    getItemKey: (index) => displayNodes[index]?.id ?? index,
+    overscan: virtualizationConfig?.overscan ?? 5,
+    enabled: enableVirtualization,
+  })
+
+  const virtualItems = virtualizer.getVirtualItems()
+  const totalSize = virtualizer.getTotalSize()
+
+  // Store virtualizer ref for keyboard navigation
+  React.useEffect(() => {
+    if (store.virtualizerRef && enableVirtualization) {
+      ;(store.virtualizerRef as any).current = virtualizer
+    }
+  }, [store.virtualizerRef, virtualizer, enableVirtualization])
+
   // Handle item selection
   const handleItemSelect = React.useCallback(
     ({ node }: { node: ItemNode<any> }) => {
@@ -161,6 +187,147 @@ function ListRendererContent({
     onClose?.()
   }, [onClose])
 
+  // Helper function to render a single node
+  const renderNode = React.useCallback(
+    (
+      node: any,
+      index: number,
+      virtualRow?: { key: string | number; start: number },
+    ) => {
+      const wrapperProps = virtualRow
+        ? {
+            key: virtualRow.key,
+            'data-index': index,
+            ref: virtualizer.measureElement,
+            style: {
+              position: 'absolute' as const,
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+            },
+          }
+        : {
+            key: node.id,
+            'data-index': index,
+          }
+
+      if (!node) return null
+
+      // Group heading
+      if (node.kind === 'group') {
+        const groupNode = node as GroupNode<any>
+        const GroupHeadingSlot = slots.GroupHeading
+        if (!GroupHeadingSlot) return null
+        return (
+          <div {...wrapperProps}>
+            {GroupHeadingSlot({
+              node: groupNode,
+              bind: {
+                getGroupHeadingProps: (overrides) =>
+                  mergeProps(
+                    {
+                      role: 'presentation',
+                      className: classNames?.groupHeading,
+                    },
+                    overrides as any,
+                  ),
+              },
+            })}
+          </div>
+        )
+      }
+
+      // Separator
+      if (node.kind === 'separator') {
+        const SeparatorSlot = slots.Separator
+        if (!SeparatorSlot) return null
+        return <div {...wrapperProps}>{SeparatorSlot({ node })}</div>
+      }
+
+      // Item
+      if (node.kind === 'item') {
+        const ItemSlot = slots.Item
+        const itemNode = node as ItemNode<any>
+
+        const itemElement = (
+          <MenuItemPrimitive
+            key={node.id}
+            node={itemNode}
+            store={store}
+            className={classNames?.item}
+            mode="popover"
+            onSelect={handleItemSelect}
+          >
+            {(bind) =>
+              ItemSlot({
+                node: itemNode,
+                bind,
+                search: (node as any).search,
+              })
+            }
+          </MenuItemPrimitive>
+        )
+
+        return virtualRow ? <div {...wrapperProps}>{itemElement}</div> : itemElement
+      }
+
+      // Submenu
+      if (node.kind === 'submenu') {
+        const SubmenuTriggerSlot = slots.SubmenuTrigger
+        const submenuNode = node as SubmenuNode<any>
+
+        const submenuElement = (
+          <ScopedThemeProvider
+            key={node.id}
+            __scopeId={node.id}
+            theme={node.ui as any}
+          >
+            <PopupMenuSubmenu def={submenuNode.def}>
+              <PopupMenuSubmenuTrigger
+                node={submenuNode}
+                slot={SubmenuTriggerSlot}
+                classNames={classNames}
+                search={(node as any).search}
+              />
+              <PopupMenuSubmenuContent node={submenuNode} />
+            </PopupMenuSubmenu>
+          </ScopedThemeProvider>
+        )
+
+        return virtualRow ? <div {...wrapperProps}>{submenuElement}</div> : submenuElement
+      }
+
+      // Loading node
+      if (node.kind === 'loading') {
+        const InlineLoadingSlot = slots.InlineLoading
+        if (!InlineLoadingSlot) return null
+
+        return (
+          <div {...wrapperProps}>
+            {InlineLoadingSlot({
+              progress: (node as any).progress,
+              inProgressPaths: (node as any).inProgressPaths,
+              completedPaths: (node as any).completedPaths,
+              query: q,
+            })}
+          </div>
+        )
+      }
+
+      return null
+    },
+    [
+      store,
+      slots,
+      classNames,
+      handleItemSelect,
+      handleSubmenuSelect,
+      q,
+      virtualizer,
+    ],
+  )
+
   // Show empty state
   if (displayNodes.length === 0) {
     const EmptySlot = slots.Empty
@@ -180,112 +347,25 @@ function ListRendererContent({
         overflow: 'auto',
       }}
     >
-      {displayNodes.map((node, index) => {
-        if (!node) return null
-
-        // Group heading
-        if (node.kind === 'group') {
-          const groupNode = node as GroupNode<any>
-          const GroupHeadingSlot = slots.GroupHeading
-          if (!GroupHeadingSlot) return null
-          return (
-            <div key={node.id} data-index={index}>
-              {GroupHeadingSlot({
-                node: groupNode,
-                bind: {
-                  getGroupHeadingProps: (overrides) =>
-                    mergeProps(
-                      {
-                        role: 'presentation',
-                        className: classNames?.groupHeading,
-                      },
-                      overrides as any,
-                    ),
-                },
-              })}
-            </div>
-          )
-        }
-
-        // Separator
-        if (node.kind === 'separator') {
-          const SeparatorSlot = slots.Separator
-          if (!SeparatorSlot) return null
-          return (
-            <div key={node.id} data-index={index}>
-              {SeparatorSlot({ node })}
-            </div>
-          )
-        }
-
-        // Item
-        if (node.kind === 'item') {
-          const ItemSlot = slots.Item
-          const itemNode = node as ItemNode<any>
-
-          return (
-            <MenuItemPrimitive
-              key={node.id}
-              node={itemNode}
-              store={store}
-              className={classNames?.item}
-              mode="popover"
-              onSelect={handleItemSelect}
-            >
-              {(bind) =>
-                ItemSlot({
-                  node: itemNode,
-                  bind,
-                  search: (node as any).search,
-                })
-              }
-            </MenuItemPrimitive>
-          )
-        }
-
-        // Submenu - hierarchical rendering with actual nested Popover
-        if (node.kind === 'submenu') {
-          const SubmenuTriggerSlot = slots.SubmenuTrigger
-          const submenuNode = node as SubmenuNode<any>
-
-          return (
-            <ScopedThemeProvider
-              key={node.id}
-              __scopeId={node.id}
-              theme={node.ui as any}
-            >
-              <PopupMenuSubmenu def={submenuNode.def}>
-                <PopupMenuSubmenuTrigger
-                  node={submenuNode}
-                  slot={SubmenuTriggerSlot}
-                  classNames={classNames}
-                  search={(node as any).search}
-                />
-                <PopupMenuSubmenuContent node={submenuNode} />
-              </PopupMenuSubmenu>
-            </ScopedThemeProvider>
-          )
-        }
-
-        // Loading node (streaming mode only)
-        if (node.kind === 'loading') {
-          const InlineLoadingSlot = slots.InlineLoading
-          if (!InlineLoadingSlot) return null
-
-          return (
-            <div key={node.id} data-index={index}>
-              {InlineLoadingSlot({
-                progress: (node as any).progress,
-                inProgressPaths: (node as any).inProgressPaths,
-                completedPaths: (node as any).completedPaths,
-                query: q,
-              })}
-            </div>
-          )
-        }
-
-        return null
-      })}
+      {enableVirtualization ? (
+        <div
+          style={{
+            height: `${totalSize}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualItems.map((virtualRow) => {
+            const node = displayNodes[virtualRow.index]
+            return renderNode(node, virtualRow.index, {
+              key: String(virtualRow.key),
+              start: virtualRow.start,
+            })
+          })}
+        </div>
+      ) : (
+        displayNodes.map((node, index) => renderNode(node, index))
+      )}
     </MenuListPrimitive>
   )
 }

@@ -92,34 +92,7 @@ export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
 
   return (
     <SubCtx.Provider value={value}>
-      <Popover.Root
-        open={open}
-        onOpenChange={(o) => {
-          setOpen(o)
-          if (o) {
-            // Claim focus for the child surface when popover opens
-            setOwnerId(childSurfaceId)
-            // Focus input/list shortly after mount
-            requestAnimationFrame(() => {
-              const content = contentRef.current
-              const { input, list } = findWidgetsWithinSurface(content!)
-              ;(input ?? list)?.focus()
-            })
-          } else {
-            // Return focus/selection to parent surface
-            setOwnerId(parentSurfaceId)
-            parentStore.setActiveId(triggerItemId)
-            requestAnimationFrame(() => {
-              const parentEl = document.querySelector<HTMLElement>(
-                `[data-surface-id="${parentSurfaceId}"]`,
-              )
-              const { input, list } = findWidgetsWithinSurface(parentEl)
-              ;(input ?? list)?.focus()
-            })
-          }
-        }}
-        modal={false}
-      >
+      <Popover.Root open={open} onOpenChange={setOpen} modal={false}>
         {children}
       </Popover.Root>
     </SubCtx.Provider>

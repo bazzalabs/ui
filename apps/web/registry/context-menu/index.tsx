@@ -4,15 +4,17 @@ import { Fragment, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { renderIcon } from '@bazza-ui/menu'
 
+declare module '@bazza-ui/context-menu' {
+  interface ItemExtendedProperties {
+    description?: string
+  }
+}
+
 export const ContextMenu = createContextMenu({
   slots: {
-    // Content: ({ children, bind }) => (
-    //   <div {...bind.getContentProps()}>{children}</div>
-    // ),
-    // List: ({ children, bind }) => <ul {...bind.getListProps()}>{children}</ul>,
     Item: ({ node, bind }) => {
       const props = bind.getRowProps({
-        className: 'group/row',
+        className: cn('group/row', node.description && 'gap-3'),
       })
 
       return (
@@ -25,7 +27,16 @@ export const ContextMenu = createContextMenu({
               )}
             </div>
           )}
-          <span className="truncate">{node.label}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
+              {node.label}
+            </span>
+            {node.description && (
+              <span className="text-muted-foreground text-xs truncate">
+                {node.description}
+              </span>
+            )}
+          </div>
         </li>
       )
     },
@@ -41,13 +52,15 @@ export const ContextMenu = createContextMenu({
               <div className="size-4 flex items-center justify-center">
                 {renderIcon(
                   node.icon,
-                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary',
+                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
                 )}
               </div>
             )}
-            <span className="truncate">{node.label ?? ''}</span>
+            <span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
+              {node.label ?? ''}
+            </span>
           </div>
-          <ChevronRightIcon className="text-muted-foreground/75 transition-[color] duration-50 ease-out shrink-0 size-4" />
+          <ChevronRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]/row:text-foreground/75 group-data-[menu-focused=true]/row:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4" />
         </li>
       )
     },
@@ -56,10 +69,27 @@ export const ContextMenu = createContextMenu({
         <span>{node.heading}</span>
       </div>
     ),
-    Separator: () => (
-      // biome-ignore lint/a11y/useFocusableInteractive: separator is decorative
-      <div role="separator" aria-orientation="horizontal" />
-    ),
+    Loading: (args) => {
+      const count = args.progress?.reduce((acc, progress) => {
+        return progress.isLoading ? acc : acc + 1
+      }, 0)
+      const total = args.progress?.length ?? 0
+
+      return (
+        <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground">
+          <DiamondSpinner className="size-5 text-primary rotate-45" />
+          <span className="tabular-nums">
+            Loading {total > 0 ? `${count}/${total}` : ''}...
+          </span>
+        </div>
+      )
+    },
+    Empty: ({ query }) =>
+      query ? (
+        <div className="flex items-center justify-center h-10 text-muted-foreground">
+          No matching options.
+        </div>
+      ) : null,
   },
   slotProps: {
     positioner: {
@@ -71,21 +101,31 @@ export const ContextMenu = createContextMenu({
     positioner: cn('z-50'),
     content: cn(
       'border bg-popover z-50 rounded-lg flex flex-col text-sm',
-      'drop-shadow-md',
+      'drop-shadow-xl',
+      'data-[root-menu]:data-[open]:animate-in data-[root-menu]:data-[open]:fade-in-0 data-[root-menu]:data-[open]:zoom-in-95',
+      'data-[root-menu]:data-[closed]:animate-out data-[root-menu]:data-[closed]:fade-out-0 data-[root-menu]:data-[closed]:zoom-out-95',
+      'data-[root-menu]:data-[open]:origin-(--transform-origin) data-[root-menu]:data-[closed]:origin-(--transform-origin)',
+      'data-[root-menu]:data-[open]:transition-[filter,scale,opacity] data-[root-menu]:data-[open]:duration-150 data-[root-menu]:data-[open]:ease-out',
+      'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-150 data-[root-menu]:data-[closed]:ease-out',
       'min-w-[200px] max-w-[300px]',
-    ),
-    input: cn(
-      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 border-b',
-      'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
-      'data-[mode=drawer]:text-[16px] data-[mode=drawer]:px-6',
-      'caret-blue-500',
-      'w-full',
+      'max-h-[min(500px,var(--action-menu-available-height))]',
+      'box-content',
     ),
     list: cn(
       'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
       '[-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
       'w-full flex-1',
       'py-1',
+    ),
+    input: cn(
+      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 border-b',
+      'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+      'caret-blue-500',
+      'w-full',
+    ),
+    groupHeading: cn(
+      'mt-3 data-[index=0]:mt-1 mb-2',
+      'text-xs font-medium text-muted-foreground px-3',
     ),
     item: cn(
       'group flex items-center gap-2 text-sm select-none aria-disabled:opacity-50',
@@ -100,34 +140,12 @@ export const ContextMenu = createContextMenu({
       'overflow-x-hidden w-full relative z-1',
       'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:before:bg-accent before:rounded-md before:z-[-1]',
     ),
-    groupHeading: cn(
-      'mt-3 data-[index=0]:mt-1 mb-2',
-      'text-xs font-medium text-muted-foreground px-3',
-    ),
     separator: cn('h-px bg-border my-1 mx-2'),
   },
 })
 
 // Re-export utilities
 export { renderIcon }
-
-// Helper SVG icon
-const TriangleRightIcon = ({
-  ...props
-}: React.HTMLAttributes<SVGSVGElement>) => {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 15 15"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
-      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
-    </svg>
-  )
-}
 
 const diamondCoords = [
   { x: 3, y: 48 },

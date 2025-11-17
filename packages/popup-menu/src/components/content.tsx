@@ -65,6 +65,7 @@ export function PopupMenuContent<T = unknown>({
           tabIndex: -1,
           'data-slot': 'popup-menu-content',
           'data-popup-menu-surface': true,
+          'data-root-menu': true,
           ...slotProps?.content,
           className: classNames?.content,
           onKeyDown: handleListKeyDown,

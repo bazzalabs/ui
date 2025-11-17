@@ -1,12 +1,13 @@
 import { Popover } from '@base-ui-components/react/popover'
 import { composeRefs } from '@radix-ui/react-compose-refs'
-import type { SubmenuNode } from '@bazza-ui/menu'
+import { mergeProps, type SubmenuNode } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useHoverPolicy } from '../contexts/hover-policy-context.js'
 import { useSubCtx } from '../contexts/submenu-context.js'
 import { useSurface } from './surface-provider.js'
 import { useMouseTrail } from '../hooks/use-mouse-trail.js'
+import { useSurfaceSel } from '../hooks/use-surface-sel.js'
 import {
   getSmoothedHeading,
   resolveAnchorSide,
@@ -53,7 +54,7 @@ export function PopupMenuSubmenuTrigger<T>({
   const surfaceCtx = useSurface()
   const store = surfaceCtx.store
   const sub = useSubCtx()!
-  const { setOwnerId } = useFocusOwner()
+  const { setOwnerId, ownerId } = useFocusOwner()
   const {
     guardedTriggerIdRef,
     aimGuardActiveRef,
@@ -64,6 +65,9 @@ export function PopupMenuSubmenuTrigger<T>({
   const ref = React.useRef<HTMLElement | null>(null)
 
   const rowId = node.id
+
+  // Track whether the submenu content has focus
+  const menuFocused = sub.childSurfaceId === ownerId
 
   // Register this submenu trigger as a row in the parent surface store
   React.useEffect(() => {
@@ -112,7 +116,7 @@ export function PopupMenuSubmenuTrigger<T>({
     }
   }, [rowId, sub])
 
-  const activeId = store.snapshot().activeId
+  const activeId = useSurfaceSel(store, (s) => s.activeId)
   const focused = activeId === rowId
 
   const onClick = React.useCallback((e: any) => {
@@ -248,6 +252,7 @@ export function PopupMenuSubmenuTrigger<T>({
       'data-action-menu-item-id': rowId,
       'data-focused': focused,
       'data-menu-state': sub.open ? 'open' : 'closed',
+      'data-menu-focused': menuFocused,
       'data-group-position': node.groupPosition,
       'data-group-index': node.groupIndex,
       'data-group-size': node.groupSize,
@@ -267,6 +272,7 @@ export function PopupMenuSubmenuTrigger<T>({
       refProp,
       sub,
       focused,
+      menuFocused,
       node.groupPosition,
       node.groupIndex,
       node.groupSize,
@@ -284,7 +290,7 @@ export function PopupMenuSubmenuTrigger<T>({
     () => ({
       focused,
       disabled: false,
-      getRowProps: (overrides) => ({ ...baseRowProps, ...overrides } as any),
+      getRowProps: (overrides) => mergeProps(baseRowProps, overrides) as any,
     }),
     [focused, baseRowProps],
   )
