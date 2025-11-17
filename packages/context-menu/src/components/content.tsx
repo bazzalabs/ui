@@ -33,23 +33,22 @@ export function ContextMenuContent<T = unknown>({
 
   // Merge defaults with menu properties
   // menu properties take precedence over passed defaults
-  const mergedMenu = React.useMemo<MenuDef<T> | undefined>(() => {
-    if (!menuProp) return undefined
+  // Return both merged menu and computed defaults for PopupMenuContent
+  const { mergedMenu, computedDefaults } = React.useMemo(() => {
+    if (!menuProp) return { mergedMenu: undefined, computedDefaults: undefined }
 
     // If there are no defaults, return menu as-is
-    if (!defaults) return menuProp
+    if (!defaults) return { mergedMenu: menuProp, computedDefaults: undefined }
 
-    // Merge defaults into menu.defaults
-    const mergedDefaults = defaults
-      ? {
-          surface: { ...defaults.surface, ...menuProp.defaults?.surface },
-          item: { ...defaults.item, ...menuProp.defaults?.item },
-          virtualization: {
-            ...defaults.virtualization,
-            ...menuProp.defaults?.virtualization,
-          },
-        }
-      : menuProp.defaults
+    // Merge defaults: factory+instance (defaults) + menu.defaults
+    const mergedDefaults = {
+      surface: { ...defaults.surface, ...menuProp.defaults?.surface },
+      item: { ...defaults.item, ...menuProp.defaults?.item },
+      virtualization: {
+        ...defaults.virtualization,
+        ...menuProp.defaults?.virtualization,
+      },
+    }
 
     // Merge virtualization config: defaults first, then menu overrides
     const mergedVirtualization = defaults.virtualization
@@ -60,9 +59,12 @@ export function ContextMenuContent<T = unknown>({
       : menuProp.virtualization
 
     return {
-      ...menuProp,
-      defaults: mergedDefaults,
-      virtualization: mergedVirtualization,
+      mergedMenu: {
+        ...menuProp,
+        defaults: mergedDefaults,
+        virtualization: mergedVirtualization,
+      },
+      computedDefaults: mergedDefaults as MenuNodeDefaults<T>,
     }
   }, [menuProp, defaults])
 
@@ -125,6 +127,7 @@ export function ContextMenuContent<T = unknown>({
               popupProps={popupProps}
               vimBindings={vimBindings}
               dir={dir}
+              defaults={computedDefaults}
             />
           ) : (
             <div {...popupProps} />

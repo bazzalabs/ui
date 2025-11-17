@@ -6,6 +6,7 @@ import type {
   LoaderAdapter,
   Menu,
   MenuDef,
+  MenuNodeDefaults,
 } from '../types.js'
 import {
   aggregateLoaderResults,
@@ -61,6 +62,12 @@ export interface DeepSearchOrchestrationConfig<T> {
    * This will be set as the menu's loader property after deep search injection.
    */
   rootLoaderResult?: any
+
+  /**
+   * Pre-computed defaults from factory + instance levels.
+   * These will be passed to instantiateMenuFromDef to create the defaults cascade.
+   */
+  defaults?: MenuNodeDefaults<T>
 }
 
 export interface DeepSearchOrchestrationResult<T> {
@@ -124,6 +131,7 @@ export function useDeepSearchOrchestration<T>(
     isSubmenu = false,
     filterLoaders,
     rootLoaderResult,
+    defaults,
   } = config
 
   // Collect deep search loaders from the menu tree
@@ -296,11 +304,12 @@ export function useDeepSearchOrchestration<T>(
       resolvedMenuDef.loader = rootLoaderResult
     }
 
-    // Instantiate the menu
+    // Instantiate the menu with defaults cascade
     const instantiatedMenu = instantiateMenuFromDef(
       resolvedMenuDef,
       surfaceId,
       depth,
+      defaults,
     )
 
     // If we have aggregated loading state, merge it with the menu's loading state

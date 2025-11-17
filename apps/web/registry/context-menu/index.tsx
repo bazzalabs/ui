@@ -13,7 +13,7 @@ declare module '@bazza-ui/context-menu' {
 export const ContextMenu = createContextMenu({
   defaults: {
     virtualization: {
-      enabled: true,
+      enabled: false,
     },
   },
 

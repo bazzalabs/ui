@@ -1,6 +1,7 @@
 import {
   createSurfaceStore,
   type MenuDef,
+  type MenuNodeDefaults,
   useDeepSearchOrchestration,
   useLoaderAdapter,
 } from '@bazza-ui/menu'
@@ -37,6 +38,8 @@ export interface PopupMenuListProps<T = unknown> {
     surfaceProps: { onMouseMove: (e: React.MouseEvent) => void },
     listElement: React.ReactNode,
   ) => React.ReactNode
+  /** Pre-computed defaults from factory + instance levels */
+  defaults?: MenuNodeDefaults<T>
 }
 
 /**
@@ -54,6 +57,7 @@ export function PopupMenuList<T = unknown>({
   onTypeStart,
   contentRef,
   children,
+  defaults,
 }: PopupMenuListProps<T>) {
   // Determine surface ID (from submenu context or 'root')
   const subCtx = React.useContext(SubCtx)
@@ -107,6 +111,7 @@ export function PopupMenuList<T = unknown>({
     surfaceId,
     isSubmenu,
     rootLoaderResult: loaderResult,
+    defaults,
   })
 
   // Check if we're already inside a FocusOwnerCtx (from parent surface)

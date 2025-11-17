@@ -8,6 +8,7 @@ import type {
   LoadingNode,
   Menu,
   MenuDef,
+  MenuNodeDefaults,
   Node,
   NodeDef,
   SeparatorDef,
@@ -15,6 +16,7 @@ import type {
   SubmenuDef,
   SubmenuNode,
 } from '../types.js'
+import { mergeDefaults } from '../utils/defaults.js'
 
 /* ================================================================================================
  * Utility Functions
@@ -131,11 +133,13 @@ function normalizeNodeDef<T>(nodeDef: NodeDef<T>): NodeDef<T> {
  *
  * @param def - The node definition to instantiate
  * @param parent - The parent menu this node belongs to
- * @returns The instantiated runtime node
+ * @param computedDefaults - Pre-computed defaults from the defaults cascade (factory → instance → surface)
+ * @returns The instantiated runtime node with defaults baked in
  */
 export function instantiateSingleNode<T>(
   def: NodeDef<T>,
   parent: Menu<any>,
+  computedDefaults?: MenuNodeDefaults<T>,
 ): Node<T> {
   if (def.kind === 'item') {
     const itemDef = def as ItemDef<T>
@@ -149,6 +153,23 @@ export function instantiateSingleNode<T>(
       )
     }
 
+    // Augment with computed defaults - node's explicit values take precedence
+    const onSelect = itemDef.onSelect ?? computedDefaults?.item?.onSelect
+    const closeOnSelect =
+      itemDef.closeOnSelect ?? computedDefaults?.item?.closeOnSelect
+
+    // Debug: Log when defaults are applied
+    if (computedDefaults?.item && !itemDef.onSelect) {
+      console.log(
+        `✨ [node augmentation] Applied default onSelect to item "${itemDef.label}"`,
+        {
+          nodeId: id,
+          hasDefaultOnSelect: !!computedDefaults.item.onSelect,
+          hasDefaultCloseOnSelect: !!computedDefaults.item.closeOnSelect,
+        },
+      )
+    }
+
     const node: ItemNode<T> = {
       ...itemDef,
       id,
@@ -156,6 +177,9 @@ export function instantiateSingleNode<T>(
       kind: 'item',
       parent,
       def: itemDef,
+      // Bake in defaults
+      onSelect,
+      closeOnSelect,
       ...(variant === 'radio'
         ? {
             value: itemDef.variant === 'radio' ? (itemDef.value ?? id) : id,
@@ -169,7 +193,7 @@ export function instantiateSingleNode<T>(
   if (def.kind === 'group') {
     const groupDef = def as GroupDef<T>
     const children = (def.nodes ?? []).map((c) =>
-      instantiateSingleNode<any>(c as NodeDef<any>, parent),
+      instantiateSingleNode<any>(c as NodeDef<any>, parent, computedDefaults),
     )
 
     const variant = groupDef.variant ?? 'default'
@@ -263,6 +287,7 @@ export function instantiateSingleNode<T>(
 
     // ! In TSX, don't write instantiateMenuFromDef<any>(...)
     // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
+    // Pass computedDefaults as parentDefaults to create the cascade
     const child = instantiateMenuFromDef(
       {
         id,
@@ -281,6 +306,7 @@ export function instantiateSingleNode<T>(
       } as MenuDef<any>,
       childSurfaceId,
       parent.depth + 1,
+      computedDefaults, // Pass parent's computed defaults to child
     ) as Menu<any>
 
     // Destructure to exclude properties that shouldn't be on the node
@@ -312,7 +338,28 @@ export function instantiateMenuFromDef<T>(
   def: MenuDef<T>,
   surfaceId: string,
   depth: number,
+  parentDefaults?: MenuNodeDefaults<T>,
 ): Menu<T> {
+  // Compute home defaults by merging parent defaults with this menu's defaults
+  // This creates the three-level cascade: factory → instance → surface (home menu)
+  const homeDefaults = mergeDefaults(parentDefaults, def.defaults)
+
+  // Debug: Log defaults merging at surface level
+  // if (parentDefaults || def.defaults) {
+  //   console.log(
+  //     `🏠 [surface defaults] Merging defaults for menu "${def.id || 'root'}"`,
+  //     {
+  //       depth,
+  //       surfaceId,
+  //       hasParentDefaults: !!parentDefaults,
+  //       hasMenuDefaults: !!def.defaults,
+  //       parentDefaults: parentDefaults,
+  //       menuDefaults: def.defaults,
+  //       mergedDefaults: homeDefaults,
+  //     },
+  //   )
+  // }
+
   // Only resolve loader if it's NOT a function
   // Function loaders should already be resolved by Surface component
   // If we encounter a function loader here (e.g., for submenus during instantiation),
@@ -356,7 +403,7 @@ export function instantiateMenuFromDef<T>(
     title: def.title,
     inputPlaceholder: def.inputPlaceholder,
     hideSearchUntilActive: def.hideSearchUntilActive,
-    defaults: def.defaults,
+    defaults: homeDefaults, // Store computed defaults on the Menu
     ui: def.ui,
     nodes: [] as Node<T>[],
     surfaceId,
@@ -369,9 +416,9 @@ export function instantiateMenuFromDef<T>(
     search: def.search,
   }
 
-  // Use the extracted instantiateSingleNode function
+  // Use the extracted instantiateSingleNode function, passing computed defaults
   parentless.nodes = (sourceNodes ?? []).map((n: any) =>
-    instantiateSingleNode(n as any, parentless),
+    instantiateSingleNode(n as any, parentless, homeDefaults),
   ) as any
 
   return parentless

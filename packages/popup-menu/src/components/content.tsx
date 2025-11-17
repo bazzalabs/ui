@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import { useInputActivation } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
@@ -30,6 +30,8 @@ export interface PopupMenuContentProps<T = unknown> {
   placeholder?: string
   /** Popover.Popup props from Base UI (spread on content wrapper) */
   popupProps?: React.HTMLAttributes<HTMLElement>
+  /** Pre-computed defaults from factory + instance levels */
+  defaults?: MenuNodeDefaults<T>
 }
 
 /**
@@ -46,6 +48,7 @@ export function PopupMenuContent<T = unknown>({
   contentRef,
   placeholder,
   popupProps,
+  defaults,
 }: PopupMenuContentProps<T>) {
   const { slots, classNames, slotProps } = useScopedTheme()
   const subCtx = useSub()
@@ -136,6 +139,7 @@ export function PopupMenuContent<T = unknown>({
         onClose={onClose}
         onTypeStart={handleTypeStart}
         contentRef={contentRef}
+        defaults={defaults}
       >
         {(store, surfaceProps, listElement) => {
           // Keep track of the store's inputRef for focus management
