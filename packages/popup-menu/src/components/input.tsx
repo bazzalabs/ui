@@ -1,5 +1,4 @@
 import {
-  cn,
   MenuInputPrimitive,
   isOpenKey,
   isCloseKey,
@@ -9,9 +8,8 @@ import {
 } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useScopedTheme } from '../contexts/theme-context.js'
-import { useRootCtx } from '../contexts/root-context.js'
 
-export interface ContextMenuInputProps<T = unknown> {
+export interface PopupMenuInputProps<T = unknown> {
   /** Surface store for state management */
   store: SurfaceStore<T>
   /** Current value */
@@ -30,9 +28,11 @@ export interface ContextMenuInputProps<T = unknown> {
   onClose?: () => void
   /** Callback when submenu should open */
   onSubmenuOpen?: (activeId: string | null) => void
+  /** Callback when Escape is pressed */
+  onEscape?: () => void
 }
 
-export function ContextMenuInput<T = unknown>({
+export function PopupMenuInput<T = unknown>({
   store,
   value,
   onValueChange,
@@ -42,11 +42,11 @@ export function ContextMenuInput<T = unknown>({
   dir = 'ltr',
   onClose,
   onSubmenuOpen,
-}: ContextMenuInputProps<T>) {
+  onEscape,
+}: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
-  const root = useRootCtx()
 
-  // Handle keyboard navigation from input (context-menu specific)
+  // Handle keyboard navigation from input
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       const k = e.key
@@ -153,16 +153,20 @@ export function ContextMenuInput<T = unknown>({
       // Escape - close menu
       if (k === 'Escape') {
         e.preventDefault()
-        root.onOpenChange(false)
+        onEscape?.()
         return
       }
     },
-    [store, vimBindings, dir, onClose, onSubmenuOpen, root],
+    [store, vimBindings, dir, onClose, onSubmenuOpen, onEscape],
   )
 
   const searchState = {
     query: value ?? '',
   }
+
+  const mergedClassName = [theme?.classNames?.input, className]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <MenuInputPrimitive
@@ -170,12 +174,12 @@ export function ContextMenuInput<T = unknown>({
       value={value ?? ''}
       onChange={(v) => onValueChange?.(v)}
       placeholder={placeholder}
-      className={cn(theme?.classNames?.input, className)}
+      className={mergedClassName}
       searchState={searchState}
       inputProps={{
         ...(theme?.slotProps?.input as any),
-        'data-slot': 'context-menu-input',
-        'data-context-menu-input': true,
+        'data-slot': 'popup-menu-input',
+        'data-popup-menu-input': true,
       }}
       onKeyDown={handleKeyDown}
     >

@@ -1,8 +1,7 @@
 'use client'
 
 import type { MenuDef } from '@bazza-ui/context-menu'
-import { renderIcon } from '@bazza-ui/menu'
-import { PlusIcon } from 'lucide-react'
+import { renderIcon, type SubmenuDef } from '@bazza-ui/menu'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -24,12 +23,16 @@ export function ContextMenu_Linear() {
         <div className="prose prose-sm dark:prose-invert">
           <p className="font-semibold">Project Task Card</p>
           <p className="text-muted-foreground text-sm">
-            Right-click on this card to change issue properties like status, assignee,
-            labels, and project settings.
+            Right-click on this card to change issue properties like status,
+            assignee, labels, and project settings.
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
-            <span className="text-xs bg-muted px-2 py-1 rounded">Status: Todo</span>
-            <span className="text-xs bg-muted px-2 py-1 rounded">Assignee: None</span>
+            <span className="text-xs bg-muted px-2 py-1 rounded">
+              Status: Todo
+            </span>
+            <span className="text-xs bg-muted px-2 py-1 rounded">
+              Assignee: None
+            </span>
           </div>
         </div>
       </div>
@@ -37,157 +40,152 @@ export function ContextMenu_Linear() {
   )
 }
 
-const statusMenu: MenuDef = {
+const statusMenu: SubmenuDef = {
+  kind: 'submenu',
+  label: 'Status',
+  icon: <StatusIcon />,
   nodes: [
     {
-      kind: 'submenu',
-      label: 'Status',
-      icon: <StatusIcon />,
-      children: [
-        {
-          kind: 'item',
-          label: 'Icebox',
-          icon: <Status.Icebox />,
-          onSelect: () =>
-            toast('Changed status to Icebox.', {
-              icon: renderIcon(<Status.Icebox />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Backlog',
-          icon: <Status.Backlog />,
-          onSelect: () =>
-            toast('Changed status to Backlog.', {
-              icon: renderIcon(<Status.Backlog />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Todo',
-          icon: <Status.Todo />,
-          onSelect: () =>
-            toast('Changed status to Todo.', {
-              icon: renderIcon(<Status.Todo />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'In Progress',
-          icon: <Status.InProgress />,
-          onSelect: () =>
-            toast('Changed status to In Progress.', {
-              icon: renderIcon(<Status.InProgress />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Done',
-          icon: <Status.Done />,
-          onSelect: () =>
-            toast('Changed status to Done.', {
-              icon: renderIcon(<Status.Done />, 'size-4'),
-            }),
-        },
-      ],
+      kind: 'item',
+      label: 'Icebox',
+      icon: <Status.Icebox />,
+      onSelect: () =>
+        toast('Changed status to Icebox.', {
+          icon: renderIcon(<Status.Icebox />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Backlog',
+      icon: <Status.Backlog />,
+      onSelect: () =>
+        toast('Changed status to Backlog.', {
+          icon: renderIcon(<Status.Backlog />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Todo',
+      icon: <Status.Todo />,
+      onSelect: () =>
+        toast('Changed status to Todo.', {
+          icon: renderIcon(<Status.Todo />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'In Progress',
+      icon: <Status.InProgress />,
+      onSelect: () =>
+        toast('Changed status to In Progress.', {
+          icon: renderIcon(<Status.InProgress />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Done',
+      icon: <Status.Done />,
+      onSelect: () =>
+        toast('Changed status to Done.', {
+          icon: renderIcon(<Status.Done />, 'size-4'),
+        }),
     },
   ],
 }
 
-const assigneeMenu: MenuDef = {
+const assigneeMenu: SubmenuDef = {
+  kind: 'submenu',
+  label: 'Assignee',
+  icon: <AssigneeIcon />,
   nodes: [
     {
-      kind: 'submenu',
-      label: 'Assignee',
-      icon: <AssigneeIcon />,
-      children: [
-        {
-          kind: 'item',
-          label: 'Kian Bazza',
-          icon: (
+      kind: 'item',
+      label: 'Kian Bazza',
+      icon: (
+        <Avatar>
+          <AvatarImage
+            src="https://github.com/kianbazza.png"
+            alt="@kianbazza"
+          />
+          <AvatarFallback>KB</AvatarFallback>
+        </Avatar>
+      ),
+      onSelect: () =>
+        toast('Changed assignee to Kian Bazza.', {
+          icon: renderIcon(
             <Avatar>
               <AvatarImage
                 src="https://github.com/kianbazza.png"
                 alt="@kianbazza"
               />
               <AvatarFallback>KB</AvatarFallback>
-            </Avatar>
+            </Avatar>,
+            'size-4',
           ),
-          onSelect: () =>
-            toast('Changed assignee to Kian Bazza.', {
-              icon: renderIcon(
-                <Avatar>
-                  <AvatarImage
-                    src="https://github.com/kianbazza.png"
-                    alt="@kianbazza"
-                  />
-                  <AvatarFallback>KB</AvatarFallback>
-                </Avatar>,
-                'size-4',
-              ),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'shadcn',
-          icon: (
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'shadcn',
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
+      ),
+      onSelect: () =>
+        toast('Changed assignee to shadcn.', {
+          icon: renderIcon(
             <Avatar>
               <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
               <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
+            </Avatar>,
+            'size-4',
           ),
-          onSelect: () =>
-            toast('Changed assignee to shadcn.', {
-              icon: renderIcon(
-                <Avatar>
-                  <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                  <AvatarFallback>CN</AvatarFallback>
-                </Avatar>,
-                'size-4',
-              ),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Guillermo Rauch',
-          icon: (
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Guillermo Rauch',
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
+          <AvatarFallback>RG</AvatarFallback>
+        </Avatar>
+      ),
+      onSelect: () =>
+        toast('Changed assignee to Guillermo Rauch.', {
+          icon: renderIcon(
             <Avatar>
               <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
               <AvatarFallback>RG</AvatarFallback>
-            </Avatar>
+            </Avatar>,
+            'size-4',
           ),
-          onSelect: () =>
-            toast('Changed assignee to Guillermo Rauch.', {
-              icon: renderIcon(
-                <Avatar>
-                  <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
-                  <AvatarFallback>RG</AvatarFallback>
-                </Avatar>,
-                'size-4',
-              ),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Theo Browne',
-          icon: (
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Theo Browne',
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
+          <AvatarFallback>TB</AvatarFallback>
+        </Avatar>
+      ),
+      onSelect: () =>
+        toast('Changed assignee to Theo Browne.', {
+          icon: renderIcon(
             <Avatar>
-              <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
+              <AvatarImage
+                src="https://github.com/t3dotgg.png"
+                alt="@t3dotgg"
+              />
               <AvatarFallback>TB</AvatarFallback>
-            </Avatar>
+            </Avatar>,
+            'size-4',
           ),
-          onSelect: () =>
-            toast('Changed assignee to Theo Browne.', {
-              icon: renderIcon(
-                <Avatar>
-                  <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
-                  <AvatarFallback>TB</AvatarFallback>
-                </Avatar>,
-                'size-4',
-              ),
-            }),
-        },
-      ],
+        }),
     },
   ],
 }
@@ -289,99 +287,83 @@ const labelNodes = [
     }),
 }))
 
-const labelsMenu: MenuDef = {
+const labelsMenu: SubmenuDef = {
+  kind: 'submenu',
+  label: 'Labels',
+  icon: LabelsIcon,
+  nodes: labelNodes,
+}
+
+const projectStatusMenu: SubmenuDef = {
+  kind: 'submenu',
+  label: 'Project status',
+  icon: <ProjectStatusIcon />,
   nodes: [
     {
-      kind: 'submenu',
-      label: 'Labels',
-      icon: LabelsIcon,
-      children: labelNodes,
+      kind: 'item',
+      label: 'Failed',
+      icon: <ProjectStatus.Failed />,
+      onSelect: () =>
+        toast('Changed project status to Failed.', {
+          icon: renderIcon(<ProjectStatus.Failed />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Backlog',
+      icon: <ProjectStatus.Backlog />,
+      onSelect: () =>
+        toast('Changed project status to Backlog.', {
+          icon: renderIcon(<ProjectStatus.Backlog />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Planned',
+      icon: <ProjectStatus.Planned />,
+      onSelect: () =>
+        toast('Changed project status to Planned.', {
+          icon: renderIcon(<ProjectStatus.Planned />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'In Progress',
+      icon: <ProjectStatus.InProgress />,
+      onSelect: () =>
+        toast('Changed project status to In Progress.', {
+          icon: renderIcon(<ProjectStatus.InProgress />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Completed',
+      icon: <ProjectStatus.Completed />,
+      onSelect: () =>
+        toast('Changed project status to Completed.', {
+          icon: renderIcon(<ProjectStatus.Completed />, 'size-4'),
+        }),
+    },
+    {
+      kind: 'item',
+      label: 'Canceled',
+      icon: <ProjectStatus.Canceled />,
+      onSelect: () =>
+        toast('Changed project status to Canceled.', {
+          icon: renderIcon(<ProjectStatus.Canceled />, 'size-4'),
+        }),
     },
   ],
 }
 
-const projectStatusMenu: MenuDef = {
-  nodes: [
-    {
-      kind: 'submenu',
-      label: 'Project status',
-      icon: <ProjectStatusIcon />,
-      children: [
-        {
-          kind: 'item',
-          label: 'Failed',
-          icon: <ProjectStatus.Failed />,
-          onSelect: () =>
-            toast('Changed project status to Failed.', {
-              icon: renderIcon(<ProjectStatus.Failed />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Backlog',
-          icon: <ProjectStatus.Backlog />,
-          onSelect: () =>
-            toast('Changed project status to Backlog.', {
-              icon: renderIcon(<ProjectStatus.Backlog />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Planned',
-          icon: <ProjectStatus.Planned />,
-          onSelect: () =>
-            toast('Changed project status to Planned.', {
-              icon: renderIcon(<ProjectStatus.Planned />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'In Progress',
-          icon: <ProjectStatus.InProgress />,
-          onSelect: () =>
-            toast('Changed project status to In Progress.', {
-              icon: renderIcon(<ProjectStatus.InProgress />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Completed',
-          icon: <ProjectStatus.Completed />,
-          onSelect: () =>
-            toast('Changed project status to Completed.', {
-              icon: renderIcon(<ProjectStatus.Completed />, 'size-4'),
-            }),
-        },
-        {
-          kind: 'item',
-          label: 'Canceled',
-          icon: <ProjectStatus.Canceled />,
-          onSelect: () =>
-            toast('Changed project status to Canceled.', {
-              icon: renderIcon(<ProjectStatus.Canceled />, 'size-4'),
-            }),
-        },
-      ],
-    },
-  ],
-}
-
-const projectPropertiesMenu: MenuDef = {
-  nodes: [
-    {
-      kind: 'submenu',
-      label: 'Project properties',
-      icon: <ProjectPropertiesIcon />,
-      children: projectStatusMenu.nodes,
-    },
-  ],
+const projectPropertiesMenu: SubmenuDef = {
+  kind: 'submenu',
+  label: 'Project properties',
+  icon: <ProjectPropertiesIcon />,
+  nodes: [projectStatusMenu],
 }
 
 export const menuData: MenuDef = {
-  nodes: [
-    ...statusMenu.nodes,
-    ...assigneeMenu.nodes,
-    ...labelsMenu.nodes,
-    ...projectPropertiesMenu.nodes,
-  ],
+  id: 'unique',
+  nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu],
 }

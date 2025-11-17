@@ -7,13 +7,13 @@ import {
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
-import type { ContextMenuProps } from './types.js'
+import type { DropdownMenuProps } from './types.js'
 
 /**
- * ContextMenu - A menu that opens on right-click
+ * DropdownMenu - A menu that opens on click
  * Uses PopupMenuContent from @bazza-ui/popup-menu for all rendering and filtering
  */
-export function ContextMenu<T = unknown>({
+export function DropdownMenu<T = unknown>({
   menu,
   children,
   onOpenChange,
@@ -22,35 +22,27 @@ export function ContextMenu<T = unknown>({
   modal = true,
   theme,
   placeholder = 'Search...',
-  debug = false,
-}: ContextMenuProps<T>) {
+  side = 'bottom',
+  align = 'start',
+  sideOffset = 4,
+}: DropdownMenuProps<T>) {
   const [open, setOpen] = useControllableState({
     prop: controlledOpen,
     defaultProp: defaultOpen,
     onChange: onOpenChange,
   })
 
-  const [anchorPoint, setAnchorPoint] = React.useState<{
-    x: number
-    y: number
-  } | null>(null)
-
+  const triggerRef = React.useRef<HTMLDivElement>(null)
   const contentRef = React.useRef<HTMLDivElement>(null)
 
-  // Handle right-click on trigger element
-  const handleContextMenu = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setAnchorPoint({ x: e.clientX, y: e.clientY })
-      setOpen(true)
-    },
-    [setOpen],
-  )
+  // Handle click on trigger element
+  const handleClick = React.useCallback(() => {
+    setOpen((prev) => !prev)
+  }, [setOpen])
 
   // Close menu
   const handleClose = React.useCallback(() => {
     setOpen(false)
-    setAnchorPoint(null)
   }, [setOpen])
 
   // Merge theme with defaults
@@ -66,29 +58,19 @@ export function ContextMenu<T = unknown>({
   return (
     <GlobalThemeProvider theme={mergedTheme}>
       {/* Trigger */}
-      <div onContextMenu={handleContextMenu}>{children}</div>
+      <div ref={triggerRef} onClick={handleClick}>
+        {children}
+      </div>
 
       {/* Menu */}
       <Popover.Root open={open} onOpenChange={setOpen}>
-        {open && anchorPoint && (
+        {open && (
           <Popover.Positioner
-            side="bottom"
-            align="start"
-            sideOffset={4}
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
             className={theme?.classNames?.positioner}
-            anchor={{
-              getBoundingClientRect: () => ({
-                x: anchorPoint.x,
-                y: anchorPoint.y,
-                width: 0,
-                height: 0,
-                top: anchorPoint.y,
-                left: anchorPoint.x,
-                right: anchorPoint.x,
-                bottom: anchorPoint.y,
-                toJSON: () => ({}),
-              }),
-            }}
+            anchor={triggerRef.current}
           >
             <Popover.Popup>
               <PopupMenuContent
@@ -102,23 +84,6 @@ export function ContextMenu<T = unknown>({
           </Popover.Positioner>
         )}
       </Popover.Root>
-
-      {/* Debug visualization */}
-      {debug && anchorPoint && (
-        <div
-          style={{
-            position: 'fixed',
-            left: anchorPoint.x,
-            top: anchorPoint.y,
-            width: 8,
-            height: 8,
-            background: 'red',
-            borderRadius: '50%',
-            pointerEvents: 'none',
-            zIndex: 9999,
-          }}
-        />
-      )}
     </GlobalThemeProvider>
   )
 }

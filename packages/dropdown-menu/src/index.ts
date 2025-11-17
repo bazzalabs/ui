@@ -2,27 +2,27 @@
 'use client'
 
 // Components
-export { ContextMenuRoot } from './components/root.js'
-export { ContextMenuTrigger } from './components/trigger.js'
-export { ContextMenuContent } from './components/content.js'
+export { DropdownMenuRoot } from './components/root.js'
+export { DropdownMenuTrigger } from './components/trigger.js'
+export { DropdownMenuContent } from './components/content.js'
 
 // Keep simple component export for convenience
-export { ContextMenu } from './context-menu.js'
-export type { ContextMenuProps } from './types.js'
+export { DropdownMenu } from './dropdown-menu.js'
+export type { DropdownMenuProps } from './types.js'
 
 // Component props types
 export type {
-  CreateContextMenuResult,
-  CreateContextMenuOptions,
-  ContextMenuOptions,
-} from './create-context-menu.js'
+  CreateDropdownMenuResult,
+  CreateDropdownMenuOptions,
+  DropdownMenuOptions,
+} from './create-dropdown-menu.js'
 
 export type {
-  PopupMenuSlots as ContextMenuSlots,
-  PopupMenuSlotProps as ContextMenuSlotProps,
-  PopupMenuClassNames as ContextMenuClassNames,
-  PopupMenuTheme as ContextMenuTheme,
-  PopupMenuThemeDef as ContextMenuThemeDef,
+  PopupMenuSlots as DropdownMenuSlots,
+  PopupMenuSlotProps as DropdownMenuSlotProps,
+  PopupMenuClassNames as DropdownMenuClassNames,
+  PopupMenuTheme as DropdownMenuTheme,
+  PopupMenuThemeDef as DropdownMenuThemeDef,
 } from '@bazza-ui/popup-menu'
 
 // Menu model types - re-exported from @bazza-ui/menu for developer convenience
@@ -71,7 +71,7 @@ export type {
 } from '@bazza-ui/menu'
 
 // Factory
-export { createContextMenu } from './create-context-menu.js'
+export { createDropdownMenu } from './create-dropdown-menu.js'
 
 // Functions - re-exported from @bazza-ui/menu for developer convenience
 export { renderIcon, cn as mergeClassNames, flatten } from '@bazza-ui/menu'

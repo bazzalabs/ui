@@ -8,28 +8,28 @@ import {
   type PopupMenuThemeDef,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
-import { ContextMenuContent } from './components/content.js'
-import { ContextMenuRoot } from './components/root.js'
-import { ContextMenuTrigger } from './components/trigger.js'
+import { DropdownMenuContent } from './components/content.js'
+import { DropdownMenuRoot } from './components/root.js'
+import { DropdownMenuTrigger } from './components/trigger.js'
 
-export type CreateContextMenuResult<T = unknown> = React.FC<
-  ContextMenuOptions<T>
+export type CreateDropdownMenuResult<T = unknown> = React.FC<
+  DropdownMenuOptions<T>
 > & {
-  Root: typeof ContextMenuRoot
-  Trigger: typeof ContextMenuTrigger
-  Content: typeof ContextMenuContent
+  Root: typeof DropdownMenuRoot
+  Trigger: typeof DropdownMenuTrigger
+  Content: typeof DropdownMenuContent
 }
 
-export type CreateContextMenuOptions<T = unknown> = {
+export type CreateDropdownMenuOptions<T = unknown> = {
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
   classNames?: PopupMenuThemeDef<T>['classNames']
 }
 
-export interface ContextMenuOptions<T = unknown> {
+export interface DropdownMenuOptions<T = unknown> {
   /** Menu definition */
   menu: MenuDef<T>
-  /** Trigger element - will open context menu on right-click */
+  /** Trigger element - will open dropdown menu on click */
   children: React.ReactNode
   /** Callback when menu opens/closes */
   onOpenChange?: (open: boolean) => void
@@ -39,10 +39,14 @@ export interface ContextMenuOptions<T = unknown> {
   defaultOpen?: boolean
   /** Whether clicking outside closes the menu */
   modal?: boolean
-  /** Whether to show debug visuals */
-  debug?: boolean
   /** Placeholder for search input */
   placeholder?: string
+  /** Side of the trigger to position the menu */
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  /** Alignment relative to the trigger */
+  align?: 'start' | 'center' | 'end'
+  /** Offset from the trigger */
+  sideOffset?: number
   /** Theme overrides at instance level */
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
@@ -50,32 +54,34 @@ export interface ContextMenuOptions<T = unknown> {
 }
 
 /**
- * Creates a ContextMenu component with factory-level theme defaults.
+ * Creates a DropdownMenu component with factory-level theme defaults.
  * Supports theme override at three levels:
- * 1. Factory level (createContextMenu options)
+ * 1. Factory level (createDropdownMenu options)
  * 2. Instance level (component props)
  * 3. Menu/submenu level (menu.ui)
  */
-export function createContextMenu<T = unknown>(
-  opts?: CreateContextMenuOptions<T>,
-): CreateContextMenuResult<T> {
-  // Factory theme - from createContextMenu options
+export function createDropdownMenu<T = unknown>(
+  opts?: CreateDropdownMenuOptions<T>,
+): CreateDropdownMenuResult<T> {
+  // Factory theme - from createDropdownMenu options
   const factoryTheme: PopupMenuTheme<any> = {
     slots: { ...defaultSlots<T>(), ...(opts?.slots as any) },
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
   }
 
-  function ContextMenu({
+  function DropdownMenu({
     menu,
     children,
     placeholder = 'Search...',
-    debug = false,
+    side = 'bottom',
+    align = 'start',
+    sideOffset = 4,
     slots,
     slotProps,
     classNames,
     ...rootProps
-  }: ContextMenuOptions<T>) {
+  }: DropdownMenuOptions<T>) {
     // Instance theme - merge factory with instance props
     const instanceTheme: PopupMenuTheme<any> = React.useMemo(
       () =>
@@ -96,19 +102,25 @@ export function createContextMenu<T = unknown>(
     return (
       <GlobalThemeProvider theme={instanceTheme}>
         <ScopedThemeProvider theme={scopedTheme as any}>
-          <ContextMenuRoot {...rootProps} menu={menu}>
-            <ContextMenuTrigger>{children}</ContextMenuTrigger>
-            <ContextMenuContent menu={menu} placeholder={placeholder} debug={debug} />
-          </ContextMenuRoot>
+          <DropdownMenuRoot {...rootProps} menu={menu}>
+            <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
+            <DropdownMenuContent
+              menu={menu}
+              placeholder={placeholder}
+              side={side}
+              align={align}
+              sideOffset={sideOffset}
+            />
+          </DropdownMenuRoot>
         </ScopedThemeProvider>
       </GlobalThemeProvider>
     )
   }
 
-  const CompoundContextMenu = ContextMenu as CreateContextMenuResult<T>
-  CompoundContextMenu.Root = ContextMenuRoot
-  CompoundContextMenu.Trigger = ContextMenuTrigger
-  CompoundContextMenu.Content = ContextMenuContent
+  const CompoundDropdownMenu = DropdownMenu as CreateDropdownMenuResult<T>
+  CompoundDropdownMenu.Root = DropdownMenuRoot
+  CompoundDropdownMenu.Trigger = DropdownMenuTrigger
+  CompoundDropdownMenu.Content = DropdownMenuContent
 
-  return CompoundContextMenu
+  return CompoundDropdownMenu
 }

@@ -1,7 +1,8 @@
-import { createContextMenu, renderIcon } from '@bazza-ui/context-menu'
+import { createContextMenu } from '@bazza-ui/context-menu'
 import { ChevronRightIcon } from 'lucide-react'
 import { Fragment, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { renderIcon } from '@bazza-ui/menu'
 
 export const ContextMenu = createContextMenu({
   slots: {

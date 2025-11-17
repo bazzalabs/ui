@@ -5,8 +5,7 @@ export type RootContextValue = {
   open: boolean
   onOpenChange: (open: boolean) => void
   closeAllSurfaces: () => void
-  anchorPoint: { x: number; y: number } | null
-  setAnchorPoint: (point: { x: number; y: number } | null) => void
+  triggerRef: React.RefObject<HTMLDivElement | null>
 }
 
 const RootContext = React.createContext<RootContextValue | null>(null)

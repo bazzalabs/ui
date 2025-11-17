@@ -182,6 +182,35 @@
         "react-dom": ">=18.0.0",
       },
     },
+    "packages/dropdown-menu": {
+      "name": "@bazza-ui/dropdown-menu",
+      "version": "0.0.1",
+      "dependencies": {
+        "@base-ui-components/react": "^1.0.0-beta.4",
+        "@bazza-ui/menu": "*",
+        "@bazza-ui/popup-menu": "*",
+        "@bazza-ui/theming": "*",
+        "@radix-ui/primitive": "^1.1.3",
+        "@radix-ui/react-compose-refs": "^1.1.2",
+        "@radix-ui/react-primitive": "^2.1.4",
+        "@radix-ui/react-use-controllable-state": "^1.2.2",
+        "clsx": "^2.1.1",
+        "zustand": "^5.0.8",
+      },
+      "devDependencies": {
+        "@bazza-ui/typescript-config": "*",
+        "@types/react": "^19.1.2",
+        "@types/react-dom": "^19.1.2",
+        "@vitest/ui": "4.0.8",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.8",
+      },
+      "peerDependencies": {
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0",
+      },
+    },
     "packages/filters": {
       "name": "@bazza-ui/filters",
       "version": "0.3.2025091001",
@@ -241,6 +270,8 @@
       "version": "0.0.1",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
+        "@bazza-ui/menu": "*",
+        "@bazza-ui/theming": "*",
         "@radix-ui/primitive": "^1.1.3",
         "@radix-ui/react-compose-refs": "^1.1.2",
         "@radix-ui/react-portal": "^1.1.4",
@@ -360,6 +391,8 @@
     "@bazza-ui/command-menu": ["@bazza-ui/command-menu@workspace:packages/command-menu"],
 
     "@bazza-ui/context-menu": ["@bazza-ui/context-menu@workspace:packages/context-menu"],
+
+    "@bazza-ui/dropdown-menu": ["@bazza-ui/dropdown-menu@workspace:packages/dropdown-menu"],
 
     "@bazza-ui/filters": ["@bazza-ui/filters@workspace:packages/filters"],
 
@@ -2264,6 +2297,8 @@
     "@bazza-ui/command-menu/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@bazza-ui/context-menu/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@bazza-ui/dropdown-menu/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@bazza-ui/filters/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
