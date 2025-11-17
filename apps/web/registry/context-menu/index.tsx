@@ -1,8 +1,8 @@
 import { createContextMenu } from '@bazza-ui/context-menu'
+import { renderIcon } from '@bazza-ui/menu'
 import { ChevronRightIcon } from 'lucide-react'
 import { Fragment, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { renderIcon } from '@bazza-ui/menu'
 
 declare module '@bazza-ui/context-menu' {
   interface ItemExtendedProperties {
@@ -60,7 +60,7 @@ export const ContextMenu = createContextMenu({
               {node.label ?? ''}
             </span>
           </div>
-          <ChevronRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]/row:text-foreground/75 group-data-[menu-focused=true]/row:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4" />
+          <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]/row:text-foreground/75 group-data-[menu-focused=true]/row:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4" />
         </li>
       )
     },
@@ -144,8 +144,22 @@ export const ContextMenu = createContextMenu({
   },
 })
 
-// Re-export utilities
-export { renderIcon }
+const TriangleRightIcon = ({
+  ...props
+}: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
+    </svg>
+  )
+}
 
 const diamondCoords = [
   { x: 3, y: 48 },

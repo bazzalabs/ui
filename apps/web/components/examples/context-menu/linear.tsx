@@ -298,6 +298,7 @@ const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   label: 'Project status',
   icon: <ProjectStatusIcon />,
+  hideSearchUntilActive: true,
   nodes: [
     {
       kind: 'item',

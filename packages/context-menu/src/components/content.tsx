@@ -62,15 +62,20 @@ export function ContextMenuContent<T = unknown>({
         sideOffset={4}
         anchor={virtualAnchor}
       >
-        {menuProp && (
-          <PopupMenuContent
-            menu={menuProp}
-            open={open}
-            onClose={closeAllSurfaces}
-            contentRef={contentRef as any}
-            placeholder={placeholder}
-          />
-        )}
+        {(popupProps: React.HTMLAttributes<HTMLElement>) =>
+          menuProp ? (
+            <PopupMenuContent
+              menu={menuProp}
+              open={open}
+              onClose={closeAllSurfaces}
+              contentRef={contentRef as any}
+              placeholder={placeholder}
+              popupProps={popupProps}
+            />
+          ) : (
+            <div {...popupProps} />
+          )
+        }
       </Positioner>
 
       {/* Debug visualization */}

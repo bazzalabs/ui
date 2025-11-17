@@ -10,18 +10,19 @@ import {
 } from '@bazza-ui/menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
-import { useSurface } from './surface-provider.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
 import { PopupMenuSubmenu } from './submenu.js'
-import { PopupMenuSubmenuTrigger } from './submenu-trigger.js'
 import { PopupMenuSubmenuContent } from './submenu-content.js'
+import { PopupMenuSubmenuTrigger } from './submenu-trigger.js'
+import { useSurface } from './surface-provider.js'
 
 interface ListRendererProps {
   query?: string
   onClose?: () => void
-  onQueryChange?: (query: string) => void
   vimBindings?: boolean
   dir?: 'ltr' | 'rtl'
+  /** Callback when user starts typing to activate input */
+  onTypeStart?: (seed: string) => void
 }
 
 /**
@@ -80,9 +81,15 @@ function ListRendererContent({
   onClose,
   vimBindings = true,
   dir = 'ltr',
+  onTypeStart,
 }: ListRendererProps) {
-  const { store, menu, slots: customSlots, classNames, onSubmenuSelect } =
-    useSurface()
+  const {
+    store,
+    menu,
+    slots: customSlots,
+    classNames,
+    onSubmenuSelect,
+  } = useSurface()
 
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
@@ -98,10 +105,10 @@ function ListRendererContent({
     | undefined
 
   // Use the menu primitive hook to filter, score, and sort nodes
-  // For popup menus with hierarchical submenus, use 'shallow' mode (only top-level nodes)
-  // This enables rendering with actual nested Popover components
+  // When searching (query exists), use 'deep' mode to search through nested submenus
+  // When browsing (no query), use 'shallow' mode to preserve hierarchical structure with nested Popover components
   const { displayNodes } = useFilteredNodes(menu, q, {
-    mode: 'shallow',
+    mode: q.length > 0 ? 'deep' : 'shallow',
     streamingEnabled: isStreaming,
     completionOrder: completionOrder ?? [],
   })
@@ -187,6 +194,26 @@ function ListRendererContent({
     onClose?.()
   }, [onClose])
 
+  // Handle typing to activate input
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!onTypeStart) return
+
+      const { key } = e
+      // Check if it's a printable character (not a navigation or control key)
+      if (
+        key.length === 1 &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        key !== ' ' // Exclude space as it's used for selection
+      ) {
+        onTypeStart(key)
+      }
+    },
+    [onTypeStart],
+  )
+
   // Helper function to render a single node
   const renderNode = React.useCallback(
     (
@@ -269,7 +296,11 @@ function ListRendererContent({
           </MenuItemPrimitive>
         )
 
-        return virtualRow ? <div {...wrapperProps}>{itemElement}</div> : itemElement
+        return virtualRow ? (
+          <div {...wrapperProps}>{itemElement}</div>
+        ) : (
+          itemElement
+        )
       }
 
       // Submenu
@@ -295,7 +326,11 @@ function ListRendererContent({
           </ScopedThemeProvider>
         )
 
-        return virtualRow ? <div {...wrapperProps}>{submenuElement}</div> : submenuElement
+        return virtualRow ? (
+          <div {...wrapperProps}>{submenuElement}</div>
+        ) : (
+          submenuElement
+        )
       }
 
       // Loading node
@@ -342,6 +377,7 @@ function ListRendererContent({
       vimBindings={vimBindings}
       dir={dir}
       onEscape={handleEscape}
+      onKeyDown={handleKeyDown}
       style={{
         maxHeight: '400px',
         overflow: 'auto',

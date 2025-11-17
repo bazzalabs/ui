@@ -5,17 +5,17 @@ import { useSubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import type { PopupMenuPositionerProps } from '../types.js'
 
-export interface PositionerProps extends Children {
+export interface PositionerProps {
   side?: PopupMenuPositionerProps['side']
   align?: PopupMenuPositionerProps['align']
   sideOffset?: number
   alignOffset?: number
   /** Custom anchor for root menus (e.g., trigger ref or virtual cursor position) */
   anchor?: React.ComponentProps<typeof Popover.Positioner>['anchor']
-}
-
-type Children = {
-  children: React.ReactNode
+  /** Render function that receives popup props to spread */
+  children: (
+    popupProps: React.HTMLAttributes<HTMLElement>,
+  ) => React.ReactElement
 }
 
 /**
@@ -126,7 +126,8 @@ export function Positioner({
   }, [isSub, sub?.open, resolvedAlign, measure])
 
   // Calculate final align offset when using 'list' mode
-  const finalAlignOffset = resolvedAlign === 'list' ? listTopOffset : alignOffset
+  const finalAlignOffset =
+    resolvedAlign === 'list' ? listTopOffset : alignOffset
 
   // Map 'list' to Base UI's 'start' for the actual positioning
   const baseUIAlign = resolvedAlign === 'list' ? 'start' : resolvedAlign
@@ -139,7 +140,7 @@ export function Positioner({
 
     // Check if it has root/sub structure
     if ('root' in props || 'sub' in props) {
-      return isSub ? props.sub ?? {} : props.root ?? {}
+      return isSub ? (props.sub ?? {}) : (props.root ?? {})
     }
 
     // Otherwise it's a flat object to apply to all
@@ -168,7 +169,10 @@ export function Positioner({
   return (
     <Popover.Portal>
       <Popover.Positioner {...positionerProps}>
-        <Popover.Popup initialFocus={false} render={children as any} />
+        <Popover.Popup
+          initialFocus={false}
+          render={(popupProps) => children(popupProps)}
+        />
       </Popover.Positioner>
     </Popover.Portal>
   )
