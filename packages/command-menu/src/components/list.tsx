@@ -32,7 +32,7 @@ export function CommandMenuList<T = unknown>({
   const { currentMenu, pushSubmenu } = useCommandMenuContext<T>()
 
   // Get theme from scoped context
-  const theme = useScopedTheme<T>()
+  const theme = useScopedTheme()
 
   // Get the loader adapter
   const loaderAdapter = useLoaderAdapter()
@@ -149,7 +149,7 @@ export function CommandMenuList<T = unknown>({
 
   // Render header (if provided via slots)
   const headerEl = theme?.slots?.Header ? (
-    <div data-slot="command-menu-header">{theme.slots.Header({ menu })}</div>
+    <div data-slot="command-menu-header">{theme.slots.Header({ menu: menu as any })}</div>
   ) : null
 
   // Render input
@@ -166,7 +166,7 @@ export function CommandMenuList<T = unknown>({
 
   // Render footer (if provided via slots)
   const footerEl = theme?.slots?.Footer ? (
-    <div data-slot="command-menu-footer">{theme.slots.Footer({ menu })}</div>
+    <div data-slot="command-menu-footer">{theme.slots.Footer({ menu: menu as any })}</div>
   ) : null
 
   return (
@@ -174,7 +174,7 @@ export function CommandMenuList<T = unknown>({
       <SurfaceProvider
         store={store}
         menu={menu}
-        slots={theme?.slots}
+        slots={theme?.slots as any}
         classNames={theme?.classNames}
         slotProps={theme?.slotProps}
         onSubmenuSelect={handleSubmenuSelect}

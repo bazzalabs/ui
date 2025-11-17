@@ -4,7 +4,8 @@ import { MultiSelect } from '@/components/examples/action-menu/multiselect'
 export function Playground() {
   return (
     <div className="flex flex-col gap-8 [&_[data-slot=action-menu-trigger]]:!w-fit">
-      <Examples.ActionMenu.PokemonNative />
+      <Examples.ContextMenu.ContextMenu_Basic />
+      {/*<Examples.ActionMenu.PokemonNative />
       <Examples.ActionMenu.PokemonReactQuery />
       <Examples.ActionMenu.AsyncBasic />
       <Examples.ActionMenu.AsyncSubmenusStreaming />
@@ -27,7 +28,7 @@ export function Playground() {
           { kind: 'item', label: 'Option 2', id: 'option2' },
           { kind: 'item', label: 'Option 3', id: 'option3' },
         ]}
-      />
+      />*/}
     </div>
   )
 }

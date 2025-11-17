@@ -4,6 +4,7 @@ import type {
   MenuSlotProps,
   MenuSlots,
 } from '@bazza-ui/menu'
+import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
 
 /**
@@ -26,17 +27,27 @@ export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
   }) => React.ReactElement
 }
 
-export type CommandMenuThemeDef<T = unknown> = {
-  slots?: Partial<CommandMenuSlots<T>>
-  slotProps?: Partial<MenuSlotProps>
-  classNames?: Partial<CommandMenuClassNames>
+/**
+ * Slot props forwarded to command menu elements.
+ */
+export type CommandMenuSlotProps = MenuSlotProps & {
+  dialogOverlay?: React.HTMLAttributes<HTMLElement>
+  dialogContent?: React.HTMLAttributes<HTMLElement>
+  dialogInner?: React.HTMLAttributes<HTMLElement>
+  breadcrumbs?: React.HTMLAttributes<HTMLElement>
 }
 
-export type CommandMenuTheme<T = unknown> = {
-  slots: CommandMenuSlots<T>
-  slotProps?: Partial<MenuSlotProps>
-  classNames?: Partial<CommandMenuClassNames>
-}
+export type CommandMenuThemeDef<T = unknown> = ThemeDef<
+  CommandMenuSlots<T>,
+  CommandMenuSlotProps,
+  CommandMenuClassNames
+>
+
+export type CommandMenuTheme<T = unknown> = Theme<
+  CommandMenuSlots<T>,
+  CommandMenuSlotProps,
+  CommandMenuClassNames
+>
 
 export type CommandMenuClassNames = MenuClassNames & {
   dialogOverlay?: string

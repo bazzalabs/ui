@@ -1,4 +1,4 @@
-import { cn, mergeProps } from '@bazza-ui/menu'
+import { cn, MenuInputPrimitive } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useCommandMenuContext } from '../context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
@@ -22,6 +22,15 @@ export function CommandMenuInput({
   const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange, inputRef } =
     useCommandMenuContext()
 
+  // Sync context inputRef with store inputRef
+  // (command-menu uses context inputRef for focus management)
+  React.useEffect(() => {
+    if (inputRef.current && store.inputRef.current !== inputRef.current) {
+      ;(store.inputRef as React.MutableRefObject<HTMLInputElement | null>).current =
+        inputRef.current
+    }
+  })
+
   // Auto-focus input when component mounts
   React.useEffect(() => {
     if (inputRef.current) {
@@ -29,14 +38,7 @@ export function CommandMenuInput({
     }
   }, [inputRef])
 
-  const handleChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      onValueChange?.(e.target.value)
-    },
-    [onValueChange],
-  )
-
-  // Handle keyboard navigation from input
+  // Handle keyboard navigation from input (command-menu specific)
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       const k = e.key
@@ -125,33 +127,34 @@ export function CommandMenuInput({
     [store, vimBindings, dir, isInSubmenu, popSubmenu, onOpenChange],
   )
 
-  const baseInputProps = {
-    ref: inputRef,
-    type: 'text',
-    value: value ?? '',
-    onChange: handleChange,
-    onKeyDown: handleKeyDown,
-    placeholder,
-    className: cn(theme?.classNames?.input, className),
-    'data-slot': 'command-menu-input' as const,
-    'data-command-menu-input': true as const,
+  const searchState = {
+    query: value ?? '',
   }
 
-  const inputProps = mergeProps(baseInputProps, theme?.slotProps?.input as any)
-
-  const InputSlot = theme?.slots?.Input
-  if (InputSlot) {
-    return InputSlot({
-      value: value ?? '',
-      onChange: (v) => onValueChange?.(v),
-      bind: {
-        getInputProps: (overrides) => mergeProps(inputProps, overrides as any),
-      },
-      search: {
-        query: value ?? '',
-      },
-    }) as React.ReactElement
-  }
-
-  return <input {...inputProps} />
+  return (
+    <MenuInputPrimitive
+      store={store}
+      value={value ?? ''}
+      onChange={(v) => onValueChange?.(v)}
+      placeholder={placeholder}
+      className={cn(theme?.classNames?.input, className)}
+      searchState={searchState}
+      inputProps={{
+        ...(theme?.slotProps?.input as any),
+        'data-slot': 'command-menu-input',
+        'data-command-menu-input': true,
+      }}
+      onKeyDown={handleKeyDown}
+    >
+      {theme?.slots?.Input
+        ? (bind, search) =>
+            theme.slots.Input({
+              value: value ?? '',
+              onChange: (v) => onValueChange?.(v),
+              bind,
+              search,
+            }) as React.ReactElement
+        : undefined}
+    </MenuInputPrimitive>
+  )
 }

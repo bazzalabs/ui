@@ -83,7 +83,7 @@ export function createCommandMenu<T = unknown>(
     const instanceTheme: CommandMenuTheme<T> = React.useMemo(
       () =>
         mergeTheme(factoryTheme as any, {
-          slots,
+          slots: slots as any,
           slotProps,
           classNames,
         }) as CommandMenuTheme<T>,

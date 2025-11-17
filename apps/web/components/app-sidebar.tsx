@@ -128,6 +128,17 @@ const componentItems: ComponentItem[] = [
   },
   {
     type: 'collapsible',
+    title: 'Context Menu',
+    urlPrefix: '/docs/context-menu',
+    groups: [
+      {
+        groupName: 'Examples',
+        items: [{ title: 'Examples', url: '/docs/context-menu/examples' }],
+      },
+    ],
+  },
+  {
+    type: 'collapsible',
     title: 'Action Menu',
     urlPrefix: '/docs/action-menu',
     badge: <div className="size-2 bg-blue-500 rounded-full" />,
