@@ -1,9 +1,6 @@
 import { Popover } from '@base-ui-components/react/popover'
-import {
-  mergeProps,
-  type SearchContext,
-  type SubmenuNode,
-} from '@bazza-ui/menu'
+import type { SearchContext, SubmenuNode } from '@bazza-ui/menu'
+import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'

@@ -1,6 +1,6 @@
+import { cn } from '@bazza-ui/theming'
 import * as React from 'react'
 import type { Iconish } from '../types.js'
-import { cn } from './cn.js'
 
 /** True when the ReactNode is an element that carries `propName`. */
 export function isElementWithProp(node: React.ReactNode, propName: string) {

@@ -1,12 +1,11 @@
 // @ts-nocheck
 'use client'
 
+import { ListIcon } from 'lucide-react'
 import * as React from 'react'
-
 import { useMounted } from '@/hooks/use-mounted'
 import type { TableOfContents } from '@/lib/toc'
 import { cn } from '@/lib/utils'
-import { ListIcon } from 'lucide-react'
 
 interface TocProps {
   toc: TableOfContents

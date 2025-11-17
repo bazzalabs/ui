@@ -1,5 +1,5 @@
-import * as React from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import * as React from 'react'
 import type { CommandMenuTriggerProps } from '../types.js'
 
 /**

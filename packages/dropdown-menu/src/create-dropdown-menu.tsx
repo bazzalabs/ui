@@ -3,9 +3,9 @@ import {
   defaultSlots,
   GlobalThemeProvider,
   mergeTheme,
-  ScopedThemeProvider,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
+  ScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { DropdownMenuContent } from './components/content.js'

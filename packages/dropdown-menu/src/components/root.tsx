@@ -1,5 +1,5 @@
-import type { MenuDef } from '@bazza-ui/menu'
 import { Popover } from '@base-ui-components/react/popover'
+import type { MenuDef } from '@bazza-ui/menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { RootContextProvider } from '../contexts/root-context.js'

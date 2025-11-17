@@ -1,7 +1,6 @@
 import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import type { ClassNameValue } from 'tailwind-merge'
-import type { MenuSlotProps } from '../types.js'
 import { cn } from './cn.js'
 
 export const HANDLER_KEYS = [
@@ -57,21 +56,21 @@ export function mergeClassNames<T extends Record<string, ClassNameValue>>(
   return merged
 }
 
-export function mergeSlotProps(
-  a?: Partial<MenuSlotProps>,
-  b?: Partial<MenuSlotProps>,
-): Partial<MenuSlotProps> {
+export function mergeSlotProps<TSlotProps extends Record<string, any>>(
+  a?: Partial<TSlotProps>,
+  b?: Partial<TSlotProps>,
+): Partial<TSlotProps> {
   if (!a && !b) return {}
   if (!a) return b ?? {}
   if (!b) return a
 
-  const merged: Partial<MenuSlotProps> = {}
+  const merged: Partial<TSlotProps> = {}
   const allKeys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<
-    keyof MenuSlotProps
+    keyof TSlotProps
   >
 
   for (const key of allKeys) {
-    merged[key] = mergeProps(a[key], b[key]) as any
+    merged[key] = mergeProps(a[key as any], b[key as any])
   }
 
   return merged

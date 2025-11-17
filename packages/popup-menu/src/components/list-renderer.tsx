@@ -4,11 +4,11 @@ import {
   type ItemNode,
   MenuItemPrimitive,
   MenuListPrimitive,
-  mergeProps,
   type SubmenuNode,
   useFilteredNodes,
   useStickyRowWidth,
 } from '@bazza-ui/menu'
+import { mergeProps } from '@bazza-ui/theming'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { useRoot } from '../contexts/root-context.js'

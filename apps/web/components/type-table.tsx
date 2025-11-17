@@ -1,5 +1,8 @@
 'use client'
 
+import { InfoIcon } from 'lucide-react'
+import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Popover,
@@ -15,9 +18,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { InfoIcon } from 'lucide-react'
-import Link from 'next/link'
-import type { ReactNode } from 'react'
 
 export function Info({ children }: { children: ReactNode }): ReactNode {
   return (

@@ -74,7 +74,7 @@ export type {
 export { createContextMenu } from './create-context-menu.js'
 
 // Functions - re-exported from @bazza-ui/menu for developer convenience
-export { renderIcon, cn as mergeClassNames, flatten } from '@bazza-ui/menu'
+export { renderIcon, flatten } from '@bazza-ui/menu'
 
 // Middleware - re-exported from @bazza-ui/menu for developer convenience
 export { composeMiddleware, createNew } from '@bazza-ui/menu'

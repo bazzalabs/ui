@@ -1,3 +1,11 @@
+import {
+  CircleCheckIcon,
+  CircleDotDashedIcon,
+  CircleDotIcon,
+  CircleIcon,
+  FilterIcon,
+  XIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -10,14 +18,6 @@ import {
 import { Popover, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import {
-  CircleCheckIcon,
-  CircleDotDashedIcon,
-  CircleDotIcon,
-  CircleIcon,
-  FilterIcon,
-  XIcon,
-} from 'lucide-react'
 
 export function FilterHero() {
   return (

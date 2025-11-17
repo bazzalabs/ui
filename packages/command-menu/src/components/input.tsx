@@ -1,4 +1,5 @@
-import { cn, MenuInputPrimitive, SELECT_ITEM_EVENT } from '@bazza-ui/menu'
+import { MenuInputPrimitive, SELECT_ITEM_EVENT } from '@bazza-ui/menu'
+import { cn } from '@bazza-ui/theming'
 import * as React from 'react'
 import { useCommandMenuContext } from '../context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'

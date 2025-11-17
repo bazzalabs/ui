@@ -1,20 +1,22 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  createLoader,
+  ReactQueryLoaderAdapter,
+} from '@bazza-ui/context-menu/loaders/tanstack-query'
 import {
   LoaderAdapterProvider,
   type MenuDef,
   type NodeDef,
   type SubmenuDef,
 } from '@bazza-ui/menu'
-import {
-  ReactQueryLoaderAdapter,
-  createLoader,
-} from '@bazza-ui/context-menu/loaders/tanstack-query'
-import { ContextMenu } from '@/registry/context-menu'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { ContextMenu } from '@/registry/context-menu'
+import { LABEL_STYLES_BG, type TW_COLOR } from '../action-menu/linear-async'
 import {
   AssigneeIcon,
   LabelsIcon,
@@ -24,8 +26,6 @@ import {
   Status,
   StatusIcon,
 } from '../action-menu/shared/icons'
-import { LABEL_STYLES_BG, type TW_COLOR } from '../action-menu/linear-async'
-import { sleep } from '@/app/demos/server/tst-query/_/utils'
 
 const queryClient = new QueryClient()
 

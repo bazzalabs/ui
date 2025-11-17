@@ -1,6 +1,6 @@
 import type { Menu, SurfaceStore } from '@bazza-ui/menu'
 import * as React from 'react'
-import type { PopupMenuSlots, PopupMenuClassNames } from '../types.js'
+import type { PopupMenuClassNames, PopupMenuSlots } from '../types.js'
 
 export interface SurfaceContextValue<T = unknown> {
   store: SurfaceStore<T>

@@ -1,11 +1,11 @@
 import { Popover } from '@base-ui-components/react/popover'
 import {
-  PopupMenuContent,
-  Positioner,
-  GlobalThemeProvider,
-  RootProvider,
   defaultSlots,
+  GlobalThemeProvider,
+  PopupMenuContent,
   type PopupMenuTheme,
+  Positioner,
+  RootProvider,
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'

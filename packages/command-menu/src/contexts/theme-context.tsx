@@ -1,9 +1,9 @@
 import { createThemeSystem } from '@bazza-ui/theming'
 import { defaultSlots } from '../lib/slots.js'
 import type {
-  CommandMenuSlots,
-  CommandMenuSlotProps,
   CommandMenuClassNames,
+  CommandMenuSlotProps,
+  CommandMenuSlots,
 } from '../types.js'
 
 /**

@@ -1,5 +1,5 @@
-import { mergeClassNames, mergeSlotProps } from '@bazza-ui/menu'
 import * as React from 'react'
+import { mergeClassNames, mergeSlotProps } from './merge-props.js'
 import type { Theme, ThemeDef } from './types.js'
 
 /**

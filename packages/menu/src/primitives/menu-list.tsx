@@ -1,3 +1,4 @@
+import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
 import type { Direction, SurfaceStore } from '../types.js'
 import {
@@ -9,7 +10,6 @@ import {
   isVimOpen,
   isVimPrev,
 } from '../utils/keyboard.js'
-import { mergeProps } from '../utils/merge-props.js'
 import { SELECT_ITEM_EVENT } from './menu-item.js'
 
 export interface MenuListPrimitiveProps<T> {

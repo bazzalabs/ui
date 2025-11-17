@@ -1,6 +1,6 @@
+import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
 import type { InputBindAPI, InputSearchState, SurfaceStore } from '../types.js'
-import { mergeProps } from '../utils/merge-props.js'
 
 export interface MenuInputPrimitiveProps<T = unknown> {
   /** Surface store for state management */

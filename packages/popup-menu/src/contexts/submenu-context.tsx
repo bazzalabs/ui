@@ -1,5 +1,5 @@
-import * as React from 'react'
 import type { SubmenuDef } from '@bazza-ui/menu'
+import * as React from 'react'
 import type { ActivationCause } from '../types.js'
 
 /** Submenu context (open state/refs/ids). */

@@ -1,3 +1,4 @@
+import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
@@ -7,7 +8,6 @@ import type {
   SearchContext,
   SurfaceStore,
 } from '../types.js'
-import { mergeProps } from '../utils/merge-props.js'
 
 export const SELECT_ITEM_EVENT = 'bazza-ui:menu:item-select'
 

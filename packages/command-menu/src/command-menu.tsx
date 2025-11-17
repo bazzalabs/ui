@@ -1,11 +1,11 @@
 import * as React from 'react'
-import type { CommandMenuProps } from './types.js'
-import { CommandMenuRoot } from './components/root.js'
-import { CommandMenuTrigger } from './components/trigger.js'
+import { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
 import { CommandMenuContent } from './components/content.js'
 import { CommandMenuInput } from './components/input.js'
 import { CommandMenuList } from './components/list.js'
-import { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
+import { CommandMenuRoot } from './components/root.js'
+import { CommandMenuTrigger } from './components/trigger.js'
+import type { CommandMenuProps } from './types.js'
 
 export interface CommandMenuOptions<T = unknown> extends CommandMenuProps<T> {
   /** Keyboard shortcut to open the command menu */
