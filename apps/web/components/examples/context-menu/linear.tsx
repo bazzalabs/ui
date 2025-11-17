@@ -25,11 +25,12 @@ export function ContextMenu_Linear() {
   return (
     <LoaderAdapterProvider adapter={ReactQueryLoaderAdapter}>
       <ContextMenu
-        menu={menuData}
-        disableOutsidePointerEvents
-        onEscapeKeyDown={() => {
-          console.log('escaping outside!!')
+        defaults={{
+          virtualization: {
+            enabled: true,
+          },
         }}
+        menu={menuData}
       >
         <div className="relative h-48 w-full rounded-lg border p-4">
           <div className="prose prose-sm dark:prose-invert">

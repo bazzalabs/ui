@@ -7,6 +7,7 @@ import {
   mergeProps,
   type SubmenuNode,
   useFilteredNodes,
+  useStickyRowWidth,
 } from '@bazza-ui/menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
@@ -149,19 +150,56 @@ function ListRendererContent({
     store.first('keyboard')
   }, [q, store])
 
-  // Virtualization - enable if configured or if many items
-  const virtualizationConfig = (menu as any).virtualization
-  const enableVirtualization =
-    virtualizationConfig?.enabled ||
-    (virtualizationConfig?.enabled !== false && displayNodes.length > 50)
+  // Virtualization configuration
+  const virtualizationConfig = menu.virtualization
+  const count = displayNodes.length
+
+  // Determine if virtualization should be enabled
+  const enableVirtualization = React.useMemo(() => {
+    const enabled = virtualizationConfig?.enabled
+    if (typeof enabled === 'function') {
+      return enabled({
+        nodes: displayNodes as any,
+        count,
+        menu: menu as any,
+      })
+    }
+    if (typeof enabled === 'boolean') {
+      return enabled
+    }
+    // Auto-enable when 50+ items (default behavior)
+    return count >= 50
+  }, [virtualizationConfig?.enabled, displayNodes, count, menu])
+
+  // console.log('enableVirtualization:', enableVirtualization)
+
+  // Handle estimateSize as number or function
+  const estimateSizeFn = React.useMemo(() => {
+    const estimateSize = virtualizationConfig?.estimateSize ?? 40
+    if (typeof estimateSize === 'function') {
+      return estimateSize
+    }
+    return () => estimateSize
+  }, [virtualizationConfig?.estimateSize])
 
   const virtualizer = useVirtualizer({
-    count: displayNodes.length,
-    estimateSize: virtualizationConfig?.estimateSize ?? (() => 40),
+    count,
+    estimateSize: estimateSizeFn,
     getScrollElement: () => store.listRef.current,
     getItemKey: (index) => displayNodes[index]?.id ?? index,
     overscan: virtualizationConfig?.overscan ?? 5,
     enabled: enableVirtualization,
+    horizontal: virtualizationConfig?.horizontal,
+    paddingStart: virtualizationConfig?.paddingStart,
+    paddingEnd: virtualizationConfig?.paddingEnd,
+    scrollPaddingStart: virtualizationConfig?.scrollPaddingStart,
+    scrollPaddingEnd: virtualizationConfig?.scrollPaddingEnd,
+    gap: virtualizationConfig?.gap,
+    initialOffset: virtualizationConfig?.initialOffset,
+    scrollMargin: virtualizationConfig?.scrollMargin,
+    lanes: virtualizationConfig?.lanes,
+    isRtl: virtualizationConfig?.isRtl,
+    debug: virtualizationConfig?.debug,
   })
 
   const virtualItems = virtualizer.getVirtualItems()
@@ -173,6 +211,75 @@ function ListRendererContent({
       ;(store.virtualizerRef as any).current = virtualizer
     }
   }, [store.virtualizerRef, virtualizer, enableVirtualization])
+
+  // Initialize sticky row width hook to maintain max width during streaming
+  const { queueMeasurement, resetMeasurements } = useStickyRowWidth({
+    containerRef: store.listRef,
+  })
+
+  // Reset measurements when component unmounts (menu closes)
+  React.useEffect(() => {
+    return () => {
+      resetMeasurements()
+    }
+  }, [resetMeasurements])
+
+  // Store refs to row elements for efficient measurement
+  const rowRefsMap = React.useRef<Map<string, HTMLElement>>(new Map())
+  const rowRefCallbacks = React.useRef<
+    Map<string, (el: HTMLElement | null) => void>
+  >(new Map())
+
+  // Ref callback factory for capturing row elements - memoized per ID
+  const getRowRefCallback = React.useCallback((id: string) => {
+    let callback = rowRefCallbacks.current.get(id)
+    if (!callback) {
+      callback = (el: HTMLElement | null) => {
+        if (el) {
+          rowRefsMap.current.set(id, el)
+        } else {
+          rowRefsMap.current.delete(id)
+        }
+      }
+      rowRefCallbacks.current.set(id, callback)
+    }
+    return callback
+  }, [])
+
+  // Measure visible rows in useLayoutEffect (after DOM commit, before paint)
+  React.useLayoutEffect(() => {
+    if (!enableVirtualization) {
+      // For non-virtualized lists, measure all displayed nodes
+      for (let i = 0; i < displayNodes.length; i++) {
+        const node = displayNodes[i]
+        if (!node) continue
+
+        // Only measure items and submenu triggers
+        if (node.kind !== 'item' && node.kind !== 'submenu') continue
+
+        // Get the row element from our ref map
+        const rowEl = rowRefsMap.current.get(node.id)
+        if (rowEl) {
+          queueMeasurement(rowEl, node.id)
+        }
+      }
+    } else {
+      // For virtualized lists, only measure visible items
+      for (const virtualRow of virtualItems) {
+        const node = displayNodes[virtualRow.index]
+        if (!node) continue
+
+        // Only measure items and submenu triggers
+        if (node.kind !== 'item' && node.kind !== 'submenu') continue
+
+        // Get the row element from our ref map
+        const rowEl = rowRefsMap.current.get(node.id)
+        if (rowEl) {
+          queueMeasurement(rowEl, node.id)
+        }
+      }
+    }
+  }, [virtualItems, displayNodes, queueMeasurement, enableVirtualization])
 
   // Handle item selection
   const handleItemSelect = React.useCallback(
@@ -288,6 +395,7 @@ function ListRendererContent({
         const itemElement = (
           <MenuItemPrimitive
             key={node.id}
+            ref={getRowRefCallback(node.id)}
             node={itemNode}
             store={store}
             className={classNames?.item}
@@ -326,6 +434,7 @@ function ListRendererContent({
           >
             <PopupMenuSubmenu def={submenuNode.def}>
               <PopupMenuSubmenuTrigger
+                ref={getRowRefCallback(node.id)}
                 node={submenuNode}
                 slot={SubmenuTriggerSlot}
                 classNames={classNames}
@@ -372,6 +481,7 @@ function ListRendererContent({
       handleSubmenuSelect,
       q,
       virtualizer,
+      getRowRefCallback,
     ],
   )
 

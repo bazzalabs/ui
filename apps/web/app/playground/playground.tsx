@@ -4,7 +4,8 @@ import { MultiSelect } from '@/components/examples/action-menu/multiselect'
 export function Playground() {
   return (
     <div className="flex flex-col gap-8 [&_[data-slot=action-menu-trigger]]:!w-fit">
-      <Examples.ContextMenu.ContextMenu_AsyncSubmenusStreaming />
+      <Examples.ContextMenu.ContextMenu_Linear />
+      {/*<Examples.ContextMenu.ContextMenu_AsyncSubmenusStreaming />*/}
       {/*<Examples.ActionMenu.PokemonNative />
       <Examples.ActionMenu.PokemonReactQuery />
       <Examples.ActionMenu.AsyncBasic />

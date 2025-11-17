@@ -218,10 +218,10 @@ export function useDeepSearchOrchestration<T>(
       walkNodes(menuDef.nodes)
 
       if (staticSubmenuIds.length > 0) {
-        console.log(
-          '[MENU DEBUG] Initializing completion order with static submenus:',
-          staticSubmenuIds,
-        )
+        // console.log(
+        //   '[MENU DEBUG] Initializing completion order with static submenus:',
+        //   staticSubmenuIds,
+        // )
         completionOrderRef.current = [...staticSubmenuIds]
       }
 
@@ -257,11 +257,11 @@ export function useDeepSearchOrchestration<T>(
             if (!completionOrderRef.current.includes(pathKey)) {
               completionOrderRef.current.push(pathKey)
             }
-            console.log('[MENU DEBUG] Loader completed:', pathKey)
-            console.log(
-              '[MENU DEBUG] Current completionOrder:',
-              completionOrderRef.current,
-            )
+            // console.log('[MENU DEBUG] Loader completed:', pathKey)
+            // console.log(
+            //   '[MENU DEBUG] Current completionOrder:',
+            //   completionOrderRef.current,
+            // )
           }
         }
 

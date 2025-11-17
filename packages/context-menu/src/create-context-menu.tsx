@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   defaultSlots,
   GlobalThemeProvider,
@@ -25,6 +25,7 @@ export type CreateContextMenuOptions<T = unknown> = {
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
   classNames?: PopupMenuThemeDef<T>['classNames']
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 export interface ContextMenuOptions<T = unknown>
@@ -49,6 +50,8 @@ export interface ContextMenuOptions<T = unknown>
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
   classNames?: PopupMenuThemeDef<T>['classNames']
+  /** Default configurations for menu behavior */
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
@@ -68,26 +71,32 @@ export function createContextMenu<T = unknown>(
     classNames: opts?.classNames,
   }
 
-  function ContextMenu({
-    menu,
-    children,
-    placeholder = 'Search...',
-    debug = false,
-    slots,
-    slotProps,
-    classNames,
-    // InteractionGuard options
-    scopeAttr,
-    disableOutsidePointerEvents,
-    onEscapeKeyDown,
-    onPointerDownOutside,
-    onFocusOutside,
-    onInteractOutside,
-    onDismiss,
-    surfaceSelector,
-    branchAttr,
-    ...rootProps
-  }: ContextMenuOptions<T>) {
+  // Factory defaults
+  const factoryDefaults = opts?.defaults
+
+  function ContextMenu(props: ContextMenuOptions<T>) {
+    const {
+      menu,
+      children,
+      placeholder = 'Search...',
+      debug = false,
+      slots,
+      slotProps,
+      classNames,
+      defaults,
+      // InteractionGuard options
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+      ...rootProps
+    } = props
+
     // Instance theme - merge factory with instance props
     const instanceTheme: PopupMenuTheme<any> = React.useMemo(
       () =>
@@ -104,6 +113,28 @@ export function createContextMenu<T = unknown>(
       () => menu.ui as PopupMenuTheme<any> | undefined,
       [menu.ui],
     )
+
+    // Merge factory defaults with instance defaults
+    const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
+      () => ({
+        surface: { ...factoryDefaults?.surface, ...defaults?.surface },
+        item: {
+          ...factoryDefaults?.item,
+          ...defaults?.item,
+        } as any,
+        virtualization: {
+          ...factoryDefaults?.virtualization,
+          ...defaults?.virtualization,
+        } as any,
+      }),
+      [defaults],
+    )
+
+    console.log({
+      factoryDefaults: factoryDefaults,
+      instanceDefaults: defaults,
+      mergedDefaults: mergedDefaults,
+    })
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>
@@ -122,7 +153,12 @@ export function createContextMenu<T = unknown>(
             branchAttr={branchAttr}
           >
             <ContextMenuTrigger>{children}</ContextMenuTrigger>
-            <ContextMenuContent menu={menu} placeholder={placeholder} debug={debug} />
+            <ContextMenuContent
+              menu={menu}
+              placeholder={placeholder}
+              debug={debug}
+              defaults={mergedDefaults}
+            />
           </ContextMenuRoot>
         </ScopedThemeProvider>
       </GlobalThemeProvider>

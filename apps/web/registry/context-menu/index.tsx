@@ -11,6 +11,12 @@ declare module '@bazza-ui/context-menu' {
 }
 
 export const ContextMenu = createContextMenu({
+  defaults: {
+    virtualization: {
+      enabled: true,
+    },
+  },
+
   slots: {
     Item: ({ node, search, bind }) => {
       const props = bind.getRowProps({
@@ -124,7 +130,7 @@ export const ContextMenu = createContextMenu({
       'data-[root-menu]:data-[open]:origin-(--transform-origin) data-[root-menu]:data-[closed]:origin-(--transform-origin)',
       'data-[root-menu]:data-[open]:transition-[filter,scale,opacity] data-[root-menu]:data-[open]:duration-150 data-[root-menu]:data-[open]:ease-out',
       'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-150 data-[root-menu]:data-[closed]:ease-out',
-      'min-w-[200px] max-w-[300px]',
+      'w-[min(400px,max(var(--row-width),175px))]',
       'max-h-[min(500px,var(--action-menu-available-height))]',
       'box-content',
     ),

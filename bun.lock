@@ -69,6 +69,7 @@
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.0.2",
         "tailwindcss-animate": "^1.0.7",
+        "tailwindcss-corner-shape": "^1.4.6",
         "uuid": "^13.0.0",
         "vaul": "^1.1.2",
         "zod": "^4.1.12",
@@ -2046,6 +2047,8 @@
     "tailwindcss": ["tailwindcss@4.1.3", "", {}, "sha512-2Q+rw9vy1WFXu5cIxlvsabCwhU2qUwodGq03ODhLJ0jW4ek5BUtoCsnLB0qG+m8AHgEsSJcJGDSDe06FXlP74g=="],
 
     "tailwindcss-animate": ["tailwindcss-animate@1.0.7", "", { "peerDependencies": { "tailwindcss": ">=3.0.0 || insiders" } }, "sha512-bl6mpH3T7I3UFxuvDEXLxy/VuFxBk5bbzplh7tXI68mwMokNYd1t9qPBHlnyTwfa4JGC4zP516I1hYYtQ/vspA=="],
+
+    "tailwindcss-corner-shape": ["tailwindcss-corner-shape@1.4.6", "", { "peerDependencies": { "tailwindcss": ">=3.0.0" }, "bin": { "tailwindcss-corner-shape": "cli.js" } }, "sha512-Uc1K+3Z21GOkQKdHrDuuipwpKQ8SEe/I9rV75UCnZBgAwSyfSHXpy37nGKEuqlXonfVsPsoUt1YN04lfAl5bEw=="],
 
     "tapable": ["tapable@2.2.1", "", {}, "sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ=="],
 

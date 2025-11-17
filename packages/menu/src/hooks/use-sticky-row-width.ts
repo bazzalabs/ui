@@ -46,7 +46,15 @@ export function useStickyRowWidth(opts: {
       const capped = Math.min(n, radixCap, hardCap)
       el.style.setProperty('--row-width', px(capped))
 
-      const surface = el.closest<HTMLElement>('[data-slot="menu-content"]')
+      // Find the surface element - try multiple selectors for compatibility
+      // with different menu implementations (menu, popup-menu, context-menu, action-menu)
+      const surface =
+        el.closest<HTMLElement>('[data-slot="menu-content"]') ||
+        el.closest<HTMLElement>('[data-slot="popup-menu-content"]') ||
+        el.closest<HTMLElement>('[data-slot="popup-menu-submenu-content"]') ||
+        el.closest<HTMLElement>('[data-slot="context-menu-content"]') ||
+        el.closest<HTMLElement>('[data-slot="action-menu-content"]')
+
       if (!surface) return
       surface.style.setProperty('--row-width', px(capped))
     },
@@ -110,8 +118,16 @@ export function useStickyRowWidth(opts: {
 
   // Re-apply cap when the container/popover resizes (viewport changes)
   React.useLayoutEffect(() => {
-    const dialog = containerRef.current?.querySelector('[data-slot="menu-list"]')
-    if (!dialog) return
+    const container = containerRef.current
+    if (!container) return
+
+    // Check if the container itself is the list element (has data-slot attribute)
+    // Otherwise, search for a child element with data-slot="menu-list"
+    const listEl = container.hasAttribute('data-slot')
+      ? container
+      : container.querySelector<HTMLElement>('[data-slot="menu-list"]')
+
+    if (!listEl) return
     const ro = new ResizeObserver(() => {
       if (maxSeenRef.current > 0) {
         // Read radix cap and apply immediately (not in batch, as this is a resize event)
@@ -119,7 +135,7 @@ export function useStickyRowWidth(opts: {
         applyVar(maxSeenRef.current, radixCap)
       }
     })
-    ro.observe(dialog)
+    ro.observe(listEl)
     return () => ro.disconnect()
   }, [containerRef, applyVar, readRadixMax])
 

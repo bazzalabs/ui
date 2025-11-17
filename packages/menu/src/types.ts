@@ -201,11 +201,63 @@ export type AggregatedLoaderState = {
 /**
  * Configuration for virtualizing large lists.
  */
-export type VirtualizationConfig = {
-  /** Number of items to render outside the visible area. Default: 12 */
+export type VirtualizationConfig<T = unknown> = {
+  /**
+   * Enable or disable virtualization.
+   * - `boolean`: Explicitly enable/disable virtualization
+   * - `function`: Callback to conditionally enable based on nodes
+   * - `undefined`: Auto-enable when 50+ items (default behavior)
+   */
+  enabled?:
+    | boolean
+    | ((context: {
+        nodes: NodeDef<T>[]
+        count: number
+        menu: MenuDef<T>
+      }) => boolean)
+
+  /**
+   * Estimated height of each item in pixels.
+   * - `number`: Fixed estimate for all items (default: 40)
+   * - `function`: Dynamic estimate per item index
+   */
+  estimateSize?: number | ((index: number) => number)
+
+  /** Number of items to render outside the visible area. Default: 5 */
   overscan?: number
-  /** Estimated height of each item in pixels. Default: 32 */
-  estimateSize?: number
+
+  /** Enable horizontal virtualization instead of vertical. Default: false */
+  horizontal?: boolean
+
+  /** Padding at the start of the scroll container in pixels */
+  paddingStart?: number
+
+  /** Padding at the end of the scroll container in pixels */
+  paddingEnd?: number
+
+  /** Scroll padding at the start in pixels */
+  scrollPaddingStart?: number
+
+  /** Scroll padding at the end in pixels */
+  scrollPaddingEnd?: number
+
+  /** Gap between items in pixels */
+  gap?: number
+
+  /** Initial scroll offset in pixels or function returning offset */
+  initialOffset?: number | (() => number)
+
+  /** Scroll margin in pixels */
+  scrollMargin?: number
+
+  /** Number of lanes for masonry-style layouts. Default: 1 */
+  lanes?: number
+
+  /** Enable right-to-left mode. Default: false */
+  isRtl?: boolean
+
+  /** Enable debug mode for development. Default: false */
+  debug?: boolean
 }
 
 /**
@@ -265,7 +317,7 @@ export type MenuDef<T = unknown, TSlots = any> = MenuState & {
   loader?: AsyncNodeLoader<T>
   defaults?: MenuNodeDefaults<T>
   /** Virtualization configuration for the list. */
-  virtualization?: VirtualizationConfig
+  virtualization?: VirtualizationConfig<T>
   /** Search configuration for filtering behavior. */
   search?: SearchConfig
   ui?: MenuThemeDef<T, TSlots>
@@ -817,6 +869,8 @@ export type MenuNodeDefaults<T = unknown> = {
     'vimBindings' | 'dir' | 'onOpenAutoFocus' | 'onCloseAutoClear'
   >
   item?: Pick<BaseItemDef<T>, 'onSelect' | 'closeOnSelect'>
+  /** Default virtualization configuration applied to all menus/submenus */
+  virtualization?: VirtualizationConfig<T>
 }
 
 export interface MenuSurfaceProps<T = unknown>
