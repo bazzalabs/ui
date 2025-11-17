@@ -275,7 +275,8 @@ export function instantiateSingleNode<T>(
 
     // ! In TSX, don't write instantiateMenuFromDef<any>(...)
     // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
-    // Pass computedDefaults as parentDefaults to create the cascade
+    // Pass base defaults (not parent surface defaults) to child submenu
+    // This ensures each surface's defaults only apply to its direct children
     const child = instantiateMenuFromDef(
       {
         id,
@@ -294,7 +295,7 @@ export function instantiateSingleNode<T>(
       } as MenuDef<any>,
       childSurfaceId,
       parent.depth + 1,
-      computedDefaults, // Pass parent's computed defaults to child
+      parent.baseDefaults, // Pass base defaults only (factory + instance), not parent's surface defaults
     ) as Menu<any>
 
     // Destructure to exclude properties that shouldn't be on the node
@@ -381,6 +382,7 @@ export function instantiateMenuFromDef<T>(
     inputPlaceholder: def.inputPlaceholder,
     hideSearchUntilActive: def.hideSearchUntilActive,
     defaults: homeDefaults, // Store computed defaults on the Menu (for reference)
+    baseDefaults: parentDefaults, // Store base defaults (factory + instance) for submenu inheritance
     virtualization: mergedVirtualization, // Merge virtualization defaults directly
     ui: def.ui,
     nodes: [] as Node<T>[],

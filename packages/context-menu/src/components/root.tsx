@@ -1,8 +1,8 @@
-import type { MenuDef } from '@bazza-ui/menu'
 import { Popover } from '@base-ui-components/react/popover'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
-  RootProvider,
   type InteractionGuardOptions,
+  RootProvider,
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
@@ -22,6 +22,8 @@ export interface ContextMenuRootProps<T = unknown>
   defaultOpen?: boolean
   /** Whether clicking outside closes the menu */
   modal?: boolean
+  /** Base defaults (factory + instance) shared across the entire menu */
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
@@ -34,6 +36,7 @@ export function ContextMenuRoot<T = unknown>({
   open: controlledOpen,
   defaultOpen = false,
   modal = true,
+  defaults,
   // InteractionGuard options
   scopeAttr,
   disableOutsidePointerEvents,
@@ -127,6 +130,7 @@ export function ContextMenuRoot<T = unknown>({
           scopeId={scopeId}
           onClose={closeAllSurfaces}
           interactionGuardOptions={rootValue.interactionGuardOptions}
+          defaults={defaults as any}
         >
           {children}
         </RootProvider>

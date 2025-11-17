@@ -1,14 +1,15 @@
 'use client'
 
-import { LoaderAdapterProvider, type ItemDef } from '@bazza-ui/menu'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
-  ReactQueryLoaderAdapter,
   createLoader,
+  ReactQueryLoaderAdapter,
 } from '@bazza-ui/context-menu/loaders/tanstack-query'
-import { ContextMenu } from '@/registry/context-menu'
+import { type ItemDef, LoaderAdapterProvider } from '@bazza-ui/menu'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HomeIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
+import { ContextMenu } from '@/registry/context-menu'
 
 const queryClient = new QueryClient()
 
@@ -33,6 +34,14 @@ export function ContextMenu_AsyncSubmenusStreaming() {
               },
             },
             nodes: [
+              {
+                kind: 'item',
+                label: 'Home',
+                icon: HomeIcon,
+                onSelect: () => {
+                  toast('Home')
+                },
+              },
               {
                 kind: 'submenu',
                 id: 'fruits',

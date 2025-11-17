@@ -1,15 +1,15 @@
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
-import { mergeProps } from '../utils/merge-props.js'
 import type {
   ItemNode,
   RowBindAPI,
   SearchContext,
   SurfaceStore,
 } from '../types.js'
+import { mergeProps } from '../utils/merge-props.js'
 
-const SELECT_ITEM_EVENT = 'menu:selectItem'
+export const SELECT_ITEM_EVENT = 'bazza-ui:menu:item-select'
 
 export interface MenuItemPrimitiveProps<T> {
   /** Reference to the HTML element */

@@ -52,11 +52,13 @@ export function PopupMenuInput<T = unknown>({
       placeholder={placeholder}
       className={mergedClassName}
       searchState={searchState}
-      inputProps={{
-        ...(theme?.slotProps?.input as any),
-        'data-slot': 'popup-menu-input',
-        'data-popup-menu-input': true,
-      }}
+      inputProps={
+        {
+          ...theme?.slotProps?.input,
+          'data-slot': 'popup-menu-input',
+          'data-popup-menu-input': true,
+        } as React.HTMLAttributes<HTMLInputElement>
+      }
       onKeyDown={handleKeyDown}
     >
       {theme?.slots?.Input

@@ -1,5 +1,6 @@
 import type { MenuDef, SubmenuNode } from '@bazza-ui/menu'
 import * as React from 'react'
+import { useRoot } from '../contexts/root-context.js'
 import { useSub } from '../contexts/submenu-context.js'
 import { PopupMenuContent } from './content.js'
 import { Positioner } from './positioner.js'
@@ -16,6 +17,7 @@ export function PopupMenuSubmenuContent<T>({
   node,
 }: PopupMenuSubmenuContentProps<T>) {
   const sub = useSub()!
+  const root = useRoot()
 
   // Convert submenu node to menu def with required id
   const menuDef: MenuDef<any> = React.useMemo(() => {
@@ -45,8 +47,9 @@ export function PopupMenuSubmenuContent<T>({
     }
   }, [node])
 
-  // Get parent menu's defaults to pass to submenu
-  const parentDefaults = node.parent?.defaults
+  // Get base defaults (factory + instance) from root context
+  // This ensures submenus don't inherit parent surface-level defaults
+  const baseDefaults = root.defaults
 
   return (
     <Positioner>
@@ -56,7 +59,7 @@ export function PopupMenuSubmenuContent<T>({
           open={sub.open}
           contentRef={sub.contentRef}
           popupProps={popupProps}
-          defaults={parentDefaults}
+          defaults={baseDefaults}
         />
       )}
     </Positioner>

@@ -13,6 +13,11 @@ declare module '@bazza-ui/menu' {
 
 // Create CommandMenu with factory theme
 export const CommandMenu = createCommandMenu({
+  defaults: {
+    virtualization: {
+      enabled: true,
+    },
+  },
   slots: {
     GroupHeading: ({ node, bind }) => (
       <div {...bind.getGroupHeadingProps()}>

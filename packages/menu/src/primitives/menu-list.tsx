@@ -1,15 +1,16 @@
 import * as React from 'react'
-import { mergeProps } from '../utils/merge-props.js'
-import type { SurfaceStore, Direction } from '../types.js'
+import type { Direction, SurfaceStore } from '../types.js'
 import {
-  isVimNext,
-  isVimPrev,
-  isVimOpen,
-  isVimClose,
-  isOpenKey,
   isCloseKey,
+  isOpenKey,
   isSelectionKey,
+  isVimClose,
+  isVimNext,
+  isVimOpen,
+  isVimPrev,
 } from '../utils/keyboard.js'
+import { mergeProps } from '../utils/merge-props.js'
+import { SELECT_ITEM_EVENT } from './menu-item.js'
 
 export interface MenuListPrimitiveProps<T> {
   /** Reference to the list element */
@@ -102,7 +103,7 @@ export function MenuListPrimitive<T>({
             const activeRow = activeId ? store.rows.get(activeId) : null
             if (activeRow?.ref.current) {
               activeRow.ref.current.dispatchEvent(
-                new CustomEvent('menu:selectItem', { bubbles: false }),
+                new CustomEvent(SELECT_ITEM_EVENT, { bubbles: false }),
               )
             }
           }
@@ -153,12 +154,13 @@ export function MenuListPrimitive<T>({
           const activeRow = activeId ? store.rows.get(activeId) : null
           if (activeRow?.ref.current) {
             const isSubmenuTrigger =
-              activeRow.ref.current.getAttribute('data-submenu-trigger') === 'true'
+              activeRow.ref.current.getAttribute('data-submenu-trigger') ===
+              'true'
             if (isSubmenuTrigger && onSubmenuOpen) {
               onSubmenuOpen(activeId)
             } else {
               activeRow.ref.current.dispatchEvent(
-                new CustomEvent('menu:selectItem', { bubbles: false }),
+                new CustomEvent(SELECT_ITEM_EVENT, { bubbles: false }),
               )
             }
           }
@@ -182,12 +184,13 @@ export function MenuListPrimitive<T>({
         const activeRow = activeId ? store.rows.get(activeId) : null
         if (activeRow?.ref.current) {
           const isSubmenuTrigger =
-            activeRow.ref.current.getAttribute('data-submenu-trigger') === 'true'
+            activeRow.ref.current.getAttribute('data-submenu-trigger') ===
+            'true'
           if (isSubmenuTrigger && onSubmenuOpen) {
             onSubmenuOpen(activeId)
           } else {
             activeRow.ref.current.dispatchEvent(
-              new CustomEvent('menu:selectItem', { bubbles: false }),
+              new CustomEvent(SELECT_ITEM_EVENT, { bubbles: false }),
             )
           }
         }
@@ -201,7 +204,16 @@ export function MenuListPrimitive<T>({
         return
       }
     },
-    [store, activeId, onKeyDownProp, vimBindings, dir, onEscape, onClose, onSubmenuOpen],
+    [
+      store,
+      activeId,
+      onKeyDownProp,
+      vimBindings,
+      dir,
+      onEscape,
+      onClose,
+      onSubmenuOpen,
+    ],
   )
 
   const listProps = {
@@ -215,9 +227,7 @@ export function MenuListPrimitive<T>({
     tabIndex: 0, // Make list focusable for keyboard navigation
   }
 
-  const mergedProps = ref
-    ? mergeProps(listProps, { ref } as any)
-    : listProps
+  const mergedProps = ref ? mergeProps(listProps, { ref } as any) : listProps
 
   return <div {...(mergedProps as any)}>{children}</div>
 }

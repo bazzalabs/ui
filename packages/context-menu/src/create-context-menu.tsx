@@ -4,10 +4,12 @@ import {
   GlobalThemeProvider,
   type InteractionGuardOptions,
   mergeTheme,
+  type PopupMenuSlots,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
   ScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
+import type { Theme } from '@bazza-ui/theming'
 import * as React from 'react'
 import { ContextMenuContent } from './components/content.js'
 import { ContextMenuRoot } from './components/root.js'
@@ -65,11 +67,13 @@ export function createContextMenu<T = unknown>(
   opts?: CreateContextMenuOptions<T>,
 ): CreateContextMenuResult<T> {
   // Factory theme - from createContextMenu options
-  const factoryTheme: PopupMenuTheme<any> = {
-    slots: { ...defaultSlots<T>(), ...(opts?.slots as any) },
+  // Note: We use the non-generic Theme type internally since the theming system
+  // uses PopupMenuSlots<unknown>. Slots are contravariant and work with any T.
+  const factoryTheme = {
+    slots: { ...defaultSlots(), ...opts?.slots } as PopupMenuSlots<T>,
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
-  }
+  } as PopupMenuTheme<T>
 
   // Factory defaults
   const factoryDefaults = opts?.defaults
@@ -98,9 +102,10 @@ export function createContextMenu<T = unknown>(
     } = props
 
     // Instance theme - merge factory with instance props
-    const instanceTheme: PopupMenuTheme<any> = React.useMemo(
+    // Cast to non-generic type for mergeTheme compatibility
+    const instanceTheme = React.useMemo(
       () =>
-        mergeTheme(factoryTheme, {
+        mergeTheme(factoryTheme as any, {
           slots: slots as any,
           slotProps,
           classNames,
@@ -109,10 +114,7 @@ export function createContextMenu<T = unknown>(
     )
 
     // Scoped theme - from menu.ui
-    const scopedTheme = React.useMemo(
-      () => menu.ui as PopupMenuTheme<any> | undefined,
-      [menu.ui],
-    )
+    const scopedTheme = React.useMemo(() => menu.ui as any, [menu.ui])
 
     // Merge factory defaults with instance defaults
     const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
@@ -132,10 +134,11 @@ export function createContextMenu<T = unknown>(
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>
-        <ScopedThemeProvider theme={scopedTheme as any}>
+        <ScopedThemeProvider theme={scopedTheme}>
           <ContextMenuRoot
             {...rootProps}
             menu={menu}
+            defaults={mergedDefaults}
             scopeAttr={scopeAttr}
             disableOutsidePointerEvents={disableOutsidePointerEvents}
             onEscapeKeyDown={onEscapeKeyDown}

@@ -442,7 +442,7 @@ function ListRendererContent({
           <ScopedThemeProvider
             key={node.id}
             __scopeId={node.id}
-            theme={node.ui as any}
+            theme={node.ui}
           >
             <PopupMenuSubmenu def={submenuNode.def}>
               <PopupMenuSubmenuTrigger

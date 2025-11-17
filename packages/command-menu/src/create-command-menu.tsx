@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import { defaultSlots } from '@bazza-ui/menu'
 import * as React from 'react'
 import { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
@@ -14,6 +14,7 @@ import {
 } from './contexts/theme-context.js'
 import type {
   CommandMenuProps,
+  CommandMenuSlots,
   CommandMenuTheme,
   CommandMenuThemeDef,
 } from './types.js'
@@ -33,6 +34,7 @@ export type CreateCommandMenuOptions<T = unknown> = {
   slots?: CommandMenuThemeDef<T>['slots']
   slotProps?: CommandMenuThemeDef<T>['slotProps']
   classNames?: CommandMenuThemeDef<T>['classNames']
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 export interface CommandMenuOptions<T = unknown> extends CommandMenuProps<T> {
@@ -48,6 +50,8 @@ export interface CommandMenuOptions<T = unknown> extends CommandMenuProps<T> {
   slots?: CommandMenuThemeDef<T>['slots']
   slotProps?: CommandMenuThemeDef<T>['slotProps']
   classNames?: CommandMenuThemeDef<T>['classNames']
+  /** Default values for menu nodes */
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
@@ -62,10 +66,15 @@ export function createCommandMenu<T = unknown>(
 ): CreateCommandMenuResult<T> {
   // Factory theme - from createCommandMenu options
   const factoryTheme: CommandMenuTheme<T> = {
-    slots: { ...defaultSlots<T>(), ...(opts?.slots as any) },
+    slots: { ...defaultSlots<T>(), ...opts?.slots } as Required<
+      CommandMenuSlots<T>
+    >,
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
   }
+
+  // Factory defaults - from createCommandMenu options
+  const factoryDefaults = opts?.defaults
 
   function CommandMenu<T = unknown>({
     shortcut = 'cmd+k',
@@ -75,18 +84,19 @@ export function createCommandMenu<T = unknown>(
     slots,
     slotProps,
     classNames,
+    defaults,
     ...rootProps
   }: CommandMenuOptions<T>) {
     const [query, setQuery] = React.useState('')
 
     // Instance theme - merge factory with instance props
-    const instanceTheme: CommandMenuTheme<T> = React.useMemo(
+    const instanceTheme = React.useMemo(
       () =>
         mergeTheme(factoryTheme as any, {
           slots: slots as any,
           slotProps,
           classNames,
-        }) as CommandMenuTheme<T>,
+        }),
       [slots, slotProps, classNames],
     )
 
@@ -94,6 +104,22 @@ export function createCommandMenu<T = unknown>(
     const scopedTheme = React.useMemo(
       () => menu.ui as CommandMenuTheme<T> | undefined,
       [menu.ui],
+    )
+
+    // Merge factory defaults with instance defaults
+    const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
+      () => ({
+        surface: { ...factoryDefaults?.surface, ...defaults?.surface },
+        item: {
+          ...factoryDefaults?.item,
+          ...defaults?.item,
+        } as any,
+        virtualization: {
+          ...factoryDefaults?.virtualization,
+          ...defaults?.virtualization,
+        } as any,
+      }),
+      [defaults],
     )
 
     // Clear query when menu closes
@@ -104,7 +130,7 @@ export function createCommandMenu<T = unknown>(
     }, [rootProps.open, rootProps.onOpenChange])
 
     return (
-      <GlobalThemeProvider theme={instanceTheme as any}>
+      <GlobalThemeProvider theme={instanceTheme}>
         <ScopedThemeProvider theme={scopedTheme as any}>
           <CommandMenuRoot {...rootProps} menu={menu} onQueryChange={setQuery}>
             <CommandMenuTrigger shortcut={shortcut}>
@@ -116,6 +142,7 @@ export function createCommandMenu<T = unknown>(
                 query={query}
                 onQueryChange={setQuery}
                 placeholder={placeholder}
+                defaults={mergedDefaults}
               />
             </CommandMenuContent>
           </CommandMenuRoot>

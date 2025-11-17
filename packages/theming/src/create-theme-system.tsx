@@ -1,5 +1,5 @@
-import * as React from 'react'
 import { mergeClassNames, mergeSlotProps } from '@bazza-ui/menu'
+import * as React from 'react'
 import type { Theme, ThemeDef } from './types.js'
 
 /**
@@ -31,14 +31,19 @@ export function createThemeSystem<TSlots, TSlotProps, TClassNames>(
    */
   const mergeTheme = (
     a?: Theme<TSlots, TSlotProps, TClassNames>,
-    b?: ThemeDef<TSlots, TSlotProps, TClassNames> | Theme<TSlots, TSlotProps, TClassNames>,
+    b?:
+      | ThemeDef<TSlots, TSlotProps, TClassNames>
+      | Theme<TSlots, TSlotProps, TClassNames>,
   ): Theme<TSlots, TSlotProps, TClassNames> => ({
-    slots: { ...(a?.slots as any), ...(b?.slots as any) },
-    slotProps: mergeSlotProps(a?.slotProps as any, b?.slotProps as any) as any,
+    slots: { ...a?.slots, ...b?.slots } as Required<TSlots>,
+    slotProps: mergeSlotProps(
+      a?.slotProps,
+      b?.slotProps,
+    ) as Partial<TSlotProps>,
     classNames: mergeClassNames(
-      (a?.classNames as any) ?? {},
-      (b?.classNames as any) ?? {},
-    ) as any,
+      a?.classNames ?? {},
+      b?.classNames ?? {},
+    ) as Partial<TClassNames>,
   })
 
   /**
@@ -106,13 +111,15 @@ export function createThemeSystem<TSlots, TSlotProps, TClassNames>(
     children,
     __scopeId,
   }: {
-    theme: Theme<TSlots, TSlotProps, TClassNames>
+    theme?:
+      | Theme<TSlots, TSlotProps, TClassNames>
+      | ThemeDef<TSlots, TSlotProps, TClassNames>
     children: React.ReactNode
     __scopeId?: string
   }) {
     const globalTheme = useGlobalTheme()
     const scopedTheme = React.useMemo(
-      () => mergeTheme(globalTheme, theme as any),
+      () => (theme ? mergeTheme(globalTheme, theme) : globalTheme),
       [globalTheme, theme],
     )
 

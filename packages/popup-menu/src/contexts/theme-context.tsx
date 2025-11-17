@@ -1,9 +1,9 @@
 import { createThemeSystem } from '@bazza-ui/theming'
 import { defaultSlots } from '../lib/slots.js'
 import type {
-  PopupMenuSlots,
-  PopupMenuSlotProps,
   PopupMenuClassNames,
+  PopupMenuSlotProps,
+  PopupMenuSlots,
 } from '../types.js'
 
 /**
@@ -16,11 +16,9 @@ const {
   ScopedThemeProvider,
   useGlobalTheme,
   useScopedTheme,
-} = createThemeSystem<
-  PopupMenuSlots,
-  PopupMenuSlotProps,
-  PopupMenuClassNames
->(defaultSlots)
+} = createThemeSystem<PopupMenuSlots, PopupMenuSlotProps, PopupMenuClassNames>(
+  defaultSlots,
+)
 
 export {
   mergeTheme,
@@ -28,4 +26,7 @@ export {
   ScopedThemeProvider,
   useGlobalTheme,
   useScopedTheme,
+  type PopupMenuSlots,
+  type PopupMenuSlotProps,
+  type PopupMenuClassNames,
 }

@@ -1,3 +1,4 @@
+import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import * as React from 'react'
 import type { InteractionGuardProps } from '../components/interaction-guard.js'
 import { CLOSE_MENU_EVENT, dispatch } from '../lib/events.js'
@@ -15,6 +16,8 @@ export interface RootContextValue {
   interactionGuardOptions?: Partial<
     Omit<InteractionGuardProps, 'scopeId' | 'asChild' | 'children'>
   >
+  /** Base defaults (factory + instance) shared across the entire menu */
+  defaults?: MenuNodeDefaults<any>
 }
 
 const RootContext = React.createContext<RootContextValue | null>(null)
@@ -27,6 +30,8 @@ export interface RootProviderProps {
   interactionGuardOptions?: Partial<
     Omit<InteractionGuardProps, 'scopeId' | 'asChild' | 'children'>
   >
+  /** Base defaults (factory + instance) shared across the entire menu */
+  defaults?: MenuNodeDefaults<any>
 }
 
 /**
@@ -37,6 +42,7 @@ export function RootProvider({
   scopeId,
   onClose,
   interactionGuardOptions,
+  defaults,
 }: RootProviderProps) {
   const openSurfaceIds = React.useRef<Map<string, number>>(new Map())
 
@@ -76,6 +82,7 @@ export function RootProvider({
       registerSurface,
       unregisterSurface,
       interactionGuardOptions,
+      defaults,
     }),
     [
       scopeId,
@@ -83,6 +90,7 @@ export function RootProvider({
       registerSurface,
       unregisterSurface,
       interactionGuardOptions,
+      defaults,
     ],
   )
 

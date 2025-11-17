@@ -470,6 +470,8 @@ export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
   nodes: Node<T>[]
   surfaceId: string
   depth: number
+  /** Base defaults (factory + instance only) passed down from parent, used for submenu inheritance */
+  baseDefaults?: MenuNodeDefaults<T>
   /** Loading state metadata (present when menu is in async mode). */
   loadingState?: {
     isLoading?: boolean

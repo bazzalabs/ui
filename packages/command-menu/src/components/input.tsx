@@ -1,4 +1,4 @@
-import { cn, MenuInputPrimitive } from '@bazza-ui/menu'
+import { cn, MenuInputPrimitive, SELECT_ITEM_EVENT } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useCommandMenuContext } from '../context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
@@ -26,7 +26,7 @@ export function CommandMenuInput({
   // (command-menu uses context inputRef for focus management)
   React.useEffect(() => {
     if (inputRef.current && store.inputRef.current !== inputRef.current) {
-      ;(store.inputRef as React.MutableRefObject<HTMLInputElement | null>).current =
+      ;(store.inputRef as React.RefObject<HTMLInputElement | null>).current =
         inputRef.current
     }
   })
@@ -95,7 +95,7 @@ export function CommandMenuInput({
         const activeRow = activeId ? store.rows.get(activeId) : null
         if (activeRow?.ref.current) {
           activeRow.ref.current.dispatchEvent(
-            new CustomEvent('menu:selectItem', { bubbles: false }),
+            new CustomEvent(SELECT_ITEM_EVENT, { bubbles: false }),
           )
         }
         return
@@ -139,11 +139,13 @@ export function CommandMenuInput({
       placeholder={placeholder}
       className={cn(theme?.classNames?.input, className)}
       searchState={searchState}
-      inputProps={{
-        ...(theme?.slotProps?.input as any),
-        'data-slot': 'command-menu-input',
-        'data-command-menu-input': true,
-      }}
+      inputProps={
+        {
+          ...theme?.slotProps?.input,
+          'data-slot': 'command-menu-input',
+          'data-command-menu-input': true,
+        } as React.InputHTMLAttributes<HTMLInputElement>
+      }
       onKeyDown={handleKeyDown}
     >
       {theme?.slots?.Input

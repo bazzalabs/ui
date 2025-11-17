@@ -115,7 +115,7 @@ export const ContextMenu = createContextMenu({
   },
   slotProps: {
     positioner: {
-      root: { sideOffset: 8, side: 'bottom', alignOffset: -4 },
+      root: { sideOffset: 0, side: 'bottom', alignOffset: 0 },
       sub: { sideOffset: -2, align: 'start', alignOffset: -4 },
     },
   },

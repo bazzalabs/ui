@@ -11,6 +11,7 @@ import { HoverPolicyProvider } from '../contexts/hover-policy-context.js'
 import { KeyboardCtx } from '../contexts/keyboard-context.js'
 import { SubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
+import type { PopupMenuSlots } from '../types.js'
 import { isInBounds } from '../utils/dom.js'
 import { ListRenderer } from './list-renderer.js'
 import { SurfaceProvider } from './surface-provider.js'
@@ -202,8 +203,8 @@ export function PopupMenuList<T = unknown>({
       <HoverPolicyProvider>
         <SurfaceProvider
           store={store}
-          menu={orchestratedMenu as any}
-          slots={theme?.slots as any}
+          menu={orchestratedMenu}
+          slots={theme?.slots as PopupMenuSlots<T> | undefined}
           classNames={theme?.classNames}
         >
           {children?.(store, surfaceProps, listElement)}

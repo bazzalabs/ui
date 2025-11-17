@@ -1,6 +1,7 @@
 import {
   createSurfaceStore,
   type MenuDef,
+  type MenuNodeDefaults,
   useDeepSearchOrchestration,
 } from '@bazza-ui/menu'
 import * as React from 'react'
@@ -10,6 +11,7 @@ import {
   ScopedThemeProvider,
   useScopedTheme,
 } from '../contexts/theme-context.js'
+import type { CommandMenuSlots } from '../types.js'
 import { CommandMenuInput } from './input.js'
 import { ListRenderer } from './list-renderer.js'
 import { SurfaceProvider } from './surface-provider.js'
@@ -18,6 +20,7 @@ export interface CommandMenuListProps<T = unknown> {
   query?: string
   onQueryChange?: (query: string) => void
   placeholder?: string
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
@@ -28,6 +31,7 @@ export function CommandMenuList<T = unknown>({
   query = '',
   onQueryChange,
   placeholder,
+  defaults,
 }: CommandMenuListProps<T>) {
   const { currentMenu, pushSubmenu } = useCommandMenuContext<T>()
 
@@ -76,14 +80,12 @@ export function CommandMenuList<T = unknown>({
     surfaceId: 'command-menu',
     isSubmenu: false,
     rootLoaderResult: loaderResult,
+    defaults,
     // No filtering needed for command-menu (unlike action-menu which filters by minLength)
   })
 
   // Submenu scoped theme - merge current scoped theme with submenu.ui
-  const submenuTheme = React.useMemo(
-    () => currentMenu.ui as any,
-    [currentMenu.ui],
-  )
+  const submenuTheme = React.useMemo(() => currentMenu.ui, [currentMenu.ui])
 
   // Handle submenu navigation - push to stack instead of opening nested popover
   const handleSubmenuSelect = React.useCallback(
@@ -157,7 +159,7 @@ export function CommandMenuList<T = unknown>({
       <SurfaceProvider
         store={store}
         menu={menu}
-        slots={theme?.slots as any}
+        slots={theme?.slots as Required<CommandMenuSlots<T>>}
         classNames={theme?.classNames}
         slotProps={theme?.slotProps}
         onSubmenuSelect={handleSubmenuSelect}
