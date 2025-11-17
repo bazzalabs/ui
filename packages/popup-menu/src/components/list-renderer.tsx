@@ -225,9 +225,10 @@ function ListRendererContent({
       index: number,
       virtualRow?: { key: string | number; start: number },
     ) => {
+      // Extract key separately to avoid spreading it (React requirement)
+      const key = virtualRow ? virtualRow.key : node.id
       const wrapperProps = virtualRow
         ? {
-            key: virtualRow.key,
             'data-index': index,
             ref: virtualizer.measureElement,
             style: {
@@ -239,7 +240,6 @@ function ListRendererContent({
             },
           }
         : {
-            key: node.id,
             'data-index': index,
           }
 
@@ -251,7 +251,7 @@ function ListRendererContent({
         const GroupHeadingSlot = slots.GroupHeading
         if (!GroupHeadingSlot) return null
         return (
-          <div {...wrapperProps}>
+          <div key={key} {...wrapperProps}>
             {GroupHeadingSlot({
               node: groupNode,
               bind: {
@@ -273,7 +273,11 @@ function ListRendererContent({
       if (node.kind === 'separator') {
         const SeparatorSlot = slots.Separator
         if (!SeparatorSlot) return null
-        return <div {...wrapperProps}>{SeparatorSlot({ node })}</div>
+        return (
+          <div key={key} {...wrapperProps}>
+            {SeparatorSlot({ node })}
+          </div>
+        )
       }
 
       // Item
@@ -301,7 +305,9 @@ function ListRendererContent({
         )
 
         return virtualRow ? (
-          <div {...wrapperProps}>{itemElement}</div>
+          <div key={key} {...wrapperProps}>
+            {itemElement}
+          </div>
         ) : (
           itemElement
         )
@@ -331,7 +337,9 @@ function ListRendererContent({
         )
 
         return virtualRow ? (
-          <div {...wrapperProps}>{submenuElement}</div>
+          <div key={key} {...wrapperProps}>
+            {submenuElement}
+          </div>
         ) : (
           submenuElement
         )
@@ -343,7 +351,7 @@ function ListRendererContent({
         if (!InlineLoadingSlot) return null
 
         return (
-          <div {...wrapperProps}>
+          <div key={key} {...wrapperProps}>
             {InlineLoadingSlot({
               progress: (node as any).progress,
               inProgressPaths: (node as any).inProgressPaths,
