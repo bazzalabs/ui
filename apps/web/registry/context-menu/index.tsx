@@ -12,7 +12,7 @@ declare module '@bazza-ui/context-menu' {
 
 export const ContextMenu = createContextMenu({
   slots: {
-    Item: ({ node, bind }) => {
+    Item: ({ node, search, bind }) => {
       const props = bind.getRowProps({
         className: cn('group/row', node.description && 'gap-3'),
       })
@@ -28,9 +28,10 @@ export const ContextMenu = createContextMenu({
             </div>
           )}
           <div className="flex flex-col min-w-0">
-            <span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
-              {node.label}
-            </span>
+            <LabelWithBreadcrumbs
+              label={node.label}
+              breadcrumbs={search?.breadcrumbs}
+            />
             {node.description && (
               <span className="text-muted-foreground text-xs truncate">
                 {node.description}
@@ -40,7 +41,7 @@ export const ContextMenu = createContextMenu({
         </li>
       )
     },
-    SubmenuTrigger: ({ node, bind }) => {
+    SubmenuTrigger: ({ node, search, bind }) => {
       const props = bind.getRowProps({
         className: 'group/row',
       })
@@ -56,9 +57,10 @@ export const ContextMenu = createContextMenu({
                 )}
               </div>
             )}
-            <span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
-              {node.label ?? ''}
-            </span>
+            <LabelWithBreadcrumbs
+              label={node.label}
+              breadcrumbs={search?.breadcrumbs}
+            />
           </div>
           <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]/row:text-foreground/75 group-data-[menu-focused=true]/row:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4" />
         </li>

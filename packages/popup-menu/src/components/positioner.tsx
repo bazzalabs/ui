@@ -79,7 +79,7 @@ export function Positioner({
     const contentRect = el.getBoundingClientRect()
 
     // Check for input element (if it exists, align to bottom of input)
-    const inputEl = el.querySelector<HTMLElement>('[data-action-menu-input]')
+    const inputEl = el.querySelector<HTMLElement>('[data-popup-menu-input]')
     const hasVisibleInput = !!inputEl && inputEl.offsetParent !== null
 
     if (hasVisibleInput) {

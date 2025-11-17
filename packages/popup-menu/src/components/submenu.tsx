@@ -1,24 +1,12 @@
 import { Popover } from '@base-ui-components/react/popover'
-import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import type { SubmenuDef } from '@bazza-ui/menu'
+import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
-import { SubCtx } from '../contexts/submenu-context.js'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
-import { useSubCtx } from '../contexts/submenu-context.js'
-import { useSurface } from './surface-provider.js'
 import type { SubContextValue } from '../contexts/submenu-context.js'
-
-/**
- * Find input and list widgets within a surface element.
- */
-function findWidgetsWithinSurface(surfaceEl: HTMLElement | null) {
-  if (!surfaceEl) return { input: null, list: null }
-  const input = surfaceEl.querySelector<HTMLInputElement>(
-    '[data-action-menu-input]',
-  )
-  const list = surfaceEl.querySelector<HTMLElement>('[data-action-menu-list]')
-  return { input, list }
-}
+import { SubCtx, useSubCtx } from '../contexts/submenu-context.js'
+import { findWidgetsWithinSurface } from '../utils/dom.js'
+import { useSurface } from './surface-provider.js'
 
 export interface PopupMenuSubmenuProps {
   def: SubmenuDef
@@ -43,7 +31,14 @@ export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
 
   const parentSurface = useSurface()
   const parentStore = parentSurface.store
-  const parentSurfaceId = React.useId() // Generate a surface ID for parent
+  const parentSubCtx = useSubCtx()
+
+  // Determine parent surface ID: if we're inside another submenu, use its childSurfaceId,
+  // otherwise we're at the root level
+  const parentSurfaceId = React.useMemo(
+    () => parentSubCtx?.childSurfaceId ?? 'root',
+    [parentSubCtx],
+  )
 
   const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
   const childSurfaceId = React.useId()
@@ -54,7 +49,6 @@ export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
   const intentZoneActiveRef = React.useRef<boolean>(false)
 
   const { setOwnerId } = useFocusOwner()
-  const parentSubCtx = useSubCtx()
 
   const onOpenToggle = React.useCallback(() => {
     setOpen(!open)

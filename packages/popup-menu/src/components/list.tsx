@@ -7,6 +7,7 @@ import {
 import * as React from 'react'
 import { FocusOwnerCtx } from '../contexts/focus-owner-context.js'
 import { HoverPolicyProvider } from '../contexts/hover-policy-context.js'
+import { KeyboardCtx } from '../contexts/keyboard-context.js'
 import { SubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import { isInBounds } from '../utils/dom.js'
@@ -181,26 +182,27 @@ export function PopupMenuList<T = unknown>({
 
   // List element to pass to children
   const listElement = (
-    <ListRenderer
-      query={query}
-      vimBindings={vimBindings}
-      dir={dir}
-      onClose={onClose}
-      onTypeStart={onTypeStart}
-    />
+    <ListRenderer query={query} onClose={onClose} onTypeStart={onTypeStart} />
+  )
+
+  const keyboardValue = React.useMemo(
+    () => ({ dir, vimBindings }),
+    [dir, vimBindings],
   )
 
   const content = (
-    <HoverPolicyProvider>
-      <SurfaceProvider
-        store={store}
-        menu={orchestratedMenu as any}
-        slots={theme?.slots as any}
-        classNames={theme?.classNames}
-      >
-        {children?.(store, surfaceProps, listElement)}
-      </SurfaceProvider>
-    </HoverPolicyProvider>
+    <KeyboardCtx.Provider value={keyboardValue}>
+      <HoverPolicyProvider>
+        <SurfaceProvider
+          store={store}
+          menu={orchestratedMenu as any}
+          slots={theme?.slots as any}
+          classNames={theme?.classNames}
+        >
+          {children?.(store, surfaceProps, listElement)}
+        </SurfaceProvider>
+      </HoverPolicyProvider>
+    </KeyboardCtx.Provider>
   )
 
   // Only provide FocusOwnerCtx if we're the root menu (no existing context)

@@ -1,11 +1,14 @@
 import { Popover } from '@base-ui-components/react/popover'
+import {
+  mergeProps,
+  type SearchContext,
+  type SubmenuNode,
+} from '@bazza-ui/menu'
 import { composeRefs } from '@radix-ui/react-compose-refs'
-import { mergeProps, type SubmenuNode } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useHoverPolicy } from '../contexts/hover-policy-context.js'
 import { useSubCtx } from '../contexts/submenu-context.js'
-import { useSurface } from './surface-provider.js'
 import { useMouseTrail } from '../hooks/use-mouse-trail.js'
 import { useSurfaceSel } from '../hooks/use-surface-sel.js'
 import {
@@ -14,29 +17,19 @@ import {
   willHitSubmenu,
 } from '../lib/aim-guard.js'
 import { OPEN_SUB_EVENT } from '../lib/events.js'
-import type { RowBindAPI, PopupMenuClassNames } from '../types.js'
-
-/**
- * Find widgets within a surface element.
- */
-function findWidgetsWithinSurface(surfaceEl: HTMLElement | null) {
-  if (!surfaceEl) return { input: null, list: null }
-  const input = surfaceEl.querySelector<HTMLInputElement>(
-    '[data-action-menu-input]',
-  )
-  const list = surfaceEl.querySelector<HTMLElement>('[data-action-menu-list]')
-  return { input, list }
-}
+import type { PopupMenuClassNames, RowBindAPI } from '../types.js'
+import { findWidgetsWithinSurface } from '../utils/dom.js'
+import { useSurface } from './surface-provider.js'
 
 interface PopupMenuSubmenuTriggerProps<T> {
   node: SubmenuNode<T>
   slot: (args: {
     node: SubmenuNode<T>
     bind: RowBindAPI
-    search?: any
+    search?: SearchContext
   }) => React.ReactNode
   classNames?: PopupMenuClassNames
-  search?: any
+  search?: SearchContext
   ref?: React.Ref<HTMLDivElement>
 }
 

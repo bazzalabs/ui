@@ -10,7 +10,9 @@ import {
 } from '@bazza-ui/menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
+import { useSubCtx } from '../contexts/submenu-context.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
+import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 import { PopupMenuSubmenu } from './submenu.js'
 import { PopupMenuSubmenuContent } from './submenu-content.js'
 import { PopupMenuSubmenuTrigger } from './submenu-trigger.js'
@@ -19,8 +21,6 @@ import { useSurface } from './surface-provider.js'
 interface ListRendererProps {
   query?: string
   onClose?: () => void
-  vimBindings?: boolean
-  dir?: 'ltr' | 'rtl'
   /** Callback when user starts typing to activate input */
   onTypeStart?: (seed: string) => void
 }
@@ -79,8 +79,6 @@ export function ListRenderer(props: ListRendererProps) {
 function ListRendererContent({
   query = '',
   onClose,
-  vimBindings = true,
-  dir = 'ltr',
   onTypeStart,
 }: ListRendererProps) {
   const {
@@ -90,6 +88,13 @@ function ListRendererContent({
     classNames,
     onSubmenuSelect,
   } = useSurface()
+  const sub = useSubCtx()
+
+  // Determine surface ID from submenu context or default to 'root'
+  const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])
+
+  // Use centralized keyboard navigation hook
+  const navKeyDown = useNavKeydown('list', surfaceId, onClose)
 
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
@@ -189,15 +194,14 @@ function ListRendererContent({
     [onSubmenuSelect],
   )
 
-  // Handle Escape key - close the menu
-  const handleEscape = React.useCallback(() => {
-    onClose?.()
-  }, [onClose])
-
-  // Handle typing to activate input
+  // Combine navigation keyboard handler with type-to-search
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
-      if (!onTypeStart) return
+      // First, handle navigation keys via the centralized hook
+      navKeyDown(e)
+
+      // Then, handle type-to-search if not already handled
+      if (!onTypeStart || e.defaultPrevented) return
 
       const { key } = e
       // Check if it's a printable character (not a navigation or control key)
@@ -211,7 +215,7 @@ function ListRendererContent({
         onTypeStart(key)
       }
     },
-    [onTypeStart],
+    [navKeyDown, onTypeStart],
   )
 
   // Helper function to render a single node
@@ -290,7 +294,7 @@ function ListRendererContent({
               ItemSlot({
                 node: itemNode,
                 bind,
-                search: (node as any).search,
+                search: itemNode.search,
               })
             }
           </MenuItemPrimitive>
@@ -319,7 +323,7 @@ function ListRendererContent({
                 node={submenuNode}
                 slot={SubmenuTriggerSlot}
                 classNames={classNames}
-                search={(node as any).search}
+                search={submenuNode.search}
               />
               <PopupMenuSubmenuContent node={submenuNode} />
             </PopupMenuSubmenu>
@@ -374,14 +378,13 @@ function ListRendererContent({
       store={store}
       role="listbox"
       className={classNames?.list}
-      vimBindings={vimBindings}
-      dir={dir}
-      onEscape={handleEscape}
       onKeyDown={handleKeyDown}
       style={{
         maxHeight: '400px',
         overflow: 'auto',
       }}
+      data-slot="popup-menu-list"
+      data-popup-menu-list={true}
     >
       {enableVirtualization ? (
         <div

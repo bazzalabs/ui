@@ -127,8 +127,9 @@ export function PopupMenuContent<T = unknown>({
                   'data-popup-menu-surface': true,
                   'data-root-menu': isSubmenu ? undefined : true,
                   'data-sub-menu': isSubmenu ? 'true' : undefined,
-                  ...(isSubmenu &&
-                    subCtx && { 'data-surface-id': subCtx.childSurfaceId }),
+                  'data-surface-id': isSubmenu
+                    ? subCtx?.childSurfaceId
+                    : 'root',
                   ...slotProps?.content,
                   ...popupProps, // Spread Base UI popup props (may contain a ref)
                   ...surfaceProps, // Add mouse move handler
@@ -152,10 +153,7 @@ export function PopupMenuContent<T = unknown>({
                     placeholder={
                       placeholder ?? menu.inputPlaceholder ?? 'Search...'
                     }
-                    vimBindings={vimBindings}
-                    dir={dir}
                     onClose={onClose}
-                    onEscape={onClose}
                   />
                 ) : null}
                 {listElement}

@@ -1,20 +1,21 @@
-import type * as React from 'react'
+import type { Popover } from '@base-ui-components/react/popover'
 import type {
-  MenuDef,
-  Node,
-  ItemNode,
-  SubmenuNode,
   GroupNode,
-  SeparatorNode,
   InputBindAPI,
   InputSearchState,
-  RowBindAPI as MenuRowBindAPI,
+  ItemNode,
   ContentBindAPI as MenuContentBindAPI,
-  ListBindAPI as MenuListBindAPI,
+  MenuDef,
   GroupHeadingBindAPI as MenuGroupHeadingBindAPI,
+  ListBindAPI as MenuListBindAPI,
+  RowBindAPI as MenuRowBindAPI,
+  Node,
+  SearchContext,
+  SeparatorNode,
+  SubmenuNode,
 } from '@bazza-ui/menu'
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
-import type { Popover } from '@base-ui-components/react/popover'
+import type * as React from 'react'
 
 /* ================================================================================================
  * Positioning Types
@@ -68,6 +69,10 @@ export type FocusOwnerCtxValue = {
   setOwnerId: (id: string | null) => void
 }
 
+export type Direction = 'ltr' | 'rtl'
+
+export type KeyboardOptions = { dir: Direction; vimBindings: boolean }
+
 /* ================================================================================================
  * Utility Types
  * ============================================================================================== */
@@ -113,19 +118,17 @@ export type PopupMenuSlots<T = unknown> = {
     query: string
     loadMode: 'initial' | 'refresh'
   }) => React.ReactNode
-  InlineLoading?: (args: {
-    progress: any[]
-    query: string
-  }) => React.ReactNode
+  InlineLoading?: (args: { progress: any[]; query: string }) => React.ReactNode
   Error?: (args: { error: Error | null }) => React.ReactNode
   Item: (args: {
     node: ItemNode<T>
     bind: RowBindAPI
-    search?: any
+    search?: SearchContext
   }) => React.ReactNode
   SubmenuTrigger: (args: {
     node: SubmenuNode<T>
     bind: RowBindAPI
+    search?: SearchContext
   }) => React.ReactNode
   GroupHeading?: (args: {
     node: GroupNode<T>
@@ -142,8 +145,12 @@ export type PopupMenuSlots<T = unknown> = {
 export type PositionerSlotProps =
   | Partial<Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>>
   | {
-      root?: Partial<Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>>
-      sub?: Partial<Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>>
+      root?: Partial<
+        Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>
+      >
+      sub?: Partial<
+        Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>
+      >
     }
 
 /** Slot props forwarded to popup menu elements. */

@@ -16,9 +16,7 @@ export function openSubmenuForActive(
     `[data-surface-id="${surfaceId}"]`,
   )
   if (!surface) return
-  const el = surface.querySelector<HTMLElement>(
-    `[data-action-menu-item-id="${activeId}"]`,
-  )
+  const el = document.getElementById(activeId)
   if (el && el.dataset.subtrigger === 'true') {
     dispatch(el, OPEN_SUB_EVENT)
   }

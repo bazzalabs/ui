@@ -1,13 +1,8 @@
-import {
-  MenuInputPrimitive,
-  isOpenKey,
-  isCloseKey,
-  isVimOpen,
-  isVimClose,
-  type SurfaceStore,
-} from '@bazza-ui/menu'
+import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
 import * as React from 'react'
+import { useSubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
+import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 
 export interface PopupMenuInputProps<T = unknown> {
   /** Surface store for state management */
@@ -20,16 +15,8 @@ export interface PopupMenuInputProps<T = unknown> {
   placeholder?: string
   /** Additional className */
   className?: string
-  /** Enable vim key bindings (Ctrl+j/k/n/p for navigation, Ctrl+h/l for submenu) */
-  vimBindings?: boolean
-  /** Text direction for submenu navigation (left/right arrows) */
-  dir?: 'ltr' | 'rtl'
-  /** Callback when menu should close */
+  /** Callback when root menu should close (e.g., on Escape) */
   onClose?: () => void
-  /** Callback when submenu should open */
-  onSubmenuOpen?: (activeId: string | null) => void
-  /** Callback when Escape is pressed */
-  onEscape?: () => void
 }
 
 export function PopupMenuInput<T = unknown>({
@@ -38,127 +25,16 @@ export function PopupMenuInput<T = unknown>({
   onValueChange,
   placeholder = 'Search...',
   className,
-  vimBindings = false,
-  dir = 'ltr',
   onClose,
-  onSubmenuOpen,
-  onEscape,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
+  const sub = useSubCtx()
 
-  // Handle keyboard navigation from input
-  const handleKeyDown = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      const k = e.key
-      const activeId = store.snapshot().activeId
+  // Determine surface ID from submenu context or default to 'root'
+  const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])
 
-      // Vim bindings
-      if (vimBindings) {
-        if (e.ctrlKey && (e.key === 'n' || e.key === 'j')) {
-          e.preventDefault()
-          store.next('keyboard')
-          return
-        }
-        if (e.ctrlKey && (e.key === 'p' || e.key === 'k')) {
-          e.preventDefault()
-          store.prev('keyboard')
-          return
-        }
-        if (isVimOpen(e)) {
-          e.preventDefault()
-          const activeRow = activeId ? store.rows.get(activeId) : null
-          if (activeRow?.ref.current) {
-            const isSubmenuTrigger =
-              activeRow.ref.current.getAttribute('data-submenu-trigger') === 'true'
-            if (isSubmenuTrigger && onSubmenuOpen) {
-              onSubmenuOpen(activeId)
-            } else {
-              activeRow.ref.current.dispatchEvent(
-                new CustomEvent('menu:selectItem', { bubbles: false }),
-              )
-            }
-          }
-          return
-        }
-        if (isVimClose(e)) {
-          e.preventDefault()
-          onClose?.()
-          return
-        }
-      }
-
-      // Tab - prevent default
-      if (k === 'Tab') {
-        e.preventDefault()
-        return
-      }
-
-      // Arrow navigation
-      if (k === 'ArrowDown') {
-        e.preventDefault()
-        store.next('keyboard')
-        return
-      }
-      if (k === 'ArrowUp') {
-        e.preventDefault()
-        store.prev('keyboard')
-        return
-      }
-
-      // Page navigation
-      if (k === 'Home' || k === 'PageUp') {
-        e.preventDefault()
-        store.first('keyboard')
-        return
-      }
-      if (k === 'End' || k === 'PageDown') {
-        e.preventDefault()
-        store.last('keyboard')
-        return
-      }
-
-      // Submenu open keys (Enter or Right arrow in LTR, Left in RTL)
-      if (isOpenKey(dir, k)) {
-        e.preventDefault()
-        const activeRow = activeId ? store.rows.get(activeId) : null
-        if (activeRow?.ref.current) {
-          const isSubmenuTrigger =
-            activeRow.ref.current.getAttribute('data-submenu-trigger') === 'true'
-          if (k === 'Enter' || k === ' ') {
-            // Enter/Space - select or open submenu
-            if (isSubmenuTrigger && onSubmenuOpen) {
-              onSubmenuOpen(activeId)
-            } else {
-              activeRow.ref.current.dispatchEvent(
-                new CustomEvent('menu:selectItem', { bubbles: false }),
-              )
-            }
-          } else {
-            // Right/Left arrow - open submenu if available
-            if (isSubmenuTrigger) {
-              onSubmenuOpen?.(activeId)
-            }
-          }
-        }
-        return
-      }
-
-      // Submenu close keys (Left arrow in LTR, Right in RTL)
-      if (isCloseKey(dir, k)) {
-        e.preventDefault()
-        onClose?.()
-        return
-      }
-
-      // Escape - close menu
-      if (k === 'Escape') {
-        e.preventDefault()
-        onEscape?.()
-        return
-      }
-    },
-    [store, vimBindings, dir, onClose, onSubmenuOpen, onEscape],
-  )
+  // Use centralized keyboard navigation hook
+  const handleKeyDown = useNavKeydown('input', surfaceId, onClose)
 
   const searchState = {
     query: value ?? '',
