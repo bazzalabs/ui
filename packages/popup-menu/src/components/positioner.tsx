@@ -205,6 +205,9 @@ export function Positioner({
     positionerSlotProps,
   ) as any
 
+  // Set this to a valid Base UI align value
+  mergedProps.align = baseUIAlign
+
   // Extract the merged alignOffset (from theme or use prop default)
   const mergedAlignOffset = mergedProps.alignOffset ?? alignOffset
 

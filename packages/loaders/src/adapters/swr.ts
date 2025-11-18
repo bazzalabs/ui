@@ -29,9 +29,9 @@ export type SWRConfig<TData = any> = {
  *
  * @example
  * ```tsx
- * import { swr } from '@bazza-ui/loaders/swr'
+ * import { swrLoader } from '@bazza-ui/loaders'
  *
- * const userLoader = swr({
+ * const userLoader = swrLoader({
  *   key: '/api/user',
  *   fetcher: () => fetchUser(),
  *   revalidateOnFocus: true
@@ -40,13 +40,13 @@ export type SWRConfig<TData = any> = {
  *
  * @example With dynamic key
  * ```tsx
- * const searchLoader = swr((context) => ({
+ * const searchLoader = swrLoader((context) => ({
  *   key: context.query ? `/api/search?q=${context.query}` : null,
  *   fetcher: () => searchItems(context.query)
  * }))
  * ```
  */
-export function swr<TData = any>(
+export function swrLoader<TData = any>(
   configOrFn: SWRConfig<TData> | ((ctx: LoaderContext) => SWRConfig<TData>),
 ): Loader<TData> {
   // Return a hook function that follows the Loader interface

@@ -1,5 +1,5 @@
 import type { Loader, LoaderContext, LoaderResult } from '@bazza-ui/loaders'
-import { native } from '@bazza-ui/loaders'
+import { nativeLoader } from '@bazza-ui/loaders'
 import * as React from 'react'
 import type {
   AsyncNodeLoader,

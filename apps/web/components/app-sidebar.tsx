@@ -81,48 +81,18 @@ const componentItems: ComponentItem[] = [
     groups: [
       {
         groupName: 'Getting Started',
-        items: [
-          { title: 'Introduction', url: '/docs/command-menu/introduction' },
-        ],
-      },
-      {
-        groupName: 'Concepts',
-        items: [
-          {
-            title: 'Paged Navigation',
-            url: '/docs/command-menu/paged-navigation',
-          },
-          { title: 'Breadcrumbs', url: '/docs/command-menu/breadcrumbs' },
-        ],
-      },
-      {
-        groupName: 'Features',
-        items: [
-          {
-            title: 'Dialog Animations',
-            url: '/docs/command-menu/dialog-animations',
-          },
-          {
-            title: 'Navigation Callback',
-            url: '/docs/command-menu/navigation-callback',
-          },
-          { title: 'Theming', url: '/docs/command-menu/theming' },
-          { title: 'Async Data Loading', url: '/docs/command-menu/loaders' },
-        ],
-      },
-      {
-        groupName: 'Reference',
-        items: [
-          { title: 'API Reference', url: '/docs/command-menu/api-reference' },
-          {
-            title: 'createCommandMenu',
-            url: '/docs/command-menu/createCommandMenu',
-          },
-        ],
-      },
-      {
-        groupName: 'Examples',
         items: [{ title: 'Examples', url: '/docs/command-menu/examples' }],
+      },
+    ],
+  },
+  {
+    type: 'collapsible',
+    title: 'Dropdown Menu',
+    urlPrefix: '/docs/dropdown-menu',
+    groups: [
+      {
+        groupName: 'Getting Started',
+        items: [{ title: 'Examples', url: '/docs/dropdown-menu/examples' }],
       },
     ],
   },
@@ -132,7 +102,7 @@ const componentItems: ComponentItem[] = [
     urlPrefix: '/docs/context-menu',
     groups: [
       {
-        groupName: 'Examples',
+        groupName: 'Getting Started',
         items: [{ title: 'Examples', url: '/docs/context-menu/examples' }],
       },
     ],

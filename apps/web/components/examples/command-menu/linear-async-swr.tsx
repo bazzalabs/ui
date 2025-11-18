@@ -1,7 +1,7 @@
 'use client'
 
 import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/command-menu'
-import { swr } from '@bazza-ui/loaders/swr'
+import { swrLoader } from '@bazza-ui/loaders'
 import { SearchIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { SWRConfig } from 'swr'
@@ -136,7 +136,7 @@ const assigneeMenu: SubmenuDef = {
   icon: <AssigneeIcon />,
   label: 'Assignee',
   inputPlaceholder: 'Assignee...',
-  loader: swr({
+  loader: swrLoader({
     key: 'assignees',
     fetcher: fetchAssignees,
     dedupingInterval: 5 * 60 * 1000, // 5 minutes
@@ -266,7 +266,7 @@ const labelsMenu: SubmenuDef = {
   label: 'Labels',
   inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
-  loader: swr(({ query }) => ({
+  loader: swrLoader(({ query }) => ({
     key: query ? `labels-${query}` : 'labels',
     fetcher: () => fetchLabels(query),
   })),

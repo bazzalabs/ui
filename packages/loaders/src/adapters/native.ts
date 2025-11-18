@@ -13,15 +13,15 @@ import type { Loader, LoaderContext, LoaderResult } from '../types.js'
  *
  * @example
  * ```tsx
- * import { native } from '@bazza-ui/loaders'
+ * import { nativeLoader } from '@bazza-ui/loaders'
  *
- * const usersLoader = native(async (context) => {
+ * const usersLoader = nativeLoader(async (context) => {
  *   const response = await fetch(`/api/users?q=${context.query}`)
  *   return response.json()
  * })
  * ```
  */
-export function native<T>(
+export function nativeLoader<T>(
   fetchFn: (context: LoaderContext) => Promise<T>,
 ): Loader<T> {
   // Return a hook function that follows the Loader interface

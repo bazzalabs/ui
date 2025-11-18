@@ -1,4 +1,5 @@
-import { createDropdownMenu, renderIcon } from '@bazza-ui/dropdown-menu'
+import { createDropdownMenu } from '@bazza-ui/dropdown-menu'
+import { renderIcon } from '@bazza-ui/menu'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Fragment, useCallback } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,13 +12,12 @@ declare module '@bazza-ui/dropdown-menu' {
 }
 
 export const DropdownMenu = createDropdownMenu({
+  defaults: {
+    virtualization: {
+      enabled: true,
+    },
+  },
   slots: {
-    GroupHeading: ({ node, bind }) => (
-      <div {...bind.getGroupHeadingProps()}>
-        <span>{node.heading}</span>
-      </div>
-    ),
-
     Item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: cn('group/row', node.description && 'gap-3'),
@@ -60,7 +60,7 @@ export const DropdownMenu = createDropdownMenu({
         </li>
       )
     },
-    SubmenuTrigger: ({ node, bind, search }) => {
+    SubmenuTrigger: ({ node, search, bind }) => {
       const props = bind.getRowProps({
         className: 'group/row',
       })
@@ -72,19 +72,24 @@ export const DropdownMenu = createDropdownMenu({
               <div className="size-4 flex items-center justify-center">
                 {renderIcon(
                   node.icon,
-                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]:text-primary',
+                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
                 )}
               </div>
             )}
             <LabelWithBreadcrumbs
-              label={node.label ?? ''}
+              label={node.label}
               breadcrumbs={search?.breadcrumbs}
             />
           </div>
-          <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]:text-foreground/75 group-data-[menu-focused=true]:text-foreground transition-[color] duration-50 ease-out shrink-0" />
+          <TriangleRightIcon className="text-muted-foreground/75 group-data-[menu-state=open]:group-data-[menu-focused=false]/row:text-foreground/75 group-data-[menu-focused=true]/row:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4" />
         </li>
       )
     },
+    GroupHeading: ({ node, bind }) => (
+      <div {...bind.getGroupHeadingProps()}>
+        <span>{node.heading}</span>
+      </div>
+    ),
     InlineLoading: (args) => {
       const count = args.progress?.reduce((acc, progress) => {
         return progress.isLoading ? acc : acc + 1
@@ -121,8 +126,6 @@ export const DropdownMenu = createDropdownMenu({
           No matching options.
         </div>
       ) : null,
-    // List: (args) =>
-    //   !args.query && args.nodes.length === 0 ? null : defaultSlots().List(args),
   },
   slotProps: {
     positioner: {
@@ -133,17 +136,16 @@ export const DropdownMenu = createDropdownMenu({
   classNames: {
     positioner: cn('z-50'),
     content: cn(
-      'data-[mode=dropdown]:border bg-popover z-50 rounded-lg flex flex-col text-sm',
-      'data-[root-menu]:drop-shadow-md data-[sub-menu]:drop-shadow-xl',
+      'border bg-popover z-50 rounded-lg flex flex-col text-sm',
+      'drop-shadow-xl',
       'data-[root-menu]:data-[open]:animate-in data-[root-menu]:data-[open]:fade-in-0 data-[root-menu]:data-[open]:zoom-in-95',
       'data-[root-menu]:data-[closed]:animate-out data-[root-menu]:data-[closed]:fade-out-0 data-[root-menu]:data-[closed]:zoom-out-95',
       'data-[root-menu]:data-[open]:origin-(--transform-origin) data-[root-menu]:data-[closed]:origin-(--transform-origin)',
       'data-[root-menu]:data-[open]:transition-[filter,scale,opacity] data-[root-menu]:data-[open]:duration-150 data-[root-menu]:data-[open]:ease-out',
-      'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-150 data-[root-menu]:data-[open]:ease-out',
-      'data-[mode=dropdown]:max-h-[min(500px,var(--action-menu-available-height))]',
+      'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-150 data-[root-menu]:data-[closed]:ease-out',
+      'w-[min(400px,max(var(--row-width),175px))]',
+      'max-h-[min(500px,var(--action-menu-available-height))]',
       'box-content',
-      'data-[mode=dropdown]:w-[min(400px,max(var(--row-width),175px))]',
-      'data-[mode=drawer]:max-h-[calc(80svh-var(--action-menu-drawer-handle-height)-calc(var(--spacing)*4))]',
     ),
     list: cn(
       'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
@@ -154,7 +156,6 @@ export const DropdownMenu = createDropdownMenu({
     input: cn(
       'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 border-b',
       'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
-      'data-[mode=drawer]:text-[16px] data-[mode=drawer]:px-6',
       'caret-blue-500',
       'w-full',
     ),
@@ -165,16 +166,17 @@ export const DropdownMenu = createDropdownMenu({
     item: cn(
       'group flex items-center gap-2 text-sm select-none aria-disabled:opacity-50',
       'data-[focused=true]:not-disabled:text-accent-foreground',
-      'py-1.5 data-[mode=dropdown]:px-4 data-[mode=drawer]:px-5',
+      'py-1.5 px-4',
       'w-full relative z-1',
       'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:not-disabled:before:bg-accent before:rounded-md before:z-[-1]',
     ),
     subtrigger: cn(
       'group flex items-center justify-between data-[focused=true]:text-accent-foreground relative cursor-default gap-4 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50',
-      'py-1.5 data-[mode=drawer]:px-5 data-[mode=dropdown]:px-4',
+      'py-1.5 px-4',
       'overflow-x-hidden w-full relative z-1',
       'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:before:bg-accent before:rounded-md before:z-[-1]',
     ),
+    separator: cn('h-px bg-border my-1 mx-2'),
   },
 })
 

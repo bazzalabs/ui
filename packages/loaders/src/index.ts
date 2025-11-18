@@ -6,11 +6,11 @@
  */
 
 // Export loader creators
-export { native } from './adapters/native.js'
-export { type QueryConfig, query } from './adapters/query.js'
-export { type SWRConfig, swr } from './adapters/swr.js'
+export { nativeLoader } from './adapters/native.js'
+export { type QueryConfig, queryLoader } from './adapters/query.js'
+export { type SWRConfig, swrLoader } from './adapters/swr.js'
 // Export core types
 export type { Loader, LoaderContext, LoaderResult } from './types.js'
 
 // Apollo coming soon
-// export { apollo, type ApolloConfig } from './adapters/apollo.js'
+// export { apolloLoader, type ApolloConfig } from './adapters/apollo.js'

@@ -1,17 +1,14 @@
 'use client'
 
 import type { ItemDef, SubmenuDef } from '@bazza-ui/dropdown-menu'
-import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/dropdown-menu/react-query'
+import { queryLoader } from '@bazza-ui/loaders'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/dropdown-menu'
 
 /**
  * This example demonstrates deep search across multiple async submenus
- * using the createLoader API from @bazza-ui/dropdown-menu/react-query.
+ * using the query loader from @bazza-ui/loaders.
  *
  * Key features:
  * - **Deep search**: Setting `deepSearch: true` enables parallel loading of all submenus
@@ -19,15 +16,6 @@ import { DropdownMenu } from '@/registry/dropdown-menu'
  * - **Aggregated loading state**: Shows loading indicator until ALL deep search loaders complete
  * - **Silent error handling**: If one loader fails, results from successful loaders are shown
  * - **Automatic query propagation**: Search query is passed to all deep search loaders automatically
- *
- * Benefits of the createLoader approach:
- * - No need to manually manage search state
- * - Query keys automatically update with the search query
- * - Access to `open` state for conditional loading
- * - Follows React's Rules of Hooks correctly
- * - Cleaner, more declarative code
- * - Each submenu's loader is self-contained
- * - No direct hook calls in loader definitions
  *
  * Try it: Type "chicken" to see all loaders execute in parallel and results combined!
  */
@@ -41,8 +29,7 @@ export function DropdownMenu_AsyncDeepSearch() {
       title: 'Fruits',
       // deepSearch: true enables parallel loading during deep search
       deepSearch: true,
-      // createLoader receives context and returns React Query config
-      loader: createLoader(({ query }) => ({
+      loader: queryLoader(({ query }) => ({
         key: ['fruits', query],
         fn: () => fetchFruits(query),
         retry: false,
@@ -55,7 +42,7 @@ export function DropdownMenu_AsyncDeepSearch() {
       icon: '🥕',
       title: 'Vegetables',
       deepSearch: true,
-      loader: createLoader(({ query }) => ({
+      loader: queryLoader(({ query }) => ({
         key: ['vegetables', query],
         fn: () => fetchVegetables(query),
         retry: false,
@@ -68,7 +55,7 @@ export function DropdownMenu_AsyncDeepSearch() {
       icon: '🥩',
       title: 'Meats',
       deepSearch: true,
-      loader: createLoader(({ query }) => ({
+      loader: queryLoader(({ query }) => ({
         key: ['meats', query],
         fn: () => fetchMeats(query),
         retry: false,
@@ -78,7 +65,6 @@ export function DropdownMenu_AsyncDeepSearch() {
 
   return (
     <DropdownMenu
-      loaderAdapter={ReactQueryLoaderAdapter}
       menu={{
         id: 'root',
         nodes: submenus,

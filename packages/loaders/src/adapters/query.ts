@@ -36,9 +36,9 @@ export type QueryConfig<TData = any, TTransformed = any> = {
  *
  * @example
  * ```tsx
- * import { query } from '@bazza-ui/loaders/query'
+ * import { queryLoader } from '@bazza-ui/loaders'
  *
- * const pokemonLoader = query({
+ * const pokemonLoader = queryLoader({
  *   key: ['pokemon'],
  *   fn: () => fetchPokemon(),
  *   select: (data) => data.results.map(p => ({
@@ -52,14 +52,14 @@ export type QueryConfig<TData = any, TTransformed = any> = {
  *
  * @example With context
  * ```tsx
- * const searchLoader = query((context) => ({
+ * const searchLoader = queryLoader((context) => ({
  *   key: ['search', context.query],
  *   fn: () => searchItems(context.query),
  *   enabled: !!context.query
  * }))
  * ```
  */
-export function query<TData = any, TTransformed = any>(
+export function queryLoader<TData = any, TTransformed = any>(
   configOrFn:
     | QueryConfig<TData, TTransformed>
     | ((ctx: LoaderContext) => QueryConfig<TData, TTransformed>),

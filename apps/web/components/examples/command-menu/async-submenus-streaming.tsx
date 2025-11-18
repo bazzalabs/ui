@@ -1,6 +1,6 @@
 'use client'
 
-import { query } from '@bazza-ui/loaders/query'
+import { queryLoader } from '@bazza-ui/loaders'
 import type { ItemDef } from '@bazza-ui/menu'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UtensilsIcon } from 'lucide-react'
@@ -45,7 +45,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['fruits', query],
                 fn: () => fetchFruits(query),
                 retry: false,
@@ -59,7 +59,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['vegetables', query],
                 fn: () => fetchVegetables(query),
                 retry: false,
@@ -73,7 +73,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['meats', query],
                 fn: () => fetchMeats(query),
                 retry: false,
@@ -91,7 +91,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
                   resortOnBatch: false,
                 },
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['seafood', query],
                 fn: () => fetchSeafood(query),
                 retry: false,
@@ -105,7 +105,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['bakery', query],
                 fn: () => fetchBakery(query),
                 retry: false,
@@ -119,7 +119,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['meals', query],
                 fn: () => fetchMeals(query),
                 retry: false,
@@ -133,7 +133,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['sweets', query],
                 fn: () => fetchSweets(query),
                 retry: false,
@@ -147,7 +147,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['snacks', query],
                 fn: () => fetchSnacks(query),
                 retry: false,
@@ -161,7 +161,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['dairy', query],
                 fn: () => fetchDairy(query),
                 retry: false,
@@ -175,7 +175,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['condiments', query],
                 fn: () => fetchCondiments(query),
                 retry: false,
@@ -189,7 +189,7 @@ export function CommandMenu_AsyncSubmenusStreaming() {
               search: {
                 mode: 'server',
               },
-              loader: query(({ query }) => ({
+              loader: queryLoader(({ query }) => ({
                 key: ['drinks', query],
                 fn: () => fetchDrinks(query),
                 retry: false,

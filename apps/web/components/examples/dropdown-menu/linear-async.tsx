@@ -6,10 +6,7 @@ import {
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/dropdown-menu'
-import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/dropdown-menu/react-query'
+import { queryLoader } from '@bazza-ui/loaders'
 import { ListFilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -28,7 +25,7 @@ import {
 
 export function DropdownMenu_LinearAsync() {
   return (
-    <DropdownMenu loaderAdapter={ReactQueryLoaderAdapter} menu={menuData}>
+    <DropdownMenu menu={menuData}>
       <DropdownMenu.Trigger asChild>
         <Button variant="ghost" size="sm" className="w-fit">
           <ListFilterIcon className="size-4 fill-muted-foreground" />
@@ -153,7 +150,7 @@ const assigneeMenu: SubmenuDef = {
   icon: <AssigneeIcon />,
   label: 'Assignee',
   inputPlaceholder: 'Assignee...',
-  loader: createLoader(() => ({
+  loader: queryLoader(() => ({
     key: ['assignees'],
     fn: fetchAssignees,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -680,7 +677,7 @@ const labelsMenu: SubmenuDef = {
   label: 'Labels',
   inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
-  loader: createLoader(({ query }) => ({
+  loader: queryLoader(({ query }) => ({
     key: ['labels', query],
     fn: () => fetchLabels(query),
   })),

@@ -1,10 +1,7 @@
 'use client'
 
 import type { ItemDef } from '@bazza-ui/dropdown-menu'
-import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/dropdown-menu/react-query'
+import { queryLoader } from '@bazza-ui/loaders'
 import { UtensilsIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
@@ -14,7 +11,6 @@ import { DropdownMenu } from '@/registry/dropdown-menu'
 export function DropdownMenu_AsyncSubmenusStreaming() {
   return (
     <DropdownMenu
-      loaderAdapter={ReactQueryLoaderAdapter}
       menu={{
         id: 'root',
         search: {
@@ -38,7 +34,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Fruits',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['fruits', query],
               fn: () => fetchFruits(query),
               retry: false,
@@ -50,7 +46,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Vegetables',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['vegetables', query],
               fn: () => fetchVegetables(query),
               retry: false,
@@ -62,7 +58,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Meats & Protein',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['meats', query],
               fn: () => fetchMeats(query),
               retry: false,
@@ -74,7 +70,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Seafood',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['seafood', query],
               fn: () => fetchSeafood(query),
               retry: false,
@@ -86,7 +82,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Bakery & Grains',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['bakery', query],
               fn: () => fetchBakery(query),
               retry: false,
@@ -98,7 +94,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Meals & Prepared',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['meals', query],
               fn: () => fetchMeals(query),
               retry: false,
@@ -110,7 +106,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Sweets & Desserts',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['sweets', query],
               fn: () => fetchSweets(query),
               retry: false,
@@ -122,7 +118,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Snacks & Nuts',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['snacks', query],
               fn: () => fetchSnacks(query),
               retry: false,
@@ -134,7 +130,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Dairy & Eggs',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['dairy', query],
               fn: () => fetchDairy(query),
               retry: false,
@@ -146,7 +142,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Condiments & Staples',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['condiments', query],
               fn: () => fetchCondiments(query),
               retry: false,
@@ -158,7 +154,7 @@ export function DropdownMenu_AsyncSubmenusStreaming() {
             label: 'Drinks',
             deepSearch: true,
             search: { mode: 'server' },
-            loader: createLoader(({ query }) => ({
+            loader: queryLoader(({ query }) => ({
               key: ['drinks', query],
               fn: () => fetchDrinks(query),
               retry: false,

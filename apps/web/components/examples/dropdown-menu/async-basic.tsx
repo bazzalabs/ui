@@ -1,6 +1,6 @@
 'use client'
 
-import { query } from '@bazza-ui/loaders/query'
+import { queryLoader } from '@bazza-ui/loaders'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -18,9 +18,9 @@ export function DropdownMenu_AsyncBasic() {
     <DropdownMenu
       menu={{
         id: 'root',
-        loader: query<Label[]>(({ query: searchQuery }) => ({
-          key: ['labels', searchQuery],
-          fn: () => fetchLabels(searchQuery),
+        loader: queryLoader<Label[]>(({ query }) => ({
+          key: ['labels', query],
+          fn: () => fetchLabels(query),
           retry: false,
           select: (data) =>
             data.map((label) => ({

@@ -1,6 +1,6 @@
 'use client'
 
-import { query } from '@bazza-ui/loaders/query'
+import { queryLoader } from '@bazza-ui/loaders'
 import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/menu'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SearchIcon } from 'lucide-react'
@@ -133,7 +133,7 @@ const assigneeMenu: SubmenuDef = {
   icon: <AssigneeIcon />,
   label: 'Assignee',
   inputPlaceholder: 'Assignee...',
-  loader: query(() => ({
+  loader: queryLoader(() => ({
     key: ['assignees'],
     fn: fetchAssignees,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -263,7 +263,7 @@ const labelsMenu: SubmenuDef = {
   label: 'Labels',
   inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
-  loader: query(({ query }) => ({
+  loader: queryLoader(({ query }) => ({
     key: ['labels', query],
     fn: () => fetchLabels(query),
   })),

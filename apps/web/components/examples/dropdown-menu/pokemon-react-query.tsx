@@ -1,6 +1,6 @@
 'use client'
 
-import { query } from '@bazza-ui/loaders/query'
+import { queryLoader } from '@bazza-ui/loaders'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
@@ -19,7 +19,7 @@ type PokemonListResponse = {
   results: Pokemon[]
 }
 
-const fetchPokemonList = async () => {
+const fetchPokemonList = async (): Promise<PokemonListResponse> => {
   await sleep(2000)
   const response = await fetch(
     'https://pokeapi.co/api/v2/pokemon/?limit=2000&offset=0',
@@ -47,11 +47,10 @@ export function DropdownMenu_PokemonReactQuery() {
       menu={{
         id: 'root',
         inputPlaceholder: 'Search...',
-        loader: query<PokemonListResponse>({
+        loader: queryLoader<PokemonListResponse>({
           key: ['pokemon'],
           fn: async () => fetchPokemonList(),
           select: (data) => {
-            // Filter Pokemon by search query
             // Map to menu items
             return data.results.map((pokemon) => {
               // Extract Pokemon ID from URL
