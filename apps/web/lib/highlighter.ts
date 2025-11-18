@@ -7,11 +7,40 @@ import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
 import type { JSX } from 'react'
 import { Fragment } from 'react'
 import { jsx, jsxs } from 'react/jsx-runtime'
-import type { BundledLanguage } from 'shiki/bundle/web'
-import { codeToHast } from 'shiki/bundle/web'
+import type { BundledLanguage, Highlighter } from 'shiki/bundle/web'
+import { createHighlighter } from 'shiki/bundle/web'
+
+// Singleton highlighter instance
+let highlighterInstance: Highlighter | null = null
+let highlighterPromise: Promise<Highlighter> | null = null
+
+/**
+ * Get or create the singleton highlighter instance
+ * This ensures we reuse the same highlighter across the entire app for better performance
+ */
+async function getHighlighter(): Promise<Highlighter> {
+  if (highlighterInstance) {
+    return highlighterInstance
+  }
+
+  // If already initializing, return the existing promise
+  if (highlighterPromise) {
+    return highlighterPromise
+  }
+
+  // Create new highlighter instance
+  highlighterPromise = createHighlighter({
+    themes: ['github-light', 'github-dark'],
+    langs: ['typescript', 'javascript', 'tsx', 'jsx', 'json', 'bash', 'sh'],
+  })
+
+  highlighterInstance = await highlighterPromise
+  return highlighterInstance
+}
 
 export async function highlight(code: string, lang: BundledLanguage) {
-  const out = await codeToHast(code, {
+  const highlighter = await getHighlighter()
+  const out = highlighter.codeToHast(code, {
     lang,
     themes: {
       light: 'github-light',
@@ -31,14 +60,15 @@ export async function highlight(code: string, lang: BundledLanguage) {
 }
 
 export async function highlightInline(code: string, lang: BundledLanguage) {
-  const hast = (await codeToHast(code, {
+  const highlighter = await getHighlighter()
+  const hast = highlighter.codeToHast(code, {
     lang,
     themes: { light: 'github-light', dark: 'github-dark' },
     transformers: [transformerNotationDiff(), transformerNotationHighlight()],
     colorReplacements: {
       '#24292e': 'oklch(0.205 0 0)',
     },
-  })) as Root
+  }) as Root
 
   // Expect: <root><pre class="shiki ..."><code class="language-...">[tokens]</code></pre></root>
   const pre = hast.children?.[0] as Element | undefined

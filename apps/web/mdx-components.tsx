@@ -3,6 +3,11 @@ import type { MDXComponents } from 'mdx/types'
 import Image from 'next/image'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
 import { TypeTable } from '@/components/type-table'
+import { TypeReference } from '@/components/type-reference'
+import { TypeTableAuto } from '@/components/type-table-auto'
+import { TypeSignature } from '@/components/type-signature'
+import { TypeDebug } from '@/components/type-debug'
+import { TypeDiff } from '@/components/type-diff'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
 import CollapsibleCodeBlock from './components/collapsible-code-block'
@@ -271,6 +276,11 @@ const components = {
   ),
   CollapsibleCodeBlock,
   TypeTable,
+  TypeReference,
+  TypeTableAuto,
+  TypeSignature,
+  TypeDebug,
+  TypeDiff,
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,

@@ -314,9 +314,16 @@ export interface ItemExtendedProperties {}
 
 export type BaseItemDef<T = unknown> = BaseDef<'item'> &
   Searchable & {
+    /**
+     * The visual/behavioral variant of this item. Defaults to 'button'.
+     * @default 'button'
+     */
     variant?: ItemVariant
     icon?: Iconish
     data?: T
+    /**
+     * @default false
+     */
     disabled?: boolean
     onSelect?: (args: {
       node: Omit<ItemNode<T>, 'onSelect'>
@@ -331,9 +338,8 @@ export type BaseItemDef<T = unknown> = BaseDef<'item'> &
   } & ItemExtendedProperties
 
 export type ButtonItemDef<T = unknown> = BaseItemDef<T> & {
-  /** The visual/behavioral variant of this item. Defaults to 'button'. */
   variant?: 'button'
-  value?: never
+  // value?: never // TODO: Remove this property in the next major version
 }
 
 export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
@@ -348,7 +354,7 @@ export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
 export type RadioItemDef<T = unknown> = BaseItemDef<T> & {
   /** The visual/behavioral variant of this item. */
   variant: 'radio'
-  /** Value for this radio item. Falls back to id if not provided. */
+  /** Value for this radio item. Falls back to `id` if not provided. */
   value?: string
 }
 

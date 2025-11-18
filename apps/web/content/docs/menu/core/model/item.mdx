@@ -11,18 +11,30 @@ It represents a single option or action within the menu structure. Each item can
 
 When an item is triggered, it performs a specific action.
 
-## Common Properties
+Items are also **searchable** via the `label` property; you can also use the `keywords` property to define a `string[]` of aliases.
 
-| Property | Type | Description |
-| --- | --- | --- |
-| label | string | The text label displayed for the item |
-| icon | string | The icon displayed for the item |
-| action | function | The action to perform when the item is triggered |
+## Properties
+
+<TypeTableAuto type="BaseItemDef" pkg="@bazza-ui/menu" />
 
 ## Variants
 
+Variants allow us to customize the appearance and behaviour of items. We can use them to render an item node differently and modify its behaviour.
+
 ### Button
+
+The `'button'` variant is the default variant for the item node.
+
+<TypeDiff baseType="BaseItemDef" derivedType="ButtonItemDef" package="@bazza-ui/menu" />
 
 ### Checkbox
 
+> [!NOTE] Note that `checked` and `onCheckedChange` are required properties - it cannot be used in an uncontrolled fashion.
+
+The `'checkbox'` variant gives us the tools to render a checkbox with an item node, with proper state management.
+
+<TypeDiff baseType="BaseItemDef" derivedType="CheckboxItemDef" package="@bazza-ui/menu" />
+
 ### Radio
+
+<TypeDiff baseType="BaseItemDef" derivedType="RadioItemDef" package="@bazza-ui/menu" />

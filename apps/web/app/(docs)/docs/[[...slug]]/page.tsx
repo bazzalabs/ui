@@ -94,8 +94,6 @@ export default async function Page({
 
   const tableOfContents = metadata.toc
 
-  console.log({ tableOfContents })
-
   return (
     <div className="col-span-1 grid grid-cols-[1fr_auto_1fr] gap-x-8">
       <div />
