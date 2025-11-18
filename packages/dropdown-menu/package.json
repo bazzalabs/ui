@@ -14,6 +14,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./loaders/tanstack-query": {
+      "types": "./dist/loaders/tanstack-query.d.ts",
+      "import": "./dist/loaders/tanstack-query.js",
+      "require": "./dist/loaders/tanstack-query.cjs"
     }
   },
   "files": [
@@ -39,6 +44,11 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@bazza-ui/menu": "*",

@@ -4,6 +4,8 @@ import {
   GlobalThemeProvider,
   PopupMenuContent,
   type PopupMenuTheme,
+  Positioner,
+  RootProvider,
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
@@ -25,19 +27,22 @@ export function DropdownMenu<T = unknown>({
   side = 'bottom',
   align = 'start',
   sideOffset = 4,
+  alignOffset = 0,
 }: DropdownMenuProps<T>) {
+  const scopeId = React.useId()
+
   const [open, setOpen] = useControllableState({
     prop: controlledOpen,
     defaultProp: defaultOpen,
     onChange: onOpenChange,
   })
 
-  const triggerRef = React.useRef<HTMLDivElement>(null)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   // Handle click on trigger element
   const handleClick = React.useCallback(() => {
-    setOpen((prev) => !prev)
+    setOpen(true)
   }, [setOpen])
 
   // Close menu
@@ -58,31 +63,34 @@ export function DropdownMenu<T = unknown>({
   return (
     <GlobalThemeProvider theme={mergedTheme}>
       {/* Trigger */}
-      <div ref={triggerRef} onClick={handleClick}>
+      <button type="button" ref={triggerRef} onClick={handleClick}>
         {children}
-      </div>
+      </button>
 
       {/* Menu */}
       <Popover.Root open={open} onOpenChange={setOpen}>
-        {open && (
-          <Popover.Positioner
-            side={side}
-            align={align}
-            sideOffset={sideOffset}
-            className={theme?.classNames?.positioner}
-            anchor={triggerRef.current}
-          >
-            <Popover.Popup>
-              <PopupMenuContent
-                menu={menu}
-                open={open}
-                onClose={handleClose}
-                contentRef={contentRef as any}
-                placeholder={placeholder}
-              />
-            </Popover.Popup>
-          </Popover.Positioner>
-        )}
+        <RootProvider scopeId={scopeId} onClose={handleClose}>
+          {open && triggerRef.current && (
+            <Positioner
+              side={side}
+              align={align}
+              sideOffset={sideOffset}
+              alignOffset={alignOffset}
+              anchor={triggerRef.current}
+            >
+              {(popupProps) => (
+                <PopupMenuContent
+                  menu={menu}
+                  open={open}
+                  onClose={handleClose}
+                  contentRef={contentRef as any}
+                  placeholder={placeholder}
+                  popupProps={popupProps}
+                />
+              )}
+            </Positioner>
+          )}
+        </RootProvider>
       </Popover.Root>
     </GlobalThemeProvider>
   )

@@ -1,3 +1,4 @@
+import type { InteractionGuardOptions } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 
 export type RootContextValue = {
@@ -5,7 +6,8 @@ export type RootContextValue = {
   open: boolean
   onOpenChange: (open: boolean) => void
   closeAllSurfaces: () => void
-  triggerRef: React.RefObject<HTMLDivElement | null>
+  triggerRef: React.RefObject<HTMLElement | null>
+  interactionGuardOptions: Partial<InteractionGuardOptions>
 }
 
 const RootContext = React.createContext<RootContextValue | null>(null)

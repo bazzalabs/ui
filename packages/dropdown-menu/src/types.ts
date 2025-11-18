@@ -19,10 +19,12 @@ export interface DropdownMenuProps<T = unknown> {
   theme?: PopupMenuThemeDef<T>
   /** Placeholder for search input */
   placeholder?: string
-  /** Side of the trigger to position the menu */
+  /** Which side to position the menu on */
   side?: 'top' | 'right' | 'bottom' | 'left'
-  /** Alignment relative to the trigger */
+  /** How to align the menu with the trigger */
   align?: 'start' | 'center' | 'end'
-  /** Offset from the trigger */
+  /** Offset from the trigger (perpendicular to side) */
   sideOffset?: number
+  /** Offset along the alignment axis */
+  alignOffset?: number
 }

@@ -1,8 +1,10 @@
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   defaultSlots,
   GlobalThemeProvider,
+  type InteractionGuardOptions,
   mergeTheme,
+  type PopupMenuSlots,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
   ScopedThemeProvider,
@@ -24,9 +26,11 @@ export type CreateDropdownMenuOptions<T = unknown> = {
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
   classNames?: PopupMenuThemeDef<T>['classNames']
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
-export interface DropdownMenuOptions<T = unknown> {
+export interface DropdownMenuOptions<T = unknown>
+  extends Partial<InteractionGuardOptions> {
   /** Menu definition */
   menu: MenuDef<T>
   /** Trigger element - will open dropdown menu on click */
@@ -41,16 +45,22 @@ export interface DropdownMenuOptions<T = unknown> {
   modal?: boolean
   /** Placeholder for search input */
   placeholder?: string
-  /** Side of the trigger to position the menu */
+  /** Which side to position the menu on */
   side?: 'top' | 'right' | 'bottom' | 'left'
-  /** Alignment relative to the trigger */
+  /** How to align the menu with the trigger */
   align?: 'start' | 'center' | 'end'
-  /** Offset from the trigger */
+  /** Offset from the trigger (perpendicular to side) */
   sideOffset?: number
+  /** Offset along the alignment axis */
+  alignOffset?: number
+  /** Whether to use child as trigger (for composition) */
+  asChild?: boolean
   /** Theme overrides at instance level */
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
   classNames?: PopupMenuThemeDef<T>['classNames']
+  /** Default configurations for menu behavior */
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
@@ -64,28 +74,49 @@ export function createDropdownMenu<T = unknown>(
   opts?: CreateDropdownMenuOptions<T>,
 ): CreateDropdownMenuResult<T> {
   // Factory theme - from createDropdownMenu options
-  const factoryTheme: PopupMenuTheme<any> = {
-    slots: { ...defaultSlots<T>(), ...(opts?.slots as any) },
+  // Note: We use the non-generic Theme type internally since the theming system
+  // uses PopupMenuSlots<unknown>. Slots are contravariant and work with any T.
+  const factoryTheme = {
+    slots: { ...defaultSlots(), ...opts?.slots } as PopupMenuSlots<T>,
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
-  }
+  } as PopupMenuTheme<T>
 
-  function DropdownMenu({
-    menu,
-    children,
-    placeholder = 'Search...',
-    side = 'bottom',
-    align = 'start',
-    sideOffset = 4,
-    slots,
-    slotProps,
-    classNames,
-    ...rootProps
-  }: DropdownMenuOptions<T>) {
+  // Factory defaults
+  const factoryDefaults = opts?.defaults
+
+  function DropdownMenu(props: DropdownMenuOptions<T>) {
+    const {
+      menu,
+      children,
+      placeholder = 'Search...',
+      side = 'bottom',
+      align = 'start',
+      sideOffset = 4,
+      alignOffset = 0,
+      asChild = false,
+      slots,
+      slotProps,
+      classNames,
+      defaults,
+      // InteractionGuard options
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+      ...rootProps
+    } = props
+
     // Instance theme - merge factory with instance props
-    const instanceTheme: PopupMenuTheme<any> = React.useMemo(
+    // Cast to non-generic type for mergeTheme compatibility
+    const instanceTheme = React.useMemo(
       () =>
-        mergeTheme(factoryTheme, {
+        mergeTheme(factoryTheme as any, {
           slots: slots as any,
           slotProps,
           classNames,
@@ -94,22 +125,52 @@ export function createDropdownMenu<T = unknown>(
     )
 
     // Scoped theme - from menu.ui
-    const scopedTheme = React.useMemo(
-      () => menu.ui as PopupMenuTheme<any> | undefined,
-      [menu.ui],
+    const scopedTheme = React.useMemo(() => menu.ui as any, [menu.ui])
+
+    // Merge factory defaults with instance defaults
+    const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
+      () => ({
+        surface: { ...factoryDefaults?.surface, ...defaults?.surface },
+        item: {
+          ...factoryDefaults?.item,
+          ...defaults?.item,
+        } as any,
+        virtualization: {
+          ...factoryDefaults?.virtualization,
+          ...defaults?.virtualization,
+        } as any,
+      }),
+      [defaults],
     )
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>
-        <ScopedThemeProvider theme={scopedTheme as any}>
-          <DropdownMenuRoot {...rootProps} menu={menu}>
-            <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
+        <ScopedThemeProvider theme={scopedTheme}>
+          <DropdownMenuRoot
+            {...rootProps}
+            menu={menu}
+            defaults={mergedDefaults}
+            scopeAttr={scopeAttr}
+            disableOutsidePointerEvents={disableOutsidePointerEvents}
+            onEscapeKeyDown={onEscapeKeyDown}
+            onPointerDownOutside={onPointerDownOutside}
+            onFocusOutside={onFocusOutside}
+            onInteractOutside={onInteractOutside}
+            onDismiss={onDismiss}
+            surfaceSelector={surfaceSelector}
+            branchAttr={branchAttr}
+          >
+            <DropdownMenuTrigger asChild={asChild}>
+              {children}
+            </DropdownMenuTrigger>
             <DropdownMenuContent
               menu={menu}
               placeholder={placeholder}
               side={side}
               align={align}
               sideOffset={sideOffset}
+              alignOffset={alignOffset}
+              defaults={mergedDefaults}
             />
           </DropdownMenuRoot>
         </ScopedThemeProvider>

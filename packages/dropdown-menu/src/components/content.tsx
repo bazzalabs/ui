@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import { PopupMenuContent, Positioner } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
@@ -8,16 +8,20 @@ export interface DropdownMenuContentProps<T = unknown> {
   menu?: MenuDef<T>
   /** Placeholder for search input */
   placeholder?: string
-  /** Side of the trigger to position the menu */
+  /** Which side to position the menu on */
   side?: 'top' | 'right' | 'bottom' | 'left'
-  /** Alignment relative to the trigger */
+  /** How to align the menu with the trigger */
   align?: 'start' | 'center' | 'end'
-  /** Offset from the trigger */
+  /** Offset from the trigger (perpendicular to side) */
   sideOffset?: number
+  /** Offset along the alignment axis */
+  alignOffset?: number
+  /** Default configurations for menu behavior */
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
- * DropdownMenuContent - Renders the popup menu content relative to trigger
+ * DropdownMenuContent - Renders the popup menu content anchored to the trigger
  * Uses popup-menu's Positioner for consistent theming integration
  */
 export function DropdownMenuContent<T = unknown>({
@@ -26,11 +30,18 @@ export function DropdownMenuContent<T = unknown>({
   side = 'bottom',
   align = 'start',
   sideOffset = 4,
+  alignOffset = 0,
+  defaults,
 }: DropdownMenuContentProps<T>) {
   const { open, closeAllSurfaces, triggerRef } = useRootContext()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
-  if (!open) {
+  // Extract surface defaults for PopupMenuContent props
+  const vimBindings = defaults?.surface?.vimBindings ?? true
+  const dir = defaults?.surface?.dir ?? 'ltr'
+
+  // Use trigger element as anchor
+  if (!triggerRef.current) {
     return null
   }
 
@@ -39,6 +50,7 @@ export function DropdownMenuContent<T = unknown>({
       side={side}
       align={align}
       sideOffset={sideOffset}
+      alignOffset={alignOffset}
       anchor={triggerRef.current}
     >
       {(popupProps: React.HTMLAttributes<HTMLElement>) =>
@@ -50,6 +62,9 @@ export function DropdownMenuContent<T = unknown>({
             contentRef={contentRef as any}
             placeholder={placeholder}
             popupProps={popupProps}
+            vimBindings={vimBindings}
+            dir={dir}
+            defaults={defaults}
           />
         ) : (
           <div {...popupProps} />

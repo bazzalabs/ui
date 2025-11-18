@@ -139,16 +139,20 @@ export type PopupMenuSlots<T = unknown> = {
  * SlotProps Types
  * ============================================================================================== */
 
+/** Base positioner props from Base UI, with our custom align option */
+type BasePositionerProps = Omit<
+  React.ComponentProps<typeof Popover.Positioner>,
+  'children' | 'align'
+> & {
+  align?: 'start' | 'center' | 'end' | 'list'
+}
+
 /** Positioner slot props type */
 export type PositionerSlotProps =
-  | Partial<Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>>
+  | Partial<BasePositionerProps>
   | {
-      root?: Partial<
-        Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>
-      >
-      sub?: Partial<
-        Omit<React.ComponentProps<typeof Popover.Positioner>, 'children'>
-      >
+      root?: Partial<BasePositionerProps>
+      sub?: Partial<BasePositionerProps>
     }
 
 /** Slot props forwarded to popup menu elements. */

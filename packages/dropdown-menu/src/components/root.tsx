@@ -1,10 +1,15 @@
 import { Popover } from '@base-ui-components/react/popover'
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
+import {
+  type InteractionGuardOptions,
+  RootProvider,
+} from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { RootContextProvider } from '../contexts/root-context.js'
 
-export interface DropdownMenuRootProps<T = unknown> {
+export interface DropdownMenuRootProps<T = unknown>
+  extends Partial<InteractionGuardOptions> {
   /** Menu definition */
   menu: MenuDef<T>
   /** Children (typically Trigger and Content) */
@@ -17,6 +22,8 @@ export interface DropdownMenuRootProps<T = unknown> {
   defaultOpen?: boolean
   /** Whether clicking outside closes the menu */
   modal?: boolean
+  /** Base defaults (factory + instance) shared across the entire menu */
+  defaults?: Partial<MenuNodeDefaults<T>>
 }
 
 /**
@@ -29,6 +36,17 @@ export function DropdownMenuRoot<T = unknown>({
   open: controlledOpen,
   defaultOpen = false,
   modal = true,
+  defaults,
+  // InteractionGuard options
+  scopeAttr,
+  disableOutsidePointerEvents,
+  onEscapeKeyDown,
+  onPointerDownOutside,
+  onFocusOutside,
+  onInteractOutside,
+  onDismiss,
+  surfaceSelector,
+  branchAttr,
 }: DropdownMenuRootProps<T>) {
   const [open, setOpen] = useControllableState({
     prop: controlledOpen,
@@ -36,7 +54,7 @@ export function DropdownMenuRoot<T = unknown>({
     onChange: onOpenChange,
   })
 
-  const triggerRef = React.useRef<HTMLDivElement>(null)
+  const triggerRef = React.useRef<HTMLElement>(null)
   const scopeId = React.useId()
 
   const closeAllSurfaces = React.useCallback(() => {
@@ -50,14 +68,47 @@ export function DropdownMenuRoot<T = unknown>({
       onOpenChange: setOpen,
       closeAllSurfaces,
       triggerRef,
+      // InteractionGuard options
+      interactionGuardOptions: {
+        scopeAttr,
+        disableOutsidePointerEvents,
+        onEscapeKeyDown,
+        onPointerDownOutside,
+        onFocusOutside,
+        onInteractOutside,
+        onDismiss,
+        surfaceSelector,
+        branchAttr,
+      },
     }),
-    [scopeId, open, setOpen, closeAllSurfaces],
+    [
+      scopeId,
+      open,
+      setOpen,
+      closeAllSurfaces,
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+    ],
   )
 
   return (
     <RootContextProvider value={rootValue}>
-      <Popover.Root open={open} onOpenChange={setOpen}>
-        {children}
+      <Popover.Root open={open} onOpenChange={setOpen} modal={false}>
+        <RootProvider
+          scopeId={scopeId}
+          onClose={closeAllSurfaces}
+          interactionGuardOptions={rootValue.interactionGuardOptions}
+          defaults={defaults as any}
+        >
+          {children}
+        </RootProvider>
       </Popover.Root>
     </RootContextProvider>
   )

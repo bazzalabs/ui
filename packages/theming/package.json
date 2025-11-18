@@ -25,15 +25,12 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@bazza-ui/typescript-config": "*",
+    "@bazza-ui/typescript-config": "workspace:*",
     "@types/react": "^19.1.2",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
-  },
-  "dependencies": {
-    "@bazza-ui/menu": "*"
   }
 }

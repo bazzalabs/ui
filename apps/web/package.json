@@ -21,6 +21,8 @@
   "dependencies": {
     "@bazza-ui/action-menu": "workspace:*",
     "@bazza-ui/command-menu": "workspace:*",
+    "@bazza-ui/context-menu": "workspace:*",
+    "@bazza-ui/dropdown-menu": "workspace:*",
     "@bazza-ui/filters": "workspace:*",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",

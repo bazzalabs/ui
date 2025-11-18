@@ -21,6 +21,8 @@
       "dependencies": {
         "@bazza-ui/action-menu": "workspace:*",
         "@bazza-ui/command-menu": "workspace:*",
+        "@bazza-ui/context-menu": "workspace:*",
+        "@bazza-ui/dropdown-menu": "workspace:*",
         "@bazza-ui/filters": "workspace:*",
         "@mdx-js/loader": "^3.1.1",
         "@mdx-js/react": "^3.1.1",
@@ -303,11 +305,8 @@
     "packages/theming": {
       "name": "@bazza-ui/theming",
       "version": "0.0.1",
-      "dependencies": {
-        "@bazza-ui/menu": "*",
-      },
       "devDependencies": {
-        "@bazza-ui/typescript-config": "*",
+        "@bazza-ui/typescript-config": "workspace:*",
         "@types/react": "^19.1.2",
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
