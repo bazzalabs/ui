@@ -14,11 +14,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./loaders/tanstack-query": {
-      "types": "./dist/loaders/tanstack-query.d.ts",
-      "import": "./dist/loaders/tanstack-query.js",
-      "require": "./dist/loaders/tanstack-query.cjs"
     }
   },
   "files": [

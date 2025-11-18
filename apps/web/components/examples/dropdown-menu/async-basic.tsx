@@ -1,9 +1,6 @@
 'use client'
 
-import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/dropdown-menu/loaders/tanstack-query'
+import { query } from '@bazza-ui/loaders/query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -21,9 +18,9 @@ export function DropdownMenu_AsyncBasic() {
     <DropdownMenu
       menu={{
         id: 'root',
-        loader: createLoader<Label[]>(({ query }) => ({
-          queryKey: ['labels', query],
-          queryFn: () => fetchLabels(query),
+        loader: query<Label[]>(({ query: searchQuery }) => ({
+          key: ['labels', searchQuery],
+          fn: () => fetchLabels(searchQuery),
           retry: false,
           select: (data) =>
             data.map((label) => ({

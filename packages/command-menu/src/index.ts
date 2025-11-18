@@ -13,10 +13,6 @@ export type { CommandMenuContextValue } from './context.js'
 // Context
 export { useCommandMenuContext } from './context.js'
 export {
-  LoaderAdapterProvider,
-  useLoaderAdapter,
-} from './contexts/loader-adapter-context.js'
-export {
   mergeTheme,
   useGlobalTheme,
   useScopedTheme,

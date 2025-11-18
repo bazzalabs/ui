@@ -3,7 +3,7 @@ import { instantiateMenuFromDef } from '../primitives/menu-model.js'
 import type {
   AggregatedLoaderState,
   AsyncNodeLoaderContext,
-  LoaderAdapter,
+  AsyncNodeLoaderResult,
   Menu,
   MenuDef,
   MenuNodeDefaults,
@@ -16,6 +16,7 @@ import {
   injectLoaderResults,
   shouldEnableStreaming,
 } from '../utils/deep-search.js'
+import { useLoaders } from './use-loader.js'
 
 export interface DeepSearchOrchestrationConfig<T> {
   /**
@@ -34,11 +35,6 @@ export interface DeepSearchOrchestrationConfig<T> {
   open: boolean
 
   /**
-   * The loader adapter to use for executing async loaders.
-   */
-  loaderAdapter: LoaderAdapter
-
-  /**
    * Unique identifier for the menu surface.
    */
   surfaceId: string
@@ -55,7 +51,7 @@ export interface DeepSearchOrchestrationConfig<T> {
    * Useful for implementing minLength thresholds per submenu.
    * Return true to execute the loader, false to skip it.
    */
-  filterLoaders?: (entry: DeepSearchLoaderEntry, query: string) => boolean
+  filterLoaders?: (entry: DeepSearchLoaderEntry<T>, query: string) => boolean
 
   /**
    * Optional root loader result to apply to the menu.
@@ -126,7 +122,6 @@ export function useDeepSearchOrchestration<T>(
     menuDef,
     query,
     open,
-    loaderAdapter,
     surfaceId,
     isSubmenu = false,
     filterLoaders,
@@ -135,46 +130,72 @@ export function useDeepSearchOrchestration<T>(
   } = config
 
   // Collect deep search loaders from the menu tree
-  const deepSearchLoaderEntries = React.useMemo(() => {
-    if (!query) return []
+  // We collect them regardless of query to maintain stable hooks
+  const allDeepSearchLoaders = React.useMemo(() => {
     return collectDeepSearchLoaders(menuDef)
-  }, [menuDef, query])
+  }, [menuDef])
+
+  // Lock the loader list on first mount to ensure stable hooks
+  // This prevents hooks order violations when the number of loaders changes
+  const lockedLoadersRef = React.useRef<typeof allDeepSearchLoaders | null>(
+    null,
+  )
+  if (!lockedLoadersRef.current && allDeepSearchLoaders.length > 0) {
+    lockedLoadersRef.current = allDeepSearchLoaders
+  }
+
+  // Use the locked loader list to ensure stable number of hooks
+  const stableLoaderEntries = lockedLoadersRef.current || allDeepSearchLoaders
 
   // Prepare deep search loader configs for parallel execution
-  // Apply optional filtering (e.g., minLength threshold)
+  // We pass ALL loaders but mark them as disabled when there's no query or they're filtered out
   const deepSearchLoaderConfigs = React.useMemo(() => {
-    if (deepSearchLoaderEntries.length === 0) return []
+    if (stableLoaderEntries.length === 0) return []
 
-    const configs = deepSearchLoaderEntries
-      .filter((entry) => {
-        // Apply custom filter if provided
-        if (filterLoaders) {
-          return filterLoaders(entry, query)
-        }
-        return true
-      })
-      .map((entry) => ({
+    const configs = stableLoaderEntries.map((entry) => {
+      // Only load if there's a query and not filtered out
+      const shouldLoad =
+        query && (filterLoaders ? filterLoaders(entry, query) : true)
+
+      return {
         path: entry.path,
         loader: entry.loader,
         context: {
-          query,
-          open,
+          query: query || '',
+          // Mark as closed (disabled) if no query or filtered out
+          open: shouldLoad ? open : false,
         } as AsyncNodeLoaderContext,
-      }))
+      }
+    })
 
     return configs
-  }, [deepSearchLoaderEntries, query, open, filterLoaders])
+  }, [stableLoaderEntries, query, open, filterLoaders])
 
-  // Execute all deep search loaders in parallel using the adapter
-  const deepSearchLoaderResults = loaderAdapter.useLoaders(
-    deepSearchLoaderConfigs,
-  )
+  // Execute all deep search loaders in parallel using auto-detection
+  const deepSearchLoaderResults = useLoaders(deepSearchLoaderConfigs)
 
   // Aggregate deep search loader states
+  // Filter out results from disabled loaders (where context.open was false)
   const aggregatedState = React.useMemo(() => {
     if (deepSearchLoaderResults.size === 0) return null
-    return aggregateLoaderResults(deepSearchLoaderResults, menuDef)
-  }, [deepSearchLoaderResults, menuDef])
+
+    // Filter to only include results from enabled loaders
+    const enabledResults = new Map<string, AsyncNodeLoaderResult>()
+    const enabledPaths = new Set(
+      deepSearchLoaderConfigs
+        .filter((config) => config.context.open)
+        .map((config) => config.path.join('.')),
+    )
+
+    for (const [path, result] of deepSearchLoaderResults.entries()) {
+      if (enabledPaths.has(path)) {
+        enabledResults.set(path, result as AsyncNodeLoaderResult)
+      }
+    }
+
+    if (enabledResults.size === 0) return null
+    return aggregateLoaderResults(enabledResults, menuDef)
+  }, [deepSearchLoaderResults, deepSearchLoaderConfigs, menuDef])
 
   // Determine if streaming mode should be enabled
   const streamingEnabled = React.useMemo(() => {
@@ -205,7 +226,7 @@ export function useDeepSearchOrchestration<T>(
   React.useEffect(() => {
     if (!isInitializedRef.current && streamingEnabled && query) {
       const loaderPaths = new Set(
-        deepSearchLoaderEntries.map((e) => e.path.join('.')),
+        stableLoaderEntries.map((e) => e.path.join('.')),
       )
 
       // Walk through submenus and add static ones (without loaders) to completion order
@@ -235,7 +256,7 @@ export function useDeepSearchOrchestration<T>(
 
       isInitializedRef.current = true
     }
-  }, [streamingEnabled, query, deepSearchLoaderEntries, menuDef])
+  }, [streamingEnabled, query, stableLoaderEntries, menuDef])
 
   // Build the menu with deep search results injected
   const menu = React.useMemo<Menu<T>>(() => {

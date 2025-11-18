@@ -28,7 +28,7 @@
     "test:coverage": "vitest run --coverage --mode test"
   },
   "devDependencies": {
-    "@bazza-ui/typescript-config": "*",
+    "@bazza-ui/typescript-config": "workspace:*",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitest/ui": "4.0.8",
@@ -42,8 +42,8 @@
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.4",
-    "@bazza-ui/menu": "*",
-    "@bazza-ui/theming": "*",
+    "@bazza-ui/menu": "workspace:*",
+    "@bazza-ui/theming": "workspace:*",
     "@radix-ui/primitive": "^1.1.3",
     "@radix-ui/react-compose-refs": "^1.1.2",
     "@radix-ui/react-portal": "^1.1.4",

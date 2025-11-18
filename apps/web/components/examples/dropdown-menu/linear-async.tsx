@@ -154,8 +154,8 @@ const assigneeMenu: SubmenuDef = {
   label: 'Assignee',
   inputPlaceholder: 'Assignee...',
   loader: createLoader(() => ({
-    queryKey: ['assignees'],
-    queryFn: fetchAssignees,
+    key: ['assignees'],
+    fn: fetchAssignees,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })),
 }
@@ -681,8 +681,8 @@ const labelsMenu: SubmenuDef = {
   inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
   loader: createLoader(({ query }) => ({
-    queryKey: ['labels', query],
-    queryFn: () => fetchLabels(query),
+    key: ['labels', query],
+    fn: () => fetchLabels(query),
   })),
 }
 

@@ -1,7 +1,5 @@
 // Types
 
-// Contexts
-export * from './contexts/loader-adapter-context.js'
 // Hooks
 export * from './hooks/index.js'
 // Middleware

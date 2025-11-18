@@ -43,8 +43,8 @@ export function ActionMenu_AsyncDeepSearch() {
       deepSearch: true,
       // createLoader receives context and returns React Query config
       loader: createLoader(({ query }) => ({
-        queryKey: ['fruits', query],
-        queryFn: () => fetchFruits(query),
+        key: ['fruits', query],
+        fn: () => fetchFruits(query),
         retry: false,
       })),
     },
@@ -56,8 +56,8 @@ export function ActionMenu_AsyncDeepSearch() {
       title: 'Vegetables',
       deepSearch: true,
       loader: createLoader(({ query }) => ({
-        queryKey: ['vegetables', query],
-        queryFn: () => fetchVegetables(query),
+        key: ['vegetables', query],
+        fn: () => fetchVegetables(query),
         retry: false,
       })),
     },
@@ -69,8 +69,8 @@ export function ActionMenu_AsyncDeepSearch() {
       title: 'Meats',
       deepSearch: true,
       loader: createLoader(({ query }) => ({
-        queryKey: ['meats', query],
-        queryFn: () => fetchMeats(query),
+        key: ['meats', query],
+        fn: () => fetchMeats(query),
         retry: false,
       })),
     },

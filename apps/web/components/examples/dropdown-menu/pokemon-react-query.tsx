@@ -1,9 +1,6 @@
 'use client'
 
-import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/dropdown-menu/react-query'
+import { query } from '@bazza-ui/loaders/query'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
@@ -36,7 +33,6 @@ const fetchPokemonList = async () => {
 export function DropdownMenu_PokemonReactQuery() {
   return (
     <DropdownMenu
-      loaderAdapter={ReactQueryLoaderAdapter}
       classNames={{
         content: 'data-[mode=dropdown]:w-(--action-menu-trigger-width)',
       }}
@@ -51,9 +47,9 @@ export function DropdownMenu_PokemonReactQuery() {
       menu={{
         id: 'root',
         inputPlaceholder: 'Search...',
-        loader: createLoader<PokemonListResponse>(() => ({
-          queryKey: ['pokemon'],
-          queryFn: async () => fetchPokemonList(),
+        loader: query<PokemonListResponse>({
+          key: ['pokemon'],
+          fn: async () => fetchPokemonList(),
           select: (data) => {
             // Filter Pokemon by search query
             // Map to menu items
@@ -96,7 +92,7 @@ export function DropdownMenu_PokemonReactQuery() {
               }
             })
           },
-        })),
+        }),
       }}
     >
       <DropdownMenu.Trigger asChild>

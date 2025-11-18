@@ -141,7 +141,6 @@ Classes **concatenate** across levels:
 ```tsx
 // components/command-menu.tsx
 import { createCommandMenu } from '@bazza-ui/command-menu'
-import { ReactQueryLoaderAdapter } from '@bazza-ui/command-menu/loaders/tanstack-query'
 
 export const { CommandMenu, Root, Trigger, Content, Input, List, Breadcrumbs } =
   createCommandMenu({
@@ -259,28 +258,6 @@ const { CommandMenu } = createCommandMenu({
     ),
   },
 })
-```
-
-## With Default Loader Adapter
-
-Pre-configure the loader adapter:
-
-```tsx
-import { ReactQueryLoaderAdapter } from '@bazza-ui/command-menu/loaders/tanstack-query'
-import { LoaderAdapterProvider } from '@bazza-ui/command-menu'
-
-const { CommandMenu: CommandMenuBase } = createCommandMenu({
-  classNames: {...},
-})
-
-// Wrap with loader adapter
-export function CommandMenu(props: ComponentProps<typeof CommandMenuBase>) {
-  return (
-    <LoaderAdapterProvider adapter={ReactQueryLoaderAdapter}>
-      <CommandMenuBase {...props} />
-    </LoaderAdapterProvider>
-  )
-}
 ```
 
 ## TypeScript

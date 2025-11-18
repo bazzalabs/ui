@@ -14,11 +14,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./loaders/tanstack-query": {
-      "types": "./dist/loaders/tanstack-query.d.ts",
-      "import": "./dist/loaders/tanstack-query.js",
-      "require": "./dist/loaders/tanstack-query.cjs"
     }
   },
   "files": [
@@ -30,7 +25,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@bazza-ui/typescript-config": "*",
+    "@bazza-ui/typescript-config": "workspace:*",
     "@tanstack/react-query": "^5.62.14",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
@@ -47,8 +42,8 @@
     }
   },
   "dependencies": {
-    "@bazza-ui/menu": "*",
-    "@bazza-ui/theming": "*",
+    "@bazza-ui/menu": "workspace:*",
+    "@bazza-ui/theming": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@radix-ui/react-visually-hidden": "^1.2.4"

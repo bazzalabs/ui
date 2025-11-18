@@ -1,10 +1,6 @@
 'use client'
 
-import { LoaderAdapterProvider } from '@bazza-ui/command-menu'
-import {
-  createLoader,
-  ReactQueryLoaderAdapter,
-} from '@bazza-ui/command-menu/loaders/tanstack-query'
+import { query } from '@bazza-ui/loaders/query'
 import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/menu'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SearchIcon } from 'lucide-react'
@@ -30,18 +26,16 @@ const queryClient = new QueryClient()
 export function CommandMenu_LinearAsync() {
   return (
     <QueryClientProvider client={queryClient}>
-      <LoaderAdapterProvider adapter={ReactQueryLoaderAdapter}>
-        <CommandMenu
-          menu={menuData}
-          trigger={
-            <Button variant="ghost" size="sm" className="w-fit">
-              <SearchIcon className="size-4" />
-              Search
-            </Button>
-          }
-          placeholder="Search properties..."
-        />
-      </LoaderAdapterProvider>
+      <CommandMenu
+        menu={menuData}
+        trigger={
+          <Button variant="ghost" size="sm" className="w-fit">
+            <SearchIcon className="size-4" />
+            Search
+          </Button>
+        }
+        placeholder="Search properties..."
+      />
     </QueryClientProvider>
   )
 }
@@ -139,9 +133,9 @@ const assigneeMenu: SubmenuDef = {
   icon: <AssigneeIcon />,
   label: 'Assignee',
   inputPlaceholder: 'Assignee...',
-  loader: createLoader(() => ({
-    queryKey: ['assignees'],
-    queryFn: fetchAssignees,
+  loader: query(() => ({
+    key: ['assignees'],
+    fn: fetchAssignees,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })),
 }
@@ -269,9 +263,9 @@ const labelsMenu: SubmenuDef = {
   label: 'Labels',
   inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
-  loader: createLoader(({ query }) => ({
-    queryKey: ['labels', query],
-    queryFn: () => fetchLabels(query),
+  loader: query(({ query }) => ({
+    key: ['labels', query],
+    fn: () => fetchLabels(query),
   })),
 }
 

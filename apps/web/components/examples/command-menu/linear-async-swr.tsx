@@ -1,13 +1,15 @@
 'use client'
 
-import { query } from '@bazza-ui/loaders/query'
-import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/menu'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/command-menu'
+import { swr } from '@bazza-ui/loaders/swr'
+import { SearchIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { SWRConfig } from 'swr'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ContextMenu } from '@/registry/context-menu'
+import { CommandMenu } from '@/registry/command-menu'
 import { LABEL_STYLES_BG, type TW_COLOR } from '../action-menu/linear-async'
 import {
   AssigneeIcon,
@@ -19,31 +21,25 @@ import {
   StatusIcon,
 } from '../action-menu/shared/icons'
 
-const queryClient = new QueryClient()
-
-export function ContextMenu_LinearAsync() {
+export function CommandMenu_LinearAsyncSWR() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ContextMenu menu={menuData}>
-        <div className="relative h-48 w-full rounded-lg border p-4">
-          <div className="prose prose-sm dark:prose-invert">
-            <p className="font-semibold">Project Task Card (Async)</p>
-            <p className="text-muted-foreground text-sm">
-              Right-click on this card to change issue properties. The assignee
-              and label options are loaded asynchronously from a simulated API.
-            </p>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              <span className="text-xs bg-muted px-2 py-1 rounded">
-                Status: Todo
-              </span>
-              <span className="text-xs bg-muted px-2 py-1 rounded">
-                Assignee: None
-              </span>
-            </div>
-          </div>
-        </div>
-      </ContextMenu>
-    </QueryClientProvider>
+    <SWRConfig
+      value={{
+        revalidateOnFocus: false,
+        revalidateOnReconnect: true,
+      }}
+    >
+      <CommandMenu
+        menu={menuData}
+        trigger={
+          <Button variant="ghost" size="sm" className="w-fit">
+            <SearchIcon className="size-4" />
+            Search
+          </Button>
+        }
+        placeholder="Search properties..."
+      />
+    </SWRConfig>
   )
 }
 
@@ -51,6 +47,7 @@ const statusMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <StatusIcon />,
   label: 'Status',
+  inputPlaceholder: 'Status...',
   nodes: [
     {
       kind: 'item',
@@ -138,11 +135,12 @@ const assigneeMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <AssigneeIcon />,
   label: 'Assignee',
-  loader: query(() => ({
-    key: ['assignees'],
-    fn: fetchAssignees,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  })),
+  inputPlaceholder: 'Assignee...',
+  loader: swr({
+    key: 'assignees',
+    fetcher: fetchAssignees,
+    dedupingInterval: 5 * 60 * 1000, // 5 minutes
+  }),
 }
 
 // Simulate fetching labels from an API
@@ -266,10 +264,11 @@ const labelsMenu: SubmenuDef = {
   kind: 'submenu',
   icon: LabelsIcon,
   label: 'Labels',
+  inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
-  loader: query(({ query }) => ({
-    key: ['labels', query],
-    fn: () => fetchLabels(query),
+  loader: swr(({ query }) => ({
+    key: query ? `labels-${query}` : 'labels',
+    fetcher: () => fetchLabels(query),
   })),
 }
 
@@ -277,6 +276,7 @@ const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectStatusIcon />,
   label: 'Project status',
+  inputPlaceholder: 'Project status...',
   nodes: [
     {
       kind: 'item',
@@ -315,6 +315,7 @@ const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectPropertiesIcon />,
   label: 'Project properties',
+  inputPlaceholder: 'Project properties...',
   nodes: [projectStatusMenu],
 }
 

@@ -14,11 +14,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./loaders/tanstack-query": {
-      "types": "./dist/loaders/tanstack-query.d.ts",
-      "import": "./dist/loaders/tanstack-query.js",
-      "require": "./dist/loaders/tanstack-query.cjs"
     }
   },
   "files": [
@@ -42,16 +37,11 @@
     "vitest": "^4.0.8"
   },
   "peerDependencies": {
-    "@tanstack/react-query": ">=5.0.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
-  "peerDependenciesMeta": {
-    "@tanstack/react-query": {
-      "optional": true
-    }
-  },
   "dependencies": {
+    "@bazza-ui/loaders": "*",
     "@bazza-ui/theming": "*",
     "@radix-ui/primitive": "^1.1.3",
     "@radix-ui/react-compose-refs": "^1.1.2",

@@ -86,7 +86,3 @@ export type {
   SearchResult,
   CreateNewConfig,
 } from '@bazza-ui/menu'
-
-// Loader - re-exported from @bazza-ui/menu for developer convenience
-export { LoaderAdapterProvider, useLoaderAdapter } from '@bazza-ui/menu'
-export type { LoaderAdapter } from '@bazza-ui/menu'

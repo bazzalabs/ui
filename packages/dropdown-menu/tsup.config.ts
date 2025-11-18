@@ -3,7 +3,6 @@ import { defineConfig, type Options } from 'tsup'
 export default defineConfig((options: Options) => ({
   entry: {
     index: './src/index.ts',
-    'loaders/tanstack-query': './src/loaders/tanstack-query.tsx',
   },
   format: ['esm', 'cjs'],
   dts: true,
