@@ -1,0 +1,86 @@
+---
+title: Configuration
+section: Foundations
+summary: "Configure labels, icons, disabled state, and callbacks for menu nodes."
+---
+
+# Configuration
+
+Learn how to configure menu nodes with labels, icons, disabled state, keywords, and more.
+
+## Topics to Cover
+
+### Labels
+- Required `label` property for items, groups, submenus
+- Display text shown to users
+- Keep concise and action-oriented
+
+### Icons
+- `icon` property accepts React elements
+- Usually from icon libraries (lucide-react, heroicons, etc.)
+- Positioned on the left by default
+- Size recommendations (size-4 typically)
+
+### Descriptions
+- `description` property for subtitle/helper text
+- Useful for explaining what an action does
+- Shown below the label
+
+### Disabled State
+- `disabled: boolean` property
+- Grays out the item, prevents interaction
+- Useful for conditional availability
+- Can be dynamic based on app state
+
+### Keywords (for search)
+- `keywords: string[]` array
+- Used by search/filter functionality
+- Helps users find items with fuzzy matching
+- Example: keywords: ['preferences', 'config', 'options'] for "Settings"
+
+### closeOnSelect
+- Controls whether menu closes when item selected
+- Default: `true` for button items
+- Set to `false` to keep menu open
+- Access `close()` function in onSelect for manual control
+
+### Extended Properties
+- `className` - Additional CSS classes
+- `data-*` - Custom data attributes
+- `style` - Inline styles (not recommended)
+
+### Defaults System
+- Set default properties at menu level
+- Applies to all nodes of that type unless overridden
+- Example: default onSelect handler for all items
+
+### Example: Comprehensive Configuration
+```tsx
+const menu = {
+  defaults: {
+    item: {
+      onSelect: ({ node }) => console.log('Selected:', node.label)
+    }
+  },
+  nodes: [
+    {
+      kind: 'item',
+      id: 'copy',
+      label: 'Copy',
+      description: 'Copy selection to clipboard',
+      icon: <CopyIcon className="size-4" />,
+      disabled: !hasSelection,
+      keywords: ['copy', 'duplicate', 'clone'],
+      className: 'custom-class',
+      onSelect: ({ node, close }) => {
+        copyToClipboard()
+        close()
+      }
+    }
+  ]
+}
+```
+
+## Next Steps
+- [Items](/docs/menu/items) - Item-specific configuration
+- [Styling](/docs/menu/styling) - Theming and visual customization

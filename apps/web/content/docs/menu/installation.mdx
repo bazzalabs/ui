@@ -1,0 +1,95 @@
+---
+title: Installation
+section: Menu
+summary: "Install menu components for your project - command menus, dropdown menus, and context menus."
+---
+
+# Installation
+
+All bazza-ui menu components share a common foundation built on the `@bazza-ui/menu` primitive. Choose the menu type that fits your use case and install it using one of the methods below.
+
+## Choose Your Menu Type
+
+- **[Command Menu](/docs/menu/command-menu)** - Global keyboard-driven command palette with paged navigation
+- **[Dropdown Menu](/docs/menu/dropdown-menu)** - Button-triggered menu with nested popovers
+- **[Context Menu](/docs/menu/context-menu)** - Right-click triggered menu with cursor positioning
+
+## Installation Methods
+
+Each menu component can be installed in two ways:
+
+### 1. Registry Installation (Recommended)
+
+Install pre-styled components with shadcn defaults:
+
+```bash
+# Command Menu
+npx shadcn@latest add https://ui.bazza.dev/r/command-menu
+
+# Dropdown Menu
+npx shadcn@latest add https://ui.bazza.dev/r/dropdown-menu
+
+# Context Menu
+npx shadcn@latest add https://ui.bazza.dev/r/context-menu
+```
+
+This method includes:
+- Pre-configured styling with CSS variables
+- Example components and utilities
+- TypeScript support out of the box
+
+### 2. NPM Package Installation
+
+Install unstyled primitives for full control:
+
+```bash
+# Command Menu
+npm install @bazza-ui/command-menu @bazza-ui/menu
+
+# Dropdown Menu
+npm install @bazza-ui/dropdown-menu @bazza-ui/menu
+
+# Context Menu
+npm install @bazza-ui/context-menu @bazza-ui/menu
+```
+
+**Note:** The `@bazza-ui/menu` package is an internal primitive required by all menu components. You don't need to import from it directly.
+
+## Peer Dependencies
+
+All menu components require React 18+:
+
+```json
+{
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}
+```
+
+## Optional Dependencies
+
+### React Query (for async loading)
+
+If you plan to use async data loading, install React Query:
+
+```bash
+npm install @tanstack/react-query
+```
+
+See [Async Loading](/docs/menu/async-loading) for more information.
+
+## Component-Specific Setup
+
+Each menu type has unique setup requirements:
+
+- **Command Menu** - [Global shortcuts and dialog configuration](/docs/menu/command-menu#installation)
+- **Dropdown Menu** - [Trigger button setup](/docs/menu/dropdown-menu#installation)
+- **Context Menu** - [Right-click handler setup](/docs/menu/context-menu#installation)
+
+## Next Steps
+
+- Learn about [Menu Structure](/docs/menu/menu-structure) and shared concepts
+- Start with the [Quick Start](/docs/menu/quick-start) guide
+- Explore component-specific documentation for your chosen menu type

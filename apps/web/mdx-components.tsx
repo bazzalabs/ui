@@ -10,6 +10,7 @@ import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
 import { ComponentsList } from './components/components-list'
 import { Examples } from './components/examples'
+import { Media } from './components/media'
 import PropRow from './components/prop-row'
 import { PropsTable } from './components/props-table'
 import { ResponsiveImage } from './components/responsive-image'
@@ -122,7 +123,7 @@ const components = {
   ),
   u: (props) => <u className="underline underline-offset-2" {...props} />,
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className={cn('font-semibold', className)} {...props} />
+    <strong className={cn('font-medium text-primary', className)} {...props} />
   ),
   ul: ({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
     <ul
@@ -279,6 +280,9 @@ const components = {
   PropRow,
   PropsTable,
   ComponentsList,
+  Media: ({ wrapperClassName, ...props }) => (
+    <Media wrapperClassName={cn('mb-6 mt-2', wrapperClassName)} {...props} />
+  ),
 } satisfies MDXComponents
 
 export function useMDXComponents(): MDXComponents {

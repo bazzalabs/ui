@@ -1,0 +1,47 @@
+---
+title: Anatomy
+component: Menu
+section: Core
+summary: "The different components that make up a menu's structure."
+---
+
+import { cn } from '@/lib/utils'
+
+When we talk about a menu, it's important to understand its anatomy.
+
+Let's take a look at a menu:
+
+<Media
+  src={{
+    light: "/menu/menu-anatomy-light.png",
+    dark: "/menu/menu-anatomy-dark.png",
+  }}
+  width={1177}
+  height={1983}
+  type="image"
+  objectFit="contain"
+  inset="16px"
+  alt="Subtle cursor-origin background scale button"
+  wrapperClassName={cn(
+    'z-10',
+    'rounded-xl h-[400px] w-full overflow-clip border',
+  )}
+/>
+
+The **menu surface** is the main container that holds all the menu components.
+
+-----
+
+The **menu input** is used to search/filter menu nodes in the surface (and descendant submenus, too, via deep search).
+
+It always remains focused, even during keyboard navigation, clicks, and other interactions.
+
+---
+
+The **menu list** is the main container for menu nodes.
+
+It is a scrollable element and can contain items, submenu triggers, and other nodes.
+
+-----
+
+The **menu header** and **menu footer** are optional components that can be used to provide additional information or actions related to the menu.

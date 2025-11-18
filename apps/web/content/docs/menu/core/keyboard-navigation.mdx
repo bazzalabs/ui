@@ -1,0 +1,94 @@
+---
+title: Keyboard Navigation
+section: Foundations
+summary: "Navigate menus efficiently with keyboard shortcuts and arrow keys."
+---
+
+# Keyboard Navigation
+
+All bazza-ui menus support full keyboard navigation for accessibility and power users.
+
+## Topics to Cover
+
+### Core Navigation Keys
+- **Arrow Up/Down**: Navigate between items
+- **Arrow Right**: Open submenu / Enter submenu
+- **Arrow Left**: Close submenu / Go back to parent
+- **Enter**: Select current item / Enter submenu
+- **Escape**: Close menu / Go back to parent
+- **Tab**: (behavior varies by menu type)
+
+### Home/End Keys
+- **Home**: Jump to first item
+- **End**: Jump to last item
+
+### Type-ahead/Search
+- Start typing to filter items
+- Fuzzy search in command menu
+- Incremental search in dropdown/context menus
+
+### Vim Bindings (Optional)
+- Available in command menu
+- `Ctrl+j` / `Ctrl+k`: Next/Previous item
+- `Ctrl+n` / `Ctrl+p`: Next/Previous item
+- Enable with `vimBindings` prop
+
+### Global Shortcuts (Command Menu)
+- Custom keyboard shortcuts to open menu
+- `shortcut` prop: `"cmd+k"`, `"ctrl+k"`, `"/"`
+- Multiple shortcuts: `shortcut={['cmd+k', 'ctrl+k']}`
+- Supports modifiers: cmd/ctrl/alt/shift
+
+### Focus Management
+- Auto-focus first item on open
+- Maintain focus within menu (trap focus)
+- Return focus to trigger on close
+
+### Accessibility (a11y)
+- Proper ARIA attributes
+- Screen reader announcements
+- Keyboard-only navigation support
+- Focus indicators
+
+### Example: Custom Shortcut
+```tsx
+<CommandMenu
+  shortcut="cmd+k"
+  menu={menu}
+/>
+
+// Multiple shortcuts
+<CommandMenu
+  shortcut={['cmd+k', 'ctrl+k', '/']}
+  menu={menu}
+/>
+```
+
+### Example: Vim Bindings
+```tsx
+<CommandMenu
+  vimBindings={true}
+  menu={menu}
+/>
+```
+
+### Menu-Specific Behavior
+
+**Command Menu:**
+- Enter opens submenu (pushes to stack)
+- Escape goes back in navigation stack or closes menu
+- Breadcrumb-aware navigation
+
+**Dropdown/Context Menu:**
+- Right arrow opens submenu popover
+- Left arrow closes submenu popover
+- Hover can also open submenus (not keyboard-triggered)
+
+### Preventing Default Behavior
+- Items can override default keyboard behavior
+- Use `onKeyDown` handlers if needed
+- Not recommended (breaks user expectations)
+
+## Next Steps
+- [Command Menu](/docs/menu/command-menu) - Global shortcuts
+- [Async Loading](/docs/menu/async-loading) - Loading states during navigation

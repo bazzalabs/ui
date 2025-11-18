@@ -15,6 +15,7 @@ export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
     schema: frontmatterSchema.extend({
+      component: z.string().optional(),
       summary: z.string(),
       section: z.string().optional(),
       badge: z.enum(['alpha', 'beta']).optional(),

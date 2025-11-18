@@ -1,0 +1,121 @@
+---
+title: Popup Menus
+section: Components
+summary: "Shared concepts for dropdown and context menus using nested popovers."
+---
+
+# Popup Menus
+
+Popup menus are the foundation for both dropdown and context menus. They use floating popovers that can nest infinitely.
+
+## Topics to Cover
+
+### What Are Popup Menus?
+- Internal primitive (`@bazza-ui/popup-menu`) used by dropdown and context menus
+- Renders as floating popovers (using Floating UI)
+- Supports nested submenus as adjacent popovers
+- Not used directly (use dropdown-menu or context-menu instead)
+
+### Nested Popovers
+- Submenus open as new popovers positioned beside parent
+- Infinite nesting support
+- Smart positioning (flips when near viewport edge)
+- Intent zones prevent accidental close
+
+### Positioning System
+- Built on Floating UI (formerly Popper.js)
+- Automatic collision detection
+- Flips/shifts to stay in viewport
+- Configurable side, alignment, offset
+
+### Side Options
+- `top`, `right`, `bottom`, `left`
+- Default: `bottom` for dropdown, cursor position for context
+
+### Alignment Options
+- `start`, `center`, `end`
+- Aligns popover relative to trigger/anchor
+
+### Offset & Padding
+- `offset`: Distance from trigger (px)
+- `sideOffset`: Specific side offset
+- `alignOffset`: Alignment offset
+- `collisionPadding`: Viewport edge padding
+
+### Intent Zones
+- Invisible triangular area between menu and submenu
+- Allows diagonal mouse movement to submenu
+- Prevents accidental submenu close
+- Improves UX for nested navigation
+
+### Hover Behavior
+- Hover to open submenus (configurable)
+- Delay before opening
+- Delay before closing
+- Click-to-open also supported
+
+### Animation
+- Enter/exit animations
+- CSS transitions and keyframes
+- Data attributes for animation states
+- `data-state`: 'open' | 'closed'
+
+### Z-Index Management
+- Automatic z-index stacking
+- Nested menus have higher z-index
+- Configurable base z-index
+
+### Mobile Considerations
+- Touch-friendly hit areas
+- No hover on mobile (click/tap only)
+- Optional drawer mode on mobile
+- Long-press for context menus
+
+### Accessibility
+- ARIA roles: `menu`, `menuitem`, `menuitemcheckbox`, `menuitemradio`
+- Focus management across nested popovers
+- Keyboard navigation (arrows, enter, escape)
+- Screen reader support
+
+## Shared Between Dropdown & Context
+
+Both dropdown and context menus share:
+- Nested popover rendering
+- Positioning system
+- Intent zones
+- Keyboard navigation
+- Accessibility features
+
+Differences:
+- **Dropdown**: Triggered by button click, positioned relative to button
+- **Context**: Triggered by right-click, positioned at cursor (virtual anchor)
+
+## Example: Nested Popovers
+```tsx
+<DropdownMenu
+  menu={{
+    nodes: [
+      {
+        kind: 'submenu',
+        label: 'Export',
+        nodes: [
+          {
+            kind: 'submenu',
+            label: 'Document',
+            nodes: [
+              { kind: 'item', id: 'pdf', label: 'PDF' },
+              { kind: 'item', id: 'docx', label: 'Word' }
+            ]
+          }
+        ]
+      }
+    ]
+  }}
+/>
+```
+
+## Next Steps
+- [Dropdown Menu](/docs/menu/dropdown-menu) - Button-triggered popover menus
+- [Context Menu](/docs/menu/context-menu) - Right-click popover menus
+- [Positioning](/docs/action-menu/positioning) - Advanced positioning options
+- [Intent Zone](/docs/action-menu/intent-zone) - Intent zone details

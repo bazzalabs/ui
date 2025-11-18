@@ -1,0 +1,173 @@
+---
+title: Command Menu
+section: Components
+summary: "Keyboard-driven command palette with paged navigation and fuzzy search."
+---
+
+# Command Menu
+
+A command palette component for keyboard-first command execution. Uses paged navigation with breadcrumbs instead of nested popovers.
+
+## Installation
+
+### Registry (Recommended)
+```bash
+npx shadcn@latest add https://ui.bazza.dev/r/command-menu
+```
+
+### NPM Package
+```bash
+npm install @bazza-ui/command-menu @bazza-ui/menu
+```
+
+## Quick Start
+
+```tsx
+import { CommandMenu } from '@bazza-ui/command-menu'
+import { useState } from 'react'
+
+function App() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <CommandMenu
+      open={open}
+      onOpenChange={setOpen}
+      shortcut="cmd+k"
+      placeholder="Type a command..."
+      menu={{
+        nodes: [
+          {
+            kind: 'item',
+            id: 'dashboard',
+            label: 'Dashboard',
+            onSelect: () => navigate('/dashboard')
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+## Topics to Cover
+
+### Unique Features
+- **Paged Navigation**: Submenus replace current view (not nested popovers)
+- **Breadcrumbs**: Shows navigation path with back button
+- **Global Shortcuts**: cmd+k, ctrl+k, / to open
+- **Modal Dialog**: Center-screen dialog (Radix Dialog)
+- **Fuzzy Search**: Built-in command-score algorithm
+- **Navigation Stack**: Push/pop submenus like page navigation
+
+### Global Keyboard Shortcuts
+- `shortcut` prop: `"cmd+k"`, `"ctrl+k"`, `"/"`
+- Multiple shortcuts: `shortcut={['cmd+k', 'ctrl+k']}`
+- Auto-registers global listener
+- Modifiers: cmd, ctrl, shift, alt
+
+### Paged Navigation
+- Select submenu → pushes to navigation stack
+- Breadcrumb shows current path
+- Back button or Escape to go back
+- Different UX than dropdown menus
+
+### Breadcrumbs
+- Shows navigation path
+- Clickable breadcrumb items
+- Uses `title` property from submenus
+- Can be hidden with `showBreadcrumbs={false}`
+
+### Search & Filtering
+- Fuzzy search across all items
+- `keywords` property for better matching
+- Server-side search with async loaders
+- Deep search across nested submenus
+
+### Vim Bindings
+- Optional vim-style navigation
+- `vimBindings` prop
+- `Ctrl+j/k/n/p` for navigation
+
+### Compound Components
+- `CommandMenuRoot`: Context provider
+- `CommandMenuTrigger`: Shortcut registration
+- `CommandMenuContent`: Dialog content
+- `CommandMenuInput`: Search input
+- `CommandMenuList`: Items list
+- `CommandMenuBreadcrumbs`: Navigation breadcrumbs
+
+### Example: Full Featured
+```tsx
+<CommandMenu
+  open={open}
+  onOpenChange={setOpen}
+  shortcut={['cmd+k', '/']}
+  placeholder="Search commands..."
+  vimBindings={true}
+  showBreadcrumbs={true}
+  menu={{
+    nodes: [
+      {
+        kind: 'submenu',
+        id: 'file',
+        label: 'File',
+        title: 'File Operations',
+        nodes: [
+          {
+            kind: 'submenu',
+            id: 'export',
+            label: 'Export',
+            title: 'Export Options',
+            nodes: [
+              { kind: 'item', id: 'pdf', label: 'PDF' },
+              { kind: 'item', id: 'csv', label: 'CSV' }
+            ]
+          }
+        ]
+      }
+    ]
+  }}
+/>
+```
+
+### Use Cases
+- App-wide command palette (VS Code style)
+- Global search and navigation
+- Power user features
+- Keyboard-first workflows
+- Action launcher
+
+### Comparison with Dropdown
+| Feature | Command Menu | Dropdown Menu |
+|---------|--------------|---------------|
+| Trigger | Global shortcut | Button click |
+| Layout | Modal dialog | Popover |
+| Submenus | Paged (stack) | Nested popovers |
+| Search | Built-in fuzzy | Optional |
+| Position | Center screen | Relative to button |
+
+### API Reference
+- Component props
+- Compound component APIs
+- TypeScript types
+- Event handlers
+
+## Examples
+
+Link to existing examples:
+- Basic command menu
+- With groups
+- Paged submenus
+- Nested submenus
+- Multiple shortcuts
+- Vim bindings
+- Icons & descriptions
+- Async loading
+- Deep search
+
+## Next Steps
+- [Popup Menus](/docs/menu/popup-menus) - Understand popover-based menus
+- [Dropdown Menu](/docs/menu/dropdown-menu) - Alternative menu type
+- [Keyboard Navigation](/docs/menu/keyboard-navigation) - Keyboard shortcuts
+- [Async Loading](/docs/menu/async-loading) - Dynamic content

@@ -50,6 +50,18 @@ const items = [
   },
 ]
 
+type MenuItem =
+  | {
+      type: 'link'
+      title: React.ReactNode
+      url: string
+    }
+  | {
+      type: 'collapsible'
+      title: React.ReactNode
+      items: MenuItem[]
+    }
+
 type ComponentItem =
   | {
       type: 'single'
@@ -64,7 +76,7 @@ type ComponentItem =
       badge?: React.ReactNode
       groups: Array<{
         groupName: string
-        items: Array<{ title: React.ReactNode; url: string }>
+        items: MenuItem[]
       }>
     }
 
@@ -76,34 +88,134 @@ const componentItems: ComponentItem[] = [
   },
   {
     type: 'collapsible',
-    title: 'Command Menu',
-    urlPrefix: '/docs/command-menu',
+    title: 'Menu',
+    urlPrefix: '/docs/menu',
     groups: [
       {
         groupName: 'Getting Started',
-        items: [{ title: 'Examples', url: '/docs/command-menu/examples' }],
+        items: [
+          {
+            type: 'link',
+            title: 'Introduction',
+            url: '/docs/menu/introduction',
+          },
+          {
+            type: 'link',
+            title: 'Installation',
+            url: '/docs/menu/installation',
+          },
+          { type: 'link', title: 'Quick Start', url: '/docs/menu/quick-start' },
+        ],
       },
-    ],
-  },
-  {
-    type: 'collapsible',
-    title: 'Dropdown Menu',
-    urlPrefix: '/docs/dropdown-menu',
-    groups: [
       {
-        groupName: 'Getting Started',
-        items: [{ title: 'Examples', url: '/docs/dropdown-menu/examples' }],
+        groupName: 'Core',
+        items: [
+          { type: 'link', title: 'Overview', url: '/docs/menu/core/overview' },
+          { type: 'link', title: 'Anatomy', url: '/docs/menu/core/anatomy' },
+          {
+            type: 'collapsible',
+            title: 'Model',
+            items: [
+              {
+                type: 'link',
+                title: 'Nodes',
+                url: '/docs/menu/core/model/nodes',
+              },
+              {
+                type: 'link',
+                title: 'Item',
+                url: '/docs/menu/core/model/item',
+              },
+              {
+                type: 'link',
+                title: 'Group',
+                url: '/docs/menu/core/model/group',
+              },
+              {
+                type: 'link',
+                title: 'Submenu',
+                url: '/docs/menu/core/model/submenu',
+              },
+              {
+                type: 'link',
+                title: 'Separator',
+                url: '/docs/menu/core/model/separator',
+              },
+            ],
+          },
+          {
+            type: 'link',
+            title: 'Keyboard Shortcuts',
+            url: '/docs/menu/shortcuts',
+          },
+          {
+            type: 'link',
+            title: 'Focus Management',
+            url: '/docs/menu/focus',
+          },
+          {
+            type: 'collapsible',
+            title: 'Theming',
+            items: [
+              {
+                type: 'link',
+                title: 'Concepts',
+                url: '/docs/menu/theming/concepts',
+              },
+              {
+                type: 'link',
+                title: 'Slots',
+                url: '/docs/menu/theming/slots',
+              },
+              {
+                type: 'link',
+                title: 'Slot Props',
+                url: '/docs/menu/theming/slot-props',
+              },
+              {
+                type: 'link',
+                title: 'Class names',
+                url: '/docs/menu/theming/classnames',
+              },
+              {
+                type: 'link',
+                title: 'Custom Rendering',
+                url: '/docs/menu/theming/custom-rendering',
+              },
+            ],
+          },
+          {
+            type: 'link',
+            title: (
+              <div>
+                Loaders{' '}
+                <span className="text-muted-foreground">(Async Nodes)</span>
+              </div>
+            ),
+            url: '/docs/menu/loaders',
+          },
+        ],
       },
-    ],
-  },
-  {
-    type: 'collapsible',
-    title: 'Context Menu',
-    urlPrefix: '/docs/context-menu',
-    groups: [
       {
-        groupName: 'Getting Started',
-        items: [{ title: 'Examples', url: '/docs/context-menu/examples' }],
+        groupName: 'Components',
+        items: [
+          { type: 'link', title: 'Popup Menus', url: '/docs/menu/popup-menus' },
+          {
+            type: 'link',
+            title: 'Command Menu',
+            url: '/docs/menu/command-menu',
+          },
+          {
+            type: 'link',
+            title: 'Dropdown Menu',
+            url: '/docs/menu/dropdown-menu',
+          },
+          {
+            type: 'link',
+            title: 'Context Menu',
+            url: '/docs/menu/context-menu',
+          },
+        ],
       },
     ],
   },
@@ -116,23 +228,53 @@ const componentItems: ComponentItem[] = [
       {
         groupName: 'Getting Started',
         items: [
-          { title: 'Introduction', url: '/docs/action-menu/introduction' },
-          { title: 'Installation', url: '/docs/action-menu/installation' },
-          { title: 'Quick Start', url: '/docs/action-menu/quick-start' },
-          { title: 'Examples', url: '/docs/action-menu/examples' },
+          {
+            type: 'link',
+            title: 'Introduction',
+            url: '/docs/action-menu/introduction',
+          },
+          {
+            type: 'link',
+            title: 'Installation',
+            url: '/docs/action-menu/installation',
+          },
+          {
+            type: 'link',
+            title: 'Quick Start',
+            url: '/docs/action-menu/quick-start',
+          },
+          {
+            type: 'link',
+            title: 'Examples',
+            url: '/docs/action-menu/examples',
+          },
         ],
       },
       {
         groupName: 'Concepts',
         items: [
-          { title: 'Data-First API', url: '/docs/action-menu/data-first-api' },
-          { title: 'Menu Structure', url: '/docs/action-menu/menu-structure' },
-          { title: 'Node Types', url: '/docs/action-menu/node-types' },
           {
+            type: 'link',
+            title: 'Data-First API',
+            url: '/docs/action-menu/data-first-api',
+          },
+          {
+            type: 'link',
+            title: 'Menu Structure',
+            url: '/docs/action-menu/menu-structure',
+          },
+          {
+            type: 'link',
+            title: 'Node Types',
+            url: '/docs/action-menu/node-types',
+          },
+          {
+            type: 'link',
             title: 'State Management',
             url: '/docs/action-menu/state-management',
           },
           {
+            type: 'link',
             title: 'Responsive Behavior',
             url: '/docs/action-menu/responsive-behavior',
           },
@@ -141,51 +283,116 @@ const componentItems: ComponentItem[] = [
       {
         groupName: 'Features',
         items: [
-          { title: 'Node Configuration', url: '/docs/action-menu/nodes' },
-          { title: 'Async Loading', url: '/docs/action-menu/async' },
-          { title: 'Search & Filtering', url: '/docs/action-menu/search' },
-          { title: 'Keyboard Navigation', url: '/docs/action-menu/keyboard' },
-          { title: 'Focus Management', url: '/docs/action-menu/focus' },
-          { title: 'Positioning', url: '/docs/action-menu/positioning' },
-          { title: 'Theming', url: '/docs/action-menu/theming' },
-          { title: 'Virtualization', url: '/docs/action-menu/virtualization' },
-          { title: 'Middleware', url: '/docs/action-menu/middleware' },
           {
+            type: 'link',
+            title: 'Node Configuration',
+            url: '/docs/action-menu/nodes',
+          },
+          {
+            type: 'link',
+            title: 'Async Loading',
+            url: '/docs/action-menu/async',
+          },
+          {
+            type: 'link',
+            title: 'Search & Filtering',
+            url: '/docs/action-menu/search',
+          },
+          {
+            type: 'link',
+            title: 'Keyboard Navigation',
+            url: '/docs/action-menu/keyboard',
+          },
+          {
+            type: 'link',
+            title: 'Focus Management',
+            url: '/docs/action-menu/focus',
+          },
+          {
+            type: 'link',
+            title: 'Positioning',
+            url: '/docs/action-menu/positioning',
+          },
+          { type: 'link', title: 'Theming', url: '/docs/action-menu/theming' },
+          {
+            type: 'link',
+            title: 'Virtualization',
+            url: '/docs/action-menu/virtualization',
+          },
+          {
+            type: 'link',
+            title: 'Middleware',
+            url: '/docs/action-menu/middleware',
+          },
+          {
+            type: 'link',
             title: 'Extended Properties',
             url: '/docs/action-menu/extended-properties',
           },
-          { title: 'Defaults', url: '/docs/action-menu/defaults' },
+          {
+            type: 'link',
+            title: 'Defaults',
+            url: '/docs/action-menu/defaults',
+          },
         ],
       },
       {
         groupName: 'Advanced',
         items: [
           {
+            type: 'link',
             title: 'Loader Adapters',
             url: '/docs/action-menu/loader-adapters',
           },
-          { title: 'Deep Search', url: '/docs/action-menu/deep-search' },
-          { title: 'Intent Zone', url: '/docs/action-menu/intent-zone' },
           {
+            type: 'link',
+            title: 'Deep Search',
+            url: '/docs/action-menu/deep-search',
+          },
+          {
+            type: 'link',
+            title: 'Intent Zone',
+            url: '/docs/action-menu/intent-zone',
+          },
+          {
+            type: 'link',
             title: 'Custom Rendering',
             url: '/docs/action-menu/custom-rendering',
           },
           {
+            type: 'link',
             title: 'Performance Optimization',
             url: '/docs/action-menu/performance',
           },
-          { title: 'Accessibility', url: '/docs/action-menu/accessibility' },
-          { title: 'RTL Support', url: '/docs/action-menu/rtl' },
+          {
+            type: 'link',
+            title: 'Accessibility',
+            url: '/docs/action-menu/accessibility',
+          },
+          { type: 'link', title: 'RTL Support', url: '/docs/action-menu/rtl' },
         ],
       },
       {
         groupName: 'Components',
         items: [
-          { title: 'Select', url: '/docs/action-menu/select' },
-          { title: 'MultiSelect', url: '/docs/action-menu/multiselect' },
-          { title: 'Dropdown Menu', url: '/docs/action-menu/dropdown-menu' },
-          { title: 'Context Menu', url: '/docs/action-menu/context-menu' },
+          { type: 'link', title: 'Select', url: '/docs/action-menu/select' },
           {
+            type: 'link',
+            title: 'MultiSelect',
+            url: '/docs/action-menu/multiselect',
+          },
+          {
+            type: 'link',
+            title: 'Dropdown Menu',
+            url: '/docs/action-menu/dropdown-menu',
+          },
+          {
+            type: 'link',
+            title: 'Context Menu',
+            url: '/docs/action-menu/context-menu',
+          },
+          {
+            type: 'link',
             title: 'Command Palette',
             url: '/docs/action-menu/command-palette',
           },
@@ -194,13 +401,81 @@ const componentItems: ComponentItem[] = [
       {
         groupName: 'Reference',
         items: [
-          { title: 'API Reference', url: '/docs/action-menu/api-reference' },
-          { title: 'TypeScript Types', url: '/docs/action-menu/typescript' },
+          {
+            type: 'link',
+            title: 'API Reference',
+            url: '/docs/action-menu/api-reference',
+          },
+          {
+            type: 'link',
+            title: 'TypeScript Types',
+            url: '/docs/action-menu/typescript',
+          },
         ],
       },
     ],
   },
 ]
+
+// Helper function to check if a menu item or any of its descendants contain the active URL
+function containsActiveUrl(item: MenuItem, pathname: string): boolean {
+  if (item.type === 'link') {
+    return item.url === pathname
+  }
+  return item.items.some((child) => containsActiveUrl(child, pathname))
+}
+
+// Recursive component for rendering menu items
+function MenuItemRenderer({
+  item,
+  pathname,
+}: {
+  item: MenuItem
+  pathname: string
+}) {
+  if (item.type === 'link') {
+    return (
+      <SidebarMenuSubButton asChild isActive={pathname === item.url}>
+        <Link href={item.url}>{item.title}</Link>
+      </SidebarMenuSubButton>
+    )
+  }
+
+  // Collapsible menu item
+  const hasActiveChild = containsActiveUrl(item, pathname)
+
+  return (
+    <Collapsible
+      asChild
+      defaultOpen={hasActiveChild}
+      className="group/nested-collapsible"
+    >
+      <li>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuSubButton className="group-data-[state=open]/nested-collapsible:text-primary **:cursor-pointer">
+            {item.title}
+            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
+          </SidebarMenuSubButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {item.items.map((child, index) => (
+              <MenuItemRenderer
+                key={
+                  child.type === 'link'
+                    ? child.url
+                    : `collapsible-${child.title}-${index}`
+                }
+                item={child}
+                pathname={pathname}
+              />
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </li>
+    </Collapsible>
+  )
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -307,14 +582,16 @@ export function AppSidebar() {
                                   {group.groupName}
                                 </span>
                                 <div className="flex flex-col gap-y-px -translate-x-1.5">
-                                  {group.items.map((item) => (
-                                    <SidebarMenuSubButton
-                                      asChild
-                                      key={item.url}
-                                      isActive={pathname === item.url}
-                                    >
-                                      <Link href={item.url}>{item.title}</Link>
-                                    </SidebarMenuSubButton>
+                                  {group.items.map((item, itemIndex) => (
+                                    <MenuItemRenderer
+                                      key={
+                                        item.type === 'link'
+                                          ? item.url
+                                          : `collapsible-${item.title}-${itemIndex}`
+                                      }
+                                      item={item}
+                                      pathname={pathname}
+                                    />
                                   ))}
                                 </div>
                               </div>

@@ -1,0 +1,202 @@
+---
+title: Quick Start
+section: Menu
+summary: "Get started with bazza-ui menus in minutes with these minimal examples."
+---
+
+# Quick Start
+
+Get up and running with bazza-ui menus in minutes. This guide shows minimal examples for each menu type.
+
+## Prerequisites
+
+Make sure you've [installed](/docs/menu/installation) the menu component you want to use.
+
+## Quick Start by Menu Type
+
+### Command Menu
+
+A keyboard-driven command palette with global shortcuts:
+
+```tsx
+import { CommandMenu } from '@bazza-ui/command-menu'
+import { useState } from 'react'
+
+function App() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <CommandMenu
+      open={open}
+      onOpenChange={setOpen}
+      shortcut="cmd+k"
+      placeholder="Type a command..."
+      menu={{
+        nodes: [
+          {
+            kind: 'item',
+            id: 'dashboard',
+            label: 'Dashboard',
+            onSelect: () => console.log('Navigate to dashboard')
+          },
+          {
+            kind: 'item',
+            id: 'settings',
+            label: 'Settings',
+            onSelect: () => console.log('Open settings')
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+**Key features:**
+- Global keyboard shortcut (cmd+k)
+- Modal dialog interface
+- Paged navigation for submenus
+
+[See full Command Menu docs →](/docs/menu/command-menu)
+
+### Dropdown Menu
+
+A button-triggered menu with nested popovers:
+
+```tsx
+import { DropdownMenu } from '@bazza-ui/dropdown-menu'
+
+function App() {
+  return (
+    <DropdownMenu
+      trigger={<button>Actions</button>}
+      menu={{
+        nodes: [
+          {
+            kind: 'item',
+            id: 'edit',
+            label: 'Edit',
+            onSelect: () => console.log('Edit clicked')
+          },
+          {
+            kind: 'item',
+            id: 'delete',
+            label: 'Delete',
+            onSelect: () => console.log('Delete clicked')
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+**Key features:**
+- Attached to a trigger button
+- Popover positioning
+- Nested submenus as popovers
+
+[See full Dropdown Menu docs →](/docs/menu/dropdown-menu)
+
+### Context Menu
+
+A right-click triggered menu with cursor positioning:
+
+```tsx
+import { ContextMenu } from '@bazza-ui/context-menu'
+
+function App() {
+  return (
+    <ContextMenu
+      menu={{
+        nodes: [
+          {
+            kind: 'item',
+            id: 'copy',
+            label: 'Copy',
+            onSelect: () => console.log('Copy')
+          },
+          {
+            kind: 'item',
+            id: 'paste',
+            label: 'Paste',
+            onSelect: () => console.log('Paste')
+          }
+        ]
+      }}
+    >
+      <div className="context-area">
+        Right-click me
+      </div>
+    </ContextMenu>
+  )
+}
+```
+
+**Key features:**
+- Right-click to trigger
+- Cursor-based positioning
+- Long-press on mobile
+
+[See full Context Menu docs →](/docs/menu/context-menu)
+
+## Common Menu Structure
+
+All menu components share the same menu structure using the `nodes` array:
+
+```tsx
+const menu = {
+  nodes: [
+    // Items - clickable actions
+    {
+      kind: 'item',
+      id: 'action1',
+      label: 'Action Label',
+      onSelect: () => {}
+    },
+
+    // Groups - organize items
+    {
+      kind: 'group',
+      heading: 'Group Name',
+      nodes: [
+        { kind: 'item', id: 'item1', label: 'Item 1' },
+        { kind: 'item', id: 'item2', label: 'Item 2' }
+      ]
+    },
+
+    // Submenus - nested navigation
+    {
+      kind: 'submenu',
+      id: 'submenu1',
+      label: 'More Actions',
+      nodes: [
+        { kind: 'item', id: 'nested1', label: 'Nested Action' }
+      ]
+    }
+  ]
+}
+```
+
+## Next Steps
+
+### Learn the Foundations
+
+Before diving into component-specific features, learn the shared menu concepts:
+
+- [Menu Structure](/docs/menu/menu-structure) - Understanding the nodes array
+- [Items](/docs/menu/items) - Button, checkbox, and radio items
+- [Groups](/docs/menu/groups) - Organizing items with groups
+- [Submenus](/docs/menu/submenus) - Creating nested menus
+- [Configuration](/docs/menu/configuration) - Labels, icons, and behavior
+- [Keyboard Navigation](/docs/menu/keyboard-navigation) - Arrow keys and shortcuts
+- [Async Loading](/docs/menu/async-loading) - Loading menu data dynamically
+- [Styling](/docs/menu/styling) - Theming and customization
+
+### Explore Component-Specific Features
+
+Each menu type has unique features and use cases:
+
+- [Command Menu](/docs/menu/command-menu) - Paged navigation, breadcrumbs, global shortcuts
+- [Dropdown Menu](/docs/menu/dropdown-menu) - Trigger positioning, alignment options
+- [Context Menu](/docs/menu/context-menu) - Right-click handling, cursor positioning

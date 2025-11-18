@@ -8,7 +8,7 @@ export default function RootLayout({
 }>) {
   return (
     <SidebarProvider>
-      <div className="lg:grid lg:grid-cols-[auto_1fr] w-full h-svh lg:mr-2">
+      <div className="lg:grid lg:grid-cols-[auto_1fr] w-full h-svh lg:mr-4">
         <AppSidebar />
         <SidebarInset className="overflow-y-scroll lg:border-[0.5px] lg:border-border/75">
           {children}

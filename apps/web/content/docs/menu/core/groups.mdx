@@ -1,0 +1,503 @@
+---
+title: Groups
+section: Foundations
+summary: "Organize menu items with groups and implement radio groups for exclusive selections."
+---
+
+# Groups
+
+Groups are containers that organize related items visually. They can have optional headings and come in two variants: regular groups for organization and radio groups for exclusive selections.
+
+## Regular Groups
+
+Regular groups provide visual organization with an optional heading. They're perfect for categorizing related actions.
+
+### Basic Group
+
+```tsx
+{
+  kind: 'group',
+  id: 'edit-group',
+  heading: 'Edit',
+  nodes: [
+    { kind: 'item', id: 'cut', label: 'Cut' },
+    { kind: 'item', id: 'copy', label: 'Copy' },
+    { kind: 'item', id: 'paste', label: 'Paste' }
+  ]
+}
+```
+
+### Group Without Heading
+
+Headings are optional. Groups without headings still provide visual separation:
+
+```tsx
+{
+  kind: 'group',
+  id: 'actions',
+  // No heading property
+  nodes: [
+    { kind: 'item', id: 'action1', label: 'Action 1' },
+    { kind: 'item', id: 'action2', label: 'Action 2' }
+  ]
+}
+```
+
+### Multiple Groups
+
+```tsx
+const menu = {
+  nodes: [
+    {
+      kind: 'group',
+      id: 'file-ops',
+      heading: 'File',
+      nodes: [
+        { kind: 'item', id: 'new', label: 'New File' },
+        { kind: 'item', id: 'open', label: 'Open File' },
+        { kind: 'item', id: 'save', label: 'Save' }
+      ]
+    },
+    {
+      kind: 'group',
+      id: 'edit-ops',
+      heading: 'Edit',
+      nodes: [
+        { kind: 'item', id: 'undo', label: 'Undo' },
+        { kind: 'item', id: 'redo', label: 'Redo' }
+      ]
+    },
+    {
+      kind: 'group',
+      id: 'view-ops',
+      heading: 'View',
+      nodes: [
+        { kind: 'item', id: 'zoom-in', label: 'Zoom In' },
+        { kind: 'item', id: 'zoom-out', label: 'Zoom Out' }
+      ]
+    }
+  ]
+}
+```
+
+## Radio Groups
+
+Radio groups enable mutually exclusive selections. Only one item can be selected at a time, like radio buttons in a form.
+
+### Basic Radio Group
+
+```tsx
+import { useState } from 'react'
+
+function SortMenu() {
+  const [sortBy, setSortBy] = useState('name')
+
+  return (
+    <Menu
+      menu={{
+        nodes: [
+          {
+            kind: 'group',
+            variant: 'radio',
+            id: 'sort-group',
+            heading: 'Sort By',
+            value: sortBy,
+            onValueChange: setSortBy,
+            nodes: [
+              {
+                kind: 'item',
+                variant: 'radio',
+                id: 'name',
+                label: 'Name'
+              },
+              {
+                kind: 'item',
+                variant: 'radio',
+                id: 'date',
+                label: 'Date'
+              },
+              {
+                kind: 'item',
+                variant: 'radio',
+                id: 'size',
+                label: 'Size'
+              }
+            ]
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+### Multiple Radio Groups
+
+You can have multiple independent radio groups in the same menu:
+
+```tsx
+import { useState } from 'react'
+
+function FilterMenu() {
+  const [sortBy, setSortBy] = useState('name')
+  const [order, setOrder] = useState('asc')
+
+  return (
+    <Menu
+      menu={{
+        nodes: [
+          {
+            kind: 'group',
+            variant: 'radio',
+            id: 'sort-group',
+            heading: 'Sort By',
+            value: sortBy,
+            onValueChange: setSortBy,
+            nodes: [
+              { kind: 'item', variant: 'radio', id: 'name', label: 'Name' },
+              { kind: 'item', variant: 'radio', id: 'date', label: 'Date' },
+              { kind: 'item', variant: 'radio', id: 'size', label: 'Size' }
+            ]
+          },
+          {
+            kind: 'group',
+            variant: 'radio',
+            id: 'order-group',
+            heading: 'Order',
+            value: order,
+            onValueChange: setOrder,
+            nodes: [
+              { kind: 'item', variant: 'radio', id: 'asc', label: 'Ascending' },
+              { kind: 'item', variant: 'radio', id: 'desc', label: 'Descending' }
+            ]
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+### With Icons and Descriptions
+
+```tsx
+import { useState } from 'react'
+import { SunIcon, MoonIcon, LaptopIcon } from 'lucide-react'
+
+function ThemeMenu() {
+  const [theme, setTheme] = useState('system')
+
+  return (
+    <Menu
+      menu={{
+        nodes: [
+          {
+            kind: 'group',
+            variant: 'radio',
+            id: 'theme-group',
+            heading: 'Theme',
+            value: theme,
+            onValueChange: setTheme,
+            nodes: [
+              {
+                kind: 'item',
+                variant: 'radio',
+                id: 'light',
+                label: 'Light',
+                description: 'Light color scheme',
+                icon: <SunIcon className="size-4" />
+              },
+              {
+                kind: 'item',
+                variant: 'radio',
+                id: 'dark',
+                label: 'Dark',
+                description: 'Dark color scheme',
+                icon: <MoonIcon className="size-4" />
+              },
+              {
+                kind: 'item',
+                variant: 'radio',
+                id: 'system',
+                label: 'System',
+                description: 'Match system preference',
+                icon: <LaptopIcon className="size-4" />
+              }
+            ]
+          }
+        ]
+      }}
+    />
+  )
+}
+```
+
+## Group Properties
+
+### Regular Group
+
+```tsx
+{
+  kind: 'group',
+  id: 'unique-id',       // Required: Unique identifier
+  heading: 'Group Name', // Optional: Display heading
+  nodes: [],             // Required: Child items
+  className: 'custom'    // Optional: CSS class
+}
+```
+
+### Radio Group
+
+```tsx
+{
+  kind: 'group',
+  variant: 'radio',      // Required: Radio group variant
+  id: 'unique-id',       // Required: Unique identifier
+  value: string,         // Required: Currently selected item ID
+  onValueChange: (value: string) => {}, // Required: Selection handler
+  heading: 'Group Name', // Optional: Display heading
+  nodes: [],             // Required: Radio items only
+  className: 'custom'    // Optional: CSS class
+}
+```
+
+## Nested Content
+
+Groups can contain various node types:
+
+### Items and Separators
+
+```tsx
+{
+  kind: 'group',
+  id: 'file-group',
+  heading: 'File',
+  nodes: [
+    { kind: 'item', id: 'new', label: 'New' },
+    { kind: 'item', id: 'open', label: 'Open' },
+    { kind: 'separator', id: 'sep1' },
+    { kind: 'item', id: 'save', label: 'Save' },
+    { kind: 'item', id: 'save-as', label: 'Save As' }
+  ]
+}
+```
+
+### Submenus in Groups
+
+```tsx
+{
+  kind: 'group',
+  id: 'export-group',
+  heading: 'Export',
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'export-document',
+      label: 'Document',
+      nodes: [
+        { kind: 'item', id: 'pdf', label: 'PDF' },
+        { kind: 'item', id: 'docx', label: 'Word' }
+      ]
+    },
+    {
+      kind: 'submenu',
+      id: 'export-data',
+      label: 'Data',
+      nodes: [
+        { kind: 'item', id: 'csv', label: 'CSV' },
+        { kind: 'item', id: 'json', label: 'JSON' }
+      ]
+    }
+  ]
+}
+```
+
+## Important Constraints
+
+### No Nested Groups
+
+Groups cannot contain other groups. This is invalid:
+
+```tsx
+// ❌ Invalid - groups cannot nest
+{
+  kind: 'group',
+  id: 'outer',
+  nodes: [
+    {
+      kind: 'group',  // Not allowed!
+      id: 'inner',
+      nodes: []
+    }
+  ]
+}
+```
+
+Instead, use multiple groups at the same level:
+
+```tsx
+// ✅ Valid - groups at same level
+{
+  nodes: [
+    {
+      kind: 'group',
+      id: 'group1',
+      heading: 'Category 1',
+      nodes: [...]
+    },
+    {
+      kind: 'group',
+      id: 'group2',
+      heading: 'Category 2',
+      nodes: [...]
+    }
+  ]
+}
+```
+
+### Radio Group Item Requirements
+
+Radio groups must only contain radio items:
+
+```tsx
+// ✅ Valid - all radio items
+{
+  kind: 'group',
+  variant: 'radio',
+  id: 'sort',
+  value: sortBy,
+  onValueChange: setSortBy,
+  nodes: [
+    { kind: 'item', variant: 'radio', id: 'name', label: 'Name' },
+    { kind: 'item', variant: 'radio', id: 'date', label: 'Date' }
+  ]
+}
+
+// ❌ Invalid - button item in radio group
+{
+  kind: 'group',
+  variant: 'radio',
+  id: 'sort',
+  value: sortBy,
+  onValueChange: setSortBy,
+  nodes: [
+    { kind: 'item', id: 'name', label: 'Name' }, // Missing variant: 'radio'
+    { kind: 'item', variant: 'radio', id: 'date', label: 'Date' }
+  ]
+}
+```
+
+## Dynamic Groups
+
+Build groups from data:
+
+```tsx
+const categories = [
+  {
+    name: 'Fruits',
+    items: ['Apple', 'Banana', 'Orange']
+  },
+  {
+    name: 'Vegetables',
+    items: ['Carrot', 'Broccoli', 'Tomato']
+  }
+]
+
+const menu = {
+  nodes: categories.map(category => ({
+    kind: 'group',
+    id: category.name.toLowerCase(),
+    heading: category.name,
+    nodes: category.items.map(item => ({
+      kind: 'item',
+      id: item.toLowerCase(),
+      label: item
+    }))
+  }))
+}
+```
+
+## Visual Separation
+
+Groups automatically add visual separation between sections. You can control spacing with CSS:
+
+```tsx
+{
+  kind: 'group',
+  id: 'actions',
+  heading: 'Actions',
+  className: 'mb-4', // Custom spacing
+  nodes: [...]
+}
+```
+
+## Best Practices
+
+### Use Descriptive Headings
+
+```tsx
+// ✅ Good - clear categories
+{ heading: 'File Operations' }
+{ heading: 'View Options' }
+
+// ❌ Bad - vague
+{ heading: 'Items' }
+{ heading: 'Stuff' }
+```
+
+### Group Related Items
+
+```tsx
+// ✅ Good - logically grouped
+{
+  kind: 'group',
+  heading: 'Text Formatting',
+  nodes: [
+    { label: 'Bold' },
+    { label: 'Italic' },
+    { label: 'Underline' }
+  ]
+}
+
+// ❌ Bad - unrelated items
+{
+  kind: 'group',
+  heading: 'Actions',
+  nodes: [
+    { label: 'Bold' },
+    { label: 'Save File' },
+    { label: 'Zoom In' }
+  ]
+}
+```
+
+### Radio Groups for Exclusive Choices
+
+```tsx
+// ✅ Good - radio group for sort
+{
+  variant: 'radio',
+  heading: 'Sort By',
+  value: sortBy,
+  onValueChange: setSortBy,
+  nodes: [
+    { variant: 'radio', id: 'name', label: 'Name' },
+    { variant: 'radio', id: 'date', label: 'Date' }
+  ]
+}
+
+// ❌ Bad - multiple buttons with state
+{
+  heading: 'Sort By',
+  nodes: [
+    { label: sortBy === 'name' ? '✓ Name' : 'Name' },
+    { label: sortBy === 'date' ? '✓ Date' : 'Date' }
+  ]
+}
+```
+
+## Next Steps
+
+- [Items](/docs/menu/items) - Learn about radio items used in radio groups
+- [Submenus](/docs/menu/submenus) - Add submenus to groups
+- [Separators](/docs/menu/separators) - Add visual dividers within groups

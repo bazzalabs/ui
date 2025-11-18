@@ -1,0 +1,91 @@
+---
+title: Submenus
+section: Foundations
+summary: "Create nested menu structures with unlimited depth."
+---
+
+# Submenus
+
+Submenus enable nested navigation within menus. They can be rendered as either paged navigation (command menu) or nested popovers (dropdown/context menus).
+
+## Topics to Cover
+
+### Basic Submenu Structure
+- `kind: 'submenu'` node type
+- Required: `id`, `label`, `nodes`
+- Optional: `title` (for breadcrumbs), `icon`, `description`
+
+### Label vs Title
+- `label`: Shown in parent menu (what you click on)
+- `title`: Shown in breadcrumbs/submenu header (command menu only)
+- Example: label="Export" title="Export Options"
+
+### Nested Submenus
+- Unlimited nesting depth
+- Submenus within submenus
+- Example: Files → Export → Document → PDF
+
+### Rendering Differences
+- **Command Menu**: Pages that replace current view with breadcrumbs
+- **Dropdown/Context**: Nested popovers opening to the side
+
+### Example Code
+```tsx
+{
+  kind: 'submenu',
+  id: 'export',
+  label: 'Export',
+  title: 'Export Options',
+  icon: <DownloadIcon />,
+  nodes: [
+    { kind: 'item', id: 'pdf', label: 'PDF' },
+    { kind: 'item', id: 'csv', label: 'CSV' }
+  ]
+}
+```
+
+### Multi-Level Example
+```tsx
+{
+  kind: 'submenu',
+  id: 'file',
+  label: 'File',
+  nodes: [
+    {
+      kind: 'submenu',
+      id: 'export',
+      label: 'Export',
+      nodes: [
+        {
+          kind: 'submenu',
+          id: 'document',
+          label: 'Document',
+          nodes: [
+            { kind: 'item', id: 'pdf', label: 'PDF' },
+            { kind: 'item', id: 'docx', label: 'Word' }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Submenu Content
+- Can contain: items, groups, other submenus, separators
+- Cannot contain: radio items at root (must be in radio group)
+
+### Navigation Behavior
+- Arrow key navigation (right/enter to open, left/escape to go back)
+- Hover behavior (dropdown/context only)
+- Click behavior (all types)
+
+### Best Practices
+- Don't nest too deeply (3-4 levels max recommended)
+- Use clear labels indicating what's inside
+- Group related items within submenus
+- Use `title` for better breadcrumb context
+
+## Next Steps
+- [Configuration](/docs/menu/configuration) - Labels, icons for submenus
+- [Keyboard Navigation](/docs/menu/keyboard-navigation) - Navigating submenus

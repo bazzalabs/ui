@@ -1,0 +1,197 @@
+---
+title: Core
+section: Core
+summary: "Learn about the bazza-ui menu system and choose the right menu type for your use case."
+---
+
+# Menu Foundations
+
+The bazza-ui menu system provides a unified foundation for building accessible, keyboard-navigable menus in React. All menu components share a common data structure and behavior model, with each component specialized for different interaction patterns.
+
+## Menu Types
+
+### Command Menu
+
+A keyboard-driven command palette accessed via global shortcuts (like cmd+k). Uses a modal dialog with paged navigation where submenus replace the current view instead of opening nested popovers.
+
+**Use when:**
+- Building a global command/search interface
+- Users need quick keyboard access to actions
+- Implementing app-wide navigation (like VS Code's command palette)
+- You want a searchable list of commands
+
+**Key characteristics:**
+- Global keyboard shortcuts (cmd+k, ctrl+k, /)
+- Modal dialog interface
+- Paged navigation with breadcrumbs
+- Built-in fuzzy search
+- Navigation stack (push/pop submenus)
+
+[Learn more about Command Menu →](/docs/menu/command-menu)
+
+### Dropdown Menu
+
+A button-triggered menu that opens as a popover. Submenus appear as nested popovers positioned adjacent to their parent menu.
+
+**Use when:**
+- Attaching actions to a button or clickable element
+- Building action menus, user profile menus, or settings menus
+- You need standard desktop application menu behavior
+- Context is tied to a specific UI element
+
+**Key characteristics:**
+- Triggered by clicking a button
+- Popover positioning relative to trigger
+- Nested popovers for submenus
+- Hover and click to open submenus
+
+[Learn more about Dropdown Menu →](/docs/menu/dropdown-menu)
+
+### Context Menu
+
+A right-click triggered menu that appears at the cursor position. Uses a virtual anchor for positioning.
+
+**Use when:**
+- Providing contextual actions for an area or element
+- Right-click operations (like file explorers, code editors)
+- Touch long-press actions on mobile
+- Actions are specific to a location or element
+
+**Key characteristics:**
+- Triggered by right-click (or long-press on mobile)
+- Positioned at cursor location
+- Virtual anchor positioning
+- Same nested popover behavior as dropdown
+
+[Learn more about Context Menu →](/docs/menu/context-menu)
+
+## Shared Foundation
+
+All menu types are built on the same core primitive (`@bazza-ui/menu`) and share:
+
+### Common Menu Structure
+
+All menus use the same `nodes` array to define their content:
+
+```tsx
+const menu = {
+  nodes: [
+    { kind: 'item', id: 'action1', label: 'Action' },
+    { kind: 'group', heading: 'Group', nodes: [...] },
+    { kind: 'submenu', id: 'more', label: 'More', nodes: [...] }
+  ]
+}
+```
+
+[Learn about Menu Structure →](/docs/menu/menu-structure)
+
+### Node Types
+
+- **Items** - Clickable actions (button, checkbox, radio)
+- **Groups** - Visual organization with optional headings
+- **Submenus** - Nested navigation with child nodes
+- **Separators** - Visual dividers between sections
+
+[Explore Node Types →](/docs/menu/items)
+
+### Core Features
+
+- **Keyboard Navigation** - Arrow keys, Enter, Escape, Tab
+- **Async Loading** - Dynamic menu content with React Query
+- **Accessibility** - ARIA attributes, screen reader support
+- **Theming** - Flexible styling with data attributes
+- **Type Safety** - Full TypeScript support
+
+## Architecture Overview
+
+The menu system is composed of three layers:
+
+### 1. Internal Primitives (Not Public API)
+
+- `@bazza-ui/menu` - Core menu logic, state management, keyboard handling
+- `@bazza-ui/popup-menu` - Popover-based menu foundation for dropdown/context
+
+These are internal packages that you don't interact with directly.
+
+### 2. Public Components
+
+- `@bazza-ui/command-menu` - Dialog-based menu with paged navigation
+- `@bazza-ui/dropdown-menu` - Button-triggered popover menu
+- `@bazza-ui/context-menu` - Right-click popover menu
+
+These are the packages you install and use in your application.
+
+### 3. Shared Concepts
+
+All components share:
+- Menu structure (nodes array)
+- Node configuration (labels, icons, callbacks)
+- Keyboard navigation patterns
+- Styling approaches
+- Async loading patterns
+
+## Rendering Models
+
+### Paged Navigation (Command Menu)
+
+Submenus push to a navigation stack, replacing the current view:
+
+```
+Root Menu
+  ↓ Select "Files"
+File Menu (shows breadcrumb)
+  ↓ Select "Export"
+Export Menu (shows breadcrumb)
+  ← Back button to return
+```
+
+### Nested Popovers (Dropdown & Context)
+
+Submenus open as adjacent popovers:
+
+```
+Root Menu
+  ├─ Item 1
+  ├─ Submenu →
+  │    ├─ Nested Item 1
+  │    └─ Deeper Submenu →
+  │         └─ Deep Item
+  └─ Item 2
+```
+
+## Comparison Table
+
+| Feature | Command Menu | Dropdown Menu | Context Menu |
+|---------|--------------|---------------|--------------|
+| **Trigger** | Global shortcut (cmd+k) | Click button | Right-click/long-press |
+| **Position** | Center of screen (modal) | Relative to button | At cursor position |
+| **Interface** | Modal dialog | Popover | Popover |
+| **Submenus** | Paged (replace view) | Nested popovers | Nested popovers |
+| **Search** | Built-in fuzzy search | Optional | Optional |
+| **Breadcrumbs** | Yes (navigation stack) | No | No |
+| **Mobile** | Modal only | Drawer option | Long-press trigger |
+| **Use Case** | Global commands | Button actions | Contextual actions |
+
+## Next Steps
+
+### Understand the Foundations
+
+Learn the shared concepts that apply to all menu types:
+
+1. [Menu Structure](/docs/menu/menu-structure) - How to define menus with nodes
+2. [Items](/docs/menu/items) - Button, checkbox, and radio items
+3. [Groups](/docs/menu/groups) - Organizing items into groups
+4. [Submenus](/docs/menu/submenus) - Creating nested navigation
+5. [Configuration](/docs/menu/configuration) - Labels, icons, disabled state
+6. [Keyboard Navigation](/docs/menu/keyboard-navigation) - Arrow keys and shortcuts
+7. [Async Loading](/docs/menu/async-loading) - Dynamic menu content
+8. [Styling](/docs/menu/styling) - Theming and customization
+
+### Choose Your Component
+
+Once you understand the foundations, dive into your specific menu type:
+
+- [Command Menu](/docs/menu/command-menu) - Global command palette
+- [Popup Menus](/docs/menu/popup-menus) - Shared dropdown/context concepts
+- [Dropdown Menu](/docs/menu/dropdown-menu) - Button-triggered menus
+- [Context Menu](/docs/menu/context-menu) - Right-click menus
