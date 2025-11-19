@@ -73,12 +73,16 @@ export function scoreNodes<T = unknown>(
       const score = commandScore(submenuNode.id, query, submenuNode.keywords)
 
       if (score > 0) {
-        // Submenu triggers don't have breadcrumbs (they're top-level results)
+        // Extract breadcrumbs from node's parent chain (if enabled)
+        const trail = includeBreadcrumbs
+          ? buildBreadcrumbs(submenuNode, rootMenuId)
+          : { breadcrumbs: [], breadcrumbIds: [] }
+
         out.push({
           node: submenuNode,
           score,
-          breadcrumbs: [],
-          breadcrumbIds: [],
+          breadcrumbs: trail.breadcrumbs,
+          breadcrumbIds: trail.breadcrumbIds,
         })
       }
     }
