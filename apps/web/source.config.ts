@@ -9,7 +9,7 @@ import {
 import rehypeCallouts from 'rehype-callouts'
 import z from 'zod'
 import { oscuraMidnight } from './lib/oscura/oscura-midnight'
-// import { oscuraSunrise } from './lib/oscura/oscura-sunrise'
+import { oscuraSunrise } from './lib/oscura/oscura-sunrise'
 
 export const docs = defineDocs({
   dir: 'content/docs',
@@ -38,7 +38,8 @@ export const changelog = defineDocs({
 
 const rehypeCodeOptions: RehypeCodeOptions = {
   themes: {
-    light: 'github-light',
+    // light: 'github-light',
+    light: oscuraSunrise,
     dark: oscuraMidnight,
     // light: 'github-light',
     // dark: 'github-dark',
