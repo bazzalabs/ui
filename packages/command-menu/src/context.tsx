@@ -3,6 +3,8 @@ import * as React from 'react'
 import type { NavigationStackEntry } from './types.js'
 
 export type CommandMenuContextValue<T = unknown> = {
+  /** Root menu definition */
+  rootMenu: MenuDef<T>
   /** Current menu being displayed */
   currentMenu: MenuDef<T>
   /** Navigation stack for paged navigation */

@@ -79,16 +79,14 @@ export function createCommandMenu<T = unknown>(
   function CommandMenu<T = unknown>({
     shortcut = 'cmd+k',
     placeholder = 'Type a command or search...',
-    trigger,
     menu,
     slots,
     slotProps,
     classNames,
     defaults,
+    children,
     ...rootProps
   }: CommandMenuOptions<T>) {
-    const [query, setQuery] = React.useState('')
-
     // Instance theme - merge factory with instance props
     const instanceTheme = React.useMemo(
       () =>
@@ -122,23 +120,14 @@ export function createCommandMenu<T = unknown>(
       [defaults],
     )
 
-    // Clear query when menu closes
-    React.useEffect(() => {
-      if (!rootProps.open && rootProps.onOpenChange) {
-        setQuery('')
-      }
-    }, [rootProps.open, rootProps.onOpenChange])
-
     return (
       <GlobalThemeProvider theme={instanceTheme}>
         <ScopedThemeProvider theme={scopedTheme as any}>
-          <CommandMenuRoot {...rootProps} menu={menu} onQueryChange={setQuery}>
+          <CommandMenuRoot {...rootProps} menu={menu}>
             <CommandMenuTrigger shortcut={shortcut}>
-              {trigger}
+              {children}
             </CommandMenuTrigger>
             <CommandMenuContent
-              query={query}
-              onQueryChange={setQuery}
               placeholder={placeholder}
               defaults={mergedDefaults}
             />

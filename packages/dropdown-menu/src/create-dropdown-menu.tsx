@@ -160,9 +160,7 @@ export function createDropdownMenu<T = unknown>(
             surfaceSelector={surfaceSelector}
             branchAttr={branchAttr}
           >
-            <DropdownMenuTrigger asChild={asChild}>
-              {children}
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
             <DropdownMenuContent
               menu={menu}
               placeholder={placeholder}

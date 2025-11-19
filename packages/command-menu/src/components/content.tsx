@@ -16,7 +16,7 @@ import {
   ScopedThemeProvider,
   useScopedTheme,
 } from '../contexts/theme-context.js'
-import type { CommandMenuSlots } from '../types.js'
+import type { CommandMenuSlots, NavigationStackEntry } from '../types.js'
 import { CommandMenuInput } from './input.js'
 import { CommandMenuList } from './list.js'
 import { SurfaceProvider } from './surface-provider.js'
@@ -26,8 +26,6 @@ function px(n: number) {
 }
 
 export interface CommandMenuContentProps<T = unknown> {
-  query?: string
-  onQueryChange?: (query: string) => void
   placeholder?: string
   defaults?: Partial<MenuNodeDefaults<T>>
 }
@@ -51,34 +49,67 @@ function MenuLoaderWrapper<T>({
 }
 
 /**
- * Inner component that handles menu orchestration and rendering
+ * Layer component that handles menu orchestration and rendering for a single menu level.
+ * Each layer maintains its own independent query state, matching popup menu architecture.
  */
-function CommandMenuContentInner<T>({
-  currentMenu,
-  query,
-  onQueryChange,
+function CommandMenuContentLayer<T>({
+  menuDef,
   placeholder,
   defaults,
-  store,
-  theme,
-  loaderResult,
+  visible,
+  depth,
   pushSubmenu,
   innerContentRef,
 }: {
-  currentMenu: MenuDef<T>
-  query: string
-  onQueryChange?: (query: string) => void
+  menuDef: MenuDef<T>
   placeholder?: string
   defaults?: Partial<MenuNodeDefaults<T>>
-  store: ReturnType<typeof createSurfaceStore<T>>
-  theme: ReturnType<typeof useScopedTheme>
-  loaderResult: AsyncNodeLoaderResult<T> | undefined
+  visible: boolean
+  depth: number
   pushSubmenu: ReturnType<typeof useCommandMenuContext<T>>['pushSubmenu']
-  innerContentRef: (element: HTMLDivElement | null) => void
+  innerContentRef?: (element: HTMLDivElement | null) => void
 }) {
+  const theme = useScopedTheme()
+
+  // Each layer has its own independent query state (matching popup menu)
+  const [query, setQuery] = React.useState('')
+
+  // Create a surface store for this menu layer
+  const store = React.useMemo(() => createSurfaceStore<T>(), [menuDef.id])
+
+  // Extract the loader from the menu
+  const menuLoader = React.useMemo(() => {
+    return 'loader' in menuDef ? menuDef.loader : undefined
+  }, [menuDef])
+
+  // Determine if we should pass query to the loader
+  const loaderQuery = React.useMemo(() => {
+    const searchMode = menuDef.search?.mode ?? 'client'
+    return searchMode === 'client' ? '' : query
+  }, [menuDef.search?.mode, query])
+
+  // Create loader context
+  const loaderContext = React.useMemo(
+    () => ({
+      query: loaderQuery,
+      open: true,
+    }),
+    [loaderQuery],
+  )
+
+  // Execute loader
+  const loaderResult = useLoader(menuLoader, loaderContext)
+
+  // Clear query when this layer becomes visible (navigating into it)
+  React.useEffect(() => {
+    if (visible && depth > 0) {
+      setQuery('')
+    }
+  }, [visible, depth])
+
   // Build menu with deep search support from @bazza-ui/menu
   const { menu } = useMenu<T>({
-    menuDef: currentMenu,
+    menuDef,
     query,
     open: true,
     surfaceId: 'command-menu',
@@ -88,7 +119,7 @@ function CommandMenuContentInner<T>({
   })
 
   // Submenu scoped theme - merge current scoped theme with submenu.ui
-  const submenuTheme = React.useMemo(() => currentMenu.ui, [currentMenu.ui])
+  const submenuTheme = React.useMemo(() => menuDef.ui, [menuDef.ui])
 
   // Handle submenu navigation - push to stack instead of opening nested popover
   const handleSubmenuSelect = React.useCallback(
@@ -142,13 +173,13 @@ function CommandMenuContentInner<T>({
   const inputEl = (
     <CommandMenuInput
       value={query}
-      onValueChange={onQueryChange}
+      onValueChange={setQuery}
       placeholder={placeholder}
     />
   )
 
   // Render list
-  const listEl = <CommandMenuList query={query} onQueryChange={onQueryChange} />
+  const listEl = <CommandMenuList query={query} onQueryChange={setQuery} />
 
   // Render footer (if provided via slots)
   const footerEl = theme?.slots?.Footer ? (
@@ -159,10 +190,15 @@ function CommandMenuContentInner<T>({
 
   // Base props for dialog inner wrapper
   const baseProps = {
-    ref: innerContentRef,
+    ref: (element: HTMLDivElement | null) => {
+      if (innerContentRef) {
+        innerContentRef(element)
+      }
+    },
     className: theme?.classNames?.dialogInner,
     'data-slot': 'command-menu-dialog-inner' as const,
     'data-command-menu-dialog-inner': true as const,
+    style: { display: visible ? 'block' : 'none' },
   }
 
   // Render dialog inner using slot or default
@@ -211,47 +247,97 @@ function CommandMenuContentInner<T>({
   return contentEl
 }
 
+/**
+ * Deep search for a submenu node by ID anywhere in the tree
+ */
+function findSubmenuDeep<T>(
+  nodes: Array<any>,
+  submenuId: string,
+): any | undefined {
+  for (const node of nodes) {
+    if (node.kind === 'submenu' && node.id === submenuId) {
+      return node
+    }
+    if (node.kind === 'submenu' && node.nodes) {
+      const found = findSubmenuDeep(node.nodes, submenuId)
+      if (found) return found
+    }
+  }
+  return undefined
+}
+
+/**
+ * Helper to build menu stack from root menu + navigation stack.
+ * Returns array of [menuDef, depth] tuples for rendering layers.
+ */
+function buildMenuStack<T>(
+  rootMenu: MenuDef<T>,
+  navigationStack: NavigationStackEntry[],
+): Array<{ menuDef: MenuDef<T>; depth: number }> {
+  const stack: Array<{ menuDef: MenuDef<T>; depth: number }> = [
+    { menuDef: rootMenu, depth: 0 },
+  ]
+
+  let currentMenuDef: MenuDef<T> = rootMenu
+
+  for (let i = 0; i < navigationStack.length; i++) {
+    const entry = navigationStack[i]
+    if (!entry) continue
+
+    const nodes = currentMenuDef.nodes || []
+    // First try to find in immediate children
+    let submenuNode = nodes.find(
+      (n) => n.kind === 'submenu' && n.id === entry.menuId,
+    )
+
+    // If not found and this is the first navigation (from root), try deep search
+    // This handles deep search results that inject nested submenus into root results
+    if (!submenuNode && i === 0) {
+      submenuNode = findSubmenuDeep(rootMenu.nodes || [], entry.menuId)
+    }
+
+    if (submenuNode && submenuNode.kind === 'submenu') {
+      const hasInjectedResults = (submenuNode as any).__originalLoader
+
+      currentMenuDef = {
+        id: submenuNode.id || entry.menuId,
+        title: submenuNode.title,
+        nodes: hasInjectedResults ? undefined : submenuNode.nodes,
+        loader: hasInjectedResults
+          ? (submenuNode as any).__originalLoader
+          : submenuNode.loader,
+        search: submenuNode.search,
+        defaults: submenuNode.defaults,
+        ui: submenuNode.ui,
+        virtualization: submenuNode.virtualization,
+        inputPlaceholder: submenuNode.inputPlaceholder,
+        hideSearchUntilActive: submenuNode.hideSearchUntilActive,
+        input: submenuNode.input,
+        open: submenuNode.open,
+        middleware: submenuNode.middleware,
+      } as MenuDef<T>
+
+      stack.push({ menuDef: currentMenuDef, depth: i + 1 })
+    }
+  }
+
+  return stack
+}
+
 export function CommandMenuContent<T = unknown>({
-  query = '',
-  onQueryChange,
   placeholder,
   defaults,
 }: CommandMenuContentProps<T>) {
   const theme = useScopedTheme()
-  const { currentMenu, pushSubmenu, navigationStack, inputRef } =
+  const { rootMenu, currentMenu, pushSubmenu, navigationStack, inputRef } =
     useCommandMenuContext<T>()
   const observerRef = React.useRef<ResizeObserver | null>(null)
 
-  // Create a surface store for the current menu
-  // Recreate store when menu changes to avoid stale state
-  const store = React.useMemo(() => createSurfaceStore<T>(), [currentMenu.id])
-
-  // Extract the loader from the current menu
-  const menuLoader = React.useMemo(() => {
-    return 'loader' in currentMenu ? currentMenu.loader : undefined
-  }, [currentMenu])
-
-  // Determine if we should pass query to the loader
-  // When search mode is 'client', the loader should only run once with no query
-  // The filtering happens client-side using the keywords array
-  const loaderQuery = React.useMemo(() => {
-    const searchMode = currentMenu.search?.mode ?? 'client'
-    // Only pass query to loader for server/hybrid modes
-    return searchMode === 'client' ? '' : query
-  }, [currentMenu.search?.mode, query])
-
-  // Create loader context
-  const loaderContext = React.useMemo(
-    () => ({
-      query: loaderQuery,
-      open: true, // Command menus are always "open" when rendered
-    }),
-    [loaderQuery],
+  // Build menu stack for rendering layers
+  const menuStack = React.useMemo(
+    () => buildMenuStack(rootMenu, navigationStack),
+    [rootMenu, navigationStack],
   )
-
-  // Generate a stable key based on menu ID and whether it has a loader
-  // This ensures each menu/loader combination gets its own component instance
-  const loaderKey = `${currentMenu.id}-${!!menuLoader}`
 
   // Get title from navigation stack (if in submenu) or from current menu
   const dialogTitle = React.useMemo(() => {
@@ -312,26 +398,22 @@ export function CommandMenuContent<T = unknown>({
           <Dialog.Title>{dialogTitle}</Dialog.Title>
           <Dialog.Description>{dialogTitle}</Dialog.Description>
         </VisuallyHidden.Root>
-        <MenuLoaderWrapper
-          key={loaderKey}
-          menuLoader={menuLoader}
-          loaderContext={loaderContext}
-        >
-          {(loaderResult) => (
-            <CommandMenuContentInner
-              currentMenu={currentMenu}
-              query={query}
-              onQueryChange={onQueryChange}
+        {/* Render a layer for each menu in the stack */}
+        {menuStack.map(({ menuDef, depth }) => {
+          const isVisible = depth === menuStack.length - 1
+          return (
+            <CommandMenuContentLayer
+              key={menuDef.id}
+              menuDef={menuDef}
               placeholder={placeholder}
               defaults={defaults}
-              store={store}
-              theme={theme}
-              loaderResult={loaderResult}
+              visible={isVisible}
+              depth={depth}
               pushSubmenu={pushSubmenu}
-              innerContentRef={innerContentRef}
+              innerContentRef={isVisible ? innerContentRef : undefined}
             />
-          )}
-        </MenuLoaderWrapper>
+          )
+        })}
       </Dialog.Content>
     </Dialog.Portal>
   )

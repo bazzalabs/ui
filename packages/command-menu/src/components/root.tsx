@@ -34,8 +34,30 @@ export function CommandMenuRoot<T = unknown>({
     NavigationStackEntry[]
   >([])
 
+  // Track previous navigation stack to detect changes
+  const prevNavigationStackRef = React.useRef<NavigationStackEntry[]>([])
+
   // Shared input ref for focus management
   const inputRef = React.useRef<HTMLInputElement>(null)
+
+  /**
+   * Deep search for a submenu node by ID anywhere in the tree
+   */
+  const findSubmenuDeep = React.useCallback(
+    (nodes: Array<any>, submenuId: string): any | undefined => {
+      for (const node of nodes) {
+        if (node.kind === 'submenu' && node.id === submenuId) {
+          return node
+        }
+        if (node.kind === 'submenu' && node.nodes) {
+          const found = findSubmenuDeep(node.nodes, submenuId)
+          if (found) return found
+        }
+      }
+      return undefined
+    },
+    [],
+  )
 
   // Current menu to display - derive from menu prop using navigation stack
   const currentMenu = React.useMemo(() => {
@@ -45,13 +67,21 @@ export function CommandMenuRoot<T = unknown>({
 
     // Traverse the navigation stack to find the current submenu
     let currentMenuDef: MenuDef<any> = menu
+    let isFirstEntry = true
 
     for (const entry of navigationStack) {
       // Find the submenu node in the current menu's nodes
       const nodes = currentMenuDef.nodes || []
-      const submenuNode = nodes.find(
+      let submenuNode = nodes.find(
         (n) => n.kind === 'submenu' && n.id === entry.menuId,
       )
+
+      // If not found and this is the first entry (from root), try deep search
+      // This handles deep search results that inject nested submenus into root results
+      if (!submenuNode && isFirstEntry) {
+        submenuNode = findSubmenuDeep(menu.nodes || [], entry.menuId)
+      }
+      isFirstEntry = false
 
       if (submenuNode && submenuNode.kind === 'submenu') {
         // Check if this submenu has injected deep search results
@@ -84,25 +114,16 @@ export function CommandMenuRoot<T = unknown>({
     }
 
     return currentMenuDef
-  }, [menu, navigationStack])
+  }, [menu, navigationStack, findSubmenuDeep])
 
   // Push submenu onto stack
   const pushSubmenu = React.useCallback(
     (entry: NavigationStackEntry) => {
       // Clear query when navigating to a submenu
       onQueryChange?.('')
-      setNavigationStack((prev) => {
-        const nextStack = [...prev, entry]
-        // Fire navigation change callback
-        onNavigationChange?.({
-          direction: 'forward',
-          prevBreadcrumbs: prev,
-          nextBreadcrumbs: nextStack,
-        })
-        return nextStack
-      })
+      setNavigationStack((prev) => [...prev, entry])
     },
-    [onQueryChange, onNavigationChange],
+    [onQueryChange],
   )
 
   // Pop submenu from stack
@@ -111,16 +132,9 @@ export function CommandMenuRoot<T = unknown>({
     onQueryChange?.('')
     setNavigationStack((prev) => {
       if (prev.length === 0) return prev
-      const newStack = prev.slice(0, -1)
-      // Fire navigation change callback
-      onNavigationChange?.({
-        direction: 'back',
-        prevBreadcrumbs: prev,
-        nextBreadcrumbs: newStack,
-      })
-      return newStack
+      return prev.slice(0, -1)
     })
-  }, [onQueryChange, onNavigationChange])
+  }, [onQueryChange])
 
   // Clear stack
   const clearStack = React.useCallback(() => {
@@ -134,9 +148,41 @@ export function CommandMenuRoot<T = unknown>({
     }
   }, [open, clearStack])
 
+  // Fire onNavigationChange when navigation stack changes
+  React.useEffect(() => {
+    const prevStack = prevNavigationStackRef.current
+    const currentStack = navigationStack
+
+    // Skip if both stacks are empty (initial render)
+    if (prevStack.length === 0 && currentStack.length === 0) {
+      return
+    }
+
+    // Determine direction based on stack length change
+    if (currentStack.length > prevStack.length) {
+      // Forward navigation (pushed)
+      onNavigationChange?.({
+        direction: 'forward',
+        prevBreadcrumbs: prevStack,
+        nextBreadcrumbs: currentStack,
+      })
+    } else if (currentStack.length < prevStack.length) {
+      // Back navigation (popped)
+      onNavigationChange?.({
+        direction: 'back',
+        prevBreadcrumbs: prevStack,
+        nextBreadcrumbs: currentStack,
+      })
+    }
+
+    // Update ref for next comparison
+    prevNavigationStackRef.current = currentStack
+  }, [navigationStack, onNavigationChange])
+
   const contextValue = React.useMemo(
     () =>
       ({
+        rootMenu: menu,
         currentMenu,
         navigationStack,
         pushSubmenu,
@@ -151,6 +197,7 @@ export function CommandMenuRoot<T = unknown>({
         inputRef,
       }) as CommandMenuContextValue<T>,
     [
+      menu,
       currentMenu,
       navigationStack,
       pushSubmenu,

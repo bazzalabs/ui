@@ -1,4 +1,4 @@
-import * as React from 'react'
+import type * as React from 'react'
 import { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
 import { CommandMenuContent } from './components/content.js'
 import { CommandMenuInput } from './components/input.js'
@@ -26,23 +26,10 @@ export function CommandMenu<T = unknown>({
   trigger,
   ...rootProps
 }: CommandMenuOptions<T>) {
-  const [query, setQuery] = React.useState('')
-
-  // Clear query when menu closes
-  React.useEffect(() => {
-    if (!rootProps.open && rootProps.onOpenChange) {
-      setQuery('')
-    }
-  }, [rootProps.open, rootProps.onOpenChange])
-
   return (
     <CommandMenuRoot {...rootProps}>
       <CommandMenuTrigger shortcut={shortcut}>{trigger}</CommandMenuTrigger>
-      <CommandMenuContent
-        query={query}
-        onQueryChange={setQuery}
-        placeholder={placeholder}
-      />
+      <CommandMenuContent placeholder={placeholder} />
     </CommandMenuRoot>
   )
 }
