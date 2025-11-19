@@ -5,8 +5,8 @@ import {
   createSurfaceStore,
   type MenuDef,
   type MenuNodeDefaults,
-  useDeepSearchOrchestration,
   useLoader,
+  useMenu,
 } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useCommandMenuContext } from '../context.js'
@@ -133,8 +133,8 @@ function CommandMenuListInner<T>({
   loaderResult: AsyncNodeLoaderResult<T> | undefined
   pushSubmenu: ReturnType<typeof useCommandMenuContext<T>>['pushSubmenu']
 }) {
-  // Use centralized deep search orchestration from @bazza-ui/menu
-  const { menu } = useDeepSearchOrchestration<T>({
+  // Build menu with deep search support from @bazza-ui/menu
+  const { menu } = useMenu<T>({
     menuDef: currentMenu,
     query,
     open: true,

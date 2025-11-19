@@ -2,8 +2,8 @@ import {
   createSurfaceStore,
   type MenuDef,
   type MenuNodeDefaults,
-  useDeepSearchOrchestration,
   useLoader,
+  useMenu,
 } from '@bazza-ui/menu'
 import * as React from 'react'
 import { FocusOwnerCtx } from '../contexts/focus-owner-context.js'
@@ -100,8 +100,8 @@ export function PopupMenuList<T = unknown>({
   // Execute the root menu loader using auto-detection
   const loaderResult = useLoader(menuLoader, loaderContext)
 
-  // Use centralized deep search orchestration from @bazza-ui/menu
-  const { menu: orchestratedMenu } = useDeepSearchOrchestration<T>({
+  // Build menu with deep search support from @bazza-ui/menu
+  const { menu: orchestratedMenu } = useMenu<T>({
     menuDef: menu,
     query,
     open,
