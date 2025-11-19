@@ -276,7 +276,7 @@ export type SearchConfig = {
   streaming?: boolean | StreamingConfig
 }
 
-export type MenuDef<T = unknown, TSlots = any> = MenuState & {
+export type MenuDef<T = unknown, TSlots = any> = {
   id: string
   title?: string
   inputPlaceholder?: string
@@ -293,7 +293,7 @@ export type MenuDef<T = unknown, TSlots = any> = MenuState & {
   ui?: MenuThemeDef<T, TSlots>
   /** Custom render function for the menu content. */
   render?: () => React.ReactNode
-}
+} & MenuState
 
 export interface ItemVariantMap {
   button: true
@@ -364,9 +364,15 @@ export type ItemDef<T = unknown> =
   | RadioItemDef<T>
 
 export type BaseGroupDef<T = unknown> = BaseDef<'group'> & {
-  /** Unique id for this group (required - groups don't have labels to auto-generate from). */
+  /**
+   * Variant for this group.
+   * @default 'default'
+   */
+  variant?: 'default' | 'radio'
+  /** Unique identifier for this group. */
   id: string
   nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
+  /** Heading for this group. */
   heading?: string
 }
 
@@ -378,7 +384,6 @@ export type DefaultGroupDef<T = unknown> = BaseGroupDef<T> & {
 }
 
 export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
-  /** The variant of this group. Use 'radio' to create a radio group. */
   variant: 'radio'
   /** Controlled value for radio groups (the selected radio item's value). */
   value: string
@@ -417,6 +422,7 @@ export type SubmenuDef<
     loader?: AsyncNodeLoader<TChild>
     /**
      * When true, this submenu's children are searchable from ancestor menus (deep search).
+     *
      * - For async loaders: Triggers parallel loading during search
      * - For static nodes: Children are always searchable (deep search is implicit)
      *

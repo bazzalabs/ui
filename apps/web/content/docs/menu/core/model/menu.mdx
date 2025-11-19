@@ -1,0 +1,88 @@
+---
+title: Menu
+component: Menu
+section: Model
+summary: "The root menu model."
+---
+
+This is where everything starts. Every menu starts at the root.
+
+## Basics
+
+Every menu needs an `id` to uniquely identify the node from others in the node tree.
+
+We can specify the contents of the menu with `nodes`, which is an array of node definitions.
+
+## State
+
+To used controlled state for the root menu's `open` or `input` states, we can pass a `StateDescriptor` object, defined below:
+
+```typescript
+export type StateDescriptor<T> = {
+  value: T
+  onValueChange: React.Dispatch<React.SetStateAction<T>>
+  defaultValue?: T
+}
+```
+
+For example, to control the `open` and `input` states of a menu:
+
+```typescript
+const [open, setOpen] = React.useState(false);
+const [search, setSearch] = React.useState('');
+
+const menu: MenuDef = {
+  id: 'root',
+  open: {
+    value: open,
+    onValueChange: setOpen
+  },
+  input: {
+    value: search,
+    onValueChange: setSearch
+  },
+  nodes: []
+}
+```
+
+## Input
+
+<ComponentFrame
+  containerClassName='sm:h-fit mb-8'
+  previewClassName='w-full flex flex-col items-center justify-center gap-12'
+>
+    <Examples.DropdownMenu.Basic hideSearchUntilActive={true} />
+</ComponentFrame>
+
+
+We can control the visibility behaviour of the input field using the `hideSearchUntilActive` prop (`false` by default).
+
+When `true`, the input field will be hidden until the user starts typing.
+
+This allows us to mimic the look of a `select` element, while retaining the powerful search functionality when you need it.
+
+## Search
+
+This is covered in the dedicated [Search](#search) section.
+
+## Virtualization
+
+This is covered in the dedicated [Virtualization](#virtualization) section.
+
+## Reference
+
+### MenuDef
+
+<TypeTableAuto type="MenuDef" pkg="@bazza-ui/menu" />
+
+### SearchMode
+
+<TypeSignature name="SearchMode" pkg="@bazza-ui/menu" />
+
+### SearchConfig
+
+<TypeTableAuto type="SearchConfig" pkg="@bazza-ui/menu" />
+
+### VirtualizationConfig
+
+<TypeTableAuto type="VirtualizationConfig" pkg="@bazza-ui/menu" />

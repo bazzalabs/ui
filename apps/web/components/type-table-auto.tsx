@@ -1,46 +1,17 @@
 'use client'
 
-import { InfoIcon } from 'lucide-react'
-import Link from 'next/link'
-import type { ReactNode } from 'react'
-import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { buttonVariants } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { cn } from '@/lib/cn'
-import { useMDXComponents } from '@/mdx-components'
-
+import Link from 'next/link'
+import { useState } from 'react'
 // Import the generated types metadata
 import typesMeta from '@/.types/types-meta.json'
+import { cn } from '@/lib/cn'
+import Markdown from 'react-markdown'
 
-import type { PropMeta, MetaOutput } from '@/scripts/build-types-meta'
+import type { MetaOutput, PropMeta } from '@/scripts/build-types-meta'
 import { HighlightedType } from './highlighted-type'
 
 const typesData = typesMeta as MetaOutput
-
-function Info({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <Popover>
-      <PopoverTrigger
-        className={cn(
-          buttonVariants({ variant: 'ghost', size: 'icon' }),
-          'size-7',
-        )}
-      >
-        <InfoIcon className="size-4 text-muted-foreground" />
-      </PopoverTrigger>
-      <PopoverContent className="overflow-auto text-sm max-w-md">
-        {children}
-      </PopoverContent>
-    </Popover>
-  )
-}
 
 interface ExpandablePropRowProps {
   prop: PropMeta
@@ -87,7 +58,6 @@ function simplifyType(typeStr: string): string {
 
 export function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const mdxComponents = useMDXComponents()
   const hasExpandedType = prop.expandedType && prop.expandedType.length > 0
   const indent = depth * 16 // 16px per depth level
   const cleanedType = cleanTypeString(prop.type, prop.required)
@@ -203,7 +173,40 @@ export function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
                   Description
                 </div>
                 <div className="col-span-2 text-muted-foreground break-words min-w-0">
-                  {prop.description}
+                  <Markdown
+                    components={{
+                      code: ({ children }) => (
+                        // 'relative rounded-sm bg-muted px-1 py-0.5 font-mono text-sm border inset-shadow-xs font-[450]',
+
+                        <code className="rounded-sm bg-muted px-1 py-0.5 border inset-shadow-xs font-[450] font-mono text-sm break-words min-w-0">
+                          {children}
+                        </code>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-2 last-of-type:mb-0">{children}</p>
+                      ),
+                      ul: ({
+                        className,
+                        ...props
+                      }: React.HTMLAttributes<HTMLUListElement>) => (
+                        <ul
+                          className={cn(
+                            'my-6 ml-6 list-disc [&>li>ul]:my-2 [&>li>ul]:ml-4',
+                            className,
+                          )}
+                          {...props}
+                        />
+                      ),
+                      li: ({
+                        className,
+                        ...props
+                      }: React.HTMLAttributes<HTMLLIElement>) => (
+                        <li className={cn('mt-1', className)} {...props} />
+                      ),
+                    }}
+                  >
+                    {prop.description}
+                  </Markdown>
                 </div>
               </div>
             )}
@@ -306,8 +309,6 @@ export function TypeTableAuto({ type, pkg }: TypeTableAutoProps) {
       }
     }
   }
-
-  console.log({ typeMeta })
 
   if (!typeMeta || !typeMeta.props || typeMeta.props.length === 0) {
     return (

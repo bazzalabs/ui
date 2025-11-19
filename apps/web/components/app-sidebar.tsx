@@ -133,6 +133,11 @@ const componentItems: ComponentItem[] = [
               },
               {
                 type: 'link',
+                title: 'Menu',
+                url: '/docs/menu/core/model/menu',
+              },
+              {
+                type: 'link',
                 title: 'Submenu',
                 url: '/docs/menu/core/model/submenu',
               },

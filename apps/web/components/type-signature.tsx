@@ -4,6 +4,7 @@
 import typesMeta from '@/.types/types-meta.json'
 
 import type { MetaOutput } from '@/scripts/build-types-meta'
+import { Markdown } from './markdown'
 
 const typesData = typesMeta as MetaOutput
 
@@ -85,9 +86,7 @@ export function TypeSignature({
           {typeMeta.definition && ` = ${typeMeta.definition}`}
         </code>
       </div>
-      {typeMeta.doc && (
-        <p className="text-sm text-muted-foreground mt-2">{typeMeta.doc}</p>
-      )}
+      {/*{typeMeta.doc && <Markdown>{typeMeta.doc}</Markdown>}*/}
     </div>
   )
 }

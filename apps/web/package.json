@@ -66,6 +66,7 @@
     "react": "^19.2.0",
     "react-day-picker": "8.10.1",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
     "react-virtualized": "^9.22.6",
     "remeda": "^2.26.1",
     "shadcn": "2.4.0-canary.13",

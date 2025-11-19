@@ -125,7 +125,7 @@ export default async function Page({
           </div>
           <div className="text-muted-foreground">{metadata.summary}</div>
         </div>
-        <div>
+        <div className="mb-32">
           <MDX components={useMDXComponents()} />
         </div>
       </div>

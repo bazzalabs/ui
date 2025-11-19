@@ -1159,26 +1159,8 @@
             "default": "any"
           }
         ],
-        "definition": "MenuState & {\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<T>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<T>;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the list. */\n    virtualization?: VirtualizationConfig<T>;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<T, TSlots>;\n    /** Custom render function for the menu content. */\n    render?: () => React.ReactNode;\n}",
+        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<T>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<T>;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the list. */\n    virtualization?: VirtualizationConfig<T>;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<T, TSlots>;\n    /** Custom render function for the menu content. */\n    render?: () => React.ReactNode;\n} & MenuState",
         "props": [
-          {
-            "name": "input",
-            "type": "StateDescriptor<string> | undefined",
-            "required": false,
-            "referencePath": "@bazza-ui/menu.StateDescriptor"
-          },
-          {
-            "name": "open",
-            "type": "StateDescriptor<boolean> | undefined",
-            "required": false,
-            "referencePath": "@bazza-ui/menu.StateDescriptor"
-          },
-          {
-            "name": "middleware",
-            "type": "MenuMiddleware<any> | undefined",
-            "required": false,
-            "referencePath": "@bazza-ui/menu.MenuMiddleware"
-          },
           {
             "name": "id",
             "type": "string",
@@ -1241,6 +1223,24 @@
             "type": "(() => ReactNode) | undefined",
             "required": false,
             "description": "Custom render function for the menu content."
+          },
+          {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false,
+            "referencePath": "@bazza-ui/menu.StateDescriptor"
+          },
+          {
+            "name": "open",
+            "type": "StateDescriptor<boolean> | undefined",
+            "required": false,
+            "referencePath": "@bazza-ui/menu.StateDescriptor"
+          },
+          {
+            "name": "middleware",
+            "type": "MenuMiddleware<any> | undefined",
+            "required": false,
+            "referencePath": "@bazza-ui/menu.MenuMiddleware"
           }
         ]
       },
@@ -1649,7 +1649,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseDef<'group'> & {\n    /** Unique id for this group (required - groups don't have labels to auto-generate from). */\n    id: string;\n    nodes: (ItemDef<T> | SubmenuDef<any, any>)[];\n    heading?: string;\n}",
+        "definition": "BaseDef<'group'> & {\n    /**\n     * Variant for this group.\n     * @default 'default'\n     */\n    variant?: 'default' | 'radio';\n    /** Unique identifier for this group. */\n    id: string;\n    nodes: (ItemDef<T> | SubmenuDef<any, any>)[];\n    /** Heading for this group. */\n    heading?: string;\n}",
         "props": [
           {
             "name": "kind",
@@ -1661,12 +1661,19 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"radio\" | \"default\" | undefined",
+            "required": false,
+            "description": "Variant for this group.",
+            "default": "'default'"
           },
           {
             "name": "nodes",
@@ -1677,7 +1684,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
+            "required": false,
+            "description": "Heading for this group."
           }
         ]
       },
@@ -1702,12 +1710,18 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"default\" | undefined",
+            "required": false,
+            "description": "The variant of this group. Defaults to 'default'."
           },
           {
             "name": "nodes",
@@ -1718,13 +1732,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "variant",
-            "type": "\"default\" | undefined",
             "required": false,
-            "description": "The variant of this group. Defaults to 'default'."
+            "description": "Heading for this group."
           },
           {
             "name": "value",
@@ -1747,7 +1756,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseGroupDef<T> & {\n    /** The variant of this group. Use 'radio' to create a radio group. */\n    variant: 'radio';\n    /** Controlled value for radio groups (the selected radio item's value). */\n    value: string;\n    /** Callback when radio group value changes. */\n    onValueChange: (value: string) => void;\n}",
+        "definition": "BaseGroupDef<T> & {\n    variant: 'radio';\n    /** Controlled value for radio groups (the selected radio item's value). */\n    value: string;\n    /** Callback when radio group value changes. */\n    onValueChange: (value: string) => void;\n}",
         "props": [
           {
             "name": "kind",
@@ -1759,12 +1768,17 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"radio\"",
+            "required": true
           },
           {
             "name": "nodes",
@@ -1775,13 +1789,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "variant",
-            "type": "\"radio\"",
-            "required": true,
-            "description": "The variant of this group. Use 'radio' to create a radio group."
+            "required": false,
+            "description": "Heading for this group."
           },
           {
             "name": "value",
@@ -1898,7 +1907,7 @@
             "default": "any"
           }
         ],
-        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<TChild>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<TChild>;\n    /**\n     * When true, this submenu's children are searchable from ancestor menus (deep search).\n     * - For async loaders: Triggers parallel loading during search\n     * - For static nodes: Children are always searchable (deep search is implicit)\n     *\n     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\n     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.\n     * @default true\n     */\n    deepSearch?: boolean;\n    data?: T;\n    disabled?: boolean;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the submenu's list. */\n    virtualization?: VirtualizationConfig;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<TChild, TSlots>;\n    render?: () => React.ReactNode;\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<TChild>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<TChild>;\n    /**\n     * When true, this submenu's children are searchable from ancestor menus (deep search).\n     *\n     * - For async loaders: Triggers parallel loading during search\n     * - For static nodes: Children are always searchable (deep search is implicit)\n     *\n     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\n     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.\n     * @default true\n     */\n    deepSearch?: boolean;\n    data?: T;\n    disabled?: boolean;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the submenu's list. */\n    virtualization?: VirtualizationConfig;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<TChild, TSlots>;\n    render?: () => React.ReactNode;\n}",
         "props": [
           {
             "name": "kind",
@@ -1964,7 +1973,7 @@
             "name": "deepSearch",
             "type": "boolean | undefined",
             "required": false,
-            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
+            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
             "default": "true"
           },
           {
@@ -3260,7 +3269,7 @@
             "name": "deepSearch",
             "type": "boolean | undefined",
             "required": false,
-            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
+            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
             "default": "true"
           },
           {
@@ -9381,23 +9390,8 @@
             "default": "any"
           }
         ],
-        "definition": "MenuState & {\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<T>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<T>;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the list. */\n    virtualization?: VirtualizationConfig<T>;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<T, TSlots>;\n    /** Custom render function for the menu content. */\n    render?: () => React.ReactNode;\n}",
+        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<T>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<T>;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the list. */\n    virtualization?: VirtualizationConfig<T>;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<T, TSlots>;\n    /** Custom render function for the menu content. */\n    render?: () => React.ReactNode;\n} & MenuState",
         "props": [
-          {
-            "name": "input",
-            "type": "StateDescriptor<string> | undefined",
-            "required": false
-          },
-          {
-            "name": "open",
-            "type": "StateDescriptor<boolean> | undefined",
-            "required": false
-          },
-          {
-            "name": "middleware",
-            "type": "MenuMiddleware<any> | undefined",
-            "required": false
-          },
           {
             "name": "id",
             "type": "string",
@@ -9457,6 +9451,21 @@
             "type": "(() => ReactNode) | undefined",
             "required": false,
             "description": "Custom render function for the menu content."
+          },
+          {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false
+          },
+          {
+            "name": "open",
+            "type": "StateDescriptor<boolean> | undefined",
+            "required": false
+          },
+          {
+            "name": "middleware",
+            "type": "MenuMiddleware<any> | undefined",
+            "required": false
           }
         ]
       },
@@ -9503,12 +9512,18 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"default\" | undefined",
+            "required": false,
+            "description": "The variant of this group. Defaults to 'default'."
           },
           {
             "name": "nodes",
@@ -9519,13 +9534,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "variant",
-            "type": "\"default\" | undefined",
             "required": false,
-            "description": "The variant of this group. Defaults to 'default'."
+            "description": "Heading for this group."
           },
           {
             "name": "value",
@@ -9548,7 +9558,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseGroupDef<T> & {\n    /** The variant of this group. Use 'radio' to create a radio group. */\n    variant: 'radio';\n    /** Controlled value for radio groups (the selected radio item's value). */\n    value: string;\n    /** Callback when radio group value changes. */\n    onValueChange: (value: string) => void;\n}",
+        "definition": "BaseGroupDef<T> & {\n    variant: 'radio';\n    /** Controlled value for radio groups (the selected radio item's value). */\n    value: string;\n    /** Callback when radio group value changes. */\n    onValueChange: (value: string) => void;\n}",
         "props": [
           {
             "name": "kind",
@@ -9560,12 +9570,17 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"radio\"",
+            "required": true
           },
           {
             "name": "nodes",
@@ -9576,13 +9591,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "variant",
-            "type": "\"radio\"",
-            "required": true,
-            "description": "The variant of this group. Use 'radio' to create a radio group."
+            "required": false,
+            "description": "Heading for this group."
           },
           {
             "name": "value",
@@ -10006,7 +10016,7 @@
             "default": "any"
           }
         ],
-        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<TChild>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<TChild>;\n    /**\n     * When true, this submenu's children are searchable from ancestor menus (deep search).\n     * - For async loaders: Triggers parallel loading during search\n     * - For static nodes: Children are always searchable (deep search is implicit)\n     *\n     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\n     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.\n     * @default true\n     */\n    deepSearch?: boolean;\n    data?: T;\n    disabled?: boolean;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the submenu's list. */\n    virtualization?: VirtualizationConfig;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<TChild, TSlots>;\n    render?: () => React.ReactNode;\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<TChild>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<TChild>;\n    /**\n     * When true, this submenu's children are searchable from ancestor menus (deep search).\n     *\n     * - For async loaders: Triggers parallel loading during search\n     * - For static nodes: Children are always searchable (deep search is implicit)\n     *\n     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\n     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.\n     * @default true\n     */\n    deepSearch?: boolean;\n    data?: T;\n    disabled?: boolean;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the submenu's list. */\n    virtualization?: VirtualizationConfig;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<TChild, TSlots>;\n    render?: () => React.ReactNode;\n}",
         "props": [
           {
             "name": "kind",
@@ -10069,7 +10079,7 @@
             "name": "deepSearch",
             "type": "boolean | undefined",
             "required": false,
-            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
+            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
             "default": "true"
           },
           {
@@ -10990,7 +11000,7 @@
             "name": "deepSearch",
             "type": "boolean | undefined",
             "required": false,
-            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
+            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
             "default": "true"
           },
           {
@@ -12318,23 +12328,8 @@
             "default": "any"
           }
         ],
-        "definition": "MenuState & {\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<T>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<T>;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the list. */\n    virtualization?: VirtualizationConfig<T>;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<T, TSlots>;\n    /** Custom render function for the menu content. */\n    render?: () => React.ReactNode;\n}",
+        "definition": "{\n    id: string;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<T>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<T>;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the list. */\n    virtualization?: VirtualizationConfig<T>;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<T, TSlots>;\n    /** Custom render function for the menu content. */\n    render?: () => React.ReactNode;\n} & MenuState",
         "props": [
-          {
-            "name": "input",
-            "type": "StateDescriptor<string> | undefined",
-            "required": false
-          },
-          {
-            "name": "open",
-            "type": "StateDescriptor<boolean> | undefined",
-            "required": false
-          },
-          {
-            "name": "middleware",
-            "type": "MenuMiddleware<any> | undefined",
-            "required": false
-          },
           {
             "name": "id",
             "type": "string",
@@ -12394,6 +12389,21 @@
             "type": "(() => ReactNode) | undefined",
             "required": false,
             "description": "Custom render function for the menu content."
+          },
+          {
+            "name": "input",
+            "type": "StateDescriptor<string> | undefined",
+            "required": false
+          },
+          {
+            "name": "open",
+            "type": "StateDescriptor<boolean> | undefined",
+            "required": false
+          },
+          {
+            "name": "middleware",
+            "type": "MenuMiddleware<any> | undefined",
+            "required": false
           }
         ]
       },
@@ -12440,12 +12450,18 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"default\" | undefined",
+            "required": false,
+            "description": "The variant of this group. Defaults to 'default'."
           },
           {
             "name": "nodes",
@@ -12456,13 +12472,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "variant",
-            "type": "\"default\" | undefined",
             "required": false,
-            "description": "The variant of this group. Defaults to 'default'."
+            "description": "Heading for this group."
           },
           {
             "name": "value",
@@ -12485,7 +12496,7 @@
             "default": "unknown"
           }
         ],
-        "definition": "BaseGroupDef<T> & {\n    /** The variant of this group. Use 'radio' to create a radio group. */\n    variant: 'radio';\n    /** Controlled value for radio groups (the selected radio item's value). */\n    value: string;\n    /** Callback when radio group value changes. */\n    onValueChange: (value: string) => void;\n}",
+        "definition": "BaseGroupDef<T> & {\n    variant: 'radio';\n    /** Controlled value for radio groups (the selected radio item's value). */\n    value: string;\n    /** Callback when radio group value changes. */\n    onValueChange: (value: string) => void;\n}",
         "props": [
           {
             "name": "kind",
@@ -12497,12 +12508,17 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique id for this group (required - groups don't have labels to auto-generate from)."
+            "description": "Unique identifier for this group."
           },
           {
             "name": "hidden",
             "type": "boolean | undefined",
             "required": false
+          },
+          {
+            "name": "variant",
+            "type": "\"radio\"",
+            "required": true
           },
           {
             "name": "nodes",
@@ -12513,13 +12529,8 @@
           {
             "name": "heading",
             "type": "string | undefined",
-            "required": false
-          },
-          {
-            "name": "variant",
-            "type": "\"radio\"",
-            "required": true,
-            "description": "The variant of this group. Use 'radio' to create a radio group."
+            "required": false,
+            "description": "Heading for this group."
           },
           {
             "name": "value",
@@ -12943,7 +12954,7 @@
             "default": "any"
           }
         ],
-        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<TChild>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<TChild>;\n    /**\n     * When true, this submenu's children are searchable from ancestor menus (deep search).\n     * - For async loaders: Triggers parallel loading during search\n     * - For static nodes: Children are always searchable (deep search is implicit)\n     *\n     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\n     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.\n     * @default true\n     */\n    deepSearch?: boolean;\n    data?: T;\n    disabled?: boolean;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the submenu's list. */\n    virtualization?: VirtualizationConfig;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<TChild, TSlots>;\n    render?: () => React.ReactNode;\n}",
+        "definition": "BaseDef<'submenu'> & Searchable & MenuState & {\n    /** Static nodes (sync mode). Mutually exclusive with `loader`. */\n    nodes?: NodeDef<TChild>[];\n    /** Async node loader (async mode). Mutually exclusive with `nodes`. */\n    loader?: AsyncNodeLoader<TChild>;\n    /**\n     * When true, this submenu's children are searchable from ancestor menus (deep search).\n     *\n     * - For async loaders: Triggers parallel loading during search\n     * - For static nodes: Children are always searchable (deep search is implicit)\n     *\n     * Set to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\n     * not from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.\n     * @default true\n     */\n    deepSearch?: boolean;\n    data?: T;\n    disabled?: boolean;\n    icon?: Iconish;\n    title?: string;\n    inputPlaceholder?: string;\n    hideSearchUntilActive?: boolean;\n    defaults?: MenuNodeDefaults<T>;\n    /** Virtualization configuration for the submenu's list. */\n    virtualization?: VirtualizationConfig;\n    /** Search configuration for filtering behavior. */\n    search?: SearchConfig;\n    ui?: MenuThemeDef<TChild, TSlots>;\n    render?: () => React.ReactNode;\n}",
         "props": [
           {
             "name": "kind",
@@ -13006,7 +13017,7 @@
             "name": "deepSearch",
             "type": "boolean | undefined",
             "required": false,
-            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
+            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
             "default": "true"
           },
           {
@@ -13927,7 +13938,7 @@
             "name": "deepSearch",
             "type": "boolean | undefined",
             "required": false,
-            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
+            "description": "When true, this submenu's children are searchable from ancestor menus (deep search).\n\n- For async loaders: Triggers parallel loading during search\n- For static nodes: Children are always searchable (deep search is implicit)\n\nSet to `false` to make this submenu's nodes only browsable/searchable from within the submenu itself,\nnot from any ancestor menus. When `false`, descendant submenus are also excluded from deep search.",
             "default": "true"
           },
           {
