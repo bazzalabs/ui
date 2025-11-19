@@ -21,7 +21,8 @@
     ],
     "types": ["vitest/globals"],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "fumadocs-mdx:collections/*": ["./.source/*"]
     }
   },
   "include": [

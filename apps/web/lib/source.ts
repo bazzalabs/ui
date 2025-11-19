@@ -1,6 +1,7 @@
 // @ts-nocheck
+
+import { changelog, docs } from 'fumadocs-mdx:collections/server'
 import { loader } from 'fumadocs-core/source'
-import { changelog, docs } from '@/.source'
 
 export const docsSource = loader({
   baseUrl: '/docs',
