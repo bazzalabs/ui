@@ -1,4 +1,5 @@
 import { renderIcon } from '@bazza-ui/menu'
+import * as Dialog from '@radix-ui/react-dialog'
 import type { CommandMenuSlots } from '../types.js'
 
 /**
@@ -106,6 +107,13 @@ export function defaultSlots<T>(): Required<CommandMenuSlots<T>> {
       <div role="separator" data-slot="menu-separator" />
     ),
     Footer: () => null,
+    DialogPortal: ({ children, baseProps }) => (
+      <Dialog.Portal {...baseProps}>{children}</Dialog.Portal>
+    ),
+    DialogOverlay: ({ baseProps }) => <Dialog.Overlay {...baseProps} />,
+    DialogContent: ({ children, baseProps }) => (
+      <Dialog.Content {...baseProps}>{children}</Dialog.Content>
+    ),
     DialogInner: ({ children, baseProps }) => (
       <div {...baseProps}>{children}</div>
     ),

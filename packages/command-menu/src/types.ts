@@ -12,6 +12,44 @@ import type * as React from 'react'
  */
 export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
   /**
+   * Slot for customizing the dialog portal
+   * Allows custom portal container or behavior
+   */
+  DialogPortal?: (props: {
+    children: React.ReactNode
+    /** Base props for the portal */
+    baseProps: {
+      className?: string
+      'data-slot': 'command-menu-dialog-portal'
+    }
+  }) => React.ReactElement
+
+  /**
+   * Slot for customizing the dialog overlay (backdrop)
+   * Useful for custom animations or wrapping with animation libraries
+   */
+  DialogOverlay?: (props: {
+    /** Base props that must be applied for Radix Dialog to work */
+    baseProps: {
+      className?: string
+      'data-slot': 'command-menu-dialog-overlay'
+    }
+  }) => React.ReactElement
+
+  /**
+   * Slot for customizing the dialog content container
+   * Useful for custom animations or wrapping with animation libraries
+   */
+  DialogContent?: (props: {
+    children: React.ReactNode
+    /** Base props that must be applied for Radix Dialog to work */
+    baseProps: {
+      className?: string
+      'data-slot': 'command-menu-dialog-content'
+    }
+  }) => React.ReactElement
+
+  /**
    * Slot for customizing the dialog inner content wrapper
    * Useful for applying animations when navigating between submenus
    */
@@ -31,6 +69,7 @@ export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
  * Slot props forwarded to command menu elements.
  */
 export type CommandMenuSlotProps = MenuSlotProps & {
+  dialogPortal?: React.HTMLAttributes<HTMLElement>
   dialogOverlay?: React.HTMLAttributes<HTMLElement>
   dialogContent?: React.HTMLAttributes<HTMLElement>
   dialogInner?: React.HTMLAttributes<HTMLElement>
@@ -50,6 +89,7 @@ export type CommandMenuTheme<T = unknown> = Theme<
 >
 
 export type CommandMenuClassNames = MenuClassNames & {
+  dialogPortal?: string
   dialogOverlay?: string
   dialogContent?: string
   dialogInner?: string

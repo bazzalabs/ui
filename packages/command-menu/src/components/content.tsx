@@ -8,6 +8,7 @@ import {
   useLoader,
   useMenu,
 } from '@bazza-ui/menu'
+import { mergeProps } from '@bazza-ui/theming'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import * as React from 'react'
@@ -188,18 +189,21 @@ function CommandMenuContentLayer<T>({
     </div>
   ) : null
 
-  // Base props for dialog inner wrapper
-  const baseProps = {
-    ref: (element: HTMLDivElement | null) => {
-      if (innerContentRef) {
-        innerContentRef(element)
-      }
+  // Base props for dialog inner wrapper - merge with slotProps
+  const baseProps = mergeProps(
+    {
+      ref: (element: HTMLDivElement | null) => {
+        if (innerContentRef) {
+          innerContentRef(element)
+        }
+      },
+      className: theme?.classNames?.dialogInner,
+      'data-slot': 'command-menu-dialog-inner' as const,
+      'data-command-menu-dialog-inner': true as const,
+      style: { display: visible ? 'block' : 'none' },
     },
-    className: theme?.classNames?.dialogInner,
-    'data-slot': 'command-menu-dialog-inner' as const,
-    'data-command-menu-dialog-inner': true as const,
-    style: { display: visible ? 'block' : 'none' },
-  }
+    theme?.slotProps?.dialogInner,
+  )
 
   // Render dialog inner using slot or default
   const DialogInnerSlot = theme?.slots?.DialogInner
@@ -390,31 +394,173 @@ export function CommandMenuContent<T = unknown>({
     return () => cancelAnimationFrame(rafId)
   }, [currentMenu.id, inputRef])
 
-  return (
-    <Dialog.Portal>
-      <Dialog.Overlay className={theme?.classNames?.dialogOverlay} />
-      <Dialog.Content className={theme?.classNames?.dialogContent}>
-        <VisuallyHidden.Root>
-          <Dialog.Title>{dialogTitle}</Dialog.Title>
-          <Dialog.Description>{dialogTitle}</Dialog.Description>
-        </VisuallyHidden.Root>
-        {/* Render a layer for each menu in the stack */}
-        {menuStack.map(({ menuDef, depth }) => {
-          const isVisible = depth === menuStack.length - 1
-          return (
-            <CommandMenuContentLayer
-              key={menuDef.id}
-              menuDef={menuDef}
-              placeholder={placeholder}
-              defaults={defaults}
-              visible={isVisible}
-              depth={depth}
-              pushSubmenu={pushSubmenu}
-              innerContentRef={isVisible ? innerContentRef : undefined}
-            />
-          )
-        })}
-      </Dialog.Content>
-    </Dialog.Portal>
+  // Get slots with fallback to defaults
+  const DialogPortalSlot = theme?.slots?.DialogPortal
+  const DialogOverlaySlot = theme?.slots?.DialogOverlay
+  const DialogContentSlot = theme?.slots?.DialogContent
+
+  // Prepare base props for each Dialog element
+  const dialogPortalBaseProps = mergeProps(
+    {
+      className: theme?.classNames?.dialogPortal,
+      'data-slot': 'command-menu-dialog-portal' as const,
+    },
+    theme?.slotProps?.dialogPortal,
   )
+
+  const dialogOverlayBaseProps = mergeProps(
+    {
+      className: theme?.classNames?.dialogOverlay,
+      'data-slot': 'command-menu-dialog-overlay' as const,
+    },
+    theme?.slotProps?.dialogOverlay,
+  )
+
+  const dialogContentBaseProps = mergeProps(
+    {
+      className: theme?.classNames?.dialogContent,
+      'data-slot': 'command-menu-dialog-content' as const,
+    },
+    theme?.slotProps?.dialogContent,
+  )
+
+  // Render Dialog.Portal using slot or default
+  const portalContent = DialogPortalSlot
+    ? DialogPortalSlot({
+        children: (
+          <>
+            {/* Render Dialog.Overlay using slot or default */}
+            {DialogOverlaySlot ? (
+              DialogOverlaySlot({ baseProps: dialogOverlayBaseProps })
+            ) : (
+              <Dialog.Overlay {...dialogOverlayBaseProps} />
+            )}
+            {/* Render Dialog.Content using slot or default */}
+            {DialogContentSlot ? (
+              DialogContentSlot({
+                children: (
+                  <>
+                    <VisuallyHidden.Root>
+                      <Dialog.Title>{dialogTitle}</Dialog.Title>
+                      <Dialog.Description>{dialogTitle}</Dialog.Description>
+                    </VisuallyHidden.Root>
+                    {/* Render a layer for each menu in the stack */}
+                    {menuStack.map(({ menuDef, depth }) => {
+                      const isVisible = depth === menuStack.length - 1
+                      return (
+                        <CommandMenuContentLayer
+                          key={menuDef.id}
+                          menuDef={menuDef}
+                          placeholder={placeholder}
+                          defaults={defaults}
+                          visible={isVisible}
+                          depth={depth}
+                          pushSubmenu={pushSubmenu}
+                          innerContentRef={
+                            isVisible ? innerContentRef : undefined
+                          }
+                        />
+                      )
+                    })}
+                  </>
+                ),
+                baseProps: dialogContentBaseProps,
+              })
+            ) : (
+              <Dialog.Content {...dialogContentBaseProps}>
+                <VisuallyHidden.Root>
+                  <Dialog.Title>{dialogTitle}</Dialog.Title>
+                  <Dialog.Description>{dialogTitle}</Dialog.Description>
+                </VisuallyHidden.Root>
+                {/* Render a layer for each menu in the stack */}
+                {menuStack.map(({ menuDef, depth }) => {
+                  const isVisible = depth === menuStack.length - 1
+                  return (
+                    <CommandMenuContentLayer
+                      key={menuDef.id}
+                      menuDef={menuDef}
+                      placeholder={placeholder}
+                      defaults={defaults}
+                      visible={isVisible}
+                      depth={depth}
+                      pushSubmenu={pushSubmenu}
+                      innerContentRef={isVisible ? innerContentRef : undefined}
+                    />
+                  )
+                })}
+              </Dialog.Content>
+            )}
+          </>
+        ),
+        baseProps: dialogPortalBaseProps,
+      })
+    : React.createElement(
+        Dialog.Portal,
+        dialogPortalBaseProps,
+        <>
+          {/* Render Dialog.Overlay using slot or default */}
+          {DialogOverlaySlot ? (
+            DialogOverlaySlot({ baseProps: dialogOverlayBaseProps })
+          ) : (
+            <Dialog.Overlay {...dialogOverlayBaseProps} />
+          )}
+          {/* Render Dialog.Content using slot or default */}
+          {DialogContentSlot ? (
+            DialogContentSlot({
+              children: (
+                <>
+                  <VisuallyHidden.Root>
+                    <Dialog.Title>{dialogTitle}</Dialog.Title>
+                    <Dialog.Description>{dialogTitle}</Dialog.Description>
+                  </VisuallyHidden.Root>
+                  {/* Render a layer for each menu in the stack */}
+                  {menuStack.map(({ menuDef, depth }) => {
+                    const isVisible = depth === menuStack.length - 1
+                    return (
+                      <CommandMenuContentLayer
+                        key={menuDef.id}
+                        menuDef={menuDef}
+                        placeholder={placeholder}
+                        defaults={defaults}
+                        visible={isVisible}
+                        depth={depth}
+                        pushSubmenu={pushSubmenu}
+                        innerContentRef={
+                          isVisible ? innerContentRef : undefined
+                        }
+                      />
+                    )
+                  })}
+                </>
+              ),
+              baseProps: dialogContentBaseProps,
+            })
+          ) : (
+            <Dialog.Content {...dialogContentBaseProps}>
+              <VisuallyHidden.Root>
+                <Dialog.Title>{dialogTitle}</Dialog.Title>
+                <Dialog.Description>{dialogTitle}</Dialog.Description>
+              </VisuallyHidden.Root>
+              {/* Render a layer for each menu in the stack */}
+              {menuStack.map(({ menuDef, depth }) => {
+                const isVisible = depth === menuStack.length - 1
+                return (
+                  <CommandMenuContentLayer
+                    key={menuDef.id}
+                    menuDef={menuDef}
+                    placeholder={placeholder}
+                    defaults={defaults}
+                    visible={isVisible}
+                    depth={depth}
+                    pushSubmenu={pushSubmenu}
+                    innerContentRef={isVisible ? innerContentRef : undefined}
+                  />
+                )
+              })}
+            </Dialog.Content>
+          )}
+        </>,
+      )
+
+  return portalContent
 }
