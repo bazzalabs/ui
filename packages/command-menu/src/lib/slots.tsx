@@ -107,15 +107,23 @@ export function defaultSlots<T>(): Required<CommandMenuSlots<T>> {
       <div role="separator" data-slot="menu-separator" />
     ),
     Footer: () => null,
-    DialogPortal: ({ children, baseProps }) => (
-      <Dialog.Portal {...baseProps}>{children}</Dialog.Portal>
+    DialogPortal: ({ children, bind }) => {
+      // Dialog.Portal only accepts specific props (container, forceMount)
+      // Get props from bind and filter out className/data-* that don't apply
+      const props = bind.getDialogPortalProps()
+      const { className, ...validProps } = props as any
+      return <Dialog.Portal {...validProps}>{children}</Dialog.Portal>
+    },
+    DialogOverlay: ({ bind }) => (
+      <Dialog.Overlay {...bind.getDialogOverlayProps()} />
     ),
-    DialogOverlay: ({ baseProps }) => <Dialog.Overlay {...baseProps} />,
-    DialogContent: ({ children, baseProps }) => (
-      <Dialog.Content {...baseProps}>{children}</Dialog.Content>
+    DialogContent: ({ children, bind }) => (
+      <Dialog.Content {...bind.getDialogContentProps()}>
+        {children}
+      </Dialog.Content>
     ),
-    DialogInner: ({ children, baseProps }) => (
-      <div {...baseProps}>{children}</div>
+    DialogInner: ({ children, bind }) => (
+      <div {...bind.getDialogInnerProps()}>{children}</div>
     ),
   }
 }

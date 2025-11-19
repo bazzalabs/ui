@@ -65,10 +65,37 @@ export function createCommandMenu<T = unknown>(
   opts?: CreateCommandMenuOptions<T>,
 ): CreateCommandMenuResult<T> {
   // Factory theme - from createCommandMenu options
+  // Note: We EXCLUDE Dialog slots from defaults unless explicitly provided by user
+  // This ensures direct Radix rendering (preserving animations) unless custom behavior is needed
+  const baseSlots = defaultSlots<T>() as Required<CommandMenuSlots<T>>
+
+  // Remove Dialog slots from base - they should only be used if explicitly provided
+  const { DialogPortal, DialogOverlay, DialogContent, ...slotsWithoutDialog } =
+    baseSlots
+
   const factoryTheme: CommandMenuTheme<T> = {
-    slots: { ...defaultSlots<T>(), ...opts?.slots } as Required<
-      CommandMenuSlots<T>
-    >,
+    slots: {
+      ...slotsWithoutDialog,
+      // Only include Dialog slots if explicitly provided by user
+      ...(opts?.slots?.DialogPortal && {
+        DialogPortal: opts.slots.DialogPortal,
+      }),
+      ...(opts?.slots?.DialogOverlay && {
+        DialogOverlay: opts.slots.DialogOverlay,
+      }),
+      ...(opts?.slots?.DialogContent && {
+        DialogContent: opts.slots.DialogContent,
+      }),
+      // Include all other user slots normally
+      ...Object.fromEntries(
+        Object.entries(opts?.slots || {}).filter(
+          ([key]) =>
+            key !== 'DialogPortal' &&
+            key !== 'DialogOverlay' &&
+            key !== 'DialogContent',
+        ),
+      ),
+    } as Required<CommandMenuSlots<T>>,
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
   }

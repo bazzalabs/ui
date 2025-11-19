@@ -2,8 +2,10 @@
 
 import { queryLoader } from '@bazza-ui/loaders'
 import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/menu'
+import { DialogContent } from '@radix-ui/react-dialog'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SearchIcon } from 'lucide-react'
+import { motion, useAnimate } from 'motion/react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -24,18 +26,35 @@ import {
 const queryClient = new QueryClient()
 
 export function CommandMenu_LinearAsync() {
+  const [scope, animate] = useAnimate()
+
   return (
     <QueryClientProvider client={queryClient}>
       <CommandMenu
+        slots={{
+          DialogContent: ({ children, bind }) => {
+            const props = bind.getDialogContentProps()
+
+            return (
+              <DialogContent asChild {...props} ref={scope}>
+                <motion.div>{children}</motion.div>
+              </DialogContent>
+            )
+          },
+        }}
+        onNavigationChange={(event) => {
+          if (event.nextBreadcrumbs.length === 0) return
+
+          animate(scope.current, { scale: [1, 0.98, 1] }, { duration: 0.15 })
+        }}
         menu={menuData}
-        trigger={
-          <Button variant="ghost" size="sm" className="w-fit">
-            <SearchIcon className="size-4" />
-            Search
-          </Button>
-        }
         placeholder="Search properties..."
-      />
+      >
+        <Button variant="ghost" size="sm" className="w-fit">
+          <SearchIcon className="size-4" />
+          Search
+        </Button>
+      </CommandMenu>
     </QueryClientProvider>
   )
 }

@@ -8,6 +8,55 @@ import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
 
 /**
+ * Bind API for Dialog Portal slot
+ */
+export type DialogPortalBindAPI = {
+  getDialogPortalProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    'data-slot': 'command-menu-dialog-portal'
+  }
+}
+
+/**
+ * Bind API for Dialog Overlay slot
+ */
+export type DialogOverlayBindAPI = {
+  getDialogOverlayProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    className?: string
+    'data-slot': 'command-menu-dialog-overlay'
+  }
+}
+
+/**
+ * Bind API for Dialog Content slot
+ */
+export type DialogContentBindAPI = {
+  getDialogContentProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    className?: string
+    'data-slot': 'command-menu-dialog-content'
+  }
+}
+
+/**
+ * Bind API for Dialog Inner slot
+ */
+export type DialogInnerBindAPI = {
+  getDialogInnerProps: <T extends React.HTMLAttributes<HTMLElement>>(
+    overrides?: T,
+  ) => T & {
+    ref: React.RefCallback<HTMLDivElement>
+    className?: string
+    'data-slot': 'command-menu-dialog-inner'
+    'data-command-menu-dialog-inner': true
+  }
+}
+
+/**
  * Command menu specific slots that extend MenuSlots
  */
 export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
@@ -17,24 +66,14 @@ export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
    */
   DialogPortal?: (props: {
     children: React.ReactNode
-    /** Base props for the portal */
-    baseProps: {
-      className?: string
-      'data-slot': 'command-menu-dialog-portal'
-    }
+    bind: DialogPortalBindAPI
   }) => React.ReactElement
 
   /**
    * Slot for customizing the dialog overlay (backdrop)
    * Useful for custom animations or wrapping with animation libraries
    */
-  DialogOverlay?: (props: {
-    /** Base props that must be applied for Radix Dialog to work */
-    baseProps: {
-      className?: string
-      'data-slot': 'command-menu-dialog-overlay'
-    }
-  }) => React.ReactElement
+  DialogOverlay?: (props: { bind: DialogOverlayBindAPI }) => React.ReactElement
 
   /**
    * Slot for customizing the dialog content container
@@ -42,11 +81,7 @@ export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
    */
   DialogContent?: (props: {
     children: React.ReactNode
-    /** Base props that must be applied for Radix Dialog to work */
-    baseProps: {
-      className?: string
-      'data-slot': 'command-menu-dialog-content'
-    }
+    bind: DialogContentBindAPI
   }) => React.ReactElement
 
   /**
@@ -55,13 +90,7 @@ export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
    */
   DialogInner?: (props: {
     children: React.ReactNode
-    /** Base props that must be applied for ResizeObserver to work */
-    baseProps: {
-      ref: React.RefCallback<HTMLDivElement>
-      className?: string
-      'data-slot': 'command-menu-dialog-inner'
-      'data-command-menu-dialog-inner': true
-    }
+    bind: DialogInnerBindAPI
   }) => React.ReactElement
 }
 
