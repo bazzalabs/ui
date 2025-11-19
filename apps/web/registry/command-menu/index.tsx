@@ -73,11 +73,6 @@ export const CommandMenu = createCommandMenu({
         className: 'group/row',
       })
 
-      console.log({
-        node,
-        search,
-      })
-
       return (
         <li {...props}>
           <div className="flex items-center gap-2 min-w-0">
@@ -94,11 +89,7 @@ export const CommandMenu = createCommandMenu({
               breadcrumbs={search?.breadcrumbs}
               isSubmenu
             />
-            {/*<span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
-              {node.label ?? node.title ?? ''}...
-            </span>*/}
           </div>
-          {/*<ChevronRightIcon className="size-4 text-muted-foreground/75 shrink-0" />*/}
         </li>
       )
     },

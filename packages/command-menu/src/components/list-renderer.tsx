@@ -125,10 +125,6 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     store.resetVirtualIndexMap(virtualIndexMap)
 
     const activeId = store.snapshot().activeId
-    console.log({
-      activeId,
-      validRowIds,
-    })
     const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
 
     if (validRowIds.length > 0 && !isActiveIdValid) {
