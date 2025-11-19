@@ -17,7 +17,7 @@ We can specify the contents of the menu with `nodes`, which is an array of node 
 
 To used controlled state for the root menu's `open` or `input` states, we can pass a `StateDescriptor` object, defined below:
 
-```typescript
+```ts
 export type StateDescriptor<T> = {
   value: T
   onValueChange: React.Dispatch<React.SetStateAction<T>>
@@ -27,7 +27,7 @@ export type StateDescriptor<T> = {
 
 For example, to control the `open` and `input` states of a menu:
 
-```typescript
+```ts
 const [open, setOpen] = React.useState(false);
 const [search, setSearch] = React.useState('');
 
@@ -51,7 +51,7 @@ const menu: MenuDef = {
   containerClassName='sm:h-fit mb-8'
   previewClassName='w-full flex flex-col items-center justify-center gap-12'
 >
-    <Examples.DropdownMenu.Basic hideSearchUntilActive={true} />
+    <Examples.DropdownMenu.Basic hideSearchUntilActive />
 </ComponentFrame>
 
 
@@ -61,13 +61,25 @@ When `true`, the input field will be hidden until the user starts typing.
 
 This allows us to mimic the look of a `select` element, while retaining the powerful search functionality when you need it.
 
+## Defaults
+
+## Render
+
+## Theming
+
 ## Search
+
+We can use the `search` property to configure the search behaviour of the menu.
 
 This is covered in the dedicated [Search](#search) section.
 
 ## Virtualization
 
+We can use the `virtualization` property to configure the virtualization behaviour of the menu list.
+
 This is covered in the dedicated [Virtualization](#virtualization) section.
+
+## Middleware
 
 ## Reference
 
