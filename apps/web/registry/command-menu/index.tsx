@@ -68,9 +68,14 @@ export const CommandMenu = createCommandMenu({
       )
     },
 
-    SubmenuTrigger: ({ node, bind }) => {
+    SubmenuTrigger: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: 'group/row',
+      })
+
+      console.log({
+        node,
+        search,
       })
 
       return (
@@ -84,9 +89,14 @@ export const CommandMenu = createCommandMenu({
                 )}
               </div>
             )}
-            <span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
+            <LabelWithBreadcrumbs
+              label={node.label ?? ''}
+              breadcrumbs={search?.breadcrumbs}
+              isSubmenu
+            />
+            {/*<span className="truncate text-primary/90 group-data-[focused=true]/row:text-primary">
               {node.label ?? node.title ?? ''}...
-            </span>
+            </span>*/}
           </div>
           {/*<ChevronRightIcon className="size-4 text-muted-foreground/75 shrink-0" />*/}
         </li>
@@ -280,10 +290,12 @@ export const DiamondSpinner = ({
 export const LabelWithBreadcrumbs = ({
   label,
   breadcrumbs,
+  isSubmenu = false,
   classNames,
 }: {
   label: React.ReactNode
   breadcrumbs?: string[]
+  isSubmenu?: boolean
   classNames?: {
     label?: string
     breadcrumb?: string
@@ -317,6 +329,7 @@ export const LabelWithBreadcrumbs = ({
       )}
     >
       {label}
+      {isSubmenu && '...'}
     </span>
   </div>
 )

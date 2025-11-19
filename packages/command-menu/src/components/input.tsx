@@ -20,24 +20,32 @@ export function CommandMenuInput({
 }: CommandMenuInputProps) {
   const theme = useScopedTheme()
   const { store } = useSurface()
-  const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange, inputRef } =
-    useCommandMenuContext()
+  const {
+    vimBindings,
+    dir,
+    popSubmenu,
+    isInSubmenu,
+    onOpenChange,
+    inputRef,
+    currentMenu,
+  } = useCommandMenuContext()
 
-  // Sync context inputRef with store inputRef
-  // (command-menu uses context inputRef for focus management)
+  // Sync store inputRef to context inputRef
+  // MenuInputPrimitive uses store.inputRef, but command-menu context uses inputRef
+  // So we need to sync from store.inputRef (source) to inputRef (destination)
   React.useEffect(() => {
-    if (inputRef.current && store.inputRef.current !== inputRef.current) {
-      ;(store.inputRef as React.RefObject<HTMLInputElement | null>).current =
-        inputRef.current
+    if (store.inputRef.current && inputRef.current !== store.inputRef.current) {
+      ;(inputRef as React.MutableRefObject<HTMLInputElement | null>).current =
+        store.inputRef.current
     }
   })
 
-  // Auto-focus input when component mounts
+  // Auto-focus input when component mounts or when menu changes (during navigation)
   React.useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus()
     }
-  }, [inputRef])
+  }, [inputRef, currentMenu.id])
 
   // Handle keyboard navigation from input (command-menu specific)
   const handleKeyDown = React.useCallback(

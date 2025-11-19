@@ -136,15 +136,12 @@ export function createCommandMenu<T = unknown>(
             <CommandMenuTrigger shortcut={shortcut}>
               {trigger}
             </CommandMenuTrigger>
-            <CommandMenuContent>
-              <CommandMenuBreadcrumbs />
-              <CommandMenuList
-                query={query}
-                onQueryChange={setQuery}
-                placeholder={placeholder}
-                defaults={mergedDefaults}
-              />
-            </CommandMenuContent>
+            <CommandMenuContent
+              query={query}
+              onQueryChange={setQuery}
+              placeholder={placeholder}
+              defaults={mergedDefaults}
+            />
           </CommandMenuRoot>
         </ScopedThemeProvider>
       </GlobalThemeProvider>

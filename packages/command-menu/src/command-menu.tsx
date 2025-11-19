@@ -18,7 +18,7 @@ export interface CommandMenuOptions<T = unknown> extends CommandMenuProps<T> {
 
 /**
  * Complete command menu component with all pieces integrated.
- * This is a convenience component that combines Root, Trigger, Content, Input, List, and Breadcrumbs.
+ * This is a convenience component that combines Root, Trigger, and Content.
  */
 export function CommandMenu<T = unknown>({
   shortcut = 'cmd+k',
@@ -38,15 +38,11 @@ export function CommandMenu<T = unknown>({
   return (
     <CommandMenuRoot {...rootProps}>
       <CommandMenuTrigger shortcut={shortcut}>{trigger}</CommandMenuTrigger>
-      <CommandMenuContent>
-        <CommandMenuBreadcrumbs />
-        <CommandMenuInput
-          value={query}
-          onValueChange={setQuery}
-          placeholder={placeholder}
-        />
-        <CommandMenuList query={query} onQueryChange={setQuery} />
-      </CommandMenuContent>
+      <CommandMenuContent
+        query={query}
+        onQueryChange={setQuery}
+        placeholder={placeholder}
+      />
     </CommandMenuRoot>
   )
 }
