@@ -1,4 +1,4 @@
-import type { MenuDef, SubmenuNode } from '@bazza-ui/menu'
+import type { MenuDef, SubmenuDef, SubmenuNode } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useRoot } from '../contexts/root-context.js'
 import { useSub } from '../contexts/submenu-context.js'
@@ -20,7 +20,7 @@ export function PopupMenuSubmenuContent<T>({
   const root = useRoot()
 
   // Convert submenu node to menu def with required id
-  const menuDef: MenuDef<any> = React.useMemo(() => {
+  const menuDef: MenuDef<any> | SubmenuDef<any> = React.useMemo(() => {
     const def = node.def
 
     // IMPORTANT: If this submenu has deep search injected results (__originalLoader),
@@ -30,20 +30,11 @@ export function PopupMenuSubmenuContent<T>({
     const hasOriginalLoader = (def as any).__originalLoader
 
     return {
-      id: node.id, // Use the node's id which is always defined
-      title: def.title,
-      inputPlaceholder: def.inputPlaceholder,
-      hideSearchUntilActive: def.hideSearchUntilActive,
+      ...def,
       // Clear injected nodes if we have an original loader - they'll be loaded fresh with the submenu's own query
       nodes: hasOriginalLoader ? undefined : def.nodes,
       // Restore the original loader if it exists, otherwise use the current loader
       loader: hasOriginalLoader ? (def as any).__originalLoader : def.loader,
-      defaults: def.defaults,
-      virtualization: def.virtualization,
-      search: def.search,
-      ui: def.ui,
-      input: def.input,
-      open: def.open,
     }
   }, [node])
 

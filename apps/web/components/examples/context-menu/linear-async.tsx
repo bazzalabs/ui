@@ -1,7 +1,12 @@
 'use client'
 
 import { queryLoader } from '@bazza-ui/loaders'
-import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/menu'
+import {
+  type MenuDef,
+  type NodeDef,
+  renderIcon,
+  type SubmenuDef,
+} from '@bazza-ui/menu'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
@@ -24,23 +29,25 @@ const queryClient = new QueryClient()
 export function ContextMenu_LinearAsync() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ContextMenu menu={menuData}>
-        <div className="relative h-48 w-full rounded-lg border p-4">
-          <div className="prose prose-sm dark:prose-invert">
-            <p className="font-semibold">Project Task Card (Async)</p>
-            <p className="text-muted-foreground text-sm">
-              Right-click on this card to change issue properties. The assignee
-              and label options are loaded asynchronously from a simulated API.
-            </p>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              <span className="text-xs bg-muted px-2 py-1 rounded">
-                Status: Todo
-              </span>
-              <span className="text-xs bg-muted px-2 py-1 rounded">
-                Assignee: None
-              </span>
-            </div>
-          </div>
+      <ContextMenu
+        menu={menuData}
+        defaults={{
+          item: {
+            onSelect: ({ node }) => {
+              toast(
+                `Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`,
+                {
+                  icon: renderIcon(node.icon, 'size-4'),
+                },
+              )
+            },
+          },
+        }}
+      >
+        <div className="h-32 w-auto aspect-video border border-dashed rounded-lg flex flex-col items-center justify-center">
+          <span className="text-muted-foreground text-sm">
+            Right-click here.
+          </span>
         </div>
       </ContextMenu>
     </QueryClientProvider>

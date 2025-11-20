@@ -152,11 +152,24 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
   // Handle item selection
   const handleItemSelect = React.useCallback(
     ({ node }: { node: ItemNode<any> }) => {
-      if (node.onSelect && !node.disabled) {
+      if (node.disabled) return
+
+      // Call the item's onSelect handler
+      if (node.onSelect) {
         node.onSelect({ node })
       }
+
+      // For command menus (modal dialogs), default to closing on select for button items
+      // unless explicitly set to false. Checkbox/radio items default to staying open.
+      const defaultCloseOnSelect = node.variant === 'button'
+      const closeOnSelect = node.closeOnSelect ?? defaultCloseOnSelect
+
+      // Close the command menu if closeOnSelect is true
+      if (closeOnSelect) {
+        onOpenChange(false)
+      }
     },
-    [],
+    [onOpenChange],
   )
 
   // Handle submenu selection - push to stack

@@ -1,7 +1,12 @@
 'use client'
 
 import { queryLoader } from '@bazza-ui/loaders'
-import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/menu'
+import {
+  type MenuDef,
+  type NodeDef,
+  renderIcon,
+  type SubmenuDef,
+} from '@bazza-ui/menu'
 import { DialogContent } from '@radix-ui/react-dialog'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SearchIcon } from 'lucide-react'
@@ -31,11 +36,6 @@ export function CommandMenu_LinearAsync() {
   return (
     <QueryClientProvider client={queryClient}>
       <CommandMenu
-        defaults={{
-          item: {
-            closeOnSelect: true,
-          },
-        }}
         slots={{
           DialogContent: ({ children, bind }) => {
             const props = bind.getDialogContentProps()
@@ -51,6 +51,18 @@ export function CommandMenu_LinearAsync() {
           if (event.nextBreadcrumbs.length === 0) return
 
           animate(scope.current, { scale: [1, 0.98, 1] }, { duration: 0.15 })
+        }}
+        defaults={{
+          item: {
+            onSelect: ({ node }) => {
+              toast(
+                `Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`,
+                {
+                  icon: renderIcon(node.icon, 'size-4'),
+                },
+              )
+            },
+          },
         }}
         menu={menuData}
         placeholder="Search properties..."
@@ -74,7 +86,6 @@ const statusMenu: SubmenuDef = {
       kind: 'item',
       label: 'Icebox',
       icon: <Status.Icebox />,
-      closeOnSelect: true,
     },
     {
       kind: 'item',

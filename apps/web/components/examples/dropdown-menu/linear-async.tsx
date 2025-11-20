@@ -25,7 +25,23 @@ import {
 
 export function DropdownMenu_LinearAsync() {
   return (
-    <DropdownMenu menu={menuData}>
+    <DropdownMenu
+      menu={menuData}
+      defaults={{
+        item: {
+          onSelect: ({ node }) => {
+            console.log('node:', node)
+            const property = (
+              node.parent.label ?? node.parent.title
+            )?.toLowerCase()
+
+            toast(`Changed ${property} to ${node.label}.`, {
+              icon: renderIcon(node.icon, 'size-4'),
+            })
+          },
+        },
+      }}
+    >
       <DropdownMenu.Trigger asChild>
         <Button variant="ghost" size="sm" className="w-fit">
           <ListFilterIcon className="size-4 fill-muted-foreground" />
@@ -734,16 +750,16 @@ const projectPropertiesMenu: SubmenuDef = {
 
 export const menuData: MenuDef = {
   id: 'issue-properties',
-  defaults: {
-    item: {
-      closeOnSelect: true,
-      onSelect: ({ node }) => {
-        toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
-          icon: renderIcon(node.icon, 'size-4'),
-        })
-      },
-    },
-  },
+  // defaults: {
+  //   item: {
+  //     closeOnSelect: true,
+  //     onSelect: ({ node }) => {
+  //       toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
+  //         icon: renderIcon(node.icon, 'size-4'),
+  //       })
+  //     },
+  //   },
+  // },
   search: {
     minLength: 2,
   },

@@ -32,24 +32,6 @@ export interface CommandMenuContentProps<T = unknown> {
 }
 
 /**
- * Internal component that wraps the loader execution.
- * This component is keyed by menu ID and loader presence to ensure
- * stable hooks when navigating between menus with different loader types.
- */
-function MenuLoaderWrapper<T>({
-  menuLoader,
-  loaderContext,
-  children,
-}: {
-  menuLoader: AsyncNodeLoader<T> | undefined
-  loaderContext: AsyncNodeLoaderContext
-  children: (result: AsyncNodeLoaderResult<T> | undefined) => React.ReactNode
-}) {
-  const loaderResult = useLoader(menuLoader, loaderContext)
-  return <>{children(loaderResult)}</>
-}
-
-/**
  * Layer component that handles menu orchestration and rendering for a single menu level.
  * Each layer maintains its own independent query state, matching popup menu architecture.
  */
@@ -326,6 +308,7 @@ function buildMenuStack<T>(
 
         cachedMenuDef = {
           id: submenuNode.id || entry.menuId,
+          label: submenuNode.label,
           title: submenuNode.title,
           nodes: hasInjectedResults ? undefined : submenuNode.nodes,
           loader: hasInjectedResults

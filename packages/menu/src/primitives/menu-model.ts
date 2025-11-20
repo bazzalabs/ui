@@ -280,6 +280,7 @@ export function instantiateSingleNode<T>(
     const child = instantiateMenuFromDef(
       {
         id,
+        label: subDef.label ?? subDef.title,
         title: subDef.title ?? subDef.label,
         inputPlaceholder: subDef.inputPlaceholder,
         hideSearchUntilActive: subDef.hideSearchUntilActive,
@@ -349,7 +350,7 @@ export function instantiateMenuFromDef<T>(
   const sourceNodes = [...staticNodes, ...loaderNodes]
 
   // if (depth > 0 && (staticNodes.length > 0 || loaderNodes.length > 0)) {
-  //   console.log('🏗️ [instantiateMenuFromDef] Submenu nodes:', {
+  //   console.log('🏗 [instantiateMenuFromDef] Submenu nodes:', {
   //     menuId: def.id,
   //     depth,
   //     surfaceId,
