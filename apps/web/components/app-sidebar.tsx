@@ -1,6 +1,10 @@
 'use client'
 
-import { ChevronRight } from 'lucide-react'
+import {
+  ChevronRight,
+  FlaskConicalIcon,
+  TriangleDashedIcon,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -30,6 +34,12 @@ import { cn } from '@/lib/utils'
 import logoSrc from '@/public/bazzaui-v3-color.png'
 import { FadeContainer } from './fade-container'
 import { ThemeToggle } from './theme-toggle'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip'
 
 const items = [
   {
@@ -90,6 +100,7 @@ const componentItems: ComponentItem[] = [
     type: 'collapsible',
     title: 'Menu',
     urlPrefix: '/docs/menu',
+    badge: <FlaskConicalIcon className="size-3.5 text-purple-400" />,
     groups: [
       {
         groupName: 'Getting Started',
@@ -204,21 +215,25 @@ const componentItems: ComponentItem[] = [
       {
         groupName: 'Components',
         items: [
-          { type: 'link', title: 'Popup Menus', url: '/docs/menu/popup-menus' },
+          {
+            type: 'link',
+            title: 'Popup Menus',
+            url: '/docs/menu/components/popup-menus',
+          },
           {
             type: 'link',
             title: 'Command Menu',
-            url: '/docs/menu/command-menu',
+            url: '/docs/menu/components/command-menu',
           },
           {
             type: 'link',
             title: 'Dropdown Menu',
-            url: '/docs/menu/dropdown-menu',
+            url: '/docs/menu/components/dropdown-menu',
           },
           {
             type: 'link',
             title: 'Context Menu',
-            url: '/docs/menu/context-menu',
+            url: '/docs/menu/components/context-menu',
           },
         ],
       },
@@ -228,7 +243,9 @@ const componentItems: ComponentItem[] = [
     type: 'collapsible',
     title: 'Action Menu',
     urlPrefix: '/docs/action-menu',
-    badge: <div className="size-2 bg-blue-500 rounded-full" />,
+    badge: (
+      <TriangleDashedIcon className="size-3.5 !text-yellow-400 stroke-3" />
+    ),
     groups: [
       {
         groupName: 'Getting Started',
@@ -482,12 +499,20 @@ function MenuItemRenderer({
   )
 }
 
-export function AppSidebar() {
+export function AppSidebar({
+  className,
+  variant = 'inset',
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const ref = useRef<HTMLDivElement | null>(null)
 
   return (
-    <Sidebar variant="inset" className="flex flex-col">
+    <Sidebar
+      variant={variant}
+      className={cn('flex flex-col', className)}
+      {...props}
+    >
       <SidebarHeader className="px-4 text-sm pt-4 shrink-0">
         <SidebarMenu>
           <SidebarMenuItem className="inline-flex justify-between items-center">

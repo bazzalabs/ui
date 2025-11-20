@@ -108,6 +108,16 @@ function CommandMenuContentLayer<T>({
     }
   }, [visible, depth])
 
+  // Reset active ID to first item when this layer becomes visible (navigating back)
+  const prevVisibleRef = React.useRef(visible)
+  React.useEffect(() => {
+    if (visible && !prevVisibleRef.current) {
+      // Layer just became visible - reset to first item
+      store.first('keyboard')
+    }
+    prevVisibleRef.current = visible
+  }, [visible, store])
+
   // Build menu with deep search support from @bazza-ui/menu
   const { menu } = useMenu<T>({
     menuDef,
@@ -274,10 +284,14 @@ function findSubmenuDeep<T>(
 /**
  * Helper to build menu stack from root menu + navigation stack.
  * Returns array of [menuDef, depth] tuples for rendering layers.
+ *
+ * IMPORTANT: Uses a cache to ensure stable menuDef references when navigating.
+ * This prevents unnecessary re-instantiation of menus when going back to a previously visited menu.
  */
 function buildMenuStack<T>(
   rootMenu: MenuDef<T>,
   navigationStack: NavigationStackEntry[],
+  menuDefCache: Map<string, MenuDef<T>>,
 ): Array<{ menuDef: MenuDef<T>; depth: number }> {
   const stack: Array<{ menuDef: MenuDef<T>; depth: number }> = [
     { menuDef: rootMenu, depth: 0 },
@@ -302,26 +316,36 @@ function buildMenuStack<T>(
     }
 
     if (submenuNode && submenuNode.kind === 'submenu') {
-      const hasInjectedResults = (submenuNode as any).__originalLoader
+      // Check cache first to maintain stable object references
+      const cacheKey = entry.menuId
+      let cachedMenuDef = menuDefCache.get(cacheKey)
 
-      currentMenuDef = {
-        id: submenuNode.id || entry.menuId,
-        title: submenuNode.title,
-        nodes: hasInjectedResults ? undefined : submenuNode.nodes,
-        loader: hasInjectedResults
-          ? (submenuNode as any).__originalLoader
-          : submenuNode.loader,
-        search: submenuNode.search,
-        defaults: submenuNode.defaults,
-        ui: submenuNode.ui,
-        virtualization: submenuNode.virtualization,
-        inputPlaceholder: submenuNode.inputPlaceholder,
-        hideSearchUntilActive: submenuNode.hideSearchUntilActive,
-        input: submenuNode.input,
-        open: submenuNode.open,
-        middleware: submenuNode.middleware,
-      } as MenuDef<T>
+      // Only create new menuDef if not in cache or if the submenu node has changed
+      if (!cachedMenuDef) {
+        const hasInjectedResults = (submenuNode as any).__originalLoader
 
+        cachedMenuDef = {
+          id: submenuNode.id || entry.menuId,
+          title: submenuNode.title,
+          nodes: hasInjectedResults ? undefined : submenuNode.nodes,
+          loader: hasInjectedResults
+            ? (submenuNode as any).__originalLoader
+            : submenuNode.loader,
+          search: submenuNode.search,
+          defaults: submenuNode.defaults,
+          ui: submenuNode.ui,
+          virtualization: submenuNode.virtualization,
+          inputPlaceholder: submenuNode.inputPlaceholder,
+          hideSearchUntilActive: submenuNode.hideSearchUntilActive,
+          input: submenuNode.input,
+          open: submenuNode.open,
+          middleware: submenuNode.middleware,
+        } as MenuDef<T>
+
+        menuDefCache.set(cacheKey, cachedMenuDef)
+      }
+
+      currentMenuDef = cachedMenuDef
       stack.push({ menuDef: currentMenuDef, depth: i + 1 })
     }
   }
@@ -338,9 +362,13 @@ export function CommandMenuContent<T = unknown>({
     useCommandMenuContext<T>()
   const observerRef = React.useRef<ResizeObserver | null>(null)
 
+  // Cache for menu definitions to ensure stable object references across navigations
+  // This prevents unnecessary menu re-instantiation when navigating back
+  const menuDefCacheRef = React.useRef<Map<string, MenuDef<T>>>(new Map())
+
   // Build menu stack for rendering layers
   const menuStack = React.useMemo(
-    () => buildMenuStack(rootMenu, navigationStack),
+    () => buildMenuStack(rootMenu, navigationStack, menuDefCacheRef.current),
     [rootMenu, navigationStack],
   )
 

@@ -1,13 +1,13 @@
-import { LinkIcon } from 'lucide-react'
+import { ConstructionIcon, LinkIcon } from 'lucide-react'
 import type { MDXComponents } from 'mdx/types'
 import Image from 'next/image'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
-import { TypeTable } from '@/components/type-table'
-import { TypeReference } from '@/components/type-reference'
-import { TypeTableAuto } from '@/components/type-table-auto'
-import { TypeSignature } from '@/components/type-signature'
 import { TypeDebug } from '@/components/type-debug'
 import { TypeDiff } from '@/components/type-diff'
+import { TypeReference } from '@/components/type-reference'
+import { TypeSignature } from '@/components/type-signature'
+import { TypeTable } from '@/components/type-table'
+import { TypeTableAuto } from '@/components/type-table-auto'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
 import CollapsibleCodeBlock from './components/collapsible-code-block'
@@ -227,46 +227,6 @@ const components = {
       {children}
     </pre>
   ),
-
-  // pre: ({
-  //   className,
-  //   __rawString__,
-  //   __npmCommand__,
-  //   __yarnCommand__,
-  //   __pnpmCommand__,
-  //   __bunCommand__,
-  //   __withMeta__,
-  //   __src__,
-  //   ...props
-  // }: React.HTMLAttributes<HTMLPreElement> & {
-  //   __rawString__?: string
-  //   __withMeta__?: boolean
-  //   __src__?: string
-  // } & NpmCommands) => {
-  //   const isNpmCommand =
-  //     __npmCommand__ && __yarnCommand__ && __pnpmCommand__ && __bunCommand__
-
-  //   if (isNpmCommand) {
-  //     return (
-  //       <CodeBlockCommand
-  //         className="font-mono"
-  //         __npmCommand__={__npmCommand__}
-  //         __yarnCommand__={__yarnCommand__}
-  //         __pnpmCommand__={__pnpmCommand__}
-  //         __bunCommand__={__bunCommand__}
-  //       />
-  //     )
-  //   }
-
-  //   return (
-  //     <pre
-  //       // className="rounded-xl text-sm border [&>code]:bg-transparent [&>code]:p-0 border-border py-4 px-4 bg-white dark:bg-black my-6 font-mono"
-  //       {...props}
-  //     >
-  //       {props.children}
-  //     </pre>
-  //   )
-  // },
   Image,
   ResponsiveImage: (props) => (
     <ResponsiveImage
@@ -293,6 +253,29 @@ const components = {
   Media: ({ wrapperClassName, ...props }) => (
     <Media wrapperClassName={cn('mb-6 mt-2', wrapperClassName)} {...props} />
   ),
+  PageUnderConstruction: () => {
+    return (
+      <div className="w-fit p-8 mx-auto mt-24 flex flex-col justify-center items-center gap-8 border shadow-xs rounded-lg">
+        <ConstructionIcon className="size-24 text-orange-500" />
+        <div className="flex flex-col gap-2 items-center">
+          <span className="text-base font-medium text-primary">
+            This page is under construction.
+          </span>
+          <span className="text-muted-foreground text-sm">
+            Please check back again later.
+          </span>
+        </div>
+        {/*<h2
+            className={cn(
+              'text-xl font-medium tracking-[-0.02em] drop-shadow-xs first:mt-0 mt-20 mb-8 text-muted-foreground',
+              '[&>code]:text-2xl',
+            )}
+          >
+            Under construction
+          </h2>*/}
+      </div>
+    )
+  },
 } satisfies MDXComponents
 
 export function useMDXComponents(): MDXComponents {

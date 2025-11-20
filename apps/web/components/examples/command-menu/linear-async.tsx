@@ -31,6 +31,11 @@ export function CommandMenu_LinearAsync() {
   return (
     <QueryClientProvider client={queryClient}>
       <CommandMenu
+        defaults={{
+          item: {
+            closeOnSelect: true,
+          },
+        }}
         slots={{
           DialogContent: ({ children, bind }) => {
             const props = bind.getDialogContentProps()
@@ -69,6 +74,7 @@ const statusMenu: SubmenuDef = {
       kind: 'item',
       label: 'Icebox',
       icon: <Status.Icebox />,
+      closeOnSelect: true,
     },
     {
       kind: 'item',

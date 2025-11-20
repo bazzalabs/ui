@@ -43,6 +43,12 @@ const nextConfig: NextConfig = {
       permanent: false,
     },
   ],
+  rewrites: async () => [
+    {
+      destination: '/docs/menu/components/:path*',
+      source: '/docs/components/:path*',
+    },
+  ],
 }
 
 const withMDX = createMDX({})

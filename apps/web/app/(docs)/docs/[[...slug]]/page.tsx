@@ -7,6 +7,8 @@ import { docsSource } from '@/lib/source'
 import 'rehype-callouts/theme/github'
 import { ChevronRightIcon } from 'lucide-react'
 import { InlineTOC } from '@/components/inline-toc'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 import { useMDXComponents } from '@/mdx-components'
 
 export async function generateMetadata({
@@ -95,19 +97,18 @@ export default async function Page({
   const tableOfContents = metadata.toc
 
   return (
-    <div className="col-span-1 grid grid-cols-[1fr_auto_1fr] gap-x-8">
-      <div />
-      <div className="flex flex-col gap-8 w-full max-w-screen-md mx-auto col-span-1 my-4 md:my-8 xl:my-16 no-scrollbar">
-        {/*<div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" />
-          </div>*/}
+    <div
+      className={cn(
+        // 'grid grid-cols-[calc(calc(100svw/3*2)-300px)_auto]',
+        'w-full', // 'grid grid-cols-[calc(calc(100svw/3*2)-300px)_min(calc(100svw/3),300px)]',
+        'grid grid-cols-[auto_auto_auto]',
+      )}
+    >
+      <div className="max-w-[calc(calc(100svw/3)-300px)] w-full" />
+      <div className="col-span-1 px-4 flex flex-col gap-8 w-full max-w-screen-md mx-auto my-4 md:my-8 xl:my-16">
+        <SidebarTrigger className="md:hidden fixed top-4 left-6 z-50 bg-secondary drop-shadow-md" />
 
-        <div className="flex flex-col gap-4 mb-8 mt-8">
-          {/*<div className="flex items-center gap-1 [&_svg]:size-4 text-muted-foreground">
-              {metadata.component}
-              <ChevronRightIcon className="text-muted-foreground" />
-              {metadata.section}
-            </div>*/}
+        <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
           <div className="flex items-start gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}
@@ -125,11 +126,15 @@ export default async function Page({
           </div>
           <div className="text-muted-foreground">{metadata.summary}</div>
         </div>
-        <div className="mb-32">
+        <div className="mb-32 flex-1 w-full">
           <MDX components={useMDXComponents()} />
         </div>
       </div>
-      <InlineTOC items={tableOfContents} />
+      <div className="col-span-1 hidden xl:block">
+        <div className="sticky top-0 h-fit pt-4">
+          <InlineTOC items={tableOfContents} />
+        </div>
+      </div>
     </div>
   )
 }
