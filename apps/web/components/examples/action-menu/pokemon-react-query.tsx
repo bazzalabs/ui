@@ -52,8 +52,8 @@ export function ActionMenu_PokemonReactQuery() {
         id: 'root',
         inputPlaceholder: 'Search...',
         loader: createLoader<PokemonListResponse>(() => ({
-          key: ['pokemon'],
-          fn: async () => fetchPokemonList(),
+          queryKey: ['pokemon'],
+          queryFn: async () => fetchPokemonList(),
           select: (data) => {
             // Filter Pokemon by search query
             // Map to menu items

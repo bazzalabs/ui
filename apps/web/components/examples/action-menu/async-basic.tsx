@@ -23,8 +23,8 @@ export function ActionMenu_AsyncBasic() {
       menu={{
         id: 'root',
         loader: createLoader<Label[]>(({ query }) => ({
-          key: ['labels', query],
-          fn: () => fetchLabels(query),
+          queryKey: ['labels', query],
+          queryFn: () => fetchLabels(query),
           retry: false,
           select: (data) =>
             data.map((label) => ({

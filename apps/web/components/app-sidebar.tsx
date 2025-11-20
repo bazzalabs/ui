@@ -468,33 +468,30 @@ function MenuItemRenderer({
 
   return (
     <Collapsible
-      asChild
       defaultOpen={hasActiveChild}
       className="group/nested-collapsible"
     >
-      <li>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuSubButton className="group-data-[state=open]/nested-collapsible:text-primary **:cursor-pointer">
-            {item.title}
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
-          </SidebarMenuSubButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {item.items.map((child, index) => (
-              <MenuItemRenderer
-                key={
-                  child.type === 'link'
-                    ? child.url
-                    : `collapsible-${child.title}-${index}`
-                }
-                item={child}
-                pathname={pathname}
-              />
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </li>
+      <CollapsibleTrigger asChild>
+        <SidebarMenuSubButton className="font-medium text-muted-foreground hover-expand-[2px] group-data-[state=open]/nested-collapsible:bg-sidebar-accent group-data-[state=open]/nested-collapsible:text-primary cursor-pointer **:cursor-pointer">
+          {item.title}
+          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
+        </SidebarMenuSubButton>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {item.items.map((child, index) => (
+            <MenuItemRenderer
+              key={
+                child.type === 'link'
+                  ? child.url
+                  : `collapsible-${child.title}-${index}`
+              }
+              item={child}
+              pathname={pathname}
+            />
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
     </Collapsible>
   )
 }

@@ -2,6 +2,9 @@ import { createMDX } from 'fumadocs-mdx/next'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  devIndicators: {
+    position: 'bottom-right',
+  },
   distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   images: {

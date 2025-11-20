@@ -44,8 +44,8 @@ export function ContextMenu_LinearAsync() {
           },
         }}
       >
-        <div className="h-32 w-auto aspect-video border border-dashed rounded-lg flex flex-col items-center justify-center">
-          <span className="text-muted-foreground text-sm">
+        <div className="h-32 w-auto aspect-video border border-dashed rounded-lg flex flex-col items-center justify-center bg-background">
+          <span className="text-muted-foreground text-sm select-none">
             Right-click here.
           </span>
         </div>

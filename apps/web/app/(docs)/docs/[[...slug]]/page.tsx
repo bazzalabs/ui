@@ -5,7 +5,12 @@ import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { docsSource } from '@/lib/source'
 import 'rehype-callouts/theme/github'
-import { ChevronRightIcon } from 'lucide-react'
+import {
+  ChevronRightIcon,
+  FlaskConicalIcon,
+  TriangleDashedIcon,
+} from 'lucide-react'
+import Link from 'next/link'
 import { InlineTOC } from '@/components/inline-toc'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
@@ -43,9 +48,10 @@ export async function generateMetadata({
     : ''
 
   // Build the title with component name
-  const pageTitle = componentName
-    ? `${metadata.title} / ${componentName}`
-    : metadata.title
+  const pageTitle =
+    componentName && metadata.title !== componentName
+      ? `${metadata.title} / ${componentName}`
+      : metadata.title
 
   return {
     title: pageTitle,
@@ -79,6 +85,46 @@ export async function generateMetadata({
   }
 }
 
+const ExperimentalWarning = () => {
+  return (
+    <div className="border border-purple-400 rounded-lg p-4 bg-purple-50 flex items-center gap-4 mb-8">
+      <div className="translate-y-[-1px]">
+        <FlaskConicalIcon className="text-purple-400 size-5" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-purple-600 text-sm font-[450] leading-none">
+          This component is experimental.
+        </span>
+        <p className="text-sm text-purple-500">
+          Documentation may be incomplete and APIs are subject to change.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+const DeprecationWarning = () => {
+  return (
+    <div className="border border-orange-400 rounded-lg p-4 bg-orange-50 flex items-center gap-4 mb-8">
+      <div className="translate-y-[-1px]">
+        <TriangleDashedIcon className="text-orange-400 size-5 stroke-3" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-orange-500 text-sm font-[450] leading-none">
+          This component is deprecated.
+        </span>
+        <p className="text-sm text-orange-400">
+          Prepare to migrate to its successor,{' '}
+          <Link href="/docs/components/dropdown-menu" className="underline">
+            Dropdown Menu
+          </Link>
+          .
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default async function Page({
   params,
 }: {
@@ -109,11 +155,13 @@ export default async function Page({
         <SidebarTrigger className="md:hidden fixed top-4 left-6 z-50 bg-secondary drop-shadow-md" />
 
         <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
+          {slug.includes('menu') && <ExperimentalWarning />}
+          {slug.includes('action-menu') && <DeprecationWarning />}
           <div className="flex items-start gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}
             </span>
-            {metadata.badge === 'alpha' && (
+            {/*{metadata.badge === 'alpha' && (
               <Badge className="bg-pink-400 dark:bg-pink-500 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
                 <span>{metadata.badge}</span>
               </Badge>
@@ -122,7 +170,7 @@ export default async function Page({
               <Badge className="bg-purple-500 dark:bg-purple-600 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
                 <span>{metadata.badge}</span>
               </Badge>
-            )}
+            )}*/}
           </div>
           <div className="text-muted-foreground">{metadata.summary}</div>
         </div>

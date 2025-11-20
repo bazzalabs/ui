@@ -7,6 +7,8 @@ import type {
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
 
+export type * from '@bazza-ui/menu/types'
+
 /**
  * Bind API for Dialog Portal slot
  */
