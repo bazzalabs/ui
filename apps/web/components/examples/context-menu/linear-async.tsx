@@ -6,8 +6,10 @@ import {
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/context-menu'
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
+import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -278,6 +280,39 @@ const labelsMenu: SubmenuDef = {
     queryKey: ['labels', query],
     queryFn: () => fetchLabels(query),
   })),
+  middleware: composeMiddleware([
+    createNew({
+      showWhen: 'no-exact-match',
+      position: 'bottom',
+      label: (query) => `Create label: ${query}`,
+      render: ({ query, bind, nodes }) => {
+        const props = bind.getRowProps({
+          className: cn('group/row'),
+        })
+
+        return (
+          <>
+            {nodes.length > 0 && <div className="w-full h-px bg-border my-1" />}
+            <li {...props}>
+              <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
+                {renderIcon(
+                  PlusIcon,
+                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
+                )}
+              </div>
+              <div className="inline-block">
+                <span className="text-muted-foreground">Create label: </span>
+                <span className="text-primary">{query}</span>
+              </div>
+            </li>
+          </>
+        )
+      },
+      onCreate: (query) => {
+        toast.success(`Created label "${query}"`)
+      },
+    }),
+  ]),
 }
 
 const projectStatusMenu: SubmenuDef = {

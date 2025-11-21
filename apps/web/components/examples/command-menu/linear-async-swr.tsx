@@ -1,7 +1,7 @@
 'use client'
 
 import type { MenuDef, NodeDef, SubmenuDef } from '@bazza-ui/command-menu'
-import { swrLoader } from '@bazza-ui/loaders'
+import { swrLoader } from '@bazza-ui/loaders/swr'
 import { SearchIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { SWRConfig } from 'swr'
@@ -29,16 +29,12 @@ export function CommandMenu_LinearAsyncSWR() {
         revalidateOnReconnect: true,
       }}
     >
-      <CommandMenu
-        menu={menuData}
-        trigger={
-          <Button variant="ghost" size="sm" className="w-fit">
-            <SearchIcon className="size-4" />
-            Search
-          </Button>
-        }
-        placeholder="Search properties..."
-      />
+      <CommandMenu menu={menuData} placeholder="Search properties...">
+        <Button variant="ghost" size="sm" className="w-fit">
+          <SearchIcon className="size-4" />
+          Search
+        </Button>
+      </CommandMenu>
     </SWRConfig>
   )
 }

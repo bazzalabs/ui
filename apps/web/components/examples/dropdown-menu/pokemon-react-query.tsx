@@ -1,6 +1,6 @@
 'use client'
 
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'

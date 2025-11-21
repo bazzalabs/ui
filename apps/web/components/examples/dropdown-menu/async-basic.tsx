@@ -1,6 +1,6 @@
 'use client'
 
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'

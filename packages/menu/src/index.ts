@@ -1,10 +1,6 @@
-// Types
-
 // Hooks
 export * from './hooks/index.js'
-// Middleware
-export * from './middleware/index.js'
-export type * from './middleware/types.js'
+
 export * from './primitives/default-slots.js'
 
 // UI Primitives

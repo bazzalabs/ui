@@ -1,7 +1,7 @@
 'use client'
 
 import type { ItemDef } from '@bazza-ui/dropdown-menu'
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import { UtensilsIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'

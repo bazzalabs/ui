@@ -1,7 +1,7 @@
 'use client'
 
 import type { ItemDef } from '@bazza-ui/context-menu'
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HomeIcon } from 'lucide-react'
 import { toast } from 'sonner'

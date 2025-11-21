@@ -90,14 +90,3 @@ export { createContextMenu } from './create-context-menu.js'
 
 // Functions - re-exported from @bazza-ui/menu for developer convenience
 export { renderIcon, flatten } from '@bazza-ui/menu'
-
-// Middleware - re-exported from @bazza-ui/menu for developer convenience
-export { composeMiddleware, createNew } from '@bazza-ui/menu'
-export type {
-  MenuMiddleware,
-  TransformNodesContext,
-  BeforeFilterContext,
-  AfterFilterContext,
-  SearchResult,
-  CreateNewConfig,
-} from '@bazza-ui/menu'

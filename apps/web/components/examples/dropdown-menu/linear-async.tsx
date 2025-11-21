@@ -6,7 +6,7 @@ import {
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/dropdown-menu'
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import { ListFilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'

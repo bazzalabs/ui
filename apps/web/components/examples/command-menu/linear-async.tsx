@@ -1,6 +1,6 @@
 'use client'
 
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import {
   type MenuDef,
   type NodeDef,

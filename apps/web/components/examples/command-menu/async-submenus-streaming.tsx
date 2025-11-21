@@ -1,6 +1,6 @@
 'use client'
 
-import { queryLoader } from '@bazza-ui/loaders'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import type { ItemDef } from '@bazza-ui/menu'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UtensilsIcon } from 'lucide-react'
@@ -15,12 +15,6 @@ export function CommandMenu_AsyncSubmenusStreaming() {
   return (
     <QueryClientProvider client={queryClient}>
       <CommandMenu
-        trigger={
-          <Button variant="ghost" className="group">
-            <UtensilsIcon className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary" />
-            What's in the fridge?
-          </Button>
-        }
         menu={{
           id: 'root',
           search: {
@@ -197,7 +191,12 @@ export function CommandMenu_AsyncSubmenusStreaming() {
             },
           ],
         }}
-      />
+      >
+        <Button variant="ghost" className="group">
+          <UtensilsIcon className="text-muted-foreground group-hover:text-primary group-aria-expanded:text-primary" />
+          What's in the fridge?
+        </Button>
+      </CommandMenu>
     </QueryClientProvider>
   )
 }

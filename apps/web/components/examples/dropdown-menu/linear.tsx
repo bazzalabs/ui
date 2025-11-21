@@ -1,13 +1,12 @@
 'use client'
 
 import {
-  composeMiddleware,
-  createNew,
   type ItemNode,
   type MenuDef,
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/dropdown-menu'
+import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
 import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
