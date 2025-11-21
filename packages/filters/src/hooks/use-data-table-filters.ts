@@ -6,6 +6,7 @@ import { createColumns } from '../core/columns/index.js'
 import { filterOperations } from '../core/filters.js'
 import type {
   BatchFilterOperations,
+  BigIntColumnIds,
   Column,
   ColumnConfig,
   ColumnDataType,
@@ -120,10 +121,12 @@ export function useDataTableFilters<
         final = { ...final, options: optionsInput }
       }
 
+      /** Inject faceted options, if valid **/
+
       // Set faceted options, if exists
       if (
-        faceted &&
-        (config.type === 'option' || config.type === 'multiOption')
+        (config.type === 'option' || config.type === 'multiOption') &&
+        faceted
       ) {
         const facetedOptionsInput =
           faceted[config.id as OptionColumnIds<TColumns>]
@@ -136,7 +139,20 @@ export function useDataTableFilters<
       // Set faceted min/max values, if exists
       if (config.type === 'number' && faceted) {
         const minMaxTuple = faceted[config.id as NumberColumnIds<TColumns>]
-        if (!minMaxTuple || !isMinMaxTuple(minMaxTuple)) return config
+        if (!minMaxTuple || !isMinMaxTuple<number>(minMaxTuple, 'number'))
+          return config
+
+        final = {
+          ...final,
+          min: minMaxTuple[0],
+          max: minMaxTuple[1],
+        }
+      }
+
+      if (config.type === 'bigint' && faceted) {
+        const minMaxTuple = faceted[config.id as BigIntColumnIds<TColumns>]
+        if (!minMaxTuple || !isMinMaxTuple<bigint>(minMaxTuple, 'bigint'))
+          return config
 
         final = {
           ...final,
