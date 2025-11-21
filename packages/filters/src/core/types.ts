@@ -218,6 +218,21 @@ export type NumberColumnIds<
   [K in keyof T]: NumberColumnId<T[K]>
 }[number]
 
+export type BigIntColumnId<T> = T extends ColumnConfig<
+  infer TData,
+  'bigint',
+  infer TVal,
+  infer TId
+>
+  ? TId
+  : never
+
+export type BigIntColumnIds<
+  T extends ReadonlyArray<ColumnConfig<any, any, any, any>>,
+> = {
+  [K in keyof T]: BigIntColumnId<T[K]>
+}[number]
+
 /*
  * Describes a helper function for creating column configurations.
  */
@@ -513,6 +528,7 @@ export interface DataTableFiltersOptions<
   faceted?: Partial<
     | Record<OptionColumnIds<TColumns>, Map<string, number> | undefined>
     | Record<NumberColumnIds<TColumns>, [number, number] | undefined>
+    | Record<BigIntColumnIds<TColumns>, [bigint, bigint] | undefined>
   >
   entityName?: string
 }

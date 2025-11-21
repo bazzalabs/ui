@@ -123,14 +123,18 @@ export function isColumnOptionMap(
   return true
 }
 
-export function isMinMaxTuple(value: unknown): value is [number, number] {
+export function isMinMaxTuple<T extends number | bigint>(
+  value: unknown,
+  kind: 'number' | 'bigint',
+): value is [T, T] {
   return (
     Array.isArray(value) &&
     value.length === 2 &&
-    typeof value[0] === 'number' &&
-    typeof value[1] === 'number'
+    typeof value[0] === kind &&
+    typeof value[1] === kind
   )
 }
+
 export function getValidNumber(value: any): number | undefined {
   if (value === null || value === undefined) return undefined
   if (typeof value !== 'number') return undefined

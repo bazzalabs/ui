@@ -2635,6 +2635,1101 @@ describe('useDataTableFilters', () => {
       })
     })
   })
+  describe('Faceted options', () => {
+    // Test data for faceted options testing
+    type FacetedTestData = {
+      id: number
+      status: string
+      category: string[]
+      age: number
+      score: bigint
+    }
+
+    const facetedData: FacetedTestData[] = [
+      {
+        id: 1,
+        status: 'active',
+        category: ['electronics'],
+        age: 25,
+        score: 100n,
+      },
+      { id: 2, status: 'inactive', category: ['books'], age: 30, score: 200n },
+      {
+        id: 3,
+        status: 'pending',
+        category: ['electronics', 'books'],
+        age: 35,
+        score: 150n,
+      },
+    ]
+
+    const facetedHelper = createColumnConfigHelper<FacetedTestData>()
+
+    // Column configurations for faceted testing
+    const statusColumn = facetedHelper
+      .option()
+      .accessor((row) => row.status)
+      .id('status')
+      .displayName('Status')
+      .build()
+
+    const categoryColumn = facetedHelper
+      .multiOption()
+      .accessor((row) => row.category)
+      .id('category')
+      .displayName('Category')
+      .build()
+
+    const ageColumn = facetedHelper
+      .number()
+      .accessor((row) => row.age)
+      .id('age')
+      .displayName('Age')
+      .build()
+
+    const scoreColumn = facetedHelper
+      .bigint()
+      .accessor((row) => row.score)
+      .id('score')
+      .displayName('Score')
+      .build()
+
+    const facetedColumnsConfig = [
+      statusColumn,
+      categoryColumn,
+      ageColumn,
+      scoreColumn,
+    ] as const
+
+    describe('option', () => {
+      it('should inject valid faceted options into option column config', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'pending', label: 'Pending' },
+          ],
+        }
+
+        const faceted = {
+          status: new Map([
+            ['active', 5],
+            ['inactive', 3],
+            ['pending', 2],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        expect(statusCol).toBeDefined()
+
+        // Verify faceted options are accessible via getFacetedUniqueValues
+        const facetedUniqueValues = statusCol?.getFacetedUniqueValues()
+        expect(facetedUniqueValues).toBeInstanceOf(Map)
+        expect(facetedUniqueValues?.get('active')).toBe(5)
+        expect(facetedUniqueValues?.get('inactive')).toBe(3)
+        expect(facetedUniqueValues?.get('pending')).toBe(2)
+      })
+
+      it('should populate counts in options from faceted data', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'pending', label: 'Pending' },
+          ],
+        }
+
+        const faceted = {
+          status: new Map([
+            ['active', 10],
+            ['inactive', 7],
+            ['pending', 4],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const optionsWithCounts = statusCol?.getOptions()
+
+        expect(optionsWithCounts).toBeDefined()
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'active')?.count,
+        ).toBe(10)
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'inactive')?.count,
+        ).toBe(7)
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'pending')?.count,
+        ).toBe(4)
+      })
+
+      it('should use faceted options instead of computing from data in server strategy', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        // Faceted data has different counts than what's in the actual data array
+        const faceted = {
+          status: new Map([
+            ['active', 100], // Much higher than actual data
+            ['inactive', 50],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server', // Server strategy should use faceted, not compute
+            data: facetedData, // Only has 1 active, 1 inactive in actual data
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const facetedUniqueValues = statusCol?.getFacetedUniqueValues()
+
+        // Should return the injected faceted values, NOT computed from data
+        expect(facetedUniqueValues?.get('active')).toBe(100)
+        expect(facetedUniqueValues?.get('inactive')).toBe(50)
+
+        // Verify options also use faceted counts
+        const optionsWithCounts = statusCol?.getOptions()
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'active')?.count,
+        ).toBe(100)
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'inactive')?.count,
+        ).toBe(50)
+      })
+
+      it('should default to count 0 for options not in faceted data', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'archived', label: 'Archived' }, // Not in faceted data
+          ],
+        }
+
+        const faceted = {
+          status: new Map([
+            ['active', 5],
+            ['inactive', 3],
+            // 'archived' is missing
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const optionsWithCounts = statusCol?.getOptions()
+
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'archived')?.count,
+        ).toBe(0)
+      })
+
+      it('should ignore invalid faceted options (not a Map)', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        // Invalid: array instead of Map
+        const invalidFaceted = {
+          status: ['active', 'inactive'],
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+
+        // Check the column config directly - facetedOptions should not be set
+        expect(statusCol?.facetedOptions).toBeUndefined()
+      })
+
+      it('should ignore faceted options with non-string keys', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        // Invalid: Map with number keys
+        const invalidFaceted = {
+          status: new Map([
+            [1, 5],
+            [2, 3],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+
+        // Check the column config directly - facetedOptions should not be set
+        expect(statusCol?.facetedOptions).toBeUndefined()
+      })
+
+      it('should ignore faceted options with non-number values', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        // Invalid: Map with string values instead of numbers
+        const invalidFaceted = {
+          status: new Map([
+            ['active', '5'],
+            ['inactive', '3'],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+
+        // Check the column config directly - facetedOptions should not be set
+        expect(statusCol?.facetedOptions).toBeUndefined()
+      })
+    })
+
+    describe('multi-option', () => {
+      it('should inject valid faceted options into multiOption column config', () => {
+        const staticOptions = {
+          category: [
+            { value: 'electronics', label: 'Electronics' },
+            { value: 'books', label: 'Books' },
+            { value: 'clothing', label: 'Clothing' },
+          ],
+        }
+
+        const faceted = {
+          category: new Map([
+            ['electronics', 8],
+            ['books', 12],
+            ['clothing', 5],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [categoryColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+        expect(categoryCol).toBeDefined()
+
+        const facetedUniqueValues = categoryCol?.getFacetedUniqueValues()
+        expect(facetedUniqueValues).toBeInstanceOf(Map)
+        expect(facetedUniqueValues?.get('electronics')).toBe(8)
+        expect(facetedUniqueValues?.get('books')).toBe(12)
+        expect(facetedUniqueValues?.get('clothing')).toBe(5)
+      })
+
+      it('should populate counts in multiOption options from faceted data', () => {
+        const staticOptions = {
+          category: [
+            { value: 'electronics', label: 'Electronics' },
+            { value: 'books', label: 'Books' },
+          ],
+        }
+
+        const faceted = {
+          category: new Map([
+            ['electronics', 15],
+            ['books', 20],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [categoryColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+        const optionsWithCounts = categoryCol?.getOptions()
+
+        expect(
+          optionsWithCounts?.find((o) => o.value === 'electronics')?.count,
+        ).toBe(15)
+        expect(optionsWithCounts?.find((o) => o.value === 'books')?.count).toBe(
+          20,
+        )
+      })
+
+      it('should use faceted options instead of computing from data for multiOption', () => {
+        const staticOptions = {
+          category: [
+            { value: 'electronics', label: 'Electronics' },
+            { value: 'books', label: 'Books' },
+          ],
+        }
+
+        // Faceted data with counts that don't match actual data
+        const faceted = {
+          category: new Map([
+            ['electronics', 500], // Much higher than actual
+            ['books', 300],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [categoryColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+        const facetedUniqueValues = categoryCol?.getFacetedUniqueValues()
+
+        // Should use injected faceted values, not compute from data
+        expect(facetedUniqueValues?.get('electronics')).toBe(500)
+        expect(facetedUniqueValues?.get('books')).toBe(300)
+      })
+
+      it('should ignore invalid faceted options for multiOption columns', () => {
+        const staticOptions = {
+          category: [
+            { value: 'electronics', label: 'Electronics' },
+            { value: 'books', label: 'Books' },
+          ],
+        }
+
+        // Invalid: object instead of Map
+        const invalidFaceted = {
+          category: { electronics: 5, books: 3 },
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [categoryColumn],
+            options: staticOptions,
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+
+        // Check the column config directly - facetedOptions should not be set
+        expect(categoryCol?.facetedOptions).toBeUndefined()
+      })
+    })
+
+    describe('number', () => {
+      it('should inject valid min/max tuple into number column config', () => {
+        const faceted = {
+          age: [18, 65] as [number, number],
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        expect(ageCol).toBeDefined()
+
+        const minMax = ageCol?.getFacetedMinMaxValues()
+        expect(minMax).toEqual([18, 65])
+      })
+
+      it('should use faceted min/max instead of computing from data', () => {
+        // Faceted min/max that doesn't match actual data
+        const faceted = {
+          age: [0, 100] as [number, number], // Wider range than actual data (25-35)
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData, // Actual ages: 25, 30, 35
+            columnsConfig: [ageColumn],
+            faceted,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        // Should use injected values, not compute from data
+        expect(minMax).toEqual([0, 100])
+      })
+
+      it('should ignore invalid min/max tuple (not an array)', () => {
+        const invalidFaceted = {
+          age: 50, // Invalid: number instead of tuple
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        // Should return undefined when not properly injected
+        expect(minMax).toBeUndefined()
+      })
+
+      it('should ignore invalid min/max tuple (wrong length)', () => {
+        const invalidFaceted = {
+          age: [18, 65, 100], // Invalid: 3 elements instead of 2
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toBeUndefined()
+      })
+
+      it('should ignore invalid min/max tuple (wrong type - strings)', () => {
+        const invalidFaceted = {
+          age: ['18', '65'], // Invalid: strings instead of numbers
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toBeUndefined()
+      })
+
+      it('should ignore invalid min/max tuple (bigint instead of number)', () => {
+        const invalidFaceted = {
+          age: [18n, 65n], // Invalid: bigint instead of number
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toBeUndefined()
+      })
+    })
+
+    describe('bigint', () => {
+      it('should inject valid min/max tuple into bigint column config', () => {
+        const faceted = {
+          score: [0n, 1000n] as [bigint, bigint],
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [scoreColumn],
+            faceted,
+          }),
+        )
+
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        expect(scoreCol).toBeDefined()
+
+        const minMax = scoreCol?.getFacetedMinMaxValues()
+        expect(minMax).toEqual([0n, 1000n])
+      })
+
+      it('should use faceted min/max instead of computing from data for bigint', () => {
+        const faceted = {
+          score: [50n, 500n] as [bigint, bigint], // Different from actual data (100n-200n)
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData, // Actual scores: 100n, 200n, 150n
+            columnsConfig: [scoreColumn],
+            faceted,
+          }),
+        )
+
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        const minMax = scoreCol?.getFacetedMinMaxValues()
+
+        // Should use injected values
+        expect(minMax).toEqual([50n, 500n])
+      })
+
+      it('should ignore invalid min/max tuple for bigint (not an array)', () => {
+        const invalidFaceted = {
+          score: 100n, // Invalid: single bigint instead of tuple
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [scoreColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        const minMax = scoreCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toBeUndefined()
+      })
+
+      it('should ignore invalid min/max tuple for bigint (wrong type - numbers)', () => {
+        const invalidFaceted = {
+          score: [0, 1000], // Invalid: numbers instead of bigints
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [scoreColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        const minMax = scoreCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toBeUndefined()
+      })
+
+      it('should ignore invalid min/max tuple for bigint (mixed types)', () => {
+        const invalidFaceted = {
+          score: [0n, 1000], // Invalid: mixed bigint and number
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [scoreColumn],
+            faceted: invalidFaceted as any,
+          }),
+        )
+
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        const minMax = scoreCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toBeUndefined()
+      })
+    })
+
+    describe('Kitchen sink (multiple columns with injected faceted options)', () => {
+      it('should inject faceted options for all supported column types simultaneously', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+          category: [
+            { value: 'electronics', label: 'Electronics' },
+            { value: 'books', label: 'Books' },
+          ],
+        }
+
+        const faceted = {
+          status: new Map([
+            ['active', 10],
+            ['inactive', 5],
+          ]),
+          category: new Map([
+            ['electronics', 7],
+            ['books', 8],
+          ]),
+          age: [20, 60] as [number, number],
+          score: [100n, 500n] as [bigint, bigint],
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: facetedColumnsConfig,
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        // Verify option column
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        expect(statusCol?.getFacetedUniqueValues()?.get('active')).toBe(10)
+
+        // Verify multiOption column
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+        expect(categoryCol?.getFacetedUniqueValues()?.get('electronics')).toBe(
+          7,
+        )
+
+        // Verify number column
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        expect(ageCol?.getFacetedMinMaxValues()).toEqual([20, 60])
+
+        // Verify bigint column
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        expect(scoreCol?.getFacetedMinMaxValues()).toEqual([100n, 500n])
+      })
+
+      it('should handle partial faceted options (some columns have faceted data, others do not)', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+          category: [{ value: 'electronics', label: 'Electronics' }],
+        }
+
+        // Only provide faceted data for some columns
+        const faceted = {
+          status: new Map([['active', 5]]),
+          // category, age, and score are omitted
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: facetedColumnsConfig,
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+
+        // Status should have faceted data
+        expect(statusCol?.getFacetedUniqueValues()?.get('active')).toBe(5)
+
+        // Category should not have faceted data (check column config)
+        expect(categoryCol?.facetedOptions).toBeUndefined()
+
+        // Age should not have min/max
+        expect(ageCol?.min).toBeUndefined()
+        expect(ageCol?.max).toBeUndefined()
+      })
+
+      it('should handle mixed valid and invalid faceted options', () => {
+        const staticOptions = {
+          status: [{ value: 'active', label: 'Active' }],
+          category: [{ value: 'electronics', label: 'Electronics' }],
+        }
+
+        const faceted = {
+          status: new Map([['active', 5]]), // Valid
+          category: ['electronics', 'books'], // Invalid: array instead of Map
+          age: [20, 60] as [number, number], // Valid
+          score: [100], // Invalid: wrong tuple length
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: facetedColumnsConfig,
+            options: staticOptions,
+            faceted: faceted as any,
+          }),
+        )
+
+        // Valid ones should work
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        expect(statusCol?.getFacetedUniqueValues()?.get('active')).toBe(5)
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        expect(ageCol?.getFacetedMinMaxValues()).toEqual([20, 60])
+
+        // Invalid ones should be undefined - check column config directly
+        const categoryCol = result.current.columns.find(
+          (c) => c.id === 'category',
+        )
+        expect(categoryCol?.facetedOptions).toBeUndefined()
+
+        const scoreCol = result.current.columns.find((c) => c.id === 'score')
+        expect(scoreCol?.min).toBeUndefined()
+        expect(scoreCol?.max).toBeUndefined()
+      })
+    })
+
+    describe('Client vs. server strategy behavior', () => {
+      it('should use faceted options in server strategy', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        const faceted = {
+          status: new Map([
+            ['active', 100],
+            ['inactive', 50],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const facetedValues = statusCol?.getFacetedUniqueValues()
+
+        // Server strategy should use faceted data
+        expect(facetedValues?.get('active')).toBe(100)
+        expect(facetedValues?.get('inactive')).toBe(50)
+      })
+
+      it('should compute from data in client strategy even when faceted is provided', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'pending', label: 'Pending' },
+          ],
+        }
+
+        // Provide faceted data with different counts
+        const faceted = {
+          status: new Map([
+            ['active', 100],
+            ['inactive', 50],
+            ['pending', 25],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client', // Client strategy
+            data: facetedData, // Has 1 active, 1 inactive, 1 pending
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted, // This should be ignored in client mode
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const facetedValues = statusCol?.getFacetedUniqueValues()
+
+        // Client strategy should compute from actual data, not use faceted
+        expect(facetedValues?.get('active')).toBe(1)
+        expect(facetedValues?.get('inactive')).toBe(1)
+        expect(facetedValues?.get('pending')).toBe(1)
+      })
+
+      it('should return undefined for number min/max in server strategy without faceted data', () => {
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            // No faceted parameter provided
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        // Server strategy without faceted data should return undefined
+        expect(minMax).toBeUndefined()
+      })
+
+      it('should compute min/max from data in client strategy', () => {
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'client',
+            data: facetedData, // Ages: 25, 30, 35
+            columnsConfig: [ageColumn],
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        // Client strategy should compute from data
+        expect(minMax).toEqual([25, 35])
+      })
+    })
+
+    describe('Edge cases & integration', () => {
+      it('should handle empty faceted Map', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        const faceted = {
+          status: new Map<string, number>(), // Empty Map
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const facetedValues = statusCol?.getFacetedUniqueValues()
+        const options = statusCol?.getOptions()
+
+        expect(facetedValues).toBeInstanceOf(Map)
+        expect(facetedValues?.size).toBe(0)
+
+        // Options should all have count 0
+        expect(options?.every((o) => o.count === 0)).toBe(true)
+      })
+
+      it('should handle faceted data with zero counts', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        const faceted = {
+          status: new Map([
+            ['active', 0],
+            ['inactive', 0],
+          ]),
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [statusColumn],
+            options: staticOptions,
+            faceted,
+          }),
+        )
+
+        const statusCol = result.current.columns.find((c) => c.id === 'status')
+        const options = statusCol?.getOptions()
+
+        expect(options?.find((o) => o.value === 'active')?.count).toBe(0)
+        expect(options?.find((o) => o.value === 'inactive')?.count).toBe(0)
+      })
+
+      it('should handle negative min/max values for number columns', () => {
+        const faceted = {
+          age: [-10, -5] as [number, number],
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toEqual([-10, -5])
+      })
+
+      it('should handle same min and max values', () => {
+        const faceted = {
+          age: [30, 30] as [number, number],
+        }
+
+        const { result } = renderHook(() =>
+          useDataTableFilters({
+            strategy: 'server',
+            data: facetedData,
+            columnsConfig: [ageColumn],
+            faceted,
+          }),
+        )
+
+        const ageCol = result.current.columns.find((c) => c.id === 'age')
+        const minMax = ageCol?.getFacetedMinMaxValues()
+
+        expect(minMax).toEqual([30, 30])
+      })
+
+      it('should work correctly when faceted options change dynamically', () => {
+        const staticOptions = {
+          status: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+          ],
+        }
+
+        const { result, rerender } = renderHook(
+          ({ faceted }) =>
+            useDataTableFilters({
+              strategy: 'server',
+              data: facetedData,
+              columnsConfig: [statusColumn],
+              options: staticOptions,
+              faceted,
+            }),
+          {
+            initialProps: {
+              faceted: {
+                status: new Map([
+                  ['active', 10],
+                  ['inactive', 5],
+                ]),
+              },
+            },
+          },
+        )
+
+        let statusCol = result.current.columns.find((c) => c.id === 'status')
+        expect(statusCol?.getFacetedUniqueValues()?.get('active')).toBe(10)
+
+        // Update faceted data
+        rerender({
+          faceted: {
+            status: new Map([
+              ['active', 20],
+              ['inactive', 15],
+            ]),
+          },
+        })
+
+        statusCol = result.current.columns.find((c) => c.id === 'status')
+        expect(statusCol?.getFacetedUniqueValues()?.get('active')).toBe(20)
+        expect(statusCol?.getFacetedUniqueValues()?.get('inactive')).toBe(15)
+      })
+    })
+  })
 })
 
 describe('determineNewOperator function', () => {
