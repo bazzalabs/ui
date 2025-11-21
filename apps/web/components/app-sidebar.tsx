@@ -34,12 +34,6 @@ import { cn } from '@/lib/utils'
 import logoSrc from '@/public/bazzaui-v3-color.png'
 import { FadeContainer } from './fade-container'
 import { ThemeToggle } from './theme-toggle'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './ui/tooltip'
 
 const items = [
   {
@@ -159,15 +153,20 @@ const componentItems: ComponentItem[] = [
               },
             ],
           },
+        ],
+      },
+      {
+        groupName: 'Features',
+        items: [
           {
             type: 'link',
             title: 'Keyboard Shortcuts',
-            url: '/docs/menu/shortcuts',
+            url: '/docs/menu/keyboard-shortcuts',
           },
           {
             type: 'link',
             title: 'Focus Management',
-            url: '/docs/menu/focus',
+            url: '/docs/menu/focus-management',
           },
           {
             type: 'collapsible',
@@ -209,6 +208,11 @@ const componentItems: ComponentItem[] = [
               </div>
             ),
             url: '/docs/menu/loaders',
+          },
+          {
+            type: 'link',
+            title: 'Virtualization',
+            url: '/docs/menu/virtualization',
           },
         ],
       },
@@ -472,7 +476,7 @@ function MenuItemRenderer({
       className="group/nested-collapsible"
     >
       <CollapsibleTrigger asChild>
-        <SidebarMenuSubButton className="font-medium text-muted-foreground hover-expand-[2px] group-data-[state=open]/nested-collapsible:bg-sidebar-accent group-data-[state=open]/nested-collapsible:text-primary cursor-pointer **:cursor-pointer">
+        <SidebarMenuSubButton className="font-medium hover-expand-[2px] group-data-[state=open]/nested-collapsible:bg-sidebar-accent group-data-[state=open]/nested-collapsible:text-primary cursor-pointer **:cursor-pointer">
           {item.title}
           <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
         </SidebarMenuSubButton>
