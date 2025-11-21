@@ -45,7 +45,7 @@ jobs:
       - name: Publish to npm
         uses: changesets/action@v1
         with:
-          publish: bun run release:canary
+          publish: bun run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
