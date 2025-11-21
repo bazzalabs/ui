@@ -4,26 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       type:
-        description: 'Release type'
+        description: "Release type"
         required: true
         type: choice
         options:
           - snapshot
           - canary
-        default: 'snapshot'
+        default: "snapshot"
       packages:
-        description: 'Which packages to publish'
+        description: "Which packages to publish"
         required: true
         type: choice
         options:
           - filters
           - action-menu
           - both
-        default: 'both'
+        default: "both"
       branch:
-        description: 'Branch to publish from'
+        description: "Branch to publish from"
         required: false
-        default: 'canary'
+        default: "canary"
 
 jobs:
   publish:
@@ -47,8 +47,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Configure Git
         run: |
@@ -130,10 +130,6 @@ jobs:
             exit 1
           fi
 
-      - name: Enter prerelease mode
-        if: inputs.type == 'canary'
-        run: bunx changeset pre enter canary
-
       - name: Version packages for canary
         if: inputs.type == 'canary'
         run: bunx changeset version
@@ -142,7 +138,7 @@ jobs:
         if: inputs.type == 'canary'
         run: |
           git add .
-          git commit -m "chore: enter canary prerelease mode" || echo "No changes to commit"
+          git commit -m "chore: release"
 
       - name: Publish canary to npm
         if: inputs.type == 'canary'
@@ -158,16 +154,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Exit prerelease mode
-        if: inputs.type == 'canary'
-        run: bunx changeset pre exit
-
-      - name: Commit prerelease exit
-        if: inputs.type == 'canary'
-        run: |
-          git add .
-          git commit -m "chore: exit canary prerelease mode" || echo "No changes to commit"
 
       - name: Push changes
         if: inputs.type == 'canary'
