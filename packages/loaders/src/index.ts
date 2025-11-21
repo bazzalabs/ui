@@ -7,8 +7,8 @@
 
 // Export loader creators
 export { nativeLoader } from './adapters/native.js'
-export { type QueryConfig, queryLoader } from './adapters/query.js'
-export { type SWRConfig, swrLoader } from './adapters/swr.js'
+export { queryLoader } from './adapters/query.js'
+export { type SWRLoaderConfig, swrLoader } from './adapters/swr.js'
 // Export core types
 export type { Loader, LoaderContext, LoaderResult } from './types.js'
 

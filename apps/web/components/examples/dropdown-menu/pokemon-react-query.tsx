@@ -48,8 +48,8 @@ export function DropdownMenu_PokemonReactQuery() {
         id: 'root',
         inputPlaceholder: 'Search...',
         loader: queryLoader<PokemonListResponse>({
-          key: ['pokemon'],
-          fn: async () => fetchPokemonList(),
+          queryKey: ['pokemon'],
+          queryFn: async () => fetchPokemonList(),
           select: (data) => {
             // Map to menu items
             return data.results.map((pokemon) => {

@@ -1,26 +1,17 @@
-import useSWR, { type SWRConfiguration } from 'swr'
+import useSWR, { type Key, type SWRConfiguration } from 'swr'
 import type { Loader, LoaderContext, LoaderResult } from '../types.js'
 
 /**
- * Configuration for SWR loader
+ * SWR loader configuration that extends SWRConfiguration with required key and fetcher
  */
-export type SWRConfig<TData = any> = {
+export type SWRLoaderConfig<TData = any, TError = Error> = SWRConfiguration<
+  TData,
+  TError
+> & {
   /** SWR cache key */
-  key: string | (() => string | null)
+  key: Key
   /** Function to fetch the data */
   fetcher: () => Promise<TData>
-  /** SWR configuration options */
-  revalidateOnFocus?: boolean
-  revalidateOnReconnect?: boolean
-  refreshInterval?: number
-  dedupingInterval?: number
-  focusThrottleInterval?: number
-  loadingTimeout?: number
-  errorRetryInterval?: number
-  errorRetryCount?: number
-  fallbackData?: TData
-  keepPreviousData?: boolean
-  suspense?: boolean
 }
 
 /**
@@ -46,8 +37,10 @@ export type SWRConfig<TData = any> = {
  * }))
  * ```
  */
-export function swrLoader<TData = any>(
-  configOrFn: SWRConfig<TData> | ((ctx: LoaderContext) => SWRConfig<TData>),
+export function swrLoader<TData = any, TError = Error>(
+  configOrFn:
+    | SWRLoaderConfig<TData, TError>
+    | ((ctx: LoaderContext) => SWRLoaderConfig<TData, TError>),
 ): Loader<TData> {
   // Return a hook function that follows the Loader interface
   return (context: LoaderContext): LoaderResult<TData> => {
@@ -55,8 +48,11 @@ export function swrLoader<TData = any>(
     const cfg =
       typeof configOrFn === 'function' ? configOrFn(context) : configOrFn
 
+    // Extract key and fetcher
+    const { key, fetcher, ...swrOptions } = cfg
+
     // Resolve key if it's a function
-    let swrKey = typeof cfg.key === 'function' ? cfg.key() : cfg.key
+    let swrKey = typeof key === 'function' ? key() : key
 
     // Only fetch when the menu is open (similar to React Query's enabled option)
     // SWR uses null key to disable fetching
@@ -65,22 +61,16 @@ export function swrLoader<TData = any>(
       swrKey = null
     }
 
-    // Build SWR options
-    const swrOptions: SWRConfiguration<TData, Error> = {
-      revalidateOnFocus: cfg.revalidateOnFocus ?? false,
-      revalidateOnReconnect: cfg.revalidateOnReconnect ?? true,
-      refreshInterval: cfg.refreshInterval,
-      dedupingInterval: cfg.dedupingInterval ?? 2000,
-      focusThrottleInterval: cfg.focusThrottleInterval,
-      loadingTimeout: cfg.loadingTimeout,
-      errorRetryInterval: cfg.errorRetryInterval,
-      errorRetryCount: cfg.errorRetryCount ?? 3,
-      fallbackData: cfg.fallbackData,
-      keepPreviousData: cfg.keepPreviousData,
-      suspense: cfg.suspense,
+    // Build SWR options with loader-specific defaults
+    const options: SWRConfiguration<TData, TError> = {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+      errorRetryCount: 3,
+      ...swrOptions,
     }
 
-    const result = useSWR<TData, Error>(swrKey, cfg.fetcher, swrOptions)
+    const result = useSWR<TData, TError>(swrKey, fetcher, options)
 
     // Return consistent LoaderResult interface
     // Note: SWR's isLoading is true when there's a request in flight and no data yet
@@ -89,7 +79,7 @@ export function swrLoader<TData = any>(
       data: result.data,
       isLoading: result.isLoading || (!result.data && result.isValidating),
       isError: !!result.error,
-      error: result.error ?? null,
+      error: (result.error as Error) ?? null,
     }
   }
 }

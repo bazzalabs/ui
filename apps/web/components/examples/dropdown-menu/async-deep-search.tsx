@@ -30,8 +30,8 @@ export function DropdownMenu_AsyncDeepSearch() {
       // deepSearch: true enables parallel loading during deep search
       deepSearch: true,
       loader: queryLoader(({ query }) => ({
-        key: ['fruits', query],
-        fn: () => fetchFruits(query),
+        queryKey: ['fruits', query],
+        queryFn: () => fetchFruits(query),
         retry: false,
       })),
     },
@@ -43,8 +43,8 @@ export function DropdownMenu_AsyncDeepSearch() {
       title: 'Vegetables',
       deepSearch: true,
       loader: queryLoader(({ query }) => ({
-        key: ['vegetables', query],
-        fn: () => fetchVegetables(query),
+        queryKey: ['vegetables', query],
+        queryFn: () => fetchVegetables(query),
         retry: false,
       })),
     },
@@ -56,8 +56,8 @@ export function DropdownMenu_AsyncDeepSearch() {
       title: 'Meats',
       deepSearch: true,
       loader: queryLoader(({ query }) => ({
-        key: ['meats', query],
-        fn: () => fetchMeats(query),
+        queryKey: ['meats', query],
+        queryFn: () => fetchMeats(query),
         retry: false,
       })),
     },

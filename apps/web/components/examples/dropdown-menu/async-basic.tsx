@@ -19,8 +19,8 @@ export function DropdownMenu_AsyncBasic() {
       menu={{
         id: 'root',
         loader: queryLoader<Label[]>(({ query }) => ({
-          key: ['labels', query],
-          fn: () => fetchLabels(query),
+          queryKey: ['labels', query],
+          queryFn: () => fetchLabels(query),
           retry: false,
           select: (data) =>
             data.map((label) => ({
