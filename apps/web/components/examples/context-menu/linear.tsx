@@ -1,7 +1,10 @@
 'use client'
 
-import type { MenuDef } from '@bazza-ui/context-menu'
-import { renderIcon, type SubmenuDef } from '@bazza-ui/menu'
+import {
+  type MenuDef,
+  renderIcon,
+  type SubmenuDef,
+} from '@bazza-ui/context-menu'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'

@@ -1,4 +1,3 @@
-
 import { renderIcon } from '@bazza-ui/menu'
 import type { PopupMenuSlots } from '../types.js'
 
@@ -11,6 +10,7 @@ export function defaultSlots<T>(): Required<PopupMenuSlots<T>> {
     Content: ({ children, bind }) => (
       <div {...bind.getContentProps()}>{children}</div>
     ),
+    Header: () => null,
     Input: ({ value, onChange, bind }) => (
       <input
         {...bind.getInputProps({
@@ -105,5 +105,6 @@ export function defaultSlots<T>(): Required<PopupMenuSlots<T>> {
       // biome-ignore lint/a11y/useSemanticElements: not needed
       <div role="separator" data-slot="menu-separator" />
     ),
+    Footer: () => null,
   }
 }

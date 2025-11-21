@@ -174,7 +174,6 @@ export function DropdownMenu_ItemDescriptions() {
   return (
     <DropdownMenu
       slots={{
-        // biome-ignore lint/correctness/noNestedComponentDefinitions: let it be!
         Item: (args) => <AIModelItem {...args} value={value} />,
       }}
       menu={{
@@ -271,7 +270,7 @@ const OpenAIIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const AnthropicIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     fill="currentColor"
-    fill-rule="evenodd"
+    fillRule="evenodd"
     viewBox="0 0 24 24"
     width="1em"
     xmlns="http://www.w3.org/2000/svg"
@@ -347,10 +346,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="390"
         x="-69"
         y="-46"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"
@@ -363,10 +362,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="273"
         x="-99"
         y="6"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"
@@ -379,10 +378,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="273"
         x="-113"
         y="12"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"
@@ -395,10 +394,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="329"
         x="-41.5"
         y="-130"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"
@@ -411,10 +410,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="329"
         x="-45"
         y="-153"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"
@@ -427,10 +426,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="329"
         x="-41"
         y="91"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"
@@ -443,10 +442,10 @@ const GeminiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         height="329"
         x="-39"
         y="132"
-        color-interpolation-filters="sRGB"
+        colorInterpolationFilters="sRGB"
         filterUnits="userSpaceOnUse"
       >
-        <feFlood flood-opacity="0" result="BackgroundImageFix" />
+        <feFlood floodOpacity="0" result="BackgroundImageFix" />
         <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
         <feGaussianBlur
           result="effect1_foregroundBlur_69_17998"

@@ -1,5 +1,5 @@
 import { Popover } from '@base-ui-components/react/popover'
-import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
+import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   type InteractionGuardOptions,
   RootProvider,
@@ -7,11 +7,12 @@ import {
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import { RootContextProvider } from '../contexts/root-context.js'
+import type { DropdownMenuDef } from '../types.js'
 
 export interface DropdownMenuRootProps<T = unknown>
   extends Partial<InteractionGuardOptions> {
   /** Menu definition */
-  menu: MenuDef<T>
+  menu: DropdownMenuDef<T>
   /** Children (typically Trigger and Content) */
   children: React.ReactNode
   /** Callback when menu opens/closes */

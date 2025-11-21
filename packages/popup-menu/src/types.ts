@@ -4,13 +4,14 @@ import type {
   InputBindAPI,
   InputSearchState,
   ItemNode,
+  LoadMode,
+  Menu,
   ContentBindAPI as MenuContentBindAPI,
   GroupHeadingBindAPI as MenuGroupHeadingBindAPI,
   ListBindAPI as MenuListBindAPI,
   RowBindAPI as MenuRowBindAPI,
   SearchContext,
   SeparatorNode,
-  SubmenuNode,
 } from '@bazza-ui/menu'
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
@@ -99,6 +100,11 @@ export type PopupMenuSlots<T = unknown> = {
     children: React.ReactNode
     bind: ContentBindAPI
   }) => React.ReactNode
+  Header?: (args: {
+    menu: Menu<T>
+    /** Load mode: 'blocking' or 'streaming' */
+    loadMode?: LoadMode
+  }) => React.ReactNode
   Input?: (args: {
     value: string
     onChange: (value: string) => void
@@ -133,6 +139,7 @@ export type PopupMenuSlots<T = unknown> = {
     bind: GroupHeadingBindAPI
   }) => React.ReactNode
   Separator?: (args: { node: SeparatorNode }) => React.ReactNode
+  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
 }
 
 /* ================================================================================================
@@ -159,8 +166,10 @@ export type PositionerSlotProps =
 export type PopupMenuSlotProps = {
   positioner?: PositionerSlotProps
   content?: React.HTMLAttributes<HTMLElement>
+  header?: React.HTMLAttributes<HTMLElement>
   input?: React.InputHTMLAttributes<HTMLInputElement>
   list?: React.HTMLAttributes<HTMLElement>
+  footer?: React.HTMLAttributes<HTMLElement>
 }
 
 /* ================================================================================================
@@ -202,12 +211,12 @@ export type PopupMenuTheme<T = unknown> = Theme<
 import type {
   MenuDef as BaseMenuDef,
   SubmenuDef as BaseSubmenuDef,
-  ItemDef,
-  GroupDef,
-  SeparatorDef,
-  LoadingDef,
   /** Nodes **/
   SubmenuNode as BaseSubmenuNode,
+  GroupDef,
+  ItemDef,
+  LoadingDef,
+  SeparatorDef,
 } from '@bazza-ui/menu'
 
 export interface PopupMenuDef<T = unknown>

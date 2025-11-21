@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { highlightInline } from '@/lib/highlighter'
+import { type JSX, useEffect, useState } from 'react'
 import { cn } from '@/lib/cn'
+import { highlightInline } from '@/lib/highlighter'
 
 interface HighlightedTypeProps {
   code: string

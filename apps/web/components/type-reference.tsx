@@ -1,16 +1,10 @@
 'use client'
 
-import { InfoIcon } from 'lucide-react'
-import Link from 'next/link'
-import type { ReactNode } from 'react'
-import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { buttonVariants } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import Link from 'next/link'
+import { useState } from 'react'
+// Import the generated types metadata
+import typesMeta from '@/.types/types-meta.json'
 import {
   Table,
   TableBody,
@@ -21,31 +15,10 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/cn'
 
-// Import the generated types metadata
-import typesMeta from '@/.types/types-meta.json'
-
-import type { PropMeta, TypeMeta, MetaOutput } from '@/scripts/build-types-meta'
+import type { MetaOutput, PropMeta, TypeMeta } from '@/scripts/build-types-meta'
 import { HighlightedType } from './highlighted-type'
 
 const typesData = typesMeta as MetaOutput
-
-function Info({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <Popover>
-      <PopoverTrigger
-        className={cn(
-          buttonVariants({ variant: 'ghost', size: 'icon' }),
-          'size-7',
-        )}
-      >
-        <InfoIcon className="size-4 text-muted-foreground" />
-      </PopoverTrigger>
-      <PopoverContent className="overflow-auto text-sm max-w-md">
-        {children}
-      </PopoverContent>
-    </Popover>
-  )
-}
 
 interface ExpandablePropRowProps {
   prop: PropMeta
@@ -84,7 +57,7 @@ function simplifyType(typeStr: string): string {
   // Very long types (over 50 chars) - show just the base type
   if (typeStr.length > 50) {
     const match = typeStr.match(/^([A-Za-z_$][A-Za-z0-9_$]*(?:<[^>]+>)?)/)
-    if (match) return match[1]
+    if (match) return match[1]!
   }
 
   return typeStr
@@ -96,14 +69,15 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
   const indent = depth * 16 // 16px per depth level
   const cleanedType = cleanTypeString(prop.type, prop.required)
   const simplifiedType = simplifyType(cleanedType)
-  const hasDetails = prop.description || cleanedType !== simplifiedType || hasExpandedType
+  const hasDetails =
+    prop.description || cleanedType !== simplifiedType || hasExpandedType
 
   return (
     <>
       <TableRow
         className={cn(
-          "group hover:bg-muted/50",
-          hasDetails && "cursor-pointer"
+          'group hover:bg-muted/50',
+          hasDetails && 'cursor-pointer',
         )}
         onClick={() => hasDetails && setIsExpanded(!isExpanded)}
       >
@@ -115,7 +89,7 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
             <div
               className={cn(
                 'p-0.5 rounded transition-colors',
-                !hasDetails && 'invisible'
+                !hasDetails && 'invisible',
               )}
             >
               {isExpanded ? (
@@ -150,10 +124,15 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
       {isExpanded && (
         <TableRow className="bg-muted/30">
           <TableCell colSpan={3} className="p-0 !overflow-visible">
-            <div className="px-4 py-3 space-y-3 max-w-full" style={{ paddingLeft: `${indent + 40}px` }}>
+            <div
+              className="px-4 py-3 space-y-3 max-w-full"
+              style={{ paddingLeft: `${indent + 40}px` }}
+            >
               {/* Property Name */}
               <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                <div className="font-semibold text-muted-foreground flex-shrink-0">Property</div>
+                <div className="font-semibold text-muted-foreground flex-shrink-0">
+                  Property
+                </div>
                 <code className="rounded-sm bg-background px-2 py-1 font-mono break-words min-w-0">
                   {prop.name}
                 </code>
@@ -161,18 +140,19 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
 
               {/* Type */}
               <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                <div className="font-semibold text-muted-foreground flex-shrink-0">Type</div>
+                <div className="font-semibold text-muted-foreground flex-shrink-0">
+                  Type
+                </div>
                 <div className="rounded-sm bg-background px-2 py-1 text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
-                  <HighlightedType
-                    code={cleanedType}
-                    className="font-mono"
-                  />
+                  <HighlightedType code={cleanedType} className="font-mono" />
                 </div>
               </div>
 
               {/* Required */}
               <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                <div className="font-semibold text-muted-foreground flex-shrink-0">Required</div>
+                <div className="font-semibold text-muted-foreground flex-shrink-0">
+                  Required
+                </div>
                 <div>
                   {prop.required ? (
                     <span className="text-xs px-2 py-0.5 rounded-sm bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">
@@ -189,7 +169,9 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
               {/* Default */}
               {prop.default && (
                 <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                  <div className="font-semibold text-muted-foreground flex-shrink-0">Default</div>
+                  <div className="font-semibold text-muted-foreground flex-shrink-0">
+                    Default
+                  </div>
                   <code className="rounded-sm bg-background px-2 py-1 font-mono text-xs break-words min-w-0">
                     {prop.default}
                   </code>
@@ -199,15 +181,21 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
               {/* Description */}
               {prop.description && (
                 <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                  <div className="font-semibold text-muted-foreground flex-shrink-0">Description</div>
-                  <div className="text-muted-foreground break-words min-w-0">{prop.description}</div>
+                  <div className="font-semibold text-muted-foreground flex-shrink-0">
+                    Description
+                  </div>
+                  <div className="text-muted-foreground break-words min-w-0">
+                    {prop.description}
+                  </div>
                 </div>
               )}
 
               {/* Reference Link */}
               {prop.referencePath && (
                 <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                  <div className="font-semibold text-muted-foreground flex-shrink-0">Reference</div>
+                  <div className="font-semibold text-muted-foreground flex-shrink-0">
+                    Reference
+                  </div>
                   <Link
                     href={`#${prop.referencePath}`}
                     className="text-blue-600 dark:text-blue-400 hover:underline text-sm break-words"
@@ -218,26 +206,36 @@ function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
               )}
 
               {/* Nested Properties */}
-              {hasExpandedType && prop.expandedType && prop.expandedType.length > 0 && (
-                <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
-                  <div className="font-semibold text-muted-foreground flex-shrink-0">Properties</div>
-                  <div className="space-y-2 min-w-0">
-                    {prop.expandedType.map((expandedProp) => (
-                      <div key={expandedProp.name} className="text-xs break-words font-mono">
-                        <code className="text-blue-600 dark:text-blue-400">
-                          {expandedProp.name}
-                          {!expandedProp.required && '?'}
-                        </code>
-                        <span className="text-muted-foreground mx-2">:</span>
-                        <HighlightedType
-                          code={cleanTypeString(expandedProp.type, expandedProp.required)}
-                          className="inline"
-                        />
-                      </div>
-                    ))}
+              {hasExpandedType &&
+                prop.expandedType &&
+                prop.expandedType.length > 0 && (
+                  <div className="grid grid-cols-[120px_1fr] gap-4 text-sm items-start min-w-0">
+                    <div className="font-semibold text-muted-foreground flex-shrink-0">
+                      Properties
+                    </div>
+                    <div className="space-y-2 min-w-0">
+                      {prop.expandedType.map((expandedProp) => (
+                        <div
+                          key={expandedProp.name}
+                          className="text-xs break-words font-mono"
+                        >
+                          <code className="text-blue-600 dark:text-blue-400">
+                            {expandedProp.name}
+                            {!expandedProp.required && '?'}
+                          </code>
+                          <span className="text-muted-foreground mx-2">:</span>
+                          <HighlightedType
+                            code={cleanTypeString(
+                              expandedProp.type,
+                              expandedProp.required,
+                            )}
+                            className="inline"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </TableCell>
         </TableRow>
@@ -303,7 +301,10 @@ export function TypeReference({
     <div className="my-6 space-y-4">
       {/* Type Header */}
       <div className="flex items-baseline gap-2">
-        <h3 className="text-lg font-semibold font-mono" id={`${packageName}.${name}`}>
+        <h3
+          className="text-lg font-semibold font-mono"
+          id={`${packageName}.${name}`}
+        >
           {name}
         </h3>
         {packageName && (

@@ -380,7 +380,7 @@ export function instantiateMenuFromDef<T>(
     : def.virtualization
 
   const parentless: Menu<T> = {
-    kind: def.kind,
+    kind: 'kind' in def ? 'submenu' : 'menu',
     id: def.id!,
     title: def.title,
     inputPlaceholder: def.inputPlaceholder,
@@ -408,15 +408,54 @@ export function instantiateMenuFromDef<T>(
   return parentless
 }
 
+/**
+ * Type helper to extract the node type from a menu/submenu/node definition or array.
+ * Preserves the specific node type (e.g., ContextNodeDef, CommandNodeDef) instead of widening to base NodeDef.
+ */
+type ExtractNodeType<T> = T extends { nodes?: readonly (infer N)[] }
+  ? N
+  : T extends ReadonlyArray<infer N>
+    ? N
+    : T extends { kind: string }
+      ? T
+      : never
+
 // Overload signatures for flatten function
+// Overload for menu/submenu definitions - preserves specific node type
+export function flatten<M extends { nodes?: readonly any[] }>(
+  input: M,
+  options?: { deep?: boolean },
+): Array<ExtractNodeType<M>>
+
+// Overload for single node definition - preserves specific node type
+export function flatten<N extends { kind: string }>(
+  input: N,
+  options?: { deep?: boolean },
+): N[]
+
+// Overload for array of node definitions - preserves specific node type
+export function flatten<N extends { kind: string }>(
+  input: readonly N[],
+  options?: { deep?: boolean },
+): N[]
+
+// Overload for runtime Menu objects
 export function flatten<T>(
-  input: Menu<T> | Node<T> | Node<T>[],
+  input: Menu<T>,
   options?: { deep?: boolean },
 ): Node<T>[]
+
+// Overload for runtime Node objects
 export function flatten<T>(
-  input: MenuDef<T> | NodeDef<T> | NodeDef<T>[],
+  input: Node<T>,
   options?: { deep?: boolean },
-): NodeDef<T>[]
+): Node<T>[]
+
+// Overload for runtime Node arrays
+export function flatten<T>(
+  input: Node<T>[],
+  options?: { deep?: boolean },
+): Node<T>[]
 
 /**
  * Flattens a menu, node, array of nodes, or their definitions into an array of nodes/node definitions.
@@ -449,10 +488,18 @@ export function flatten<T>(
  * // Flatten definitions
  * const defNodes = flatten(menuDef, { deep: true })
  */
+// Implementation signature (handles all cases)
 export function flatten<T>(
-  input: Menu<T> | Node<T> | Node<T>[] | MenuDef<T> | NodeDef<T> | NodeDef<T>[],
+  input:
+    | Menu<T>
+    | Node<T>
+    | Node<T>[]
+    | MenuDef<T>
+    | NodeDef<T>
+    | NodeDef<T>[]
+    | any,
   options?: { deep?: boolean },
-): Node<T>[] | NodeDef<T>[] {
+): Node<T>[] | NodeDef<T>[] | any[] {
   const deep = options?.deep ?? false
 
   // Handle array inputs

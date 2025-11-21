@@ -1,4 +1,4 @@
-import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
+import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   defaultSlots,
   GlobalThemeProvider,
@@ -151,7 +151,7 @@ export function createDropdownMenu<T = unknown>(
         >
           <DropdownMenuRoot
             {...rootProps}
-            menu={menu as MenuDef<T>}
+            menu={menu}
             defaults={mergedDefaults}
             scopeAttr={scopeAttr}
             disableOutsidePointerEvents={disableOutsidePointerEvents}

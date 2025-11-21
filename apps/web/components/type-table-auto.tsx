@@ -3,10 +3,10 @@
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import Markdown from 'react-markdown'
 // Import the generated types metadata
 import typesMeta from '@/.types/types-meta.json'
 import { cn } from '@/lib/cn'
-import Markdown from 'react-markdown'
 
 import type { MetaOutput, PropMeta } from '@/scripts/build-types-meta'
 import { HighlightedType } from './highlighted-type'
@@ -50,7 +50,7 @@ function simplifyType(typeStr: string): string {
   // Very long types (over 50 chars) - show just the base type
   if (typeStr.length > 50) {
     const match = typeStr.match(/^([A-Za-z_$][A-Za-z0-9_$]*(?:<[^>]+>)?)/)
-    if (match) return match[1]
+    if (match) return match[1]!
   }
 
   return typeStr

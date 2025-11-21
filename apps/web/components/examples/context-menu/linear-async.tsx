@@ -1,12 +1,12 @@
 'use client'
 
-import { queryLoader } from '@bazza-ui/loaders'
 import {
   type MenuDef,
   type NodeDef,
   renderIcon,
   type SubmenuDef,
-} from '@bazza-ui/menu'
+} from '@bazza-ui/context-menu'
+import { queryLoader } from '@bazza-ui/loaders'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'

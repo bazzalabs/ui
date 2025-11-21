@@ -35,11 +35,12 @@ export interface PopupMenuListProps<T = unknown> {
   onTypeStart?: (seed: string) => void
   /** Content ref (for positioning and mouse move handling) */
   contentRef?: React.RefObject<HTMLDivElement | null>
-  /** Render function that receives store, surface props, and list element */
+  /** Render function that receives store, surface props, list element, and orchestrated menu */
   children?: (
     store: any,
     surfaceProps: { onMouseMove: (e: React.MouseEvent) => void },
     listElement: React.ReactNode,
+    orchestratedMenu: any,
   ) => React.ReactNode
   /** Pre-computed defaults from factory + instance levels */
   defaults?: MenuNodeDefaults<T>
@@ -206,7 +207,7 @@ export function PopupMenuList<T = unknown>({
           slots={theme?.slots as PopupMenuSlots<T> | undefined}
           classNames={theme?.classNames}
         >
-          {children?.(store, surfaceProps, listElement)}
+          {children?.(store, surfaceProps, listElement, orchestratedMenu)}
         </SurfaceProvider>
       </HoverPolicyProvider>
     </KeyboardCtx.Provider>

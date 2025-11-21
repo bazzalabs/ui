@@ -141,7 +141,7 @@ export function PopupMenuContent<T = unknown>({
         contentRef={contentRef}
         defaults={defaults}
       >
-        {(store, surfaceProps, listElement) => {
+        {(store, surfaceProps, listElement, orchestratedMenu) => {
           // Keep track of the store's inputRef for focus management
           storeInputRef.current = store.inputRef
 
@@ -179,9 +179,27 @@ export function PopupMenuContent<T = unknown>({
             },
           }
 
+          // Render Header slot if provided
+          const headerEl = slots.Header ? (
+            <div data-slot="popup-menu-header" {...(slotProps?.header as any)}>
+              {slots.Header({
+                menu: orchestratedMenu,
+                loadMode: orchestratedMenu.loadingState?.loadMode,
+              })}
+            </div>
+          ) : null
+
+          // Render Footer slot if provided
+          const footerEl = slots.Footer ? (
+            <div data-slot="popup-menu-footer" {...(slotProps?.footer as any)}>
+              {slots.Footer({ menu: orchestratedMenu })}
+            </div>
+          ) : null
+
           return slots.Content({
             children: (
               <>
+                {headerEl}
                 {inputActive ? (
                   <PopupMenuInput
                     store={store}
@@ -194,6 +212,7 @@ export function PopupMenuContent<T = unknown>({
                   />
                 ) : null}
                 {listElement}
+                {footerEl}
               </>
             ),
             bind: contentBind,

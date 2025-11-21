@@ -1,6 +1,6 @@
 'use client'
 
-import type { MenuDef } from '@bazza-ui/menu'
+import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/dropdown-menu'

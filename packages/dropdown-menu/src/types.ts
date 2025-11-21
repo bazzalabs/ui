@@ -20,9 +20,10 @@ import type * as React from 'react'
  */
 export type DropdownMenuDef<T = unknown> = Omit<
   BaseMenuDef<T, PopupMenuSlots<T>, PopupMenuSlotProps, PopupMenuClassNames>,
-  'ui'
+  'ui' | 'nodes'
 > & {
   ui?: PopupMenuThemeDef<T>
+  nodes?: DropdownNodeDef<T>[]
 }
 
 /**
@@ -49,7 +50,7 @@ export type DropdownSubmenuDef<T = unknown, TChild = unknown> = Omit<
 export type DropdownNodeDef<T = unknown> =
   | ItemDef<T>
   | GroupDef<T>
-  | DropdownSubmenuDef<T, any>
+  | DropdownSubmenuDef<T>
   | SeparatorDef
   | LoadingDef
 

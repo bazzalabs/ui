@@ -8,6 +8,7 @@ import type { MenuMiddleware } from './middleware/types.js'
  * ============================================================================================== */
 
 export type MenuNodeKind =
+  | 'menu'
   | 'item'
   | 'group'
   | 'submenu'
@@ -282,7 +283,6 @@ export type MenuDef<
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
 > = {
-  kind: 'menu'
   id: string
   title?: string
   inputPlaceholder?: string
