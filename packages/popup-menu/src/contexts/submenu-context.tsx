@@ -16,7 +16,7 @@ export type SubContextValue<T = unknown> = {
   childSurfaceId: string
   pendingOpenModalityRef: React.RefObject<'keyboard' | 'pointer' | null>
   intentZoneActiveRef: React.RefObject<boolean>
-  parentSub: SubContextValue | null
+  parentSub: SubContextValue | undefined
 }
 
 const SubCtx = React.createContext<SubContextValue<any> | null>(null)
@@ -25,13 +25,13 @@ export function useSub<T = unknown>() {
   const ctx = React.useContext(SubCtx)
 
   if (!ctx) {
-    throw new Error('useSub must be used inside SubCtx.Provider')
+    return undefined
   }
 
   return ctx as SubContextValue<T>
 }
 
-export function closeSubmenuChain(sub: SubContextValue | null) {
+export function closeSubmenuChain(sub: SubContextValue | undefined) {
   let current = sub
   while (current) {
     current.onOpenChange(false)

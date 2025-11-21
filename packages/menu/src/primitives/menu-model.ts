@@ -493,7 +493,43 @@ export function flatten<T>(
 function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
   const result: Node<T>[] = []
 
-  // Check if input is a Node (has 'kind') or Menu
+  // Check if input is a Menu first (has 'surfaceId'), then check if it's a Node
+  // This is critical because Menu objects for submenus also have 'kind' property
+  if ('surfaceId' in input) {
+    // Input is a Menu - process its nodes array
+    const menu = input as Menu<T>
+    const nodes = menu.nodes
+
+    for (const node of nodes) {
+      if (node.kind === 'item') {
+        result.push(node)
+      } else if (node.kind === 'group') {
+        const groupNode = node as GroupNode<T>
+        result.push(groupNode)
+        if (deep) {
+          // Deep: recursively flatten each child
+          for (const child of groupNode.nodes) {
+            result.push(...flattenRuntime(child, deep))
+          }
+        } else {
+          // Shallow: add direct children only
+          result.push(...groupNode.nodes)
+        }
+      } else if (node.kind === 'submenu') {
+        const submenuNode = node as SubmenuNode<any, any>
+        result.push(submenuNode)
+        if (deep) {
+          // Deep: recursively flatten the child menu
+          result.push(...flattenRuntime(submenuNode.child, deep))
+        }
+        // Shallow: don't add submenu children
+      }
+    }
+
+    return result
+  }
+
+  // Input is a Node (has 'kind' but not 'surfaceId')
   if ('kind' in input) {
     const node = input as Node<T>
 
@@ -525,36 +561,6 @@ function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
       }
       // Shallow: don't add submenu children
       return result
-    }
-  }
-
-  // Input is a Menu - process its nodes array
-  const menu = input as Menu<T>
-  const nodes = menu.nodes
-
-  for (const node of nodes) {
-    if (node.kind === 'item') {
-      result.push(node)
-    } else if (node.kind === 'group') {
-      const groupNode = node as GroupNode<T>
-      result.push(groupNode)
-      if (deep) {
-        // Deep: recursively flatten each child
-        for (const child of groupNode.nodes) {
-          result.push(...flattenRuntime(child, deep))
-        }
-      } else {
-        // Shallow: add direct children only
-        result.push(...groupNode.nodes)
-      }
-    } else if (node.kind === 'submenu') {
-      const submenuNode = node as SubmenuNode<any, any>
-      result.push(submenuNode)
-      if (deep) {
-        // Deep: recursively flatten the child menu
-        result.push(...flattenRuntime(submenuNode.child, deep))
-      }
-      // Shallow: don't add submenu children
     }
   }
 

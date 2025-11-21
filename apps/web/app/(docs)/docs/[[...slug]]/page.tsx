@@ -2,19 +2,14 @@ export const dynamic = 'force-static'
 
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { docsSource } from '@/lib/source'
 import 'rehype-callouts/theme/github'
-import {
-  ChevronRightIcon,
-  FlaskConicalIcon,
-  TriangleDashedIcon,
-} from 'lucide-react'
+import { FlaskConicalIcon, TriangleDashedIcon } from 'lucide-react'
 import Link from 'next/link'
-import { InlineTOC } from '@/components/inline-toc'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { useMDXComponents } from '@/mdx-components'
+import { InlineTOCContainer } from './inline-toc-container'
 
 export async function generateMetadata({
   params,
@@ -87,15 +82,15 @@ export async function generateMetadata({
 
 const ExperimentalWarning = () => {
   return (
-    <div className="border border-purple-400 rounded-lg p-4 bg-purple-50 flex items-center gap-4 mb-8">
+    <div className="border border-purple-400 dark:border-purple-600 rounded-lg p-4 bg-purple-50 dark:bg-purple-950/20 flex items-center gap-4 mb-8">
       <div className="translate-y-[-1px]">
-        <FlaskConicalIcon className="text-purple-400 size-5" />
+        <FlaskConicalIcon className="text-purple-400 dark:text-purple-600 size-5" />
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-purple-600 text-sm font-[450] leading-none">
+        <span className="text-purple-600 dark:text-purple-400 text-sm font-[450] leading-none">
           This component is experimental.
         </span>
-        <p className="text-sm text-purple-500">
+        <p className="text-sm text-primary">
           Documentation may be incomplete and APIs are subject to change.
         </p>
       </div>
@@ -105,15 +100,15 @@ const ExperimentalWarning = () => {
 
 const DeprecationWarning = () => {
   return (
-    <div className="border border-orange-400 rounded-lg p-4 bg-orange-50 flex items-center gap-4 mb-8">
+    <div className="border border-orange-400 dark:border-orange-600 rounded-lg p-4 bg-orange-50 dark:bg-orange-950/20 flex items-center gap-4 mb-8">
       <div className="translate-y-[-1px]">
-        <TriangleDashedIcon className="text-orange-400 size-5 stroke-3" />
+        <TriangleDashedIcon className="text-orange-400 dark:text-orange-600 size-5 stroke-3" />
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-orange-500 text-sm font-[450] leading-none">
           This component is deprecated.
         </span>
-        <p className="text-sm text-orange-400">
+        <p className="text-sm text-primary">
           Prepare to migrate to its successor,{' '}
           <Link href="/docs/components/dropdown-menu" className="underline">
             Dropdown Menu
@@ -179,9 +174,12 @@ export default async function Page({
         </div>
       </div>
       <div className="col-span-1 hidden xl:block">
-        <div className="sticky top-0 h-fit pt-4">
-          <InlineTOC items={tableOfContents} />
+        <div className="sticky top-0 pt-4">
+          <InlineTOCContainer items={tableOfContents} />
         </div>
+        {/*<div className="sticky top-0 max-h-[80svh] border overflow-y-scroll pt-4">
+          <InlineTOC items={tableOfContents} />
+        </div>*/}
       </div>
     </div>
   )

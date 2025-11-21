@@ -1,11 +1,10 @@
 import { Popover } from '@base-ui-components/react/popover'
-import type { SubmenuDef } from '@bazza-ui/menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import type { SubContextValue } from '../contexts/submenu-context.js'
 import { SubCtx, useSub } from '../contexts/submenu-context.js'
-import { useSurface } from './surface-provider.js'
 import type { PopupSubmenuDef } from '../types.js'
+import { useSurface } from './surface-provider.js'
 
 export interface PopupMenuSubmenuProps<T> {
   def: PopupSubmenuDef<T>

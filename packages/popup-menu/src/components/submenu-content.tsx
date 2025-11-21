@@ -51,8 +51,8 @@ export function PopupMenuSubmenuContent<T>({
       {(popupProps: React.HTMLAttributes<HTMLElement>) => (
         <PopupMenuContent
           menu={menuDef}
-          open={sub.open}
-          contentRef={sub.contentRef}
+          open={sub?.open}
+          contentRef={sub?.contentRef}
           popupProps={popupProps}
           defaults={baseDefaults}
         />

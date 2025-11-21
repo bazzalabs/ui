@@ -529,7 +529,11 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <FadeContainer scrollContainerRef={ref} resizeMeasurementDelay={100}>
+      <FadeContainer
+        scrollContainerRef={ref}
+        resizeMeasurementDelay={100}
+        background="var(--sidebar)"
+      >
         <SidebarContent className="flex-1 min-h-0 no-scrollbar" ref={ref}>
           <SidebarGroup>
             <SidebarGroupLabel>Basics</SidebarGroupLabel>

@@ -27,6 +27,7 @@ export type {
   PopupMenuDef,
   PopupSubmenuDef,
   PopupNodeDef,
+  PopupSubmenuNode,
 } from './types.js'
 
 import type { InteractionGuardProps as _InteractionGuardProps } from './components/interaction-guard.js'
