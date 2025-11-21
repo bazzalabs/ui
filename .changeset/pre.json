@@ -7,5 +7,5 @@
     "@bazza-ui/filters": "0.3.2025091001",
     "@bazza-ui/typescript-config": "0.0.0"
   },
-  "changesets": []
+  "changesets": ["clever-foxes-mix", "lemon-insects-chew"]
 }
