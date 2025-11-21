@@ -1,0 +1,11 @@
+{
+  "mode": "pre",
+  "tag": "canary",
+  "initialVersions": {
+    "web": "0.0.0",
+    "@bazza-ui/action-menu": "0.0.2025091200",
+    "@bazza-ui/filters": "0.3.2025091001",
+    "@bazza-ui/typescript-config": "0.0.0"
+  },
+  "changesets": []
+}
