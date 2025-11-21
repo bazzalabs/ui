@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@apollo/client": "^3.11.11",
-    "@bazza-ui/typescript-config": "*",
+    "@bazza-ui/typescript-config": "workspace:*",
     "@tanstack/react-query": "^5.62.14",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

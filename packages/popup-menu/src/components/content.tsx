@@ -9,13 +9,13 @@ import {
   ScopedThemeProvider,
   useScopedTheme,
 } from '../contexts/theme-context.js'
-import type { ContentBindAPI } from '../types.js'
+import type { ContentBindAPI, PopupMenuDef, PopupSubmenuDef } from '../types.js'
 import { PopupMenuInput } from './input.js'
 import { PopupMenuList } from './list.js'
 
 export interface PopupMenuContentProps<T = unknown> {
   /** Menu definition */
-  menu: MenuDef<T>
+  menu: PopupMenuDef<T> | PopupSubmenuDef<T>
   /** Whether the menu is open */
   open?: boolean
   /** Close callback */

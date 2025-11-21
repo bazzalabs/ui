@@ -25,10 +25,25 @@ export type {
   PopupMenuThemeDef as ContextMenuThemeDef,
 } from '@bazza-ui/popup-menu'
 
+// Package-specific menu types with dual naming
+export type {
+  // Full names (explicit)
+  ContextMenuDef,
+  ContextSubmenuDef,
+  ContextNodeDef,
+} from './types.js'
+
+// Simple names (convenient for package-scoped usage)
+export type {
+  ContextMenuDef as MenuDef,
+  ContextSubmenuDef as SubmenuDef,
+  ContextNodeDef as NodeDef,
+} from './types.js'
+
 // Menu model types - re-exported from @bazza-ui/menu for developer convenience
 export type {
-  MenuDef,
-  NodeDef,
+  MenuDef as BaseMenuDef,
+  NodeDef as BaseNodeDef,
   GroupDef,
   DefaultGroupDef,
   RadioGroupDef,
@@ -42,7 +57,7 @@ export type {
   ItemVariant,
   ExtendedItemVariant,
   ItemExtendedProperties,
-  SubmenuDef,
+  SubmenuDef as BaseSubmenuDef,
   SeparatorDef,
   SeparatorNode,
   Menu,

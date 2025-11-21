@@ -17,7 +17,6 @@ export function CommandMenu_Groups() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        shortcut="cmd+k"
         placeholder="Search food..."
         menu={{
           id: 'root',

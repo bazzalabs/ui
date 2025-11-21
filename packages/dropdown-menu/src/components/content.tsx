@@ -1,11 +1,16 @@
 import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
-import { PopupMenuContent, Positioner } from '@bazza-ui/popup-menu'
+import {
+  PopupMenuContent,
+  Positioner,
+  type PopupMenuDef,
+  type PopupSubmenuDef,
+} from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
 
 export interface DropdownMenuContentProps<T = unknown> {
   /** Menu definition (optional if provided to Root) */
-  menu?: MenuDef<T>
+  menu?: PopupMenuDef<T> | PopupSubmenuDef<T>
   /** Placeholder for search input */
   placeholder?: string
   /** Which side to position the menu on */

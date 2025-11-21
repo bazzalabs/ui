@@ -17,7 +17,6 @@ export function CommandMenu_Basic() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        shortcut="cmd+k"
         placeholder="Search fruits..."
         menu={{
           id: 'root',

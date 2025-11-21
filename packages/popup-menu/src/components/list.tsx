@@ -1,7 +1,9 @@
 import {
+  type AsyncNodeLoader,
   createSurfaceStore,
   type MenuDef,
   type MenuNodeDefaults,
+  type SubmenuDef,
   useLoader,
   useMenu,
 } from '@bazza-ui/menu'
@@ -11,14 +13,14 @@ import { HoverPolicyProvider } from '../contexts/hover-policy-context.js'
 import { KeyboardCtx } from '../contexts/keyboard-context.js'
 import { SubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
-import type { PopupMenuSlots } from '../types.js'
+import type { PopupMenuDef, PopupMenuSlots, PopupSubmenuDef } from '../types.js'
 import { isInBounds } from '../utils/dom.js'
 import { ListRenderer } from './list-renderer.js'
 import { SurfaceProvider } from './surface-provider.js'
 
 export interface PopupMenuListProps<T = unknown> {
   /** Menu definition */
-  menu: MenuDef<T>
+  menu: PopupMenuDef<T> | PopupSubmenuDef<T>
   /** Query for search/filtering */
   query?: string
   /** Open state (for loaders) */
@@ -74,12 +76,13 @@ export function PopupMenuList<T = unknown>({
   const theme = useScopedTheme()
 
   // Create a surface store for the current menu
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-create surface store when menu changes
   const store = React.useMemo(() => createSurfaceStore<T>(), [menu.id])
 
   // Extract the loader from the current menu
   const menuLoader = React.useMemo(() => {
     return 'loader' in menu ? menu.loader : undefined
-  }, [menu])
+  }, [menu]) as AsyncNodeLoader<T>
 
   // Determine if we should pass query to the loader
   const loaderQuery = React.useMemo(() => {
@@ -102,7 +105,7 @@ export function PopupMenuList<T = unknown>({
 
   // Build menu with deep search support from @bazza-ui/menu
   const { menu: orchestratedMenu } = useMenu<T>({
-    menuDef: menu,
+    menuDef: menu as MenuDef<T> | SubmenuDef<T>,
     query,
     open,
     surfaceId,

@@ -41,9 +41,8 @@ export function CommandMenu_VimBindings() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        shortcut="cmd+k"
         placeholder="Type a command..."
-        vimBindings={true}
+        vimBindings
         menu={{
           id: 'root',
           defaults: {

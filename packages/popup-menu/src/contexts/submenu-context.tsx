@@ -1,15 +1,14 @@
-import type { SubmenuDef } from '@bazza-ui/menu'
 import * as React from 'react'
-import type { ActivationCause } from '../types.js'
+import type { ActivationCause, PopupSubmenuDef } from '../types.js'
 
 /** Submenu context (open state/refs/ids). */
-export type SubContextValue = {
+export type SubContextValue<T = unknown> = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenToggle: () => void
   triggerRef: React.RefObject<HTMLDivElement | HTMLButtonElement | null>
   contentRef: React.RefObject<HTMLDivElement | null>
-  def: SubmenuDef
+  def: PopupSubmenuDef<T>
   parentSurfaceId: string
   triggerItemId: string | null
   setTriggerItemId: (id: string | null) => void
@@ -20,9 +19,17 @@ export type SubContextValue = {
   parentSub: SubContextValue | null
 }
 
-const SubCtx = React.createContext<SubContextValue | null>(null)
+const SubCtx = React.createContext<SubContextValue<any> | null>(null)
 
-export const useSub = () => React.useContext(SubCtx)
+export function useSub<T = unknown>() {
+  const ctx = React.useContext(SubCtx)
+
+  if (!ctx) {
+    throw new Error('useSub must be used inside SubCtx.Provider')
+  }
+
+  return ctx as SubContextValue<T>
+}
 
 export function closeSubmenuChain(sub: SubContextValue | null) {
   let current = sub

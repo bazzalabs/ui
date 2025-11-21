@@ -27,7 +27,6 @@ export function CommandMenu_WithDescriptions() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        shortcut="cmd+k"
         placeholder="Search commands..."
         classNames={{
           item: 'h-14',

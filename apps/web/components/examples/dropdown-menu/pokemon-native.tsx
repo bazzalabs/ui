@@ -1,5 +1,6 @@
 'use client'
 
+import { nativeLoader } from '@bazza-ui/loaders'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/client/tst-static/_/utils'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,7 @@ export function DropdownMenu_PokemonNative() {
           mode: 'client',
           debounce: 500,
         },
-        loader: async () => {
+        loader: nativeLoader(async () => {
           await sleep(500)
           // Fetch Pokemon from PokeAPI
           const response = await fetch(
@@ -90,7 +91,7 @@ export function DropdownMenu_PokemonNative() {
               },
             }
           })
-        },
+        }),
       }}
     >
       <DropdownMenu.Trigger asChild>

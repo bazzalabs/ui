@@ -4,6 +4,7 @@ import type {
   AsyncNodeLoaderContext,
   AsyncNodeLoaderResult,
   MenuDef,
+  SubmenuDef,
 } from '../types.js'
 import {
   aggregateLoaderResults,
@@ -19,7 +20,7 @@ export interface UseDeepSearchLoadersConfig<T> {
   /**
    * The menu definition to collect loaders from.
    */
-  menuDef: MenuDef<T>
+  menuDef: MenuDef<T> | SubmenuDef<T>
 
   /**
    * The current search query.

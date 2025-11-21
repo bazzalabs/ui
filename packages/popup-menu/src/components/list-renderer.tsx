@@ -15,6 +15,7 @@ import { useRoot } from '../contexts/root-context.js'
 import { useSub } from '../contexts/submenu-context.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
 import { useNavKeydown } from '../hooks/use-nav-keydown.js'
+import type { PopupMenuSlots, PopupSubmenuNode } from '../types.js'
 import { PopupMenuSubmenu } from './submenu.js'
 import { PopupMenuSubmenuContent } from './submenu-content.js'
 import { PopupMenuSubmenuTrigger } from './submenu-trigger.js'
@@ -79,7 +80,7 @@ export function ListRenderer(props: ListRendererProps) {
  * Main list renderer component with all hooks called unconditionally.
  * This component is only rendered when we're not in loading/error states.
  */
-function ListRendererContent({
+function ListRendererContent<T = unknown>({
   query = '',
   onClose,
   onTypeStart,
@@ -90,7 +91,7 @@ function ListRendererContent({
     slots: customSlots,
     classNames,
     onSubmenuSelect,
-  } = useSurface()
+  } = useSurface<T>()
   const sub = useSub()
   const rootCtx = useRoot()
 
@@ -435,8 +436,9 @@ function ListRendererContent({
 
       // Submenu
       if (node.kind === 'submenu') {
-        const SubmenuTriggerSlot = slots.SubmenuTrigger
-        const submenuNode = node as SubmenuNode<any>
+        const SubmenuTriggerSlot =
+          slots.SubmenuTrigger as PopupMenuSlots<T>['SubmenuTrigger']
+        const submenuNode = node as PopupSubmenuNode<T>
 
         const submenuElement = (
           <ScopedThemeProvider

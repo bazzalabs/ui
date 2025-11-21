@@ -1,7 +1,4 @@
 import {
-  type AsyncNodeLoader,
-  type AsyncNodeLoaderContext,
-  type AsyncNodeLoaderResult,
   createSurfaceStore,
   type MenuDef,
   type MenuNodeDefaults,
@@ -17,7 +14,12 @@ import {
   ScopedThemeProvider,
   useScopedTheme,
 } from '../contexts/theme-context.js'
-import type { CommandMenuSlots, NavigationStackEntry } from '../types.js'
+import type {
+  CommandMenuSlots,
+  CommandMenuThemeDef,
+  NavigationStackEntry,
+  SubmenuDef,
+} from '../types.js'
 import { CommandMenuInput } from './input.js'
 import { CommandMenuList } from './list.js'
 import { SurfaceProvider } from './surface-provider.js'
@@ -44,7 +46,7 @@ function CommandMenuContentLayer<T>({
   pushSubmenu,
   innerContentRef,
 }: {
-  menuDef: MenuDef<T>
+  menuDef: MenuDef<T> | SubmenuDef<T, any>
   placeholder?: string
   defaults?: Partial<MenuNodeDefaults<T>>
   visible: boolean
@@ -112,7 +114,10 @@ function CommandMenuContentLayer<T>({
   })
 
   // Submenu scoped theme - merge current scoped theme with submenu.ui
-  const submenuTheme = React.useMemo(() => menuDef.ui, [menuDef.ui])
+  const submenuTheme = React.useMemo(
+    () => menuDef.ui as CommandMenuThemeDef | undefined,
+    [menuDef.ui],
+  )
 
   // Handle submenu navigation - push to stack instead of opening nested popover
   const handleSubmenuSelect = React.useCallback(
@@ -273,23 +278,23 @@ function findSubmenuDeep<T>(
 function buildMenuStack<T>(
   rootMenu: MenuDef<T>,
   navigationStack: NavigationStackEntry[],
-  menuDefCache: Map<string, MenuDef<T>>,
-): Array<{ menuDef: MenuDef<T>; depth: number }> {
-  const stack: Array<{ menuDef: MenuDef<T>; depth: number }> = [
-    { menuDef: rootMenu, depth: 0 },
-  ]
+  menuDefCache: Map<string, MenuDef<T> | SubmenuDef<T>>,
+): Array<{ menuDef: MenuDef<T> | SubmenuDef<T, any>; depth: number }> {
+  const stack: Array<{
+    menuDef: MenuDef<T> | SubmenuDef<T, any>
+    depth: number
+  }> = [{ menuDef: rootMenu, depth: 0 }]
 
-  let currentMenuDef: MenuDef<T> = rootMenu
+  let currentMenuDef: MenuDef<T> | SubmenuDef<T> = rootMenu
 
   for (let i = 0; i < navigationStack.length; i++) {
     const entry = navigationStack[i]
     if (!entry) continue
 
-    const nodes = currentMenuDef.nodes || []
     // First try to find in immediate children
-    let submenuNode = nodes.find(
+    let submenuNode = currentMenuDef?.nodes?.find(
       (n) => n.kind === 'submenu' && n.id === entry.menuId,
-    )
+    ) as SubmenuDef<T> | undefined
 
     // If not found and this is the first navigation (from root), try deep search
     // This handles deep search results that inject nested submenus into root results
@@ -307,6 +312,7 @@ function buildMenuStack<T>(
         const hasInjectedResults = (submenuNode as any).__originalLoader
 
         cachedMenuDef = {
+          kind: submenuNode.kind,
           id: submenuNode.id || entry.menuId,
           label: submenuNode.label,
           title: submenuNode.title,
@@ -323,7 +329,7 @@ function buildMenuStack<T>(
           input: submenuNode.input,
           open: submenuNode.open,
           middleware: submenuNode.middleware,
-        } as MenuDef<T>
+        }
 
         menuDefCache.set(cacheKey, cachedMenuDef)
       }

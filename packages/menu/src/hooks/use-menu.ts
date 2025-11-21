@@ -4,6 +4,7 @@ import type {
   Menu,
   MenuDef,
   MenuNodeDefaults,
+  SubmenuDef,
 } from '../types.js'
 import {
   type DeepSearchLoaderEntry,
@@ -16,8 +17,9 @@ import { useStreamingState } from './use-streaming-state.js'
 export interface UseMenuConfig<T> {
   /**
    * The menu definition to orchestrate deep search for.
+   * Accepts both MenuDef and SubmenuDef.
    */
-  menuDef: MenuDef<T>
+  menuDef: MenuDef<T> | SubmenuDef<T>
 
   /**
    * The current search query.
@@ -130,13 +132,12 @@ export function useMenu<T>(config: UseMenuConfig<T>): UseMenuResult<T> {
   } = config
 
   // Step 1: Manage loaders - collection, filtering, execution, aggregation
-  const { aggregatedState, loaderResults, stableLoaderEntries } =
-    useDeepSearchLoaders({
-      menuDef,
-      query,
-      open,
-      filterLoaders,
-    })
+  const { aggregatedState, stableLoaderEntries } = useDeepSearchLoaders({
+    menuDef,
+    query,
+    open,
+    filterLoaders,
+  })
 
   // Step 2: Determine if streaming mode should be enabled
   const streamingEnabled = React.useMemo(

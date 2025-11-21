@@ -201,7 +201,7 @@ const AIBlockIcon = (props: React.ComponentProps<'svg'>) => (
   </svg>
 )
 
-const NotionMenuItem = ({ bind, node, mode }: ItemSlotProps) => {
+const NotionMenuItem = ({ bind, node }: ItemSlotProps) => {
   const props = bind.getRowProps({
     className: 'w-full justify-between gap-16',
   })
@@ -234,7 +234,7 @@ const NotionMenuItem = ({ bind, node, mode }: ItemSlotProps) => {
     </button>
   )
 
-  if (mode !== 'dropdown' || data?.description === undefined) return ItemRow
+  if (data?.description === undefined) return ItemRow
 
   return (
     <HoverCard open={bind.focused} openDelay={2000}>

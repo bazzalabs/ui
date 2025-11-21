@@ -5,6 +5,7 @@ import type {
   Menu,
   MenuDef,
   MenuNodeDefaults,
+  SubmenuDef,
 } from '../types.js'
 import {
   injectCompletedLoaderResults,
@@ -19,7 +20,7 @@ export interface UseMenuInstantiationConfig<T> {
   /**
    * The menu definition.
    */
-  menuDef: MenuDef<T>
+  menuDef: MenuDef<T> | SubmenuDef<T>
 
   /**
    * Unique identifier for the menu surface.

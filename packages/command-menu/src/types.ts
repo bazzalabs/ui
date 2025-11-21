@@ -1,8 +1,13 @@
 import type {
+  MenuDef as BaseMenuDef,
+  SubmenuDef as BaseSubmenuDef,
+  GroupDef,
+  ItemDef,
+  LoadingDef,
   MenuClassNames,
-  MenuDef,
   MenuSlotProps,
   MenuSlots,
+  SeparatorDef,
 } from '@bazza-ui/menu'
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
@@ -130,6 +135,50 @@ export type CommandMenuClassNames = MenuClassNames & {
   backButton?: string
 }
 
+/**
+ * Command menu definition with properly typed slots, slotProps, and classNames.
+ * This is the recommended type to use for command menu data structures.
+ */
+export type CommandMenuDef<T = unknown> = Omit<
+  BaseMenuDef<
+    T,
+    CommandMenuSlots<T>,
+    CommandMenuSlotProps,
+    CommandMenuClassNames
+  >,
+  'ui'
+> & {
+  ui?: CommandMenuThemeDef<T>
+}
+
+/**
+ * Command submenu definition with properly typed slots, slotProps, and classNames.
+ */
+export type CommandSubmenuDef<T = unknown, TChild = unknown> = Omit<
+  BaseSubmenuDef<
+    T,
+    TChild,
+    CommandMenuSlots<TChild>,
+    CommandMenuSlotProps,
+    CommandMenuClassNames
+  >,
+  'ui' | 'nodes'
+> & {
+  ui?: CommandMenuThemeDef<TChild>
+  nodes?: CommandNodeDef<TChild>[]
+}
+
+/**
+ * Union of all node types usable in command menus.
+ * Use this when you need to specify a single node type.
+ */
+export type CommandNodeDef<T = unknown> =
+  | ItemDef<T>
+  | GroupDef<T>
+  | CommandSubmenuDef<T, any>
+  | SeparatorDef
+  | LoadingDef
+
 export interface CommandMenuProps<T = unknown> {
   /** Controlled open state */
   open?: boolean
@@ -138,7 +187,7 @@ export interface CommandMenuProps<T = unknown> {
   /** Default open state (uncontrolled) */
   defaultOpen?: boolean
   /** Menu definition */
-  menu: MenuDef<T>
+  menu: CommandMenuDef<T>
   /** Enable vim key bindings (Ctrl+j/k/n/p for navigation) */
   vimBindings?: boolean
   /** Text direction */

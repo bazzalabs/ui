@@ -138,7 +138,7 @@ function normalizeNodeDef<T>(nodeDef: NodeDef<T>): NodeDef<T> {
  */
 export function instantiateSingleNode<T>(
   def: NodeDef<T>,
-  parent: Menu<any>,
+  parent: Menu<T>,
   computedDefaults?: MenuNodeDefaults<T>,
 ): Node<T> {
   if (def.kind === 'item') {
@@ -265,6 +265,7 @@ export function instantiateSingleNode<T>(
         : subDef.title
           ? textToId(subDef.title)
           : undefined)
+
     if (!id) {
       throw new Error(
         'Submenu must have either an "id" or "label" property to generate an ID',
@@ -279,6 +280,7 @@ export function instantiateSingleNode<T>(
     // This ensures each surface's defaults only apply to its direct children
     const child = instantiateMenuFromDef(
       {
+        kind: 'submenu',
         id,
         label: subDef.label ?? subDef.title,
         title: subDef.title ?? subDef.label,
@@ -293,7 +295,7 @@ export function instantiateSingleNode<T>(
         input: subDef.input,
         open: subDef.open,
         middleware: subDef.middleware,
-      } as MenuDef<any>,
+      },
       childSurfaceId,
       parent.depth + 1,
       parent.baseDefaults, // Pass base defaults only (factory + instance), not parent's surface defaults
@@ -325,7 +327,7 @@ export function instantiateSingleNode<T>(
 }
 
 export function instantiateMenuFromDef<T>(
-  def: MenuDef<T>,
+  def: MenuDef<T> | SubmenuDef<T, any>,
   surfaceId: string,
   depth: number,
   parentDefaults?: MenuNodeDefaults<T>,
@@ -378,7 +380,8 @@ export function instantiateMenuFromDef<T>(
     : def.virtualization
 
   const parentless: Menu<T> = {
-    id: def.id,
+    kind: def.kind,
+    id: def.id!,
     title: def.title,
     inputPlaceholder: def.inputPlaceholder,
     hideSearchUntilActive: def.hideSearchUntilActive,

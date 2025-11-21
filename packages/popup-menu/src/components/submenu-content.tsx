@@ -1,12 +1,16 @@
-import type { MenuDef, SubmenuDef, SubmenuNode } from '@bazza-ui/menu'
 import * as React from 'react'
 import { useRoot } from '../contexts/root-context.js'
 import { useSub } from '../contexts/submenu-context.js'
+import type {
+  PopupMenuDef,
+  PopupSubmenuDef,
+  PopupSubmenuNode,
+} from '../types.js'
 import { PopupMenuContent } from './content.js'
 import { Positioner } from './positioner.js'
 
-interface PopupMenuSubmenuContentProps<T> {
-  node: SubmenuNode<T>
+interface PopupMenuSubmenuContentProps<T = unknown> {
+  node: PopupSubmenuNode<T>
 }
 
 /**
@@ -16,11 +20,11 @@ interface PopupMenuSubmenuContentProps<T> {
 export function PopupMenuSubmenuContent<T>({
   node,
 }: PopupMenuSubmenuContentProps<T>) {
-  const sub = useSub()!
+  const sub = useSub()
   const root = useRoot()
 
   // Convert submenu node to menu def with required id
-  const menuDef: MenuDef<any> | SubmenuDef<any> = React.useMemo(() => {
+  const menuDef: PopupMenuDef<T> | PopupSubmenuDef<T> = React.useMemo(() => {
     const def = node.def
 
     // IMPORTANT: If this submenu has deep search injected results (__originalLoader),
@@ -46,7 +50,7 @@ export function PopupMenuSubmenuContent<T>({
     <Positioner>
       {(popupProps: React.HTMLAttributes<HTMLElement>) => (
         <PopupMenuContent
-          menu={menuDef as MenuDef<any>}
+          menu={menuDef}
           open={sub.open}
           contentRef={sub.contentRef}
           popupProps={popupProps}

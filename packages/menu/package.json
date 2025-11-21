@@ -25,7 +25,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsc --watch",
+    "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run --run --mode test",
@@ -33,7 +33,7 @@
     "test:coverage": "vitest run --coverage --mode test"
   },
   "devDependencies": {
-    "@bazza-ui/typescript-config": "*",
+    "@bazza-ui/typescript-config": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -51,8 +51,8 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@bazza-ui/loaders": "*",
-    "@bazza-ui/theming": "*",
+    "@bazza-ui/loaders": "workspace:*",
+    "@bazza-ui/theming": "workspace:*",
     "@radix-ui/primitive": "^1.1.3",
     "@radix-ui/react-compose-refs": "^1.1.2",
     "@radix-ui/react-use-controllable-state": "^1.2.2",

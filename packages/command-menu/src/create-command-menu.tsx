@@ -1,4 +1,4 @@
-import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
+import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import { defaultSlots } from '@bazza-ui/menu'
 import * as React from 'react'
 import { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
@@ -13,6 +13,7 @@ import {
   ScopedThemeProvider,
 } from './contexts/theme-context.js'
 import type {
+  CommandMenuDef,
   CommandMenuProps,
   CommandMenuSlots,
   CommandMenuTheme,
@@ -44,8 +45,6 @@ export interface CommandMenuOptions<T = unknown> extends CommandMenuProps<T> {
   placeholder?: string
   /** Optional trigger button to render */
   trigger?: React.ReactNode
-  /** Menu definition */
-  menu: MenuDef<T>
   /** Theme overrides at instance level */
   slots?: CommandMenuThemeDef<T>['slots']
   slotProps?: CommandMenuThemeDef<T>['slotProps']
@@ -126,10 +125,7 @@ export function createCommandMenu<T = unknown>(
     )
 
     // Scoped theme - from menu.ui
-    const scopedTheme = React.useMemo(
-      () => menu.ui as CommandMenuTheme<T> | undefined,
-      [menu.ui],
-    )
+    const scopedTheme = React.useMemo(() => menu.ui, [menu.ui])
 
     // Merge factory defaults with instance defaults
     const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(

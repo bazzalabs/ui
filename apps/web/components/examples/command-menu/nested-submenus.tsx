@@ -17,7 +17,6 @@ export function CommandMenu_NestedSubmenus() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        shortcut="cmd+k"
         placeholder="Browse categories..."
         showBreadcrumbs={true}
         menu={{

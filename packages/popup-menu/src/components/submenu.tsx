@@ -5,9 +5,10 @@ import * as React from 'react'
 import type { SubContextValue } from '../contexts/submenu-context.js'
 import { SubCtx, useSub } from '../contexts/submenu-context.js'
 import { useSurface } from './surface-provider.js'
+import type { PopupSubmenuDef } from '../types.js'
 
-export interface PopupMenuSubmenuProps {
-  def: SubmenuDef
+export interface PopupMenuSubmenuProps<T> {
+  def: PopupSubmenuDef<T>
   children: React.ReactNode
 }
 
@@ -15,7 +16,10 @@ export interface PopupMenuSubmenuProps {
  * PopupMenuSubmenu wraps submenu content and manages state, refs, and context.
  * Simpler than action-menu version - only supports popover mode (no drawer).
  */
-export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
+export function PopupMenuSubmenu<T = unknown>({
+  def,
+  children,
+}: PopupMenuSubmenuProps<T>) {
   const [open, setOpen] = useControllableState({
     prop: def.open?.value,
     defaultProp: def.open?.defaultValue ?? false,
@@ -50,7 +54,7 @@ export function PopupMenuSubmenu({ def, children }: PopupMenuSubmenuProps) {
     setOpen(!open)
   }, [setOpen, open])
 
-  const value: SubContextValue = React.useMemo(
+  const value: SubContextValue<T> = React.useMemo(
     () => ({
       open,
       onOpenChange: setOpen,

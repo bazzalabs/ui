@@ -276,7 +276,13 @@ export type SearchConfig = {
   streaming?: boolean | StreamingConfig
 }
 
-export type MenuDef<T = unknown, TSlots = any> = {
+export type MenuDef<
+  T = unknown,
+  TSlots = MenuSlots<T>,
+  TSlotProps = MenuSlotProps,
+  TClassNames = MenuClassNames,
+> = {
+  kind: 'menu'
   id: string
   title?: string
   inputPlaceholder?: string
@@ -290,7 +296,7 @@ export type MenuDef<T = unknown, TSlots = any> = {
   virtualization?: VirtualizationConfig<T>
   /** Search configuration for filtering behavior. */
   search?: SearchConfig
-  ui?: MenuThemeDef<T, TSlots>
+  ui?: MenuThemeDef<T, TSlots, TSlotProps, TClassNames>
   /** Custom render function for the menu content. */
   render?: () => React.ReactNode
 } & MenuState
@@ -412,7 +418,9 @@ export type LoadingDef = BaseDef<'loading'> & {
 export type SubmenuDef<
   T = unknown,
   TChild = unknown,
-  TSlots = any,
+  TSlots = MenuSlots<TChild>,
+  TSlotProps = MenuSlotProps,
+  TClassNames = MenuClassNames,
 > = BaseDef<'submenu'> &
   Searchable &
   MenuState & {
@@ -439,16 +447,17 @@ export type SubmenuDef<
     hideSearchUntilActive?: boolean
     defaults?: MenuNodeDefaults<T>
     /** Virtualization configuration for the submenu's list. */
-    virtualization?: VirtualizationConfig
+    virtualization?: VirtualizationConfig<T>
     /** Search configuration for filtering behavior. */
     search?: SearchConfig
-    ui?: MenuThemeDef<TChild, TSlots>
+    ui?: MenuThemeDef<TChild, TSlots, TSlotProps, TClassNames>
     render?: () => React.ReactNode
   }
 
 export type LoadMode = 'blocking' | 'streaming'
 
-export type Menu<T = unknown> = Omit<MenuDef<T>, 'nodes'> & {
+export type Menu<T = unknown> = Omit<MenuDef<T>, 'kind' | 'nodes'> & {
+  kind: 'menu' | 'submenu'
   nodes: Node<T>[]
   surfaceId: string
   depth: number
@@ -828,16 +837,26 @@ export type MenuSlotProps = {
   footer?: React.HTMLAttributes<HTMLElement>
 }
 
-export type MenuThemeDef<T = unknown, TSlots = MenuSlots<T>> = {
+export type MenuThemeDef<
+  T = unknown,
+  TSlots = MenuSlots<T>,
+  TSlotProps = MenuSlotProps,
+  TClassNames = MenuClassNames,
+> = {
   slots?: Partial<TSlots>
-  slotProps?: Partial<MenuSlotProps>
-  classNames?: Partial<MenuClassNames>
+  slotProps?: Partial<TSlotProps>
+  classNames?: Partial<TClassNames>
 }
 
-export type MenuTheme<T = unknown, TSlots = MenuSlots<T>> = {
+export type MenuTheme<
+  T = unknown,
+  TSlots = MenuSlots<T>,
+  TSlotProps = MenuSlotProps,
+  TClassNames = MenuClassNames,
+> = {
   slots: Required<TSlots>
-  slotProps?: Partial<MenuSlotProps>
-  classNames?: Partial<MenuClassNames>
+  slotProps?: Partial<TSlotProps>
+  classNames?: Partial<TClassNames>
 }
 
 /* ================================================================================================

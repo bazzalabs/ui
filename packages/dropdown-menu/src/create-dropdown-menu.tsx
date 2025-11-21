@@ -4,6 +4,7 @@ import {
   GlobalThemeProvider,
   type InteractionGuardOptions,
   mergeTheme,
+  type PopupMenuDef,
   type PopupMenuSlots,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
@@ -13,6 +14,7 @@ import * as React from 'react'
 import { DropdownMenuContent } from './components/content.js'
 import { DropdownMenuRoot } from './components/root.js'
 import { DropdownMenuTrigger } from './components/trigger.js'
+import type { DropdownMenuDef } from './types.js'
 
 export type CreateDropdownMenuResult<T = unknown> = React.FC<
   DropdownMenuOptions<T>
@@ -32,7 +34,7 @@ export type CreateDropdownMenuOptions<T = unknown> = {
 export interface DropdownMenuOptions<T = unknown>
   extends Partial<InteractionGuardOptions> {
   /** Menu definition */
-  menu: MenuDef<T>
+  menu: DropdownMenuDef<T>
   /** Trigger element - will open dropdown menu on click */
   children: React.ReactNode
   /** Callback when menu opens/closes */
@@ -94,7 +96,6 @@ export function createDropdownMenu<T = unknown>(
       align = 'start',
       sideOffset = 4,
       alignOffset = 0,
-      asChild = false,
       slots,
       slotProps,
       classNames,
@@ -125,7 +126,7 @@ export function createDropdownMenu<T = unknown>(
     )
 
     // Scoped theme - from menu.ui
-    const scopedTheme = React.useMemo(() => menu.ui as any, [menu.ui])
+    const scopedTheme = React.useMemo(() => menu.ui, [menu.ui])
 
     // Merge factory defaults with instance defaults
     const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
@@ -145,10 +146,12 @@ export function createDropdownMenu<T = unknown>(
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>
-        <ScopedThemeProvider theme={scopedTheme}>
+        <ScopedThemeProvider
+          theme={scopedTheme as PopupMenuThemeDef | undefined}
+        >
           <DropdownMenuRoot
             {...rootProps}
-            menu={menu}
+            menu={menu as MenuDef<T>}
             defaults={mergedDefaults}
             scopeAttr={scopeAttr}
             disableOutsidePointerEvents={disableOutsidePointerEvents}
@@ -162,7 +165,7 @@ export function createDropdownMenu<T = unknown>(
           >
             <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
             <DropdownMenuContent
-              menu={menu}
+              menu={menu as PopupMenuDef<T>}
               placeholder={placeholder}
               side={side}
               align={align}

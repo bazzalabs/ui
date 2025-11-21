@@ -1,22 +1,3 @@
-// Types
-
-// Convenience component
-export { CommandMenu } from './command-menu.js'
-export { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
-export { CommandMenuContent } from './components/content.js'
-export { CommandMenuInput } from './components/input.js'
-export { CommandMenuList } from './components/list.js'
-// Components
-export { CommandMenuRoot } from './components/root.js'
-export { CommandMenuTrigger } from './components/trigger.js'
-export type { CommandMenuContextValue } from './context.js'
-// Context
-export { useCommandMenuContext } from './context.js'
-export {
-  mergeTheme,
-  useGlobalTheme,
-  useScopedTheme,
-} from './contexts/theme-context.js'
 export type {
   CommandMenuOptions,
   CreateCommandMenuOptions,
@@ -25,4 +6,27 @@ export type {
 
 // Factory
 export { createCommandMenu } from './create-command-menu.js'
+
+// Export all types from types.js
 export type * from './types.js'
+
+// Export package-specific menu types with dual naming
+// Simple names (convenient for package-scoped usage)
+export type {
+  CommandMenuClassNames,
+  CommandMenuClassNames as MenuClassNames,
+  CommandMenuDef,
+  CommandMenuDef as MenuDef,
+  CommandMenuSlotProps,
+  CommandMenuSlotProps as MenuSlotProps,
+  CommandMenuSlots,
+  CommandMenuSlots as MenuSlots,
+  CommandMenuTheme,
+  CommandMenuTheme as MenuTheme,
+  CommandMenuThemeDef,
+  CommandMenuThemeDef as MenuThemeDef,
+  CommandNodeDef,
+  CommandNodeDef as NodeDef,
+  CommandSubmenuDef,
+  CommandSubmenuDef as SubmenuDef,
+} from './types.js'

@@ -124,7 +124,7 @@ export type PopupMenuSlots<T = unknown> = {
     search?: SearchContext
   }) => React.ReactNode
   SubmenuTrigger: (args: {
-    node: SubmenuNode<T>
+    node: PopupSubmenuNode<T>
     bind: RowBindAPI
     search?: SearchContext
   }) => React.ReactNode
@@ -196,3 +196,53 @@ export type PopupMenuTheme<T = unknown> = Theme<
   PopupMenuSlotProps,
   PopupMenuClassNames
 >
+
+/****  */
+
+import type {
+  MenuDef as BaseMenuDef,
+  SubmenuDef as BaseSubmenuDef,
+  ItemDef,
+  GroupDef,
+  SeparatorDef,
+  LoadingDef,
+  /** Nodes **/
+  SubmenuNode as BaseSubmenuNode,
+} from '@bazza-ui/menu'
+
+export interface PopupMenuDef<T = unknown>
+  extends Omit<
+    BaseMenuDef<T, PopupMenuSlots<T>, PopupMenuSlotProps, PopupMenuClassNames>,
+    'nodes'
+  > {
+  nodes?: PopupNodeDef<T>[]
+}
+
+export type PopupNodeDef<T = unknown> =
+  | ItemDef<T>
+  | GroupDef<T>
+  | SeparatorDef
+  | LoadingDef
+  | PopupSubmenuDef<T>
+
+export interface PopupSubmenuDef<T = unknown, TChild = unknown>
+  extends Omit<
+    BaseSubmenuDef<
+      T,
+      TChild,
+      PopupMenuSlots<T>,
+      PopupMenuSlotProps,
+      PopupMenuClassNames
+    >,
+    'nodes'
+  > {
+  nodes?: PopupNodeDef<T>[]
+}
+
+export type PopupSubmenuNode<T = unknown, TChild = unknown> = Omit<
+  BaseSubmenuNode<T, TChild>,
+  'nodes'
+> & {
+  nodes?: PopupNodeDef<T>[]
+  def: PopupSubmenuDef<T, TChild>
+}

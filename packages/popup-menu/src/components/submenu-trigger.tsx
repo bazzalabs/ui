@@ -14,14 +14,18 @@ import {
   willHitSubmenu,
 } from '../lib/aim-guard.js'
 import { OPEN_SUB_EVENT } from '../lib/events.js'
-import type { PopupMenuClassNames, RowBindAPI } from '../types.js'
+import type {
+  PopupMenuClassNames,
+  PopupSubmenuNode,
+  RowBindAPI,
+} from '../types.js'
 import { findWidgetsWithinSurface } from '../utils/dom.js'
 import { useSurface } from './surface-provider.js'
 
 interface PopupMenuSubmenuTriggerProps<T> {
-  node: SubmenuNode<T>
+  node: PopupSubmenuNode<T>
   slot: (args: {
-    node: SubmenuNode<T>
+    node: PopupSubmenuNode<T>
     bind: RowBindAPI
     search?: SearchContext
   }) => React.ReactNode

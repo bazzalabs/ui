@@ -3,6 +3,7 @@ import {
   defaultSlots,
   GlobalThemeProvider,
   PopupMenuContent,
+  type PopupMenuDef,
   type PopupMenuTheme,
   Positioner,
   RootProvider,
@@ -96,7 +97,7 @@ export function ContextMenu<T = unknown>({
             >
               {(popupProps) => (
                 <PopupMenuContent
-                  menu={menu}
+                  menu={menu as PopupMenuDef<T>}
                   open={open}
                   onClose={handleClose}
                   contentRef={contentRef as any}

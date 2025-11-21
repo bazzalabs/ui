@@ -1,3 +1,4 @@
+/** biome-ignore-all assist/source/organizeImports: manual sort */
 // Types
 
 export type {
@@ -15,14 +16,17 @@ export type {
   GroupHeadingBindAPI,
   HoverPolicy,
   ListBindAPI,
-  PopupMenuClassNames,
   PopupMenuPositionerProps,
-  PopupMenuSlotProps,
   PopupMenuSlots,
+  PopupMenuClassNames,
+  PopupMenuSlotProps,
   PopupMenuTheme,
   PopupMenuThemeDef,
   PositionerSlotProps,
   RowBindAPI,
+  PopupMenuDef,
+  PopupSubmenuDef,
+  PopupNodeDef,
 } from './types.js'
 
 import type { InteractionGuardProps as _InteractionGuardProps } from './components/interaction-guard.js'

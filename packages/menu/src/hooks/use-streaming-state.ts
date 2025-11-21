@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { AggregatedLoaderState, MenuDef } from '../types.js'
+import type { AggregatedLoaderState, MenuDef, SubmenuDef } from '../types.js'
 import type { DeepSearchLoaderEntry } from '../utils/deep-search.js'
 
 /**
@@ -9,7 +9,7 @@ export interface UseStreamingStateConfig<T> {
   /**
    * The menu definition.
    */
-  menuDef: MenuDef<T>
+  menuDef: MenuDef<T> | SubmenuDef<T>
 
   /**
    * The current search query.

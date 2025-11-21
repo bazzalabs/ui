@@ -28,7 +28,7 @@ export type DeepSearchLoaderEntry<T = unknown> = {
  * Returns an array of loader entries with their paths.
  */
 export function collectDeepSearchLoaders<T = unknown>(
-  menuDef: MenuDef<T>,
+  menuDef: MenuDef<T> | SubmenuDef<T>,
   parentPath: string[] = [],
 ): DeepSearchLoaderEntry<T>[] {
   const entries: DeepSearchLoaderEntry<T>[] = []
@@ -115,7 +115,7 @@ function collectDeepSearchLoadersFromNode<T = unknown>(
  */
 export function aggregateLoaderResults(
   results: Map<string, AsyncNodeLoaderResult>,
-  menuDef: MenuDef<any>,
+  menuDef: MenuDef<any> | SubmenuDef<any>,
 ): AggregatedLoaderState {
   let isLoading = false
   let isError = false
@@ -163,7 +163,10 @@ export function aggregateLoaderResults(
 /**
  * Builds human-readable breadcrumb labels by walking the menu tree.
  */
-function buildBreadcrumbs(path: string[], menuDef: MenuDef<any>): string[] {
+function buildBreadcrumbs(
+  path: string[],
+  menuDef: MenuDef<any> | SubmenuDef<any>,
+): string[] {
   const breadcrumbs: string[] = []
   let nodes = menuDef.nodes ?? []
 
@@ -199,7 +202,7 @@ function buildBreadcrumbs(path: string[], menuDef: MenuDef<any>): string[] {
  * 2. At least one loader in the menu tree uses 'server' or 'hybrid' search mode
  */
 export function shouldEnableStreaming<T = unknown>(
-  menuDef: MenuDef<T>,
+  menuDef: MenuDef<T> | SubmenuDef<T>,
 ): boolean {
   // Check if streaming is configured
   const searchConfig = menuDef.search
@@ -224,7 +227,9 @@ export function shouldEnableStreaming<T = unknown>(
 /**
  * Recursively checks if any loader in the menu tree uses 'server' or 'hybrid' mode.
  */
-function checkForServerLoader<T = unknown>(menuDef: MenuDef<T>): boolean {
+function checkForServerLoader<T = unknown>(
+  menuDef: MenuDef<T> | SubmenuDef<T>,
+): boolean {
   // Check root menu's own loader (if in server/hybrid mode)
   if (menuDef.loader && menuDef.search?.mode !== 'client') {
     return true

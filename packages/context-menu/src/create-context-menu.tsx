@@ -1,9 +1,10 @@
-import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
+import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   defaultSlots,
   GlobalThemeProvider,
   type InteractionGuardOptions,
   mergeTheme,
+  type PopupMenuDef,
   type PopupMenuSlots,
   type PopupMenuTheme,
   type PopupMenuThemeDef,
@@ -13,6 +14,7 @@ import * as React from 'react'
 import { ContextMenuContent } from './components/content.js'
 import { ContextMenuRoot } from './components/root.js'
 import { ContextMenuTrigger } from './components/trigger.js'
+import type { ContextMenuDef } from './types.js'
 
 export type CreateContextMenuResult<T = unknown> = React.FC<
   ContextMenuOptions<T>
@@ -32,7 +34,7 @@ export type CreateContextMenuOptions<T = unknown> = {
 export interface ContextMenuOptions<T = unknown>
   extends Partial<InteractionGuardOptions> {
   /** Menu definition */
-  menu: MenuDef<T>
+  menu: ContextMenuDef<T>
   /** Trigger element - will open context menu on right-click */
   children: React.ReactNode
   /** Callback when menu opens/closes */
@@ -113,7 +115,7 @@ export function createContextMenu<T = unknown>(
     )
 
     // Scoped theme - from menu.ui
-    const scopedTheme = React.useMemo(() => menu.ui as any, [menu.ui])
+    const scopedTheme = React.useMemo(() => menu.ui, [menu.ui])
 
     // Merge factory defaults with instance defaults
     const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
@@ -133,7 +135,7 @@ export function createContextMenu<T = unknown>(
 
     return (
       <GlobalThemeProvider theme={instanceTheme}>
-        <ScopedThemeProvider theme={scopedTheme}>
+        <ScopedThemeProvider theme={scopedTheme as PopupMenuTheme | undefined}>
           <ContextMenuRoot
             {...rootProps}
             menu={menu}
@@ -150,7 +152,7 @@ export function createContextMenu<T = unknown>(
           >
             <ContextMenuTrigger>{children}</ContextMenuTrigger>
             <ContextMenuContent
-              menu={menu}
+              menu={menu as PopupMenuDef<T>}
               placeholder={placeholder}
               debug={debug}
               defaults={mergedDefaults}

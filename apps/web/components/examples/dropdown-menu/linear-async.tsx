@@ -31,9 +31,7 @@ export function DropdownMenu_LinearAsync() {
         item: {
           onSelect: ({ node }) => {
             console.log('node:', node)
-            const property = (
-              node.parent.label ?? node.parent.title
-            )?.toLowerCase()
+            const property = node.parent.title?.toLowerCase()
 
             toast(`Changed ${property} to ${node.label}.`, {
               icon: renderIcon(node.icon, 'size-4'),

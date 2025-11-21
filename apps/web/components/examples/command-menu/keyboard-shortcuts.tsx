@@ -32,7 +32,6 @@ export function CommandMenu_KeyboardShortcuts() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        // shortcut={['cmd+k', 'ctrl+k', '/']}
         placeholder="Type a command..."
         menu={{
           id: 'root',
