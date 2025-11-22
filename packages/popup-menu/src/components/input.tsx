@@ -1,8 +1,6 @@
 import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
-import * as React from 'react'
-import { useSub } from '../contexts/submenu-context.js'
+import type * as React from 'react'
 import { useScopedTheme } from '../contexts/theme-context.js'
-import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 
 export interface PopupMenuInputProps<T = unknown> {
   /** Surface store for state management */
@@ -15,8 +13,6 @@ export interface PopupMenuInputProps<T = unknown> {
   placeholder?: string
   /** Additional className */
   className?: string
-  /** Callback when root menu should close (e.g., on Escape) */
-  onClose?: () => void
 }
 
 export function PopupMenuInput<T = unknown>({
@@ -25,16 +21,8 @@ export function PopupMenuInput<T = unknown>({
   onValueChange,
   placeholder = 'Search...',
   className,
-  onClose,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
-  const sub = useSub()
-
-  // Determine surface ID from submenu context or default to 'root'
-  const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])
-
-  // Use centralized keyboard navigation hook
-  const handleKeyDown = useNavKeydown('input', surfaceId, onClose)
 
   const searchState = {
     query: value ?? '',
@@ -59,7 +47,6 @@ export function PopupMenuInput<T = unknown>({
           'data-popup-menu-input': true,
         } as React.HTMLAttributes<HTMLInputElement>
       }
-      onKeyDown={handleKeyDown}
     >
       {theme?.slots?.Input
         ? (bind, search) =>

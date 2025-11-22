@@ -19,11 +19,7 @@ import {
   SELECT_ITEM_EVENT,
 } from '../lib/events.js'
 
-export function useNavKeydown(
-  _source: 'input' | 'list',
-  surfaceId: string,
-  onRootClose?: () => void,
-) {
+export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
   const surfaceCtx = useSurface()
   const store = surfaceCtx.store
   const sub = useSub()
@@ -32,10 +28,24 @@ export function useNavKeydown(
 
   return React.useCallback(
     (e: React.KeyboardEvent) => {
-      // Only handle keyboard events if this surface owns focus
-      if (ownerId !== surfaceId) return
-
       const k = e.key
+
+      // Detect source from event target
+      const target = e.target as HTMLElement
+      const isFromInput = target === store.inputRef.current
+      const _source = isFromInput ? 'input' : 'list'
+
+      // Only handle keyboard events if this surface owns focus
+      if (ownerId !== surfaceId) {
+        return
+      }
+
+      // For space key in input, let it through naturally (don't handle it)
+      // Stop propagation to prevent parent surface handlers from interfering
+      if (k === ' ' && _source === 'input') {
+        e.stopPropagation()
+        return
+      }
       const stop = () => {
         e.preventDefault()
         e.stopPropagation()
@@ -112,6 +122,19 @@ export function useNavKeydown(
 
       // Submenu open keys (Enter or Right arrow in LTR, Left in RTL)
       if (isOpenKey(dir, k)) {
+        // If in input and cursor can move, allow normal cursor navigation
+        const allowCursorNav = shouldAllowInputCursorNav({
+          source: _source,
+          key: k,
+          dir,
+          inputRef: store.inputRef,
+          surfaceId,
+        })
+        if (allowCursorNav) {
+          // Stop propagation to prevent the list handler from interfering
+          e.stopPropagation()
+          return
+        }
         stop()
         const activeId = store.snapshot().activeId
         if (isSelectionKey(k)) {
@@ -129,6 +152,20 @@ export function useNavKeydown(
 
       // Submenu close keys (Left arrow in LTR, Right in RTL)
       if (isCloseKey(dir, k)) {
+        // If in input and cursor can move, allow normal cursor navigation
+        const allowCursorNav = shouldAllowInputCursorNav({
+          source: _source,
+          key: k,
+          dir,
+          inputRef: store.inputRef,
+          surfaceId,
+        })
+        if (allowCursorNav) {
+          // Stop propagation to prevent the list handler from interfering
+          e.stopPropagation()
+          return
+        }
+
         if (sub) {
           stop()
           sub.onOpenChange(false)
@@ -174,4 +211,55 @@ export function useNavKeydown(
     },
     [store, sub, dir, vimBindings, ownerId, setOwnerId, surfaceId, onRootClose],
   )
+}
+
+/**
+ * Helper function to check if we should allow cursor navigation in input.
+ * Returns true if the cursor can move within the input, false if arrow keys should trigger menu navigation.
+ */
+function shouldAllowInputCursorNav(params: {
+  source: 'input' | 'list'
+  key: string
+  dir: 'ltr' | 'rtl'
+  inputRef: React.RefObject<HTMLInputElement | null>
+  surfaceId: string
+}): boolean {
+  const { source, key, dir, inputRef, surfaceId } = params
+
+  if (source !== 'input') {
+    return false
+  }
+
+  const inputEl = inputRef.current
+  if (!inputEl) {
+    return false
+  }
+
+  const { selectionStart, selectionEnd, value } = inputEl
+
+  // If there's a selection range, allow cursor movement
+  if (selectionStart !== selectionEnd) {
+    return true
+  }
+
+  // Check cursor position for horizontal navigation
+  if (
+    key === 'ArrowLeft' ||
+    (dir === 'ltr' && key === 'ArrowLeft') ||
+    (dir === 'rtl' && key === 'ArrowRight')
+  ) {
+    // Allow if cursor is not at the start
+    return selectionStart !== 0
+  }
+
+  if (
+    key === 'ArrowRight' ||
+    (dir === 'ltr' && key === 'ArrowRight') ||
+    (dir === 'rtl' && key === 'ArrowLeft')
+  ) {
+    // Allow if cursor is not at the end
+    return selectionStart !== value.length
+  }
+
+  return false
 }

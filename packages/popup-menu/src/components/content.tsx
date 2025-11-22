@@ -140,8 +140,16 @@ export function PopupMenuContent<T = unknown>({
         onTypeStart={handleTypeStart}
         contentRef={contentRef}
         defaults={defaults}
+        isSubmenu={isSubmenu}
+        subCtx={subCtx}
       >
-        {(store, surfaceProps, listElement, orchestratedMenu) => {
+        {(
+          store,
+          surfaceProps,
+          listElement,
+          orchestratedMenu,
+          handleKeyDown,
+        ) => {
           // Keep track of the store's inputRef for focus management
           storeInputRef.current = store.inputRef
 
@@ -173,6 +181,7 @@ export function PopupMenuContent<T = unknown>({
                   className: classNames?.content,
                   // Apply composed ref last to ensure it's not overwritten
                   ref: composedRef,
+                  onKeyDown: handleKeyDown, // Centralized keyboard handler - must be last to avoid being overwritten
                 },
                 overrides,
               ) as any
@@ -208,7 +217,6 @@ export function PopupMenuContent<T = unknown>({
                     placeholder={
                       placeholder ?? menu.inputPlaceholder ?? 'Search...'
                     }
-                    onClose={onClose}
                   />
                 ) : null}
                 {listElement}

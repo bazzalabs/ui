@@ -14,7 +14,6 @@ import * as React from 'react'
 import { useRoot } from '../contexts/root-context.js'
 import { useSub } from '../contexts/submenu-context.js'
 import { ScopedThemeProvider } from '../contexts/theme-context.js'
-import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 import type { PopupMenuSlots, PopupSubmenuNode } from '../types.js'
 import { PopupMenuSubmenu } from './submenu.js'
 import { PopupMenuSubmenuContent } from './submenu-content.js'
@@ -97,9 +96,6 @@ function ListRendererContent<T = unknown>({
 
   // Determine surface ID from submenu context or default to 'root'
   const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])
-
-  // Use centralized keyboard navigation hook
-  const navKeyDown = useNavKeydown('list', surfaceId, onClose)
 
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
@@ -314,13 +310,10 @@ function ListRendererContent<T = unknown>({
     [onSubmenuSelect],
   )
 
-  // Combine navigation keyboard handler with type-to-search
+  // Type-to-search handler (navigation is now handled at content level)
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
-      // First, handle navigation keys via the centralized hook
-      navKeyDown(e)
-
-      // Then, handle type-to-search if not already handled
+      // Handle type-to-search if not already handled
       if (!onTypeStart || e.defaultPrevented) return
 
       const { key } = e
@@ -330,12 +323,12 @@ function ListRendererContent<T = unknown>({
         !e.ctrlKey &&
         !e.metaKey &&
         !e.altKey &&
-        key !== ' ' // Exclude space as it's used for selection
+        key !== ' ' // Exclude space - it's used for selection in lists (but works normally in inputs)
       ) {
         onTypeStart(key)
       }
     },
-    [navKeyDown, onTypeStart],
+    [onTypeStart],
   )
 
   // Helper function to render a single node

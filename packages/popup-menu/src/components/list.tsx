@@ -13,10 +13,54 @@ import { HoverPolicyProvider } from '../contexts/hover-policy-context.js'
 import { KeyboardCtx } from '../contexts/keyboard-context.js'
 import { SubCtx } from '../contexts/submenu-context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
+import { useNavKeydown } from '../hooks/use-nav-keydown.js'
 import type { PopupMenuDef, PopupMenuSlots, PopupSubmenuDef } from '../types.js'
 import { isInBounds } from '../utils/dom.js'
 import { ListRenderer } from './list-renderer.js'
 import { SurfaceProvider } from './surface-provider.js'
+
+/**
+ * Wrapper component that uses the keyboard handler hook inside SurfaceProvider context
+ * and passes it to the render prop children
+ */
+function KeyboardHandlerWrapper({
+  surfaceId,
+  onClose,
+  store,
+  surfaceProps,
+  listElement,
+  orchestratedMenu,
+  children,
+}: {
+  surfaceId: string
+  onClose?: () => void
+  store: any
+  surfaceProps: { onMouseMove: (e: React.MouseEvent) => void }
+  listElement: React.ReactNode
+  orchestratedMenu: any
+  children?: (
+    store: any,
+    surfaceProps: { onMouseMove: (e: React.MouseEvent) => void },
+    listElement: React.ReactNode,
+    orchestratedMenu: any,
+    handleKeyDown: (e: React.KeyboardEvent) => void,
+  ) => React.ReactNode
+}) {
+  // This hook is now called inside SurfaceProvider context
+  const handleKeyDown = useNavKeydown(surfaceId, onClose)
+
+  return (
+    <>
+      {children?.(
+        store,
+        surfaceProps,
+        listElement,
+        orchestratedMenu,
+        handleKeyDown,
+      )}
+    </>
+  )
+}
 
 export interface PopupMenuListProps<T = unknown> {
   /** Menu definition */
@@ -35,15 +79,20 @@ export interface PopupMenuListProps<T = unknown> {
   onTypeStart?: (seed: string) => void
   /** Content ref (for positioning and mouse move handling) */
   contentRef?: React.RefObject<HTMLDivElement | null>
-  /** Render function that receives store, surface props, list element, and orchestrated menu */
+  /** Render function that receives store, surface props, list element, orchestrated menu, and keyboard handler */
   children?: (
     store: any,
     surfaceProps: { onMouseMove: (e: React.MouseEvent) => void },
     listElement: React.ReactNode,
     orchestratedMenu: any,
+    handleKeyDown: (e: React.KeyboardEvent) => void,
   ) => React.ReactNode
   /** Pre-computed defaults from factory + instance levels */
   defaults?: MenuNodeDefaults<T>
+  /** Whether this is a submenu */
+  isSubmenu?: boolean
+  /** Submenu context */
+  subCtx?: any
 }
 
 /**
@@ -62,6 +111,8 @@ export function PopupMenuList<T = unknown>({
   contentRef,
   children,
   defaults,
+  isSubmenu: isSubmenuProp,
+  subCtx: subCtxProp,
 }: PopupMenuListProps<T>) {
   // Determine surface ID (from submenu context or 'root')
   const subCtx = React.useContext(SubCtx)
@@ -71,7 +122,8 @@ export function PopupMenuList<T = unknown>({
   )
 
   // Determine if this is a submenu (needed early for deep search orchestration)
-  const isSubmenu = !!subCtx
+  // Use prop if provided, otherwise derive from context
+  const isSubmenu = isSubmenuProp ?? !!subCtx
 
   // Get theme from scoped context
   const theme = useScopedTheme()
@@ -207,7 +259,16 @@ export function PopupMenuList<T = unknown>({
           slots={theme?.slots as PopupMenuSlots<T> | undefined}
           classNames={theme?.classNames}
         >
-          {children?.(store, surfaceProps, listElement, orchestratedMenu)}
+          <KeyboardHandlerWrapper
+            surfaceId={surfaceId}
+            onClose={onClose}
+            store={store}
+            surfaceProps={surfaceProps}
+            listElement={listElement}
+            orchestratedMenu={orchestratedMenu}
+          >
+            {children}
+          </KeyboardHandlerWrapper>
         </SurfaceProvider>
       </HoverPolicyProvider>
     </KeyboardCtx.Provider>
