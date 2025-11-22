@@ -3,16 +3,14 @@
 'use client'
 
 import {
-  flatten,
   type ItemDef,
   type ItemSlotProps,
   type NodeDef,
   renderIcon,
 } from '@bazza-ui/context-menu'
-import { BrainIcon, CheckIcon, XIcon } from 'lucide-react'
+import { CheckIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ContextMenu, LabelWithBreadcrumbs } from '@/registry/context-menu'
 
@@ -168,14 +166,6 @@ export function ContextMenu_AIModelSwitcher() {
       }),
     ],
     [],
-  )
-  const flattenedNodes = useMemo(() => flatten(nodes, { deep: true }), [nodes])
-  const selectedModel = useMemo(
-    () =>
-      value
-        ? (flattenedNodes.find((node) => node.id === value) as ItemDef)
-        : null,
-    [value, flattenedNodes],
   )
 
   return (

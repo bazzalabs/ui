@@ -23,7 +23,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
-import { DropdownMenu } from "@/registry/context-menu"
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_Notion() {
   return (

@@ -11,7 +11,7 @@ import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { ContextMenu } from "@/registry/context-menu"
+import { ContextMenu } from '@/registry/context-menu'
 import {
   AssigneeIcon,
   LabelsIcon,
@@ -40,32 +40,12 @@ export function ContextMenu_Linear() {
         },
       }}
     >
-      <ContextMenu.Trigger asChild>
-        <Button variant="ghost" size="sm" className="w-fit">
-          <FilterIcon />
-          Filter
-        </Button>
-      </ContextMenu.Trigger>
+      <div className="h-32 bg-background w-auto aspect-video border rounded-lg border-dashed flex items-center justify-center">
+        <span className="text-muted-foreground">Right click here.</span>
+      </div>
     </ContextMenu>
   )
 }
-
-const FilterIcon = () => (
-  <svg
-    className="fill-muted-foreground size-4"
-    viewBox="0 0 16 16"
-    role="img"
-    focusable="false"
-    aria-hidden="true"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M14.25 3a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5h12.5ZM4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8Zm2.75 3.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"
-    ></path>
-  </svg>
-)
 
 const statusMenu: SubmenuDef = {
   kind: 'submenu',

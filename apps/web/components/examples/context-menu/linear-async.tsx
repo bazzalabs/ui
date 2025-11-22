@@ -7,11 +7,10 @@ import {
   type SubmenuDef,
 } from '@bazza-ui/context-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
-import { ListFilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from "@/registry/context-menu"
+import { ContextMenu } from '@/registry/context-menu'
 import {
   AssigneeIcon,
   LabelsIcon,

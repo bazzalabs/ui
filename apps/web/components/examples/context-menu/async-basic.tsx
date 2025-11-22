@@ -3,7 +3,7 @@
 import { queryLoader } from '@bazza-ui/loaders/query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from "@/registry/context-menu"
+import { ContextMenu } from '@/registry/context-menu'
 import { LABEL_STYLES_BG, type TW_COLOR } from './linear'
 
 type Label = {

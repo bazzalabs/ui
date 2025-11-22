@@ -1,7 +1,8 @@
 import { createContextMenu } from '@bazza-ui/context-menu'
 import { renderIcon } from '@bazza-ui/menu'
-import { ChevronRightIcon } from 'lucide-react'
+import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Fragment, useCallback } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
 declare module '@bazza-ui/context-menu' {
@@ -17,13 +18,25 @@ export const ContextMenu = createContextMenu({
     },
   },
   slots: {
-    Item: ({ node, search, bind }) => {
+    Item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: cn('group/row', node.description && 'gap-3'),
       })
 
+      const isRadioItem = node.group && node.group.variant === 'radio'
+      const isRadioChecked = isRadioItem && node.group?.value === node.id
+
+      const isCheckboxItem = node.variant === 'checkbox'
+
       return (
         <li {...props}>
+          {isCheckboxItem && (
+            <Checkbox
+              checked={Boolean(node.checked)}
+              className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]/row:opacity-100 dark:border-ring shrink-0"
+            />
+          )}
+
           {node.icon && (
             <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
               {renderIcon(
@@ -34,7 +47,7 @@ export const ContextMenu = createContextMenu({
           )}
           <div className="flex flex-col min-w-0">
             <LabelWithBreadcrumbs
-              label={node.label}
+              label={node.label ?? ''}
               breadcrumbs={search?.breadcrumbs}
             />
             {node.description && (
@@ -43,6 +56,7 @@ export const ContextMenu = createContextMenu({
               </span>
             )}
           </div>
+          {isRadioChecked && <CheckIcon className="size-4 ml-auto" />}
         </li>
       )
     },

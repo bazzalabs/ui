@@ -11,7 +11,6 @@ import {
   Keyboard,
   Languages,
   Lightbulb,
-  MenuIcon,
   Moon,
   Palette,
   Presentation,
@@ -29,7 +28,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { DropdownMenu } from "@/registry/context-menu"
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_SubmenusDeep() {
   return (

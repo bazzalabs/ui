@@ -8,11 +8,11 @@ import {
   type NodeDef,
   renderIcon,
 } from '@bazza-ui/context-menu'
-import { BrainIcon, CheckIcon } from 'lucide-react'
+import { CheckIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { DropdownMenu, LabelWithBreadcrumbs } from "@/registry/context-menu"
+import { ContextMenu, LabelWithBreadcrumbs } from '@/registry/context-menu'
 
 export function ContextMenu_ItemDescriptions() {
   const [value, setValue] = useState<string | undefined>(undefined)

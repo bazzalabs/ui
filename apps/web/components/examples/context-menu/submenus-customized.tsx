@@ -1,7 +1,7 @@
 'use client'
 
 import { toast } from 'sonner'
-import { DropdownMenu } from "@/registry/context-menu"
+import { ContextMenu } from '@/registry/context-menu'
 
 export function ContextMenu_SubmenusCustomized() {
   return (
