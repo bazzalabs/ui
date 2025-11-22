@@ -1,11 +1,4 @@
-import {
-  type AsyncNodeLoader,
-  createSurfaceStore,
-  type MenuDef,
-  type MenuNodeDefaults,
-  useLoader,
-  useMenu,
-} from '@bazza-ui/menu'
+import { type MenuDef, type MenuNodeDefaults, useMenu } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
@@ -15,6 +8,8 @@ import {
   ScopedThemeProvider,
   useScopedTheme,
 } from '../contexts/theme-context.js'
+import { useLayerState } from '../hooks/use-layer-state.js'
+import { useMenuLoader } from '../hooks/use-menu-loader.js'
 import type {
   CommandMenuDef,
   CommandMenuSlots,
@@ -58,54 +53,19 @@ function CommandMenuContentLayer<T>({
 }) {
   const theme = useScopedTheme()
 
-  // Each layer has its own independent query state (matching popup menu)
-  const [query, setQuery] = React.useState('')
-
-  // Create a surface store for this menu layer
-  const store = React.useMemo(() => createSurfaceStore<T>(), [menuDef.id])
-
-  // Extract the loader from the menu
-  const menuLoader = React.useMemo(() => {
-    return 'loader' in menuDef ? menuDef.loader : undefined
-  }, [menuDef])
-
-  // Determine if we should pass query to the loader
-  const loaderQuery = React.useMemo(() => {
-    const searchMode = menuDef.search?.mode ?? 'client'
-    return searchMode === 'client' ? '' : query
-  }, [menuDef.search?.mode, query])
-
-  // Create loader context
-  const loaderContext = React.useMemo(
-    () => ({
-      query: loaderQuery,
-      open: true,
-    }),
-    [loaderQuery],
+  // Layer state management (extracted to hook)
+  const { query, setQuery, store } = useLayerState<T>(
+    menuDef.id,
+    visible,
+    depth,
   )
 
-  // Execute loader
-  const loaderResult = useLoader<T>(
-    menuLoader as AsyncNodeLoader<T>,
-    loaderContext,
-  )
-
-  // Clear query when this layer becomes visible (navigating into it)
-  React.useEffect(() => {
-    if (visible && depth > 0) {
-      setQuery('')
-    }
-  }, [visible, depth])
-
-  // Reset active ID to first item when this layer becomes visible (navigating back)
-  const prevVisibleRef = React.useRef(visible)
-  React.useEffect(() => {
-    if (visible && !prevVisibleRef.current) {
-      // Layer just became visible - reset to first item
-      store.first('keyboard')
-    }
-    prevVisibleRef.current = visible
-  }, [visible, store])
+  // Loader orchestration (extracted to hook)
+  const loaderResult = useMenuLoader<T>({
+    menuDef,
+    query,
+    open: true,
+  })
 
   // Build menu with deep search support from @bazza-ui/menu
   const { menu } = useMenu<T>({
@@ -317,23 +277,12 @@ function buildMenuStack<T>(
         const hasInjectedResults = (submenuNode as any).__originalLoader
 
         cachedMenuDef = {
-          kind: submenuNode.kind,
+          ...submenuNode,
           id: submenuNode.id || entry.menuId,
-          label: submenuNode.label,
-          title: submenuNode.title,
           nodes: hasInjectedResults ? undefined : submenuNode.nodes,
           loader: hasInjectedResults
             ? (submenuNode as any).__originalLoader
             : submenuNode.loader,
-          search: submenuNode.search,
-          defaults: submenuNode.defaults,
-          ui: submenuNode.ui,
-          virtualization: submenuNode.virtualization,
-          inputPlaceholder: submenuNode.inputPlaceholder,
-          hideSearchUntilActive: submenuNode.hideSearchUntilActive,
-          input: submenuNode.input,
-          open: submenuNode.open,
-          middleware: submenuNode.middleware,
         }
 
         menuDefCache.set(cacheKey, cachedMenuDef)
