@@ -1,4 +1,5 @@
 import {
+  type AsyncNodeLoader,
   createSurfaceStore,
   type MenuDef,
   type MenuNodeDefaults,
@@ -15,10 +16,11 @@ import {
   useScopedTheme,
 } from '../contexts/theme-context.js'
 import type {
+  CommandMenuDef,
   CommandMenuSlots,
   CommandMenuThemeDef,
+  CommandSubmenuDef,
   NavigationStackEntry,
-  SubmenuDef,
 } from '../types.js'
 import { CommandMenuInput } from './input.js'
 import { CommandMenuList } from './list.js'
@@ -46,7 +48,7 @@ function CommandMenuContentLayer<T>({
   pushSubmenu,
   innerContentRef,
 }: {
-  menuDef: MenuDef<T> | SubmenuDef<T, any>
+  menuDef: CommandMenuDef<T> | CommandSubmenuDef<T>
   placeholder?: string
   defaults?: Partial<MenuNodeDefaults<T>>
   visible: boolean
@@ -83,7 +85,10 @@ function CommandMenuContentLayer<T>({
   )
 
   // Execute loader
-  const loaderResult = useLoader(menuLoader, loaderContext)
+  const loaderResult = useLoader<T>(
+    menuLoader as AsyncNodeLoader<T>,
+    loaderContext,
+  )
 
   // Clear query when this layer becomes visible (navigating into it)
   React.useEffect(() => {
@@ -252,7 +257,7 @@ function CommandMenuContentLayer<T>({
 /**
  * Deep search for a submenu node by ID anywhere in the tree
  */
-function findSubmenuDeep<T>(
+function findSubmenuDeep(
   nodes: Array<any>,
   submenuId: string,
 ): any | undefined {
@@ -276,16 +281,16 @@ function findSubmenuDeep<T>(
  * This prevents unnecessary re-instantiation of menus when going back to a previously visited menu.
  */
 function buildMenuStack<T>(
-  rootMenu: MenuDef<T>,
+  rootMenu: CommandMenuDef<T>,
   navigationStack: NavigationStackEntry[],
-  menuDefCache: Map<string, MenuDef<T> | SubmenuDef<T>>,
-): Array<{ menuDef: MenuDef<T> | SubmenuDef<T, any>; depth: number }> {
+  menuDefCache: Map<string, CommandMenuDef<T> | CommandSubmenuDef<T>>,
+): Array<{ menuDef: MenuDef<T> | CommandSubmenuDef<T>; depth: number }> {
   const stack: Array<{
-    menuDef: MenuDef<T> | SubmenuDef<T, any>
+    menuDef: MenuDef<T> | CommandSubmenuDef<T>
     depth: number
   }> = [{ menuDef: rootMenu, depth: 0 }]
 
-  let currentMenuDef: MenuDef<T> | SubmenuDef<T> = rootMenu
+  let currentMenuDef: CommandMenuDef<T> | CommandSubmenuDef<T> = rootMenu
 
   for (let i = 0; i < navigationStack.length; i++) {
     const entry = navigationStack[i]
@@ -294,7 +299,7 @@ function buildMenuStack<T>(
     // First try to find in immediate children
     let submenuNode = currentMenuDef?.nodes?.find(
       (n) => n.kind === 'submenu' && n.id === entry.menuId,
-    ) as SubmenuDef<T> | undefined
+    ) as CommandSubmenuDef<T> | undefined
 
     // If not found and this is the first navigation (from root), try deep search
     // This handles deep search results that inject nested submenus into root results

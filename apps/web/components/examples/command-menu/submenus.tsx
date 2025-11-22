@@ -20,11 +20,17 @@ export function CommandMenu_Submenus() {
       <CommandMenu
         open={open}
         onOpenChange={setOpen}
-        shortcut="cmd+k"
         placeholder="Search categories..."
         showBreadcrumbs={true}
         menu={{
           id: 'root',
+          defaults: {
+            item: {
+              onSelect: ({ node }) => {
+                toast(`Selected: ${node.label}`)
+              },
+            },
+          },
           nodes: [
             {
               kind: 'submenu',

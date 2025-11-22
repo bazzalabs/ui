@@ -12,8 +12,6 @@ import type {
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
 
-export type * from '@bazza-ui/menu/types'
-
 /**
  * Bind API for Dialog Portal slot
  */
@@ -146,9 +144,10 @@ export type CommandMenuDef<T = unknown> = Omit<
     CommandMenuSlotProps,
     CommandMenuClassNames
   >,
-  'ui'
+  'ui' | 'nodes'
 > & {
   ui?: CommandMenuThemeDef<T>
+  nodes?: CommandNodeDef<T>[]
 }
 
 /**
@@ -175,9 +174,9 @@ export type CommandSubmenuDef<T = unknown, TChild = unknown> = Omit<
 export type CommandNodeDef<T = unknown> =
   | ItemDef<T>
   | GroupDef<T>
-  | CommandSubmenuDef<T, any>
   | SeparatorDef
   | LoadingDef
+  | CommandSubmenuDef<T>
 
 export interface CommandMenuProps<T = unknown> {
   /** Controlled open state */

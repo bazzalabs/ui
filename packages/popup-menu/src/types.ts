@@ -1,24 +1,24 @@
 import type { Popover } from '@base-ui-components/react/popover'
 import type {
-  ContentBindAPI as MenuContentBindAPI,
+  MenuDef as BaseMenuDef,
+  SubmenuDef as BaseSubmenuDef,
+  SubmenuNode as BaseSubmenuNode,
   GroupDef,
-  GroupHeadingBindAPI as MenuGroupHeadingBindAPI,
   GroupNode,
   InputBindAPI,
   InputSearchState,
   ItemDef,
   ItemNode,
-  ListBindAPI as MenuListBindAPI,
-  LoadMode,
   LoadingDef,
+  LoadMode,
   Menu,
-  MenuDef as BaseMenuDef,
+  ContentBindAPI as MenuContentBindAPI,
+  GroupHeadingBindAPI as MenuGroupHeadingBindAPI,
+  ListBindAPI as MenuListBindAPI,
   RowBindAPI as MenuRowBindAPI,
   SearchContext,
   SeparatorDef,
   SeparatorNode,
-  SubmenuDef as BaseSubmenuDef,
-  SubmenuNode as BaseSubmenuNode,
 } from '@bazza-ui/menu'
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
@@ -134,8 +134,9 @@ export type PopupMenuSlotProps = {
 export interface PopupMenuDef<T = unknown>
   extends Omit<
     BaseMenuDef<T, PopupMenuSlots<T>, PopupMenuSlotProps, PopupMenuClassNames>,
-    'nodes'
+    'ui' | 'nodes'
   > {
+  ui?: PopupMenuThemeDef<T>
   nodes?: PopupNodeDef<T>[]
 }
 
@@ -155,8 +156,9 @@ export interface PopupSubmenuDef<T = unknown, TChild = unknown>
       PopupMenuSlotProps,
       PopupMenuClassNames
     >,
-    'nodes'
+    'ui' | 'nodes'
   > {
+  ui?: PopupMenuThemeDef<T>
   nodes?: PopupNodeDef<T>[]
 }
 
