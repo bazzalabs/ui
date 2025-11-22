@@ -7,15 +7,11 @@ import {
   type SubmenuDef,
 } from '@bazza-ui/context-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
-import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { PlusIcon } from 'lucide-react'
+import { ListFilterIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { ContextMenu } from '@/registry/context-menu'
-import { LABEL_STYLES_BG, type TW_COLOR } from '../action-menu/linear-async'
+import { DropdownMenu } from "@/registry/context-menu"
 import {
   AssigneeIcon,
   LabelsIcon,
@@ -24,35 +20,29 @@ import {
   ProjectStatusIcon,
   Status,
   StatusIcon,
-} from '../action-menu/shared/icons'
-
-const queryClient = new QueryClient()
+} from './shared/icons'
 
 export function ContextMenu_LinearAsync() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ContextMenu
-        menu={menuData}
-        defaults={{
-          item: {
-            onSelect: ({ node }) => {
-              toast(
-                `Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`,
-                {
-                  icon: renderIcon(node.icon, 'size-4'),
-                },
-              )
-            },
+    <ContextMenu
+      menu={menuData}
+      defaults={{
+        item: {
+          onSelect: ({ node }) => {
+            console.log('node:', node)
+            const property = node.parent.title?.toLowerCase()
+
+            toast(`Changed ${property} to ${node.label}.`, {
+              icon: renderIcon(node.icon, 'size-4'),
+            })
           },
-        }}
-      >
-        <div className="h-32 w-auto aspect-video border border-dashed rounded-lg flex flex-col items-center justify-center bg-background">
-          <span className="text-muted-foreground text-sm select-none">
-            Right-click here.
-          </span>
-        </div>
-      </ContextMenu>
-    </QueryClientProvider>
+        },
+      }}
+    >
+      <div className="h-32 bg-background w-auto aspect-video border rounded-lg border-dashed flex items-center justify-center">
+        <span className="text-muted-foreground">Right click here.</span>
+      </div>
+    </ContextMenu>
   )
 }
 
@@ -60,6 +50,8 @@ const statusMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <StatusIcon />,
   label: 'Status',
+  title: 'Status',
+  inputPlaceholder: 'Status...',
   nodes: [
     {
       kind: 'item',
@@ -118,6 +110,26 @@ async function fetchAssignees(): Promise<NodeDef[]> {
     { username: 'sophiebits', name: 'Sophie Alpert' },
     { username: 'acdlite', name: 'Andrew Clark' },
     { username: 'gaearon', name: 'Dan Abramov' },
+    { username: 'BrendanEich', name: 'Brendan Eich' },
+    { username: 'dhh', name: 'DHH' },
+    { username: 'paulg', name: 'Paul Graham' },
+    { username: 'getify', name: 'Kyle Simpson' },
+    { username: 'rem', name: 'Remy Sharp' },
+    { username: 'chriscoyier', name: 'Chris Coyier' },
+    { username: 'samselikoff', name: 'Sam Selikoff' },
+    { username: 'artman', name: 'Tuomas Artman' },
+    { username: 'pacocoursey', name: 'Paco Coursey' },
+    { username: 'pontusab', name: 'Pontus Abrahamsson' },
+    { username: 'ryanburgess', name: 'Ryan Burgess' },
+    { username: 'brianleroux', name: 'Brian LeRoux' },
+    { username: 'jlengstorf', name: 'Jason Lengstorf' },
+    { username: 'swyx', name: 'Shawn Wang' },
+    { username: 'cassidoo', name: 'Cassidy Williams' },
+    { username: 'pilcrowonpaper', name: 'Pilcrow' },
+    { username: 'mgechev', name: 'Minko Gechev' },
+    { username: 'youyuxi', name: 'Evan You' },
+    { username: 'sebmck', name: 'Sebastian McKenzie' },
+    { username: 'slicknet', name: 'Nicholas C. Zakas' },
   ]
 
   return users.map((user) => ({
@@ -147,6 +159,7 @@ const assigneeMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <AssigneeIcon />,
   label: 'Assignee',
+  inputPlaceholder: 'Assignee...',
   loader: queryLoader(() => ({
     queryKey: ['assignees'],
     queryFn: fetchAssignees,
@@ -154,11 +167,39 @@ const assigneeMenu: SubmenuDef = {
   })),
 }
 
+export const LABEL_STYLES_BG = {
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  amber: 'bg-amber-500',
+  yellow: 'bg-yellow-500',
+  lime: 'bg-lime-500',
+  green: 'bg-green-500',
+  emerald: 'bg-emerald-500',
+  teal: 'bg-teal-500',
+  cyan: 'bg-cyan-500',
+  sky: 'bg-sky-500',
+  blue: 'bg-blue-500',
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  purple: 'bg-purple-500',
+  fuchsia: 'bg-fuchsia-500',
+  pink: 'bg-pink-500',
+  rose: 'bg-rose-500',
+  neutral: 'bg-neutral-500',
+}
+
+export type TW_COLOR = keyof typeof LABEL_STYLES_BG
+
 // Simulate fetching labels from an API
 async function fetchLabels(query?: string): Promise<NodeDef[]> {
-  await sleep(800)
+  await new Promise((resolve) => setTimeout(resolve, 800))
 
   const labels = [
+    // {
+    //   id: '550e8401-e29b-41d4-a716-446655440000',
+    //   name: 'A super, duper long label for testing overflow behaviour and truncating',
+    //   color: 'red',
+    // },
     { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Bug', color: 'red' },
     {
       id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
@@ -247,6 +288,375 @@ async function fetchLabels(query?: string): Promise<NodeDef[]> {
       name: 'In Progress',
       color: 'green',
     },
+    {
+      id: '6ba7b823-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Blocked',
+      color: 'indigo',
+    },
+    {
+      id: '6ba7b824-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Needs Review',
+      color: 'orange',
+    },
+    { id: '6ba7b825-9dad-11d1-80b4-00c04fd430c8', name: 'Done', color: 'teal' },
+    { id: '6ba7b826-9dad-11d1-80b4-00c04fd430c8', name: 'UI', color: 'red' },
+    { id: '6ba7b827-9dad-11d1-80b4-00c04fd430c8', name: 'UX', color: 'sky' },
+    {
+      id: '6ba7b828-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Accessibility',
+      color: 'red',
+    },
+    {
+      id: '6ba7b829-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Deployment',
+      color: 'emerald',
+    },
+    {
+      id: '6ba7b82a-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Infrastructure',
+      color: 'purple',
+    },
+    {
+      id: '6ba7b82b-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Monitoring',
+      color: 'pink',
+    },
+    {
+      id: '6ba7b82c-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Real-Time',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b82d-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Scalability',
+      color: 'amber',
+    },
+    {
+      id: '6ba7b82e-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Third-Party',
+      color: 'cyan',
+    },
+    {
+      id: '6ba7b82f-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Authentication',
+      color: 'rose',
+    },
+    {
+      id: '6ba7b830-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Authorization',
+      color: 'green',
+    },
+    {
+      id: '6ba7b831-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Caching',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b832-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Logging',
+      color: 'red',
+    },
+    {
+      id: '6ba7b833-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Analytics',
+      color: 'sky',
+    },
+    {
+      id: '6ba7b834-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Feature Request',
+      color: 'orange',
+    },
+    {
+      id: '6ba7b835-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Regression',
+      color: 'teal',
+    },
+    {
+      id: '6ba7b836-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Hotfix',
+      color: 'red',
+    },
+    {
+      id: '6ba7b837-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Code Review',
+      color: 'emerald',
+    },
+    {
+      id: '6ba7b838-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Tech Debt',
+      color: 'purple',
+    },
+    {
+      id: '6ba7b839-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Migration',
+      color: 'pink',
+    },
+    {
+      id: '6ba7b83a-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Configuration',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b83b-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Validation',
+      color: 'amber',
+    },
+    {
+      id: '6ba7b83c-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Input Handling',
+      color: 'cyan',
+    },
+    {
+      id: '6ba7b83d-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Error Handling',
+      color: 'rose',
+    },
+    {
+      id: '6ba7b83e-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Session Management',
+      color: 'green',
+    },
+    {
+      id: '6ba7b83f-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Concurrency',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b840-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Load Balancing',
+      color: 'red',
+    },
+    {
+      id: '6ba7b841-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Data Migration',
+      color: 'sky',
+    },
+    {
+      id: '6ba7b842-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Model Training',
+      color: 'orange',
+    },
+    {
+      id: '6ba7b843-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Hyperparameters',
+      color: 'teal',
+    },
+    {
+      id: '6ba7b844-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Overfitting',
+      color: 'red',
+    },
+    {
+      id: '6ba7b845-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Underfitting',
+      color: 'emerald',
+    },
+    {
+      id: '6ba7b846-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Feature Engineering',
+      color: 'purple',
+    },
+    {
+      id: '6ba7b847-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Data Quality',
+      color: 'pink',
+    },
+    {
+      id: '6ba7b848-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Preprocessing',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b849-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Model Deployment',
+      color: 'amber',
+    },
+    {
+      id: '6ba7b84a-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Latency',
+      color: 'cyan',
+    },
+    {
+      id: '6ba7b84b-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Throughput',
+      color: 'rose',
+    },
+    {
+      id: '6ba7b84c-9dad-11d1-80b4-00c04fd430c8',
+      name: 'API Versioning',
+      color: 'green',
+    },
+    {
+      id: '6ba7b84d-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Rate Limiting',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b84e-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Throttling',
+      color: 'red',
+    },
+    {
+      id: '6ba7b84f-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Retry Logic',
+      color: 'sky',
+    },
+    {
+      id: '6ba7b850-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Fallback',
+      color: 'orange',
+    },
+    {
+      id: '6ba7b851-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Circuit Breaker',
+      color: 'teal',
+    },
+    {
+      id: '6ba7b852-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Queue Management',
+      color: 'red',
+    },
+    {
+      id: '6ba7b853-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Batch Processing',
+      color: 'emerald',
+    },
+    {
+      id: '6ba7b854-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Streaming',
+      color: 'purple',
+    },
+    {
+      id: '6ba7b855-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Event Handling',
+      color: 'pink',
+    },
+    {
+      id: '6ba7b856-9dad-11d1-80b4-00c04fd430c8',
+      name: 'WebSocket',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b857-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Cron Job',
+      color: 'amber',
+    },
+    {
+      id: '6ba7b858-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Scheduled Task',
+      color: 'cyan',
+    },
+    {
+      id: '6ba7b859-9dad-11d1-80b4-00c04fd430c8',
+      name: 'File Upload',
+      color: 'rose',
+    },
+    {
+      id: '6ba7b85a-9dad-11d1-80b4-00c04fd430c8',
+      name: 'File Processing',
+      color: 'green',
+    },
+    {
+      id: '6ba7b85b-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Export',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b85c-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Import',
+      color: 'red',
+    },
+    {
+      id: '6ba7b85d-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Localization',
+      color: 'sky',
+    },
+    {
+      id: '6ba7b85e-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Internationalization',
+      color: 'orange',
+    },
+    {
+      id: '6ba7b85f-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Notifications',
+      color: 'teal',
+    },
+    { id: '6ba7b860-9dad-11d1-80b4-00c04fd430c8', name: 'Email', color: 'red' },
+    {
+      id: '6ba7b861-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Push Notifications',
+      color: 'emerald',
+    },
+    {
+      id: '6ba7b862-9dad-11d1-80b4-00c04fd430c8',
+      name: 'SMS',
+      color: 'purple',
+    },
+    {
+      id: '6ba7b863-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Audit Log',
+      color: 'pink',
+    },
+    {
+      id: '6ba7b864-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Backup',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b865-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Restore',
+      color: 'amber',
+    },
+    {
+      id: '6ba7b866-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Disaster Recovery',
+      color: 'cyan',
+    },
+    {
+      id: '6ba7b867-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Compliance',
+      color: 'rose',
+    },
+    {
+      id: '6ba7b868-9dad-11d1-80b4-00c04fd430c8',
+      name: 'GDPR',
+      color: 'green',
+    },
+    {
+      id: '6ba7b869-9dad-11d1-80b4-00c04fd430c8',
+      name: 'HIPAA',
+      color: 'lime',
+    },
+    {
+      id: '6ba7b86a-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Debugging',
+      color: 'red',
+    },
+    {
+      id: '6ba7b86b-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Profiling',
+      color: 'sky',
+    },
+    {
+      id: '6ba7b86c-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Optimization',
+      color: 'orange',
+    },
+    {
+      id: '6ba7b86d-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Research',
+      color: 'teal',
+    },
+    {
+      id: '6ba7b86e-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Experiment',
+      color: 'red',
+    },
+    {
+      id: '6ba7b86f-9dad-11d1-80b4-00c04fd430c8',
+      name: 'Proof of Concept',
+      color: 'emerald',
+    },
   ]
 
   const menuItems = labels.map((label) => ({
@@ -275,50 +685,20 @@ const labelsMenu: SubmenuDef = {
   kind: 'submenu',
   icon: LabelsIcon,
   label: 'Labels',
+  inputPlaceholder: 'Labels...',
   search: { mode: 'server' },
   loader: queryLoader(({ query }) => ({
     queryKey: ['labels', query],
     queryFn: () => fetchLabels(query),
   })),
-  middleware: composeMiddleware([
-    createNew({
-      showWhen: 'no-exact-match',
-      position: 'bottom',
-      label: (query) => `Create label: ${query}`,
-      render: ({ query, bind, nodes }) => {
-        const props = bind.getRowProps({
-          className: cn('group/row'),
-        })
-
-        return (
-          <>
-            {nodes.length > 0 && <div className="w-full h-px bg-border my-1" />}
-            <li {...props}>
-              <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
-                {renderIcon(
-                  PlusIcon,
-                  'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
-                )}
-              </div>
-              <div className="inline-block">
-                <span className="text-muted-foreground">Create label: </span>
-                <span className="text-primary">{query}</span>
-              </div>
-            </li>
-          </>
-        )
-      },
-      onCreate: (query) => {
-        toast.success(`Created label "${query}"`)
-      },
-    }),
-  ]),
 }
 
 const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectStatusIcon />,
   label: 'Project status',
+  inputPlaceholder: 'Project status...',
+  hideSearchUntilActive: true,
   nodes: [
     {
       kind: 'item',
@@ -356,21 +736,24 @@ const projectStatusMenu: SubmenuDef = {
 const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectPropertiesIcon />,
+  title: 'Project properties',
   label: 'Project properties',
+  inputPlaceholder: 'Project properties...',
   nodes: [projectStatusMenu],
 }
 
 export const menuData: MenuDef = {
   id: 'issue-properties',
-  defaults: {
-    item: {
-      closeOnSelect: true,
-      onSelect: ({ node }) => {
-        const parentTitle = node.parent.title?.toLowerCase() || 'property'
-        toast(`Changed ${parentTitle} to ${node.label}.`)
-      },
-    },
-  },
+  // defaults: {
+  //   item: {
+  //     closeOnSelect: true,
+  //     onSelect: ({ node }) => {
+  //       toast(`Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`, {
+  //         icon: renderIcon(node.icon, 'size-4'),
+  //       })
+  //     },
+  //   },
+  // },
   search: {
     minLength: 2,
   },

@@ -30,6 +30,7 @@ export function List({ onTypeStart }: ListProps) {
     classNames,
     onSubmenuSelect,
     query,
+    inputActive,
   } = useSurface()
   const rootCtx = useRoot()
 
@@ -234,18 +235,33 @@ export function List({ onTypeStart }: ListProps) {
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
       if (!onTypeStart || e.defaultPrevented) return
-      const { key } = e
-      if (
-        key.length === 1 &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        !e.altKey &&
-        key !== ' '
-      ) {
-        onTypeStart(key)
+
+      // When input is not active, trap focus in the list and handle typing
+      if (!inputActive) {
+        const { key } = e
+
+        // Handle backspace to clear/reset search
+        if (key === 'Backspace') {
+          e.preventDefault()
+          onTypeStart('')
+          return
+        }
+
+        // Handle single character typing to activate input
+        if (
+          key.length === 1 &&
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey &&
+          key !== ' '
+        ) {
+          e.preventDefault()
+          onTypeStart(key)
+          return
+        }
       }
     },
-    [onTypeStart],
+    [onTypeStart, inputActive],
   )
 
   const renderNode = React.useCallback(
