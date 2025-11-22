@@ -1,7 +1,7 @@
 import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import * as React from 'react'
-import type { InteractionGuardProps } from '../components/interaction-guard.js'
-import { CLOSE_MENU_EVENT, dispatch } from '../lib/events.js'
+import type { InteractionGuardProps } from '../features/interaction/interaction-guard.js'
+import { CLOSE_MENU_EVENT, dispatch } from '../features/interaction/events.js'
 
 export interface RootContextValue {
   /** Unique scope ID for this menu instance */

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { HoverPolicy } from '../types.js'
+import type { HoverPolicy } from '../../types.js'
 
 const HoverPolicyCtx = React.createContext<HoverPolicy>({
   suppressHoverOpen: false,

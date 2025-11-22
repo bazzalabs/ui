@@ -8,16 +8,16 @@ import {
   isVimPrev,
 } from '@bazza-ui/menu'
 import * as React from 'react'
-import { useSurface } from '../components/surface-provider.js'
+import { useSurface } from '../components/surface/surface-provider.js'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useKeyboardOpts } from '../contexts/keyboard-context.js'
-import { useSub } from '../contexts/submenu-context.js'
+import { useSub } from '../components/submenu/submenu-context.js'
 import {
   CLOSE_MENU_EVENT,
   dispatch,
   openSubmenuForActive,
   SELECT_ITEM_EVENT,
-} from '../lib/events.js'
+} from '../features/interaction/events.js'
 
 export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
   const surfaceCtx = useSurface()

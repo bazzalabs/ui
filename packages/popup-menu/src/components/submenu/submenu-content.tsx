@@ -1,13 +1,13 @@
 import * as React from 'react'
-import { useRoot } from '../contexts/root-context.js'
-import { useSub } from '../contexts/submenu-context.js'
+import { useRoot } from '../../contexts/root-context.js'
+import { useSub } from '../submenu/submenu-context.js'
 import type {
   PopupMenuDef,
   PopupSubmenuDef,
   PopupSubmenuNode,
-} from '../types.js'
-import { PopupMenuContent } from './content.js'
-import { Positioner } from './positioner.js'
+} from '../../types.js'
+import { Surface } from '../surface/surface.js'
+import { Positioner } from '../positioner/positioner.js'
 
 interface PopupMenuSubmenuContentProps<T = unknown> {
   node: PopupSubmenuNode<T>
@@ -15,7 +15,7 @@ interface PopupMenuSubmenuContentProps<T = unknown> {
 
 /**
  * PopupMenuSubmenuContent renders the positioned submenu content.
- * Uses the shared PopupMenuContent component for consistent behavior with root menus.
+ * Uses the shared Surface component for consistent behavior with root menus.
  */
 export function PopupMenuSubmenuContent<T>({
   node,
@@ -48,15 +48,12 @@ export function PopupMenuSubmenuContent<T>({
 
   return (
     <Positioner>
-      {(popupProps: React.HTMLAttributes<HTMLElement>) => (
-        <PopupMenuContent
-          menu={menuDef}
-          open={sub?.open}
-          contentRef={sub?.contentRef}
-          popupProps={popupProps}
-          defaults={baseDefaults}
-        />
-      )}
+      <Surface
+        menu={menuDef}
+        open={sub?.open}
+        contentRef={sub?.contentRef}
+        defaults={baseDefaults}
+      />
     </Positioner>
   )
 }

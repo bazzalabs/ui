@@ -1,6 +1,6 @@
 import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
 import type * as React from 'react'
-import { useScopedTheme } from '../contexts/theme-context.js'
+import { useScopedTheme } from '../../contexts/theme-context.js'
 
 export interface PopupMenuInputProps<T = unknown> {
   /** Surface store for state management */

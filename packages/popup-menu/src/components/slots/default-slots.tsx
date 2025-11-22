@@ -1,5 +1,5 @@
 import { renderIcon } from '@bazza-ui/menu'
-import type { PopupMenuSlots } from '../types.js'
+import type { PopupMenuSlots } from '../../types.js'
 
 /**
  * Default slot implementations for popup menu.

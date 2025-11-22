@@ -95,16 +95,13 @@ export function ContextMenu<T = unknown>({
                 }),
               }}
             >
-              {(popupProps) => (
-                <PopupMenuContent
-                  menu={menu as PopupMenuDef<T>}
-                  open={open}
-                  onClose={handleClose}
-                  contentRef={contentRef as any}
-                  placeholder={placeholder}
-                  popupProps={popupProps}
-                />
-              )}
+              <PopupMenuContent
+                menu={menu as PopupMenuDef<T>}
+                open={open}
+                onClose={handleClose}
+                contentRef={contentRef as any}
+                placeholder={placeholder}
+              />
             </Positioner>
           )}
         </RootProvider>

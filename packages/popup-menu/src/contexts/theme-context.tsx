@@ -1,5 +1,5 @@
 import { createThemeSystem } from '@bazza-ui/theming'
-import { defaultSlots } from '../lib/slots.js'
+import { defaultSlots } from '../components/slots/default-slots.js'
 import type {
   PopupMenuClassNames,
   PopupMenuSlotProps,

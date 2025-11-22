@@ -1,4 +1,4 @@
-import type { AnchorSide } from '../types.js'
+import type { AnchorSide } from '../../types.js'
 
 export function resolveAnchorSide(
   rect: DOMRect,

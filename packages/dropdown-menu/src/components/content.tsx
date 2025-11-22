@@ -58,23 +58,16 @@ export function DropdownMenuContent<T = unknown>({
       alignOffset={alignOffset}
       anchor={triggerRef.current}
     >
-      {(popupProps: React.HTMLAttributes<HTMLElement>) =>
-        menuProp ? (
-          <PopupMenuContent
-            menu={menuProp}
-            open={open}
-            onClose={closeAllSurfaces}
-            contentRef={contentRef as any}
-            placeholder={placeholder}
-            popupProps={popupProps}
-            vimBindings={vimBindings}
-            dir={dir}
-            defaults={defaults}
-          />
-        ) : (
-          <div {...popupProps} />
-        )
-      }
+      <PopupMenuContent
+        menu={menuProp}
+        open={open}
+        onClose={closeAllSurfaces}
+        contentRef={contentRef as any}
+        placeholder={placeholder}
+        vimBindings={vimBindings}
+        dir={dir}
+        defaults={defaults}
+      />
     </Positioner>
   )
 }

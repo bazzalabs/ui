@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { ActivationCause, PopupSubmenuDef } from '../types.js'
+import type { ActivationCause, PopupSubmenuDef } from '../../types.js'
 
 /** Submenu context (open state/refs/ids). */
 export type SubContextValue<T = unknown> = {

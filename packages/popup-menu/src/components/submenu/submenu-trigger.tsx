@@ -3,24 +3,24 @@ import type { SearchContext, SubmenuNode } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
-import { useFocusOwner } from '../contexts/focus-owner-context.js'
-import { useHoverPolicy } from '../contexts/hover-policy-context.js'
-import { useSub } from '../contexts/submenu-context.js'
-import { useMouseTrail } from '../hooks/use-mouse-trail.js'
-import { useSurfaceSel } from '../hooks/use-surface-sel.js'
+import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { useHoverPolicy } from '../../features/hover-policy/hover-policy-context.js'
+import { useSub } from '../submenu/submenu-context.js'
+import { useMouseTrail } from '../../features/hover-policy/use-mouse-trail.js'
+import { useSurfaceSel } from '../surface/use-surface-sel.js'
 import {
   getSmoothedHeading,
   resolveAnchorSide,
   willHitSubmenu,
-} from '../lib/aim-guard.js'
-import { OPEN_SUB_EVENT } from '../lib/events.js'
+} from '../../features/hover-policy/aim-guard.js'
+import { OPEN_SUB_EVENT } from '../../features/interaction/events.js'
 import type {
   PopupMenuClassNames,
   PopupSubmenuNode,
   RowBindAPI,
-} from '../types.js'
-import { findWidgetsWithinSurface } from '../utils/dom.js'
-import { useSurface } from './surface-provider.js'
+} from '../../types.js'
+import { findWidgetsWithinSurface } from '../../utils/dom.js'
+import { useSurface } from '../surface/surface-provider.js'
 
 interface PopupMenuSubmenuTriggerProps<T> {
   node: PopupSubmenuNode<T>

@@ -79,16 +79,13 @@ export function DropdownMenu<T = unknown>({
               alignOffset={alignOffset}
               anchor={triggerRef.current}
             >
-              {(popupProps) => (
-                <PopupMenuContent
-                  menu={menu as PopupMenuDef<T>}
-                  open={open}
-                  onClose={handleClose}
-                  contentRef={contentRef as any}
-                  placeholder={placeholder}
-                  popupProps={popupProps}
-                />
-              )}
+              <PopupMenuContent
+                menu={menu as PopupMenuDef<T>}
+                open={open}
+                onClose={handleClose}
+                contentRef={contentRef as any}
+                placeholder={placeholder}
+              />
             </Positioner>
           )}
         </RootProvider>

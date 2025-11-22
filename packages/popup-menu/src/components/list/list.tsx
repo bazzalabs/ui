@@ -1,47 +1,41 @@
 import {
-  defaultSlots,
   type GroupNode,
   type ItemNode,
-  MenuItemPrimitive,
   MenuListPrimitive,
   type SubmenuNode,
-  useFilteredNodes,
   useStickyRowWidth,
 } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
-import { useRoot } from '../contexts/root-context.js'
-import { useSub } from '../contexts/submenu-context.js'
-import { ScopedThemeProvider } from '../contexts/theme-context.js'
-import type { PopupMenuSlots, PopupSubmenuNode } from '../types.js'
-import { PopupMenuSubmenu } from './submenu.js'
-import { PopupMenuSubmenuContent } from './submenu-content.js'
-import { PopupMenuSubmenuTrigger } from './submenu-trigger.js'
-import { useSurface } from './surface-provider.js'
+import { useRoot } from '../../contexts/root-context.js'
+import { ScopedThemeProvider } from '../../contexts/theme-context.js'
+import type { PopupMenuSlots, PopupSubmenuNode } from '../../types.js'
+import { PopupMenuItem } from './item.js'
+import { PopupMenuSubmenu } from '../submenu/popup-menu-submenu.js'
+import { PopupMenuSubmenuContent } from '../submenu/submenu-content.js'
+import { PopupMenuSubmenuTrigger } from '../submenu/submenu-trigger.js'
+import { useSurface } from '../surface/surface-provider.js'
 
-interface ListRendererProps {
-  query?: string
-  onClose?: () => void
-  /** Callback when user starts typing to activate input */
+export interface ListProps {
   onTypeStart?: (seed: string) => void
 }
 
-/**
- * Wrapper component that handles loading/error states before rendering the main list.
- * This ensures we don't violate React's Rules of Hooks by returning early before
- * all hooks in ListRendererContent are called.
- */
-export function ListRenderer(props: ListRendererProps) {
-  const { menu, slots: customSlots } = useSurface()
-  const { query = '' } = props
+export function List({ onTypeStart }: ListProps) {
+  const {
+    store,
+    menu,
+    displayNodes,
+    slots: customSlots,
+    classNames,
+    onSubmenuSelect,
+    query,
+  } = useSurface()
+  const rootCtx = useRoot()
 
-  const slots = React.useMemo(
-    () => ({ ...defaultSlots(), ...customSlots }),
-    [customSlots],
-  )
+  const slots = customSlots
 
-  // Handle loading state
+  // Handle loading/error/empty states
   const isStreaming = (menu as any).loadingState?.loadMode === 'streaming'
   const shouldShowLoading =
     (menu as any).loadingState?.isLoading &&
@@ -49,9 +43,10 @@ export function ListRenderer(props: ListRendererProps) {
     ((menu as any).nodes?.length === 0 || (query && query.trim().length > 0))
 
   if (shouldShowLoading) {
-    const LoadingSlot = slots.Loading
+    const LoadingSlot = slots?.Loading
     if (LoadingSlot) {
       return LoadingSlot({
+        menu: menu as any,
         isFetching: (menu as any).loadingState?.isFetching,
         progress: (menu as any).loadingState?.progress,
         query,
@@ -61,63 +56,16 @@ export function ListRenderer(props: ListRendererProps) {
     return null
   }
 
-  // Handle error state
   if ((menu as any).loadingState?.isError) {
-    const ErrorSlot = slots.Error
+    const ErrorSlot = slots?.Error
     if (ErrorSlot) {
       return ErrorSlot({
+        menu: menu as any,
         error: (menu as any).loadingState.error ?? undefined,
       } as any) as React.ReactElement
     }
     return null
   }
-
-  return <ListRendererContent {...props} />
-}
-
-/**
- * Main list renderer component with all hooks called unconditionally.
- * This component is only rendered when we're not in loading/error states.
- */
-function ListRendererContent<T = unknown>({
-  query = '',
-  onClose,
-  onTypeStart,
-}: ListRendererProps) {
-  const {
-    store,
-    menu,
-    slots: customSlots,
-    classNames,
-    onSubmenuSelect,
-  } = useSurface<T>()
-  const sub = useSub()
-  const rootCtx = useRoot()
-
-  // Determine surface ID from submenu context or default to 'root'
-  const surfaceId = React.useMemo(() => sub?.childSurfaceId ?? 'root', [sub])
-
-  const slots = React.useMemo(
-    () => ({ ...defaultSlots(), ...customSlots }),
-    [customSlots],
-  )
-
-  const q = React.useMemo(() => query.trim(), [query])
-
-  // Check for streaming mode
-  const isStreaming = (menu as any).loadingState?.loadMode === 'streaming'
-  const completionOrder = (menu as any).loadingState?.completionOrder as
-    | string[]
-    | undefined
-
-  // Use the menu primitive hook to filter, score, and sort nodes
-  // When searching (query exists), use 'deep' mode to search through nested submenus
-  // When browsing (no query), use 'shallow' mode to preserve hierarchical structure with nested Popover components
-  const { displayNodes } = useFilteredNodes(menu, q, {
-    mode: q.length > 0 ? 'deep' : 'shallow',
-    streamingEnabled: isStreaming,
-    completionOrder: completionOrder ?? [],
-  })
 
   // Update store with valid row IDs
   React.useEffect(() => {
@@ -148,13 +96,12 @@ function ListRendererContent<T = unknown>({
   // Reset to first item when query changes
   React.useEffect(() => {
     store.first('keyboard')
-  }, [q, store])
+  }, [query, store])
 
-  // Virtualization configuration
+  // Virtualization
   const virtualizationConfig = menu.virtualization
   const count = displayNodes.length
 
-  // Determine if virtualization should be enabled
   const enableVirtualization = React.useMemo(() => {
     const enabled = virtualizationConfig?.enabled
     if (typeof enabled === 'function') {
@@ -167,13 +114,9 @@ function ListRendererContent<T = unknown>({
     if (typeof enabled === 'boolean') {
       return enabled
     }
-    // Auto-enable when 50+ items (default behavior)
     return count >= 50
   }, [virtualizationConfig?.enabled, displayNodes, count, menu])
 
-  // console.log('enableVirtualization:', enableVirtualization)
-
-  // Handle estimateSize as number or function
   const estimateSizeFn = React.useMemo(() => {
     const estimateSize = virtualizationConfig?.estimateSize ?? 40
     if (typeof estimateSize === 'function') {
@@ -205,32 +148,27 @@ function ListRendererContent<T = unknown>({
   const virtualItems = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
 
-  // Store virtualizer ref for keyboard navigation
   React.useEffect(() => {
     if (store.virtualizerRef && enableVirtualization) {
       ;(store.virtualizerRef as any).current = virtualizer
     }
   }, [store.virtualizerRef, virtualizer, enableVirtualization])
 
-  // Initialize sticky row width hook to maintain max width during streaming
   const { queueMeasurement, resetMeasurements } = useStickyRowWidth({
     containerRef: store.listRef,
   })
 
-  // Reset measurements when component unmounts (menu closes)
   React.useEffect(() => {
     return () => {
       resetMeasurements()
     }
   }, [resetMeasurements])
 
-  // Store refs to row elements for efficient measurement
   const rowRefsMap = React.useRef<Map<string, HTMLElement>>(new Map())
   const rowRefCallbacks = React.useRef<
     Map<string, (el: HTMLElement | null) => void>
   >(new Map())
 
-  // Ref callback factory for capturing row elements - memoized per ID
   const getRowRefCallback = React.useCallback((id: string) => {
     let callback = rowRefCallbacks.current.get(id)
     if (!callback) {
@@ -246,33 +184,22 @@ function ListRendererContent<T = unknown>({
     return callback
   }, [])
 
-  // Measure visible rows in useLayoutEffect (after DOM commit, before paint)
   React.useLayoutEffect(() => {
     if (!enableVirtualization) {
-      // For non-virtualized lists, measure all displayed nodes
       for (let i = 0; i < displayNodes.length; i++) {
         const node = displayNodes[i]
         if (!node) continue
-
-        // Only measure items and submenu triggers
         if (node.kind !== 'item' && node.kind !== 'submenu') continue
-
-        // Get the row element from our ref map
         const rowEl = rowRefsMap.current.get(node.id)
         if (rowEl) {
           queueMeasurement(rowEl, node.id)
         }
       }
     } else {
-      // For virtualized lists, only measure visible items
       for (const virtualRow of virtualItems) {
         const node = displayNodes[virtualRow.index]
         if (!node) continue
-
-        // Only measure items and submenu triggers
         if (node.kind !== 'item' && node.kind !== 'submenu') continue
-
-        // Get the row element from our ref map
         const rowEl = rowRefsMap.current.get(node.id)
         if (rowEl) {
           queueMeasurement(rowEl, node.id)
@@ -281,18 +208,13 @@ function ListRendererContent<T = unknown>({
     }
   }, [virtualItems, displayNodes, queueMeasurement, enableVirtualization])
 
-  // Handle item selection
   const handleItemSelect = React.useCallback(
     ({ node }: { node: ItemNode<any> }) => {
       if (node.onSelect && !node.disabled) {
         node.onSelect({ node })
       }
-
-      // Handle closeOnSelect behavior
-      // Default: button items close, checkbox/radio items don't
       const defaultCloseOnSelect = node.variant === 'button'
       const shouldClose = node.closeOnSelect ?? defaultCloseOnSelect
-
       if (shouldClose) {
         rootCtx.closeAllSurfaces()
       }
@@ -300,7 +222,6 @@ function ListRendererContent<T = unknown>({
     [rootCtx],
   )
 
-  // Handle submenu selection
   const handleSubmenuSelect = React.useCallback(
     ({ node }: { node: SubmenuNode<any> }) => {
       if (node.child && onSubmenuSelect) {
@@ -310,20 +231,16 @@ function ListRendererContent<T = unknown>({
     [onSubmenuSelect],
   )
 
-  // Type-to-search handler (navigation is now handled at content level)
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
-      // Handle type-to-search if not already handled
       if (!onTypeStart || e.defaultPrevented) return
-
       const { key } = e
-      // Check if it's a printable character (not a navigation or control key)
       if (
         key.length === 1 &&
         !e.ctrlKey &&
         !e.metaKey &&
         !e.altKey &&
-        key !== ' ' // Exclude space - it's used for selection in lists (but works normally in inputs)
+        key !== ' '
       ) {
         onTypeStart(key)
       }
@@ -331,14 +248,12 @@ function ListRendererContent<T = unknown>({
     [onTypeStart],
   )
 
-  // Helper function to render a single node
   const renderNode = React.useCallback(
     (
       node: any,
       index: number,
       virtualRow?: { key: string | number; start: number },
     ) => {
-      // Extract key separately to avoid spreading it (React requirement)
       const key = virtualRow ? virtualRow.key : node.id
       const wrapperProps = virtualRow
         ? {
@@ -358,10 +273,9 @@ function ListRendererContent<T = unknown>({
 
       if (!node) return null
 
-      // Group heading
       if (node.kind === 'group') {
         const groupNode = node as GroupNode<any>
-        const GroupHeadingSlot = slots.GroupHeading
+        const GroupHeadingSlot = slots?.GroupHeading
         if (!GroupHeadingSlot) return null
         return (
           <div key={key} {...wrapperProps}>
@@ -373,6 +287,7 @@ function ListRendererContent<T = unknown>({
                     {
                       role: 'presentation',
                       className: classNames?.groupHeading,
+                      'data-index': index,
                     },
                     overrides as any,
                   ),
@@ -382,9 +297,8 @@ function ListRendererContent<T = unknown>({
         )
       }
 
-      // Separator
       if (node.kind === 'separator') {
-        const SeparatorSlot = slots.Separator
+        const SeparatorSlot = slots?.Separator
         if (!SeparatorSlot) return null
         return (
           <div key={key} {...wrapperProps}>
@@ -393,13 +307,11 @@ function ListRendererContent<T = unknown>({
         )
       }
 
-      // Item
       if (node.kind === 'item') {
-        const ItemSlot = slots.Item
+        const ItemSlot = slots?.Item as PopupMenuSlots<any>['Item']
         const itemNode = node as ItemNode<any>
-
         const itemElement = (
-          <MenuItemPrimitive
+          <PopupMenuItem
             key={node.id}
             ref={getRowRefCallback(node.id)}
             node={itemNode}
@@ -407,17 +319,10 @@ function ListRendererContent<T = unknown>({
             className={classNames?.item}
             mode="popover"
             onSelect={handleItemSelect}
-          >
-            {(bind) =>
-              ItemSlot({
-                node: itemNode,
-                bind,
-                search: itemNode.search,
-              })
-            }
-          </MenuItemPrimitive>
+            slot={ItemSlot}
+            search={itemNode.search}
+          />
         )
-
         return virtualRow ? (
           <div key={key} {...wrapperProps}>
             {itemElement}
@@ -427,17 +332,15 @@ function ListRendererContent<T = unknown>({
         )
       }
 
-      // Submenu
       if (node.kind === 'submenu') {
         const SubmenuTriggerSlot =
-          slots.SubmenuTrigger as PopupMenuSlots<T>['SubmenuTrigger']
-        const submenuNode = node as PopupSubmenuNode<T>
-
+          slots?.SubmenuTrigger as PopupMenuSlots<any>['SubmenuTrigger']
+        const submenuNode = node as PopupSubmenuNode<any>
         const submenuElement = (
           <ScopedThemeProvider
             key={node.id}
             __scopeId={node.id}
-            theme={node.ui}
+            theme={node.def.ui}
           >
             <PopupMenuSubmenu def={submenuNode.def}>
               <PopupMenuSubmenuTrigger
@@ -451,7 +354,6 @@ function ListRendererContent<T = unknown>({
             </PopupMenuSubmenu>
           </ScopedThemeProvider>
         )
-
         return virtualRow ? (
           <div key={key} {...wrapperProps}>
             {submenuElement}
@@ -461,19 +363,17 @@ function ListRendererContent<T = unknown>({
         )
       }
 
-      // Loading node
       if (node.kind === 'loading') {
-        const InlineLoadingSlot = slots.InlineLoading
+        const InlineLoadingSlot = slots?.InlineLoading
         if (!InlineLoadingSlot) return null
-
         return (
           <div key={key} {...wrapperProps}>
             {InlineLoadingSlot({
               progress: (node as any).progress,
               inProgressPaths: (node as any).inProgressPaths,
               completedPaths: (node as any).completedPaths,
-              query: q,
-            })}
+              query,
+            } as any)}
           </div>
         )
       }
@@ -486,16 +386,15 @@ function ListRendererContent<T = unknown>({
       classNames,
       handleItemSelect,
       handleSubmenuSelect,
-      q,
+      query,
       virtualizer,
       getRowRefCallback,
     ],
   )
 
-  // Show empty state
   if (displayNodes.length === 0) {
-    const EmptySlot = slots.Empty
-    return EmptySlot ? (EmptySlot({ query: q }) as React.ReactElement) : null
+    const EmptySlot = slots?.Empty
+    return EmptySlot ? (EmptySlot({ query }) as React.ReactElement) : null
   }
 
   return (

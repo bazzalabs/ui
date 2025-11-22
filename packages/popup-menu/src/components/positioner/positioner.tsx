@@ -1,12 +1,21 @@
 import { Popover } from '@base-ui-components/react/popover'
 import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
-import { useRoot } from '../contexts/root-context.js'
-import { useSub } from '../contexts/submenu-context.js'
-import { useScopedTheme } from '../contexts/theme-context.js'
-import { INPUT_VISIBILITY_CHANGE_EVENT } from '../lib/events.js'
-import type { PopupMenuPositionerProps } from '../types.js'
-import { InteractionGuard } from './interaction-guard.js'
+import { useRoot } from '../../contexts/root-context.js'
+import { useSub } from '../submenu/submenu-context.js'
+import { useScopedTheme } from '../../contexts/theme-context.js'
+import { INPUT_VISIBILITY_CHANGE_EVENT } from '../../features/interaction/events.js'
+import { InteractionGuard } from '../../features/interaction/interaction-guard.js'
+
+/* ================================================================================================
+ * Positioning Types
+ * ============================================================================================== */
+
+import type {
+  AnchorSide,
+  PopupMenuPositionerProps,
+  PositionerSlotProps,
+} from '../../types.js'
 
 export interface PositionerProps {
   side?: PopupMenuPositionerProps['side']
@@ -16,9 +25,7 @@ export interface PositionerProps {
   /** Custom anchor for root menus (e.g., trigger ref or virtual cursor position) */
   anchor?: React.ComponentProps<typeof Popover.Positioner>['anchor']
   /** Render function that receives popup props to spread */
-  children: (
-    popupProps: React.HTMLAttributes<HTMLElement>,
-  ) => React.ReactElement
+  children?: React.ReactNode
 }
 
 /**
@@ -224,14 +231,6 @@ export function Positioner({
   // Add anchor AFTER merge to ensure it's not overwritten (for root menus)
   const positionerProps = anchor ? { ...mergedProps, anchor } : mergedProps
 
-  // Render the popup content
-  const popupContent = (
-    <Popover.Popup
-      initialFocus={false}
-      render={(popupProps) => children(popupProps)}
-    />
-  )
-
   // Merge InteractionGuard options with defaults
   const guardOptions = root.interactionGuardOptions ?? {}
   const {
@@ -300,9 +299,7 @@ export function Positioner({
       onInteractOutside={handleInteractOutside}
       onDismiss={handleDismiss}
     >
-      <Popover.Positioner {...positionerProps}>
-        {popupContent}
-      </Popover.Positioner>
+      <Popover.Positioner {...positionerProps}>{children}</Popover.Positioner>
     </InteractionGuard.Root>
   ) : (
     <InteractionGuard.Branch
@@ -310,9 +307,7 @@ export function Positioner({
       scopeId={root.scopeId}
       attrName={branchAttr}
     >
-      <Popover.Positioner {...positionerProps}>
-        {popupContent}
-      </Popover.Positioner>
+      <Popover.Positioner {...positionerProps}>{children}</Popover.Positioner>
     </InteractionGuard.Branch>
   )
 

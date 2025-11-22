@@ -1,12 +1,31 @@
-import type { Menu, SurfaceStore } from '@bazza-ui/menu'
+import type { Menu, Node, SurfaceStore } from '@bazza-ui/menu'
 import * as React from 'react'
-import type { PopupMenuClassNames, PopupMenuSlots } from '../types.js'
+import type {
+  PopupMenuClassNames,
+  PopupMenuSlotProps,
+  PopupMenuSlots,
+} from '../../types.js'
 
 export interface SurfaceContextValue<T = unknown> {
+  // Store
   store: SurfaceStore<T>
+
+  // Orchestrated data (ready to consume)
   menu: Menu<T>
+  displayNodes: Node<T>[]
+
+  // Theming
   slots?: PopupMenuSlots<T>
   classNames?: PopupMenuClassNames
+  slotProps?: PopupMenuSlotProps
+
+  // State
+  inputActive: boolean
+  setInputActive: (active: boolean) => void
+  query: string
+  setQuery: (query: string) => void
+
+  // Handlers
   onSubmenuSelect?: (submenuId: string, submenu: any) => void
 }
 

@@ -5,8 +5,8 @@ export type {
   FocusOutsideEvent,
   InteractionGuardProps,
   PointerDownOutsideEvent,
-} from './components/interaction-guard.js'
-export type { SubContextValue } from './contexts/submenu-context.js'
+} from './features/interaction/index.js'
+export type { SubContextValue } from './components/submenu/index.js'
 export type {
   ActivationCause,
   AnchorSide,
@@ -30,7 +30,7 @@ export type {
   PopupSubmenuNode,
 } from './types.js'
 
-import type { InteractionGuardProps as _InteractionGuardProps } from './components/interaction-guard.js'
+import type { InteractionGuardProps as _InteractionGuardProps } from './features/interaction/index.js'
 
 /**
  * Subset of InteractionGuard props that can be customized by consumers.
@@ -49,25 +49,35 @@ export type InteractionGuardOptions = Pick<
   | 'branchAttr'
 >
 
-export { PopupMenuContent } from './components/content.js'
-export { PopupMenuInput } from './components/input.js'
 // Components
-export { IntentZone } from './components/intent-zone.js'
-export { InteractionGuard } from './components/interaction-guard.js'
-export { PopupMenuList } from './components/list.js'
-export { ListRenderer } from './components/list-renderer.js'
-export { Positioner } from './components/positioner.js'
-export { PopupMenuSubmenu } from './components/submenu.js'
-export { PopupMenuSubmenuContent } from './components/submenu-content.js'
-export { PopupMenuSubmenuTrigger } from './components/submenu-trigger.js'
-export { SurfaceProvider, useSurface } from './components/surface-provider.js'
+export {
+  Surface as PopupMenuContent,
+  Surface,
+} from './components/surface/index.js'
+export { Popup } from './components/popup/index.js'
+export { PopupMenuInput } from './components/input/index.js'
+export { IntentZone } from './components/intent-zone/index.js'
+export { InteractionGuard } from './features/interaction/index.js'
+export {
+  List as PopupMenuList,
+  List,
+  PopupMenuItem,
+} from './components/list/index.js'
+export { Positioner } from './components/positioner/index.js'
+export {
+  PopupMenuSubmenu,
+  PopupMenuSubmenuContent,
+  PopupMenuSubmenuTrigger,
+} from './components/submenu/index.js'
+export { SurfaceProvider, useSurface } from './components/surface/index.js'
+
 // Contexts
 export { FocusOwnerCtx, useFocusOwner } from './contexts/focus-owner-context.js'
 export {
   HoverPolicyCtx,
   HoverPolicyProvider,
   useHoverPolicy,
-} from './contexts/hover-policy-context.js'
+} from './features/hover-policy/index.js'
 export {
   type RootContextValue,
   RootProvider,
@@ -77,7 +87,7 @@ export {
   closeSubmenuChain,
   SubCtx,
   useSub as useSubCtx,
-} from './contexts/submenu-context.js'
+} from './components/submenu/index.js'
 export {
   GlobalThemeProvider,
   mergeTheme,
@@ -85,20 +95,24 @@ export {
   useGlobalTheme,
   useScopedTheme,
 } from './contexts/theme-context.js'
-export { useMousePosition } from './hooks/use-mouse-position.js'
+
 // Hooks
-export { useMouseTrail } from './hooks/use-mouse-trail.js'
+export {
+  useMousePosition,
+  useMouseTrail,
+} from './features/hover-policy/index.js'
+
 // Utilities
 export {
   getSmoothedHeading,
   resolveAnchorSide,
   willHitSubmenu,
-} from './lib/aim-guard.js'
+} from './features/hover-policy/index.js'
 export {
   CLOSE_MENU_EVENT,
   dispatch,
   OPEN_SUB_EVENT,
   openSubmenuForActive,
   SELECT_ITEM_EVENT,
-} from './lib/events.js'
-export { defaultSlots } from './lib/slots.js'
+} from './features/interaction/index.js'
+export { defaultSlots } from './components/slots/index.js'
