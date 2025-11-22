@@ -236,14 +236,10 @@ function findSubmenuDeep(
 /**
  * Helper to build menu stack from root menu + navigation stack.
  * Returns array of [menuDef, depth] tuples for rendering layers.
- *
- * IMPORTANT: Uses a cache to ensure stable menuDef references when navigating.
- * This prevents unnecessary re-instantiation of menus when going back to a previously visited menu.
  */
 function buildMenuStack<T>(
   rootMenu: CommandMenuDef<T>,
   navigationStack: NavigationStackEntry[],
-  menuDefCache: Map<string, CommandMenuDef<T> | CommandSubmenuDef<T>>,
 ): Array<{ menuDef: MenuDef<T> | CommandSubmenuDef<T>; depth: number }> {
   const stack: Array<{
     menuDef: MenuDef<T> | CommandSubmenuDef<T>
@@ -268,27 +264,18 @@ function buildMenuStack<T>(
     }
 
     if (submenuNode && submenuNode.kind === 'submenu') {
-      // Check cache first to maintain stable object references
-      const cacheKey = entry.menuId
-      let cachedMenuDef = menuDefCache.get(cacheKey)
+      const hasInjectedResults = (submenuNode as any).__originalLoader
 
-      // Only create new menuDef if not in cache or if the submenu node has changed
-      if (!cachedMenuDef) {
-        const hasInjectedResults = (submenuNode as any).__originalLoader
-
-        cachedMenuDef = {
-          ...submenuNode,
-          id: submenuNode.id || entry.menuId,
-          nodes: hasInjectedResults ? undefined : submenuNode.nodes,
-          loader: hasInjectedResults
-            ? (submenuNode as any).__originalLoader
-            : submenuNode.loader,
-        }
-
-        menuDefCache.set(cacheKey, cachedMenuDef)
+      const menuDef = {
+        ...submenuNode,
+        id: submenuNode.id || entry.menuId,
+        nodes: hasInjectedResults ? undefined : submenuNode.nodes,
+        loader: hasInjectedResults
+          ? (submenuNode as any).__originalLoader
+          : submenuNode.loader,
       }
 
-      currentMenuDef = cachedMenuDef
+      currentMenuDef = menuDef
       stack.push({ menuDef: currentMenuDef, depth: i + 1 })
     }
   }
@@ -305,13 +292,9 @@ export function CommandMenuContent<T = unknown>({
     useCommandMenuContext<T>()
   const observerRef = React.useRef<ResizeObserver | null>(null)
 
-  // Cache for menu definitions to ensure stable object references across navigations
-  // This prevents unnecessary menu re-instantiation when navigating back
-  const menuDefCacheRef = React.useRef<Map<string, MenuDef<T>>>(new Map())
-
   // Build menu stack for rendering layers
   const menuStack = React.useMemo(
-    () => buildMenuStack(rootMenu, navigationStack, menuDefCacheRef.current),
+    () => buildMenuStack(rootMenu, navigationStack),
     [rootMenu, navigationStack],
   )
 
