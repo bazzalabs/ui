@@ -55,8 +55,6 @@ export function DropdownMenuRoot<T = unknown>({
     onChange: onOpenChange,
   })
 
-  console.log('open:', open)
-
   const triggerRef = React.useRef<HTMLElement>(null)
   const scopeId = React.useId()
 

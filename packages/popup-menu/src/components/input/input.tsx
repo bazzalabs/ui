@@ -1,5 +1,5 @@
 import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
-import * as React from 'react'
+import type * as React from 'react'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 
 export interface PopupMenuInputProps<T = unknown> {
@@ -23,10 +23,6 @@ export function PopupMenuInput<T = unknown>({
   className,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
-
-  React.useEffect(() => {
-    console.log('mounted input')
-  }, [])
 
   const searchState = {
     query: value ?? '',

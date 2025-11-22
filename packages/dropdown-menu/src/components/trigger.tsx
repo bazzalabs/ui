@@ -23,6 +23,13 @@ export function DropdownMenuTrigger({
 }: DropdownMenuTriggerProps) {
   const { triggerRef, scopeId } = useRootContext()
 
+  // Prevent default on pointerdown to avoid losing focus from input elements
+  // The menu is closed on click (not pointerdown), but the browser's default
+  // behavior on pointerdown can cause inputs to lose focus
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault()
+  }
+
   if (asChild) {
     return (
       <InteractionGuard.Branch asChild scopeId={scopeId}>
@@ -30,6 +37,7 @@ export function DropdownMenuTrigger({
           render={children as any}
           ref={composeRefs(triggerRef as any)}
           disabled={disabled}
+          onPointerDown={handlePointerDown}
         />
       </InteractionGuard.Branch>
     )
@@ -37,7 +45,11 @@ export function DropdownMenuTrigger({
 
   return (
     <InteractionGuard.Branch asChild scopeId={scopeId}>
-      <Popover.Trigger ref={composeRefs(triggerRef as any)} disabled={disabled}>
+      <Popover.Trigger
+        ref={composeRefs(triggerRef as any)}
+        disabled={disabled}
+        onPointerDown={handlePointerDown}
+      >
         {children}
       </Popover.Trigger>
     </InteractionGuard.Branch>
