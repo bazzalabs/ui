@@ -1,9 +1,9 @@
 import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
-  PopupMenuContent,
   Positioner,
   type PopupMenuDef,
   type PopupSubmenuDef,
+  Surface,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
@@ -41,12 +41,12 @@ export function DropdownMenuContent<T = unknown>({
   const { open, closeAllSurfaces, triggerRef } = useRootContext()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
-  // Extract surface defaults for PopupMenuContent props
+  // Extract surface defaults for Surface props
   const vimBindings = defaults?.surface?.vimBindings ?? true
   const dir = defaults?.surface?.dir ?? 'ltr'
 
   // Use trigger element as anchor
-  if (!triggerRef.current) {
+  if (!triggerRef.current || !menuProp) {
     return null
   }
 
@@ -58,15 +58,15 @@ export function DropdownMenuContent<T = unknown>({
       alignOffset={alignOffset}
       anchor={triggerRef.current}
     >
-      <PopupMenuContent
+      <Surface
         menu={menuProp}
         open={open}
         onClose={closeAllSurfaces}
-        contentRef={contentRef as any}
+        contentRef={contentRef}
         placeholder={placeholder}
         vimBindings={vimBindings}
         dir={dir}
-        defaults={defaults}
+        defaults={defaults as any}
       />
     </Positioner>
   )

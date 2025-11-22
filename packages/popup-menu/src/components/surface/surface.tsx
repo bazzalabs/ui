@@ -9,17 +9,13 @@ import {
   useLoader,
   useMenu,
 } from '@bazza-ui/menu'
-import { mergeProps } from '@bazza-ui/theming'
-import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
 import { FocusOwnerCtx } from '../../contexts/focus-owner-context.js'
 import { KeyboardCtx } from '../../contexts/keyboard-context.js'
 import { useRoot } from '../../contexts/root-context.js'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 import { HoverPolicyProvider } from '../../features/hover-policy/hover-policy-context.js'
-import { useNavKeydown } from '../../hooks/use-nav-keydown.js'
 import type {
-  ContentBindAPI,
   PopupMenuDef,
   PopupMenuSlots,
   PopupSubmenuDef,
@@ -185,7 +181,7 @@ export function Surface<T = unknown>({
       element?.focus()
     })
     return () => cancelAnimationFrame(id)
-  }, [open, isOwner, store])
+  }, [open, isOwner, store.inputRef, store.listRef])
 
   // --- 7. INTERACTION HANDLERS ---
   const handleMouseMove = React.useCallback(
@@ -201,7 +197,7 @@ export function Surface<T = unknown>({
     [contentRef, surfaceId, setOwnerId, ownerId],
   )
 
-  const handleKeyDown = useNavKeydown(surfaceId, onClose)
+  // handleKeyDown moved to Popup component where it can access SurfaceProvider context
 
   // Surface registration
   React.useEffect(() => {
@@ -260,97 +256,60 @@ export function Surface<T = unknown>({
   )
 
   // --- 8. BINDINGS ---
-  const contentBind: ContentBindAPI = React.useMemo(() => {
-    return {
-      getContentProps: (overrides) => {
-        const baseUIRef = (popupProps as any)?.ref
-        const composedRef = baseUIRef
-          ? composeRefs(contentRef as any, baseUIRef)
-          : contentRef
-
-        return mergeProps(
-          {
-            role: 'menu' as const,
-            tabIndex: -1,
-            'data-slot': isSubmenu
-              ? 'popup-menu-submenu-content'
-              : 'popup-menu-content',
-            'data-popup-menu-surface': true,
-            'data-root-menu': isSubmenu ? undefined : true,
-            'data-sub-menu': isSubmenu ? 'true' : undefined,
-            'data-surface-id': surfaceId,
-            ...slotProps?.content,
-            ...popupProps,
-            onMouseMove: handleMouseMove,
-            className: classNames?.content,
-            ref: composedRef,
-            onKeyDown: handleKeyDown,
-          },
-          overrides,
-        ) as any
-      },
-    }
-  }, [
-    popupProps,
-    contentRef,
-    isSubmenu,
-    surfaceId,
-    slotProps?.content,
-    handleMouseMove,
-    classNames?.content,
-    handleKeyDown,
-  ])
+  // Binding creation moved to Popup component where it can access SurfaceProvider context
 
   // --- 9. COMPONENTS ---
-  const Header = () =>
-    slots.Header ? (
-      <div data-slot="popup-menu-header" {...(slotProps?.header as any)}>
-        {slots.Header({
-          menu: orchestratedMenu as any,
-          loadMode: orchestratedMenu.loadingState?.loadMode,
-        })}
-      </div>
-    ) : null
+  const Header = slots.Header ? (
+    <div data-slot="popup-menu-header" {...(slotProps?.header as any)}>
+      {slots.Header({
+        menu: orchestratedMenu as any,
+        loadMode: orchestratedMenu.loadingState?.loadMode,
+      })}
+    </div>
+  ) : null
 
-  const Input = () => {
-    return inputActive ? (
-      <PopupMenuInput
-        store={store}
-        value={query}
-        onValueChange={setQuery}
-        placeholder={placeholder ?? menu.inputPlaceholder ?? 'Search...'}
-      />
-    ) : null
-  }
+  const Input = inputActive ? (
+    <PopupMenuInput
+      store={store}
+      value={query}
+      onValueChange={setQuery}
+      placeholder={placeholder ?? menu.inputPlaceholder ?? 'Search...'}
+    />
+  ) : null
 
-  const Footer = () =>
-    slots.Footer ? (
-      <div data-slot="popup-menu-footer" {...(slotProps?.footer as any)}>
-        {slots.Footer({ menu: orchestratedMenu as any })}
-      </div>
-    ) : null
+  const Footer = slots.Footer ? (
+    <div data-slot="popup-menu-footer" {...(slotProps?.footer as any)}>
+      {slots.Footer({ menu: orchestratedMenu as any })}
+    </div>
+  ) : null
 
   // --- 10. RENDER ---
   const content = (
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
       <HoverPolicyProvider>
         <SurfaceProvider
-          store={store}
-          menu={orchestratedMenu}
-          displayNodes={displayNodes}
-          slots={slots}
+          store={store as any}
+          menu={orchestratedMenu as any}
+          displayNodes={displayNodes as any}
+          slots={slots as any}
           classNames={classNames}
           slotProps={slotProps}
           inputActive={inputActive}
           setInputActive={setInputActive}
           query={query}
           setQuery={setQuery}
+          surfaceId={surfaceId}
+          isSubmenu={isSubmenu}
+          contentRef={contentRef}
+          popupProps={popupProps}
+          handleMouseMove={handleMouseMove}
+          onClose={onClose}
         >
-          <Popup bind={contentBind}>
-            <Header />
-            <Input />
+          <Popup>
+            {Header}
+            {Input}
             <List onTypeStart={handleTypeStart} />
-            <Footer />
+            {Footer}
           </Popup>
         </SurfaceProvider>
       </HoverPolicyProvider>

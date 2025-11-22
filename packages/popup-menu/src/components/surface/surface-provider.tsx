@@ -25,6 +25,14 @@ export interface SurfaceContextValue<T = unknown> {
   query: string
   setQuery: (query: string) => void
 
+  // Surface metadata and refs for Popup binding
+  surfaceId: string
+  isSubmenu: boolean
+  contentRef?: React.RefObject<HTMLDivElement | null>
+  popupProps?: React.HTMLAttributes<HTMLElement>
+  handleMouseMove: (e: React.MouseEvent) => void
+  onClose?: () => void
+
   // Handlers
   onSubmenuSelect?: (submenuId: string, submenu: any) => void
 }

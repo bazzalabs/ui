@@ -1,9 +1,5 @@
 import type { MenuNodeDefaults } from '@bazza-ui/menu'
-import {
-  PopupMenuContent,
-  type PopupMenuDef,
-  Positioner,
-} from '@bazza-ui/popup-menu'
+import { type PopupMenuDef, Positioner, Surface } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
 
@@ -31,7 +27,7 @@ export function ContextMenuContent<T = unknown>({
   const { open, closeAllSurfaces, anchorPoint } = useRootContext()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
-  // Extract surface defaults for PopupMenuContent props
+  // Extract surface defaults for Surface props
   const vimBindings = defaults?.surface?.vimBindings ?? true
   const dir = defaults?.surface?.dir ?? 'ltr'
 
@@ -74,7 +70,7 @@ export function ContextMenuContent<T = unknown>({
   // TODO: Add menu to root context if we want to support both patterns
 
   // Only return null if we've never had an anchor point
-  if (!virtualAnchor) {
+  if (!virtualAnchor || !menuProp) {
     return null
   }
 
@@ -86,20 +82,16 @@ export function ContextMenuContent<T = unknown>({
         sideOffset={4}
         anchor={virtualAnchor}
       >
-        {menuProp ? (
-          <PopupMenuContent
-            menu={menuProp}
-            open={open}
-            onClose={closeAllSurfaces}
-            contentRef={contentRef as any}
-            placeholder={placeholder}
-            vimBindings={vimBindings}
-            dir={dir}
-            defaults={defaults}
-          />
-        ) : (
-          <div />
-        )}
+        <Surface
+          menu={menuProp}
+          open={open}
+          onClose={closeAllSurfaces}
+          contentRef={contentRef}
+          placeholder={placeholder}
+          vimBindings={vimBindings}
+          dir={dir}
+          defaults={defaults as any}
+        />
       </Positioner>
 
       {/* Debug visualization */}

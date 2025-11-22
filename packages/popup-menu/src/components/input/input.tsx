@@ -1,5 +1,5 @@
 import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
-import type * as React from 'react'
+import * as React from 'react'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 
 export interface PopupMenuInputProps<T = unknown> {
@@ -24,6 +24,10 @@ export function PopupMenuInput<T = unknown>({
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
 
+  React.useEffect(() => {
+    console.log('mounted input')
+  }, [])
+
   const searchState = {
     query: value ?? '',
   }
@@ -45,6 +49,9 @@ export function PopupMenuInput<T = unknown>({
           ...theme?.slotProps?.input,
           'data-slot': 'popup-menu-input',
           'data-popup-menu-input': true,
+          onBlur: () => {
+            console.log('lost focus')
+          },
         } as React.HTMLAttributes<HTMLInputElement>
       }
     >
