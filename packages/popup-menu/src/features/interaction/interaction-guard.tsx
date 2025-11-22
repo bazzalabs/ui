@@ -1,4 +1,5 @@
 import { composeRefs } from '@radix-ui/react-compose-refs'
+import { Primitive } from '@radix-ui/react-primitive'
 import * as React from 'react'
 
 /**
@@ -17,7 +18,9 @@ export type FocusOutsideEvent = {
   defaultPrevented: boolean
 }
 
-export type InteractionGuardProps = {
+export type InteractionGuardProps = React.ComponentPropsWithoutRef<
+  typeof Primitive.div
+> & {
   /** Unique id for this guard instance */
   scopeId: string
   /** Attribute used to mark the scope root on the wrapped content */
@@ -160,7 +163,7 @@ function isInsideScoped(
 /* Root                                                                                            */
 /* ----------------------------------------------------------------------------------------------- */
 
-const Root = React.forwardRef<HTMLElement, InteractionGuardProps>(
+const Root = React.forwardRef<HTMLDivElement, InteractionGuardProps>(
   function InteractionGuardRoot(
     {
       asChild,
@@ -175,11 +178,15 @@ const Root = React.forwardRef<HTMLElement, InteractionGuardProps>(
       scopeId,
       scopeAttr = 'data-interaction-scope',
       branchAttr = 'data-interaction-branch',
+      ...divProps
     },
     forwardedRef,
   ) {
-    const localRef = React.useRef<HTMLElement | null>(null)
-    const composedRef = composeRefs<HTMLElement | null>(forwardedRef, localRef)
+    const localRef = React.useRef<HTMLDivElement | null>(null)
+    const composedRef = composeRefs<HTMLDivElement | null>(
+      forwardedRef,
+      localRef,
+    )
 
     // enable/disable pointer-event blocking as requested
     React.useEffect(() => {
@@ -300,19 +307,15 @@ const Root = React.forwardRef<HTMLElement, InteractionGuardProps>(
       onDismiss,
     ])
 
-    // asChild support (like Radix): adopt the single child without extra wrapper
-    if (asChild && React.isValidElement(children)) {
-      const child = children as React.ReactElement<any>
-      return React.cloneElement(child, {
-        ref: composeRefs(child.props.ref, composedRef),
-        [scopeAttr]: scopeId,
-      })
-    }
-
     return (
-      <div ref={composedRef} {...({ [scopeAttr]: scopeId } as any)}>
+      <Primitive.div
+        asChild={asChild}
+        ref={composedRef}
+        {...divProps}
+        {...({ [scopeAttr]: scopeId } as any)}
+      >
         {children}
-      </div>
+      </Primitive.div>
     )
   },
 )
@@ -321,7 +324,9 @@ const Root = React.forwardRef<HTMLElement, InteractionGuardProps>(
 /* Branch                                                                                          */
 /* ----------------------------------------------------------------------------------------------- */
 
-type InteractionGuardBranchProps = {
+type InteractionGuardBranchProps = React.ComponentPropsWithoutRef<
+  typeof Primitive.div
+> & {
   asChild?: boolean
   children?: React.ReactNode
   /** Override attribute name if you customize in InteractionGuard props */
@@ -334,19 +339,24 @@ type InteractionGuardBranchProps = {
  * Marks a subtree as "inside" the guard without being a surface.
  * Use this around anchors/triggers.
  */
-function Branch({
-  asChild,
-  children,
-  attrName,
-  scopeId,
-}: InteractionGuardBranchProps) {
-  const name = attrName ?? 'data-interaction-branch'
+const Branch = React.forwardRef<HTMLDivElement, InteractionGuardBranchProps>(
+  function InteractionGuardBranch(
+    { asChild, children, attrName, scopeId, ...divProps },
+    forwardedRef,
+  ) {
+    const name = attrName ?? 'data-interaction-branch'
 
-  if (asChild && React.isValidElement(children)) {
-    const child = children as React.ReactElement<any>
-    return React.cloneElement(child, { [name]: scopeId })
-  }
-  return <span {...({ [name]: scopeId } as any)}>{children}</span>
-}
+    return (
+      <Primitive.div
+        asChild={asChild}
+        ref={forwardedRef}
+        {...divProps}
+        {...({ [name]: scopeId } as any)}
+      >
+        {children}
+      </Primitive.div>
+    )
+  },
+)
 
 export const InteractionGuard = { Root, Branch }
