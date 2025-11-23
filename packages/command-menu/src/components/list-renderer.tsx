@@ -83,7 +83,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     classNames,
     onSubmenuSelect,
   } = useSurface()
-  const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange } =
+  const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange, control } =
     useCommandMenuContext()
 
   const slots = React.useMemo(
@@ -104,6 +104,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     mode: 'deep',
     streamingEnabled: isStreaming,
     completionOrder: completionOrder ?? [],
+    control,
   })
 
   // Update store with valid row IDs
@@ -228,6 +229,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
       className={classNames?.list}
       vimBindings={vimBindings}
       dir={dir}
+      control={control}
       onEscape={handleEscape}
       onClose={handleClose}
       onSubmenuOpen={handleSubmenuOpen}
@@ -327,6 +329,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
                   virtualItem={virtualRow}
                   className={classNames?.item}
                   mode="modal"
+                  control={control}
                   onSelect={handleItemSelect}
                 >
                   {(bind) =>
@@ -365,6 +368,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
                   virtualItem={virtualRow}
                   className={classNames?.item}
                   mode="modal"
+                  control={control}
                   onSelect={handleSubmenuSelect as any}
                 >
                   {(bind) =>

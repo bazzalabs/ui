@@ -26,6 +26,8 @@ export interface MenuItemPrimitiveProps<T> {
   className?: string
   /** Display mode (popover/drawer/modal) */
   mode?: 'popover' | 'drawer' | 'modal'
+  /** Optional menu control for accessing menu-wide state (disabled, loading, etc.) */
+  control?: import('../control.js').MenuControl<T>
   /** onSelect handler */
   onSelect?: (args: { node: ItemNode<T>; search?: SearchContext }) => void
   /** Children renderer */
@@ -48,6 +50,7 @@ export function MenuItemPrimitive<T>({
   search,
   className,
   mode = 'popover',
+  control,
   onSelect,
   children,
 }: MenuItemPrimitiveProps<T>) {
@@ -62,7 +65,11 @@ export function MenuItemPrimitive<T>({
         ? node.group?.variant === 'radio' && node.group.value === node.id
         : undefined
 
-  const disabled = node.disabled ?? false
+  // Check menu-wide disabled state from control (if provided)
+  const menuDisabled = control?.getState().disabled ?? false
+
+  // Combine: menu-wide OR node-level disabled
+  const disabled = menuDisabled || node.disabled || false
 
   // Handle selection
   const handleSelect = React.useCallback(() => {

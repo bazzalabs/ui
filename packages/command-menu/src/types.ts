@@ -197,6 +197,8 @@ export interface CommandMenuProps<T = unknown> {
   onQueryChange?: (query: string) => void
   /** Callback when submenu navigation occurs */
   onNavigationChange?: (event: NavigationChangeEvent) => void
+  /** Ref for programmatic control of the command menu */
+  controlRef?: React.Ref<import('./control.js').CommandMenuControl<T>>
   /** Children (optional trigger) */
   children?: React.ReactNode
 }

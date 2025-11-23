@@ -28,15 +28,19 @@ import {
   Status,
   StatusIcon,
 } from '../action-menu/shared/icons'
+import { useRef } from 'react'
+import type { CommandMenuControl } from '@bazza-ui/command-menu'
 
 const queryClient = new QueryClient()
 
 export function CommandMenu_LinearAsync() {
+  const controlRef = useRef<CommandMenuControl>(null!)
   const [scope, animate] = useAnimate()
 
   return (
     <QueryClientProvider client={queryClient}>
       <CommandMenu
+        controlRef={controlRef}
         slots={{
           DialogContent: ({ children, bind }) => {
             const props = bind.getDialogContentProps()
@@ -308,10 +312,19 @@ const labelsMenu: SubmenuDef = {
     createNew({
       showWhen: 'no-exact-match',
       position: 'bottom',
+      id: '__create-new-label',
       label: (query) => `Create new label: ${query}`,
       icon: <PlusIcon />,
-      onCreate: async (query) => {
-        toast.success(`Created "${query}"`)
+      onCreate: async ({ control }) => {
+        // Disable entire menu (input, navigation, items, including this "create new" item)
+        const enable = control?.disable()
+
+        await sleep(3000)
+
+        toast('Label created successfully')
+
+        // Re-enable menu and return focus to input
+        if (enable) enable()
       },
     }),
   ]),

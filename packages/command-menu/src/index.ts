@@ -7,6 +7,13 @@ export type {
 // Factory
 export { createCommandMenu } from './create-command-menu.js'
 
+// Export control types
+export type * from './control.js'
+
+// Export event constants
+export { COMMAND_MENU_EVENTS } from './events.js'
+export type { CommandMenuEvent } from './events.js'
+
 // Export all types from types.js
 export type * from './types.js'
 

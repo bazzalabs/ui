@@ -1,6 +1,9 @@
 // Hooks
 export * from './hooks/index.js'
 
+// Menu Control
+export * from './control.js'
+
 export * from './primitives/default-slots.js'
 
 // UI Primitives

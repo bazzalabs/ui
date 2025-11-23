@@ -30,6 +30,9 @@ export type {
   PopupSubmenuNode,
 } from './types.js'
 
+// Control
+export type * from './control.js'
+
 import type { InteractionGuardProps as _InteractionGuardProps } from './features/interaction/index.js'
 
 /**

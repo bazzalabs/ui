@@ -1,6 +1,7 @@
 import {
   type AsyncNodeLoader,
   createSurfaceStore,
+  type MenuControl,
   type MenuDef,
   type MenuNodeDefaults,
   type SubmenuDef,
@@ -48,6 +49,8 @@ export interface SurfaceProps<T = unknown> {
   defaults?: MenuNodeDefaults<T>
   /** Query override (optional) */
   query?: string
+  /** Control for programmatic access (optional) - accepts any control that extends MenuControl */
+  control?: MenuControl<T> | (MenuControl<T> & Record<string, any>)
 }
 
 /**
@@ -65,6 +68,7 @@ export function Surface<T = unknown>({
   popupProps,
   defaults,
   query: queryProp,
+  control,
 }: SurfaceProps<T>) {
   const subCtx = React.useContext(SubCtx)
   const isSubmenu = !!subCtx
@@ -304,6 +308,7 @@ export function Surface<T = unknown>({
           popupProps={popupProps}
           handleMouseMove={handleMouseMove}
           onClose={onClose}
+          control={control}
         >
           <Popup>
             {Header}

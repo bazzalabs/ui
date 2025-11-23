@@ -492,7 +492,38 @@ describe('createNew middleware', () => {
       const createItem = result[0]
       ;(createItem as any).onSelect?.()
 
-      expect(onCreate).toHaveBeenCalledWith('New Item')
+      expect(onCreate).toHaveBeenCalledWith({
+        query: 'New Item',
+        control: undefined,
+      })
+    })
+
+    it('should handle async onCreate callback', async () => {
+      const onCreate = vi.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      })
+
+      const middleware = createNew({
+        showWhen: 'always',
+        onCreate,
+      })
+
+      const context = createMockContext({
+        mode: 'search',
+        query: 'Async Item',
+      })
+
+      const result = middleware.transformNodes!(context)
+
+      // Simulate selecting the create item
+      const createItem = result[0]
+      const promise = (createItem as any).onSelect?.()
+
+      await expect(promise).resolves.toBeUndefined()
+      expect(onCreate).toHaveBeenCalledWith({
+        query: 'Async Item',
+        control: undefined,
+      })
     })
 
     it('should handle async onCreate callback', async () => {
@@ -527,7 +558,10 @@ describe('createNew middleware', () => {
       const promise = (createItem as any).onSelect?.()
 
       await expect(promise).resolves.toBeUndefined()
-      expect(onCreate).toHaveBeenCalledWith('Async Item')
+      expect(onCreate).toHaveBeenCalledWith({
+        query: 'Async Item',
+        control: undefined,
+      })
     })
   })
 

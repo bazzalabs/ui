@@ -37,6 +37,10 @@ export interface MenuListPrimitiveProps<T> {
   onClose?: () => void
   /** Callback when submenu should open for active item */
   onSubmenuOpen?: (activeId: string | null) => void
+  /** Whether the list is disabled (blocks all navigation except Escape) */
+  disabled?: boolean
+  /** Optional menu control for accessing menu-wide state (disabled, loading, etc.) */
+  control?: import('../control.js').MenuControl<T>
 }
 
 /**
@@ -60,7 +64,14 @@ export function MenuListPrimitive<T>({
   onEscape,
   onClose,
   onSubmenuOpen,
+  disabled: disabledProp = false,
+  control,
 }: MenuListPrimitiveProps<T>) {
+  // Check menu-wide disabled state from control (if provided)
+  const menuDisabled = control?.getState().disabled ?? false
+
+  // Combine: explicit prop OR menu-wide state
+  const disabled = disabledProp || menuDisabled
   // Get active ID from store
   const [activeId, setActiveId] = React.useState(store.snapshot().activeId)
   React.useEffect(() => {
@@ -80,6 +91,19 @@ export function MenuListPrimitive<T>({
       const stop = () => {
         e.preventDefault()
         e.stopPropagation()
+      }
+
+      // ALWAYS allow Escape (to close menu even when disabled)
+      if (k === 'Escape') {
+        stop()
+        onEscape?.()
+        return
+      }
+
+      // Block all other keys if disabled
+      if (disabled) {
+        stop()
+        return
       }
 
       // Vim bindings
@@ -196,13 +220,6 @@ export function MenuListPrimitive<T>({
         }
         return
       }
-
-      // Escape - close menu
-      if (k === 'Escape') {
-        stop()
-        onEscape?.()
-        return
-      }
     },
     [
       store,
@@ -213,6 +230,7 @@ export function MenuListPrimitive<T>({
       onEscape,
       onClose,
       onSubmenuOpen,
+      disabled,
     ],
   )
 
@@ -221,10 +239,12 @@ export function MenuListPrimitive<T>({
     role,
     'data-menu-list': '',
     'aria-activedescendant': activeId,
+    'aria-disabled': disabled,
+    'data-disabled': disabled,
+    inert: disabled ? ('' as any) : undefined,
     className,
     style,
     onKeyDown: handleKeyDown,
-    tabIndex: 0, // Make list focusable for keyboard navigation
   }
 
   const mergedProps = ref ? mergeProps(listProps, { ref } as any) : listProps

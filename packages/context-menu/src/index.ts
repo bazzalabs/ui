@@ -88,5 +88,8 @@ export type {
 // Factory
 export { createContextMenu } from './create-context-menu.js'
 
+// Control types
+export type * from './control.js'
+
 // Functions - re-exported from @bazza-ui/menu for developer convenience
 export { renderIcon, flatten } from '@bazza-ui/menu'

@@ -26,6 +26,7 @@ export function List({ onTypeStart }: ListProps) {
     store,
     menu,
     displayNodes,
+    control,
     slots: customSlots,
     classNames,
     onSubmenuSelect,
@@ -334,6 +335,7 @@ export function List({ onTypeStart }: ListProps) {
             store={store}
             className={classNames?.item}
             mode="popover"
+            control={control}
             onSelect={handleItemSelect}
             slot={ItemSlot}
             search={itemNode.search}
@@ -418,6 +420,7 @@ export function List({ onTypeStart }: ListProps) {
       store={store}
       role="listbox"
       className={classNames?.list}
+      control={control}
       onKeyDown={handleKeyDown}
       style={{
         maxHeight: '400px',

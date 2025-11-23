@@ -43,10 +43,18 @@ export async function generateMetadata({
     : ''
 
   // Build the title with component name
-  const pageTitle =
-    componentName && metadata.title !== componentName
-      ? `${metadata.title} / ${componentName}`
-      : metadata.title
+  let pageTitle: string
+
+  if (
+    (componentName && metadata.title === componentName) ||
+    slug.includes('components')
+  ) {
+    pageTitle = metadata.title
+  } else if (componentName) {
+    pageTitle = `${metadata.title} / ${componentName}`
+  } else {
+    pageTitle = metadata.title
+  }
 
   return {
     title: pageTitle,

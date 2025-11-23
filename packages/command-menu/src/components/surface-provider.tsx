@@ -1,6 +1,7 @@
 import type {
   Menu,
   MenuClassNames,
+  MenuControl,
   MenuDef,
   MenuSlotProps,
   MenuSlots,
@@ -11,6 +12,7 @@ import * as React from 'react'
 interface SurfaceContextValue<T = unknown> {
   store: SurfaceStore<T>
   menu: Menu<T>
+  control?: MenuControl<T>
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
   slotProps?: Partial<MenuSlotProps>
@@ -32,6 +34,7 @@ export function useSurface<T = unknown>(): SurfaceContextValue<T> {
 export function SurfaceProvider<T = unknown>({
   store,
   menu,
+  control,
   slots,
   classNames,
   slotProps,
@@ -40,6 +43,7 @@ export function SurfaceProvider<T = unknown>({
 }: {
   store: SurfaceStore<T>
   menu: Menu<T>
+  control?: MenuControl<T>
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
   slotProps?: Partial<MenuSlotProps>
@@ -51,12 +55,13 @@ export function SurfaceProvider<T = unknown>({
       ({
         store,
         menu,
+        control,
         slots,
         classNames,
         slotProps,
         onSubmenuSelect,
       }) as SurfaceContextValue<T>,
-    [store, menu, slots, classNames, slotProps, onSubmenuSelect],
+    [store, menu, control, slots, classNames, slotProps, onSubmenuSelect],
   )
 
   return (

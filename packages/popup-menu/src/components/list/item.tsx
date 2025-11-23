@@ -1,5 +1,10 @@
 import { MenuItemPrimitive } from '@bazza-ui/menu'
-import type { ItemNode, SearchContext, SurfaceStore } from '@bazza-ui/menu'
+import type {
+  ItemNode,
+  MenuControl,
+  SearchContext,
+  SurfaceStore,
+} from '@bazza-ui/menu'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
 import type { PopupMenuSlots } from '../../types.js'
@@ -19,6 +24,8 @@ export interface PopupMenuItemProps<T> {
   className?: string
   /** Display mode (popover/drawer/modal) */
   mode?: 'popover' | 'drawer' | 'modal'
+  /** Optional menu control for accessing menu-wide state */
+  control?: MenuControl<T>
   /** onSelect handler */
   onSelect?: (args: { node: ItemNode<T>; search?: SearchContext }) => void
   /** Slot function to render the item */
@@ -36,6 +43,7 @@ export const PopupMenuItem = React.forwardRef(function PopupMenuItem<T>(
     search,
     className,
     mode = 'popover',
+    control,
     onSelect,
     slot,
     virtualItem,
@@ -50,6 +58,7 @@ export const PopupMenuItem = React.forwardRef(function PopupMenuItem<T>(
       search={search}
       className={className}
       mode={mode}
+      control={control}
       onSelect={onSelect}
       virtualItem={virtualItem}
     >

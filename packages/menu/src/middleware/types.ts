@@ -1,3 +1,4 @@
+import type { MenuControl } from '../control.js'
 import type {
   Iconish,
   ItemDef,
@@ -85,6 +86,10 @@ export interface TransformNodesContext<T = unknown> {
   createNode: <U = T>(def: ItemDef<U>) => ItemNode<U>
   /** Helper: check if query exactly matches any node label */
   hasExactMatch: (query: string) => boolean
+  /** Menu control API for programmatic manipulation (optional, depends on implementation) */
+  control?: MenuControl<T>
+  /** Whether the menu is currently disabled (e.g., during async operations) */
+  disabled?: boolean
 }
 
 /**
@@ -159,8 +164,33 @@ export interface CreateNewConfig<T = unknown> {
   }) => React.ReactNode
 
   /**
-   * Callback when create item is selected
-   * Receives the current query value
+   * Callback when create item is selected.
+   * Receives an object with query and optional control API.
+   *
+   * @example Simple usage
+   * ```tsx
+   * onCreate: async ({ query }) => {
+   *   await api.createLabel({ name: query })
+   * }
+   * ```
+   *
+   * @example With control API
+   * ```tsx
+   * onCreate: async ({ query, control }) => {
+   *   control?.setLoading(true)
+   *   try {
+   *     await api.createLabel({ name: query })
+   *     control?.close?.() // Type-safe: only available on menus with close()
+   *   } finally {
+   *     control?.setLoading(false)
+   *   }
+   * }
+   * ```
    */
-  onCreate: (query: string) => void | Promise<void>
+  onCreate: (args: {
+    /** The search query (text to create) */
+    query: string
+    /** Optional menu control API for programmatic manipulation */
+    control?: import('../control.js').MenuControl<T>
+  }) => void | Promise<void>
 }

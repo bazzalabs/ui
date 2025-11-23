@@ -24,7 +24,7 @@ export function ContextMenuContent<T = unknown>({
   debug = false,
   defaults,
 }: ContextMenuContentProps<T>) {
-  const { open, closeAllSurfaces, anchorPoint } = useRootContext()
+  const { open, closeAllSurfaces, anchorPoint, control } = useRootContext<T>()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   // Extract surface defaults for Surface props
@@ -91,6 +91,7 @@ export function ContextMenuContent<T = unknown>({
           vimBindings={vimBindings}
           dir={dir}
           defaults={defaults as any}
+          control={control}
         />
       </Positioner>
 

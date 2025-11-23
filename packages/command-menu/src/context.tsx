@@ -1,5 +1,6 @@
 import type { MenuDef } from '@bazza-ui/menu'
 import * as React from 'react'
+import type { CommandMenuControl } from './control.js'
 import type { NavigationStackEntry } from './types.js'
 
 export type CommandMenuContextValue<T = unknown> = {
@@ -29,6 +30,10 @@ export type CommandMenuContextValue<T = unknown> = {
   onQueryChange?: (query: string) => void
   /** Ref to the input element for focus management */
   inputRef: React.RefObject<HTMLInputElement>
+  /** Programmatic control API */
+  control: CommandMenuControl<T>
+  /** Whether the entire menu is disabled */
+  disabled: boolean
 }
 
 const CommandMenuContext =

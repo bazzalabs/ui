@@ -38,7 +38,7 @@ export function DropdownMenuContent<T = unknown>({
   alignOffset = 0,
   defaults,
 }: DropdownMenuContentProps<T>) {
-  const { open, closeAllSurfaces, triggerRef } = useRootContext()
+  const { open, closeAllSurfaces, triggerRef, control } = useRootContext<T>()
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   // Extract surface defaults for Surface props
@@ -67,6 +67,7 @@ export function DropdownMenuContent<T = unknown>({
         vimBindings={vimBindings}
         dir={dir}
         defaults={defaults as any}
+        control={control}
       />
     </Positioner>
   )

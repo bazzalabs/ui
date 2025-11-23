@@ -412,6 +412,16 @@ const componentItems: ComponentItem[] = [
             title: 'Virtualization',
             url: '/docs/menu/virtualization',
           },
+          {
+            type: 'link',
+            title: 'Programmatic Control',
+            url: '/docs/menu/control',
+          },
+          {
+            type: 'link',
+            title: 'Middleware',
+            url: '/docs/menu/middleware',
+          },
         ],
       },
       {
@@ -476,7 +486,7 @@ function MenuItemRenderer({
       className="group/nested-collapsible"
     >
       <CollapsibleTrigger asChild>
-        <SidebarMenuSubButton className="font-medium hover-expand-[2px] group-data-[state=open]/nested-collapsible:bg-sidebar-accent group-data-[state=open]/nested-collapsible:text-primary cursor-pointer **:cursor-pointer">
+        <SidebarMenuSubButton className="hover-expand-[2px] group-data-[state=open]/nested-collapsible:bg-sidebar-accent group-data-[state=open]/nested-collapsible:text-primary cursor-pointer **:cursor-pointer">
           {item.title}
           <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
         </SidebarMenuSubButton>

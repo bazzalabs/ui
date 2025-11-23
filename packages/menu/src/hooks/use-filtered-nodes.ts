@@ -1,11 +1,20 @@
 import * as React from 'react'
-import { flatten } from '../primitives/menu-model.js'
+import type {
+  AfterFilterContext,
+  BeforeFilterContext,
+  SearchResult,
+  TransformNodesContext,
+} from '../middleware/types.js'
+import { flatten, instantiateSingleNode } from '../primitives/menu-model.js'
 import type {
   GroupNode,
+  ItemDef,
+  ItemNode,
   LoaderProgress,
   LoadingNode,
   Menu,
   Node,
+  ScoredNode,
 } from '../types.js'
 import { scoreNodes } from '../utils/node-scoring.js'
 import {
@@ -56,6 +65,18 @@ export type UseFilteredNodesOptions = {
    * Applied after scoring but before sorting.
    */
   customFilter?: (node: Node<any>) => boolean
+
+  /**
+   * Optional control instance for programmatic menu manipulation.
+   * Will be passed to middleware transformNodes context.
+   */
+  control?: any
+
+  /**
+   * Whether the menu is currently disabled.
+   * Will be passed to middleware transformNodes context.
+   */
+  disabled?: boolean
 }
 
 /**
@@ -78,6 +99,7 @@ export type UseFilteredNodesResult<T> = {
 /**
  * Filters, scores, and sorts menu nodes based on a search query.
  * Handles both shallow (action menu) and deep (command menu) filtering.
+ * Now includes full middleware support (beforeFilter, afterFilter, transformNodes).
  *
  * @param menu - The menu instance to filter
  * @param query - Search query string (empty string = no filtering)
@@ -111,9 +133,11 @@ export function useFilteredNodes<T = unknown>(
     completionOrder = [],
     customSort,
     customFilter,
+    control,
+    disabled = false,
   } = options
 
-  // Memoize the filtered nodes computation
+  // Memoize the filtered nodes computation with middleware support
   const filteredNodes = React.useMemo(() => {
     if (!query) {
       // No query - return all navigable nodes (shallow)
@@ -130,13 +154,63 @@ export function useFilteredNodes<T = unknown>(
 
     // With query - flatten based on mode
     const deep = mode === 'deep'
-    const allNodes = flatten(menu, { deep })
+    let allNodes = flatten(menu, { deep })
+
+    // MIDDLEWARE HOOK 1: beforeFilter (pre-filter transformation)
+    // Transform nodes before scoring/filtering
+    if (menu.middleware?.beforeFilter) {
+      try {
+        const context: BeforeFilterContext<T> = {
+          nodes: allNodes,
+          query,
+          menu,
+        }
+        allNodes = menu.middleware.beforeFilter(context)
+      } catch (error) {
+        console.error('[Menu] Error in beforeFilter middleware:', error)
+        // Continue with original nodes on error
+      }
+    }
 
     // Score all nodes
-    const scored = scoreNodes(allNodes, query, {
+    let scored = scoreNodes(allNodes, query, {
       rootMenuId: menu.id,
       includeBreadcrumbs: deep,
     })
+
+    // MIDDLEWARE HOOK 2: afterFilter (post-filter transformation)
+    // Transform scored results after filtering
+    if (menu.middleware?.afterFilter) {
+      try {
+        // Convert ScoredNode to SearchResult format for middleware
+        const searchResults: SearchResult<T>[] = scored.map((s) => ({
+          type: s.node.kind === 'item' ? 'item' : 'submenu',
+          node: s.node,
+          breadcrumbs: s.breadcrumbs,
+          breadcrumbIds: s.breadcrumbIds,
+          score: s.score,
+        }))
+
+        const context: AfterFilterContext<T> = {
+          results: searchResults,
+          query,
+          menu,
+        }
+
+        const transformedResults = menu.middleware.afterFilter(context)
+
+        // Convert SearchResult back to ScoredNode format
+        scored = transformedResults.map((r) => ({
+          node: r.node,
+          score: r.score,
+          breadcrumbs: r.breadcrumbs,
+          breadcrumbIds: r.breadcrumbIds,
+        })) as ScoredNode<T>[]
+      } catch (error) {
+        console.error('[Menu] Error in afterFilter middleware:', error)
+        // Continue with original scored nodes on error
+      }
+    }
 
     // Apply custom filter if provided
     const filtered = customFilter
@@ -165,7 +239,7 @@ export function useFilteredNodes<T = unknown>(
     const deduplicated = deduplicateById(partitioned)
 
     // Enrich nodes with search context
-    return deduplicated.map((s) => ({
+    const enrichedNodes = deduplicated.map((s) => ({
       ...s.node,
       search: {
         query,
@@ -175,6 +249,39 @@ export function useFilteredNodes<T = unknown>(
         breadcrumbIds: s.breadcrumbIds,
       },
     })) as Node<T>[]
+
+    // MIDDLEWARE HOOK 3: transformNodes (final transformation before rendering)
+    // Transform flattened nodes before rendering
+    if (menu.middleware?.transformNodes) {
+      try {
+        const context: TransformNodesContext<T> = {
+          nodes: enrichedNodes,
+          query,
+          mode: 'search',
+          allNodes: menu.nodes,
+          menu,
+          control,
+          disabled,
+          // Helper: create a properly instantiated node
+          createNode: <U = T>(def: ItemDef<U>) =>
+            instantiateSingleNode(def, menu as any) as ItemNode<U>,
+          // Helper: check if query exactly matches any node label
+          hasExactMatch: (q: string) =>
+            enrichedNodes.some(
+              (node) =>
+                node.kind === 'item' &&
+                node.label?.toLowerCase() === q.toLowerCase(),
+            ),
+        }
+
+        return menu.middleware.transformNodes(context)
+      } catch (error) {
+        console.error('[Menu] Error in transformNodes middleware:', error)
+        // Continue with enriched nodes on error
+      }
+    }
+
+    return enrichedNodes
   }, [
     menu,
     query,
@@ -183,6 +290,8 @@ export function useFilteredNodes<T = unknown>(
     completionOrder,
     customSort,
     customFilter,
+    disabled,
+    control,
   ])
 
   // Prepare display nodes (includes loading node in streaming mode)

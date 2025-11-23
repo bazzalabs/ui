@@ -1,13 +1,33 @@
 import { Popover } from '@base-ui-components/react/popover'
-import type { MenuNodeDefaults } from '@bazza-ui/menu'
+import {
+  EventBus,
+  type MenuDef as BaseMenuDef,
+  type MenuNodeDefaults,
+} from '@bazza-ui/menu'
 import {
   type InteractionGuardOptions,
   RootProvider,
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
+import type { ContextMenuControl } from '../control.js'
 import { RootContextProvider } from '../contexts/root-context.js'
 import type { MenuDef } from '../types.js'
+
+const CONTEXT_MENU_EVENTS = {
+  OPEN: 'context-menu:open',
+  CLOSE: 'context-menu:close',
+  LOADING_START: 'loading-start',
+  LOADING_END: 'loading-end',
+  ERROR: 'error',
+  ERROR_CLEAR: 'error-clear',
+  MENU_DISABLE: 'menu-disable',
+  MENU_ENABLE: 'menu-enable',
+  REFRESH: 'refresh',
+  REFRESH_SUBMENU: 'refresh-submenu',
+  ITEM_SELECT: 'item-select',
+  ANCHOR_POINT_CHANGE: 'anchor-point-change',
+} as const
 
 export interface ContextMenuRootProps<T = unknown>
   extends Partial<InteractionGuardOptions> {
@@ -25,6 +45,8 @@ export interface ContextMenuRootProps<T = unknown>
   modal?: boolean
   /** Base defaults (factory + instance) shared across the entire menu */
   defaults?: Partial<MenuNodeDefaults<T>>
+  /** Control ref for programmatic access */
+  controlRef?: React.Ref<ContextMenuControl<T>>
 }
 
 /**
@@ -38,6 +60,7 @@ export function ContextMenuRoot<T = unknown>({
   defaultOpen = false,
   modal = true,
   defaults,
+  controlRef,
   // InteractionGuard options
   scopeAttr,
   disableOutsidePointerEvents,
@@ -63,6 +86,19 @@ export function ContextMenuRoot<T = unknown>({
   const scopeId = React.useId()
   const clearAnchorTimeoutRef = React.useRef<number | null>(null)
 
+  // Event bus for control
+  const eventBus = React.useRef(new EventBus())
+
+  // Control state
+  const [controlState, setControlState] = React.useState({
+    loading: false,
+    error: null as string | null,
+    disabled: false,
+  })
+
+  // Submenu tracking
+  const openSubmenus = React.useRef<Map<string, number>>(new Map())
+
   const closeAllSurfaces = React.useCallback(() => {
     setOpen(false)
     // Clear any pending timeout
@@ -75,6 +111,129 @@ export function ContextMenuRoot<T = unknown>({
       clearAnchorTimeoutRef.current = null
     }, 200) as any
   }, [setOpen])
+
+  // Create control implementation
+  const control = React.useMemo<ContextMenuControl<T>>(() => {
+    return {
+      // ===== Core MenuControl =====
+      getMenu: () => menu as BaseMenuDef<T>,
+      getState: () => ({
+        menu: menu as BaseMenuDef<T>,
+        loading: controlState.loading,
+        error: controlState.error,
+        disabled: controlState.disabled,
+        open,
+        openSubmenus: new Map(openSubmenus.current),
+        anchorPoint,
+      }),
+      isLoading: () => controlState.loading,
+      getError: () => controlState.error,
+      setLoading: (loading, message) => {
+        setControlState((prev) => ({ ...prev, loading }))
+        eventBus.current.emit(
+          loading
+            ? CONTEXT_MENU_EVENTS.LOADING_START
+            : CONTEXT_MENU_EVENTS.LOADING_END,
+          { message },
+        )
+      },
+      setError: (error) => {
+        setControlState((prev) => ({ ...prev, error }))
+        if (error) {
+          eventBus.current.emit(CONTEXT_MENU_EVENTS.ERROR, { error })
+        } else {
+          eventBus.current.emit(CONTEXT_MENU_EVENTS.ERROR_CLEAR)
+        }
+      },
+      clearError: () => {
+        setControlState((prev) => ({ ...prev, error: null }))
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.ERROR_CLEAR)
+      },
+      refresh: async () => {
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.REFRESH)
+      },
+      refreshSubmenu: async (submenuId) => {
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.REFRESH_SUBMENU, {
+          submenuId,
+        })
+      },
+      selectItem: (itemId) => {
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.ITEM_SELECT, { itemId })
+      },
+      disable: () => {
+        setControlState((prev) => ({ ...prev, disabled: true }))
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.MENU_DISABLE)
+        return () => {
+          setControlState((prev) => ({ ...prev, disabled: false }))
+          eventBus.current.emit(CONTEXT_MENU_EVENTS.MENU_ENABLE)
+        }
+      },
+      enable: () => {
+        setControlState((prev) => ({ ...prev, disabled: false }))
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.MENU_ENABLE)
+      },
+      setDisabled: (disabled: boolean) => {
+        setControlState((prev) => ({ ...prev, disabled }))
+        eventBus.current.emit(
+          disabled
+            ? CONTEXT_MENU_EVENTS.MENU_DISABLE
+            : CONTEXT_MENU_EVENTS.MENU_ENABLE,
+        )
+      },
+      on: (event, handler) => eventBus.current.on(event, handler),
+      emit: (event, data) => eventBus.current.emit(event, data),
+
+      // ===== PopupMenuControl =====
+      isOpen: () => open,
+      open: () => setOpen(true),
+      close: () => setOpen(false),
+      toggle: () => setOpen((prev) => !prev),
+      closeAllSurfaces: () => {
+        closeAllSurfaces()
+        openSubmenus.current.clear()
+      },
+      openSubmenu: (submenuId: string) => {
+        console.warn('openSubmenu not yet implemented:', submenuId)
+      },
+      closeSubmenu: (submenuId: string) => {
+        openSubmenus.current.delete(submenuId)
+      },
+      getOpenSubmenus: () => Array.from(openSubmenus.current.keys()),
+      getPosition: () => anchorPoint,
+      setPosition: (position: { x: number; y: number } | null) => {
+        setAnchorPoint(position)
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.ANCHOR_POINT_CHANGE, {
+          anchorPoint: position,
+        })
+      },
+
+      // ===== ContextMenuControl =====
+      getAnchorPoint: () => anchorPoint,
+      setAnchorPoint: (point: { x: number; y: number } | null) => {
+        setAnchorPoint(point)
+        eventBus.current.emit(CONTEXT_MENU_EVENTS.ANCHOR_POINT_CHANGE, {
+          anchorPoint: point,
+        })
+      },
+    }
+  }, [menu, controlState, open, setOpen, closeAllSurfaces, anchorPoint])
+
+  // Expose via controlRef
+  React.useEffect(() => {
+    if (!controlRef) return
+
+    if (typeof controlRef === 'function') {
+      controlRef(control)
+    } else {
+      ;(controlRef as React.MutableRefObject<ContextMenuControl<T>>).current =
+        control
+    }
+  }, [control, controlRef])
+
+  // Cleanup event bus on unmount
+  React.useEffect(() => {
+    return () => eventBus.current.clear()
+  }, [])
 
   // Cleanup timeout on unmount
   React.useEffect(() => {
@@ -93,6 +252,7 @@ export function ContextMenuRoot<T = unknown>({
       closeAllSurfaces,
       anchorPoint,
       setAnchorPoint,
+      control,
       // InteractionGuard options
       interactionGuardOptions: {
         scopeAttr,
@@ -112,6 +272,7 @@ export function ContextMenuRoot<T = unknown>({
       setOpen,
       closeAllSurfaces,
       anchorPoint,
+      control,
       scopeAttr,
       disableOutsidePointerEvents,
       onEscapeKeyDown,

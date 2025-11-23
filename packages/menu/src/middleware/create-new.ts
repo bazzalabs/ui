@@ -6,7 +6,7 @@ import type { CreateNewConfig, MenuMiddleware } from './types.js'
  * This middleware is designed for menus where users can create new items
  * based on their search query (e.g., creating a new label, tag, or category).
  *
- * @example
+ * @example Basic usage
  * ```tsx
  * import { createNew } from '@bazza-ui/menu/middleware'
  *
@@ -18,12 +18,34 @@ import type { CreateNewConfig, MenuMiddleware } from './types.js'
  *     position: 'bottom',
  *     label: (query) => `Create new label: ${query}`,
  *     icon: <PlusIcon />,
- *     onCreate: async (query) => {
+ *     onCreate: async ({ query }) => {
  *       const newLabel = await api.createLabel({ name: query })
  *       toast.success(`Created "${newLabel.name}"`)
  *     }
  *   })
  * }
+ * ```
+ *
+ * @example With control API
+ * ```tsx
+ * middleware: createNew({
+ *   showWhen: 'no-exact-match',
+ *   label: (query) => `Create new label: ${query}`,
+ *   onCreate: async ({ query, control }) => {
+ *     control?.setLoading(true)
+ *     try {
+ *       await api.createLabel({ name: query })
+ *       // Close menu if it supports close() (e.g., CommandMenu)
+ *       if ('close' in (control || {}) && typeof control?.close === 'function') {
+ *         control.close()
+ *       }
+ *     } catch (error) {
+ *       control?.setError(error.message)
+ *     } finally {
+ *       control?.setLoading(false)
+ *     }
+ *   }
+ * })
  * ```
  *
  * @param config - Configuration for the create new middleware
@@ -34,8 +56,16 @@ export function createNew<T = unknown>(
 ): MenuMiddleware<T> {
   return {
     transformNodes: (context) => {
-      const { nodes, query, mode, createNode, hasExactMatch, allNodes, menu } =
-        context
+      const {
+        nodes,
+        query,
+        mode,
+        createNode,
+        hasExactMatch,
+        allNodes,
+        menu,
+        control,
+      } = context
       // Only run in search mode
       if (mode !== 'search' || !query?.trim()) {
         return nodes
@@ -67,6 +97,7 @@ export function createNew<T = unknown>(
         label,
         icon: config.icon,
         closeOnSelect: config.closeOnSelect ?? false,
+        disabled: context.disabled ?? false, // Disable when menu is disabled
         render: config.render
           ? (args) =>
               config.render!({
@@ -78,7 +109,7 @@ export function createNew<T = unknown>(
                 menu,
               })
           : undefined,
-        onSelect: () => config.onCreate(query),
+        onSelect: () => config.onCreate({ query, control }),
       })
 
       // Position at top or bottom (default: bottom)

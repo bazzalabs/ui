@@ -52,6 +52,7 @@ function CommandMenuContentLayer<T>({
   innerContentRef?: (element: HTMLDivElement | null) => void
 }) {
   const theme = useScopedTheme()
+  const { control } = useCommandMenuContext<T>()
 
   // Layer state management (extracted to hook)
   const { query, setQuery, store } = useLayerState<T>(
@@ -185,6 +186,7 @@ function CommandMenuContentLayer<T>({
       <SurfaceProvider
         store={store}
         menu={menu}
+        control={control}
         slots={theme?.slots as Required<CommandMenuSlots<T>>}
         classNames={theme?.classNames}
         slotProps={theme?.slotProps}

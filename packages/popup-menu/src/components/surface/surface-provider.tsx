@@ -1,4 +1,4 @@
-import type { Menu, Node, SurfaceStore } from '@bazza-ui/menu'
+import type { Menu, MenuControl, Node, SurfaceStore } from '@bazza-ui/menu'
 import * as React from 'react'
 import type {
   PopupMenuClassNames,
@@ -13,6 +13,9 @@ export interface SurfaceContextValue<T = unknown> {
   // Orchestrated data (ready to consume)
   menu: Menu<T>
   displayNodes: Node<T>[]
+
+  // Control (for menu-wide state like disabled)
+  control?: MenuControl<T>
 
   // Theming
   slots?: PopupMenuSlots<T>

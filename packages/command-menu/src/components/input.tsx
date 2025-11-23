@@ -30,6 +30,7 @@ export function CommandMenuInput({
     onOpenChange,
     inputRef,
     currentMenu,
+    disabled,
   } = useCommandMenuContext()
 
   // Sync store inputRef to context inputRef
@@ -67,6 +68,7 @@ export function CommandMenuInput({
       placeholder={placeholder}
       className={cn(theme?.classNames?.input, className)}
       searchState={searchState}
+      disabled={disabled}
       inputProps={
         {
           ...theme?.slotProps?.input,

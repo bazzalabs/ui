@@ -19,6 +19,8 @@ export interface MenuInputPrimitiveProps<T = unknown> {
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>
   /** Keyboard event handler */
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  /** Whether the input is disabled */
+  disabled?: boolean
   /** Render prop for custom rendering with bind API */
   children?: (
     bind: InputBindAPI,
@@ -45,6 +47,7 @@ export function MenuInputPrimitive<T = unknown>({
   searchState,
   inputProps,
   onKeyDown,
+  disabled = false,
   children,
 }: MenuInputPrimitiveProps<T>) {
   // Subscribe to store state for ARIA attributes
@@ -57,9 +60,10 @@ export function MenuInputPrimitive<T = unknown>({
 
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (disabled) return // Block input changes when disabled
       onChange(e.target.value)
     },
-    [onChange],
+    [onChange, disabled],
   )
 
   const baseInputProps = React.useMemo(
@@ -71,11 +75,15 @@ export function MenuInputPrimitive<T = unknown>({
       'aria-expanded': true,
       'aria-controls': state.listId ?? undefined,
       'aria-activedescendant': state.activeId ?? undefined,
+      'aria-disabled': disabled,
+      'data-disabled': disabled,
       placeholder,
       value,
       onChange: handleChange,
       onKeyDown,
       className,
+      disabled,
+      readOnly: disabled,
     }),
     [
       store.inputRef,
@@ -86,6 +94,7 @@ export function MenuInputPrimitive<T = unknown>({
       handleChange,
       onKeyDown,
       className,
+      disabled,
     ],
   )
 
