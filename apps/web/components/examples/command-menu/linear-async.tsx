@@ -7,9 +7,10 @@ import {
   renderIcon,
   type SubmenuDef,
 } from '@bazza-ui/menu'
+import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
 import { DialogContent } from '@radix-ui/react-dialog'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { SearchIcon } from 'lucide-react'
+import { PlusIcon, SearchIcon } from 'lucide-react'
 import { motion, useAnimate } from 'motion/react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
@@ -303,6 +304,17 @@ const labelsMenu: SubmenuDef = {
     queryKey: ['labels', query],
     queryFn: () => fetchLabels(query),
   })),
+  middleware: composeMiddleware([
+    createNew({
+      showWhen: 'no-exact-match',
+      position: 'bottom',
+      label: (query) => `Create new label: ${query}`,
+      icon: <PlusIcon />,
+      onCreate: async (query) => {
+        toast.success(`Created "${query}"`)
+      },
+    }),
+  ]),
 }
 
 const projectStatusMenu: SubmenuDef = {
