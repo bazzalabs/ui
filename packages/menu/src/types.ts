@@ -4,9 +4,12 @@ import type * as React from 'react'
 import type { MenuMiddleware } from './middleware/types.js'
 
 /* ================================================================================================
- * Menu Model Types
+ * Base Contracts & Type Utilities
  * ============================================================================================== */
 
+/**
+ * Base node kinds available in the core menu system.
+ */
 export type MenuNodeKind =
   | 'menu'
   | 'item'
@@ -15,12 +18,68 @@ export type MenuNodeKind =
   | 'separator'
   | 'loading'
 
-export type BaseDef<K extends MenuNodeKind> = {
+/**
+ * Base definition contract that all node definitions must extend.
+ */
+export type BaseNodeDef<K extends MenuNodeKind = MenuNodeKind> = {
   /** The kind of node. */
   kind: K
   /** Unique id for this node. Optional if the node has a label property. */
   id?: string
   hidden?: boolean
+}
+
+/**
+ * Base runtime node contract that all runtime nodes must extend.
+ */
+export type BaseNode<
+  K extends MenuNodeKind = MenuNodeKind,
+  D extends BaseNodeDef<K> = BaseNodeDef<K>,
+> = {
+  /** The kind of node. */
+  kind: K
+  /** Unique id for this node (required at runtime). */
+  id: string
+  hidden?: boolean
+  /** Owning menu surface at runtime. */
+  parent: any
+  /** Original author definition for this node. */
+  def: D
+}
+
+/**
+ * Base menu contract that all menu types must extend.
+ */
+export type BaseMenu = {
+  kind: 'menu' | 'submenu'
+  id: string
+  surfaceId: string
+  depth: number
+  nodes: any[]
+}
+
+/**
+ * Extract the node definition type from a node type.
+ */
+export type ExtractNodeDef<TNode> = TNode extends BaseNode<any, infer D>
+  ? D
+  : never
+
+/**
+ * Extract the data type from a node that has a data property.
+ */
+export type ExtractDataType<TNode> = TNode extends { data?: infer TData }
+  ? TData
+  : never
+
+/**
+ * Type guard to check if a node is of a specific kind.
+ */
+export function isNodeKind<K extends MenuNodeKind>(
+  node: BaseNode<any, any>,
+  kind: K,
+): node is BaseNode<K, any> {
+  return node.kind === kind
 }
 
 export type Searchable = {
@@ -36,16 +95,15 @@ export type Iconish =
   | React.ElementType
   | React.ComponentType<{ className?: string }>
 
-export type StateDescriptor<T> = {
-  value: T
-  onValueChange: React.Dispatch<React.SetStateAction<T>>
-  defaultValue?: T
+export type StateDescriptor<TData> = {
+  value: TData
+  onValueChange: React.Dispatch<React.SetStateAction<TData>>
+  defaultValue?: TData
 }
 
 export type MenuState = {
   input?: StateDescriptor<string>
   open?: StateDescriptor<boolean>
-  middleware?: MenuMiddleware<any>
 }
 
 /**
@@ -61,9 +119,9 @@ export type AsyncNodeLoaderContext = {
 /**
  * Async node loader result interface compatible with TanStack Query and similar libraries.
  */
-export type AsyncNodeLoaderResult<T = unknown> = {
+export type AsyncNodeLoaderResult<TData = unknown> = {
   /** The loaded nodes (undefined while loading, array when loaded). */
-  data?: NodeDef<T>[]
+  data?: NodeDef<TData>[]
   /** Whether the initial load is in progress. */
   isLoading?: boolean
   /** Error object if loading failed. */
@@ -84,7 +142,7 @@ export type AsyncNodeLoaderResult<T = unknown> = {
  *
  * This is compatible with the Loader type from @bazza-ui/loaders.
  *
- * @typeParam T - The data type for each node
+ * @typeParam TData - The data type for each node
  *
  * @example With query() from @bazza-ui/loaders
  * ```tsx
@@ -115,11 +173,11 @@ export type AsyncNodeLoaderResult<T = unknown> = {
  * })
  * ```
  */
-export type AsyncNodeLoader<T = unknown> = (context: {
+export type AsyncNodeLoader<TData = unknown> = (context: {
   query?: string
   isOpen?: boolean
   path?: string[]
-}) => AsyncNodeLoaderResult<T>
+}) => AsyncNodeLoaderResult<TData>
 
 /**
  * Metadata for an eager loader that will be executed in parallel.
@@ -172,7 +230,7 @@ export type AggregatedLoaderState = {
 /**
  * Configuration for virtualizing large lists.
  */
-export type VirtualizationConfig<T = unknown> = {
+export type VirtualizationConfig<TData = unknown> = {
   /**
    * Enable or disable virtualization.
    * - `boolean`: Explicitly enable/disable virtualization
@@ -182,9 +240,9 @@ export type VirtualizationConfig<T = unknown> = {
   enabled?:
     | boolean
     | ((context: {
-        nodes: NodeDef<T>[]
+        nodes: NodeDef<TData>[]
         count: number
-        menu: MenuDef<T>
+        menu: MenuDef<TData>
       }) => boolean)
 
   /**
@@ -278,8 +336,8 @@ export type SearchConfig = {
 }
 
 export type MenuDef<
-  T = unknown,
-  TSlots = MenuSlots<T>,
+  TData = unknown,
+  TSlots = MenuSlots<TData>,
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
 > = {
@@ -288,15 +346,17 @@ export type MenuDef<
   inputPlaceholder?: string
   hideSearchUntilActive?: boolean
   /** Static nodes (sync mode). Mutually exclusive with `loader`. */
-  nodes?: NodeDef<T>[]
+  nodes?: NodeDef<TData>[]
   /** Async node loader (async mode). Mutually exclusive with `nodes`. */
-  loader?: AsyncNodeLoader<T>
-  defaults?: MenuNodeDefaults<T>
+  loader?: AsyncNodeLoader<TData>
+  defaults?: MenuNodeDefaults<TData>
   /** Virtualization configuration for the list. */
-  virtualization?: VirtualizationConfig<T>
+  virtualization?: VirtualizationConfig<TData>
   /** Search configuration for filtering behavior. */
   search?: SearchConfig
-  ui?: MenuThemeDef<T, TSlots, TSlotProps, TClassNames>
+  /** Middleware for programmatic control and event handling. */
+  middleware?: MenuMiddleware<any>
+  ui?: MenuThemeDef<TData, TSlots, TSlotProps, TClassNames>
   /** Custom render function for the menu content. */
   render?: () => React.ReactNode
 } & MenuState
@@ -318,7 +378,7 @@ export interface ExtendedItemVariant {}
 // biome-ignore lint/suspicious/noEmptyInterface: to be extended
 export interface ItemExtendedProperties {}
 
-export type BaseItemDef<T = unknown> = BaseDef<'item'> &
+export type BaseItemDef<TData = unknown> = BaseNodeDef<'item'> &
   Searchable & {
     /**
      * The visual/behavioral variant of this item. Defaults to 'button'.
@@ -326,29 +386,29 @@ export type BaseItemDef<T = unknown> = BaseDef<'item'> &
      */
     variant?: ItemVariant
     icon?: Iconish
-    data?: T
+    data?: TData
     /**
      * @default false
      */
     disabled?: boolean
     onSelect?: (args: {
-      node: Omit<ItemNode<T>, 'onSelect'>
+      node: Omit<ItemNode<TData>, 'onSelect'>
       search?: SearchContext
     }) => void
     closeOnSelect?: boolean
     render?: (args: {
-      node: ItemNode<T>
+      node: ItemNode<TData>
       search?: SearchContext
       bind: RowBindAPI
     }) => React.ReactNode
   } & ItemExtendedProperties
 
-export type ButtonItemDef<T = unknown> = BaseItemDef<T> & {
+export type ButtonItemDef<TData = unknown> = BaseItemDef<TData> & {
   variant?: 'button'
   // value?: never // TODO: Remove this property in the next major version
 }
 
-export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
+export type CheckboxItemDef<TData = unknown> = BaseItemDef<TData> & {
   /** The visual/behavioral variant of this item. */
   variant: 'checkbox'
   /** Controlled checked state. */
@@ -357,19 +417,19 @@ export type CheckboxItemDef<T = unknown> = BaseItemDef<T> & {
   onCheckedChange: (checked: boolean) => void
 }
 
-export type RadioItemDef<T = unknown> = BaseItemDef<T> & {
+export type RadioItemDef<TData = unknown> = BaseItemDef<TData> & {
   /** The visual/behavioral variant of this item. */
   variant: 'radio'
   /** Value for this radio item. Falls back to `id` if not provided. */
   value?: string
 }
 
-export type ItemDef<T = unknown> =
-  | ButtonItemDef<T>
-  | CheckboxItemDef<T>
-  | RadioItemDef<T>
+export type ItemDef<TData = unknown> =
+  | ButtonItemDef<TData>
+  | CheckboxItemDef<TData>
+  | RadioItemDef<TData>
 
-export type BaseGroupDef<T = unknown> = BaseDef<'group'> & {
+export type BaseGroupDef<TData = unknown> = BaseNodeDef<'group'> & {
   /**
    * Variant for this group.
    * @default 'default'
@@ -377,19 +437,19 @@ export type BaseGroupDef<T = unknown> = BaseDef<'group'> & {
   variant?: 'default' | 'radio'
   /** Unique identifier for this group. */
   id: string
-  nodes: (ItemDef<T> | SubmenuDef<any, any>)[]
+  nodes: (ItemDef<TData> | SubmenuDef<any, any>)[]
   /** Heading for this group. */
   heading?: string
 }
 
-export type DefaultGroupDef<T = unknown> = BaseGroupDef<T> & {
+export type DefaultGroupDef<TData = unknown> = BaseGroupDef<TData> & {
   /** The variant of this group. Defaults to 'default'. */
   variant?: 'default'
   value?: never
   onValueChange?: never
 }
 
-export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
+export type RadioGroupDef<TData = unknown> = BaseGroupDef<TData> & {
   variant: 'radio'
   /** Controlled value for radio groups (the selected radio item's value). */
   value: string
@@ -397,14 +457,16 @@ export type RadioGroupDef<T = unknown> = BaseGroupDef<T> & {
   onValueChange: (value: string) => void
 }
 
-export type GroupDef<T = unknown> = DefaultGroupDef<T> | RadioGroupDef<T>
+export type GroupDef<TData = unknown> =
+  | DefaultGroupDef<TData>
+  | RadioGroupDef<TData>
 
-export type SeparatorDef = BaseDef<'separator'> & {
+export type SeparatorDef = BaseNodeDef<'separator'> & {
   /** Optional label for the separator (can be used for section headers). */
   label?: string
 }
 
-export type LoadingDef = BaseDef<'loading'> & {
+export type LoadingDef = BaseNodeDef<'loading'> & {
   /** Unique id for this loading node (required - loading nodes don't have labels to auto-generate from). */
   id: string
   /** Progress information for in-progress loaders */
@@ -416,12 +478,12 @@ export type LoadingDef = BaseDef<'loading'> & {
 }
 
 export type SubmenuDef<
-  T = unknown,
+  TData = unknown,
   TChild = unknown,
   TSlots = MenuSlots<TChild>,
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
-> = BaseDef<'submenu'> &
+> = BaseNodeDef<'submenu'> &
   Searchable &
   MenuState & {
     /** Static nodes (sync mode). Mutually exclusive with `loader`. */
@@ -439,30 +501,32 @@ export type SubmenuDef<
      * @default true
      */
     deepSearch?: boolean
-    data?: T
+    data?: TData
     disabled?: boolean
     icon?: Iconish
     title?: string
     inputPlaceholder?: string
     hideSearchUntilActive?: boolean
-    defaults?: MenuNodeDefaults<T>
+    defaults?: MenuNodeDefaults<TData>
     /** Virtualization configuration for the submenu's list. */
-    virtualization?: VirtualizationConfig<T>
+    virtualization?: VirtualizationConfig<TData>
     /** Search configuration for filtering behavior. */
     search?: SearchConfig
+    /** Middleware for programmatic control and event handling. */
+    middleware?: MenuMiddleware<any>
     ui?: MenuThemeDef<TChild, TSlots, TSlotProps, TClassNames>
     render?: () => React.ReactNode
   }
 
 export type LoadMode = 'blocking' | 'streaming'
 
-export type Menu<T = unknown> = Omit<MenuDef<T>, 'kind' | 'nodes'> & {
+export type Menu<TData = unknown> = Omit<MenuDef<TData>, 'kind' | 'nodes'> & {
   kind: 'menu' | 'submenu'
-  nodes: Node<T>[]
+  nodes: Node<TData>[]
   surfaceId: string
   depth: number
   /** Base defaults (factory + instance only) passed down from parent, used for submenu inheritance */
-  baseDefaults?: MenuNodeDefaults<T>
+  baseDefaults?: MenuNodeDefaults<TData>
   /** Loading state metadata (present when menu is in async mode). */
   loadingState?: {
     isLoading?: boolean
@@ -494,8 +558,8 @@ export type SearchContext = {
  * Contains a node along with its computed score and breadcrumb trail.
  * @internal
  */
-export type ScoredNode<T = unknown> = {
-  node: Node<T>
+export type ScoredNode<TData = unknown> = {
+  node: Node<TData>
   score: number
   breadcrumbs: string[]
   breadcrumbIds: string[]
@@ -506,9 +570,9 @@ export type ScoredNode<T = unknown> = {
  * ============================================================================================== */
 
 /** Group membership metadata for items/submenus rendered within groups. */
-export type GroupedNode<T = unknown> = {
+export type GroupedNode<TData = unknown> = {
   /** Reference to the row's belonging group, if applicable. */
-  group?: GroupNode<T>
+  group?: GroupNode<TData>
   /** Position within the group: 'first', 'middle', 'last', or 'only'. */
   groupPosition?: 'first' | 'middle' | 'last' | 'only'
   /** Zero-based index within the group. */
@@ -517,31 +581,18 @@ export type GroupedNode<T = unknown> = {
   groupSize?: number
 }
 
-/** Runtime node (instance) */
-export type BaseNode<K extends MenuNodeKind, D extends BaseDef<K>> = {
-  /** The kind of node. */
-  kind: K
-  /** Unique id for this node. */
-  id: string
-  hidden?: boolean
-  /** Owning menu surface at runtime. */
-  parent: Menu<any>
-  /** Original author definition for this node. */
-  def: D
-}
-
-export type BaseItemNode<T = unknown> = BaseNode<'item', ItemDef<T>> &
-  Omit<BaseItemDef<T>, 'kind' | 'hidden'> &
-  GroupedNode<T> & {
+export type BaseItemNode<TData = unknown> = BaseNode<'item', ItemDef<TData>> &
+  Omit<BaseItemDef<TData>, 'kind' | 'hidden'> &
+  GroupedNode<TData> & {
     search?: SearchContext
   }
 
-export type ButtonItemNode<T = unknown> = BaseItemNode<T> & {
+export type ButtonItemNode<TData = unknown> = BaseItemNode<TData> & {
   variant: 'button'
   value?: never
 }
 
-export type CheckboxItemNode<T = unknown> = BaseItemNode<T> & {
+export type CheckboxItemNode<TData = unknown> = BaseItemNode<TData> & {
   variant: 'checkbox'
   /** Controlled checked state. */
   checked: boolean
@@ -549,35 +600,40 @@ export type CheckboxItemNode<T = unknown> = BaseItemNode<T> & {
   onCheckedChange: (checked: boolean) => void
 }
 
-export type RadioItemNode<T = unknown> = BaseItemNode<T> & {
+export type RadioItemNode<TData = unknown> = BaseItemNode<TData> & {
   variant: 'radio'
   /** Value for this radio item. Required at runtime (uses id as fallback). */
   value: string
 }
 
-export type ItemNode<T = unknown> =
-  | ButtonItemNode<T>
-  | CheckboxItemNode<T>
-  | RadioItemNode<T>
+export type ItemNode<TData = unknown> =
+  | ButtonItemNode<TData>
+  | CheckboxItemNode<TData>
+  | RadioItemNode<TData>
 
-export type BaseGroupNode<T = unknown> = BaseNode<'group', GroupDef<T>> & {
+export type BaseGroupNode<TData = unknown> = BaseNode<
+  'group',
+  GroupDef<TData>
+> & {
   heading?: string
-  nodes: (ItemNode<T> | SubmenuNode<any>)[]
+  nodes: (ItemNode<TData> | SubmenuNode<any>)[]
 }
 
-export type DefaultGroupNode<T = unknown> = BaseGroupNode<T> & {
+export type DefaultGroupNode<TData = unknown> = BaseGroupNode<TData> & {
   variant: 'default'
   value?: never
   onValueChange?: never
 }
 
-export type RadioGroupNode<T = unknown> = BaseGroupNode<T> & {
+export type RadioGroupNode<TData = unknown> = BaseGroupNode<TData> & {
   variant: 'radio'
   value: string
   onValueChange: (value: string) => void
 }
 
-export type GroupNode<T = unknown> = DefaultGroupNode<T> | RadioGroupNode<T>
+export type GroupNode<TData = unknown> =
+  | DefaultGroupNode<TData>
+  | RadioGroupNode<TData>
 
 export type SeparatorNode = BaseNode<'separator', SeparatorDef> & {
   /** Optional label for the separator (can be used for section headers). */
@@ -594,30 +650,116 @@ export type LoadingNode = BaseNode<'loading', LoadingDef> & {
 }
 
 /** NOTE: Submenu node exposes its runtime child menu as `child` */
-export type SubmenuNode<T = unknown, TChild = unknown> = BaseNode<
+export type SubmenuNode<TData = unknown, TChild = unknown> = BaseNode<
   'submenu',
-  SubmenuDef<T, TChild>
+  SubmenuDef<TData, TChild>
 > &
-  Omit<SubmenuDef<T, TChild>, 'kind' | 'hidden' | 'nodes' | 'search'> &
-  GroupedNode<T> & {
+  Omit<SubmenuDef<TData, TChild>, 'kind' | 'hidden' | 'nodes' | 'search'> &
+  GroupedNode<TData> & {
     child: Menu<TChild>
     nodes: Node<TChild>[]
     search?: SearchContext
   }
 
-export type Node<T = unknown> =
-  | ItemNode<T>
-  | GroupNode<T>
-  | SubmenuNode<T, any>
+export type Node<TData = unknown> =
+  | ItemNode<TData>
+  | GroupNode<TData>
+  | SubmenuNode<TData, any>
   | SeparatorNode
   | LoadingNode
 
-export type NodeDef<T = unknown> =
-  | ItemDef<T>
-  | GroupDef<T>
-  | SubmenuDef<T, any>
+export type NodeDef<TData = unknown> =
+  | ItemDef<TData>
+  | GroupDef<TData>
+  | SubmenuDef<TData, any>
   | SeparatorDef
   | LoadingDef
+
+/* ================================================================================================
+ * Standard Node Implementation Aliases
+ *
+ * The types above (ItemDef, ItemNode, MenuDef, Menu, etc.) ARE the "Standard" implementation.
+ * These aliases provide explicit "Standard" naming for clarity and consistency with
+ * other menu packages (CommandNode, PopupNode, etc.).
+ * ============================================================================================== */
+
+/**
+ * Standard node definition - union of all standard node definition types.
+ * Alias for NodeDef<TData>.
+ */
+export type StandardNodeDef<TData = unknown> = NodeDef<TData>
+
+/**
+ * Standard runtime node - union of all standard runtime node types.
+ * Alias for Node<TData>.
+ */
+export type StandardNode<TData = unknown> = Node<TData>
+
+/**
+ * Standard item definition - alias for ItemDef<TData>.
+ */
+export type StandardItemDef<TData = unknown> = ItemDef<TData>
+
+/**
+ * Standard item runtime node - alias for ItemNode<TData>.
+ */
+export type StandardItemNode<TData = unknown> = ItemNode<TData>
+
+/**
+ * Standard group definition - alias for GroupDef<TData>.
+ */
+export type StandardGroupDef<TData = unknown> = GroupDef<TData>
+
+/**
+ * Standard group runtime node - alias for GroupNode<TData>.
+ */
+export type StandardGroupNode<TData = unknown> = GroupNode<TData>
+
+/**
+ * Standard separator definition - alias for SeparatorDef.
+ */
+export type StandardSeparatorDef = SeparatorDef
+
+/**
+ * Standard separator runtime node - alias for SeparatorNode.
+ */
+export type StandardSeparatorNode = SeparatorNode
+
+/**
+ * Standard loading definition - alias for LoadingDef.
+ */
+export type StandardLoadingDef = LoadingDef
+
+/**
+ * Standard loading runtime node - alias for LoadingNode.
+ */
+export type StandardLoadingNode = LoadingNode
+
+/**
+ * Standard submenu definition - alias for SubmenuDef<TData, TChild>.
+ */
+export type StandardSubmenuDef<TData = unknown, TChild = unknown> = SubmenuDef<
+  TData,
+  TChild
+>
+
+/**
+ * Standard submenu runtime node - alias for SubmenuNode<TData, TChild>.
+ */
+export type StandardSubmenuNode<
+  TData = unknown,
+  TChild = unknown,
+> = SubmenuNode<TData, TChild>
+
+/**
+ * Standard menu definition - alias for MenuDef<TData>.
+ */
+export type StandardMenuDef<TData = unknown> = MenuDef<TData>
+
+/**
+ * Standard menu runtime type - alias for Menu<TData>.
+ */
+export type StandardMenu<TData = unknown> = Menu<TData>
 
 /* ================================================================================================
  * Bind API Types
@@ -739,28 +881,28 @@ export interface InputSearchState {
   inProgressPaths?: Set<string>
 }
 
-export interface ItemSlotProps<T = unknown> {
-  node: ItemNode<T>
+export interface ItemSlotProps<TData = unknown> {
+  node: ItemNode<TData>
   search?: SearchContext
   bind: RowBindAPI
 }
 
-export interface ListSlotProps<T = unknown> {
+export interface ListSlotProps<TData = unknown> {
   query?: string
-  nodes: Node<T>[]
+  nodes: Node<TData>[]
   children: React.ReactNode
   bind: ListBindAPI
 }
 
 /** Slot renderers to customize visuals. */
-export type MenuSlots<T = unknown> = {
+export type MenuSlots<TData = unknown> = {
   Content: (args: {
-    menu: Menu<T>
+    menu: Menu<TData>
     children: React.ReactNode
     bind: ContentBindAPI
   }) => React.ReactNode
   Header?: (args: {
-    menu: Menu<T>
+    menu: Menu<TData>
     /** Load mode: 'blocking' or 'streaming' */
     loadMode?: LoadMode
   }) => React.ReactNode
@@ -770,12 +912,12 @@ export type MenuSlots<T = unknown> = {
     bind: InputBindAPI
     search: InputSearchState
   }) => React.ReactNode
-  List: (args: ListSlotProps<T>) => React.ReactNode
+  List: (args: ListSlotProps<TData>) => React.ReactNode
   /** Shown when no nodes are available after loading completes. */
   Empty?: (args: { query: string }) => React.ReactNode
   /** Shown during initial async load (when isLoading && !data). */
   Loading?: (args: {
-    menu: Menu<T>
+    menu: Menu<TData>
     /** Whether any loader is currently fetching */
     isFetching?: boolean
     /** Deep search progress (which submenus are being searched) */
@@ -800,19 +942,19 @@ export type MenuSlots<T = unknown> = {
     query?: string
   }) => React.ReactNode
   /** Shown when async load fails (when isError). */
-  Error?: (args: { menu: Menu<T>; error?: Error }) => React.ReactNode
-  Item: (args: ItemSlotProps<T>) => React.ReactNode
+  Error?: (args: { menu: Menu<TData>; error?: Error }) => React.ReactNode
+  Item: (args: ItemSlotProps<TData>) => React.ReactNode
   SubmenuTrigger: (args: {
-    node: SubmenuNode<T>
+    node: SubmenuNode<TData>
     search?: SearchContext
     bind: RowBindAPI
   }) => React.ReactNode
   GroupHeading?: (args: {
-    node: GroupNode<T>
+    node: GroupNode<TData>
     bind: GroupHeadingBindAPI
   }) => React.ReactNode
   Separator?: (args: { node: SeparatorNode }) => React.ReactNode
-  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
+  Footer?: (args: { menu: Menu<TData> }) => React.ReactNode
 }
 
 /** ClassNames that style the menu surface (content/list/items/etc.). */
@@ -838,8 +980,8 @@ export type MenuSlotProps = {
 }
 
 export type MenuThemeDef<
-  T = unknown,
-  TSlots = MenuSlots<T>,
+  TData = unknown,
+  TSlots = MenuSlots<TData>,
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
 > = {
@@ -849,8 +991,8 @@ export type MenuThemeDef<
 }
 
 export type MenuTheme<
-  T = unknown,
-  TSlots = MenuSlots<T>,
+  TData = unknown,
+  TSlots = MenuSlots<TData>,
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
 > = {
@@ -866,23 +1008,23 @@ export type MenuTheme<
 export type Direction = 'ltr' | 'rtl'
 
 /** Defaulted parts of nodes for convenience. */
-export type MenuNodeDefaults<T = unknown> = {
+export type MenuNodeDefaults<TData = unknown> = {
   surface?: Pick<
-    MenuSurfaceProps<T>,
+    MenuSurfaceProps<TData>,
     'vimBindings' | 'dir' | 'onOpenAutoFocus' | 'onCloseAutoClear'
   >
-  item?: Pick<BaseItemDef<T>, 'onSelect' | 'closeOnSelect'>
+  item?: Pick<BaseItemDef<TData>, 'onSelect' | 'closeOnSelect'>
   /** Default virtualization configuration applied to all menus/submenus */
-  virtualization?: VirtualizationConfig<T>
+  virtualization?: VirtualizationConfig<TData>
 }
 
-export interface MenuSurfaceProps<T = unknown>
+export interface MenuSurfaceProps<TData = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
-  menu: MenuDef<T> | Menu<T>
+  menu: MenuDef<TData> | Menu<TData>
   render?: () => React.ReactNode
   vimBindings?: boolean
   dir?: Direction
-  defaults?: Partial<MenuNodeDefaults<T>>
+  defaults?: Partial<MenuNodeDefaults<TData>>
   onOpenAutoFocus?: boolean
   onCloseAutoClear?: boolean | number
   /** @internal Forced surface id; used by submenus. */
@@ -912,13 +1054,13 @@ export type RowRecord = {
 
 export type ActivationCause = 'keyboard' | 'pointer' | 'programmatic'
 
-export type SurfaceStore<T> = {
+export type SurfaceStore<TData> = {
   subscribe(cb: () => void): () => void
   snapshot(): SurfaceState
   set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
 
-  getNodes(): Node<T>[]
-  setNodes(nodes: Node<T>[]): void
+  getNodes(): Node<TData>[]
+  setNodes(nodes: Node<TData>[]): void
 
   registerRow(id: string, rec: RowRecord): void
   unregisterRow(id: string): void

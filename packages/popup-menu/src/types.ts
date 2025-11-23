@@ -1,6 +1,9 @@
 import type { Popover } from '@base-ui-components/react/popover'
 import type {
+  Menu as BaseMenu,
   MenuDef as BaseMenuDef,
+  BaseNode,
+  BaseNodeDef,
   SubmenuDef as BaseSubmenuDef,
   SubmenuNode as BaseSubmenuNode,
   GroupDef,
@@ -10,6 +13,7 @@ import type {
   ItemDef,
   ItemNode,
   LoadingDef,
+  LoadingNode,
   LoadMode,
   Menu,
   ContentBindAPI as MenuContentBindAPI,
@@ -131,55 +135,87 @@ export type PopupMenuSlotProps = {
 /* ================================================================================================
  * Menu Types (Defs)
  * ============================================================================================== */
-export interface PopupMenuDef<T = unknown>
+export interface PopupMenuDef<TData = unknown>
   extends Omit<
-    BaseMenuDef<T, PopupMenuSlots<T>, PopupMenuSlotProps, PopupMenuClassNames>,
-    'ui' | 'nodes'
-  > {
-  ui?: PopupMenuThemeDef<T>
-  nodes?: PopupNodeDef<T>[]
-}
-
-export type PopupNodeDef<T = unknown> =
-  | ItemDef<T>
-  | GroupDef<T>
-  | SeparatorDef
-  | LoadingDef
-  | PopupSubmenuDef<T>
-
-export interface PopupSubmenuDef<T = unknown, TChild = unknown>
-  extends Omit<
-    BaseSubmenuDef<
-      T,
-      TChild,
-      PopupMenuSlots<T>,
+    BaseMenuDef<
+      TData,
+      PopupMenuSlots<TData>,
       PopupMenuSlotProps,
       PopupMenuClassNames
     >,
     'ui' | 'nodes'
   > {
-  ui?: PopupMenuThemeDef<T>
-  nodes?: PopupNodeDef<T>[]
+  ui?: PopupMenuThemeDef<TData>
+  nodes?: PopupNodeDef<TData>[]
 }
 
-export type PopupSubmenuNode<T = unknown, TChild = unknown> = Omit<
-  BaseSubmenuNode<T, TChild>,
-  'nodes'
-> & {
-  nodes?: PopupNodeDef<T>[]
-  def: PopupSubmenuDef<T, TChild>
+export type PopupNodeDef<TData = unknown> =
+  | ItemDef<TData>
+  | GroupDef<TData>
+  | SeparatorDef
+  | LoadingDef
+  | PopupSubmenuDef<TData>
+
+export interface PopupSubmenuDef<TData = unknown, TChild = unknown>
+  extends Omit<
+    BaseSubmenuDef<
+      TData,
+      TChild,
+      PopupMenuSlots<TChild>,
+      PopupMenuSlotProps,
+      PopupMenuClassNames
+    >,
+    'ui' | 'nodes'
+  > {
+  ui?: PopupMenuThemeDef<TChild>
+  nodes?: PopupNodeDef<TChild>[]
+}
+
+/* ================================================================================================
+ * Popup Node Type System (Runtime)
+ * ============================================================================================== */
+
+/**
+ * Popup submenu runtime node.
+ */
+export type PopupSubmenuNode<
+  TData = unknown,
+  TChild = unknown,
+> = BaseSubmenuNode<TData, TChild> & {
+  def: PopupSubmenuDef<TData, TChild>
+  parent: PopupMenu<TData>
+  child: PopupMenu<TChild>
+  nodes: PopupNode<TChild>[]
+}
+
+/**
+ * Union of all runtime node types in popup menus.
+ * This is the complete PopupNode type that represents any node in a popup menu.
+ */
+export type PopupNode<TData = unknown> =
+  | ItemNode<TData>
+  | GroupNode<TData>
+  | SeparatorNode
+  | LoadingNode
+  | PopupSubmenuNode<TData, any>
+
+/**
+ * Popup menu runtime type.
+ */
+export type PopupMenu<TData = unknown> = BaseMenu<TData> & {
+  nodes: PopupNode<TData>[]
 }
 
 /* ================================================================================================
  * Slot Types
  * ============================================================================================== */
-export type PopupMenuSlots<T = any> = {
+export type PopupMenuSlots<TData = any> = {
   Content: (args: {
     children: React.ReactNode
     bind: ContentBindAPI
   }) => React.ReactNode
   Header?: (args: {
-    menu: Menu<T>
+    menu: Menu<TData>
     /** Load mode: 'blocking' or 'streaming' */
     loadMode?: LoadMode
   }) => React.ReactNode
@@ -208,34 +244,34 @@ export type PopupMenuSlots<T = any> = {
   }) => React.ReactNode
   Error?: (args: { error: Error | null }) => React.ReactNode
   Item: (args: {
-    node: ItemNode<T>
+    node: ItemNode<TData>
     bind: RowBindAPI
     search?: SearchContext
   }) => React.ReactNode
   SubmenuTrigger: (args: {
-    node: PopupSubmenuNode<T>
+    node: PopupSubmenuNode<TData>
     bind: RowBindAPI
     search?: SearchContext
   }) => React.ReactNode
   GroupHeading?: (args: {
-    node: GroupNode<T>
+    node: GroupNode<TData>
     bind: GroupHeadingBindAPI
   }) => React.ReactNode
   Separator?: (args: { node: SeparatorNode }) => React.ReactNode
-  Footer?: (args: { menu: Menu<T> }) => React.ReactNode
+  Footer?: (args: { menu: Menu<TData> }) => React.ReactNode
 }
 
 /* ================================================================================================
  * Theme Types
  * ============================================================================================== */
-export type PopupMenuThemeDef<T = unknown> = ThemeDef<
-  PopupMenuSlots<T>,
+export type PopupMenuThemeDef<TData = unknown> = ThemeDef<
+  PopupMenuSlots<TData>,
   PopupMenuSlotProps,
   PopupMenuClassNames
 >
 
-export type PopupMenuTheme<T = unknown> = Theme<
-  PopupMenuSlots<T>,
+export type PopupMenuTheme<TData = unknown> = Theme<
+  PopupMenuSlots<TData>,
   PopupMenuSlotProps,
   PopupMenuClassNames
 >

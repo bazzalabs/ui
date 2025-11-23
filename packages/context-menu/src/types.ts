@@ -1,37 +1,37 @@
 import type {
+  Menu as BaseMenu,
   MenuDef as BaseMenuDef,
+  BaseNode,
+  BaseNodeDef,
   SubmenuDef as BaseSubmenuDef,
-  ItemDef,
+  SubmenuNode as BaseSubmenuNode,
   GroupDef,
-  SeparatorDef,
+  GroupNode,
+  ItemDef,
+  ItemNode,
   LoadingDef,
+  LoadingNode,
+  SeparatorDef,
+  SeparatorNode,
 } from '@bazza-ui/menu'
 import type {
-  PopupMenuThemeDef,
-  PopupMenuSlots,
-  PopupMenuSlotProps,
   PopupMenuClassNames,
+  PopupMenuSlotProps,
+  PopupMenuSlots,
+  PopupMenuThemeDef,
 } from '@bazza-ui/popup-menu'
 import type * as React from 'react'
 
-/**
- * Context menu definition with properly typed slots, slotProps, and classNames.
- * This is the recommended type to use for context menu data structures.
- */
-export type ContextMenuDef<T = unknown> = Omit<
-  BaseMenuDef<T, PopupMenuSlots<T>, PopupMenuSlotProps, PopupMenuClassNames>,
-  'ui' | 'nodes'
-> & {
-  ui?: PopupMenuThemeDef<T>
-  nodes?: ContextNodeDef<T>[]
-}
+/* ================================================================================================
+ * Context Node Type System
+ * ============================================================================================== */
 
 /**
  * Context submenu definition with properly typed slots, slotProps, and classNames.
  */
-export type ContextSubmenuDef<T = unknown, TChild = unknown> = Omit<
+export type ContextSubmenuDef<TData = unknown, TChild = unknown> = Omit<
   BaseSubmenuDef<
-    T,
+    TData,
     TChild,
     PopupMenuSlots<TChild>,
     PopupMenuSlotProps,
@@ -44,15 +44,60 @@ export type ContextSubmenuDef<T = unknown, TChild = unknown> = Omit<
 }
 
 /**
- * Union of all node types usable in context menus.
- * Use this when you need to specify a single node type.
+ * Union of all node definition types usable in context menus.
  */
-export type ContextNodeDef<T = unknown> =
-  | ItemDef<T>
-  | GroupDef<T>
-  | ContextSubmenuDef<T>
+export type ContextNodeDef<TData = unknown> =
+  | ItemDef<TData>
+  | GroupDef<TData>
+  | ContextSubmenuDef<TData, any>
   | SeparatorDef
   | LoadingDef
+
+/**
+ * Context submenu runtime node.
+ */
+export type ContextSubmenuNode<
+  TData = unknown,
+  TChild = unknown,
+> = BaseSubmenuNode<TData, TChild> & {
+  def: ContextSubmenuDef<TData, TChild>
+  parent: ContextMenu<TData>
+  child: ContextMenu<TChild>
+  nodes: ContextNode<TChild>[]
+}
+
+/**
+ * Union of all runtime node types in context menus.
+ */
+export type ContextNode<TData = unknown> =
+  | ItemNode<TData>
+  | GroupNode<TData>
+  | SeparatorNode
+  | LoadingNode
+  | ContextSubmenuNode<TData, any>
+
+/**
+ * Context menu runtime type.
+ */
+export type ContextMenu<TData = unknown> = BaseMenu & {
+  nodes: ContextNode<TData>[]
+}
+
+/**
+ * Context menu definition with properly typed slots, slotProps, and classNames.
+ */
+export type ContextMenuDef<TData = unknown> = Omit<
+  BaseMenuDef<
+    TData,
+    PopupMenuSlots<TData>,
+    PopupMenuSlotProps,
+    PopupMenuClassNames
+  >,
+  'ui' | 'nodes'
+> & {
+  ui?: PopupMenuThemeDef<TData>
+  nodes?: ContextNodeDef<TData>[]
+}
 
 export type {
   ContextNodeDef as NodeDef,
@@ -60,9 +105,9 @@ export type {
   ContextSubmenuDef as SubmenuDef,
 }
 
-export interface ContextMenuProps<T = unknown> {
+export interface ContextMenuProps<TData = unknown> {
   /** The menu definition */
-  menu: ContextMenuDef<T>
+  menu: ContextMenuDef<TData>
   /** Trigger element - will open context menu on right-click */
   children: React.ReactNode
   /** Callback when menu opens/closes */
@@ -74,7 +119,7 @@ export interface ContextMenuProps<T = unknown> {
   /** Whether clicking outside closes the menu */
   modal?: boolean
   /** Theme customization */
-  theme?: PopupMenuThemeDef<T>
+  theme?: PopupMenuThemeDef<TData>
   /** Placeholder for search input */
   placeholder?: string
   /** Whether to show debug visuals */

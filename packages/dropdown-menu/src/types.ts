@@ -1,37 +1,37 @@
 import type {
+  Menu as BaseMenu,
   MenuDef as BaseMenuDef,
+  BaseNode,
+  BaseNodeDef,
   SubmenuDef as BaseSubmenuDef,
-  ItemDef,
+  SubmenuNode as BaseSubmenuNode,
   GroupDef,
-  SeparatorDef,
+  GroupNode,
+  ItemDef,
+  ItemNode,
   LoadingDef,
+  LoadingNode,
+  SeparatorDef,
+  SeparatorNode,
 } from '@bazza-ui/menu'
 import type {
-  PopupMenuThemeDef,
-  PopupMenuSlots,
-  PopupMenuSlotProps,
   PopupMenuClassNames,
+  PopupMenuSlotProps,
+  PopupMenuSlots,
+  PopupMenuThemeDef,
 } from '@bazza-ui/popup-menu'
 import type * as React from 'react'
 
-/**
- * Dropdown menu definition with properly typed slots, slotProps, and classNames.
- * This is the recommended type to use for dropdown menu data structures.
- */
-export type DropdownMenuDef<T = unknown> = Omit<
-  BaseMenuDef<T, PopupMenuSlots<T>, PopupMenuSlotProps, PopupMenuClassNames>,
-  'ui' | 'nodes'
-> & {
-  ui?: PopupMenuThemeDef<T>
-  nodes?: DropdownNodeDef<T>[]
-}
+/* ================================================================================================
+ * Dropdown Node Type System
+ * ============================================================================================== */
 
 /**
  * Dropdown submenu definition with properly typed slots, slotProps, and classNames.
  */
-export type DropdownSubmenuDef<T = unknown, TChild = unknown> = Omit<
+export type DropdownSubmenuDef<TData = unknown, TChild = unknown> = Omit<
   BaseSubmenuDef<
-    T,
+    TData,
     TChild,
     PopupMenuSlots<TChild>,
     PopupMenuSlotProps,
@@ -44,19 +44,64 @@ export type DropdownSubmenuDef<T = unknown, TChild = unknown> = Omit<
 }
 
 /**
- * Union of all node types usable in dropdown menus.
- * Use this when you need to specify a single node type.
+ * Union of all node definition types usable in dropdown menus.
  */
-export type DropdownNodeDef<T = unknown> =
-  | ItemDef<T>
-  | GroupDef<T>
-  | DropdownSubmenuDef<T>
+export type DropdownNodeDef<TData = unknown> =
+  | ItemDef<TData>
+  | GroupDef<TData>
+  | DropdownSubmenuDef<TData, any>
   | SeparatorDef
   | LoadingDef
 
-export interface DropdownMenuProps<T = unknown> {
+/**
+ * Dropdown submenu runtime node.
+ */
+export type DropdownSubmenuNode<
+  TData = unknown,
+  TChild = unknown,
+> = BaseSubmenuNode<TData, TChild> & {
+  def: DropdownSubmenuDef<TData, TChild>
+  parent: DropdownMenu<TData>
+  child: DropdownMenu<TChild>
+  nodes: DropdownNode<TChild>[]
+}
+
+/**
+ * Union of all runtime node types in dropdown menus.
+ */
+export type DropdownNode<TData = unknown> =
+  | ItemNode<TData>
+  | GroupNode<TData>
+  | SeparatorNode
+  | LoadingNode
+  | DropdownSubmenuNode<TData, any>
+
+/**
+ * Dropdown menu runtime type.
+ */
+export type DropdownMenu<TData = unknown> = BaseMenu & {
+  nodes: DropdownNode<TData>[]
+}
+
+/**
+ * Dropdown menu definition with properly typed slots, slotProps, and classNames.
+ */
+export type DropdownMenuDef<TData = unknown> = Omit<
+  BaseMenuDef<
+    TData,
+    PopupMenuSlots<TData>,
+    PopupMenuSlotProps,
+    PopupMenuClassNames
+  >,
+  'ui' | 'nodes'
+> & {
+  ui?: PopupMenuThemeDef<TData>
+  nodes?: DropdownNodeDef<TData>[]
+}
+
+export interface DropdownMenuProps<TData = unknown> {
   /** The menu definition */
-  menu: DropdownMenuDef<T>
+  menu: DropdownMenuDef<TData>
   /** Trigger element - will open dropdown menu on click */
   children: React.ReactNode
   /** Callback when menu opens/closes */
@@ -68,7 +113,7 @@ export interface DropdownMenuProps<T = unknown> {
   /** Whether clicking outside closes the menu */
   modal?: boolean
   /** Theme customization */
-  theme?: PopupMenuThemeDef<T>
+  theme?: PopupMenuThemeDef<TData>
   /** Placeholder for search input */
   placeholder?: string
   /** Which side to position the menu on */

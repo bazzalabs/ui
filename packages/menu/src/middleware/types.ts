@@ -11,9 +11,9 @@ import type {
 /**
  * Search result wrapper with score and breadcrumb metadata
  */
-export type SearchResult<T = unknown> = {
+export type SearchResult<TData = unknown> = {
   type: 'item' | 'submenu'
-  node: ItemNode<T> | Node<T>
+  node: ItemNode<TData> | Node<TData>
   breadcrumbs: string[]
   breadcrumbIds: string[]
   score: number
@@ -22,72 +22,72 @@ export type SearchResult<T = unknown> = {
 /**
  * Core middleware interface with three transformation hooks
  */
-export interface MenuMiddleware<T = unknown> {
+export interface MenuMiddleware<TData = unknown> {
   /**
    * Pre-filter hook: transform nodes before search/filter
    * Called before the collect() function runs
    */
-  beforeFilter?: (context: BeforeFilterContext<T>) => Node<T>[]
+  beforeFilter?: (context: BeforeFilterContext<TData>) => Node<TData>[]
 
   /**
    * Post-filter hook: transform search results after scoring
    * Called after collect() and sort, before flattening
    * Only runs in search mode
    */
-  afterFilter?: (context: AfterFilterContext<T>) => SearchResult<T>[]
+  afterFilter?: (context: AfterFilterContext<TData>) => SearchResult<TData>[]
 
   /**
    * Transform hook: transform flattened nodes before rendering
    * Called after flattening, has access to both search and browse mode
    * This is the most commonly used hook
    */
-  transformNodes?: (context: TransformNodesContext<T>) => Node<T>[]
+  transformNodes?: (context: TransformNodesContext<TData>) => Node<TData>[]
 }
 
 /**
  * Context passed to beforeFilter middleware
  */
-export interface BeforeFilterContext<T = unknown> {
+export interface BeforeFilterContext<TData = unknown> {
   /** Original menu nodes before any filtering */
-  nodes: Node<T>[]
+  nodes: Node<TData>[]
   /** Current search query */
   query: string
   /** Reference to the menu instance */
-  menu: Menu<T>
+  menu: Menu<TData>
 }
 
 /**
  * Context passed to afterFilter middleware
  */
-export interface AfterFilterContext<T = unknown> {
+export interface AfterFilterContext<TData = unknown> {
   /** Scored and sorted search results */
-  results: SearchResult<T>[]
+  results: SearchResult<TData>[]
   /** Current search query */
   query: string
   /** Reference to the menu instance */
-  menu: Menu<T>
+  menu: Menu<TData>
 }
 
 /**
  * Context passed to transformNodes middleware
  */
-export interface TransformNodesContext<T = unknown> {
+export interface TransformNodesContext<TData = unknown> {
   /** Flattened nodes ready for rendering (after filtering and group expansion) */
-  nodes: Node<T>[]
+  nodes: Node<TData>[]
   /** Current search query (empty string if not searching) */
   query: string
   /** Current mode: browsing or searching */
   mode: 'browse' | 'search'
   /** Original unfiltered menu nodes */
-  allNodes: Node<T>[]
+  allNodes: Node<TData>[]
   /** Reference to the menu instance */
-  menu: Menu<T>
+  menu: Menu<TData>
   /** Helper: create a properly instantiated node */
-  createNode: <U = T>(def: ItemDef<U>) => ItemNode<U>
+  createNode: <U = TData>(def: ItemDef<U>) => ItemNode<U>
   /** Helper: check if query exactly matches any node label */
   hasExactMatch: (query: string) => boolean
   /** Menu control API for programmatic manipulation (optional, depends on implementation) */
-  control?: MenuControl<T>
+  control?: MenuControl<TData>
   /** Whether the menu is currently disabled (e.g., during async operations) */
   disabled?: boolean
 }
@@ -95,7 +95,7 @@ export interface TransformNodesContext<T = unknown> {
 /**
  * Configuration for the createNew middleware
  */
-export interface CreateNewConfig<T = unknown> {
+export interface CreateNewConfig<TData = unknown> {
   /**
    * Condition for showing the create item:
    * - 'always': Always show (when query exists)
@@ -157,10 +157,10 @@ export interface CreateNewConfig<T = unknown> {
   render?: (args: {
     query: string
     bind: RowBindAPI
-    nodes: Node<T>[]
-    allNodes: Node<T>[]
+    nodes: Node<TData>[]
+    allNodes: Node<TData>[]
     mode: 'browse' | 'search'
-    menu: Menu<T>
+    menu: Menu<TData>
   }) => React.ReactNode
 
   /**
@@ -191,6 +191,6 @@ export interface CreateNewConfig<T = unknown> {
     /** The search query (text to create) */
     query: string
     /** Optional menu control API for programmatic manipulation */
-    control?: import('../control.js').MenuControl<T>
+    control?: import('../control.js').MenuControl<TData>
   }) => void | Promise<void>
 }

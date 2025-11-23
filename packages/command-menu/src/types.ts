@@ -1,13 +1,21 @@
 import type {
+  Menu as BaseMenu,
   MenuDef as BaseMenuDef,
+  BaseNode,
+  BaseNodeDef,
   SubmenuDef as BaseSubmenuDef,
+  SubmenuNode as BaseSubmenuNode,
   GroupDef,
+  GroupNode,
   ItemDef,
+  ItemNode,
   LoadingDef,
+  LoadingNode,
   MenuClassNames,
   MenuSlotProps,
   MenuSlots,
   SeparatorDef,
+  SeparatorNode,
 } from '@bazza-ui/menu'
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
@@ -64,7 +72,7 @@ export type DialogInnerBindAPI = {
 /**
  * Command menu specific slots that extend MenuSlots
  */
-export type CommandMenuSlots<T = unknown> = MenuSlots<T> & {
+export type CommandMenuSlots<TData = unknown> = MenuSlots<TData> & {
   /**
    * Slot for customizing the dialog portal
    * Allows custom portal container or behavior
@@ -110,14 +118,14 @@ export type CommandMenuSlotProps = MenuSlotProps & {
   breadcrumbs?: React.HTMLAttributes<HTMLElement>
 }
 
-export type CommandMenuThemeDef<T = unknown> = ThemeDef<
-  CommandMenuSlots<T>,
+export type CommandMenuThemeDef<TData = unknown> = ThemeDef<
+  CommandMenuSlots<TData>,
   CommandMenuSlotProps,
   CommandMenuClassNames
 >
 
-export type CommandMenuTheme<T = unknown> = Theme<
-  CommandMenuSlots<T>,
+export type CommandMenuTheme<TData = unknown> = Theme<
+  CommandMenuSlots<TData>,
   CommandMenuSlotProps,
   CommandMenuClassNames
 >
@@ -133,22 +141,9 @@ export type CommandMenuClassNames = MenuClassNames & {
   backButton?: string
 }
 
-/**
- * Command menu definition with properly typed slots, slotProps, and classNames.
- * This is the recommended type to use for command menu data structures.
- */
-export type CommandMenuDef<T = unknown> = Omit<
-  BaseMenuDef<
-    T,
-    CommandMenuSlots<T>,
-    CommandMenuSlotProps,
-    CommandMenuClassNames
-  >,
-  'ui' | 'nodes'
-> & {
-  ui?: CommandMenuThemeDef<T>
-  nodes?: CommandNodeDef<T>[]
-}
+/* ================================================================================================
+ * Command Node Type System
+ * ============================================================================================== */
 
 /**
  * Command submenu definition with properly typed slots, slotProps, and classNames.
@@ -168,17 +163,64 @@ export type CommandSubmenuDef<T = unknown, TChild = unknown> = Omit<
 }
 
 /**
- * Union of all node types usable in command menus.
- * Use this when you need to specify a single node type.
+ * Union of all node definition types usable in command menus.
  */
-export type CommandNodeDef<T = unknown> =
-  | ItemDef<T>
-  | GroupDef<T>
+export type CommandNodeDef<TData = unknown> =
+  | ItemDef<TData>
+  | GroupDef<TData>
   | SeparatorDef
   | LoadingDef
-  | CommandSubmenuDef<T>
+  | CommandSubmenuDef<TData, any>
 
-export interface CommandMenuProps<T = unknown> {
+/**
+ * Command submenu runtime node.
+ */
+export type CommandSubmenuNode<
+  TData = unknown,
+  TChild = unknown,
+> = BaseSubmenuNode<TData, TChild> & {
+  def: CommandSubmenuDef<TData, TChild>
+  parent: CommandMenu<TData>
+  child: CommandMenu<TChild>
+  nodes: CommandNode<TChild>[]
+}
+
+/**
+ * Union of all runtime node types in command menus.
+ * This is the complete CommandNode type that represents any node in a command menu.
+ */
+export type CommandNode<TData = unknown> =
+  | ItemNode<TData>
+  | GroupNode<TData>
+  | SeparatorNode
+  | LoadingNode
+  | CommandSubmenuNode<TData, any>
+
+/**
+ * Command menu runtime type.
+ */
+export type CommandMenu<TData = unknown> = BaseMenu<TData> & {
+  nodes: CommandNode<TData>[]
+}
+
+/**
+ * Command menu definition with properly typed slots, slotProps, and classNames.
+ * This is the recommended type to use for command menu data structures.
+ */
+export type CommandMenuDef<TData = unknown> = Omit<
+  BaseMenuDef<
+    TData,
+    CommandMenuSlots<TData>,
+    CommandMenuSlotProps,
+    CommandMenuClassNames
+  >,
+  'ui' | 'nodes'
+> & {
+  ui?: CommandMenuThemeDef<TData>
+  nodes?: CommandNodeDef<TData>[]
+}
+
+export interface CommandMenuProps<TData = unknown> {
   /** Controlled open state */
   open?: boolean
   /** Callback when open state changes */
@@ -186,7 +228,7 @@ export interface CommandMenuProps<T = unknown> {
   /** Default open state (uncontrolled) */
   defaultOpen?: boolean
   /** Menu definition */
-  menu: CommandMenuDef<T>
+  menu: CommandMenuDef<TData>
   /** Enable vim key bindings (Ctrl+j/k/n/p for navigation) */
   vimBindings?: boolean
   /** Text direction */
@@ -198,7 +240,7 @@ export interface CommandMenuProps<T = unknown> {
   /** Callback when submenu navigation occurs */
   onNavigationChange?: (event: NavigationChangeEvent) => void
   /** Ref for programmatic control of the command menu */
-  controlRef?: React.Ref<import('./control.js').CommandMenuControl<T>>
+  controlRef?: React.Ref<import('./control.js').CommandMenuControl<TData>>
   /** Children (optional trigger) */
   children?: React.ReactNode
 }
