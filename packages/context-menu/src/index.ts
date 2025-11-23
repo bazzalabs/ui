@@ -40,10 +40,8 @@ export type {
   ContextNodeDef as NodeDef,
 } from './types.js'
 
-// Menu model types - re-exported from @bazza-ui/menu for developer convenience
+// Re-export non-extended base types from @bazza-ui/menu for developer convenience
 export type {
-  MenuDef as BaseMenuDef,
-  NodeDef as BaseNodeDef,
   GroupDef,
   DefaultGroupDef,
   RadioGroupDef,
@@ -57,11 +55,11 @@ export type {
   ItemVariant,
   ExtendedItemVariant,
   ItemExtendedProperties,
-  SubmenuDef as BaseSubmenuDef,
   SeparatorDef,
   SeparatorNode,
+  LoadingDef,
+  LoadingNode,
   Menu,
-  Node,
   GroupNode,
   DefaultGroupNode,
   RadioGroupNode,
@@ -69,13 +67,7 @@ export type {
   ButtonItemNode,
   CheckboxItemNode,
   RadioItemNode,
-  SubmenuNode,
   MenuNodeKind,
-  MenuSlots,
-  MenuSlotProps,
-  MenuClassNames,
-  MenuTheme,
-  MenuThemeDef,
   SearchContext,
   ItemSlotProps,
   RowBindAPI,
@@ -93,3 +85,6 @@ export type * from './control.js'
 
 // Functions - re-exported from @bazza-ui/menu for developer convenience
 export { renderIcon, flatten } from '@bazza-ui/menu'
+
+// Export middleware helpers (also available at @bazza-ui/context-menu/middleware)
+export { composeMiddleware, createNew } from './middleware.js'

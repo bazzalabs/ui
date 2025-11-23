@@ -1,3 +1,4 @@
+import type { MenuControl } from '../control.js'
 import type { CreateNewConfig, MenuMiddleware } from './types.js'
 
 /**
@@ -51,9 +52,10 @@ import type { CreateNewConfig, MenuMiddleware } from './types.js'
  * @param config - Configuration for the create new middleware
  * @returns A middleware object with transformNodes hook
  */
-export function createNew<T = unknown>(
-  config: CreateNewConfig<T>,
-): MenuMiddleware<T> {
+export function createNew<
+  TData = unknown,
+  TControl extends MenuControl<TData> = MenuControl<TData>,
+>(config: CreateNewConfig<TData, TControl>): MenuMiddleware<TData, TControl> {
   return {
     transformNodes: (context) => {
       const {

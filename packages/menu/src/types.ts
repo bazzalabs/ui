@@ -1,6 +1,7 @@
 import type { Primitive } from '@radix-ui/react-primitive'
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual'
 import type * as React from 'react'
+import type { MenuControl } from './control.js'
 import type { MenuMiddleware } from './middleware/types.js'
 
 /* ================================================================================================
@@ -340,6 +341,7 @@ export type MenuDef<
   TSlots = MenuSlots<TData>,
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
+  TControl extends MenuControl<TData> = MenuControl<TData>,
 > = {
   id: string
   title?: string
@@ -347,7 +349,7 @@ export type MenuDef<
   hideSearchUntilActive?: boolean
   /** Static nodes (sync mode). Mutually exclusive with `loader`. */
   nodes?: NodeDef<TData>[]
-  /** Async node loader (async mode). Mutually exclusive with `nodes`. */
+  /** Async node loader (async mode). Mutually exclusive with `loader`. */
   loader?: AsyncNodeLoader<TData>
   defaults?: MenuNodeDefaults<TData>
   /** Virtualization configuration for the list. */
@@ -355,7 +357,7 @@ export type MenuDef<
   /** Search configuration for filtering behavior. */
   search?: SearchConfig
   /** Middleware for programmatic control and event handling. */
-  middleware?: MenuMiddleware<any>
+  middleware?: MenuMiddleware<TData, any>
   ui?: MenuThemeDef<TData, TSlots, TSlotProps, TClassNames>
   /** Custom render function for the menu content. */
   render?: () => React.ReactNode
@@ -483,12 +485,13 @@ export type SubmenuDef<
   TSlots = MenuSlots<TChild>,
   TSlotProps = MenuSlotProps,
   TClassNames = MenuClassNames,
+  TControl extends MenuControl<TChild> = MenuControl<TChild>,
 > = BaseNodeDef<'submenu'> &
   Searchable &
   MenuState & {
     /** Static nodes (sync mode). Mutually exclusive with `loader`. */
     nodes?: NodeDef<TChild>[]
-    /** Async node loader (async mode). Mutually exclusive with `nodes`. */
+    /** Async node loader (async mode). Mutually exclusive with `loader`. */
     loader?: AsyncNodeLoader<TChild>
     /**
      * When true, this submenu's children are searchable from ancestor menus (deep search).
@@ -507,13 +510,13 @@ export type SubmenuDef<
     title?: string
     inputPlaceholder?: string
     hideSearchUntilActive?: boolean
-    defaults?: MenuNodeDefaults<TData>
+    defaults?: MenuNodeDefaults<TChild>
     /** Virtualization configuration for the submenu's list. */
-    virtualization?: VirtualizationConfig<TData>
+    virtualization?: VirtualizationConfig<TChild>
     /** Search configuration for filtering behavior. */
     search?: SearchConfig
     /** Middleware for programmatic control and event handling. */
-    middleware?: MenuMiddleware<any>
+    middleware?: MenuMiddleware<TChild, any>
     ui?: MenuThemeDef<TChild, TSlots, TSlotProps, TClassNames>
     render?: () => React.ReactNode
   }

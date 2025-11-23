@@ -1,3 +1,4 @@
+import type { MenuControl } from '../control.js'
 import type { MenuMiddleware } from './types.js'
 
 /**
@@ -35,12 +36,15 @@ import type { MenuMiddleware } from './types.js'
  * @param middlewares - Variable number of middleware objects to compose
  * @returns A single composed middleware object
  */
-export function composeMiddleware<T = unknown>(
-  middlewares: (MenuMiddleware<T> | undefined | null)[],
-): MenuMiddleware<T> {
+export function composeMiddleware<
+  TData = unknown,
+  TControl extends MenuControl<TData> = MenuControl<TData>,
+>(
+  middlewares: (MenuMiddleware<TData, TControl> | undefined | null)[],
+): MenuMiddleware<TData, TControl> {
   // Filter out null/undefined middleware
   const validMiddleware = middlewares.filter(
-    (m): m is MenuMiddleware<T> => m != null,
+    (m): m is MenuMiddleware<TData, TControl> => m != null,
   )
 
   // If no valid middleware, return empty middleware
@@ -62,7 +66,7 @@ export function composeMiddleware<T = unknown>(
     beforeFilterHooks.length > 0
       ? (
           context: Parameters<
-            NonNullable<MenuMiddleware<T>['beforeFilter']>
+            NonNullable<MenuMiddleware<TData, TControl>['beforeFilter']>
           >[0],
         ) => {
           let nodes = context.nodes
@@ -81,7 +85,9 @@ export function composeMiddleware<T = unknown>(
   const composedAfterFilter =
     afterFilterHooks.length > 0
       ? (
-          context: Parameters<NonNullable<MenuMiddleware<T>['afterFilter']>>[0],
+          context: Parameters<
+            NonNullable<MenuMiddleware<TData, TControl>['afterFilter']>
+          >[0],
         ) => {
           let results = context.results
           for (const hook of afterFilterHooks) {
@@ -100,7 +106,7 @@ export function composeMiddleware<T = unknown>(
     transformNodesHooks.length > 0
       ? (
           context: Parameters<
-            NonNullable<MenuMiddleware<T>['transformNodes']>
+            NonNullable<MenuMiddleware<TData, TControl>['transformNodes']>
           >[0],
         ) => {
           let nodes = context.nodes

@@ -1,8 +1,6 @@
 import type {
   Menu as BaseMenu,
   MenuDef as BaseMenuDef,
-  BaseNode,
-  BaseNodeDef,
   SubmenuDef as BaseSubmenuDef,
   SubmenuNode as BaseSubmenuNode,
   GroupDef,

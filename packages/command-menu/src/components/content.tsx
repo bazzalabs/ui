@@ -1,4 +1,9 @@
-import { type MenuDef, type MenuNodeDefaults, useMenu } from '@bazza-ui/menu'
+import {
+  type MenuDef,
+  type MenuNodeDefaults,
+  type SubmenuDef,
+  useMenu,
+} from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'

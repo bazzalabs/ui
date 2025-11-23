@@ -1,14 +1,16 @@
 'use client'
 
 import {
-  type MenuDef,
-  type NodeDef,
+  type DropdownMenuDef,
+  type DropdownNodeDef,
+  type DropdownSubmenuDef,
   renderIcon,
-  type SubmenuDef,
 } from '@bazza-ui/dropdown-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
-import { ListFilterIcon } from 'lucide-react'
+import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
+import { ListFilterIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { sleep } from '@/app/demos/client/tst-static/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -50,7 +52,7 @@ export function DropdownMenu_LinearAsync() {
   )
 }
 
-const statusMenu: SubmenuDef = {
+const statusMenu: DropdownSubmenuDef = {
   kind: 'submenu',
   icon: <StatusIcon />,
   label: 'Status',
@@ -86,7 +88,7 @@ const statusMenu: SubmenuDef = {
 }
 
 // Simulate fetching assignees from an API
-async function fetchAssignees(): Promise<NodeDef[]> {
+async function fetchAssignees(): Promise<DropdownNodeDef[]> {
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
   const users = [
@@ -159,7 +161,7 @@ async function fetchAssignees(): Promise<NodeDef[]> {
   }))
 }
 
-const assigneeMenu: SubmenuDef = {
+const assigneeMenu: DropdownSubmenuDef = {
   kind: 'submenu',
   icon: <AssigneeIcon />,
   label: 'Assignee',
@@ -195,7 +197,7 @@ export const LABEL_STYLES_BG = {
 export type TW_COLOR = keyof typeof LABEL_STYLES_BG
 
 // Simulate fetching labels from an API
-async function fetchLabels(query?: string): Promise<NodeDef[]> {
+async function fetchLabels(query?: string): Promise<DropdownNodeDef[]> {
   await new Promise((resolve) => setTimeout(resolve, 800))
 
   const labels = [
@@ -685,7 +687,7 @@ async function fetchLabels(query?: string): Promise<NodeDef[]> {
     .slice(0, 20)
 }
 
-const labelsMenu: SubmenuDef = {
+const labelsMenu: DropdownSubmenuDef = {
   kind: 'submenu',
   icon: LabelsIcon,
   label: 'Labels',
@@ -695,9 +697,32 @@ const labelsMenu: SubmenuDef = {
     queryKey: ['labels', query],
     queryFn: () => fetchLabels(query),
   })),
+  middleware: composeMiddleware([
+    createNew({
+      showWhen: 'no-exact-match',
+      position: 'bottom',
+      id: '__create-new-label',
+      label: (query) => `Create new label: ${query}`,
+      icon: <PlusIcon />,
+      onCreate: async ({ control }) => {
+        // Disable entire menu (input, navigation, items, including this "create new" item)
+        const enable = control?.disable()
+
+        await sleep(3000)
+
+        toast('Label created successfully')
+
+        // Re-enable menu and return focus to input
+        if (enable) enable()
+
+        // CommandMenuControl-specific method (would error if control was typed as MenuControl)
+        control?.focusInput()
+      },
+    }),
+  ]),
 }
 
-const projectStatusMenu: SubmenuDef = {
+const projectStatusMenu: DropdownSubmenuDef = {
   kind: 'submenu',
   icon: <ProjectStatusIcon />,
   label: 'Project status',
@@ -737,7 +762,7 @@ const projectStatusMenu: SubmenuDef = {
   ],
 }
 
-const projectPropertiesMenu: SubmenuDef = {
+const projectPropertiesMenu: DropdownSubmenuDef = {
   kind: 'submenu',
   icon: <ProjectPropertiesIcon />,
   title: 'Project properties',
@@ -746,7 +771,7 @@ const projectPropertiesMenu: SubmenuDef = {
   nodes: [projectStatusMenu],
 }
 
-export const menuData: MenuDef = {
+export const menuData: DropdownMenuDef = {
   id: 'issue-properties',
   // defaults: {
   //   item: {

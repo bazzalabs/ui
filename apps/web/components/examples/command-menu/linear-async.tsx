@@ -1,17 +1,20 @@
 'use client'
 
-import { queryLoader } from '@bazza-ui/loaders/query'
 import {
+  type CommandMenuControl,
+  composeMiddleware,
+  createNew,
   type MenuDef,
   type NodeDef,
   renderIcon,
   type SubmenuDef,
-} from '@bazza-ui/menu'
-import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
+} from '@bazza-ui/command-menu'
+import { queryLoader } from '@bazza-ui/loaders/query'
 import { DialogContent } from '@radix-ui/react-dialog'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PlusIcon, SearchIcon } from 'lucide-react'
 import { motion, useAnimate } from 'motion/react'
+import { useRef } from 'react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -28,8 +31,6 @@ import {
   Status,
   StatusIcon,
 } from '../action-menu/shared/icons'
-import { useRef } from 'react'
-import type { CommandMenuControl } from '@bazza-ui/command-menu'
 
 const queryClient = new QueryClient()
 
@@ -60,6 +61,8 @@ export function CommandMenu_LinearAsync() {
         defaults={{
           item: {
             onSelect: ({ node }) => {
+              console.log('title', node.parent.title)
+              console.log('label', node.parent.label)
               toast(
                 `Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`,
                 {
@@ -334,6 +337,7 @@ const projectStatusMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectStatusIcon />,
   label: 'Project status',
+  title: 'Project status',
   inputPlaceholder: 'Project status...',
   nodes: [
     {
@@ -373,21 +377,22 @@ const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectPropertiesIcon />,
   label: 'Project properties',
+  title: 'Project properties',
   inputPlaceholder: 'Project properties...',
   nodes: [projectStatusMenu],
 }
 
 export const menuData: MenuDef = {
   id: 'issue-properties',
-  defaults: {
-    item: {
-      closeOnSelect: true,
-      onSelect: ({ node }) => {
-        const parentTitle = node.parent.title?.toLowerCase() || 'property'
-        toast(`Changed ${parentTitle} to ${node.label}.`)
-      },
-    },
-  },
+  // defaults: {
+  //   item: {
+  //     closeOnSelect: true,
+  //     onSelect: ({ node }) => {
+  //       const parentTitle = node.parent.title?.toLowerCase() || 'property'
+  //       toast(`Changed ${parentTitle} to ${node.label}.`)
+  //     },
+  //   },
+  // },
   search: {
     minLength: 2,
   },

@@ -3,6 +3,7 @@ import { defineConfig, type Options } from 'tsup'
 export default defineConfig((options: Options) => ({
   entry: {
     index: './src/index.ts',
+    middleware: './src/middleware.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

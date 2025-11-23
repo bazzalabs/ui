@@ -27,7 +27,17 @@ export type {
   PopupMenuDef,
   PopupSubmenuDef,
   PopupNodeDef,
+  PopupNode,
   PopupSubmenuNode,
+} from './types.js'
+
+// Package-specific menu types with dual naming (convenient for package-scoped usage)
+export type {
+  PopupMenuDef as MenuDef,
+  PopupSubmenuDef as SubmenuDef,
+  PopupNodeDef as NodeDef,
+  PopupNode as Node,
+  PopupSubmenuNode as SubmenuNode,
 } from './types.js'
 
 // Control
@@ -119,3 +129,36 @@ export {
   SELECT_ITEM_EVENT,
 } from './features/interaction/index.js'
 export { defaultSlots } from './components/slots/index.js'
+
+// Re-export non-extended base types from @bazza-ui/menu for developer convenience
+export type {
+  GroupDef,
+  DefaultGroupDef,
+  RadioGroupDef,
+  ItemDef,
+  BaseItemDef,
+  ButtonItemDef,
+  CheckboxItemDef,
+  RadioItemDef,
+  ItemVariantMap,
+  ExtendedItemVariantMap,
+  ItemVariant,
+  ExtendedItemVariant,
+  ItemExtendedProperties,
+  SeparatorDef,
+  LoadingDef,
+  Menu,
+  GroupNode,
+  DefaultGroupNode,
+  RadioGroupNode,
+  ItemNode,
+  ButtonItemNode,
+  CheckboxItemNode,
+  RadioItemNode,
+  SeparatorNode,
+  LoadingNode,
+  MenuNodeKind,
+} from '@bazza-ui/menu'
+
+// Export middleware helpers (also available at @bazza-ui/popup-menu/middleware)
+export { composeMiddleware, createNew } from './middleware.js'
