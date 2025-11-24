@@ -107,11 +107,6 @@
           "target": "components/data-table-filter/components/filter-value/index.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/boolean/controller.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/boolean/controller.tsx"
-        },
-        {
           "path": "registry/data-table-filter/components/filter-value/boolean/display.tsx",
           "type": "registry:file",
           "target": "components/data-table-filter/components/filter-value/boolean/display.tsx"

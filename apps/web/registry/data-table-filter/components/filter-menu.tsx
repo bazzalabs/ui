@@ -293,7 +293,6 @@ function __FilterMenu<TData>({
                   filtersRef.current.find((f) => f.columnId === column.id) as
                     | FilterModel<'option'>
                     | undefined,
-                initialSelectedValuesRef: getColumnRef(column.id) as any,
               })
             : column.type === 'multiOption'
               ? createMultiOptionMenu({
@@ -306,7 +305,6 @@ function __FilterMenu<TData>({
                     filtersRef.current.find((f) => f.columnId === column.id) as
                       | FilterModel<'multiOption'>
                       | undefined,
-                  initialSelectedValuesRef: getColumnRef(column.id) as any,
                 })
               : {}),
         } as SubmenuDef
