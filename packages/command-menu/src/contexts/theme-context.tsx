@@ -20,7 +20,9 @@ const {
   CommandMenuSlots,
   CommandMenuSlotProps,
   CommandMenuClassNames
->(defaultSlots)
+>({
+  defaultSlots,
+})
 
 export {
   mergeTheme,

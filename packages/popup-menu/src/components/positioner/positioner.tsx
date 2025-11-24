@@ -2,20 +2,16 @@ import { Popover } from '@base-ui-components/react/popover'
 import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
 import { useRoot } from '../../contexts/root-context.js'
-import { useSub } from '../submenu/submenu-context.js'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 import { INPUT_VISIBILITY_CHANGE_EVENT } from '../../features/interaction/events.js'
 import { InteractionGuard } from '../../features/interaction/interaction-guard.js'
+import { useSub } from '../submenu/submenu-context.js'
 
 /* ================================================================================================
  * Positioning Types
  * ============================================================================================== */
 
-import type {
-  AnchorSide,
-  PopupMenuPositionerProps,
-  PositionerSlotProps,
-} from '../../types.js'
+import type { PopupMenuPositionerProps } from '../../types.js'
 
 export interface PositionerProps {
   side?: PopupMenuPositionerProps['side']
@@ -45,10 +41,29 @@ export function Positioner({
   const { classNames, slotProps } = useScopedTheme()
 
   const isSub = !!sub
+
+  // Extract theme slot props FIRST so we can use them for defaults
+  const positionerSlotProps = React.useMemo(() => {
+    const props = slotProps?.positioner
+    if (!props) return {}
+
+    // Check if it has root/sub structure
+    if ('root' in props || 'sub' in props) {
+      return isSub ? (props.sub ?? {}) : (props.root ?? {})
+    }
+
+    // Otherwise it's a flat object to apply to all
+    return props
+  }, [slotProps?.positioner, isSub])
+
+  // Now resolve side and align, checking theme props BEFORE falling back to defaults
   const defaultSide = isSub ? 'right' : 'bottom'
-  const resolvedSide = side ?? defaultSide
   const defaultAlign = isSub ? 'list' : 'start'
-  const resolvedAlign = align ?? defaultAlign
+
+  const themeSlotProps =
+    positionerSlotProps as Partial<PopupMenuPositionerProps>
+  const resolvedSide = side ?? themeSlotProps.side ?? defaultSide
+  const resolvedAlign = align ?? themeSlotProps.align ?? defaultAlign
 
   const [listTopOffset, setListTopOffset] = React.useState(0)
 
@@ -177,21 +192,6 @@ export function Positioner({
 
   // Map 'list' to Base UI's 'start' for the actual positioning
   const baseUIAlign = resolvedAlign === 'list' ? 'start' : resolvedAlign
-
-  // Determine if this is a submenu or root positioner
-  // Handle both flat PositionerSlotProps and nested { root, sub } structure
-  const positionerSlotProps = React.useMemo(() => {
-    const props = slotProps?.positioner
-    if (!props) return {}
-
-    // Check if it has root/sub structure
-    if ('root' in props || 'sub' in props) {
-      return isSub ? (props.sub ?? {}) : (props.root ?? {})
-    }
-
-    // Otherwise it's a flat object to apply to all
-    return props
-  }, [slotProps?.positioner, isSub])
 
   // Merge positioner props with theme (without alignOffset - we'll calculate it separately)
   const basePropsWithoutAnchor = {

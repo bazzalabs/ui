@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { mergeClassNames, mergeSlotProps } from './merge-props.js'
-import type { Theme, ThemeDef } from './types.js'
+import type { Theme, ThemeDef, ThemeSystemConfig } from './types.js'
 
 /**
  * Creates a complete theming system for a component.
@@ -23,8 +23,16 @@ import type { Theme, ThemeDef } from './types.js'
  * ```
  */
 export function createThemeSystem<TSlots, TSlotProps, TClassNames>(
-  defaultSlots: () => Required<TSlots>,
+  config:
+    | (() => Required<TSlots>)
+    | ThemeSystemConfig<TSlots, TSlotProps, TClassNames>,
 ) {
+  // Support both old function signature and new config object
+  const defaultSlots =
+    typeof config === 'function' ? config : config.defaultSlots
+  const mergeStrategy =
+    typeof config === 'function' ? undefined : config.slotPropMergeStrategy
+
   /**
    * Merges two themes together, with b taking precedence over a.
    * Intelligently combines slots, slotProps, and classNames.
@@ -39,6 +47,7 @@ export function createThemeSystem<TSlots, TSlotProps, TClassNames>(
     slotProps: mergeSlotProps(
       a?.slotProps,
       b?.slotProps,
+      mergeStrategy,
     ) as Partial<TSlotProps>,
     classNames: mergeClassNames(
       a?.classNames ?? {},

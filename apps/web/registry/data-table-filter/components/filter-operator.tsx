@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/action-menu'
+import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import {
   booleanFilterOperators,
   type Column,
@@ -19,7 +19,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import type { ComponentPropsWithoutRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { DropdownMenu } from '@/registry/dropdown-menu'
 import { useFilterVariant } from '../context'
 
 const filterOperatorVariants = cva(
@@ -118,8 +118,8 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
   return (
-    <ActionMenu menu={menu}>
-      <ActionMenu.Trigger asChild>
+    <DropdownMenu menu={menu}>
+      <DropdownMenu.Trigger asChild>
         <Button
           data-slot="filter-operator"
           data-column-type={column.type}
@@ -151,8 +151,8 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
             locale={locale}
           />
         </Button>
-      </ActionMenu.Trigger>
-    </ActionMenu>
+      </DropdownMenu.Trigger>
+    </DropdownMenu>
   )
 }
 

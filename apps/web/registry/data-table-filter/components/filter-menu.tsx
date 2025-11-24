@@ -1,8 +1,8 @@
 import type {
-  ActionMenuRootProps,
+  DropdownMenuProps as ActionMenuRootProps,
   MenuDef,
   SubmenuDef,
-} from '@bazza-ui/action-menu'
+} from '@bazza-ui/dropdown-menu'
 import {
   type Column,
   type DataTableFilterActions,
@@ -25,7 +25,7 @@ import {
 } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { DropdownMenu } from '@/registry/dropdown-menu'
 import { type FilterVariant, useFilterVariant } from '../context'
 import {
   createMultiOptionMenu,
@@ -143,7 +143,7 @@ function FilterMenuTrigger({
   const Comp = asChild ? Slot : Button
 
   return (
-    <ActionMenu.Trigger asChild>
+    <DropdownMenu.Trigger asChild>
       <Comp
         data-slot="filter-menu-trigger"
         data-state={hasVisibleFilters ? 'has-filters' : 'empty'}
@@ -160,7 +160,7 @@ function FilterMenuTrigger({
           </>
         )}
       </Comp>
-    </ActionMenu.Trigger>
+    </DropdownMenu.Trigger>
   )
 }
 
@@ -297,7 +297,7 @@ function __FilterMenu<TData>({
 
   return (
     <FilterMenuContext.Provider value={contextValue}>
-      <ActionMenu
+      <DropdownMenu
         slots={{
           Item: OptionItem,
         }}
@@ -305,7 +305,7 @@ function __FilterMenu<TData>({
         {...actionMenuProps}
       >
         {children ?? <FilterMenuTrigger />}
-      </ActionMenu>
+      </DropdownMenu>
     </FilterMenuContext.Provider>
   )
 }

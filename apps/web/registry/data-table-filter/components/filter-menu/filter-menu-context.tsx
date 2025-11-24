@@ -1,6 +1,6 @@
 'use client'
 
-import type { ActionMenuRootProps } from '@bazza-ui/action-menu'
+import type { DropdownMenuProps as ActionMenuRootProps } from '@bazza-ui/dropdown-menu'
 import {
   useFilterActions,
   useFilterContext,

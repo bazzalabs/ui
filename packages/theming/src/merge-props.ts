@@ -2,6 +2,7 @@ import { composeEventHandlers } from '@radix-ui/primitive'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import type { ClassNameValue } from 'tailwind-merge'
 import { cn } from './cn.js'
+import type { SlotPropMergeStrategy } from './types.js'
 
 export const HANDLER_KEYS = [
   'onClick',
@@ -56,9 +57,34 @@ export function mergeClassNames<T extends Record<string, ClassNameValue>>(
   return merged
 }
 
+/**
+ * Custom merge function for positioner props with root/sub structure.
+ * Merges { root: {...}, sub: {...} } objects by merging root and sub separately.
+ */
+export function mergePositionerProps(a?: any, b?: any): any {
+  if (!a && !b) return {}
+  if (!a) return b ?? {}
+  if (!b) return a
+
+  // Check if either has root/sub structure
+  const hasStructure = (obj: any) => obj && (obj.root || obj.sub)
+
+  if (!hasStructure(a) && !hasStructure(b)) {
+    // Neither has structure, just merge normally
+    return mergeProps(a, b)
+  }
+
+  // Merge root and sub separately
+  return {
+    root: mergeProps(a?.root, b?.root),
+    sub: mergeProps(a?.sub, b?.sub),
+  }
+}
+
 export function mergeSlotProps<TSlotProps extends Record<string, any>>(
   a?: Partial<TSlotProps>,
   b?: Partial<TSlotProps>,
+  strategy?: SlotPropMergeStrategy<TSlotProps>,
 ): Partial<TSlotProps> {
   if (!a && !b) return {}
   if (!a) return b ?? {}
@@ -70,7 +96,17 @@ export function mergeSlotProps<TSlotProps extends Record<string, any>>(
   >
 
   for (const key of allKeys) {
-    merged[key] = mergeProps(a[key as any], b[key as any])
+    const aVal = a[key as any]
+    const bVal = b[key as any]
+    const keyStrategy = strategy?.[key as keyof TSlotProps]
+
+    if (typeof keyStrategy === 'function') {
+      // Custom merge function
+      merged[key] = keyStrategy(aVal, bVal)
+    } else {
+      // Default shallow merge
+      merged[key] = mergeProps(aVal, bVal)
+    }
   }
 
   return merged

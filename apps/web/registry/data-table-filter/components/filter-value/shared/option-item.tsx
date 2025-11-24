@@ -1,10 +1,10 @@
 'use client'
 
-import type { ItemNode, ItemSlotProps } from '@bazza-ui/action-menu'
-import { renderIcon } from '@bazza-ui/action-menu'
+import type { ItemNode, ItemSlotProps } from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
+import { renderIcon } from '@bazza-ui/menu'
 import { Checkbox } from '@/components/ui/checkbox'
-import { LabelWithBreadcrumbs } from '@/registry/action-menu'
+import { LabelWithBreadcrumbs } from '@/registry/dropdown-menu'
 
 export function OptionItem({ node: nodeProp, bind, search }: ItemSlotProps) {
   const props = bind.getRowProps({

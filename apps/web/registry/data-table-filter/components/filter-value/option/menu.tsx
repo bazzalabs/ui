@@ -1,4 +1,4 @@
-import type { MenuMiddleware, SubmenuDef } from '@bazza-ui/action-menu'
+import type { SubmenuDef } from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
 import type { FilterValueControllerProps } from '../shared/types'
 
@@ -59,44 +59,7 @@ export function createOptionMenu<TData>({
     } as any
   })
 
-  const middleware: MenuMiddleware = {
-    transformNodes: (context) => {
-      const { nodes: filteredNodes } = context
-
-      // Group the filtered items by their initialGroup metadata (sticky grouping)
-      const selectedItems = filteredNodes.filter(
-        (node: any) => node.data?.initialGroup === 'selected',
-      )
-      const unselectedItems = filteredNodes.filter(
-        (node: any) => node.data?.initialGroup === 'unselected',
-      )
-
-      const result: any[] = []
-
-      // Add selected items
-      if (selectedItems.length > 0) {
-        result.push(...selectedItems)
-      }
-
-      // Add separator between selected and unselected if both exist
-      if (selectedItems.length > 0 && unselectedItems.length > 0) {
-        result.push({
-          kind: 'separator' as const,
-          id: `${column.id}-separator`,
-        })
-      }
-
-      // Add unselected items
-      if (unselectedItems.length > 0) {
-        result.push(...unselectedItems)
-      }
-
-      return result
-    },
-  }
-
   return {
     nodes,
-    middleware,
   }
 }

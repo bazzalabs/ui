@@ -2,13 +2,13 @@
 
 'use client'
 
-import type { MenuDef } from '@bazza-ui/action-menu'
+import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
 import { cva } from 'class-variance-authority'
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { DropdownMenu } from '@/registry/dropdown-menu'
 import { useFilterVariant } from '../../context'
 import { FilterValueBooleanDisplay } from './boolean'
 import { FilterValueDateController, FilterValueDateDisplay } from './date'
@@ -172,7 +172,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   }, [column, filter, actions, locale, strategy])
 
   return (
-    <ActionMenu
+    <DropdownMenu
       slots={{
         Item: (column.type === 'text' ? TextItem : OptionItem) as any,
       }}
@@ -184,7 +184,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
         }
       }}
     >
-      <ActionMenu.Trigger asChild>
+      <DropdownMenu.Trigger asChild>
         <Button
           data-slot="filter-value"
           data-column-type={column.type}
@@ -206,8 +206,8 @@ function __FilterValue<TData, TType extends ColumnDataType>({
             entityName={entityName}
           />
         </Button>
-      </ActionMenu.Trigger>
-    </ActionMenu>
+      </DropdownMenu.Trigger>
+    </DropdownMenu>
   )
 }
 
