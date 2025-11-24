@@ -7,7 +7,7 @@ import {
   frontmatterSchema,
 } from 'fumadocs-mdx/config'
 import rehypeCallouts from 'rehype-callouts'
-import z from 'zod'
+import z from 'zod/v4'
 
 export const docs = defineDocs({
   dir: 'content/docs',
