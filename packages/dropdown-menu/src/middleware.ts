@@ -9,6 +9,7 @@
 import {
   composeMiddleware as baseComposeMiddleware,
   createNew as baseCreateNew,
+  stickyRows as baseStickyRows,
   type MenuMiddleware,
 } from '@bazza-ui/menu/middleware'
 import type { PopupMenuControl } from '@bazza-ui/popup-menu'
@@ -62,4 +63,31 @@ export function composeMiddleware<TData = unknown>(
   )[],
 ): MenuMiddleware<TData, PopupMenuControl<TData>> {
   return baseComposeMiddleware<TData, PopupMenuControl<TData>>(middlewares)
+}
+
+/**
+ * Creates a sticky rows middleware with properly typed PopupMenuControl.
+ *
+ * This middleware sorts menu items so that checked items appear first, followed by unchecked items.
+ * The sort order is captured when the menu opens and remains stable while the menu is open,
+ * even as items are checked/unchecked.
+ *
+ * @example
+ * ```tsx
+ * import { stickyRows } from '@bazza-ui/dropdown-menu/middleware'
+ *
+ * const menu: DropdownMenuDef = {
+ *   nodes: [
+ *     { kind: 'item', variant: 'checkbox', id: 'a', label: 'Option A', checked: false, ... },
+ *     { kind: 'item', variant: 'checkbox', id: 'b', label: 'Option B', checked: true, ... },
+ *   ],
+ *   middleware: stickyRows()
+ * }
+ * // Result: Option B appears first (checked), then Option A (unchecked)
+ * ```
+ */
+export function stickyRows<TData = unknown>(
+  ...args: Parameters<typeof baseStickyRows<TData, PopupMenuControl<TData>>>
+): MenuMiddleware<TData, PopupMenuControl<TData>> {
+  return baseStickyRows<TData, PopupMenuControl<TData>>(...args)
 }

@@ -97,6 +97,50 @@ export type UseFilteredNodesResult<T> = {
 }
 
 /**
+ * Helper: Apply transformNodes middleware if present
+ */
+function applyTransformNodesMiddleware<T>(
+  menu: Menu<T>,
+  nodes: Node<T>[],
+  query: string,
+  mode: 'browse' | 'search',
+  control: any,
+  disabled: boolean,
+): Node<T>[] {
+  if (!menu.middleware?.transformNodes) {
+    return nodes
+  }
+
+  try {
+    const context: TransformNodesContext<T> = {
+      nodes,
+      query,
+      mode,
+      allNodes: (menu.nodes ?? []) as Node<T>[],
+      menu,
+      control,
+      disabled,
+      // Helper: create a properly instantiated node
+      createNode: <U = T>(def: ItemDef<U>) =>
+        instantiateSingleNode(def, menu as any) as ItemNode<U>,
+      // Helper: check if query exactly matches any node label
+      hasExactMatch: (q: string) =>
+        nodes.some(
+          (node) =>
+            node.kind === 'item' &&
+            node.label?.toLowerCase() === q.toLowerCase(),
+        ),
+    }
+
+    return menu.middleware.transformNodes(context)
+  } catch (error) {
+    console.error('[Menu] Error in transformNodes middleware:', error)
+    // Continue with original nodes on error
+    return nodes
+  }
+}
+
+/**
  * Filters, scores, and sorts menu nodes based on a search query.
  * Handles both shallow (action menu) and deep (command menu) filtering.
  * Now includes full middleware support (beforeFilter, afterFilter, transformNodes).
@@ -142,13 +186,24 @@ export function useFilteredNodes<T = unknown>(
     if (!query) {
       // No query - return all navigable nodes (shallow)
       const allNodes = flatten(menu, { deep: false }) as Node<T>[]
-      return allNodes.filter(
+      const filtered = allNodes.filter(
         (n) =>
           n.kind === 'item' ||
           n.kind === 'submenu' ||
           n.kind === 'separator' ||
           // Only include groups with headings
           (n.kind === 'group' && (n as GroupNode<T>).heading),
+      )
+
+      // MIDDLEWARE HOOK: transformNodes (applies in browse mode too!)
+      // Transform nodes before rendering, even when not searching
+      return applyTransformNodesMiddleware(
+        menu,
+        filtered,
+        query,
+        'browse',
+        control,
+        disabled,
       )
     }
 
@@ -251,37 +306,15 @@ export function useFilteredNodes<T = unknown>(
     })) as Node<T>[]
 
     // MIDDLEWARE HOOK 3: transformNodes (final transformation before rendering)
-    // Transform flattened nodes before rendering
-    if (menu.middleware?.transformNodes) {
-      try {
-        const context: TransformNodesContext<T> = {
-          nodes: enrichedNodes,
-          query,
-          mode: 'search',
-          allNodes: (menu.nodes ?? []) as Node<T>[],
-          menu,
-          control,
-          disabled,
-          // Helper: create a properly instantiated node
-          createNode: <U = T>(def: ItemDef<U>) =>
-            instantiateSingleNode(def, menu as any) as ItemNode<U>,
-          // Helper: check if query exactly matches any node label
-          hasExactMatch: (q: string) =>
-            enrichedNodes.some(
-              (node) =>
-                node.kind === 'item' &&
-                node.label?.toLowerCase() === q.toLowerCase(),
-            ),
-        }
-
-        return menu.middleware.transformNodes(context)
-      } catch (error) {
-        console.error('[Menu] Error in transformNodes middleware:', error)
-        // Continue with enriched nodes on error
-      }
-    }
-
-    return enrichedNodes
+    // Transform flattened nodes before rendering in search mode
+    return applyTransformNodesMiddleware(
+      menu,
+      enrichedNodes,
+      query,
+      'search',
+      control,
+      disabled,
+    )
   }, [
     menu,
     query,

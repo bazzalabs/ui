@@ -2,10 +2,20 @@
 
 'use client'
 
-import type { MenuDef } from '@bazza-ui/dropdown-menu'
-import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
+import {
+  type MenuDef,
+  type SeparatorDef,
+  stickyRows,
+} from '@bazza-ui/dropdown-menu'
+import type {
+  Column,
+  ColumnDataType,
+  ColumnOptionExtended,
+  FilterModel,
+} from '@bazza-ui/filters'
+import { shouldEnableStreaming } from '@bazza-ui/menu'
 import { cva } from 'class-variance-authority'
-import { memo, useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/dropdown-menu'
@@ -58,20 +68,21 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   const contextVariant = useFilterVariant()
   const variant = variantProp ?? contextVariant ?? 'default'
 
+  const [open, setOpen] = useState(false)
+
   // Use ref to capture current filter value for loaders
   const filterRef = useRef(filter)
   useEffect(() => {
     filterRef.current = filter
   }, [filter])
 
-  // Use ref to persist initial selected values across re-renders for sticky grouping
-  const initialSelectedValuesRef = useRef<Set<string> | null>(null)
-
   // Don't open the value controller for boolean columns
   // We can toggle the filter operator instead
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     if (column.type === 'boolean') e.preventDefault()
   }
+
+  const initialFilterValuesRef = useRef<string[]>([])
 
   // Create menu configuration for all column types
   const menu: MenuDef = useMemo(() => {
@@ -90,35 +101,72 @@ function __FilterValue<TData, TType extends ColumnDataType>({
     }
 
     if (column.type === 'option') {
+      const { nodes } = createOptionMenu({
+        filter: undefined as any,
+        column: column as Column<TData, 'option'>,
+        actions,
+        locale,
+        strategy,
+        getFilter: () => filterRef.current as FilterModel<'option'> | undefined,
+      })
+
+      const selected = nodes.filter((node) =>
+        initialFilterValuesRef.current.includes(node.id),
+      )
+
+      const unselected = nodes.filter(
+        (node) => !initialFilterValuesRef.current.includes(node.id),
+      )
+
+      const separator = {
+        id: 'separator',
+        kind: 'separator',
+      } satisfies SeparatorDef
+
+      const showSeparator = selected.length > 0 && unselected.length > 0
+
       return {
         id: `filter-value-${column.id}`,
-        ...createOptionMenu({
-          filter: undefined as any,
-          column: column as Column<TData, 'option'>,
-          actions,
-          locale,
-          strategy,
-          getFilter: () =>
-            filterRef.current as FilterModel<'option'> | undefined,
-          initialSelectedValuesRef,
-        }),
-      }
+        nodes: [
+          ...selected,
+          ...(showSeparator ? [separator] : []),
+          ...unselected,
+        ],
+      } satisfies MenuDef<ColumnOptionExtended>
     }
 
     if (column.type === 'multiOption') {
+      const { nodes } = createMultiOptionMenu({
+        filter: undefined as any,
+        column: column as Column<TData, 'multiOption'>,
+        actions,
+        locale,
+        strategy,
+        getFilter: () =>
+          filterRef.current as FilterModel<'multiOption'> | undefined,
+      })
+
+      const selected = nodes.filter((node) =>
+        initialFilterValuesRef.current.includes(node.id),
+      )
+
+      const unselected = nodes.filter(
+        (node) => !initialFilterValuesRef.current.includes(node.id),
+      )
+
+      const separator = {
+        id: 'separator',
+        kind: 'separator',
+      } satisfies SeparatorDef
+
       return {
         id: `filter-value-${column.id}`,
-        ...createMultiOptionMenu({
-          filter: undefined as any,
-          column: column as Column<TData, 'multiOption'>,
-          actions,
-          locale,
-          strategy,
-          getFilter: () =>
-            filterRef.current as FilterModel<'multiOption'> | undefined,
-          initialSelectedValuesRef,
-        }),
-      }
+        nodes: [
+          ...selected,
+          ...(showSeparator ? [separator] : []),
+          ...unselected,
+        ],
+      } satisfies MenuDef<ColumnOptionExtended>
     }
 
     // For date type, use custom render function
@@ -158,7 +206,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
     if (column.type === 'boolean') {
       return null
     }
-  }, [column, filter, actions, locale, strategy])
+  }, [column, filter, actions, locale, strategy, open])
 
   if (column.type === 'boolean') {
     return (
@@ -168,9 +216,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
         className={cn(
           buttonVariants({ variant: 'ghost' }),
           filterValueVariants({ variant }),
-          column.type === 'boolean' &&
-            variant === 'default' &&
-            'hover:bg-inherit',
+          'text-primary/75 hover:bg-inherit hover:text-primary/75 hover:shadow-none',
           className,
         )}
       >
@@ -196,24 +242,20 @@ function __FilterValue<TData, TType extends ColumnDataType>({
               : undefined,
       }}
       menu={menu}
-      onOpenChange={(open) => {
-        // Reset initial selected values when menu closes to capture fresh state on next open
-        if (!open) {
-          initialSelectedValuesRef.current = null
+      open={open}
+      onOpenChange={(value) => {
+        if (value) {
+          initialFilterValuesRef.current = filter.values as string[]
         }
+
+        setOpen(value)
       }}
     >
       <Button
         data-slot="filter-value"
         data-column-type={column.type}
         variant="ghost"
-        className={cn(
-          filterValueVariants({ variant }),
-          column.type === 'boolean' &&
-            variant === 'default' &&
-            'hover:bg-inherit',
-          className,
-        )}
+        className={cn(filterValueVariants({ variant }), className)}
         onClick={handleClick}
       >
         <FilterValueDisplay
@@ -333,10 +375,7 @@ function __FilterValueController<TData, TType extends ColumnDataType>({
   }
 }
 
-export {
-  FilterValueBooleanController,
-  FilterValueBooleanDisplay,
-} from './boolean'
+export { FilterValueBooleanDisplay } from './boolean'
 // Re-export utility functions
 export {
   FilterValueDateController,

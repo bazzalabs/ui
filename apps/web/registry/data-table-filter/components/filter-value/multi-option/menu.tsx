@@ -1,12 +1,15 @@
-import type { NodeDef, SubmenuDef } from '@bazza-ui/dropdown-menu'
+import type {
+  CheckboxItemDef,
+  CheckboxItemNode,
+  NodeDef,
+  SubmenuDef,
+} from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
-import type { MenuMiddleware } from '@bazza-ui/menu/middleware'
 import type { FilterValueControllerProps } from '../shared/types'
 
 /**
- * Creates multiOption menu with sticky grouping
- * Sticky grouping keeps items in their original groups (selected/unselected) based on initial state
- * Uses nodes for reactive updates and middleware to maintain grouping during search
+ * Creates multiOption menu for filter values
+ * Uses sticky rows middleware to keep checked items at the top
  */
 export function createMultiOptionMenu<TData>({
   filter,
@@ -14,53 +17,40 @@ export function createMultiOptionMenu<TData>({
   actions,
   locale = 'en',
   getFilter,
-  initialSelectedValuesRef,
 }: FilterValueControllerProps<TData, 'multiOption'> & {
   getFilter?: () => any
-  initialSelectedValuesRef: React.RefObject<Set<string> | null>
-}): Pick<SubmenuDef<unknown, ColumnOptionExtended>, 'nodes' | 'middleware'> {
+}): { nodes: (CheckboxItemDef<ColumnOptionExtended> & { id: string })[] } {
   const currentFilter = (getFilter ? getFilter() : filter) || filter
 
-  // Capture initial state for sticky grouping (only once when menu first opens)
-  if (!initialSelectedValuesRef.current) {
-    initialSelectedValuesRef.current = new Set(currentFilter?.values || [])
-  }
-
   const counts = column.getFacetedUniqueValues()
-  const nodes: NodeDef<ColumnOptionExtended>[] = column
-    .getOptions()
-    .map((option) => {
-      const wasInitiallySelected = initialSelectedValuesRef.current!.has(
-        option.value,
-      )
-      const isCurrentlySelected =
-        currentFilter?.values.includes(option.value) ?? false
+  const nodes = column.getOptions().map((option) => {
+    const isCurrentlySelected =
+      currentFilter?.values.includes(option.value) ?? false
 
-      return {
-        kind: 'item' as const,
-        variant: 'checkbox' as const,
-        id: option.value,
+    return {
+      kind: 'item' as const,
+      variant: 'checkbox' as const,
+      id: option.value,
+      label: option.label,
+      keywords: [option.value, option.label],
+      icon: option.icon,
+      checked: isCurrentlySelected,
+      onCheckedChange: (checked: boolean) => {
+        if (checked) {
+          actions.addFilterValue(column, [option.value])
+        } else {
+          actions.removeFilterValue(column, [option.value])
+        }
+      },
+      data: {
+        value: option.value,
         label: option.label,
-        keywords: [option.value, option.label],
         icon: option.icon,
-        checked: isCurrentlySelected,
-        onCheckedChange: (checked: boolean) => {
-          if (checked) {
-            actions.addFilterValue(column, [option.value])
-          } else {
-            actions.removeFilterValue(column, [option.value])
-          }
-        },
-        data: {
-          value: option.value,
-          label: option.label,
-          icon: option.icon,
-          count: counts?.get(option.value) ?? 0,
-          initialGroup: wasInitiallySelected ? 'selected' : 'unselected',
-        } as ColumnOptionExtended,
-        closeOnSelect: false,
-      } as any
-    })
+        count: counts?.get(option.value) ?? 0,
+      } as ColumnOptionExtended,
+      closeOnSelect: false,
+    } as any
+  })
 
   return {
     nodes,

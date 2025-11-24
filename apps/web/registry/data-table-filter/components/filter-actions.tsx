@@ -3,7 +3,7 @@ import { FilterXIcon } from 'lucide-react'
 import { type ComponentPropsWithoutRef, memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { type FilterVariant, useFilterVariant } from '../context'
+import type { FilterVariant } from '../context'
 
 interface FilterActionsProps
   extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'> {
@@ -24,9 +24,6 @@ function __FilterActions({
   filterVariant: filterVariantProp,
   ...props
 }: FilterActionsProps) {
-  const contextVariant = useFilterVariant()
-  const filterVariant = filterVariantProp ?? contextVariant
-
   return (
     <Button
       data-slot="filter-actions"

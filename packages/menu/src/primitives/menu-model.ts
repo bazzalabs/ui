@@ -579,8 +579,8 @@ function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
     const nodes = menu.nodes ?? []
 
     for (const node of nodes) {
-      if (node.kind === 'item') {
-        result.push(node as ItemNode<T>)
+      if (node.kind === 'item' || node.kind === 'separator') {
+        result.push(node)
       } else if (node.kind === 'group') {
         const groupNode = node as GroupNode<T>
         result.push(groupNode)
@@ -658,8 +658,8 @@ function flattenDef<T>(
     // Always include the node definition itself
     result.push(nodeDef)
 
-    if (nodeDef.kind === 'item') {
-      // Items have no children
+    if (nodeDef.kind === 'item' || nodeDef.kind === 'separator') {
+      // Items and separators have no children
       return result
     }
     if (nodeDef.kind === 'group') {
