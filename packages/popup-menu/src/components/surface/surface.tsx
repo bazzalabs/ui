@@ -175,10 +175,6 @@ export function Surface<T = unknown>({
 
   const isOwner = ownerId === surfaceId
   React.useEffect(() => {
-    console.log({
-      open,
-      isOwner,
-    })
     if (!open || !isOwner) return
     const activeElement = document.activeElement
     const inputHasFocus = store.inputRef.current === activeElement
@@ -188,7 +184,6 @@ export function Surface<T = unknown>({
     const id = requestAnimationFrame(() => {
       const element = store.inputRef.current ?? store.listRef.current
       element?.focus()
-      console.log('focused', element)
     })
     return () => cancelAnimationFrame(id)
   }, [open, isOwner, store.inputRef, store.listRef])
@@ -235,15 +230,7 @@ export function Surface<T = unknown>({
   // Type start handler
   const handleTypeStart = React.useCallback(
     (seed: string) => {
-      console.log('HANDLE TYPE START CALLED:', {
-        seed,
-        inputActive,
-        ownerId,
-        surfaceId,
-        isOwner: ownerId === surfaceId,
-      })
       if (!inputActive && ownerId === surfaceId) {
-        console.log('Setting input active and query:', seed)
         setInputActive(true)
         setQuery(seed)
 
@@ -252,31 +239,15 @@ export function Surface<T = unknown>({
         const maxAttempts = 10
 
         const tryFocus = () => {
-          console.log(
-            'Attempt',
-            attempts,
-            'inputRef:',
-            !!store.inputRef.current,
-          )
           if (store.inputRef.current) {
-            console.log('Focusing input!')
             store.inputRef.current.focus()
           } else if (attempts < maxAttempts) {
             attempts++
             requestAnimationFrame(tryFocus)
-          } else {
-            console.log(
-              'Max attempts reached, input ref never became available',
-            )
           }
         }
 
         requestAnimationFrame(tryFocus)
-      } else {
-        console.log('NOT activating input because:', {
-          inputAlreadyActive: inputActive,
-          notOwner: ownerId !== surfaceId,
-        })
       }
     },
     [inputActive, ownerId, surfaceId, setInputActive, setQuery, store],

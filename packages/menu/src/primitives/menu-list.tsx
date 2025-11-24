@@ -85,7 +85,6 @@ export function MenuListPrimitive<T>({
   // Keyboard navigation
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
-      console.log('here!')
       // Allow custom handler to override
       onKeyDownProp?.(e)
       if (e.defaultPrevented) return
