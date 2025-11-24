@@ -1,5 +1,7 @@
 import type {
   DropdownMenuProps as ActionMenuRootProps,
+  ItemDef,
+  ItemNode,
   MenuDef,
   SubmenuDef,
 } from '@bazza-ui/dropdown-menu'
@@ -246,6 +248,19 @@ function __FilterMenu<TData>({
           })
         }
 
+        if (column.type === 'boolean') {
+          return {
+            id: `filter-value-${column.id}`,
+            kind: 'item',
+            variant: 'button',
+            label: column.displayName,
+            icon: column.icon,
+            onSelect: () => {
+              actions.setFilterValue(column, [false])
+            },
+          } as ItemDef
+        }
+
         // Create submenu with middleware for sticky grouping
         // Create a ref-like object for this specific column's initial values
         const getColumnRef = (columnId: string) => ({
@@ -262,6 +277,11 @@ function __FilterMenu<TData>({
           id: column.id,
           icon: column.icon,
           label: column.displayName,
+          ui: {
+            slots: {
+              Item: OptionItem,
+            },
+          },
           ...(column.type === 'option'
             ? createOptionMenu({
                 filter: undefined as any, // Not used, middleware reads from ref
@@ -297,13 +317,7 @@ function __FilterMenu<TData>({
 
   return (
     <FilterMenuContext.Provider value={contextValue}>
-      <DropdownMenu
-        slots={{
-          Item: OptionItem,
-        }}
-        menu={menu}
-        {...actionMenuProps}
-      >
+      <DropdownMenu menu={menu} {...actionMenuProps}>
         {children ?? <FilterMenuTrigger />}
       </DropdownMenu>
     </FilterMenuContext.Provider>

@@ -1,13 +1,9 @@
 'use client'
 
-import type { ItemNode, ItemSlotProps } from '@bazza-ui/action-menu'
+import type { ItemNode, ItemSlotProps } from '@bazza-ui/dropdown-menu'
 import type { FilterModel } from '@bazza-ui/filters'
 
-export function TextItem({
-  node: nodeProp,
-  bind,
-  search,
-}: ItemSlotProps<FilterModel<'text'>>) {
+export function TextItem({ node: nodeProp, bind }: ItemSlotProps) {
   const props = bind.getRowProps({
     className: 'group/row gap-1 min-w-0',
   })

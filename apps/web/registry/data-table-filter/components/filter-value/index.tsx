@@ -6,7 +6,7 @@ import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
 import { cva } from 'class-variance-authority'
 import { memo, useEffect, useMemo, useRef } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/dropdown-menu'
 import { useFilterVariant } from '../../context'
@@ -155,26 +155,45 @@ function __FilterValue<TData, TType extends ColumnDataType>({
       }
     }
 
-    // For boolean type, use a custom render function
-    return {
-      id: `filter-value-${column.id}`,
-      nodes: [],
-      render: () => (
-        <FilterValueController
-          filter={filter as any}
-          column={column as any}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      ),
+    if (column.type === 'boolean') {
+      return null
     }
   }, [column, filter, actions, locale, strategy])
+
+  if (column.type === 'boolean') {
+    return (
+      <div
+        data-slot="filter-value"
+        data-column-type={column.type}
+        className={cn(
+          buttonVariants({ variant: 'ghost' }),
+          filterValueVariants({ variant }),
+          column.type === 'boolean' &&
+            variant === 'default' &&
+            'hover:bg-inherit',
+          className,
+        )}
+      >
+        <FilterValueDisplay
+          filter={filter}
+          column={column}
+          actions={actions}
+          locale={locale}
+          entityName={entityName}
+        />
+      </div>
+    )
+  }
 
   return (
     <DropdownMenu
       slots={{
-        Item: (column.type === 'text' ? TextItem : OptionItem) as any,
+        Item:
+          column.type === 'text'
+            ? TextItem
+            : ['option', 'multiOption'].includes(column.type)
+              ? OptionItem
+              : undefined,
       }}
       menu={menu}
       onOpenChange={(open) => {
@@ -184,29 +203,27 @@ function __FilterValue<TData, TType extends ColumnDataType>({
         }
       }}
     >
-      <DropdownMenu.Trigger asChild>
-        <Button
-          data-slot="filter-value"
-          data-column-type={column.type}
-          variant="ghost"
-          className={cn(
-            filterValueVariants({ variant }),
-            column.type === 'boolean' &&
-              variant === 'default' &&
-              'hover:bg-inherit',
-            className,
-          )}
-          onClick={handleClick}
-        >
-          <FilterValueDisplay
-            filter={filter}
-            column={column}
-            actions={actions}
-            locale={locale}
-            entityName={entityName}
-          />
-        </Button>
-      </DropdownMenu.Trigger>
+      <Button
+        data-slot="filter-value"
+        data-column-type={column.type}
+        variant="ghost"
+        className={cn(
+          filterValueVariants({ variant }),
+          column.type === 'boolean' &&
+            variant === 'default' &&
+            'hover:bg-inherit',
+          className,
+        )}
+        onClick={handleClick}
+      >
+        <FilterValueDisplay
+          filter={filter}
+          column={column}
+          actions={actions}
+          locale={locale}
+          entityName={entityName}
+        />
+      </Button>
     </DropdownMenu>
   )
 }

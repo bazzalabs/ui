@@ -81,6 +81,11 @@ function createOperatorMenu<TData, TType extends ColumnDataType>({
   return {
     id: `filter-operator-${column.id}`,
     hideSearchUntilActive: true,
+    defaults: {
+      item: {
+        closeOnSelect: true,
+      },
+    },
     nodes: [
       {
         kind: 'group' as const,
@@ -119,39 +124,37 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
 
   return (
     <DropdownMenu menu={menu}>
-      <DropdownMenu.Trigger asChild>
-        <Button
-          data-slot="filter-operator"
-          data-column-type={column.type}
-          data-operator={filter.operator}
-          variant="ghost"
-          className={cn(
-            filterOperatorVariants({ variant }),
-            variant === 'default' ? 'text-muted-foreground' : '',
-            className,
-          )}
-          onClick={(e) => {
-            if (column.type !== 'boolean') return
-            e.preventDefault()
-            const opDetails =
-              filterTypeOperatorDetails.boolean[
-                filter.operator as FilterOperators['boolean']
-              ]
+      <Button
+        data-slot="filter-operator"
+        data-column-type={column.type}
+        data-operator={filter.operator}
+        variant="ghost"
+        className={cn(
+          filterOperatorVariants({ variant }),
+          variant === 'default' ? 'text-muted-foreground' : '',
+          className,
+        )}
+        // onClick={(e) => {
+        //   if (column.type !== 'boolean') return
+        //   e.preventDefault()
+        //   const opDetails =
+        //     filterTypeOperatorDetails.boolean[
+        //       filter.operator as FilterOperators['boolean']
+        //     ]
 
-            actions.setFilterOperator(
-              column.id,
-              opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
-            )
-          }}
-          {...props}
-        >
-          <FilterOperatorDisplay
-            filter={filter}
-            columnType={column.type}
-            locale={locale}
-          />
-        </Button>
-      </DropdownMenu.Trigger>
+        //   actions.setFilterOperator(
+        //     column.id,
+        //     opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
+        //   )
+        // }}
+        {...props}
+      >
+        <FilterOperatorDisplay
+          filter={filter}
+          columnType={column.type}
+          locale={locale}
+        />
+      </Button>
     </DropdownMenu>
   )
 }

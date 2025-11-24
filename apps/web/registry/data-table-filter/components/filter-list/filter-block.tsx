@@ -86,6 +86,9 @@ export function FilterBlock<TData, TType extends ColumnDataType>({
   const contextVariant = useFilterVariant()
   const variant = variantProp ?? contextVariant ?? 'default'
 
+  console.log('contextVariant:', contextVariant)
+  console.log('variant:', variant)
+
   return (
     <FilterBlockContext.Provider
       value={{ filter, column } as FilterBlockContextValue}

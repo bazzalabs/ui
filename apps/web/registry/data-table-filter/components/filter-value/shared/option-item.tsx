@@ -1,8 +1,11 @@
 'use client'
 
-import type { ItemNode, ItemSlotProps } from '@bazza-ui/dropdown-menu'
+import {
+  type ItemNode,
+  type ItemSlotProps,
+  renderIcon,
+} from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
-import { renderIcon } from '@bazza-ui/menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { LabelWithBreadcrumbs } from '@/registry/dropdown-menu'
 

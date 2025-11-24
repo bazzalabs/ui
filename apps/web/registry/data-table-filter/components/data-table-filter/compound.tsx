@@ -159,6 +159,7 @@ export interface FilterProps<TData> {
   strategy: FilterStrategy
   locale?: Locale
   entityName?: string
+  variant?: FilterVariant
 }
 
 export function Filter<TData>({
@@ -168,6 +169,7 @@ export function Filter<TData>({
   strategy,
   locale = 'en',
   entityName,
+  variant,
 }: FilterProps<TData>) {
   const isMobile = useIsMobile()
 
@@ -178,6 +180,7 @@ export function Filter<TData>({
     strategy,
     locale,
     entityName,
+    variant,
   }
 
   if (isMobile) {
