@@ -447,6 +447,16 @@ const componentItems: ComponentItem[] = [
             title: 'Context Menu',
             url: '/docs/menu/components/context-menu',
           },
+          {
+            type: 'link',
+            title: 'Select',
+            url: '/docs/menu/components/select',
+          },
+          {
+            type: 'link',
+            title: 'Multiselect',
+            url: '/docs/menu/components/multi-select',
+          },
         ],
       },
     ],
