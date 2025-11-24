@@ -168,11 +168,13 @@ export function SelectContent<T = unknown>({
         dir={dir}
         defaults={defaults as any}
         control={control}
-        // Override role for listbox semantics
-        role="listbox"
-        aria-labelledby={`${scopeId}-trigger`}
-        aria-multiselectable={multiple ? true : undefined}
-        id={listboxId}
+        // Override role for listbox semantics via popupProps
+        popupProps={{
+          role: 'listbox',
+          'aria-labelledby': `${scopeId}-trigger`,
+          'aria-multiselectable': multiple ? true : undefined,
+          id: listboxId,
+        }}
       />
     </Positioner>
   )
