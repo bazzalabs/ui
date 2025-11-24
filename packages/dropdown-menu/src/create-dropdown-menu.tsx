@@ -53,6 +53,8 @@ export interface DropdownMenuOptions<T = unknown>
   sideOffset?: number
   /** Offset along the alignment axis */
   alignOffset?: number
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
   /** Whether to use child as trigger (for composition) */
   asChild?: boolean
   /** Theme overrides at instance level */
@@ -95,6 +97,7 @@ export function createDropdownMenu<T = unknown>(
       align = 'start',
       sideOffset = 4,
       alignOffset = 0,
+      trackAnchor,
       slots,
       slotProps,
       classNames,
@@ -171,6 +174,7 @@ export function createDropdownMenu<T = unknown>(
               align={align}
               sideOffset={sideOffset}
               alignOffset={alignOffset}
+              trackAnchor={trackAnchor}
               defaults={mergedDefaults}
             />
           </DropdownMenuRoot>

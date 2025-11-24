@@ -1,6 +1,7 @@
-import { createMultiSelect } from '@bazza-ui/select'
 import { renderIcon } from '@bazza-ui/menu'
+import { createMultiSelect } from '@bazza-ui/select'
 import { Fragment, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,51 @@ export const MultiSelect = createMultiSelect({
     },
   },
   slots: {
+    Trigger: ({ bind, children }) => {
+      const props = bind.getTriggerProps({
+        className: 'w-fit font-normal',
+      })
+
+      return (
+        <Button {...props} variant="outline">
+          {children}
+        </Button>
+      )
+    },
+    Value: ({ nodes, values, placeholder }) => {
+      const nodesSlice = nodes?.slice(0, 3)
+
+      const text =
+        !values || values.length === 0
+          ? placeholder
+          : values.length === 1
+            ? nodes![0]?.label
+            : `${values.length} selected`
+
+      return (
+        <div
+          className={cn(
+            'flex items-center gap-2 font-normal',
+            !values || (values.length === 0 && 'text-muted-foreground'),
+          )}
+        >
+          <div className="h-4 flex items-center gap-1">
+            {nodesSlice?.map(
+              (node) =>
+                node.icon && (
+                  <Fragment key={node.id}>
+                    {renderIcon(
+                      node.icon,
+                      'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary not-first:ml-[-7px] border box-content border-background',
+                    )}
+                  </Fragment>
+                ),
+            )}
+          </div>
+          {text}
+        </div>
+      )
+    },
     Item: ({ node, bind, search }) => {
       const props = bind.getRowProps({
         className: cn('group/row', node.description && 'gap-3'),

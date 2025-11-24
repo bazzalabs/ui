@@ -1,10 +1,10 @@
 import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   type PopupMenuDef,
+  ScopedThemeProvider as PopupMenuScopedThemeProvider,
   type PopupSubmenuDef,
   Positioner,
   Surface,
-  ScopedThemeProvider as PopupMenuScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
@@ -25,6 +25,8 @@ export interface SelectContentProps<T = unknown> {
   sideOffset?: number
   /** Offset along the alignment axis */
   alignOffset?: number
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
 }
@@ -40,6 +42,7 @@ export function SelectContent<T = unknown>({
   align = 'start',
   sideOffset = 4,
   alignOffset = 0,
+  trackAnchor,
   defaults,
 }: SelectContentProps<T>) {
   const {
@@ -186,6 +189,7 @@ export function SelectContent<T = unknown>({
       align={align}
       sideOffset={sideOffset}
       alignOffset={alignOffset}
+      trackAnchor={trackAnchor}
       anchor={triggerRef.current}
     >
       <PopupMenuScopedThemeProvider theme={wrappedTheme as any}>

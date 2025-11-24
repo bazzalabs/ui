@@ -10,18 +10,18 @@ import { SelectRoot } from './components/root.js'
 import { SelectTrigger } from './components/trigger.js'
 import { SelectValue } from './components/value.js'
 import {
-  GlobalThemeProvider as SelectGlobalThemeProvider,
-  mergeTheme,
-  ScopedThemeProvider as SelectScopedThemeProvider,
   defaultSelectSlots,
+  mergeTheme,
+  GlobalThemeProvider as SelectGlobalThemeProvider,
+  ScopedThemeProvider as SelectScopedThemeProvider,
 } from './contexts/theme-context.js'
 import type {
   SelectItemDef,
   SelectMenuDef,
   SelectProps,
-  SelectThemeDef,
   SelectSlots,
   SelectTheme,
+  SelectThemeDef,
 } from './types.js'
 
 // Compound component types
@@ -114,6 +114,8 @@ export interface SelectOptions<T = unknown>
   sideOffset?: number
   /** Offset along the alignment axis */
   alignOffset?: number
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
 
   // ===== Callbacks =====
   /** Called when the select opens/closes */
@@ -228,6 +230,7 @@ export function createSelect<T = unknown>(
       align = 'start',
       sideOffset = 4,
       alignOffset = 0,
+      trackAnchor,
       onOpenChange,
       onBlur,
       open,
@@ -356,6 +359,7 @@ export function createSelect<T = unknown>(
                   align={align}
                   sideOffset={sideOffset}
                   alignOffset={alignOffset}
+                  trackAnchor={trackAnchor}
                   defaults={mergedDefaults}
                   placeholder={placeholder}
                 />

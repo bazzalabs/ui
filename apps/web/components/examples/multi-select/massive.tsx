@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { MultiSelect } from '@/registry/multi-select'
-import { Button } from '@/components/ui/button'
 
 interface MassiveProps {
   numItems?: number
@@ -29,13 +28,7 @@ export function Massive({ numItems = 10000 }: MassiveProps) {
             overscan: 5,
           },
         }}
-      >
-        <Button variant="outline" className="w-72">
-          {values.length > 0 
-            ? `${values.length} of ${numItems.toLocaleString()} selected` 
-            : `Select from ${numItems.toLocaleString()} items...`}
-        </Button>
-      </MultiSelect>
+      />
       {values.length > 0 && (
         <p className="text-sm text-muted-foreground">
           Selected {values.length} items

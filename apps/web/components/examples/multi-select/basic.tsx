@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { MultiSelect } from '@/registry/multi-select'
 import { Button } from '@/components/ui/button'
+import { MultiSelect } from '@/registry/multi-select'
 
 export function Basic() {
   const [values, setValues] = useState(['apple', 'banana'])
@@ -21,14 +21,13 @@ export function Basic() {
           { value: 'grape', label: 'Grape', icon: '🍇' },
           { value: 'strawberry', label: 'Strawberry', icon: '🍓' },
         ]}
-      >
-        <Button variant="outline" className="w-48">
-          {values.length > 0 ? `${values.length} selected` : 'Select...'}
-        </Button>
-      </MultiSelect>
+      />
       {values.length > 0 && (
         <p className="text-sm text-muted-foreground">
-          Selected: <span className="font-medium text-foreground">{values.join(', ')}</span>
+          Selected:{' '}
+          <span className="font-medium text-foreground">
+            {values.join(', ')}
+          </span>
         </p>
       )}
     </div>

@@ -18,6 +18,8 @@ export interface PositionerProps {
   align?: PopupMenuPositionerProps['align']
   sideOffset?: number
   alignOffset?: number
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
   /** Custom anchor for root menus (e.g., trigger ref or virtual cursor position) */
   anchor?: React.ComponentProps<typeof Popover.Positioner>['anchor']
   /** Render function that receives popup props to spread */
@@ -34,6 +36,7 @@ export function Positioner({
   align,
   sideOffset = 8,
   alignOffset = 0,
+  trackAnchor = false,
   anchor,
 }: PositionerProps) {
   const root = useRoot()
@@ -198,6 +201,7 @@ export function Positioner({
     side: resolvedSide,
     align: baseUIAlign,
     sideOffset,
+    trackAnchor,
     // Note: alignOffset is intentionally omitted here - calculated below
     sticky: true,
     positionMethod: 'fixed' as const,

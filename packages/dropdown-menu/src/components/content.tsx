@@ -21,6 +21,8 @@ export interface DropdownMenuContentProps<T = unknown> {
   sideOffset?: number
   /** Offset along the alignment axis */
   alignOffset?: number
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
 }
@@ -36,6 +38,7 @@ export function DropdownMenuContent<T = unknown>({
   align = 'start',
   sideOffset = 4,
   alignOffset = 0,
+  trackAnchor,
   defaults,
 }: DropdownMenuContentProps<T>) {
   const { open, closeAllSurfaces, triggerRef, control } = useRootContext<T>()
@@ -56,6 +59,7 @@ export function DropdownMenuContent<T = unknown>({
       align={align}
       sideOffset={sideOffset}
       alignOffset={alignOffset}
+      trackAnchor={trackAnchor}
       anchor={triggerRef.current}
     >
       <Surface

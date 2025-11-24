@@ -123,7 +123,7 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
   return (
-    <DropdownMenu menu={menu}>
+    <DropdownMenu menu={menu} trackAnchor={false}>
       <Button
         data-slot="filter-operator"
         data-column-type={column.type}

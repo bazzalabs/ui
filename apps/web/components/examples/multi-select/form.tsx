@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { MultiSelect } from '@/registry/multi-select'
 import { Button } from '@/components/ui/button'
+import { MultiSelect } from '@/registry/multi-select'
 
 export function Form() {
   const [submitted, setSubmitted] = useState<string[] | null>(null)
@@ -19,7 +19,8 @@ export function Form() {
       <form onSubmit={handleSubmit} className="w-full space-y-4">
         <div>
           <label htmlFor="colors" className="text-sm font-medium mb-2 block">
-            Choose colors <span className="text-muted-foreground">(min 1, max 3)</span>
+            Choose colors{' '}
+            <span className="text-muted-foreground">(min 1, max 3)</span>
           </label>
           <MultiSelect
             name="colors"
@@ -35,11 +36,7 @@ export function Form() {
               { value: 'purple', label: 'Purple' },
               { value: 'orange', label: 'Orange' },
             ]}
-          >
-            <Button variant="outline" className="w-full">
-              Select colors...
-            </Button>
-          </MultiSelect>
+          />
         </div>
         <Button type="submit" className="w-full">
           Submit
@@ -47,7 +44,10 @@ export function Form() {
       </form>
       {submitted && (
         <p className="text-sm text-muted-foreground">
-          Submitted: <span className="font-medium text-foreground">{submitted.join(', ')}</span>
+          Submitted:{' '}
+          <span className="font-medium text-foreground">
+            {submitted.join(', ')}
+          </span>
         </p>
       )}
     </div>
