@@ -2,12 +2,12 @@ import type {
   Menu,
   MenuClassNames,
   MenuControl,
-  MenuDef,
   MenuSlotProps,
   MenuSlots,
   SurfaceStore,
 } from '@bazza-ui/menu'
 import * as React from 'react'
+import type { CommandSubmenuDef } from '../types.js'
 
 interface SurfaceContextValue<T = unknown> {
   store: SurfaceStore<T>
@@ -16,7 +16,7 @@ interface SurfaceContextValue<T = unknown> {
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
   slotProps?: Partial<MenuSlotProps>
-  onSubmenuSelect?: (submenuId: string, submenu: MenuDef<any>) => void
+  onSubmenuSelect?: (submenuId: string, submenu: CommandSubmenuDef<any>) => void
 }
 
 const SurfaceContext = React.createContext<SurfaceContextValue<any> | null>(
@@ -47,7 +47,7 @@ export function SurfaceProvider<T = unknown>({
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
   slotProps?: Partial<MenuSlotProps>
-  onSubmenuSelect?: (submenuId: string, submenu: MenuDef<any>) => void
+  onSubmenuSelect?: (submenuId: string, submenu: CommandSubmenuDef<any>) => void
   children: React.ReactNode
 }) {
   const value = React.useMemo(

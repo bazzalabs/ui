@@ -56,7 +56,7 @@ describe('useDeepSearchOrchestration', () => {
       expect(result.current.menu.title).toBe('Test Menu')
       expect(result.current.menu.surfaceId).toBe('test-surface')
       expect(result.current.menu.depth).toBe(0)
-      expect(result.current.menu.nodes).toHaveLength(2)
+      expect(result.current.menu.nodes!).toHaveLength(2)
     })
 
     it('sets depth to 1 for submenu', () => {
@@ -93,7 +93,7 @@ describe('useDeepSearchOrchestration', () => {
         }),
       )
 
-      expect(result.current.menu.nodes).toHaveLength(0)
+      expect(result.current.menu.nodes!).toHaveLength(0)
     })
   })
 
@@ -126,8 +126,8 @@ describe('useDeepSearchOrchestration', () => {
       )
 
       // Menu should be instantiated successfully
-      expect(result.current.menu.nodes).toHaveLength(1)
-      expect(result.current.menu.nodes[0]?.kind).toBe('submenu')
+      expect(result.current.menu.nodes!).toHaveLength(1)
+      expect(result.current.menu.nodes![0]?.kind).toBe('submenu')
     })
 
     it('handles nested submenus with multiple loaders', () => {
@@ -168,8 +168,8 @@ describe('useDeepSearchOrchestration', () => {
         }),
       )
 
-      expect(result.current.menu.nodes).toHaveLength(1)
-      expect(result.current.menu.nodes[0]?.kind).toBe('submenu')
+      expect(result.current.menu.nodes!).toHaveLength(1)
+      expect(result.current.menu.nodes![0]?.kind).toBe('submenu')
     })
 
     it('handles submenus with deepSearch disabled', () => {
@@ -212,7 +212,7 @@ describe('useDeepSearchOrchestration', () => {
       )
 
       // Both submenus should exist in the menu
-      expect(result.current.menu.nodes).toHaveLength(2)
+      expect(result.current.menu.nodes!).toHaveLength(2)
     })
   })
 
@@ -245,7 +245,7 @@ describe('useDeepSearchOrchestration', () => {
       )
 
       // Should still instantiate the menu
-      expect(result.current.menu.nodes).toHaveLength(1)
+      expect(result.current.menu.nodes!).toHaveLength(1)
     })
 
     it('works with non-empty query', () => {
@@ -309,7 +309,7 @@ describe('useDeepSearchOrchestration', () => {
         },
       )
 
-      expect(result.current.menu.nodes).toHaveLength(1)
+      expect(result.current.menu.nodes!).toHaveLength(1)
 
       // Change query
       rerender({
@@ -319,7 +319,7 @@ describe('useDeepSearchOrchestration', () => {
         surfaceId: 'root',
       })
 
-      expect(result.current.menu.nodes).toHaveLength(1)
+      expect(result.current.menu.nodes!).toHaveLength(1)
     })
   })
 
@@ -366,7 +366,7 @@ describe('useDeepSearchOrchestration', () => {
       )
 
       // Both submenus should exist in the menu structure
-      expect(result.current.menu.nodes).toHaveLength(2)
+      expect(result.current.menu.nodes!).toHaveLength(2)
       // Filter function should have been called
       expect(filterLoaders).toHaveBeenCalled()
     })
@@ -598,7 +598,7 @@ describe('useDeepSearchOrchestration', () => {
         }),
       )
 
-      const item = result.current.menu.nodes[0] as any
+      const item = result.current.menu.nodes![0] as any
       expect(item.onSelect).toBe(onSelect)
       expect(item.closeOnSelect).toBe(true)
     })
@@ -634,7 +634,7 @@ describe('useDeepSearchOrchestration', () => {
       )
 
       expect(result.current.menu.depth).toBe(1)
-      expect(result.current.menu.nodes).toHaveLength(1)
+      expect(result.current.menu.nodes!).toHaveLength(1)
     })
   })
 
@@ -673,10 +673,10 @@ describe('useDeepSearchOrchestration', () => {
         }),
       )
 
-      expect(result.current.menu.nodes).toHaveLength(1)
-      expect(result.current.menu.nodes[0]?.kind).toBe('group')
+      expect(result.current.menu.nodes!).toHaveLength(1)
+      expect(result.current.menu.nodes![0]?.kind).toBe('group')
 
-      const group = result.current.menu.nodes[0] as any
+      const group = result.current.menu.nodes![0] as any
       expect(group.nodes).toHaveLength(1)
       expect(group.nodes[0].kind).toBe('submenu')
     })

@@ -97,15 +97,6 @@ export type MenuEventType =
  * Base state interface that all menu controls share.
  */
 export interface MenuControlState<T = unknown> {
-  /** Current menu (may be MenuDef or instantiated Menu depending on context) */
-  menu: Menu<T> | MenuDef<T>
-
-  /** Whether menu is in a loading state */
-  loading: boolean
-
-  /** Current error message, if any */
-  error: string | null
-
   /** Whether the entire menu is disabled (input, items, navigation) */
   disabled: boolean
 
@@ -115,7 +106,7 @@ export interface MenuControlState<T = unknown> {
 
 /**
  * Base control interface that ALL menu implementations must extend.
- * Provides core functionality that works across all menu types.
+ * Provides core enable/disable functionality that works across all menu types.
  *
  * This interface is implemented by:
  * - CommandMenuControl (command-menu package)
@@ -129,91 +120,18 @@ export interface MenuControlState<T = unknown> {
  * ```tsx
  * const menuControl = useRef<MenuControl>(null)
  *
- * // Access core functionality
- * menuControl.current?.setLoading(true)
- * menuControl.current?.refresh()
- * ```
- *
- * @example With type-specific features
- * ```tsx
- * const menuControl = useRef<CommandMenuControl>(null)
- *
- * // Core functionality
- * menuControl.current?.setLoading(true)
- *
- * // Command menu specific
- * menuControl.current?.open()
- * menuControl.current?.setQuery('search')
+ * // Disable the menu during an async operation
+ * const enable = menuControl.current?.disable()
+ * await performAsyncOperation()
+ * enable() // Re-enable menu
  * ```
  */
 export interface MenuControl<T = unknown> {
-  // ===== Core State (Read-only) =====
-
-  /** Get the current menu (may be MenuDef or Menu depending on context) */
-  getMenu(): Menu<T> | MenuDef<T>
-
-  /** Get current control state */
+  /**
+   * Get current control state (read-only).
+   * Used internally for checking disabled state.
+   */
   getState(): MenuControlState<T>
-
-  /** Check if menu is in a loading state */
-  isLoading(): boolean
-
-  /** Get current error state */
-  getError(): string | null
-
-  // ===== State Management =====
-
-  /**
-   * Set global loading state for the menu.
-   * Emits 'loading-start' or 'loading-end' event.
-   *
-   * @param loading - Whether menu is loading
-   * @param message - Optional loading message
-   */
-  setLoading(loading: boolean, message?: string): void
-
-  /**
-   * Set error state.
-   * Emits 'error' event if error is set.
-   *
-   * @param error - Error message or null to clear
-   */
-  setError(error: string | null): void
-
-  /**
-   * Clear error state.
-   * Emits 'error-clear' event.
-   */
-  clearError(): void
-
-  // ===== Data Refresh =====
-
-  /**
-   * Refresh all async loaders in the menu tree.
-   * Emits 'refresh' event.
-   *
-   * @returns Promise that resolves when all loaders complete
-   */
-  refresh(): Promise<void>
-
-  /**
-   * Refresh a specific submenu's loader by ID.
-   * Emits 'refresh-submenu' event.
-   *
-   * @param submenuId - ID of the submenu to refresh
-   * @returns Promise that resolves when loader completes
-   */
-  refreshSubmenu(submenuId: string): Promise<void>
-
-  // ===== Item Manipulation =====
-
-  /**
-   * Programmatically select an item by ID.
-   * Emits 'item-select' event.
-   *
-   * @param itemId - ID of the item to select
-   */
-  selectItem(itemId: string): void
 
   /**
    * Disable the entire menu (input, items, navigation).
@@ -244,34 +162,4 @@ export interface MenuControl<T = unknown> {
    * @param disabled - Whether the menu should be disabled
    */
   setDisabled(disabled: boolean): void
-
-  // ===== Events =====
-
-  /**
-   * Subscribe to menu events.
-   *
-   * @param event - Event type to listen for
-   * @param handler - Event handler function
-   * @returns Unsubscribe function
-   *
-   * @example
-   * ```tsx
-   * const unsubscribe = control.on('loading-start', ({ message }) => {
-   *   console.log('Loading:', message)
-   * })
-   *
-   * // Later...
-   * unsubscribe()
-   * ```
-   */
-  on(event: MenuEventType, handler: MenuEventHandler): () => void
-
-  /**
-   * Emit a custom event.
-   * Allows middleware and extensions to communicate via the event bus.
-   *
-   * @param event - Event name
-   * @param data - Event data
-   */
-  emit(event: string, data?: any): void
 }

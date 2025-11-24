@@ -1,27 +1,14 @@
 /**
  * Context Menu Control
  *
- * Extends PopupMenuControl with anchor point management for right-click positioning.
+ * Simple type alias to MenuControl (base control).
  */
 
-import type {
-  PopupMenuControl,
-  PopupMenuControlState,
-} from '@bazza-ui/popup-menu'
+import type { MenuControl } from '@bazza-ui/menu'
 
 /**
- * Extended state for context menus.
- * Adds anchor point tracking for right-click position.
- */
-export interface ContextMenuControlState<T = unknown>
-  extends PopupMenuControlState<T> {
-  /** Anchor point for context menu (right-click position) */
-  anchorPoint: { x: number; y: number } | null
-}
-
-/**
- * Extended control for context menus.
- * Adds anchor point management (right-click position).
+ * Context menu control is identical to the base menu control.
+ * No additional functionality for context menus.
  *
  * @typeParam T - Data type for menu nodes
  *
@@ -29,25 +16,10 @@ export interface ContextMenuControlState<T = unknown>
  * ```tsx
  * const control = useRef<ContextMenuControl>(null)
  *
- * // Popup operations
- * control.current?.open()
- * control.current?.close()
- *
- * // Anchor point management
- * control.current?.setAnchorPoint({ x: 100, y: 200 })
- * control.current?.getAnchorPoint()
+ * // Disable menu during async operation
+ * const enable = control.current?.disable()
+ * await performAsyncOperation()
+ * enable() // Re-enable menu
  * ```
  */
-export interface ContextMenuControl<T = unknown> extends PopupMenuControl<T> {
-  /** Get current state (extended with context menu state) */
-  getState(): ContextMenuControlState<T>
-
-  /** Get anchor point (right-click position) */
-  getAnchorPoint(): { x: number; y: number } | null
-
-  /** Set anchor point programmatically */
-  setAnchorPoint(point: { x: number; y: number } | null): void
-
-  /** Required: setPosition is mandatory for context menus */
-  setPosition(position: { x: number; y: number } | null): void
-}
+export type ContextMenuControl<T = unknown> = MenuControl<T>

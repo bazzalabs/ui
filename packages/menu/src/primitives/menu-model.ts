@@ -7,10 +7,11 @@ import type {
   LoadingDef,
   LoadingNode,
   Menu,
-  MenuDef,
   MenuNodeDefaults,
   Node,
   NodeDef,
+  RootMenuDef,
+  RootMenuNode,
   SeparatorDef,
   SeparatorNode,
   SubmenuDef,
@@ -53,7 +54,7 @@ export function textToId(text: string): string {
  * @param menuDef - The menu definition to normalize
  * @returns A new MenuDef with all inferred IDs injected
  */
-export function normalizeMenuDef<T>(menuDef: MenuDef<T>): MenuDef<T> {
+export function normalizeMenuDef<T>(menuDef: RootMenuDef<T>): RootMenuDef<T> {
   return {
     ...menuDef,
     nodes: menuDef.nodes?.map((node) => normalizeNodeDef(node)) as NodeDef<T>[],
@@ -274,50 +275,61 @@ export function instantiateSingleNode<T>(
 
     const childSurfaceId = `${parent.surfaceId}::${id}`
 
-    // ! In TSX, don't write instantiateMenuFromDef<any>(...)
-    // Use casts instead of a generic call to avoid `<any>` being parsed as JSX:
-    // Pass base defaults (not parent surface defaults) to child submenu
-    // This ensures each surface's defaults only apply to its direct children
-    const child = instantiateMenuFromDef(
-      {
-        kind: 'submenu',
-        id,
-        label: subDef.label ?? subDef.title,
-        title: subDef.title ?? subDef.label,
-        inputPlaceholder: subDef.inputPlaceholder,
-        hideSearchUntilActive: subDef.hideSearchUntilActive,
-        search: subDef.search,
-        deepSearch: subDef.deepSearch === undefined ? true : subDef.deepSearch,
-        nodes: subDef.nodes as NodeDef<any>[],
-        loader: subDef.loader,
-        defaults: subDef.defaults,
-        ui: subDef.ui,
-        input: subDef.input,
-        open: subDef.open,
-        middleware: subDef.middleware,
-      },
-      childSurfaceId,
-      parent.depth + 1,
-      parent.baseDefaults, // Pass base defaults only (factory + instance), not parent's surface defaults
-    ) as Menu<any>
+    // Compute defaults for submenu (merge parent base defaults with submenu's own defaults)
+    const submenuDefaults = mergeDefaults(parent.baseDefaults, subDef.defaults)
+
+    // Merge virtualization defaults with submenu-specific virtualization
+    const mergedVirtualization = submenuDefaults.virtualization
+      ? { ...submenuDefaults.virtualization, ...subDef.virtualization }
+      : subDef.virtualization
+
+    // Resolve loader if it's already a result object (not a function)
+    const resolvedLoader =
+      subDef.loader && typeof subDef.loader !== 'function'
+        ? (subDef.loader as AsyncNodeLoaderResult<any>)
+        : undefined
+
+    // Merge static nodes and loader data
+    const staticNodes = subDef.nodes ?? []
+    const loaderNodes = resolvedLoader?.data ?? []
+    const sourceNodes = [...staticNodes, ...loaderNodes]
+
+    const loadingState = resolvedLoader
+      ? {
+          isLoading: resolvedLoader.isLoading,
+          isError: resolvedLoader.isError,
+          error: resolvedLoader.error,
+          isFetching: resolvedLoader.isFetching,
+        }
+      : undefined
 
     // Destructure to exclude properties that shouldn't be on the node
     const {
       nodes: _nodes,
-      search: _search,
       virtualization: _virtualization,
       ...subDefRest
     } = subDef as SubmenuDef<any, any>
 
+    // Create submenu node shell (without children yet - we need the node to pass as parent to children)
     const node: SubmenuNode<any, any> = {
       ...subDefRest,
       id,
       kind: 'submenu',
       parent,
       def,
-      child,
-      nodes: child.nodes,
-    }
+      surfaceId: childSurfaceId,
+      depth: parent.depth + 1,
+      nodes: [], // Temporary - will be filled below
+      defaults: submenuDefaults,
+      baseDefaults: parent.baseDefaults,
+      virtualization: mergedVirtualization,
+      loadingState,
+    } as any
+
+    // Now instantiate children with the submenu node as their parent
+    node.nodes = (sourceNodes ?? []).map((childDef: any) =>
+      instantiateSingleNode(childDef as any, node, submenuDefaults),
+    ) as any
 
     return node as Node<T>
   }
@@ -327,7 +339,7 @@ export function instantiateSingleNode<T>(
 }
 
 export function instantiateMenuFromDef<T>(
-  def: MenuDef<T> | SubmenuDef<T, any>,
+  def: RootMenuDef<T> | SubmenuDef<T, any>,
   surfaceId: string,
   depth: number,
   parentDefaults?: MenuNodeDefaults<T>,
@@ -338,32 +350,15 @@ export function instantiateMenuFromDef<T>(
 
   // Only resolve loader if it's NOT a function
   // Function loaders should already be resolved by Surface component
-  // If we encounter a function loader here (e.g., for submenus during instantiation),
-  // we skip it and let the submenu's Surface component resolve it
   const resolvedLoader =
     def.loader && typeof def.loader !== 'function'
       ? (def.loader as AsyncNodeLoaderResult<T>)
       : undefined
 
   // Merge both static nodes AND loader data (if both exist)
-  // This ensures that submenus with both `nodes` and `loader` have all nodes searchable
   const staticNodes = def.nodes ?? []
   const loaderNodes = resolvedLoader?.data ?? []
   const sourceNodes = [...staticNodes, ...loaderNodes]
-
-  // if (depth > 0 && (staticNodes.length > 0 || loaderNodes.length > 0)) {
-  //   console.log('🏗 [instantiateMenuFromDef] Submenu nodes:', {
-  //     menuId: def.id,
-  //     depth,
-  //     surfaceId,
-  //     staticNodesCount: staticNodes.length,
-  //     loaderNodesCount: loaderNodes.length,
-  //     totalSourceNodes: sourceNodes.length,
-  //     hasLoader: !!def.loader,
-  //     loaderType: typeof def.loader,
-  //     hasOriginalLoader: !!(def as any).__originalLoader,
-  //   })
-  // }
 
   const loadingState = resolvedLoader
     ? {
@@ -379,33 +374,68 @@ export function instantiateMenuFromDef<T>(
     ? { ...homeDefaults.virtualization, ...def.virtualization }
     : def.virtualization
 
-  const parentless: Menu<T> = {
-    kind: 'kind' in def ? 'submenu' : 'menu',
-    id: def.id!,
-    title: def.title,
-    inputPlaceholder: def.inputPlaceholder,
-    hideSearchUntilActive: def.hideSearchUntilActive,
-    defaults: homeDefaults, // Store computed defaults on the Menu (for reference)
-    baseDefaults: parentDefaults, // Store base defaults (factory + instance) for submenu inheritance
-    virtualization: mergedVirtualization, // Merge virtualization defaults directly
-    ui: def.ui,
-    nodes: [] as Node<T>[],
-    surfaceId,
-    depth,
-    input: def.input,
-    open: def.open,
-    loader: def.loader,
-    loadingState,
-    middleware: def.middleware,
-    search: def.search,
-  }
+  // Check if this is a root menu or submenu based on kind property or depth
+  const isSubmenu = ('kind' in def && def.kind === 'submenu') || depth > 0
+
+  // Create the appropriate menu type
+  const menu: Menu<T> = isSubmenu
+    ? // SubmenuNode (should rarely happen - submenus are usually created via instantiateSingleNode)
+      ({
+        kind: 'submenu',
+        id: def.id!,
+        label: (def as SubmenuDef<T, any>).label,
+        title: def.title,
+        icon: (def as SubmenuDef<T, any>).icon,
+        inputPlaceholder: def.inputPlaceholder,
+        hideSearchUntilActive: def.hideSearchUntilActive,
+        defaults: homeDefaults,
+        baseDefaults: parentDefaults,
+        virtualization: mergedVirtualization,
+        ui: def.ui,
+        nodes: [] as Node<T>[],
+        surfaceId,
+        depth,
+        input: def.input,
+        open: def.open,
+        loader: def.loader,
+        loadingState,
+        middleware: def.middleware,
+        data: (def as SubmenuDef<T, any>).data,
+        disabled: (def as SubmenuDef<T, any>).disabled,
+        deepSearch: (def as SubmenuDef<T, any>).deepSearch,
+        keywords: (def as SubmenuDef<T, any>).keywords,
+        render: def.render,
+        def: def as SubmenuDef<T, any>,
+        parent: null as any, // Will be set by caller if needed
+      } as any)
+    : // RootMenuNode
+      ({
+        kind: 'menu',
+        id: def.id!,
+        title: def.title,
+        inputPlaceholder: def.inputPlaceholder,
+        hideSearchUntilActive: def.hideSearchUntilActive,
+        defaults: homeDefaults,
+        baseDefaults: parentDefaults,
+        virtualization: mergedVirtualization,
+        ui: def.ui,
+        nodes: [] as Node<T>[],
+        surfaceId,
+        depth: 0,
+        input: def.input,
+        open: def.open,
+        loader: def.loader,
+        loadingState,
+        middleware: def.middleware,
+        search: def.search,
+      } as RootMenuNode<T>)
 
   // Use the extracted instantiateSingleNode function, passing computed defaults
-  parentless.nodes = (sourceNodes ?? []).map((n: any) =>
-    instantiateSingleNode(n as any, parentless, homeDefaults),
+  menu.nodes = (sourceNodes ?? []).map((n: any) =>
+    instantiateSingleNode(n as any, menu, homeDefaults),
   ) as any
 
-  return parentless
+  return menu
 }
 
 /**
@@ -493,8 +523,9 @@ export function flatten<T>(
   input:
     | Menu<T>
     | Node<T>
+    | Menu<T>[]
     | Node<T>[]
-    | MenuDef<T>
+    | RootMenuDef<T>
     | NodeDef<T>
     | NodeDef<T>[]
     | any,
@@ -534,7 +565,7 @@ export function flatten<T>(
   if (isRuntime) {
     return flattenRuntime(input as Menu<T> | Node<T>, deep)
   }
-  return flattenDef(input as MenuDef<T> | NodeDef<T>, deep)
+  return flattenDef(input as RootMenuDef<T> | NodeDef<T>, deep)
 }
 
 function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
@@ -545,11 +576,11 @@ function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
   if ('surfaceId' in input) {
     // Input is a Menu - process its nodes array
     const menu = input as Menu<T>
-    const nodes = menu.nodes
+    const nodes = menu.nodes ?? []
 
     for (const node of nodes) {
       if (node.kind === 'item') {
-        result.push(node)
+        result.push(node as ItemNode<T>)
       } else if (node.kind === 'group') {
         const groupNode = node as GroupNode<T>
         result.push(groupNode)
@@ -566,8 +597,8 @@ function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
         const submenuNode = node as SubmenuNode<any, any>
         result.push(submenuNode)
         if (deep) {
-          // Deep: recursively flatten the child menu
-          result.push(...flattenRuntime(submenuNode.child, deep))
+          // Deep: recursively flatten the submenu (which IS the menu)
+          result.push(...flattenRuntime(submenuNode, deep))
         }
         // Shallow: don't add submenu children
       }
@@ -603,8 +634,8 @@ function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
     if (node.kind === 'submenu') {
       const submenuNode = node as SubmenuNode<any, any>
       if (deep) {
-        // Deep: recursively flatten the child menu
-        result.push(...flattenRuntime(submenuNode.child, deep))
+        // Deep: recursively flatten the submenu (which IS the menu)
+        result.push(...flattenRuntime(submenuNode, deep))
       }
       // Shallow: don't add submenu children
       return result
@@ -615,7 +646,7 @@ function flattenRuntime<T>(input: Menu<T> | Node<T>, deep: boolean): Node<T>[] {
 }
 
 function flattenDef<T>(
-  input: MenuDef<T> | NodeDef<T>,
+  input: RootMenuDef<T> | NodeDef<T>,
   deep: boolean,
 ): NodeDef<T>[] {
   const result: NodeDef<T>[] = []
@@ -659,8 +690,8 @@ function flattenDef<T>(
     }
   }
 
-  // Input is a MenuDef - process its nodes array
-  const menuDef = input as MenuDef<T>
+  // Input is a RootMenuDef - process its nodes array
+  const menuDef = input as RootMenuDef<T>
   const nodes = menuDef.nodes ?? []
 
   for (const nodeDef of nodes) {

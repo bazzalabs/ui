@@ -53,7 +53,7 @@ describe('useMenuInstantiation', () => {
       expect(result.current.menu.id).toBe('test-menu')
       expect(result.current.menu.title).toBe('Test Menu')
       expect(result.current.menu.surfaceId).toBe('test-surface')
-      expect(result.current.menu.nodes).toHaveLength(2)
+      expect(result.current.menu.nodes!).toHaveLength(2)
     })
 
     it('sets depth to 0 for root menu', () => {
@@ -129,10 +129,10 @@ describe('useMenuInstantiation', () => {
         }),
       )
 
-      expect(result.current.menu.nodes).toHaveLength(2)
-      expect(result.current.menu.nodes[0]?.kind).toBe('item')
-      expect(result.current.menu.nodes[0]?.id).toBe('new-file')
-      expect(result.current.menu.nodes[1]?.kind).toBe('group')
+      expect(result.current.menu.nodes!).toHaveLength(2)
+      expect(result.current.menu.nodes![0]?.kind).toBe('item')
+      expect(result.current.menu.nodes![0]?.id).toBe('new-file')
+      expect(result.current.menu.nodes![1]?.kind).toBe('group')
     })
   })
 
@@ -196,7 +196,7 @@ describe('useMenuInstantiation', () => {
         }),
       )
 
-      const item = result.current.menu.nodes[0] as any
+      const item = result.current.menu.nodes![0] as any
       expect(item.onSelect).toBe(onSelect)
       expect(item.closeOnSelect).toBe(true)
     })
@@ -413,8 +413,8 @@ describe('useMenuInstantiation', () => {
       )
 
       // Should have original nodes, not injected ones
-      expect(result.current.menu.nodes).toHaveLength(1)
-      expect(result.current.menu.nodes[0]?.id).toBe('item')
+      expect(result.current.menu.nodes!).toHaveLength(1)
+      expect(result.current.menu.nodes![0]?.id).toBe('item')
     })
   })
 
@@ -460,7 +460,7 @@ describe('useMenuInstantiation', () => {
         }),
       )
 
-      expect(result.current.menu.nodes).toHaveLength(1)
+      expect(result.current.menu.nodes!).toHaveLength(1)
       expect(result.current.menu.loadingState).toBeUndefined()
     })
 
@@ -494,7 +494,7 @@ describe('useMenuInstantiation', () => {
       )
 
       // Should handle empty results gracefully
-      expect(result.current.menu.nodes).toHaveLength(0)
+      expect(result.current.menu.nodes!).toHaveLength(0)
     })
 
     it('rebuilds menu when menuDef changes', () => {
@@ -529,7 +529,7 @@ describe('useMenuInstantiation', () => {
       )
 
       expect(result.current.menu.id).toBe('menu-v1')
-      expect(result.current.menu.nodes).toHaveLength(1)
+      expect(result.current.menu.nodes!).toHaveLength(1)
 
       // Update menuDef
       rerender({
@@ -542,7 +542,7 @@ describe('useMenuInstantiation', () => {
       })
 
       expect(result.current.menu.id).toBe('menu-v2')
-      expect(result.current.menu.nodes).toHaveLength(2)
+      expect(result.current.menu.nodes!).toHaveLength(2)
     })
   })
 })

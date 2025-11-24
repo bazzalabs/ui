@@ -139,6 +139,7 @@ export function Surface<T = unknown>({
     mode: query.length > 0 ? 'deep' : 'shallow',
     streamingEnabled: isStreaming,
     completionOrder: completionOrder ?? [],
+    control, // Pass control to middleware
   })
 
   // --- 6. FOCUS MANAGEMENT ---

@@ -122,4 +122,6 @@ export interface DropdownMenuProps<TData = unknown> {
   sideOffset?: number
   /** Offset along the alignment axis */
   alignOffset?: number
+  /** Ref for programmatic control of the dropdown menu */
+  controlRef?: React.Ref<import('./control.js').DropdownMenuControl<TData>>
 }

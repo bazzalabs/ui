@@ -21,7 +21,13 @@ export function DropdownMenuTrigger({
   asChild = false,
   disabled = false,
 }: DropdownMenuTriggerProps) {
-  const { triggerRef, scopeId } = useRootContext()
+  const { triggerRef, scopeId, control } = useRootContext()
+
+  // Check menu-wide disabled state from control
+  const menuDisabled = control.getState().disabled
+
+  // Combine: menu-wide OR prop-level disabled
+  const isDisabled = menuDisabled || disabled
 
   // Prevent default on pointerdown to avoid losing focus from input elements
   // The menu is closed on click (not pointerdown), but the browser's default
@@ -36,7 +42,7 @@ export function DropdownMenuTrigger({
         <Popover.Trigger
           render={children as any}
           ref={composeRefs(triggerRef as any)}
-          disabled={disabled}
+          disabled={isDisabled}
           onPointerDown={handlePointerDown}
         />
       </InteractionGuard.Branch>
@@ -47,7 +53,7 @@ export function DropdownMenuTrigger({
     <InteractionGuard.Branch asChild scopeId={scopeId}>
       <Popover.Trigger
         ref={composeRefs(triggerRef as any)}
-        disabled={disabled}
+        disabled={isDisabled}
         onPointerDown={handlePointerDown}
       >
         {children}

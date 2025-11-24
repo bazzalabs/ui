@@ -241,7 +241,7 @@ export function MenuListPrimitive<T>({
     'aria-activedescendant': activeId,
     'aria-disabled': disabled,
     'data-disabled': disabled,
-    inert: disabled ? ('' as any) : undefined,
+    inert: disabled ? true : undefined,
     className,
     style,
     onKeyDown: handleKeyDown,

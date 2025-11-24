@@ -2,7 +2,7 @@ import { EventBus, normalizeMenuDef } from '@bazza-ui/menu'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
-import type { CommandMenuControl, CommandMenuControlState } from '../control.js'
+import type { CommandMenuControl } from '../control.js'
 import {
   type CommandMenuContextValue,
   CommandMenuProvider,
@@ -67,56 +67,10 @@ export function CommandMenuRoot<T = unknown>({
   // Create control implementation
   const control = React.useMemo<CommandMenuControl<T>>(() => {
     const ctrl: CommandMenuControl<T> = {
-      // ===== Core MenuControl =====
-      getMenu: () => currentMenu,
-      getState: (): CommandMenuControlState<T> => ({
-        menu: currentMenu as any, // MenuDef will be assigned to Menu (compatible)
-        loading: controlState.loading,
-        error: controlState.error,
+      // ===== Core MenuControl (enable/disable only) =====
+      getState: () => ({
         disabled: controlState.disabled,
-        open,
-        navigationStack,
-        currentMenu,
       }),
-      isLoading: () => controlState.loading,
-      getError: () => controlState.error,
-      setLoading: (loading, message) => {
-        setControlState((prev) => ({ ...prev, loading }))
-        eventBus.current.emit(
-          loading
-            ? COMMAND_MENU_EVENTS.LOADING_START
-            : COMMAND_MENU_EVENTS.LOADING_END,
-          {
-            message,
-          },
-        )
-      },
-      setError: (error) => {
-        setControlState((prev) => ({ ...prev, error }))
-        if (error) {
-          eventBus.current.emit(COMMAND_MENU_EVENTS.ERROR, { error })
-        } else {
-          eventBus.current.emit(COMMAND_MENU_EVENTS.ERROR_CLEAR)
-        }
-      },
-      clearError: () => {
-        setControlState((prev) => ({ ...prev, error: null }))
-        eventBus.current.emit(COMMAND_MENU_EVENTS.ERROR_CLEAR)
-      },
-      refresh: async () => {
-        // TODO: Implement loader refresh
-        eventBus.current.emit(COMMAND_MENU_EVENTS.REFRESH)
-      },
-      refreshSubmenu: async (submenuId) => {
-        // TODO: Implement submenu loader refresh
-        eventBus.current.emit(COMMAND_MENU_EVENTS.REFRESH_SUBMENU, {
-          submenuId,
-        })
-      },
-      selectItem: (itemId) => {
-        // TODO: Implement programmatic item selection
-        eventBus.current.emit(COMMAND_MENU_EVENTS.ITEM_SELECT, { itemId })
-      },
       disable: () => {
         setControlState((prev) => ({ ...prev, disabled: true }))
         eventBus.current.emit(COMMAND_MENU_EVENTS.MENU_DISABLE)
@@ -157,41 +111,9 @@ export function CommandMenuRoot<T = unknown>({
           })
         }
       },
-      on: (event, handler) => eventBus.current.on(event, handler),
-      emit: (event, data) => eventBus.current.emit(event, data),
-
-      // ===== CommandMenuControl =====
-      isOpen: () => open,
-      open: () => setOpen(true),
-      close: () => setOpen(false),
-      toggle: () => setOpen((prev) => !prev),
-      focusInput: () => {
-        inputRef.current?.focus()
-      },
-      navigateTo: (submenuId) => {
-        // TODO: Find submenu by ID and push to stack
-        console.warn('navigateTo not yet implemented:', submenuId)
-      },
-      goBack: () => {
-        popSubmenu()
-      },
-      goToRoot: () => {
-        clearStack()
-      },
-      getNavigationStack: () => navigationStack,
     }
     return ctrl
-  }, [
-    currentMenu,
-    controlState,
-    open,
-    navigationStack,
-    setOpen,
-    onQueryChange,
-    inputRef,
-    popSubmenu,
-    clearStack,
-  ])
+  }, [controlState, inputRef])
 
   // Expose via controlRef
   React.useEffect(() => {

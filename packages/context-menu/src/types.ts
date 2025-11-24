@@ -124,4 +124,6 @@ export interface ContextMenuProps<TData = unknown> {
   placeholder?: string
   /** Whether to show debug visuals */
   debug?: boolean
+  /** Ref for programmatic control of the context menu */
+  controlRef?: React.Ref<import('./control.js').ContextMenuControl<TData>>
 }

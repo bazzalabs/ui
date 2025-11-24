@@ -32,6 +32,9 @@ export type BaseNodeDef<K extends MenuNodeKind = MenuNodeKind> = {
 
 /**
  * Base runtime node contract that all runtime nodes must extend.
+ *
+ * Note: The parent type uses a forward reference to Menu which is defined later.
+ * This is intentional as Menu is a union of RootMenuNode | SubmenuNode.
  */
 export type BaseNode<
   K extends MenuNodeKind = MenuNodeKind,
@@ -42,8 +45,8 @@ export type BaseNode<
   /** Unique id for this node (required at runtime). */
   id: string
   hidden?: boolean
-  /** Owning menu surface at runtime. */
-  parent: any
+  /** Owning menu surface at runtime (RootMenuNode or SubmenuNode). */
+  parent: Menu<any>
   /** Original author definition for this node. */
   def: D
 }
@@ -243,7 +246,7 @@ export type VirtualizationConfig<TData = unknown> = {
     | ((context: {
         nodes: NodeDef<TData>[]
         count: number
-        menu: MenuDef<TData>
+        menu: RootMenuDef<TData>
       }) => boolean)
 
   /**
@@ -336,7 +339,7 @@ export type SearchConfig = {
   streaming?: boolean | StreamingConfig
 }
 
-export type MenuDef<
+export type RootMenuDef<
   TData = unknown,
   TSlots = MenuSlots<TData>,
   TSlotProps = MenuSlotProps,
@@ -362,6 +365,17 @@ export type MenuDef<
   /** Custom render function for the menu content. */
   render?: () => React.ReactNode
 } & MenuState
+
+/**
+ * @deprecated Use RootMenuDef instead
+ */
+export type MenuDef<
+  TData = unknown,
+  TSlots = MenuSlots<TData>,
+  TSlotProps = MenuSlotProps,
+  TClassNames = MenuClassNames,
+  TControl extends MenuControl<TData> = MenuControl<TData>,
+> = RootMenuDef<TData, TSlots, TSlotProps, TClassNames, TControl>
 
 export interface ItemVariantMap {
   button: true
@@ -523,11 +537,18 @@ export type SubmenuDef<
 
 export type LoadMode = 'blocking' | 'streaming'
 
-export type Menu<TData = unknown> = Omit<MenuDef<TData>, 'kind' | 'nodes'> & {
-  kind: 'menu' | 'submenu'
+/**
+ * Root menu runtime node type.
+ * Represents the instantiated runtime state of a root menu.
+ */
+export type RootMenuNode<TData = unknown> = Omit<
+  RootMenuDef<TData>,
+  'kind' | 'nodes'
+> & {
+  kind: 'menu'
   nodes: Node<TData>[]
   surfaceId: string
-  depth: number
+  depth: 0
   /** Base defaults (factory + instance only) passed down from parent, used for submenu inheritance */
   baseDefaults?: MenuNodeDefaults<TData>
   /** Loading state metadata (present when menu is in async mode). */
@@ -652,17 +673,48 @@ export type LoadingNode = BaseNode<'loading', LoadingDef> & {
   completedPaths?: string[]
 }
 
-/** NOTE: Submenu node exposes its runtime child menu as `child` */
+/**
+ * Submenu runtime node type.
+ * The submenu node IS the menu itself (no separate child property).
+ * Combines submenu properties with menu runtime properties.
+ */
 export type SubmenuNode<TData = unknown, TChild = unknown> = BaseNode<
   'submenu',
   SubmenuDef<TData, TChild>
 > &
-  Omit<SubmenuDef<TData, TChild>, 'kind' | 'hidden' | 'nodes' | 'search'> &
+  Omit<SubmenuDef<TData, TChild>, 'kind' | 'hidden' | 'search' | 'nodes'> &
   GroupedNode<TData> & {
-    child: Menu<TChild>
+    // Menu runtime properties
     nodes: Node<TChild>[]
+    surfaceId: string
+    depth: number
+    /** Base defaults (factory + instance only) passed down from parent, used for submenu inheritance */
+    baseDefaults?: MenuNodeDefaults<TChild>
+    /** Loading state metadata (present when menu is in async mode). */
+    loadingState?: {
+      isLoading?: boolean
+      isError?: boolean
+      error?: Error | null
+      isFetching?: boolean
+      /** Progress details for deep search loaders */
+      progress?: LoaderProgress[]
+      /** Load mode: 'blocking' (wait for all) or 'streaming' (show as they arrive) */
+      loadMode?: LoadMode
+      /** Paths of completed loaders (streaming mode) */
+      completedPaths?: Set<string>
+      /** Paths of in-progress loaders (streaming mode) */
+      inProgressPaths?: Set<string>
+    }
     search?: SearchContext
   }
+
+/**
+ * Union type for any menu (root or submenu).
+ * Used for typing the parent property on nodes.
+ */
+export type Menu<TData = unknown> =
+  | RootMenuNode<TData>
+  | SubmenuNode<TData, any>
 
 export type Node<TData = unknown> =
   | ItemNode<TData>
@@ -755,9 +807,9 @@ export type StandardSubmenuNode<
 > = SubmenuNode<TData, TChild>
 
 /**
- * Standard menu definition - alias for MenuDef<TData>.
+ * Standard menu definition - alias for RootMenuDef<TData>.
  */
-export type StandardMenuDef<TData = unknown> = MenuDef<TData>
+export type StandardMenuDef<TData = unknown> = RootMenuDef<TData>
 
 /**
  * Standard menu runtime type - alias for Menu<TData>.
@@ -1023,7 +1075,7 @@ export type MenuNodeDefaults<TData = unknown> = {
 
 export interface MenuSurfaceProps<TData = unknown>
   extends Omit<DivProps, 'dir' | 'children'> {
-  menu: MenuDef<TData> | Menu<TData>
+  menu: RootMenuDef<TData> | SubmenuDef<TData, any> | Menu<TData>
   render?: () => React.ReactNode
   vimBindings?: boolean
   dir?: Direction

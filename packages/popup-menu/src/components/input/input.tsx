@@ -1,6 +1,7 @@
 import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
 import type * as React from 'react'
 import { useScopedTheme } from '../../contexts/theme-context.js'
+import { useSurface } from '../surface/surface-provider.js'
 
 export interface PopupMenuInputProps<T = unknown> {
   /** Surface store for state management */
@@ -23,6 +24,10 @@ export function PopupMenuInput<T = unknown>({
   className,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
+  const surface = useSurface()
+
+  // Get disabled state from control
+  const disabled = surface.control?.getState().disabled ?? false
 
   const searchState = {
     query: value ?? '',
@@ -40,14 +45,12 @@ export function PopupMenuInput<T = unknown>({
       placeholder={placeholder}
       className={mergedClassName}
       searchState={searchState}
+      disabled={disabled}
       inputProps={
         {
           ...theme?.slotProps?.input,
           'data-slot': 'popup-menu-input',
           'data-popup-menu-input': true,
-          onBlur: () => {
-            console.log('lost focus')
-          },
         } as React.HTMLAttributes<HTMLInputElement>
       }
     >

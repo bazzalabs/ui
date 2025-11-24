@@ -115,51 +115,10 @@ export function ContextMenuRoot<T = unknown>({
   // Create control implementation
   const control = React.useMemo<ContextMenuControl<T>>(() => {
     return {
-      // ===== Core MenuControl =====
-      getMenu: () => menu as BaseMenuDef<T>,
+      // ===== Core MenuControl (enable/disable only) =====
       getState: () => ({
-        menu: menu as BaseMenuDef<T>,
-        loading: controlState.loading,
-        error: controlState.error,
         disabled: controlState.disabled,
-        open,
-        openSubmenus: new Map(openSubmenus.current),
-        anchorPoint,
       }),
-      isLoading: () => controlState.loading,
-      getError: () => controlState.error,
-      setLoading: (loading, message) => {
-        setControlState((prev) => ({ ...prev, loading }))
-        eventBus.current.emit(
-          loading
-            ? CONTEXT_MENU_EVENTS.LOADING_START
-            : CONTEXT_MENU_EVENTS.LOADING_END,
-          { message },
-        )
-      },
-      setError: (error) => {
-        setControlState((prev) => ({ ...prev, error }))
-        if (error) {
-          eventBus.current.emit(CONTEXT_MENU_EVENTS.ERROR, { error })
-        } else {
-          eventBus.current.emit(CONTEXT_MENU_EVENTS.ERROR_CLEAR)
-        }
-      },
-      clearError: () => {
-        setControlState((prev) => ({ ...prev, error: null }))
-        eventBus.current.emit(CONTEXT_MENU_EVENTS.ERROR_CLEAR)
-      },
-      refresh: async () => {
-        eventBus.current.emit(CONTEXT_MENU_EVENTS.REFRESH)
-      },
-      refreshSubmenu: async (submenuId) => {
-        eventBus.current.emit(CONTEXT_MENU_EVENTS.REFRESH_SUBMENU, {
-          submenuId,
-        })
-      },
-      selectItem: (itemId) => {
-        eventBus.current.emit(CONTEXT_MENU_EVENTS.ITEM_SELECT, { itemId })
-      },
       disable: () => {
         setControlState((prev) => ({ ...prev, disabled: true }))
         eventBus.current.emit(CONTEXT_MENU_EVENTS.MENU_DISABLE)
@@ -180,43 +139,8 @@ export function ContextMenuRoot<T = unknown>({
             : CONTEXT_MENU_EVENTS.MENU_ENABLE,
         )
       },
-      on: (event, handler) => eventBus.current.on(event, handler),
-      emit: (event, data) => eventBus.current.emit(event, data),
-
-      // ===== PopupMenuControl =====
-      isOpen: () => open,
-      open: () => setOpen(true),
-      close: () => setOpen(false),
-      toggle: () => setOpen((prev) => !prev),
-      closeAllSurfaces: () => {
-        closeAllSurfaces()
-        openSubmenus.current.clear()
-      },
-      openSubmenu: (submenuId: string) => {
-        console.warn('openSubmenu not yet implemented:', submenuId)
-      },
-      closeSubmenu: (submenuId: string) => {
-        openSubmenus.current.delete(submenuId)
-      },
-      getOpenSubmenus: () => Array.from(openSubmenus.current.keys()),
-      getPosition: () => anchorPoint,
-      setPosition: (position: { x: number; y: number } | null) => {
-        setAnchorPoint(position)
-        eventBus.current.emit(CONTEXT_MENU_EVENTS.ANCHOR_POINT_CHANGE, {
-          anchorPoint: position,
-        })
-      },
-
-      // ===== ContextMenuControl =====
-      getAnchorPoint: () => anchorPoint,
-      setAnchorPoint: (point: { x: number; y: number } | null) => {
-        setAnchorPoint(point)
-        eventBus.current.emit(CONTEXT_MENU_EVENTS.ANCHOR_POINT_CHANGE, {
-          anchorPoint: point,
-        })
-      },
     }
-  }, [menu, controlState, open, setOpen, closeAllSurfaces, anchorPoint])
+  }, [controlState])
 
   // Expose via controlRef
   React.useEffect(() => {

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Disable Functionality</title>
+</head>
+<body>
+  <h1>Test Instructions</h1>
+  <ol>
+    <li>Go to your Next.js app</li>
+    <li>Navigate to a page with the DropdownMenu.ControlDisable example</li>
+    <li>Open browser console (F12)</li>
+    <li>Click the "Disable Menu" button</li>
+    <li>Check console for debug logs showing:
+      <ul>
+        <li>[DropdownMenuControl] disable() called</li>
+        <li>[DropdownMenuRoot] Control state updated</li>
+        <li>[DropdownMenuContent] Control state</li>
+        <li>[Surface] Control state</li>
+        <li>[PopupMenuItem] Control state (for each item)</li>
+        <li>[PopupMenuSubmenuTrigger] Disabled state check</li>
+      </ul>
+    </li>
+    <li>Open the menu and verify items are disabled (should not respond to clicks/hovers)</li>
+  </ol>
+
+  <h2>Expected Debug Output</h2>
+  <pre>
+When you click "Disable Menu":
+1. [Demo] Toggle disabled, current state: { isDisabled: false, ... }
+2. [DropdownMenuControl] disable() called
+3. [DropdownMenuRoot] Control state updated: { disabled: true, ... }
+4. [Demo] After disable: { disabled: true, ... }
+
+When menu is opened:
+5. [DropdownMenuContent] Control state: { hasControl: true, disabled: true, ... }
+6. [Surface] Control state: { hasControl: true, disabled: true, ... }
+7. [PopupMenuItem] Control state: { hasControl: true, disabled: true, ... } (for each item)
+8. [PopupMenuSubmenuTrigger] Disabled state check: { menuDisabled: true, finalDisabled: true, ... }
+  </pre>
+
+  <h2>What to Look For</h2>
+  <p>If any of these logs show <code>disabled: false</code> when it should be <code>true</code>, that's where the problem is!</p>
+  
+  <h2>Common Issues</h2>
+  <ul>
+    <li>If control is <code>null</code> or <code>undefined</code> at any level, the control isn't being passed through</li>
+    <li>If <code>disabled</code> doesn't update after calling <code>disable()</code>, the state isn't being set correctly</li>
+    <li>If items still respond to clicks when disabled, the disabled prop isn't being applied to the DOM</li>
+  </ul>
+</body>
+</html>

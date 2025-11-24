@@ -61,14 +61,15 @@ export function CommandMenu_LinearAsync() {
         defaults={{
           item: {
             onSelect: ({ node }) => {
-              console.log('title', node.parent.title)
-              console.log('label', node.parent.label)
-              toast(
-                `Changed ${node.parent.title?.toLowerCase()} to ${node.label}.`,
-                {
-                  icon: renderIcon(node.icon, 'size-4'),
-                },
-              )
+              // Now works! parent can be RootMenuNode (no label) or SubmenuNode (has label)
+              const parentLabel =
+                node.parent.kind === 'submenu'
+                  ? node.parent.label || node.parent.title
+                  : node.parent.title
+
+              toast(`Changed ${parentLabel?.toLowerCase()} to ${node.label}.`, {
+                icon: renderIcon(node.icon, 'size-4'),
+              })
             },
           },
         }}

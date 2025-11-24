@@ -63,6 +63,8 @@ export interface DropdownMenuOptions<T = unknown>
   classNames?: PopupMenuThemeDef<T>['classNames']
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
+  /** Ref for programmatic control of the dropdown menu */
+  controlRef?: React.Ref<import('./control.js').DropdownMenuControl<T>>
 }
 
 /**
@@ -100,6 +102,7 @@ export function createDropdownMenu<T = unknown>(
       slotProps,
       classNames,
       defaults,
+      controlRef,
       // InteractionGuard options
       scopeAttr,
       disableOutsidePointerEvents,
@@ -153,6 +156,7 @@ export function createDropdownMenu<T = unknown>(
             {...rootProps}
             menu={menu}
             defaults={mergedDefaults}
+            controlRef={controlRef}
             scopeAttr={scopeAttr}
             disableOutsidePointerEvents={disableOutsidePointerEvents}
             onEscapeKeyDown={onEscapeKeyDown}

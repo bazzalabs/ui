@@ -45,9 +45,9 @@ describe('useMenu', () => {
         }),
       )
 
-      expect(result.current.menu.nodes).toHaveLength(2)
-      expect(result.current.menu.nodes[0]?.id).toBe('item-1')
-      expect(result.current.menu.nodes[1]?.id).toBe('item-2')
+      expect(result.current.menu.nodes!).toHaveLength(2)
+      expect(result.current.menu.nodes![0]?.id).toBe('item-1')
+      expect(result.current.menu.nodes![1]?.id).toBe('item-2')
       expect(result.current.aggregatedState).toBeNull()
     })
 

@@ -33,17 +33,12 @@ import type { CreateNewConfig, MenuMiddleware } from './types.js'
  *   showWhen: 'no-exact-match',
  *   label: (query) => `Create new label: ${query}`,
  *   onCreate: async ({ query, control }) => {
- *     control?.setLoading(true)
+ *     // Disable menu during async operation
+ *     const enable = control?.disable()
  *     try {
  *       await api.createLabel({ name: query })
- *       // Close menu if it supports close() (e.g., CommandMenu)
- *       if ('close' in (control || {}) && typeof control?.close === 'function') {
- *         control.close()
- *       }
- *     } catch (error) {
- *       control?.setError(error.message)
  *     } finally {
- *       control?.setLoading(false)
+ *       enable?.()
  *     }
  *   }
  * })

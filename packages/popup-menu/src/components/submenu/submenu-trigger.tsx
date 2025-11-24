@@ -47,6 +47,7 @@ export function PopupMenuSubmenuTrigger<T>({
 }: PopupMenuSubmenuTriggerProps<T>) {
   const surfaceCtx = useSurface()
   const store = surfaceCtx.store
+  const control = surfaceCtx.control
   const sub = useSub()!
   const { setOwnerId, ownerId } = useFocusOwner()
   const {
@@ -63,17 +64,23 @@ export function PopupMenuSubmenuTrigger<T>({
   // Track whether the submenu content has focus
   const menuFocused = sub.childSurfaceId === ownerId
 
+  // Check menu-wide disabled state from control (if provided)
+  const menuDisabled = control?.getState().disabled ?? false
+
+  // Combine: menu-wide OR node-level disabled
+  const disabled = menuDisabled || node.disabled || false
+
   // Register this submenu trigger as a row in the parent surface store
   React.useEffect(() => {
     store.registerRow(rowId, {
       ref: ref as any,
-      disabled: false,
+      disabled,
       kind: 'submenu',
       openSub: () => sub.onOpenChange(true),
       closeSub: () => sub.onOpenChange(false),
     })
     return () => store.unregisterRow(rowId)
-  }, [store, rowId, sub])
+  }, [store, rowId, sub, disabled])
 
   // Listen for keyboard-triggered open events
   React.useEffect(() => {
@@ -124,6 +131,7 @@ export function PopupMenuSubmenuTrigger<T>({
   const onPointerDown = React.useCallback(
     (e: any) => {
       e.preventBaseUIHandler?.()
+      if (disabled) return
       if (e.button === 0 && e.ctrlKey === false) {
         e.preventDefault()
         sub.pendingOpenModalityRef.current = 'pointer'
@@ -133,13 +141,14 @@ export function PopupMenuSubmenuTrigger<T>({
         }
       }
     },
-    [sub],
+    [sub, disabled],
   )
 
   const onPointerEnter = React.useCallback(
     (e: any) => {
       e.preventBaseUIHandler?.()
 
+      if (disabled) return
       if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
@@ -152,6 +161,7 @@ export function PopupMenuSubmenuTrigger<T>({
       if (!sub.open) sub.onOpenChange(true)
     },
     [
+      disabled,
       aimGuardActiveRef,
       guardedTriggerIdRef,
       rowId,
@@ -166,6 +176,7 @@ export function PopupMenuSubmenuTrigger<T>({
     (e: any) => {
       e.preventBaseUIHandler?.()
 
+      if (disabled) return
       if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
@@ -175,7 +186,15 @@ export function PopupMenuSubmenuTrigger<T>({
       }
       if (!sub.open) sub.onOpenChange(true)
     },
-    [aimGuardActiveRef, guardedTriggerIdRef, rowId, focused, store, sub],
+    [
+      disabled,
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      rowId,
+      focused,
+      store,
+      sub,
+    ],
   )
 
   // CRITICAL: Safe polygon logic for diagonal navigation
@@ -183,6 +202,7 @@ export function PopupMenuSubmenuTrigger<T>({
     (e: any) => {
       e.preventBaseUIHandler?.()
 
+      if (disabled) return
       if (store.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
@@ -226,6 +246,7 @@ export function PopupMenuSubmenuTrigger<T>({
       }
     },
     [
+      disabled,
       aimGuardActiveRef,
       guardedTriggerIdRef,
       rowId,
@@ -251,7 +272,9 @@ export function PopupMenuSubmenuTrigger<T>({
       'data-group-index': node.groupIndex,
       'data-group-size': node.groupSize,
       'aria-selected': focused,
-      'aria-disabled': false,
+      'aria-disabled': disabled,
+      'data-disabled': disabled,
+      disabled,
       'data-subtrigger': 'true',
       className: classNames?.subtrigger,
       onClick,
@@ -270,6 +293,7 @@ export function PopupMenuSubmenuTrigger<T>({
       node.groupPosition,
       node.groupIndex,
       node.groupSize,
+      disabled,
       classNames?.subtrigger,
       onClick,
       onPointerUp,
@@ -283,10 +307,10 @@ export function PopupMenuSubmenuTrigger<T>({
   const bind: RowBindAPI = React.useMemo(
     () => ({
       focused,
-      disabled: false,
+      disabled,
       getRowProps: (overrides) => mergeProps(baseRowProps, overrides) as any,
     }),
-    [focused, baseRowProps],
+    [focused, disabled, baseRowProps],
   )
 
   const visual = slot({ node, bind, search })

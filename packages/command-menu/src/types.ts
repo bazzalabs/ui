@@ -1,6 +1,7 @@
 import type {
   Menu as BaseMenu,
-  MenuDef as BaseMenuDef,
+  RootMenuDef as BaseMenuDef,
+  RootMenuNode as BaseMenuNode,
   BaseNode,
   BaseNodeDef,
   SubmenuDef as BaseSubmenuDef,
@@ -14,6 +15,23 @@ import type {
   MenuClassNames,
   MenuSlotProps,
   MenuSlots,
+  SeparatorDef,
+  SeparatorNode,
+} from '@bazza-ui/menu'
+
+// Re-export common types for convenience
+export type {
+  RootMenuDef,
+  RootMenuNode,
+  Menu,
+  SubmenuDef,
+  SubmenuNode,
+  NodeDef,
+  Node,
+  ItemDef,
+  ItemNode,
+  GroupDef,
+  GroupNode,
   SeparatorDef,
   SeparatorNode,
 } from '@bazza-ui/menu'

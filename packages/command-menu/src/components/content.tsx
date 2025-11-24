@@ -1,9 +1,4 @@
-import {
-  type MenuDef,
-  type MenuNodeDefaults,
-  type SubmenuDef,
-  useMenu,
-} from '@bazza-ui/menu'
+import { type MenuNodeDefaults, useMenu } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
@@ -92,7 +87,7 @@ function CommandMenuContentLayer<T>({
 
   // Handle submenu navigation - push to stack instead of opening nested popover
   const handleSubmenuSelect = React.useCallback(
-    (submenuId: string, submenu: MenuDef<any>) => {
+    (submenuId: string, submenu: CommandSubmenuDef<any>) => {
       // Find the submenu node to get its title
       const submenuNode = menu.nodes.find(
         (n) => n.kind === 'submenu' && n.id === submenuId,
@@ -107,7 +102,7 @@ function CommandMenuContentLayer<T>({
       // The __originalLoader is set by deep search injection and contains the original loader function
       const hasOriginalLoader = (submenu as any).__originalLoader
 
-      const submenuToUse: MenuDef<any> = hasOriginalLoader
+      const submenuToUse: CommandSubmenuDef<any> = hasOriginalLoader
         ? {
             ...submenu,
             loader: (submenu as any).__originalLoader,
@@ -247,9 +242,9 @@ function findSubmenuDeep(
 function buildMenuStack<T>(
   rootMenu: CommandMenuDef<T>,
   navigationStack: NavigationStackEntry[],
-): Array<{ menuDef: MenuDef<T> | CommandSubmenuDef<T>; depth: number }> {
+): Array<{ menuDef: CommandMenuDef<T> | CommandSubmenuDef<T>; depth: number }> {
   const stack: Array<{
-    menuDef: MenuDef<T> | CommandSubmenuDef<T>
+    menuDef: CommandMenuDef<T> | CommandSubmenuDef<T>
     depth: number
   }> = [{ menuDef: rootMenu, depth: 0 }]
 

@@ -2,9 +2,10 @@ import * as React from 'react'
 import { instantiateMenuFromDef } from '../primitives/menu-model.js'
 import type {
   AggregatedLoaderState,
+  AsyncNodeLoaderResult,
   Menu,
-  MenuDef,
   MenuNodeDefaults,
+  RootMenuDef,
   SubmenuDef,
 } from '../types.js'
 import {
@@ -20,7 +21,7 @@ export interface UseMenuInstantiationConfig<T> {
   /**
    * The menu definition.
    */
-  menuDef: MenuDef<T> | SubmenuDef<T>
+  menuDef: RootMenuDef<T> | SubmenuDef<T>
 
   /**
    * Unique identifier for the menu surface.
@@ -120,7 +121,7 @@ export function useMenuInstantiation<T>(
     const depth = isSubmenu ? 1 : 0
 
     // Start with the menu def
-    let resolvedMenuDef = { ...menuDef } as MenuDef<T>
+    let resolvedMenuDef = { ...menuDef } as RootMenuDef<T> | SubmenuDef<T>
 
     // IMPORTANT: Only inject deep search results in ROOT menus, not in submenus
     // When a submenu is opened, it should use its own loader function with its own query,

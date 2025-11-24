@@ -55,6 +55,8 @@ export interface ContextMenuOptions<T = unknown>
   classNames?: PopupMenuThemeDef<T>['classNames']
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
+  /** Ref for programmatic control of the context menu */
+  controlRef?: React.Ref<import('./control.js').ContextMenuControl<T>>
 }
 
 /**
@@ -89,6 +91,7 @@ export function createContextMenu<T = unknown>(
       slotProps,
       classNames,
       defaults,
+      controlRef,
       // InteractionGuard options
       scopeAttr,
       disableOutsidePointerEvents,
@@ -140,6 +143,7 @@ export function createContextMenu<T = unknown>(
             {...rootProps}
             menu={menu}
             defaults={mergedDefaults}
+            controlRef={controlRef}
             scopeAttr={scopeAttr}
             disableOutsidePointerEvents={disableOutsidePointerEvents}
             onEscapeKeyDown={onEscapeKeyDown}

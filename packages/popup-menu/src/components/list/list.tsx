@@ -226,7 +226,7 @@ export function List({ onTypeStart }: ListProps) {
 
   const handleSubmenuSelect = React.useCallback(
     ({ node }: { node: SubmenuNode<any> }) => {
-      if (node.child && onSubmenuSelect) {
+      if (onSubmenuSelect) {
         onSubmenuSelect(node.id, node.def as any)
       }
     },

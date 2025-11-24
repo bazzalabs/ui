@@ -40,7 +40,7 @@ export function ListRenderer(props: ListRendererProps) {
   const shouldShowLoading =
     (menu as any).loadingState?.isLoading &&
     !isStreaming &&
-    (menu.nodes.length === 0 || (query && query.trim().length > 0))
+    ((menu.nodes?.length ?? 0) === 0 || (query && query.trim().length > 0))
 
   if (shouldShowLoading) {
     const LoadingSlot = slots.Loading
@@ -176,8 +176,8 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
   // Handle submenu selection - push to stack
   const handleSubmenuSelect = React.useCallback(
     ({ node }: { node: SubmenuNode<any> }) => {
-      if (node.child && onSubmenuSelect) {
-        // IMPORTANT: Pass node.def (SubmenuDef) not node.child (Menu instance)
+      if (onSubmenuSelect) {
+        // Pass node.def (SubmenuDef)
         // The SubmenuDef has __originalLoader preserved from deep search injection
         onSubmenuSelect(node.id, node.def as any)
       }
@@ -194,8 +194,8 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
       const activeNode = displayNodes.find((n) => n.id === activeId)
       if (activeNode && activeNode.kind === 'submenu') {
         const submenuNode = activeNode as SubmenuNode<any>
-        if (submenuNode.child && onSubmenuSelect) {
-          // IMPORTANT: Pass submenuNode.def (SubmenuDef) not submenuNode.child (Menu instance)
+        if (onSubmenuSelect) {
+          // Pass submenuNode.def (SubmenuDef)
           // The SubmenuDef has __originalLoader preserved from deep search injection
           onSubmenuSelect(submenuNode.id, submenuNode.def as any)
         }

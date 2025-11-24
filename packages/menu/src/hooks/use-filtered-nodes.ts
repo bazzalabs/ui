@@ -141,7 +141,7 @@ export function useFilteredNodes<T = unknown>(
   const filteredNodes = React.useMemo(() => {
     if (!query) {
       // No query - return all navigable nodes (shallow)
-      const allNodes = flatten(menu, { deep: false })
+      const allNodes = flatten(menu, { deep: false }) as Node<T>[]
       return allNodes.filter(
         (n) =>
           n.kind === 'item' ||
@@ -154,7 +154,7 @@ export function useFilteredNodes<T = unknown>(
 
     // With query - flatten based on mode
     const deep = mode === 'deep'
-    let allNodes = flatten(menu, { deep })
+    let allNodes = flatten(menu, { deep }) as Node<T>[]
 
     // MIDDLEWARE HOOK 1: beforeFilter (pre-filter transformation)
     // Transform nodes before scoring/filtering
@@ -165,7 +165,7 @@ export function useFilteredNodes<T = unknown>(
           query,
           menu,
         }
-        allNodes = menu.middleware.beforeFilter(context)
+        allNodes = menu.middleware.beforeFilter(context) as Node<T>[]
       } catch (error) {
         console.error('[Menu] Error in beforeFilter middleware:', error)
         // Continue with original nodes on error
@@ -258,7 +258,7 @@ export function useFilteredNodes<T = unknown>(
           nodes: enrichedNodes,
           query,
           mode: 'search',
-          allNodes: menu.nodes,
+          allNodes: (menu.nodes ?? []) as Node<T>[],
           menu,
           control,
           disabled,

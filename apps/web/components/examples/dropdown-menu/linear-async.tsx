@@ -1,14 +1,17 @@
 'use client'
 
 import {
+  composeMiddleware,
+  createNew,
+  type DropdownMenuControl,
   type DropdownMenuDef,
   type DropdownNodeDef,
   type DropdownSubmenuDef,
   renderIcon,
 } from '@bazza-ui/dropdown-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
-import { composeMiddleware, createNew } from '@bazza-ui/menu/middleware'
 import { ListFilterIcon, PlusIcon } from 'lucide-react'
+import { useRef } from 'react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/client/tst-static/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -26,8 +29,10 @@ import {
 } from './shared/icons'
 
 export function DropdownMenu_LinearAsync() {
+  const controlRef = useRef<DropdownMenuControl>(null)
   return (
     <DropdownMenu
+      controlRef={controlRef}
       menu={menuData}
       defaults={{
         item: {
@@ -714,9 +719,6 @@ const labelsMenu: DropdownSubmenuDef = {
 
         // Re-enable menu and return focus to input
         if (enable) enable()
-
-        // CommandMenuControl-specific method (would error if control was typed as MenuControl)
-        control?.focusInput()
       },
     }),
   ]),

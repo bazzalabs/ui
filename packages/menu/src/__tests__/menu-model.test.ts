@@ -128,8 +128,8 @@ describe('menu-model', () => {
       expect(menu.surfaceId).toBe('root')
       expect(menu.depth).toBe(0)
       expect(menu.nodes).toHaveLength(2)
-      expect(menu.nodes[0]?.kind).toBe('item')
-      expect(menu.nodes[0]?.id).toBe('file')
+      expect(menu.nodes![0]?.kind).toBe('item')
+      expect(menu.nodes![0]?.id).toBe('file')
     })
 
     it('generates IDs from labels when not provided', () => {
@@ -140,7 +140,7 @@ describe('menu-model', () => {
 
       const menu = instantiateMenuFromDef(menuDef, 'root', 0)
 
-      expect(menu.nodes[0]?.id).toBe('new-file')
+      expect(menu.nodes![0]?.id).toBe('new-file')
     })
 
     it('creates groups with children', () => {
@@ -162,9 +162,9 @@ describe('menu-model', () => {
       const menu = instantiateMenuFromDef(menuDef, 'root', 0)
 
       expect(menu.nodes).toHaveLength(1)
-      expect(menu.nodes[0]?.kind).toBe('group')
+      expect(menu.nodes![0]?.kind).toBe('group')
 
-      const group = menu.nodes[0] as any
+      const group = menu.nodes![0] as any
       expect(group.heading).toBe('File Operations')
       expect(group.nodes).toHaveLength(2)
       expect(group.nodes[0].id).toBe('new')
@@ -186,15 +186,15 @@ describe('menu-model', () => {
       const menu = instantiateMenuFromDef(menuDef, 'root', 0)
 
       expect(menu.nodes).toHaveLength(1)
-      expect(menu.nodes[0]?.kind).toBe('submenu')
+      expect(menu.nodes![0]?.kind).toBe('submenu')
 
-      const submenu = menu.nodes[0] as any
+      const submenu = menu.nodes![0] as any
       expect(submenu.id).toBe('file')
-      expect(submenu.child.id).toBe('file')
-      expect(submenu.child.title).toBe('File Operations')
-      expect(submenu.child.depth).toBe(1)
-      expect(submenu.child.surfaceId).toBe('root::file')
-      expect(submenu.child.nodes).toHaveLength(1)
+      expect(submenu.id).toBe('file')
+      expect(submenu.title).toBe('File Operations')
+      expect(submenu.depth).toBe(1)
+      expect(submenu.surfaceId).toBe('root::file')
+      expect(submenu.nodes).toHaveLength(1)
     })
 
     it('applies defaults to item nodes', () => {
@@ -211,7 +211,7 @@ describe('menu-model', () => {
       }
 
       const menu = instantiateMenuFromDef(menuDef, 'root', 0)
-      const item = menu.nodes[0] as any
+      const item = menu.nodes![0] as any
 
       expect(item.onSelect).toBe(onSelect)
       expect(item.closeOnSelect).toBe(true)
@@ -304,7 +304,7 @@ describe('menu-model', () => {
       }
 
       const menu = instantiateMenuFromDef(menuDef, 'root', 0)
-      const flattened = flatten(menu.nodes)
+      const flattened = flatten(menu.nodes!)
 
       expect(flattened).toHaveLength(2)
       expect(flattened[0]?.id).toBe('item-1')

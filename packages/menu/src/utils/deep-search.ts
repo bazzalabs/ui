@@ -5,8 +5,8 @@ import type {
   AsyncNodeLoaderResult,
   GroupDef,
   LoaderProgress,
-  MenuDef,
   NodeDef,
+  RootMenuDef,
   SearchConfig,
   SubmenuDef,
 } from '../types.js'
@@ -28,7 +28,7 @@ export type DeepSearchLoaderEntry<T = unknown> = {
  * Returns an array of loader entries with their paths.
  */
 export function collectDeepSearchLoaders<T = unknown>(
-  menuDef: MenuDef<T> | SubmenuDef<T>,
+  menuDef: RootMenuDef<T> | SubmenuDef<T>,
   parentPath: string[] = [],
 ): DeepSearchLoaderEntry<T>[] {
   const entries: DeepSearchLoaderEntry<T>[] = []
@@ -115,7 +115,7 @@ function collectDeepSearchLoadersFromNode<T = unknown>(
  */
 export function aggregateLoaderResults(
   results: Map<string, AsyncNodeLoaderResult>,
-  menuDef: MenuDef<any> | SubmenuDef<any>,
+  menuDef: RootMenuDef<any> | SubmenuDef<any>,
 ): AggregatedLoaderState {
   let isLoading = false
   let isError = false
@@ -165,7 +165,7 @@ export function aggregateLoaderResults(
  */
 function buildBreadcrumbs(
   path: string[],
-  menuDef: MenuDef<any> | SubmenuDef<any>,
+  menuDef: RootMenuDef<any> | SubmenuDef<any>,
 ): string[] {
   const breadcrumbs: string[] = []
   let nodes = menuDef.nodes ?? []
@@ -202,7 +202,7 @@ function buildBreadcrumbs(
  * 2. At least one loader in the menu tree uses 'server' or 'hybrid' search mode
  */
 export function shouldEnableStreaming<T = unknown>(
-  menuDef: MenuDef<T> | SubmenuDef<T>,
+  menuDef: RootMenuDef<T> | SubmenuDef<T>,
 ): boolean {
   // Check if streaming is configured
   const searchConfig = menuDef.search
@@ -228,7 +228,7 @@ export function shouldEnableStreaming<T = unknown>(
  * Recursively checks if any loader in the menu tree uses 'server' or 'hybrid' mode.
  */
 function checkForServerLoader<T = unknown>(
-  menuDef: MenuDef<T> | SubmenuDef<T>,
+  menuDef: RootMenuDef<T> | SubmenuDef<T>,
 ): boolean {
   // Check root menu's own loader (if in server/hybrid mode)
   if (menuDef.loader && menuDef.search?.mode !== 'client') {
@@ -291,12 +291,12 @@ function checkForServerLoaderInNodes(nodes: NodeDef<any>[]): boolean {
  * Creates a new menu definition with loader results replaced by static data.
  */
 export function injectLoaderResults<T = unknown>(
-  menuDef: MenuDef<T>,
+  menuDef: RootMenuDef<T> | SubmenuDef<T>,
   deepSearchResults: Map<string, AsyncNodeLoaderResult>,
   parentPath: string[] = [],
-): MenuDef<T> {
+): RootMenuDef<T> | SubmenuDef<T> {
   // Clone the menu def
-  const newMenuDef: MenuDef<T> = { ...menuDef }
+  const newMenuDef: RootMenuDef<T> | SubmenuDef<T> = { ...menuDef } as any
 
   // Process nodes
   if (menuDef.nodes) {
@@ -314,12 +314,12 @@ export function injectLoaderResults<T = unknown>(
  * In-progress loaders are left as-is.
  */
 export function injectCompletedLoaderResults<T = unknown>(
-  menuDef: MenuDef<T>,
+  menuDef: RootMenuDef<T> | SubmenuDef<T>,
   completedResults: Map<string, AsyncNodeLoaderResult>,
   parentPath: string[] = [],
-): MenuDef<T> {
+): RootMenuDef<T> | SubmenuDef<T> {
   // Clone the menu def
-  const newMenuDef: MenuDef<T> = { ...menuDef }
+  const newMenuDef: RootMenuDef<T> | SubmenuDef<T> = { ...menuDef } as any
 
   // Process nodes
   if (menuDef.nodes) {

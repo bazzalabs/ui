@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useRoot } from '../../contexts/root-context.js'
 import { useSub } from '../submenu/submenu-context.js'
+import { useSurface } from '../surface/surface-provider.js'
 import type {
   PopupMenuDef,
   PopupSubmenuDef,
@@ -22,6 +23,7 @@ export function PopupMenuSubmenuContent<T>({
 }: PopupMenuSubmenuContentProps<T>) {
   const sub = useSub()
   const root = useRoot()
+  const parentSurface = useSurface()
 
   // Convert submenu node to menu def with required id
   const menuDef: PopupMenuDef<T> | PopupSubmenuDef<T> = React.useMemo(() => {
@@ -46,6 +48,9 @@ export function PopupMenuSubmenuContent<T>({
   // This ensures submenus don't inherit parent surface-level defaults
   const baseDefaults = root.defaults
 
+  // Get control from parent surface to pass down to submenu
+  const control = parentSurface.control
+
   return (
     <Positioner>
       <Surface
@@ -53,6 +58,7 @@ export function PopupMenuSubmenuContent<T>({
         open={sub?.open}
         contentRef={sub?.contentRef}
         defaults={baseDefaults}
+        control={control}
       />
     </Positioner>
   )
