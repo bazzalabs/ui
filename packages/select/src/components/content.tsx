@@ -4,9 +4,11 @@ import {
   type PopupSubmenuDef,
   Positioner,
   Surface,
+  ScopedThemeProvider as PopupMenuScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
+import { useScopedTheme as useSelectScopedTheme } from '../contexts/theme-context.js'
 import type { SelectMenuDef } from '../types.js'
 import { validateSelectMenu } from '../types.js'
 
@@ -65,19 +67,17 @@ export function SelectContent<T = unknown>({
   const vimBindings = defaults?.surface?.vimBindings ?? true
   const dir = defaults?.surface?.dir ?? 'ltr'
 
-  // Use trigger element as anchor
-  if (!triggerRef.current || !menuProp) {
-    return null
-  }
+  // Listbox ID for ARIA
+  const listboxId = `${scopeId}-listbox`
 
-  // Wrap menu to handle selection
+  // Wrap menu to handle selection (MUST be before early returns - Rules of Hooks)
   const wrappedMenu = React.useMemo(() => {
     if (!menuProp) return menuProp
 
     // Transform menu to handle item selection
     const transformNodes = (
       nodes?: SelectMenuDef<T>['nodes'],
-    ): SelectMenuDef<T>['nodes'] => {
+    ): any[] | undefined => {
       if (!nodes) return nodes
 
       return nodes.map((node) => {
@@ -87,14 +87,12 @@ export function SelectContent<T = unknown>({
 
           // Determine if this item is selected
           const isSelected = multiple
-            ? selectedValues?.includes(itemValue) ?? false
+            ? (selectedValues?.includes(itemValue) ?? false)
             : selectedValue === itemValue
 
-          return {
+          const transformedItem: any = {
             ...node,
-            variant: multiple ? ('checkbox' as const) : node.variant,
-            checked: multiple ? isSelected : undefined,
-            onSelect: () => {
+            onSelect: (args: any) => {
               if (multiple) {
                 // Toggle selection
                 const newValues = isSelected
@@ -108,24 +106,29 @@ export function SelectContent<T = unknown>({
                 closeAllSurfaces()
               }
               // Call original onSelect if provided
-              node.onSelect?.()
+              node.onSelect?.(args)
             },
-            onCheckedChange:
-              multiple && node.variant === 'checkbox'
-                ? (checked: boolean) => {
-                    const newValues = checked
-                      ? [...(selectedValues ?? []), itemValue]
-                      : (selectedValues ?? []).filter((v) => v !== itemValue)
-                    onValuesChange?.(newValues)
-                  }
-                : undefined,
           }
+
+          // Add checkbox-specific properties for multi-select
+          if (multiple) {
+            transformedItem.variant = 'checkbox' as const
+            transformedItem.checked = isSelected
+            transformedItem.onCheckedChange = (checked: boolean) => {
+              const newValues = checked
+                ? [...(selectedValues ?? []), itemValue]
+                : (selectedValues ?? []).filter((v) => v !== itemValue)
+              onValuesChange?.(newValues)
+            }
+          }
+
+          return transformedItem
         }
 
         if (node.kind === 'group') {
           return {
             ...node,
-            nodes: transformNodes(node.nodes as any) as any,
+            nodes: transformNodes(node.nodes as any),
           }
         }
 
@@ -147,8 +150,35 @@ export function SelectContent<T = unknown>({
     closeAllSurfaces,
   ])
 
-  // Listbox ID for ARIA
-  const listboxId = `${scopeId}-listbox`
+  // Get the current select theme to wrap the Item slot
+  const selectTheme = useSelectScopedTheme()
+
+  // Wrap the Item slot to inject selection state
+  const wrappedTheme = React.useMemo(() => {
+    if (!selectTheme?.slots?.Item) return selectTheme
+
+    const originalItemSlot = selectTheme.slots.Item
+
+    return {
+      ...selectTheme,
+      slots: {
+        ...selectTheme.slots,
+        Item: (args: any) => {
+          return originalItemSlot({
+            ...args,
+            multiple,
+            value: selectedValue,
+            values: selectedValues,
+          })
+        },
+      },
+    }
+  }, [selectTheme, multiple, selectedValue, selectedValues])
+
+  // Use trigger element as anchor - early return AFTER all hooks
+  if (!triggerRef.current || !menuProp) {
+    return null
+  }
 
   return (
     <Positioner
@@ -158,24 +188,26 @@ export function SelectContent<T = unknown>({
       alignOffset={alignOffset}
       anchor={triggerRef.current}
     >
-      <Surface
-        menu={wrappedMenu as PopupMenuDef<T>}
-        open={open}
-        onClose={closeAllSurfaces}
-        contentRef={contentRef}
-        placeholder={placeholder}
-        vimBindings={vimBindings}
-        dir={dir}
-        defaults={defaults as any}
-        control={control}
-        // Override role for listbox semantics via popupProps
-        popupProps={{
-          role: 'listbox',
-          'aria-labelledby': `${scopeId}-trigger`,
-          'aria-multiselectable': multiple ? true : undefined,
-          id: listboxId,
-        }}
-      />
+      <PopupMenuScopedThemeProvider theme={wrappedTheme as any}>
+        <Surface
+          menu={wrappedMenu as PopupMenuDef<T>}
+          open={open}
+          onClose={closeAllSurfaces}
+          contentRef={contentRef}
+          placeholder={placeholder}
+          vimBindings={vimBindings}
+          dir={dir}
+          defaults={defaults as any}
+          control={control}
+          // Override role for listbox semantics via popupProps
+          popupProps={{
+            role: 'listbox',
+            'aria-labelledby': `${scopeId}-trigger`,
+            'aria-multiselectable': multiple ? true : undefined,
+            id: listboxId,
+          }}
+        />
+      </PopupMenuScopedThemeProvider>
     </Positioner>
   )
 }

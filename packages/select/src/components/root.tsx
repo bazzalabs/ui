@@ -101,14 +101,14 @@ export function SelectRoot<T = unknown>({
   // Single select value state
   const [selectedValue, setSelectedValue] = useControllableState({
     prop: controlledValue,
-    defaultProp: defaultValue,
+    defaultProp: defaultValue ?? '',
     onChange: onValueChange,
   })
 
   // Multi select values state
   const [selectedValues, setSelectedValues] = useControllableState({
     prop: controlledValues,
-    defaultProp: defaultValues,
+    defaultProp: defaultValues ?? [],
     onChange: onValuesChange,
   })
 
@@ -174,7 +174,16 @@ export function SelectRoot<T = unknown>({
       close: () => setOpen(false),
       toggle: () => setOpen((prev) => !prev),
     }
-  }, [controlState, disabled, selectedValue, selectedValues, multiple, setOpen, setSelectedValue, setSelectedValues])
+  }, [
+    controlState,
+    disabled,
+    selectedValue,
+    selectedValues,
+    multiple,
+    setOpen,
+    setSelectedValue,
+    setSelectedValues,
+  ])
 
   // Expose via controlRef
   React.useEffect(() => {
@@ -183,8 +192,7 @@ export function SelectRoot<T = unknown>({
     if (typeof controlRef === 'function') {
       controlRef(control)
     } else {
-      ;(controlRef as React.MutableRefObject<SelectControl<T>>).current =
-        control
+      ;(controlRef as React.RefObject<SelectControl<T>>).current = control
     }
   }, [control, controlRef])
 
@@ -207,6 +215,7 @@ export function SelectRoot<T = unknown>({
       onValuesChange: setSelectedValues,
       multiple,
       disabled: controlState.disabled || disabled,
+      menu,
       // InteractionGuard options
       interactionGuardOptions: {
         scopeAttr,
@@ -223,6 +232,7 @@ export function SelectRoot<T = unknown>({
     [
       scopeId,
       open,
+      menu,
       setOpen,
       closeAllSurfaces,
       control,

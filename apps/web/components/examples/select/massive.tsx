@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Select } from '@/registry/select'
-import { Button } from '@/components/ui/button'
 
 interface MassiveProps {
   numItems?: number
@@ -29,11 +28,7 @@ export function Massive({ numItems = 10000 }: MassiveProps) {
             overscan: 5,
           },
         }}
-      >
-        <Button variant="outline" className="w-64">
-          {value || `Select from ${numItems.toLocaleString()} items...`}
-        </Button>
-      </Select>
+      />
       {value && (
         <p className="text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{value}</span>

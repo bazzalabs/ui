@@ -1,9 +1,9 @@
 /**
  * @bazza-ui/select
- * 
- * Form-compatible Select and MultiSelect components based on @bazza-ui/dropdown-menu.
+ *
+ * Form-compatible Select and MultiSelect components.
  * Uses combobox/listbox ARIA pattern for proper form integration.
- * 
+ *
  * Key Features:
  * - Single and multi-select variants
  * - Form integration with hidden inputs
@@ -12,11 +12,15 @@
  * - Type-ahead search
  * - Virtualization for large lists
  * - Async loading support
- * 
- * @example
+ *
+ * ## Usage
+ *
+ * ### Simple API (items prop)
  * ```tsx
- * import { Select } from '@bazza-ui/select'
- * 
+ * import { createSelect } from '@bazza-ui/select'
+ *
+ * const Select = createSelect()
+ *
  * <Select
  *   name="fruit"
  *   value={value}
@@ -27,21 +31,44 @@
  *   ]}
  * />
  * ```
+ *
+ * ### Advanced API (menu prop)
+ * ```tsx
+ * import { createSelect } from '@bazza-ui/select'
+ *
+ * const Select = createSelect({
+ *   slots: { Item: CustomItem },
+ *   classNames: { item: 'custom-class' }
+ * })
+ *
+ * <Select
+ *   name="fruit"
+ *   value={value}
+ *   onValueChange={setValue}
+ *   menu={{
+ *     nodes: [
+ *       { kind: 'group', heading: 'Fruits', nodes: [...] },
+ *       { kind: 'separator' },
+ *       { kind: 'item', id: 'apple', label: 'Apple' },
+ *     ]
+ *   }}
+ * />
+ * ```
+ *
+ * ### Default Instances
+ * For convenience, default instances are exported:
+ * ```tsx
+ * import { Select, MultiSelect } from '@bazza-ui/select'
+ * ```
  */
 
-// Main components
-export { Select } from './select.js'
-export { MultiSelect } from './multi-select.js'
-
-// Factory functions
+// Factory functions (primary API)
 export { createSelect } from './create-select.js'
 export { createMultiSelect } from './create-multi-select.js'
 
-// Component parts for composition
-export { SelectRoot } from './components/root.js'
-export { SelectTrigger } from './components/trigger.js'
-export { SelectContent } from './components/content.js'
-export { SelectValue } from './components/value.js'
+// Default instances for convenience
+export { Select } from './select.js'
+export { MultiSelect } from './multi-select.js'
 
 // Types
 export type {
@@ -52,11 +79,33 @@ export type {
   SelectNode,
   SelectMenu,
   SelectItemDef,
+  TriggerBindAPI,
+  SelectTriggerSlotArgs,
+  SelectValueSlotArgs,
+  SelectItemSlotArgs,
+  SelectSlots,
+  SelectSlotProps,
+  SelectClassNames,
+  SelectThemeDef,
+  SelectTheme,
 } from './types.js'
 export type { SelectControl, MultiSelectControl } from './control.js'
 
-// Context (for advanced use cases)
-export { useRootContext as useSelectContext } from './contexts/root-context.js'
+// Factory options types
+export type {
+  CreateSelectOptions,
+  CreateSelectResult,
+  SelectOptions,
+  CompoundSelectTriggerProps,
+  CompoundSelectValueProps,
+} from './create-select.js'
+export type {
+  CreateMultiSelectOptions,
+  CreateMultiSelectResult,
+  MultiSelectOptions,
+  CompoundMultiSelectTriggerProps,
+  CompoundMultiSelectValueProps,
+} from './create-multi-select.js'
 
 // Validation helpers
 export { validateSelectMenu, validateSelectNodes } from './types.js'

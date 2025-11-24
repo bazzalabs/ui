@@ -32,11 +32,7 @@ export function Form() {
               { value: 'yellow', label: 'Yellow' },
               { value: 'purple', label: 'Purple' },
             ]}
-          >
-            <Button variant="outline" className="w-full">
-              Select...
-            </Button>
-          </Select>
+          />
         </div>
         <Button type="submit" className="w-full">
           Submit
@@ -44,7 +40,8 @@ export function Form() {
       </form>
       {submitted && (
         <p className="text-sm text-muted-foreground">
-          Submitted: <span className="font-medium text-foreground">{submitted}</span>
+          Submitted:{' '}
+          <span className="font-medium text-foreground">{submitted}</span>
         </p>
       )}
     </div>

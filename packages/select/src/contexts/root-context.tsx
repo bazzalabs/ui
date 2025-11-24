@@ -1,3 +1,4 @@
+import type { Menu } from '@bazza-ui/menu'
 import type { InteractionGuardOptions } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import type { SelectControl } from '../control.js'
@@ -12,7 +13,7 @@ export interface RootContextValue<TData = unknown> {
   /** Close the select (and any submenus if somehow present) */
   closeAllSurfaces: () => void
   /** Ref to the trigger element */
-  triggerRef: React.RefObject<HTMLElement>
+  triggerRef: React.RefObject<HTMLElement | null>
   /** Control API */
   control: SelectControl<TData>
   /** Current selected value (single select) */
@@ -29,6 +30,8 @@ export interface RootContextValue<TData = unknown> {
   disabled: boolean
   /** Interaction guard options */
   interactionGuardOptions: Partial<InteractionGuardOptions>
+  /** The menu instance (for accessing nodes) */
+  menu?: Menu<TData>
 }
 
 const RootContext = React.createContext<RootContextValue<any> | null>(null)

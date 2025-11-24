@@ -12,7 +12,7 @@ export function Groups() {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder="Search food..."
+        placeholder="Select food..."
         menu={{
           id: 'food-menu',
           nodes: [
@@ -27,7 +27,7 @@ export function Groups() {
                 { kind: 'item', id: 'orange', label: 'Orange', icon: '🍊' },
               ],
             },
-            { kind: 'separator' },
+            { kind: 'separator', id: 'separator-1' },
             {
               kind: 'group',
               id: 'vegetables',
@@ -39,7 +39,7 @@ export function Groups() {
                 { kind: 'item', id: 'potato', label: 'Potato', icon: '🥔' },
               ],
             },
-            { kind: 'separator' },
+            { kind: 'separator', id: 'separator-2' },
             {
               kind: 'group',
               id: 'proteins',
@@ -53,11 +53,7 @@ export function Groups() {
             },
           ],
         }}
-      >
-        <Button variant="outline" className="w-48">
-          {value || 'Select food...'}
-        </Button>
-      </Select>
+      />
       {value && (
         <p className="text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{value}</span>

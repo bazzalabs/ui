@@ -1,33 +1,63 @@
 import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import {
-  defaultSlots,
-  GlobalThemeProvider,
   type InteractionGuardOptions,
-  mergeTheme,
-  type PopupMenuDef,
-  type PopupMenuSlots,
-  type PopupMenuTheme,
-  type PopupMenuThemeDef,
-  ScopedThemeProvider,
+  GlobalThemeProvider as PopupMenuGlobalThemeProvider,
+  ScopedThemeProvider as PopupMenuScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { SelectContent } from './components/content.js'
 import { SelectRoot } from './components/root.js'
 import { SelectTrigger } from './components/trigger.js'
 import { SelectValue } from './components/value.js'
-import type { SelectItemDef, SelectMenuDef, SelectProps } from './types.js'
+import {
+  GlobalThemeProvider as SelectGlobalThemeProvider,
+  mergeTheme,
+  ScopedThemeProvider as SelectScopedThemeProvider,
+  defaultSelectSlots,
+} from './contexts/theme-context.js'
+import type {
+  SelectItemDef,
+  SelectMenuDef,
+  SelectProps,
+  SelectThemeDef,
+  SelectSlots,
+  SelectTheme,
+} from './types.js'
+
+// Compound component types
+export interface CompoundSelectTriggerProps {
+  /** Trigger element - will open select listbox on click */
+  children?: React.ReactNode
+  /** Whether to use child as trigger (for composition) */
+  asChild?: boolean
+  /** Whether the trigger is disabled */
+  disabled?: boolean
+  /** Accessible label */
+  'aria-label'?: string
+  /** ID of element that labels this select */
+  'aria-labelledby'?: string
+  /** ID of element that describes this select */
+  'aria-describedby'?: string
+  /** Whether this select has a validation error */
+  'aria-invalid'?: boolean
+  /** Whether this field is required */
+  'aria-required'?: boolean
+}
+
+export interface CompoundSelectValueProps {
+  /** Placeholder text when no value selected */
+  placeholder?: string
+}
 
 export type CreateSelectResult<T = unknown> = React.FC<SelectOptions<T>> & {
-  Root: typeof SelectRoot
-  Trigger: typeof SelectTrigger
-  Content: typeof SelectContent
-  Value: typeof SelectValue
+  Trigger: React.FC<CompoundSelectTriggerProps>
+  Value: React.FC<CompoundSelectValueProps>
 }
 
 export type CreateSelectOptions<T = unknown> = {
-  slots?: PopupMenuThemeDef<T>['slots']
-  slotProps?: PopupMenuThemeDef<T>['slotProps']
-  classNames?: PopupMenuThemeDef<T>['classNames']
+  slots?: SelectThemeDef<T>['slots']
+  slotProps?: SelectThemeDef<T>['slotProps']
+  classNames?: SelectThemeDef<T>['classNames']
   defaults?: Partial<MenuNodeDefaults<T>>
 }
 
@@ -54,7 +84,7 @@ export interface SelectOptions<T = unknown>
   // ===== Display =====
   /** Placeholder text when no value selected */
   placeholder?: string
-  /** Trigger element customization */
+  /** Trigger element customization or compound components */
   children?: React.ReactNode
 
   // ===== Options (Simple API) =====
@@ -101,9 +131,9 @@ export interface SelectOptions<T = unknown>
   /** Whether to use child as trigger (for composition) */
   asChild?: boolean
   /** Theme overrides at instance level */
-  slots?: PopupMenuThemeDef<T>['slots']
-  slotProps?: PopupMenuThemeDef<T>['slotProps']
-  classNames?: PopupMenuThemeDef<T>['classNames']
+  slots?: SelectThemeDef<T>['slots']
+  slotProps?: SelectThemeDef<T>['slotProps']
+  classNames?: SelectThemeDef<T>['classNames']
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
   /** Ref for programmatic control */
@@ -134,21 +164,45 @@ function itemsToMenuDef<T>(
 }
 
 /**
+ * Check if children contain compound components (Select.Trigger or Select.Value)
+ */
+function hasCompoundComponents(children: React.ReactNode): boolean {
+  let hasCompound = false
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child)) {
+      // Check if it's a compound component by checking the type
+      const type = child.type as any
+      if (
+        type?.displayName === 'Select.Trigger' ||
+        type?.displayName === 'Select.Value'
+      ) {
+        hasCompound = true
+      }
+    }
+  })
+  return hasCompound
+}
+
+/**
  * Creates a Select component with factory-level theme defaults.
  * Supports theme override at three levels:
  * 1. Factory level (createSelect options)
  * 2. Instance level (component props)
  * 3. Menu level (menu.ui)
+ *
+ * Returns a compound component with Select.Trigger and Select.Value attached.
  */
 export function createSelect<T = unknown>(
   opts?: CreateSelectOptions<T>,
 ): CreateSelectResult<T> {
   // Factory theme
   const factoryTheme = {
-    slots: { ...defaultSlots(), ...opts?.slots } as PopupMenuSlots<T>,
+    slots: { ...defaultSelectSlots<T>(), ...opts?.slots } as Required<
+      SelectSlots<T>
+    >,
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
-  } as PopupMenuTheme<T>
+  } as SelectTheme<T>
 
   // Factory defaults
   const factoryDefaults = opts?.defaults
@@ -241,65 +295,121 @@ export function createSelect<T = unknown>(
       [defaults],
     )
 
+    // Check if using compound component pattern
+    const isCompoundMode = children && hasCompoundComponents(children)
+
     return (
-      <GlobalThemeProvider theme={instanceTheme}>
-        <ScopedThemeProvider
-          theme={scopedTheme as PopupMenuThemeDef | undefined}
-        >
-          <SelectRoot
-            menu={menu}
-            value={value}
-            defaultValue={defaultValue}
-            onValueChange={onValueChange}
-            disabled={disabled}
-            open={open}
-            defaultOpen={defaultOpen}
-            onOpenChange={onOpenChange}
-            modal={modal}
-            defaults={mergedDefaults}
-            controlRef={controlRef}
-            scopeAttr={scopeAttr}
-            disableOutsidePointerEvents={disableOutsidePointerEvents}
-            onEscapeKeyDown={onEscapeKeyDown}
-            onPointerDownOutside={onPointerDownOutside}
-            onFocusOutside={onFocusOutside}
-            onInteractOutside={onInteractOutside}
-            onDismiss={onDismiss}
-            surfaceSelector={surfaceSelector}
-            branchAttr={branchAttr}
-          >
-            <SelectTrigger
-              asChild={asChild}
-              disabled={disabled}
-              aria-label={ariaLabel}
-              aria-labelledby={ariaLabelledby}
-              aria-describedby={ariaDescribedby}
-              aria-invalid={ariaInvalid}
-              aria-required={required}
-              placeholder={placeholder}
-            >
-              {children || <SelectValue name={name} form={form} required={required} placeholder={placeholder} />}
-            </SelectTrigger>
-            <SelectContent
-              menu={menu as PopupMenuDef<T>}
-              side={side}
-              align={align}
-              sideOffset={sideOffset}
-              alignOffset={alignOffset}
-              defaults={mergedDefaults}
-              placeholder={placeholder}
-            />
-          </SelectRoot>
-        </ScopedThemeProvider>
-      </GlobalThemeProvider>
+      <SelectGlobalThemeProvider theme={instanceTheme}>
+        <SelectScopedThemeProvider theme={scopedTheme as any}>
+          <PopupMenuGlobalThemeProvider theme={instanceTheme as any}>
+            <PopupMenuScopedThemeProvider theme={scopedTheme as any}>
+              <SelectRoot
+                menu={menu}
+                value={value}
+                defaultValue={defaultValue}
+                onValueChange={onValueChange}
+                disabled={disabled}
+                open={open}
+                defaultOpen={defaultOpen}
+                onOpenChange={onOpenChange}
+                modal={modal}
+                defaults={mergedDefaults}
+                controlRef={controlRef}
+                scopeAttr={scopeAttr}
+                disableOutsidePointerEvents={disableOutsidePointerEvents}
+                onEscapeKeyDown={onEscapeKeyDown}
+                onPointerDownOutside={onPointerDownOutside}
+                onFocusOutside={onFocusOutside}
+                onInteractOutside={onInteractOutside}
+                onDismiss={onDismiss}
+                surfaceSelector={surfaceSelector}
+                branchAttr={branchAttr}
+              >
+                {isCompoundMode ? (
+                  // Compound component mode - render children which should contain Select.Trigger
+                  children
+                ) : (
+                  // Legacy mode - render default trigger with children or default value
+                  <SelectTrigger
+                    asChild={asChild}
+                    disabled={disabled}
+                    aria-label={ariaLabel}
+                    aria-labelledby={ariaLabelledby}
+                    aria-describedby={ariaDescribedby}
+                    aria-invalid={ariaInvalid}
+                    aria-required={required}
+                    placeholder={placeholder}
+                  >
+                    {children || (
+                      <SelectValue
+                        name={name}
+                        form={form}
+                        required={required}
+                        placeholder={placeholder}
+                      />
+                    )}
+                  </SelectTrigger>
+                )}
+                <SelectContent
+                  menu={menu}
+                  side={side}
+                  align={align}
+                  sideOffset={sideOffset}
+                  alignOffset={alignOffset}
+                  defaults={mergedDefaults}
+                  placeholder={placeholder}
+                />
+              </SelectRoot>
+            </PopupMenuScopedThemeProvider>
+          </PopupMenuGlobalThemeProvider>
+        </SelectScopedThemeProvider>
+      </SelectGlobalThemeProvider>
     )
   }
 
-  const CompoundSelect = Select as CreateSelectResult<T>
-  CompoundSelect.Root = SelectRoot
-  CompoundSelect.Trigger = SelectTrigger
-  CompoundSelect.Content = SelectContent
-  CompoundSelect.Value = SelectValue
+  // Compound component: Select.Trigger
+  const CompoundTrigger: React.FC<CompoundSelectTriggerProps> = (
+    triggerProps,
+  ) => {
+    const {
+      children,
+      asChild,
+      disabled,
+      'aria-label': ariaLabel,
+      'aria-labelledby': ariaLabelledby,
+      'aria-describedby': ariaDescribedby,
+      'aria-invalid': ariaInvalid,
+      'aria-required': ariaRequired,
+    } = triggerProps
 
-  return CompoundSelect
+    return (
+      <SelectTrigger
+        asChild={asChild}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledby}
+        aria-describedby={ariaDescribedby}
+        aria-invalid={ariaInvalid}
+        aria-required={ariaRequired}
+      >
+        {children}
+      </SelectTrigger>
+    )
+  }
+  CompoundTrigger.displayName = 'Select.Trigger'
+
+  // Compound component: Select.Value
+  const CompoundValue: React.FC<CompoundSelectValueProps> = (valueProps) => {
+    const { placeholder } = valueProps
+
+    return <SelectValue placeholder={placeholder} />
+  }
+  CompoundValue.displayName = 'Select.Value'
+
+  // Attach compound components
+  const SelectWithCompound = Select as CreateSelectResult<T>
+  SelectWithCompound.Trigger = CompoundTrigger
+  SelectWithCompound.Value = CompoundValue
+
+  return SelectWithCompound
 }

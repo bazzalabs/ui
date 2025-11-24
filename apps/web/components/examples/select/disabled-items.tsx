@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Select } from '@/registry/select'
-import { Button } from '@/components/ui/button'
 
 export function DisabledItems() {
   const [value, setValue] = useState('')
@@ -21,11 +20,7 @@ export function DisabledItems() {
           { value: 'de', label: 'Germany', disabled: true },
           { value: 'fr', label: 'France' },
         ]}
-      >
-        <Button variant="outline" className="w-48">
-          {value || 'Select...'}
-        </Button>
-      </Select>
+      />
       {value && (
         <p className="text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{value}</span>

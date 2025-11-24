@@ -40,11 +40,7 @@ export function ItemDescriptions() {
             icon: <XCircleIcon className="text-gray-500" />,
           },
         ]}
-      >
-        <Button variant="outline" className="w-56">
-          {value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Select...'}
-        </Button>
-      </Select>
+      />
     </div>
   )
 }

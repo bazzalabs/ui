@@ -1,7 +1,8 @@
-import { createSelect } from '@bazza-ui/select'
 import { renderIcon } from '@bazza-ui/menu'
+import { createSelect } from '@bazza-ui/select'
 import { CheckIcon } from 'lucide-react'
 import { Fragment } from 'react'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
@@ -18,13 +19,47 @@ export const Select = createSelect({
     },
   },
   slots: {
-    Item: ({ node, bind, search }) => {
+    Trigger: ({ bind, children }) => {
+      const props = bind.getTriggerProps({
+        className: 'w-fit font-normal',
+      })
+
+      return (
+        <Button {...props} variant="outline">
+          {children}
+        </Button>
+      )
+    },
+    Value: ({ node, value, placeholder }) => {
+      return (
+        <div
+          className={cn(
+            'flex items-center gap-2 font-normal',
+            !value ? 'text-muted-foreground' : '',
+          )}
+        >
+          {node?.icon && (
+            <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
+              {renderIcon(
+                node.icon,
+                'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
+              )}
+            </div>
+          )}
+          {value && node ? node.label : placeholder}
+        </div>
+      )
+    },
+    Item: ({ node, bind, search, multiple, value, values }) => {
       const props = bind.getRowProps({
         className: cn('group/row', node.description && 'gap-3'),
       })
 
-      const isRadioItem = node.group && node.group.variant === 'radio'
-      const isRadioChecked = isRadioItem && node.group?.value === node.id
+      // Determine if this item is selected
+      const itemValue = (node as any).value ?? node.id
+      const isSelected = multiple
+        ? (values?.includes(itemValue) ?? false)
+        : value === itemValue
 
       return (
         <li {...props}>
@@ -47,7 +82,9 @@ export const Select = createSelect({
               </span>
             )}
           </div>
-          {isRadioChecked && <CheckIcon className="size-4 ml-auto" />}
+          <div className="size-4 flex items-center justify-end ml-auto">
+            {isSelected && <CheckIcon className="size-4" />}
+          </div>
         </li>
       )
     },
@@ -262,3 +299,13 @@ export const LabelWithBreadcrumbs = ({
     </span>
   </div>
 )
+
+// Select.Trigger = ({
+//   children,
+//   variant = 'outline',
+//   ...props
+// }: React.ComponentProps<typeof Button> & CompoundSelectTriggerProps) => (
+//   <Select.Trigger {...props} asChild>
+//     <Button variant={variant}>{children}</Button>
+//   </Select.Trigger>
+// )

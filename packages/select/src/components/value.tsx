@@ -1,5 +1,7 @@
 import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
+import { useGlobalTheme, useScopedTheme } from '../contexts/theme-context.js'
+import { findNodeByValue, findNodesByValues } from '../utils/find-nodes.js'
 
 export interface SelectValueProps {
   /** Form field name for submission */
@@ -22,18 +24,55 @@ export function SelectValue({
   required,
   placeholder = 'Select...',
 }: SelectValueProps) {
-  const { selectedValue, selectedValues, multiple } = useRootContext()
+  const { selectedValue, selectedValues, multiple, menu } = useRootContext()
 
-  // Get display value
+  // Get theme slots (scoped takes priority over global)
+  const globalTheme = useGlobalTheme()
+  const scopedTheme = useScopedTheme()
+  const ValueSlot = scopedTheme?.slots?.Value ?? globalTheme?.slots?.Value
+
+  // Find the selected node(s) from the menu
+  const selectedNode = React.useMemo(
+    () => (multiple ? undefined : findNodeByValue(menu, selectedValue)),
+    [menu, selectedValue, multiple],
+  )
+
+  const selectedNodes = React.useMemo(
+    () => (multiple ? findNodesByValues(menu, selectedValues) : undefined),
+    [menu, selectedValues, multiple],
+  )
+
+  // Get display value using Value slot from theme
   const displayValue = React.useMemo(() => {
-    if (multiple && selectedValues && selectedValues.length > 0) {
-      return `${selectedValues.length} selected`
+    if (!ValueSlot) {
+      // Fallback to default behavior if no Value slot
+      if (multiple && selectedValues && selectedValues.length > 0) {
+        return `${selectedValues.length} selected`
+      }
+      if (!multiple && selectedValue) {
+        return selectedValue
+      }
+      return placeholder
     }
-    if (!multiple && selectedValue) {
-      return selectedValue
-    }
-    return placeholder
-  }, [multiple, selectedValue, selectedValues, placeholder])
+
+    // Use the Value slot from theme with node data
+    return ValueSlot({
+      value: selectedValue,
+      values: selectedValues,
+      multiple,
+      placeholder,
+      node: selectedNode,
+      nodes: selectedNodes,
+    })
+  }, [
+    ValueSlot,
+    multiple,
+    selectedValue,
+    selectedValues,
+    placeholder,
+    selectedNode,
+    selectedNodes,
+  ])
 
   return (
     <>

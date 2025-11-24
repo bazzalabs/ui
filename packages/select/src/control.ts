@@ -3,6 +3,8 @@
  * Provides methods to read state and control behavior imperatively.
  */
 
+import type { Menu } from '@bazza-ui/menu'
+
 export interface SelectControlState {
   /** Whether the select is disabled */
   disabled: boolean
@@ -57,9 +59,15 @@ export interface SelectControl<TData = unknown> {
    * Programmatically toggle open/closed state.
    */
   toggle(): void
+
+  /**
+   * The menu instance for accessing nodes
+   */
+  menu?: Menu<TData>
 }
 
-export interface MultiSelectControl<TData = unknown> extends SelectControl<TData> {
+export interface MultiSelectControl<TData = unknown>
+  extends SelectControl<TData> {
   /**
    * Select all available options (multi select only).
    */

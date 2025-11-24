@@ -1,39 +1,65 @@
 import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import {
-  defaultSlots,
-  GlobalThemeProvider,
   type InteractionGuardOptions,
-  mergeTheme,
-  type PopupMenuDef,
-  type PopupMenuSlots,
-  type PopupMenuTheme,
-  type PopupMenuThemeDef,
-  ScopedThemeProvider,
+  GlobalThemeProvider as PopupMenuGlobalThemeProvider,
+  ScopedThemeProvider as PopupMenuScopedThemeProvider,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import { SelectContent } from './components/content.js'
 import { SelectRoot } from './components/root.js'
 import { SelectTrigger } from './components/trigger.js'
 import { SelectValue } from './components/value.js'
+import {
+  GlobalThemeProvider as SelectGlobalThemeProvider,
+  mergeTheme,
+  ScopedThemeProvider as SelectScopedThemeProvider,
+  defaultSelectSlots,
+} from './contexts/theme-context.js'
 import type {
   MultiSelectProps,
   SelectItemDef,
   SelectMenuDef,
+  SelectThemeDef,
+  SelectSlots,
+  SelectTheme,
 } from './types.js'
+
+// Compound component types
+export interface CompoundMultiSelectTriggerProps {
+  /** Trigger element - will open select listbox on click */
+  children?: React.ReactNode
+  /** Whether to use child as trigger (for composition) */
+  asChild?: boolean
+  /** Whether the trigger is disabled */
+  disabled?: boolean
+  /** Accessible label */
+  'aria-label'?: string
+  /** ID of element that labels this select */
+  'aria-labelledby'?: string
+  /** ID of element that describes this select */
+  'aria-describedby'?: string
+  /** Whether this select has a validation error */
+  'aria-invalid'?: boolean
+  /** Whether this field is required */
+  'aria-required'?: boolean
+}
+
+export interface CompoundMultiSelectValueProps {
+  /** Placeholder text when no value selected */
+  placeholder?: string
+}
 
 export type CreateMultiSelectResult<T = unknown> = React.FC<
   MultiSelectOptions<T>
 > & {
-  Root: typeof SelectRoot
-  Trigger: typeof SelectTrigger
-  Content: typeof SelectContent
-  Value: typeof SelectValue
+  Trigger: React.FC<CompoundMultiSelectTriggerProps>
+  Value: React.FC<CompoundMultiSelectValueProps>
 }
 
 export type CreateMultiSelectOptions<T = unknown> = {
-  slots?: PopupMenuThemeDef<T>['slots']
-  slotProps?: PopupMenuThemeDef<T>['slotProps']
-  classNames?: PopupMenuThemeDef<T>['classNames']
+  slots?: SelectThemeDef<T>['slots']
+  slotProps?: SelectThemeDef<T>['slotProps']
+  classNames?: SelectThemeDef<T>['classNames']
   defaults?: Partial<MenuNodeDefaults<T>>
 }
 
@@ -60,7 +86,7 @@ export interface MultiSelectOptions<T = unknown>
   // ===== Display =====
   /** Placeholder text when no value selected */
   placeholder?: string
-  /** Trigger element customization */
+  /** Trigger element customization or compound components */
   children?: React.ReactNode
 
   // ===== Options (Simple API) =====
@@ -115,9 +141,9 @@ export interface MultiSelectOptions<T = unknown>
   /** Whether to use child as trigger (for composition) */
   asChild?: boolean
   /** Theme overrides at instance level */
-  slots?: PopupMenuThemeDef<T>['slots']
-  slotProps?: PopupMenuThemeDef<T>['slotProps']
-  classNames?: PopupMenuThemeDef<T>['classNames']
+  slots?: SelectThemeDef<T>['slots']
+  slotProps?: SelectThemeDef<T>['slotProps']
+  classNames?: SelectThemeDef<T>['classNames']
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
   /** Ref for programmatic control */
@@ -125,7 +151,7 @@ export interface MultiSelectOptions<T = unknown>
 }
 
 /**
- * Helper to convert simple items array to menu definition with checkbox variants
+ * Helper to convert simple items array to menu definition
  */
 function itemsToMenuDef<T>(
   items: SelectItemDef<T>[],
@@ -141,25 +167,49 @@ function itemsToMenuDef<T>(
       icon: item.icon,
       description: item.description,
       data: item.data,
-      variant: 'checkbox' as const, // Always use checkbox for multi-select
+      // Note: variant, checked, and onCheckedChange are added by SelectContent's transformNodes
       value: item.value,
-    })),
+    })) as any, // Cast to any because checkbox properties are added dynamically
   }
+}
+
+/**
+ * Check if children contain compound components (MultiSelect.Trigger or MultiSelect.Value)
+ */
+function hasCompoundComponents(children: React.ReactNode): boolean {
+  let hasCompound = false
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child)) {
+      // Check if it's a compound component by checking the type
+      const type = child.type as any
+      if (
+        type?.displayName === 'MultiSelect.Trigger' ||
+        type?.displayName === 'MultiSelect.Value'
+      ) {
+        hasCompound = true
+      }
+    }
+  })
+  return hasCompound
 }
 
 /**
  * Creates a MultiSelect component with factory-level theme defaults.
  * MultiSelect allows selecting multiple values and keeps the listbox open by default.
+ *
+ * Returns a compound component with MultiSelect.Trigger and MultiSelect.Value attached.
  */
 export function createMultiSelect<T = unknown>(
   opts?: CreateMultiSelectOptions<T>,
 ): CreateMultiSelectResult<T> {
   // Factory theme
   const factoryTheme = {
-    slots: { ...defaultSlots(), ...opts?.slots } as PopupMenuSlots<T>,
+    slots: { ...defaultSelectSlots<T>(), ...opts?.slots } as Required<
+      SelectSlots<T>
+    >,
     slotProps: opts?.slotProps,
     classNames: opts?.classNames,
-  } as PopupMenuTheme<T>
+  } as SelectTheme<T>
 
   // Factory defaults
   const factoryDefaults = opts?.defaults
@@ -276,73 +326,124 @@ export function createMultiSelect<T = unknown>(
       [defaults],
     )
 
+    // Check if using compound component pattern
+    const isCompoundMode = children && hasCompoundComponents(children)
+
     return (
-      <GlobalThemeProvider theme={instanceTheme}>
-        <ScopedThemeProvider
-          theme={scopedTheme as PopupMenuThemeDef | undefined}
-        >
-          <SelectRoot
-            menu={menu}
-            values={value}
-            defaultValues={defaultValue}
-            onValuesChange={handleValueChange}
-            disabled={disabled}
-            open={open}
-            defaultOpen={defaultOpen}
-            onOpenChange={onOpenChange}
-            modal={modal}
-            multiple={true}
-            defaults={mergedDefaults}
-            controlRef={controlRef as any}
-            scopeAttr={scopeAttr}
-            disableOutsidePointerEvents={disableOutsidePointerEvents}
-            onEscapeKeyDown={onEscapeKeyDown}
-            onPointerDownOutside={onPointerDownOutside}
-            onFocusOutside={onFocusOutside}
-            onInteractOutside={onInteractOutside}
-            onDismiss={onDismiss}
-            surfaceSelector={surfaceSelector}
-            branchAttr={branchAttr}
-          >
-            <SelectTrigger
-              asChild={asChild}
-              disabled={disabled}
-              aria-label={ariaLabel}
-              aria-labelledby={ariaLabelledby}
-              aria-describedby={ariaDescribedby}
-              aria-invalid={ariaInvalid}
-              aria-required={required}
-              placeholder={placeholder}
-            >
-              {children || (
-                <SelectValue
-                  name={name}
-                  form={form}
-                  required={required}
+      <SelectGlobalThemeProvider theme={instanceTheme}>
+        <SelectScopedThemeProvider theme={scopedTheme as any}>
+          <PopupMenuGlobalThemeProvider theme={instanceTheme as any}>
+            <PopupMenuScopedThemeProvider theme={scopedTheme as any}>
+              <SelectRoot
+                menu={menu}
+                values={value}
+                defaultValues={defaultValue}
+                onValuesChange={handleValueChange}
+                disabled={disabled}
+                open={open}
+                defaultOpen={defaultOpen}
+                onOpenChange={onOpenChange}
+                modal={modal}
+                multiple={true}
+                defaults={mergedDefaults}
+                controlRef={controlRef as any}
+                scopeAttr={scopeAttr}
+                disableOutsidePointerEvents={disableOutsidePointerEvents}
+                onEscapeKeyDown={onEscapeKeyDown}
+                onPointerDownOutside={onPointerDownOutside}
+                onFocusOutside={onFocusOutside}
+                onInteractOutside={onInteractOutside}
+                onDismiss={onDismiss}
+                surfaceSelector={surfaceSelector}
+                branchAttr={branchAttr}
+              >
+                {isCompoundMode ? (
+                  // Compound component mode - render children which should contain MultiSelect.Trigger
+                  children
+                ) : (
+                  // Legacy mode - render default trigger with children or default value
+                  <SelectTrigger
+                    asChild={asChild}
+                    disabled={disabled}
+                    aria-label={ariaLabel}
+                    aria-labelledby={ariaLabelledby}
+                    aria-describedby={ariaDescribedby}
+                    aria-invalid={ariaInvalid}
+                    aria-required={required}
+                    placeholder={placeholder}
+                  >
+                    {children || (
+                      <SelectValue
+                        name={name}
+                        form={form}
+                        required={required}
+                        placeholder={placeholder}
+                      />
+                    )}
+                  </SelectTrigger>
+                )}
+                <SelectContent
+                  menu={menu}
+                  side={side}
+                  align={align}
+                  sideOffset={sideOffset}
+                  alignOffset={alignOffset}
+                  defaults={mergedDefaults}
                   placeholder={placeholder}
                 />
-              )}
-            </SelectTrigger>
-            <SelectContent
-              menu={menu as PopupMenuDef<T>}
-              side={side}
-              align={align}
-              sideOffset={sideOffset}
-              alignOffset={alignOffset}
-              defaults={mergedDefaults}
-              placeholder={placeholder}
-            />
-          </SelectRoot>
-        </ScopedThemeProvider>
-      </GlobalThemeProvider>
+              </SelectRoot>
+            </PopupMenuScopedThemeProvider>
+          </PopupMenuGlobalThemeProvider>
+        </SelectScopedThemeProvider>
+      </SelectGlobalThemeProvider>
     )
   }
 
-  const CompoundMultiSelect = MultiSelect as CreateMultiSelectResult<T>
-  CompoundMultiSelect.Root = SelectRoot
-  CompoundMultiSelect.Trigger = SelectTrigger
-  CompoundMultiSelect.Content = SelectContent
-  CompoundMultiSelect.Value = SelectValue
+  // Compound component: MultiSelect.Trigger
+  const CompoundTrigger: React.FC<CompoundMultiSelectTriggerProps> = (
+    triggerProps,
+  ) => {
+    const {
+      children,
+      asChild,
+      disabled,
+      'aria-label': ariaLabel,
+      'aria-labelledby': ariaLabelledby,
+      'aria-describedby': ariaDescribedby,
+      'aria-invalid': ariaInvalid,
+      'aria-required': ariaRequired,
+    } = triggerProps
 
-  return CompoundMultiSelect
+    return (
+      <SelectTrigger
+        asChild={asChild}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledby}
+        aria-describedby={ariaDescribedby}
+        aria-invalid={ariaInvalid}
+        aria-required={ariaRequired}
+      >
+        {children}
+      </SelectTrigger>
+    )
+  }
+  CompoundTrigger.displayName = 'MultiSelect.Trigger'
+
+  // Compound component: MultiSelect.Value
+  const CompoundValue: React.FC<CompoundMultiSelectValueProps> = (
+    valueProps,
+  ) => {
+    const { placeholder } = valueProps
+
+    return <SelectValue placeholder={placeholder} />
+  }
+  CompoundValue.displayName = 'MultiSelect.Value'
+
+  // Attach compound components
+  const MultiSelectWithCompound = MultiSelect as CreateMultiSelectResult<T>
+  MultiSelectWithCompound.Trigger = CompoundTrigger
+  MultiSelectWithCompound.Value = CompoundValue
+
+  return MultiSelectWithCompound
 }
