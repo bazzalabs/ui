@@ -45,8 +45,6 @@ export interface DropdownMenuOptions<T = unknown>
   defaultOpen?: boolean
   /** Whether clicking outside closes the menu */
   modal?: boolean
-  /** Placeholder for search input */
-  placeholder?: string
   /** Which side to position the menu on */
   side?: 'top' | 'right' | 'bottom' | 'left'
   /** How to align the menu with the trigger */
@@ -93,7 +91,6 @@ export function createDropdownMenu<T = unknown>(
     const {
       menu,
       children,
-      placeholder = 'Search...',
       side = 'bottom',
       align = 'start',
       sideOffset = 4,
@@ -170,7 +167,6 @@ export function createDropdownMenu<T = unknown>(
             <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
             <DropdownMenuContent
               menu={menu as PopupMenuDef<T>}
-              placeholder={placeholder}
               side={side}
               align={align}
               sideOffset={sideOffset}

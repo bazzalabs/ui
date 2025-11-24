@@ -278,7 +278,7 @@ export function Surface<T = unknown>({
       store={store}
       value={query}
       onValueChange={setQuery}
-      placeholder={placeholder ?? menu.inputPlaceholder ?? 'Search...'}
+      placeholder={placeholder}
     />
   ) : null
 
