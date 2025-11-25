@@ -10,12 +10,11 @@
     "date-fns"
   ],
   "registryDependencies": [
-    "action-menu",
+    "dropdown-menu",
     "button",
     "calendar",
     "checkbox",
     "command",
-    "dropdown-menu",
     "input",
     "label",
     "popover",

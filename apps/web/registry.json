@@ -18,6 +18,21 @@
       ]
     },
     {
+      "name": "dropdown-menu",
+      "title": "Dropdown Menu",
+      "description": "A dropdown menu with deep search, submenus, and async loading.",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/dropdown-menu", "lucide-react"],
+      "registryDependencies": ["separator"],
+      "files": [
+        {
+          "path": "registry/dropdown-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/dropdown-menu.tsx"
+        }
+      ]
+    },
+    {
       "name": "data-table-filter",
       "title": "Data table filter",
       "description": "A powerful data table filter component inspired by Linear.",
@@ -25,12 +40,11 @@
       "type": "registry:block",
       "dependencies": ["@bazza-ui/filters", "date-fns"],
       "registryDependencies": [
-        "action-menu",
+        "dropdown-menu",
         "button",
         "calendar",
         "checkbox",
         "command",
-        "dropdown-menu",
         "input",
         "label",
         "popover",
