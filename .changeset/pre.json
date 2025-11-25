@@ -5,7 +5,21 @@
     "web": "0.0.0",
     "@bazza-ui/action-menu": "0.0.2025091200",
     "@bazza-ui/filters": "0.3.2025091001",
-    "@bazza-ui/typescript-config": "0.0.0"
+    "@bazza-ui/typescript-config": "0.0.0",
+    "@bazza-ui/command-menu": "0.0.1",
+    "@bazza-ui/context-menu": "0.0.1",
+    "@bazza-ui/dropdown-menu": "0.0.1",
+    "@bazza-ui/loaders": "0.0.1",
+    "@bazza-ui/menu": "0.0.1",
+    "@bazza-ui/popup-menu": "0.0.1",
+    "@bazza-ui/select": "0.0.1",
+    "@bazza-ui/theming": "0.0.1"
   },
-  "changesets": ["clever-foxes-mix", "lemon-insects-chew"]
+  "changesets": [
+    "clever-foxes-mix",
+    "huge-walls-sell",
+    "lemon-insects-chew",
+    "select-package-initial",
+    "vast-cities-play"
+  ]
 }
