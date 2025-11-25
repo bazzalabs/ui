@@ -167,8 +167,10 @@ function CommandMenuContentLayer<T>({
     />
   )
 
-  // Render list
-  const listEl = <CommandMenuList query={query} onQueryChange={setQuery} />
+  // Render list - only when visible to avoid virtualizer measurement issues
+  const listEl = visible ? (
+    <CommandMenuList query={query} onQueryChange={setQuery} />
+  ) : null
 
   // Render footer (if provided via slots)
   const footerEl = theme?.slots?.Footer ? (
