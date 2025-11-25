@@ -31,11 +31,25 @@ export async function generateMetadata({
     toc: unknown
   }
 
+  // Extract component name from slug
+  const componentSlug = slug[0] // 'action-menu' or 'command-menu'
+  const componentName = componentSlug
+    ? componentSlug
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    : ''
+
+  // Build the title with component name
+  const pageTitle = componentName
+    ? `${metadata.title} / ${componentName}`
+    : metadata.title
+
   return {
-    title: metadata.title,
+    title: pageTitle,
     description: metadata.summary,
     openGraph: {
-      title: `${metadata.title} — bazza/ui`,
+      title: `${pageTitle} — bazza/ui`,
       description: metadata.summary,
       type: 'article',
       url: `https://ui.bazza.dev/docs/${slug.join('/')}`,
@@ -48,7 +62,7 @@ export async function generateMetadata({
       ],
     },
     twitter: {
-      title: `${metadata.title} — bazza/ui`,
+      title: `${pageTitle} — bazza/ui`,
       description: metadata.summary,
       creator: '@kianbazza',
       card: 'summary_large_image',
