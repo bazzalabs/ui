@@ -5,7 +5,6 @@ import {
   MenuItemPrimitive,
   MenuListPrimitive,
   type SubmenuNode,
-  useFilteredNodes,
 } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -14,7 +13,6 @@ import { useCommandMenuContext } from '../context.js'
 import {
   useCommandMenuActions,
   useCommandMenuStoreApi,
-  useSurfaceMenu,
   useSurfaceRefs,
 } from '../store/index.js'
 import { useSurface } from './surface-provider.js'
@@ -30,8 +28,7 @@ interface ListRendererProps {
  * all hooks in ListRendererContent are called.
  */
 export function ListRenderer(props: ListRendererProps) {
-  const { surfaceId, slots: customSlots } = useSurface()
-  const menu = useSurfaceMenu(surfaceId)
+  const { menu, slots: customSlots } = useSurface()
   const { query = '' } = props
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
@@ -85,16 +82,25 @@ export function ListRenderer(props: ListRendererProps) {
 function ListRendererContent({ query = '' }: ListRendererProps) {
   const {
     surfaceId,
+    menu,
+    displayNodes,
     slots: customSlots,
     classNames,
     onSubmenuSelect,
   } = useSurface()
-  const menu = useSurfaceMenu(surfaceId)
   const globalStore = useCommandMenuStoreApi()
   const surfaceRefs = useSurfaceRefs(surfaceId)
   const storeActions = useCommandMenuActions()
   const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange, control } =
     useCommandMenuContext()
+
+  // DEBUG
+  console.log(
+    '🔍 [ListRendererContent] displayNodes:',
+    displayNodes?.length,
+    displayNodes,
+  )
+  console.log('🔍 [ListRendererContent] menu:', menu?.id, menu?.nodes?.length)
 
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
@@ -103,21 +109,10 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
 
   const q = React.useMemo(() => query.trim(), [query])
 
-  // Check for streaming mode
-  const isStreaming = (menu as any)?.loadingState?.loadMode === 'streaming'
-  const completionOrder = (menu as any)?.loadingState?.completionOrder as
-    | string[]
-    | undefined
+  // Track previous query to detect changes
+  const prevQueryRef = React.useRef(query)
 
-  // Use the menu primitive hook to filter, score, and sort nodes
-  const { displayNodes } = useFilteredNodes(menu as any, q, {
-    mode: 'deep',
-    streamingEnabled: isStreaming,
-    completionOrder: completionOrder ?? [],
-    control,
-  })
-
-  // Update store with valid row IDs
+  // Update store with valid row IDs and reset active ID on query change
   React.useEffect(() => {
     const validRows = displayNodes.filter(
       (n) =>
@@ -135,23 +130,52 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     storeActions.resetOrder(surfaceId, validRowIds)
     storeActions.resetVirtualIndexMap(surfaceId, virtualIndexMap)
 
-    const surface = globalStore.getState().surfaces.get(surfaceId)
-    const activeId = surface?.activeId ?? null
-    const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
+    // Check if query changed - if so, always reset to first item
+    const queryChanged = prevQueryRef.current !== query
+    prevQueryRef.current = query
 
-    if (validRowIds.length > 0 && !isActiveIdValid) {
-      storeActions.setSurfaceActiveId(
-        surfaceId,
-        validRowIds[0] ?? null,
-        'keyboard',
-      )
+    console.log('🔍 [ActiveID Effect]', {
+      query,
+      queryChanged,
+      validRowIds,
+      firstRowId: validRowIds[0],
+    })
+
+    if (queryChanged) {
+      // Query changed - always reset to first item
+      if (validRowIds.length > 0) {
+        console.log('🔍 [ActiveID] Setting to first item:', validRowIds[0])
+        storeActions.setSurfaceActiveId(
+          surfaceId,
+          validRowIds[0] ?? null,
+          'keyboard',
+        )
+      }
+    } else {
+      // Query didn't change - only reset if current active ID is invalid
+      const surface = globalStore.getState().surfaces.get(surfaceId)
+      const activeId = surface?.activeId ?? null
+      const isActiveIdValid =
+        activeId !== null && validRowIds.includes(activeId)
+
+      console.log('🔍 [ActiveID] No query change, checking validity:', {
+        activeId,
+        isActiveIdValid,
+      })
+
+      if (validRowIds.length > 0 && !isActiveIdValid) {
+        console.log(
+          '🔍 [ActiveID] Invalid activeId, setting to first:',
+          validRowIds[0],
+        )
+        storeActions.setSurfaceActiveId(
+          surfaceId,
+          validRowIds[0] ?? null,
+          'keyboard',
+        )
+      }
     }
-  }, [displayNodes, storeActions, surfaceId, globalStore])
-
-  // Reset to first item when query changes
-  React.useEffect(() => {
-    storeActions.first(surfaceId, 'keyboard')
-  }, [q, storeActions, surfaceId])
+  }, [displayNodes, query, storeActions, surfaceId, globalStore])
 
   // Virtualization
   const virtualizer = useVirtualizer({
@@ -164,6 +188,15 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
 
   const virtualItems = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
+
+  // DEBUG
+  console.log('🔍 [ListRendererContent] virtualizer:', {
+    count: displayNodes.length,
+    virtualItemsLength: virtualItems.length,
+    totalSize,
+    scrollElement: surfaceRefs?.listRef.current,
+    surfaceRefs,
+  })
 
   // Handle item selection
   const handleItemSelect = React.useCallback(

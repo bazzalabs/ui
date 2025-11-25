@@ -1,24 +1,29 @@
 import type {
+  Menu,
   MenuClassNames,
   MenuControl,
   MenuSlotProps,
   MenuSlots,
+  Node,
 } from '@bazza-ui/menu'
 import * as React from 'react'
 import type { CommandSubmenuDef } from '../types.js'
 
 /**
  * Slimmed down surface context.
- * Most state is now in the global CommandMenuStore - use hooks like
- * useActiveId, useDisplayNodes, useSurfaceMenu, etc. to access it.
  *
- * Primitives (MenuInputPrimitive, MenuListPrimitive, MenuItemPrimitive) now
- * accept surfaceId + globalStore directly, so we no longer need to pass a
- * compat store through context.
+ * Key state (menu, displayNodes) is passed directly through context to avoid
+ * timing issues with store effects. Primitives (MenuInputPrimitive,
+ * MenuListPrimitive, MenuItemPrimitive) still accept surfaceId + globalStore
+ * for active ID tracking and other store-based features.
  */
 interface SurfaceContextValue<T = unknown> {
   // Identity
   surfaceId: string
+
+  // Menu state (passed directly to avoid effect timing issues)
+  menu: Menu<T>
+  displayNodes: Node<T>[]
 
   // External imperative control (optional)
   control?: MenuControl<T>
@@ -46,6 +51,8 @@ export function useSurface<T = unknown>(): SurfaceContextValue<T> {
 
 export function SurfaceProvider<T = unknown>({
   surfaceId,
+  menu,
+  displayNodes,
   control,
   slots,
   classNames,
@@ -54,6 +61,8 @@ export function SurfaceProvider<T = unknown>({
   children,
 }: {
   surfaceId: string
+  menu: Menu<T>
+  displayNodes: Node<T>[]
   control?: MenuControl<T>
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
@@ -65,13 +74,24 @@ export function SurfaceProvider<T = unknown>({
     () =>
       ({
         surfaceId,
+        menu,
+        displayNodes,
         control,
         slots,
         classNames,
         slotProps,
         onSubmenuSelect,
       }) as SurfaceContextValue<T>,
-    [surfaceId, control, slots, classNames, slotProps, onSubmenuSelect],
+    [
+      surfaceId,
+      menu,
+      displayNodes,
+      control,
+      slots,
+      classNames,
+      slotProps,
+      onSubmenuSelect,
+    ],
   )
 
   return (

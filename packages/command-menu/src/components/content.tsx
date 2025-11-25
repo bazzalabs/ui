@@ -1,4 +1,9 @@
-import { type MenuNodeDefaults, useMenu } from '@bazza-ui/menu'
+import {
+  type MenuNodeDefaults,
+  type RootMenuDef,
+  type SubmenuDef,
+  useMenuPipeline,
+} from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
@@ -8,11 +13,11 @@ import {
   ScopedThemeProvider,
   useScopedTheme,
 } from '../contexts/theme-context.js'
+import { useLayerEffects } from '../hooks/use-layer-effects.js'
 import { useLayerState } from '../hooks/use-layer-state.js'
-import { useMenuLoader } from '../hooks/use-menu-loader.js'
+import { useCommandMenuActions } from '../store/index.js'
 import type {
   CommandMenuDef,
-  CommandMenuSlots,
   CommandMenuThemeDef,
   CommandSubmenuDef,
   NavigationStackEntry,
@@ -32,7 +37,7 @@ export interface CommandMenuContentProps<T = unknown> {
 
 /**
  * Layer component that handles menu orchestration and rendering for a single menu level.
- * Each layer maintains its own independent query state, matching popup menu architecture.
+ * Uses the unified menu pipeline for state management.
  */
 function CommandMenuContentLayer<T>({
   menuDef,
@@ -53,30 +58,50 @@ function CommandMenuContentLayer<T>({
 }) {
   const theme = useScopedTheme()
   const { control } = useCommandMenuContext<T>()
+  const storeActions = useCommandMenuActions<T>()
 
-  // Layer state management (extracted to hook)
+  // Layer state management (per-layer query)
   const { query, setQuery, surfaceId } = useLayerState(
     menuDef.id,
     visible,
     depth,
   )
 
-  // Loader orchestration (extracted to hook)
-  const loaderResult = useMenuLoader<T>({
-    menuDef,
-    query,
-    open: true,
+  // ============================================================================
+  // Pipeline: Unified Menu State Management
+  // ============================================================================
+  const pipeline = useMenuPipeline<T>({
+    menuDef: menuDef as RootMenuDef<T> | SubmenuDef<T>,
+    open: true, // Command menu layers are always "open" once mounted
+    surfaceId,
+    isSubmenu: false, // Each layer acts as a root for deep search
+    defaults,
+    control,
+    query, // Use layer-managed query
+    onQueryChange: setQuery, // Sync back to layer state
   })
 
-  // Build menu with deep search support from @bazza-ui/menu
-  const { menu } = useMenu<T>({
-    menuDef,
+  const { menu, displayNodes } = pipeline
+
+  // DEBUG
+  console.log('🔍 [CommandMenuContentLayer] pipeline result:', {
+    menuId: menu?.id,
+    menuNodesLength: menu?.nodes?.length,
+    displayNodesLength: displayNodes?.length,
+    displayNodes,
+  })
+
+  // ============================================================================
+  // Layer Effects: Sync Pipeline State to Global Store
+  // ============================================================================
+  useLayerEffects({
+    surfaceId,
+    depth,
+    visible,
+    menu,
+    displayNodes,
     query,
-    open: true,
-    surfaceId: 'command-menu',
-    isSubmenu: false,
-    rootLoaderResult: loaderResult,
-    defaults,
+    storeActions,
   })
 
   // Submenu scoped theme - merge current scoped theme with submenu.ui
@@ -185,6 +210,8 @@ function CommandMenuContentLayer<T>({
     <ScopedThemeProvider theme={submenuTheme}>
       <SurfaceProvider
         surfaceId={surfaceId}
+        menu={menu}
+        displayNodes={displayNodes}
         control={control}
         slots={theme?.slots as any}
         classNames={theme?.classNames}
@@ -298,6 +325,13 @@ export function CommandMenuContent<T = unknown>({
     () => buildMenuStack(rootMenu, navigationStack),
     [rootMenu, navigationStack],
   )
+
+  // DEBUG
+  console.log('🔍 [CommandMenuContent] rootMenu:', {
+    id: rootMenu?.id,
+    nodesLength: rootMenu?.nodes?.length,
+    nodes: rootMenu?.nodes,
+  })
 
   // Get title from navigation stack (if in submenu) or from current menu
   const dialogTitle = React.useMemo(() => {

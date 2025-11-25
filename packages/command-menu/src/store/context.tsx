@@ -92,11 +92,12 @@ export function useCommandMenuStore<TData = unknown, TSelected = unknown>(
  */
 export function useCommandMenuActions<TData = unknown>() {
   const store = useCommandMenuStoreApi<TData>()
-  const state = store.getState()
 
   // Return only actions (functions), not state
-  return React.useMemo(
-    () => ({
+  // Use store as dependency since it's stable - actions are bound to store and don't change
+  return React.useMemo(() => {
+    const state = store.getState()
+    return {
       // Root actions
       setOpen: state.setOpen,
       setDisabled: state.setDisabled,
@@ -153,9 +154,8 @@ export function useCommandMenuActions<TData = unknown>() {
 
       // UI (command-menu specific)
       setShowBreadcrumbs: state.setShowBreadcrumbs,
-    }),
-    [state],
-  )
+    }
+  }, [store])
 }
 
 /* ================================================================================================
