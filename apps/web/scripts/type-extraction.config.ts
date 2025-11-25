@@ -65,11 +65,7 @@ export const defaultConfig: TypeExpansionConfig = {
       'Exclude',
     ],
     // Expand simple inline types
-    patterns: [
-      '*Config',
-      '*Options',
-      '*Settings',
-    ],
+    patterns: ['*Config', '*Options', '*Settings'],
   },
 
   reference: {
@@ -86,11 +82,7 @@ export const defaultConfig: TypeExpansionConfig = {
       'KeyboardEvent',
       'FocusEvent',
     ],
-    patterns: [
-      'React.*',
-      'HTML*Element',
-      'HTML*Attributes',
-    ],
+    patterns: ['React.*', 'HTML*Element', 'HTML*Attributes'],
   },
 
   maxDepth: 2,
@@ -140,7 +132,9 @@ export function shouldExpandType(
     if (reference.types?.includes(typeName)) return false
 
     // Check pattern match
-    if (reference.patterns?.some((pattern) => matchesPattern(typeName, pattern))) {
+    if (
+      reference.patterns?.some((pattern) => matchesPattern(typeName, pattern))
+    ) {
       return false
     }
 

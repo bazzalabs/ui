@@ -4,11 +4,7 @@ import {
   collectDeepSearchLoaders,
   injectLoaderResults,
 } from '../../lib/deep-search-utils.js'
-import type {
-  AsyncNodeLoaderResult,
-  MenuDef,
-  SubmenuDef,
-} from '../../types.js'
+import type { AsyncNodeLoaderResult, MenuDef, SubmenuDef } from '../../types.js'
 
 describe('deep-search-utils', () => {
   describe('collectDeepSearchLoaders', () => {

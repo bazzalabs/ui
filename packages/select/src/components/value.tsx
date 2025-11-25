@@ -77,43 +77,40 @@ export function SelectValue({
   return (
     <>
       {/* Hidden input(s) for form submission */}
-      {name && (
-        <>
-          {multiple ? (
-            // Multiple hidden inputs for array submission
-            selectedValues && selectedValues.length > 0 ? (
-              selectedValues.map((value, index) => (
-                <input
-                  key={`${value}-${index}`}
-                  type="hidden"
-                  name={name}
-                  value={value}
-                  form={form}
-                  required={required && index === 0}
-                />
-              ))
-            ) : (
-              // Empty hidden input to ensure field is submitted even when empty
+      {name &&
+        (multiple ? (
+          // Multiple hidden inputs for array submission
+          selectedValues && selectedValues.length > 0 ? (
+            selectedValues.map((value, index) => (
               <input
+                key={value}
                 type="hidden"
                 name={name}
-                value=""
+                value={value}
                 form={form}
-                required={required}
+                required={required && index === 0}
               />
-            )
+            ))
           ) : (
-            // Single hidden input
+            // Empty hidden input to ensure field is submitted even when empty
             <input
               type="hidden"
               name={name}
-              value={selectedValue ?? ''}
+              value=""
               form={form}
               required={required}
             />
-          )}
-        </>
-      )}
+          )
+        ) : (
+          // Single hidden input
+          <input
+            type="hidden"
+            name={name}
+            value={selectedValue ?? ''}
+            form={form}
+            required={required}
+          />
+        ))}
       {/* Display value */}
       <span>{displayValue}</span>
     </>

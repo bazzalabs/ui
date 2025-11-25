@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, test } from 'vitest'
 import { basicMenuDef, checkboxMenuDef } from './fixtures/test-menu.js'
 import { ControlledTestApp } from './test-app.js'

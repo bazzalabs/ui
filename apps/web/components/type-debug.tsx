@@ -10,7 +10,9 @@ export function TypeDebug({ pkg, type }: { pkg: string; type: string }) {
       <div>Package: {pkg}</div>
       <div>Type: {type}</div>
       <div>Package exists: {String(!!data[pkg])}</div>
-      <div>Types in package: {data[pkg] ? Object.keys(data[pkg].types).length : 0}</div>
+      <div>
+        Types in package: {data[pkg] ? Object.keys(data[pkg].types).length : 0}
+      </div>
       <div>Type exists: {String(!!data[pkg]?.types?.[type])}</div>
       {data[pkg]?.types?.[type] && (
         <>
@@ -20,7 +22,9 @@ export function TypeDebug({ pkg, type }: { pkg: string; type: string }) {
       )}
       <details className="mt-4">
         <summary>All types in {pkg}</summary>
-        <pre className="mt-2">{JSON.stringify(Object.keys(data[pkg]?.types ?? {}), null, 2)}</pre>
+        <pre className="mt-2">
+          {JSON.stringify(Object.keys(data[pkg]?.types ?? {}), null, 2)}
+        </pre>
       </details>
     </div>
   )

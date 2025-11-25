@@ -33,7 +33,7 @@ export function TypeSignature({
   showPackage = false,
 }: TypeSignatureProps) {
   // Find the type in the metadata
-  let typeMeta
+  let typeMeta: any
   let packageName: string | undefined
 
   if (pkg) {

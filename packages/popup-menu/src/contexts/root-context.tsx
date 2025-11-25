@@ -1,12 +1,12 @@
 import type { MenuNodeDefaults } from '@bazza-ui/menu'
 import * as React from 'react'
 import type { StoreApi } from 'zustand'
-import type { InteractionGuardProps } from '../features/interaction/interaction-guard.js'
 import { CLOSE_MENU_EVENT, dispatch } from '../features/interaction/events.js'
+import type { InteractionGuardProps } from '../features/interaction/interaction-guard.js'
 import {
   createPopupMenuStore,
-  PopupMenuStoreProvider,
   type PopupMenuStore,
+  PopupMenuStoreProvider,
 } from '../store/index.js'
 
 export interface RootContextValue {

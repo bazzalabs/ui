@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useStore, type StoreApi } from 'zustand'
+import { type StoreApi, useStore } from 'zustand'
 import type { SelectMenuStore } from './types.js'
 
 /* ================================================================================================

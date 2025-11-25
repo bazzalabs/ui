@@ -62,74 +62,39 @@
  * ```
  */
 
-// Factory functions (primary API)
-export { createSelect } from './create-select.js'
-export { createMultiSelect } from './create-multi-select.js'
-
-// Default instances for convenience
-export { Select } from './select.js'
-export { MultiSelect } from './multi-select.js'
-
-// Types
+// Re-export useful types from dependencies
 export type {
-  SelectProps,
-  MultiSelectProps,
-  SelectMenuDef,
-  SelectNodeDef,
-  SelectNode,
-  SelectMenu,
-  SelectItemDef,
-  TriggerBindAPI,
-  SelectTriggerSlotArgs,
-  SelectValueSlotArgs,
-  SelectItemSlotArgs,
-  SelectSlots,
-  SelectSlotProps,
-  SelectClassNames,
-  SelectThemeDef,
-  SelectTheme,
-} from './types.js'
-export type { SelectControl, MultiSelectControl } from './control.js'
-
-// Factory options types
+  GroupDef,
+  GroupNode,
+  ItemDef,
+  ItemNode,
+  LoadingDef,
+  LoadingNode,
+  SeparatorDef,
+  SeparatorNode,
+} from '@bazza-ui/menu'
+export type { MultiSelectControl, SelectControl } from './control.js'
 export type {
-  CreateSelectOptions,
-  CreateSelectResult,
-  SelectOptions,
-  CompoundSelectTriggerProps,
-  CompoundSelectValueProps,
-} from './create-select.js'
-export type {
+  CompoundMultiSelectTriggerProps,
+  CompoundMultiSelectValueProps,
   CreateMultiSelectOptions,
   CreateMultiSelectResult,
   MultiSelectOptions,
-  CompoundMultiSelectTriggerProps,
-  CompoundMultiSelectValueProps,
 } from './create-multi-select.js'
-
-// Validation helpers
-export { validateSelectMenu, validateSelectNodes } from './types.js'
-
-// Store hooks and context (for advanced use cases)
-export {
-  SelectMenuStoreProvider,
-  createMultiSelectStore,
-  createSelectStore,
-  createSurfaceActiveIdSelector,
-  createSurfaceQuerySelector,
-  createSurfaceSelector,
-  selectDisabled,
-  selectFocusOwnerId,
-  selectOpen,
-  selectScopeId,
-  selectSelection,
-  selectSelectionMode,
-  selectValue,
-  selectValues,
-  useSelectMenuActions,
-  useSelectMenuStore,
-  useSelectMenuStoreApi,
-} from './store/index.js'
+export { createMultiSelect } from './create-multi-select.js'
+// Factory options types
+export type {
+  CompoundSelectTriggerProps,
+  CompoundSelectValueProps,
+  CreateSelectOptions,
+  CreateSelectResult,
+  SelectOptions,
+} from './create-select.js'
+// Factory functions (primary API)
+export { createSelect } from './create-select.js'
+export { MultiSelect } from './multi-select.js'
+// Default instances for convenience
+export { Select } from './select.js'
 export type {
   AimGuardState,
   CreateMultiSelectStoreOptions,
@@ -144,14 +109,44 @@ export type {
   SingleSelectionState,
 } from './store/index.js'
 
-// Re-export useful types from dependencies
+// Store hooks and context (for advanced use cases)
+export {
+  createMultiSelectStore,
+  createSelectStore,
+  createSurfaceActiveIdSelector,
+  createSurfaceQuerySelector,
+  createSurfaceSelector,
+  SelectMenuStoreProvider,
+  selectDisabled,
+  selectFocusOwnerId,
+  selectOpen,
+  selectScopeId,
+  selectSelection,
+  selectSelectionMode,
+  selectValue,
+  selectValues,
+  useSelectMenuActions,
+  useSelectMenuStore,
+  useSelectMenuStoreApi,
+} from './store/index.js'
+// Types
 export type {
-  ItemDef,
-  GroupDef,
-  SeparatorDef,
-  LoadingDef,
-  ItemNode,
-  GroupNode,
-  SeparatorNode,
-  LoadingNode,
-} from '@bazza-ui/menu'
+  MultiSelectProps,
+  SelectClassNames,
+  SelectItemDef,
+  SelectItemSlotArgs,
+  SelectMenu,
+  SelectMenuDef,
+  SelectNode,
+  SelectNodeDef,
+  SelectProps,
+  SelectSlotProps,
+  SelectSlots,
+  SelectTheme,
+  SelectThemeDef,
+  SelectTriggerSlotArgs,
+  SelectValueSlotArgs,
+  TriggerBindAPI,
+} from './types.js'
+// Validation helpers
+export { validateSelectMenu, validateSelectNodes } from './types.js'

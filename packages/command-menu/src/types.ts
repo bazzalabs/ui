@@ -21,20 +21,21 @@ import type {
 
 // Re-export common types for convenience
 export type {
-  RootMenuDef,
-  RootMenuNode,
-  Menu,
-  SubmenuDef,
-  SubmenuNode,
-  NodeDef,
-  Node,
-  ItemDef,
-  ItemNode,
   GroupDef,
   GroupNode,
+  ItemDef,
+  ItemNode,
+  Menu,
+  Node,
+  NodeDef,
+  RootMenuDef,
+  RootMenuNode,
   SeparatorDef,
   SeparatorNode,
+  SubmenuDef,
+  SubmenuNode,
 } from '@bazza-ui/menu'
+
 import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
 

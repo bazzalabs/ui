@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/useIterableCallbackReturn: skip */
+
 import { bench, describe } from 'vitest'
 import type { FilterModel } from '../core/types.js'
 import {

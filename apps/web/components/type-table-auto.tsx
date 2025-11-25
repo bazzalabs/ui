@@ -296,7 +296,7 @@ interface TypeTableAutoProps {
  */
 export function TypeTableAuto({ type, pkg }: TypeTableAutoProps) {
   // Find the type in the metadata
-  let typeMeta
+  let typeMeta: any
 
   if (pkg) {
     typeMeta = typesData[pkg]?.types?.[type]
