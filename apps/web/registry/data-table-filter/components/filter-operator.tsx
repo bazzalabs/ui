@@ -1,4 +1,4 @@
-import type { MenuDef } from '@bazza-ui/action-menu'
+import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import {
   booleanFilterOperators,
   type Column,
@@ -19,7 +19,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import type { ComponentPropsWithoutRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { DropdownMenu } from '@/registry/dropdown-menu'
 import { useFilterVariant } from '../context'
 
 const filterOperatorVariants = cva(
@@ -81,6 +81,11 @@ function createOperatorMenu<TData, TType extends ColumnDataType>({
   return {
     id: `filter-operator-${column.id}`,
     hideSearchUntilActive: true,
+    defaults: {
+      item: {
+        closeOnSelect: true,
+      },
+    },
     nodes: [
       {
         kind: 'group' as const,
@@ -118,41 +123,39 @@ export function FilterOperator<TData, TType extends ColumnDataType>({
   const menu = createOperatorMenu({ filter, column, actions, locale })
 
   return (
-    <ActionMenu menu={menu}>
-      <ActionMenu.Trigger asChild>
-        <Button
-          data-slot="filter-operator"
-          data-column-type={column.type}
-          data-operator={filter.operator}
-          variant="ghost"
-          className={cn(
-            filterOperatorVariants({ variant }),
-            variant === 'default' ? 'text-muted-foreground' : '',
-            className,
-          )}
-          onClick={(e) => {
-            if (column.type !== 'boolean') return
-            e.preventDefault()
-            const opDetails =
-              filterTypeOperatorDetails.boolean[
-                filter.operator as FilterOperators['boolean']
-              ]
+    <DropdownMenu menu={menu}>
+      <Button
+        data-slot="filter-operator"
+        data-column-type={column.type}
+        data-operator={filter.operator}
+        variant="ghost"
+        className={cn(
+          filterOperatorVariants({ variant }),
+          variant === 'default' ? 'text-muted-foreground' : '',
+          className,
+        )}
+        // onClick={(e) => {
+        //   if (column.type !== 'boolean') return
+        //   e.preventDefault()
+        //   const opDetails =
+        //     filterTypeOperatorDetails.boolean[
+        //       filter.operator as FilterOperators['boolean']
+        //     ]
 
-            actions.setFilterOperator(
-              column.id,
-              opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
-            )
-          }}
-          {...props}
-        >
-          <FilterOperatorDisplay
-            filter={filter}
-            columnType={column.type}
-            locale={locale}
-          />
-        </Button>
-      </ActionMenu.Trigger>
-    </ActionMenu>
+        //   actions.setFilterOperator(
+        //     column.id,
+        //     opDetails.isNegated ? opDetails.negationOf : opDetails.negation,
+        //   )
+        // }}
+        {...props}
+      >
+        <FilterOperatorDisplay
+          filter={filter}
+          columnType={column.type}
+          locale={locale}
+        />
+      </Button>
+    </DropdownMenu>
   )
 }
 

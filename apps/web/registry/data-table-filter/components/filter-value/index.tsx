@@ -2,13 +2,19 @@
 
 'use client'
 
-import type { MenuDef } from '@bazza-ui/action-menu'
-import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
+import type { MenuDef, SeparatorDef } from '@bazza-ui/dropdown-menu'
+import type {
+  Column,
+  ColumnDataType,
+  ColumnOptionExtended,
+  FilterModel,
+  FilterValues,
+} from '@bazza-ui/filters'
 import { cva } from 'class-variance-authority'
-import { memo, useEffect, useMemo, useRef } from 'react'
-import { Button } from '@/components/ui/button'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { DropdownMenu } from '@/registry/dropdown-menu'
 import { useFilterVariant } from '../../context'
 import { FilterValueBooleanDisplay } from './boolean'
 import { FilterValueDateController, FilterValueDateDisplay } from './date'
@@ -43,6 +49,85 @@ const filterValueVariants = cva(
   },
 )
 
+// Helper function to partition nodes into selected and unselected
+function partitionNodesBySelection<T extends { id: string }>(
+  nodes: T[],
+  initialValues: string[],
+): { selected: T[]; unselected: T[] } {
+  const selected = nodes.filter((node) => initialValues.includes(node.id))
+  const unselected = nodes.filter((node) => !initialValues.includes(node.id))
+  return { selected, unselected }
+}
+
+// Helper function to create menu with separator
+function createMenuWithSeparator<TType extends ColumnDataType>(
+  columnId: string,
+  nodes: any[],
+  initialValues: FilterValues<TType>,
+): MenuDef<ColumnOptionExtended> {
+  const { selected, unselected } = partitionNodesBySelection(
+    nodes,
+    initialValues as string[],
+  )
+  const showSeparator = selected.length > 0 && unselected.length > 0
+  const separator = {
+    id: 'separator',
+    kind: 'separator',
+  } satisfies SeparatorDef
+
+  return {
+    id: `filter-value-${columnId}`,
+    nodes: [...selected, ...(showSeparator ? [separator] : []), ...unselected],
+  } satisfies MenuDef<ColumnOptionExtended>
+}
+
+// Helper function to create controller menu for date/number types
+function createControllerMenu(
+  type: 'date' | 'number',
+  filter: any,
+  column: any,
+  actions: any,
+  strategy: any,
+  locale: any,
+): MenuDef {
+  if (type === 'date') {
+    return {
+      id: `filter-value-${column.id}`,
+      nodes: [],
+      render: () => (
+        <FilterValueDateController
+          filter={filter}
+          column={column}
+          actions={actions}
+          strategy={strategy}
+          locale={locale}
+        />
+      ),
+    }
+  }
+
+  return {
+    id: `filter-value-${column.id}`,
+    nodes: [],
+    render: () => (
+      <FilterValueNumberController
+        filter={filter}
+        column={column}
+        actions={actions}
+        strategy={strategy}
+        locale={locale}
+      />
+    ),
+  }
+}
+
+// Helper function to determine which Item slot to use
+function getItemSlot(columnType: ColumnDataType) {
+  if (columnType === 'text') return TextItem
+  if (columnType === 'option' || columnType === 'multiOption') return OptionItem
+  return undefined
+}
+
 export const FilterValue = memo(__FilterValue) as typeof __FilterValue
 
 function __FilterValue<TData, TType extends ColumnDataType>({
@@ -58,14 +143,13 @@ function __FilterValue<TData, TType extends ColumnDataType>({
   const contextVariant = useFilterVariant()
   const variant = variantProp ?? contextVariant ?? 'default'
 
+  const [open, setOpen] = useState(false)
+
   // Use ref to capture current filter value for loaders
   const filterRef = useRef(filter)
   useEffect(() => {
     filterRef.current = filter
   }, [filter])
-
-  // Use ref to persist initial selected values across re-renders for sticky grouping
-  const initialSelectedValuesRef = useRef<Set<string> | null>(null)
 
   // Don't open the value controller for boolean columns
   // We can toggle the filter operator instead
@@ -73,12 +157,17 @@ function __FilterValue<TData, TType extends ColumnDataType>({
     if (column.type === 'boolean') e.preventDefault()
   }
 
+  const initialFilterValuesRef = useRef<FilterValues<TType>>([])
+
   // Create menu configuration for all column types
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-create on open to show new selection order
   const menu: MenuDef = useMemo(() => {
-    // For text, option, and multiOption types, use the existing menu creators
+    const baseId = `filter-value-${column.id}`
+
+    // For text type, use the text menu creator
     if (column.type === 'text') {
       return {
-        id: `filter-value-${column.id}`,
+        id: baseId,
         ...(createTextMenu({
           filter: filter as FilterModel<'text'>,
           column: column as Column<TData, 'text'>,
@@ -89,125 +178,114 @@ function __FilterValue<TData, TType extends ColumnDataType>({
       }
     }
 
+    // For option type
     if (column.type === 'option') {
-      return {
-        id: `filter-value-${column.id}`,
-        ...createOptionMenu({
-          filter: undefined as any,
-          column: column as Column<TData, 'option'>,
-          actions,
-          locale,
-          strategy,
-          getFilter: () =>
-            filterRef.current as FilterModel<'option'> | undefined,
-          initialSelectedValuesRef,
-        }),
-      }
+      const { nodes } = createOptionMenu({
+        filter: undefined as any,
+        column: column as Column<TData, 'option'>,
+        actions,
+        locale,
+        strategy,
+        getFilter: () => filterRef.current as FilterModel<'option'> | undefined,
+      })
+
+      return createMenuWithSeparator(
+        column.id,
+        nodes,
+        initialFilterValuesRef.current,
+      )
     }
 
+    // For multiOption type
     if (column.type === 'multiOption') {
-      return {
-        id: `filter-value-${column.id}`,
-        ...createMultiOptionMenu({
-          filter: undefined as any,
-          column: column as Column<TData, 'multiOption'>,
-          actions,
-          locale,
-          strategy,
-          getFilter: () =>
-            filterRef.current as FilterModel<'multiOption'> | undefined,
-          initialSelectedValuesRef,
-        }),
-      }
+      const { nodes } = createMultiOptionMenu({
+        filter: undefined as any,
+        column: column as Column<TData, 'multiOption'>,
+        actions,
+        locale,
+        strategy,
+        getFilter: () =>
+          filterRef.current as FilterModel<'multiOption'> | undefined,
+      })
+
+      return createMenuWithSeparator(
+        column.id,
+        nodes,
+        initialFilterValuesRef.current,
+      )
     }
 
-    // For date type, use custom render function
-    if (column.type === 'date') {
-      return {
-        id: `filter-value-${column.id}`,
-        nodes: [],
-        render: () => (
-          <FilterValueDateController
-            filter={filter as FilterModel<'date'>}
-            column={column as Column<TData, 'date'>}
-            actions={actions}
-            strategy={strategy}
-            locale={locale}
-          />
-        ),
-      }
+    // For date and number types, use the controller renderer
+    if (column.type === 'date' || column.type === 'number') {
+      return createControllerMenu(
+        column.type,
+        filter as any,
+        column as any,
+        actions,
+        strategy,
+        locale,
+      )
     }
 
-    // For number type, use custom render function
-    if (column.type === 'number') {
-      return {
-        id: `filter-value-${column.id}`,
-        nodes: [],
-        render: () => (
-          <FilterValueNumberController
-            filter={filter as FilterModel<'number'>}
-            column={column as Column<TData, 'number'>}
-            actions={actions}
-            strategy={strategy}
-            locale={locale}
-          />
-        ),
-      }
+    if (column.type === 'boolean') {
+      return null
     }
+  }, [column, filter, actions, locale, strategy, open])
 
-    // For boolean type, use a custom render function
-    return {
-      id: `filter-value-${column.id}`,
-      nodes: [],
-      render: () => (
-        <FilterValueController
-          filter={filter as any}
-          column={column as any}
+  if (column.type === 'boolean') {
+    return (
+      <div
+        data-slot="filter-value"
+        data-column-type={column.type}
+        className={cn(
+          buttonVariants({ variant: 'ghost' }),
+          filterValueVariants({ variant }),
+          'text-primary/75 hover:bg-inherit hover:text-primary/75 hover:shadow-none',
+          className,
+        )}
+      >
+        <FilterValueDisplay
+          filter={filter}
+          column={column}
           actions={actions}
-          strategy={strategy}
           locale={locale}
+          entityName={entityName}
         />
-      ),
-    }
-  }, [column, filter, actions, locale, strategy])
+      </div>
+    )
+  }
 
   return (
-    <ActionMenu
+    <DropdownMenu
       slots={{
-        Item: (column.type === 'text' ? TextItem : OptionItem) as any,
+        Item: getItemSlot(column.type),
       }}
       menu={menu}
-      onOpenChange={(open) => {
-        // Reset initial selected values when menu closes to capture fresh state on next open
-        if (!open) {
-          initialSelectedValuesRef.current = null
+      open={open}
+      onOpenChange={(value) => {
+        if (value) {
+          initialFilterValuesRef.current = filter.values
         }
+
+        setOpen(value)
       }}
     >
-      <ActionMenu.Trigger asChild>
-        <Button
-          data-slot="filter-value"
-          data-column-type={column.type}
-          variant="ghost"
-          className={cn(
-            filterValueVariants({ variant }),
-            column.type === 'boolean' &&
-              variant === 'default' &&
-              'hover:bg-inherit',
-            className,
-          )}
-          onClick={handleClick}
-        >
-          <FilterValueDisplay
-            filter={filter}
-            column={column}
-            actions={actions}
-            locale={locale}
-            entityName={entityName}
-          />
-        </Button>
-      </ActionMenu.Trigger>
-    </ActionMenu>
+      <Button
+        data-slot="filter-value"
+        data-column-type={column.type}
+        variant="ghost"
+        className={cn(filterValueVariants({ variant }), className)}
+        onClick={handleClick}
+      >
+        <FilterValueDisplay
+          filter={filter}
+          column={column}
+          actions={actions}
+          locale={locale}
+          entityName={entityName}
+        />
+      </Button>
+    </DropdownMenu>
   )
 }
 
@@ -218,59 +296,56 @@ export function FilterValueDisplay<TData, TType extends ColumnDataType>({
   locale = 'en',
   entityName,
 }: FilterValueDisplayProps<TData, TType>) {
+  // Use a switch statement but with a more DRY approach
+  const commonProps = { actions, locale }
+
   switch (column.type) {
     case 'option':
       return (
         <FilterValueOptionDisplay
+          {...commonProps}
           filter={filter as FilterModel<'option'>}
           column={column as Column<TData, 'option'>}
-          actions={actions}
-          locale={locale}
         />
       )
     case 'multiOption':
       return (
         <FilterValueMultiOptionDisplay
+          {...commonProps}
           filter={filter as FilterModel<'multiOption'>}
           column={column as Column<TData, 'multiOption'>}
-          actions={actions}
-          locale={locale}
         />
       )
     case 'date':
       return (
         <FilterValueDateDisplay
+          {...commonProps}
           filter={filter as FilterModel<'date'>}
           column={column as Column<TData, 'date'>}
-          actions={actions}
-          locale={locale}
         />
       )
     case 'text':
       return (
         <FilterValueTextDisplay
+          {...commonProps}
           filter={filter as FilterModel<'text'>}
           column={column as Column<TData, 'text'>}
-          actions={actions}
-          locale={locale}
         />
       )
     case 'number':
       return (
         <FilterValueNumberDisplay
+          {...commonProps}
           filter={filter as FilterModel<'number'>}
           column={column as Column<TData, 'number'>}
-          actions={actions}
-          locale={locale}
         />
       )
     case 'boolean':
       return (
         <FilterValueBooleanDisplay
+          {...commonProps}
           filter={filter as FilterModel<'boolean'>}
           column={column as Column<TData, 'boolean'>}
-          actions={actions}
-          locale={locale}
           entityName={entityName}
         />
       )
@@ -290,36 +365,32 @@ function __FilterValueController<TData, TType extends ColumnDataType>({
   strategy,
   locale = 'en',
 }: FilterValueControllerProps<TData, TType>) {
-  switch (column.type) {
-    case 'date':
-      return (
-        <FilterValueDateController
-          filter={filter as FilterModel<'date'>}
-          column={column as Column<TData, 'date'>}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      )
-    case 'number':
-      return (
-        <FilterValueNumberController
-          filter={filter as FilterModel<'number'>}
-          column={column as Column<TData, 'number'>}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      )
-    default:
-      return null
+  const commonProps = { actions, strategy, locale }
+
+  if (column.type === 'date') {
+    return (
+      <FilterValueDateController
+        {...commonProps}
+        filter={filter as FilterModel<'date'>}
+        column={column as Column<TData, 'date'>}
+      />
+    )
   }
+
+  if (column.type === 'number') {
+    return (
+      <FilterValueNumberController
+        {...commonProps}
+        filter={filter as FilterModel<'number'>}
+        column={column as Column<TData, 'number'>}
+      />
+    )
+  }
+
+  return null
 }
 
-export {
-  FilterValueBooleanController,
-  FilterValueBooleanDisplay,
-} from './boolean'
+export { FilterValueBooleanDisplay } from './boolean'
 // Re-export utility functions
 export {
   FilterValueDateController,

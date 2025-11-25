@@ -3,6 +3,7 @@ import { renderIcon } from '@bazza-ui/menu'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Fragment, useCallback } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 declare module '@bazza-ui/dropdown-menu' {
@@ -126,6 +127,9 @@ export const DropdownMenu = createDropdownMenu({
           No matching options.
         </div>
       ) : null,
+    Separator: () => {
+      return <Separator orientation="horizontal" className="my-1" />
+    },
   },
   slotProps: {
     positioner: {

@@ -20,7 +20,7 @@ export interface ContextMenuContentProps<T = unknown> {
  */
 export function ContextMenuContent<T = unknown>({
   menu: menuProp,
-  placeholder = 'Search...',
+  placeholder,
   debug = false,
   defaults,
 }: ContextMenuContentProps<T>) {

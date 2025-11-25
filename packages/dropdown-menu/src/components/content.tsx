@@ -1,8 +1,8 @@
 import type { MenuDef, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
-  Positioner,
   type PopupMenuDef,
   type PopupSubmenuDef,
+  Positioner,
   Surface,
 } from '@bazza-ui/popup-menu'
 import * as React from 'react'
@@ -31,7 +31,7 @@ export interface DropdownMenuContentProps<T = unknown> {
  */
 export function DropdownMenuContent<T = unknown>({
   menu: menuProp,
-  placeholder = 'Search...',
+  placeholder,
   side = 'bottom',
   align = 'start',
   sideOffset = 4,

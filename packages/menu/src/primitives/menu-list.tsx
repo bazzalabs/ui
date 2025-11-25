@@ -41,6 +41,7 @@ export interface MenuListPrimitiveProps<T> {
   disabled?: boolean
   /** Optional menu control for accessing menu-wide state (disabled, loading, etc.) */
   control?: import('../control.js').MenuControl<T>
+  isFocused?: boolean
 }
 
 /**
@@ -66,6 +67,7 @@ export function MenuListPrimitive<T>({
   onSubmenuOpen,
   disabled: disabledProp = false,
   control,
+  isFocused = false,
 }: MenuListPrimitiveProps<T>) {
   // Check menu-wide disabled state from control (if provided)
   const menuDisabled = control?.getState().disabled ?? false
@@ -238,10 +240,11 @@ export function MenuListPrimitive<T>({
     ref: store.listRef,
     role,
     'data-menu-list': '',
-    'aria-activedescendant': activeId,
+    'aria-activedescendant': isFocused ? undefined : activeId,
     'aria-disabled': disabled,
     'data-disabled': disabled,
     inert: disabled ? true : undefined,
+    tabIndex: isFocused ? -1 : 0, // Make the list focusable so it can receive keyboard events
     className,
     style,
     onKeyDown: handleKeyDown,

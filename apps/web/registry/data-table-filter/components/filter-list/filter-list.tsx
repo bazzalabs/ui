@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { useFilterContext } from '../../context'
+import { useFilterContext, useFilterVariant } from '../../context'
 import { FilterBlock } from './filter-block'
 
 type FilterListRenderProps<TData = unknown> = {
@@ -29,6 +29,7 @@ export function FilterList<TData = unknown>({
   ...props
 }: FilterListProps<TData> = {}) {
   const { filters, columns } = useFilterContext<TData>()
+  const variant = useFilterVariant()
 
   // If regular children provided, just render them
   if (children && typeof children !== 'function') {
@@ -74,11 +75,11 @@ export function FilterList<TData = unknown>({
             column={column}
           >
             <FilterBlock.Subject />
-            <Separator orientation="vertical" />
+            {variant !== 'clean' && <Separator orientation="vertical" />}
             <FilterBlock.Operator />
-            <Separator orientation="vertical" />
+            {variant !== 'clean' && <Separator orientation="vertical" />}
             <FilterBlock.Value />
-            <Separator orientation="vertical" />
+            {variant !== 'clean' && <Separator orientation="vertical" />}
             <FilterBlock.Remove />
           </FilterBlock>
         )

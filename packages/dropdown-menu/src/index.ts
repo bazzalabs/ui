@@ -94,4 +94,4 @@ export type {
 export { flatten, renderIcon } from '@bazza-ui/menu'
 
 // Export middleware helpers (also available at @bazza-ui/dropdown-menu/middleware)
-export { composeMiddleware, createNew } from './middleware.js'
+export { composeMiddleware, createNew, stickyRows } from './middleware.js'

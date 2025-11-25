@@ -1,8 +1,10 @@
 import type {
-  ActionMenuRootProps,
+  DropdownMenuProps as ActionMenuRootProps,
+  ItemDef,
+  ItemNode,
   MenuDef,
   SubmenuDef,
-} from '@bazza-ui/action-menu'
+} from '@bazza-ui/dropdown-menu'
 import {
   type Column,
   type DataTableFilterActions,
@@ -25,7 +27,7 @@ import {
 } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { DropdownMenu } from '@/registry/dropdown-menu'
 import { type FilterVariant, useFilterVariant } from '../context'
 import {
   createMultiOptionMenu,
@@ -143,7 +145,7 @@ function FilterMenuTrigger({
   const Comp = asChild ? Slot : Button
 
   return (
-    <ActionMenu.Trigger asChild>
+    <DropdownMenu.Trigger asChild>
       <Comp
         data-slot="filter-menu-trigger"
         data-state={hasVisibleFilters ? 'has-filters' : 'empty'}
@@ -160,7 +162,7 @@ function FilterMenuTrigger({
           </>
         )}
       </Comp>
-    </ActionMenu.Trigger>
+    </DropdownMenu.Trigger>
   )
 }
 
@@ -246,6 +248,19 @@ function __FilterMenu<TData>({
           })
         }
 
+        if (column.type === 'boolean') {
+          return {
+            id: `filter-value-${column.id}`,
+            kind: 'item',
+            variant: 'button',
+            label: column.displayName,
+            icon: column.icon,
+            onSelect: () => {
+              actions.setFilterValue(column, [false])
+            },
+          } as ItemDef
+        }
+
         // Create submenu with middleware for sticky grouping
         // Create a ref-like object for this specific column's initial values
         const getColumnRef = (columnId: string) => ({
@@ -262,6 +277,11 @@ function __FilterMenu<TData>({
           id: column.id,
           icon: column.icon,
           label: column.displayName,
+          ui: {
+            slots: {
+              Item: OptionItem,
+            },
+          },
           ...(column.type === 'option'
             ? createOptionMenu({
                 filter: undefined as any, // Not used, middleware reads from ref
@@ -273,7 +293,6 @@ function __FilterMenu<TData>({
                   filtersRef.current.find((f) => f.columnId === column.id) as
                     | FilterModel<'option'>
                     | undefined,
-                initialSelectedValuesRef: getColumnRef(column.id) as any,
               })
             : column.type === 'multiOption'
               ? createMultiOptionMenu({
@@ -286,7 +305,6 @@ function __FilterMenu<TData>({
                     filtersRef.current.find((f) => f.columnId === column.id) as
                       | FilterModel<'multiOption'>
                       | undefined,
-                  initialSelectedValuesRef: getColumnRef(column.id) as any,
                 })
               : {}),
         } as SubmenuDef
@@ -297,15 +315,9 @@ function __FilterMenu<TData>({
 
   return (
     <FilterMenuContext.Provider value={contextValue}>
-      <ActionMenu
-        slots={{
-          Item: OptionItem,
-        }}
-        menu={menu}
-        {...actionMenuProps}
-      >
+      <DropdownMenu menu={menu} {...actionMenuProps}>
         {children ?? <FilterMenuTrigger />}
-      </ActionMenu>
+      </DropdownMenu>
     </FilterMenuContext.Provider>
   )
 }

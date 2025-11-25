@@ -680,4 +680,103 @@ describe('useFilteredNodes middleware integration', () => {
       }
     })
   })
+
+  describe('transformNodes in browse mode', () => {
+    it('should apply transformNodes middleware even when query is empty', () => {
+      const transformNodes = vi.fn(
+        (context: TransformNodesContext) => context.nodes,
+      )
+
+      const middleware: MenuMiddleware = {
+        transformNodes,
+      }
+
+      const menuDef: MenuDef = {
+        id: 'test',
+        nodes: [
+          { kind: 'item', id: 'item1', label: 'Apple' },
+          { kind: 'item', id: 'item2', label: 'Banana' },
+        ],
+        middleware,
+      }
+
+      const menu = instantiateMenuFromDef(menuDef, 'root', 0)
+
+      // Simulate browse mode (empty query)
+      const nodes = menu.nodes.filter(
+        (n) =>
+          n.kind === 'item' || n.kind === 'submenu' || n.kind === 'separator',
+      )
+
+      if (menu.middleware?.transformNodes) {
+        const context: TransformNodesContext = {
+          nodes,
+          query: '',
+          mode: 'browse',
+          allNodes: menu.nodes,
+          menu,
+          createNode: vi.fn(),
+          hasExactMatch: vi.fn(() => false),
+        }
+
+        const transformed = menu.middleware.transformNodes(context)
+
+        expect(transformNodes).toHaveBeenCalledWith(
+          expect.objectContaining({
+            mode: 'browse',
+            query: '',
+          }),
+        )
+        expect(transformed).toEqual(nodes)
+      }
+    })
+
+    it('should allow reordering nodes in browse mode', () => {
+      const transformNodes = (context: TransformNodesContext): Node<any>[] => {
+        // Only reorder in browse mode
+        if (context.mode === 'browse') {
+          // Reverse the order for testing
+          return [...context.nodes].reverse()
+        }
+        return context.nodes
+      }
+
+      const middleware: MenuMiddleware = {
+        transformNodes,
+      }
+
+      const menuDef: MenuDef = {
+        id: 'test',
+        nodes: [
+          { kind: 'item', id: 'item1', label: 'Apple' },
+          { kind: 'item', id: 'item2', label: 'Banana' },
+          { kind: 'item', id: 'item3', label: 'Cherry' },
+        ],
+        middleware,
+      }
+
+      const menu = instantiateMenuFromDef(menuDef, 'root', 0)
+
+      const nodes = menu.nodes.filter((n) => n.kind === 'item')
+
+      if (menu.middleware?.transformNodes) {
+        const context: TransformNodesContext = {
+          nodes,
+          query: '',
+          mode: 'browse',
+          allNodes: menu.nodes,
+          menu,
+          createNode: vi.fn(),
+          hasExactMatch: vi.fn(() => false),
+        }
+
+        const transformed = menu.middleware.transformNodes(context)
+
+        // Should be reversed
+        expect((transformed[0] as ItemNode)?.label).toBe('Cherry')
+        expect((transformed[1] as ItemNode)?.label).toBe('Banana')
+        expect((transformed[2] as ItemNode)?.label).toBe('Apple')
+      }
+    })
+  })
 })

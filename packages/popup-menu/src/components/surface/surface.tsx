@@ -227,37 +227,30 @@ export function Surface<T = unknown>({
     }
   }, [subCtx?.onOpenChange])
 
-  // Input focus sync
-  const storeInputRef = React.useRef<React.RefObject<HTMLInputElement> | null>(
-    null,
-  )
-  React.useEffect(() => {
-    storeInputRef.current = store.inputRef as React.RefObject<HTMLInputElement>
-  }, [store.inputRef])
-
-  const prevInputActiveRef = React.useRef(inputActive)
-  React.useEffect(() => {
-    if (
-      inputActive &&
-      !prevInputActiveRef.current &&
-      storeInputRef.current?.current
-    ) {
-      requestAnimationFrame(() => {
-        storeInputRef.current?.current?.focus()
-      })
-    }
-    prevInputActiveRef.current = inputActive
-  }, [inputActive])
-
   // Type start handler
   const handleTypeStart = React.useCallback(
     (seed: string) => {
-      if (!inputActive) {
+      if (!inputActive && ownerId === surfaceId) {
         setInputActive(true)
         setQuery(seed)
+
+        // Focus the input after it mounts - use polling to handle race condition
+        let attempts = 0
+        const maxAttempts = 10
+
+        const tryFocus = () => {
+          if (store.inputRef.current) {
+            store.inputRef.current.focus()
+          } else if (attempts < maxAttempts) {
+            attempts++
+            requestAnimationFrame(tryFocus)
+          }
+        }
+
+        requestAnimationFrame(tryFocus)
       }
     },
-    [inputActive, setInputActive, setQuery],
+    [inputActive, ownerId, surfaceId, setInputActive, setQuery, store],
   )
 
   // --- 8. BINDINGS ---
@@ -278,7 +271,7 @@ export function Surface<T = unknown>({
       store={store}
       value={query}
       onValueChange={setQuery}
-      placeholder={placeholder ?? menu.inputPlaceholder ?? 'Search...'}
+      placeholder={placeholder}
     />
   ) : null
 
@@ -289,7 +282,38 @@ export function Surface<T = unknown>({
   ) : null
 
   // --- 10. RENDER ---
-  const content = (
+  // Check for custom render function (escape hatch)
+  const customRender = (menu as any).render || (orchestratedMenu as any).render
+
+  const content = customRender ? (
+    // Custom render mode - bypass Popup wrapper, render directly in SurfaceProvider
+    <KeyboardCtx.Provider value={{ dir, vimBindings }}>
+      <HoverPolicyProvider>
+        <SurfaceProvider
+          store={store as any}
+          menu={orchestratedMenu as any}
+          displayNodes={displayNodes as any}
+          slots={slots as any}
+          classNames={classNames}
+          slotProps={slotProps}
+          inputActive={inputActive}
+          setInputActive={setInputActive}
+          query={query}
+          setQuery={setQuery}
+          surfaceId={surfaceId}
+          isSubmenu={isSubmenu}
+          contentRef={contentRef}
+          popupProps={popupProps}
+          handleMouseMove={handleMouseMove}
+          onClose={onClose}
+          control={control}
+        >
+          <Popup>{customRender()}</Popup>
+        </SurfaceProvider>
+      </HoverPolicyProvider>
+    </KeyboardCtx.Provider>
+  ) : (
+    // Standard render mode
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
       <HoverPolicyProvider>
         <SurfaceProvider

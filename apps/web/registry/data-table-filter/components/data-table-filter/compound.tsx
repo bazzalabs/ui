@@ -1,6 +1,6 @@
 'use client'
 
-import type { ActionMenuRootProps } from '@bazza-ui/action-menu'
+import type { DropdownMenuProps as ActionMenuRootProps } from '@bazza-ui/dropdown-menu'
 import type {
   Column,
   DataTableFilterActions,
@@ -159,6 +159,7 @@ export interface FilterProps<TData> {
   strategy: FilterStrategy
   locale?: Locale
   entityName?: string
+  variant?: FilterVariant
 }
 
 export function Filter<TData>({
@@ -168,6 +169,7 @@ export function Filter<TData>({
   strategy,
   locale = 'en',
   entityName,
+  variant,
 }: FilterProps<TData>) {
   const isMobile = useIsMobile()
 
@@ -178,12 +180,18 @@ export function Filter<TData>({
     strategy,
     locale,
     entityName,
+    variant,
   }
 
   if (isMobile) {
     return (
       <Provider value={contextValue}>
-        <div className="flex w-full items-start justify-between gap-2">
+        <div
+          className={cn(
+            'flex w-full items-start justify-between gap-2',
+            variant === 'clean' ? 'h-7.5' : 'h-7',
+          )}
+        >
           <div className="flex gap-1">
             <Menu />
             <Actions />
@@ -198,7 +206,12 @@ export function Filter<TData>({
 
   return (
     <Provider value={contextValue}>
-      <div className="flex w-full items-start justify-between gap-2">
+      <div
+        className={cn(
+          'flex w-full items-start justify-between gap-2',
+          variant === 'clean' ? 'h-7.5' : 'h-7',
+        )}
+      >
         <div className="flex md:flex-wrap gap-2 w-full flex-1">
           <Menu />
           <List />

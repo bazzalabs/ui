@@ -111,13 +111,11 @@ type BasePositionerProps = Omit<
   align?: 'start' | 'center' | 'end' | 'list'
 }
 
-/** Positioner slot props type */
-export type PositionerSlotProps =
-  | Partial<BasePositionerProps>
-  | {
-      root?: Partial<BasePositionerProps>
-      sub?: Partial<BasePositionerProps>
-    }
+/** Positioner slot props type - structured with optional root and sub */
+export type PositionerSlotProps = {
+  root?: Partial<BasePositionerProps>
+  sub?: Partial<BasePositionerProps>
+}
 
 /* ================================================================================================
  * SlotProps Types

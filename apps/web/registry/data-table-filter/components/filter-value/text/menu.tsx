@@ -1,10 +1,11 @@
-import type { MenuMiddleware, SubmenuDef } from '@bazza-ui/action-menu'
+import type { SubmenuDef } from '@bazza-ui/dropdown-menu'
 import type {
   Column,
   DataTableFilterActions,
   FilterModel,
   TextFilterOperator,
 } from '@bazza-ui/filters'
+import type { MenuMiddleware } from '@bazza-ui/menu/middleware'
 import { TextItem } from '../shared/text-item'
 import type { FilterValueControllerProps } from '../shared/types'
 
@@ -17,9 +18,9 @@ export function createTextFilterMiddleware<TData>({
 }: {
   column: Column<TData, 'text'>
   actions: DataTableFilterActions
-}): MenuMiddleware<FilterModel<'text'>> {
+}): MenuMiddleware {
   return {
-    transformNodes: (context) => {
+    transformNodes: (context: any) => {
       const { query, mode, createNode } = context
 
       // Only inject items in search mode when there's a query
@@ -89,7 +90,10 @@ export function createTextMenu<TData>({
       },
       slotProps: {
         positioner: {
-          align: 'start',
+          sub: {
+            align: 'start',
+            // alignOffset: 4,
+          },
         },
       },
     },

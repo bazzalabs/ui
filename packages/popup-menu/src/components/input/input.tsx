@@ -20,7 +20,7 @@ export function PopupMenuInput<T = unknown>({
   store,
   value,
   onValueChange,
-  placeholder = 'Search...',
+  placeholder: placeholderProp,
   className,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
@@ -36,6 +36,11 @@ export function PopupMenuInput<T = unknown>({
   const mergedClassName = [theme?.classNames?.input, className]
     .filter(Boolean)
     .join(' ')
+
+  const placeholder =
+    placeholderProp ??
+    surface.menu.inputPlaceholder ??
+    theme.slotProps?.input?.placeholder
 
   return (
     <MenuInputPrimitive
