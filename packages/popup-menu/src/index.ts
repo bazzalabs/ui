@@ -162,3 +162,14 @@ export type {
 
 // Export middleware helpers (also available at @bazza-ui/popup-menu/middleware)
 export { composeMiddleware, createNew } from './middleware.js'
+
+// Store types and factory
+export type {
+  PopupSurfaceSlice,
+  PopupMenuStoreState,
+  PopupMenuStoreActions,
+  PopupMenuStore,
+  CreatePopupMenuStoreOptions,
+  AimGuardState,
+} from './store/index.js'
+export { createPopupMenuStore } from './store/index.js'
