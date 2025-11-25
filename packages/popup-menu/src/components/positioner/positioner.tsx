@@ -204,12 +204,17 @@ export function Positioner({
     trackAnchor,
     // Note: alignOffset is intentionally omitted here - calculated below
     sticky: true,
-    positionMethod: 'fixed' as const,
+    // positionMethod: 'fixed' as const,
     collisionPadding: 8,
     'data-slot': 'popup-menu-positioner',
     'data-positioner-type': isSub ? 'submenu' : 'root',
     className: classNames?.positioner,
-  }
+    collisionAvoidance: {
+      side: 'flip',
+      align: 'shift',
+      fallbackAxisSide: 'end',
+    },
+  } as Popover.Positioner.Props
 
   const mergedProps = mergeProps(
     basePropsWithoutAnchor,

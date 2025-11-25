@@ -82,7 +82,6 @@ export function ListRenderer(props: ListRendererProps) {
 function ListRendererContent({ query = '' }: ListRendererProps) {
   const {
     surfaceId,
-    menu,
     displayNodes,
     slots: customSlots,
     classNames,
