@@ -1,6 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
+import prettier from 'prettier'
+import type { TypeExpansionConfig } from './type-extraction.config'
+import { defaultConfig, shouldExpandType } from './type-extraction.config'
 
 /** ---------- CLI parsing (typed) ---------- */
 
@@ -10,6 +13,7 @@ interface Args {
   out: string
   tsconfig?: string
   packages: PkgArg[]
+  config?: TypeExpansionConfig
 }
 
 function parseArgs(argv: string[]): Args {
@@ -42,7 +46,10 @@ function parseArgs(argv: string[]): Args {
     return { name, entry }
   })
 
-  return { out, tsconfig, packages }
+  // Use default config for now (can be extended to load from file)
+  const config = defaultConfig
+
+  return { out, tsconfig, packages, config }
 }
 
 /** ---------- Output shapes (typed) ---------- */
@@ -50,8 +57,18 @@ function parseArgs(argv: string[]): Args {
 export type PropMeta = {
   name: string
   type: string
+  /** Prettier-formatted version of the type (for complex types) */
+  formattedType?: string
   required: boolean
   description?: string
+  /** Default value from JSDoc @default tag */
+  default?: string
+  /** If true, this type has been expanded inline */
+  isExpanded?: boolean
+  /** Expanded properties if the type was expanded */
+  expandedType?: PropMeta[]
+  /** Reference path to the type definition (e.g., "@bazza-ui/menu.MenuDef") */
+  referencePath?: string
 }
 
 export type TypeMeta = {
@@ -85,7 +102,11 @@ function isObjectLikeType(t: ts.Type): boolean {
 }
 
 /** Collect properties only from object(-like) types. Flattens intersections. */
-function collectObjectProps(t: ts.Type, checker: ts.TypeChecker): PropMeta[] {
+async function collectObjectProps(
+  t: ts.Type,
+  checker: ts.TypeChecker,
+  ctx?: TypeExpansionContext,
+): Promise<PropMeta[]> {
   const seen = new Map<string, ts.Symbol>()
 
   const addProps = (tt: ts.Type) => {
@@ -98,11 +119,39 @@ function collectObjectProps(t: ts.Type, checker: ts.TypeChecker): PropMeta[] {
   if (isIntersectionType(t)) {
     for (const part of t.types) addProps(part)
   } else if (!isUnionType(t)) {
-    // unions are skipped (e.g., 'a' | 'b'); object unions aren’t summarized here
+    // unions are skipped (e.g., 'a' | 'b'); object unions aren't summarized here
     addProps(t)
   }
 
-  return [...seen.values()].map((sym) => propMeta(sym, checker))
+  // If context is provided, use it for type expansion
+  if (ctx) {
+    return await Promise.all([...seen.values()].map((sym) => propMeta(sym, ctx)))
+  }
+
+  // Fallback for backward compatibility (shouldn't happen in practice)
+  return [...seen.values()].map((sym) => {
+    const decl = (sym.valueDeclaration ?? sym.declarations?.[0]) as
+      | ts.Declaration
+      | undefined
+    const type = checker.getTypeOfSymbolAtLocation(
+      sym,
+      decl ?? sym.declarations?.[0] ?? (sym as unknown as ts.Node),
+    )
+    const required =
+      decl && ts.isPropertySignature(decl)
+        ? !decl.questionToken
+        : decl && ts.isPropertyDeclaration(decl)
+          ? !decl.questionToken
+          : true
+
+    return {
+      name: sym.getName(),
+      type: checker.typeToString(type),
+      required,
+      description: getSymbolDoc(sym, checker),
+      default: getSymbolDefaultValue(sym),
+    }
+  })
 }
 
 function loadCompilerOptions(tsconfigPath?: string): ts.CompilerOptions {
@@ -178,6 +227,71 @@ function getSymbolDoc(
   return txt || undefined
 }
 
+/**
+ * Extract @default value from JSDoc tags
+ */
+function getSymbolDefaultValue(sym: ts.Symbol): string | undefined {
+  const tags = sym.getJsDocTags()
+  const defaultTag = tags.find((tag) => tag.name === 'default')
+  if (!defaultTag) return undefined
+
+  // Get the text of the default tag
+  const text = defaultTag.text
+    ? ts.displayPartsToString(Array.isArray(defaultTag.text) ? defaultTag.text : [defaultTag.text])
+    : undefined
+
+  return text?.trim() || undefined
+}
+
+/**
+ * Format a TypeScript type string using Prettier
+ */
+async function formatTypeString(typeStr: string): Promise<string | undefined> {
+  // Skip formatting for simple types
+  if (typeStr.length < 50 && !typeStr.includes('{') && !typeStr.includes('(')) {
+    return undefined // Return undefined to indicate no formatting needed
+  }
+
+  // Skip types with truncation markers (...) as they're not valid TypeScript
+  if (typeStr.includes('...')) {
+    return undefined
+  }
+
+  try {
+    // Wrap the type in a declaration to make it valid TypeScript
+    const wrappedType = `type FormattedType = ${typeStr}`
+
+    // Format using prettier (async in Prettier 3.x)
+    const formatted = await prettier.format(wrappedType, {
+      parser: 'typescript',
+      printWidth: 60,
+      semi: false,
+      singleQuote: true,
+      trailingComma: 'all',
+      tabWidth: 2,
+    })
+
+    // Extract just the type definition
+    // Handle both single-line and multi-line formatted output
+    const typeDeclarationPrefix = 'type FormattedType ='
+    let result = formatted.trim()
+
+    if (result.startsWith(typeDeclarationPrefix)) {
+      // Remove the "type FormattedType =" prefix
+      result = result.slice(typeDeclarationPrefix.length).trim()
+    }
+
+    // Only return if it's actually different from the original
+    return result !== typeStr ? result : undefined
+  } catch (error) {
+    // If formatting fails, return undefined
+    if (process.env.DEBUG_TYPES) {
+      console.warn('Failed to format type:', typeStr, error)
+    }
+    return undefined
+  }
+}
+
 function typeParamsMeta(
   node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
 ): Array<{ name: string; constraint?: string; default?: string }> | undefined {
@@ -190,7 +304,28 @@ function typeParamsMeta(
   return tps.length ? tps : undefined
 }
 
-function propMeta(propSym: ts.Symbol, checker: ts.TypeChecker): PropMeta {
+interface TypeExpansionContext {
+  checker: ts.TypeChecker
+  config: TypeExpansionConfig
+  currentDepth: number
+  allTypes: Map<string, TypeMeta> // All documented types for reference lookup
+  currentPackage: string
+}
+
+/**
+ * Extract the base type name from a type string
+ * e.g., "MenuDef<T>" -> "MenuDef", "Array<string>" -> "Array"
+ */
+function extractBaseTypeName(typeStr: string): string {
+  const match = typeStr.match(/^([a-zA-Z_$][a-zA-Z0-9_$.]*)/)
+  return match?.[1] ?? typeStr
+}
+
+async function propMeta(
+  propSym: ts.Symbol,
+  ctx: TypeExpansionContext,
+): Promise<PropMeta> {
+  const { checker, config, currentDepth, allTypes, currentPackage } = ctx
   const decl = (propSym.valueDeclaration ?? propSym.declarations?.[0]) as
     | ts.Declaration
     | undefined
@@ -205,12 +340,61 @@ function propMeta(propSym: ts.Symbol, checker: ts.TypeChecker): PropMeta {
         ? !decl.questionToken
         : true
 
-  return {
+  const typeStr = checker.typeToString(type)
+  const baseTypeName = extractBaseTypeName(typeStr)
+  const description = getSymbolDoc(propSym, checker)
+  const defaultValue = getSymbolDefaultValue(propSym)
+  const formattedType = await formatTypeString(typeStr)
+
+  const meta: PropMeta = {
     name: propSym.getName(),
-    type: checker.typeToString(type),
+    type: typeStr,
+    formattedType,
     required,
-    description: getSymbolDoc(propSym, checker),
+    description,
+    default: defaultValue,
   }
+
+  // Check if we should expand this type
+  const maxDepth = config.maxDepth ?? 2
+  const shouldExpand = currentDepth < maxDepth && shouldExpandType(
+    baseTypeName,
+    undefined, // TODO: detect package name from symbol
+    config,
+  )
+
+  if (shouldExpand && isObjectLikeType(type)) {
+    // Recursively expand the type
+    const expandedProps = await collectObjectProps(type, checker, { ...ctx, currentDepth: currentDepth + 1 })
+
+    if (expandedProps.length > 0) {
+      meta.isExpanded = true
+      meta.expandedType = expandedProps
+    }
+  }
+
+  // Check if this is a reference to a documented type
+  const referencePath = findTypeReference(baseTypeName, allTypes, currentPackage)
+  if (referencePath) {
+    meta.referencePath = referencePath
+  }
+
+  return meta
+}
+
+/**
+ * Find a reference path for a type in the documented types
+ */
+function findTypeReference(
+  typeName: string,
+  allTypes: Map<string, TypeMeta>,
+  currentPackage: string,
+): string | undefined {
+  // Check if this type is documented
+  if (allTypes.has(typeName)) {
+    return `${currentPackage}.${typeName}`
+  }
+  return undefined
 }
 
 /** Resolve a SourceFile robustly (path normalization). */
@@ -233,11 +417,12 @@ function resolveExport(sym: ts.Symbol, checker: ts.TypeChecker): ts.Symbol {
 
 /** ---------- Collector ---------- */
 
-function collectPackageTypes(
+async function collectPackageTypes(
   prog: ts.Program,
   checker: ts.TypeChecker,
   pkg: PkgArg,
-): PackageMeta {
+  config: TypeExpansionConfig,
+): Promise<PackageMeta> {
   const sf = findSourceFile(prog, pkg.entry)
   if (!sf) throw new Error(`Entry not in program: ${pkg.entry}`)
   const moduleSym = checker.getSymbolAtLocation(sf)
@@ -245,6 +430,7 @@ function collectPackageTypes(
 
   const exportsArr = checker.getExportsOfModule(moduleSym)
   const types: Record<string, TypeMeta> = {}
+  const allTypes = new Map<string, TypeMeta>()
 
   if (process.env.DEBUG_TYPES) {
     console.log(`\n[${pkg.name}] entry: ${pkg.entry}`)
@@ -289,11 +475,22 @@ function collectPackageTypes(
       const declaredType = checker.getDeclaredTypeOfSymbol(
         target /* not exp; see alias fix */,
       )
-      const props = collectObjectProps(declaredType, checker)
+
+      // Create expansion context
+      const ctx: TypeExpansionContext = {
+        checker,
+        config,
+        currentDepth: 0,
+        allTypes,
+        currentPackage: pkg.name,
+      }
+
+      const props = await collectObjectProps(declaredType, checker, ctx)
       if (props.length) meta.props = props
     }
 
     types[meta.name] = meta
+    allTypes.set(meta.name, meta)
   }
 
   return { entrypoint: path.relative(process.cwd(), pkg.entry), types }
@@ -329,7 +526,7 @@ async function main(): Promise<void> {
 
   const output: MetaOutput = {}
   for (const pkg of args.packages) {
-    const meta = collectPackageTypes(program, checker, pkg)
+    const meta = await collectPackageTypes(program, checker, pkg, args.config ?? defaultConfig)
     if (process.env.DEBUG_TYPES && Object.keys(meta.types).length === 0) {
       console.warn(`[warn] No exported types found for ${pkg.name}`)
     }

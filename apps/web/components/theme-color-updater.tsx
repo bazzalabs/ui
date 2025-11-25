@@ -1,8 +1,8 @@
 'use client'
 
-import { META_THEME_COLORS } from '@/lib/config'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { META_THEME_COLORS } from '@/lib/config'
 
 export default function ThemeColorUpdater() {
   const { resolvedTheme } = useTheme()

@@ -1,5 +1,8 @@
 'use client'
 
+import { MenuIcon } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -9,9 +12,6 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import logoSrc from '@/public/bazzaui-v3-color.png'
-import { MenuIcon } from 'lucide-react'
-import Image from 'next/image'
-import Link from 'next/link'
 import { DiscordIcon, GithubIcon, XIcon } from './icons'
 import { NavBarItem } from './nav-bar-item'
 import { ThemeToggle } from './theme-toggle'

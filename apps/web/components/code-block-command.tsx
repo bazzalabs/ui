@@ -5,12 +5,10 @@ import * as React from 'react'
 
 import { copyToClipboardWithMeta } from '@/components/copy-button'
 import { Button } from '@/components/ui/button'
-import { Tabs } from '@/components/ui/tabs'
-import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useConfig } from '@/hooks/use-config'
 import type { NpmCommands } from '@/types/unist'
-import Link from 'next/link'
-import { BunIcon, NpmIcon, PnpmIcon, XIcon, YarnIcon } from './icons'
+import { BunIcon, NpmIcon, PnpmIcon, YarnIcon } from './icons'
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
@@ -61,7 +59,7 @@ export function CodeBlockCommand({
     setHasCopied(true)
 
     if (isComponentInstallCommand) {
-      // @ts-ignore
+      // @ts-expect-error
       window.stonks.event('Copied component installation command', {
         packageManager,
         component: 'data-table-filter',

@@ -24,8 +24,10 @@ import type {
 import type {
   GroupHeadingBindAPI,
   GroupNode,
+  ItemDef,
   ItemNode,
   ListBindAPI,
+  LoadingNode,
   Menu,
   MenuNodeDefaults,
   Node,
@@ -500,11 +502,8 @@ function ListContent<T = unknown>({
           mode: effectiveLocalQuery ? 'search' : 'browse',
           allNodes: menu.nodes,
           menu,
-          createNode: <U = T>(def: import('../types.js').ItemDef<U>) =>
-            instantiateSingleNode(
-              def,
-              menu,
-            ) as import('../types.js').ItemNode<U>,
+          createNode: <U = T>(def: ItemDef<U>) =>
+            instantiateSingleNode(def, menu) as ItemNode<U>,
           hasExactMatch: (query: string) =>
             flattenedNodes.some(
               (node) =>
@@ -532,7 +531,7 @@ function ListContent<T = unknown>({
       effectiveLocalQuery &&
       menu.loadingState
     ) {
-      const loadingNode: import('../types.js').LoadingNode = {
+      const loadingNode: LoadingNode = {
         kind: 'loading',
         id: '__streaming-loading__',
         parent: menu,

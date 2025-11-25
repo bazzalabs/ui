@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { afterEach, describe, expect, test } from 'vitest'
 import { basicMenuDef, checkboxMenuDef } from './fixtures/test-menu.js'
 import { ControlledTestApp } from './test-app.js'
@@ -6,7 +6,6 @@ import {
   cleanup,
   click,
   delay,
-  keyboard,
   render,
   waitFor,
   waitForElement,

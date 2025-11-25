@@ -23,7 +23,11 @@ export function Sub({
   const [open, setOpen] = useControllableState({
     prop: def.open?.value,
     defaultProp: def.open?.defaultValue ?? false,
-    onChange: def.open?.onValueChange,
+    onChange: (value) => {
+      console.log('submenu open changed:', value)
+      if (def.open?.onValueChange) def.open?.onValueChange(value)
+      else setOpen(value)
+    },
   })
   const triggerRef = React.useRef<HTMLDivElement | HTMLButtonElement | null>(
     null,

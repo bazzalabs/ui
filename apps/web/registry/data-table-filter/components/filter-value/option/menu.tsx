@@ -1,4 +1,4 @@
-import type { MenuMiddleware, NodeDef, SubmenuDef } from '@bazza-ui/action-menu'
+import type { MenuMiddleware, SubmenuDef } from '@bazza-ui/action-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
 import type { FilterValueControllerProps } from '../shared/types'
 

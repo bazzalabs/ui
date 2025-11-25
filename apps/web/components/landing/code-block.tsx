@@ -1,10 +1,10 @@
-import { cn } from '@/lib/utils'
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
 } from '@shikijs/transformers'
 import type { BundledLanguage } from 'shiki'
 import { codeToHtml } from 'shiki'
+import { cn } from '@/lib/utils'
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   className?: string

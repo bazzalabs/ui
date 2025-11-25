@@ -36,6 +36,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'fruits',
             label: 'Fruits',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['fruits', query],
@@ -47,6 +48,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'vegetables',
             label: 'Vegetables',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['vegetables', query],
@@ -58,6 +60,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'meats',
             label: 'Meats & Protein',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['meats', query],
@@ -69,6 +72,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'seafood',
             label: 'Seafood',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['seafood', query],
@@ -80,6 +84,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'bakery',
             label: 'Bakery & Grains',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['bakery', query],
@@ -91,6 +96,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'meals',
             label: 'Meals & Prepared',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['meals', query],
@@ -102,6 +108,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'sweets',
             label: 'Sweets & Desserts',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['sweets', query],
@@ -113,6 +120,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'snacks',
             label: 'Snacks & Nuts',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['snacks', query],
@@ -124,6 +132,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'dairy',
             label: 'Dairy & Eggs',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['dairy', query],
@@ -135,6 +144,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'condiments',
             label: 'Condiments & Staples',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['condiments', query],
@@ -146,6 +156,7 @@ export function ActionMenu_AsyncSubmenusStreaming() {
             kind: 'submenu',
             id: 'drinks',
             label: 'Drinks',
+            deepSearch: true,
             search: { mode: 'server' },
             loader: createLoader(({ query }) => ({
               queryKey: ['drinks', query],

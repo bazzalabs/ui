@@ -156,7 +156,6 @@ const assigneeMenu: SubmenuDef = {
   loader: createLoader(() => ({
     queryKey: ['assignees'],
     queryFn: fetchAssignees,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   })),
 }
 

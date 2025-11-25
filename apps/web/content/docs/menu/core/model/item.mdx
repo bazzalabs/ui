@@ -1,0 +1,44 @@
+---
+title: Item
+component: Menu
+section: Model
+summary: "A node with a label and icon. Performs an action when selected."
+---
+
+The **item node** is a fundamental building block of the menu system.
+
+It represents a single option or action within the menu structure. Each item can have a label and an icon, which are displayed to the user.
+
+When an item is triggered, it performs a specific action.
+
+Items are also **searchable** via the `label` property; you can also use the `keywords` property to define a `string[]` of aliases.
+
+## Properties
+
+<TypeTableAuto type="BaseItemDef" pkg="@bazza-ui/menu" />
+
+## Variants
+
+Variants allow us to customize the appearance and behaviour of items. We can use them to render an item node differently and modify its behaviour.
+
+### Button
+
+The `'button'` variant is the default variant for the item node.
+
+<TypeDiff baseType="BaseItemDef" derivedType="ButtonItemDef" package="@bazza-ui/menu" />
+
+### Checkbox
+
+> [!NOTE] Note that `checked` and `onCheckedChange` are required properties - it cannot be used in an uncontrolled fashion.
+
+The `'checkbox'` variant gives us the tools to render a checkbox with an item node, with proper state management.
+
+<TypeDiff baseType="BaseItemDef" derivedType="CheckboxItemDef" package="@bazza-ui/menu" />
+
+### Radio
+
+The `'radio'` variant is for items in a radio group.
+
+We can optionally specify a `value` for selection, otherwise the `id` will be used.
+
+<TypeDiff baseType="BaseItemDef" derivedType="RadioItemDef" package="@bazza-ui/menu" />

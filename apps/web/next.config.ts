@@ -2,6 +2,9 @@ import { createMDX } from 'fumadocs-mdx/next'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  devIndicators: {
+    position: 'bottom-right',
+  },
   distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   images: {
@@ -41,6 +44,12 @@ const nextConfig: NextConfig = {
       source: '/changelog/latest',
       destination: '/changelog/2025-05-05-v0.2',
       permanent: false,
+    },
+  ],
+  rewrites: async () => [
+    {
+      destination: '/docs/menu/components/:path*',
+      source: '/docs/components/:path*',
     },
   ],
 }

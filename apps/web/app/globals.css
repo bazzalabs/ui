@@ -3,6 +3,7 @@
 @import "../styles/highlight-js/github-dark.css";
 
 @plugin "tailwindcss-animate";
+/*@plugin "tailwindcss-corner-shape/presets/squircle";*/
 
 @custom-variant dark (&:where(.dark, .dark *));
 

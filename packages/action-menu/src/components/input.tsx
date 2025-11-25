@@ -6,6 +6,7 @@ import { mergeProps } from '../lib/merge-props.js'
 import { hasDescendantWithProp } from '../lib/react-utils.js'
 import type {
   InputBindAPI,
+  InputSearchState,
   SurfaceSlotProps,
   SurfaceSlots,
   SurfaceStore,
@@ -28,7 +29,7 @@ export function Input<T>({
   slotProps: SurfaceSlotProps['input']
   inputPlaceholder?: string
   className?: string
-  searchState: import('../types.js').InputSearchState
+  searchState: InputSearchState
 }) {
   const activeId = useSurfaceSel(store, (s) => s.activeId ?? undefined)
   const listId = useSurfaceSel(store, (s) => s.listId ?? undefined)

@@ -1,4 +1,4 @@
-import type { NumericValue } from '../core/types.js'
+
 import { getValidNumber } from './helpers.js'
 
 export function intersection<T>(a: T[], b: T[]): T[] {

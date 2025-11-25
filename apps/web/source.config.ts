@@ -8,13 +8,12 @@ import {
 } from 'fumadocs-mdx/config'
 import rehypeCallouts from 'rehype-callouts'
 import z from 'zod'
-import { oscuraMidnight } from './lib/oscura/oscura-midnight'
-// import { oscuraSunrise } from './lib/oscura/oscura-sunrise'
 
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
     schema: frontmatterSchema.extend({
+      component: z.string().optional(),
       summary: z.string(),
       section: z.string().optional(),
       badge: z.enum(['alpha', 'beta']).optional(),
@@ -38,9 +37,7 @@ export const changelog = defineDocs({
 const rehypeCodeOptions: RehypeCodeOptions = {
   themes: {
     light: 'github-light',
-    dark: oscuraMidnight,
-    // light: 'github-light',
-    // dark: 'github-dark',
+    dark: 'github-dark',
   },
   transformers: [transformerNotationHighlight()],
 }

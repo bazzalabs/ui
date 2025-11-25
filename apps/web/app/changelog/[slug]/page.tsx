@@ -1,7 +1,7 @@
 export const dynamic = 'force-static'
 
 import 'rehype-callouts/theme/github'
-import { format, parse } from 'date-fns'
+import { format, } from 'date-fns'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'

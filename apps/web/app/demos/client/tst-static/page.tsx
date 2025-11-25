@@ -2,7 +2,6 @@
 
 import type { FiltersState } from '@bazza-ui/filters'
 import { useState } from 'react'
-import { CodeBlock } from '@/components/code-block'
 import { NavBar } from '@/components/nav-bar'
 import { IssuesTable } from './_/issues-table'
 

@@ -12,9 +12,11 @@ export function FadeContainer({
   children,
   scrollContainerRef,
   resizeMeasurementDelay = 0,
+  background = 'var(--background)',
 }: {
   children: React.ReactNode
   scrollContainerRef?: React.RefObject<HTMLElement | null>
+  background?: string
   /**
    * Delay in milliseconds before measuring scroll edges after resize/mutation events.
    * Useful when elements inside the container are animating, to ensure measurements
@@ -60,7 +62,8 @@ export function FadeContainer({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              background="var(--sidebar)"
+              background={background}
+              // background="var(--sidebar)"
               side="top"
               blur="4px"
               stop="25%"
@@ -75,7 +78,7 @@ export function FadeContainer({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              background="var(--sidebar)"
+              background={background}
               side="bottom"
               blur="4px"
               stop="25%"

@@ -1,0 +1,45 @@
+---
+title: Menu
+component: Menu
+section: Getting Started
+summary: A collection of menu-based primitives with submenus, async loading, deep search.
+---
+
+<ComponentFrame
+  containerClassName='sm:h-fit py-8 mb-8'
+  previewClassName='w-full flex flex-col items-center justify-center gap-12'
+>
+<div className='flex flex-col items-center justify-center gap-4'>
+    <span className='text-base font-medium text-muted-foreground'>Command menu</span>
+    <Examples.CommandMenu.LinearAsync />
+</div>
+<div className='flex flex-col items-center justify-center gap-4'>
+    <span className='text-base font-medium text-muted-foreground'>Dropdown menu</span>
+    <Examples.DropdownMenu.LinearAsync />
+</div>
+<div className='flex flex-col items-center justify-center gap-6'>
+    <span className='text-base font-medium text-muted-foreground'>Context menu</span>
+    <Examples.ContextMenu.LinearAsync />
+</div>
+</ComponentFrame>
+
+We've re-designed menus from scratch to be more intuitive, powerful, and accessible.
+
+Using our shared menu model (`@bazza-ui/menu`), we've built three unstyled, primitive menus.
+
+You can feed the menu model into any of our menu components.
+
+| Component | Description |
+|-----------|---------|
+| Command menu |  Dialog-based menu with a paged navigation system. |
+| Dropdown menu | Popup-based menu, triggered by a button.|
+| Context menu | Popup-based menu, triggered by a right click or a long press. |
+
+
+## Features
+
+- **Data-first API.** Build menus declaratively with our powerful menu model.
+- **Focus management.** Follows the `aria-activedescendant` pattern; the menu's input element is focused at all times, even during search, navigation, and interaction.
+- **Keyboard navigation.** Browse menus using the keyboard, with support for standard and Vim-based navigation.
+- **Async node loaders.** Load data asynchronously using our `loader()` API. Filter on the server, the client, or both. First-party adapters for TanStack Query and SWR, or create your own.
+- **(Deep) search.** It *just works*™ - no configuration required. Search across descendant submenus. Mix static and dynamic data sources. Block until all results are loaded or stream them in.

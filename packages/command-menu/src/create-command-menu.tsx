@@ -1,0 +1,172 @@
+import type { MenuNodeDefaults } from '@bazza-ui/menu'
+import { defaultSlots } from '@bazza-ui/menu'
+import * as React from 'react'
+import { CommandMenuBreadcrumbs } from './components/breadcrumbs.js'
+import { CommandMenuContent } from './components/content.js'
+import { CommandMenuInput } from './components/input.js'
+import { CommandMenuList } from './components/list.js'
+import { CommandMenuRoot } from './components/root.js'
+import { CommandMenuTrigger } from './components/trigger.js'
+import {
+  GlobalThemeProvider,
+  mergeTheme,
+  ScopedThemeProvider,
+} from './contexts/theme-context.js'
+import type {
+  CommandMenuDef,
+  CommandMenuProps,
+  CommandMenuSlots,
+  CommandMenuTheme,
+  CommandMenuThemeDef,
+} from './types.js'
+
+export type CreateCommandMenuResult<T = unknown> = React.FC<
+  CommandMenuOptions<T>
+> & {
+  Root: typeof CommandMenuRoot
+  Trigger: typeof CommandMenuTrigger
+  Content: typeof CommandMenuContent
+  Input: typeof CommandMenuInput
+  List: typeof CommandMenuList
+  Breadcrumbs: typeof CommandMenuBreadcrumbs
+}
+
+export type CreateCommandMenuOptions<T = unknown> = {
+  slots?: CommandMenuThemeDef<T>['slots']
+  slotProps?: CommandMenuThemeDef<T>['slotProps']
+  classNames?: CommandMenuThemeDef<T>['classNames']
+  defaults?: Partial<MenuNodeDefaults<T>>
+}
+
+export interface CommandMenuOptions<T = unknown> extends CommandMenuProps<T> {
+  /** Keyboard shortcut to open the command menu */
+  shortcut?: string | string[]
+  /** Placeholder text for the search input */
+  placeholder?: string
+  /** Optional trigger button to render */
+  trigger?: React.ReactNode
+  /** Theme overrides at instance level */
+  slots?: CommandMenuThemeDef<T>['slots']
+  slotProps?: CommandMenuThemeDef<T>['slotProps']
+  classNames?: CommandMenuThemeDef<T>['classNames']
+  /** Default values for menu nodes */
+  defaults?: Partial<MenuNodeDefaults<T>>
+}
+
+/**
+ * Creates a CommandMenu component with factory-level theme defaults.
+ * Supports theme override at three levels:
+ * 1. Factory level (createCommandMenu options)
+ * 2. Instance level (component props)
+ * 3. Menu/submenu level (menu.ui)
+ */
+export function createCommandMenu<T = unknown>(
+  opts?: CreateCommandMenuOptions<T>,
+): CreateCommandMenuResult<T> {
+  // Factory theme - from createCommandMenu options
+  // Note: We EXCLUDE Dialog slots from defaults unless explicitly provided by user
+  // This ensures direct Radix rendering (preserving animations) unless custom behavior is needed
+  const baseSlots = defaultSlots<T>() as Required<CommandMenuSlots<T>>
+
+  // Remove Dialog slots from base - they should only be used if explicitly provided
+  const { DialogPortal, DialogOverlay, DialogContent, ...slotsWithoutDialog } =
+    baseSlots
+
+  const factoryTheme: CommandMenuTheme<T> = {
+    slots: {
+      ...slotsWithoutDialog,
+      // Only include Dialog slots if explicitly provided by user
+      ...(opts?.slots?.DialogPortal && {
+        DialogPortal: opts.slots.DialogPortal,
+      }),
+      ...(opts?.slots?.DialogOverlay && {
+        DialogOverlay: opts.slots.DialogOverlay,
+      }),
+      ...(opts?.slots?.DialogContent && {
+        DialogContent: opts.slots.DialogContent,
+      }),
+      // Include all other user slots normally
+      ...Object.fromEntries(
+        Object.entries(opts?.slots || {}).filter(
+          ([key]) =>
+            key !== 'DialogPortal' &&
+            key !== 'DialogOverlay' &&
+            key !== 'DialogContent',
+        ),
+      ),
+    } as Required<CommandMenuSlots<T>>,
+    slotProps: opts?.slotProps,
+    classNames: opts?.classNames,
+  }
+
+  // Factory defaults - from createCommandMenu options
+  const factoryDefaults = opts?.defaults
+
+  function CommandMenu<T = unknown>({
+    shortcut = 'cmd+k',
+    placeholder = 'Type a command or search...',
+    menu,
+    slots,
+    slotProps,
+    classNames,
+    defaults,
+    children,
+    ...rootProps
+  }: CommandMenuOptions<T>) {
+    // Instance theme - merge factory with instance props
+    const instanceTheme = React.useMemo(
+      () =>
+        mergeTheme(factoryTheme as any, {
+          slots: slots as any,
+          slotProps,
+          classNames,
+        }),
+      [slots, slotProps, classNames],
+    )
+
+    // Scoped theme - from menu.ui
+    const scopedTheme = React.useMemo(() => menu.ui, [menu.ui])
+
+    // Merge factory defaults with instance defaults
+    const mergedDefaults = React.useMemo<Partial<MenuNodeDefaults<T>>>(
+      () => ({
+        surface: { ...factoryDefaults?.surface, ...defaults?.surface },
+        item: {
+          ...factoryDefaults?.item,
+          ...defaults?.item,
+        } as any,
+        virtualization: {
+          ...factoryDefaults?.virtualization,
+          ...defaults?.virtualization,
+        } as any,
+      }),
+      [defaults],
+    )
+
+    return (
+      <GlobalThemeProvider theme={instanceTheme}>
+        <ScopedThemeProvider theme={scopedTheme as any}>
+          <CommandMenuRoot {...rootProps} menu={menu}>
+            <CommandMenuTrigger shortcut={shortcut}>
+              {children}
+            </CommandMenuTrigger>
+            <CommandMenuContent
+              placeholder={placeholder}
+              defaults={mergedDefaults}
+            />
+          </CommandMenuRoot>
+        </ScopedThemeProvider>
+      </GlobalThemeProvider>
+    )
+  }
+
+  const CompoundCommandMenu = CommandMenu as CreateCommandMenuResult<T>
+  CompoundCommandMenu.Root = CommandMenuRoot
+  CompoundCommandMenu.Trigger = CommandMenuTrigger
+  CompoundCommandMenu.Content = CommandMenuContent
+  CompoundCommandMenu.Input = CommandMenuInput
+  CompoundCommandMenu.List = CommandMenuList
+  CompoundCommandMenu.Breadcrumbs = CommandMenuBreadcrumbs
+
+  return CompoundCommandMenu
+}
