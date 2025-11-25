@@ -7,18 +7,17 @@ import type {
   ItemNode,
   LoadingDef,
   LoadingNode,
+  RowBindAPI,
+  SearchContext,
   SeparatorDef,
   SeparatorNode,
-  SearchContext,
-  RowBindAPI,
 } from '@bazza-ui/menu'
 import type {
   PopupMenuClassNames,
   PopupMenuSlotProps,
   PopupMenuSlots,
-  PopupMenuThemeDef,
 } from '@bazza-ui/popup-menu'
-import type { ThemeDef, Theme } from '@bazza-ui/theming'
+import type { Theme, ThemeDef } from '@bazza-ui/theming'
 import type * as React from 'react'
 
 /* ================================================================================================
@@ -360,15 +359,15 @@ export function validateSelectNodes<TData>(
     if ((node as any).kind === 'submenu') {
       const pathStr = currentPath.join('')
       throw new Error(
-        `[Select] Submenus are not supported in Select components.\n` +
+        '[Select] Submenus are not supported in Select components.\n' +
           `  Found at: nodes${pathStr}\n` +
-          `  Tip: Use groups with headings for categorization instead.\n\n` +
-          `  Example:\n` +
-          `  {\n` +
+          '  Tip: Use groups with headings for categorization instead.\n\n' +
+          '  Example:\n' +
+          '  {\n' +
           `    kind: 'group',\n` +
           `    heading: 'Category',\n` +
-          `    nodes: [/* items */]\n` +
-          `  }`,
+          '    nodes: [/* items */]\n' +
+          '  }',
       )
     }
 

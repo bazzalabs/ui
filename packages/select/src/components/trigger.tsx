@@ -170,12 +170,13 @@ export function SelectTrigger({
               return (
                 <TriggerSlot
                   bind={bind}
-                  children={children}
                   value={selectedValue}
                   values={selectedValues}
                   multiple={multiple}
                   placeholder={placeholder}
-                />
+                >
+                  {children}
+                </TriggerSlot>
               ) as React.ReactElement
             }
 
@@ -213,12 +214,13 @@ export function SelectTrigger({
             return (
               <TriggerSlot
                 bind={bind}
-                children={children || displayValue}
                 value={selectedValue}
                 values={selectedValues}
                 multiple={multiple}
                 placeholder={placeholder}
-              />
+              >
+                {children || displayValue}
+              </TriggerSlot>
             ) as React.ReactElement
           }
 

@@ -1,5 +1,5 @@
 export { Basic } from './basic'
 export { Form } from './form'
 export { Groups } from './groups'
-export { WithMax } from './with-max'
 export { Massive } from './massive'
+export { WithMax } from './with-max'

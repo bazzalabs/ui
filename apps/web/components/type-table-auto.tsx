@@ -296,7 +296,7 @@ interface TypeTableAutoProps {
  */
 export function TypeTableAuto({ type, pkg }: TypeTableAutoProps) {
   // Find the type in the metadata
-  let typeMeta
+  let typeMeta: any
 
   if (pkg) {
     typeMeta = typesData[pkg]?.types?.[type]
@@ -334,7 +334,7 @@ export function TypeTableAuto({ type, pkg }: TypeTableAutoProps) {
 
         {/* Body */}
         <div className="grid grid-cols-subgrid col-span-3 bg-white dark:bg-black">
-          {typeMeta.props.map((prop) => (
+          {typeMeta.props.map((prop: any) => (
             <ExpandablePropRow key={prop.name} prop={prop} />
           ))}
         </div>

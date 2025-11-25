@@ -1,7 +1,7 @@
 import { Portal } from '@radix-ui/react-portal'
 import * as React from 'react'
-import { useMousePosition } from '../../features/hover-policy/use-mouse-position.js'
 import { resolveAnchorSide } from '../../features/hover-policy/aim-guard.js'
+import { useMousePosition } from '../../features/hover-policy/use-mouse-position.js'
 
 /** Visual-only debug polygon showing the aim-guard band. */
 export function IntentZone({

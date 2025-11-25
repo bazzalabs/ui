@@ -3,17 +3,17 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import type { StoreApi } from 'zustand'
-import type { CommandMenuControl } from '../control.js'
 import {
   type CommandMenuContextValue,
   CommandMenuProvider,
 } from '../context.js'
+import type { CommandMenuControl } from '../control.js'
 import { COMMAND_MENU_EVENTS } from '../events.js'
 import { useNavigation } from '../hooks/use-navigation.js'
 import {
+  type CommandMenuStore,
   CommandMenuStoreProvider,
   createCommandMenuStore,
-  type CommandMenuStore,
 } from '../store/index.js'
 import type { CommandMenuProps } from '../types.js'
 

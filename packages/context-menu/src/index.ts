@@ -7,7 +7,6 @@ export { ContextMenuTrigger } from './components/trigger.js'
 export { ContextMenuContent } from './components/content.js'
 
 // Keep simple component export for convenience
-export { ContextMenu } from './context-menu.js'
 export type { ContextMenuProps } from './types.js'
 
 // Component props types

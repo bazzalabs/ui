@@ -1,10 +1,9 @@
 'use client'
 
-import { computeTypeDiff } from '@/lib/type-diff'
-import type { MetaOutput, PropMeta } from '@/scripts/build-types-meta'
-
 // Import the generated types metadata
 import typesMeta from '@/.types/types-meta.json'
+import { computeTypeDiff } from '@/lib/type-diff'
+import type { MetaOutput } from '@/scripts/build-types-meta'
 
 // Import the ExpandablePropRow from type-table-auto
 import { ExpandablePropRow } from './type-table-auto'
@@ -58,7 +57,7 @@ export function TypeDiff({
   const finalDerivedPackage = packageName ?? derivedPackage
 
   // Find the base type in metadata
-  let baseTypeMeta
+  let baseTypeMeta: any
   if (finalBasePackage) {
     baseTypeMeta = typesData[finalBasePackage]?.types?.[baseType]
   } else {
@@ -71,7 +70,7 @@ export function TypeDiff({
   }
 
   // Find the derived type in metadata
-  let derivedTypeMeta
+  let derivedTypeMeta: any
   if (finalDerivedPackage) {
     derivedTypeMeta = typesData[finalDerivedPackage]?.types?.[derivedType]
   } else {
@@ -89,7 +88,8 @@ export function TypeDiff({
         <p className="text-sm text-destructive">
           {!baseTypeMeta && (
             <>
-              Base type <code className="font-mono font-semibold">{baseType}</code> not
+              Base type{' '}
+              <code className="font-mono font-semibold">{baseType}</code> not
               found
               {finalBasePackage ? ` in package ${finalBasePackage}` : ''}
             </>
@@ -98,7 +98,8 @@ export function TypeDiff({
             <>
               {!baseTypeMeta && <br />}
               Derived type{' '}
-              <code className="font-mono font-semibold">{derivedType}</code> not found
+              <code className="font-mono font-semibold">{derivedType}</code> not
+              found
               {finalDerivedPackage ? ` in package ${finalDerivedPackage}` : ''}
             </>
           )}
@@ -118,7 +119,9 @@ export function TypeDiff({
     ...diff.modified.map((p) => p.name),
   ])
 
-  const propsToShow = derivedProps.filter((prop) => differentPropNames.has(prop.name))
+  const propsToShow = derivedProps.filter((prop: any) =>
+    differentPropNames.has(prop.name),
+  )
 
   if (propsToShow.length === 0) {
     return (
@@ -145,7 +148,7 @@ export function TypeDiff({
 
         {/* Body */}
         <div className="grid grid-cols-subgrid col-span-3 bg-white dark:bg-black">
-          {propsToShow.map((prop) => (
+          {propsToShow.map((prop: any) => (
             <ExpandablePropRow key={prop.name} prop={prop} />
           ))}
         </div>

@@ -1,14 +1,14 @@
 import * as React from 'react'
 import { useRoot } from '../../contexts/root-context.js'
-import { useSub } from '../submenu/submenu-context.js'
-import { useSurface } from '../surface/surface-provider.js'
 import type {
   PopupMenuDef,
   PopupSubmenuDef,
   PopupSubmenuNode,
 } from '../../types.js'
-import { Surface } from '../surface/surface.js'
 import { Positioner } from '../positioner/positioner.js'
+import { useSub } from '../submenu/submenu-context.js'
+import { Surface } from '../surface/surface.js'
+import { useSurface } from '../surface/surface-provider.js'
 
 interface PopupMenuSubmenuContentProps<T = unknown> {
   node: PopupSubmenuNode<T>

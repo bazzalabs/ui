@@ -1,5 +1,5 @@
 export { PopupMenuSubmenu } from './popup-menu-submenu.js'
-export { PopupMenuSubmenuTrigger } from './submenu-trigger.js'
 export { PopupMenuSubmenuContent } from './submenu-content.js'
-export { SubCtx, useSub, closeSubmenuChain } from './submenu-context.js'
 export type { SubContextValue } from './submenu-context.js'
+export { closeSubmenuChain, SubCtx, useSub } from './submenu-context.js'
+export { PopupMenuSubmenuTrigger } from './submenu-trigger.js'

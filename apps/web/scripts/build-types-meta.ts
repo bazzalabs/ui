@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import ts from 'typescript'
 import prettier from 'prettier'
+import ts from 'typescript'
 import type { TypeExpansionConfig } from './type-extraction.config'
 import { defaultConfig, shouldExpandType } from './type-extraction.config'
 
@@ -125,7 +125,9 @@ async function collectObjectProps(
 
   // If context is provided, use it for type expansion
   if (ctx) {
-    return await Promise.all([...seen.values()].map((sym) => propMeta(sym, ctx)))
+    return await Promise.all(
+      [...seen.values()].map((sym) => propMeta(sym, ctx)),
+    )
   }
 
   // Fallback for backward compatibility (shouldn't happen in practice)
@@ -237,7 +239,9 @@ function getSymbolDefaultValue(sym: ts.Symbol): string | undefined {
 
   // Get the text of the default tag
   const text = defaultTag.text
-    ? ts.displayPartsToString(Array.isArray(defaultTag.text) ? defaultTag.text : [defaultTag.text])
+    ? ts.displayPartsToString(
+        Array.isArray(defaultTag.text) ? defaultTag.text : [defaultTag.text],
+      )
     : undefined
 
   return text?.trim() || undefined
@@ -357,15 +361,20 @@ async function propMeta(
 
   // Check if we should expand this type
   const maxDepth = config.maxDepth ?? 2
-  const shouldExpand = currentDepth < maxDepth && shouldExpandType(
-    baseTypeName,
-    undefined, // TODO: detect package name from symbol
-    config,
-  )
+  const shouldExpand =
+    currentDepth < maxDepth &&
+    shouldExpandType(
+      baseTypeName,
+      undefined, // TODO: detect package name from symbol
+      config,
+    )
 
   if (shouldExpand && isObjectLikeType(type)) {
     // Recursively expand the type
-    const expandedProps = await collectObjectProps(type, checker, { ...ctx, currentDepth: currentDepth + 1 })
+    const expandedProps = await collectObjectProps(type, checker, {
+      ...ctx,
+      currentDepth: currentDepth + 1,
+    })
 
     if (expandedProps.length > 0) {
       meta.isExpanded = true
@@ -374,7 +383,11 @@ async function propMeta(
   }
 
   // Check if this is a reference to a documented type
-  const referencePath = findTypeReference(baseTypeName, allTypes, currentPackage)
+  const referencePath = findTypeReference(
+    baseTypeName,
+    allTypes,
+    currentPackage,
+  )
   if (referencePath) {
     meta.referencePath = referencePath
   }
@@ -526,7 +539,12 @@ async function main(): Promise<void> {
 
   const output: MetaOutput = {}
   for (const pkg of args.packages) {
-    const meta = await collectPackageTypes(program, checker, pkg, args.config ?? defaultConfig)
+    const meta = await collectPackageTypes(
+      program,
+      checker,
+      pkg,
+      args.config ?? defaultConfig,
+    )
     if (process.env.DEBUG_TYPES && Object.keys(meta.types).length === 0) {
       console.warn(`[warn] No exported types found for ${pkg.name}`)
     }

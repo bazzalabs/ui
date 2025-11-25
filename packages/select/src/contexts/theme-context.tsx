@@ -1,6 +1,6 @@
-import { createThemeSystem, mergePositionerProps } from '@bazza-ui/theming'
 import { defaultSlots as defaultPopupSlots } from '@bazza-ui/popup-menu'
-import * as React from 'react'
+import { createThemeSystem, mergePositionerProps } from '@bazza-ui/theming'
+import type * as React from 'react'
 import type {
   SelectClassNames,
   SelectSlotProps,

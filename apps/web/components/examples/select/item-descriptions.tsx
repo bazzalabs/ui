@@ -1,9 +1,9 @@
 'use client'
 
+import { CheckCircleIcon, ClockIcon, XCircleIcon } from 'lucide-react'
 import { useState } from 'react'
-import { Select } from '@/registry/select'
 import { Button } from '@/components/ui/button'
-import { CheckCircleIcon, XCircleIcon, ClockIcon } from 'lucide-react'
+import { Select } from '@/registry/select'
 
 export function ItemDescriptions() {
   const [value, setValue] = useState('pending')

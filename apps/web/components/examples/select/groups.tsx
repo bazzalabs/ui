@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Select } from '@/registry/select'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/registry/select'
 
 export function Groups() {
   const [value, setValue] = useState('')

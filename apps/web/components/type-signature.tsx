@@ -4,7 +4,6 @@
 import typesMeta from '@/.types/types-meta.json'
 
 import type { MetaOutput } from '@/scripts/build-types-meta'
-import { Markdown } from './markdown'
 
 const typesData = typesMeta as MetaOutput
 
@@ -33,7 +32,7 @@ export function TypeSignature({
   showPackage = false,
 }: TypeSignatureProps) {
   // Find the type in the metadata
-  let typeMeta
+  let typeMeta: any
   let packageName: string | undefined
 
   if (pkg) {
@@ -73,7 +72,7 @@ export function TypeSignature({
             <>
               {'<'}
               {typeMeta.typeParams
-                .map((tp) => {
+                .map((tp: any) => {
                   let param = tp.name
                   if (tp.constraint) param += ` extends ${tp.constraint}`
                   if (tp.default) param += ` = ${tp.default}`

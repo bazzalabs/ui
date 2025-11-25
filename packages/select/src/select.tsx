@@ -2,7 +2,7 @@ import { createSelect } from './create-select.js'
 
 /**
  * Default Select component with standard theme.
- * 
+ *
  * @example
  * ```tsx
  * <Select
@@ -14,7 +14,7 @@ import { createSelect } from './create-select.js'
  *   ]}
  * />
  * ```
- * 
+ *
  * @example
  * With form integration:
  * ```tsx

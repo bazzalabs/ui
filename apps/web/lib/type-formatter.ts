@@ -6,7 +6,11 @@ import prettier from 'prettier'
  */
 export async function formatType(typeString: string): Promise<string> {
   // Skip formatting for simple types
-  if (typeString.length < 50 && !typeString.includes('{') && !typeString.includes('(')) {
+  if (
+    typeString.length < 50 &&
+    !typeString.includes('{') &&
+    !typeString.includes('(')
+  ) {
     return typeString
   }
 

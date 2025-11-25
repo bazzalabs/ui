@@ -10,18 +10,18 @@ import { SelectRoot } from './components/root.js'
 import { SelectTrigger } from './components/trigger.js'
 import { SelectValue } from './components/value.js'
 import {
-  GlobalThemeProvider as SelectGlobalThemeProvider,
-  mergeTheme,
-  ScopedThemeProvider as SelectScopedThemeProvider,
   defaultSelectSlots,
+  mergeTheme,
+  GlobalThemeProvider as SelectGlobalThemeProvider,
+  ScopedThemeProvider as SelectScopedThemeProvider,
 } from './contexts/theme-context.js'
 import type {
   MultiSelectProps,
   SelectItemDef,
   SelectMenuDef,
-  SelectThemeDef,
   SelectSlots,
   SelectTheme,
+  SelectThemeDef,
 } from './types.js'
 
 // Compound component types

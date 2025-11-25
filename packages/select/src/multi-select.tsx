@@ -3,7 +3,7 @@ import { createMultiSelect } from './create-multi-select.js'
 /**
  * Default MultiSelect component with standard theme.
  * Allows selecting multiple values from a list.
- * 
+ *
  * @example
  * ```tsx
  * <MultiSelect
@@ -16,7 +16,7 @@ import { createMultiSelect } from './create-multi-select.js'
  *   ]}
  * />
  * ```
- * 
+ *
  * @example
  * With max constraint:
  * ```tsx
