@@ -88,3 +88,31 @@ export { renderIcon, flatten } from '@bazza-ui/menu'
 
 // Export middleware helpers (also available at @bazza-ui/context-menu/middleware)
 export { composeMiddleware, createNew } from './middleware.js'
+
+// Re-export store hooks from popup-menu for convenience
+// Context-menu uses popup-menu's RootProvider which provides the store
+export {
+  createPopupMenuStore,
+  createSurfaceActiveIdSelector,
+  createSurfaceHoverSelector,
+  createSurfaceQuerySelector,
+  createSurfaceSelector,
+  PopupMenuStoreProvider,
+  selectAimGuard,
+  selectDisabled,
+  selectFocusOwnerId,
+  selectOpen,
+  selectScopeId,
+  usePopupMenuActions,
+  usePopupMenuStore,
+  usePopupMenuStoreApi,
+} from '@bazza-ui/popup-menu'
+
+export type {
+  CreatePopupMenuStoreOptions,
+  PopupMenuStore,
+  PopupMenuStoreActions,
+  PopupMenuStoreProviderProps,
+  PopupMenuStoreState,
+  PopupSurfaceSlice,
+} from '@bazza-ui/popup-menu'

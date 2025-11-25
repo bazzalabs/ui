@@ -69,4 +69,6 @@ export type {
   MenuSurfaceSlice,
   NodeLike,
   StoreExtension,
+  // Surface refs type
+  SurfaceRefs,
 } from './types.js'

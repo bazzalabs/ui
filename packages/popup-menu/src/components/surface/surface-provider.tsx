@@ -1,4 +1,4 @@
-import type { Menu, MenuControl, Node, SurfaceStore } from '@bazza-ui/menu'
+import type { MenuControl } from '@bazza-ui/menu'
 import * as React from 'react'
 import type {
   PopupMenuClassNames,
@@ -6,37 +6,31 @@ import type {
   PopupMenuSlots,
 } from '../../types.js'
 
+/**
+ * Slimmed down surface context.
+ * Most state is now in the global PopupMenuStore - use hooks like
+ * useActiveId, useDisplayNodes, useSurfaceMenu, etc. to access it.
+ */
 export interface SurfaceContextValue<T = unknown> {
-  // Store
-  store: SurfaceStore<T>
+  // Identity
+  surfaceId: string
+  isSubmenu: boolean
 
-  // Orchestrated data (ready to consume)
-  menu: Menu<T>
-  displayNodes: Node<T>[]
-
-  // Control (for menu-wide state like disabled)
+  // External imperative control (optional)
   control?: MenuControl<T>
 
-  // Theming
+  // Theming (can't be in global store - varies per consumer)
   slots?: PopupMenuSlots<T>
   classNames?: PopupMenuClassNames
   slotProps?: PopupMenuSlotProps
 
-  // State
-  inputActive: boolean
-  setInputActive: (active: boolean) => void
-  query: string
-  setQuery: (query: string) => void
-
-  // Surface metadata and refs for Popup binding
-  surfaceId: string
-  isSubmenu: boolean
+  // Local refs (not in global store)
   contentRef?: React.RefObject<HTMLDivElement | null>
+
+  // Callbacks (per-render, can't be in store)
   popupProps?: React.HTMLAttributes<HTMLElement>
   handleMouseMove: (e: React.MouseEvent) => void
   onClose?: () => void
-
-  // Handlers
   onSubmenuSelect?: (submenuId: string, submenu: any) => void
 }
 

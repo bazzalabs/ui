@@ -1,9 +1,13 @@
+import type { Virtualizer } from '@tanstack/react-virtual'
+import type * as React from 'react'
 import type {
+  ActivationCause,
   LoaderProgress,
   LoadMode,
   Menu,
   Node,
   RootMenuDef,
+  RowRecord,
 } from '../types.js'
 
 /**
@@ -23,6 +27,20 @@ export type MenuLike = { kind: string; id: string; nodes: any[] }
  * Must have `kind` and `id`.
  */
 export type NodeLike = { kind: string; id: string }
+
+/**
+ * DOM refs for a surface. Created once on registration and reused.
+ */
+export type SurfaceRefs = {
+  /** Search input element */
+  inputRef: React.RefObject<HTMLInputElement | null>
+  /** List container element */
+  listRef: React.RefObject<HTMLDivElement | null>
+  /** TanStack Virtual virtualizer instance */
+  virtualizerRef: React.RefObject<Virtualizer<HTMLDivElement, Element> | null>
+  /** Flag to ignore pointer events during keyboard navigation */
+  ignorePointerRef: React.MutableRefObject<boolean>
+}
 
 /**
  * State slice for a single menu surface (root or submenu).
@@ -50,6 +68,24 @@ export type MenuSurfaceSlice<
   activeId: string | null
   /** Whether search input is focused */
   inputActive: boolean
+
+  // ─────────────────────────────────────────────────────────────────
+  // DOM Refs (created once on registration)
+  // ─────────────────────────────────────────────────────────────────
+
+  /** DOM refs for this surface */
+  refs: SurfaceRefs
+
+  // ─────────────────────────────────────────────────────────────────
+  // Row Registry (for keyboard navigation)
+  // ─────────────────────────────────────────────────────────────────
+
+  /** Registered rows with their metadata */
+  rows: Map<string, RowRecord>
+  /** Map from row ID to virtual index (for virtualized lists) */
+  rowIdToVirtualIndex: Map<string, number>
+  /** Ordered list of navigable row IDs */
+  order: string[]
 
   // ─────────────────────────────────────────────────────────────────
   // Node State
@@ -135,8 +171,24 @@ export type BaseMenuStoreActions<
   // Surface state updates
   setSurfaceOpen: (surfaceId: string, open: boolean) => void
   setSurfaceQuery: (surfaceId: string, query: string) => void
-  setSurfaceActiveId: (surfaceId: string, id: string | null) => void
+  setSurfaceActiveId: (
+    surfaceId: string,
+    id: string | null,
+    cause?: ActivationCause,
+  ) => void
   setSurfaceInputActive: (surfaceId: string, active: boolean) => void
+
+  // Row registry (for keyboard navigation)
+  registerRow: (surfaceId: string, rowId: string, rec: RowRecord) => void
+  unregisterRow: (surfaceId: string, rowId: string) => void
+  resetOrder: (surfaceId: string, ids: string[]) => void
+  resetVirtualIndexMap: (surfaceId: string, map: Map<string, number>) => void
+
+  // Navigation actions
+  first: (surfaceId: string, cause?: ActivationCause) => void
+  last: (surfaceId: string, cause?: ActivationCause) => void
+  next: (surfaceId: string, cause?: ActivationCause) => void
+  prev: (surfaceId: string, cause?: ActivationCause) => void
 
   // Node updates
   setSurfaceMenu: (surfaceId: string, menu: TMenu) => void
@@ -163,6 +215,9 @@ export type BaseMenuStoreActions<
   // Bulk actions
   closeAllSurfaces: () => void
   closeSurfacesFromDepth: (depth: number) => void
+
+  // Surface refs accessor (returns refs for a surface)
+  getSurfaceRefs: (surfaceId: string) => SurfaceRefs | undefined
 }
 
 /**

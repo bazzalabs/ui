@@ -31,7 +31,9 @@ export const MultiSelect = createMultiSelect({
       )
     },
     Value: ({ nodes, values, placeholder }) => {
-      const nodesSlice = nodes?.slice(0, 3)
+      const nodesSlice = nodes
+        ? nodes.slice(0, 3).filter((node) => node.icon)
+        : []
 
       const text =
         !values || values.length === 0
@@ -47,20 +49,22 @@ export const MultiSelect = createMultiSelect({
             !values || (values.length === 0 && 'text-muted-foreground'),
           )}
         >
-          <div className="h-4 flex items-center gap-1">
-            {nodesSlice?.map(
-              (node) =>
-                node.icon && (
-                  <Fragment key={node.id}>
-                    {renderIcon(
-                      node.icon,
-                      'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary not-first:ml-[-7px] border box-content border-background',
-                    )}
-                  </Fragment>
-                ),
-            )}
-          </div>
-          {text}
+          {nodesSlice.length > 0 && (
+            <div className="flex items-center gap-1">
+              {nodesSlice.map(
+                (node) =>
+                  node.icon && (
+                    <Fragment key={node.id}>
+                      {renderIcon(
+                        node.icon,
+                        'size-4 shrink-0 text-muted-foreground not-first:ml-[-7px] border box-content border-background',
+                      )}
+                    </Fragment>
+                  ),
+              )}
+            </div>
+          )}
+          <span>{text}</span>
         </div>
       )
     },

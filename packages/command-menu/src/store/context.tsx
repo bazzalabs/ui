@@ -1,6 +1,12 @@
+import type { Menu, Node, RowRecord, SurfaceRefs } from '@bazza-ui/menu'
 import * as React from 'react'
-import { useStore, type StoreApi } from 'zustand'
+import { type StoreApi, useStore } from 'zustand'
+import type { CommandMenu, CommandMenuDef, CommandNode } from '../types.js'
 import type { CommandMenuStore } from './types.js'
+
+// Stable empty references to avoid creating new objects on each render
+const EMPTY_ARRAY: readonly any[] = []
+const EMPTY_MAP: ReadonlyMap<string, any> = new Map()
 
 /* ================================================================================================
  * Store Context
@@ -106,6 +112,21 @@ export function useCommandMenuActions<TData = unknown>() {
       setSurfaceActiveId: state.setSurfaceActiveId,
       setSurfaceInputActive: state.setSurfaceInputActive,
 
+      // Row registry
+      registerRow: state.registerRow,
+      unregisterRow: state.unregisterRow,
+      resetOrder: state.resetOrder,
+      resetVirtualIndexMap: state.resetVirtualIndexMap,
+
+      // Navigation
+      first: state.first,
+      last: state.last,
+      next: state.next,
+      prev: state.prev,
+
+      // Refs
+      getSurfaceRefs: state.getSurfaceRefs,
+
       // Node updates
       setSurfaceMenu: state.setSurfaceMenu,
       setSurfaceFilteredNodes: state.setSurfaceFilteredNodes,
@@ -194,3 +215,128 @@ export const createSurfaceQuerySelector =
   <TData,>(surfaceId: string) =>
   (state: CommandMenuStore<TData>) =>
     state.surfaces.get(surfaceId)?.query ?? ''
+
+/* ================================================================================================
+ * Surface-Specific Hooks
+ * ============================================================================================== */
+
+/**
+ * Get the active ID for a surface.
+ * Re-renders only when activeId changes.
+ */
+export function useActiveId(surfaceId: string): string | null {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<any>) =>
+        state.surfaces.get(surfaceId)?.activeId ?? null,
+      [surfaceId],
+    ),
+  )
+}
+
+/**
+ * Get the display nodes for a surface.
+ * Re-renders only when displayNodes changes.
+ */
+export function useDisplayNodes<T = unknown>(
+  surfaceId: string,
+): CommandNode<T>[] {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<T>) =>
+        state.surfaces.get(surfaceId)?.displayNodes ??
+        (EMPTY_ARRAY as CommandNode<T>[]),
+      [surfaceId],
+    ),
+  )
+}
+
+/**
+ * Get the query for a surface.
+ * Re-renders only when query changes.
+ */
+export function useSurfaceQuery(surfaceId: string): string {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<any>) =>
+        state.surfaces.get(surfaceId)?.query ?? '',
+      [surfaceId],
+    ),
+  )
+}
+
+/**
+ * Get the inputActive state for a surface.
+ * Re-renders only when inputActive changes.
+ */
+export function useInputActive(surfaceId: string): boolean {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<any>) =>
+        state.surfaces.get(surfaceId)?.inputActive ?? false,
+      [surfaceId],
+    ),
+  )
+}
+
+/**
+ * Get the menu for a surface.
+ * Re-renders only when menu changes.
+ */
+export function useSurfaceMenu<T = unknown>(
+  surfaceId: string,
+): CommandMenu<T> | null {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<T>) =>
+        (state.surfaces.get(surfaceId)?.menu as CommandMenu<T>) ?? null,
+      [surfaceId],
+    ),
+  )
+}
+
+/**
+ * Get the refs for a surface.
+ * Re-renders when the surface is registered/unregistered.
+ */
+export function useSurfaceRefs(surfaceId: string): SurfaceRefs | undefined {
+  const store = useCommandMenuStoreApi()
+  // Subscribe to surface existence so we re-render when surface is registered
+  const surfaceExists = useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<any>) => state.surfaces.has(surfaceId),
+      [surfaceId],
+    ),
+  )
+  // Return refs if surface exists
+  return surfaceExists ? store.getState().getSurfaceRefs(surfaceId) : undefined
+}
+
+/**
+ * Get the rows map for a surface.
+ * Re-renders when rows change.
+ */
+export function useSurfaceRows(surfaceId: string): Map<string, RowRecord> {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<any>) =>
+        state.surfaces.get(surfaceId)?.rows ??
+        (EMPTY_MAP as Map<string, RowRecord>),
+      [surfaceId],
+    ),
+  )
+}
+
+/**
+ * Get the order array for a surface.
+ * Re-renders when order changes.
+ */
+export function useSurfaceOrder(surfaceId: string): string[] {
+  return useCommandMenuStore(
+    React.useCallback(
+      (state: CommandMenuStore<any>) =>
+        state.surfaces.get(surfaceId)?.order ?? (EMPTY_ARRAY as string[]),
+      [surfaceId],
+    ),
+  )
+}

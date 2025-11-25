@@ -1,6 +1,5 @@
 import {
   type AsyncNodeLoader,
-  createSurfaceStore,
   type MenuControl,
   type MenuDef,
   type MenuNodeDefaults,
@@ -16,7 +15,11 @@ import { KeyboardCtx } from '../../contexts/keyboard-context.js'
 import { useRoot } from '../../contexts/root-context.js'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 import { HoverPolicyProvider } from '../../features/hover-policy/hover-policy-context.js'
-import { usePopupMenuActions } from '../../store/index.js'
+import {
+  usePopupMenuActions,
+  usePopupMenuStoreApi,
+  useSurfaceRefs,
+} from '../../store/index.js'
 import type {
   PopupMenuDef,
   PopupMenuSlots,
@@ -83,9 +86,9 @@ export function Surface<T = unknown>({
   const { slots: themeSlots, classNames, slotProps } = useScopedTheme()
   const slots = themeSlots as unknown as PopupMenuSlots<T>
 
-  // --- 1. STORE CREATION ---
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-create surface store when menu changes
-  const store = React.useMemo(() => createSurfaceStore<T>(), [menu.id])
+  // --- 1. STORE ACCESS ---
+  // Get surface refs
+  const surfaceRefs = useSurfaceRefs(surfaceId)
 
   // --- 2. INPUT ACTIVATION ---
   const hideSearchUntilActive = menu.hideSearchUntilActive ?? false
@@ -157,37 +160,36 @@ export function Surface<T = unknown>({
       setOwnerId(null)
       return
     }
-    if (open && ownerId === null) {
+    // Wait for surfaceRefs to be available before focusing
+    if (open && ownerId === null && surfaceRefs) {
       setOwnerId(surfaceId)
       requestAnimationFrame(() => {
-        const element = store.inputRef.current ?? store.listRef.current
+        const element =
+          surfaceRefs.inputRef.current ?? surfaceRefs.listRef.current
         element?.focus()
       })
     }
-  }, [
-    open,
-    ownerId,
-    surfaceId,
-    store.inputRef,
-    store.listRef,
-    setOwnerId,
-    isSubmenu,
-  ])
+  }, [open, ownerId, surfaceId, surfaceRefs, setOwnerId, isSubmenu])
 
   const isOwner = ownerId === surfaceId
   React.useEffect(() => {
-    if (!open || !isOwner) return
+    if (!open || !isOwner || !surfaceRefs) {
+      return
+    }
     const activeElement = document.activeElement
-    const inputHasFocus = store.inputRef.current === activeElement
-    const listHasFocus = store.listRef.current === activeElement
-    if (inputHasFocus || listHasFocus) return
+    const inputHasFocus = surfaceRefs.inputRef.current === activeElement
+    const listHasFocus = surfaceRefs.listRef.current === activeElement
+    if (inputHasFocus || listHasFocus) {
+      return
+    }
 
     const id = requestAnimationFrame(() => {
-      const element = store.inputRef.current ?? store.listRef.current
+      const element =
+        surfaceRefs.inputRef.current ?? surfaceRefs.listRef.current
       element?.focus()
     })
     return () => cancelAnimationFrame(id)
-  }, [open, isOwner, store.inputRef, store.listRef])
+  }, [open, isOwner, surfaceRefs])
 
   // --- 7. INTERACTION HANDLERS ---
   const handleMouseMove = React.useCallback(
@@ -279,8 +281,8 @@ export function Surface<T = unknown>({
         const maxAttempts = 10
 
         const tryFocus = () => {
-          if (store.inputRef.current) {
-            store.inputRef.current.focus()
+          if (surfaceRefs?.inputRef.current) {
+            surfaceRefs.inputRef.current.focus()
           } else if (attempts < maxAttempts) {
             attempts++
             requestAnimationFrame(tryFocus)
@@ -290,7 +292,7 @@ export function Surface<T = unknown>({
         requestAnimationFrame(tryFocus)
       }
     },
-    [inputActive, ownerId, surfaceId, setInputActive, setQuery, store],
+    [inputActive, ownerId, surfaceId, setInputActive, setQuery, surfaceRefs],
   )
 
   // --- 8. BINDINGS ---
@@ -308,7 +310,6 @@ export function Surface<T = unknown>({
 
   const Input = inputActive ? (
     <PopupMenuInput
-      store={store}
       value={query}
       onValueChange={setQuery}
       placeholder={placeholder}
@@ -328,25 +329,18 @@ export function Surface<T = unknown>({
   const content = customRender ? (
     // Custom render mode - bypass Popup wrapper, render directly in SurfaceProvider
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-      <HoverPolicyProvider surfaceId={surfaceId}>
+      <HoverPolicyProvider>
         <SurfaceProvider
-          store={store as any}
-          menu={orchestratedMenu as any}
-          displayNodes={displayNodes as any}
+          surfaceId={surfaceId}
+          isSubmenu={isSubmenu}
+          control={control}
           slots={slots as any}
           classNames={classNames}
           slotProps={slotProps}
-          inputActive={inputActive}
-          setInputActive={setInputActive}
-          query={query}
-          setQuery={setQuery}
-          surfaceId={surfaceId}
-          isSubmenu={isSubmenu}
           contentRef={contentRef}
           popupProps={popupProps}
           handleMouseMove={handleMouseMove}
           onClose={onClose}
-          control={control}
         >
           <Popup>{customRender()}</Popup>
         </SurfaceProvider>
@@ -355,25 +349,18 @@ export function Surface<T = unknown>({
   ) : (
     // Standard render mode
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-      <HoverPolicyProvider surfaceId={surfaceId}>
+      <HoverPolicyProvider>
         <SurfaceProvider
-          store={store as any}
-          menu={orchestratedMenu as any}
-          displayNodes={displayNodes as any}
+          surfaceId={surfaceId}
+          isSubmenu={isSubmenu}
+          control={control}
           slots={slots as any}
           classNames={classNames}
           slotProps={slotProps}
-          inputActive={inputActive}
-          setInputActive={setInputActive}
-          query={query}
-          setQuery={setQuery}
-          surfaceId={surfaceId}
-          isSubmenu={isSubmenu}
           contentRef={contentRef}
           popupProps={popupProps}
           handleMouseMove={handleMouseMove}
           onClose={onClose}
-          control={control}
         >
           <Popup>
             {Header}

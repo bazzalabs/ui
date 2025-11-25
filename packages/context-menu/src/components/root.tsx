@@ -1,7 +1,7 @@
 import { Popover } from '@base-ui-components/react/popover'
 import {
-  EventBus,
   type MenuDef as BaseMenuDef,
+  EventBus,
   type MenuNodeDefaults,
 } from '@bazza-ui/menu'
 import {
@@ -10,8 +10,8 @@ import {
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
-import type { ContextMenuControl } from '../control.js'
 import { RootContextProvider } from '../contexts/root-context.js'
+import type { ContextMenuControl } from '../control.js'
 import type { MenuDef } from '../types.js'
 
 const CONTEXT_MENU_EVENTS = {
@@ -168,35 +168,11 @@ export function ContextMenuRoot<T = unknown>({
     }
   }, [])
 
-  const rootValue = React.useMemo(
+  // Memoize interactionGuardOptions separately to prevent unnecessary re-renders
+  // This is critical because changes to this object will cause RootProvider to
+  // re-register surfaces, which resets activeId to null
+  const interactionGuardOptions = React.useMemo(
     () => ({
-      scopeId,
-      open,
-      onOpenChange: setOpen,
-      closeAllSurfaces,
-      anchorPoint,
-      setAnchorPoint,
-      control,
-      // InteractionGuard options
-      interactionGuardOptions: {
-        scopeAttr,
-        disableOutsidePointerEvents,
-        onEscapeKeyDown,
-        onPointerDownOutside,
-        onFocusOutside,
-        onInteractOutside,
-        onDismiss,
-        surfaceSelector,
-        branchAttr,
-      },
-    }),
-    [
-      scopeId,
-      open,
-      setOpen,
-      closeAllSurfaces,
-      anchorPoint,
-      control,
       scopeAttr,
       disableOutsidePointerEvents,
       onEscapeKeyDown,
@@ -206,6 +182,39 @@ export function ContextMenuRoot<T = unknown>({
       onDismiss,
       surfaceSelector,
       branchAttr,
+    }),
+    [
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+    ],
+  )
+
+  const rootValue = React.useMemo(
+    () => ({
+      scopeId,
+      open,
+      onOpenChange: setOpen,
+      closeAllSurfaces,
+      anchorPoint,
+      setAnchorPoint,
+      control,
+      interactionGuardOptions,
+    }),
+    [
+      scopeId,
+      open,
+      setOpen,
+      closeAllSurfaces,
+      anchorPoint,
+      control,
+      interactionGuardOptions,
     ],
   )
 

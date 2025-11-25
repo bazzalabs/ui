@@ -7,13 +7,13 @@ import {
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
 import type { StoreApi } from 'zustand'
-import type { SelectControl } from '../control.js'
 import { RootContextProvider } from '../contexts/root-context.js'
+import type { SelectControl } from '../control.js'
 import {
   createMultiSelectStore,
   createSelectStore,
-  SelectMenuStoreProvider,
   type SelectMenuStore,
+  SelectMenuStoreProvider,
 } from '../store/index.js'
 import type { SelectMenuDef } from '../types.js'
 
@@ -240,6 +240,34 @@ export function SelectRoot<T = unknown>({
     store.getState().setDisabled(controlState.disabled || disabled)
   }, [store, controlState.disabled, disabled])
 
+  // Memoize interactionGuardOptions separately to prevent unnecessary re-renders
+  // This is critical because changes to this object will cause RootProvider to
+  // re-register surfaces, which resets activeId to null
+  const interactionGuardOptions = React.useMemo(
+    () => ({
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+    }),
+    [
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+    ],
+  )
+
   const rootValue = React.useMemo(
     () => ({
       scopeId,
@@ -255,18 +283,7 @@ export function SelectRoot<T = unknown>({
       multiple,
       disabled: controlState.disabled || disabled,
       menu,
-      // InteractionGuard options
-      interactionGuardOptions: {
-        scopeAttr,
-        disableOutsidePointerEvents,
-        onEscapeKeyDown,
-        onPointerDownOutside,
-        onFocusOutside,
-        onInteractOutside,
-        onDismiss,
-        surfaceSelector,
-        branchAttr,
-      },
+      interactionGuardOptions,
     }),
     [
       scopeId,
@@ -282,15 +299,7 @@ export function SelectRoot<T = unknown>({
       multiple,
       controlState.disabled,
       disabled,
-      scopeAttr,
-      disableOutsidePointerEvents,
-      onEscapeKeyDown,
-      onPointerDownOutside,
-      onFocusOutside,
-      onInteractOutside,
-      onDismiss,
-      surfaceSelector,
-      branchAttr,
+      interactionGuardOptions,
     ],
   )
 

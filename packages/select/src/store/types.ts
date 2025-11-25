@@ -1,4 +1,10 @@
-import type { LoaderProgress, LoadMode } from '@bazza-ui/menu'
+import type {
+  ActivationCause,
+  LoaderProgress,
+  LoadMode,
+  RowRecord,
+  SurfaceRefs,
+} from '@bazza-ui/menu'
 import type { SelectMenu, SelectMenuDef, SelectNode } from '../types.js'
 
 /* ================================================================================================
@@ -24,6 +30,24 @@ export type SelectSurfaceSlice<TData = unknown> = {
   activeId: string | null
   /** Whether search input is focused */
   inputActive: boolean
+
+  // ─────────────────────────────────────────────────────────────────
+  // DOM Refs (created once on registration)
+  // ─────────────────────────────────────────────────────────────────
+
+  /** DOM refs for this surface */
+  refs: SurfaceRefs
+
+  // ─────────────────────────────────────────────────────────────────
+  // Row Registry (for keyboard navigation)
+  // ─────────────────────────────────────────────────────────────────
+
+  /** Registered rows with their metadata */
+  rows: Map<string, RowRecord>
+  /** Map from row ID to virtual index (for virtualized lists) */
+  rowIdToVirtualIndex: Map<string, number>
+  /** Ordered list of navigable row IDs */
+  order: string[]
 
   // ─────────────────────────────────────────────────────────────────
   // Node State
@@ -181,12 +205,40 @@ export type SelectMenuStoreActions<TData = unknown> = {
   unregisterSurface: (id: string) => void
 
   // ═══════════════════════════════════════════════════════════════════════
+  // Surface Refs Accessor
+  // ═══════════════════════════════════════════════════════════════════════
+
+  getSurfaceRefs: (surfaceId: string) => SurfaceRefs | undefined
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Row Registry Actions
+  // ═══════════════════════════════════════════════════════════════════════
+
+  registerRow: (surfaceId: string, rowId: string, rec: RowRecord) => void
+  unregisterRow: (surfaceId: string, rowId: string) => void
+  resetOrder: (surfaceId: string, ids: string[]) => void
+  resetVirtualIndexMap: (surfaceId: string, map: Map<string, number>) => void
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Navigation Actions
+  // ═══════════════════════════════════════════════════════════════════════
+
+  first: (surfaceId: string, cause?: ActivationCause) => void
+  last: (surfaceId: string, cause?: ActivationCause) => void
+  next: (surfaceId: string, cause?: ActivationCause) => void
+  prev: (surfaceId: string, cause?: ActivationCause) => void
+
+  // ═══════════════════════════════════════════════════════════════════════
   // Surface State Updates
   // ═══════════════════════════════════════════════════════════════════════
 
   setSurfaceOpen: (surfaceId: string, open: boolean) => void
   setSurfaceQuery: (surfaceId: string, query: string) => void
-  setSurfaceActiveId: (surfaceId: string, id: string | null) => void
+  setSurfaceActiveId: (
+    surfaceId: string,
+    id: string | null,
+    cause?: ActivationCause,
+  ) => void
   setSurfaceInputActive: (surfaceId: string, active: boolean) => void
 
   // ═══════════════════════════════════════════════════════════════════════

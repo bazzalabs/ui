@@ -1,13 +1,10 @@
+import type { ItemNode, MenuControl, SearchContext } from '@bazza-ui/menu'
 import { MenuItemPrimitive } from '@bazza-ui/menu'
-import type {
-  ItemNode,
-  MenuControl,
-  SearchContext,
-  SurfaceStore,
-} from '@bazza-ui/menu'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
+import { usePopupMenuStoreApi } from '../../store/index.js'
 import type { PopupMenuSlots } from '../../types.js'
+import { useSurface } from '../surface/surface-provider.js'
 
 export interface PopupMenuItemProps<T> {
   /** Reference to the HTML element */
@@ -16,8 +13,6 @@ export interface PopupMenuItemProps<T> {
   virtualItem?: VirtualItem
   /** Item node */
   node: ItemNode<T>
-  /** Surface store for state management */
-  store: SurfaceStore<T>
   /** Search context */
   search?: SearchContext
   /** Additional className */
@@ -39,7 +34,6 @@ export interface PopupMenuItemProps<T> {
 export const PopupMenuItem = React.forwardRef(function PopupMenuItem<T>(
   {
     node,
-    store,
     search,
     className,
     mode = 'popover',
@@ -50,11 +44,15 @@ export const PopupMenuItem = React.forwardRef(function PopupMenuItem<T>(
   }: PopupMenuItemProps<T>,
   ref: React.Ref<HTMLElement>,
 ) {
+  const { surfaceId } = useSurface()
+  const globalStore = usePopupMenuStoreApi<T>()
+
   return (
     <MenuItemPrimitive
       ref={ref}
       node={node}
-      store={store}
+      surfaceId={surfaceId}
+      globalStore={globalStore as any}
       search={search}
       className={className}
       mode={mode}

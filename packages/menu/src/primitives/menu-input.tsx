@@ -1,10 +1,14 @@
 import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
-import type { InputBindAPI, InputSearchState, SurfaceStore } from '../types.js'
+import { type StoreApi, useStore } from 'zustand'
+import type { BaseMenuStore, SurfaceRefs } from '../store/types.js'
+import type { InputBindAPI, InputSearchState } from '../types.js'
 
 export interface MenuInputPrimitiveProps<T = unknown> {
-  /** Surface store for state management */
-  store: SurfaceStore<T>
+  /** Surface ID for this input */
+  surfaceId: string
+  /** Global store API */
+  globalStore: StoreApi<BaseMenuStore<T>>
   /** Controlled value */
   value: string
   /** Value change handler */
@@ -31,7 +35,7 @@ export interface MenuInputPrimitiveProps<T = unknown> {
 /**
  * Primitive input component that provides:
  * - ARIA combobox pattern with aria-activedescendant
- * - Integration with SurfaceStore (inputRef, activeId, listId)
+ * - Integration with global store (surfaceId, activeId)
  * - InputBindAPI for theming and customization
  * - role="combobox" with proper ARIA attributes
  *
@@ -39,7 +43,8 @@ export interface MenuInputPrimitiveProps<T = unknown> {
  * should be implemented in the onKeyDown handler.
  */
 export function MenuInputPrimitive<T = unknown>({
-  store,
+  surfaceId,
+  globalStore,
   value,
   onChange,
   placeholder = 'Search...',
@@ -50,13 +55,35 @@ export function MenuInputPrimitive<T = unknown>({
   disabled = false,
   children,
 }: MenuInputPrimitiveProps<T>) {
-  // Subscribe to store state for ARIA attributes
-  const [state, setState] = React.useState(() => store.snapshot())
-  React.useEffect(() => {
-    return store.subscribe(() => {
-      setState(store.snapshot())
-    })
-  }, [store])
+  // Subscribe to surface's activeId from global store
+  const activeId = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) =>
+        state.surfaces.get(surfaceId)?.activeId ?? null,
+      [surfaceId],
+    ),
+  )
+
+  // Subscribe to surface existence so we re-render when surface is registered
+  const surfaceExists = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) => state.surfaces.has(surfaceId),
+      [surfaceId],
+    ),
+  )
+
+  // Get refs from global store - re-evaluate when surface exists changes
+  const refs = React.useMemo<SurfaceRefs | undefined>(
+    () =>
+      surfaceExists
+        ? globalStore.getState().getSurfaceRefs(surfaceId)
+        : undefined,
+    [globalStore, surfaceId, surfaceExists],
+  )
+
+  const listId = `${surfaceId}-list`
 
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,13 +95,13 @@ export function MenuInputPrimitive<T = unknown>({
 
   const baseInputProps = React.useMemo(
     () => ({
-      ref: store.inputRef as any,
+      ref: refs?.inputRef as any,
       role: 'combobox' as const,
       'data-menu-input': '',
       'aria-autocomplete': 'list' as const,
       'aria-expanded': true,
-      'aria-controls': state.listId ?? undefined,
-      'aria-activedescendant': state.activeId ?? undefined,
+      'aria-controls': listId,
+      'aria-activedescendant': activeId ?? undefined,
       'aria-disabled': disabled,
       'data-disabled': disabled,
       placeholder,
@@ -86,9 +113,9 @@ export function MenuInputPrimitive<T = unknown>({
       readOnly: disabled,
     }),
     [
-      store.inputRef,
-      state.listId,
-      state.activeId,
+      refs?.inputRef,
+      listId,
+      activeId,
       placeholder,
       value,
       handleChange,

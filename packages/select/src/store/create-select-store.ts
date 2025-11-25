@@ -1,3 +1,5 @@
+import type { ActivationCause, SurfaceRefs } from '@bazza-ui/menu'
+import * as React from 'react'
 import { create, type StoreApi } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import type { SelectMenu, SelectMenuDef, SelectNode } from '../types.js'
@@ -11,6 +13,19 @@ import type {
 } from './types.js'
 
 const DEFAULT_AIM_GUARD_TIMEOUT_MS = 450
+
+/**
+ * Creates refs for a new surface.
+ * Refs are created once when the surface registers and reused throughout its lifecycle.
+ */
+function createSurfaceRefs(): SurfaceRefs {
+  return {
+    inputRef: React.createRef<HTMLInputElement | null>(),
+    listRef: React.createRef<HTMLDivElement | null>(),
+    virtualizerRef: React.createRef<any>(),
+    ignorePointerRef: { current: false },
+  }
+}
 
 /**
  * Creates a single-select store with selection state.
@@ -99,6 +114,57 @@ function createSelectStoreInternal<TData = unknown>(
         })
       }
 
+      // Helper for setActiveId with scroll behavior
+      const setActiveIdWithScroll = (
+        surfaceId: string,
+        id: string | null,
+        cause: ActivationCause = 'keyboard',
+      ) => {
+        const state = get()
+        const surface = state.surfaces.get(surfaceId)
+        if (!surface) return
+
+        const prev = surface.activeId
+        if (Object.is(prev, id)) return
+
+        // Close any open submenu that is not the active trigger BEFORE updating activeId
+        for (const [rid, rec] of surface.rows) {
+          if (rec.kind === 'submenu' && rec.closeSub && rid !== id) {
+            try {
+              rec.closeSub()
+            } catch {}
+          }
+        }
+
+        // Update activeId
+        updateSurface(surfaceId, () => ({ activeId: id }))
+
+        // Scroll active row into view when keyboard navigating
+        if (cause !== 'keyboard') return
+        if (id === null) return
+
+        const row = surface.rows.get(id)
+        const index = surface.order.indexOf(id)
+        const el = row?.ref.current
+        const listEl = surface.refs.listRef.current
+        if (el && listEl) {
+          try {
+            const inList = listEl.contains(el)
+            if (inList) el.scrollIntoView({ block: 'nearest' })
+          } catch {}
+          return
+        }
+
+        // Use virtual index for scrolling
+        const virtualIndex = surface.rowIdToVirtualIndex.get(id)
+        if (
+          virtualIndex !== undefined &&
+          (index === 0 || index === surface.order.length - 1)
+        ) {
+          surface.refs.virtualizerRef.current?.scrollToIndex(virtualIndex)
+        }
+      }
+
       // Initial state
       const initialState: SelectMenuStoreState<TData> = {
         root: {
@@ -157,6 +223,8 @@ function createSelectStoreInternal<TData = unknown>(
         ) =>
           set((state) => {
             const newSurfaces = new Map(state.surfaces)
+            // Create refs once on registration
+            const refs = createSurfaceRefs()
             const surface: Surface = {
               id,
               depth: opts.depth,
@@ -165,6 +233,12 @@ function createSelectStoreInternal<TData = unknown>(
               query: '',
               activeId: null,
               inputActive: false,
+              // Refs and row registry
+              refs,
+              rows: new Map(),
+              rowIdToVirtualIndex: new Map(),
+              order: [],
+              // Node state
               menuDef: opts.menuDef,
               menu: null,
               filteredNodes: [],
@@ -192,6 +266,85 @@ function createSelectStoreInternal<TData = unknown>(
           }),
 
         // ═══════════════════════════════════════════════════════════════
+        // Surface Refs Accessor
+        // ═══════════════════════════════════════════════════════════════
+        getSurfaceRefs: (surfaceId: string) => {
+          return get().surfaces.get(surfaceId)?.refs
+        },
+
+        // ═══════════════════════════════════════════════════════════════
+        // Row Registry Actions
+        // ═══════════════════════════════════════════════════════════════
+        registerRow: (surfaceId, rowId, rec) => {
+          updateSurface(surfaceId, (surface) => {
+            const newRows = new Map(surface.rows)
+            newRows.set(rowId, rec)
+            return { rows: newRows }
+          })
+        },
+
+        unregisterRow: (surfaceId, rowId) => {
+          updateSurface(surfaceId, (surface) => {
+            const newRows = new Map(surface.rows)
+            newRows.delete(rowId)
+            return { rows: newRows }
+          })
+        },
+
+        resetOrder: (surfaceId, ids) => {
+          updateSurface(surfaceId, () => ({ order: ids }))
+        },
+
+        resetVirtualIndexMap: (surfaceId, map) => {
+          updateSurface(surfaceId, () => ({
+            rowIdToVirtualIndex: new Map(map),
+          }))
+        },
+
+        // ═══════════════════════════════════════════════════════════════
+        // Navigation Actions
+        // ═══════════════════════════════════════════════════════════════
+        first: (surfaceId, cause = 'keyboard') => {
+          const surface = get().surfaces.get(surfaceId)
+          if (!surface || !surface.order.length) return
+          const id = surface.order[0]
+          if (!id) return
+          setActiveIdWithScroll(surfaceId, id, cause)
+        },
+
+        last: (surfaceId, cause = 'keyboard') => {
+          const surface = get().surfaces.get(surfaceId)
+          if (!surface || !surface.order.length) return
+          const id = surface.order[surface.order.length - 1]
+          if (!id) return
+          setActiveIdWithScroll(surfaceId, id, cause)
+        },
+
+        next: (surfaceId, cause = 'keyboard') => {
+          const surface = get().surfaces.get(surfaceId)
+          if (!surface || !surface.order.length) return
+          const index = surface.activeId
+            ? surface.order.indexOf(surface.activeId)
+            : -1
+          const nextIndex = index + 1 < surface.order.length ? index + 1 : 0
+          const nextId = surface.order[nextIndex]
+          if (!nextId) return
+          setActiveIdWithScroll(surfaceId, nextId, cause)
+        },
+
+        prev: (surfaceId, cause = 'keyboard') => {
+          const surface = get().surfaces.get(surfaceId)
+          if (!surface || !surface.order.length) return
+          const index = surface.activeId
+            ? surface.order.indexOf(surface.activeId)
+            : surface.order.length
+          const nextIndex = index > 0 ? index - 1 : surface.order.length - 1
+          const nextId = surface.order[nextIndex]
+          if (!nextId) return
+          setActiveIdWithScroll(surfaceId, nextId, cause)
+        },
+
+        // ═══════════════════════════════════════════════════════════════
         // Surface State Updates
         // ═══════════════════════════════════════════════════════════════
         setSurfaceOpen: (surfaceId: string, open: boolean) =>
@@ -200,8 +353,13 @@ function createSelectStoreInternal<TData = unknown>(
         setSurfaceQuery: (surfaceId: string, query: string) =>
           updateSurface(surfaceId, () => ({ query })),
 
-        setSurfaceActiveId: (surfaceId: string, activeId: string | null) =>
-          updateSurface(surfaceId, () => ({ activeId })),
+        setSurfaceActiveId: (
+          surfaceId: string,
+          id: string | null,
+          cause: ActivationCause = 'keyboard',
+        ) => {
+          setActiveIdWithScroll(surfaceId, id, cause)
+        },
 
         setSurfaceInputActive: (surfaceId: string, inputActive: boolean) =>
           updateSurface(surfaceId, () => ({ inputActive })),

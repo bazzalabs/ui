@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { usePopupMenuActions, usePopupMenuStore } from '../../store/index.js'
 import type { HoverPolicy } from '../../types.js'
 
 const HoverPolicyCtx = React.createContext<HoverPolicy>({
@@ -19,47 +18,28 @@ export const useHoverPolicy = () => React.useContext(HoverPolicyCtx)
 export interface HoverPolicyProviderProps {
   children: React.ReactNode
   suppressHoverOpenOnMount?: boolean
-  /** Surface ID for surface-specific hover suppression */
-  surfaceId?: string
 }
 
 /**
  * Provides hover policy including aim guard for safe polygon navigation.
- * Now integrated with the global PopupMenuStore for state management.
  */
 export function HoverPolicyProvider({
   children,
   suppressHoverOpenOnMount = false,
-  surfaceId = 'root',
 }: HoverPolicyProviderProps) {
-  // Get store state and actions
-  const storeActions = usePopupMenuActions()
-  const aimGuardState = usePopupMenuStore((state) => state.aimGuard)
-
-  // Local state for suppression (per-surface)
   const [suppressHoverOpen, setSuppressHoverOpen] = React.useState(
     suppressHoverOpenOnMount,
   )
-
   const clearSuppression = React.useCallback(() => {
-    if (suppressHoverOpen) {
-      setSuppressHoverOpen(false)
-      storeActions.clearSurfaceSuppressHoverOpen(surfaceId)
-    }
-  }, [suppressHoverOpen, storeActions, surfaceId])
+    if (suppressHoverOpen) setSuppressHoverOpen(false)
+  }, [suppressHoverOpen])
 
-  // Sync local suppression state to store
-  React.useEffect(() => {
-    storeActions.setSurfaceSuppressHoverOpen(surfaceId, suppressHoverOpen)
-  }, [storeActions, surfaceId, suppressHoverOpen])
-
-  // Use store's aim guard state
-  const aimGuardActive = aimGuardState.active
-  const guardedTriggerId = aimGuardState.guardedTriggerId
-
-  // Refs for synchronous access (important for mouse event handlers)
-  const aimGuardActiveRef = React.useRef(aimGuardActive)
-  const guardedTriggerIdRef = React.useRef(guardedTriggerId)
+  const [aimGuardActive, setAimGuardActive] = React.useState(false)
+  const [guardedTriggerId, setGuardedTriggerId] = React.useState<string | null>(
+    null,
+  )
+  const aimGuardActiveRef = React.useRef(false)
+  const guardedTriggerIdRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
     aimGuardActiveRef.current = aimGuardActive
@@ -69,25 +49,41 @@ export function HoverPolicyProvider({
     guardedTriggerIdRef.current = guardedTriggerId
   }, [guardedTriggerId])
 
-  // Wrap store actions with local ref updates for synchronous access
+  const guardTimerRef = React.useRef<number | null>(null)
+
+  const clearAimGuard = React.useCallback(() => {
+    if (guardTimerRef.current) {
+      window.clearTimeout(guardTimerRef.current)
+      guardTimerRef.current = null
+    }
+    aimGuardActiveRef.current = false
+    guardedTriggerIdRef.current = null
+    setAimGuardActive(false)
+    setGuardedTriggerId(null)
+  }, [])
+
   const activateAimGuard = React.useCallback(
     (triggerId: string, timeoutMs = 450) => {
       aimGuardActiveRef.current = true
       guardedTriggerIdRef.current = triggerId
-      storeActions.activateAimGuard(triggerId, surfaceId, timeoutMs)
+      setGuardedTriggerId(triggerId)
+      setAimGuardActive(true)
+      if (guardTimerRef.current) window.clearTimeout(guardTimerRef.current)
+      guardTimerRef.current = window.setTimeout(() => {
+        aimGuardActiveRef.current = false
+        guardedTriggerIdRef.current = null
+        setAimGuardActive(false)
+        setGuardedTriggerId(null)
+        guardTimerRef.current = null
+      }, timeoutMs) as any
     },
-    [storeActions, surfaceId],
+    [],
   )
 
-  const clearAimGuard = React.useCallback(() => {
-    aimGuardActiveRef.current = false
-    guardedTriggerIdRef.current = null
-    storeActions.clearAimGuard()
-  }, [storeActions])
-
   const isGuardBlocking = React.useCallback(
-    (rowId: string) => storeActions.isAimGuardBlocking(rowId),
-    [storeActions],
+    (rowId: string) =>
+      aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId,
+    [],
   )
 
   const value = React.useMemo(

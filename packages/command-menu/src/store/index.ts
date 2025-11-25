@@ -1,4 +1,37 @@
 // Store types
+
+export type { CommandMenuStoreProviderProps } from './context.js'
+// Store context and hooks
+export {
+  CommandMenuStoreProvider,
+  createSurfaceActiveIdSelector,
+  createSurfaceQuerySelector,
+  createSurfaceSelector,
+  selectCurrentMenuDef,
+  selectDisabled,
+  selectFocusOwnerId,
+  selectIsInSubmenu,
+  selectNavigation,
+  selectNavigationStack,
+  // Convenience selectors
+  selectOpen,
+  selectScopeId,
+  selectShowBreadcrumbs,
+  // Surface-specific hooks
+  useActiveId,
+  useCommandMenuActions,
+  useCommandMenuStore,
+  useCommandMenuStoreApi,
+  useDisplayNodes,
+  useInputActive,
+  useSurfaceMenu,
+  useSurfaceOrder,
+  useSurfaceQuery,
+  useSurfaceRefs,
+  useSurfaceRows,
+} from './context.js'
+// Store factory
+export { createCommandMenuStore } from './create-command-menu-store.js'
 export type {
   CommandMenuStore,
   CommandMenuStoreActions,
@@ -8,29 +41,3 @@ export type {
   NavigationChangeEvent,
   NavigationState,
 } from './types.js'
-
-// Store factory
-export { createCommandMenuStore } from './create-command-menu-store.js'
-
-// Store context and hooks
-export {
-  CommandMenuStoreProvider,
-  useCommandMenuStoreApi,
-  useCommandMenuStore,
-  useCommandMenuActions,
-  // Convenience selectors
-  selectOpen,
-  selectDisabled,
-  selectScopeId,
-  selectFocusOwnerId,
-  selectNavigation,
-  selectNavigationStack,
-  selectIsInSubmenu,
-  selectCurrentMenuDef,
-  selectShowBreadcrumbs,
-  createSurfaceSelector,
-  createSurfaceActiveIdSelector,
-  createSurfaceQuerySelector,
-} from './context.js'
-
-export type { CommandMenuStoreProviderProps } from './context.js'

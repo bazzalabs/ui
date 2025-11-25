@@ -1,9 +1,13 @@
-import { SELECT_ITEM_EVENT, type SurfaceStore } from '@bazza-ui/menu'
+import { SELECT_ITEM_EVENT } from '@bazza-ui/menu'
 import * as React from 'react'
+import type { StoreApi } from 'zustand'
+import type { CommandMenuStore } from '../store/index.js'
 
 export interface UseInputKeyboardOptions {
-  /** Surface store for navigation */
-  store: SurfaceStore<any>
+  /** Surface ID for navigation */
+  surfaceId: string
+  /** Global store API */
+  globalStore: StoreApi<CommandMenuStore<any>>
   /** Whether vim bindings are enabled */
   vimBindings: boolean
   /** Text direction */
@@ -21,23 +25,31 @@ export interface UseInputKeyboardOptions {
  * Extracts all keyboard logic from CommandMenuInput component.
  */
 export function useInputKeyboard(options: UseInputKeyboardOptions) {
-  const { store, vimBindings, dir, isInSubmenu, popSubmenu, onOpenChange } =
-    options
+  const {
+    surfaceId,
+    globalStore,
+    vimBindings,
+    dir,
+    isInSubmenu,
+    popSubmenu,
+    onOpenChange,
+  } = options
 
   return React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       const k = e.key
+      const state = globalStore.getState()
 
       // Vim bindings
       if (vimBindings) {
         if (e.ctrlKey && (e.key === 'n' || e.key === 'j')) {
           e.preventDefault()
-          store.next('keyboard')
+          state.next(surfaceId, 'keyboard')
           return
         }
         if (e.ctrlKey && (e.key === 'p' || e.key === 'k')) {
           e.preventDefault()
-          store.prev('keyboard')
+          state.prev(surfaceId, 'keyboard')
           return
         }
         if (e.ctrlKey && e.key === 'h') {
@@ -52,32 +64,33 @@ export function useInputKeyboard(options: UseInputKeyboardOptions) {
       // Arrow navigation
       if (k === 'ArrowDown') {
         e.preventDefault()
-        store.next('keyboard')
+        state.next(surfaceId, 'keyboard')
         return
       }
       if (k === 'ArrowUp') {
         e.preventDefault()
-        store.prev('keyboard')
+        state.prev(surfaceId, 'keyboard')
         return
       }
 
       // Page navigation
       if (k === 'Home' || k === 'PageUp') {
         e.preventDefault()
-        store.first('keyboard')
+        state.first(surfaceId, 'keyboard')
         return
       }
       if (k === 'End' || k === 'PageDown') {
         e.preventDefault()
-        store.last('keyboard')
+        state.last(surfaceId, 'keyboard')
         return
       }
 
       // Enter - trigger select on active item
       if (k === 'Enter') {
         e.preventDefault()
-        const activeId = store.snapshot().activeId
-        const activeRow = activeId ? store.rows.get(activeId) : null
+        const surface = state.surfaces.get(surfaceId)
+        const activeId = surface?.activeId ?? null
+        const activeRow = activeId ? surface?.rows.get(activeId) : null
         if (activeRow?.ref.current) {
           activeRow.ref.current.dispatchEvent(
             new CustomEvent(SELECT_ITEM_EVENT, { bubbles: false }),
@@ -109,6 +122,14 @@ export function useInputKeyboard(options: UseInputKeyboardOptions) {
         return
       }
     },
-    [store, vimBindings, dir, isInSubmenu, popSubmenu, onOpenChange],
+    [
+      surfaceId,
+      globalStore,
+      vimBindings,
+      dir,
+      isInSubmenu,
+      popSubmenu,
+      onOpenChange,
+    ],
   )
 }

@@ -1,21 +1,34 @@
 import type {
-  Menu,
   MenuClassNames,
   MenuControl,
   MenuSlotProps,
   MenuSlots,
-  SurfaceStore,
 } from '@bazza-ui/menu'
 import * as React from 'react'
 import type { CommandSubmenuDef } from '../types.js'
 
+/**
+ * Slimmed down surface context.
+ * Most state is now in the global CommandMenuStore - use hooks like
+ * useActiveId, useDisplayNodes, useSurfaceMenu, etc. to access it.
+ *
+ * Primitives (MenuInputPrimitive, MenuListPrimitive, MenuItemPrimitive) now
+ * accept surfaceId + globalStore directly, so we no longer need to pass a
+ * compat store through context.
+ */
 interface SurfaceContextValue<T = unknown> {
-  store: SurfaceStore<T>
-  menu: Menu<T>
+  // Identity
+  surfaceId: string
+
+  // External imperative control (optional)
   control?: MenuControl<T>
+
+  // Theming (can't be in global store - varies per consumer)
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
   slotProps?: Partial<MenuSlotProps>
+
+  // Callbacks (per-render, can't be in store)
   onSubmenuSelect?: (submenuId: string, submenu: CommandSubmenuDef<any>) => void
 }
 
@@ -32,8 +45,7 @@ export function useSurface<T = unknown>(): SurfaceContextValue<T> {
 }
 
 export function SurfaceProvider<T = unknown>({
-  store,
-  menu,
+  surfaceId,
   control,
   slots,
   classNames,
@@ -41,8 +53,7 @@ export function SurfaceProvider<T = unknown>({
   onSubmenuSelect,
   children,
 }: {
-  store: SurfaceStore<T>
-  menu: Menu<T>
+  surfaceId: string
   control?: MenuControl<T>
   slots?: Partial<MenuSlots<T>>
   classNames?: Partial<MenuClassNames>
@@ -53,15 +64,14 @@ export function SurfaceProvider<T = unknown>({
   const value = React.useMemo(
     () =>
       ({
-        store,
-        menu,
+        surfaceId,
         control,
         slots,
         classNames,
         slotProps,
         onSubmenuSelect,
       }) as SurfaceContextValue<T>,
-    [store, menu, control, slots, classNames, slotProps, onSubmenuSelect],
+    [surfaceId, control, slots, classNames, slotProps, onSubmenuSelect],
   )
 
   return (

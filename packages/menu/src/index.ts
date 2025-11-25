@@ -10,7 +10,7 @@ export * from './primitives/default-slots.js'
 export * from './primitives/index.js'
 // Core Primitives
 export * from './primitives/menu-model.js'
-export * from './primitives/surface-store.js'
+
 export * from './store/index.js'
 export type * from './types.js'
 export * from './utils/breadcrumb.js'

@@ -55,7 +55,7 @@ function CommandMenuContentLayer<T>({
   const { control } = useCommandMenuContext<T>()
 
   // Layer state management (extracted to hook)
-  const { query, setQuery, store } = useLayerState<T>(
+  const { query, setQuery, surfaceId } = useLayerState(
     menuDef.id,
     visible,
     depth,
@@ -184,10 +184,9 @@ function CommandMenuContentLayer<T>({
   const innerChildren = (
     <ScopedThemeProvider theme={submenuTheme}>
       <SurfaceProvider
-        store={store}
-        menu={menu}
+        surfaceId={surfaceId}
         control={control}
-        slots={theme?.slots as Required<CommandMenuSlots<T>>}
+        slots={theme?.slots as any}
         classNames={theme?.classNames}
         slotProps={theme?.slotProps}
         onSubmenuSelect={handleSubmenuSelect}

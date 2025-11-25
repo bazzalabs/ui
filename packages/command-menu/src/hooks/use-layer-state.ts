@@ -1,29 +1,32 @@
-import { createSurfaceStore, type SurfaceStore } from '@bazza-ui/menu'
 import * as React from 'react'
+import { useCommandMenuStoreApi } from '../store/index.js'
 
-export interface UseLayerStateResult<T> {
+export interface UseLayerStateResult {
   /** Query state for this layer */
   query: string
   /** Set query for this layer */
   setQuery: (query: string) => void
-  /** Surface store for this layer */
-  store: SurfaceStore<T>
+  /** Surface ID for this layer */
+  surfaceId: string
 }
 
 /**
- * Hook for managing per-layer state (query + store).
+ * Hook for managing per-layer state (query).
  * Each layer maintains its own independent query state, matching popup menu architecture.
  */
-export function useLayerState<T>(
+export function useLayerState(
   menuId: string | undefined,
   visible: boolean,
   depth: number,
-): UseLayerStateResult<T> {
+): UseLayerStateResult {
   // Each layer has its own independent query state (matching popup menu)
   const [query, setQuery] = React.useState('')
 
-  // Create a surface store for this menu layer
-  const store = React.useMemo(() => createSurfaceStore<T>(), [menuId])
+  // Get the global command menu store
+  const globalStore = useCommandMenuStoreApi()
+
+  // Surface ID for this layer
+  const surfaceId = menuId ?? 'root'
 
   // Clear query when this layer becomes visible (navigating into it)
   React.useEffect(() => {
@@ -37,14 +40,14 @@ export function useLayerState<T>(
   React.useEffect(() => {
     if (visible && !prevVisibleRef.current) {
       // Layer just became visible - reset to first item
-      store.first('keyboard')
+      globalStore.getState().first(surfaceId, 'keyboard')
     }
     prevVisibleRef.current = visible
-  }, [visible, store])
+  }, [visible, globalStore, surfaceId])
 
   return {
     query,
     setQuery,
-    store,
+    surfaceId,
   }
 }

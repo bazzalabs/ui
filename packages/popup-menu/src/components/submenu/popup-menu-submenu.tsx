@@ -1,9 +1,11 @@
 import { Popover } from '@base-ui-components/react/popover'
+import type { ActivationCause } from '@bazza-ui/menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
+import { usePopupMenuActions } from '../../store/index.js'
+import type { PopupSubmenuDef } from '../../types.js'
 import type { SubContextValue } from '../submenu/submenu-context.js'
 import { SubCtx, useSub } from '../submenu/submenu-context.js'
-import type { PopupSubmenuDef } from '../../types.js'
 import { useSurface } from '../surface/surface-provider.js'
 
 export interface PopupMenuSubmenuProps<T> {
@@ -30,15 +32,15 @@ export function PopupMenuSubmenu<T = unknown>({
   )
   const contentRef = React.useRef<HTMLDivElement | null>(null)
 
-  const parentSurface = useSurface()
-  const parentStore = parentSurface.store
+  const { surfaceId: parentSurfaceIdFromCtx } = useSurface()
+  const storeActions = usePopupMenuActions()
   const parentSubCtx = useSub()
 
   // Determine parent surface ID: if we're inside another submenu, use its childSurfaceId,
   // otherwise we're at the root level
   const parentSurfaceId = React.useMemo(
-    () => parentSubCtx?.childSurfaceId ?? 'root',
-    [parentSubCtx],
+    () => parentSubCtx?.childSurfaceId ?? parentSurfaceIdFromCtx,
+    [parentSubCtx, parentSurfaceIdFromCtx],
   )
 
   const [triggerItemId, setTriggerItemId] = React.useState<string | null>(null)
@@ -53,6 +55,14 @@ export function PopupMenuSubmenu<T = unknown>({
     setOpen(!open)
   }, [setOpen, open])
 
+  // Create setActiveId callback that uses global store
+  const parentSetActiveId = React.useCallback(
+    (id: string | null, cause?: ActivationCause) => {
+      storeActions.setSurfaceActiveId(parentSurfaceId, id, cause)
+    },
+    [storeActions, parentSurfaceId],
+  )
+
   const value: SubContextValue<T> = React.useMemo(
     () => ({
       open,
@@ -64,7 +74,7 @@ export function PopupMenuSubmenu<T = unknown>({
       parentSurfaceId,
       triggerItemId,
       setTriggerItemId,
-      parentSetActiveId: parentStore.setActiveId,
+      parentSetActiveId,
       childSurfaceId,
       pendingOpenModalityRef,
       intentZoneActiveRef,
@@ -77,7 +87,7 @@ export function PopupMenuSubmenu<T = unknown>({
       def,
       parentSurfaceId,
       triggerItemId,
-      parentStore.setActiveId,
+      parentSetActiveId,
       childSurfaceId,
       parentSubCtx,
     ],

@@ -4,22 +4,26 @@ import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
-import { useHoverPolicy } from '../../features/hover-policy/hover-policy-context.js'
-import { useSub } from '../submenu/submenu-context.js'
-import { useMouseTrail } from '../../features/hover-policy/use-mouse-trail.js'
-import { useSurfaceSel } from '../surface/use-surface-sel.js'
 import {
   getSmoothedHeading,
   resolveAnchorSide,
   willHitSubmenu,
 } from '../../features/hover-policy/aim-guard.js'
+import { useHoverPolicy } from '../../features/hover-policy/hover-policy-context.js'
+import { useMouseTrail } from '../../features/hover-policy/use-mouse-trail.js'
 import { OPEN_SUB_EVENT } from '../../features/interaction/events.js'
+import {
+  useActiveId,
+  usePopupMenuActions,
+  useSurfaceRefs,
+} from '../../store/index.js'
 import type {
   PopupMenuClassNames,
   PopupSubmenuNode,
   RowBindAPI,
 } from '../../types.js'
 import { findWidgetsWithinSurface } from '../../utils/dom.js'
+import { useSub } from '../submenu/submenu-context.js'
 import { useSurface } from '../surface/surface-provider.js'
 
 interface PopupMenuSubmenuTriggerProps<T> {
@@ -45,9 +49,9 @@ export function PopupMenuSubmenuTrigger<T>({
   search,
   ref: refProp,
 }: PopupMenuSubmenuTriggerProps<T>) {
-  const surfaceCtx = useSurface()
-  const store = surfaceCtx.store
-  const control = surfaceCtx.control
+  const { surfaceId, control } = useSurface()
+  const storeActions = usePopupMenuActions()
+  const surfaceRefs = useSurfaceRefs(surfaceId)
   const sub = useSub()!
   const { setOwnerId, ownerId } = useFocusOwner()
   const {
@@ -72,15 +76,15 @@ export function PopupMenuSubmenuTrigger<T>({
 
   // Register this submenu trigger as a row in the parent surface store
   React.useEffect(() => {
-    store.registerRow(rowId, {
+    storeActions.registerRow(surfaceId, rowId, {
       ref: ref as any,
       disabled,
       kind: 'submenu',
       openSub: () => sub.onOpenChange(true),
       closeSub: () => sub.onOpenChange(false),
     })
-    return () => store.unregisterRow(rowId)
-  }, [store, rowId, sub, disabled])
+    return () => storeActions.unregisterRow(surfaceId, rowId)
+  }, [storeActions, surfaceId, rowId, sub, disabled])
 
   // Listen for keyboard-triggered open events
   React.useEffect(() => {
@@ -117,7 +121,7 @@ export function PopupMenuSubmenuTrigger<T>({
     }
   }, [rowId, sub])
 
-  const activeId = useSurfaceSel(store, (s) => s.activeId)
+  const activeId = useActiveId(surfaceId)
   const focused = activeId === rowId
 
   const onClick = React.useCallback((e: any) => {
@@ -149,12 +153,12 @@ export function PopupMenuSubmenuTrigger<T>({
       e.preventBaseUIHandler?.()
 
       if (disabled) return
-      if (store.ignorePointerRef.current) return
+      if (surfaceRefs?.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
 
       if (!focused) {
-        store.setActiveId(rowId, 'pointer')
+        storeActions.setSurfaceActiveId(surfaceId, rowId, 'pointer')
       }
 
       clearAimGuard()
@@ -166,7 +170,9 @@ export function PopupMenuSubmenuTrigger<T>({
       guardedTriggerIdRef,
       rowId,
       focused,
-      store,
+      surfaceRefs,
+      storeActions,
+      surfaceId,
       clearAimGuard,
       sub,
     ],
@@ -177,12 +183,12 @@ export function PopupMenuSubmenuTrigger<T>({
       e.preventBaseUIHandler?.()
 
       if (disabled) return
-      if (store.ignorePointerRef.current) return
+      if (surfaceRefs?.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
 
       if (!focused) {
-        store.setActiveId(rowId, 'pointer')
+        storeActions.setSurfaceActiveId(surfaceId, rowId, 'pointer')
       }
       if (!sub.open) sub.onOpenChange(true)
     },
@@ -192,7 +198,9 @@ export function PopupMenuSubmenuTrigger<T>({
       guardedTriggerIdRef,
       rowId,
       focused,
-      store,
+      surfaceRefs,
+      storeActions,
+      surfaceId,
       sub,
     ],
   )
@@ -203,7 +211,7 @@ export function PopupMenuSubmenuTrigger<T>({
       e.preventBaseUIHandler?.()
 
       if (disabled) return
-      if (store.ignorePointerRef.current) return
+      if (surfaceRefs?.ignorePointerRef.current) return
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId)
         return
 
@@ -239,7 +247,7 @@ export function PopupMenuSubmenuTrigger<T>({
       if (hit) {
         // User is aiming at submenu - activate aim guard for 600ms
         activateAimGuard(rowId, 600)
-        store.setActiveId(rowId, 'pointer')
+        storeActions.setSurfaceActiveId(surfaceId, rowId, 'pointer')
         sub.onOpenChange(true)
       } else {
         clearAimGuard()
@@ -254,7 +262,9 @@ export function PopupMenuSubmenuTrigger<T>({
       clearAimGuard,
       mouseTrailRef,
       activateAimGuard,
-      store,
+      surfaceRefs,
+      storeActions,
+      surfaceId,
     ],
   )
 

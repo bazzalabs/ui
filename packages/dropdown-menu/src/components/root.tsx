@@ -6,8 +6,8 @@ import {
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
-import type { DropdownMenuControl } from '../control.js'
 import { RootContextProvider } from '../contexts/root-context.js'
+import type { DropdownMenuControl } from '../control.js'
 import type { DropdownMenuDef } from '../types.js'
 
 const DROPDOWN_EVENTS = {
@@ -138,33 +138,11 @@ export function DropdownMenuRoot<T = unknown>({
     return () => eventBus.current.clear()
   }, [])
 
-  const rootValue = React.useMemo(
+  // Memoize interactionGuardOptions separately to prevent unnecessary re-renders
+  // This is critical because changes to this object will cause RootProvider to
+  // re-register surfaces, which resets activeId to null
+  const interactionGuardOptions = React.useMemo(
     () => ({
-      scopeId,
-      open,
-      onOpenChange: setOpen,
-      closeAllSurfaces,
-      triggerRef,
-      control,
-      // InteractionGuard options
-      interactionGuardOptions: {
-        scopeAttr,
-        disableOutsidePointerEvents,
-        onEscapeKeyDown,
-        onPointerDownOutside,
-        onFocusOutside,
-        onInteractOutside,
-        onDismiss,
-        surfaceSelector,
-        branchAttr,
-      },
-    }),
-    [
-      scopeId,
-      open,
-      setOpen,
-      closeAllSurfaces,
-      control,
       scopeAttr,
       disableOutsidePointerEvents,
       onEscapeKeyDown,
@@ -174,6 +152,37 @@ export function DropdownMenuRoot<T = unknown>({
       onDismiss,
       surfaceSelector,
       branchAttr,
+    }),
+    [
+      scopeAttr,
+      disableOutsidePointerEvents,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      onDismiss,
+      surfaceSelector,
+      branchAttr,
+    ],
+  )
+
+  const rootValue = React.useMemo(
+    () => ({
+      scopeId,
+      open,
+      onOpenChange: setOpen,
+      closeAllSurfaces,
+      triggerRef,
+      control,
+      interactionGuardOptions,
+    }),
+    [
+      scopeId,
+      open,
+      setOpen,
+      closeAllSurfaces,
+      control,
+      interactionGuardOptions,
     ],
   )
 
