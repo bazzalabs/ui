@@ -3,7 +3,7 @@
 // Import the generated types metadata
 import typesMeta from '@/.types/types-meta.json'
 import { computeTypeDiff } from '@/lib/type-diff'
-import type { MetaOutput, PropMeta } from '@/scripts/build-types-meta'
+import type { MetaOutput } from '@/scripts/build-types-meta'
 
 // Import the ExpandablePropRow from type-table-auto
 import { ExpandablePropRow } from './type-table-auto'
@@ -119,7 +119,7 @@ export function TypeDiff({
     ...diff.modified.map((p) => p.name),
   ])
 
-  const propsToShow = derivedProps.filter((prop) =>
+  const propsToShow = derivedProps.filter((prop: any) =>
     differentPropNames.has(prop.name),
   )
 
@@ -148,7 +148,7 @@ export function TypeDiff({
 
         {/* Body */}
         <div className="grid grid-cols-subgrid col-span-3 bg-white dark:bg-black">
-          {propsToShow.map((prop) => (
+          {propsToShow.map((prop: any) => (
             <ExpandablePropRow key={prop.name} prop={prop} />
           ))}
         </div>
