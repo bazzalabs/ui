@@ -18,6 +18,34 @@
       ]
     },
     {
+      "name": "command-menu",
+      "title": "Command Menu",
+      "description": "A command palette component with deep search, keyboard navigation, and async loading.",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/command-menu", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/command-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/command-menu.tsx"
+        }
+      ]
+    },
+    {
+      "name": "context-menu",
+      "title": "Context Menu",
+      "description": "A right-click context menu with deep search, submenus, and async loading.",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/context-menu", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/context-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/context-menu.tsx"
+        }
+      ]
+    },
+    {
       "name": "dropdown-menu",
       "title": "Dropdown Menu",
       "description": "A dropdown menu with deep search, submenus, and async loading.",
