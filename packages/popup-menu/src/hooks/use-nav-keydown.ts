@@ -8,20 +8,19 @@ import {
   isVimPrev,
 } from '@bazza-ui/menu'
 import * as React from 'react'
-import { useSurface } from '../components/surface/surface-provider.js'
+import { useSub } from '../components/submenu/submenu-context.js'
 import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useKeyboardOpts } from '../contexts/keyboard-context.js'
-import { useSub } from '../components/submenu/submenu-context.js'
 import {
   CLOSE_MENU_EVENT,
   dispatch,
   openSubmenuForActive,
   SELECT_ITEM_EVENT,
 } from '../features/interaction/events.js'
+import { usePopupMenuStoreApi } from '../store/index.js'
 
 export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
-  const surfaceCtx = useSurface()
-  const store = surfaceCtx.store
+  const storeApi = usePopupMenuStoreApi()
   const sub = useSub()
   const { ownerId, setOwnerId } = useFocusOwner()
   const { dir, vimBindings } = useKeyboardOpts()
@@ -30,9 +29,14 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
     (e: React.KeyboardEvent) => {
       const k = e.key
 
+      // Get current refs and state from the store
+      const state = storeApi.getState()
+      const surfaceRefs = state.getSurfaceRefs(surfaceId)
+      const surface = state.surfaces.get(surfaceId)
+
       // Detect source from event target
       const target = e.target as HTMLElement
-      const isFromInput = target === store.inputRef.current
+      const isFromInput = target === surfaceRefs?.inputRef.current
       const _source = isFromInput ? 'input' : 'list'
 
       // Only handle keyboard events if this surface owns focus
@@ -55,17 +59,17 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
       if (vimBindings) {
         if (isVimNext(e)) {
           stop()
-          store.next('keyboard')
+          state.next(surfaceId, 'keyboard')
           return
         }
         if (isVimPrev(e)) {
           stop()
-          store.prev('keyboard')
+          state.prev(surfaceId, 'keyboard')
           return
         }
         if (isVimOpen(e)) {
           stop()
-          const activeId = store.snapshot().activeId
+          const activeId = surface?.activeId ?? null
           if (isSelectionKey(k)) {
             const el = activeId ? document.getElementById(activeId) : null
             if (el && el.dataset.subtrigger === 'true') {
@@ -99,24 +103,24 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
       // Arrow navigation
       if (k === 'ArrowDown') {
         stop()
-        store.next('keyboard')
+        state.next(surfaceId, 'keyboard')
         return
       }
       if (k === 'ArrowUp') {
         stop()
-        store.prev('keyboard')
+        state.prev(surfaceId, 'keyboard')
         return
       }
 
       // Page navigation
       if (k === 'Home' || k === 'PageUp') {
         stop()
-        store.first('keyboard')
+        state.first(surfaceId, 'keyboard')
         return
       }
       if (k === 'End' || k === 'PageDown') {
         stop()
-        store.last('keyboard')
+        state.last(surfaceId, 'keyboard')
         return
       }
 
@@ -127,7 +131,7 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
           source: _source,
           key: k,
           dir,
-          inputRef: store.inputRef,
+          inputRef: surfaceRefs?.inputRef ?? { current: null },
           surfaceId,
         })
         if (allowCursorNav) {
@@ -136,7 +140,7 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
           return
         }
         stop()
-        const activeId = store.snapshot().activeId
+        const activeId = surface?.activeId ?? null
         if (isSelectionKey(k)) {
           const el = activeId ? document.getElementById(activeId) : null
           if (el && el.dataset.subtrigger === 'true') {
@@ -157,7 +161,7 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
           source: _source,
           key: k,
           dir,
-          inputRef: store.inputRef,
+          inputRef: surfaceRefs?.inputRef ?? { current: null },
           surfaceId,
         })
         if (allowCursorNav) {
@@ -179,7 +183,7 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
       // Enter - select item or open submenu
       if (k === 'Enter') {
         stop()
-        const activeId = store.snapshot().activeId
+        const activeId = surface?.activeId ?? null
         const el = activeId ? document.getElementById(activeId) : null
         if (el && el.dataset.subtrigger === 'true') {
           openSubmenuForActive(activeId, surfaceId)
@@ -209,7 +213,16 @@ export function useNavKeydown(surfaceId: string, onRootClose?: () => void) {
         return
       }
     },
-    [store, sub, dir, vimBindings, ownerId, setOwnerId, surfaceId, onRootClose],
+    [
+      storeApi,
+      sub,
+      dir,
+      vimBindings,
+      ownerId,
+      setOwnerId,
+      surfaceId,
+      onRootClose,
+    ],
   )
 }
 

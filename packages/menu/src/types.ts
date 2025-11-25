@@ -1092,12 +1092,6 @@ export interface MenuSurfaceProps<TData = unknown>
  * Internal Types
  * ============================================================================================== */
 
-export type SurfaceState = {
-  activeId: string | null
-  hasInput: boolean
-  listId: string | null
-}
-
 export type RowRecord = {
   ref: React.RefObject<HTMLElement>
   virtualItem?: VirtualItem
@@ -1108,38 +1102,6 @@ export type RowRecord = {
 }
 
 export type ActivationCause = 'keyboard' | 'pointer' | 'programmatic'
-
-export type SurfaceStore<TData> = {
-  subscribe(cb: () => void): () => void
-  snapshot(): SurfaceState
-  set<K extends keyof SurfaceState>(k: K, v: SurfaceState[K]): void
-
-  getNodes(): Node<TData>[]
-  setNodes(nodes: Node<TData>[]): void
-
-  registerRow(id: string, rec: RowRecord): void
-  unregisterRow(id: string): void
-  getOrder(): string[]
-  resetOrder(ids: string[]): void
-  resetVirtualIndexMap(map: Map<string, number>): void
-
-  setActiveId(id: string | null, cause?: ActivationCause): void
-  setActiveByIndex(idx: number, cause?: ActivationCause): void
-  first(cause?: ActivationCause): void
-  last(cause?: ActivationCause): void
-  next(cause?: ActivationCause): void
-  prev(cause?: ActivationCause): void
-
-  readonly rows: Map<string, RowRecord>
-  readonly rowIdToVirtualIndex: Map<string, number>
-  readonly inputRef: React.RefObject<HTMLInputElement | null>
-  readonly listRef: React.RefObject<HTMLDivElement | null>
-  readonly virtualizerRef: React.RefObject<Virtualizer<
-    HTMLDivElement,
-    Element
-  > | null>
-  readonly ignorePointerRef: React.MutableRefObject<boolean>
-}
 
 export type KeyboardOptions = { dir: Direction; vimBindings: boolean }
 

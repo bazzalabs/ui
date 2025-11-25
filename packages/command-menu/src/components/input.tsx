@@ -5,6 +5,7 @@ import { useCommandMenuContext } from '../context.js'
 import { useScopedTheme } from '../contexts/theme-context.js'
 import { useAutoFocus } from '../hooks/use-auto-focus.js'
 import { useInputKeyboard } from '../hooks/use-input-keyboard.js'
+import { useCommandMenuStoreApi, useSurfaceRefs } from '../store/index.js'
 import { useSurface } from './surface-provider.js'
 
 export interface CommandMenuInputProps {
@@ -21,7 +22,9 @@ export function CommandMenuInput({
   className,
 }: CommandMenuInputProps) {
   const theme = useScopedTheme()
-  const { store } = useSurface()
+  const { surfaceId } = useSurface()
+  const globalStore = useCommandMenuStoreApi()
+  const surfaceRefs = useSurfaceRefs(surfaceId)
   const {
     vimBindings,
     dir,
@@ -33,13 +36,16 @@ export function CommandMenuInput({
     disabled,
   } = useCommandMenuContext()
 
-  // Sync store inputRef to context inputRef
-  // MenuInputPrimitive uses store.inputRef, but command-menu context uses inputRef
-  // So we need to sync from store.inputRef (source) to inputRef (destination)
+  // Sync surfaceRefs inputRef to context inputRef
+  // MenuInputPrimitive uses surfaceRefs.inputRef, but command-menu context uses inputRef
+  // So we need to sync from surfaceRefs.inputRef (source) to inputRef (destination)
   React.useEffect(() => {
-    if (store.inputRef.current && inputRef.current !== store.inputRef.current) {
+    if (
+      surfaceRefs?.inputRef.current &&
+      inputRef.current !== surfaceRefs.inputRef.current
+    ) {
       ;(inputRef as React.MutableRefObject<HTMLInputElement | null>).current =
-        store.inputRef.current
+        surfaceRefs.inputRef.current
     }
   })
 
@@ -48,7 +54,8 @@ export function CommandMenuInput({
 
   // Keyboard navigation (extracted to hook)
   const handleKeyDown = useInputKeyboard({
-    store,
+    surfaceId,
+    globalStore: globalStore as any,
     vimBindings,
     dir,
     isInSubmenu,
@@ -62,7 +69,8 @@ export function CommandMenuInput({
 
   return (
     <MenuInputPrimitive
-      store={store}
+      surfaceId={surfaceId}
+      globalStore={globalStore as any}
       value={value ?? ''}
       onChange={(v) => onValueChange?.(v)}
       placeholder={placeholder}

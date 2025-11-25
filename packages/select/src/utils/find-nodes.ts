@@ -1,34 +1,38 @@
-import type { ItemNode, Menu, Node } from '@bazza-ui/menu'
+import type { ItemDef, ItemNode, Menu, Node } from '@bazza-ui/menu'
+import type { SelectMenuDef, SelectNodeDef } from '../types.js'
 
 /**
- * Find a single item node by its value in the menu tree
+ * Find a single item by its value in the menu tree.
+ * Works with both runtime nodes (Menu) and definitions (SelectMenuDef).
  */
 export function findNodeByValue<TData = unknown>(
-  menu: Menu<TData> | undefined,
+  menu: Menu<TData> | SelectMenuDef<TData> | undefined,
   value: string | undefined,
-): ItemNode<TData> | undefined {
+): ItemNode<TData> | ItemDef<TData> | undefined {
   if (!value || !menu) return undefined
 
   // Recursively search through menu nodes
-  const search = (nodes: Node<TData>[]): ItemNode<TData> | undefined => {
+  const search = (
+    nodes: (Node<TData> | SelectNodeDef<TData>)[],
+  ): ItemNode<TData> | ItemDef<TData> | undefined => {
     for (const node of nodes) {
       // Check if this is an item node with matching value
       if (node.kind === 'item') {
-        const itemValue = (node as any).value ?? node.id
+        const itemValue = (node as any).value ?? (node as any).id
         if (itemValue === value) {
-          return node as ItemNode<TData>
+          return node as ItemNode<TData> | ItemDef<TData>
         }
       }
 
       // Search in group children
-      if (node.kind === 'group' && node.nodes) {
-        const found = search(node.nodes)
+      if (node.kind === 'group' && (node as any).nodes) {
+        const found = search((node as any).nodes)
         if (found) return found
       }
 
-      // Search in submenu children
-      if (node.kind === 'submenu' && node.nodes) {
-        const found = search(node.nodes)
+      // Search in submenu children (for runtime menu nodes)
+      if (node.kind === 'submenu' && (node as any).nodes) {
+        const found = search((node as any).nodes)
         if (found) return found
       }
     }
@@ -39,15 +43,16 @@ export function findNodeByValue<TData = unknown>(
 }
 
 /**
- * Find multiple item nodes by their values in the menu tree
+ * Find multiple items by their values in the menu tree.
+ * Works with both runtime nodes (Menu) and definitions (SelectMenuDef).
  */
 export function findNodesByValues<TData = unknown>(
-  menu: Menu<TData> | undefined,
+  menu: Menu<TData> | SelectMenuDef<TData> | undefined,
   values: string[] | undefined,
-): ItemNode<TData>[] {
+): (ItemNode<TData> | ItemDef<TData>)[] {
   if (!values || values.length === 0 || !menu) return []
 
-  const nodes: ItemNode<TData>[] = []
+  const nodes: (ItemNode<TData> | ItemDef<TData>)[] = []
 
   for (const value of values) {
     const node = findNodeByValue(menu, value)

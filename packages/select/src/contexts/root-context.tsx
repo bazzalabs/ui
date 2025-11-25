@@ -1,7 +1,7 @@
-import type { Menu } from '@bazza-ui/menu'
 import type { InteractionGuardOptions } from '@bazza-ui/popup-menu'
 import * as React from 'react'
 import type { SelectControl } from '../control.js'
+import type { SelectMenuDef } from '../types.js'
 
 export interface RootContextValue<TData = unknown> {
   /** Unique ID for this select instance */
@@ -30,8 +30,8 @@ export interface RootContextValue<TData = unknown> {
   disabled: boolean
   /** Interaction guard options */
   interactionGuardOptions: Partial<InteractionGuardOptions>
-  /** The menu instance (for accessing nodes) */
-  menu?: Menu<TData>
+  /** The menu definition (passed to Surface for orchestration) */
+  menu?: SelectMenuDef<TData>
 }
 
 const RootContext = React.createContext<RootContextValue<any> | null>(null)

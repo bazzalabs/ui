@@ -7,6 +7,10 @@ const KeyboardCtx = React.createContext<KeyboardOptions>({
   vimBindings: true,
 })
 
-export const useKeyboardOpts = () => React.useContext(KeyboardCtx)
+/**
+ * Hook to access keyboard options from context.
+ */
+export const useKeyboardOpts = (): KeyboardOptions =>
+  React.useContext(KeyboardCtx)
 
 export { KeyboardCtx }

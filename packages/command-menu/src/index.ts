@@ -50,6 +50,36 @@ export type { CommandMenuEvent } from './events.js'
 export { COMMAND_MENU_EVENTS } from './events.js'
 // Export middleware helpers (also available at @bazza-ui/command-menu/middleware)
 export { composeMiddleware, createNew } from './middleware.js'
+// Export store hooks and context (for advanced use cases)
+export {
+  CommandMenuStoreProvider,
+  createCommandMenuStore,
+  createSurfaceActiveIdSelector,
+  createSurfaceQuerySelector,
+  createSurfaceSelector,
+  selectCurrentMenuDef,
+  selectDisabled,
+  selectFocusOwnerId,
+  selectIsInSubmenu,
+  selectNavigation,
+  selectNavigationStack,
+  selectOpen,
+  selectScopeId,
+  selectShowBreadcrumbs,
+  useCommandMenuActions,
+  useCommandMenuStore,
+  useCommandMenuStoreApi,
+} from './store/index.js'
+export type {
+  CommandMenuStore,
+  CommandMenuStoreActions,
+  CommandMenuStoreProviderProps,
+  CommandMenuStoreState,
+  CommandSurfaceSlice,
+  CreateCommandMenuStoreOptions,
+  NavigationChangeEvent,
+  NavigationState,
+} from './store/index.js'
 // Export all types from types.js
 export type * from './types.js'
 // Export package-specific menu types with dual naming

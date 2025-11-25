@@ -5,12 +5,16 @@ import {
   MenuItemPrimitive,
   MenuListPrimitive,
   type SubmenuNode,
-  useFilteredNodes,
 } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { useCommandMenuContext } from '../context.js'
+import {
+  useCommandMenuActions,
+  useCommandMenuStoreApi,
+  useSurfaceRefs,
+} from '../store/index.js'
 import { useSurface } from './surface-provider.js'
 
 interface ListRendererProps {
@@ -36,33 +40,33 @@ export function ListRenderer(props: ListRendererProps) {
   // 1. Initial load without data (nodes.length === 0)
   // 2. Deep search in BLOCKING mode (query exists, indicating deep search is active)
   // In STREAMING mode, we show results as they come in, not a blocking loading screen
-  const isStreaming = (menu as any).loadingState?.loadMode === 'streaming'
+  const isStreaming = (menu as any)?.loadingState?.loadMode === 'streaming'
   const shouldShowLoading =
-    (menu as any).loadingState?.isLoading &&
+    (menu as any)?.loadingState?.isLoading &&
     !isStreaming &&
-    ((menu.nodes?.length ?? 0) === 0 || (query && query.trim().length > 0))
+    ((menu?.nodes?.length ?? 0) === 0 || (query && query.trim().length > 0))
 
   if (shouldShowLoading) {
     const LoadingSlot = slots.Loading
     if (LoadingSlot) {
       return LoadingSlot({
-        menu,
-        isFetching: (menu as any).loadingState?.isFetching,
-        progress: (menu as any).loadingState?.progress,
+        menu: menu as any,
+        isFetching: (menu as any)?.loadingState?.isFetching,
+        progress: (menu as any)?.loadingState?.progress,
         query,
-        loadMode: (menu as any).loadingState?.loadMode,
+        loadMode: (menu as any)?.loadingState?.loadMode,
       }) as React.ReactElement
     }
     return null
   }
 
   // Handle error state
-  if ((menu as any).loadingState?.isError) {
+  if ((menu as any)?.loadingState?.isError) {
     const ErrorSlot = slots.Error
     if (ErrorSlot) {
       return ErrorSlot({
-        menu,
-        error: (menu as any).loadingState.error ?? undefined,
+        menu: menu as any,
+        error: (menu as any)?.loadingState.error ?? undefined,
       }) as React.ReactElement
     }
     return null
@@ -77,12 +81,15 @@ export function ListRenderer(props: ListRendererProps) {
  */
 function ListRendererContent({ query = '' }: ListRendererProps) {
   const {
-    store,
-    menu,
+    surfaceId,
+    displayNodes,
     slots: customSlots,
     classNames,
     onSubmenuSelect,
   } = useSurface()
+  const globalStore = useCommandMenuStoreApi()
+  const surfaceRefs = useSurfaceRefs(surfaceId)
+  const storeActions = useCommandMenuActions()
   const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange, control } =
     useCommandMenuContext()
 
@@ -93,21 +100,10 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
 
   const q = React.useMemo(() => query.trim(), [query])
 
-  // Check for streaming mode
-  const isStreaming = (menu as any).loadingState?.loadMode === 'streaming'
-  const completionOrder = (menu as any).loadingState?.completionOrder as
-    | string[]
-    | undefined
+  // Track previous query to detect changes
+  const prevQueryRef = React.useRef(query)
 
-  // Use the menu primitive hook to filter, score, and sort nodes
-  const { displayNodes } = useFilteredNodes(menu, q, {
-    mode: 'deep',
-    streamingEnabled: isStreaming,
-    completionOrder: completionOrder ?? [],
-    control,
-  })
-
-  // Update store with valid row IDs
+  // Update store with valid row IDs and reset active ID on query change
   React.useEffect(() => {
     const validRows = displayNodes.filter(
       (n) =>
@@ -122,27 +118,44 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
       }
     })
 
-    store.resetOrder(validRowIds)
-    store.resetVirtualIndexMap(virtualIndexMap)
+    storeActions.resetOrder(surfaceId, validRowIds)
+    storeActions.resetVirtualIndexMap(surfaceId, virtualIndexMap)
 
-    const activeId = store.snapshot().activeId
-    const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
+    // Check if query changed - if so, always reset to first item
+    const queryChanged = prevQueryRef.current !== query
+    prevQueryRef.current = query
 
-    if (validRowIds.length > 0 && !isActiveIdValid) {
-      store.setActiveByIndex(0, 'keyboard')
+    if (queryChanged) {
+      // Query changed - always reset to first item
+      if (validRowIds.length > 0) {
+        storeActions.setSurfaceActiveId(
+          surfaceId,
+          validRowIds[0] ?? null,
+          'keyboard',
+        )
+      }
+    } else {
+      // Query didn't change - only reset if current active ID is invalid
+      const surface = globalStore.getState().surfaces.get(surfaceId)
+      const activeId = surface?.activeId ?? null
+      const isActiveIdValid =
+        activeId !== null && validRowIds.includes(activeId)
+
+      if (validRowIds.length > 0 && !isActiveIdValid) {
+        storeActions.setSurfaceActiveId(
+          surfaceId,
+          validRowIds[0] ?? null,
+          'keyboard',
+        )
+      }
     }
-  }, [displayNodes, store])
-
-  // Reset to first item when query changes
-  React.useEffect(() => {
-    store.first('keyboard')
-  }, [q])
+  }, [displayNodes, query, storeActions, surfaceId, globalStore])
 
   // Virtualization
   const virtualizer = useVirtualizer({
     count: displayNodes.length,
     estimateSize: () => 40,
-    getScrollElement: () => store.listRef.current,
+    getScrollElement: () => surfaceRefs?.listRef.current ?? null,
     getItemKey: (index) => displayNodes[index]?.id ?? index,
     overscan: 5,
   })
@@ -224,7 +237,8 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
 
   return (
     <MenuListPrimitive
-      store={store}
+      surfaceId={surfaceId}
+      globalStore={globalStore as any}
       role="listbox"
       className={classNames?.list}
       vimBindings={vimBindings}
@@ -325,7 +339,8 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
               >
                 <MenuItemPrimitive
                   node={itemNode}
-                  store={store}
+                  surfaceId={surfaceId}
+                  globalStore={globalStore as any}
                   virtualItem={virtualRow}
                   className={classNames?.item}
                   mode="modal"
@@ -364,7 +379,8 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
               >
                 <MenuItemPrimitive
                   node={submenuNode as any}
-                  store={store}
+                  surfaceId={surfaceId}
+                  globalStore={globalStore as any}
                   virtualItem={virtualRow}
                   className={classNames?.item}
                   mode="modal"

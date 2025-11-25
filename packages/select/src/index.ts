@@ -110,6 +110,40 @@ export type {
 // Validation helpers
 export { validateSelectMenu, validateSelectNodes } from './types.js'
 
+// Store hooks and context (for advanced use cases)
+export {
+  SelectMenuStoreProvider,
+  createMultiSelectStore,
+  createSelectStore,
+  createSurfaceActiveIdSelector,
+  createSurfaceQuerySelector,
+  createSurfaceSelector,
+  selectDisabled,
+  selectFocusOwnerId,
+  selectOpen,
+  selectScopeId,
+  selectSelection,
+  selectSelectionMode,
+  selectValue,
+  selectValues,
+  useSelectMenuActions,
+  useSelectMenuStore,
+  useSelectMenuStoreApi,
+} from './store/index.js'
+export type {
+  AimGuardState,
+  CreateMultiSelectStoreOptions,
+  CreateSelectStoreOptions,
+  MultiSelectionState,
+  SelectionState,
+  SelectMenuStore,
+  SelectMenuStoreActions,
+  SelectMenuStoreProviderProps,
+  SelectMenuStoreState,
+  SelectSurfaceSlice,
+  SingleSelectionState,
+} from './store/index.js'
+
 // Re-export useful types from dependencies
 export type {
   ItemDef,

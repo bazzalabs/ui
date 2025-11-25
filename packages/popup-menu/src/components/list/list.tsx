@@ -2,6 +2,7 @@ import {
   type GroupNode,
   type ItemNode,
   MenuListPrimitive,
+  type Node,
   type SubmenuNode,
   useStickyRowWidth,
 } from '@bazza-ui/menu'
@@ -10,114 +11,158 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { useRoot } from '../../contexts/root-context.js'
 import { ScopedThemeProvider } from '../../contexts/theme-context.js'
+import {
+  useDisplayNodes,
+  useInputActive,
+  usePopupMenuActions,
+  usePopupMenuStoreApi,
+  useSurfaceMenu,
+  useSurfaceQuery,
+  useSurfaceRefs,
+} from '../../store/index.js'
 import type { PopupMenuSlots, PopupSubmenuNode } from '../../types.js'
-import { PopupMenuItem } from './item.js'
 import { PopupMenuSubmenu } from '../submenu/popup-menu-submenu.js'
 import { PopupMenuSubmenuContent } from '../submenu/submenu-content.js'
 import { PopupMenuSubmenuTrigger } from '../submenu/submenu-trigger.js'
 import { useSurface } from '../surface/surface-provider.js'
+import { PopupMenuItem } from './item.js'
 
 export interface ListProps {
   onTypeStart?: (seed: string) => void
 }
 
-export function List({ onTypeStart }: ListProps) {
+export function List<T = unknown>({ onTypeStart }: ListProps) {
   const {
-    store,
-    menu,
-    displayNodes,
+    surfaceId,
     control,
     slots: customSlots,
     classNames,
     onSubmenuSelect,
-    query,
-    inputActive,
   } = useSurface()
+
+  // Get state from global store hooks
+  const menu = useSurfaceMenu<T>(surfaceId)
+  const displayNodes = useDisplayNodes<T>(surfaceId)
+  const query = useSurfaceQuery(surfaceId)
+  const inputActive = useInputActive(surfaceId)
+  const surfaceRefs = useSurfaceRefs(surfaceId)
+  const storeActions = usePopupMenuActions()
+  const globalStoreApi = usePopupMenuStoreApi()
+
   const rootCtx = useRoot()
 
   const slots = customSlots
 
-  // Handle loading/error/empty states
-  const isStreaming = (menu as any).loadingState?.loadMode === 'streaming'
-  const shouldShowLoading =
-    (menu as any).loadingState?.isLoading &&
-    !isStreaming &&
-    ((menu as any).nodes?.length === 0 || (query && query.trim().length > 0))
-
-  if (shouldShowLoading) {
-    const LoadingSlot = slots?.Loading
-    if (LoadingSlot) {
-      return LoadingSlot({
-        menu: menu as any,
-        isFetching: (menu as any).loadingState?.isFetching,
-        progress: (menu as any).loadingState?.progress,
-        query,
-        loadMode: (menu as any).loadingState?.loadMode,
-      } as any) as React.ReactElement
-    }
-    return null
+  // Cache menu and displayNodes so they persist during exit animation
+  const cachedMenuRef = React.useRef(menu)
+  const cachedDisplayNodesRef = React.useRef(displayNodes)
+  if (menu) {
+    cachedMenuRef.current = menu
+    cachedDisplayNodesRef.current = displayNodes
   }
+  const effectiveMenu = menu ?? cachedMenuRef.current
+  const effectiveDisplayNodes = menu
+    ? displayNodes
+    : cachedDisplayNodesRef.current
 
-  if ((menu as any).loadingState?.isError) {
-    const ErrorSlot = slots?.Error
-    if (ErrorSlot) {
-      return ErrorSlot({
-        menu: menu as any,
-        error: (menu as any).loadingState.error ?? undefined,
-      } as any) as React.ReactElement
-    }
-    return null
-  }
+  // Handle loading/error/empty states (with null guards)
+  const isStreaming = effectiveMenu
+    ? (effectiveMenu as any).loadingState?.loadMode === 'streaming'
+    : false
+  const shouldShowLoading = effectiveMenu
+    ? (effectiveMenu as any).loadingState?.isLoading &&
+      !isStreaming &&
+      ((effectiveMenu as any).nodes?.length === 0 ||
+        (query && query.trim().length > 0))
+    : false
 
-  // Update store with valid row IDs
-  React.useEffect(() => {
+  // Compute valid row IDs (memoized to avoid unnecessary effect runs)
+  const validRowIds = React.useMemo(() => {
     const validRows = displayNodes.filter(
-      (n) =>
+      (n: Node<T>) =>
         (n.kind === 'item' || n.kind === 'submenu') && !(n as any).disabled,
     )
-    const validRowIds = validRows.map((n) => n.id)
+    return validRows.map((n: Node<T>) => n.id)
+  }, [displayNodes])
+
+  // Create a stable key for valid row IDs to use in effects
+  const validRowIdsKey = validRowIds.join(',')
+
+  // Update store with valid row IDs and virtual index map
+  React.useEffect(() => {
     const virtualIndexMap = new Map<string, number>()
 
-    displayNodes.forEach((node, index) => {
+    displayNodes.forEach((node: Node<T>, index: number) => {
       if (node.kind === 'item' || node.kind === 'submenu') {
         virtualIndexMap.set(node.id, index)
       }
     })
 
-    store.resetOrder(validRowIds)
-    store.resetVirtualIndexMap(virtualIndexMap)
+    storeActions.resetOrder(surfaceId, validRowIds)
+    storeActions.resetVirtualIndexMap(surfaceId, virtualIndexMap)
+  }, [displayNodes, storeActions, surfaceId, validRowIds])
 
-    const activeId = store.snapshot().activeId
+  // Track previous query and row IDs to detect actual changes
+  const prevQueryRef = React.useRef(query)
+  const prevValidRowIdsKeyRef = React.useRef(validRowIdsKey)
+
+  // Set initial active ID when rows become available, or reset when query changes
+  React.useEffect(() => {
+    const queryChanged = prevQueryRef.current !== query
+    prevQueryRef.current = query
+
+    const rowIdsChanged = prevValidRowIdsKeyRef.current !== validRowIdsKey
+    prevValidRowIdsKeyRef.current = validRowIdsKey
+
+    if (validRowIds.length === 0) return
+
+    const surface = globalStoreApi.getState().surfaces.get(surfaceId)
+    const activeId = surface?.activeId ?? null
     const isActiveIdValid = activeId !== null && validRowIds.includes(activeId)
 
-    if (validRowIds.length > 0 && !isActiveIdValid) {
-      store.setActiveByIndex(0, 'keyboard')
+    // Set active ID to first item if:
+    // 1. No active ID is set (initial render or rows just streamed in)
+    // 2. Query changed
+    // 3. Row IDs changed AND current active ID is no longer valid (was filtered out)
+    if (
+      activeId === null ||
+      queryChanged ||
+      (rowIdsChanged && !isActiveIdValid)
+    ) {
+      storeActions.first(surfaceId, 'keyboard')
     }
-  }, [displayNodes, store])
-
-  // Reset to first item when query changes
-  React.useEffect(() => {
-    store.first('keyboard')
-  }, [query, store])
+  }, [
+    query,
+    storeActions,
+    surfaceId,
+    validRowIds,
+    validRowIdsKey,
+    globalStoreApi,
+  ])
 
   // Virtualization
-  const virtualizationConfig = menu.virtualization
-  const count = displayNodes.length
+  const virtualizationConfig = effectiveMenu?.virtualization
+  const count = effectiveDisplayNodes.length
 
   const enableVirtualization = React.useMemo(() => {
     const enabled = virtualizationConfig?.enabled
     if (typeof enabled === 'function') {
       return enabled({
-        nodes: displayNodes as any,
+        nodes: effectiveDisplayNodes as any,
         count,
-        menu: menu as any,
+        menu: effectiveMenu as any,
       })
     }
     if (typeof enabled === 'boolean') {
       return enabled
     }
     return count >= 50
-  }, [virtualizationConfig?.enabled, displayNodes, count, menu])
+  }, [
+    virtualizationConfig?.enabled,
+    effectiveDisplayNodes,
+    count,
+    effectiveMenu,
+  ])
 
   const estimateSizeFn = React.useMemo(() => {
     const estimateSize = virtualizationConfig?.estimateSize ?? 40
@@ -130,8 +175,8 @@ export function List({ onTypeStart }: ListProps) {
   const virtualizer = useVirtualizer({
     count,
     estimateSize: estimateSizeFn,
-    getScrollElement: () => store.listRef.current,
-    getItemKey: (index) => displayNodes[index]?.id ?? index,
+    getScrollElement: () => surfaceRefs?.listRef.current ?? null,
+    getItemKey: (index) => effectiveDisplayNodes[index]?.id ?? index,
     overscan: virtualizationConfig?.overscan ?? 5,
     enabled: enableVirtualization,
     horizontal: virtualizationConfig?.horizontal,
@@ -151,13 +196,13 @@ export function List({ onTypeStart }: ListProps) {
   const totalSize = virtualizer.getTotalSize()
 
   React.useEffect(() => {
-    if (store.virtualizerRef && enableVirtualization) {
-      ;(store.virtualizerRef as any).current = virtualizer
+    if (surfaceRefs?.virtualizerRef && enableVirtualization) {
+      ;(surfaceRefs.virtualizerRef as any).current = virtualizer
     }
-  }, [store.virtualizerRef, virtualizer, enableVirtualization])
+  }, [surfaceRefs?.virtualizerRef, virtualizer, enableVirtualization])
 
   const { queueMeasurement, resetMeasurements } = useStickyRowWidth({
-    containerRef: store.listRef,
+    containerRef: surfaceRefs?.listRef ?? { current: null },
   })
 
   React.useEffect(() => {
@@ -188,8 +233,8 @@ export function List({ onTypeStart }: ListProps) {
 
   React.useLayoutEffect(() => {
     if (!enableVirtualization) {
-      for (let i = 0; i < displayNodes.length; i++) {
-        const node = displayNodes[i]
+      for (let i = 0; i < effectiveDisplayNodes.length; i++) {
+        const node = effectiveDisplayNodes[i]
         if (!node) continue
         if (node.kind !== 'item' && node.kind !== 'submenu') continue
         const rowEl = rowRefsMap.current.get(node.id)
@@ -199,7 +244,7 @@ export function List({ onTypeStart }: ListProps) {
       }
     } else {
       for (const virtualRow of virtualItems) {
-        const node = displayNodes[virtualRow.index]
+        const node = effectiveDisplayNodes[virtualRow.index]
         if (!node) continue
         if (node.kind !== 'item' && node.kind !== 'submenu') continue
         const rowEl = rowRefsMap.current.get(node.id)
@@ -208,7 +253,12 @@ export function List({ onTypeStart }: ListProps) {
         }
       }
     }
-  }, [virtualItems, displayNodes, queueMeasurement, enableVirtualization])
+  }, [
+    virtualItems,
+    effectiveDisplayNodes,
+    queueMeasurement,
+    enableVirtualization,
+  ])
 
   const handleItemSelect = React.useCallback(
     ({ node }: { node: ItemNode<any> }) => {
@@ -332,7 +382,6 @@ export function List({ onTypeStart }: ListProps) {
             key={node.id}
             ref={getRowRefCallback(node.id)}
             node={itemNode}
-            store={store}
             className={classNames?.item}
             mode="popover"
             control={control}
@@ -399,7 +448,6 @@ export function List({ onTypeStart }: ListProps) {
       return null
     },
     [
-      store,
       slots,
       classNames,
       handleItemSelect,
@@ -407,17 +455,52 @@ export function List({ onTypeStart }: ListProps) {
       query,
       virtualizer,
       getRowRefCallback,
+      control,
     ],
   )
 
-  if (displayNodes.length === 0) {
+  // Early return if menu has never been set
+  if (!effectiveMenu) {
+    return null
+  }
+
+  // Handle loading state
+  if (shouldShowLoading) {
+    const LoadingSlot = slots?.Loading
+    if (LoadingSlot) {
+      return LoadingSlot({
+        menu: effectiveMenu as any,
+        isFetching: (effectiveMenu as any).loadingState?.isFetching,
+        progress: (effectiveMenu as any).loadingState?.progress,
+        query,
+        loadMode: (effectiveMenu as any).loadingState?.loadMode,
+      } as any) as React.ReactElement
+    }
+    return null
+  }
+
+  // Handle error state
+  if ((effectiveMenu as any).loadingState?.isError) {
+    const ErrorSlot = slots?.Error
+    if (ErrorSlot) {
+      return ErrorSlot({
+        menu: effectiveMenu as any,
+        error: (effectiveMenu as any).loadingState.error ?? undefined,
+      } as any) as React.ReactElement
+    }
+    return null
+  }
+
+  // Handle empty state
+  if (effectiveDisplayNodes.length === 0) {
     const EmptySlot = slots?.Empty
     return EmptySlot ? (EmptySlot({ query }) as React.ReactElement) : null
   }
 
   return (
     <MenuListPrimitive
-      store={store}
+      surfaceId={surfaceId}
+      globalStore={globalStoreApi as any}
       role="listbox"
       className={classNames?.list}
       control={control}
@@ -438,7 +521,7 @@ export function List({ onTypeStart }: ListProps) {
           }}
         >
           {virtualItems.map((virtualRow) => {
-            const node = displayNodes[virtualRow.index]
+            const node = effectiveDisplayNodes[virtualRow.index]
             return renderNode(node, virtualRow.index, {
               key: String(virtualRow.key),
               start: virtualRow.start,
@@ -446,7 +529,7 @@ export function List({ onTypeStart }: ListProps) {
           })}
         </div>
       ) : (
-        displayNodes.map((node, index) => renderNode(node, index))
+        effectiveDisplayNodes.map((node, index) => renderNode(node, index))
       )}
     </MenuListPrimitive>
   )

@@ -1,6 +1,12 @@
 import { mergeProps } from '@bazza-ui/theming'
 import * as React from 'react'
-import type { Direction, SurfaceStore } from '../types.js'
+import { type StoreApi, useStore } from 'zustand'
+import type { BaseMenuStore, SurfaceRefs } from '../store/types.js'
+import type { Direction, RowRecord } from '../types.js'
+
+// Stable empty map to avoid creating new objects on each render
+const EMPTY_ROWS_MAP: Map<string, RowRecord> = new Map()
+
 import {
   isCloseKey,
   isOpenKey,
@@ -15,8 +21,10 @@ import { SELECT_ITEM_EVENT } from './menu-item.js'
 export interface MenuListPrimitiveProps<T> {
   /** Reference to the list element */
   ref?: React.Ref<HTMLDivElement>
-  /** Surface store for state management */
-  store: SurfaceStore<T>
+  /** Surface ID for this list */
+  surfaceId: string
+  /** Global store API */
+  globalStore: StoreApi<BaseMenuStore<T>>
   /** Role for the list */
   role?: 'listbox' | 'menu'
   /** Additional className */
@@ -54,7 +62,8 @@ export interface MenuListPrimitiveProps<T> {
  */
 export function MenuListPrimitive<T>({
   ref,
-  store,
+  surfaceId,
+  globalStore,
   role = 'listbox',
   className,
   style,
@@ -74,13 +83,58 @@ export function MenuListPrimitive<T>({
 
   // Combine: explicit prop OR menu-wide state
   const disabled = disabledProp || menuDisabled
-  // Get active ID from store
-  const [activeId, setActiveId] = React.useState(store.snapshot().activeId)
-  React.useEffect(() => {
-    return store.subscribe(() => {
-      setActiveId(store.snapshot().activeId)
-    })
-  }, [store])
+
+  // Subscribe to surface's activeId and rows from global store
+  const activeId = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) =>
+        state.surfaces.get(surfaceId)?.activeId ?? null,
+      [surfaceId],
+    ),
+  )
+
+  const rows = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) =>
+        state.surfaces.get(surfaceId)?.rows ?? EMPTY_ROWS_MAP,
+      [surfaceId],
+    ),
+  )
+
+  // Subscribe to surface existence so we re-render when surface is registered
+  const surfaceExists = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) => state.surfaces.has(surfaceId),
+      [surfaceId],
+    ),
+  )
+
+  // Get refs from global store - re-evaluate when surface exists changes
+  const refs = React.useMemo<SurfaceRefs | undefined>(
+    () =>
+      surfaceExists
+        ? globalStore.getState().getSurfaceRefs(surfaceId)
+        : undefined,
+    [globalStore, surfaceId, surfaceExists],
+  )
+
+  // Get navigation actions from global store
+  const actions = React.useMemo(
+    () => ({
+      next: (cause: 'keyboard' | 'pointer' = 'keyboard') =>
+        globalStore.getState().next(surfaceId, cause),
+      prev: (cause: 'keyboard' | 'pointer' = 'keyboard') =>
+        globalStore.getState().prev(surfaceId, cause),
+      first: (cause: 'keyboard' | 'pointer' = 'keyboard') =>
+        globalStore.getState().first(surfaceId, cause),
+      last: (cause: 'keyboard' | 'pointer' = 'keyboard') =>
+        globalStore.getState().last(surfaceId, cause),
+    }),
+    [globalStore, surfaceId],
+  )
 
   // Keyboard navigation
   const handleKeyDown = React.useCallback(
@@ -112,12 +166,12 @@ export function MenuListPrimitive<T>({
       if (vimBindings) {
         if (isVimNext(e)) {
           stop()
-          store.next('keyboard')
+          actions.next('keyboard')
           return
         }
         if (isVimPrev(e)) {
           stop()
-          store.prev('keyboard')
+          actions.prev('keyboard')
           return
         }
         if (isVimOpen(e)) {
@@ -126,7 +180,7 @@ export function MenuListPrimitive<T>({
             onSubmenuOpen(activeId)
           } else {
             // Default: trigger select
-            const activeRow = activeId ? store.rows.get(activeId) : null
+            const activeRow = activeId ? rows.get(activeId) : null
             if (activeRow?.ref.current) {
               activeRow.ref.current.dispatchEvent(
                 new CustomEvent(SELECT_ITEM_EVENT, { bubbles: false }),
@@ -151,24 +205,24 @@ export function MenuListPrimitive<T>({
       // Arrow navigation
       if (k === 'ArrowDown') {
         stop()
-        store.next('keyboard')
+        actions.next('keyboard')
         return
       }
       if (k === 'ArrowUp') {
         stop()
-        store.prev('keyboard')
+        actions.prev('keyboard')
         return
       }
 
       // Page navigation
       if (k === 'Home' || k === 'PageUp') {
         stop()
-        store.first('keyboard')
+        actions.first('keyboard')
         return
       }
       if (k === 'End' || k === 'PageDown') {
         stop()
-        store.last('keyboard')
+        actions.last('keyboard')
         return
       }
 
@@ -177,7 +231,7 @@ export function MenuListPrimitive<T>({
         stop()
         if (isSelectionKey(k)) {
           // Enter key - check if active item is a submenu trigger
-          const activeRow = activeId ? store.rows.get(activeId) : null
+          const activeRow = activeId ? rows.get(activeId) : null
           if (activeRow?.ref.current) {
             const isSubmenuTrigger =
               activeRow.ref.current.getAttribute('data-submenu-trigger') ===
@@ -207,7 +261,7 @@ export function MenuListPrimitive<T>({
       // Enter/Space - select active item
       if (k === 'Enter' || k === ' ') {
         stop()
-        const activeRow = activeId ? store.rows.get(activeId) : null
+        const activeRow = activeId ? rows.get(activeId) : null
         if (activeRow?.ref.current) {
           const isSubmenuTrigger =
             activeRow.ref.current.getAttribute('data-submenu-trigger') ===
@@ -224,7 +278,8 @@ export function MenuListPrimitive<T>({
       }
     },
     [
-      store,
+      actions,
+      rows,
       activeId,
       onKeyDownProp,
       vimBindings,
@@ -237,7 +292,7 @@ export function MenuListPrimitive<T>({
   )
 
   const listProps = {
-    ref: store.listRef,
+    ref: refs?.listRef,
     role,
     'data-menu-list': '',
     'aria-activedescendant': isFocused ? undefined : activeId,

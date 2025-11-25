@@ -2,12 +2,9 @@ import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
-import type {
-  ItemNode,
-  RowBindAPI,
-  SearchContext,
-  SurfaceStore,
-} from '../types.js'
+import { type StoreApi, useStore } from 'zustand'
+import type { BaseMenuStore, SurfaceRefs } from '../store/types.js'
+import type { ItemNode, RowBindAPI, SearchContext } from '../types.js'
 
 export const SELECT_ITEM_EVENT = 'bazza-ui:menu:item-select'
 
@@ -18,8 +15,10 @@ export interface MenuItemPrimitiveProps<T> {
   virtualItem?: VirtualItem
   /** Item node */
   node: ItemNode<T>
-  /** Surface store for state management */
-  store: SurfaceStore<T>
+  /** Surface ID for this item */
+  surfaceId: string
+  /** Global store API */
+  globalStore: StoreApi<BaseMenuStore<T>>
   /** Search context */
   search?: SearchContext
   /** Additional className */
@@ -40,13 +39,14 @@ export interface MenuItemPrimitiveProps<T> {
  * - ARIA attributes (role, aria-selected, aria-checked, aria-disabled)
  * - Focus management and keyboard navigation
  * - Event handlers for pointer/mouse/click
- * - Row registration with store
+ * - Row registration with global store
  */
 export function MenuItemPrimitive<T>({
   ref: refProp,
   virtualItem,
   node,
-  store,
+  surfaceId,
+  globalStore,
   search,
   className,
   mode = 'popover',
@@ -101,26 +101,46 @@ export function MenuItemPrimitive<T>({
     return () => el.removeEventListener(SELECT_ITEM_EVENT, handleSelectEvent)
   }, [handleSelect])
 
-  // Register row with store
+  // Register row with global store
   React.useEffect(() => {
-    store.registerRow(rowId, {
+    globalStore.getState().registerRow(surfaceId, rowId, {
       ref: ref as any,
       virtualItem,
       disabled,
       kind: 'item',
     })
-    return () => store.unregisterRow(rowId)
-  }, [store, rowId, disabled, virtualItem])
+    return () => globalStore.getState().unregisterRow(surfaceId, rowId)
+  }, [globalStore, surfaceId, rowId, disabled, virtualItem])
 
-  // Get focused state from store
-  const [activeId, setActiveId] = React.useState(store.snapshot().activeId)
-  React.useEffect(() => {
-    return store.subscribe(() => {
-      setActiveId(store.snapshot().activeId)
-    })
-  }, [store])
+  // Subscribe to surface's activeId from global store
+  const activeId = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) =>
+        state.surfaces.get(surfaceId)?.activeId ?? null,
+      [surfaceId],
+    ),
+  )
 
   const focused = activeId === rowId
+
+  // Subscribe to surface existence so we re-render when surface is registered
+  const surfaceExists = useStore(
+    globalStore,
+    React.useCallback(
+      (state: BaseMenuStore<T>) => state.surfaces.has(surfaceId),
+      [surfaceId],
+    ),
+  )
+
+  // Get refs from global store - re-evaluate when surface exists changes
+  const refs = React.useMemo<SurfaceRefs | undefined>(
+    () =>
+      surfaceExists
+        ? globalStore.getState().getSurfaceRefs(surfaceId)
+        : undefined,
+    [globalStore, surfaceId, surfaceExists],
+  )
 
   // Event handlers
   const onPointerDown = React.useCallback((e: React.PointerEvent) => {
@@ -129,9 +149,10 @@ export function MenuItemPrimitive<T>({
 
   const onMouseMove = React.useCallback(() => {
     if (disabled) return
-    if (store.ignorePointerRef.current) return
-    if (!focused) store.setActiveId(rowId, 'pointer')
-  }, [disabled, focused, store, rowId])
+    if (refs?.ignorePointerRef.current) return
+    if (!focused)
+      globalStore.getState().setSurfaceActiveId(surfaceId, rowId, 'pointer')
+  }, [disabled, focused, globalStore, surfaceId, rowId, refs])
 
   const onClick = React.useCallback(
     (e: React.MouseEvent) => {

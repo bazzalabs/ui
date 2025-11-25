@@ -1,16 +1,21 @@
-// Hooks
-export * from './hooks/index.js'
+// Store (unified Zustand-based state management)
 
 // Menu Control
 export * from './control.js'
 
-export * from './primitives/default-slots.js'
+// Hooks
+export * from './hooks/index.js'
 
+// Pipeline (composable menu state management)
+export * from './pipeline/index.js'
+
+export * from './primitives/default-slots.js'
 // UI Primitives
 export * from './primitives/index.js'
 // Core Primitives
 export * from './primitives/menu-model.js'
-export * from './primitives/surface-store.js'
+
+export * from './store/index.js'
 export type * from './types.js'
 export * from './utils/breadcrumb.js'
 export * from './utils/command-score.js'

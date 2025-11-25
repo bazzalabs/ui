@@ -1,11 +1,10 @@
-import { MenuInputPrimitive, type SurfaceStore } from '@bazza-ui/menu'
+import { MenuInputPrimitive } from '@bazza-ui/menu'
 import type * as React from 'react'
 import { useScopedTheme } from '../../contexts/theme-context.js'
+import { usePopupMenuStoreApi, useSurfaceMenu } from '../../store/index.js'
 import { useSurface } from '../surface/surface-provider.js'
 
 export interface PopupMenuInputProps<T = unknown> {
-  /** Surface store for state management */
-  store: SurfaceStore<T>
   /** Current value */
   value?: string
   /** Value change handler */
@@ -17,17 +16,18 @@ export interface PopupMenuInputProps<T = unknown> {
 }
 
 export function PopupMenuInput<T = unknown>({
-  store,
   value,
   onValueChange,
   placeholder: placeholderProp,
   className,
 }: PopupMenuInputProps<T>) {
   const theme = useScopedTheme()
-  const surface = useSurface()
+  const { surfaceId, control } = useSurface()
+  const menu = useSurfaceMenu(surfaceId)
+  const globalStore = usePopupMenuStoreApi<T>()
 
   // Get disabled state from control
-  const disabled = surface.control?.getState().disabled ?? false
+  const disabled = control?.getState().disabled ?? false
 
   const searchState = {
     query: value ?? '',
@@ -39,12 +39,13 @@ export function PopupMenuInput<T = unknown>({
 
   const placeholder =
     placeholderProp ??
-    surface.menu.inputPlaceholder ??
+    menu?.inputPlaceholder ??
     theme.slotProps?.input?.placeholder
 
   return (
     <MenuInputPrimitive
-      store={store}
+      surfaceId={surfaceId}
+      globalStore={globalStore as any}
       value={value ?? ''}
       onChange={(v) => onValueChange?.(v)}
       placeholder={placeholder}
