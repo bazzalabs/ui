@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "context-menu",
+  "type": "registry:component",
+  "title": "Context Menu",
+  "description": "A right-click context menu with deep search, submenus, and async loading.",
+  "dependencies": ["@bazza-ui/context-menu", "lucide-react"],
+  "files": [
+    {
+      "path": "registry/context-menu/index.tsx",
+      "type": "registry:file",
+      "target": "components/ui/context-menu.tsx"
+    }
+  ]
+}

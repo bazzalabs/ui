@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "command-menu",
+  "type": "registry:component",
+  "title": "Command Menu",
+  "description": "A command palette component with deep search, keyboard navigation, and async loading.",
+  "dependencies": ["@bazza-ui/command-menu", "lucide-react"],
+  "files": [
+    {
+      "path": "registry/command-menu/index.tsx",
+      "type": "registry:file",
+      "target": "components/ui/command-menu.tsx"
+    }
+  ]
+}
