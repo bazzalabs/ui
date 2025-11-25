@@ -1,13 +1,9 @@
 import {
-  type AsyncNodeLoader,
   type MenuControl,
-  type MenuDef,
   type MenuNodeDefaults,
+  type RootMenuDef,
   type SubmenuDef,
-  useFilteredNodes,
-  useInputActivation,
-  useLoader,
-  useMenu,
+  useMenuPipeline,
 } from '@bazza-ui/menu'
 import * as React from 'react'
 import { FocusOwnerCtx } from '../../contexts/focus-owner-context.js'
@@ -15,11 +11,8 @@ import { KeyboardCtx } from '../../contexts/keyboard-context.js'
 import { useRoot } from '../../contexts/root-context.js'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 import { HoverPolicyProvider } from '../../features/hover-policy/hover-policy-context.js'
-import {
-  usePopupMenuActions,
-  usePopupMenuStoreApi,
-  useSurfaceRefs,
-} from '../../store/index.js'
+import { useSurfaceEffects } from '../../hooks/use-surface-effects.js'
+import { usePopupMenuActions, useSurfaceRefs } from '../../store/index.js'
 import type {
   PopupMenuDef,
   PopupMenuSlots,
@@ -59,7 +52,9 @@ export interface SurfaceProps<T = unknown> {
 
 /**
  * Surface component - The orchestration layer.
- * Consolidates store creation, loaders, focus management, and rendering.
+ *
+ * Uses the unified menu pipeline for state management and
+ * consolidated effects for store synchronization.
  */
 export function Surface<T = unknown>({
   menu,
@@ -74,6 +69,9 @@ export function Surface<T = unknown>({
   query: queryProp,
   control,
 }: SurfaceProps<T>) {
+  // ============================================================================
+  // Context & Setup
+  // ============================================================================
   const subCtx = React.useContext(SubCtx)
   const isSubmenu = !!subCtx
   const surfaceId = React.useMemo(
@@ -86,67 +84,53 @@ export function Surface<T = unknown>({
   const { slots: themeSlots, classNames, slotProps } = useScopedTheme()
   const slots = themeSlots as unknown as PopupMenuSlots<T>
 
-  // --- 1. STORE ACCESS ---
-  // Get surface refs
+  // Get surface refs from store
   const surfaceRefs = useSurfaceRefs(surfaceId)
 
-  // --- 2. INPUT ACTIVATION ---
-  const hideSearchUntilActive = menu.hideSearchUntilActive ?? false
-  const {
-    inputActive,
-    query: internalQuery,
-    setQuery,
-    setInputActive,
-  } = useInputActivation(hideSearchUntilActive)
-
-  // Use prop query if provided (controlled), otherwise internal state
-  const query = queryProp ?? internalQuery
-
-  // --- 3. LOADER ORCHESTRATION ---
-  const menuLoader = React.useMemo(() => {
-    return 'loader' in menu ? menu.loader : undefined
-  }, [menu]) as AsyncNodeLoader<T>
-
-  const loaderQuery = React.useMemo(() => {
-    const searchMode = menu.search?.mode ?? 'client'
-    return searchMode === 'client' ? '' : query
-  }, [menu.search?.mode, query])
-
-  const loaderContext = React.useMemo(
-    () => ({
-      query: loaderQuery,
-      open,
-    }),
-    [loaderQuery, open],
-  )
-
-  const loaderResult = useLoader(menuLoader, loaderContext)
-
-  // --- 4. MENU ORCHESTRATION ---
-  const { menu: orchestratedMenu } = useMenu<T>({
-    menuDef: menu as MenuDef<T> | SubmenuDef<T>,
-    query,
+  // ============================================================================
+  // Pipeline: Unified Menu State Management
+  // ============================================================================
+  const pipeline = useMenuPipeline<T>({
+    menuDef: menu as RootMenuDef<T> | SubmenuDef<T>,
     open,
     surfaceId,
     isSubmenu,
-    rootLoaderResult: loaderResult,
     defaults,
+    control,
+    query: queryProp,
   })
 
-  // --- 5. SEARCH & FILTERING ---
-  const isStreaming =
-    (orchestratedMenu as any).loadingState?.loadMode === 'streaming'
-  const completionOrder = (orchestratedMenu as any).loadingState
-    ?.completionOrder as string[] | undefined
+  const {
+    inputActive,
+    setInputActive,
+    query,
+    setQuery,
+    menu: orchestratedMenu,
+    displayNodes,
+  } = pipeline
 
-  const { displayNodes } = useFilteredNodes(orchestratedMenu, query, {
-    mode: query.length > 0 ? 'deep' : 'shallow',
-    streamingEnabled: isStreaming,
-    completionOrder: completionOrder ?? [],
-    control, // Pass control to middleware
+  // ============================================================================
+  // Store Effects: Sync Pipeline State to Global Store
+  // ============================================================================
+  const storeActions = usePopupMenuActions()
+
+  useSurfaceEffects({
+    surfaceId,
+    open,
+    isSubmenu,
+    menu: orchestratedMenu,
+    displayNodes,
+    query,
+    inputActive,
+    storeActions,
+    registerSurface: rootCtx.registerSurface,
+    unregisterSurface: rootCtx.unregisterSurface,
   })
 
-  // --- 6. FOCUS MANAGEMENT ---
+  // ============================================================================
+  // Focus Management
+  // (Kept separate from pipeline as it requires DOM refs)
+  // ============================================================================
   const existingFocusOwnerCtx = React.useContext(FocusOwnerCtx)
   const [localOwnerId, setLocalOwnerId] = React.useState<string | null>(null)
   const localFocusOwnerValue = React.useMemo(
@@ -155,6 +139,7 @@ export function Surface<T = unknown>({
   )
   const { ownerId, setOwnerId } = existingFocusOwnerCtx || localFocusOwnerValue
 
+  // Claim focus ownership when menu opens
   React.useEffect(() => {
     if (!open && !isSubmenu) {
       setOwnerId(null)
@@ -171,6 +156,7 @@ export function Surface<T = unknown>({
     }
   }, [open, ownerId, surfaceId, surfaceRefs, setOwnerId, isSubmenu])
 
+  // Re-focus when becoming owner
   const isOwner = ownerId === surfaceId
   React.useEffect(() => {
     if (!open || !isOwner || !surfaceRefs) {
@@ -191,7 +177,9 @@ export function Surface<T = unknown>({
     return () => cancelAnimationFrame(id)
   }, [open, isOwner, surfaceRefs])
 
-  // --- 7. INTERACTION HANDLERS ---
+  // ============================================================================
+  // Interaction Handlers
+  // ============================================================================
   const handleMouseMove = React.useCallback(
     (e: React.MouseEvent) => {
       const rect = contentRef?.current
@@ -205,71 +193,7 @@ export function Surface<T = unknown>({
     [contentRef, surfaceId, setOwnerId, ownerId],
   )
 
-  // handleKeyDown moved to Popup component where it can access SurfaceProvider context
-
-  // Surface registration
-  React.useEffect(() => {
-    if (!open) return
-    const depth = isSubmenu ? 1 : 0 // TODO: cleaner depth tracking
-    rootCtx.registerSurface(surfaceId, depth)
-    return () => {
-      rootCtx.unregisterSurface(surfaceId)
-    }
-  }, [rootCtx, surfaceId, isSubmenu, open])
-
-  // --- 7a. SYNC TO GLOBAL STORE ---
-  // Get store actions for syncing surface state
-  const storeActions = usePopupMenuActions()
-
-  // Sync menu and display nodes to the global store when they change
-  React.useEffect(() => {
-    if (!open) return
-    storeActions.setSurfaceMenu(surfaceId, orchestratedMenu as any)
-  }, [storeActions, surfaceId, orchestratedMenu, open])
-
-  React.useEffect(() => {
-    if (!open) return
-    storeActions.setSurfaceDisplayNodes(surfaceId, displayNodes as any)
-  }, [storeActions, surfaceId, displayNodes, open])
-
-  React.useEffect(() => {
-    if (!open) return
-    storeActions.setSurfaceQuery(surfaceId, query)
-  }, [storeActions, surfaceId, query, open])
-
-  React.useEffect(() => {
-    if (!open) return
-    storeActions.setSurfaceInputActive(surfaceId, inputActive)
-  }, [storeActions, surfaceId, inputActive, open])
-
-  // Sync loading state
-  React.useEffect(() => {
-    if (!open) return
-    const loadingState = orchestratedMenu.loadingState
-    if (loadingState) {
-      // Check if loading is active (isLoading flag or streaming mode)
-      const isLoading = loadingState.isLoading ?? false
-      storeActions.setSurfaceLoading(surfaceId, isLoading)
-      if (loadingState.error) {
-        storeActions.setSurfaceError(surfaceId, loadingState.error)
-      }
-    }
-  }, [storeActions, surfaceId, orchestratedMenu.loadingState, open])
-
-  // Close listener
-  React.useEffect(() => {
-    const handle = () => {
-      if (subCtx) {
-        subCtx.onOpenChange(false)
-      }
-    }
-    document.addEventListener('popupmenu-close', handle, true)
-    return () => {
-      document.removeEventListener('popupmenu-close', handle, true)
-    }
-  }, [subCtx?.onOpenChange])
-
-  // Type start handler
+  // Type start handler for hideSearchUntilActive
   const handleTypeStart = React.useCallback(
     (seed: string) => {
       if (!inputActive && ownerId === surfaceId) {
@@ -295,10 +219,22 @@ export function Surface<T = unknown>({
     [inputActive, ownerId, surfaceId, setInputActive, setQuery, surfaceRefs],
   )
 
-  // --- 8. BINDINGS ---
-  // Binding creation moved to Popup component where it can access SurfaceProvider context
+  // Close listener for submenus
+  React.useEffect(() => {
+    const handle = () => {
+      if (subCtx) {
+        subCtx.onOpenChange(false)
+      }
+    }
+    document.addEventListener('popupmenu-close', handle, true)
+    return () => {
+      document.removeEventListener('popupmenu-close', handle, true)
+    }
+  }, [subCtx?.onOpenChange])
 
-  // --- 9. COMPONENTS ---
+  // ============================================================================
+  // Render Components
+  // ============================================================================
   const Header = slots.Header ? (
     <div data-slot="popup-menu-header" {...(slotProps?.header as any)}>
       {slots.Header({
@@ -322,7 +258,9 @@ export function Surface<T = unknown>({
     </div>
   ) : null
 
-  // --- 10. RENDER ---
+  // ============================================================================
+  // Render
+  // ============================================================================
   // Check for custom render function (escape hatch)
   const customRender = (menu as any).render || (orchestratedMenu as any).render
 

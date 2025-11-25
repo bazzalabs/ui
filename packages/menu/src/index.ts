@@ -5,6 +5,10 @@ export * from './control.js'
 
 // Hooks
 export * from './hooks/index.js'
+
+// Pipeline (composable menu state management)
+export * from './pipeline/index.js'
+
 export * from './primitives/default-slots.js'
 // UI Primitives
 export * from './primitives/index.js'
