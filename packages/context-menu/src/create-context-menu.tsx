@@ -49,6 +49,8 @@ export interface ContextMenuOptions<T = unknown>
   debug?: boolean
   /** Placeholder for search input */
   placeholder?: string
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
   /** Theme overrides at instance level */
   slots?: PopupMenuThemeDef<T>['slots']
   slotProps?: PopupMenuThemeDef<T>['slotProps']
@@ -87,6 +89,7 @@ export function createContextMenu<T = unknown>(
       children,
       placeholder = 'Search...',
       debug = false,
+      trackAnchor,
       slots,
       slotProps,
       classNames,
@@ -159,6 +162,7 @@ export function createContextMenu<T = unknown>(
               menu={menu as PopupMenuDef<T>}
               placeholder={placeholder}
               debug={debug}
+              trackAnchor={trackAnchor}
               defaults={mergedDefaults}
             />
           </ContextMenuRoot>

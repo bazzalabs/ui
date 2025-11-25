@@ -10,6 +10,8 @@ export interface ContextMenuContentProps<T = unknown> {
   placeholder?: string
   /** Whether to show debug visuals */
   debug?: boolean
+  /** Whether the popup should track the anchor element's position (default: true) */
+  trackAnchor?: boolean
   /** Default configurations for menu behavior */
   defaults?: Partial<MenuNodeDefaults<T>>
 }
@@ -22,6 +24,7 @@ export function ContextMenuContent<T = unknown>({
   menu: menuProp,
   placeholder,
   debug = false,
+  trackAnchor,
   defaults,
 }: ContextMenuContentProps<T>) {
   const { open, closeAllSurfaces, anchorPoint, control } = useRootContext<T>()
@@ -80,6 +83,7 @@ export function ContextMenuContent<T = unknown>({
         side="bottom"
         align="start"
         sideOffset={4}
+        trackAnchor={trackAnchor}
         anchor={virtualAnchor}
       >
         <Surface

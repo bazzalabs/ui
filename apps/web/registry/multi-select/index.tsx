@@ -1,0 +1,318 @@
+import { renderIcon } from '@bazza-ui/menu'
+import { createMultiSelect } from '@bazza-ui/select'
+import { Fragment, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
+
+declare module '@bazza-ui/select' {
+  interface ItemExtendedProperties {
+    description?: string
+  }
+}
+
+export const MultiSelect = createMultiSelect({
+  defaults: {
+    virtualization: {
+      enabled: true,
+    },
+  },
+  slots: {
+    Trigger: ({ bind, children }) => {
+      const props = bind.getTriggerProps({
+        className: 'w-fit font-normal',
+      })
+
+      return (
+        <Button {...props} variant="outline">
+          {children}
+        </Button>
+      )
+    },
+    Value: ({ nodes, values, placeholder }) => {
+      const nodesSlice = nodes?.slice(0, 3)
+
+      const text =
+        !values || values.length === 0
+          ? placeholder
+          : values.length === 1
+            ? nodes![0]?.label
+            : `${values.length} selected`
+
+      return (
+        <div
+          className={cn(
+            'flex items-center gap-2 font-normal',
+            !values || (values.length === 0 && 'text-muted-foreground'),
+          )}
+        >
+          <div className="h-4 flex items-center gap-1">
+            {nodesSlice?.map(
+              (node) =>
+                node.icon && (
+                  <Fragment key={node.id}>
+                    {renderIcon(
+                      node.icon,
+                      'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary not-first:ml-[-7px] border box-content border-background',
+                    )}
+                  </Fragment>
+                ),
+            )}
+          </div>
+          {text}
+        </div>
+      )
+    },
+    Item: ({ node, bind, search }) => {
+      const props = bind.getRowProps({
+        className: cn('group/row', node.description && 'gap-3'),
+      })
+
+      const isCheckboxItem = node.variant === 'checkbox'
+
+      return (
+        <li {...props}>
+          {isCheckboxItem && (
+            <Checkbox
+              checked={Boolean(node.checked)}
+              className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]/row:opacity-100 dark:border-ring shrink-0"
+            />
+          )}
+
+          {node.icon && (
+            <div className="min-h-4 min-w-4 size-4 flex items-center justify-center">
+              {renderIcon(
+                node.icon,
+                'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
+              )}
+            </div>
+          )}
+          <div className="flex flex-col min-w-0">
+            <LabelWithBreadcrumbs
+              label={node.label ?? ''}
+              breadcrumbs={search?.breadcrumbs}
+            />
+            {node.description && (
+              <span className="text-muted-foreground text-xs truncate">
+                {node.description}
+              </span>
+            )}
+          </div>
+        </li>
+      )
+    },
+    GroupHeading: ({ node, bind }) => (
+      <div {...bind.getGroupHeadingProps()}>
+        <span>{node.heading}</span>
+      </div>
+    ),
+    InlineLoading: (args) => {
+      const count = args.progress?.reduce((acc, progress) => {
+        return progress.isLoading ? acc : acc + 1
+      }, 0)
+      const total = args.progress?.length ?? 0
+
+      return (
+        <div className="flex items-center justify-center gap-2 h-10 text-muted-foreground">
+          <DiamondSpinner className="size-5 text-primary rotate-45" />
+          <span className="tabular-nums">
+            Loading {total > 0 ? `${count}/${total}` : ''}...
+          </span>
+        </div>
+      )
+    },
+    Loading: (args) => {
+      const count = args.progress?.reduce((acc, progress) => {
+        return progress.isLoading ? acc : acc + 1
+      }, 0)
+      const total = args.progress?.length ?? 0
+
+      return (
+        <div className="flex items-center justify-center gap-2 h-12 text-muted-foreground">
+          <DiamondSpinner className="size-5 text-primary rotate-45" />
+          <span className="tabular-nums">
+            Loading {total > 0 ? `${count}/${total}` : ''}...
+          </span>
+        </div>
+      )
+    },
+    Empty: ({ query }) =>
+      query ? (
+        <div className="flex items-center justify-center h-10 text-muted-foreground">
+          No matching options.
+        </div>
+      ) : null,
+    Separator: () => {
+      return <Separator orientation="horizontal" className="my-1" />
+    },
+  },
+  slotProps: {
+    positioner: {
+      root: { sideOffset: 8, side: 'bottom', alignOffset: -4 },
+    },
+  },
+  classNames: {
+    positioner: cn('z-50'),
+    content: cn(
+      'border bg-popover z-50 rounded-lg flex flex-col text-sm',
+      'drop-shadow-xl',
+      'data-[root-menu]:data-[open]:animate-in data-[root-menu]:data-[open]:fade-in-0 data-[root-menu]:data-[open]:zoom-in-95',
+      'data-[root-menu]:data-[closed]:animate-out data-[root-menu]:data-[closed]:fade-out-0 data-[root-menu]:data-[closed]:zoom-out-95',
+      'data-[root-menu]:data-[open]:origin-(--transform-origin) data-[root-menu]:data-[closed]:origin-(--transform-origin)',
+      'data-[root-menu]:data-[open]:transition-[filter,scale,opacity] data-[root-menu]:data-[open]:duration-150 data-[root-menu]:data-[open]:ease-out',
+      'data-[root-menu]:data-[closed]:transition-[filter,scale,opacity] data-[root-menu]:data-[closed]:duration-150 data-[root-menu]:data-[closed]:ease-out',
+      'w-[min(400px,max(var(--row-width),175px))]',
+      'max-h-[min(500px,var(--action-menu-available-height))]',
+      'box-content',
+    ),
+    list: cn(
+      'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
+      '[-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
+      'w-full flex-1',
+      'py-1',
+    ),
+    input: cn(
+      'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-9 max-h-9 px-4 border-b',
+      'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+      'caret-blue-500',
+      'w-full',
+    ),
+    groupHeading: cn(
+      'mt-3 data-[index=0]:mt-1 mb-2',
+      'text-xs font-medium text-muted-foreground px-3',
+    ),
+    item: cn(
+      'group flex items-center gap-2 text-sm select-none aria-disabled:opacity-50',
+      'data-[focused=true]:not-disabled:text-accent-foreground',
+      'py-1.5 px-4',
+      'w-full relative z-1',
+      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full data-[focused=true]:not-disabled:before:bg-accent before:rounded-md before:z-[-1]',
+    ),
+    separator: cn('h-px bg-border my-1 mx-2'),
+  },
+})
+
+const diamondCoords = [
+  { x: 3, y: 48 },
+  { x: 18, y: 33 },
+  { x: 18, y: 48 },
+  { x: 18, y: 63 },
+  { x: 33, y: 48 },
+  { x: 33, y: 18 },
+  { x: 33, y: 33 },
+  { x: 33, y: 63 },
+  { x: 33, y: 78 },
+  { x: 48, y: 3 },
+  { x: 48, y: 18 },
+  { x: 48, y: 33 },
+  { x: 48, y: 48 },
+  { x: 48, y: 63 },
+  { x: 48, y: 78 },
+  { x: 48, y: 93 },
+  { x: 63, y: 18 },
+  { x: 63, y: 33 },
+  { x: 63, y: 48 },
+  { x: 63, y: 63 },
+  { x: 63, y: 78 },
+  { x: 78, y: 33 },
+  { x: 78, y: 48 },
+  { x: 78, y: 63 },
+  { x: 93, y: 48 },
+] as const
+
+export const DiamondSpinner = ({
+  className,
+  ...props
+}: React.SVGProps<SVGSVGElement>) => {
+  const getRectProps = useCallback(
+    (size: number, coord: { x: number; y: number }) => {
+      return {
+        x: coord.x - size / 2,
+        y: coord.y - size / 2,
+        width: size,
+        height: size,
+      }
+    },
+    [],
+  )
+
+  return (
+    <svg
+      className={cn('fill-current size-6', className)}
+      viewBox="0 0 96 96"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <style>
+        {`
+          @keyframes diamond-spin {
+            25% { transform: translate(30px, -30px); }
+            50% { transform: translate(60px, 0px); }
+            75% { transform: translate(30px, 30px); }
+          }
+        `}
+      </style>
+      {/* Background squares */}
+      {diamondCoords.map((c) => (
+        <rect
+          key={`bg-${c.x}-${c.y}`}
+          className="fill-current/30"
+          {...getRectProps(7, c)}
+        />
+      ))}
+      {/* Animated squares */}
+      <g style={{ animation: 'diamond-spin 1.4s steps(2, end) infinite' }}>
+        {diamondCoords.slice(0, 5).map((c) => (
+          <rect key={`fg-${c.x}-${c.y}`} {...getRectProps(9, c)} />
+        ))}
+      </g>
+    </svg>
+  )
+}
+
+export const LabelWithBreadcrumbs = ({
+  label,
+  breadcrumbs,
+  classNames,
+}: {
+  label: React.ReactNode
+  breadcrumbs?: string[]
+  classNames?: {
+    label?: string
+    breadcrumb?: string
+    separator?: string
+  }
+}) => (
+  <div className="flex items-center gap-1 truncate">
+    {breadcrumbs?.map((crumb, idx) => (
+      <Fragment key={`${idx}-${crumb}`}>
+        <span
+          className={cn(
+            'text-muted-foreground truncate',
+            classNames?.breadcrumb,
+          )}
+        >
+          {crumb}
+        </span>
+        <span
+          className={cn(
+            'text-muted-foreground/75 shrink-0',
+            classNames?.separator,
+          )}
+        >
+          ›
+        </span>
+      </Fragment>
+    ))}
+    <span
+      className={cn(
+        'truncate',
+        'text-primary/90 group-data-[focused=true]/row:text-primary',
+        classNames?.label,
+      )}
+    >
+      {label}
+    </span>
+  </div>
+)

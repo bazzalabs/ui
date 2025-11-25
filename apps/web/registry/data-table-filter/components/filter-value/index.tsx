@@ -269,6 +269,7 @@ function __FilterValue<TData, TType extends ColumnDataType>({
 
         setOpen(value)
       }}
+      trackAnchor={false}
     >
       <Button
         data-slot="filter-value"

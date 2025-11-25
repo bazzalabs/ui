@@ -33,6 +33,34 @@
       ]
     },
     {
+      "name": "select",
+      "title": "Select",
+      "description": "A form-compatible select component with search, virtualization, and proper accessibility.",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/select", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/select/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/select.tsx"
+        }
+      ]
+    },
+    {
+      "name": "multi-select",
+      "title": "Multi-Select",
+      "description": "A form-compatible multi-select component with checkboxes and value constraints.",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/select", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/multi-select/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/multi-select.tsx"
+        }
+      ]
+    },
+    {
       "name": "data-table-filter",
       "title": "Data table filter",
       "description": "A powerful data table filter component inspired by Linear.",
