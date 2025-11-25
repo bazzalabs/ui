@@ -6,8 +6,15 @@ import {
 } from '@bazza-ui/popup-menu'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
+import type { StoreApi } from 'zustand'
 import type { SelectControl } from '../control.js'
 import { RootContextProvider } from '../contexts/root-context.js'
+import {
+  createMultiSelectStore,
+  createSelectStore,
+  SelectMenuStoreProvider,
+  type SelectMenuStore,
+} from '../store/index.js'
 import type { SelectMenuDef } from '../types.js'
 
 const SELECT_EVENTS = {
@@ -115,6 +122,21 @@ export function SelectRoot<T = unknown>({
   const triggerRef = React.useRef<HTMLElement>(null)
   const scopeId = React.useId()
 
+  // Create the global store for this select instance
+  const storeRef = React.useRef<StoreApi<SelectMenuStore<T>> | null>(null)
+  if (!storeRef.current) {
+    storeRef.current = multiple
+      ? createMultiSelectStore<T>({
+          scopeId,
+          defaultValues: defaultValues ?? [],
+        })
+      : createSelectStore<T>({
+          scopeId,
+          defaultValue: defaultValue ?? '',
+        })
+  }
+  const store = storeRef.current
+
   // Event bus for control
   const eventBus = React.useRef(new EventBus())
 
@@ -201,6 +223,23 @@ export function SelectRoot<T = unknown>({
     return () => eventBus.current.clear()
   }, [])
 
+  // Sync state to store
+  React.useEffect(() => {
+    store.getState().setOpen(open ?? false)
+  }, [open, store])
+
+  React.useEffect(() => {
+    if (multiple) {
+      store.getState().setValues(selectedValues ?? [])
+    } else {
+      store.getState().setValue(selectedValue)
+    }
+  }, [store, multiple, selectedValue, selectedValues])
+
+  React.useEffect(() => {
+    store.getState().setDisabled(controlState.disabled || disabled)
+  }, [store, controlState.disabled, disabled])
+
   const rootValue = React.useMemo(
     () => ({
       scopeId,
@@ -256,17 +295,19 @@ export function SelectRoot<T = unknown>({
   )
 
   return (
-    <RootContextProvider value={rootValue}>
-      <Popover.Root open={open} onOpenChange={setOpen} modal={modal}>
-        <RootProvider
-          scopeId={scopeId}
-          onClose={closeAllSurfaces}
-          interactionGuardOptions={rootValue.interactionGuardOptions}
-          defaults={defaults as any}
-        >
-          {children}
-        </RootProvider>
-      </Popover.Root>
-    </RootContextProvider>
+    <SelectMenuStoreProvider store={store}>
+      <RootContextProvider value={rootValue}>
+        <Popover.Root open={open} onOpenChange={setOpen} modal={modal}>
+          <RootProvider
+            scopeId={scopeId}
+            onClose={closeAllSurfaces}
+            interactionGuardOptions={rootValue.interactionGuardOptions}
+            defaults={defaults as any}
+          >
+            {children}
+          </RootProvider>
+        </Popover.Root>
+      </RootContextProvider>
+    </SelectMenuStoreProvider>
   )
 }

@@ -55,8 +55,8 @@ export type MenuSurfaceSlice<
   // Node State
   // ─────────────────────────────────────────────────────────────────
 
-  /** Original menu definition */
-  menuDef: TMenuDef
+  /** Original menu definition (may be undefined until set by Surface) */
+  menuDef: TMenuDef | undefined
   /** Instantiated menu with runtime nodes */
   menu: TMenu | null
   /** Nodes after search/filter */
@@ -128,7 +128,7 @@ export type BaseMenuStoreActions<
   // Surface lifecycle
   registerSurface: (
     id: string,
-    opts: { depth: number; parentId: string | null; menuDef: TMenuDef },
+    opts: { depth: number; parentId?: string | null; menuDef?: TMenuDef },
   ) => void
   unregisterSurface: (id: string) => void
 

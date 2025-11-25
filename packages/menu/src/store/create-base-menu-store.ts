@@ -117,7 +117,7 @@ export function createBaseMenuStore<
             const surface: Surface = {
               id,
               depth: opts.depth,
-              parentId: opts.parentId,
+              parentId: opts.parentId ?? null,
               open: opts.depth === 0, // Root starts open when menu opens
               query: '',
               activeId: null,

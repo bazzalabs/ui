@@ -104,7 +104,7 @@ export function createPopupMenuStore<TData = unknown>(
             const surface: Surface = {
               id,
               depth: opts.depth,
-              parentId: opts.parentId,
+              parentId: opts.parentId ?? null,
               open: opts.depth === 0,
               query: '',
               activeId: null,

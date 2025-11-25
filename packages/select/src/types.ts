@@ -83,10 +83,10 @@ export interface SelectValueSlotArgs<TData = unknown> {
   multiple: boolean
   /** Placeholder text when nothing is selected */
   placeholder: string
-  /** The selected node (single select) - provides access to icon, label, data, etc. */
-  node?: ItemNode<TData>
-  /** The selected nodes (multi select) - provides access to icon, label, data, etc. */
-  nodes?: ItemNode<TData>[]
+  /** The selected node (single select) - provides access to icon, label, data, etc. Can be ItemNode (runtime) or ItemDef (definition) */
+  node?: ItemNode<TData> | ItemDef<TData>
+  /** The selected nodes (multi select) - provides access to icon, label, data, etc. Can be ItemNode (runtime) or ItemDef (definition) */
+  nodes?: (ItemNode<TData> | ItemDef<TData>)[]
 }
 
 /**

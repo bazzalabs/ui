@@ -2,6 +2,7 @@ import { EventBus, normalizeMenuDef } from '@bazza-ui/menu'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import * as React from 'react'
+import type { StoreApi } from 'zustand'
 import type { CommandMenuControl } from '../control.js'
 import {
   type CommandMenuContextValue,
@@ -9,6 +10,11 @@ import {
 } from '../context.js'
 import { COMMAND_MENU_EVENTS } from '../events.js'
 import { useNavigation } from '../hooks/use-navigation.js'
+import {
+  CommandMenuStoreProvider,
+  createCommandMenuStore,
+  type CommandMenuStore,
+} from '../store/index.js'
 import type { CommandMenuProps } from '../types.js'
 
 export function CommandMenuRoot<T = unknown>({
@@ -24,8 +30,31 @@ export function CommandMenuRoot<T = unknown>({
   controlRef,
   children,
 }: CommandMenuProps<T>) {
+  // Generate scope ID for this menu instance
+  const scopeId = React.useMemo(
+    () => `command-menu-${Math.random().toString(36).slice(2, 9)}`,
+    [],
+  )
+
+  // Create the global store for this menu tree
+  const storeRef = React.useRef<StoreApi<CommandMenuStore<T>> | null>(null)
+  if (!storeRef.current) {
+    storeRef.current = createCommandMenuStore<T>({
+      scopeId,
+      dir,
+      vimBindings,
+      showBreadcrumbs,
+    })
+  }
+  const store = storeRef.current
+
   // Normalize the menu to inject inferred IDs into all nodes
   const menu = React.useMemo(() => normalizeMenuDef(menuProp), [menuProp])
+
+  // Set root menu def in store when menu changes
+  React.useEffect(() => {
+    store.getState().setRootMenuDef(menu as any)
+  }, [menu, store])
 
   // Controlled/uncontrolled open state
   const [open, setOpen] = useControllableState({
@@ -169,9 +198,33 @@ export function CommandMenuRoot<T = unknown>({
     ],
   )
 
+  // Sync open state to store
+  React.useEffect(() => {
+    store.getState().setOpen(open ?? false)
+  }, [open, store])
+
+  // Sync navigation stack to store
+  React.useEffect(() => {
+    const state = store.getState()
+    // Only sync if stack has changed (to avoid loops)
+    if (
+      JSON.stringify(navigationStack) !== JSON.stringify(state.navigation.stack)
+    ) {
+      // Clear and rebuild the stack by pushing each entry
+      state.clearNavigationStack()
+      for (const entry of navigationStack) {
+        state.pushSubmenu(entry)
+      }
+    }
+  }, [navigationStack, store])
+
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <CommandMenuProvider value={contextValue}>{children}</CommandMenuProvider>
+      <CommandMenuStoreProvider store={store as any}>
+        <CommandMenuProvider value={contextValue}>
+          {children}
+        </CommandMenuProvider>
+      </CommandMenuStoreProvider>
     </Dialog.Root>
   )
 }

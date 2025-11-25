@@ -16,6 +16,7 @@ import { KeyboardCtx } from '../../contexts/keyboard-context.js'
 import { useRoot } from '../../contexts/root-context.js'
 import { useScopedTheme } from '../../contexts/theme-context.js'
 import { HoverPolicyProvider } from '../../features/hover-policy/hover-policy-context.js'
+import { usePopupMenuActions } from '../../store/index.js'
 import type {
   PopupMenuDef,
   PopupMenuSlots,
@@ -214,6 +215,45 @@ export function Surface<T = unknown>({
     }
   }, [rootCtx, surfaceId, isSubmenu, open])
 
+  // --- 7a. SYNC TO GLOBAL STORE ---
+  // Get store actions for syncing surface state
+  const storeActions = usePopupMenuActions()
+
+  // Sync menu and display nodes to the global store when they change
+  React.useEffect(() => {
+    if (!open) return
+    storeActions.setSurfaceMenu(surfaceId, orchestratedMenu as any)
+  }, [storeActions, surfaceId, orchestratedMenu, open])
+
+  React.useEffect(() => {
+    if (!open) return
+    storeActions.setSurfaceDisplayNodes(surfaceId, displayNodes as any)
+  }, [storeActions, surfaceId, displayNodes, open])
+
+  React.useEffect(() => {
+    if (!open) return
+    storeActions.setSurfaceQuery(surfaceId, query)
+  }, [storeActions, surfaceId, query, open])
+
+  React.useEffect(() => {
+    if (!open) return
+    storeActions.setSurfaceInputActive(surfaceId, inputActive)
+  }, [storeActions, surfaceId, inputActive, open])
+
+  // Sync loading state
+  React.useEffect(() => {
+    if (!open) return
+    const loadingState = orchestratedMenu.loadingState
+    if (loadingState) {
+      // Check if loading is active (isLoading flag or streaming mode)
+      const isLoading = loadingState.isLoading ?? false
+      storeActions.setSurfaceLoading(surfaceId, isLoading)
+      if (loadingState.error) {
+        storeActions.setSurfaceError(surfaceId, loadingState.error)
+      }
+    }
+  }, [storeActions, surfaceId, orchestratedMenu.loadingState, open])
+
   // Close listener
   React.useEffect(() => {
     const handle = () => {
@@ -288,7 +328,7 @@ export function Surface<T = unknown>({
   const content = customRender ? (
     // Custom render mode - bypass Popup wrapper, render directly in SurfaceProvider
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-      <HoverPolicyProvider>
+      <HoverPolicyProvider surfaceId={surfaceId}>
         <SurfaceProvider
           store={store as any}
           menu={orchestratedMenu as any}
@@ -315,7 +355,7 @@ export function Surface<T = unknown>({
   ) : (
     // Standard render mode
     <KeyboardCtx.Provider value={{ dir, vimBindings }}>
-      <HoverPolicyProvider>
+      <HoverPolicyProvider surfaceId={surfaceId}>
         <SurfaceProvider
           store={store as any}
           menu={orchestratedMenu as any}

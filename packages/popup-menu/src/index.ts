@@ -171,5 +171,23 @@ export type {
   PopupMenuStore,
   CreatePopupMenuStoreOptions,
   AimGuardState,
+  PopupMenuStoreProviderProps,
 } from './store/index.js'
-export { createPopupMenuStore } from './store/index.js'
+export {
+  createPopupMenuStore,
+  // Store context and hooks
+  PopupMenuStoreProvider,
+  usePopupMenuStoreApi,
+  usePopupMenuStore,
+  usePopupMenuActions,
+  // Selectors
+  selectOpen,
+  selectDisabled,
+  selectScopeId,
+  selectFocusOwnerId,
+  selectAimGuard,
+  createSurfaceSelector,
+  createSurfaceActiveIdSelector,
+  createSurfaceQuerySelector,
+  createSurfaceHoverSelector,
+} from './store/index.js'
