@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/theming",
-  "version": "0.0.1",
+  "version": "0.1.0-canary.0",
   "private": false,
   "publishConfig": {
     "access": "public"
