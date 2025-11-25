@@ -130,14 +130,6 @@ export function useLayerEffects<T = unknown>(
         (n.kind === 'item' || n.kind === 'submenu') && !(n as any).disabled,
     )
 
-    console.log('🔍 [LayerEffects] Setting initial active ID:', {
-      surfaceId,
-      visible,
-      hasSet: hasSetInitialActiveIdRef.current,
-      validRowsLength: validRows.length,
-      firstRowId: validRows[0]?.id,
-    })
-
     if (validRows.length > 0) {
       hasSetInitialActiveIdRef.current = true
       storeActions.setSurfaceActiveId(surfaceId, validRows[0]!.id, 'keyboard')

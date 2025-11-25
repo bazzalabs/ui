@@ -94,14 +94,6 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
   const { vimBindings, dir, popSubmenu, isInSubmenu, onOpenChange, control } =
     useCommandMenuContext()
 
-  // DEBUG
-  console.log(
-    '🔍 [ListRendererContent] displayNodes:',
-    displayNodes?.length,
-    displayNodes,
-  )
-  console.log('🔍 [ListRendererContent] menu:', menu?.id, menu?.nodes?.length)
-
   const slots = React.useMemo(
     () => ({ ...defaultSlots(), ...customSlots }),
     [customSlots],
@@ -134,17 +126,9 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     const queryChanged = prevQueryRef.current !== query
     prevQueryRef.current = query
 
-    console.log('🔍 [ActiveID Effect]', {
-      query,
-      queryChanged,
-      validRowIds,
-      firstRowId: validRowIds[0],
-    })
-
     if (queryChanged) {
       // Query changed - always reset to first item
       if (validRowIds.length > 0) {
-        console.log('🔍 [ActiveID] Setting to first item:', validRowIds[0])
         storeActions.setSurfaceActiveId(
           surfaceId,
           validRowIds[0] ?? null,
@@ -158,16 +142,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
       const isActiveIdValid =
         activeId !== null && validRowIds.includes(activeId)
 
-      console.log('🔍 [ActiveID] No query change, checking validity:', {
-        activeId,
-        isActiveIdValid,
-      })
-
       if (validRowIds.length > 0 && !isActiveIdValid) {
-        console.log(
-          '🔍 [ActiveID] Invalid activeId, setting to first:',
-          validRowIds[0],
-        )
         storeActions.setSurfaceActiveId(
           surfaceId,
           validRowIds[0] ?? null,
@@ -188,15 +163,6 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
 
   const virtualItems = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
-
-  // DEBUG
-  console.log('🔍 [ListRendererContent] virtualizer:', {
-    count: displayNodes.length,
-    virtualItemsLength: virtualItems.length,
-    totalSize,
-    scrollElement: surfaceRefs?.listRef.current,
-    surfaceRefs,
-  })
 
   // Handle item selection
   const handleItemSelect = React.useCallback(

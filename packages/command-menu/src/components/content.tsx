@@ -83,14 +83,6 @@ function CommandMenuContentLayer<T>({
 
   const { menu, displayNodes } = pipeline
 
-  // DEBUG
-  console.log('🔍 [CommandMenuContentLayer] pipeline result:', {
-    menuId: menu?.id,
-    menuNodesLength: menu?.nodes?.length,
-    displayNodesLength: displayNodes?.length,
-    displayNodes,
-  })
-
   // ============================================================================
   // Layer Effects: Sync Pipeline State to Global Store
   // ============================================================================
@@ -134,13 +126,6 @@ function CommandMenuContentLayer<T>({
             nodes: undefined, // Clear injected nodes - they'll be loaded fresh
           }
         : submenu
-
-      console.log('🚀 [handleSubmenuSelect] Pushing submenu:', {
-        submenuId,
-        loaderType: typeof submenuToUse.loader,
-        hasNodes: !!submenuToUse.nodes,
-        nodeCount: submenuToUse.nodes?.length,
-      })
 
       pushSubmenu({
         menuId: submenuId,
@@ -327,13 +312,6 @@ export function CommandMenuContent<T = unknown>({
     () => buildMenuStack(rootMenu, navigationStack),
     [rootMenu, navigationStack],
   )
-
-  // DEBUG
-  console.log('🔍 [CommandMenuContent] rootMenu:', {
-    id: rootMenu?.id,
-    nodesLength: rootMenu?.nodes?.length,
-    nodes: rootMenu?.nodes,
-  })
 
   // Get title from navigation stack (if in submenu) or from current menu
   const dialogTitle = React.useMemo(() => {
