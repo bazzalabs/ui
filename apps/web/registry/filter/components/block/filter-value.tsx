@@ -10,7 +10,22 @@ import type {
   FilterStrategy,
   Locale,
 } from '@bazza-ui/filters'
-import { take } from '@bazza-ui/filters'
+import {
+  isBooleanColumn,
+  isBooleanFilter,
+  isDateColumn,
+  isDateFilter,
+  isMultiOptionColumn,
+  isMultiOptionFilter,
+  isNumberColumn,
+  isNumberFilter,
+  isOptionBasedColumn,
+  isOptionColumn,
+  isOptionFilter,
+  isTextColumn,
+  isTextFilter,
+  take,
+} from '@bazza-ui/filters'
 import { cva } from 'class-variance-authority'
 import { format } from 'date-fns'
 import { Ellipsis } from 'lucide-react'
@@ -99,31 +114,37 @@ function createMenuWithSeparator(
   } satisfies MenuDef<ColumnOptionExtended>
 }
 
-// Helper function to create controller menu for date/number types
-function createControllerMenu(
-  type: 'date' | 'number',
-  filter: any,
-  column: any,
-  actions: any,
-  strategy: any,
-  locale: any,
+// Helper function to create controller menu for date types
+function createDateControllerMenu<TData>(
+  filter: FilterModel<'date'>,
+  column: Column<TData, 'date'>,
+  actions: DataTableFilterActions,
+  strategy: FilterStrategy,
+  locale: Locale,
 ): MenuDef {
-  if (type === 'date') {
-    return {
-      id: `filter-value-${column.id}`,
-      nodes: [],
-      render: () => (
-        <FilterValueDateController
-          filter={filter}
-          column={column}
-          actions={actions}
-          strategy={strategy}
-          locale={locale}
-        />
-      ),
-    }
+  return {
+    id: `filter-value-${column.id}`,
+    nodes: [],
+    render: () => (
+      <FilterValueDateController
+        filter={filter}
+        column={column}
+        actions={actions}
+        strategy={strategy}
+        locale={locale}
+      />
+    ),
   }
+}
 
+// Helper function to create controller menu for number types
+function createNumberControllerMenu<TData>(
+  filter: FilterModel<'number'>,
+  column: Column<TData, 'number'>,
+  actions: DataTableFilterActions,
+  strategy: FilterStrategy,
+  locale: Locale,
+): MenuDef {
   return {
     id: `filter-value-${column.id}`,
     nodes: [],
@@ -140,9 +161,9 @@ function createControllerMenu(
 }
 
 // Helper function to determine which Item slot to use
-function getItemSlot(columnType: ColumnDataType) {
-  if (columnType === 'text') return TextItem
-  if (columnType === 'option' || columnType === 'multiOption') return OptionItem
+function getItemSlot<TData>(column: Column<TData>) {
+  if (isTextColumn(column)) return TextItem
+  if (isOptionBasedColumn(column)) return OptionItem
   return undefined
 }
 
@@ -179,7 +200,7 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
 
     // Don't open the value controller for boolean columns
     function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
-      if (column.type === 'boolean') e.preventDefault()
+      if (isBooleanColumn(column)) e.preventDefault()
     }
 
     // Used only for option/multiOption to track initial selection order
@@ -193,12 +214,12 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
       const baseId = `filter-value-${column.id}`
 
       // For text type, use the text menu creator
-      if (column.type === 'text') {
+      if (isTextColumn(column)) {
         return {
           id: baseId,
           ...(createTextMenu({
             filter: filter as FilterModel<'text'>,
-            column: column as Column<unknown, 'text'>,
+            column,
             actions,
             locale,
             strategy,
@@ -207,9 +228,9 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
       }
 
       // For option type
-      if (column.type === 'option') {
+      if (isOptionColumn(column)) {
         const { nodes } = createOptionMenu({
-          column: column as Column<unknown, 'option'>,
+          column,
           actions,
           locale,
           strategy,
@@ -225,9 +246,9 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
       }
 
       // For multiOption type
-      if (column.type === 'multiOption') {
+      if (isMultiOptionColumn(column)) {
         const { nodes } = createMultiOptionMenu({
-          column: column as Column<unknown, 'multiOption'>,
+          column,
           actions,
           locale,
           strategy,
@@ -242,26 +263,36 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
         )
       }
 
-      // For date and number types, use the controller renderer
-      if (column.type === 'date' || column.type === 'number') {
-        return createControllerMenu(
-          column.type,
-          filter as any,
-          column as any,
+      // For date type, use the controller renderer
+      if (isDateColumn(column)) {
+        return createDateControllerMenu(
+          filter as FilterModel<'date'>,
+          column,
           actions,
           strategy,
           locale,
         )
       }
 
-      if (column.type === 'boolean') {
+      // For number type, use the controller renderer
+      if (isNumberColumn(column)) {
+        return createNumberControllerMenu(
+          filter as FilterModel<'number'>,
+          column,
+          actions,
+          strategy,
+          locale,
+        )
+      }
+
+      if (isBooleanColumn(column)) {
         return null
       }
 
       return null
     }, [column, filter, actions, locale, strategy, open])
 
-    if (column.type === 'boolean') {
+    if (isBooleanColumn(column)) {
       return (
         <div
           data-slot="filter-value"
@@ -286,7 +317,7 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
     return (
       <DropdownMenu
         slots={{
-          Item: getItemSlot(column.type),
+          Item: getItemSlot(column),
         }}
         menu={menu!}
         open={open}
@@ -336,52 +367,55 @@ export function FilterValueDisplay<TData, TType extends ColumnDataType>({
   filter,
   column,
   locale = 'en',
-  entityName,
 }: FilterValueDisplayProps<TData, TType>) {
-  switch (column.type) {
-    case 'option':
-      return (
-        <FilterValueOptionDisplay
-          filter={filter as FilterModel<'option'>}
-          column={column as Column<TData, 'option'>}
-        />
-      )
-    case 'multiOption':
-      return (
-        <FilterValueMultiOptionDisplay
-          filter={filter as FilterModel<'multiOption'>}
-          column={column as Column<TData, 'multiOption'>}
-        />
-      )
-    case 'date':
-      return <FilterValueDateDisplay filter={filter as FilterModel<'date'>} />
-    case 'text':
-      return <FilterValueTextDisplay filter={filter as FilterModel<'text'>} />
-    case 'number':
-      return (
-        <FilterValueNumberDisplay
-          filter={filter as FilterModel<'number'>}
-          locale={locale}
-        />
-      )
-    case 'boolean':
-      return (
-        <FilterValueBooleanDisplay
-          filter={filter as FilterModel<'boolean'>}
-          column={column as Column<TData, 'boolean'>}
-        />
-      )
-    default:
-      return null
+  if (isOptionColumn(column) && isOptionFilter(filter)) {
+    return (
+      <FilterValueOptionDisplay
+        filter={filter}
+        column={column as Column<unknown, 'option'>}
+      />
+    )
   }
+
+  if (isMultiOptionColumn(column) && isMultiOptionFilter(filter)) {
+    return (
+      <FilterValueMultiOptionDisplay
+        filter={filter}
+        column={column as Column<unknown, 'multiOption'>}
+      />
+    )
+  }
+
+  if (isDateColumn(column) && isDateFilter(filter)) {
+    return <FilterValueDateDisplay filter={filter} />
+  }
+
+  if (isTextColumn(column) && isTextFilter(filter)) {
+    return <FilterValueTextDisplay filter={filter} />
+  }
+
+  if (isNumberColumn(column) && isNumberFilter(filter)) {
+    return <FilterValueNumberDisplay filter={filter} locale={locale} />
+  }
+
+  if (isBooleanColumn(column) && isBooleanFilter(filter)) {
+    return (
+      <FilterValueBooleanDisplay
+        filter={filter}
+        column={column as Column<unknown, 'boolean'>}
+      />
+    )
+  }
+
+  return null
 }
 
-function FilterValueOptionDisplay<TData>({
+function FilterValueOptionDisplay({
   filter,
   column,
 }: {
   filter: FilterModel<'option'>
-  column: Column<TData, 'option'>
+  column: Column<unknown, 'option'>
 }) {
   const options = useMemo(() => column.getOptions(), [column])
   const selected = options.filter((o) => filter?.values.includes(o.value))
@@ -424,12 +458,12 @@ function FilterValueOptionDisplay<TData>({
   )
 }
 
-function FilterValueMultiOptionDisplay<TData>({
+function FilterValueMultiOptionDisplay({
   filter,
   column,
 }: {
   filter: FilterModel<'multiOption'>
-  column: Column<TData, 'multiOption'>
+  column: Column<unknown, 'multiOption'>
 }) {
   const options = useMemo(() => column.getOptions(), [column])
   const selected = options.filter((o) => filter.values.includes(o.value))
@@ -543,12 +577,12 @@ function FilterValueNumberDisplay({
   return <span className="tabular-nums tracking-tight">{filter.values[0]}</span>
 }
 
-function FilterValueBooleanDisplay<TData>({
+function FilterValueBooleanDisplay({
   filter,
   column,
 }: {
   filter: FilterModel<'boolean'>
-  column: Column<TData, 'boolean'>
+  column: Column<unknown, 'boolean'>
 }) {
   if (!filter || filter.values.length === 0) return null
   return <span>{column.toggledStateName}</span>
