@@ -33,7 +33,6 @@ import {
   cloneElement,
   forwardRef,
   isValidElement,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -192,12 +191,6 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
 
     const [open, setOpen] = useState(false)
 
-    // Use ref to capture current filter value for loaders
-    const filterRef = useRef(filter)
-    useEffect(() => {
-      filterRef.current = filter
-    }, [filter])
-
     // Don't open the value controller for boolean columns
     function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
       if (isBooleanColumn(column)) e.preventDefault()
@@ -234,8 +227,7 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           actions,
           locale,
           strategy,
-          getFilter: () =>
-            filterRef.current as FilterModel<'option'> | undefined,
+          filter: filter as FilterModel<'option'>,
         })
 
         return createMenuWithSeparator(
@@ -252,8 +244,7 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           actions,
           locale,
           strategy,
-          getFilter: () =>
-            filterRef.current as FilterModel<'multiOption'> | undefined,
+          filter: filter as FilterModel<'multiOption'>,
         })
 
         return createMenuWithSeparator(

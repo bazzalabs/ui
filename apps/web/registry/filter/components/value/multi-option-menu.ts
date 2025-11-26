@@ -10,8 +10,7 @@ export type MultiOptionMenuNode = CheckboxItemDef & { id: string }
 
 export interface CreateMultiOptionMenuProps<TData>
   extends Omit<FilterValueControllerProps<TData, 'multiOption'>, 'filter'> {
-  filter?: FilterValueControllerProps<TData, 'multiOption'>['filter']
-  getFilter?: () => FilterModel<'multiOption'> | undefined
+  filter?: FilterModel<'multiOption'>
 }
 
 export interface CreateMultiOptionMenuResult {
@@ -25,14 +24,11 @@ export interface CreateMultiOptionMenuResult {
 export function createMultiOptionMenu<TData>({
   column,
   actions,
-  getFilter,
+  filter,
 }: CreateMultiOptionMenuProps<TData>): CreateMultiOptionMenuResult {
-  const currentFilter = getFilter?.()
-
   const counts = column.getFacetedUniqueValues()
   const nodes: DropdownNodeDef[] = column.getOptions().map((option) => {
-    const isCurrentlySelected =
-      currentFilter?.values.includes(option.value) ?? false
+    const isCurrentlySelected = filter?.values.includes(option.value) ?? false
 
     return {
       kind: 'item' as const,

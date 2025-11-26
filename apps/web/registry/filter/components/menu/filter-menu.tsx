@@ -22,7 +22,7 @@ import {
   isOptionColumn,
   isTextColumn,
 } from '@bazza-ui/filters'
-import { memo, useEffect, useMemo, useRef } from 'react'
+import { memo, useMemo } from 'react'
 import { DropdownMenu } from '@/registry/dropdown-menu'
 import {
   type FilterVariant,
@@ -133,12 +133,6 @@ function __FilterMenu<TData>({
   const locale = localeProp ?? context.locale ?? 'en'
   const variant = variantProp ?? contextVariant
 
-  // Use ref to capture current filters value for loaders
-  const filtersRef = useRef(filters)
-  useEffect(() => {
-    filtersRef.current = filters
-  }, [filters])
-
   const visibleColumns = useMemo(
     () => columns.filter((c) => !c.hidden),
     [columns],
@@ -210,6 +204,10 @@ function __FilterMenu<TData>({
         }
 
         if (isOptionColumn(column)) {
+          const optionFilter = filters.find(
+            (f): f is FilterModel<'option'> =>
+              f.columnId === column.id && f.type === 'option',
+          )
           return {
             kind: 'submenu',
             id: column.id,
@@ -225,16 +223,16 @@ function __FilterMenu<TData>({
               actions,
               locale,
               strategy,
-              getFilter: () =>
-                filtersRef.current.find(
-                  (f): f is FilterModel<'option'> =>
-                    f.columnId === column.id && f.type === 'option',
-                ),
+              filter: optionFilter,
             }),
           } satisfies SubmenuDef
         }
 
         if (isMultiOptionColumn(column)) {
+          const multiOptionFilter = filters.find(
+            (f): f is FilterModel<'multiOption'> =>
+              f.columnId === column.id && f.type === 'multiOption',
+          )
           return {
             kind: 'submenu',
             id: column.id,
@@ -250,11 +248,7 @@ function __FilterMenu<TData>({
               actions,
               locale,
               strategy,
-              getFilter: () =>
-                filtersRef.current.find(
-                  (f): f is FilterModel<'multiOption'> =>
-                    f.columnId === column.id && f.type === 'multiOption',
-                ),
+              filter: multiOptionFilter,
             }),
           } satisfies SubmenuDef
         }
