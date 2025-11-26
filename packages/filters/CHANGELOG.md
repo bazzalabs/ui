@@ -1,5 +1,11 @@
 # @bazza-ui/filters
 
+## 0.4.0-canary.3
+
+### Minor Changes
+
+- [#224](https://github.com/bazzalabs/ui/pull/224) [`6d2e230`](https://github.com/bazzalabs/ui/commit/6d2e2308938e445b16235c696f4d893126b2d324) Thanks [@kianbazza](https://github.com/kianbazza)! - Empty changeset -- testing versioning.
+
 ## 0.4.0-canary.2
 
 ### Minor Changes

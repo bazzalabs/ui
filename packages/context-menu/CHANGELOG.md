@@ -1,5 +1,18 @@
 # @bazza-ui/context-menu
 
+## 0.1.0-canary.2
+
+### Minor Changes
+
+- [#224](https://github.com/bazzalabs/ui/pull/224) [`6d2e230`](https://github.com/bazzalabs/ui/commit/6d2e2308938e445b16235c696f4d893126b2d324) Thanks [@kianbazza](https://github.com/kianbazza)! - Empty changeset -- testing versioning.
+
+### Patch Changes
+
+- Updated dependencies [[`6d2e230`](https://github.com/bazzalabs/ui/commit/6d2e2308938e445b16235c696f4d893126b2d324)]:
+  - @bazza-ui/popup-menu@0.1.0-canary.2
+  - @bazza-ui/theming@0.1.0-canary.2
+  - @bazza-ui/menu@0.1.0-canary.2
+
 ## 0.1.0-canary.1
 
 ### Minor Changes
