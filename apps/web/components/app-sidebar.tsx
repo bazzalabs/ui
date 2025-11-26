@@ -86,17 +86,140 @@ type ComponentItem =
 
 const componentItems: ComponentItem[] = [
   {
-    type: 'single',
-    title: 'Data Table Filter',
-    url: '/docs/data-table-filter',
+    type: 'collapsible',
+    title: 'Filters',
+    urlPrefix: '/docs/filters',
+    groups: [
+      {
+        groupName: 'Getting Started',
+        items: [
+          {
+            type: 'link',
+            title: 'Introduction',
+            url: '/docs/filters/introduction',
+          },
+          {
+            type: 'link',
+            title: 'Installation',
+            url: '/docs/filters/installation',
+          },
+          {
+            type: 'link',
+            title: 'Quick Start',
+            url: '/docs/filters/quick-start',
+          },
+        ],
+      },
+      {
+        groupName: 'Core',
+        items: [
+          {
+            type: 'link',
+            title: 'Overview',
+            url: '/docs/filters/core/overview',
+          },
+          {
+            type: 'link',
+            title: 'Anatomy',
+            url: '/docs/filters/core/anatomy',
+          },
+          {
+            type: 'collapsible',
+            title: 'Model',
+            items: [
+              {
+                type: 'link',
+                title: 'Columns',
+                url: '/docs/filters/core/model/columns',
+              },
+              {
+                type: 'link',
+                title: 'Filters',
+                url: '/docs/filters/core/model/filters',
+              },
+              {
+                type: 'link',
+                title: 'Operators',
+                url: '/docs/filters/core/model/operators',
+              },
+              {
+                type: 'link',
+                title: 'Options',
+                url: '/docs/filters/core/model/options',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        groupName: 'Features',
+        items: [
+          {
+            type: 'link',
+            title: 'Column Builder',
+            url: '/docs/filters/column-builder',
+          },
+          {
+            type: 'link',
+            title: 'Controlled State',
+            url: '/docs/filters/controlled-state',
+          },
+          {
+            type: 'link',
+            title: 'Faceted Values',
+            url: '/docs/filters/faceted-values',
+          },
+          {
+            type: 'link',
+            title: 'Internationalization',
+            url: '/docs/filters/i18n',
+          },
+        ],
+      },
+      {
+        groupName: 'Integrations',
+        items: [
+          {
+            type: 'link',
+            title: 'TanStack Table',
+            url: '/docs/filters/integrations/tanstack-table',
+          },
+          {
+            type: 'link',
+            title: 'nuqs',
+            url: '/docs/filters/integrations/nuqs',
+          },
+        ],
+      },
+      {
+        groupName: 'Components',
+        items: [
+          {
+            type: 'link',
+            title: 'Filter',
+            url: '/docs/filters/components/filter',
+          },
+          {
+            type: 'link',
+            title: 'Composable API',
+            url: '/docs/filters/components/composable-api',
+          },
+          {
+            type: 'link',
+            title: 'Styling',
+            url: '/docs/filters/components/styling',
+          },
+        ],
+      },
+    ],
   },
   {
     type: 'collapsible',
     title: 'Action Menu',
     urlPrefix: '/docs/action-menu',
-    // badge: (
-    //   <TriangleDashedIcon className="size-3.5 !text-yellow-400 stroke-3" />
-    // ),
+    badge: (
+      <TriangleDashedIcon className="size-3.5 !text-yellow-400 stroke-3" />
+    ),
     groups: [
       {
         groupName: 'Getting Started',

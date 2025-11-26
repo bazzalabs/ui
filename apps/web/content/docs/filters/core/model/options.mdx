@@ -1,0 +1,107 @@
+---
+title: Options
+section: Model
+summary: Column options for option and multi-option columns.
+---
+
+For `option` and `multiOption` columns (we'll refer to these as **option-based columns**), there exists a set of possible **options** for each column - we call these **column options**.
+
+> For example, an issues table could have a `status` column with the options "Backlog", "To Do", "In Progress", and "Done".
+
+## ColumnOption
+
+We represent each option as a `ColumnOption`:
+
+```ts
+interface ColumnOption {
+  /* The label to display for the option. */
+  label: string
+  /* The internal value of the option. */
+  value: string
+  /* An optional icon to display next to the label. */
+  icon?: React.ReactElement | React.ElementType
+  /* Occurrences of this option in the data (automatically populated). */
+  count?: number
+}
+```
+
+### Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `label` | `string` | Yes | Display text for the option. |
+| `value` | `string` | Yes | Internal value used for filtering. |
+| `icon` | `ReactElement \| ElementType` | No | Icon to display next to the label. |
+| `count` | `number` | No | Number of occurrences in the data (auto-populated from faceted data). |
+
+## Providing Options
+
+You can provide column options in two ways: **declared** and **inferred**.
+
+### Declared Options
+
+This is useful for columns that have a fixed set of options.
+
+Options can be passed:
+- At **build time** (static) via the column builder
+- At **run time** by passing them to the hook instance
+
+**Static options via builder:**
+
+```ts
+dtf
+  .option()
+  .id('status')
+  .displayName('Status')
+  .options([
+    { value: 'backlog', label: 'Backlog', icon: CircleDashedIcon },
+    { value: 'todo', label: 'Todo', icon: CircleIcon },
+    { value: 'in-progress', label: 'In Progress', icon: CircleDotIcon },
+    { value: 'done', label: 'Done', icon: CircleCheckIcon },
+  ])
+  .build()
+```
+
+**Runtime options via hook:**
+
+```ts
+const { columns, filters, actions } = useDataTableFilters({
+  strategy: 'client',
+  data: issues,
+  columnsConfig,
+  options: {
+    status: statusOptions, // ColumnOption[]
+    assignee: userOptions,
+  },
+})
+```
+
+### Inferred Options
+
+> [!IMPORTANT] Inferred options are only available for **client-side filtering**.
+> If you're using server-side filtering, you must use the **declared options** approach.
+
+This is useful when:
+- Using client-side filtering
+- Options can't be known at build time
+- You don't have a dedicated endpoint to fetch options
+
+The filter system **infers** options from the available data at runtime by extracting unique values.
+
+If values aren't already in `ColumnOption` shape, use `transformValueToOptionFn()`:
+
+```tsx
+dtf
+  .option()
+  .accessor((row) => row.assignee) // User | undefined
+  .id('assignee')
+  .displayName('Assignee')
+  .transformValueToOptionFn((user) => ({
+    value: user.id,
+    label: user.name,
+    icon: <UserAvatar user={user} />
+  }))
+  .build()
+```
+
+See [Faceted Values](/docs/filters/faceted-values) for providing option counts.

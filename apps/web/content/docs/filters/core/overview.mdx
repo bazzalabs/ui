@@ -1,0 +1,79 @@
+---
+title: Core
+section: Core
+summary: Learn about the filter system and choose the right strategy for your use case.
+---
+
+## Strategy
+
+The `FilterStrategy` decides where filtering happens: on the `client` or on the `server`.
+
+### Client Strategy
+
+With the `client` strategy, the client receives all the table data and filters it locally in the browser.
+
+**Best for:**
+- Small to medium datasets
+- When all data can be loaded at once
+- Offline-capable applications
+
+### Server Strategy
+
+With the `server` strategy, the client sends filter requests to the server. The server applies the filters to the data and sends back only the filtered data. The client never sees the entire dataset.
+
+**Best for:**
+- Large datasets
+- When data should not be exposed to the client
+- Real-time data that changes frequently
+
+## Instance
+
+We use the `useDataTableFilters()` hook to create our data table filters instance.
+
+This hook handles the logic for filtering the data (if using the `client` strategy) and updating the filters state.
+
+Think of it as the "brain" of the filters.
+
+```tsx
+import { useDataTableFilters } from '@bazza-ui/filters'
+
+const { columns, filters, actions, strategy, entityName } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [], 
+  columnsConfig,
+  entityName: 'Issue',
+})
+```
+
+### Inputs
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `strategy` | `'client' \| 'server'` | Where filtering happens. |
+| `data` | `TData[]` | The data to filter. Required for type safety even with server strategy. |
+| `columnsConfig` | `ColumnConfig[]` | Column configurations created with the builder. |
+| `entityName` | `string` | Name of the entity (e.g. "Issue"), used for boolean filter display. |
+| `defaultFilters` | `FiltersState` | Initial filter state (uncontrolled mode). |
+| `filters` | `FiltersState` | External filter state (controlled mode). |
+| `onFiltersChange` | `Dispatch<SetStateAction<FiltersState>>` | Handler for filter changes (controlled mode). |
+| `options` | `Record<string, ColumnOption[]>` | Column options for option-based columns. |
+| `faceted` | `Record<string, Map \| [number, number]>` | Faceted values for columns. |
+
+### Outputs
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `columns` | `Column[]` | Enhanced columns with methods and properties. |
+| `filters` | `FiltersState` | Current filter state. |
+| `actions` | `DataTableFilterActions` | Methods to mutate filter state. |
+| `strategy` | `FilterStrategy` | The strategy being used. |
+| `entityName` | `string` | The entity name. |
+
+You can use the instance completely independent of the `<Filter />` component, if you wish.
+
+The real magic is in the `filters` state, which is exposed to you. You can pass this around your application as you wish:
+
+- To your table library
+- To your state management library
+- To your data fetching library
+- *and so on...*

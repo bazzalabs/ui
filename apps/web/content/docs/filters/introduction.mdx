@@ -1,0 +1,48 @@
+---
+title: Filters
+section: Getting Started
+summary: A powerful data table filter system. Library-agnostic. Supports client and server-side filtering.
+badge: alpha
+---
+
+<ComponentFrame 
+  containerClassName='w-full 2xl:mx-0' 
+  previewClassName='w-full'
+>
+  <IssuesTableWrapper />
+</ComponentFrame>
+
+We've built a powerful, flexible filtering system for data tables that works with any table library.
+
+Using our headless filter engine (`@bazza-ui/filters`), you get a complete filtering solution with:
+
+- A React hook, `useDataTableFilters()`, which exposes your data table filters state.
+- A `<Filter />` component, built with [shadcn/ui](https://ui.shadcn.com) and inspired by [Linear](https://linear.app/homepage)'s design.
+- A composable API with compound components for custom filter layouts.
+- Integrations for key libraries, such as [TanStack Table](https://tanstack.com/table) and [nuqs](https://nuqs.47ng.com/).
+
+## Features
+
+- **Library-agnostic.** Works with any data table library or custom implementation.
+- **Client and server-side filtering.** Choose where filtering happens based on your needs.
+- **Multiple column types.** Support for text, number, date, boolean, option, and multi-option columns.
+- **Type-safe column builder.** Fluent API for defining column configurations with full TypeScript support.
+- **Composable UI.** Use our pre-built components or build your own with the compound component API.
+- **Internationalization.** Built-in support for multiple locales.
+
+## Architecture
+
+The filter system is distributed in two parts to keep things modular and flexible:
+
+| Package | Description |
+|---------|-------------|
+| `@bazza-ui/filters` | The headless filter engine (npm package). Handles all filtering logic, state management, and type definitions. |
+| `<Filter />` component | UI components distributed via the shadcn registry. Provides the visual filter interface. |
+
+This separation lets you use the filtering logic independently of the UI, or combine both for a complete solution.
+
+## Common Questions
+
+- **Can I use this with X library?** In theory, yes! The filter engine is library-agnostic.
+- **Can I use this with *client*-side filtering?** Yes!
+- **Can I use this with *server*-side filtering?** Yes!

@@ -1,0 +1,117 @@
+---
+title: Controlled State
+section: Features
+summary: Managing filter state externally with controlled mode.
+---
+
+The `useDataTableFilters()` hook supports both uncontrolled and controlled state management.
+
+## Uncontrolled State
+
+By default, the `filters` state is uncontrolled; it is managed internally by the instance.
+
+You can specify a default (or *initial*) value using the `defaultFilters` property:
+
+```tsx
+const { columns, filters, actions, strategy } = useDataTableFilters({
+  strategy: 'client',       
+  data: issues.data ?? [], 
+  columnsConfig,          
+  defaultFilters: [
+    {
+      columnId: 'status',
+      type: 'option',
+      operator: 'is',
+      values: ['backlog'],
+    },
+  ],
+})
+```
+
+## Controlled State
+
+If you want to use controlled *(external)* state for your filters, you can use the `filters` and `onFiltersChange` properties. You can hook in your state management solution of choice.
+
+> [!NOTE] The **`defaultFilters`** property is not used when using controlled state.
+> If you use controlled state and wish to specify a default value, use the mechanism provided by your state management solution. 
+
+### With React useState
+
+```tsx
+import { useState } from 'react'
+import type { FiltersState } from '@bazza-ui/filters'
+
+const [filters, setFilters] = useState<FiltersState>([])
+
+const { columns, actions, strategy } = useDataTableFilters({
+  strategy: 'client',       
+  data: issues.data ?? [], 
+  columnsConfig,          
+  filters: filters,
+  onFiltersChange: setFilters,
+})
+```
+
+### With Zustand
+
+```tsx
+import { useFilterStore } from './store'
+
+const { filters, setFilters } = useFilterStore()
+
+const { columns, actions, strategy } = useDataTableFilters({
+  strategy: 'client',       
+  data: issues.data ?? [], 
+  columnsConfig,          
+  filters,
+  onFiltersChange: setFilters,
+})
+```
+
+### With nuqs (URL State)
+
+See the [nuqs integration](/docs/filters/integrations/nuqs) for persisting filter state in the URL.
+
+## Custom Change Handler
+
+The `onFiltersChange` handler supports two signatures:
+
+### Standard Dispatch
+
+```ts
+onFiltersChange: React.Dispatch<React.SetStateAction<FiltersState>>
+```
+
+### Custom Handler with Context
+
+For advanced use cases, you can use a custom handler that receives previous state, next state, and optional context:
+
+```ts
+onFiltersChange: (prev: FiltersState, next: FiltersState, context?: TContext) => void
+```
+
+This is useful when you need to:
+- Track filter changes for analytics
+- Sync filters with server state
+- Implement undo/redo functionality
+
+```tsx
+const handleFiltersChange = (prev: FiltersState, next: FiltersState) => {
+  // Track analytics
+  analytics.track('filters_changed', {
+    previous: prev.length,
+    current: next.length,
+  })
+  
+  // Update state
+  setFilters(next)
+}
+
+const { columns, actions } = useDataTableFilters({
+  strategy: 'client',       
+  data: issues.data ?? [], 
+  columnsConfig,          
+  filters,
+  onFiltersChange: handleFiltersChange,
+})
+```

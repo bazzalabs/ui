@@ -1,0 +1,167 @@
+---
+title: Styling
+section: Components
+summary: Customize filter components with classNames and data attributes.
+---
+
+All composable components accept styling props while providing sensible defaults.
+
+## Component Styles
+
+### Filter.Root
+
+- Accepts `className` and all standard div props
+- Default: `flex w-full items-start justify-between gap-2`
+
+### Filter.Block
+
+- Accepts `className` and all div props
+- Default: `flex h-7 items-center rounded-2xl border border-border bg-background shadow-xs text-xs`
+
+### Filter.Block.Subject
+
+- Accepts `className` and all span props
+- Default: `flex select-none items-center gap-1 whitespace-nowrap px-2 font-medium`
+
+### Filter.Block.Operator
+
+- Accepts `className` and all Button props (excluding `onClick`, `variant`, `children`)
+- Default: `m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs`, `variant="ghost"`
+
+### Filter.Block.Value
+
+- Accepts `className` and all div props
+
+### Filter.Block.Remove
+
+- Accepts `className`, `variant`, and all Button props (excluding `onClick`)
+- Default: `rounded-none rounded-r-2xl text-xs w-7 h-full text-muted-foreground hover:text-primary`, `variant="ghost"`
+
+### Filter.Actions
+
+- Accepts `className`, `variant`, and all Button props (excluding `onClick`, `children`)
+- Default: `h-7 !px-2`, `variant="destructive"`
+
+## Custom Styling Example
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy }}>
+  <Filter.Root className="flex-col gap-4">
+    <Filter.Block className="bg-muted h-8">
+      <Filter.Block.Subject className="text-primary" />
+      <Separator orientation="vertical" />
+      <Filter.Block.Operator className="text-sm" />
+      <Separator orientation="vertical" />
+      <Filter.Block.Value />
+      <Separator orientation="vertical" />
+      <Filter.Block.Remove variant="destructive" />
+    </Filter.Block>
+    <Filter.Actions variant="outline" className="ml-auto" />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+## Data Attributes
+
+All composable components include `data-slot` attributes for CSS targeting via attribute selectors. This provides a powerful and scoped way to style components without relying on class names.
+
+### Why Use Data Attributes?
+
+- **Scoped styling**: Target specific components without class name conflicts
+- **Contextual styling**: Apply styles based on component state or type
+- **Framework-agnostic**: Works with any CSS solution (vanilla CSS, Tailwind, CSS-in-JS)
+- **Type-safe targeting**: Less prone to breaking changes than class names
+
+### Available Attributes
+
+| Selector | Additional Attributes |
+|----------|----------------------|
+| `[data-slot="filter-root"]` | `data-mobile` |
+| `[data-slot="filter-menu-trigger"]` | `data-state` (`"has-filters"` or `"empty"`) |
+| `[data-slot="filter-list"]` | |
+| `[data-slot="filter-list-mobile-container"]` | |
+| `[data-slot="filter-block"]` | `data-column-id`, `data-column-type` |
+| `[data-slot="filter-subject"]` | `data-column-type` |
+| `[data-slot="filter-operator"]` | `data-column-type`, `data-operator` |
+| `[data-slot="filter-value"]` | `data-column-type` |
+| `[data-slot="filter-block-remove"]` | |
+| `[data-slot="filter-actions"]` | `data-state` (`"visible"` or `"hidden"`) |
+
+### Vanilla CSS Example
+
+```css
+/* Target all filter blocks */
+[data-slot="filter-block"] {
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+/* Target filter blocks for text columns */
+[data-slot="filter-block"][data-column-type="text"] {
+  background-color: hsl(var(--blue-100));
+}
+
+/* Target filter blocks for date columns */
+[data-slot="filter-block"][data-column-type="date"] {
+  background-color: hsl(var(--green-100));
+}
+
+/* Target the menu trigger when filters are active */
+[data-slot="filter-menu-trigger"][data-state="has-filters"] {
+  border-color: hsl(var(--primary));
+}
+```
+
+### Tailwind CSS Example
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy }}>
+  <div className="
+    [&_[data-slot='filter-block']]:rounded-lg
+    [&_[data-slot='filter-block'][data-column-type='text']]:bg-blue-100
+    [&_[data-slot='filter-block'][data-column-type='date']]:bg-green-100
+    [&_[data-slot='filter-menu-trigger'][data-state='has-filters']]:border-primary
+  ">
+    <Filter.Menu />
+    <Filter.List />
+  </div>
+</Filter.Provider>
+```
+
+### Type-Specific Styling
+
+```css
+/* Style text column operators differently */
+[data-slot="filter-operator"][data-column-type="text"] {
+  font-style: italic;
+}
+
+/* Add visual indicator for "is not" operators */
+[data-slot="filter-operator"][data-operator="is-not"] {
+  color: hsl(var(--destructive));
+}
+
+/* Style filter values based on column type */
+[data-slot="filter-value"][data-column-type="option"] {
+  font-weight: 600;
+}
+
+[data-slot="filter-value"][data-column-type="number"] {
+  font-family: monospace;
+}
+```
+
+### Mobile-Specific Styling
+
+```css
+/* Adjust layout on mobile */
+[data-slot="filter-root"][data-mobile] {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Hide certain elements on mobile */
+[data-slot="filter-root"][data-mobile] [data-slot="filter-subject"] {
+  display: none;
+}
+```

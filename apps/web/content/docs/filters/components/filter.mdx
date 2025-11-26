@@ -1,0 +1,99 @@
+---
+title: Filter
+section: Components
+summary: The main Filter component for displaying and managing filters.
+---
+
+The visual component for the data table filter is the `<Filter />` component.
+
+It takes the `columns`, `filters`, `actions` and `strategy` from the hook as input.
+
+## Basic Usage
+
+```tsx
+import { Filter } from '@/components/filter'
+
+export function IssuesTable() {
+  const { columns, filters, actions, strategy, entityName } = useDataTableFilters({
+    strategy: 'client',
+    data: issues.data ?? [],
+    columnsConfig,
+    entityName: 'Issue',
+  })
+
+  return (
+    <div>
+      <Filter
+        filters={filters}
+        columns={columns}
+        actions={actions}
+        strategy={strategy}
+        entityName={entityName}
+      />
+      <DataTable />
+    </div>
+  )
+}
+```
+
+## Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `filters` | `FiltersState` | Yes | Current filter state from the hook. |
+| `columns` | `Column[]` | Yes | Column configurations from the hook. |
+| `actions` | `DataTableFilterActions` | Yes | Action methods from the hook. |
+| `strategy` | `FilterStrategy` | Yes | Filtering strategy (`'client'` or `'server'`). |
+| `entityName` | `string` | No | Entity name for boolean filter display. |
+| `locale` | `Locale` | No | Locale for i18n (default: `'en'`). |
+| `variant` | `FilterVariant` | No | Visual variant (`'default'` or `'clean'`). |
+
+## Variants
+
+The `<Filter />` component supports two visual variants:
+
+### Default
+
+The default variant with borders and shadows:
+
+```tsx
+<Filter variant="default" {...props} />
+```
+
+### Clean
+
+A minimal variant without borders:
+
+```tsx
+<Filter variant="clean" {...props} />
+```
+
+## Composable API
+
+The `<Filter />` component also supports a **composable API** for custom layouts using compound components. See [Composable API](/docs/filters/components/composable-api) for details.
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <Filter.Root>
+    <div className="flex gap-2">
+      <Filter.Menu />
+      <Filter.List />
+    </div>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+## Available Compound Components
+
+- `Filter.Provider` - Context provider for filter state
+- `Filter.Root` - Layout container with responsive handling
+- `Filter.Menu` - Filter selection menu
+  - `Filter.Menu.Trigger` - Customizable trigger button (supports `asChild` pattern)
+- `Filter.List` - Active filters list
+- `Filter.Actions` - Clear/reset actions
+- `Filter.Block` - Individual filter block container
+  - `Filter.Block.Subject` - Filter subject/column name display
+  - `Filter.Block.Operator` - Filter operator display/editor
+  - `Filter.Block.Value` - Filter value display/editor
+  - `Filter.Block.Remove` - Remove button for filter blocks

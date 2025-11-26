@@ -1,0 +1,128 @@
+---
+title: Operators
+section: Model
+summary: Filter operators available for each column data type.
+---
+
+Each column data type has its own set of filter operators. The operator determines how the filter values are applied to the data.
+
+## Text Operators
+
+```ts
+type TextFilterOperator = 'contains' | 'does not contain'
+```
+
+| Operator | Description |
+|----------|-------------|
+| `contains` | Value contains the search term. |
+| `does not contain` | Value does not contain the search term. |
+
+## Number Operators
+
+```ts
+type NumberFilterOperator =
+  | 'is'
+  | 'is not'
+  | 'is less than'
+  | 'is greater than or equal to'
+  | 'is greater than'
+  | 'is less than or equal to'
+  | 'is between'
+  | 'is not between'
+```
+
+| Operator | Target | Description |
+|----------|--------|-------------|
+| `is` | Single | Exact match. |
+| `is not` | Single | Not an exact match. |
+| `is less than` | Single | Value is less than filter value. |
+| `is greater than` | Single | Value is greater than filter value. |
+| `is less than or equal to` | Single | Value is less than or equal. |
+| `is greater than or equal to` | Single | Value is greater than or equal. |
+| `is between` | Multiple | Value is between two filter values. |
+| `is not between` | Multiple | Value is not between two filter values. |
+
+## Date Operators
+
+```ts
+type DateFilterOperator =
+  | 'is'
+  | 'is not'
+  | 'is before'
+  | 'is on or after'
+  | 'is after'
+  | 'is on or before'
+  | 'is between'
+  | 'is not between'
+```
+
+| Operator | Target | Description |
+|----------|--------|-------------|
+| `is` | Single | Exact date match. |
+| `is not` | Single | Not the specified date. |
+| `is before` | Single | Date is before filter value. |
+| `is after` | Single | Date is after filter value. |
+| `is on or before` | Single | Date is on or before filter value. |
+| `is on or after` | Single | Date is on or after filter value. |
+| `is between` | Multiple | Date is between two dates. |
+| `is not between` | Multiple | Date is not between two dates. |
+
+## Boolean Operators
+
+```ts
+type BooleanFilterOperator = 'is' | 'is not'
+```
+
+| Operator | Description |
+|----------|-------------|
+| `is` | Value is true/false. |
+| `is not` | Value is not true/false. |
+
+## Option Operators
+
+For single-value option columns:
+
+```ts
+type OptionFilterOperator = 'is' | 'is not' | 'is any of' | 'is none of'
+```
+
+| Operator | Target | Description |
+|----------|--------|-------------|
+| `is` | Single | Value matches the option. |
+| `is not` | Single | Value does not match the option. |
+| `is any of` | Multiple | Value matches any of the options. |
+| `is none of` | Multiple | Value matches none of the options. |
+
+## Multi-Option Operators
+
+For multi-value option columns (e.g., labels, tags):
+
+```ts
+type MultiOptionFilterOperator =
+  | 'include'
+  | 'exclude'
+  | 'include any of'
+  | 'include all of'
+  | 'exclude if any of'
+  | 'exclude if all'
+```
+
+| Operator | Target | Description |
+|----------|--------|-------------|
+| `include` | Single | Values include the option. |
+| `exclude` | Single | Values do not include the option. |
+| `include any of` | Multiple | Values include any of the options. |
+| `include all of` | Multiple | Values include all of the options. |
+| `exclude if any of` | Multiple | Exclude if values include any option. |
+| `exclude if all` | Multiple | Exclude if values include all options. |
+
+## Automatic Operator Transitions
+
+When filter values change from single to multiple (or vice versa), the operator automatically transitions to its plural/singular form:
+
+- `is` → `is any of` (when adding a second value)
+- `is any of` → `is` (when reducing to one value)
+- `include` → `include any of`
+- etc.
+
+This provides a seamless user experience without manual operator changes.

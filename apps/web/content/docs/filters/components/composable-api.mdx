@@ -1,0 +1,205 @@
+---
+title: Composable API
+section: Components
+summary: Build custom filter layouts using compound components.
+---
+
+The `<Filter />` component supports a composable API for building custom filter layouts using compound components.
+
+## Basic Composition
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <Filter.Root>
+    <div className="flex gap-2">
+      <Filter.Menu />
+      <Filter.List />
+    </div>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+## Components
+
+### Filter.Provider
+
+Context provider for filter state. Wrap your filter UI with this component.
+
+```tsx
+<Filter.Provider
+  value={{
+    columns,
+    filters,
+    actions,
+    strategy,
+    locale: 'en',
+    entityName: 'Issue',
+    variant: 'default',
+  }}
+>
+  {children}
+</Filter.Provider>
+```
+
+### Filter.Root
+
+Layout container with responsive handling. Renders a `<div>` element.
+
+**Default styles:** `flex w-full items-start justify-between gap-2`
+
+```tsx
+<Filter.Root className="flex-col gap-4">
+  {/* Filter content */}
+</Filter.Root>
+```
+
+### Filter.Menu
+
+Filter selection menu for adding new filters.
+
+```tsx
+<Filter.Menu />
+```
+
+#### Custom Trigger
+
+The `Filter.Menu` component provides a customizable trigger using the Radix UI `asChild` pattern:
+
+**Default trigger:**
+```tsx
+<Filter.Menu />
+```
+
+**Custom trigger with asChild:**
+```tsx
+<Filter.Menu>
+  <Filter.Menu.Trigger asChild>
+    <Button className="gap-2">
+      <FilterIcon className="size-4" />
+      <span>Add filter</span>
+    </Button>
+  </Filter.Menu.Trigger>
+</Filter.Menu>
+```
+
+### Filter.List
+
+Container for active filter blocks. Handles responsive layout for mobile/desktop.
+
+```tsx
+<Filter.List />
+```
+
+### Filter.Actions
+
+Clear all filters button. Only visible when filters are active.
+
+**Default styles:** `h-7 !px-2`, `variant="destructive"`
+
+```tsx
+<Filter.Actions variant="outline" className="ml-auto" />
+```
+
+### Filter.Block
+
+Container for a single filter's controls. Requires `filter` and `column` props.
+
+```tsx
+<Filter.Block filter={filter} column={column}>
+  <Filter.Block.Subject />
+  <Filter.Block.Operator />
+  <Filter.Block.Value />
+  <Filter.Block.Remove />
+</Filter.Block>
+```
+
+#### Filter.Block.Subject
+
+Displays the column name and icon.
+
+**Default styles:** `flex select-none items-center gap-1 whitespace-nowrap px-2 font-medium`
+
+#### Filter.Block.Operator
+
+Button that opens the operator selection menu.
+
+**Default styles:** `m-0 h-full w-fit whitespace-nowrap rounded-none p-0 px-2 text-xs`
+
+#### Filter.Block.Value
+
+Displays the current filter value and opens the value editor.
+
+#### Filter.Block.Remove
+
+Button to remove the filter.
+
+**Default styles:** `rounded-none rounded-r-2xl text-xs w-7 h-full text-muted-foreground hover:text-primary`
+
+## Custom Filter Blocks
+
+For full control, build custom filter blocks using the granular components:
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <div className="flex gap-2">
+    <Filter.Menu />
+    {filters.map((filter) => {
+      const column = getColumn(columns, filter.columnId)
+      return (
+        <Filter.Block key={filter.columnId} filter={filter} column={column}>
+          <Filter.Block.Subject />
+          <Separator orientation="vertical" />
+          <Filter.Block.Operator />
+          <Separator orientation="vertical" />
+          <Filter.Block.Value />
+        </Filter.Block>
+      )
+    })}
+  </div>
+</Filter.Provider>
+```
+
+## Custom Layout Example
+
+```tsx
+import { Filter } from '@/components/filter'
+
+export function CustomFilterLayout() {
+  const { columns, filters, actions, strategy } = useDataTableFilters({
+    strategy: 'client',
+    data: issues.data ?? [],
+    columnsConfig,
+  })
+
+  return (
+    <Filter.Provider
+      value={{
+        columns,
+        filters,
+        actions,
+        strategy,
+        locale: 'en',
+        entityName: 'Issue'
+      }}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2>Filters</h2>
+          <Filter.Actions />
+        </div>
+        <div className="flex gap-2">
+          <Filter.Menu />
+          <Filter.List />
+        </div>
+      </div>
+    </Filter.Provider>
+  )
+}
+```
+
+This allows you to:
+- Customize the layout of each filter block
+- Add custom components between filter parts
+- Apply conditional styling based on filter properties
+- Implement custom interactions for each filter part
