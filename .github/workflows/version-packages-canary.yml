@@ -33,7 +33,7 @@ jobs:
       - name: Create Release Pull Request
         uses: changesets/action@v1
         with:
-          version: bun run version-packages
+          version: bun ci:version
           commit: "chore: version canary packages"
           title: "chore: version canary packages"
         env:

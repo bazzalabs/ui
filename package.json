@@ -23,9 +23,9 @@
     "prepare": "husky",
     "filters:llm": "repomix --include \"packages/filters/**/*\" --ignore \"**/locales/*.json\" --copy --stdout",
     "changeset": "changeset add",
-    "version-packages": "changeset version",
-    "ci:version": "changeset version && bun update",
-    "ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish || true); done && changeset tag"
+    "ci:version": "changeset version && bun install",
+    "ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish || true); done && changeset tag",
+    "ci:publish:canary": "for dir in packages/*; do (cd \"$dir\" && bun publish --tag canary || true); done && changeset tag"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",

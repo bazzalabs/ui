@@ -51,6 +51,7 @@ jobs:
           version: bun run ci:version
           commit: "chore: update versions"
           title: "chore: update versions"
-          publish: bun run ci:publish
+          publish: bun run ci:publish:canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: 0
