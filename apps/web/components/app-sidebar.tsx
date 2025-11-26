@@ -215,6 +215,179 @@ const componentItems: ComponentItem[] = [
   },
   {
     type: 'collapsible',
+    title: 'Menu',
+    urlPrefix: '/docs/menu',
+    badge: <FlaskConicalIcon className="size-3.5 text-purple-400" />,
+    groups: [
+      {
+        groupName: 'Getting Started',
+        items: [
+          {
+            type: 'link',
+            title: 'Introduction',
+            url: '/docs/menu/introduction',
+          },
+          {
+            type: 'link',
+            title: 'Installation',
+            url: '/docs/menu/installation',
+          },
+          { type: 'link', title: 'Quick Start', url: '/docs/menu/quick-start' },
+        ],
+      },
+      {
+        groupName: 'Core',
+        items: [
+          { type: 'link', title: 'Overview', url: '/docs/menu/core/overview' },
+          { type: 'link', title: 'Anatomy', url: '/docs/menu/core/anatomy' },
+          {
+            type: 'collapsible',
+            title: 'Model',
+            items: [
+              {
+                type: 'link',
+                title: 'Nodes',
+                url: '/docs/menu/core/model/nodes',
+              },
+              {
+                type: 'link',
+                title: 'Item',
+                url: '/docs/menu/core/model/item',
+              },
+              {
+                type: 'link',
+                title: 'Group',
+                url: '/docs/menu/core/model/group',
+              },
+              {
+                type: 'link',
+                title: 'Menu',
+                url: '/docs/menu/core/model/menu',
+              },
+              {
+                type: 'link',
+                title: 'Submenu',
+                url: '/docs/menu/core/model/submenu',
+              },
+              {
+                type: 'link',
+                title: 'Separator',
+                url: '/docs/menu/core/model/separator',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        groupName: 'Features',
+        items: [
+          {
+            type: 'link',
+            title: 'Keyboard Shortcuts',
+            url: '/docs/menu/keyboard-shortcuts',
+          },
+          {
+            type: 'link',
+            title: 'Focus Management',
+            url: '/docs/menu/focus-management',
+          },
+          {
+            type: 'collapsible',
+            title: 'Theming',
+            items: [
+              {
+                type: 'link',
+                title: 'Concepts',
+                url: '/docs/menu/theming/concepts',
+              },
+              {
+                type: 'link',
+                title: 'Slots',
+                url: '/docs/menu/theming/slots',
+              },
+              {
+                type: 'link',
+                title: 'Slot Props',
+                url: '/docs/menu/theming/slot-props',
+              },
+              {
+                type: 'link',
+                title: 'Class names',
+                url: '/docs/menu/theming/classnames',
+              },
+              {
+                type: 'link',
+                title: 'Custom Rendering',
+                url: '/docs/menu/theming/custom-rendering',
+              },
+            ],
+          },
+          {
+            type: 'link',
+            title: (
+              <div>
+                Loaders{' '}
+                <span className="text-muted-foreground">(Async Nodes)</span>
+              </div>
+            ),
+            url: '/docs/menu/loaders',
+          },
+          {
+            type: 'link',
+            title: 'Virtualization',
+            url: '/docs/menu/virtualization',
+          },
+          {
+            type: 'link',
+            title: 'Programmatic Control',
+            url: '/docs/menu/control',
+          },
+          {
+            type: 'link',
+            title: 'Middleware',
+            url: '/docs/menu/middleware',
+          },
+        ],
+      },
+      {
+        groupName: 'Components',
+        items: [
+          {
+            type: 'link',
+            title: 'Popup Menus',
+            url: '/docs/menu/components/popup-menus',
+          },
+          {
+            type: 'link',
+            title: 'Command Menu',
+            url: '/docs/menu/components/command-menu',
+          },
+          {
+            type: 'link',
+            title: 'Dropdown Menu',
+            url: '/docs/menu/components/dropdown-menu',
+          },
+          {
+            type: 'link',
+            title: 'Context Menu',
+            url: '/docs/menu/components/context-menu',
+          },
+          {
+            type: 'link',
+            title: 'Select',
+            url: '/docs/menu/components/select',
+          },
+          {
+            type: 'link',
+            title: 'Multiselect',
+            url: '/docs/menu/components/multi-select',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'collapsible',
     title: 'Action Menu',
     urlPrefix: '/docs/action-menu',
     badge: (
@@ -406,179 +579,6 @@ const componentItems: ComponentItem[] = [
             type: 'link',
             title: 'TypeScript Types',
             url: '/docs/action-menu/typescript',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'collapsible',
-    title: 'Menu',
-    urlPrefix: '/docs/menu',
-    badge: <FlaskConicalIcon className="size-3.5 text-purple-400" />,
-    groups: [
-      {
-        groupName: 'Getting Started',
-        items: [
-          {
-            type: 'link',
-            title: 'Introduction',
-            url: '/docs/menu/introduction',
-          },
-          {
-            type: 'link',
-            title: 'Installation',
-            url: '/docs/menu/installation',
-          },
-          { type: 'link', title: 'Quick Start', url: '/docs/menu/quick-start' },
-        ],
-      },
-      {
-        groupName: 'Core',
-        items: [
-          { type: 'link', title: 'Overview', url: '/docs/menu/core/overview' },
-          { type: 'link', title: 'Anatomy', url: '/docs/menu/core/anatomy' },
-          {
-            type: 'collapsible',
-            title: 'Model',
-            items: [
-              {
-                type: 'link',
-                title: 'Nodes',
-                url: '/docs/menu/core/model/nodes',
-              },
-              {
-                type: 'link',
-                title: 'Item',
-                url: '/docs/menu/core/model/item',
-              },
-              {
-                type: 'link',
-                title: 'Group',
-                url: '/docs/menu/core/model/group',
-              },
-              {
-                type: 'link',
-                title: 'Menu',
-                url: '/docs/menu/core/model/menu',
-              },
-              {
-                type: 'link',
-                title: 'Submenu',
-                url: '/docs/menu/core/model/submenu',
-              },
-              {
-                type: 'link',
-                title: 'Separator',
-                url: '/docs/menu/core/model/separator',
-              },
-            ],
-          },
-        ],
-      },
-      {
-        groupName: 'Features',
-        items: [
-          {
-            type: 'link',
-            title: 'Keyboard Shortcuts',
-            url: '/docs/menu/keyboard-shortcuts',
-          },
-          {
-            type: 'link',
-            title: 'Focus Management',
-            url: '/docs/menu/focus-management',
-          },
-          {
-            type: 'collapsible',
-            title: 'Theming',
-            items: [
-              {
-                type: 'link',
-                title: 'Concepts',
-                url: '/docs/menu/theming/concepts',
-              },
-              {
-                type: 'link',
-                title: 'Slots',
-                url: '/docs/menu/theming/slots',
-              },
-              {
-                type: 'link',
-                title: 'Slot Props',
-                url: '/docs/menu/theming/slot-props',
-              },
-              {
-                type: 'link',
-                title: 'Class names',
-                url: '/docs/menu/theming/classnames',
-              },
-              {
-                type: 'link',
-                title: 'Custom Rendering',
-                url: '/docs/menu/theming/custom-rendering',
-              },
-            ],
-          },
-          {
-            type: 'link',
-            title: (
-              <div>
-                Loaders{' '}
-                <span className="text-muted-foreground">(Async Nodes)</span>
-              </div>
-            ),
-            url: '/docs/menu/loaders',
-          },
-          {
-            type: 'link',
-            title: 'Virtualization',
-            url: '/docs/menu/virtualization',
-          },
-          {
-            type: 'link',
-            title: 'Programmatic Control',
-            url: '/docs/menu/control',
-          },
-          {
-            type: 'link',
-            title: 'Middleware',
-            url: '/docs/menu/middleware',
-          },
-        ],
-      },
-      {
-        groupName: 'Components',
-        items: [
-          {
-            type: 'link',
-            title: 'Popup Menus',
-            url: '/docs/menu/components/popup-menus',
-          },
-          {
-            type: 'link',
-            title: 'Command Menu',
-            url: '/docs/menu/components/command-menu',
-          },
-          {
-            type: 'link',
-            title: 'Dropdown Menu',
-            url: '/docs/menu/components/dropdown-menu',
-          },
-          {
-            type: 'link',
-            title: 'Context Menu',
-            url: '/docs/menu/components/context-menu',
-          },
-          {
-            type: 'link',
-            title: 'Select',
-            url: '/docs/menu/components/select',
-          },
-          {
-            type: 'link',
-            title: 'Multiselect',
-            url: '/docs/menu/components/multi-select',
           },
         ],
       },

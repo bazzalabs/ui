@@ -159,7 +159,7 @@ export default async function Page({
 
         <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
           {slug.includes('menu') && <ExperimentalWarning />}
-          {/*{slug.includes('action-menu') && <DeprecationWarning />}*/}
+          {slug.includes('action-menu') && <DeprecationWarning />}
           <div className="flex items-start gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}
