@@ -1,66 +1,24 @@
 ---
 title: Installation
+component: Filters
 section: Getting Started
-summary: Install the filter components for your project.
+summary: Install bazza/ui filters in your project.
 ---
 
-The data table filter is distributed in two parts to keep things modular and flexible:
+## Registry
 
-- The filtering logic is provided as an npm package, `@bazza-ui/filters`, which you can add directly to your project to handle all the backend filtering operations.
-- The UI components are distributed separately via the `shadcn` registry, allowing you to integrate the visual filter interface into your app as needed.
+We recommend installing **both** the `<Filter />` component and `@bazza-ui/filters` package together.
 
-This separation lets you use the filtering logic independently of the UI, or combine both for a complete solution.
+This can be done using the shadcn/ui registry:
 
-## Full Installation (UI + Logic)
-
-From the command line, install the component into your project:
-
-```bash
-npx shadcn@latest add https://ui.bazza.dev/r/filters
+```npm
+npx shadcn-ui@latest add {{REGISTRY_URL}}/r/filters{{RELEASE_CHANNEL}}
 ```
 
-This installs:
-- The `@bazza-ui/filters` npm package
-- The `<Filter />` UI components in your project
+## Standalone
 
-## Logic Only
+If you only want to install the filters engine, you can do so from the `npm` registry:
 
-If you want to use your own filtering UI, you can skip installing our components:
-
-```bash
-npm install @bazza-ui/filters
+```npm
+npm install @bazza-ui/filters{{RELEASE_CHANNEL}}
 ```
-
-> [!WARNING] JavaScript projects should add JSON locales manually after installation.
-> There is a known issue with shadcn CLI that prevents the JSON locale files from being installed correctly in JavaScript projects.
-> The cause is unknown and being investigated.
->
-> The temporary workaround is to run the installation command above *(it will throw an error)*, then:
-> 1. Create the `locales` directory in the component root directory.
-> 2. Copy the [`locales/en.json`](https://github.com/kianbazza/ui/blob/main/apps/web/registry/data-table-filter/locales/en.json) file into the directory.
-
-## Add-ons
-
-### TanStack Table Integration
-
-If you're using TanStack Table with client-side filtering:
-
-```bash
-npx shadcn@latest add https://ui.bazza.dev/r/filters/tst
-```
-
-### Internationalization
-
-To add support for additional locales beyond English:
-
-```bash
-npx shadcn@latest add https://ui.bazza.dev/r/filters/i18n
-```
-
-This adds support for:
-- `en` (English) - **default**
-- `fr` (French)
-- `zh_CN` (Simplified Chinese)
-- `zh_TW` (Traditional Chinese)
-- `nl` (Dutch)
-- `de` (German)

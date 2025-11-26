@@ -10,6 +10,14 @@ import { TypeTable } from '@/components/type-table'
 import { TypeTableAuto } from '@/components/type-table-auto'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
+import {
+  CodeBlock,
+  CodeBlockTab,
+  CodeBlockTabs,
+  CodeBlockTabsList,
+  CodeBlockTabsTrigger,
+  Pre,
+} from './components/codeblock'
 import CollapsibleCodeBlock from './components/collapsible-code-block'
 import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
@@ -212,21 +220,36 @@ const components = {
       {...props}
     />
   ),
-  pre: ({ children, className, ...props }) => (
-    <pre
-      className={cn(
-        'bg-white dark:bg-neutral-900 overflow-scroll w-full rounded-lg border [&_code]:!text-sm my-6 py-4',
-        '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
-        '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
-        '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
-        '[&_code_span.line.highlighted]:bg-muted/75 [&_code_span.line.highlighted]:relative [&_code_span.line.highlighted]:before:absolute [&_code_span.line.highlighted]:before:inset-0 [&_code_span.line.highlighted]:before:border-l-3 [&_code_span.line.highlighted]:before:border-l-neutral-400',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </pre>
+  pre: ({ ref: _ref, ...props }) => (
+    <CodeBlock {...props}>
+      <Pre
+        className={cn(
+          'bg-neutral-50 dark:bg-neutral-900 overflow-scroll w-full [&_code]:!text-sm',
+          '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
+          '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
+          '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
+          '[&_code_span.line.highlighted]:bg-muted/75 [&_code_span.line.highlighted]:relative [&_code_span.line.highlighted]:before:absolute [&_code_span.line.highlighted]:before:inset-0 [&_code_span.line.highlighted]:before:border-l-3 [&_code_span.line.highlighted]:before:border-l-neutral-400',
+        )}
+      >
+        {props.children}
+      </Pre>
+    </CodeBlock>
   ),
+  // pre: ({ children, className, ...props }) => (
+  //   <pre
+  //     className={cn(
+  //       'bg-white dark:bg-neutral-900 overflow-scroll w-full rounded-lg border [&_code]:!text-sm my-6 py-4',
+  //       '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
+  //       '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
+  //       '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
+  //       '[&_code_span.line.highlighted]:bg-muted/75 [&_code_span.line.highlighted]:relative [&_code_span.line.highlighted]:before:absolute [&_code_span.line.highlighted]:before:inset-0 [&_code_span.line.highlighted]:before:border-l-3 [&_code_span.line.highlighted]:before:border-l-neutral-400',
+  //       className,
+  //     )}
+  //     {...props}
+  //   >
+  //     {children}
+  //   </pre>
+  // ),
   Image,
   ResponsiveImage: (props) => (
     <ResponsiveImage
@@ -276,6 +299,10 @@ const components = {
       </div>
     )
   },
+  CodeBlockTabs: CodeBlockTabs,
+  CodeBlockTabsList: CodeBlockTabsList,
+  CodeBlockTabsTrigger: CodeBlockTabsTrigger,
+  CodeBlockTab,
 } satisfies MDXComponents
 
 export function useMDXComponents(): MDXComponents {
