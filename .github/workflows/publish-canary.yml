@@ -42,11 +42,15 @@ jobs:
       - name: Build packages
         run: bunx --bun turbo run build --filter='./packages/*'
 
-      - name: Publish to npm
+      - name: Setup npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+
+      - name: Create and publish versions
         uses: changesets/action@v1
         with:
-          publish: bun run release
+          version: bun run ci:version
+          commit: "chore: update versions"
+          title: "chore: update versions"
+          publish: bun run ci:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

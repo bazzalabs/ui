@@ -84,21 +84,21 @@ jobs:
           fi
 
       - name: Create snapshot versions
-        run: bunx changeset version --snapshot snapshot
+        run: bunx changeset version --snapshot snapshot && bun update
+
+      - name: Setup npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
 
       - name: Publish snapshot to npm
         run: |
           if [ "${{ inputs.packages }}" = "filters" ]; then
-            cd packages/filters && npm publish --tag snapshot --access public
+            cd packages/filters && bun publish --tag snapshot
           elif [ "${{ inputs.packages }}" = "action-menu" ]; then
-            cd packages/action-menu && npm publish --tag snapshot --access public
+            cd packages/action-menu && bun publish --tag snapshot
           else
-            cd packages/filters && npm publish --tag snapshot --access public
-            cd ../action-menu && npm publish --tag snapshot --access public
+            cd packages/filters && bun publish --tag snapshot
+            cd ../action-menu && bun publish --tag snapshot
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: |
