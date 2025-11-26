@@ -10,13 +10,13 @@ import {
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { Filter } from '@/registry/data-table-filter'
+import { Filter } from '@/registry/filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'
 import { queries } from './queries'
 import { TableFilterSkeleton, TableSkeleton } from './table-skeleton'
-import type { Issue, IssueLabel, IssueStatus, User } from './types'
+import type { IssueLabel, IssueStatus, User } from './types'
 
 function createLabelOptions(labels: IssueLabel[] | undefined) {
   return labels?.map((l) => ({

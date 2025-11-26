@@ -21,7 +21,7 @@ export interface FilterActionsProps
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterActions = forwardRef<HTMLButtonElement, FilterActionsProps>(
+export const FilterActions = forwardRef<HTMLButtonElement, FilterActionsProps>(
   (
     {
       hasFilters: hasFiltersProp,
@@ -57,8 +57,6 @@ const FilterActions = forwardRef<HTMLButtonElement, FilterActionsProps>(
 )
 
 FilterActions.displayName = 'FilterActions'
-
-export { FilterActions }
 
 export namespace FilterActions {
   export type Props = FilterActionsProps

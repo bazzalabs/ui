@@ -13,7 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import { Filter } from '@/registry/data-table-filter'
+import { Filter } from '@/registry/filter'
 import { tstColumnDefs } from './columns'
 import { ISSUES } from './data'
 import { DataTable } from './data-table'
