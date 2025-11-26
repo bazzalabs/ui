@@ -114,13 +114,13 @@
       "name": "@bazza-ui/registry-context-menu",
       "version": "0.0.1",
     },
-    "apps/web/registry/data-table-filter": {
-      "name": "@bazza-ui/registry-data-table-filter",
-      "version": "0.0.1",
-    },
     "apps/web/registry/dropdown-menu": {
       "name": "@bazza-ui/registry-dropdown-menu",
       "version": "0.0.1",
+    },
+    "apps/web/registry/filter": {
+      "name": "@bazza-ui/registry-filters",
+      "version": "0.1.0",
     },
     "apps/web/registry/multi-select": {
       "name": "@bazza-ui/registry-multi-select",
@@ -169,7 +169,7 @@
     },
     "packages/command-menu": {
       "name": "@bazza-ui/command-menu",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "dependencies": {
         "@bazza-ui/menu": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -192,7 +192,7 @@
     },
     "packages/context-menu": {
       "name": "@bazza-ui/context-menu",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -221,7 +221,7 @@
     },
     "packages/dropdown-menu": {
       "name": "@bazza-ui/dropdown-menu",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -277,7 +277,7 @@
     },
     "packages/loaders": {
       "name": "@bazza-ui/loaders",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "devDependencies": {
         "@apollo/client": "^3.11.11",
         "@bazza-ui/typescript-config": "workspace:*",
@@ -297,7 +297,7 @@
     },
     "packages/menu": {
       "name": "@bazza-ui/menu",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "dependencies": {
         "@bazza-ui/loaders": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -331,7 +331,7 @@
     },
     "packages/popup-menu": {
       "name": "@bazza-ui/popup-menu",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -360,7 +360,7 @@
     },
     "packages/select": {
       "name": "@bazza-ui/select",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -389,7 +389,7 @@
     },
     "packages/theming": {
       "name": "@bazza-ui/theming",
-      "version": "0.0.1",
+      "version": "0.1.0-canary.0",
       "devDependencies": {
         "@bazza-ui/typescript-config": "workspace:*",
         "@types/react": "^19.1.2",
@@ -509,9 +509,9 @@
 
     "@bazza-ui/registry-context-menu": ["@bazza-ui/registry-context-menu@workspace:apps/web/registry/context-menu"],
 
-    "@bazza-ui/registry-data-table-filter": ["@bazza-ui/registry-data-table-filter@workspace:apps/web/registry/data-table-filter"],
-
     "@bazza-ui/registry-dropdown-menu": ["@bazza-ui/registry-dropdown-menu@workspace:apps/web/registry/dropdown-menu"],
+
+    "@bazza-ui/registry-filters": ["@bazza-ui/registry-filters@workspace:apps/web/registry/filter"],
 
     "@bazza-ui/registry-multi-select": ["@bazza-ui/registry-multi-select@workspace:apps/web/registry/multi-select"],
 
