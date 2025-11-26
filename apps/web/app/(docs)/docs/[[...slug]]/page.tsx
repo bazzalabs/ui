@@ -1,5 +1,3 @@
-export const dynamic = 'force-static'
-
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { docsSource } from '@/lib/source'
@@ -7,7 +5,6 @@ import 'rehype-callouts/theme/github'
 import { FlaskConicalIcon, TriangleDashedIcon } from 'lucide-react'
 import Link from 'next/link'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { cn } from '@/lib/utils'
 import { useMDXComponents } from '@/mdx-components'
 import { InlineTOCContainer } from './inline-toc-container'
 
@@ -146,13 +143,7 @@ export default async function Page({
   const tableOfContents = metadata.toc
 
   return (
-    <div
-      className={cn(
-        // 'grid grid-cols-[calc(calc(100svw/3*2)-300px)_auto]',
-        'w-full', // 'grid grid-cols-[calc(calc(100svw/3*2)-300px)_min(calc(100svw/3),300px)]',
-        'grid grid-cols-[auto_auto_auto]',
-      )}
-    >
+    <div className="w-full grid grid-cols-[auto_auto_auto]">
       <div className="max-w-[calc(calc(100svw/3)-300px)] w-full" />
       <div className="col-span-1 px-4 flex flex-col gap-8 w-full max-w-screen-md mx-auto my-4 md:my-8 xl:my-16">
         <SidebarTrigger className="md:hidden fixed top-4 left-6 z-50 bg-secondary drop-shadow-md" />
@@ -164,16 +155,6 @@ export default async function Page({
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}
             </span>
-            {/*{metadata.badge === 'alpha' && (
-              <Badge className="bg-pink-400 dark:bg-pink-500 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
-                <span>{metadata.badge}</span>
-              </Badge>
-            )}
-            {metadata.badge === 'beta' && (
-              <Badge className="bg-purple-500 dark:bg-purple-600 text-white leading-none h-5 [&>span]:translate-y-[-0.5px]">
-                <span>{metadata.badge}</span>
-              </Badge>
-            )}*/}
           </div>
           <div className="text-muted-foreground">{metadata.summary}</div>
         </div>
