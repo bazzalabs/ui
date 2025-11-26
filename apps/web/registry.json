@@ -89,8 +89,8 @@
       ]
     },
     {
-      "name": "filter",
-      "title": "Filter",
+      "name": "filters",
+      "title": "Filters",
       "description": "A powerful data table filter component inspired by Linear.",
       "author": "Kian Bazarjani <kian@bazza.dev>",
       "type": "registry:block",
