@@ -14,6 +14,14 @@ import type {
   FiltersState,
   Locale,
 } from '@bazza-ui/filters'
+import {
+  isBooleanColumn,
+  isDateColumn,
+  isMultiOptionColumn,
+  isNumberColumn,
+  isOptionColumn,
+  isTextColumn,
+} from '@bazza-ui/filters'
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { DropdownMenu } from '@/registry/dropdown-menu'
 import {
@@ -150,41 +158,45 @@ function __FilterMenu<TData>({
       search: {
         minLength: 2,
       },
-      nodes: columns.map((column) => {
-        if (column.type === 'text') {
-          const textFilter = filters.find((f) => f.columnId === column.id)
+      nodes: columns.map((column): ItemDef | SubmenuDef => {
+        if (isTextColumn(column)) {
           return createTextMenu({
-            filter: textFilter as FilterModel,
-            column: column as Column<TData, 'text'>,
+            column,
             actions,
             locale,
             strategy,
           })
         }
 
-        if (column.type === 'date') {
-          const dateFilter = filters.find((f) => f.columnId === column.id)
+        if (isDateColumn(column)) {
+          const dateFilter = filters.find(
+            (f): f is FilterModel<'date'> =>
+              f.columnId === column.id && f.type === 'date',
+          )
           return createDateMenu({
             filter: dateFilter as FilterModel<'date'>,
-            column: column as Column<TData, 'date'>,
+            column,
             actions,
             locale,
             strategy,
           })
         }
 
-        if (column.type === 'number') {
-          const numberFilter = filters.find((f) => f.columnId === column.id)
+        if (isNumberColumn(column)) {
+          const numberFilter = filters.find(
+            (f): f is FilterModel<'number'> =>
+              f.columnId === column.id && f.type === 'number',
+          )
           return createNumberMenu({
             filter: numberFilter as FilterModel<'number'>,
-            column: column as Column<TData, 'number'>,
+            column,
             actions,
             locale,
             strategy,
           })
         }
 
-        if (column.type === 'boolean') {
+        if (isBooleanColumn(column)) {
           return {
             id: `filter-value-${column.id}`,
             kind: 'item',
@@ -194,45 +206,67 @@ function __FilterMenu<TData>({
             onSelect: () => {
               actions.setFilterValue(column, [false])
             },
-          } as ItemDef
+          } satisfies ItemDef
         }
 
+        if (isOptionColumn(column)) {
+          return {
+            kind: 'submenu',
+            id: column.id,
+            icon: column.icon,
+            label: column.displayName,
+            ui: {
+              slots: {
+                Item: OptionItem,
+              },
+            },
+            ...createOptionMenu({
+              column,
+              actions,
+              locale,
+              strategy,
+              getFilter: () =>
+                filtersRef.current.find(
+                  (f): f is FilterModel<'option'> =>
+                    f.columnId === column.id && f.type === 'option',
+                ),
+            }),
+          } satisfies SubmenuDef
+        }
+
+        if (isMultiOptionColumn(column)) {
+          return {
+            kind: 'submenu',
+            id: column.id,
+            icon: column.icon,
+            label: column.displayName,
+            ui: {
+              slots: {
+                Item: OptionItem,
+              },
+            },
+            ...createMultiOptionMenu({
+              column,
+              actions,
+              locale,
+              strategy,
+              getFilter: () =>
+                filtersRef.current.find(
+                  (f): f is FilterModel<'multiOption'> =>
+                    f.columnId === column.id && f.type === 'multiOption',
+                ),
+            }),
+          } satisfies SubmenuDef
+        }
+
+        // Fallback for any unknown column types
         return {
           kind: 'submenu',
           id: column.id,
           icon: column.icon,
           label: column.displayName,
-          ui: {
-            slots: {
-              Item: OptionItem,
-            },
-          },
-          ...(column.type === 'option'
-            ? createOptionMenu({
-                filter: undefined as any,
-                column: column as Column<TData, 'option'>,
-                actions,
-                locale,
-                strategy,
-                getFilter: () =>
-                  filtersRef.current.find((f) => f.columnId === column.id) as
-                    | FilterModel<'option'>
-                    | undefined,
-              })
-            : column.type === 'multiOption'
-              ? createMultiOptionMenu({
-                  filter: undefined as any,
-                  column: column as Column<TData, 'multiOption'>,
-                  actions,
-                  locale,
-                  strategy,
-                  getFilter: () =>
-                    filtersRef.current.find((f) => f.columnId === column.id) as
-                      | FilterModel<'multiOption'>
-                      | undefined,
-                })
-              : {}),
-        } as SubmenuDef
+          nodes: [],
+        } satisfies SubmenuDef
       }),
     }),
     [columns, filters, actions, locale, strategy],

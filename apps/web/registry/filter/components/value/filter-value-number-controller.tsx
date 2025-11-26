@@ -1,5 +1,6 @@
 'use client'
 
+import type { Column } from '@bazza-ui/filters'
 import {
   createNumberRange,
   type MinMaxReturn,
@@ -50,26 +51,31 @@ export function FilterValueNumberController<TData>({
     actions.setFilterOperator,
     500,
   )
-  const setFilterValueDebounced = useDebounceCallback(
-    actions.setFilterValue,
-    500,
+
+  // Create a typed wrapper for setFilterValue to avoid 'as any' casts
+  const setNumberFilterValue = useCallback(
+    (col: Column<TData, 'number'>, vals: number[]) => {
+      actions.setFilterValue(col, vals)
+    },
+    [actions],
   )
+  const setFilterValueDebounced = useDebounceCallback(setNumberFilterValue, 500)
 
   const changeNumber = (value: number[]) => {
     setValues(value)
-    setFilterValueDebounced(column as any, value)
+    setFilterValueDebounced(column, value)
   }
 
   const changeMinNumber = (value: number) => {
     const newValues = createNumberRange([value, values[1]!])
     setValues(newValues)
-    setFilterValueDebounced(column as any, newValues)
+    setFilterValueDebounced(column, newValues)
   }
 
   const changeMaxNumber = (value: number) => {
     const newValues = createNumberRange([values[0]!, value])
     setValues(newValues)
-    setFilterValueDebounced(column as any, newValues)
+    setFilterValueDebounced(column, newValues)
   }
 
   const changeType = useCallback(

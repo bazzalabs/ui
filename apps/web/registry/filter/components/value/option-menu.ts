@@ -1,6 +1,22 @@
-import type { CheckboxItemDef } from '@bazza-ui/dropdown-menu'
-import type { ColumnOptionExtended } from '@bazza-ui/filters'
+import type { CheckboxItemDef, DropdownNodeDef } from '@bazza-ui/dropdown-menu'
+import type { ColumnOptionExtended, FilterModel } from '@bazza-ui/filters'
 import type { FilterValueControllerProps } from './types'
+
+/**
+ * A checkbox item node with option data.
+ * Uses `unknown` data type for compatibility with DropdownMenu's generic types.
+ */
+export type OptionMenuNode = CheckboxItemDef & { id: string }
+
+export interface CreateOptionMenuProps<TData>
+  extends Omit<FilterValueControllerProps<TData, 'option'>, 'filter'> {
+  filter?: FilterValueControllerProps<TData, 'option'>['filter']
+  getFilter?: () => FilterModel<'option'> | undefined
+}
+
+export interface CreateOptionMenuResult {
+  nodes: DropdownNodeDef[]
+}
 
 /**
  * Creates option menu for filter values
@@ -10,16 +26,11 @@ export function createOptionMenu<TData>({
   column,
   actions,
   getFilter,
-}: Omit<FilterValueControllerProps<TData, 'option'>, 'filter'> & {
-  filter?: FilterValueControllerProps<TData, 'option'>['filter']
-  getFilter?: () => any
-}): {
-  nodes: (CheckboxItemDef<ColumnOptionExtended> & { id: string })[]
-} {
+}: CreateOptionMenuProps<TData>): CreateOptionMenuResult {
   const currentFilter = getFilter?.()
 
   const counts = column.getFacetedUniqueValues()
-  const nodes = column.getOptions().map((option) => {
+  const nodes: DropdownNodeDef[] = column.getOptions().map((option) => {
     const isCurrentlySelected =
       currentFilter?.values.includes(option.value) ?? false
 
@@ -43,9 +54,9 @@ export function createOptionMenu<TData>({
         label: option.label,
         icon: option.icon,
         count: counts?.get(option.value) ?? 0,
-      } as ColumnOptionExtended,
+      } satisfies ColumnOptionExtended,
       closeOnSelect: false,
-    } as any
+    } satisfies OptionMenuNode
   })
 
   return {

@@ -1,6 +1,7 @@
 'use client'
 
 import type { Column, ColumnDataType } from '@bazza-ui/filters'
+import { isBooleanColumn } from '@bazza-ui/filters'
 import { cva, type VariantProps } from 'class-variance-authority'
 import {
   type ComponentPropsWithoutRef,
@@ -45,7 +46,7 @@ const FilterSubject = forwardRef<HTMLSpanElement, FilterSubjectProps>(
     const contextVariant = useFilterVariant()
     const variant = variantProp ?? contextVariant ?? 'default'
 
-    const subject = column.type === 'boolean' ? entityName : column.displayName
+    const subject = isBooleanColumn(column) ? entityName : column.displayName
 
     const { icon: Icon } = column
     const hasIcon = !!Icon
