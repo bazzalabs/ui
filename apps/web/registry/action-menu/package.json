@@ -1,0 +1,6 @@
+{
+  "name": "@bazza-ui/registry-action-menu",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Registry component: Action menu styled for shadcn/ui"
+}

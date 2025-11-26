@@ -1,0 +1,6 @@
+{
+  "name": "@bazza-ui/registry-dropdown-menu",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Registry component: Dropdown menu styled for shadcn/ui"
+}
