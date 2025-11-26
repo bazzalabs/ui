@@ -102,6 +102,34 @@
         "typescript": "^5",
       },
     },
+    "apps/web/registry/action-menu": {
+      "name": "@bazza-ui/registry-action-menu",
+      "version": "0.0.1",
+    },
+    "apps/web/registry/command-menu": {
+      "name": "@bazza-ui/registry-command-menu",
+      "version": "0.0.1",
+    },
+    "apps/web/registry/context-menu": {
+      "name": "@bazza-ui/registry-context-menu",
+      "version": "0.0.1",
+    },
+    "apps/web/registry/data-table-filter": {
+      "name": "@bazza-ui/registry-data-table-filter",
+      "version": "0.0.1",
+    },
+    "apps/web/registry/dropdown-menu": {
+      "name": "@bazza-ui/registry-dropdown-menu",
+      "version": "0.0.1",
+    },
+    "apps/web/registry/multi-select": {
+      "name": "@bazza-ui/registry-multi-select",
+      "version": "0.0.1",
+    },
+    "apps/web/registry/select": {
+      "name": "@bazza-ui/registry-select",
+      "version": "0.0.1",
+    },
     "packages/action-menu": {
       "name": "@bazza-ui/action-menu",
       "version": "0.1.0-canary.0",
@@ -474,6 +502,20 @@
     "@bazza-ui/menu": ["@bazza-ui/menu@workspace:packages/menu"],
 
     "@bazza-ui/popup-menu": ["@bazza-ui/popup-menu@workspace:packages/popup-menu"],
+
+    "@bazza-ui/registry-action-menu": ["@bazza-ui/registry-action-menu@workspace:apps/web/registry/action-menu"],
+
+    "@bazza-ui/registry-command-menu": ["@bazza-ui/registry-command-menu@workspace:apps/web/registry/command-menu"],
+
+    "@bazza-ui/registry-context-menu": ["@bazza-ui/registry-context-menu@workspace:apps/web/registry/context-menu"],
+
+    "@bazza-ui/registry-data-table-filter": ["@bazza-ui/registry-data-table-filter@workspace:apps/web/registry/data-table-filter"],
+
+    "@bazza-ui/registry-dropdown-menu": ["@bazza-ui/registry-dropdown-menu@workspace:apps/web/registry/dropdown-menu"],
+
+    "@bazza-ui/registry-multi-select": ["@bazza-ui/registry-multi-select@workspace:apps/web/registry/multi-select"],
+
+    "@bazza-ui/registry-select": ["@bazza-ui/registry-select@workspace:apps/web/registry/select"],
 
     "@bazza-ui/select": ["@bazza-ui/select@workspace:packages/select"],
 
