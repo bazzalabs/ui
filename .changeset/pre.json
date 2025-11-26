@@ -13,13 +13,23 @@
     "@bazza-ui/menu": "0.0.1",
     "@bazza-ui/popup-menu": "0.0.1",
     "@bazza-ui/select": "0.0.1",
-    "@bazza-ui/theming": "0.0.1"
+    "@bazza-ui/theming": "0.0.1",
+    "@bazza-ui/registry-action-menu": "0.0.1",
+    "@bazza-ui/registry-command-menu": "0.0.1",
+    "@bazza-ui/registry-context-menu": "0.0.1",
+    "@bazza-ui/registry-dropdown-menu": "0.0.1",
+    "@bazza-ui/registry-filters": "0.1.0",
+    "@bazza-ui/registry-multi-select": "0.0.1",
+    "@bazza-ui/registry-select": "0.0.1"
   },
   "changesets": [
+    "bright-numbers-occur",
     "clever-foxes-mix",
+    "fuzzy-banks-camp",
     "huge-walls-sell",
     "lemon-insects-chew",
     "select-package-initial",
+    "strong-tigers-type",
     "vast-cities-play"
   ]
 }
