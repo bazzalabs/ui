@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 export function ContextMenu_RadioGroups() {
   const [fruit, setFruit] = useState('apple')

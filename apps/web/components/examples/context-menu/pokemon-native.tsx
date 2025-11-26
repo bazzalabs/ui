@@ -3,7 +3,7 @@
 import { nativeLoader } from '@bazza-ui/loaders'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/client/tst-static/_/utils'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 type Pokemon = {
   name: string

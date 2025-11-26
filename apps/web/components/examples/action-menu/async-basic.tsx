@@ -7,7 +7,7 @@ import {
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/components/action-menu'
 import { LABEL_STYLES_BG, type TW_COLOR } from './linear'
 
 type Label = {

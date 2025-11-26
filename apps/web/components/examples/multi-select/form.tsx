@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { MultiSelect } from '@/registry/multi-select'
+import { MultiSelect } from '@/registry/components/multi-select'
 
 export function Form() {
   const [submitted, setSubmitted] = useState<string[] | null>(null)

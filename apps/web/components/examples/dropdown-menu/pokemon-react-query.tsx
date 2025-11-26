@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/dropdown-menu'
+import { DropdownMenu } from '@/registry/components/dropdown-menu'
 
 type Pokemon = {
   name: string

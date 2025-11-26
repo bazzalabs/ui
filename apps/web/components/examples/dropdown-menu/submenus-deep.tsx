@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/dropdown-menu'
+import { DropdownMenu } from '@/registry/components/dropdown-menu'
 
 export function DropdownMenu_SubmenusDeep() {
   return (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Select } from '@/registry/select'
+import { Select } from '@/registry/components/select'
 
 export function RadioGroups() {
   const [value, setValue] = useState('medium')

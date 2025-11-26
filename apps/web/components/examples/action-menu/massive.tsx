@@ -4,7 +4,7 @@ import type { ItemDef } from '@bazza-ui/action-menu'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/components/action-menu'
 
 type MassiveMenuProps = {
   /** How many item nodes to generate (default 100,000). */

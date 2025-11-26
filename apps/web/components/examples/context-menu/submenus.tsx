@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 export function ContextMenu_Submenus() {
   const [fruit, setFruit] = useState<string>('apple')

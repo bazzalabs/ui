@@ -10,7 +10,7 @@ import {
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { Filter } from '@/registry/filter'
+import { Filter } from '@/registry/components/filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'

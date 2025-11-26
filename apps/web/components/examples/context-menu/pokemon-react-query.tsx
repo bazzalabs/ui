@@ -4,7 +4,7 @@ import { queryLoader } from '@bazza-ui/loaders/query'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 type Pokemon = {
   name: string

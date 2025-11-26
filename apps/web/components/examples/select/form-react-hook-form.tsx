@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Select } from '@/registry/select'
+import { Select } from '@/registry/components/select'
 
 /**
  * Zod Schema Definition

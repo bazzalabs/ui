@@ -9,7 +9,7 @@ import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { CommandMenu } from '@/registry/command-menu'
+import { CommandMenu } from '@/registry/components/command-menu'
 import { LABEL_STYLES_BG, type TW_COLOR } from '../action-menu/linear-async'
 import {
   AssigneeIcon,

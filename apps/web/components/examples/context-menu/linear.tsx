@@ -11,7 +11,7 @@ import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 import {
   AssigneeIcon,
   LabelsIcon,

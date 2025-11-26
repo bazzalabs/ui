@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { CommandMenu } from '@/registry/command-menu'
+import { CommandMenu } from '@/registry/components/command-menu'
 
 export function CommandMenu_VimBindings() {
   const [open, setOpen] = useState(false)

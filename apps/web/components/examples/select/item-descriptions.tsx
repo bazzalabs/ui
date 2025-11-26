@@ -3,7 +3,7 @@
 import { CheckCircleIcon, ClockIcon, XCircleIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/registry/select'
+import { Select } from '@/registry/components/select'
 
 export function ItemDescriptions() {
   const [value, setValue] = useState('pending')

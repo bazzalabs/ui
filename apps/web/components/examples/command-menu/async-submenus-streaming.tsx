@@ -7,7 +7,7 @@ import { UtensilsIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { CommandMenu } from '@/registry/command-menu'
+import { CommandMenu } from '@/registry/components/command-menu'
 
 const queryClient = new QueryClient()
 

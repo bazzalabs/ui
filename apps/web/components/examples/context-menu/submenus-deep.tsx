@@ -28,7 +28,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 export function ContextMenu_SubmenusDeep() {
   return (

@@ -2,7 +2,7 @@
 
 import type { MenuDef } from '@bazza-ui/context-menu'
 import { toast } from 'sonner'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 export function ContextMenu_Basic(props: Partial<MenuDef>) {
   return (

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/components/action-menu'
 
 export function ActionMenu_Submenus() {
   const [fruit, setFruit] = useState<string>('apple')

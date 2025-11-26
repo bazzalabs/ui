@@ -3,7 +3,7 @@
 import type { ItemDef, SubmenuDef } from '@bazza-ui/context-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/components/context-menu'
 
 /**
  * This example demonstrates deep search across multiple async submenus
