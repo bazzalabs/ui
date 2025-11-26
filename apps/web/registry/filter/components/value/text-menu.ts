@@ -2,12 +2,20 @@ import type { SubmenuDef } from '@bazza-ui/dropdown-menu'
 import type {
   Column,
   DataTableFilterActions,
-  FilterModel,
   TextFilterOperator,
 } from '@bazza-ui/filters'
 import type { MenuMiddleware } from '@bazza-ui/menu/middleware'
 import { TextItem } from './text-item'
 import type { FilterValueControllerProps } from './types'
+
+/**
+ * Data structure for text filter menu items.
+ * Used to display operator and value in the TextItem component.
+ */
+export interface TextFilterItemData {
+  operator: TextFilterOperator
+  values: string[]
+}
 
 /**
  * Middleware that generates filter operator options based on search query
@@ -43,7 +51,7 @@ export function createTextFilterMiddleware<TData>({
           data: {
             operator: 'contains',
             values: [query],
-          } as FilterModel<'text'>,
+          } satisfies TextFilterItemData,
           keywords: [query],
           onSelect: () => {
             changeText(query, 'contains')
@@ -56,7 +64,7 @@ export function createTextFilterMiddleware<TData>({
           data: {
             operator: 'does not contain',
             values: [query],
-          } as FilterModel<'text'>,
+          } satisfies TextFilterItemData,
           keywords: [query],
           onSelect: () => {
             changeText(query, 'does not contain')

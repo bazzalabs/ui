@@ -1,15 +1,28 @@
-// Types
-
 // Controllers
 export { FilterValueDateController } from './filter-value-date-controller'
 export { FilterValueNumberController } from './filter-value-number-controller'
-export { createMultiOptionMenu } from './multi-option-menu'
+
+// Menu creators
+export {
+  type CreateMultiOptionMenuProps,
+  type CreateMultiOptionMenuResult,
+  createMultiOptionMenu,
+} from './multi-option-menu'
 // Slot components
 export { OptionItem } from './option-item'
-// Menu creators
-export { createOptionMenu } from './option-menu'
+export {
+  type CreateOptionMenuProps,
+  type CreateOptionMenuResult,
+  createOptionMenu,
+} from './option-menu'
 export { TextItem } from './text-item'
-export { createTextFilterMiddleware, createTextMenu } from './text-menu'
+export {
+  createTextFilterMiddleware,
+  createTextMenu,
+  type TextFilterItemData,
+} from './text-menu'
+
+// Types
 export type {
   FilterValueControllerProps,
   FilterValueDisplayProps,

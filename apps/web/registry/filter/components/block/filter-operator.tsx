@@ -9,6 +9,12 @@ import {
   dateFilterOperators,
   type FilterModel,
   filterTypeOperatorDetails,
+  isBooleanColumn,
+  isDateColumn,
+  isMultiOptionColumn,
+  isNumberColumn,
+  isOptionColumn,
+  isTextColumn,
   type Locale,
   multiOptionFilterOperators,
   numberFilterOperators,
@@ -57,22 +63,13 @@ function createOperatorMenu<TData, TType extends ColumnDataType>({
   locale = 'en',
 }: FilterOperatorProps<TData, TType>): MenuDef {
   const getOperators = () => {
-    switch (column.type) {
-      case 'option':
-        return optionFilterOperators
-      case 'multiOption':
-        return multiOptionFilterOperators
-      case 'date':
-        return dateFilterOperators
-      case 'text':
-        return textFilterOperators
-      case 'number':
-        return numberFilterOperators
-      case 'boolean':
-        return booleanFilterOperators
-      default:
-        return {}
-    }
+    if (isTextColumn(column)) return textFilterOperators
+    if (isOptionColumn(column)) return optionFilterOperators
+    if (isMultiOptionColumn(column)) return multiOptionFilterOperators
+    if (isDateColumn(column)) return dateFilterOperators
+    if (isNumberColumn(column)) return numberFilterOperators
+    if (isBooleanColumn(column)) return booleanFilterOperators
+    return {}
   }
 
   const operators = getOperators() as Record<string, any>
