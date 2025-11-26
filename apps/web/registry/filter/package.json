@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/registry-filters",
-  "version": "0.1.0",
+  "version": "0.2.0-canary.0",
   "private": true,
   "description": "Registry component: Data table filter styled for shadcn/ui"
 }

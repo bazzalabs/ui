@@ -1,5 +1,11 @@
 # @bazza-ui/filters
 
+## 0.4.0-canary.1
+
+### Minor Changes
+
+- [#218](https://github.com/bazzalabs/ui/pull/218) [`1bcdad9`](https://github.com/bazzalabs/ui/commit/1bcdad982db5b8b228e3e20d5dbb8f5a015bb074) Thanks [@kianbazza](https://github.com/kianbazza)! - Add type guards for `Column` and `FilterModel` to narrow down column data type
+
 ## 0.4.0-canary.0
 
 ### Minor Changes
