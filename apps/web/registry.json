@@ -252,6 +252,59 @@
           "target": "components/filter/ui/debounced-input.tsx"
         }
       ]
+    },
+    {
+      "name": "filters-01",
+      "title": "Filters Example",
+      "description": "A full client-side filtering example with TanStack Table integration.",
+      "type": "registry:block",
+      "dependencies": [
+        "@bazza-ui/filters",
+        "@tanstack/react-table",
+        "date-fns",
+        "nanoid",
+        "remeda"
+      ],
+      "registryDependencies": [
+        "filter",
+        "table",
+        "button",
+        "checkbox",
+        "avatar",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/blocks/filters-01/page.tsx",
+          "type": "registry:page",
+          "target": "app/filters-01/page.tsx"
+        },
+        {
+          "path": "registry/blocks/filters-01/_/components/issues-table.tsx",
+          "type": "registry:file",
+          "target": "app/filters-01/_/components/issues-table.tsx"
+        },
+        {
+          "path": "registry/blocks/filters-01/_/components/data-table.tsx",
+          "type": "registry:file",
+          "target": "app/filters-01/_/components/data-table.tsx"
+        },
+        {
+          "path": "registry/blocks/filters-01/_/lib/columns.tsx",
+          "type": "registry:file",
+          "target": "app/filters-01/_/lib/columns.tsx"
+        },
+        {
+          "path": "registry/blocks/filters-01/_/lib/data.ts",
+          "type": "registry:file",
+          "target": "app/filters-01/_/lib/data.ts"
+        },
+        {
+          "path": "registry/blocks/filters-01/_/lib/filters.tsx",
+          "type": "registry:file",
+          "target": "app/filters-01/_/lib/filters.tsx"
+        }
+      ]
     }
   ]
 }
