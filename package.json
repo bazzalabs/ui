@@ -45,7 +45,8 @@
   "packageManager": "bun@1.2.21",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/web/registry/*"
   ],
   "trustedDependencies": [
     "@biomejs/biome",
