@@ -9,7 +9,7 @@ import {
   useContext,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useFilterVariant } from '../context/filter-context'
+import { useFilterVariant } from '../root/filter-context'
 
 const filterBlockVariants = cva('flex items-center text-xs font-medium', {
   variants: {
@@ -93,7 +93,7 @@ const FilterBlock = forwardRef<HTMLDivElement, FilterBlockProps>(
 
 FilterBlock.displayName = 'FilterBlock'
 
-export { FilterBlock }
+export { FilterBlock, filterBlockVariants }
 
 export namespace FilterBlock {
   export type Props<

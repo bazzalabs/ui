@@ -5,7 +5,7 @@ import { FilterXIcon } from 'lucide-react'
 import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useFilterContext } from '../context/filter-context'
+import { useFilterContext } from '../root/filter-context'
 
 export interface FilterActionsProps
   extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'> {

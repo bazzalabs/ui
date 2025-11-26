@@ -8,7 +8,6 @@ import type {
   DataTableFilterActions,
   FilterModel,
   FilterStrategy,
-  FilterValues,
   Locale,
 } from '@bazza-ui/filters'
 import { take } from '@bazza-ui/filters'
@@ -27,7 +26,7 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/dropdown-menu'
-import { type FilterVariant, useFilterVariant } from '../context/filter-context'
+import { type FilterVariant, useFilterVariant } from '../root/filter-context'
 import {
   createMultiOptionMenu,
   createOptionMenu,
@@ -322,8 +321,6 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
 
 FilterValue.displayName = 'FilterValue'
 
-export { FilterValue }
-
 // Display components for each type
 export interface FilterValueDisplayProps<
   TData = unknown,
@@ -556,6 +553,8 @@ function FilterValueBooleanDisplay<TData>({
   if (!filter || filter.values.length === 0) return null
   return <span>{column.toggledStateName}</span>
 }
+
+export { FilterValue }
 
 export namespace FilterValue {
   export type Props<

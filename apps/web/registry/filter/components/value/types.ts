@@ -6,7 +6,7 @@ import type {
   FilterStrategy,
   Locale,
 } from '@bazza-ui/filters'
-import type { FilterVariant } from '../context/filter-context'
+import type { FilterVariant } from '../root/filter-context'
 
 export interface FilterValueProps<TData, TType extends ColumnDataType> {
   filter: FilterModel<TType>

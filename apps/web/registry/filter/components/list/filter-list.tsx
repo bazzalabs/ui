@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useFilterContext } from '../context/filter-context'
+import { useFilterContext } from '../root/filter-context'
 
 type FilterListRenderProps<TData = unknown> = {
   filter: FilterModel

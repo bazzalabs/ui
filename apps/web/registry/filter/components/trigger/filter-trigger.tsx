@@ -7,7 +7,7 @@ import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/dropdown-menu'
-import type { FilterVariant } from '../context/filter-context'
+import type { FilterVariant } from '../root/filter-context'
 
 export interface FilterTriggerProps extends ComponentPropsWithoutRef<'button'> {
   asChild?: boolean

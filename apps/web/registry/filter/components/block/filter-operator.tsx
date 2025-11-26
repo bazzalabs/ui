@@ -21,7 +21,7 @@ import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/dropdown-menu'
-import { useFilterVariant } from '../context/filter-context'
+import { useFilterVariant } from '../root/filter-context'
 
 const filterOperatorVariants = cva(
   'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs text-muted-foreground',
@@ -132,6 +132,13 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
     const variant = variantProp ?? contextVariant ?? 'default'
     const menu = createOperatorMenu({ filter, column, actions, locale })
 
+    const operatorDetails = filterTypeOperatorDetails[column.type] as Record<
+      string,
+      { key: string }
+    >
+    const operator = operatorDetails[filter.operator]
+    const label = operator ? t(operator.key, locale) : filter.operator
+
     return (
       <DropdownMenu menu={menu} trackAnchor={false}>
         <Button
@@ -147,11 +154,7 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
           )}
           {...props}
         >
-          <FilterOperatorDisplay
-            filter={filter}
-            columnType={column.type}
-            locale={locale}
-          />
+          <span>{label}</span>
         </Button>
       </DropdownMenu>
     )
@@ -160,30 +163,11 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
 
 FilterOperator.displayName = 'FilterOperator'
 
-export { FilterOperator }
-
-export interface FilterOperatorDisplayProps<TType extends ColumnDataType> {
-  filter: FilterModel<TType>
-  columnType: TType
-  locale?: Locale
-}
-
-export function FilterOperatorDisplay<TType extends ColumnDataType>({
-  filter,
-  columnType,
-  locale = 'en',
-}: FilterOperatorDisplayProps<TType>) {
-  const operator = filterTypeOperatorDetails[columnType][filter.operator]
-  const label = t(operator.key, locale)
-
-  return <span>{label}</span>
-}
+export { FilterOperator, filterOperatorVariants }
 
 export namespace FilterOperator {
   export type Props<
     TData = unknown,
     TType extends ColumnDataType = ColumnDataType,
   > = FilterOperatorProps<TData, TType>
-  export type DisplayProps<TType extends ColumnDataType> =
-    FilterOperatorDisplayProps<TType>
 }

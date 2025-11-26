@@ -11,7 +11,7 @@ import {
   FilterContext,
   type FilterContextValue,
   type FilterVariant,
-} from '../context/filter-context'
+} from '../root/filter-context'
 
 export interface FilterProviderProps<TData = unknown> {
   columns: Column<TData>[]

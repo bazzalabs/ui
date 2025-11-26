@@ -10,8 +10,8 @@ import type {
 import { type ComponentPropsWithoutRef, forwardRef, type Ref } from 'react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
-import type { FilterVariant } from '../context/filter-context'
 import { FilterProvider } from '../provider/filter-provider'
+import type { FilterVariant } from './filter-context'
 
 export interface FilterRootProps<TData = unknown>
   extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {

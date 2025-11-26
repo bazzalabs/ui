@@ -8,7 +8,7 @@ import {
   isValidElement,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useFilterVariant } from '../context/filter-context'
+import { useFilterVariant } from '../root/filter-context'
 
 const filterSubjectVariants = cva(
   'flex select-none items-center gap-1 whitespace-nowrap px-2',
@@ -73,7 +73,7 @@ const FilterSubject = forwardRef<HTMLSpanElement, FilterSubjectProps>(
 
 FilterSubject.displayName = 'FilterSubject'
 
-export { FilterSubject }
+export { FilterSubject, filterSubjectVariants }
 
 export namespace FilterSubject {
   export type Props<

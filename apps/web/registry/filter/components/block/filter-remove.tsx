@@ -6,7 +6,7 @@ import { X } from 'lucide-react'
 import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useFilterVariant } from '../context/filter-context'
+import { useFilterVariant } from '../root/filter-context'
 
 const filterRemoveVariants = cva(
   'text-xs w-7 h-full text-muted-foreground hover:text-primary',
@@ -58,7 +58,7 @@ const FilterRemove = forwardRef<HTMLButtonElement, FilterRemoveProps>(
 
 FilterRemove.displayName = 'FilterRemove'
 
-export { FilterRemove }
+export { FilterRemove, filterRemoveVariants }
 
 export namespace FilterRemove {
   export type Props = FilterRemoveProps

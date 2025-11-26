@@ -20,7 +20,7 @@ import {
   type FilterVariant,
   useFilterContext,
   useFilterVariant,
-} from '../context/filter-context'
+} from '../root/filter-context'
 import { FilterTrigger } from '../trigger/filter-trigger'
 import {
   createMultiOptionMenu,

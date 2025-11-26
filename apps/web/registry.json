@@ -89,8 +89,8 @@
       ]
     },
     {
-      "name": "data-table-filter",
-      "title": "Data table filter",
+      "name": "filter",
+      "title": "Filter",
       "description": "A powerful data table filter component inspired by Linear.",
       "author": "Kian Bazarjani <kian@bazza.dev>",
       "type": "registry:block",
@@ -112,204 +112,144 @@
       ],
       "files": [
         {
-          "path": "registry/data-table-filter/index.tsx",
+          "path": "registry/filter/index.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/index.tsx"
+          "target": "components/filter/index.ts"
         },
         {
-          "path": "registry/data-table-filter/components/data-table-filter/compound.tsx",
+          "path": "registry/filter/index.parts.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/data-table-filter/compound.tsx"
+          "target": "components/filter/index.parts.ts"
         },
         {
-          "path": "registry/data-table-filter/components/data-table-filter/index.ts",
+          "path": "registry/filter/components/root/filter-root.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/data-table-filter/index.ts"
+          "target": "components/filter/components/root/filter-root.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-actions.tsx",
+          "path": "registry/filter/components/provider/filter-provider.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-actions.tsx"
+          "target": "components/filter/components/provider/filter-provider.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-actions/filter-actions-context.tsx",
+          "path": "registry/filter/components/root/filter-context.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-actions/filter-actions-context.tsx"
+          "target": "components/filter/components/root/filter-context.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-list/filter-list.tsx",
+          "path": "registry/filter/components/menu/filter-menu.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-list/filter-list.tsx"
+          "target": "components/filter/components/menu/filter-menu.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-list/filter-block.tsx",
+          "path": "registry/filter/components/trigger/filter-trigger.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-list/filter-block.tsx"
+          "target": "components/filter/components/trigger/filter-trigger.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-list/index.ts",
+          "path": "registry/filter/components/list/filter-list.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-list/index.ts"
+          "target": "components/filter/components/list/filter-list.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-menu.tsx",
+          "path": "registry/filter/components/list/filter-list-mobile-container.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-menu.tsx"
+          "target": "components/filter/components/list/filter-list-mobile-container.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-menu/filter-menu-context.tsx",
+          "path": "registry/filter/components/block/filter-block.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-menu/filter-menu-context.tsx"
+          "target": "components/filter/components/block/filter-block.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-operator.tsx",
+          "path": "registry/filter/components/block/filter-subject.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-operator.tsx"
+          "target": "components/filter/components/block/filter-subject.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-subject.tsx",
+          "path": "registry/filter/components/block/filter-operator.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-subject.tsx"
+          "target": "components/filter/components/block/filter-operator.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/index.tsx",
+          "path": "registry/filter/components/block/filter-value.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/index.tsx"
+          "target": "components/filter/components/block/filter-value.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/boolean/display.tsx",
+          "path": "registry/filter/components/block/filter-remove.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/boolean/display.tsx"
+          "target": "components/filter/components/block/filter-remove.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/boolean/index.ts",
+          "path": "registry/filter/components/actions/filter-actions.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/boolean/index.ts"
+          "target": "components/filter/components/actions/filter-actions.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/date/controller.tsx",
+          "path": "registry/filter/components/value/index.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/date/controller.tsx"
+          "target": "components/filter/components/value/index.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/date/display.tsx",
+          "path": "registry/filter/components/value/types.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/date/display.tsx"
+          "target": "components/filter/components/value/types.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/date/index.ts",
+          "path": "registry/filter/components/value/option-item.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/date/index.ts"
+          "target": "components/filter/components/value/option-item.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/multi-option/display.tsx",
+          "path": "registry/filter/components/value/text-item.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/multi-option/display.tsx"
+          "target": "components/filter/components/value/text-item.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/multi-option/index.ts",
+          "path": "registry/filter/components/value/option-menu.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/multi-option/index.ts"
+          "target": "components/filter/components/value/option-menu.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/multi-option/menu.tsx",
+          "path": "registry/filter/components/value/multi-option-menu.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/multi-option/menu.tsx"
+          "target": "components/filter/components/value/multi-option-menu.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/number/controller.tsx",
+          "path": "registry/filter/components/value/text-menu.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/number/controller.tsx"
+          "target": "components/filter/components/value/text-menu.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/number/display.tsx",
+          "path": "registry/filter/components/value/filter-value-date-controller.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/number/display.tsx"
+          "target": "components/filter/components/value/filter-value-date-controller.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/number/index.ts",
+          "path": "registry/filter/components/value/filter-value-number-controller.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/number/index.ts"
+          "target": "components/filter/components/value/filter-value-number-controller.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/option/display.tsx",
+          "path": "registry/filter/hooks/use-debounce-callback.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/option/display.tsx"
+          "target": "components/filter/hooks/use-debounce-callback.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/option/index.ts",
+          "path": "registry/filter/hooks/use-unmount.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/option/index.ts"
+          "target": "components/filter/hooks/use-unmount.tsx"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/option/menu.tsx",
+          "path": "registry/filter/lib/debounce.ts",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/option/menu.tsx"
+          "target": "components/filter/lib/debounce.ts"
         },
         {
-          "path": "registry/data-table-filter/components/filter-value/shared/option-item.tsx",
+          "path": "registry/filter/ui/debounced-input.tsx",
           "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/shared/option-item.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value/shared/text-item.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/shared/text-item.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value/shared/types.ts",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/shared/types.ts"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value/text/display.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/text/display.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value/text/index.ts",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/text/index.ts"
-        },
-        {
-          "path": "registry/data-table-filter/components/filter-value/text/menu.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/components/filter-value/text/menu.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/context/hooks.ts",
-          "type": "registry:file",
-          "target": "components/data-table-filter/context/hooks.ts"
-        },
-        {
-          "path": "registry/data-table-filter/context/index.ts",
-          "type": "registry:file",
-          "target": "components/data-table-filter/context/index.ts"
-        },
-        {
-          "path": "registry/data-table-filter/context/provider.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/context/provider.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/hooks/use-debounce-callback.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/hooks/use-debounce-callback.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/hooks/use-unmount.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/hooks/use-unmount.tsx"
-        },
-        {
-          "path": "registry/data-table-filter/lib/debounce.ts",
-          "type": "registry:file",
-          "target": "components/data-table-filter/lib/debounce.ts"
-        },
-        {
-          "path": "registry/data-table-filter/ui/debounced-input.tsx",
-          "type": "registry:file",
-          "target": "components/data-table-filter/ui/debounced-input.tsx"
+          "target": "components/filter/ui/debounced-input.tsx"
         }
       ]
     }
