@@ -24,9 +24,8 @@
     "filters:llm": "repomix --include \"packages/filters/**/*\" --ignore \"**/locales/*.json\" --copy --stdout",
     "changeset": "changeset add",
     "version-packages": "changeset version",
-    "release": "turbo run build --filter='./packages/*' && changeset publish",
-    "release:canary": "changeset publish --tag canary",
-    "release:snapshot": "changeset publish --tag snapshot"
+    "ci:version": "changeset version && bun update",
+    "ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish || true); done && changeset tag"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",
