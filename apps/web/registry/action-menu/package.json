@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/registry-action-menu",
-  "version": "0.0.1",
+  "version": "0.1.0-canary.0",
   "private": true,
   "description": "Registry component: Action menu styled for shadcn/ui"
 }
