@@ -178,7 +178,7 @@ const componentItems: ComponentItem[] = [
           {
             type: 'link',
             title: 'Controlled State',
-            url: '/docs/filters/controlled-state',
+            url: '/docs/filters/state-management',
           },
           {
             type: 'link',

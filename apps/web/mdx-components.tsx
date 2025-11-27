@@ -220,11 +220,11 @@ const components = {
       {...props}
     />
   ),
-  pre: ({ ref: _ref, ...props }) => (
-    <CodeBlock {...props}>
+  pre: ({ ref: _ref, className, ...props }) => (
+    <CodeBlock {...props} className={cn('my-6', className)}>
       <Pre
         className={cn(
-          'bg-neutral-50 dark:bg-neutral-900 overflow-scroll w-full [&_code]:!text-sm',
+          'bg-background overflow-scroll w-full [&_code]:!text-sm',
           '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
           '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
           '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
@@ -273,8 +273,8 @@ const components = {
   PropRow,
   PropsTable,
   ComponentsList,
-  Media: ({ wrapperClassName, ...props }) => (
-    <Media wrapperClassName={cn('mb-6 mt-2', wrapperClassName)} {...props} />
+  Media: ({ figureClassName, ...props }) => (
+    <Media figureClassName={cn('mb-6 mt-6', figureClassName)} {...props} />
   ),
   PageUnderConstruction: () => {
     return (

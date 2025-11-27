@@ -4,14 +4,74 @@ section: Core
 summary: The different components that make up a filter's structure.
 ---
 
-<PageUnderConstruction />
+Let's take a look at the anatomy of the `Filter` component structure and composition.
 
-This page will cover:
+We'll start zoomed in, with the `Filter.Item`:
 
-- Visual breakdown of the filter UI components
-- Filter.Root container structure
-- Filter.Menu trigger and dropdown
-- Filter.List with Filter.Block elements
-- Filter.Block anatomy (Subject, Operator, Value, Remove)
-- Mobile vs desktop layout differences
-- Data flow between components
+<Media
+  src={{
+    light: "/filters/filters-anatomy-block-light.png",
+    dark: "/filters/filters-anatomy-block-dark.png",
+  }}
+  width={4024}
+  height={1504}
+  type="image"
+  objectFit="contain"
+  inset="16px"
+  wrapperClassName="z-10 rounded-xl h-[350px] w-full overflow-clip border"
+  caption="The structure of a single filter."
+/>
+
+A `Filter.Item` has four individual components:
+
+- `Filter.Subject` displays the icon and name of the column represented by the filter.
+- `Filter.Operator` displays the filter operator and doubles as a dropdown menu to change the operator.
+- `Filter.Value` displays the current values applied on the filter and doubles as dropdown menu to mutate the filter value.
+- `Filter.Remove` removes the filter when pressed.
+
+---
+
+Now we can zoom out and check out the overall structure.
+
+<Media
+  src={{
+    light: "/filters/filters-anatomy-light.png",
+    dark: "/filters/filters-anatomy-dark.png",
+  }}
+  width={6067}
+  height={1415}
+  type="image"
+  objectFit="contain"
+  inset="16px"
+  wrapperClassName="z-10 rounded-xl h-[300px] w-full overflow-clip border"
+  caption="Overall structure for the filter component."
+/>
+
+- `Filter.Root` is the main container for the `Filter` sub-components.
+- `Filter.Menu` is a dropdown menu to create new filters.
+- `Filter.List` is the container for the current filters (i.e. `Filter.Item`).
+- `Filter.Actions` is a container for actions which apply on the entire filters state.
+- `Filter.Clear` is a button which clears all filters when pressed.
+
+---
+
+In code, we have the following structure:
+
+```tsx
+<Filter.Provider> // Context provider
+  <Filter.Root>
+      <Filter.Menu />
+      <Filter.List>
+        <Filter.Item>
+          <Filter.Subject />
+          <Filter.Operator />
+          <Filter.Value />
+          <Filter.Remove />
+        </Filter.Item>
+      </Filter.List>
+    <Filter.Actions>
+      <Filter.Clear />
+    </Filter.Actions>
+  </Filter.Root>
+</Filter.Provider>
+```

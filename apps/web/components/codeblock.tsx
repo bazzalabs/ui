@@ -77,6 +77,7 @@ export function Pre(props: ComponentProps<'pre'>) {
 
 export function CodeBlock({
   ref,
+  className,
   title,
   allowCopy = true,
   keepBackground = false,
@@ -104,11 +105,11 @@ export function CodeBlock({
         keepBackground && 'bg-(--shiki-light-bg) dark:bg-(--shiki-dark-bg)',
 
         'shiki relative border not-prose overflow-hidden text-sm',
-        props.className,
+        className,
       )}
     >
       {title ? (
-        <div className="flex text-fd-muted-foreground items-center gap-2 h-9.5 border-b px-4">
+        <div className="flex text-fd-muted-foreground items-center gap-2 h-9.5 border-b px-4 bg-accent">
           {typeof icon === 'string' ? (
             <div
               className="[&_svg]:size-3.5"
@@ -129,7 +130,7 @@ export function CodeBlock({
       ) : (
         Actions({
           className:
-            'absolute top-2 right-2 z-2 backdrop-blur-lg rounded-lg text-fd-muted-foreground',
+            'absolute top-2 right-2 z-2 backdrop-blur-lg rounded-lg text-muted-foreground',
           children: allowCopy && <CopyButton containerRef={areaRef} />,
         })
       )}
@@ -141,7 +142,7 @@ export function CodeBlock({
         // biome-ignore lint/a11y/noNoninteractiveTabindex: needed
         tabIndex={0}
         className={cn(
-          'text-[0.8125rem] bg-neutral-50 dark:bg-neutral-900 py-4 overflow-auto max-h-[600px] fd-scroll-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-fd-ring',
+          'text-[0.8125rem] bg-background py-4 overflow-auto max-h-[600px] fd-scroll-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-fd-ring',
           viewportProps.className,
         )}
         style={
@@ -186,7 +187,7 @@ function CopyButton({
       data-checked={checked || undefined}
       className={cn(
         buttonVariants({
-          variant: 'outline',
+          variant: 'ghost',
           className: 'h-6 w-6',
         }),
         className,
@@ -209,7 +210,7 @@ export function CodeBlockTabs({ ref, ...props }: ComponentProps<typeof Tabs>) {
       ref={mergeRefs(containerRef, ref)}
       {...props}
       className={cn(
-        'rounded-xl border shadow-sm',
+        'rounded-xl border shadow-sm bg-accent',
         !nested && 'my-4',
         props.className,
       )}

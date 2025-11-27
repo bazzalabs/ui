@@ -1,5 +1,5 @@
 ---
-title: Controlled State
+title: State Management
 section: Features
 summary: Managing filter state externally with controlled mode.
 ---
@@ -14,9 +14,9 @@ You can specify a default (or *initial*) value using the `defaultFilters` proper
 
 ```tsx
 const { columns, filters, actions, strategy } = useDataTableFilters({
-  strategy: 'client',       
-  data: issues.data ?? [], 
-  columnsConfig,          
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
   defaultFilters: [
     {
       columnId: 'status',
@@ -33,7 +33,7 @@ const { columns, filters, actions, strategy } = useDataTableFilters({
 If you want to use controlled *(external)* state for your filters, you can use the `filters` and `onFiltersChange` properties. You can hook in your state management solution of choice.
 
 > [!NOTE] The **`defaultFilters`** property is not used when using controlled state.
-> If you use controlled state and wish to specify a default value, use the mechanism provided by your state management solution. 
+> If you use controlled state and wish to specify a default value, use the mechanism provided by your state management solution.
 
 ### With React useState
 
@@ -44,9 +44,9 @@ import type { FiltersState } from '@bazza-ui/filters'
 const [filters, setFilters] = useState<FiltersState>([])
 
 const { columns, actions, strategy } = useDataTableFilters({
-  strategy: 'client',       
-  data: issues.data ?? [], 
-  columnsConfig,          
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
   filters: filters,
   onFiltersChange: setFilters,
 })
@@ -60,9 +60,9 @@ import { useFilterStore } from './store'
 const { filters, setFilters } = useFilterStore()
 
 const { columns, actions, strategy } = useDataTableFilters({
-  strategy: 'client',       
-  data: issues.data ?? [], 
-  columnsConfig,          
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
   filters,
   onFiltersChange: setFilters,
 })
@@ -102,15 +102,15 @@ const handleFiltersChange = (prev: FiltersState, next: FiltersState) => {
     previous: prev.length,
     current: next.length,
   })
-  
+
   // Update state
   setFilters(next)
 }
 
 const { columns, actions } = useDataTableFilters({
-  strategy: 'client',       
-  data: issues.data ?? [], 
-  columnsConfig,          
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
   filters,
   onFiltersChange: handleFiltersChange,
 })
