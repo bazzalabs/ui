@@ -27,7 +27,12 @@ import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
-import { useFilterVariant } from '../root/filter-context'
+import {
+  useFilterActions,
+  useFilterLocale,
+  useFilterVariant,
+} from '../root/filter-context'
+import { useFilterItemContext } from './filter-item'
 
 const filterOperatorVariants = cva(
   'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs text-muted-foreground',
@@ -50,18 +55,28 @@ export interface FilterOperatorProps<
   TType extends ColumnDataType = ColumnDataType,
 > extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'>,
     VariantProps<typeof filterOperatorVariants> {
-  column: Column<TData, TType>
-  filter: FilterModel<TType>
-  actions: DataTableFilterActions
+  /** The column configuration. If omitted, will be read from FilterItem context. */
+  column?: Column<TData, TType>
+  /** The current filter state. If omitted, will be read from FilterItem context. */
+  filter?: FilterModel<TType>
+  /** Filter actions. If omitted, will be read from FilterItem or Filter context. */
+  actions?: DataTableFilterActions
   locale?: Locale
+}
+
+interface CreateOperatorMenuParams<TData, TType extends ColumnDataType> {
+  filter: FilterModel<TType>
+  column: Column<TData, TType>
+  actions: DataTableFilterActions
+  locale: Locale
 }
 
 function createOperatorMenu<TData, TType extends ColumnDataType>({
   filter,
   column,
   actions,
-  locale = 'en',
-}: FilterOperatorProps<TData, TType>): MenuDef {
+  locale,
+}: CreateOperatorMenuParams<TData, TType>): MenuDef {
   const getOperators = () => {
     if (isTextColumn(column)) return textFilterOperators
     if (isOptionColumn(column)) return optionFilterOperators
@@ -115,18 +130,33 @@ function createOperatorMenu<TData, TType extends ColumnDataType>({
 const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
   (
     {
-      column,
-      filter,
-      actions,
-      locale = 'en',
+      column: columnProp,
+      filter: filterProp,
+      actions: actionsProp,
+      locale: localeProp,
       className,
       variant: variantProp,
       ...props
     },
     ref,
   ) => {
+    const itemContext = useFilterItemContext()
+    const filterActions = useFilterActions()
+    const filterLocale = useFilterLocale()
     const contextVariant = useFilterVariant()
+
+    const column = columnProp ?? itemContext?.column
+    const filter = filterProp ?? itemContext?.filter
+    const actions = actionsProp ?? itemContext?.actions ?? filterActions
+    const locale = localeProp ?? itemContext?.locale ?? filterLocale ?? 'en'
     const variant = variantProp ?? contextVariant ?? 'default'
+
+    if (!column || !filter || !actions) {
+      throw new Error(
+        'FilterOperator requires column, filter, and actions props or must be used within FilterItem',
+      )
+    }
+
     const menu = createOperatorMenu({ filter, column, actions, locale })
 
     const operatorDetails = filterTypeOperatorDetails[column.type] as Record<

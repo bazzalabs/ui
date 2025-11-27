@@ -40,7 +40,14 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
-import { type FilterVariant, useFilterVariant } from '../root/filter-context'
+import {
+  type FilterVariant,
+  useFilterActions,
+  useFilterEntityName,
+  useFilterLocale,
+  useFilterStrategy,
+  useFilterVariant,
+} from '../root/filter-context'
 import {
   createMultiOptionMenu,
   createOptionMenu,
@@ -50,6 +57,7 @@ import {
   OptionItem,
   TextItem,
 } from '../value'
+import { useFilterItemContext } from './filter-item'
 
 const filterValueVariants = cva(
   'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs',
@@ -71,10 +79,14 @@ export interface FilterValueProps<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
 > {
-  filter: FilterModel<TType>
-  column: Column<TData, TType>
-  actions: DataTableFilterActions
-  strategy: FilterStrategy
+  /** The current filter state. If omitted, will be read from FilterItem context. */
+  filter?: FilterModel<TType>
+  /** The column configuration. If omitted, will be read from FilterItem context. */
+  column?: Column<TData, TType>
+  /** Filter actions. If omitted, will be read from FilterItem or Filter context. */
+  actions?: DataTableFilterActions
+  /** Filter strategy. If omitted, will be read from FilterItem or Filter context. */
+  strategy?: FilterStrategy
   locale?: Locale
   entityName?: string
   className?: string
@@ -175,25 +187,50 @@ function getItemSlot<TData>(column: Column<TData>) {
 const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
   (
     {
-      filter,
-      column,
-      actions,
-      strategy,
-      locale = 'en',
-      entityName,
+      filter: filterProp,
+      column: columnProp,
+      actions: actionsProp,
+      strategy: strategyProp,
+      locale: localeProp,
+      entityName: entityNameProp,
       className,
       variant: variantProp,
     },
     ref,
   ) => {
+    const itemContext = useFilterItemContext()
+    const filterActions = useFilterActions()
+    const filterStrategy = useFilterStrategy()
+    const filterLocale = useFilterLocale()
+    const filterEntityName = useFilterEntityName()
     const contextVariant = useFilterVariant()
+
+    const filter = filterProp ?? itemContext?.filter
+    const column = columnProp ?? itemContext?.column
+    const actions = actionsProp ?? itemContext?.actions ?? filterActions
+    const strategy = strategyProp ?? itemContext?.strategy ?? filterStrategy
+    const locale = localeProp ?? itemContext?.locale ?? filterLocale ?? 'en'
+    const entityName =
+      entityNameProp ?? itemContext?.entityName ?? filterEntityName
     const variant = variantProp ?? contextVariant ?? 'default'
+
+    if (!filter || !column || !actions || !strategy) {
+      throw new Error(
+        'FilterValue requires filter, column, actions, and strategy props or must be used within FilterItem',
+      )
+    }
+
+    // After validation, we can safely use these non-null values
+    const resolvedFilter = filter
+    const resolvedColumn = column
+    const resolvedActions = actions
+    const resolvedStrategy = strategy
 
     const [open, setOpen] = useState(false)
 
     // Don't open the value controller for boolean columns
     function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
-      if (isBooleanColumn(column)) e.preventDefault()
+      if (isBooleanColumn(resolvedColumn)) e.preventDefault()
     }
 
     // Used only for option/multiOption to track initial selection order
@@ -204,90 +241,97 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
     // Create menu configuration for all column types
     // biome-ignore lint/correctness/useExhaustiveDependencies: re-create on open to show new selection order
     const menu: MenuDef | null = useMemo(() => {
-      const baseId = `filter-value-${column.id}`
+      const baseId = `filter-value-${resolvedColumn.id}`
 
       // For text type, use the text menu creator
-      if (isTextColumn(column)) {
+      if (isTextColumn(resolvedColumn)) {
         return {
           id: baseId,
           ...(createTextMenu({
-            filter: filter as FilterModel<'text'>,
-            column,
-            actions,
+            filter: resolvedFilter as FilterModel<'text'>,
+            column: resolvedColumn,
+            actions: resolvedActions,
             locale,
-            strategy,
+            strategy: resolvedStrategy,
           }) as any),
         }
       }
 
       // For option type
-      if (isOptionColumn(column)) {
+      if (isOptionColumn(resolvedColumn)) {
         const { nodes } = createOptionMenu({
-          column,
-          actions,
+          column: resolvedColumn,
+          actions: resolvedActions,
           locale,
-          strategy,
-          filter: filter as FilterModel<'option'>,
+          strategy: resolvedStrategy,
+          filter: resolvedFilter as FilterModel<'option'>,
         })
 
         return createMenuWithSeparator(
-          column.id,
+          resolvedColumn.id,
           nodes,
           initialFilterValuesRef.current,
         )
       }
 
       // For multiOption type
-      if (isMultiOptionColumn(column)) {
+      if (isMultiOptionColumn(resolvedColumn)) {
         const { nodes } = createMultiOptionMenu({
-          column,
-          actions,
+          column: resolvedColumn,
+          actions: resolvedActions,
           locale,
-          strategy,
-          filter: filter as FilterModel<'multiOption'>,
+          strategy: resolvedStrategy,
+          filter: resolvedFilter as FilterModel<'multiOption'>,
         })
 
         return createMenuWithSeparator(
-          column.id,
+          resolvedColumn.id,
           nodes,
           initialFilterValuesRef.current,
         )
       }
 
       // For date type, use the controller renderer
-      if (isDateColumn(column)) {
+      if (isDateColumn(resolvedColumn)) {
         return createDateControllerMenu(
-          filter as FilterModel<'date'>,
-          column,
-          actions,
-          strategy,
+          resolvedFilter as FilterModel<'date'>,
+          resolvedColumn,
+          resolvedActions,
+          resolvedStrategy,
           locale,
         )
       }
 
       // For number type, use the controller renderer
-      if (isNumberColumn(column)) {
+      if (isNumberColumn(resolvedColumn)) {
         return createNumberControllerMenu(
-          filter as FilterModel<'number'>,
-          column,
-          actions,
-          strategy,
+          resolvedFilter as FilterModel<'number'>,
+          resolvedColumn,
+          resolvedActions,
+          resolvedStrategy,
           locale,
         )
       }
 
-      if (isBooleanColumn(column)) {
+      if (isBooleanColumn(resolvedColumn)) {
         return null
       }
 
       return null
-    }, [column, filter, actions, locale, strategy, open])
+    }, [
+      resolvedColumn,
+      resolvedFilter,
+      resolvedActions,
+      locale,
+      resolvedStrategy,
+      open,
+    ])
 
-    if (isBooleanColumn(column)) {
+    if (isBooleanColumn(resolvedColumn)) {
       return (
         <div
           data-slot="filter-value"
-          data-column-type={column.type}
+          data-column-type={resolvedColumn.type}
           className={cn(
             buttonVariants({ variant: 'ghost' }),
             filterValueVariants({ variant }),
@@ -296,8 +340,8 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           )}
         >
           <FilterValueDisplay
-            filter={filter}
-            column={column}
+            filter={resolvedFilter}
+            column={resolvedColumn}
             locale={locale}
             entityName={entityName}
           />
@@ -308,13 +352,13 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
     return (
       <DropdownMenu
         slots={{
-          Item: getItemSlot(column),
+          Item: getItemSlot(resolvedColumn),
         }}
         menu={menu!}
         open={open}
         onOpenChange={(value) => {
           if (value) {
-            initialFilterValuesRef.current = filter.values
+            initialFilterValuesRef.current = resolvedFilter.values
           }
 
           setOpen(value)
@@ -324,14 +368,14 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
         <Button
           ref={ref}
           data-slot="filter-value"
-          data-column-type={column.type}
+          data-column-type={resolvedColumn.type}
           variant="ghost"
           className={cn(filterValueVariants({ variant }), className)}
           onClick={handleClick}
         >
           <FilterValueDisplay
-            filter={filter}
-            column={column}
+            filter={resolvedFilter}
+            column={resolvedColumn}
             locale={locale}
             entityName={entityName}
           />

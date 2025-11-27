@@ -1,6 +1,13 @@
 'use client'
 
-import type { Column, ColumnDataType, FilterModel } from '@bazza-ui/filters'
+import type {
+  Column,
+  ColumnDataType,
+  DataTableFilterActions,
+  FilterModel,
+  FilterStrategy,
+  Locale,
+} from '@bazza-ui/filters'
 import { cva, type VariantProps } from 'class-variance-authority'
 import {
   type ComponentPropsWithoutRef,
@@ -9,7 +16,7 @@ import {
   useContext,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useFilterVariant } from '../root/filter-context'
+import { useFilterContext, useFilterVariant } from '../root/filter-context'
 
 const filterItemVariants = cva('flex items-center text-xs font-medium', {
   variants: {
@@ -29,23 +36,29 @@ export interface FilterItemContextValue<
 > {
   filter: FilterModel<TType>
   column: Column<TData, TType>
+  actions: DataTableFilterActions
+  strategy: FilterStrategy
+  locale: Locale
+  entityName?: string
 }
 
 export const FilterItemContext = createContext<FilterItemContextValue | null>(
   null,
 )
 
+/**
+ * Returns the FilterItemContext value, or null if not within a FilterItem.
+ * This allows child components to be used both inside FilterItem (consuming context)
+ * or standalone (with explicit props).
+ */
 export function useFilterItemContext<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
->(): FilterItemContextValue<TData, TType> {
-  const context = useContext(FilterItemContext)
-  if (!context) {
-    throw new Error(
-      'FilterItem compound components must be used within FilterItem',
-    )
-  }
-  return context as FilterItemContextValue<TData, TType>
+>(): FilterItemContextValue<TData, TType> | null {
+  return useContext(FilterItemContext) as FilterItemContextValue<
+    TData,
+    TType
+  > | null
 }
 
 export interface FilterItemProps<
@@ -69,13 +82,21 @@ const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
     { filter, column, children, className, variant: variantProp, ...props },
     ref,
   ) => {
+    const filterContext = useFilterContext()
     const contextVariant = useFilterVariant()
     const variant = variantProp ?? contextVariant ?? 'default'
 
+    const itemContextValue: FilterItemContextValue = {
+      filter,
+      column,
+      actions: filterContext.actions,
+      strategy: filterContext.strategy,
+      locale: filterContext.locale,
+      entityName: filterContext.entityName,
+    }
+
     return (
-      <FilterItemContext.Provider
-        value={{ filter, column } as FilterItemContextValue}
-      >
+      <FilterItemContext.Provider value={itemContextValue}>
         <div
           ref={ref}
           data-slot="filter-item"

@@ -9,7 +9,8 @@ import {
   isValidElement,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useFilterVariant } from '../root/filter-context'
+import { useFilterEntityName, useFilterVariant } from '../root/filter-context'
+import { useFilterItemContext } from './filter-item'
 
 const filterSubjectVariants = cva(
   'flex select-none items-center gap-1 whitespace-nowrap px-2',
@@ -31,7 +32,8 @@ export interface FilterSubjectProps<
   TType extends ColumnDataType = ColumnDataType,
 > extends ComponentPropsWithoutRef<'span'>,
     VariantProps<typeof filterSubjectVariants> {
-  column: Column<TData, TType>
+  /** The column configuration. If omitted, will be read from FilterItem context. */
+  column?: Column<TData, TType>
   entityName?: string
 }
 
@@ -42,9 +44,30 @@ export interface FilterSubjectProps<
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
 const FilterSubject = forwardRef<HTMLSpanElement, FilterSubjectProps>(
-  ({ column, entityName, className, variant: variantProp, ...props }, ref) => {
+  (
+    {
+      column: columnProp,
+      entityName: entityNameProp,
+      className,
+      variant: variantProp,
+      ...props
+    },
+    ref,
+  ) => {
+    const itemContext = useFilterItemContext()
+    const filterEntityName = useFilterEntityName()
     const contextVariant = useFilterVariant()
+
+    const column = columnProp ?? itemContext?.column
+    const entityName =
+      entityNameProp ?? itemContext?.entityName ?? filterEntityName
     const variant = variantProp ?? contextVariant ?? 'default'
+
+    if (!column) {
+      throw new Error(
+        'FilterSubject requires a column prop or must be used within FilterItem',
+      )
+    }
 
     const subject = isBooleanColumn(column) ? entityName : column.displayName
 

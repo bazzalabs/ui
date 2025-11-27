@@ -114,142 +114,142 @@
         {
           "path": "registry/ui/filter/index.ts",
           "type": "registry:file",
-          "target": "components/filter/index.ts"
+          "target": "components/ui/filter/index.ts"
         },
         {
           "path": "registry/ui/filter/index.parts.ts",
           "type": "registry:file",
-          "target": "components/filter/index.parts.ts"
+          "target": "components/ui/filter/index.parts.ts"
         },
         {
           "path": "registry/ui/filter/components/root/filter-root.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/root/filter-root.tsx"
+          "target": "components/ui/filter/components/root/filter-root.tsx"
         },
         {
           "path": "registry/ui/filter/components/provider/filter-provider.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/provider/filter-provider.tsx"
+          "target": "components/ui/filter/components/provider/filter-provider.tsx"
         },
         {
           "path": "registry/ui/filter/components/root/filter-context.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/root/filter-context.tsx"
+          "target": "components/ui/filter/components/root/filter-context.tsx"
         },
         {
           "path": "registry/ui/filter/components/menu/filter-menu.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/menu/filter-menu.tsx"
+          "target": "components/ui/filter/components/menu/filter-menu.tsx"
         },
         {
           "path": "registry/ui/filter/components/trigger/filter-trigger.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/trigger/filter-trigger.tsx"
+          "target": "components/ui/filter/components/trigger/filter-trigger.tsx"
         },
         {
           "path": "registry/ui/filter/components/list/filter-list.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/list/filter-list.tsx"
+          "target": "components/ui/filter/components/list/filter-list.tsx"
         },
         {
           "path": "registry/ui/filter/components/list/filter-list-mobile-container.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/list/filter-list-mobile-container.tsx"
+          "target": "components/ui/filter/components/list/filter-list-mobile-container.tsx"
         },
         {
           "path": "registry/ui/filter/components/item/filter-item.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/item/filter-item.tsx"
+          "target": "components/ui/filter/components/item/filter-item.tsx"
         },
         {
           "path": "registry/ui/filter/components/item/filter-subject.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/item/filter-subject.tsx"
+          "target": "components/ui/filter/components/item/filter-subject.tsx"
         },
         {
           "path": "registry/ui/filter/components/item/filter-operator.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/item/filter-operator.tsx"
+          "target": "components/ui/filter/components/item/filter-operator.tsx"
         },
         {
           "path": "registry/ui/filter/components/item/filter-value.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/item/filter-value.tsx"
+          "target": "components/ui/filter/components/item/filter-value.tsx"
         },
         {
           "path": "registry/ui/filter/components/item/filter-remove.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/item/filter-remove.tsx"
+          "target": "components/ui/filter/components/item/filter-remove.tsx"
         },
         {
           "path": "registry/ui/filter/components/actions/filter-actions.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/actions/filter-actions.tsx"
+          "target": "components/ui/filter/components/actions/filter-actions.tsx"
         },
         {
           "path": "registry/ui/filter/components/value/index.ts",
           "type": "registry:file",
-          "target": "components/filter/components/value/index.ts"
+          "target": "components/ui/filter/components/value/index.ts"
         },
         {
           "path": "registry/ui/filter/components/value/types.ts",
           "type": "registry:file",
-          "target": "components/filter/components/value/types.ts"
+          "target": "components/ui/filter/components/value/types.ts"
         },
         {
           "path": "registry/ui/filter/components/value/option-item.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/value/option-item.tsx"
+          "target": "components/ui/filter/components/value/option-item.tsx"
         },
         {
           "path": "registry/ui/filter/components/value/text-item.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/value/text-item.tsx"
+          "target": "components/ui/filter/components/value/text-item.tsx"
         },
         {
           "path": "registry/ui/filter/components/value/option-menu.ts",
           "type": "registry:file",
-          "target": "components/filter/components/value/option-menu.ts"
+          "target": "components/ui/filter/components/value/option-menu.ts"
         },
         {
           "path": "registry/ui/filter/components/value/multi-option-menu.ts",
           "type": "registry:file",
-          "target": "components/filter/components/value/multi-option-menu.ts"
+          "target": "components/ui/filter/components/value/multi-option-menu.ts"
         },
         {
           "path": "registry/ui/filter/components/value/text-menu.ts",
           "type": "registry:file",
-          "target": "components/filter/components/value/text-menu.ts"
+          "target": "components/ui/filter/components/value/text-menu.ts"
         },
         {
           "path": "registry/ui/filter/components/value/filter-value-date-controller.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/value/filter-value-date-controller.tsx"
+          "target": "components/ui/filter/components/value/filter-value-date-controller.tsx"
         },
         {
           "path": "registry/ui/filter/components/value/filter-value-number-controller.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/value/filter-value-number-controller.tsx"
+          "target": "components/ui/filter/components/value/filter-value-number-controller.tsx"
         },
         {
           "path": "registry/ui/filter/hooks/use-debounce-callback.tsx",
           "type": "registry:file",
-          "target": "components/filter/hooks/use-debounce-callback.tsx"
+          "target": "components/ui/filter/hooks/use-debounce-callback.tsx"
         },
         {
           "path": "registry/ui/filter/hooks/use-unmount.tsx",
           "type": "registry:file",
-          "target": "components/filter/hooks/use-unmount.tsx"
+          "target": "components/ui/filter/hooks/use-unmount.tsx"
         },
         {
           "path": "registry/ui/filter/lib/debounce.ts",
           "type": "registry:file",
-          "target": "components/filter/lib/debounce.ts"
+          "target": "components/ui/filter/lib/debounce.ts"
         },
         {
           "path": "registry/ui/filter/ui/debounced-input.tsx",
           "type": "registry:file",
-          "target": "components/filter/ui/debounced-input.tsx"
+          "target": "components/ui/filter/ui/debounced-input.tsx"
         }
       ]
     },
