@@ -1,6 +1,5 @@
 'use client'
 
-import type { FiltersState } from '@bazza-ui/filters'
 import { useDataTableFilters } from '@bazza-ui/filters'
 import {
   createTSTColumns,
@@ -13,7 +12,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import { Filter } from '@/registry/components/filter'
+import { Filter } from '@/registry/ui/filter'
 import { tstColumnDefs } from '../lib/columns'
 import { ISSUES } from '../lib/data'
 import { columnsConfig } from '../lib/filters'
