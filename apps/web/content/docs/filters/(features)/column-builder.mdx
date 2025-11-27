@@ -145,10 +145,10 @@ dtf
   .displayName('Status')
   .icon(CircleDotDashedIcon)
   .options(
-    ISSUE_STATUSES.map((s) => ({ 
-      value: s.id, 
-      label: s.name, 
-      icon: s.icon 
+    ISSUE_STATUSES.map((s) => ({
+      value: s.id,
+      label: s.name,
+      icon: s.icon
     }))
   )
 ```
@@ -272,7 +272,7 @@ dtf
   .build()
 ```
 
-## Complete Example
+## Putting it all together
 
 > [!NOTE] Make sure to declare your `ColumnConfig[]` with `as const` to ensure it's immutable and type-safe.
 
@@ -301,3 +301,7 @@ const columnsConfig = [
   /* ...rest of the columns... */
 ] as const
 ```
+
+## Next steps
+
+In the [Instance](/docs/filters/instance) section, you'll use your newly minted column configurations to actually create your filters instance and configure it.

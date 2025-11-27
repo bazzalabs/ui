@@ -6,7 +6,7 @@ summary: Managing filter state externally with controlled mode.
 
 The `useDataTableFilters()` hook supports both uncontrolled and controlled state management.
 
-## Uncontrolled State
+## Uncontrolled usage
 
 By default, the `filters` state is uncontrolled; it is managed internally by the instance.
 
@@ -28,14 +28,18 @@ const { columns, filters, actions, strategy } = useDataTableFilters({
 })
 ```
 
-## Controlled State
+## Controlled usage
 
-If you want to use controlled *(external)* state for your filters, you can use the `filters` and `onFiltersChange` properties. You can hook in your state management solution of choice.
+If you want to use controlled *(external)* state for your filters, you can use the `filters` and `onFiltersChange` properties.
+
+You can hook in your state management solution of choice.
 
 > [!NOTE] The **`defaultFilters`** property is not used when using controlled state.
 > If you use controlled state and wish to specify a default value, use the mechanism provided by your state management solution.
 
-### With React useState
+Check out some examples below.
+
+### React
 
 ```tsx
 import { useState } from 'react'
@@ -52,7 +56,7 @@ const { columns, actions, strategy } = useDataTableFilters({
 })
 ```
 
-### With Zustand
+### Zustand
 
 ```tsx
 import { useFilterStore } from './store'
@@ -68,27 +72,26 @@ const { columns, actions, strategy } = useDataTableFilters({
 })
 ```
 
-### With nuqs (URL State)
+### nuqs
 
 See the [nuqs integration](/docs/filters/integrations/nuqs) for persisting filter state in the URL.
 
-## Custom Change Handler
+## Advanced handler
 
 The `onFiltersChange` handler supports two signatures:
 
-### Standard Dispatch
-
 ```ts
+// Standard
 onFiltersChange: React.Dispatch<React.SetStateAction<FiltersState>>
-```
 
-### Custom Handler with Context
-
-For advanced use cases, you can use a custom handler that receives previous state, next state, and optional context:
-
-```ts
+// Advanced
 onFiltersChange: (prev: FiltersState, next: FiltersState, context?: TContext) => void
 ```
+
+- **Standard:** The change handler you're used to from React. For most people, this is sufficient.
+- **Advanced:** Receives previous state, next state, and optional context.
+
+### Using next/previous state
 
 This is useful when you need to:
 - Track filter changes for analytics
@@ -114,4 +117,71 @@ const { columns, actions } = useDataTableFilters({
   filters,
   onFiltersChange: handleFiltersChange,
 })
+```
+
+### Using context
+
+The advanced handler accepts a third `context` parameter, which is passed through from filter actions.
+
+This allows you to include additional metadata when you mutate the filters state, so that can be passed along and handled at the call site.
+
+This pattern is useful when you need to:
+- Distinguish between user-initiated and programmatic filter changes
+- Track which component or feature triggered a filter update
+- Conditionally handle changes based on their origin (e.g., skip analytics for URL syncs)
+
+First, define your context type:
+
+```ts
+type FilterChangeContext = {
+  source: 'user' | 'system' | 'url-sync'
+}
+```
+
+Next, use `createTypedDataTableFilters()` to create a hook with your context type signature baked in:
+
+```tsx
+import { createTypedDataTableFilters } from '@bazza-ui/filters'
+
+// Create a typed version of the hook with your context
+export const useDataTableFilters = createTypedDataTableFilters<FilterChangeContext>()
+```
+
+We can provide context when mutating filters using the `actions` handler:
+
+```tsx
+// Pass context when calling actions
+actions.setFilterValue(column, ['active'], { source: 'user' })
+actions.removeAllFilters({ source: 'url-sync' })
+```
+
+And we can receive this context in our change handler and conditionally perform actions using the received context:
+
+```tsx
+const [filters, setFilters] = useState<FiltersState>([])
+
+const handleFiltersChange = (
+  prev: FiltersState,
+  next: FiltersState,
+  context?: FilterChangeContext, // Typed!
+) => {
+  // Log the source of the change
+  console.log(`Filter changed by: ${context?.source}`)
+
+  // Handle differently based on source
+  if (context?.source === 'url-sync') {
+    // Skip analytics for URL sync
+    setFilters(next)
+    return
+  }
+
+  // Track user-initiated changes
+  analytics.track('filters_changed', {
+    source: context?.source,
+    previous: prev.length,
+    current: next.length,
+  })
+
+  setFilters(next)
+}
 ```

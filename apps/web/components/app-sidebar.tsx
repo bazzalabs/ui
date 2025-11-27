@@ -177,13 +177,28 @@ const componentItems: ComponentItem[] = [
           },
           {
             type: 'link',
-            title: 'Controlled State',
+            title: 'Instance',
+            url: '/docs/filters/instance',
+          },
+          {
+            type: 'link',
+            title: 'State Management',
             url: '/docs/filters/state-management',
           },
           {
             type: 'link',
             title: 'Faceted Values',
             url: '/docs/filters/faceted-values',
+          },
+          {
+            type: 'link',
+            title: 'Columns',
+            url: '/docs/filters/columns',
+          },
+          {
+            type: 'link',
+            title: 'Actions',
+            url: '/docs/filters/actions',
           },
           {
             type: 'link',

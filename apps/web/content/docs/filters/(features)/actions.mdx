@@ -1,0 +1,170 @@
+---
+title: Actions
+section: Features
+summary: Programmatically mutating filter state with the actions API.
+---
+
+The `actions` object from `useDataTableFilters()` provides methods to programmatically mutate filter state.
+
+## Overview
+
+```tsx
+const { columns, filters, actions } = useDataTableFilters({
+  strategy: 'client',
+  data: issues,
+  columnsConfig,
+})
+
+// Find a column
+const statusColumn = columns.find(c => c.id === 'status')
+
+// Use actions to modify filters
+actions.addFilterValue(statusColumn, ['backlog'])
+```
+
+## Actions
+
+<TypeTableAuto type="DataTableFilterActions" pkg="@bazza-ui/filters" />
+
+### addFilterValue()
+
+Adds one or more values to an option-based column filter. If the column isn't currently filtered, a new filter is created.
+
+```ts
+const statusColumn = columns.find(c => c.id === 'status')
+
+// Add a single value
+actions.addFilterValue(statusColumn, ['backlog'])
+
+// Add multiple values
+actions.addFilterValue(statusColumn, ['backlog', 'todo'])
+```
+
+> [!NOTE] This action automatically adjusts the filter operator based on the number of values. For example, adding a second value to an `option` column changes the operator from `is` to `is any of`.
+
+### removeFilterValue()
+
+Removes one or more values from an option-based column filter. If all values are removed, the filter is deleted entirely.
+
+```ts
+const statusColumn = columns.find(c => c.id === 'status')
+
+// Remove a single value
+actions.removeFilterValue(statusColumn, ['backlog'])
+
+// Remove multiple values
+actions.removeFilterValue(statusColumn, ['backlog', 'todo'])
+```
+
+### setFilterValue()
+
+Sets the exact filter values for any column type, replacing any existing values.
+
+```ts
+// Option column
+const statusColumn = columns.find(c => c.id === 'status')
+actions.setFilterValue(statusColumn, ['backlog', 'todo'])
+
+// Number column (range)
+const hoursColumn = columns.find(c => c.id === 'estimatedHours')
+actions.setFilterValue(hoursColumn, [10, 50])
+
+// Date column
+const dateColumn = columns.find(c => c.id === 'createdAt')
+actions.setFilterValue(dateColumn, [new Date('2024-01-01'), new Date('2024-12-31')])
+
+// Boolean column
+const urgentColumn = columns.find(c => c.id === 'isUrgent')
+actions.setFilterValue(urgentColumn, [true])
+
+// Text column
+const titleColumn = columns.find(c => c.id === 'title')
+actions.setFilterValue(titleColumn, ['bug'])
+```
+
+### setFilterOperator()
+
+Changes the operator for an existing filter without modifying its values.
+
+```ts
+// Change from "is any of" to "is none of"
+actions.setFilterOperator('status', 'is none of')
+
+// Change number filter from "is between" to "is greater than"
+actions.setFilterOperator('estimatedHours', 'is greater than')
+```
+
+### removeFilter()
+
+Removes the filter for a specific column entirely.
+
+```ts
+actions.removeFilter('status')
+```
+
+### removeAllFilters()
+
+Clears all active filters.
+
+```ts
+actions.removeAllFilters()
+```
+
+## Batch Operations
+
+When you need to apply multiple filter changes at once, use `actions.batch()`.
+
+This ensures all changes are applied in a single state update, which is more performant and prevents intermediate renders.
+
+```ts
+batch(
+  callback: (batchActions: DataTableFilterBatchActions) => void,
+  context?: TContext
+) => void
+```
+
+### Usage
+
+```ts
+actions.batch((tx) => {
+  tx.removeAllFilters()
+  tx.addFilterValue(statusColumn, ['backlog'])
+  tx.addFilterValue(priorityColumn, ['high'])
+  tx.setFilterValue(hoursColumn, [0, 20])
+})
+```
+
+All changes inside the callback are collected and applied as a single state update.
+
+### API Reference
+
+The `batch` callback receives a `batchActions` object with the same methods as `actions`, but without the `context` parameter:
+
+<TypeTableAuto type="DataTableFilterBatchActions" pkg="@bazza-ui/filters" />
+
+## Passing Context
+
+Every action accepts an optional `context` parameter as its last argument. This context is passed through to your `onFiltersChange` handler when using controlled state.
+
+Pass context as the last argument to any action:
+
+```ts
+// Single action with context
+actions.addFilterValue(statusColumn, ['backlog'], { source: 'user' })
+
+// Remove all with context
+actions.removeAllFilters({ source: 'preset' })
+
+// Batch with context
+actions.batch((tx) => {
+  tx.removeAllFilters()
+  tx.addFilterValue(statusColumn, ['done'])
+}, { source: 'url-sync' })
+```
+
+See the [State Management](/docs/filters/state-management) guide for more details on setting up and using context.
+
+## Next Steps
+
+- Learn about [State Management](/docs/filters/state-management) for controlled state patterns
+- Explore [Columns](/docs/filters/columns) to understand how to access column data
