@@ -88,7 +88,7 @@ export function IssuesTable({
   return (
     <div className="w-full col-span-2">
       <div className="flex items-center pb-4 gap-2">
-        <Filter.Root
+        <Filter.Provider
           variant="clean"
           filters={filters}
           columns={columns}
@@ -96,31 +96,33 @@ export function IssuesTable({
           strategy={strategy}
           entityName={entityName}
         >
-          <div className="flex md:flex-wrap gap-2 w-full flex-1">
-            <Filter.Menu />
-            <Filter.List>
-              {({ filter, column }) => (
-                <Filter.Block filter={filter} column={column}>
-                  <Filter.Subject column={column} />
-                  <Filter.Operator
-                    filter={filter}
-                    column={column}
-                    actions={actions}
-                    locale="en"
-                  />
-                  <Filter.Value
-                    filter={filter}
-                    column={column}
-                    actions={actions}
-                    strategy={strategy}
-                  />
-                  <Filter.Remove filter={filter} actions={actions} />
-                </Filter.Block>
-              )}
-            </Filter.List>
-          </div>
-          <Filter.Actions />
-        </Filter.Root>
+          <Filter.Root>
+            <div className="flex md:flex-wrap gap-2 w-full flex-1">
+              <Filter.Menu />
+              <Filter.List>
+                {({ filter, column }) => (
+                  <Filter.Block filter={filter} column={column}>
+                    <Filter.Subject column={column} />
+                    <Filter.Operator
+                      filter={filter}
+                      column={column}
+                      actions={actions}
+                      locale="en"
+                    />
+                    <Filter.Value
+                      filter={filter}
+                      column={column}
+                      actions={actions}
+                      strategy={strategy}
+                    />
+                    <Filter.Remove filter={filter} actions={actions} />
+                  </Filter.Block>
+                )}
+              </Filter.List>
+            </div>
+            <Filter.Actions />
+          </Filter.Root>
+        </Filter.Provider>
       </div>
       <DataTable table={table} />
     </div>
