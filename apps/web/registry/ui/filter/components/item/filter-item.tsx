@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useFilterVariant } from '../root/filter-context'
 
-const filterBlockVariants = cva('flex items-center text-xs font-medium', {
+const filterItemVariants = cva('flex items-center text-xs font-medium', {
   variants: {
     variant: {
       default: 'h-7 rounded-2xl border border-border bg-background shadow-xs',
@@ -23,7 +23,7 @@ const filterBlockVariants = cva('flex items-center text-xs font-medium', {
   },
 })
 
-export interface FilterBlockContextValue<
+export interface FilterItemContextValue<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
 > {
@@ -31,28 +31,28 @@ export interface FilterBlockContextValue<
   column: Column<TData, TType>
 }
 
-export const FilterBlockContext = createContext<FilterBlockContextValue | null>(
+export const FilterItemContext = createContext<FilterItemContextValue | null>(
   null,
 )
 
-export function useFilterBlockContext<
+export function useFilterItemContext<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
->(): FilterBlockContextValue<TData, TType> {
-  const context = useContext(FilterBlockContext)
+>(): FilterItemContextValue<TData, TType> {
+  const context = useContext(FilterItemContext)
   if (!context) {
     throw new Error(
-      'FilterBlock compound components must be used within FilterBlock',
+      'FilterItem compound components must be used within FilterItem',
     )
   }
-  return context as FilterBlockContextValue<TData, TType>
+  return context as FilterItemContextValue<TData, TType>
 }
 
-export interface FilterBlockProps<
+export interface FilterItemProps<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
 > extends Omit<ComponentPropsWithoutRef<'div'>, 'children'>,
-    VariantProps<typeof filterBlockVariants> {
+    VariantProps<typeof filterItemVariants> {
   filter: FilterModel<TType>
   column: Column<TData, TType>
   children?: React.ReactNode
@@ -64,7 +64,7 @@ export interface FilterBlockProps<
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterBlock = forwardRef<HTMLDivElement, FilterBlockProps>(
+const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
   (
     { filter, column, children, className, variant: variantProp, ...props },
     ref,
@@ -73,35 +73,35 @@ const FilterBlock = forwardRef<HTMLDivElement, FilterBlockProps>(
     const variant = variantProp ?? contextVariant ?? 'default'
 
     return (
-      <FilterBlockContext.Provider
-        value={{ filter, column } as FilterBlockContextValue}
+      <FilterItemContext.Provider
+        value={{ filter, column } as FilterItemContextValue}
       >
         <div
           ref={ref}
-          data-slot="filter-block"
+          data-slot="filter-item"
           data-column-id={column.id}
           data-column-type={column.type}
-          className={cn(filterBlockVariants({ variant }), className)}
+          className={cn(filterItemVariants({ variant }), className)}
           {...props}
         >
           {children}
         </div>
-      </FilterBlockContext.Provider>
+      </FilterItemContext.Provider>
     )
   },
 )
 
-FilterBlock.displayName = 'FilterBlock'
+FilterItem.displayName = 'FilterItem'
 
-export { FilterBlock, filterBlockVariants }
+export { FilterItem, filterItemVariants }
 
-export namespace FilterBlock {
+export namespace FilterItem {
   export type Props<
     TData = unknown,
     TType extends ColumnDataType = ColumnDataType,
-  > = FilterBlockProps<TData, TType>
+  > = FilterItemProps<TData, TType>
   export type ContextValue<
     TData = unknown,
     TType extends ColumnDataType = ColumnDataType,
-  > = FilterBlockContextValue<TData, TType>
+  > = FilterItemContextValue<TData, TType>
 }

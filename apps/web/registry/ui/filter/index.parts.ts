@@ -2,12 +2,15 @@
 
 // Actions
 export { FilterActions as Actions } from './components/actions/filter-actions'
-// Block components
-export { FilterBlock as Block } from './components/block/filter-block'
-export { FilterOperator as Operator } from './components/block/filter-operator'
-export { FilterRemove as Remove } from './components/block/filter-remove'
-export { FilterSubject as Subject } from './components/block/filter-subject'
-export { FilterValue as Value } from './components/block/filter-value'
+// Item components
+export {
+  FilterItem as Item,
+  useFilterItemContext,
+} from './components/item/filter-item'
+export { FilterOperator as Operator } from './components/item/filter-operator'
+export { FilterRemove as Remove } from './components/item/filter-remove'
+export { FilterSubject as Subject } from './components/item/filter-subject'
+export { FilterValue as Value } from './components/item/filter-value'
 // List
 export { FilterList as List } from './components/list/filter-list'
 export { FilterListMobileContainer as ListMobileContainer } from './components/list/filter-list-mobile-container'

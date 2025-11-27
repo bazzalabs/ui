@@ -101,7 +101,7 @@ export function IssuesTable({
               <Filter.Menu />
               <Filter.List>
                 {({ filter, column }) => (
-                  <Filter.Block filter={filter} column={column}>
+                  <Filter.Item filter={filter} column={column}>
                     <Filter.Subject column={column} />
                     <Filter.Operator
                       filter={filter}
@@ -116,7 +116,7 @@ export function IssuesTable({
                       strategy={strategy}
                     />
                     <Filter.Remove filter={filter} actions={actions} />
-                  </Filter.Block>
+                  </Filter.Item>
                 )}
               </Filter.List>
             </div>

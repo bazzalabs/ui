@@ -20,7 +20,7 @@ export interface FilterListProps<TData = unknown>
 }
 
 /**
- * Container for filter blocks.
+ * Container for filter items.
  * Renders a `<div>` element.
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
@@ -73,7 +73,7 @@ const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
           if (!filter.values) return null
 
           return (
-            <div key={`filter-block-${filter.columnId}`}>
+            <div key={`filter-item-${filter.columnId}`}>
               {renderFn({ filter, column })}
             </div>
           )

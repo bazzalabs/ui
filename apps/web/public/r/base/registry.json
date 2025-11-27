@@ -157,29 +157,29 @@
           "target": "components/filter/components/list/filter-list-mobile-container.tsx"
         },
         {
-          "path": "registry/ui/filter/components/block/filter-block.tsx",
+          "path": "registry/ui/filter/components/item/filter-item.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/block/filter-block.tsx"
+          "target": "components/filter/components/item/filter-item.tsx"
         },
         {
-          "path": "registry/ui/filter/components/block/filter-subject.tsx",
+          "path": "registry/ui/filter/components/item/filter-subject.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/block/filter-subject.tsx"
+          "target": "components/filter/components/item/filter-subject.tsx"
         },
         {
-          "path": "registry/ui/filter/components/block/filter-operator.tsx",
+          "path": "registry/ui/filter/components/item/filter-operator.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/block/filter-operator.tsx"
+          "target": "components/filter/components/item/filter-operator.tsx"
         },
         {
-          "path": "registry/ui/filter/components/block/filter-value.tsx",
+          "path": "registry/ui/filter/components/item/filter-value.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/block/filter-value.tsx"
+          "target": "components/filter/components/item/filter-value.tsx"
         },
         {
-          "path": "registry/ui/filter/components/block/filter-remove.tsx",
+          "path": "registry/ui/filter/components/item/filter-remove.tsx",
           "type": "registry:file",
-          "target": "components/filter/components/block/filter-remove.tsx"
+          "target": "components/filter/components/item/filter-remove.tsx"
         },
         {
           "path": "registry/ui/filter/components/actions/filter-actions.tsx",

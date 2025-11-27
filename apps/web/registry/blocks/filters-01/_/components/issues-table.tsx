@@ -76,22 +76,12 @@ export function IssuesTable() {
               <Filter.Menu />
               <Filter.List>
                 {({ filter, column }) => (
-                  <Filter.Block filter={filter} column={column}>
+                  <Filter.Item filter={filter} column={column}>
                     <Filter.Subject column={column} />
-                    <Filter.Operator
-                      filter={filter}
-                      column={column}
-                      actions={actions}
-                      locale="en"
-                    />
-                    <Filter.Value
-                      filter={filter}
-                      column={column}
-                      actions={actions}
-                      strategy={strategy}
-                    />
+                    <Filter.Operator filter={filter} column={column} />
+                    <Filter.Value filter={filter} column={column} />
                     <Filter.Remove filter={filter} actions={actions} />
-                  </Filter.Block>
+                  </Filter.Item>
                 )}
               </Filter.List>
             </div>
