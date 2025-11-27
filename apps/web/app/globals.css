@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@import "../styles/highlight-js/github-light.css";
-@import "../styles/highlight-js/github-dark.css";
 
 @plugin "tailwindcss-animate";
 /*@plugin "tailwindcss-corner-shape/presets/squircle";*/

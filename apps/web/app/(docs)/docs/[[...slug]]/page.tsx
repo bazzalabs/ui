@@ -146,7 +146,7 @@ export default async function Page({
     <div className="w-full grid grid-cols-[auto_auto_auto]">
       <div className="max-w-[calc(calc(100svw/3)-300px)] w-full" />
       <div className="col-span-1 px-4 flex flex-col gap-8 w-full max-w-screen-md mx-auto my-4 md:my-8 xl:my-16">
-        <SidebarTrigger className="md:hidden fixed top-4 left-6 z-50 bg-secondary drop-shadow-md" />
+        <SidebarTrigger className="md:hidden fixed top-6 left-6 z-50 bg-secondary drop-shadow-md" />
 
         <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
           {slug.includes('menu') && <ExperimentalWarning />}
@@ -163,7 +163,7 @@ export default async function Page({
         </div>
       </div>
       <div className="col-span-1 hidden xl:block">
-        <div className="sticky top-0 pt-4">
+        <div className="sticky top-8 pt-2">
           <InlineTOCContainer items={tableOfContents} />
         </div>
       </div>

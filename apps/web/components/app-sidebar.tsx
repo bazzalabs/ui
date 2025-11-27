@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
+  SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import logoSrc from '@/public/bazzaui-v3-color.png'
@@ -113,42 +114,47 @@ const componentItems: ComponentItem[] = [
       {
         groupName: 'Core',
         items: [
-          {
-            type: 'link',
-            title: 'Overview',
-            url: '/docs/filters/core/overview',
-          },
+          // {
+          //   type: 'link',
+          //   title: 'Overview',
+          //   url: '/docs/filters/core/overview',
+          // },
           {
             type: 'link',
             title: 'Anatomy',
             url: '/docs/filters/core/anatomy',
           },
           {
-            type: 'collapsible',
-            title: 'Model',
-            items: [
-              {
-                type: 'link',
-                title: 'Columns',
-                url: '/docs/filters/core/model/columns',
-              },
-              {
-                type: 'link',
-                title: 'Filters',
-                url: '/docs/filters/core/model/filters',
-              },
-              {
-                type: 'link',
-                title: 'Operators',
-                url: '/docs/filters/core/model/operators',
-              },
-              {
-                type: 'link',
-                title: 'Options',
-                url: '/docs/filters/core/model/options',
-              },
-            ],
+            type: 'link',
+            title: 'Concepts',
+            url: '/docs/filters/core/concepts',
           },
+          // {
+          //   type: 'collapsible',
+          //   title: 'Model',
+          //   items: [
+          //     {
+          //       type: 'link',
+          //       title: 'Columns',
+          //       url: '/docs/filters/core/model/columns',
+          //     },
+          //     {
+          //       type: 'link',
+          //       title: 'Filters',
+          //       url: '/docs/filters/core/model/filters',
+          //     },
+          //     {
+          //       type: 'link',
+          //       title: 'Operators',
+          //       url: '/docs/filters/core/model/operators',
+          //     },
+          //     {
+          //       type: 'link',
+          //       title: 'Options',
+          //       url: '/docs/filters/core/model/options',
+          //     },
+          //   ],
+          // },
         ],
       },
       {
@@ -657,7 +663,7 @@ export function AppSidebar({
       className={cn('flex flex-col', className)}
       {...props}
     >
-      <SidebarHeader className="px-4 text-sm pt-4 shrink-0">
+      <SidebarHeader className="pl-4 text-sm pt-6 shrink-0">
         <SidebarMenu>
           <SidebarMenuItem className="inline-flex justify-between items-center">
             <Link
@@ -673,6 +679,7 @@ export function AppSidebar({
               <span className="text-xl text-border">/</span>
               <span>ui</span>
             </Link>
+            <SidebarTrigger className="group-data-[state=closed]/sidebar-wrapper:hidden" />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

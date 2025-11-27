@@ -1,6 +1,9 @@
 import { AppSidebar } from '@/components/app-sidebar'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { cn } from '@/lib/utils'
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
 
 export default function RootLayout({
   children,
@@ -8,13 +11,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <SidebarProvider>
-      <div className={cn('lg:grid lg:grid-cols-[300px_auto] w-full h-svh')}>
-        <AppSidebar className="col-span-1 w-[300px]" />
-        <SidebarInset className="col-span-1 lg:border-[0.5px] lg:border-border/75 overflow-y-auto lg:w-[calc(100%-1rem)] sidebar-inset-scroll">
-          {children}
-        </SidebarInset>
-      </div>
+    <SidebarProvider className="h-svh min-h-0">
+      <AppSidebar />
+      <SidebarInset className="group lg:border-[0.5px] lg:border-border/75 overflow-y-auto sidebar-inset-scroll min-h-0">
+        <div className="min-h-7 h-7 sticky left-4 top-4 ml-4">
+          <SidebarTrigger className="hidden group-data-[state=closed]/sidebar-wrapper:flex" />
+        </div>
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   )
 }
