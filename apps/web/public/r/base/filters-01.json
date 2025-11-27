@@ -22,7 +22,7 @@
   "files": [
     {
       "path": "registry/blocks/filters-01/page.tsx",
-      "content": "import { IssuesTable } from '@/registry/blocks/filters-01/_/components/issues-table'\n\nexport default function Page() {\n  return <IssuesTable />\n}\n",
+      "content": "import { IssuesTable } from '@/registry/blocks/filters-01/_/components/issues-table'\n\nexport default function Page() {\n  return (\n    <div className=\"flex flex-col rounded-lg border shadow-md p-8 m-8\">\n      <IssuesTable />\n    </div>\n  )\n}\n",
       "type": "registry:page",
       "target": "app/filters-01/page.tsx"
     },
