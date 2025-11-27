@@ -13,7 +13,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { CommandMenu } from '@/registry/components/command-menu'
+import { CommandMenu } from '@/registry/ui/command-menu'
 
 export function CommandMenu_WithDescriptions() {
   const [open, setOpen] = useState(false)

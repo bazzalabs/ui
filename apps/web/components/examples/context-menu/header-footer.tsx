@@ -6,7 +6,7 @@ import type { GroupDef, ItemDef, Menu } from '@bazza-ui/context-menu'
 import { ListXIcon } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { ContextMenu } from '@/registry/components/context-menu'
+import { ContextMenu } from '@/registry/ui/context-menu'
 
 function getMenuItems(menu: Menu): ItemDef[] {
   const items =

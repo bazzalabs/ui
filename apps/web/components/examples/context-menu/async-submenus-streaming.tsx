@@ -4,7 +4,7 @@ import type { ItemDef } from '@bazza-ui/context-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
-import { ContextMenu } from '@/registry/components/context-menu'
+import { ContextMenu } from '@/registry/ui/context-menu'
 
 export function ContextMenu_AsyncSubmenusStreaming() {
   return (

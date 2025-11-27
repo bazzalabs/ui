@@ -45,6 +45,7 @@
   "workspaces": [
     "apps/*",
     "packages/*",
+    "apps/web/registry/ui/*",
     "apps/web/registry/components/*"
   ],
   "trustedDependencies": [

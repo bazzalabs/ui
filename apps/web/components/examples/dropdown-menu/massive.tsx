@@ -4,7 +4,7 @@ import type { ItemDef } from '@bazza-ui/dropdown-menu'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/components/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 type MassiveMenuProps = {
   /** How many item nodes to generate (default 100,000). */

@@ -12,10 +12,7 @@ import { CheckIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import {
-  ContextMenu,
-  LabelWithBreadcrumbs,
-} from '@/registry/components/context-menu'
+import { ContextMenu, LabelWithBreadcrumbs } from '@/registry/ui/context-menu'
 
 const createAIProviderMenu = ({
   id,

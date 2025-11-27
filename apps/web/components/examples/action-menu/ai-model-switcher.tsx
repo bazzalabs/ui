@@ -14,10 +14,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import {
-  ActionMenu,
-  LabelWithBreadcrumbs,
-} from '@/registry/components/action-menu'
+import { ActionMenu, LabelWithBreadcrumbs } from '@/registry/ui/action-menu'
 
 const createAIProviderMenu = ({
   id,

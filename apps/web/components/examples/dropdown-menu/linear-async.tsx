@@ -17,7 +17,7 @@ import { sleep } from '@/app/demos/client/tst-static/_/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/components/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import {
   AssigneeIcon,
   LabelsIcon,

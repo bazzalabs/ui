@@ -6,7 +6,7 @@ import { ListFilterIcon } from 'lucide-react'
 import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/components/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import type { FilterVariant } from '../root/filter-context'
 
 export interface FilterTriggerProps extends ComponentPropsWithoutRef<'button'> {

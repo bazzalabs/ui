@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MultiSelect } from '@/registry/components/multi-select'
+import { MultiSelect } from '@/registry/ui/multi-select'
 
 interface MassiveProps {
   numItems?: number

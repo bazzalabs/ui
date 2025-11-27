@@ -39,7 +39,7 @@ import {
 } from 'react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/components/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import { type FilterVariant, useFilterVariant } from '../root/filter-context'
 import {
   createMultiOptionMenu,

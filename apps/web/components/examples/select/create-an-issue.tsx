@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { MultiSelect } from '@/registry/components/multi-select'
-import { Select } from '@/registry/components/select'
+import { MultiSelect } from '@/registry/ui/multi-select'
+import { Select } from '@/registry/ui/select'
 import { Status } from '../dropdown-menu/shared/icons'
 
 const LABEL_STYLES_BG = {

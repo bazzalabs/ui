@@ -7,7 +7,7 @@ import { ListXIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/components/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 function getMenuItems(menu: Menu): ItemDef[] {
   const items =

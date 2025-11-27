@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/registry/components/select'
+import { Select } from '@/registry/ui/select'
 
 export function Form() {
   const [submitted, setSubmitted] = useState<string | null>(null)

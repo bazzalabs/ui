@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ActionMenu } from '@/registry/components/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 import {
   AssigneeIcon,
   LabelsIcon,

@@ -3,7 +3,7 @@
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/client/tst-static/_/utils'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/components/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 type Pokemon = {
   name: string

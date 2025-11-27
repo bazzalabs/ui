@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { MultiSelect } from '@/registry/components/multi-select'
+import { MultiSelect } from '@/registry/ui/multi-select'
 
 export function WithMax() {
   const [values, setValues] = useState<string[]>([])

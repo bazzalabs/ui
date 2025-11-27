@@ -23,7 +23,7 @@ import {
   isTextColumn,
 } from '@bazza-ui/filters'
 import { memo, useMemo } from 'react'
-import { DropdownMenu } from '@/registry/components/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import {
   type FilterVariant,
   useFilterContext,

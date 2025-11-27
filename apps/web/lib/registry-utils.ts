@@ -162,6 +162,7 @@ export function getRegistryFilePath(name: string): string {
  */
 export function readRegistryItem(name: string): RegistryItem | null {
   try {
+    console.log('[readRegistryItem] name:', name)
     const filePath = getRegistryFilePath(name)
     const content = readFileSync(filePath, 'utf-8')
     return JSON.parse(content) as RegistryItem
@@ -186,5 +187,34 @@ export function transformRegistryItem(
       item.registryDependencies,
       baseUrl,
     ),
+    files: transformFileContents(item.files),
   }
+}
+
+/**
+ * Replaces registry paths with component paths in file content.
+ *
+ * Transformation:
+ *   - "@/registry/ui/<path>" → "@/components/ui/<path>"
+ *
+ * @param content - The file content to transform
+ * @returns The transformed content with registry paths replaced
+ */
+export function replaceRegistryPaths(content: string): string {
+  return content.replace(/@\/registry\/ui\//g, '@/components/ui/')
+}
+
+/**
+ * Transforms file contents within a registry item by replacing registry paths
+ * with user-facing component paths.
+ */
+export function transformFileContents(
+  files: RegistryItem['files'],
+): RegistryItem['files'] {
+  if (!files) return files
+
+  return files.map((file) => ({
+    ...file,
+    content: file.content ? replaceRegistryPaths(file.content) : file.content,
+  }))
 }

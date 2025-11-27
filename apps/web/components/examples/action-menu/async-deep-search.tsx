@@ -7,7 +7,7 @@ import {
 } from '@bazza-ui/action-menu/react-query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/components/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 /**
  * This example demonstrates deep search across multiple async submenus
