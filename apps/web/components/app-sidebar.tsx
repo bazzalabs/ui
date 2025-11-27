@@ -104,10 +104,20 @@ const componentItems: ComponentItem[] = [
             title: 'Installation',
             url: '/docs/filters/installation',
           },
+          // {
+          //   type: 'link',
+          //   title: 'Quick Start',
+          //   url: '/docs/filters/quick-start',
+          // },
           {
             type: 'link',
-            title: 'Quick Start',
-            url: '/docs/filters/quick-start',
+            title: 'Examples',
+            url: '/docs/filters/examples',
+          },
+          {
+            type: 'link',
+            title: 'Blocks',
+            url: '/docs/filters/blocks',
           },
         ],
       },
