@@ -73,7 +73,7 @@
     "react-markdown": "^10.1.0",
     "react-virtualized": "^9.22.6",
     "remeda": "^2.26.1",
-    "shadcn": "2.4.0-canary.13",
+    "shadcn": "3.5.0",
     "sonner": "^2.0.7",
     "swr": "^2.3.6",
     "tailwind-merge": "^3.4.0",

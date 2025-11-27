@@ -93,8 +93,6 @@ export async function GET(
     // Transform the item based on the effective tag
     const transformedItem = transformRegistryItem(item, effectiveTag)
 
-    console.log('transformedItem:', transformedItem)
-
     // Return JSON response with appropriate cache headers
     return NextResponse.json(transformedItem, {
       headers: {
