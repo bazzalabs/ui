@@ -12,7 +12,7 @@
     "remeda"
   ],
   "registryDependencies": [
-    "filter",
+    "filters",
     "table",
     "button",
     "checkbox",
