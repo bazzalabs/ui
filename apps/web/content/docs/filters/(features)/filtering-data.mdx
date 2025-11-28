@@ -1,0 +1,270 @@
+---
+title: Filtering Data
+section: Features
+summary: Apply filters to your data using built-in filter functions.
+---
+
+We provides the filter model and UI components, but bazza/ui filters **does not *automatically* filter your data**.
+
+This is by design. You have full control over how and where filtering happens.
+
+## Why no automatic filtering?
+
+Filtering logic depends on your setup:
+
+- **Client-side filtering** - You may use TanStack Table, AG Grid, or a custom solution
+- **Server-side filtering** - You send the `FiltersState` to your API and let the server handle it
+
+We provide the building blocks; you decide how to use them.
+
+## Filter functions
+
+We export filter functions for each column type. These functions take a cell value and a `FilterModel`, returning `true` if the row should be included.
+
+```ts
+import {
+  textFilterFn,
+  numberFilterFn,
+  dateFilterFn,
+  booleanFilterFn,
+  optionFilterFn,
+  multiOptionFilterFn,
+  bigIntFilterFn,
+} from '@bazza-ui/filters'
+```
+
+Each filter function follows the same pattern:
+
+```ts
+function filterFn(cellValue: T, filterModel: FilterModel<Type>): boolean
+```
+
+| Function | Cell Value Type | Filter Type |
+|----------|----------------|-------------|
+| `textFilterFn` | `string` | `FilterModel<'text'>` |
+| `numberFilterFn` | `number` | `FilterModel<'number'>` |
+| `bigIntFilterFn` | `bigint` | `FilterModel<'bigint'>` |
+| `dateFilterFn` | `Date` | `FilterModel<'date'>` |
+| `booleanFilterFn` | `boolean` | `FilterModel<'boolean'>` |
+| `optionFilterFn` | `string` | `FilterModel<'option'>` |
+| `multiOptionFilterFn` | `string[]` | `FilterModel<'multiOption'>` |
+
+### Usage
+
+```ts
+import { textFilterFn, optionFilterFn } from '@bazza-ui/filters'
+import type { FilterModel } from '@bazza-ui/filters'
+
+const textFilter: FilterModel<'text'> = {
+  columnId: 'title',
+  type: 'text',
+  operator: 'contains',
+  values: ['bug'],
+}
+
+const result = textFilterFn('Fix login bug', textFilter)
+// true - 'Fix login bug' contains 'bug'
+```
+
+## Filter a row
+
+Checks if a single row passes all filters:
+
+```ts
+import { filterRow } from '@bazza-ui/filters'
+
+const row = {
+  title: 'Fix login bug',
+  status: 'backlog',
+  priority: 'high',
+}
+
+const filters: FiltersState = [
+  { columnId: 'status', type: 'option', operator: 'is', values: ['backlog'] },
+  { columnId: 'title', type: 'text', operator: 'contains', values: ['bug'] },
+]
+
+const passes = filterRow(row, filters)
+// true - row matches all filters
+```
+
+> [!NOTE] `filterRow` expects the row to be a flat object where keys match `columnId` values. For nested data, use individual filter functions with your accessor logic.
+
+## Filter a dataset
+
+Filters an entire dataset, returning only matching rows:
+
+```ts
+import { filterData } from '@bazza-ui/filters'
+
+const data = [
+  { title: 'Fix login bug', status: 'backlog' },
+  { title: 'Add dark mode', status: 'in-progress' },
+  { title: 'Update docs', status: 'backlog' },
+]
+
+const filters: FiltersState = [
+  { columnId: 'status', type: 'option', operator: 'is', values: ['backlog'] },
+]
+
+const filtered = filterData(data, filters)
+// [
+//   { title: 'Fix login bug', status: 'backlog' },
+//   { title: 'Update docs', status: 'backlog' },
+// ]
+```
+
+## Custom filtering
+
+For full control, you can iterate over your data and apply filter functions manually.
+
+### Simple flat data
+
+When your data has simple primitive values that match the filter values directly:
+
+```ts
+type Issue = {
+  id: string
+  title: string
+  status: string // e.g., 'backlog', 'in-progress', 'done'
+  priority: string
+}
+
+const data: Issue[] = [
+  { id: '1', title: 'Fix login bug', status: 'backlog', priority: 'high' },
+  { id: '2', title: 'Add dark mode', status: 'in-progress', priority: 'low' },
+  { id: '3', title: 'Update docs', status: 'backlog', priority: 'medium' },
+]
+
+const filteredData = data.filter((row) => {
+  for (const filter of filters) {
+    const column = columns.find((c) => c.id === filter.columnId)
+    if (!column) continue
+
+    const cellValue = column.accessor(row)
+
+    if (filter.type === 'text' && !textFilterFn(cellValue, filter)) {
+      return false
+    }
+    if (filter.type === 'option' && !optionFilterFn(cellValue, filter)) {
+      return false
+    }
+    // ... handle other types
+  }
+  return true
+})
+```
+
+### Nested object data
+
+When your data contains nested objects (e.g., a `status` object instead of a simple string), you need to extract the correct value for filtering.
+
+The key is that **filter functions expect the primitive value** (the `value` field of a `ColumnOption`), not the full object.
+
+```ts
+type Status = {
+  id: string
+  name: string
+  color: string
+}
+
+type Issue = {
+  id: string
+  title: string
+  status: Status // Full object, not just an ID
+  labels: string[]
+}
+
+const data: Issue[] = [
+  {
+    id: '1',
+    title: 'Fix login bug',
+    status: { id: 'backlog', name: 'Backlog', color: 'gray' },
+    labels: ['bug', 'urgent']
+  },
+  // ...
+]
+```
+
+Your column config accessor returns the value used for filtering:
+
+```ts
+const columnsConfig = [
+  dtf
+    .option()
+    .id('status')
+    .accessor((row) => row.status.id) // Returns 'backlog', not the full object
+    .displayName('Status')
+    .build(),
+  // ...
+] as const
+```
+
+The filtering loop remains the same - the accessor handles extracting the correct value:
+
+```ts
+const filteredData = data.filter((row) => {
+  for (const filter of filters) {
+    const column = columns.find((c) => c.id === filter.columnId)
+    if (!column) continue
+
+    // accessor(row) returns 'backlog' for the status column
+    const cellValue = column.accessor(row)
+
+    if (filter.type === 'option' && !optionFilterFn(cellValue, filter)) {
+      return false
+    }
+    if (filter.type === 'multiOption' && !multiOptionFilterFn(cellValue, filter)) {
+      return false
+    }
+    // ... handle other types
+  }
+  return true
+})
+```
+
+> [!TIP] The accessor is your "bridge" between complex data structures and the simple values that filter functions expect. Define it once in your column config, and the filtering logic stays clean.
+
+## Integrations
+
+### TanStack Table
+
+Use our [TanStack Table integration](/docs/filters/integrations/tanstack-table) for seamless client-side filtering:
+
+```ts
+import { createTSTColumns, createTSTFilters } from '@/lib/filters/tst'
+
+const tstColumns = createTSTColumns({
+  columns: tableColumnDefs,
+  configs: columns,
+})
+
+const tstFilters = createTSTFilters(filters)
+
+const table = useReactTable({
+  data,
+  columns: tstColumns,
+  state: { columnFilters: tstFilters },
+  getFilteredRowModel: getFilteredRowModel(),
+})
+```
+
+### Server-side filtering
+
+Send the `FiltersState` to your API:
+
+```ts
+const { filters } = useDataTableFilters({
+  strategy: 'server',
+  data: [],
+  columnsConfig,
+})
+
+// Send filters to your API
+const { data } = useQuery({
+  queryKey: ['issues', filters],
+  queryFn: () => fetchIssues({ filters }),
+})
+```
+
+Your server can then use the filter functions or translate the `FiltersState` to your database query language.

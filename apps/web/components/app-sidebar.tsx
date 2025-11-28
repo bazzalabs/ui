@@ -197,8 +197,18 @@ const componentItems: ComponentItem[] = [
           },
           {
             type: 'link',
+            title: 'Operators',
+            url: '/docs/filters/operators',
+          },
+          {
+            type: 'link',
             title: 'Actions',
             url: '/docs/filters/actions',
+          },
+          {
+            type: 'link',
+            title: 'Filtering Data',
+            url: '/docs/filters/filtering-data',
           },
           {
             type: 'link',

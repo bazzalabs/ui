@@ -41,11 +41,23 @@ type FilterModel<TType extends ColumnDataType = any> = {
   columnId: string
   type: TType // option, multiOption, text, date, boolean, number
   operator: FilterOperators[TType] // i.e. 'is', 'is not', 'is any of', etc.
-  values: FilterValues<TType>
+  values: FilterValues[TType]
 }
 ```
 
 Each `FilterModel` represents a single filter for a specific column.
+
+## Operators
+
+Each column type has a set of valid **operators** that determine how filter values are compared against data. For example, a `text` column supports `contains` and `does not contain`, while an `option` column supports `is`, `is not`, `is any of`, and `is none of`.
+
+Every operator has the following properties:
+
+- **Target** - Whether the operator applies to a `single` value or `multiple` values
+- **Negation** - The operator that produces the opposite result (e.g., `is` ↔ `is not`)
+- **Singular/Plural form** - Related operators for single vs. multiple values (e.g., `is` ↔ `is any of`)
+
+See the [Operators](/docs/filters/operators) guide for more information.
 
 ## Column options
 

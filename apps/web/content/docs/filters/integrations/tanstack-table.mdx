@@ -14,25 +14,15 @@ If you're using **server-side filtering**, you don't need this integration. Feed
 
 ## How It Works
 
-### `createTSTColumns`
-
 TanStack Table allows you to define custom filter functions for each column. This is useful if you want to implement custom filtering logic.
 
-We have our own filter functions for each column type, which you can use to filter your data via TST.
+We have our own [filter functions](/docs/filters/filtering-data) for each column type, which you can use to filter your data via TST.
 
 The `createTSTColumns` function handles this for you. It overrides the `filterFn` property for each filterable TST column with the appropriate filter function.
-
-### `createTSTFilters`
 
 You also need to provide the filter state to TST. TST represents the filter state slightly differently than the filters state provided by this component.
 
 The `createTSTFilters` function takes in the filters state from `useDataTableFilters()` and returns a TST-compatible filter state (`ColumnFiltersState`).
-
-## Installation
-
-```bash
-npx shadcn@latest add https://ui.bazza.dev/r/filters/tst
-```
 
 ## Usage
 
@@ -40,7 +30,7 @@ npx shadcn@latest add https://ui.bazza.dev/r/filters/tst
 
 ```tsx
 import { useDataTableFilters } from '@bazza-ui/filters'
-import { createTSTColumns, createTSTFilters } from '@/lib/filters/tst'
+import { createTSTColumns, createTSTFilters } from '@bazza-ui/filters/tanstack-table'
 import {
   useReactTable,
   getCoreRowModel,
@@ -94,40 +84,3 @@ function IssuesTable() {
   )
 }
 ```
-
-## Column ID Matching
-
-The column IDs in your `columnsConfig` must match the column IDs in your TanStack Table column definitions:
-
-```ts
-// Column filter config
-dtf
-  .option()
-  .id('status')  // This ID...
-  .accessor((row) => row.status.id)
-  .displayName('Status')
-  .build()
-
-// TanStack Table column definition
-{
-  id: 'status', // ...must match this ID
-  accessorKey: 'status',
-  header: 'Status',
-  cell: ({ row }) => <StatusBadge status={row.original.status} />,
-}
-```
-
-## Filter Functions
-
-The integration provides filter functions for all supported column types:
-
-| Column Type | Filter Function |
-|-------------|-----------------|
-| `text` | `textFilterFn` |
-| `number` | `numberFilterFn` |
-| `date` | `dateFilterFn` |
-| `boolean` | `booleanFilterFn` |
-| `option` | `optionFilterFn` |
-| `multiOption` | `multiOptionFilterFn` |
-
-These are automatically applied when you use `createTSTColumns()`.
