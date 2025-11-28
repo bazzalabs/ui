@@ -221,7 +221,7 @@ const components = {
     />
   ),
   pre: ({ ref: _ref, className, ...props }) => (
-    <CodeBlock {...props} className={cn('my-6', className)}>
+    <CodeBlock {...props} className={cn(className)}>
       <Pre
         className={cn(
           'bg-background overflow-scroll w-full [&_code]:!text-sm',

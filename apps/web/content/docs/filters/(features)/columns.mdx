@@ -6,7 +6,7 @@ summary: Understanding Column objects and their available methods.
 
 When you create a filters instance with `useDataTableFilters()`, your column configurations are transformed into `Column` objects. This guide explains what a `Column` is, how it differs from a `ColumnConfig`, and what methods are available.
 
-## Column vs ColumnConfig
+## What is a column?
 
 A **`ColumnConfig`** is what you define using the [column builder](/docs/filters/column-builder). It describes the static configuration of a column: its ID, accessor, display name, data type, and so on.
 
@@ -36,15 +36,32 @@ statusColumn.getValues()            // string[]
 statusColumn.getFacetedUniqueValues() // Map<string, number>
 ```
 
-## Type Definition
+## Accessing columns
 
-A `Column` is a superset of `ColumnConfig`:
+The `columns` array from `useDataTableFilters()` contains all your column objects:
 
-<TypeSignature name="Column" pkg="@bazza-ui/filters" />
+```tsx
+const { columns, filters, actions } = useDataTableFilters({
+  strategy: 'client',
+  data: issues,
+  columnsConfig,
+})
 
-This means every property from your column configuration is available on the column, along with the additional methods described below.
+// Find a specific column
+const statusColumn = columns.find(c => c.id === 'status')
 
-## Column Methods
+// Filter to option-based columns
+const optionColumns = columns.filter(
+  c => c.type === 'option' || c.type === 'multiOption'
+)
+
+// Get visible columns (not hidden)
+const visibleColumns = columns.filter(c => !c.hidden)
+```
+
+
+
+## Methods
 
 <TypeTableAuto type="ColumnProperties" pkg="@bazza-ui/filters" />
 
@@ -117,87 +134,30 @@ const [min, max] = hoursColumn.getFacetedMinMaxValues()
 
 > [!NOTE] For `server` strategy, this returns values from `min`/`max` set in the column config or via the `faceted` option on the instance. For `client` strategy, it can be computed from the data.
 
-## Prefetch Methods
+## Prefetching
 
-For performance optimization with large datasets, columns expose async prefetch methods that compute values in the next tick. These are only active when using the `client` strategy.
+For performance optimization with large datasets, we expose async prefetch methods that compute values in the next tick.
 
-### prefetchOptions()
+These are only active when using the `client` strategy.
 
 ```ts
-await statusColumn.prefetchOptions()
+await column.prefetchOptions()
 // Options are now cached, getOptions() returns immediately
-```
 
-### prefetchValues()
-
-```ts
-await statusColumn.prefetchValues()
+await column.prefetchValues()
 // Values are now cached, getValues() returns immediately
-```
 
-### prefetchFacetedUniqueValues()
-
-```ts
-await statusColumn.prefetchFacetedUniqueValues()
+await column.prefetchFacetedUniqueValues()
 // Faceted data is now cached
-```
 
-### prefetchFacetedMinMaxValues()
-
-```ts
-await hoursColumn.prefetchFacetedMinMaxValues()
+await column.prefetchFacetedMinMaxValues()
 // Min/max values are now cached
 ```
-
-## Accessing Columns
-
-The `columns` array from `useDataTableFilters()` contains all your column objects:
-
-```tsx
-const { columns, filters, actions } = useDataTableFilters({
-  strategy: 'client',
-  data: issues,
-  columnsConfig,
-})
-
-// Find a specific column
-const statusColumn = columns.find(c => c.id === 'status')
-
-// Filter to option-based columns
-const optionColumns = columns.filter(
-  c => c.type === 'option' || c.type === 'multiOption'
-)
-
-// Get visible columns (not hidden)
-const visibleColumns = columns.filter(c => !c.hidden)
-```
-
-## Example: Custom Filter UI
-
-Here's how you might use column methods to build a custom filter interface:
-
-```tsx
-function StatusFilter({ column }: { column: Column<Issue, 'option'> }) {
-  const options = column.getOptions()
-  
-  return (
-    <div>
-      <h3>{column.displayName}</h3>
-      {options.map(option => (
-        <label key={option.value}>
-          <input type="checkbox" value={option.value} />
-          {option.label} ({option.count})
-        </label>
-      ))}
-    </div>
-  )
-}
-```
-
-## Full Type Reference
-
-<TypeTableAuto type="Column" pkg="@bazza-ui/filters" />
 
 ## Next Steps
 
 Now that you understand `Column` objects, learn how to mutate filter state using [Actions](/docs/filters/actions).
+
+## Reference
+
+<TypeTableAuto type="Column" pkg="@bazza-ui/filters" />
