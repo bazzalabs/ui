@@ -46,7 +46,7 @@ export function createTextFilterMiddleware<TData>({
       return [
         createNode({
           kind: 'item',
-          id: `${column.id}-text-contains`,
+          id: `${column.id}-text-contains-${query}`,
           label: `contains ${query}`,
           data: {
             operator: 'contains',
@@ -59,7 +59,7 @@ export function createTextFilterMiddleware<TData>({
         }),
         createNode({
           kind: 'item',
-          id: `${column.id}-text-does-not-contain`,
+          id: `${column.id}-text-does-not-contain-${query}`,
           label: `does not contain ${query}`,
           data: {
             operator: 'does not contain',
