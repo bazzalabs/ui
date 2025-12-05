@@ -16,6 +16,8 @@ export * from './primitives/index.js'
 export * from './primitives/menu-model.js'
 
 export * from './store/index.js'
+// Type Guards
+export * from './type-guards.js'
 export type * from './types.js'
 export * from './utils/breadcrumb.js'
 export * from './utils/command-score.js'
