@@ -14,7 +14,7 @@ const filterRemoveVariants = cva(
   {
     variants: {
       variant: {
-        default: 'rounded-none rounded-r-2xl -translate-x-0.25',
+        default: 'rounded-none rounded-r-md',
         clean: 'rounded-md h-6 -ml-1',
       },
     },

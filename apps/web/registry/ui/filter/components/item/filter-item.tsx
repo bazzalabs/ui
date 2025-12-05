@@ -21,7 +21,8 @@ import { useFilterContext, useFilterVariant } from '../root/filter-context'
 const filterItemVariants = cva('flex items-center text-xs font-medium', {
   variants: {
     variant: {
-      default: 'h-7 rounded-2xl border border-border bg-background shadow-xs',
+      default:
+        'h-7 rounded-md border border-border bg-background shadow-xs divide-x',
       clean: 'h-7.5 rounded-md bg-accent border-none shadow-none gap-x-1 px-1',
     },
   },
