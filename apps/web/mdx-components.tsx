@@ -274,7 +274,9 @@ const components = {
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,
-  ComponentPreview,
+  ComponentPreview: ({ className, ...props }) => (
+    <ComponentPreview className={cn('my-6', className)} {...props} />
+  ),
   ComponentCode: ComponentCode,
   ComponentFrame,
   CodeInline,
@@ -282,7 +284,7 @@ const components = {
   PropsTable,
   ComponentsList,
   Media: ({ figureClassName, ...props }) => (
-    <Media figureClassName={cn('mb-6 mt-6', figureClassName)} {...props} />
+    <Media figureClassName={cn('my-6', figureClassName)} {...props} />
   ),
   PageUnderConstruction: () => {
     return (
