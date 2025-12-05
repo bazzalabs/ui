@@ -122,6 +122,16 @@ const componentItems: ComponentItem[] = [
         ],
       },
       {
+        groupName: 'Components',
+        items: [
+          {
+            type: 'link',
+            title: 'Filter',
+            url: '/docs/filters/components/filter',
+          },
+        ],
+      },
+      {
         groupName: 'Core',
         items: [
           // {
@@ -192,6 +202,11 @@ const componentItems: ComponentItem[] = [
           },
           {
             type: 'link',
+            title: 'Option Columns',
+            url: '/docs/filters/option-columns',
+          },
+          {
+            type: 'link',
             title: 'Columns',
             url: '/docs/filters/columns',
           },
@@ -229,26 +244,6 @@ const componentItems: ComponentItem[] = [
             type: 'link',
             title: 'nuqs',
             url: '/docs/filters/integrations/nuqs',
-          },
-        ],
-      },
-      {
-        groupName: 'Components',
-        items: [
-          {
-            type: 'link',
-            title: 'Filter',
-            url: '/docs/filters/components/filter',
-          },
-          {
-            type: 'link',
-            title: 'Composable API',
-            url: '/docs/filters/components/composable-api',
-          },
-          {
-            type: 'link',
-            title: 'Styling',
-            url: '/docs/filters/components/styling',
           },
         ],
       },

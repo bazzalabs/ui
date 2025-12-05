@@ -116,95 +116,40 @@ dtf
 
 ## Options
 
-> [!TIP] This applies to `option` and `multiOption` columns.
+> [!TIP] This applies to `option` and `multiOption` columns only.
 
-We can determine a column's options in two ways: **declared** and **inferred**.
+Option-based columns need a set of possible values. You can provide these in two ways:
 
-### Declared Options
-
-This is useful for columns that have a fixed set of options.
-
-We may pass these in:
-- at __build time__ (i.e. *static*)
-- at __run time__ by fetching them from a data source (i.e. *remote*).
-
-For declaring static options, we can use the `options()` method from the builder.
+- **Declared** - Define options explicitly via `options()` or pass them to the instance
+- **Inferred** - Let the library extract unique values from your data (client-side only)
 
 ```ts
-const ISSUE_STATUSES: IssueStatus[] = [
-  { id: 'backlog', name: 'Backlog', icon: CircleDashedIcon },
-  { id: 'todo', name: 'Todo', icon: CircleIcon },
-  { id: 'in-progress', name: 'In Progress', icon: CircleDotIcon },
-  { id: 'done', name: 'Done', icon: CircleCheckIcon },
-] as const
-
+// Declared options
 dtf
   .option()
-  .accessor((row) => row.status.id)
   .id('status')
+  .accessor((row) => row.status)
   .displayName('Status')
-  .icon(CircleDotDashedIcon)
-  .options(
-    ISSUE_STATUSES.map((s) => ({
-      value: s.id,
-      label: s.name,
-      icon: s.icon
-    }))
-  )
-```
+  .options([
+    { value: 'backlog', label: 'Backlog' },
+    { value: 'done', label: 'Done' },
+  ])
+  .build()
 
-For declaring remote options, it is best to do this when we instantiate the table filters instance. See [Faceted Values](/docs/filters/faceted-values).
-
-### Inferred Options
-
-> [!IMPORTANT] Inferred options are only available for **client-side filtering**.
-> If you're using server-side filtering, you must use the **declared options** approach.
-
-This is useful if you're:
-- using client-side filtering;
-- options can't be known at build time;
-- and you don't have a way to fetch them *(e.g., no dedicated endpoint)*.
-
-We **infer** the options from the available data at runtime, by looping through the data and extracting unique values.
-
-If the values are already in the `ColumnOption` shape, you're golden.
-
-If not, we can use the `transformValueToOptionFn()` method from the builder, which transforms each unique column value to a `ColumnOption`.
-
-```tsx
-export type User = {
-  id: string
-  name: string
-  picture: string
-}
-
-const UserAvatar = ({ user }: { user: User }) => {
-  return (
-    <Avatar key={user.id} className="size-4">
-      <AvatarImage src={user.picture} />
-      <AvatarFallback>
-        {user.name
-          .split('')
-          .map((x) => x[0])
-          .join('')
-          .toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
-  )
-}
-
+// Inferred options (extracts unique values from data)
 dtf
   .option()
-  .accessor((row) => row.assignee) // User | undefined
-  .id('assignee')
-  .displayName('Assignee')
-  .icon(UserCheckIcon)
-  .transformValueToOptionFn((u) => ({
-    value: u.id,
-    label: u.name,
-    icon: <UserAvatar user={u} />
-  }))
+  .id('category')
+  .accessor((row) => row.category)
+  .displayName('Category')
+  .build()
 ```
+
+For complex objects, use `transformValueToOptionFn()` to convert values to `ColumnOption` objects.
+
+The builder also supports `orderFn()` for sorting options and `transformOptionsFn()` for post-processing.
+
+See the [Option Columns](/docs/filters/option-columns) guide for complete documentation on declared vs. inferred options, transforms, and ordering.
 
 ## Min/Max Values
 

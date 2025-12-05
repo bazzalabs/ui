@@ -21,6 +21,7 @@ import {
 import CollapsibleCodeBlock from './components/collapsible-code-block'
 import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
+import { ComponentPreview } from './components/component-preview'
 import { ComponentsList } from './components/components-list'
 import { Examples } from './components/examples'
 import { Media } from './components/media'
@@ -136,7 +137,13 @@ const components = {
   ),
   u: (props) => <u className="underline underline-offset-2" {...props} />,
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className={cn('font-medium text-primary', className)} {...props} />
+    <strong
+      className={cn(
+        'font-medium text-primary has-[code]:font-semibold',
+        className,
+      )}
+      {...props}
+    />
   ),
   ul: ({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
     <ul
@@ -214,7 +221,7 @@ const components = {
   code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
     <code
       className={cn(
-        'relative rounded-sm bg-muted px-1 py-0.5 font-mono text-sm border inset-shadow-xs font-[450]',
+        'relative rounded-sm bg-muted px-1 py-0.5 font-mono text-sm border inset-shadow-xs',
         className,
       )}
       {...props}
@@ -267,6 +274,7 @@ const components = {
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,
+  ComponentPreview,
   ComponentCode: ComponentCode,
   ComponentFrame,
   CodeInline,

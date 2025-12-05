@@ -1,0 +1,298 @@
+---
+title: Option Columns
+section: Features
+summary: Deep dive into option and multiOption column configuration.
+---
+
+Option-based columns (`option` and `multiOption`) represent data that comes from a fixed set of choices. This guide covers how to configure them effectively.
+
+## What is a column option?
+
+Every option in an option-based column is represented as a `ColumnOption`:
+
+```ts
+interface ColumnOption {
+  value: string
+  label: string
+  icon?: React.ReactElement | React.ElementType
+  count?: number}
+```
+
+| Property | Description |
+|----------|-------------|
+| `value` | The unique identifier for this option. This is what gets stored in the filter state and compared against your data. |
+| `label` | Human-readable text to identify the option. |
+| `icon` | Icon rendered next to the label. |
+| `count` | The number of rows that have this option. Automatically populated from faceted data when available. |
+
+The `value` is what your column accessor should return. For example, if your accessor returns `row.status.id`, then `value` should match those IDs.
+
+## Option vs. multi-option
+
+| Type | Use case | Example |
+|------|----------|---------|
+| `option` | Each row has **one** value from a set | Status, Priority, Assignee |
+| `multiOption` | Each row can have **multiple** values | Labels, Tags, Categories |
+
+## Providing options
+
+There are two ways to provide options for a column: **declared** and **inferred**.
+
+### Declared options
+
+Use declared options when you know the possible values ahead of time.
+
+- For smaller, static sets of options, use the `options()` method on the column builder.
+- For large option sets or options fetched remotely, use the `options` property on the filters instance.
+
+#### Static options
+
+Define options directly in your column config using the `options()` method:
+
+```ts
+const PRIORITIES = [
+  { value: 'low', label: 'Low', icon: ArrowDownIcon },
+  { value: 'medium', label: 'Medium', icon: ArrowRightIcon },
+  { value: 'high', label: 'High', icon: ArrowUpIcon },
+]
+
+dtf
+  .option()
+  .id('priority')
+  .accessor((row) => row.priority)
+  .displayName('Priority')
+  .options(PRIORITIES)
+  .build()
+```
+
+#### Remote options
+
+If you want to fetch a column's options dynamically, we can do this in the same place you instantiate the filters instance, then pass them directly to the instance:
+
+```tsx
+const priorities = useQuery(queries.priorities.all())
+
+const { columns, filters, actions } = useDataTableFilters({
+  strategy: 'client',
+  data: issues,
+  columnsConfig,
+  options: {
+    priority: priorities.data, // ColumnOption[]
+  },
+})
+```
+<div className='**:!not-italic'>
+> Why do this? You could, technically, move your column configurations into your React component and declare them right before creating the filters instance.
+>
+> However, this can clutter your React component and require you to memoize the column configurations.
+>
+> This alternative keeps static and dynamic separate. You can statically declare your column configurations in a separate file, then "top them off" with the dynamic options in the same place you'd create your filters instance.
+</div>
+
+### Inferred options
+
+> [!IMPORTANT] Inferred options only work with the `client` strategy. For server-side filtering, you must use declared options.
+
+When you can't know all possible options ahead of time, infer them from your data at runtime. The library extracts unique values from your dataset automatically.
+
+If your accessor returns simple strings, no extra configuration is needed:
+
+```ts
+dtf
+  .option()
+  .id('category')
+  .accessor((row) => row.category) // Returns 'electronics', 'clothing', etc.
+  .displayName('Category')
+  .build()
+```
+
+## Transforming values to options
+
+When your accessor returns complex objects instead of simple strings, use `transformValueToOptionFn()` to transform each unique value into the `ColumnOption` shape.
+
+This is the bridge between your data structure and what the filter UI expects.
+
+```ts
+type User = {
+  id: string
+  name: string
+  avatar: string
+}
+
+dtf
+  .option()
+  .id('assignee')
+  .accessor((row) => row.assignee) // Returns User object
+  .displayName('Assignee')
+  .transformValueToOptionFn((user) => ({
+    value: user.id,
+    label: user.name,
+    icon: <Avatar src={user.avatar} />,
+  }))
+  .build()
+```
+
+### How it works
+
+1. The library iterates over your data and calls the accessor for each row
+2. Unique values are collected (compared by reference for objects)
+3. Each unique value is passed to `transformValueToOptionFn()`
+4. The returned `ColumnOption` objects are now accessible via `column.getOptions()`
+
+### With multi-option columns
+
+For `multiOption` columns, the accessor returns an array. The transform function receives each individual item:
+
+```ts
+type Label = {
+  id: string
+  name: string
+  color: string
+}
+
+dtf
+  .multiOption()
+  .id('labels')
+  .accessor((row) => row.labels) // Returns Label[]
+  .displayName('Labels')
+  .transformValueToOptionFn((label) => ({
+    value: label.id,
+    label: label.name,
+    icon: <ColorDot color={label.color} />,
+  }))
+  .build()
+```
+
+## Ordering options
+
+By default, options appear in the order they're encountered in the data (for inferred) or defined (for declared). Use `orderFn()` to control the sort order.
+
+### Built-in order functions
+
+Two built-in functions are available:
+
+| Function | Description |
+|----------|-------------|
+| `count` | Sort by the number of occurrences in the data |
+| `label` | Sort alphabetically by label (case-insensitive) |
+
+Each requires a direction: `'asc'` or `'desc'`.
+
+```ts
+dtf
+  .option()
+  .id('status')
+  .accessor((row) => row.status)
+  .displayName('Status')
+  .options(STATUSES)
+  .orderFn('count', 'desc') // Most common first
+  .build()
+```
+
+### Custom order functions
+
+Pass a custom comparator function for full control:
+
+```ts
+const STATUS_ORDER = ['backlog', 'todo', 'in-progress', 'done']
+
+dtf
+  .option()
+  .id('status')
+  .accessor((row) => row.status)
+  .displayName('Status')
+  .options(STATUSES)
+  .orderFn((a, b) => {
+    return STATUS_ORDER.indexOf(a.value) - STATUS_ORDER.indexOf(b.value)
+  })
+  .build()
+```
+
+### Chaining order functions
+
+Apply multiple order functions in sequence. If the first comparison returns `0` (equal), the next function is used:
+
+```ts
+dtf
+  .option()
+  .id('assignee')
+  .accessor((row) => row.assignee)
+  .displayName('Assignee')
+  .orderFn(
+    ['count', 'desc'],      // Primary: most assigned first
+    ['label', 'asc'],       // Secondary: alphabetical for ties
+  )
+  .build()
+```
+
+You can mix built-in tuples with custom functions:
+
+```ts
+.orderFn(
+  ['count', 'desc'],
+  (a, b) => a.value.localeCompare(b.value), // Custom tiebreaker
+)
+```
+
+## Post-processing options
+
+Use `transformOptionsFn()` to modify the computed options array after all other processing (inference, faceted counts, ordering) is complete.
+
+### Filtering options
+
+Remove options that shouldn't appear:
+
+```ts
+dtf
+  .option()
+  .id('status')
+  .accessor((row) => row.status)
+  .displayName('Status')
+  .transformOptionsFn((options) =>
+    options.filter((opt) => opt.value !== 'archived')
+  )
+  .build()
+```
+
+### Adding computed options
+
+Add synthetic options that don't exist in the raw data:
+
+```ts
+dtf
+  .option()
+  .id('assignee')
+  .accessor((row) => row.assignee?.id ?? 'unassigned')
+  .displayName('Assignee')
+  .transformOptionsFn((options) => [
+    { value: 'unassigned', label: 'Unassigned', icon: UserXIcon },
+    ...options,
+  ])
+  .build()
+```
+
+### Limiting visible options
+
+Show only the top N options:
+
+```ts
+dtf
+  .option()
+  .id('labels')
+  .accessor((row) => row.label)
+  .displayName('Label')
+  .orderFn('count', 'desc')
+  .transformOptionsFn((options) => options.slice(0, 10)) // Top 10 only
+  .build()
+```
+
+## Processing order
+
+Understanding the order of operations helps when combining these features:
+
+1. **Accessor** - Extract values from each row
+2. **Inference** (if no declared options) - Collect unique values
+3. **`transformValueToOptionFn`** - Convert values to `ColumnOption` objects
+4. **Faceted counts** - Populate `count` property from faceted data
+5. **`orderFn`** - Sort the options array
+6. **`transformOptionsFn`** - Final modifications
