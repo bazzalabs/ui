@@ -13,7 +13,7 @@ import { useFilterEntityName, useFilterVariant } from '../root/filter-context'
 import { useFilterItemContext } from './filter-item'
 
 const filterSubjectVariants = cva(
-  'flex select-none items-center gap-1 whitespace-nowrap px-2 h-full',
+  'flex select-none items-center gap-1.5 whitespace-nowrap px-2 h-full',
   {
     variants: {
       variant: {

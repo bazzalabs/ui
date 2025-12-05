@@ -459,7 +459,7 @@ function FilterValueOptionDisplay({
     const { label, icon: Icon } = selected[0]
     const hasIcon = !!Icon
     return (
-      <span className="inline-flex items-center gap-1">
+      <span className="inline-flex items-center gap-1.5">
         {hasIcon &&
           (isValidElement(Icon) ? (
             Icon
@@ -476,17 +476,20 @@ function FilterValueOptionDisplay({
   const hasOptionIcons = !options?.some((o) => !o.icon)
 
   return (
-    <div className="inline-flex items-center gap-0.5">
-      {hasOptionIcons &&
-        take(selected, 3).map(({ value, icon }) => {
-          const Icon = icon!
-          return isValidElement(Icon) ? (
-            Icon
-          ) : (
-            <Icon key={value} className="size-4" />
-          )
-        })}
-      <span className={cn(hasOptionIcons && 'ml-1.5')}>
+    <div className="inline-flex items-center gap-2">
+      {hasOptionIcons && (
+        <div key="icons" className="inline-flex items-center gap-0.5">
+          {take(selected, 3).map(({ value, icon }) => {
+            const Icon = icon!
+            return isValidElement(Icon) ? (
+              cloneElement(Icon, { key: value })
+            ) : (
+              <Icon key={value} className="size-4" />
+            )
+          })}
+        </div>
+      )}
+      <span>
         {selected.length} {pluralName}
       </span>
     </div>
@@ -523,7 +526,7 @@ function FilterValueMultiOptionDisplay({
   const hasOptionIcons = !options?.some((o) => !o.icon)
 
   return (
-    <div className="inline-flex items-center gap-1.5">
+    <div className="inline-flex items-center gap-2">
       {hasOptionIcons && (
         <div key="icons" className="inline-flex items-center gap-0.5">
           {take(selected, 3).map(({ value, icon }) => {
