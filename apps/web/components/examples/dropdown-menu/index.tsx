@@ -7,6 +7,7 @@ import { DropdownMenu_CheckboxItems } from './checkbox-items'
 import { DropdownMenu_DisabledItems } from './disabled-items'
 import { DropdownMenu_Groups } from './groups'
 import { DropdownMenu_HeaderFooter } from './header-footer'
+import { DropdownMenu_HiddenItems } from './hidden-items'
 import { DropdownMenu_ItemDescriptions } from './item-descriptions'
 import { DropdownMenu_Linear } from './linear'
 import { DropdownMenu_LinearAsync } from './linear-async'
@@ -22,6 +23,7 @@ import { DropdownMenu_SubmenusDeep } from './submenus-deep'
 export const DropdownMenu = {
   Basic: DropdownMenu_Basic,
   DisabledItems: DropdownMenu_DisabledItems,
+  HiddenItems: DropdownMenu_HiddenItems,
   CheckboxItems: DropdownMenu_CheckboxItems,
   Groups: DropdownMenu_Groups,
   RadioGroups: DropdownMenu_RadioGroups,

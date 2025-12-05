@@ -1,3 +1,4 @@
+import { isGroupedNode, isItemNode, isSubmenuNode } from '../type-guards.js'
 import type { ItemNode, Node, ScoredNode, SubmenuNode } from '../types.js'
 import { buildBreadcrumbs } from './breadcrumb.js'
 import { commandScore } from './command-score.js'
@@ -45,41 +46,40 @@ export function scoreNodes<T = unknown>(
 
   for (const n of nodes) {
     // Skip hidden nodes
-    if ((n as any).hidden) continue
+    if (n.hidden) continue
 
-    if (n.kind === 'item') {
-      const itemNode = n as ItemNode<T>
+    // Skip children of hidden groups
+    if (isGroupedNode(n) && n.group.hidden) continue
 
+    if (isItemNode(n)) {
       // Score the item using fuzzy search
-      const score = commandScore(itemNode.id, query, itemNode.keywords)
+      const score = commandScore(n.id, query, n.keywords)
 
       if (score > 0) {
         // Extract breadcrumbs from node's parent chain (if enabled)
         const trail = includeBreadcrumbs
-          ? buildBreadcrumbs(itemNode, rootMenuId)
+          ? buildBreadcrumbs(n, rootMenuId)
           : { breadcrumbs: [], breadcrumbIds: [] }
 
         out.push({
-          node: itemNode,
+          node: n,
           score,
           breadcrumbs: trail.breadcrumbs,
           breadcrumbIds: trail.breadcrumbIds,
         })
       }
-    } else if (n.kind === 'submenu') {
-      const submenuNode = n as SubmenuNode<T>
-
+    } else if (isSubmenuNode(n)) {
       // Score the submenu trigger itself (not its children)
-      const score = commandScore(submenuNode.id, query, submenuNode.keywords)
+      const score = commandScore(n.id, query, n.keywords)
 
       if (score > 0) {
         // Extract breadcrumbs from node's parent chain (if enabled)
         const trail = includeBreadcrumbs
-          ? buildBreadcrumbs(submenuNode, rootMenuId)
+          ? buildBreadcrumbs(n, rootMenuId)
           : { breadcrumbs: [], breadcrumbIds: [] }
 
         out.push({
-          node: submenuNode,
+          node: n,
           score,
           breadcrumbs: trail.breadcrumbs,
           breadcrumbIds: trail.breadcrumbIds,

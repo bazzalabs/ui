@@ -2,6 +2,8 @@ import {
   defaultSlots,
   type GroupNode,
   type ItemNode,
+  isItemNode,
+  isSubmenuNode,
   MenuItemPrimitive,
   MenuListPrimitive,
   type SubmenuNode,
@@ -106,8 +108,7 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
   // Update store with valid row IDs and reset active ID on query change
   React.useEffect(() => {
     const validRows = displayNodes.filter(
-      (n) =>
-        (n.kind === 'item' || n.kind === 'submenu') && !(n as any).disabled,
+      (n) => (isItemNode(n) || isSubmenuNode(n)) && !n.disabled && !n.hidden,
     )
     const validRowIds = validRows.map((n) => n.id)
     const virtualIndexMap = new Map<string, number>()
