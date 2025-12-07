@@ -3,7 +3,6 @@
 import {
   type ButtonItemDef,
   type DropdownMenuDef,
-  type ItemDef,
   renderIcon,
 } from '@bazza-ui/dropdown-menu'
 import { useMemo, useState } from 'react'
@@ -15,6 +14,8 @@ import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 export function DropdownMenu_HiddenItems() {
   const [hiddenItems, setHiddenItems] = useState<string[]>([])
+
+  console.log('hiddenItems:', hiddenItems)
 
   const menu: DropdownMenuDef = useMemo(
     () => ({
@@ -33,35 +34,35 @@ export function DropdownMenu_HiddenItems() {
           id: 'apple',
           label: 'Apple',
           icon: '🍎',
-          hidden: hiddenItems.includes('Apple'),
+          hidden: hiddenItems.includes('apple'),
         },
         {
           kind: 'item',
           id: 'banana',
           label: 'Banana',
           icon: '🍌',
-          hidden: hiddenItems.includes('Banana'),
+          hidden: hiddenItems.includes('banana'),
         },
         {
           kind: 'item',
           id: 'orange',
           label: 'Orange',
           icon: '🍊',
-          hidden: hiddenItems.includes('Orange'),
+          hidden: hiddenItems.includes('orange'),
         },
         {
           kind: 'item',
           id: 'pineapple',
           label: 'Pineapple',
           icon: '🍍',
-          hidden: hiddenItems.includes('Pineapple'),
+          hidden: hiddenItems.includes('pineapple'),
         },
         {
           kind: 'item',
           id: 'strawberry',
           label: 'Strawberry',
           icon: '🍓',
-          hidden: hiddenItems.includes('Strawberry'),
+          hidden: hiddenItems.includes('strawberry'),
         },
       ],
     }),
