@@ -138,7 +138,7 @@
     },
     "apps/web/registry/ui/filter": {
       "name": "@bazza-ui/registry-filters",
-      "version": "0.2.0-canary.2",
+      "version": "0.2.0-canary.3",
     },
     "apps/web/registry/ui/multi-select": {
       "name": "@bazza-ui/registry-multi-select",
@@ -187,7 +187,7 @@
     },
     "packages/command-menu": {
       "name": "@bazza-ui/command-menu",
-      "version": "0.1.0-canary.2",
+      "version": "0.1.0-canary.3",
       "dependencies": {
         "@bazza-ui/menu": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -210,7 +210,7 @@
     },
     "packages/context-menu": {
       "name": "@bazza-ui/context-menu",
-      "version": "0.1.0-canary.2",
+      "version": "0.1.0-canary.3",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -239,7 +239,7 @@
     },
     "packages/dropdown-menu": {
       "name": "@bazza-ui/dropdown-menu",
-      "version": "0.1.0-canary.2",
+      "version": "0.1.0-canary.3",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -268,7 +268,7 @@
     },
     "packages/filters": {
       "name": "@bazza-ui/filters",
-      "version": "0.4.0-canary.3",
+      "version": "0.4.0-canary.4",
       "devDependencies": {
         "@bazza-ui/typescript-config": "*",
         "@ndaidong/txtgen": "^4.0.1",
@@ -315,7 +315,7 @@
     },
     "packages/menu": {
       "name": "@bazza-ui/menu",
-      "version": "0.1.0-canary.2",
+      "version": "0.1.0-canary.3",
       "dependencies": {
         "@bazza-ui/loaders": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -349,7 +349,7 @@
     },
     "packages/popup-menu": {
       "name": "@bazza-ui/popup-menu",
-      "version": "0.1.0-canary.2",
+      "version": "0.1.0-canary.3",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -378,7 +378,7 @@
     },
     "packages/select": {
       "name": "@bazza-ui/select",
-      "version": "0.1.0-canary.2",
+      "version": "0.1.0-canary.3",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",

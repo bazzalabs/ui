@@ -1,5 +1,13 @@
 # @bazza-ui/menu
 
+## 0.1.0-canary.3
+
+### Minor Changes
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Add support for hiding items, groups, and submenus using `hidden` property.
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Add type guards for node definitions and nodes
+
 ## 0.1.0-canary.2
 
 ### Minor Changes

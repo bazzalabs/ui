@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/filters",
-  "version": "0.4.0-canary.3",
+  "version": "0.4.0-canary.4",
   "private": false,
   "publishConfig": {
     "access": "public"

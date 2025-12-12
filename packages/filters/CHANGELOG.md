@@ -1,5 +1,11 @@
 # @bazza-ui/filters
 
+## 0.4.0-canary.4
+
+### Minor Changes
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Extract `faceted` type definition to `FacetedColumnData` type.
+
 ## 0.4.0-canary.3
 
 ### Minor Changes
