@@ -14,6 +14,7 @@ export type MediaProps = {
   height: number
   className?: string
   wrapperClassName?: string
+  figureClassName?: string
   // Optional: poster for video; if not provided, we still show the skeleton
   poster?: string
   // How the media should fit within the frame
@@ -22,6 +23,8 @@ export type MediaProps = {
   useAspectRatio?: boolean
   // Inset spacing (e.g., '0', '8', '2rem') - defaults to '0' (no spacing)
   inset?: string
+  // Optional caption text displayed below the media
+  caption?: string
 }
 
 export function Media({
@@ -31,12 +34,14 @@ export function Media({
   theme = 'light',
   width,
   height,
+  figureClassName,
   wrapperClassName,
   className,
   poster,
   objectFit = 'cover',
   useAspectRatio = true,
   inset = '0',
+  caption,
 }: MediaProps) {
   const { resolvedTheme, systemTheme, theme: __theme } = useTheme()
 
@@ -117,80 +122,92 @@ export function Media({
   const ratio = `${width} / ${height}`
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('relative overflow-clip **:select-none', wrapperClassName)}
-      style={useAspectRatio ? { aspectRatio: ratio } : undefined}
-    >
-      {/* Skeleton / shimmer placeholder */}
+    <figure className={cn('flex flex-col', figureClassName)}>
       <div
-        aria-hidden
+        ref={containerRef}
         className={cn(
-          'absolute',
-          // base surface that fits your theme tokens
-          theme === 'light' ? 'bg-sand-3' : 'bg-sand-4',
-          // shimmer
-          'before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.2s_infinite]',
-          'before:bg-gradient-to-r before:from-transparent',
-          theme === 'light'
-            ? 'before:via-white/40 before:to-transparent'
-            : 'before:via-white/15 before:to-transparent',
-          'before:[mask-image:linear-gradient(90deg,transparent,black,transparent)]',
-          // fade the placeholder out once loaded
-          loaded ? 'opacity-0 transition-opacity duration-300' : 'opacity-100',
+          'relative overflow-clip **:select-none',
+          wrapperClassName,
         )}
-        style={{ inset }}
-      />
-
-      {/* Media element: start slightly blurred and faded until ready */}
-      <div
-        className={cn(
-          'absolute',
-          loaded
-            ? 'opacity-100 filter-none'
-            : 'opacity-0 blur-[2px] translate-y-[2px]',
-          'transition-all duration-300 will-change-transform will-change-filter will-change-opacity',
-          // theme === 'light' && 'bg-red-500',
-          className,
-        )}
-        style={{ inset }}
+        style={useAspectRatio ? { aspectRatio: ratio } : undefined}
       >
-        {type === 'image' ? (
-          // biome-ignore lint/performance/noImgElement: allowed
-          <img
-            ref={ref as any}
-            src={imageSrc}
-            alt={alt}
-            loading="lazy"
-            decoding="async"
-            width={width}
-            height={height}
-            className={cn(
-              'h-full w-full',
-              objectFit === 'contain' ? 'object-contain' : 'object-cover',
-            )}
-            onLoad={onImageLoad}
-          />
-        ) : (
-          <video
-            ref={ref as any}
-            src={videoSrc}
-            playsInline
-            loop
-            autoPlay
-            muted
-            preload="auto"
-            poster={posterSrc}
-            className={cn(
-              'h-full w-full',
-              objectFit === 'contain' ? 'object-contain' : 'object-cover',
-            )}
-            onLoadedData={onVideoReady}
-            onCanPlayThrough={onVideoReady}
-          />
-        )}
+        {/* Skeleton / shimmer placeholder */}
+        <div
+          aria-hidden
+          className={cn(
+            'absolute',
+            // base surface that fits your theme tokens
+            theme === 'light' ? 'bg-sand-3' : 'bg-sand-4',
+            // shimmer
+            'before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.2s_infinite]',
+            'before:bg-gradient-to-r before:from-transparent',
+            theme === 'light'
+              ? 'before:via-white/40 before:to-transparent'
+              : 'before:via-white/15 before:to-transparent',
+            'before:[mask-image:linear-gradient(90deg,transparent,black,transparent)]',
+            // fade the placeholder out once loaded
+            loaded
+              ? 'opacity-0 transition-opacity duration-300'
+              : 'opacity-100',
+          )}
+          style={{ inset }}
+        />
+
+        {/* Media element: start slightly blurred and faded until ready */}
+        <div
+          className={cn(
+            'absolute',
+            loaded
+              ? 'opacity-100 filter-none'
+              : 'opacity-0 blur-[2px] translate-y-[2px]',
+            'transition-all duration-300 will-change-transform will-change-filter will-change-opacity',
+            // theme === 'light' && 'bg-red-500',
+            className,
+          )}
+          style={{ inset }}
+        >
+          {type === 'image' ? (
+            // biome-ignore lint/performance/noImgElement: allowed
+            <img
+              ref={ref as any}
+              src={imageSrc}
+              alt={alt}
+              loading="lazy"
+              decoding="async"
+              width={width}
+              height={height}
+              className={cn(
+                'h-full w-full',
+                objectFit === 'contain' ? 'object-contain' : 'object-cover',
+              )}
+              onLoad={onImageLoad}
+            />
+          ) : (
+            <video
+              ref={ref as any}
+              src={videoSrc}
+              playsInline
+              loop
+              autoPlay
+              muted
+              preload="auto"
+              poster={posterSrc}
+              className={cn(
+                'h-full w-full',
+                objectFit === 'contain' ? 'object-contain' : 'object-cover',
+              )}
+              onLoadedData={onVideoReady}
+              onCanPlayThrough={onVideoReady}
+            />
+          )}
+        </div>
       </div>
-    </div>
+      {caption && (
+        <figcaption className="mt-4 text-center text-sm text-muted-foreground">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
   )
 }
 

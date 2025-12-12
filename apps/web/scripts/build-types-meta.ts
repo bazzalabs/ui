@@ -135,16 +135,25 @@ async function collectObjectProps(
     const decl = (sym.valueDeclaration ?? sym.declarations?.[0]) as
       | ts.Declaration
       | undefined
-    const type = checker.getTypeOfSymbolAtLocation(
-      sym,
-      decl ?? sym.declarations?.[0] ?? (sym as unknown as ts.Node),
-    )
-    const required =
-      decl && ts.isPropertySignature(decl)
+
+    // If no valid declaration node exists, fall back to getTypeOfSymbol
+    if (!decl) {
+      const type = checker.getTypeOfSymbol(sym)
+      return {
+        name: sym.getName(),
+        type: checker.typeToString(type),
+        required: true,
+        description: getSymbolDoc(sym, checker),
+        default: getSymbolDefaultValue(sym),
+      }
+    }
+
+    const type = checker.getTypeOfSymbolAtLocation(sym, decl)
+    const required = ts.isPropertySignature(decl)
+      ? !decl.questionToken
+      : ts.isPropertyDeclaration(decl)
         ? !decl.questionToken
-        : decl && ts.isPropertyDeclaration(decl)
-          ? !decl.questionToken
-          : true
+        : true
 
     return {
       name: sym.getName(),
@@ -314,6 +323,8 @@ interface TypeExpansionContext {
   currentDepth: number
   allTypes: Map<string, TypeMeta> // All documented types for reference lookup
   currentPackage: string
+  /** Map of type parameter names to their constraints (e.g., "TColumns" -> "ReadonlyArray<...>") */
+  typeParamConstraints?: Map<string, string>
 }
 
 /**
@@ -325,6 +336,35 @@ function extractBaseTypeName(typeStr: string): string {
   return match?.[1] ?? typeStr
 }
 
+/**
+ * Resolve a type string by replacing generic type parameters with their constraints.
+ * e.g., if TColumns extends ReadonlyArray<ColumnConfig<TData>>, then "TColumns" -> "ReadonlyArray<ColumnConfig<TData>>"
+ *
+ * Also handles types that use generics, e.g., "Partial<Record<OptionColumnIds<TColumns>, ...>>"
+ * will have TColumns resolved within it.
+ */
+function resolveTypeWithConstraints(
+  typeStr: string,
+  typeParamConstraints?: Map<string, string>,
+): string {
+  if (!typeParamConstraints || typeParamConstraints.size === 0) {
+    return typeStr
+  }
+
+  // Check if the entire type is just a generic parameter
+  const trimmed = typeStr.trim()
+  if (typeParamConstraints.has(trimmed)) {
+    return typeParamConstraints.get(trimmed)!
+  }
+
+  // For more complex types, we could do regex replacement,
+  // but that risks breaking valid type syntax. For now, only
+  // resolve when the entire type is a single generic parameter.
+  // Future enhancement: parse and transform the type AST.
+
+  return typeStr
+}
+
 async function propMeta(
   propSym: ts.Symbol,
   ctx: TypeExpansionContext,
@@ -333,18 +373,38 @@ async function propMeta(
   const decl = (propSym.valueDeclaration ?? propSym.declarations?.[0]) as
     | ts.Declaration
     | undefined
-  const type = checker.getTypeOfSymbolAtLocation(
-    propSym,
-    decl ?? propSym.declarations?.[0] ?? (propSym as unknown as ts.Node),
-  )
-  const required =
-    decl && ts.isPropertySignature(decl)
-      ? !decl.questionToken
-      : decl && ts.isPropertyDeclaration(decl)
-        ? !decl.questionToken
-        : true
 
-  const typeStr = checker.typeToString(type)
+  // If no valid declaration node exists, fall back to getTypeOfSymbol
+  // (can happen with synthetic properties from mapped types, etc.)
+  if (!decl) {
+    const type = checker.getTypeOfSymbol(propSym)
+    const rawTypeStr = checker.typeToString(type)
+    const typeStr = resolveTypeWithConstraints(
+      rawTypeStr,
+      ctx.typeParamConstraints,
+    )
+    return {
+      name: propSym.getName(),
+      type: typeStr,
+      required: true,
+      description: getSymbolDoc(propSym, checker),
+      default: getSymbolDefaultValue(propSym),
+    }
+  }
+
+  const type = checker.getTypeOfSymbolAtLocation(propSym, decl)
+  const required = ts.isPropertySignature(decl)
+    ? !decl.questionToken
+    : ts.isPropertyDeclaration(decl)
+      ? !decl.questionToken
+      : true
+
+  const rawTypeStr = checker.typeToString(type)
+  // Resolve generic type parameters to their constraints for better documentation
+  const typeStr = resolveTypeWithConstraints(
+    rawTypeStr,
+    ctx.typeParamConstraints,
+  )
   const baseTypeName = extractBaseTypeName(typeStr)
   const description = getSymbolDoc(propSym, checker)
   const defaultValue = getSymbolDefaultValue(propSym)
@@ -489,6 +549,17 @@ async function collectPackageTypes(
         target /* not exp; see alias fix */,
       )
 
+      // Build a map of type parameter names to their constraints
+      // e.g., "TColumns" -> "ReadonlyArray<ColumnConfig<TData, any, any, any>>"
+      const typeParamConstraints = new Map<string, string>()
+      if (!isEnumDecl(decl) && decl.typeParameters) {
+        for (const tp of decl.typeParameters) {
+          if (tp.constraint) {
+            typeParamConstraints.set(tp.name.getText(), nodeText(tp.constraint))
+          }
+        }
+      }
+
       // Create expansion context
       const ctx: TypeExpansionContext = {
         checker,
@@ -496,6 +567,8 @@ async function collectPackageTypes(
         currentDepth: 0,
         allTypes,
         currentPackage: pkg.name,
+        typeParamConstraints:
+          typeParamConstraints.size > 0 ? typeParamConstraints : undefined,
       }
 
       const props = await collectObjectProps(declaredType, checker, ctx)

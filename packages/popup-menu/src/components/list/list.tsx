@@ -1,6 +1,8 @@
 import {
   type GroupNode,
   type ItemNode,
+  isItemNode,
+  isSubmenuNode,
   MenuListPrimitive,
   type Node,
   type SubmenuNode,
@@ -80,7 +82,7 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
   const validRowIds = React.useMemo(() => {
     const validRows = displayNodes.filter(
       (n: Node<T>) =>
-        (n.kind === 'item' || n.kind === 'submenu') && !(n as any).disabled,
+        (isItemNode(n) || isSubmenuNode(n)) && !n.disabled && !n.hidden,
     )
     return validRows.map((n: Node<T>) => n.id)
   }, [displayNodes])

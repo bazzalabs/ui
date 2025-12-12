@@ -2,7 +2,7 @@
 
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 export function ActionMenu_Groups() {
   return (

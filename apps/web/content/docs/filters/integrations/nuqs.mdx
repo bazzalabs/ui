@@ -1,0 +1,127 @@
+---
+title: nuqs
+section: Integrations
+summary: Persist filter state in the URL with nuqs.
+---
+
+You can use [`nuqs`](https://nuqs.47ng.com/) to persist the filter state in the URL.
+
+## Installation
+
+1. Install the `nuqs` and `zod` packages:
+
+```bash
+npm install nuqs zod
+```
+
+2. Use the appropriate `nuqs` adapter for your framework from the [nuqs docs](https://nuqs.47ng.com/docs/adapters).
+
+## Usage
+
+### 1. Create your Zod schema
+
+```ts
+import { z } from 'zod'
+import type { FiltersState } from '@bazza-ui/filters'
+
+const filtersSchema = z.custom<FiltersState>()
+```
+
+### 2. Create your query state
+
+```ts
+import { useQueryState, parseAsJson } from 'nuqs'
+
+const [filters, setFilters] = useQueryState<FiltersState>(
+  'filters',
+  parseAsJson(filtersSchema.parse).withDefault([]),
+)
+```
+
+### 3. Pass it to your table filters instance
+
+```ts
+const { columns, actions, strategy } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
+  filters,
+  onFiltersChange: setFilters,
+})
+```
+
+## Complete Example
+
+```tsx
+'use client'
+
+import { useQueryState, parseAsJson } from 'nuqs'
+import { z } from 'zod'
+import { useDataTableFilters, type FiltersState } from '@bazza-ui/filters'
+import { Filter } from '@/components/filter'
+import { columnsConfig } from './columns'
+
+const filtersSchema = z.custom<FiltersState>()
+
+export function IssuesTable({ data }) {
+  const [filters, setFilters] = useQueryState<FiltersState>(
+    'filters',
+    parseAsJson(filtersSchema.parse).withDefault([]),
+  )
+
+  const { columns, actions, strategy } = useDataTableFilters({
+    strategy: 'client',
+    data,
+    columnsConfig,
+    filters,
+    onFiltersChange: setFilters,
+  })
+
+  return (
+    <div>
+      <Filter
+        filters={filters}
+        columns={columns}
+        actions={actions}
+        strategy={strategy}
+      />
+      {/* Your data table */}
+    </div>
+  )
+}
+```
+
+## URL Structure
+
+With this setup, your filters will be persisted in the URL as a JSON string:
+
+```
+/issues?filters=[{"columnId":"status","type":"option","operator":"is","values":["backlog"]}]
+```
+
+This enables:
+- Sharing filtered views via URL
+- Browser back/forward navigation through filter states
+- Bookmarking specific filter configurations
+
+## Server-Side Filtering with nuqs
+
+When using server-side filtering, you can read the filter state on the server:
+
+```ts
+// app/issues/page.tsx
+import { createSearchParamsCache, parseAsJson } from 'nuqs/server'
+
+const searchParamsCache = createSearchParamsCache({
+  filters: parseAsJson(filtersSchema.parse).withDefault([]),
+})
+
+export default async function IssuesPage({ searchParams }) {
+  const { filters } = searchParamsCache.parse(searchParams)
+  
+  // Fetch filtered data from your API
+  const issues = await fetchIssues({ filters })
+  
+  return <IssuesTable data={issues} initialFilters={filters} />
+}
+```

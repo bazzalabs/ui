@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/dropdown-menu'
+import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
 
 type MultiSelectItem = ItemDef & {
   label: string

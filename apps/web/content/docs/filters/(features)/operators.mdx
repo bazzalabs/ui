@@ -1,0 +1,182 @@
+---
+title: Filter Operators
+section: Features
+summary: Complete reference for all filter operators by column type.
+---
+
+Each column type has a set of valid **operators** that determine how filter values are compared against data.
+
+## Properties
+
+Every operator has properties that describe its behavior:
+
+| Property | Description |
+|----------|-------------|
+| `target` | Whether the operator applies to `single` or `multiple` values |
+| `isNegated` | Whether this is a negative operator (e.g., `is not`) |
+| `negation` / `negationOf` | The opposite operator |
+| `singularOf` / `pluralOf` | Related operator for single/multiple value transitions |
+
+## Behaviour
+
+### Automatic transitions
+
+When filter values are added or removed, operators automatically transition between their **singular** and **plural** forms:
+
+```
+is ←→ is any of
+is not ←→ is none of
+include ←→ include any of
+```
+
+### Changing a filter's operator
+
+Use the `setFilterOperator` action to change a filter's operator:
+
+```ts
+// Change from "is any of" to "is none of"
+actions.setFilterOperator('status', 'is none of')
+
+// Change number filter from "is between" to "is greater than"
+actions.setFilterOperator('estimatedHours', 'is greater than')
+```
+
+See the [Actions](/docs/filters/actions) guide for more details.
+
+
+For example, if a filter has the `is` operator with one value and you add a second value, the operator automatically changes to `is any of`.
+
+## Reference
+
+### Text
+
+| Operator | Target | Negation |
+|----------|--------|----------|
+| `contains` | single | `does not contain` |
+| `does not contain` | single | `contains` |
+
+**Example:** Filter issues where title `contains` "bug"
+
+### Number
+
+| Operator | Target | Negation |
+|----------|--------|----------|
+| `is` | single | `is not` |
+| `is not` | single | `is` |
+| `is greater than` | single | `is less than or equal to` |
+| `is greater than or equal to` | single | `is less than` |
+| `is less than` | single | `is greater than or equal to` |
+| `is less than or equal to` | single | `is greater than` |
+| `is between` | multiple | `is not between` |
+| `is not between` | multiple | `is between` |
+
+**Example:** Filter issues where estimated hours `is between` 10 and 50
+
+> [!NOTE] The `is between` operator is inclusive on both ends.
+
+### BigInt
+
+BigInt columns use the same operators as number columns.
+
+### Date
+
+| Operator | Target | Negation |
+|----------|--------|----------|
+| `is` | single | `is not` |
+| `is not` | single | `is` |
+| `is before` | single | `is on or after` |
+| `is after` | single | `is on or before` |
+| `is on or before` | single | `is after` |
+| `is on or after` | single | `is before` |
+| `is between` | multiple | `is not between` |
+| `is not between` | multiple | `is between` |
+
+**Example:** Filter issues where created date `is after` January 1, 2024
+
+> [!NOTE] Date comparisons use day-level precision. The `is` operator matches if the dates are on the same day.
+
+### Boolean
+
+| Operator | Target | Negation |
+|----------|--------|----------|
+| `is` | single | `is not` |
+| `is not` | single | `is` |
+
+**Example:** Filter issues where urgent `is` true
+
+### Option
+
+For columns where each row has a **single value** from a set of options (e.g., status).
+
+| Operator | Target | Singular/Plural | Negation |
+|----------|--------|-----------------|----------|
+| `is` | single | singular of `is any of` | `is not` |
+| `is not` | single | singular of `is none of` | `is` |
+| `is any of` | multiple | plural of `is` | `is none of` |
+| `is none of` | multiple | plural of `is not` | `is any of` |
+
+**Example:** Filter issues where status `is any of` ["Backlog", "To Do"]
+
+### Multi-option
+
+For columns where each row can have **multiple values** from a set of options (e.g., labels, tags).
+
+| Operator | Target | Singular/Plural | Negation |
+|----------|--------|-----------------|----------|
+| `include` | single | singular of `include any of` | `exclude` |
+| `exclude` | single | singular of `exclude if any of` | `include` |
+| `include any of` | multiple | plural of `include` | `exclude if all` |
+| `include all of` | multiple | plural of `include` | `exclude if any of` |
+| `exclude if any of` | multiple | plural of `exclude` | `include all of` |
+| `exclude if all` | multiple | plural of `exclude` | `include any of` |
+
+| Operator | Row matches if... |
+|----------|-------------------|
+| `include` | Row contains the filter value |
+| `exclude` | Row does not contain the filter value |
+| `include any of` | Row contains **at least one** of the filter values |
+| `include all of` | Row contains **all** of the filter values |
+| `exclude if any of` | Row does **not** contain **any** of the filter values |
+| `exclude if all` | Row does **not** contain **all** of the filter values (may contain some) |
+
+**Example:** Filter issues where labels `include all of` ["bug", "urgent"]
+
+## Type Reference
+
+```ts
+type TextFilterOperator = 'contains' | 'does not contain'
+
+type NumberFilterOperator =
+  | 'is'
+  | 'is not'
+  | 'is less than'
+  | 'is greater than or equal to'
+  | 'is greater than'
+  | 'is less than or equal to'
+  | 'is between'
+  | 'is not between'
+
+type BigIntFilterOperator = NumberFilterOperator
+
+type DateFilterOperator =
+  | 'is'
+  | 'is not'
+  | 'is before'
+  | 'is on or after'
+  | 'is after'
+  | 'is on or before'
+  | 'is between'
+  | 'is not between'
+
+type BooleanFilterOperator = 'is' | 'is not'
+
+type OptionFilterOperator = 'is' | 'is not' | 'is any of' | 'is none of'
+
+type MultiOptionFilterOperator =
+  | 'include'
+  | 'exclude'
+  | 'include any of'
+  | 'include all of'
+  | 'exclude if any of'
+  | 'exclude if all'
+```

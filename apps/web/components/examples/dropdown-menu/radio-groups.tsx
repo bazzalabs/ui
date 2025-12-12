@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 export function DropdownMenu_RadioGroups() {
   const [fruit, setFruit] = useState('apple')

@@ -4,7 +4,7 @@ import type { ItemDef, SubmenuDef } from '@bazza-ui/dropdown-menu'
 import { queryLoader } from '@bazza-ui/loaders/query'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 /**
  * This example demonstrates deep search across multiple async submenus

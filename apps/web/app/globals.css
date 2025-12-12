@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@import "../styles/highlight-js/github-light.css";
-@import "../styles/highlight-js/github-dark.css";
 
 @plugin "tailwindcss-animate";
 /*@plugin "tailwindcss-corner-shape/presets/squircle";*/
@@ -150,9 +148,9 @@
   }
 
 
-  code:not(h1 code, h2 code, h3 code, h4 code, .callout code) {
+  /*code:not(h1 code, h2 code, h3 code, h4 code, .callout code) {
     @apply not-dark:font-[450];
-  }
+  }*/
 
   /* Credit to shadcn ui monorepo */
   body {

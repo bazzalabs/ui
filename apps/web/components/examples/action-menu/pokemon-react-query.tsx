@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 type Pokemon = {
   name: string

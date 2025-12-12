@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Select } from '@/registry/select'
+import { Select } from '@/registry/ui/select'
 
 export function DisabledItems() {
   const [value, setValue] = useState('')

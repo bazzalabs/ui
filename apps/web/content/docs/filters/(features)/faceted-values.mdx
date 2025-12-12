@@ -1,0 +1,104 @@
+---
+title: Faceted Values
+section: Features
+summary: Providing option counts and min/max values for columns.
+---
+
+You can pass faceted column values to the `useDataTableFilters()` hook for enhanced filtering UX.
+
+## Remote Options
+
+If you're using the **declared options** approach for any of your option-based columns, you can pass your column options to the instance directly.
+
+We expose an `options` property on the instance, where we pass in the `ColumnOption[]` for relevant columns.
+
+```tsx
+/* Step 1: Fetch data from the server */
+const labels = useQuery(queries.labels.all())
+const statuses = useQuery(queries.statuses.all())
+const users = useQuery(queries.users.all())
+
+const issues = useQuery(queries.issues.all())
+
+/* Step 2: Create ColumnOption[] for each option-based column */
+const labelOptions = createLabelOptions(labels.data)
+const statusOptions = createStatusOptions(statuses.data)
+const userOptions = createUserOptions(users.data)
+
+/* Step 3: Create our data table filters instance */
+const { columns, filters, actions, strategy } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
+  options: {
+    status: statusOptions,
+    assignee: userOptions,
+    labels: labelOptions,
+  },
+})
+```
+
+## Faceted Unique Values
+
+For `option` and `multiOption` columns, you can provide a `Map<string, number>` which maps each column option value to the number of times it appears in the dataset.
+
+This enables showing counts next to each option in the filter menu.
+
+## Faceted Min/Max Values
+
+For `number` columns, you can provide a tuple `[number, number]` representing the minimum and maximum values for the column data.
+
+This enables the range slider in the filter UI.
+
+## Complete Example
+
+```tsx
+/* Step 1: Fetch data from the server */
+const labels = useQuery(queries.labels.all())
+const statuses = useQuery(queries.statuses.all())
+const users = useQuery(queries.users.all())
+
+const facetedLabels = useQuery(queries.labels.faceted())
+const facetedStatuses = useQuery(queries.statuses.faceted())
+const facetedUsers = useQuery(queries.users.faceted())
+const facetedEstimatedHours = useQuery(queries.estimatedHours.faceted())
+
+const issues = useQuery(queries.issues.all())
+
+/* Step 2: Create ColumnOption[] for each option-based column */
+const labelOptions = createLabelOptions(labels.data)
+const statusOptions = createStatusOptions(statuses.data)
+const userOptions = createUserOptions(users.data)
+
+/* Step 3: Create our data table filters instance */
+const { columns, filters, actions, strategy } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
+  options: {
+    status: statusOptions,
+    assignee: userOptions,
+    labels: labelOptions,
+  },
+  faceted: {
+    // Option columns: Map<string, number>
+    status: facetedStatuses.data,
+    assignee: facetedUsers.data,
+    labels: facetedLabels.data,
+    // Number columns: [min, max]
+    estimatedHours: facetedEstimatedHours.data,
+  },
+})
+```
+
+## Server-Side Filtering
+
+When using server-side filtering, faceted values are particularly important since the client doesn't have access to the full dataset.
+
+You should:
+
+1. Fetch options from a dedicated endpoint
+2. Fetch faceted counts from the server
+3. Pass both to the hook instance
+
+This ensures accurate option counts and range boundaries even when the data is filtered server-side.

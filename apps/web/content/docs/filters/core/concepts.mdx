@@ -1,0 +1,177 @@
+---
+title: Concepts
+component: Filters
+section: Core
+summary: How to describe your data table columns for filtering.
+---
+
+Let's take a look at the most important concepts for using this component.
+
+## Strategy
+
+The `FilterStrategy` decides where filtering happens: on the `client` or on the `server`.
+
+With the `client` strategy, the client receives all the table data and filters it locally in the browser.
+
+With the `server` strategy, the client sends filter requests to the server. The server applies the filters to the data and sends back only the filtered data. The client never sees the entire dataset.
+
+## Column data types
+
+When you want to make a column filterable, you first need to define what type of data it contains.
+
+`ColumnDataType` identifies the types of data we currently support filtering for:
+
+```ts
+type ColumnDataType =
+  | 'text'         /* Text data */
+  | 'number'       /* Numerical data */
+  | 'bigint'       /* Large integers */
+  | 'date'         /* Dates */
+  | 'boolean'      /* Boolean data */
+  | 'option'       /* Single-valued option (e.g. status) */
+  | 'multiOption'  /* Multi-valued option (e.g. labels) */
+```
+
+## Filters
+
+The state of the applied filters on a table is represented as `FiltersState`, which is a `FilterModel[]`:
+
+```ts
+type FilterModel<TType extends ColumnDataType = any> = {
+  columnId: string
+  type: TType // option, multiOption, text, date, boolean, number
+  operator: FilterOperators[TType] // i.e. 'is', 'is not', 'is any of', etc.
+  values: FilterValues[TType]
+}
+```
+
+Each `FilterModel` represents a single filter for a specific column.
+
+## Operators
+
+Each column type has a set of valid **operators** that determine how filter values are compared against data. For example, a `text` column supports `contains` and `does not contain`, while an `option` column supports `is`, `is not`, `is any of`, and `is none of`.
+
+Every operator has the following properties:
+
+- **Target** - Whether the operator applies to a `single` value or `multiple` values
+- **Negation** - The operator that produces the opposite result (e.g., `is` ↔ `is not`)
+- **Singular/Plural form** - Related operators for single vs. multiple values (e.g., `is` ↔ `is any of`)
+
+See the [Operators](/docs/filters/operators) guide for more information.
+
+## Column options
+
+For `option` and `multiOption` columns *(we'll refer to these as **option-based columns**)*, there exists a set of possible **options** for each column - we call these **column options**.
+
+> For example, an issues table could have a `status` column with the options "Backlog", "To Do", "In Progress", and "Done".
+
+We represent each option as a `ColumnOption`:
+
+```ts
+interface ColumnOption {
+  /* The label to display for the option. */
+  label: string
+  /* The internal value of the option. */
+  value: string
+  /* An optional icon to display next to the label. */
+  icon?: React.ReactElement | React.ElementType
+  /* Occurrences of this option in the data (automatically populated). */
+  count?: number
+}
+```
+
+Learn more in the [Column Builder](http://localhost:3000/docs/filters/column-builder#options) section.
+
+## Column configuration
+
+We describe each column in our data table as a `ColumnConfig`.
+
+We create a `ColumnConfig` using a builder instance:
+
+```ts
+import { createColumnConfigHelper } from '@bazza-ui/filters'
+
+/* Create the configuration builder instance. */
+const dtf = createColumnConfigHelper<Issue>()
+
+/* Create the column configurations. */
+export const columnsConfig = [
+  dtf
+    .text()
+    .id('title')
+    .accessor((row) => row.title)
+    .displayName('Title')
+    .icon(Heading1Icon)
+    .build(),
+  dtf
+    .option()
+    .accessor((row) => row.status.id)
+    .id('status')
+    .displayName('Status')
+    .icon(CircleDotDashedIcon)
+    .build(),
+  /* ... */
+] as const
+```
+
+## Instance
+
+We use the `useDataTableFilters()` hook to create our filters instance.
+
+```tsx
+const { columns, filters, actions, strategy } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  entityName: 'Issue',
+  columnsConfig,
+})
+```
+
+The instance has the following properties:
+
+- `columns`: The `Column[]` for your data. A `Column` is a superset of a `ColumnConfig`, with additional properties & methods.
+- `filters`: The filters state, represented as a `FilterState` object.
+- `actions`: A collection of mutators for the filters state.
+- `strategy`: The strategy used for filtering (`client` or `server` side filtering).
+- `entityName`: The name of the entity being filtered (e.g. "Issue", "User", etc.).
+
+## Component
+
+The filters can be visualized using the `<Filter />` component.
+
+It takes the `columns`, `filters`, `actions` and `strategy` from the hook as input.
+
+```tsx {6-11}
+import { Filter } from '@/components/data-table-filter'
+
+export function IssuesTable() {
+  return (
+    <div>
+      <Filter
+        filters={filters}
+        columns={columns}
+        actions={actions}
+        strategy={strategy}
+        entityName={entityName}
+      />
+      <DataTable />
+    </div>
+  )
+}
+```
+
+The `<Filter />` component also supports a **composable API** for custom layouts using compound components:
+
+```tsx
+<Filter.Provider value={{ columns, filters, actions, strategy, locale, entityName }}>
+  <Filter.Root>
+    <div className="flex gap-2">
+      <Filter.Menu />
+      <Filter.List />
+    </div>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+Learn more in the [Anatomy](/docs/filters/core/anatomy) section.

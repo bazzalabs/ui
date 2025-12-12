@@ -1,0 +1,49 @@
+---
+title: Filters
+component: Filters
+section: Getting Started
+summary: A powerful data filter model + composable React components. Library-agnostic. Supports client and server-side filtering.
+---
+
+<ComponentFrame
+  containerClassName='w-full 2xl:mx-0 mb-8'
+  previewClassName='w-full'
+>
+  <IssuesTableWrapper />
+</ComponentFrame>
+
+We've built a powerful, flexible filtering system for data.
+
+You can use it for your tables, charts, graphs, grids, and anywhere else you need to filter data.
+
+## Installation
+
+```npm
+npx shadcn@latest add {{REGISTRY_URL}}/r/filters{{RELEASE_CHANNEL}}
+```
+
+For more information, see the [Installation](/docs/filters/installation) section.
+
+## Architecture
+
+bazza/ui filters is the combination of:
+
+- A headless filter model, `@bazza-ui/filters`, which configures and manages your filters.
+- A composable `<Filter />` component, built + distributed with [shadcn/ui](https://ui.shadcn.com) registry.
+
+This separation lets you use the filtering logic independently of the UI, or combine both for a complete solution.
+
+## Features
+
+- **Library-agnostic.** Works with any data library or custom implementation.
+- **Client and server-side filtering.** Choose where filtering happens based on your needs.
+- **Multiple column types.** Support for text, number, bigint, date, boolean, option, and multi-option columns.
+- **Type-safe column builder.** Fluent API for defining column configurations with full TypeScript support.
+- **Composable.** Use our pre-built components to build your own filter interface.
+- **Internationalization.** Built-in support for multiple locales.
+
+## Common Questions
+
+- **Can I use this with X library?** In theory, yes! The filter engine is library-agnostic.
+- **Can I use this with *client*-side filtering?** Yes!
+- **Can I use this with *server*-side filtering?** Yes!

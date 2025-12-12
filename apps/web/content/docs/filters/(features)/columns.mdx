@@ -1,0 +1,163 @@
+---
+title: Columns
+section: Features
+summary: Understanding Column objects and their available methods.
+---
+
+When you create a filters instance with `useDataTableFilters()`, your column configurations are transformed into `Column` objects. This guide explains what a `Column` is, how it differs from a `ColumnConfig`, and what methods are available.
+
+## What is a column?
+
+A **`ColumnConfig`** is what you define using the [column builder](/docs/filters/column-builder). It describes the static configuration of a column: its ID, accessor, display name, data type, and so on.
+
+A **`Column`** is the runtime object created from a `ColumnConfig`. It includes all the configuration properties *plus* additional methods for retrieving computed data like options, values, and faceted information.
+
+```ts
+// ColumnConfig - what you define
+const config = dtf
+  .option()
+  .id('status')
+  .accessor((row) => row.status)
+  .displayName('Status')
+  .build()
+
+// Column - what the instance gives you
+const { columns } = useDataTableFilters({ ... })
+const statusColumn = columns.find(c => c.id === 'status')
+
+// Column has all config properties...
+statusColumn.id          // 'status'
+statusColumn.displayName // 'Status'
+statusColumn.type        // 'option'
+
+// ...plus computed methods
+statusColumn.getOptions()           // ColumnOption[]
+statusColumn.getValues()            // string[]
+statusColumn.getFacetedUniqueValues() // Map<string, number>
+```
+
+## Accessing columns
+
+The `columns` array from `useDataTableFilters()` contains all your column objects:
+
+```tsx
+const { columns, filters, actions } = useDataTableFilters({
+  strategy: 'client',
+  data: issues,
+  columnsConfig,
+})
+
+// Find a specific column
+const statusColumn = columns.find(c => c.id === 'status')
+
+// Filter to option-based columns
+const optionColumns = columns.filter(
+  c => c.type === 'option' || c.type === 'multiOption'
+)
+
+// Get visible columns (not hidden)
+const visibleColumns = columns.filter(c => !c.hidden)
+```
+
+
+
+## Methods
+
+<TypeTableAuto type="ColumnProperties" pkg="@bazza-ui/filters" />
+
+### getOptions()
+
+Returns the computed `ColumnOption[]` for option-based columns (`option` and `multiOption`).
+
+This method returns fully processed options including:
+- Static options (if defined via `options()`)
+- Inferred options (if using `transformValueToOptionFn()`)
+- Counts populated from faceted data
+- Ordering applied (if using `orderFn()`)
+- Post-processing transforms (if using `transformOptionsFn()`)
+
+```ts
+const statusColumn = columns.find(c => c.id === 'status')
+const options = statusColumn.getOptions()
+
+// [
+//   { value: 'backlog', label: 'Backlog', count: 12 },
+//   { value: 'todo', label: 'To Do', count: 8 },
+//   { value: 'in-progress', label: 'In Progress', count: 5 },
+//   { value: 'done', label: 'Done', count: 15 },
+// ]
+```
+
+> [!NOTE] Results are memoized. Subsequent calls return cached values unless the underlying data changes.
+
+### getValues()
+
+Returns all values extracted from the data for this column, using the column's accessor.
+
+```ts
+const statusColumn = columns.find(c => c.id === 'status')
+const values = statusColumn.getValues()
+
+// ['backlog', 'todo', 'in-progress', 'done', 'backlog', ...]
+```
+
+For option-based columns, this returns the raw values (strings) rather than `ColumnOption` objects.
+
+### getFacetedUniqueValues()
+
+Returns a `Map<string, number>` containing the count of each unique value for option-based columns.
+
+```ts
+const statusColumn = columns.find(c => c.id === 'status')
+const faceted = statusColumn.getFacetedUniqueValues()
+
+// Map {
+//   'backlog' => 12,
+//   'todo' => 8,
+//   'in-progress' => 5,
+//   'done' => 15
+// }
+```
+
+This is useful when you need raw faceted data without the full `ColumnOption` structure.
+
+### getFacetedMinMaxValues()
+
+Returns a tuple `[min, max]` for `number` and `bigint` columns, or `undefined` for other column types.
+
+```ts
+const hoursColumn = columns.find(c => c.id === 'estimatedHours')
+const [min, max] = hoursColumn.getFacetedMinMaxValues()
+
+// [0, 100]
+```
+
+> [!NOTE] For `server` strategy, this returns values from `min`/`max` set in the column config or via the `faceted` option on the instance. For `client` strategy, it can be computed from the data.
+
+## Prefetching
+
+For performance optimization with large datasets, we expose async prefetch methods that compute values in the next tick.
+
+These are only active when using the `client` strategy.
+
+```ts
+await column.prefetchOptions()
+// Options are now cached, getOptions() returns immediately
+
+await column.prefetchValues()
+// Values are now cached, getValues() returns immediately
+
+await column.prefetchFacetedUniqueValues()
+// Faceted data is now cached
+
+await column.prefetchFacetedMinMaxValues()
+// Min/max values are now cached
+```
+
+## Next Steps
+
+Now that you understand `Column` objects, learn how to mutate filter state using [Actions](/docs/filters/actions).
+
+## Reference
+
+<TypeTableAuto type="Column" pkg="@bazza-ui/filters" />

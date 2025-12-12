@@ -2,7 +2,11 @@
 
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { PanelLeftIcon } from 'lucide-react'
+import {
+  PanelLeftCloseIcon,
+  PanelLeftIcon,
+  PanelLeftOpenIcon,
+} from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,7 +30,7 @@ import { cn } from '@/lib/utils'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = '17rem'
+const SIDEBAR_WIDTH = '300px'
 const SIDEBAR_WIDTH_MOBILE = '18rem'
 const SIDEBAR_WIDTH_ICON = '3rem'
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
@@ -130,6 +134,7 @@ function SidebarProvider({
       <TooltipProvider delayDuration={0}>
         <div
           data-slot="sidebar-wrapper"
+          data-state={open ? 'open' : 'closed'}
           style={
             {
               '--sidebar-width': SIDEBAR_WIDTH,
@@ -206,7 +211,7 @@ function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block h-svh"
+      className="group peer text-sidebar-foreground hidden lg:block h-svh"
       data-state={state}
       data-collapsible={state === 'collapsed' ? collapsible : ''}
       data-variant={variant}
@@ -257,22 +262,31 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, open } = useSidebar()
 
   return (
     <Button
       data-sidebar="trigger"
+      data-state={open ? 'open' : 'closed'}
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
-      className={cn('size-7', className)}
+      className={cn(
+        'size-7 text-muted-foreground group/sidebar-trigger',
+        className,
+      )}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <PanelLeftIcon className="group-hover/sidebar-trigger:hidden" />
+      {open ? (
+        <PanelLeftCloseIcon className="hidden group-hover/sidebar-trigger:block" />
+      ) : (
+        <PanelLeftOpenIcon className="hidden group-hover/sidebar-trigger:block" />
+      )}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -309,7 +323,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
       data-slot="sidebar-inset"
       className={cn(
         'bg-background relative flex w-full flex-1 flex-col',
-        'md:peer-data-[variant=inset]:m-4 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
+        'md:peer-data-[variant=inset]:m-4 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-4',
         className,
       )}
       {...props}

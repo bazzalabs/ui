@@ -1,0 +1,252 @@
+---
+title: Column Builder
+section: Features
+summary: Type-safe fluent API for defining column configurations.
+---
+
+We need to describe each column in our data table. Ideally, in a type-safe way. This is done using our column configuration builder.
+
+It has a [fluent API](https://en.wikipedia.org/wiki/Fluent_interface) *(similar to Zod)* that allows us to define a column's properties in a concise, readable, and type-safe manner.
+
+## Getting Started
+
+First, you use the `createColumnConfigHelper()` function to create a column configuration builder:
+
+```ts title="columns.ts"
+import { createColumnConfigHelper } from '@bazza-ui/filters'
+import type { Issue } from './types'
+
+// dtf = down to... filter? (sorry, couldn't resist)
+const dtf = createColumnConfigHelper<Issue>()
+```
+
+Notice how we pass in our data model (`Issue`) as a generic parameter. This is required for the column configuration builder to be type safe.
+
+> [!TIP] We strongly advise using the column builder instead of directly creating a `ColumnConfig[]` - otherwise, you'll lose out on all the type-safety benefits we've baked in.
+
+From here, we can use our builder instance to create configurations for each column.
+
+## Data Types
+
+The first call to the column builder is `text()`, `number()`, `date()`, `boolean()`, `option()`, or `multiOption()`.
+
+This defines the data type of the column.
+
+```ts
+dtf.text()
+```
+
+## Column ID
+
+The second call should be to the `id()` method, to give our column a unique ID.
+
+> [!NOTE] If you're using our TanStack Table integration, this column ID should be the same one you used in your table column definitions.
+
+```ts
+dtf
+  .text()
+  .id('title')
+```
+
+## Accessor
+
+The `accessor()` method is used to define how we extract a column's value for each row in your data table.
+
+```ts
+dtf
+  .text()
+  .id('title')
+  .accessor((row) => row.title)
+```
+
+**Return types by column type:**
+
+| Type | Accessor Return | Notes |
+|------|-----------------|-------|
+| `text` | `string` | |
+| `number` | `number` | |
+| `date` | `Date` | |
+| `boolean` | `boolean` | |
+| `option` | `string` | With static options |
+| `option` | `any` | With inferred options + `transformValueToOptionFn` |
+| `multiOption` | `string[]` | With static options |
+| `multiOption` | `any[]` | With inferred options + `transformValueToOptionFn` |
+
+## Display Name
+
+We can use the `displayName()` method to set the display name for the column.
+
+```ts
+dtf
+  .text()
+  .id('title')
+  .accessor((row) => row.title)
+  .displayName('Title')
+```
+
+## Icon
+
+We can use the `icon()` method to set the icon for the column.
+
+```ts
+dtf
+  .text()
+  .id('title')
+  .accessor((row) => row.title)
+  .displayName('Title')
+  .icon(Heading1Icon)
+```
+
+## Hidden
+
+We can use the `hidden()` method to hide a column from the filters interfaces - that is, the filter selector menu and the active filters list.
+
+Note that this **does not prevent filtering the column** - it only hides it from the UI. The column is still filterable via `actions` or by manipulating the filters state directly.
+
+A good use case for this is when you want a search input separate from the filters interface, but to keep its state with the rest of your column filters.
+
+```ts
+dtf
+  .text()
+  .id("title")
+  .accessor((row) => row.title)
+  .displayName("Title")
+  .hidden()
+```
+
+## Options
+
+> [!TIP] This applies to `option` and `multiOption` columns only.
+
+Option-based columns need a set of possible values. You can provide these in two ways:
+
+- **Declared** - Define options explicitly via `options()` or pass them to the instance
+- **Inferred** - Let the library extract unique values from your data (client-side only)
+
+```ts
+// Declared options
+dtf
+  .option()
+  .id('status')
+  .accessor((row) => row.status)
+  .displayName('Status')
+  .options([
+    { value: 'backlog', label: 'Backlog' },
+    { value: 'done', label: 'Done' },
+  ])
+  .build()
+
+// Inferred options (extracts unique values from data)
+dtf
+  .option()
+  .id('category')
+  .accessor((row) => row.category)
+  .displayName('Category')
+  .build()
+```
+
+For complex objects, use `transformValueToOptionFn()` to convert values to `ColumnOption` objects.
+
+The builder also supports `orderFn()` for sorting options and `transformOptionsFn()` for post-processing.
+
+See the [Option Columns](/docs/filters/option-columns) guide for complete documentation on declared vs. inferred options, transforms, and ordering.
+
+## Min/Max Values
+
+> [!TIP] This applies to `number` columns.
+
+We can use the `min()` and `max()` methods to set the faceted minimum and maximum values for a column.
+
+These aren't hard limits, but rather used to set the visual boundaries for the range slider.
+
+```ts
+dtf
+  .number()
+  .accessor((row) => row.estimatedHours)
+  .id('estimatedHours')
+  .displayName('Estimated hours')
+  .icon(ClockIcon)
+  .min(0)
+  .max(100)
+```
+
+With the `client` strategy, **you could skip this step** - the min/max values can be computed from the data.
+
+> [!NOTE] You should specify the min/max values if you're using the `server` strategy.
+> With the `server` strategy, we can't compute these values for you, since we don't have access to the full dataset.
+>
+> For this case, we recommend setting the faceted `min` and `max` values when we create our instance. See [Faceted Values](/docs/filters/faceted-values).
+
+> [!IMPORTANT] If we cannot determine the min/max values *(i.e. if you use `server` strategy without specifying the values)*, filtering will still work as expected, but the slider will not be visible.
+
+## Toggled State Name
+
+> [!TIP] This only applies to `boolean` columns.
+
+We use this, in combination with the entity name, when displaying the filter value for a boolean column.
+
+For example, if we have a column `isUrgent`, the entity name is "Issue", and the state name is `urgent`:
+
+- Issue *is* urgent
+- Issue *is not* urgent
+
+```ts
+dtf
+  .boolean()
+  .accessor((row) => row.isUrgent)
+  .id('isUrgent')
+  .displayName('Urgent issues')
+  .toggledStateName('urgent')
+```
+
+## Build
+
+Finally, we finish off our column configuration by calling the `build()` method.
+
+This returns a `ColumnConfig`, which we pass onto our table filters instance later on.
+
+```ts
+dtf
+  .number()
+  .accessor((row) => row.estimatedHours)
+  .id('estimatedHours')
+  .displayName('Estimated hours')
+  .icon(ClockIcon)
+  .min(0)
+  .max(100)
+  .build()
+```
+
+## Putting it all together
+
+> [!NOTE] Make sure to declare your `ColumnConfig[]` with `as const` to ensure it's immutable and type-safe.
+
+Now that we've covered the basics of creating a column configuration, let's put it all together.
+
+We create an array of column configurations, making sure to label it `as const` to ensure it's **(1)** immutable and **(2)** type-safe for later on.
+
+```ts
+const columnsConfig = [
+  dtf
+    .text()
+    .id('title')
+    .accessor((row) => row.title)
+    .displayName('Title')
+    .icon(Heading1Icon)
+    .build(),
+  dtf
+    .number()
+    .accessor((row) => row.estimatedHours)
+    .id('estimatedHours')
+    .displayName('Estimated hours')
+    .icon(ClockIcon)
+    .min(0)
+    .max(100)
+    .build(),
+  /* ...rest of the columns... */
+] as const
+```
+
+## Next steps
+
+In the [Instance](/docs/filters/instance) section, you'll use your newly minted column configurations to actually create your filters instance and configure it.

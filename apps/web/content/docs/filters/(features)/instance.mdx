@@ -1,0 +1,149 @@
+---
+title: Instance
+component: Filters
+section: Features
+summary: Creating and configuring your filters instance with useFilters().
+---
+
+With your column configurations in hand, we can move onto creating our filters instance.
+
+This hooks handles the logic for filtering the data (if using the `client` strategy) and updating the filters state.
+
+Think of it as the "brain" of the filters.
+
+---
+
+To create the instance, we use the `useDataTableFilters()` hook.
+
+```tsx
+import { useDataTableFilters } from '@bazza-ui/filters'
+
+const { columns, filters, actions, strategy, entityName } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
+  entityName: 'Issue',
+})
+```
+
+## Configuration
+
+<TypeTableAuto type="DataTableFiltersOptions" pkg="@bazza-ui/filters" />
+
+### Filter strategy
+
+The filter `strategy` is where filtering happens: on the `client` or on the `server`.
+
+- With the `client` strategy, the client receives all the table data and is expected to filter it locally in the browser.
+- With the `server` strategy, the client sends filter requests to the server. The server applies the filters to the data and sends back only the filtered data. The client never sees the entire dataset.
+
+Using the `client` strategy does **NOT** filter any data for you out-of-the-box.
+
+You're expected to filter the data separately using the filters state provided to you.
+
+We have a first-party [TanStack Table integration](/docs/filters/integrations/tanstack-table) to help with this.
+
+### Data
+
+Pass in your `data` so we can iterate over it and:
+
+- Ensure type safety
+- Infer column options
+- Compute faceted data
+- and more!
+
+### Column Configurations
+
+This was outputted by the [column builder](/docs/filters/column-builder) earlier.
+
+### State
+
+We manage our filters state with `filters`, `onFiltersChange`, and `defaultFilters`.
+
+Read the [State Management](/docs/filters/state-management) section for an in-detail explanation.
+
+### Options
+
+> [!NOTE]
+>
+> Most people like to define their "static" column configurations outside of their React components.
+>
+> This allows you to continue doing that, while keeping the "dynamic" elements *(fetching column options & faceted data, instantiating your filters instance)* inside the React lifecycle.
+
+
+If you're using the **declared options** approach for any of your option-based columns, you can pass your column options to the instance directly!
+
+
+We expose an `options` property on the instance, where you can pass in the `ColumnOption[]` for relevant columns.
+
+```tsx
+/* Step 1: Fetch data from the server */
+const labels = useQuery(queries.labels.all())
+const statuses = useQuery(queries.statuses.all())
+const users = useQuery(queries.users.all())
+
+const issues = useQuery(queries.issues.all())
+
+/* Step 2: Create ColumnOption[] for each option-based column */
+const labelOptions = createLabelOptions(labels.data)
+const statusOptions = createStatusOptions(statuses.data)
+const userOptions = createUserOptions(users.data)
+
+/* Step 3: Create the filters instance */
+const { columns, filters, actions, strategy } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
+  options: {
+    status: statusOptions,
+    assignee: userOptions,
+    labels: labelOptions,
+  },
+})
+```
+
+### Faceted data
+
+We can also pass in faceted column values to the instance for the relevant columns.
+
+- **Faceted unique values:** For `option` and `multiOption` columns, we pass in a `Map<string, number>` which maps each column option ID to the number of times it appears in the dataset.
+- **Faceted min/max values:** For `number` and `bigint` columns, we pass in a tuple `[number, number]`/`[bigint, bigint]` representing the minimum and maximum values for the column data.
+
+```tsx {6-9, 35-40}
+const facetedLabels = useQuery(queries.labels.faceted())
+const facetedStatuses = useQuery(queries.statuses.faceted())
+const facetedUsers = useQuery(queries.users.faceted())
+const facetedEstimatedHours = useQuery(queries.estimatedHours.faceted())
+
+const issues = useQuery(queries.issues.all())
+
+const { columns, filters, actions, strategy } = useDataTableFilters({
+  strategy: 'client',
+  data: issues.data ?? [],
+  columnsConfig,
+  faceted: {
+    status: facetedStatuses.data,
+    assignee: facetedUsers.data,
+    labels: facetedLabels.data,
+    estimatedHours: facetedEstimatedHours.data,
+  },
+})
+```
+
+### Entity name
+
+The name of the entity being filtered (e.g. "Issue", "User", etc.).
+
+We use this mainly when displaying boolean column filters.
+
+## Instance
+
+So what's in the filters instance? Let's take a look.
+
+<TypeTableAuto type="DataTableFiltersInstance" pkg="@bazza-ui/filters" />
+
+- `columns`: The `Column[]` for your data table filters. A `Column` is a superset of a `ColumnConfig`, with additional properties & methods.
+- `filters`: The filters state, represented as a `FilterState` object.
+- `actions`: A collection of mutators for the filters state.
+
+Learn more in the [Columns](/docs/filters/columns) and [Actions](/docs/filters/actions) guides.

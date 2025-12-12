@@ -3,7 +3,7 @@
 import type { ItemDef } from '@bazza-ui/context-menu'
 import * as React from 'react'
 import { toast } from 'sonner'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/ui/context-menu'
 
 type MassiveMenuProps = {
   /** How many item nodes to generate (default 100,000). */

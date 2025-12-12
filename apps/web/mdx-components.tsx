@@ -10,9 +10,18 @@ import { TypeTable } from '@/components/type-table'
 import { TypeTableAuto } from '@/components/type-table-auto'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
+import {
+  CodeBlock,
+  CodeBlockTab,
+  CodeBlockTabs,
+  CodeBlockTabsList,
+  CodeBlockTabsTrigger,
+  Pre,
+} from './components/codeblock'
 import CollapsibleCodeBlock from './components/collapsible-code-block'
 import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
+import { ComponentPreview } from './components/component-preview'
 import { ComponentsList } from './components/components-list'
 import { Examples } from './components/examples'
 import { Media } from './components/media'
@@ -128,7 +137,13 @@ const components = {
   ),
   u: (props) => <u className="underline underline-offset-2" {...props} />,
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className={cn('font-medium text-primary', className)} {...props} />
+    <strong
+      className={cn(
+        'font-medium text-primary has-[code]:font-semibold',
+        className,
+      )}
+      {...props}
+    />
   ),
   ul: ({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
     <ul
@@ -206,27 +221,42 @@ const components = {
   code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
     <code
       className={cn(
-        'relative rounded-sm bg-muted px-1 py-0.5 font-mono text-sm border inset-shadow-xs font-[450]',
+        'relative rounded-sm bg-muted px-1 py-0.5 font-mono text-sm border inset-shadow-xs',
         className,
       )}
       {...props}
     />
   ),
-  pre: ({ children, className, ...props }) => (
-    <pre
-      className={cn(
-        'bg-white dark:bg-neutral-900 overflow-scroll w-full rounded-lg border [&_code]:!text-sm my-6 py-4',
-        '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
-        '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
-        '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
-        '[&_code_span.line.highlighted]:bg-muted/75 [&_code_span.line.highlighted]:relative [&_code_span.line.highlighted]:before:absolute [&_code_span.line.highlighted]:before:inset-0 [&_code_span.line.highlighted]:before:border-l-3 [&_code_span.line.highlighted]:before:border-l-neutral-400',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </pre>
+  pre: ({ ref: _ref, className, ...props }) => (
+    <CodeBlock {...props} className={cn(className)}>
+      <Pre
+        className={cn(
+          'bg-background overflow-scroll w-full [&_code]:!text-sm',
+          '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
+          '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
+          '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
+          '[&_code_span.line.highlighted]:bg-muted/75 [&_code_span.line.highlighted]:relative [&_code_span.line.highlighted]:before:absolute [&_code_span.line.highlighted]:before:inset-0 [&_code_span.line.highlighted]:before:border-l-3 [&_code_span.line.highlighted]:before:border-l-neutral-400',
+        )}
+      >
+        {props.children}
+      </Pre>
+    </CodeBlock>
   ),
+  // pre: ({ children, className, ...props }) => (
+  //   <pre
+  //     className={cn(
+  //       'bg-white dark:bg-neutral-900 overflow-scroll w-full rounded-lg border [&_code]:!text-sm my-6 py-4',
+  //       '[&_code]:bg-transparent [&_code]:rounded-none [&_code]:px-0 [&_code]:py-0 [&_code]:text-inherit [&_code]:border-none [&_code]:inset-shadow-none',
+  //       '[&>code]:!w-full [&>code]:flex [&>code]:flex-col',
+  //       '[&_code_span.line]:px-4 [&_code_span.line]:h-6 [&_code_span.line]:flex [&_code_span.line]:items-center',
+  //       '[&_code_span.line.highlighted]:bg-muted/75 [&_code_span.line.highlighted]:relative [&_code_span.line.highlighted]:before:absolute [&_code_span.line.highlighted]:before:inset-0 [&_code_span.line.highlighted]:before:border-l-3 [&_code_span.line.highlighted]:before:border-l-neutral-400',
+  //       className,
+  //     )}
+  //     {...props}
+  //   >
+  //     {children}
+  //   </pre>
+  // ),
   Image,
   ResponsiveImage: (props) => (
     <ResponsiveImage
@@ -244,14 +274,17 @@ const components = {
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,
+  ComponentPreview: ({ className, ...props }) => (
+    <ComponentPreview className={cn('my-6', className)} {...props} />
+  ),
   ComponentCode: ComponentCode,
   ComponentFrame,
   CodeInline,
   PropRow,
   PropsTable,
   ComponentsList,
-  Media: ({ wrapperClassName, ...props }) => (
-    <Media wrapperClassName={cn('mb-6 mt-2', wrapperClassName)} {...props} />
+  Media: ({ figureClassName, ...props }) => (
+    <Media figureClassName={cn('my-6', figureClassName)} {...props} />
   ),
   PageUnderConstruction: () => {
     return (
@@ -276,6 +309,10 @@ const components = {
       </div>
     )
   },
+  CodeBlockTabs: CodeBlockTabs,
+  CodeBlockTabsList: CodeBlockTabsList,
+  CodeBlockTabsTrigger: CodeBlockTabsTrigger,
+  CodeBlockTab,
 } satisfies MDXComponents
 
 export function useMDXComponents(): MDXComponents {

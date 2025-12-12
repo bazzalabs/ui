@@ -1,0 +1,86 @@
+---
+title: TanStack Table
+section: Integrations
+summary: Integrate filters with TanStack Table for client-side filtering.
+---
+
+This is how to integrate data table filters with the TanStack Table (TST) library.
+
+## When Should I Use This?
+
+If you're using TanStack Table and **client-side filtering**, you should use this integration.
+
+If you're using **server-side filtering**, you don't need this integration. Feed your data into your TST table instance and you're good to go.
+
+## How It Works
+
+TanStack Table allows you to define custom filter functions for each column. This is useful if you want to implement custom filtering logic.
+
+We have our own [filter functions](/docs/filters/filtering-data) for each column type, which you can use to filter your data via TST.
+
+The `createTSTColumns` function handles this for you. It overrides the `filterFn` property for each filterable TST column with the appropriate filter function.
+
+You also need to provide the filter state to TST. TST represents the filter state slightly differently than the filters state provided by this component.
+
+The `createTSTFilters` function takes in the filters state from `useDataTableFilters()` and returns a TST-compatible filter state (`ColumnFiltersState`).
+
+## Usage
+
+> [!IMPORTANT] You must specify an `id` for each TST column definition, matching the `id` of the corresponding column filter configuration.
+
+```tsx
+import { useDataTableFilters } from '@bazza-ui/filters'
+import { createTSTColumns, createTSTFilters } from '@bazza-ui/filters/tanstack-table'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+} from '@tanstack/react-table'
+
+function IssuesTable() {
+  const { columns, filters, actions, strategy } = useDataTableFilters({
+    strategy: 'client',
+    data: issues.data ?? [],
+    columnsConfig,
+  })
+
+  // Create TST-compatible columns with filter functions
+  const tstColumns = useMemo(
+    () =>
+      createTSTColumns({
+        columns: tstColumnDefs, // your TanStack Table column definitions
+        configs: columns,       // columns from useDataTableFilters
+      }),
+    [columns],
+  )
+
+  // Convert filter state to TST format
+  const tstFilters = useMemo(
+    () => createTSTFilters(filters),
+    [filters]
+  )
+
+  const table = useReactTable({
+    data: issues.data ?? [],
+    columns: tstColumns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      columnFilters: tstFilters
+    }
+  })
+
+  return (
+    <>
+      <Filter
+        filters={filters}
+        columns={columns}
+        actions={actions}
+        strategy={strategy}
+      />
+      {/* Render your table using the `table` instance */}
+    </>
+  )
+}
+```

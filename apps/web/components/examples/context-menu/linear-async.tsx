@@ -10,7 +10,7 @@ import { queryLoader } from '@bazza-ui/loaders/query'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { ContextMenu } from '@/registry/context-menu'
+import { ContextMenu } from '@/registry/ui/context-menu'
 import {
   AssigneeIcon,
   LabelsIcon,

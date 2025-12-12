@@ -508,6 +508,20 @@ export type FilterTypeOperatorDetails = {
   [key in ColumnDataType]: FilterDetails<key>
 }
 
+/**
+ * Faceted data for columns - provides pre-computed aggregation data.
+ * - Option/MultiOption columns: Map of value -> count
+ * - Number columns: [min, max] tuple
+ * - BigInt columns: [min, max] tuple
+ */
+export type FacetedColumnData<
+  TColumns extends ReadonlyArray<ColumnConfig<any, any, any, any>>,
+> = Partial<
+  | Record<OptionColumnIds<TColumns>, Map<string, number> | undefined>
+  | Record<NumberColumnIds<TColumns>, [number, number] | undefined>
+  | Record<BigIntColumnIds<TColumns>, [bigint, bigint] | undefined>
+>
+
 export interface DataTableFiltersOptions<
   TData,
   TColumns extends ReadonlyArray<ColumnConfig<TData, any, any, any>>,
@@ -525,11 +539,7 @@ export interface DataTableFiltersOptions<
   options?: Partial<
     Record<OptionColumnIds<TColumns>, ColumnOption[] | undefined>
   >
-  faceted?: Partial<
-    | Record<OptionColumnIds<TColumns>, Map<string, number> | undefined>
-    | Record<NumberColumnIds<TColumns>, [number, number] | undefined>
-    | Record<BigIntColumnIds<TColumns>, [bigint, bigint] | undefined>
-  >
+  faceted?: FacetedColumnData<TColumns>
   entityName?: string
 }
 

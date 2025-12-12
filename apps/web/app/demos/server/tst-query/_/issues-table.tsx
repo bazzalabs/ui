@@ -10,7 +10,7 @@ import {
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { Filter } from '@/registry/filter'
+import { Filter } from '@/registry/ui/filter'
 import { LABEL_STYLES_BG, type TW_COLOR, tstColumnDefs } from './columns'
 import { DataTable } from './data-table'
 import { columnsConfig } from './filters'
@@ -142,7 +142,7 @@ export function IssuesTable({
         {isOptionsDataPending ? (
           <TableFilterSkeleton />
         ) : (
-          <Filter.Root
+          <Filter.Provider
             columns={columns}
             filters={filters}
             actions={actions}
@@ -150,31 +150,23 @@ export function IssuesTable({
             locale="en"
             variant="clean"
           >
-            <div className="flex md:flex-wrap gap-2 w-full flex-1">
-              <Filter.Menu />
-              <Filter.List>
-                {({ filter, column }) => (
-                  <Filter.Block filter={filter} column={column}>
-                    <Filter.Subject column={column} />
-                    <Filter.Operator
-                      filter={filter}
-                      column={column}
-                      actions={actions}
-                      locale="en"
-                    />
-                    <Filter.Value
-                      filter={filter}
-                      column={column}
-                      actions={actions}
-                      strategy={strategy}
-                    />
-                    <Filter.Remove filter={filter} actions={actions} />
-                  </Filter.Block>
-                )}
-              </Filter.List>
-            </div>
-            <Filter.Actions />
-          </Filter.Root>
+            <Filter.Root>
+              <div className="flex md:flex-wrap gap-2 w-full flex-1">
+                <Filter.Menu />
+                <Filter.List>
+                  {({ filter, column }) => (
+                    <Filter.Item filter={filter} column={column}>
+                      <Filter.Subject />
+                      <Filter.Operator />
+                      <Filter.Value />
+                      <Filter.Remove />
+                    </Filter.Item>
+                  )}
+                </Filter.List>
+              </div>
+              <Filter.Actions />
+            </Filter.Root>
+          </Filter.Provider>
         )}
       </div>
       {issues.isLoading ? (

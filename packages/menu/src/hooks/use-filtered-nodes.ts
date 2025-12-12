@@ -6,6 +6,13 @@ import type {
   TransformNodesContext,
 } from '../middleware/types.js'
 import { flatten, instantiateSingleNode } from '../primitives/menu-model.js'
+import {
+  isGroupedNode,
+  isGroupNode,
+  isItemNode,
+  isSeparatorNode,
+  isSubmenuNode,
+} from '../type-guards.js'
 import type {
   GroupNode,
   ItemDef,
@@ -186,14 +193,32 @@ export function useFilteredNodes<T = unknown>(
     if (!query) {
       // No query - return all navigable nodes (shallow)
       const allNodes = flatten(menu, { deep: false }) as Node<T>[]
-      const filtered = allNodes.filter(
-        (n) =>
-          n.kind === 'item' ||
-          n.kind === 'submenu' ||
-          n.kind === 'separator' ||
-          // Only include groups with headings
-          (n.kind === 'group' && (n as GroupNode<T>).heading),
-      )
+
+      // Build set of hidden group IDs for quick lookup
+      const hiddenGroupIds = new Set<string>()
+      for (const n of allNodes) {
+        if (isGroupNode(n) && n.hidden && n.id) {
+          hiddenGroupIds.add(n.id)
+        }
+      }
+
+      const filtered = allNodes.filter((n) => {
+        // Skip hidden nodes
+        if (n.hidden) return false
+
+        // Skip children of hidden groups
+        if (isGroupedNode(n) && hiddenGroupIds.has(n.group.id)) {
+          return false
+        }
+
+        // For groups with headings, only include if they have visible children
+        if (isGroupNode(n)) {
+          if (!n.heading) return false
+          return n.nodes.some((child) => !child.hidden)
+        }
+
+        return isItemNode(n) || isSubmenuNode(n) || isSeparatorNode(n)
+      })
 
       // MIDDLEWARE HOOK: transformNodes (applies in browse mode too!)
       // Transform nodes before rendering, even when not searching

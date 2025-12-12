@@ -6,7 +6,7 @@ import { UtensilsIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { sleep } from '@/app/demos/server/tst-query/_/utils'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 export function DropdownMenu_AsyncSubmenusStreaming() {
   return (

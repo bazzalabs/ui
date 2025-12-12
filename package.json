@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "dev:up": "turbo run dev test:watch --concurrency 20",
+    "dev:up": "turbo run dev test:watch --concurrency 21",
     "types:meta": "turbo run types:meta",
     "types:meta:watch": "turbo run types:meta:watch",
     "test": "turbo run test",
@@ -45,7 +45,8 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "apps/web/registry/*"
+    "apps/web/registry/ui/*",
+    "apps/web/registry/components/*"
   ],
   "trustedDependencies": [
     "@biomejs/biome",

@@ -24,7 +24,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
-import { DropdownMenu } from '@/registry/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 export function DropdownMenu_Notion() {
   return (

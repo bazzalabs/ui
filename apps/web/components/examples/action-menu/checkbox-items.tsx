@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 const DEFAULT_STATE = {
   apple: false,

@@ -24,7 +24,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 export function ActionMenu_Notion() {
   return (

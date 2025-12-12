@@ -70,7 +70,7 @@ export const ComponentFrame = ({
                 {content}
               </div>
               <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
-              <div className="absolute h-full w-full  bg-white dark:bg-black top-0 left-0 z-[1]" />
+              <div className="absolute h-full w-full  bg-background top-0 left-0 z-[1]" />
             </TabsContent>
             {src && (
               <TabsContent value="code" asChild>
@@ -107,7 +107,7 @@ export const ComponentFrame = ({
           {content}
         </div>
         <div className="absolute h-full w-full bg-grid text-muted top-0 left-0 mask-radial-at-center mask-radial-from-50% z-[2]" />
-        <div className="absolute h-full w-full  bg-white dark:bg-black top-0 left-0 z-[1]" />
+        <div className="absolute h-full w-full  bg-background top-0 left-0 z-[1]" />
       </div>
       {caption && (
         <div className="text-sm text-muted-foreground w-full text-center">

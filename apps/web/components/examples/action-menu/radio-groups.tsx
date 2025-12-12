@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ActionMenu } from '@/registry/action-menu'
+import { ActionMenu } from '@/registry/ui/action-menu'
 
 export function ActionMenu_RadioGroups() {
   const [fruit, setFruit] = useState('apple')

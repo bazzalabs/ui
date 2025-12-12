@@ -1,0 +1,555 @@
+---
+title: Filter
+section: Components
+summary: A composable component system for displaying and managing data table filters.
+---
+
+## Installation
+
+```npm
+npx shadcn@latest add {{REGISTRY_URL}}/r/filters{{RELEASE_CHANNEL}}
+```
+
+## Usage
+
+```tsx
+import { Filter } from '@/components/ui/filter'
+```
+
+```tsx
+<Filter.Provider
+  columns={columns}
+  filters={filters}
+  actions={actions}
+  strategy={strategy}
+  locale="en"
+>
+  <Filter.Root>
+    <Filter.Menu />
+    <Filter.List>
+      {({ filter, column }) => (
+        <Filter.Item filter={filter} column={column}>
+          <Filter.Subject />
+          <Filter.Operator />
+          <Filter.Value />
+          <Filter.Remove />
+        </Filter.Item>
+      )}
+    </Filter.List>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+## Examples
+
+### Basic
+
+```tsx
+<Filter.Provider
+  columns={columns}
+  filters={filters}
+  actions={actions}
+  strategy={strategy}
+>
+  <Filter.Root>
+    <div className="flex items-center gap-2">
+      <Filter.Menu />
+      <Filter.List>
+        {({ filter, column }) => (
+          <Filter.Item filter={filter} column={column}>
+            <Filter.Subject />
+            <Filter.Operator />
+            <Filter.Value />
+            <Filter.Remove />
+          </Filter.Item>
+        )}
+      </Filter.List>
+    </div>
+    <Filter.Actions />
+  </Filter.Root>
+</Filter.Provider>
+```
+
+### Variants
+
+<ComponentPreview name="filter-variants" />
+
+```tsx
+<Filter.Provider variant="default">
+{/* ... */}
+</Filter.Provider>
+```
+
+We provide two styled variants for the `Filter` components: **default** and **clean**.
+
+### Custom trigger for filter menu
+
+Use the `asChild` prop on `Filter.Trigger` to render a custom trigger element:
+
+```tsx
+<Filter.Menu>
+  <Filter.Trigger asChild>
+    <Button variant="outline" size="sm">
+      <PlusIcon className="size-4 mr-2" />
+      Add Filter
+    </Button>
+  </Filter.Trigger>
+</Filter.Menu>
+```
+
+### Mobile Layout
+
+Use `Filter.ListMobileContainer` for a horizontally scrollable list with blur effects on mobile:
+
+```tsx
+<Filter.Root>
+  <Filter.Menu />
+  <Filter.ListMobileContainer>
+    <Filter.List>
+      {({ filter, column }) => (
+        <Filter.Item filter={filter} column={column}>
+          <Filter.Subject />
+          <Filter.Operator />
+          <Filter.Value />
+          <Filter.Remove />
+        </Filter.Item>
+      )}
+    </Filter.List>
+  </Filter.ListMobileContainer>
+  <Filter.Actions />
+</Filter.Root>
+```
+
+### Standalone Item Components
+
+Filter item sub-components can be used standalone with explicit props (outside of `Filter.Item` context):
+
+```tsx
+// Using Filter.Subject without FilterItem context
+<Filter.Subject column={myColumn} entityName="Issue" />
+
+// Using Filter.Operator without FilterItem context
+<Filter.Operator
+  column={myColumn}
+  filter={myFilter}
+  actions={actions}
+  locale="en"
+/>
+```
+
+### Using Context Hooks
+
+Access filter context anywhere within the `Filter.Provider`:
+
+```tsx
+import { Filter } from '@/registry/ui/filter'
+
+function CustomFilterDisplay() {
+  const { filters, columns } = Filter.useFilterContext()
+  const actions = Filter.useFilterActions()
+  const locale = Filter.useFilterLocale()
+
+  return (
+    <div>
+      <span>Active filters: {filters.length}</span>
+      <button onClick={() => actions.removeAllFilters()}>
+        Clear All
+      </button>
+    </div>
+  )
+}
+```
+
+## API Reference
+
+### Provider
+
+Provides filter context to all child components. Doesn't render its own HTML element.
+
+<TypeTableAuto type="FilterProviderProps" pkg="@registry/filter" />
+
+### Root
+
+Layout container for filter components. Must be wrapped with `Filter.Provider` to access filter context. Renders a `<div>` element.
+
+<TypeDiff baseType="DivProps" derivedType="FilterRootProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-root"` | Always present. |
+| `data-mobile` | Present when on mobile viewport. |
+
+### Menu
+
+A dropdown menu for creating and selecting filters. Renders the filter selection UI based on configured columns.
+
+<TypeTableAuto type="FilterMenuProps" pkg="@registry/filter" />
+
+### Trigger
+
+A button that opens the filter menu. Renders a `<button>` element.
+
+<TypeDiff baseType="ButtonProps" derivedType="FilterTriggerProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-trigger"` | Always present. |
+| `data-state` | `'has-filters'` when filters exist, `'empty'` otherwise. |
+
+### List
+
+Container for filter items. Supports render props for iterating over filters. Renders a `<div>` element with `display: contents`.
+
+<TypeDiff baseType="DivProps" derivedType="FilterListProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+**Render Props:**
+
+```tsx
+interface FilterListRenderProps<TData = unknown> {
+  filter: FilterModel
+  column: Column<TData>
+}
+```
+
+**Usage with render props:**
+
+```tsx
+<Filter.List>
+  {({ filter, column }) => (
+    <Filter.Item filter={filter} column={column}>
+      {/* ... */}
+    </Filter.Item>
+  )}
+</Filter.List>
+```
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-list"` | Always present. |
+
+### ListMobileContainer
+
+A scrollable container for filter items on mobile devices with blur effects at edges. Renders a `<div>` element.
+
+<TypeDiff baseType="DivProps" derivedType="FilterListMobileContainerProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-list-mobile-container"` | Always present. |
+
+### Item
+
+Container for a single filter's controls. Provides context for child components. Renders a `<div>` element.
+
+<TypeDiff baseType="DivProps" derivedType="FilterItemProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-item"` | Always present. |
+| `data-column-id` | The column ID. |
+| `data-column-type` | The column data type. |
+
+### Subject
+
+Displays the column name and icon for a filter. Renders a `<span>` element.
+
+<TypeDiff baseType="SpanProps" derivedType="FilterSubjectProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-subject"` | Always present. |
+| `data-column-type` | The column data type. |
+
+### Operator
+
+Displays and allows changing the filter operator. Renders a `<button>` element with a dropdown menu.
+
+<TypeDiff baseType="ButtonProps" derivedType="FilterOperatorProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-operator"` | Always present. |
+| `data-column-type` | The column data type. |
+| `data-operator` | The current operator value. |
+
+### Value
+
+Displays and allows editing the filter value. Renders a `<button>` element with a dropdown menu (or static element for boolean columns).
+
+<TypeTableAuto type="FilterValueProps" pkg="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-value"` | Always present. |
+| `data-column-type` | The column data type. |
+
+**Value Controllers by Column Type:**
+
+| Column Type | Controller |
+|-------------|------------|
+| `text` | Text input with operator suggestions |
+| `option` | Checkbox list of options |
+| `multiOption` | Checkbox list with multiple selection |
+| `date` | Calendar date range picker |
+| `number` | Slider and input fields |
+| `boolean` | No controller (static display) |
+
+### Remove
+
+Button to remove a filter. Renders a `<button>` element.
+
+<TypeDiff baseType="ButtonProps" derivedType="FilterRemoveProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-remove"` | Always present. |
+
+### Actions
+
+Button to clear all filters. Renders a `<button>` element.
+
+<TypeDiff baseType="ButtonProps" derivedType="FilterActionsProps" basePackage="@html-element-props" derivedPackage="@registry/filter" />
+
+| Data Attribute | Description |
+|----------------|-------------|
+| `data-slot="filter-actions"` | Always present. |
+| `data-state` | `'visible'` when filters exist, `'hidden'` otherwise. |
+
+## Context Types
+
+### FilterContextValue
+
+The value provided by `Filter.Provider` and accessible via `useFilterContext()`.
+
+<TypeTableAuto type="FilterContextValue" pkg="@registry/filter" />
+
+### FilterItemContextValue
+
+The value provided by `Filter.Item` and accessible via `useFilterItemContext()`.
+
+<TypeTableAuto type="FilterItemContextValue" pkg="@registry/filter" />
+
+## Context Hooks
+
+These hooks can be used anywhere within a `Filter.Provider` to access filter state and actions.
+
+### useFilterContext
+
+Returns the full filter context value.
+
+```tsx
+const { columns, filters, actions, strategy, locale, entityName, variant } =
+  Filter.useFilterContext<TData>()
+```
+
+### useFilterActions
+
+Returns the filter actions object.
+
+```tsx
+const actions = Filter.useFilterActions()
+
+actions.setFilterValue(column, values)
+actions.setFilterOperator(columnId, operator)
+actions.addFilterValue(column, values)
+actions.removeFilterValue(column, values)
+actions.removeFilter(columnId)
+actions.removeAllFilters()
+```
+
+### useFilterColumn
+
+Returns a specific column configuration by ID.
+
+```tsx
+const column = Filter.useFilterColumn<TData>(columnId)
+```
+
+### useFilterStrategy
+
+Returns the current filter strategy.
+
+```tsx
+const strategy = Filter.useFilterStrategy() // 'client' | 'server'
+```
+
+### useFilterLocale
+
+Returns the current locale.
+
+```tsx
+const locale = Filter.useFilterLocale() // 'en' | 'de' | ...
+```
+
+### useFilterEntityName
+
+Returns the entity name (used for boolean filter display).
+
+```tsx
+const entityName = Filter.useFilterEntityName()
+```
+
+### useFilterVariant
+
+Returns the current variant.
+
+```tsx
+const variant = Filter.useFilterVariant() // 'default' | 'clean'
+```
+
+### useFilterItemContext
+
+Returns the FilterItem context (only available inside `Filter.Item`). Returns `null` if not inside a FilterItem.
+
+```tsx
+const itemContext = Filter.useFilterItemContext<TData, TType>()
+// { filter, column, actions, strategy, locale, entityName }
+```
+
+---
+
+## Advanced: Value Utilities
+
+For advanced customization of filter value menus, the following utilities are exported:
+
+### Menu Creators
+
+```tsx
+import {
+  createOptionMenu,
+  createMultiOptionMenu,
+  createTextMenu,
+  createTextFilterMiddleware
+} from '@/registry/ui/filter'
+
+// Create option menu configuration
+const optionMenu = createOptionMenu({
+  column: myOptionColumn,
+  actions,
+  filter: currentFilter,
+  strategy,
+  locale,
+})
+
+// Create multi-option menu configuration
+const multiOptionMenu = createMultiOptionMenu({
+  column: myMultiOptionColumn,
+  actions,
+  filter: currentFilter,
+  strategy,
+  locale,
+})
+
+// Create text menu configuration
+const textMenu = createTextMenu({
+  column: myTextColumn,
+  actions,
+  strategy,
+  locale,
+})
+```
+
+### Value Controllers
+
+For custom implementations, you can use the value controllers directly:
+
+```tsx
+import {
+  FilterValueDateController,
+  FilterValueNumberController,
+} from '@/registry/ui/filter'
+
+// Date controller with calendar
+<FilterValueDateController
+  filter={dateFilter}
+  column={dateColumn}
+  actions={actions}
+  strategy={strategy}
+  locale="en"
+/>
+
+// Number controller with slider and inputs
+<FilterValueNumberController
+  filter={numberFilter}
+  column={numberColumn}
+  actions={actions}
+  strategy={strategy}
+  locale="en"
+/>
+```
+
+### Value Controller Props
+
+<TypeTableAuto type="FilterValueControllerProps" pkg="@registry/filter" />
+
+### Custom Item Slots
+
+For dropdown menus, custom item rendering components are available:
+
+```tsx
+import { OptionItem, TextItem } from '@/registry/ui/filter'
+
+// OptionItem - renders checkbox items with count badges
+// TextItem - renders text filter suggestions
+```
+
+---
+
+## TypeScript
+
+The Filter components are fully typed. Use generics to get proper typing for your data:
+
+```tsx
+import type {
+  FilterProviderProps,
+  FilterItemProps,
+  FilterContextValue,
+  FilterItemContextValue,
+} from '@/registry/ui/filter'
+
+// Type your filter provider
+<Filter.Provider<MyDataType>
+  columns={columns}
+  filters={filters}
+  actions={actions}
+  strategy={strategy}
+>
+  {/* ... */}
+</Filter.Provider>
+
+// Type your filter items
+<Filter.Item<MyDataType, 'option'>
+  filter={optionFilter}
+  column={optionColumn}
+>
+  {/* ... */}
+</Filter.Item>
+```
+
+### Exported Types
+
+```tsx
+// Component Props
+FilterProviderProps<TData>
+FilterRootProps
+FilterMenuProps<TData>
+FilterTriggerProps
+FilterListProps<TData>
+FilterListMobileContainerProps
+FilterItemProps<TData, TType>
+FilterSubjectProps<TData, TType>
+FilterOperatorProps<TData, TType>
+FilterValueProps<TData, TType>
+FilterRemoveProps
+FilterActionsProps
+
+// Context Types
+FilterContextValue<TData>
+FilterItemContextValue<TData, TType>
+FilterVariant // 'default' | 'clean'
+
+// Value Controller Props
+FilterValueControllerProps<TData, TType>
+FilterValueDisplayProps<TData, TType>
+```

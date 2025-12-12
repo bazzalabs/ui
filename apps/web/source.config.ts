@@ -1,6 +1,11 @@
 // @ts-nocheck
 import { transformerNotationHighlight } from '@shikijs/transformers'
-import { type RehypeCodeOptions, rehypeCode } from 'fumadocs-core/mdx-plugins'
+import {
+  type RehypeCodeOptions,
+  type RemarkNpmOptions,
+  rehypeCode,
+  remarkNpm,
+} from 'fumadocs-core/mdx-plugins'
 import {
   defineConfig,
   defineDocs,
@@ -8,6 +13,9 @@ import {
 } from 'fumadocs-mdx/config'
 import rehypeCallouts from 'rehype-callouts'
 import z from 'zod/v4'
+import { env } from './lib/env'
+import { oscuraMidnight } from './lib/oscura/oscura-midnight'
+import { remarkCodeInject } from './lib/remark-code-inject'
 
 export const docs = defineDocs({
   dir: 'content/docs',
@@ -37,9 +45,22 @@ export const changelog = defineDocs({
 const rehypeCodeOptions: RehypeCodeOptions = {
   themes: {
     light: 'github-light',
-    dark: 'github-dark',
+    dark: oscuraMidnight,
+    // dark: 'github-dark',
   },
   transformers: [transformerNotationHighlight()],
+}
+
+const remarkNpmOptions: RemarkNpmOptions = {
+  persist: true,
+}
+
+const codeInjectVariables = {
+  REGISTRY_URL: env.NEXT_PUBLIC_APP_URL,
+  RELEASE_CHANNEL:
+    env.NEXT_PUBLIC_RELEASE_TYPE !== 'stable'
+      ? `@${env.NEXT_PUBLIC_RELEASE_TYPE}`
+      : '',
 }
 
 export default defineConfig({
@@ -48,6 +69,11 @@ export default defineConfig({
       ...v,
       rehypeCallouts,
       [rehypeCode, rehypeCodeOptions],
+    ],
+    remarkPlugins: (v) => [
+      ...v,
+      [remarkCodeInject, { variables: codeInjectVariables }],
+      [remarkNpm, remarkNpmOptions],
     ],
   },
 })
