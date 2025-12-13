@@ -460,3 +460,405 @@ export const DurationIcon = () => (
     />
   </svg>
 )
+
+export const ProjectStatusTypeIcon = () => (
+  <svg
+    className={cn(
+      'size-4 fill-muted-foreground group-data-[focused=true]:fill-primary',
+    )}
+    viewBox="1 1 14 14"
+    role="img"
+    focusable="false"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M12.5 5.36133L8 2.73633L3.5 5.36133L3.5 10.6382L8 13.2632L12.5 10.6382L12.5 5.36133ZM8.75581 1.44066C8.28876 1.16822 7.71124 1.16822 7.24419 1.44066L2.74419 4.06566C2.28337 4.33448 2 4.82783 2 5.36133V10.6382C2 11.1717 2.28337 11.6651 2.74419 11.9339L7.24419 14.5589C7.71124 14.8313 8.28876 14.8313 8.75581 14.5589L13.2558 11.9339C13.7166 11.6651 14 11.1717 14 10.6382V5.36133C14 4.82783 13.7166 4.33448 13.2558 4.06566L8.75581 1.44066Z"
+    />
+  </svg>
+)
+
+export const ProjectPriorityIcon = () => (
+  <svg
+    className={cn(
+      'size-4 fill-muted-foreground group-data-[focused=true]:fill-primary',
+    )}
+    viewBox="0 0 16 16"
+    role="img"
+    focusable="false"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect x="1" y="8" width="3" height="6" rx="1" />
+    <rect x="6" y="5" width="3" height="9" rx="1" />
+    <rect x="11" y="2" width="3" height="12" rx="1" />
+  </svg>
+)
+
+export const ProjectLeadIcon = () => (
+  <svg
+    className={cn(
+      'size-4 fill-muted-foreground group-data-[focused=true]:fill-primary',
+    )}
+    viewBox="0 0 16 16"
+    role="img"
+    focusable="false"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8.57502 8C10.6434 8.00003 12.4741 9.33858 13.1014 11.3096L13.9647 14.0225C14.0902 14.4171 13.872 14.8392 13.4774 14.9648C13.0827 15.0903 12.6606 14.8721 12.535 14.4775L11.6717 11.7646C11.2426 10.416 9.99026 9.50003 8.57502 9.5H7.42462C6.00944 9.50011 4.75705 10.4161 4.32795 11.7646L3.46466 14.4775C3.33902 14.8722 2.91695 15.0904 2.52228 14.9648C2.12775 14.8392 1.90945 14.4171 2.03498 14.0225L2.89826 11.3096C3.52547 9.33861 5.35628 8.00011 7.42462 8H8.57502Z"
+    />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M7.99982 1C9.5186 1 10.7498 2.23122 10.7498 3.75C10.7498 5.26878 9.5186 6.5 7.99982 6.5C6.48119 6.49982 5.24982 5.26867 5.24982 3.75C5.24982 2.23133 6.48119 1.00018 7.99982 1Z"
+    />
+  </svg>
+)
+
+export const ProjectPriority = {
+  NoPriority: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      role="img"
+      focusable="false"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="1.5"
+        y="7.25"
+        width="3"
+        height="1.5"
+        rx="0.5"
+        opacity="0.9"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="6.5"
+        y="7.25"
+        width="3"
+        height="1.5"
+        rx="0.5"
+        opacity="0.9"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="11.5"
+        y="7.25"
+        width="3"
+        height="1.5"
+        rx="0.5"
+        opacity="0.9"
+        className="fill-muted-foreground"
+      />
+    </svg>
+  ),
+  Urgent: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      role="img"
+      focusable="false"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M3 1C1.91067 1 1 1.91067 1 3V13C1 14.0893 1.91067 15 3 15H13C14.0893 15 15 14.0893 15 13V3C15 1.91067 14.0893 1 13 1H3ZM7 4L9 4L8.75391 8.99836H7.25L7 4ZM9 11C9 11.5523 8.55228 12 8 12C7.44772 12 7 11.5523 7 11C7 10.4477 7.44772 10 8 10C8.55228 10 9 10.4477 9 11Z"
+        fill="lch(66% 80 48)"
+      />
+    </svg>
+  ),
+  High: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      role="img"
+      focusable="false"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="1.5"
+        y="8"
+        width="3"
+        height="6"
+        rx="1"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="6.5"
+        y="5"
+        width="3"
+        height="9"
+        rx="1"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="11.5"
+        y="2"
+        width="3"
+        height="12"
+        rx="1"
+        className="fill-muted-foreground"
+      />
+    </svg>
+  ),
+  Medium: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      role="img"
+      focusable="false"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="1.5"
+        y="8"
+        width="3"
+        height="6"
+        rx="1"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="6.5"
+        y="5"
+        width="3"
+        height="9"
+        rx="1"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="11.5"
+        y="2"
+        width="3"
+        height="12"
+        rx="1"
+        fillOpacity="0.4"
+        className="fill-muted-foreground"
+      />
+    </svg>
+  ),
+  Low: () => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      role="img"
+      focusable="false"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="1.5"
+        y="8"
+        width="3"
+        height="6"
+        rx="1"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="6.5"
+        y="5"
+        width="3"
+        height="9"
+        rx="1"
+        fillOpacity="0.4"
+        className="fill-muted-foreground"
+      />
+      <rect
+        x="11.5"
+        y="2"
+        width="3"
+        height="12"
+        rx="1"
+        fillOpacity="0.4"
+        className="fill-muted-foreground"
+      />
+    </svg>
+  ),
+}
+
+export const ProjectStatusType = {
+  Backlog: () => (
+    <svg width="16" height="16" viewBox="-1 -1 16 16" fill="none" stroke="none">
+      <path
+        d="M2.95778 3.02069L5.70777 1.36023C6.50244 0.88041 7.49756 0.88041 8.29223 1.36024L11.0422 3.02074C11.7918 3.47336 12.25 4.2852 12.25 5.16086V8.84803C12.25 9.7251 11.7904 10.5381 11.0388 10.9902L8.29114 12.6433C7.49693 13.1211 6.50355 13.1203 5.71011 12.6412L2.95775 10.9792C2.20815 10.5266 1.75 9.7148 1.75 8.83911V5.16082C1.75 4.28516 2.20816 3.47332 2.95778 3.02069Z"
+        stroke="lch(68.75 62.082 61.651)"
+        strokeWidth="1.5"
+        strokeLinejoin="bevel"
+        strokeDasharray="1.65 1.35"
+        strokeDashoffset="2.3"
+        fill="none"
+      />
+      <g mask="url(#pst-backlog-hole)">
+        <circle
+          r="4"
+          cx="7"
+          cy="7"
+          stroke="lch(68.75 62.082 61.651)"
+          fill="none"
+          strokeWidth="8"
+          strokeDasharray="0 25.12"
+          transform="rotate(-90) translate(-14, 0)"
+        />
+      </g>
+      <mask id="pst-backlog-hole" maskUnits="userSpaceOnUse">
+        <path
+          transform="translate(-1, -1)"
+          d="M8.3779 4.74233C8.14438 4.60607 7.85562 4.60607 7.6221 4.74233L5.37209 6.05513C5.14168 6.18957 5 6.4363 5 6.70311V9.34216C5 9.60897 5.14168 9.85573 5.37209 9.99016L7.6221 11.303C7.85562 11.4392 8.14438 11.4392 8.3779 11.303L10.6279 9.99016C10.8583 9.85573 11 9.60897 11 9.34216V6.70311C11 6.4363 10.8583 6.18957 10.6279 6.05513L8.3779 4.74233Z"
+          fill="white"
+        />
+      </mask>
+    </svg>
+  ),
+  Planned: () => (
+    <svg width="16" height="16" viewBox="-1 -1 16 16" fill="none" stroke="none">
+      <path
+        d="M2.95778 3.02069L5.70777 1.36023C6.50244 0.88041 7.49756 0.88041 8.29223 1.36024L11.0422 3.02074C11.7918 3.47336 12.25 4.2852 12.25 5.16086V8.84803C12.25 9.7251 11.7904 10.5381 11.0388 10.9902L8.29114 12.6433C7.49693 13.1211 6.50355 13.1203 5.71011 12.6412L2.95775 10.9792C2.20815 10.5266 1.75 9.7148 1.75 8.83911V5.16082C1.75 4.28516 2.20816 3.47332 2.95778 3.02069Z"
+        stroke="lch(68.75 1.608 272.005)"
+        strokeWidth="1.5"
+        strokeLinejoin="bevel"
+        strokeDasharray="3.14 0"
+        strokeDashoffset="1"
+        fill="none"
+      />
+      <g mask="url(#pst-planned-hole)">
+        <circle
+          r="4"
+          cx="7"
+          cy="7"
+          stroke="lch(68.75 1.608 272.005)"
+          fill="none"
+          strokeWidth="8"
+          strokeDasharray="0 25.12"
+          transform="rotate(-90) translate(-14, 0)"
+        />
+      </g>
+      <mask id="pst-planned-hole" maskUnits="userSpaceOnUse">
+        <path
+          transform="translate(-1, -1)"
+          d="M8.3779 4.74233C8.14438 4.60607 7.85562 4.60607 7.6221 4.74233L5.37209 6.05513C5.14168 6.18957 5 6.4363 5 6.70311V9.34216C5 9.60897 5.14168 9.85573 5.37209 9.99016L7.6221 11.303C7.85562 11.4392 8.14438 11.4392 8.3779 11.303L10.6279 9.99016C10.8583 9.85573 11 9.60897 11 9.34216V6.70311C11 6.4363 10.8583 6.18957 10.6279 6.05513L8.3779 4.74233Z"
+          fill="white"
+        />
+      </mask>
+    </svg>
+  ),
+  InProgress: () => (
+    <svg width="16" height="16" viewBox="-1 -1 16 16" fill="none" stroke="none">
+      <path
+        d="M2.95778 3.02069L5.70777 1.36023C6.50244 0.88041 7.49756 0.88041 8.29223 1.36024L11.0422 3.02074C11.7918 3.47336 12.25 4.2852 12.25 5.16086V8.84803C12.25 9.7251 11.7904 10.5381 11.0388 10.9902L8.29114 12.6433C7.49693 13.1211 6.50355 13.1203 5.71011 12.6412L2.95775 10.9792C2.20815 10.5266 1.75 9.7148 1.75 8.83911V5.16082C1.75 4.28516 2.20816 3.47332 2.95778 3.02069Z"
+        stroke="lch(80% 90 85)"
+        strokeWidth="1.5"
+        strokeLinejoin="bevel"
+        strokeDasharray="3.14 0"
+        strokeDashoffset="1"
+        fill="none"
+      />
+      <g mask="url(#pst-inprogress-hole)">
+        <circle
+          r="4"
+          cx="7"
+          cy="7"
+          stroke="lch(80% 90 85)"
+          fill="none"
+          strokeWidth="8"
+          strokeDasharray="7.536 25.12"
+          transform="rotate(-90) translate(-14, 0)"
+        />
+      </g>
+      <mask id="pst-inprogress-hole" maskUnits="userSpaceOnUse">
+        <path
+          transform="translate(-1, -1)"
+          d="M8.3779 4.74233C8.14438 4.60607 7.85562 4.60607 7.6221 4.74233L5.37209 6.05513C5.14168 6.18957 5 6.4363 5 6.70311V9.34216C5 9.60897 5.14168 9.85573 5.37209 9.99016L7.6221 11.303C7.85562 11.4392 8.14438 11.4392 8.3779 11.303L10.6279 9.99016C10.8583 9.85573 11 9.60897 11 9.34216V6.70311C11 6.4363 10.8583 6.18957 10.6279 6.05513L8.3779 4.74233Z"
+          fill="white"
+        />
+      </mask>
+    </svg>
+  ),
+  Completed: () => (
+    <svg width="16" height="16" viewBox="-1 -1 16 16" fill="none" stroke="none">
+      <path
+        d="M2.95778 3.02069L5.70777 1.36023C6.50244 0.88041 7.49756 0.88041 8.29223 1.36024L11.0422 3.02074C11.7918 3.47336 12.25 4.2852 12.25 5.16086V8.84803C12.25 9.7251 11.7904 10.5381 11.0388 10.9902L8.29114 12.6433C7.49693 13.1211 6.50355 13.1203 5.71011 12.6412L2.95775 10.9792C2.20815 10.5266 1.75 9.7148 1.75 8.83911V5.16082C1.75 4.28516 2.20816 3.47332 2.95778 3.02069Z"
+        stroke="lch(48% 59.31 288.43)"
+        strokeWidth="1.5"
+        strokeLinejoin="bevel"
+        strokeDasharray="3.14 0"
+        strokeDashoffset="1"
+        fill="none"
+      />
+      <g mask="url(#pst-completed-hole)">
+        <circle
+          r="4"
+          cx="7"
+          cy="7"
+          stroke="lch(48% 59.31 288.43)"
+          fill="none"
+          strokeWidth="8"
+          strokeDasharray="25.12 25.12"
+          transform="rotate(-90) translate(-14, 0)"
+        />
+      </g>
+      <mask id="pst-completed-hole" maskUnits="userSpaceOnUse">
+        <path
+          transform="translate(-7.5, -7.5) scale(1.8)"
+          d="M8.3779 4.74233C8.14438 4.60607 7.85562 4.60607 7.6221 4.74233L5.37209 6.05513C5.14168 6.18957 5 6.4363 5 6.70311V9.34216C5 9.60897 5.14168 9.85573 5.37209 9.99016L7.6221 11.303C7.85562 11.4392 8.14438 11.4392 8.3779 11.303L10.6279 9.99016C10.8583 9.85573 11 9.60897 11 9.34216V6.70311C11 6.4363 10.8583 6.18957 10.6279 6.05513L8.3779 4.74233Z"
+          fill="white"
+        />
+        <path
+          stroke="none"
+          fill="black"
+          d="M10.7803 5.28033C11.0732 4.98744 11.0732 4.51256 10.7803 4.21967C10.4874 3.92678 10.0126 3.92678 9.7197 4.21967L5.75 8.18934L4.28033 6.71967C3.98744 6.42678 3.51256 6.42678 3.21967 6.71967C2.92678 7.01256 2.92678 7.48744 3.21967 7.78033L5.21967 9.7803C5.51256 10.0732 5.98744 10.0732 6.28033 9.7803L10.7803 5.28033Z"
+        />
+      </mask>
+    </svg>
+  ),
+  Canceled: () => (
+    <svg width="16" height="16" viewBox="-1 -1 16 16" fill="none" stroke="none">
+      <path
+        d="M2.95778 3.02069L5.70777 1.36023C6.50244 0.88041 7.49756 0.88041 8.29223 1.36024L11.0422 3.02074C11.7918 3.47336 12.25 4.2852 12.25 5.16086V8.84803C12.25 9.7251 11.7904 10.5381 11.0388 10.9902L8.29114 12.6433C7.49693 13.1211 6.50355 13.1203 5.71011 12.6412L2.95775 10.9792C2.20815 10.5266 1.75 9.7148 1.75 8.83911V5.16082C1.75 4.28516 2.20816 3.47332 2.95778 3.02069Z"
+        stroke="#8A8F98"
+        strokeWidth="1.5"
+        strokeLinejoin="bevel"
+        strokeDasharray="3.14 0"
+        strokeDashoffset="1"
+        fill="none"
+      />
+      <g mask="url(#pst-canceled-hole)">
+        <circle
+          r="4"
+          cx="7"
+          cy="7"
+          stroke="#8A8F98"
+          fill="none"
+          strokeWidth="8"
+          strokeDasharray="25.12 25.12"
+          transform="rotate(-90) translate(-14, 0)"
+        />
+      </g>
+      <mask id="pst-canceled-hole" maskUnits="userSpaceOnUse">
+        <path
+          transform="translate(-7.5, -7.5) scale(1.8)"
+          d="M8.3779 4.74233C8.14438 4.60607 7.85562 4.60607 7.6221 4.74233L5.37209 6.05513C5.14168 6.18957 5 6.4363 5 6.70311V9.34216C5 9.60897 5.14168 9.85573 5.37209 9.99016L7.6221 11.303C7.85562 11.4392 8.14438 11.4392 8.3779 11.303L10.6279 9.99016C10.8583 9.85573 11 9.60897 11 9.34216V6.70311C11 6.4363 10.8583 6.18957 10.6279 6.05513L8.3779 4.74233Z"
+          fill="white"
+        />
+        <path
+          stroke="none"
+          fill="black"
+          d="M3.73657 3.73657C4.05199 3.42114 4.56339 3.42114 4.87881 3.73657L5.93941 4.79716L7 5.85775L9.12117 3.73657C9.4366 3.42114 9.94801 3.42114 10.2634 3.73657C10.5789 4.05199 10.5789 4.56339 10.2634 4.87881L8.14225 7L10.2634 9.12118C10.5789 9.4366 10.5789 9.94801 10.2634 10.2634C9.94801 10.5789 9.4366 10.5789 9.12117 10.2634L7 8.14225L4.87881 10.2634C4.56339 10.5789 4.05199 10.5789 3.73657 10.2634C3.42114 9.94801 3.42114 9.4366 3.73657 9.12118L4.79716 8.06059L5.85775 7L3.73657 4.87881C3.42114 4.56339 3.42114 4.05199 3.73657 3.73657Z"
+        />
+      </mask>
+    </svg>
+  ),
+}
