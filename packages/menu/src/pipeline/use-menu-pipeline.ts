@@ -7,9 +7,37 @@ import type {
   AsyncNodeLoader,
   AsyncNodeLoaderContext,
   RootMenuDef,
+  SearchConfig,
   SubmenuDef,
 } from '../types.js'
+import type { DeepSearchLoaderEntry } from '../utils/deep-search.js'
 import type { MenuPipelineConfig, MenuPipelineResult } from './types.js'
+
+/**
+ * Helper to extract the deep search minLength threshold from a SearchConfig.
+ * Handles both number and object forms of minLength.
+ */
+function getDeepMinLength(searchConfig: SearchConfig | undefined): number {
+  const minLength = searchConfig?.minLength
+  if (typeof minLength === 'number') {
+    return minLength
+  }
+  return minLength?.deep ?? 0
+}
+
+/**
+ * Helper to extract the local search minLength threshold from a SearchConfig.
+ * Handles both number and object forms of minLength.
+ * For number form, local search is immediate (returns 0).
+ */
+function getLocalMinLength(searchConfig: SearchConfig | undefined): number {
+  const minLength = searchConfig?.minLength
+  if (typeof minLength === 'number') {
+    // Number form: applies to deep search only, local is immediate
+    return 0
+  }
+  return minLength?.local ?? 0
+}
 
 /**
  * Unified menu pipeline hook that composes all menu state management.
@@ -129,6 +157,16 @@ export function useMenuPipeline<T = unknown>(
   // ============================================================================
   // PHASE 3-4: Deep Search & Menu Instantiation (via useMenu)
   // ============================================================================
+
+  // Filter loaders based on minLength threshold from each submenu's searchConfig
+  const filterLoaders = React.useCallback(
+    (entry: DeepSearchLoaderEntry<T>, q: string): boolean => {
+      const threshold = getDeepMinLength(entry.searchConfig)
+      return q.length >= threshold
+    },
+    [],
+  )
+
   const { menu, aggregatedState, streamingEnabled, completionOrder } =
     useMenu<T>({
       menuDef: menuDef as RootMenuDef<T> | SubmenuDef<T>,
@@ -138,12 +176,24 @@ export function useMenuPipeline<T = unknown>(
       isSubmenu,
       rootLoaderResult,
       defaults,
+      filterLoaders,
     })
 
   // ============================================================================
   // PHASE 5: Filtering
   // ============================================================================
-  // Determine filter mode
+
+  // Compute minLength thresholds once
+  const deepThreshold = React.useMemo(
+    () => getDeepMinLength(menuDef.search),
+    [menuDef.search],
+  )
+  const localThreshold = React.useMemo(
+    () => getLocalMinLength(menuDef.search),
+    [menuDef.search],
+  )
+
+  // Determine filter mode based on query length and minLength thresholds
   const filterMode = React.useMemo(() => {
     if (typeof filterModeProp === 'function') {
       return filterModeProp(query)
@@ -151,16 +201,38 @@ export function useMenuPipeline<T = unknown>(
     if (filterModeProp) {
       return filterModeProp
     }
-    // Default: deep when searching, shallow when browsing
-    return query.length > 0 ? 'deep' : 'shallow'
-  }, [filterModeProp, query])
 
-  const { filteredNodes, displayNodes } = useFilteredNodes(menu, query, {
-    mode: filterMode,
-    streamingEnabled,
-    completionOrder,
-    control,
-  })
+    // Determine if we should use deep or shallow filtering based on query length
+    // - Deep mode: query meets the deep minLength threshold
+    // - Shallow mode: query is below deep threshold OR no query at all
+    if (query.length >= deepThreshold && query.length > 0) {
+      return 'deep'
+    }
+
+    // Shallow mode for all other cases
+    return 'shallow'
+  }, [filterModeProp, query, deepThreshold])
+
+  // Compute effective query for filtering
+  // If query doesn't meet the local threshold, treat as empty query (browse mode)
+  const effectiveFilterQuery = React.useMemo(() => {
+    if (query.length >= localThreshold) {
+      return query
+    }
+    // Query doesn't meet local threshold - show all items (no filtering)
+    return ''
+  }, [query, localThreshold])
+
+  const { filteredNodes, displayNodes } = useFilteredNodes(
+    menu,
+    effectiveFilterQuery,
+    {
+      mode: filterMode,
+      streamingEnabled,
+      completionOrder,
+      control,
+    },
+  )
 
   // ============================================================================
   // Return Pipeline Result
