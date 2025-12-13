@@ -1,5 +1,60 @@
 # @bazza-ui/registry-filters
 
+## 0.2.0-canary.3
+
+### Minor Changes
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Change `Filter.ClearAll` button to `outline` variant, use custom icon
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Improved composability of Filter item components. Child components (`Filter.Subject`, `Filter.Operator`, `Filter.Value`, `Filter.Remove`) now auto-consume `filter`, `column`, `actions`, `strategy`, `locale`, and `entityName` from `FilterItemContext` when used inside `Filter.Item`, eliminating the need to pass these props explicitly.
+
+  **Before:**
+
+  ```tsx
+  <Filter.Item filter={filter} column={column}>
+    <Filter.Subject column={column} />
+    <Filter.Operator filter={filter} column={column} actions={actions} />
+    <Filter.Value
+      filter={filter}
+      column={column}
+      actions={actions}
+      strategy={strategy}
+    />
+    <Filter.Remove filter={filter} actions={actions} />
+  </Filter.Item>
+  ```
+
+  **After:**
+
+  ```tsx
+  <Filter.Item filter={filter} column={column}>
+    <Filter.Subject />
+    <Filter.Operator />
+    <Filter.Value />
+    <Filter.Remove />
+  </Filter.Item>
+  ```
+
+  Props can still be passed explicitly to override context values or when using components standalone.
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Reduced border radius for `default` variant `Filter.Item` from `rounded-2xl` to `rounded-md` to match button radius
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Added border between `Filter.Item` sub-components
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Uncoupled `Filter.Root` from `Filter.Provider`. Users must now wrap their filter component with `Filter.Provider` and pass their filter instance context to the provider directly, instead of through the root component.
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Rename `Filter.Block` to `Filter.Item` for clarity and design-agnostic name.
+
+### Patch Changes
+
+- [#226](https://github.com/bazzalabs/ui/pull/226) [`7672bbe`](https://github.com/bazzalabs/ui/commit/7672bbe8ad5ceba94bfdd001cad9da5982758281) Thanks [@kianbazza](https://github.com/kianbazza)! - Resolved an issue where checking/unchecking options in option/multi-option menus would update the filter state but would not update the UI (e.g. item checkbox does not change)
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix spacing issues for `Filter.Subject` and `Filter.Value` display components
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Fixed height issue with `Filter.Subject`; it now fills the parent container's height
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Resolved text overflow issue when showing filter menu items for text columns
+
 ## 0.2.0-canary.2
 
 ### Minor Changes

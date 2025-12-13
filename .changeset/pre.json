@@ -20,18 +20,32 @@
     "@bazza-ui/registry-dropdown-menu": "0.0.1",
     "@bazza-ui/registry-filters": "0.1.0",
     "@bazza-ui/registry-multi-select": "0.0.1",
-    "@bazza-ui/registry-select": "0.0.1"
+    "@bazza-ui/registry-select": "0.0.1",
+    "playground-nextjs": "0.1.0"
   },
   "changesets": [
+    "blue-shoes-fry",
+    "blue-wings-share",
     "bright-numbers-occur",
     "clever-foxes-mix",
+    "eighty-jars-yell",
+    "filter-item-context-composability",
+    "fruity-flowers-speak",
     "fuzzy-banks-camp",
+    "fuzzy-bushes-share",
     "huge-walls-sell",
     "lemon-insects-chew",
     "little-items-poke",
+    "quick-parents-beg",
+    "ripe-spies-watch",
     "select-package-initial",
+    "shy-snakes-shave",
+    "six-turkeys-relax",
+    "sixty-steaks-push",
+    "soft-feet-agree",
     "strong-tigers-type",
     "vast-cities-play",
-    "wise-glasses-smile"
+    "wise-glasses-smile",
+    "yellow-chairs-grow"
   ]
 }
