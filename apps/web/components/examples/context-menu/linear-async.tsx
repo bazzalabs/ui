@@ -14,9 +14,14 @@ import { ContextMenu } from '@/registry/ui/context-menu'
 import {
   AssigneeIcon,
   LabelsIcon,
+  ProjectLeadIcon,
+  ProjectPriority,
+  ProjectPriorityIcon,
   ProjectPropertiesIcon,
   ProjectStatus,
   ProjectStatusIcon,
+  ProjectStatusType,
+  ProjectStatusTypeIcon,
   Status,
   StatusIcon,
 } from './shared/icons'
@@ -732,13 +737,245 @@ const projectStatusMenu: SubmenuDef = {
   ],
 }
 
+const projectStatusTypeMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'project-status-type',
+  icon: <ProjectStatusTypeIcon />,
+  title: 'Project status type',
+  label: 'Project status type',
+  inputPlaceholder: 'Project status type...',
+  nodes: [
+    {
+      kind: 'item',
+      id: 'backlog',
+      label: 'Backlog',
+      icon: <ProjectStatusType.Backlog />,
+    },
+    {
+      kind: 'item',
+      id: 'planned',
+      label: 'Planned',
+      icon: <ProjectStatusType.Planned />,
+    },
+    {
+      kind: 'item',
+      id: 'in-progress',
+      label: 'In Progress',
+      icon: <ProjectStatusType.InProgress />,
+    },
+    {
+      kind: 'item',
+      id: 'completed',
+      label: 'Completed',
+      icon: <ProjectStatusType.Completed />,
+    },
+    {
+      kind: 'item',
+      id: 'canceled',
+      label: 'Canceled',
+      icon: <ProjectStatusType.Canceled />,
+    },
+  ],
+}
+
+const projectPriorityMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'project-priority',
+  icon: <ProjectPriorityIcon />,
+  title: 'Project priority',
+  label: 'Project priority',
+  inputPlaceholder: 'Project priority...',
+  nodes: [
+    {
+      kind: 'item',
+      id: 'no-priority',
+      label: 'No priority',
+      icon: <ProjectPriority.NoPriority />,
+    },
+    {
+      kind: 'item',
+      id: 'urgent',
+      label: 'Urgent',
+      icon: <ProjectPriority.Urgent />,
+    },
+    {
+      kind: 'item',
+      id: 'high',
+      label: 'High',
+      icon: <ProjectPriority.High />,
+    },
+    {
+      kind: 'item',
+      id: 'medium',
+      label: 'Medium',
+      icon: <ProjectPriority.Medium />,
+    },
+    {
+      kind: 'item',
+      id: 'low',
+      label: 'Low',
+      icon: <ProjectPriority.Low />,
+    },
+  ],
+}
+
+const projectLabelNodes = [
+  { id: 'pl-1', name: 'Strategic Initiative', color: 'purple' },
+  { id: 'pl-2', name: 'Customer Facing', color: 'blue' },
+  { id: 'pl-3', name: 'Internal Tooling', color: 'teal' },
+  { id: 'pl-4', name: 'Technical Debt', color: 'orange' },
+  { id: 'pl-5', name: 'Revenue Impact', color: 'green' },
+  { id: 'pl-6', name: 'Cost Reduction', color: 'emerald' },
+  { id: 'pl-7', name: 'Compliance', color: 'red' },
+  { id: 'pl-8', name: 'Platform', color: 'indigo' },
+  { id: 'pl-9', name: 'Infrastructure', color: 'violet' },
+  { id: 'pl-10', name: 'Growth', color: 'lime' },
+  { id: 'pl-11', name: 'Maintenance', color: 'amber' },
+  { id: 'pl-12', name: 'Research', color: 'cyan' },
+  { id: 'pl-13', name: 'Partnership', color: 'pink' },
+  { id: 'pl-14', name: 'Migration', color: 'sky' },
+  { id: 'pl-15', name: 'Deprecation', color: 'rose' },
+]
+
+const projectLabelsMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'project-labels',
+  icon: <LabelsIcon />,
+  title: 'Project labels',
+  label: 'Project labels',
+  inputPlaceholder: 'Project labels...',
+  nodes: projectLabelNodes.map((label) => ({
+    kind: 'item' as const,
+    id: label.id,
+    label: label.name,
+    keywords: [label.name],
+    icon: (
+      <div
+        className={cn(
+          'rounded-full !size-2.5',
+          LABEL_STYLES_BG[label.color as TW_COLOR],
+        )}
+      />
+    ),
+  })),
+}
+
+const projectLeadMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'project-lead',
+  icon: <ProjectLeadIcon />,
+  title: 'Project lead',
+  label: 'Project lead',
+  inputPlaceholder: 'Project lead...',
+  nodes: [
+    {
+      kind: 'item',
+      id: '@kianbazza',
+      label: 'Kian Bazza',
+      keywords: ['Kian Bazza'],
+      icon: (
+        <Avatar>
+          <AvatarImage
+            src="https://github.com/kianbazza.png"
+            alt="@kianbazza"
+          />
+          <AvatarFallback>KB</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@shadcn',
+      label: 'shadcn',
+      keywords: ['shadcn'],
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@rauchg',
+      label: 'Guillermo Rauch',
+      keywords: ['Guillermo Rauch'],
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/rauchg.png" alt="@rauchg" />
+          <AvatarFallback>RG</AvatarFallback>
+        </Avatar>
+      ),
+    },
+    {
+      kind: 'item',
+      id: '@t3dotgg',
+      label: 'Theo Browne',
+      keywords: ['Theo Browne'],
+      icon: (
+        <Avatar>
+          <AvatarImage src="https://github.com/t3dotgg.png" alt="@t3dotgg" />
+          <AvatarFallback>TB</AvatarFallback>
+        </Avatar>
+      ),
+    },
+  ],
+}
+
 const projectPropertiesMenu: SubmenuDef = {
   kind: 'submenu',
   icon: <ProjectPropertiesIcon />,
   title: 'Project properties',
   label: 'Project properties',
   inputPlaceholder: 'Project properties...',
-  nodes: [projectStatusMenu],
+  nodes: [
+    projectStatusMenu,
+    projectStatusTypeMenu,
+    projectPriorityMenu,
+    projectLabelsMenu,
+    projectLeadMenu,
+  ],
+}
+
+const priorityMenu: SubmenuDef = {
+  kind: 'submenu',
+  id: 'priority',
+  icon: <ProjectPriorityIcon />,
+  title: 'Priority',
+  label: 'Priority',
+  inputPlaceholder: 'Priority...',
+  nodes: [
+    {
+      kind: 'item',
+      id: 'no-priority',
+      label: 'No priority',
+      icon: <ProjectPriority.NoPriority />,
+    },
+    {
+      kind: 'item',
+      id: 'urgent',
+      label: 'Urgent',
+      icon: <ProjectPriority.Urgent />,
+    },
+    {
+      kind: 'item',
+      id: 'high',
+      label: 'High',
+      icon: <ProjectPriority.High />,
+    },
+    {
+      kind: 'item',
+      id: 'medium',
+      label: 'Medium',
+      icon: <ProjectPriority.Medium />,
+    },
+    {
+      kind: 'item',
+      id: 'low',
+      label: 'Low',
+      icon: <ProjectPriority.Low />,
+    },
+  ],
 }
 
 export const menuData: MenuDef = {
@@ -756,5 +993,11 @@ export const menuData: MenuDef = {
   search: {
     minLength: 2,
   },
-  nodes: [statusMenu, assigneeMenu, labelsMenu, projectPropertiesMenu],
+  nodes: [
+    statusMenu,
+    assigneeMenu,
+    priorityMenu,
+    labelsMenu,
+    projectPropertiesMenu,
+  ],
 }
