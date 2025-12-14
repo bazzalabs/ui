@@ -1,5 +1,14 @@
 # @bazza-ui/command-menu
 
+## 0.1.0-canary.4
+
+### Patch Changes
+
+- [#232](https://github.com/bazzalabs/ui/pull/232) [`e6a9230`](https://github.com/bazzalabs/ui/commit/e6a92303244e876d9864ed0ec887e8eabfa6f0cb) Thanks [@kianbazza](https://github.com/kianbazza)! - Resolves an issue when surfacing deep search results for rows with identical IDs in different submenus.
+
+- Updated dependencies [[`e6a9230`](https://github.com/bazzalabs/ui/commit/e6a92303244e876d9864ed0ec887e8eabfa6f0cb), [`d19598a`](https://github.com/bazzalabs/ui/commit/d19598ab8e004bb96164a8baecedd0dbd803d4d4)]:
+  - @bazza-ui/menu@0.1.0-canary.4
+
 ## 0.1.0-canary.3
 
 ### Minor Changes

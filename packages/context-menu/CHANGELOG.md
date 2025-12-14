@@ -1,5 +1,13 @@
 # @bazza-ui/context-menu
 
+## 0.1.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [[`e6a9230`](https://github.com/bazzalabs/ui/commit/e6a92303244e876d9864ed0ec887e8eabfa6f0cb), [`d19598a`](https://github.com/bazzalabs/ui/commit/d19598ab8e004bb96164a8baecedd0dbd803d4d4)]:
+  - @bazza-ui/popup-menu@0.1.0-canary.4
+  - @bazza-ui/menu@0.1.0-canary.4
+
 ## 0.1.0-canary.3
 
 ### Minor Changes
