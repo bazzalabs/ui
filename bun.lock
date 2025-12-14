@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "ui",
@@ -188,7 +187,7 @@
     },
     "packages/command-menu": {
       "name": "@bazza-ui/command-menu",
-      "version": "0.1.0-canary.3",
+      "version": "0.1.0-canary.4",
       "dependencies": {
         "@bazza-ui/menu": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -211,7 +210,7 @@
     },
     "packages/context-menu": {
       "name": "@bazza-ui/context-menu",
-      "version": "0.1.0-canary.3",
+      "version": "0.1.0-canary.4",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -240,7 +239,7 @@
     },
     "packages/dropdown-menu": {
       "name": "@bazza-ui/dropdown-menu",
-      "version": "0.1.0-canary.3",
+      "version": "0.1.0-canary.4",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -316,7 +315,7 @@
     },
     "packages/menu": {
       "name": "@bazza-ui/menu",
-      "version": "0.1.0-canary.3",
+      "version": "0.1.0-canary.4",
       "dependencies": {
         "@bazza-ui/loaders": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -350,7 +349,7 @@
     },
     "packages/popup-menu": {
       "name": "@bazza-ui/popup-menu",
-      "version": "0.1.0-canary.3",
+      "version": "0.1.0-canary.4",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -379,7 +378,7 @@
     },
     "packages/select": {
       "name": "@bazza-ui/select",
-      "version": "0.1.0-canary.3",
+      "version": "0.1.0-canary.4",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
