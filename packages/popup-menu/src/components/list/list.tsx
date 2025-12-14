@@ -1,5 +1,6 @@
 import {
   type GroupNode,
+  getRowId,
   type ItemNode,
   isItemNode,
   isSubmenuNode,
@@ -79,12 +80,13 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
     : false
 
   // Compute valid row IDs (memoized to avoid unnecessary effect runs)
+  // Uses composite IDs for deep search results to handle duplicate IDs across submenus
   const validRowIds = React.useMemo(() => {
     const validRows = displayNodes.filter(
       (n: Node<T>) =>
         (isItemNode(n) || isSubmenuNode(n)) && !n.disabled && !n.hidden,
     )
-    return validRows.map((n: Node<T>) => n.id)
+    return validRows.map((n) => getRowId(n as ItemNode<T> | SubmenuNode<T>))
   }, [displayNodes])
 
   // Create a stable key for valid row IDs to use in effects
@@ -96,7 +98,9 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
 
     displayNodes.forEach((node: Node<T>, index: number) => {
       if (node.kind === 'item' || node.kind === 'submenu') {
-        virtualIndexMap.set(node.id, index)
+        // Use composite IDs for deep search results
+        const rowId = getRowId(node as ItemNode<T> | SubmenuNode<T>)
+        virtualIndexMap.set(rowId, index)
       }
     })
 
@@ -178,7 +182,14 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
     count,
     estimateSize: estimateSizeFn,
     getScrollElement: () => surfaceRefs?.listRef.current ?? null,
-    getItemKey: (index) => effectiveDisplayNodes[index]?.id ?? index,
+    getItemKey: (index) => {
+      const node = effectiveDisplayNodes[index]
+      if (!node) return index
+      if (node.kind === 'item' || node.kind === 'submenu') {
+        return getRowId(node as ItemNode<T> | SubmenuNode<T>)
+      }
+      return node.id ?? index
+    },
     overscan: virtualizationConfig?.overscan ?? 5,
     enabled: enableVirtualization,
     horizontal: virtualizationConfig?.horizontal,
@@ -239,9 +250,10 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
         const node = effectiveDisplayNodes[i]
         if (!node) continue
         if (node.kind !== 'item' && node.kind !== 'submenu') continue
-        const rowEl = rowRefsMap.current.get(node.id)
+        const rowId = getRowId(node as ItemNode<T> | SubmenuNode<T>)
+        const rowEl = rowRefsMap.current.get(rowId)
         if (rowEl) {
-          queueMeasurement(rowEl, node.id)
+          queueMeasurement(rowEl, rowId)
         }
       }
     } else {
@@ -249,9 +261,10 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
         const node = effectiveDisplayNodes[virtualRow.index]
         if (!node) continue
         if (node.kind !== 'item' && node.kind !== 'submenu') continue
-        const rowEl = rowRefsMap.current.get(node.id)
+        const rowId = getRowId(node as ItemNode<T> | SubmenuNode<T>)
+        const rowEl = rowRefsMap.current.get(rowId)
         if (rowEl) {
-          queueMeasurement(rowEl, node.id)
+          queueMeasurement(rowEl, rowId)
         }
       }
     }
@@ -323,7 +336,12 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
       index: number,
       virtualRow?: { key: string | number; start: number },
     ) => {
-      const key = virtualRow ? virtualRow.key : node.id
+      // Use composite ID for items/submenus to handle duplicate IDs across submenus in deep search
+      const key =
+        virtualRow?.key ??
+        (node.kind === 'item' || node.kind === 'submenu'
+          ? getRowId(node as ItemNode<T> | SubmenuNode<T>)
+          : node.id)
       const wrapperProps = virtualRow
         ? {
             'data-index': index,
@@ -379,10 +397,11 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
       if (node.kind === 'item') {
         const ItemSlot = slots?.Item as PopupMenuSlots<any>['Item']
         const itemNode = node as ItemNode<any>
+        const rowId = getRowId(itemNode)
         const itemElement = (
           <PopupMenuItem
-            key={node.id}
-            ref={getRowRefCallback(node.id)}
+            key={rowId}
+            ref={getRowRefCallback(rowId)}
             node={itemNode}
             className={classNames?.item}
             mode="popover"
@@ -405,15 +424,16 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
         const SubmenuTriggerSlot =
           slots?.SubmenuTrigger as PopupMenuSlots<any>['SubmenuTrigger']
         const submenuNode = node as PopupSubmenuNode<any>
+        const rowId = getRowId(submenuNode)
         const submenuElement = (
           <ScopedThemeProvider
-            key={node.id}
+            key={rowId}
             __scopeId={node.id}
             theme={node.def.ui}
           >
             <PopupMenuSubmenu def={submenuNode.def}>
               <PopupMenuSubmenuTrigger
-                ref={getRowRefCallback(node.id)}
+                ref={getRowRefCallback(rowId)}
                 node={submenuNode}
                 slot={SubmenuTriggerSlot}
                 classNames={classNames}

@@ -1,6 +1,7 @@
 import {
   defaultSlots,
   type GroupNode,
+  getRowId,
   type ItemNode,
   isItemNode,
   isSubmenuNode,
@@ -106,16 +107,20 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
   const prevQueryRef = React.useRef(query)
 
   // Update store with valid row IDs and reset active ID on query change
+  // Uses composite IDs for deep search results to handle duplicate IDs across submenus
   React.useEffect(() => {
     const validRows = displayNodes.filter(
       (n) => (isItemNode(n) || isSubmenuNode(n)) && !n.disabled && !n.hidden,
     )
-    const validRowIds = validRows.map((n) => n.id)
+    const validRowIds = validRows.map((n) =>
+      getRowId(n as ItemNode<unknown> | SubmenuNode<unknown>),
+    )
     const virtualIndexMap = new Map<string, number>()
 
     displayNodes.forEach((node, index) => {
       if (node.kind === 'item' || node.kind === 'submenu') {
-        virtualIndexMap.set(node.id, index)
+        const rowId = getRowId(node as ItemNode<unknown> | SubmenuNode<unknown>)
+        virtualIndexMap.set(rowId, index)
       }
     })
 
@@ -157,7 +162,14 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     count: displayNodes.length,
     estimateSize: () => 40,
     getScrollElement: () => surfaceRefs?.listRef.current ?? null,
-    getItemKey: (index) => displayNodes[index]?.id ?? index,
+    getItemKey: (index) => {
+      const node = displayNodes[index]
+      if (!node) return index
+      if (node.kind === 'item' || node.kind === 'submenu') {
+        return getRowId(node as ItemNode<unknown> | SubmenuNode<unknown>)
+      }
+      return node.id ?? index
+    },
     overscan: 5,
   })
 

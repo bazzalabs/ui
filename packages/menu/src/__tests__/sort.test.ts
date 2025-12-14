@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { ScoredNode } from '../types.js'
+import type { ItemNode, ScoredNode } from '../types.js'
 import {
+  compositeId,
   deduplicateById,
+  getRowId,
   partitionByKind,
   sortByCompletionOrder,
   sortByScore,
@@ -510,6 +512,93 @@ describe('sort utilities', () => {
     })
   })
 
+  describe('compositeId', () => {
+    it('should create composite ID from breadcrumbIds and nodeId', () => {
+      expect(compositeId(['assignee'], '@kianbazza')).toBe(
+        'assignee.@kianbazza',
+      )
+      expect(compositeId(['project', 'lead'], '@kianbazza')).toBe(
+        'project.lead.@kianbazza',
+      )
+    })
+
+    it('should return just nodeId when breadcrumbIds is empty', () => {
+      expect(compositeId([], 'status')).toBe('status')
+      expect(compositeId([], 'my-item')).toBe('my-item')
+    })
+
+    it('should handle deeply nested paths', () => {
+      expect(compositeId(['a', 'b', 'c', 'd'], 'item')).toBe('a.b.c.d.item')
+    })
+  })
+
+  describe('getRowId', () => {
+    it('should return composite ID for deep search results', () => {
+      const node = {
+        kind: 'item',
+        id: '@kianbazza',
+        label: 'Kian Bazza',
+        variant: 'button',
+        search: {
+          query: 'kian',
+          score: 100,
+          isDeep: true,
+          breadcrumbs: ['Assignee'],
+          breadcrumbIds: ['assignee'],
+        },
+      } as unknown as ItemNode
+
+      expect(getRowId(node)).toBe('assignee.@kianbazza')
+    })
+
+    it('should return plain ID for non-deep search results', () => {
+      const node = {
+        kind: 'item',
+        id: '@kianbazza',
+        label: 'Kian Bazza',
+        variant: 'button',
+        search: {
+          query: 'kian',
+          score: 100,
+          isDeep: false,
+          breadcrumbs: [],
+          breadcrumbIds: [],
+        },
+      } as unknown as ItemNode
+
+      expect(getRowId(node)).toBe('@kianbazza')
+    })
+
+    it('should return plain ID when no search context', () => {
+      const node = {
+        kind: 'item',
+        id: 'copy',
+        label: 'Copy',
+        variant: 'button',
+      } as unknown as ItemNode
+
+      expect(getRowId(node)).toBe('copy')
+    })
+
+    it('should handle nested deep search results', () => {
+      const node = {
+        kind: 'item',
+        id: '@kianbazza',
+        label: 'Kian Bazza',
+        variant: 'button',
+        search: {
+          query: 'kian',
+          score: 95,
+          isDeep: true,
+          breadcrumbs: ['Project Properties', 'Project Lead'],
+          breadcrumbIds: ['project-properties', 'project-lead'],
+        },
+      } as unknown as ItemNode
+
+      expect(getRowId(node)).toBe('project-properties.project-lead.@kianbazza')
+    })
+  })
+
   describe('deduplicateById', () => {
     it('should remove duplicate IDs keeping first occurrence', () => {
       const nodes: ScoredNode[] = [
@@ -611,8 +700,8 @@ describe('sort utilities', () => {
             data: 'data2',
           } as any,
           score: 50,
-          breadcrumbs: [],
-          breadcrumbIds: [],
+          breadcrumbs: ['Parent'],
+          breadcrumbIds: ['parent'],
         },
       ]
 
@@ -622,6 +711,119 @@ describe('sort utilities', () => {
       expect(deduplicated[0]?.score).toBe(100)
       expect(deduplicated[0]?.breadcrumbs).toEqual(['Parent'])
       expect((deduplicated[0]?.node as any).data).toBe('data1')
+    })
+
+    it('should keep items with same ID from different submenus (deep search)', () => {
+      // This is the key scenario: same user appears in both "Assignee" and "Project Lead" submenus
+      const nodes: ScoredNode[] = [
+        {
+          node: {
+            kind: 'item',
+            id: '@kianbazza',
+            label: 'Kian Bazza',
+          } as any,
+          score: 100,
+          breadcrumbs: ['Assignee'],
+          breadcrumbIds: ['assignee'],
+        },
+        {
+          node: {
+            kind: 'item',
+            id: '@kianbazza',
+            label: 'Kian Bazza',
+          } as any,
+          score: 95,
+          breadcrumbs: ['Project Properties', 'Project Lead'],
+          breadcrumbIds: ['project-properties', 'project-lead'],
+        },
+        {
+          node: {
+            kind: 'item',
+            id: '@shadcn',
+            label: 'shadcn',
+          } as any,
+          score: 90,
+          breadcrumbs: ['Assignee'],
+          breadcrumbIds: ['assignee'],
+        },
+      ]
+
+      const deduplicated = deduplicateById(nodes)
+
+      // Both @kianbazza items should be kept because they're in different submenus
+      expect(deduplicated.length).toBe(3)
+      expect(deduplicated[0]?.node.id).toBe('@kianbazza')
+      expect(deduplicated[0]?.breadcrumbIds).toEqual(['assignee'])
+      expect(deduplicated[1]?.node.id).toBe('@kianbazza')
+      expect(deduplicated[1]?.breadcrumbIds).toEqual([
+        'project-properties',
+        'project-lead',
+      ])
+      expect(deduplicated[2]?.node.id).toBe('@shadcn')
+    })
+
+    it('should deduplicate items with same ID in same submenu', () => {
+      const nodes: ScoredNode[] = [
+        {
+          node: {
+            kind: 'item',
+            id: '@kianbazza',
+            label: 'Kian Bazza',
+          } as any,
+          score: 100,
+          breadcrumbs: ['Assignee'],
+          breadcrumbIds: ['assignee'],
+        },
+        {
+          node: {
+            kind: 'item',
+            id: '@kianbazza',
+            label: 'Kian Bazza (duplicate)',
+          } as any,
+          score: 50,
+          breadcrumbs: ['Assignee'],
+          breadcrumbIds: ['assignee'],
+        },
+      ]
+
+      const deduplicated = deduplicateById(nodes)
+
+      // Only one @kianbazza from assignee should remain
+      expect(deduplicated.length).toBe(1)
+      expect(deduplicated[0]?.node.id).toBe('@kianbazza')
+      expect(deduplicated[0]?.score).toBe(100)
+    })
+
+    it('should handle root-level items vs nested items with same ID', () => {
+      const nodes: ScoredNode[] = [
+        {
+          node: {
+            kind: 'item',
+            id: 'copy',
+            label: 'Copy',
+          } as any,
+          score: 100,
+          breadcrumbs: [],
+          breadcrumbIds: [],
+        },
+        {
+          node: {
+            kind: 'item',
+            id: 'copy',
+            label: 'Copy to Clipboard',
+          } as any,
+          score: 90,
+          breadcrumbs: ['Edit'],
+          breadcrumbIds: ['edit'],
+        },
+      ]
+
+      const deduplicated = deduplicateById(nodes)
+
+      // Both should be kept: root-level "copy" and nested "edit.copy"
+      expect(deduplicated.length).toBe(2)
+      expect(deduplicated[0]?.breadcrumbIds).toEqual([])
+      expect(deduplicated[1]?.breadcrumbIds).toEqual(['edit'])
     })
   })
 })

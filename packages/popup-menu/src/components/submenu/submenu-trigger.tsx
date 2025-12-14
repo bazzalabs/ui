@@ -1,5 +1,5 @@
 import { Popover } from '@base-ui-components/react/popover'
-import type { SearchContext, SubmenuNode } from '@bazza-ui/menu'
+import { getRowId, type SearchContext, type SubmenuNode } from '@bazza-ui/menu'
 import { mergeProps } from '@bazza-ui/theming'
 import { composeRefs } from '@radix-ui/react-compose-refs'
 import * as React from 'react'
@@ -63,7 +63,7 @@ export function PopupMenuSubmenuTrigger<T>({
   const mouseTrailRef = useMouseTrail(4)
   const ref = React.useRef<HTMLElement | null>(null)
 
-  const rowId = node.id
+  const rowId = getRowId(node)
 
   // Track whether the submenu content has focus
   const menuFocused = sub.childSurfaceId === ownerId

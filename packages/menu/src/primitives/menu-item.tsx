@@ -5,6 +5,7 @@ import * as React from 'react'
 import { type StoreApi, useStore } from 'zustand'
 import type { BaseMenuStore, SurfaceRefs } from '../store/types.js'
 import type { ItemNode, RowBindAPI, SearchContext } from '../types.js'
+import { getRowId } from '../utils/sort.js'
 
 export const SELECT_ITEM_EVENT = 'bazza-ui:menu:item-select'
 
@@ -55,7 +56,7 @@ export function MenuItemPrimitive<T>({
   children,
 }: MenuItemPrimitiveProps<T>) {
   const ref = React.useRef<HTMLElement | null>(null)
-  const rowId = node.id
+  const rowId = getRowId(node)
 
   // Get checked state for checkbox/radio
   const checked =
