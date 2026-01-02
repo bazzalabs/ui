@@ -1,4 +1,5 @@
 import { DropdownMenu_AIModelSwitcher } from './ai-model-switcher'
+import { DropdownMenuV2_Basic } from './v2/basic'
 import { DropdownMenu_AsyncBasic } from './async-basic'
 import { DropdownMenu_AsyncDeepSearch } from './async-deep-search'
 import { DropdownMenu_AsyncSubmenusStreaming } from './async-submenus-streaming'

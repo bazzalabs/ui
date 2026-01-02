@@ -23,6 +23,7 @@
     "@bazza-ui/command-menu": "workspace:*",
     "@bazza-ui/context-menu": "workspace:*",
     "@bazza-ui/dropdown-menu": "workspace:*",
+    "@bazza-ui/dropdown-menu-v2": "workspace:*",
     "@bazza-ui/filters": "workspace:*",
     "@bazza-ui/loaders": "workspace:*",
     "@bazza-ui/select": "workspace:*",
