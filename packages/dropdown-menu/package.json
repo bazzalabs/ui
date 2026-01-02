@@ -19,6 +19,11 @@
       "types": "./dist/middleware.d.ts",
       "import": "./dist/middleware.js",
       "require": "./dist/middleware.cjs"
+    },
+    "./v2": {
+      "types": "./dist/v2.d.ts",
+      "import": "./dist/v2.js",
+      "require": "./dist/v2.cjs"
     }
   },
   "files": [

@@ -1,28 +1,36 @@
-import { Examples } from '@/components/examples'
+'use client'
+
+import { Button } from '@/components/ui/button'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
 
 export function Playground() {
   return (
-    <div className="flex flex-col gap-8 [&_[data-slot=action-menu-trigger]]:!w-fit mx-32">
-      {/*<Examples.ContextMenu.ContextMenu_Linear />*/}
-      {/*<Examples.ContextMenu.ContextMenu_AsyncSubmenusStreaming />*/}
-      {/*<Examples.ActionMenu.PokemonNative />
-      <Examples.ActionMenu.PokemonReactQuery />
-      <Examples.ActionMenu.AsyncBasic />
-      <Examples.ActionMenu.AsyncSubmenusStreaming />
-      <Examples.ActionMenu.AsyncDeepSearch />
-      <Examples.ActionMenu.ItemDescriptions />
-      <Examples.ActionMenu.AIModelSwitcher />
-      <Examples.ActionMenu.Basic />
-      <Examples.ActionMenu.Submenus />
-      <Examples.ActionMenu.Linear />*/}
-      {/*<Examples.ActionMenu.LinearAsync />*/}
-      {/*<Examples.ActionMenu.Notion />
-      <Examples.ActionMenu.HeaderFooter />
-      <Examples.ActionMenu.CheckboxItems />
-      <Examples.ActionMenu.Massive numItems={10_000} />
-      <Examples.ActionMenu.SubmenusDeep />*/}
-      {/*<Examples.ActionMenu.RadioGroups />*/}
-      <Examples.ActionMenu.Groups />
+    <div className="flex flex-col gap-8 mx-32">
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger
+          render={
+            <Button variant="outline" className="w-fit">
+              Open
+            </Button>
+          }
+        />
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner
+            sideOffset={8}
+            align="start"
+            alignOffset={-4}
+          >
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input placeholder="Search..." />
+              <DropdownMenu.List>
+                <DropdownMenu.Item>Apple</DropdownMenu.Item>
+                <DropdownMenu.Item>Banana</DropdownMenu.Item>
+                <DropdownMenu.Item>Orange</DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </div>
   )
 }
