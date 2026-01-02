@@ -1,0 +1,52 @@
+{
+  "name": "@bazza-ui/dropdown-menu-v2",
+  "version": "0.0.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "build": "tsup",
+    "test": "vitest run --run --mode test",
+    "test:watch": "vitest --mode test --watch --disable-console-intercept",
+    "test:coverage": "vitest run --coverage --mode test"
+  },
+  "dependencies": {
+    "@bazza-ui/menu-v2": "workspace:*",
+    "@base-ui/react": "^1.0.0"
+  },
+  "devDependencies": {
+    "@bazza-ui/typescript-config": "workspace:*",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/ui": "4.0.8",
+    "jsdom": "^27.2.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.8"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}
