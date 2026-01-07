@@ -39,7 +39,7 @@ export async function CodeBlock({
         '**:font-mono text-sm rounded-2xl *:rounded-2xl border border-border bg-white dark:bg-neutral-900 shadow-xs',
         className,
       )}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: allowed
       dangerouslySetInnerHTML={{ __html: out }}
       {...props}
     />

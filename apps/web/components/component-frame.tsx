@@ -24,7 +24,7 @@ export const ComponentFrame = ({
   ...props
 }: ComponentFrameProps) => {
   const tabsList = (
-    <TabsList className="bg-transparent px-0 gap-4 font-medium mx-3 2xl:-mx-12">
+    <TabsList className="bg-transparent px-0 gap-4 font-medium mx-3">
       <TabsTrigger
         className="text-muted-foreground/75 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 font-mono tracking-tighter"
         value="preview"
@@ -55,7 +55,7 @@ export const ComponentFrame = ({
           {src && tabsList}
           <div
             className={cn(
-              'rounded-2xl border 2xl:-mx-16 h-fit relative overflow-scroll flex',
+              'rounded-2xl border h-fit relative overflow-scroll flex',
               containerClassName,
             )}
             {...props}
@@ -96,7 +96,7 @@ export const ComponentFrame = ({
     <div className={cn('h-fit flex flex-col gap-4 w-full', className)}>
       <div
         className={cn(
-          'rounded-2xl border 2xl:-mx-16 h-fit relative overflow-scroll flex',
+          'rounded-2xl border h-fit relative overflow-scroll flex',
           containerClassName,
         )}
         {...props}

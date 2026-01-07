@@ -19,7 +19,6 @@
         "name": "next"
       }
     ],
-    "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./*"],
       "fumadocs-mdx:collections/*": ["./.source/*"]
