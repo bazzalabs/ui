@@ -1,2 +1,3 @@
 [install]
+linker = "isolated"
 registry = { url = "https://registry.npmjs.org", token = "$NPM_TOKEN" }
