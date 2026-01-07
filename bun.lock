@@ -20,7 +20,6 @@
       "name": "playground-nextjs",
       "version": "0.1.0",
       "dependencies": {
-        "@bazza-ui/select": "0.1.0-canary.4",
         "next": "16.0.10",
         "react": "19.2.0",
         "react-dom": "19.2.0",
@@ -201,7 +200,7 @@
     },
     "packages/command-menu": {
       "name": "@bazza-ui/command-menu",
-      "version": "0.1.0-canary.4",
+      "version": "0.1.0-canary.5",
       "dependencies": {
         "@bazza-ui/menu": "workspace:*",
         "@bazza-ui/theming": "workspace:*",
@@ -226,7 +225,7 @@
     },
     "packages/context-menu": {
       "name": "@bazza-ui/context-menu",
-      "version": "0.1.0-canary.4",
+      "version": "0.1.0-canary.5",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -255,7 +254,7 @@
     },
     "packages/dropdown-menu": {
       "name": "@bazza-ui/dropdown-menu",
-      "version": "0.1.0-canary.4",
+      "version": "0.1.0-canary.5",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -365,7 +364,7 @@
     },
     "packages/popup-menu": {
       "name": "@bazza-ui/popup-menu",
-      "version": "0.1.0-canary.4",
+      "version": "0.1.0-canary.5",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
@@ -395,7 +394,7 @@
     },
     "packages/select": {
       "name": "@bazza-ui/select",
-      "version": "0.1.0-canary.4",
+      "version": "0.1.0-canary.5",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",

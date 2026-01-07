@@ -1,5 +1,11 @@
 # @bazza-ui/command-menu
 
+## 0.1.0-canary.5
+
+### Patch Changes
+
+- [#238](https://github.com/bazzalabs/ui/pull/238) [`75a2393`](https://github.com/bazzalabs/ui/commit/75a239366f49c72bd764afb36da8424e3fa7a6f7) Thanks [@kianbazza](https://github.com/kianbazza)! - Stabilize `getScrollElement` and `getItemKey` callbacks in virtualizer to prevent infinite re-rendering errors with all menus.
+
 ## 0.1.0-canary.4
 
 ### Patch Changes
