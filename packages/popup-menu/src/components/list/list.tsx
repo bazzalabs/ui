@@ -178,11 +178,13 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
     return () => estimateSize
   }, [virtualizationConfig?.estimateSize])
 
-  const virtualizer = useVirtualizer({
-    count,
-    estimateSize: estimateSizeFn,
-    getScrollElement: () => surfaceRefs?.listRef.current ?? null,
-    getItemKey: (index) => {
+  const getScrollElement = React.useCallback(
+    () => surfaceRefs?.listRef.current ?? null,
+    [surfaceRefs?.listRef],
+  )
+
+  const getItemKey = React.useCallback(
+    (index: number) => {
       const node = effectiveDisplayNodes[index]
       if (!node) return index
       if (node.kind === 'item' || node.kind === 'submenu') {
@@ -190,6 +192,14 @@ export function List<T = unknown>({ onTypeStart }: ListProps) {
       }
       return node.id ?? index
     },
+    [effectiveDisplayNodes],
+  )
+
+  const virtualizer = useVirtualizer({
+    count,
+    estimateSize: estimateSizeFn,
+    getScrollElement,
+    getItemKey,
     overscan: virtualizationConfig?.overscan ?? 5,
     enabled: enableVirtualization,
     horizontal: virtualizationConfig?.horizontal,
