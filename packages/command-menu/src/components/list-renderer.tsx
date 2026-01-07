@@ -157,12 +157,14 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
     }
   }, [displayNodes, query, storeActions, surfaceId, globalStore])
 
-  // Virtualization
-  const virtualizer = useVirtualizer({
-    count: displayNodes.length,
-    estimateSize: () => 40,
-    getScrollElement: () => surfaceRefs?.listRef.current ?? null,
-    getItemKey: (index) => {
+  // Virtualization - use stable callbacks to prevent infinite re-renders
+  const getScrollElement = React.useCallback(
+    () => surfaceRefs?.listRef.current ?? null,
+    [surfaceRefs?.listRef],
+  )
+
+  const getItemKey = React.useCallback(
+    (index: number) => {
       const node = displayNodes[index]
       if (!node) return index
       if (node.kind === 'item' || node.kind === 'submenu') {
@@ -170,6 +172,14 @@ function ListRendererContent({ query = '' }: ListRendererProps) {
       }
       return node.id ?? index
     },
+    [displayNodes],
+  )
+
+  const virtualizer = useVirtualizer({
+    count: displayNodes.length,
+    estimateSize: () => 40,
+    getScrollElement,
+    getItemKey,
     overscan: 5,
   })
 
