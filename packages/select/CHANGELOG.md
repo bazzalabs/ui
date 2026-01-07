@@ -1,5 +1,14 @@
 # @bazza-ui/select
 
+## 0.1.0-canary.5
+
+### Patch Changes
+
+- [#238](https://github.com/bazzalabs/ui/pull/238) [`75a2393`](https://github.com/bazzalabs/ui/commit/75a239366f49c72bd764afb36da8424e3fa7a6f7) Thanks [@kianbazza](https://github.com/kianbazza)! - Stabilize `getScrollElement` and `getItemKey` callbacks in virtualizer to prevent infinite re-rendering errors with all menus.
+
+- Updated dependencies [[`75a2393`](https://github.com/bazzalabs/ui/commit/75a239366f49c72bd764afb36da8424e3fa7a6f7)]:
+  - @bazza-ui/popup-menu@0.1.0-canary.5
+
 ## 0.1.0-canary.4
 
 ### Patch Changes
@@ -55,6 +64,7 @@
   Add Select and MultiSelect components based on @bazza-ui/dropdown-menu with proper form integration and combobox/listbox ARIA pattern.
 
   Features:
+
   - Single and multi-select variants
   - Form integration with hidden inputs
   - Proper ARIA semantics (combobox/listbox pattern, not menu)
@@ -67,9 +77,11 @@
   - Works with React Hook Form and other form libraries
 
   Breaking changes:
+
   - None (new package)
 
   Migration:
+
   - No migration needed (new package)
 
 - [#210](https://github.com/bazzalabs/ui/pull/210) [`54e7966`](https://github.com/bazzalabs/ui/commit/54e79662e9b62e144c2c46698dbd1c213cbcd8c5) Thanks [@kianbazza](https://github.com/kianbazza)! - Initial package creation.
