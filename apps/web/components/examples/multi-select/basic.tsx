@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/registry/ui/multi-select'
 
 export function Basic() {
@@ -12,7 +11,6 @@ export function Basic() {
       <MultiSelect
         value={values}
         onValueChange={setValues}
-        placeholder="Select fruits..."
         items={[
           { value: 'apple', label: 'Apple', icon: '🍎' },
           { value: 'banana', label: 'Banana', icon: '🍌' },
@@ -21,7 +19,11 @@ export function Basic() {
           { value: 'grape', label: 'Grape', icon: '🍇' },
           { value: 'strawberry', label: 'Strawberry', icon: '🍓' },
         ]}
-      />
+      >
+        <MultiSelect.Trigger>
+          <MultiSelect.Value placeholder="Select fruits..." />
+        </MultiSelect.Trigger>
+      </MultiSelect>
       {values.length > 0 && (
         <p className="text-sm text-muted-foreground">
           Selected:{' '}

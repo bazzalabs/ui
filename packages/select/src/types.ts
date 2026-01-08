@@ -264,8 +264,18 @@ export interface SelectProps<TData = unknown> {
   // ===== Display =====
   /** Placeholder text when no value selected */
   placeholder?: string
-  /** Trigger element customization */
-  children?: React.ReactNode
+  /**
+   * Compound component children (required).
+   * Must include Select.Trigger with Select.Value inside:
+   * ```tsx
+   * <Select items={items}>
+   *   <Select.Trigger>
+   *     <Select.Value />
+   *   </Select.Trigger>
+   * </Select>
+   * ```
+   */
+  children: React.ReactNode
 
   // ===== Options (Simple API) =====
   /** Simple array of items (most common use case) */
@@ -333,6 +343,30 @@ export interface MultiSelectProps<TData = unknown>
   min?: number
   /** Whether to close the listbox after selecting an item */
   closeOnSelect?: boolean
+}
+
+/* ================================================================================================
+ * Compound Component Value Render Function Types
+ * ============================================================================================== */
+
+/**
+ * Context passed to SelectValue render function for single-select.
+ */
+export interface SelectValueRenderContext<TData = unknown> {
+  /** The selected node - provides access to icon, label, data, etc. */
+  node?: ItemNode<TData> | ItemDef<TData>
+  /** Placeholder text when no value selected */
+  placeholder: string
+}
+
+/**
+ * Context passed to SelectValue render function for multi-select.
+ */
+export interface MultiSelectValueRenderContext<TData = unknown> {
+  /** The selected nodes - provides access to icon, label, data, etc. */
+  nodes?: (ItemNode<TData> | ItemDef<TData>)[]
+  /** Placeholder text when no value selected */
+  placeholder: string
 }
 
 /* ================================================================================================

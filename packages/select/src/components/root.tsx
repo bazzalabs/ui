@@ -65,6 +65,16 @@ export interface SelectRootProps<T = unknown>
   defaultValues?: string[]
   /** Called when multi-selection changes */
   onValuesChange?: (values: string[]) => void
+
+  // ===== Form Integration =====
+  /** Form field name for submission */
+  name?: string
+  /** Associate with a form by ID */
+  form?: string
+  /** Whether this field is required */
+  required?: boolean
+  /** Default placeholder text for Select.Value */
+  placeholder?: string
 }
 
 /**
@@ -88,6 +98,11 @@ export function SelectRoot<T = unknown>({
   values: controlledValues,
   defaultValues,
   onValuesChange,
+  // Form integration
+  name,
+  form,
+  required,
+  placeholder = 'Select...',
   // InteractionGuard options
   scopeAttr,
   disableOutsidePointerEvents,
@@ -284,6 +299,11 @@ export function SelectRoot<T = unknown>({
       disabled: controlState.disabled || disabled,
       menu,
       interactionGuardOptions,
+      // Form integration
+      name,
+      form,
+      required,
+      placeholder,
     }),
     [
       scopeId,
@@ -300,12 +320,59 @@ export function SelectRoot<T = unknown>({
       controlState.disabled,
       disabled,
       interactionGuardOptions,
+      name,
+      form,
+      required,
+      placeholder,
     ],
   )
+
+  // Render hidden input(s) for form submission
+  const hiddenInputs = React.useMemo(() => {
+    if (!name) return null
+
+    if (multiple) {
+      // Multiple hidden inputs for array submission
+      if (selectedValues && selectedValues.length > 0) {
+        return selectedValues.map((value, index) => (
+          <input
+            key={value}
+            type="hidden"
+            name={name}
+            value={value}
+            form={form}
+            required={required && index === 0}
+          />
+        ))
+      }
+      // Empty hidden input to ensure field is submitted even when empty
+      return (
+        <input
+          type="hidden"
+          name={name}
+          value=""
+          form={form}
+          required={required}
+        />
+      )
+    }
+
+    // Single hidden input
+    return (
+      <input
+        type="hidden"
+        name={name}
+        value={selectedValue ?? ''}
+        form={form}
+        required={required}
+      />
+    )
+  }, [name, form, required, multiple, selectedValue, selectedValues])
 
   return (
     <SelectMenuStoreProvider store={store}>
       <RootContextProvider value={rootValue}>
+        {hiddenInputs}
         <Popover.Root open={open} onOpenChange={setOpen} modal={modal}>
           <RootProvider
             scopeId={scopeId}

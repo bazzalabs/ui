@@ -11,7 +11,6 @@ export function DisabledItems() {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder="Select a country..."
         items={[
           { value: 'us', label: 'United States' },
           { value: 'uk', label: 'United Kingdom' },
@@ -20,7 +19,11 @@ export function DisabledItems() {
           { value: 'de', label: 'Germany', disabled: true },
           { value: 'fr', label: 'France' },
         ]}
-      />
+      >
+        <Select.Trigger>
+          <Select.Value placeholder="Select a country..." />
+        </Select.Trigger>
+      </Select>
       {value && (
         <p className="text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{value}</span>

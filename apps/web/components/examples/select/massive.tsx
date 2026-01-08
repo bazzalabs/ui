@@ -20,7 +20,6 @@ export function Massive({ numItems = 10000 }: MassiveProps) {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder={`Search ${numItems.toLocaleString()} items...`}
         items={items}
         defaults={{
           virtualization: {
@@ -28,7 +27,13 @@ export function Massive({ numItems = 10000 }: MassiveProps) {
             overscan: 5,
           },
         }}
-      />
+      >
+        <Select.Trigger>
+          <Select.Value
+            placeholder={`Search ${numItems.toLocaleString()} items...`}
+          />
+        </Select.Trigger>
+      </Select>
       {value && (
         <p className="text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{value}</span>

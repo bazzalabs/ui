@@ -2,7 +2,6 @@
 
 import { CheckCircleIcon, ClockIcon, XCircleIcon } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Select } from '@/registry/ui/select'
 
 export function ItemDescriptions() {
@@ -13,7 +12,6 @@ export function ItemDescriptions() {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder="Select status..."
         items={[
           {
             value: 'success',
@@ -40,7 +38,11 @@ export function ItemDescriptions() {
             icon: <XCircleIcon className="text-gray-500" />,
           },
         ]}
-      />
+      >
+        <Select.Trigger>
+          <Select.Value placeholder="Select status..." />
+        </Select.Trigger>
+      </Select>
     </div>
   )
 }

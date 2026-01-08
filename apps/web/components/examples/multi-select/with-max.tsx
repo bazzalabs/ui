@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/registry/ui/multi-select'
 
 export function WithMax() {
@@ -13,7 +12,6 @@ export function WithMax() {
         <MultiSelect
           value={values}
           onValueChange={setValues}
-          placeholder="Select up to 3 items..."
           max={3}
           items={[
             { value: '1', label: 'Option 1' },
@@ -23,7 +21,11 @@ export function WithMax() {
             { value: '5', label: 'Option 5' },
             { value: '6', label: 'Option 6' },
           ]}
-        />
+        >
+          <MultiSelect.Trigger>
+            <MultiSelect.Value placeholder="Select up to 3 items..." />
+          </MultiSelect.Trigger>
+        </MultiSelect>
         <p className="text-xs text-muted-foreground">
           Maximum 3 selections allowed
         </p>

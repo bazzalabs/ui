@@ -260,9 +260,12 @@ export function CreateAnIssue() {
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select status..."
                       items={statusItems}
-                    />
+                    >
+                      <Select.Trigger>
+                        <Select.Value placeholder="Select status..." />
+                      </Select.Trigger>
+                    </Select>
                   </FormControl>
                   <FormDescription>
                     Set the current status of the issue.
@@ -283,9 +286,12 @@ export function CreateAnIssue() {
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select assignee..."
                       items={assigneeItems}
-                    />
+                    >
+                      <Select.Trigger>
+                        <Select.Value placeholder="Select assignee..." />
+                      </Select.Trigger>
+                    </Select>
                   </FormControl>
                   <FormDescription>
                     Optionally assign this issue to a team member.
@@ -306,9 +312,12 @@ export function CreateAnIssue() {
                     <MultiSelect
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select labels..."
                       items={labelItems}
-                    />
+                    >
+                      <MultiSelect.Trigger>
+                        <MultiSelect.Value placeholder="Select labels..." />
+                      </MultiSelect.Trigger>
+                    </MultiSelect>
                   </FormControl>
                   <FormDescription>
                     Add one or more labels to categorize this issue.

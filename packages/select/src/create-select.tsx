@@ -1,4 +1,4 @@
-import type { MenuNodeDefaults } from '@bazza-ui/menu'
+import type { ItemDef, ItemNode, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   type InteractionGuardOptions,
   GlobalThemeProvider as PopupMenuGlobalThemeProvider,
@@ -8,7 +8,10 @@ import * as React from 'react'
 import { SelectContent } from './components/content.js'
 import { SelectRoot } from './components/root.js'
 import { SelectTrigger } from './components/trigger.js'
-import { SelectValue } from './components/value.js'
+import {
+  SelectValue,
+  type SelectValueRenderContext,
+} from './components/value.js'
 import {
   defaultSelectSlots,
   mergeTheme,
@@ -18,16 +21,18 @@ import {
 import type {
   SelectItemDef,
   SelectMenuDef,
-  SelectProps,
   SelectSlots,
   SelectTheme,
   SelectThemeDef,
 } from './types.js'
 
-// Compound component types
+// ================================================================================================
+// Compound Component Types
+// ================================================================================================
+
 export interface CompoundSelectTriggerProps {
-  /** Trigger element - will open select listbox on click */
-  children?: React.ReactNode
+  /** Trigger content - should include Select.Value for displaying selection */
+  children: React.ReactNode
   /** Whether to use child as trigger (for composition) */
   asChild?: boolean
   /** Whether the trigger is disabled */
@@ -44,14 +49,37 @@ export interface CompoundSelectTriggerProps {
   'aria-required'?: boolean
 }
 
-export interface CompoundSelectValueProps {
-  /** Placeholder text when no value selected */
+export interface CompoundSelectValueProps<TData = unknown> {
+  /** Placeholder text (overrides Root's placeholder) */
   placeholder?: string
+  /**
+   * Render function for custom value display.
+   *
+   * @example
+   * ```tsx
+   * <Select.Value>
+   *   {(value, { node, placeholder }) => (
+   *     node ? (
+   *       <span className="flex items-center gap-2">
+   *         {node.icon && <span>{node.icon}</span>}
+   *         <span>{node.label}</span>
+   *       </span>
+   *     ) : (
+   *       <span className="text-muted">{placeholder}</span>
+   *     )
+   *   )}
+   * </Select.Value>
+   * ```
+   */
+  children?: (
+    value: string | undefined,
+    context: SelectValueRenderContext<TData>,
+  ) => React.ReactNode
 }
 
 export type CreateSelectResult<T = unknown> = React.FC<SelectOptions<T>> & {
   Trigger: React.FC<CompoundSelectTriggerProps>
-  Value: React.FC<CompoundSelectValueProps>
+  Value: React.FC<CompoundSelectValueProps<T>>
 }
 
 export type CreateSelectOptions<T = unknown> = {
@@ -84,8 +112,18 @@ export interface SelectOptions<T = unknown>
   // ===== Display =====
   /** Placeholder text when no value selected */
   placeholder?: string
-  /** Trigger element customization or compound components */
-  children?: React.ReactNode
+  /**
+   * Compound component children (required).
+   * Must include Select.Trigger with Select.Value inside:
+   * ```tsx
+   * <Select items={items}>
+   *   <Select.Trigger>
+   *     <Select.Value />
+   *   </Select.Trigger>
+   * </Select>
+   * ```
+   */
+  children: React.ReactNode
 
   // ===== Options (Simple API) =====
   /** Simple array of items (most common use case) */
@@ -94,16 +132,6 @@ export interface SelectOptions<T = unknown>
   // ===== Options (Advanced API) =====
   /** Full menu definition (for advanced use cases) */
   menu?: SelectMenuDef<T>
-
-  // ===== Accessibility =====
-  /** Accessible label */
-  'aria-label'?: string
-  /** ID of element that labels this select */
-  'aria-labelledby'?: string
-  /** ID of element that describes this select */
-  'aria-describedby'?: string
-  /** Whether this select has a validation error */
-  'aria-invalid'?: boolean
 
   // ===== Positioning =====
   /** Which side to position the listbox on */
@@ -130,8 +158,6 @@ export interface SelectOptions<T = unknown>
   defaultOpen?: boolean
   /** Whether clicking outside closes the listbox */
   modal?: boolean
-  /** Whether to use child as trigger (for composition) */
-  asChild?: boolean
   /** Theme overrides at instance level */
   slots?: SelectThemeDef<T>['slots']
   slotProps?: SelectThemeDef<T>['slotProps']
@@ -166,33 +192,23 @@ function itemsToMenuDef<T>(
 }
 
 /**
- * Check if children contain compound components (Select.Trigger or Select.Value)
- */
-function hasCompoundComponents(children: React.ReactNode): boolean {
-  let hasCompound = false
-  React.Children.forEach(children, (child) => {
-    if (React.isValidElement(child)) {
-      // Check if it's a compound component by checking the type
-      const type = child.type as any
-      if (
-        type?.displayName === 'Select.Trigger' ||
-        type?.displayName === 'Select.Value'
-      ) {
-        hasCompound = true
-      }
-    }
-  })
-  return hasCompound
-}
-
-/**
  * Creates a Select component with factory-level theme defaults.
+ *
+ * Uses compound component pattern - must include Select.Trigger with Select.Value:
+ * ```tsx
+ * const Select = createSelect()
+ *
+ * <Select items={items} value={value} onValueChange={setValue} name="fruit">
+ *   <Select.Trigger>
+ *     <Select.Value placeholder="Select a fruit..." />
+ *   </Select.Trigger>
+ * </Select>
+ * ```
+ *
  * Supports theme override at three levels:
  * 1. Factory level (createSelect options)
  * 2. Instance level (component props)
  * 3. Menu level (menu.ui)
- *
- * Returns a compound component with Select.Trigger and Select.Value attached.
  */
 export function createSelect<T = unknown>(
   opts?: CreateSelectOptions<T>,
@@ -222,21 +238,15 @@ export function createSelect<T = unknown>(
       children,
       items,
       menu: menuProp,
-      'aria-label': ariaLabel,
-      'aria-labelledby': ariaLabelledby,
-      'aria-describedby': ariaDescribedby,
-      'aria-invalid': ariaInvalid,
       side = 'bottom',
       align = 'start',
       sideOffset = 4,
       alignOffset = 0,
       trackAnchor,
       onOpenChange,
-      onBlur,
       open,
       defaultOpen,
       modal,
-      asChild,
       slots,
       slotProps,
       classNames,
@@ -298,9 +308,6 @@ export function createSelect<T = unknown>(
       [defaults],
     )
 
-    // Check if using compound component pattern
-    const isCompoundMode = children && hasCompoundComponents(children)
-
     return (
       <SelectGlobalThemeProvider theme={instanceTheme}>
         <SelectScopedThemeProvider theme={scopedTheme as any}>
@@ -318,6 +325,12 @@ export function createSelect<T = unknown>(
                 modal={modal}
                 defaults={mergedDefaults}
                 controlRef={controlRef}
+                // Form integration
+                name={name}
+                form={form}
+                required={required}
+                placeholder={placeholder}
+                // InteractionGuard options
                 scopeAttr={scopeAttr}
                 disableOutsidePointerEvents={disableOutsidePointerEvents}
                 onEscapeKeyDown={onEscapeKeyDown}
@@ -328,31 +341,7 @@ export function createSelect<T = unknown>(
                 surfaceSelector={surfaceSelector}
                 branchAttr={branchAttr}
               >
-                {isCompoundMode ? (
-                  // Compound component mode - render children which should contain Select.Trigger
-                  children
-                ) : (
-                  // Legacy mode - render default trigger with children or default value
-                  <SelectTrigger
-                    asChild={asChild}
-                    disabled={disabled}
-                    aria-label={ariaLabel}
-                    aria-labelledby={ariaLabelledby}
-                    aria-describedby={ariaDescribedby}
-                    aria-invalid={ariaInvalid}
-                    aria-required={required}
-                    placeholder={placeholder}
-                  >
-                    {children || (
-                      <SelectValue
-                        name={name}
-                        form={form}
-                        required={required}
-                        placeholder={placeholder}
-                      />
-                    )}
-                  </SelectTrigger>
-                )}
+                {children}
                 <SelectContent
                   menu={menu}
                   side={side}
@@ -372,20 +361,16 @@ export function createSelect<T = unknown>(
   }
 
   // Compound component: Select.Trigger
-  const CompoundTrigger: React.FC<CompoundSelectTriggerProps> = (
-    triggerProps,
-  ) => {
-    const {
-      children,
-      asChild,
-      disabled,
-      'aria-label': ariaLabel,
-      'aria-labelledby': ariaLabelledby,
-      'aria-describedby': ariaDescribedby,
-      'aria-invalid': ariaInvalid,
-      'aria-required': ariaRequired,
-    } = triggerProps
-
+  const CompoundTrigger: React.FC<CompoundSelectTriggerProps> = ({
+    children,
+    asChild,
+    disabled,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
+    'aria-invalid': ariaInvalid,
+    'aria-required': ariaRequired,
+  }) => {
     return (
       <SelectTrigger
         asChild={asChild}
@@ -403,10 +388,27 @@ export function createSelect<T = unknown>(
   CompoundTrigger.displayName = 'Select.Trigger'
 
   // Compound component: Select.Value
-  const CompoundValue: React.FC<CompoundSelectValueProps> = (valueProps) => {
-    const { placeholder } = valueProps
+  const CompoundValue: React.FC<CompoundSelectValueProps<T>> = ({
+    placeholder,
+    children,
+  }) => {
+    // Adapt the render function signature for single-select
+    const adaptedChildren = children
+      ? (
+          value: string | string[] | undefined,
+          context: { node?: any; nodes?: any[]; placeholder: string },
+        ) => {
+          // For single select, pass the string value (or undefined)
+          return children(value as string | undefined, {
+            node: context.node,
+            placeholder: context.placeholder,
+          })
+        }
+      : undefined
 
-    return <SelectValue placeholder={placeholder} />
+    return (
+      <SelectValue placeholder={placeholder}>{adaptedChildren}</SelectValue>
+    )
   }
   CompoundValue.displayName = 'Select.Value'
 

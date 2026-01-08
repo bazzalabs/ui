@@ -32,6 +32,16 @@ export interface RootContextValue<TData = unknown> {
   interactionGuardOptions: Partial<InteractionGuardOptions>
   /** The menu definition (passed to Surface for orchestration) */
   menu?: SelectMenuDef<TData>
+
+  // ===== Form Integration (moved from SelectValue) =====
+  /** Form field name for submission */
+  name?: string
+  /** Associate with a form by ID */
+  form?: string
+  /** Whether this field is required */
+  required?: boolean
+  /** Default placeholder text */
+  placeholder: string
 }
 
 const RootContext = React.createContext<RootContextValue<any> | null>(null)

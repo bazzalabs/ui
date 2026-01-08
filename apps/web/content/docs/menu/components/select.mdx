@@ -7,6 +7,78 @@ summary: Form-compatible select component with search and virtualization.
 
 <PageUnderConstruction />
 
+## Usage
+
+The Select component uses a compound component pattern for maximum flexibility. You compose it using `Select.Trigger` and `Select.Value`:
+
+```tsx
+import { createSelect } from '@bazza-ui/select'
+
+const Select = createSelect()
+
+function MyComponent() {
+  const [value, setValue] = useState('')
+
+  return (
+    <Select
+      value={value}
+      onValueChange={setValue}
+      items={[
+        { value: 'apple', label: 'Apple' },
+        { value: 'banana', label: 'Banana' },
+      ]}
+    >
+      <Select.Trigger>
+        <Select.Value placeholder="Select a fruit..." />
+      </Select.Trigger>
+    </Select>
+  )
+}
+```
+
+### Form Integration
+
+Form props like `name`, `required`, and `form` are passed to the root Select component. Hidden inputs are automatically rendered for form submission:
+
+```tsx
+<Select
+  name="fruit"
+  required
+  items={fruits}
+>
+  <Select.Trigger>
+    <Select.Value placeholder="Select a fruit..." />
+  </Select.Trigger>
+</Select>
+```
+
+### Custom Value Rendering
+
+You can customize how the selected value is displayed using a render function in `Select.Value`:
+
+```tsx
+<Select.Value>
+  {(value, { node, placeholder }) => (
+    node ? (
+      <div className="flex items-center gap-2">
+        {node.icon && <span>{node.icon}</span>}
+        <span>{node.label}</span>
+      </div>
+    ) : (
+      <span className="text-muted-foreground">{placeholder}</span>
+    )
+  )}
+</Select.Value>
+```
+
+### Data Attributes
+
+The trigger element has data attributes for styling based on state:
+
+- `data-popup-open` - Present when the popup is open
+- `data-disabled` - Present when the select is disabled
+- `data-placeholder` - Present when no value is selected
+
 ## Examples
 
 ### Basic
@@ -73,6 +145,19 @@ summary: Form-compatible select component with search and virtualization.
   lazy
 >
   <Examples.Select.ItemDescriptions />
+</ComponentFrame>
+
+### Custom Value Rendering
+
+Use a render function in `Select.Value` to customize how the selected value appears in the trigger.
+
+<ComponentFrame
+  containerClassName='sm:h-64'
+  previewClassName='w-full flex justify-center'
+  src="components/examples/select/custom-value.tsx"
+  lazy
+>
+  <Examples.Select.CustomValue />
 </ComponentFrame>
 
 ### Massive (10,000 items)

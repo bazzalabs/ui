@@ -11,7 +11,6 @@ export function Basic() {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder="Select a fruit..."
         items={[
           { value: 'apple', label: 'Apple', icon: '🍎' },
           { value: 'banana', label: 'Banana', icon: '🍌' },
@@ -19,7 +18,11 @@ export function Basic() {
           { value: 'orange', label: 'Orange', icon: '🍊' },
           { value: 'grape', label: 'Grape', icon: '🍇' },
         ]}
-      />
+      >
+        <Select.Trigger>
+          <Select.Value placeholder="Select a fruit..." />
+        </Select.Trigger>
+      </Select>
     </div>
   )
 }

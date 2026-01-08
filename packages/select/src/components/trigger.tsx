@@ -6,11 +6,10 @@ import * as React from 'react'
 import { useRootContext } from '../contexts/root-context.js'
 import { useGlobalTheme, useScopedTheme } from '../contexts/theme-context.js'
 import type { TriggerBindAPI } from '../types.js'
-import { findNodeByValue, findNodesByValues } from '../utils/find-nodes.js'
 
 export interface SelectTriggerProps {
-  /** Trigger element - will open select listbox on click */
-  children?: React.ReactNode
+  /** Trigger content - should include Select.Value for displaying selection */
+  children: React.ReactNode
   /** Whether to use child as trigger (for composition) */
   asChild?: boolean
   /** Whether the trigger is disabled */
@@ -25,13 +24,18 @@ export interface SelectTriggerProps {
   'aria-invalid'?: boolean
   /** Whether this field is required */
   'aria-required'?: boolean
-  /** Placeholder text when no value selected */
-  placeholder?: string
 }
 
 /**
  * SelectTrigger - Click trigger that opens the select listbox.
  * Uses combobox ARIA pattern instead of menu pattern.
+ *
+ * Should contain Select.Value to display the current selection:
+ * ```tsx
+ * <Select.Trigger>
+ *   <Select.Value placeholder="Select..." />
+ * </Select.Trigger>
+ * ```
  */
 export function SelectTrigger({
   children,
@@ -42,7 +46,6 @@ export function SelectTrigger({
   'aria-describedby': ariaDescribedby,
   'aria-invalid': ariaInvalid,
   'aria-required': ariaRequired,
-  placeholder = 'Select...',
 }: SelectTriggerProps) {
   const {
     triggerRef,
@@ -52,7 +55,6 @@ export function SelectTrigger({
     selectedValues,
     multiple,
     disabled: contextDisabled,
-    menu,
   } = useRootContext()
 
   // Get theme slots (scoped takes priority over global)
@@ -60,43 +62,14 @@ export function SelectTrigger({
   const scopedTheme = useScopedTheme()
   const { slots, slotProps, classNames } = scopedTheme ?? globalTheme
   const TriggerSlot = slots?.Trigger
-  const ValueSlot = slots?.Value
 
   // Combine: menu-wide OR prop-level disabled
   const isDisabled = contextDisabled || propDisabled
 
-  // Find the selected node(s) from the menu
-  const selectedNode = React.useMemo(
-    () => (multiple ? undefined : findNodeByValue(menu, selectedValue)),
-    [menu, selectedValue, multiple],
-  )
-
-  const selectedNodes = React.useMemo(
-    () => (multiple ? findNodesByValues(menu, selectedValues) : undefined),
-    [menu, selectedValues, multiple],
-  )
-
-  // Render display value using Value slot
-  const displayValue = React.useMemo(() => {
-    if (!ValueSlot) return placeholder
-
-    return ValueSlot({
-      value: selectedValue,
-      values: selectedValues,
-      multiple,
-      placeholder,
-      node: selectedNode,
-      nodes: selectedNodes,
-    })
-  }, [
-    ValueSlot,
-    selectedValue,
-    selectedValues,
-    multiple,
-    placeholder,
-    selectedNode,
-    selectedNodes,
-  ])
+  // Determine if we have a value (for data attributes)
+  const hasValue = multiple
+    ? selectedValues && selectedValues.length > 0
+    : Boolean(selectedValue)
 
   // Prevent default on pointerdown to avoid losing focus from input elements
   const handlePointerDown = React.useCallback((e: React.PointerEvent) => {
@@ -133,6 +106,10 @@ export function SelectTrigger({
             disabled: isDisabled,
             onPointerDown: handlePointerDown,
             className: classNames?.trigger,
+            // Data attributes for styling
+            'data-popup-open': open ? '' : undefined,
+            'data-disabled': isDisabled ? '' : undefined,
+            'data-placeholder': !hasValue ? '' : undefined,
             ...slotProps?.trigger,
           })
 
@@ -144,6 +121,7 @@ export function SelectTrigger({
     [
       open,
       isDisabled,
+      hasValue,
       triggerRef,
       listboxId,
       ariaLabel,
@@ -158,7 +136,7 @@ export function SelectTrigger({
   )
 
   if (asChild) {
-    // Custom trigger via children
+    // Custom trigger via asChild - clone child element with composed props
     return (
       <InteractionGuard.Branch asChild scopeId={scopeId}>
         <Popover.Trigger
@@ -173,14 +151,14 @@ export function SelectTrigger({
                   value={selectedValue}
                   values={selectedValues}
                   multiple={multiple}
-                  placeholder={placeholder}
+                  placeholder="" // Not used when TriggerSlot is provided
                 >
                   {children}
                 </TriggerSlot>
               ) as React.ReactElement
             }
 
-            // Fallback: Clone child element with composed props
+            // Clone child element with composed props
             if (React.isValidElement(children)) {
               return React.cloneElement(
                 children as React.ReactElement,
@@ -217,9 +195,9 @@ export function SelectTrigger({
                 value={selectedValue}
                 values={selectedValues}
                 multiple={multiple}
-                placeholder={placeholder}
+                placeholder="" // Not used when TriggerSlot is provided
               >
-                {children || displayValue}
+                {children}
               </TriggerSlot>
             ) as React.ReactElement
           }
@@ -227,7 +205,7 @@ export function SelectTrigger({
           // Default button implementation
           return (
             <button type="button" {...bind.getTriggerProps()}>
-              {children || displayValue}
+              {children}
             </button>
           )
         }}

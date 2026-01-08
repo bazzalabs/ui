@@ -299,13 +299,3 @@ export const LabelWithBreadcrumbs = ({
     </span>
   </div>
 )
-
-// Select.Trigger = ({
-//   children,
-//   variant = 'outline',
-//   ...props
-// }: React.ComponentProps<typeof Button> & CompoundSelectTriggerProps) => (
-//   <Select.Trigger {...props} asChild>
-//     <Button variant={variant}>{children}</Button>
-//   </Select.Trigger>
-// )
