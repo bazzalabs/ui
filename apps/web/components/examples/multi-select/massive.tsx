@@ -20,7 +20,6 @@ export function Massive({ numItems = 10000 }: MassiveProps) {
       <MultiSelect
         value={values}
         onValueChange={setValues}
-        placeholder={`Search ${numItems.toLocaleString()} items...`}
         items={items}
         defaults={{
           virtualization: {
@@ -28,7 +27,13 @@ export function Massive({ numItems = 10000 }: MassiveProps) {
             overscan: 5,
           },
         }}
-      />
+      >
+        <MultiSelect.Trigger>
+          <MultiSelect.Value
+            placeholder={`Search ${numItems.toLocaleString()} items...`}
+          />
+        </MultiSelect.Trigger>
+      </MultiSelect>
       {values.length > 0 && (
         <p className="text-sm text-muted-foreground">
           Selected {values.length} items

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Select } from '@/registry/ui/select'
 
 export function Groups() {
@@ -12,7 +11,6 @@ export function Groups() {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder="Select food..."
         menu={{
           id: 'food-menu',
           nodes: [
@@ -53,7 +51,11 @@ export function Groups() {
             },
           ],
         }}
-      />
+      >
+        <Select.Trigger>
+          <Select.Value placeholder="Select food..." />
+        </Select.Trigger>
+      </Select>
       {value && (
         <p className="text-sm text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{value}</span>

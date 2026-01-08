@@ -137,9 +137,12 @@ export function FormReactHookForm() {
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select your country..."
                       items={countries}
-                    />
+                    >
+                      <Select.Trigger>
+                        <Select.Value placeholder="Select your country..." />
+                      </Select.Trigger>
+                    </Select>
                   </FormControl>
                   <FormDescription>
                     Select the country where you're located.
@@ -160,10 +163,12 @@ export function FormReactHookForm() {
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select your language..."
                       items={languages}
-                      aria-invalid={fieldState.invalid}
-                    />
+                    >
+                      <Select.Trigger aria-invalid={fieldState.invalid}>
+                        <Select.Value placeholder="Select your language..." />
+                      </Select.Trigger>
+                    </Select>
                   </FormControl>
                   <FormDescription>
                     Choose your preferred language for the interface. Note:
@@ -185,9 +190,12 @@ export function FormReactHookForm() {
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select your timezone..."
                       items={timezones}
-                    />
+                    >
+                      <Select.Trigger>
+                        <Select.Value placeholder="Select your timezone..." />
+                      </Select.Trigger>
+                    </Select>
                   </FormControl>
                   <FormDescription>
                     Select your timezone for accurate time display.

@@ -27,7 +27,6 @@ export function Form() {
             required
             min={1}
             max={3}
-            placeholder="Select colors..."
             items={[
               { value: 'red', label: 'Red' },
               { value: 'blue', label: 'Blue' },
@@ -36,7 +35,11 @@ export function Form() {
               { value: 'purple', label: 'Purple' },
               { value: 'orange', label: 'Orange' },
             ]}
-          />
+          >
+            <MultiSelect.Trigger>
+              <MultiSelect.Value placeholder="Select colors..." />
+            </MultiSelect.Trigger>
+          </MultiSelect>
         </div>
         <Button type="submit" className="w-full">
           Submit

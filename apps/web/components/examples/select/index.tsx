@@ -1,5 +1,6 @@
 export { Basic } from './basic'
 export { CreateAnIssue } from './create-an-issue'
+export { CustomValue } from './custom-value'
 export { DisabledItems } from './disabled-items'
 export { Form } from './form'
 export { FormReactHookForm } from './form-react-hook-form'

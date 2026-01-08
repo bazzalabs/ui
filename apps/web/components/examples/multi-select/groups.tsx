@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/registry/ui/multi-select'
 
 export function Groups() {
@@ -12,7 +11,6 @@ export function Groups() {
       <MultiSelect
         value={values}
         onValueChange={setValues}
-        placeholder="Search programming languages..."
         menu={{
           id: 'languages-menu',
           nodes: [
@@ -69,7 +67,11 @@ export function Groups() {
             },
           ],
         }}
-      />
+      >
+        <MultiSelect.Trigger>
+          <MultiSelect.Value placeholder="Search programming languages..." />
+        </MultiSelect.Trigger>
+      </MultiSelect>
       {values.length > 0 && (
         <p className="text-sm text-muted-foreground">
           Selected:{' '}

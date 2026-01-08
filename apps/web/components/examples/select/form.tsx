@@ -24,7 +24,6 @@ export function Form() {
           <Select
             name="color"
             required
-            placeholder="Select a color..."
             items={[
               { value: 'red', label: 'Red' },
               { value: 'blue', label: 'Blue' },
@@ -32,7 +31,11 @@ export function Form() {
               { value: 'yellow', label: 'Yellow' },
               { value: 'purple', label: 'Purple' },
             ]}
-          />
+          >
+            <Select.Trigger>
+              <Select.Value placeholder="Select a color..." />
+            </Select.Trigger>
+          </Select>
         </div>
         <Button type="submit" className="w-full">
           Submit

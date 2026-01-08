@@ -5,8 +5,10 @@
  * Uses combobox/listbox ARIA pattern for proper form integration.
  *
  * Key Features:
+ * - Compound component pattern (Select.Trigger, Select.Value)
  * - Single and multi-select variants
  * - Form integration with hidden inputs
+ * - Custom value rendering via render functions
  * - Proper ARIA semantics (combobox/listbox pattern)
  * - No submenu support (use groups for categorization)
  * - Type-ahead search
@@ -15,7 +17,7 @@
  *
  * ## Usage
  *
- * ### Simple API (items prop)
+ * ### Basic Usage (Compound Components)
  * ```tsx
  * import { createSelect } from '@bazza-ui/select'
  *
@@ -29,30 +31,29 @@
  *     { value: 'apple', label: 'Apple' },
  *     { value: 'banana', label: 'Banana' },
  *   ]}
- * />
+ * >
+ *   <Select.Trigger>
+ *     <Select.Value placeholder="Select a fruit..." />
+ *   </Select.Trigger>
+ * </Select>
  * ```
  *
- * ### Advanced API (menu prop)
+ * ### Custom Value Rendering
  * ```tsx
- * import { createSelect } from '@bazza-ui/select'
- *
- * const Select = createSelect({
- *   slots: { Item: CustomItem },
- *   classNames: { item: 'custom-class' }
- * })
- *
- * <Select
- *   name="fruit"
- *   value={value}
- *   onValueChange={setValue}
- *   menu={{
- *     nodes: [
- *       { kind: 'group', heading: 'Fruits', nodes: [...] },
- *       { kind: 'separator' },
- *       { kind: 'item', id: 'apple', label: 'Apple' },
- *     ]
- *   }}
- * />
+ * <Select items={items} value={value} onValueChange={setValue}>
+ *   <Select.Trigger>
+ *     <Select.Value>
+ *       {(value, { node, placeholder }) => (
+ *         node ? (
+ *           <span className="flex items-center gap-2">
+ *             {node.icon && <span>{node.icon}</span>}
+ *             <span>{node.label}</span>
+ *           </span>
+ *         ) : placeholder
+ *       )}
+ *     </Select.Value>
+ *   </Select.Trigger>
+ * </Select>
  * ```
  *
  * ### Default Instances
@@ -73,6 +74,8 @@ export type {
   SeparatorDef,
   SeparatorNode,
 } from '@bazza-ui/menu'
+// Value component render context types (for custom render functions)
+export type { SelectValueRenderContext } from './components/value.js'
 export type { MultiSelectControl, SelectControl } from './control.js'
 export type {
   CompoundMultiSelectTriggerProps,
@@ -80,6 +83,7 @@ export type {
   CreateMultiSelectOptions,
   CreateMultiSelectResult,
   MultiSelectOptions,
+  MultiSelectValueRenderContext,
 } from './create-multi-select.js'
 export { createMultiSelect } from './create-multi-select.js'
 // Factory options types
@@ -108,7 +112,6 @@ export type {
   SelectSurfaceSlice,
   SingleSelectionState,
 } from './store/index.js'
-
 // Store hooks and context (for advanced use cases)
 export {
   createMultiSelectStore,
@@ -132,6 +135,7 @@ export {
 // Types
 export type {
   MultiSelectProps,
+  MultiSelectValueRenderContext as MultiSelectValueRenderContextType,
   SelectClassNames,
   SelectItemDef,
   SelectItemSlotArgs,
@@ -145,6 +149,7 @@ export type {
   SelectTheme,
   SelectThemeDef,
   SelectTriggerSlotArgs,
+  SelectValueRenderContext as SelectValueRenderContextType,
   SelectValueSlotArgs,
   TriggerBindAPI,
 } from './types.js'

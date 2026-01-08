@@ -11,7 +11,6 @@ export function RadioGroups() {
       <Select
         value={value}
         onValueChange={setValue}
-        placeholder="Select size..."
         menu={{
           id: 'size-menu',
           nodes: [
@@ -28,7 +27,11 @@ export function RadioGroups() {
             },
           ],
         }}
-      />
+      >
+        <Select.Trigger>
+          <Select.Value placeholder="Select size..." />
+        </Select.Trigger>
+      </Select>
       <p className="text-sm text-muted-foreground">
         Selected: <span className="font-medium text-foreground">{value}</span>
       </p>

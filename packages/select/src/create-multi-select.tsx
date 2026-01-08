@@ -1,4 +1,4 @@
-import type { MenuNodeDefaults } from '@bazza-ui/menu'
+import type { ItemDef, ItemNode, MenuNodeDefaults } from '@bazza-ui/menu'
 import {
   type InteractionGuardOptions,
   GlobalThemeProvider as PopupMenuGlobalThemeProvider,
@@ -24,10 +24,13 @@ import type {
   SelectThemeDef,
 } from './types.js'
 
-// Compound component types
+// ================================================================================================
+// Compound Component Types
+// ================================================================================================
+
 export interface CompoundMultiSelectTriggerProps {
-  /** Trigger element - will open select listbox on click */
-  children?: React.ReactNode
+  /** Trigger content - should include MultiSelect.Value for displaying selection */
+  children: React.ReactNode
   /** Whether to use child as trigger (for composition) */
   asChild?: boolean
   /** Whether the trigger is disabled */
@@ -44,16 +47,44 @@ export interface CompoundMultiSelectTriggerProps {
   'aria-required'?: boolean
 }
 
-export interface CompoundMultiSelectValueProps {
-  /** Placeholder text when no value selected */
+/**
+ * Context passed to MultiSelectValue render function.
+ */
+export interface MultiSelectValueRenderContext<TData = unknown> {
+  /** The selected nodes - provides access to icon, label, data, etc. */
+  nodes?: (ItemNode<TData> | ItemDef<TData>)[]
+  /** Placeholder text when no values selected */
+  placeholder: string
+}
+
+export interface CompoundMultiSelectValueProps<TData = unknown> {
+  /** Placeholder text (overrides Root's placeholder) */
   placeholder?: string
+  /**
+   * Render function for custom value display.
+   *
+   * @example
+   * ```tsx
+   * <MultiSelect.Value>
+   *   {(values, { nodes, placeholder }) => (
+   *     nodes && nodes.length > 0
+   *       ? nodes.map(n => n.label).join(', ')
+   *       : placeholder
+   *   )}
+   * </MultiSelect.Value>
+   * ```
+   */
+  children?: (
+    values: string[] | undefined,
+    context: MultiSelectValueRenderContext<TData>,
+  ) => React.ReactNode
 }
 
 export type CreateMultiSelectResult<T = unknown> = React.FC<
   MultiSelectOptions<T>
 > & {
   Trigger: React.FC<CompoundMultiSelectTriggerProps>
-  Value: React.FC<CompoundMultiSelectValueProps>
+  Value: React.FC<CompoundMultiSelectValueProps<T>>
 }
 
 export type CreateMultiSelectOptions<T = unknown> = {
@@ -86,8 +117,18 @@ export interface MultiSelectOptions<T = unknown>
   // ===== Display =====
   /** Placeholder text when no value selected */
   placeholder?: string
-  /** Trigger element customization or compound components */
-  children?: React.ReactNode
+  /**
+   * Compound component children (required).
+   * Must include MultiSelect.Trigger with MultiSelect.Value inside:
+   * ```tsx
+   * <MultiSelect items={items}>
+   *   <MultiSelect.Trigger>
+   *     <MultiSelect.Value />
+   *   </MultiSelect.Trigger>
+   * </MultiSelect>
+   * ```
+   */
+  children: React.ReactNode
 
   // ===== Options (Simple API) =====
   /** Simple array of items (most common use case) */
@@ -104,16 +145,6 @@ export interface MultiSelectOptions<T = unknown>
   min?: number
   /** Whether to close the listbox after selecting an item (default: false for multi) */
   closeOnSelect?: boolean
-
-  // ===== Accessibility =====
-  /** Accessible label */
-  'aria-label'?: string
-  /** ID of element that labels this select */
-  'aria-labelledby'?: string
-  /** ID of element that describes this select */
-  'aria-describedby'?: string
-  /** Whether this select has a validation error */
-  'aria-invalid'?: boolean
 
   // ===== Positioning =====
   /** Which side to position the listbox on */
@@ -138,8 +169,6 @@ export interface MultiSelectOptions<T = unknown>
   defaultOpen?: boolean
   /** Whether clicking outside closes the listbox */
   modal?: boolean
-  /** Whether to use child as trigger (for composition) */
-  asChild?: boolean
   /** Theme overrides at instance level */
   slots?: SelectThemeDef<T>['slots']
   slotProps?: SelectThemeDef<T>['slotProps']
@@ -174,30 +203,20 @@ function itemsToMenuDef<T>(
 }
 
 /**
- * Check if children contain compound components (MultiSelect.Trigger or MultiSelect.Value)
- */
-function hasCompoundComponents(children: React.ReactNode): boolean {
-  let hasCompound = false
-  React.Children.forEach(children, (child) => {
-    if (React.isValidElement(child)) {
-      // Check if it's a compound component by checking the type
-      const type = child.type as any
-      if (
-        type?.displayName === 'MultiSelect.Trigger' ||
-        type?.displayName === 'MultiSelect.Value'
-      ) {
-        hasCompound = true
-      }
-    }
-  })
-  return hasCompound
-}
-
-/**
  * Creates a MultiSelect component with factory-level theme defaults.
- * MultiSelect allows selecting multiple values and keeps the listbox open by default.
  *
- * Returns a compound component with MultiSelect.Trigger and MultiSelect.Value attached.
+ * Uses compound component pattern - must include MultiSelect.Trigger with MultiSelect.Value:
+ * ```tsx
+ * const MultiSelect = createMultiSelect()
+ *
+ * <MultiSelect items={items} value={values} onValueChange={setValues} name="fruits">
+ *   <MultiSelect.Trigger>
+ *     <MultiSelect.Value placeholder="Select fruits..." />
+ *   </MultiSelect.Trigger>
+ * </MultiSelect>
+ * ```
+ *
+ * MultiSelect allows selecting multiple values and keeps the listbox open by default.
  */
 export function createMultiSelect<T = unknown>(
   opts?: CreateMultiSelectOptions<T>,
@@ -230,20 +249,14 @@ export function createMultiSelect<T = unknown>(
       max,
       min,
       closeOnSelect = false, // Default: keep open for multi-select
-      'aria-label': ariaLabel,
-      'aria-labelledby': ariaLabelledby,
-      'aria-describedby': ariaDescribedby,
-      'aria-invalid': ariaInvalid,
       side = 'bottom',
       align = 'start',
       sideOffset = 4,
       alignOffset = 0,
       onOpenChange,
-      onBlur,
       open,
       defaultOpen,
       modal,
-      asChild,
       slots,
       slotProps,
       classNames,
@@ -326,9 +339,6 @@ export function createMultiSelect<T = unknown>(
       [defaults],
     )
 
-    // Check if using compound component pattern
-    const isCompoundMode = children && hasCompoundComponents(children)
-
     return (
       <SelectGlobalThemeProvider theme={instanceTheme}>
         <SelectScopedThemeProvider theme={scopedTheme as any}>
@@ -347,6 +357,12 @@ export function createMultiSelect<T = unknown>(
                 multiple={true}
                 defaults={mergedDefaults}
                 controlRef={controlRef as any}
+                // Form integration
+                name={name}
+                form={form}
+                required={required}
+                placeholder={placeholder}
+                // InteractionGuard options
                 scopeAttr={scopeAttr}
                 disableOutsidePointerEvents={disableOutsidePointerEvents}
                 onEscapeKeyDown={onEscapeKeyDown}
@@ -357,31 +373,7 @@ export function createMultiSelect<T = unknown>(
                 surfaceSelector={surfaceSelector}
                 branchAttr={branchAttr}
               >
-                {isCompoundMode ? (
-                  // Compound component mode - render children which should contain MultiSelect.Trigger
-                  children
-                ) : (
-                  // Legacy mode - render default trigger with children or default value
-                  <SelectTrigger
-                    asChild={asChild}
-                    disabled={disabled}
-                    aria-label={ariaLabel}
-                    aria-labelledby={ariaLabelledby}
-                    aria-describedby={ariaDescribedby}
-                    aria-invalid={ariaInvalid}
-                    aria-required={required}
-                    placeholder={placeholder}
-                  >
-                    {children || (
-                      <SelectValue
-                        name={name}
-                        form={form}
-                        required={required}
-                        placeholder={placeholder}
-                      />
-                    )}
-                  </SelectTrigger>
-                )}
+                {children}
                 <SelectContent
                   menu={menu}
                   side={side}
@@ -400,20 +392,16 @@ export function createMultiSelect<T = unknown>(
   }
 
   // Compound component: MultiSelect.Trigger
-  const CompoundTrigger: React.FC<CompoundMultiSelectTriggerProps> = (
-    triggerProps,
-  ) => {
-    const {
-      children,
-      asChild,
-      disabled,
-      'aria-label': ariaLabel,
-      'aria-labelledby': ariaLabelledby,
-      'aria-describedby': ariaDescribedby,
-      'aria-invalid': ariaInvalid,
-      'aria-required': ariaRequired,
-    } = triggerProps
-
+  const CompoundTrigger: React.FC<CompoundMultiSelectTriggerProps> = ({
+    children,
+    asChild,
+    disabled,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
+    'aria-invalid': ariaInvalid,
+    'aria-required': ariaRequired,
+  }) => {
     return (
       <SelectTrigger
         asChild={asChild}
@@ -431,12 +419,27 @@ export function createMultiSelect<T = unknown>(
   CompoundTrigger.displayName = 'MultiSelect.Trigger'
 
   // Compound component: MultiSelect.Value
-  const CompoundValue: React.FC<CompoundMultiSelectValueProps> = (
-    valueProps,
-  ) => {
-    const { placeholder } = valueProps
+  const CompoundValue: React.FC<CompoundMultiSelectValueProps<T>> = ({
+    placeholder,
+    children,
+  }) => {
+    // Adapt the render function signature for multi-select
+    const adaptedChildren = children
+      ? (
+          value: string | string[] | undefined,
+          context: { node?: any; nodes?: any[]; placeholder: string },
+        ) => {
+          // For multi select, pass the string[] values (or undefined)
+          return children(value as string[] | undefined, {
+            nodes: context.nodes,
+            placeholder: context.placeholder,
+          })
+        }
+      : undefined
 
-    return <SelectValue placeholder={placeholder} />
+    return (
+      <SelectValue placeholder={placeholder}>{adaptedChildren}</SelectValue>
+    )
   }
   CompoundValue.displayName = 'MultiSelect.Value'
 
