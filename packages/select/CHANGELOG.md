@@ -1,5 +1,15 @@
 # @bazza-ui/select
 
+## 0.1.0-canary.6
+
+### Minor Changes
+
+- [#240](https://github.com/bazzalabs/ui/pull/240) [`83f89c6`](https://github.com/bazzalabs/ui/commit/83f89c6c9040c6214fb954dd4e92ebce139f50e3) Thanks [@kianbazza](https://github.com/kianbazza)! - A light API redesign for the `Select` component:
+
+  - The compound component pattern is now required for `Select.Trigger` and `Select.Value`
+  - Moved form-related props to `Select.Root`
+  - Support a children function for `Select.Value` with access to the selected value + context
+
 ## 0.1.0-canary.5
 
 ### Patch Changes

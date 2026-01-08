@@ -394,7 +394,7 @@
     },
     "packages/select": {
       "name": "@bazza-ui/select",
-      "version": "0.1.0-canary.5",
+      "version": "0.1.0-canary.6",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-beta.4",
         "@bazza-ui/menu": "workspace:*",
