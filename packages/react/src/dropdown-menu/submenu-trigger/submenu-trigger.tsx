@@ -1,15 +1,64 @@
 'use client'
 
 import { Popover } from '@base-ui/react/popover'
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
+import { useAimGuard } from '../contexts/aim-guard-context.js'
+import { useRootContext } from '../contexts/root-context.js'
 import { useSubmenuContext } from '../contexts/submenu-context.js'
 import {
   useGroupContext,
   useSurfaceContext,
 } from '../contexts/surface-context.js'
+import {
+  getSmoothedHeading,
+  resolveAnchorSide,
+  willHitSubmenu,
+} from '../utils/aim-guard.js'
+import { useMouseTrail } from '../utils/use-mouse-trail.js'
+import { DropdownMenuSubmenuTriggerDataAttributes } from './submenu-trigger.data-attrs.js'
+
+export interface DropdownMenuSubmenuTriggerState
+  extends Record<string, unknown> {
+  /**
+   * Whether this is a submenu trigger (always true).
+   */
+  submenuTrigger: boolean
+  /**
+   * Whether the submenu is open.
+   */
+  submenuOpen: boolean
+  /**
+   * Whether the item is highlighted.
+   */
+  highlighted: boolean
+  /**
+   * Whether the item is disabled.
+   */
+  disabled: boolean
+}
+
+// Custom mapping to convert state to kebab-case data attributes
+const stateAttributesMapping = {
+  submenuTrigger: (value: unknown) =>
+    value
+      ? { [DropdownMenuSubmenuTriggerDataAttributes.submenuTrigger]: '' }
+      : null,
+  submenuOpen: (value: unknown) =>
+    value
+      ? { [DropdownMenuSubmenuTriggerDataAttributes.submenuOpen]: '' }
+      : null,
+  highlighted: (value: unknown) =>
+    value
+      ? { [DropdownMenuSubmenuTriggerDataAttributes.highlighted]: '' }
+      : null,
+  disabled: (value: unknown) =>
+    value ? { [DropdownMenuSubmenuTriggerDataAttributes.disabled]: '' } : null,
+}
 
 export interface DropdownMenuSubmenuTriggerProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+  extends ComponentProps<'div', DropdownMenuSubmenuTriggerState> {
   /**
    * Unique value for this item used for filtering.
    * If not provided, will be inferred from textContent.
@@ -49,6 +98,9 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
     keywords,
     disabled = false,
     forceMount = false,
+    render,
+    className,
+    style,
     onPointerDown,
     onPointerMove,
     onPointerEnter,
@@ -61,9 +113,25 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   const { store: parentStore } = useSurfaceContext()
   const groupContext = useGroupContext()
 
+  // Get depth from root context (this is the submenu's depth, parent is depth - 1)
+  const { depth } = useRootContext()
+  const parentDepth = depth - 1
+
   // Get submenu context for open state and refs
   const submenuContext = useSubmenuContext()
-  const { open, setOpen, triggerRef } = submenuContext
+  const { open, setOpen, triggerRef, contentRef } = submenuContext
+
+  // Get aim guard for safe polygon navigation
+  const {
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+    guardedDepthRef,
+    activateAimGuard,
+    clearAimGuard,
+  } = useAimGuard()
+
+  // Track mouse positions for aim guard trajectory calculation
+  const mouseTrailRef = useMouseTrail(4)
 
   const id = React.useId()
   const ref = React.useRef<HTMLDivElement>(null)
@@ -108,6 +176,12 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
     return parentStore.registerSubmenuOpen(id, () => setOpen(true))
   }, [id, parentStore, setOpen])
 
+  // Register submenu close callback with parent store
+  // This allows the store to close this submenu when another item is highlighted
+  React.useEffect(() => {
+    return parentStore.registerSubmenuClose(id, () => setOpen(false))
+  }, [id, parentStore, setOpen])
+
   // Use selectors to get derived state from parent store
   const search = parentStore.useState('search')
   const isHighlighted = parentStore.useState('isHighlighted', id)
@@ -149,10 +223,27 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
 
+      // Don't highlight if aim guard is active at this depth for a different trigger
+      if (
+        aimGuardActiveRef.current &&
+        guardedDepthRef.current === parentDepth &&
+        guardedTriggerIdRef.current !== id
+      )
+        return
+
       // Highlight on hover
       parentStore.setHighlightedId(id)
     },
-    [onPointerMove, disabled, parentStore, id],
+    [
+      onPointerMove,
+      disabled,
+      aimGuardActiveRef,
+      guardedDepthRef,
+      parentDepth,
+      guardedTriggerIdRef,
+      id,
+      parentStore,
+    ],
   )
 
   const handlePointerEnter = React.useCallback(
@@ -162,10 +253,23 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
 
-      // Open submenu immediately on hover
+      // Check if aim guard is blocking this trigger
+      if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== id)
+        return
+
+      // Clear any existing aim guard and open submenu
+      clearAimGuard()
       setOpen(true)
     },
-    [onPointerEnter, disabled, setOpen],
+    [
+      onPointerEnter,
+      disabled,
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      id,
+      clearAimGuard,
+      setOpen,
+    ],
   )
 
   const handlePointerLeave = React.useCallback(
@@ -173,54 +277,130 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       onPointerLeave?.(event)
 
       if (event.defaultPrevented) return
+      if (disabled) return
 
-      // Close submenu when pointer leaves trigger
-      setOpen(false)
+      // Check if aim guard is blocking this trigger
+      if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== id)
+        return
+
+      // Get the submenu content rect for safe polygon calculation
+      const contentRect = contentRef.current?.getBoundingClientRect()
+      if (!contentRect) {
+        clearAimGuard()
+        setOpen(false)
+        return
+      }
+
+      // Check if pointer is already inside the popup (can happen with fast movement or overlapping elements)
+      const { clientX, clientY } = event
+      const isInsidePopup =
+        clientX >= contentRect.left &&
+        clientX <= contentRect.right &&
+        clientY >= contentRect.top &&
+        clientY <= contentRect.bottom
+
+      if (isInsidePopup) {
+        // Pointer is already in the popup, clear guard and keep open
+        clearAimGuard()
+        return
+      }
+
+      // Get trigger rect for aim guard calculation
+      const tRect = triggerRef.current?.getBoundingClientRect() ?? null
+
+      // Calculate safe polygon and check if user is aiming toward submenu
+      const anchor = resolveAnchorSide(contentRect, tRect, clientX)
+      const heading = getSmoothedHeading(
+        mouseTrailRef.current,
+        clientX,
+        clientY,
+        anchor,
+        tRect,
+        contentRect,
+      )
+      const hit = willHitSubmenu(
+        clientX,
+        clientY,
+        heading,
+        contentRect,
+        anchor,
+        tRect,
+      )
+
+      // DEBUG: Uncomment to debug aim guard issues
+      // console.log('[AimGuard]', { clientX, clientY, contentRect, anchor, heading, hit, trail: [...mouseTrailRef.current] })
+
+      if (hit) {
+        // User is aiming at submenu - activate aim guard for 600ms
+        // Guard is activated at parentDepth to block highlighting in the parent menu only
+        activateAimGuard(id, parentDepth, 600)
+        parentStore.setHighlightedId(id)
+        setOpen(true)
+      } else {
+        // User is not aiming at submenu - close it
+        clearAimGuard()
+        setOpen(false)
+      }
     },
-    [onPointerLeave, setOpen],
+    [
+      onPointerLeave,
+      disabled,
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      id,
+      contentRef,
+      clearAimGuard,
+      setOpen,
+      triggerRef,
+      mouseTrailRef,
+      activateAimGuard,
+      parentDepth,
+      parentStore,
+    ],
   )
+
+  const state: DropdownMenuSubmenuTriggerState = React.useMemo(
+    () => ({
+      submenuTrigger: true,
+      submenuOpen: open,
+      highlighted: isHighlighted,
+      disabled,
+    }),
+    [open, isHighlighted, disabled],
+  )
+
+  // Use useRender to create the element with state-based data attributes
+  const element = useRender({
+    render,
+    ref: [ref, forwardedRef],
+    state,
+    stateAttributesMapping,
+    props: {
+      ...rest,
+      id,
+      role: 'menuitem',
+      'aria-haspopup': 'menu',
+      'aria-expanded': open,
+      tabIndex: -1,
+      'aria-disabled': disabled || undefined,
+      className,
+      style,
+      onPointerMove: handlePointerMove,
+      onPointerDown: handlePointerDown,
+      onPointerEnter: handlePointerEnter,
+      onPointerLeave: handlePointerLeave,
+      children,
+    },
+    defaultTagName: 'div',
+  })
 
   // Don't render if not visible
   if (!isVisible) return null
 
-  return (
-    <Popover.Trigger
-      render={
-        <div
-          ref={(node) => {
-            // Merge refs
-            ;(ref as React.MutableRefObject<HTMLDivElement | null>).current =
-              node
-            if (typeof forwardedRef === 'function') {
-              forwardedRef(node)
-            } else if (forwardedRef) {
-              forwardedRef.current = node
-            }
-          }}
-          {...rest}
-          id={id}
-          role="menuitem"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          // tabIndex for accessibility - focus stays on Input via aria-activedescendant
-          tabIndex={-1}
-          aria-disabled={disabled || undefined}
-          data-submenu-trigger=""
-          data-submenu-open={open ? '' : undefined}
-          data-highlighted={isHighlighted ? '' : undefined}
-          data-disabled={disabled ? '' : undefined}
-          onPointerMove={handlePointerMove}
-          onPointerDown={handlePointerDown}
-          onPointerEnter={handlePointerEnter}
-          onPointerLeave={handlePointerLeave}
-        >
-          {children}
-        </div>
-      }
-    />
-  )
+  return <Popover.Trigger render={element} />
 })
 
 export namespace DropdownMenuSubmenuTrigger {
+  export type State = DropdownMenuSubmenuTriggerState
   export interface Props extends DropdownMenuSubmenuTriggerProps {}
 }

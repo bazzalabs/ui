@@ -3,6 +3,7 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
+import { AimGuardProvider } from '../contexts/aim-guard-context.js'
 import { RootContext } from '../contexts/root-context.js'
 import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
 
@@ -81,13 +82,15 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
 
   return (
     <RootContext.Provider value={contextValue}>
-      <Popover.Root
-        {...rest}
-        open={open}
-        onOpenChange={handlePopoverOpenChange}
-      >
-        {children}
-      </Popover.Root>
+      <AimGuardProvider>
+        <Popover.Root
+          {...rest}
+          open={open}
+          onOpenChange={handlePopoverOpenChange}
+        >
+          {children}
+        </Popover.Root>
+      </AimGuardProvider>
     </RootContext.Provider>
   )
 }
