@@ -26,6 +26,14 @@ export interface DropdownMenuInputProps
    * Callback when the input value changes.
    */
   onValueChange?: (value: string) => void
+
+  /**
+   * When true, the input is not rendered until the user starts typing.
+   * The List receives focus initially, and typing a character activates the input.
+   * Once activated, the input stays visible until the menu closes.
+   * @default false
+   */
+  hideUntilActive?: boolean
 }
 
 /**
@@ -40,6 +48,7 @@ export const DropdownMenuInput = React.forwardRef<
   const {
     value: controlledValue,
     onValueChange,
+    hideUntilActive = false,
     render,
     className,
     style,
@@ -62,16 +71,49 @@ export const DropdownMenuInput = React.forwardRef<
   const listId = store.context.listId
   const inputId = store.context.inputId
 
-  // Register that an Input is present
-  // Note: Auto-focus is handled by Surface when it becomes the focus owner
+  // Register hideUntilActive mode
   React.useEffect(() => {
+    store.setHideUntilActive(hideUntilActive)
+    return () => store.setHideUntilActive(false)
+  }, [store, hideUntilActive])
+
+  // Subscribe to inputActive and pendingSearch state
+  const inputActive = store.useState('inputActive')
+  const pendingSearch = store.useState('pendingSearch')
+
+  // Determine if we should render
+  const shouldRender = !hideUntilActive || inputActive
+
+  // Register that an Input is present - ONLY when actually rendering
+  // This ensures List handles keyboard when Input is hidden
+  React.useEffect(() => {
+    if (!shouldRender) {
+      return // Don't register when hidden
+    }
     store.setHasInput(true)
     return () => store.setHasInput(false)
-  }, [store])
+  }, [store, shouldRender])
 
   // Determine the actual value (controlled input prop > controlled surface > uncontrolled)
   const isInputControlled = controlledValue !== undefined
   const displayValue = isInputControlled ? controlledValue : search
+
+  // Consume pending search on activation
+  React.useEffect(() => {
+    if (pendingSearch && internalRef.current) {
+      // Set the search value from pending
+      if (isInputControlled) {
+        onValueChange?.(pendingSearch)
+      } else {
+        store.setSearch(pendingSearch)
+        onValueChange?.(pendingSearch)
+      }
+      // Clear pending search
+      store.setPendingSearch('')
+      // Focus the input
+      internalRef.current.focus()
+    }
+  }, [pendingSearch, store, isInputControlled, onValueChange])
 
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,7 +219,7 @@ export const DropdownMenuInput = React.forwardRef<
     [onKeyDown, store, depth, submenuContext, isOwner, focusOwnerStore],
   )
 
-  return useRender({
+  const element = useRender({
     render,
     ref: [internalRef, forwardedRef],
     props: {
@@ -200,6 +242,13 @@ export const DropdownMenuInput = React.forwardRef<
     },
     defaultTagName: 'input',
   })
+
+  // Don't render if hideUntilActive is enabled and not yet active
+  if (!shouldRender) {
+    return null
+  }
+
+  return element
 })
 
 export namespace DropdownMenuInput {
