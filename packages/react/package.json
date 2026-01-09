@@ -24,15 +24,19 @@
     "type-check": "tsc --noEmit",
     "build": "tsup"
   },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.0.0",
+    "@base-ui/utils": "^0.2.3"
+  },
   "devDependencies": {
     "@bazza-ui/typescript-config": "workspace:*",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
-  },
-  "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
   }
 }
