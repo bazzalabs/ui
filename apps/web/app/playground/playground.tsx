@@ -403,7 +403,9 @@ function SubmenuExample() {
                   <DropdownMenu.Submenu>
                     <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
                       <span>Share</span>
-                      <span className="text-gray-400">→</span>
+                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 data-[popup-open]:not-data-[popup-focused]:text-foreground/75 data-[popup-focused]:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4">
+                        <CaretRightIcon className="size-full" />
+                      </DropdownMenu.SubmenuTriggerIndicator>
                     </DropdownMenu.SubmenuTrigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Positioner sideOffset={4}>
@@ -439,7 +441,9 @@ function SubmenuExample() {
                               <DropdownMenu.Submenu>
                                 <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
                                   <span>Social Media</span>
-                                  <span className="text-gray-400">→</span>
+                                  <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 data-[popup-open]:not-data-[popup-focused]:text-foreground/75 data-[popup-focused]:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4">
+                                    <CaretRightIcon className="size-full" />
+                                  </DropdownMenu.SubmenuTriggerIndicator>
                                 </DropdownMenu.SubmenuTrigger>
                                 <DropdownMenu.Portal>
                                   <DropdownMenu.Positioner sideOffset={4}>
@@ -493,7 +497,9 @@ function SubmenuExample() {
                   <DropdownMenu.Submenu>
                     <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
                       <span>Export as</span>
-                      <span className="text-gray-400">→</span>
+                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 data-[popup-open]:not-data-[popup-focused]:text-foreground/75 data-[popup-focused]:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4">
+                        <CaretRightIcon className="size-full" />
+                      </DropdownMenu.SubmenuTriggerIndicator>
                     </DropdownMenu.SubmenuTrigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Positioner sideOffset={4}>
@@ -546,5 +552,20 @@ function SubmenuExample() {
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
     </div>
+  )
+}
+
+const CaretRightIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
+    </svg>
   )
 }
