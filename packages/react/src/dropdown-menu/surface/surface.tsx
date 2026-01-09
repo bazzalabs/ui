@@ -1,13 +1,18 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { type FilterFn, SurfaceContext } from '../contexts/surface-context.js'
 import { defaultFilter } from '../utils/command-score.js'
 
+// Surface doesn't expose data attributes - using empty state
+export interface DropdownMenuSurfaceState extends Record<string, unknown> {}
+
 export interface DropdownMenuSurfaceProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+  extends ComponentProps<'div', DropdownMenuSurfaceState> {
   /**
    * Filter function for matching items against search query.
    * Returns a score between 0 and 1 (0 = no match, > 0 = match).
@@ -59,7 +64,10 @@ export interface DropdownMenuSurfaceProps
  * Place inside DropdownMenu.Popup to enable search functionality.
  * Renders a `<div>` element.
  */
-export function DropdownMenuSurface(props: DropdownMenuSurfaceProps) {
+export const DropdownMenuSurface = React.forwardRef<
+  HTMLDivElement,
+  DropdownMenuSurfaceProps
+>(function DropdownMenuSurface(props, forwardedRef) {
   const {
     filter = defaultFilter,
     search: searchProp,
@@ -68,6 +76,9 @@ export function DropdownMenuSurface(props: DropdownMenuSurfaceProps) {
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
+    render,
+    className,
+    style,
     onPointerDown,
     children,
     ...rest
@@ -124,15 +135,27 @@ export function DropdownMenuSurface(props: DropdownMenuSurfaceProps) {
     [onPointerDown],
   )
 
+  const element = useRender({
+    render,
+    ref: forwardedRef,
+    props: {
+      ...rest,
+      className,
+      style,
+      onPointerDown: handlePointerDown,
+      children,
+    },
+    defaultTagName: 'div',
+  })
+
   return (
     <SurfaceContext.Provider value={contextValue}>
-      <div {...rest} onPointerDown={handlePointerDown}>
-        {children}
-      </div>
+      {element}
     </SurfaceContext.Provider>
   )
-}
+})
 
 export namespace DropdownMenuSurface {
+  export type State = DropdownMenuSurfaceState
   export interface Props extends DropdownMenuSurfaceProps {}
 }
