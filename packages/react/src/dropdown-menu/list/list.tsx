@@ -91,6 +91,25 @@ export const DropdownMenuList = React.forwardRef<
       // Check for IME composition
       if (event.nativeEvent.isComposing || event.keyCode === 229) return
 
+      // Type-to-search: detect printable characters when hideUntilActive is enabled
+      const hideUntilActive = store.context.hideUntilActive
+      const inputActive = store.state.inputActive
+
+      if (hideUntilActive && !inputActive) {
+        const isPrintable =
+          event.key.length === 1 &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey
+
+        if (isPrintable) {
+          event.preventDefault()
+          store.setPendingSearch(event.key)
+          store.setInputActive(true)
+          return
+        }
+      }
+
       switch (event.key) {
         case 'ArrowDown': {
           event.preventDefault()

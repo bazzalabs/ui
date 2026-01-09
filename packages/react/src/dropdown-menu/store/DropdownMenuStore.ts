@@ -34,6 +34,10 @@ export interface State {
   highlightSource: HighlightSource
   /** Whether an Input is present in the Surface */
   hasInput: boolean
+  /** Whether the input is currently active (rendered) when hideUntilActive mode is used */
+  inputActive: boolean
+  /** Pending search character typed before input was active */
+  pendingSearch: string
   /** Filtered results: item ID to score */
   filteredItems: Map<string, number>
   /** Groups that have at least one visible item */
@@ -53,6 +57,8 @@ export interface Context {
   autoHighlightFirst: boolean
   /** Whether to clear search on close */
   clearSearchOnClose: boolean
+  /** Whether hideUntilActive mode is enabled */
+  hideUntilActive: boolean
   /** ID for the list element (for aria-activedescendant) */
   listId: string
   /** ID for the input element */
@@ -83,6 +89,8 @@ const selectors = {
   highlightedId: createSelector((state: State) => state.highlightedId),
   highlightSource: createSelector((state: State) => state.highlightSource),
   hasInput: createSelector((state: State) => state.hasInput),
+  inputActive: createSelector((state: State) => state.inputActive),
+  pendingSearch: createSelector((state: State) => state.pendingSearch),
   filteredCount: createSelector((state: State) => state.filteredCount),
   filteredItems: createSelector((state: State) => state.filteredItems),
   visibleGroups: createSelector((state: State) => state.visibleGroups),
@@ -125,6 +133,7 @@ export class DropdownMenuStore extends ReactStore<
         loop: true,
         autoHighlightFirst: true,
         clearSearchOnClose: true,
+        hideUntilActive: false,
         listId: '',
         inputId: '',
         items: new Map(),
@@ -151,7 +160,12 @@ export class DropdownMenuStore extends ReactStore<
         if (this.context.clearSearchOnClose) {
           this.setSearch('')
         }
-        this.update({ highlightedId: null, highlightSource: null })
+        this.update({
+          highlightedId: null,
+          highlightSource: null,
+          inputActive: false,
+          pendingSearch: '',
+        })
       }
     })
 
@@ -191,6 +205,22 @@ export class DropdownMenuStore extends ReactStore<
 
   setHasInput(hasInput: boolean) {
     this.set('hasInput', hasInput)
+  }
+
+  setInputActive(active: boolean) {
+    this.set('inputActive', active)
+  }
+
+  setPendingSearch(search: string) {
+    this.set('pendingSearch', search)
+  }
+
+  setHideUntilActive(enabled: boolean) {
+    this.context.hideUntilActive = enabled
+    // If enabling and there's already search content, activate immediately
+    if (enabled && this.state.search.length > 0) {
+      this.setInputActive(true)
+    }
   }
 
   // ============================================================================
@@ -476,6 +506,8 @@ function createInitialState(): State {
     highlightedId: null,
     highlightSource: null,
     hasInput: false,
+    inputActive: false,
+    pendingSearch: '',
     filteredItems: new Map(),
     visibleGroups: new Set(),
     filteredCount: 0,
