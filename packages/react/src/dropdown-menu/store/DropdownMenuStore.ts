@@ -17,6 +17,8 @@ export interface ItemRegistration {
   keywords?: string[]
   groupId?: string
   disabled?: boolean
+  /** Whether this item is a submenu trigger */
+  isSubmenuTrigger?: boolean
 }
 
 export interface State {
@@ -57,6 +59,8 @@ export interface Context {
   readonly groups: Map<string, Set<string>>
   /** Map of item ID to onSelect callback */
   readonly itemSelects: Map<string, () => void>
+  /** Map of submenu trigger ID to open callback */
+  readonly submenuOpens: Map<string, () => void>
   /** Callback when open state changes */
   onOpenChange: (open: boolean) => void
   /** Callback when search state changes */
@@ -119,6 +123,7 @@ export class DropdownMenuStore extends ReactStore<
         items: new Map(),
         groups: new Map(),
         itemSelects: new Map(),
+        submenuOpens: new Map(),
         onOpenChange: () => {},
         onSearchChange: undefined,
         ...context,
@@ -226,6 +231,18 @@ export class DropdownMenuStore extends ReactStore<
     }
   }
 
+  registerSubmenuOpen(
+    id: string,
+    onOpen: (() => void) | undefined,
+  ): () => void {
+    if (onOpen) {
+      this.context.submenuOpens.set(id, onOpen)
+    }
+    return () => {
+      this.context.submenuOpens.delete(id)
+    }
+  }
+
   // ============================================================================
   // Navigation
   // ============================================================================
@@ -273,6 +290,21 @@ export class DropdownMenuStore extends ReactStore<
       const onSelect = this.context.itemSelects.get(this.state.highlightedId)
       onSelect?.()
     }
+  }
+
+  openSubmenuForHighlighted() {
+    if (this.state.highlightedId) {
+      const onOpen = this.context.submenuOpens.get(this.state.highlightedId)
+      onOpen?.()
+    }
+  }
+
+  isHighlightedSubmenuTrigger(): boolean {
+    if (!this.state.highlightedId) return false
+    return (
+      this.context.items.get(this.state.highlightedId)?.isSubmenuTrigger ??
+      false
+    )
   }
 
   clearSearch() {

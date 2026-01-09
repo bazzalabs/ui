@@ -11,6 +11,7 @@ export function Playground() {
       <SearchableExample />
       <GroupedExample />
       <ControlledExample />
+      <SubmenuExample />
     </div>
   )
 }
@@ -358,6 +359,169 @@ function ControlledExample() {
                 <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
                   No countries found
                 </DropdownMenu.Empty>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
+  )
+}
+
+/**
+ * Dropdown menu with submenus
+ */
+function SubmenuExample() {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-sm text-gray-500">Submenu</span>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger className="rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-500">
+          With Submenu
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+              <DropdownMenu.Surface>
+                <DropdownMenu.List className="focus:outline-none">
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('New File')}
+                  >
+                    New File
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Open')}
+                  >
+                    Open
+                  </DropdownMenu.Item>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  {/* Share Submenu */}
+                  <DropdownMenu.Submenu>
+                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                      <span>Share</span>
+                      <span className="text-gray-400">→</span>
+                    </DropdownMenu.SubmenuTrigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Positioner sideOffset={4}>
+                        <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                          <DropdownMenu.Surface>
+                            <DropdownMenu.List className="focus:outline-none">
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Share via Email')}
+                              >
+                                Email
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Share via Slack')}
+                              >
+                                Slack
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Copy Link')}
+                              >
+                                Copy Link
+                              </DropdownMenu.Item>
+
+                              {/* Nested Submenu */}
+                              <DropdownMenu.Submenu>
+                                <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                                  <span>Social Media</span>
+                                  <span className="text-gray-400">→</span>
+                                </DropdownMenu.SubmenuTrigger>
+                                <DropdownMenu.Portal>
+                                  <DropdownMenu.Positioner sideOffset={4}>
+                                    <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                                      <DropdownMenu.Surface>
+                                        <DropdownMenu.List className="focus:outline-none">
+                                          <DropdownMenu.Item
+                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                            onSelect={() =>
+                                              toast('Share on Twitter')
+                                            }
+                                          >
+                                            Twitter
+                                          </DropdownMenu.Item>
+                                          <DropdownMenu.Item
+                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                            onSelect={() =>
+                                              toast('Share on Facebook')
+                                            }
+                                          >
+                                            Facebook
+                                          </DropdownMenu.Item>
+                                          <DropdownMenu.Item
+                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                            onSelect={() =>
+                                              toast('Share on LinkedIn')
+                                            }
+                                          >
+                                            LinkedIn
+                                          </DropdownMenu.Item>
+                                        </DropdownMenu.List>
+                                      </DropdownMenu.Surface>
+                                    </DropdownMenu.Popup>
+                                  </DropdownMenu.Positioner>
+                                </DropdownMenu.Portal>
+                              </DropdownMenu.Submenu>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                        </DropdownMenu.Popup>
+                      </DropdownMenu.Positioner>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Submenu>
+
+                  {/* Export Submenu */}
+                  <DropdownMenu.Submenu>
+                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                      <span>Export as</span>
+                      <span className="text-gray-400">→</span>
+                    </DropdownMenu.SubmenuTrigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Positioner sideOffset={4}>
+                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                          <DropdownMenu.Surface>
+                            <DropdownMenu.List className="focus:outline-none">
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Export as PDF')}
+                              >
+                                PDF
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Export as PNG')}
+                              >
+                                PNG
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Export as SVG')}
+                              >
+                                SVG
+                              </DropdownMenu.Item>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                        </DropdownMenu.Popup>
+                      </DropdownMenu.Positioner>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Submenu>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
+                    onSelect={() => toast('Deleted!')}
+                  >
+                    Delete
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
               </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>

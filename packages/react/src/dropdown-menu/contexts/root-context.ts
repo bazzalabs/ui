@@ -6,6 +6,8 @@ import type { DropdownMenuStore } from '../store/DropdownMenuStore.js'
 export interface RootContextValue {
   /** The DropdownMenu store instance */
   store: DropdownMenuStore
+  /** Nesting depth: 0 = root menu, 1+ = submenu */
+  depth: number
 }
 
 const RootContext = React.createContext<RootContextValue | null>(null)

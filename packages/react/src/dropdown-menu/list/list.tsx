@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { useRootContext } from '../contexts/root-context.js'
+import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 
 export interface DropdownMenuListState {
@@ -45,6 +47,8 @@ export const DropdownMenuList = React.forwardRef<
   } = props
 
   const { store } = useSurfaceContext()
+  const { depth } = useRootContext()
+  const submenuContext = useMaybeSubmenuContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
   // Get values from store
@@ -96,6 +100,22 @@ export const DropdownMenuList = React.forwardRef<
           store.selectHighlighted()
           break
         }
+        case 'ArrowRight': {
+          // Open submenu if highlighted item is a submenu trigger
+          if (store.isHighlightedSubmenuTrigger()) {
+            event.preventDefault()
+            store.openSubmenuForHighlighted()
+          }
+          break
+        }
+        case 'ArrowLeft': {
+          // Close submenu and return to parent (only if in a submenu)
+          if (depth > 0 && submenuContext) {
+            event.preventDefault()
+            submenuContext.setOpen(false)
+          }
+          break
+        }
         case 'Home': {
           event.preventDefault()
           // Highlight first item - use highlightNext from null state
@@ -112,7 +132,7 @@ export const DropdownMenuList = React.forwardRef<
         }
       }
     },
-    [onKeyDown, shouldHandleKeyboard, store],
+    [onKeyDown, shouldHandleKeyboard, store, depth, submenuContext],
   )
 
   // Prevent pointer down from stealing focus from Input
