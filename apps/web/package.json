@@ -23,6 +23,7 @@
   "dependencies": {
     "@bazza-ui/action-menu": "workspace:*",
     "@bazza-ui/command-menu": "workspace:*",
+    "@bazza-ui/react": "workspace:*",
     "@bazza-ui/context-menu": "workspace:*",
     "@bazza-ui/dropdown-menu": "workspace:*",
     "@bazza-ui/filters": "workspace:*",
