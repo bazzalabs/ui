@@ -53,6 +53,7 @@ export const DropdownMenuItem = React.forwardRef<
     onSelect,
     forceMount = false,
     onClick,
+    onPointerDown,
     onPointerMove,
     children,
     ...rest
@@ -111,9 +112,18 @@ export const DropdownMenuItem = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
 
+      event.preventDefault()
       onSelect?.()
     },
     [onClick, disabled, onSelect],
+  )
+
+  const handlerPointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      onPointerDown?.(event)
+    },
+    [onPointerDown],
   )
 
   const handlePointerMove = React.useCallback(
@@ -154,6 +164,7 @@ export const DropdownMenuItem = React.forwardRef<
       data-disabled={disabled ? '' : undefined}
       onClick={handleClick}
       onPointerMove={handlePointerMove}
+      onPointerDown={handlerPointerDown}
     >
       {children}
     </div>
