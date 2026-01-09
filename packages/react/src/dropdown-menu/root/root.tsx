@@ -74,6 +74,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
   const contextValue = React.useMemo(
     () => ({
       store,
+      depth: 0,
     }),
     [store],
   )
