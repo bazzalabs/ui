@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 export function Playground() {
   return (
-    <div className="flex items-center justify-center gap-8 p-8">
+    <div className="grid grid-cols-3 gap-8 p-8">
       <BasicExample />
       <SearchableExample />
       <GroupedExample />

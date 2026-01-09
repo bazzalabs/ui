@@ -50,6 +50,8 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
 
   // Ref for trigger element
   const triggerRef = React.useRef<HTMLElement | null>(null)
+  // Ref for submenu content element (used for aim guard rect calculations)
+  const contentRef = React.useRef<HTMLElement | null>(null)
 
   // Create stable callback for onOpenChange
   const handleOpenChange = useStableCallback((newOpen: boolean) => {
@@ -115,6 +117,7 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
       open,
       setOpen: (newOpen: boolean) => store.setOpen(newOpen),
       triggerRef,
+      contentRef,
     }),
     [open, store],
   )

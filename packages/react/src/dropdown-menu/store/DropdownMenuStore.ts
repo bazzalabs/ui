@@ -61,6 +61,8 @@ export interface Context {
   readonly itemSelects: Map<string, () => void>
   /** Map of submenu trigger ID to open callback */
   readonly submenuOpens: Map<string, () => void>
+  /** Map of submenu trigger ID to close callback */
+  readonly submenuCloses: Map<string, () => void>
   /** Callback when open state changes */
   onOpenChange: (open: boolean) => void
   /** Callback when search state changes */
@@ -124,6 +126,7 @@ export class DropdownMenuStore extends ReactStore<
         groups: new Map(),
         itemSelects: new Map(),
         submenuOpens: new Map(),
+        submenuCloses: new Map(),
         onOpenChange: () => {},
         onSearchChange: undefined,
         ...context,
@@ -171,6 +174,13 @@ export class DropdownMenuStore extends ReactStore<
   }
 
   setHighlightedId(id: string | null) {
+    const prevId = this.state.highlightedId
+    if (prevId === id) return
+
+    // Close any open submenus that are not the newly highlighted item
+    // This ensures only one submenu is open at a time in this menu
+    this.closeSiblingSubmenus(id)
+
     this.set('highlightedId', id)
   }
 
@@ -240,6 +250,34 @@ export class DropdownMenuStore extends ReactStore<
     }
     return () => {
       this.context.submenuOpens.delete(id)
+    }
+  }
+
+  registerSubmenuClose(
+    id: string,
+    onClose: (() => void) | undefined,
+  ): () => void {
+    if (onClose) {
+      this.context.submenuCloses.set(id, onClose)
+    }
+    return () => {
+      this.context.submenuCloses.delete(id)
+    }
+  }
+
+  /**
+   * Close all submenus except the one with the given ID.
+   * Used when hovering over a new submenu trigger to close sibling submenus.
+   */
+  closeSiblingSubmenus(exceptId: string | null) {
+    for (const [id, onClose] of this.context.submenuCloses) {
+      if (id !== exceptId) {
+        try {
+          onClose()
+        } catch {
+          // Ignore errors from closing submenus
+        }
+      }
     }
   }
 
