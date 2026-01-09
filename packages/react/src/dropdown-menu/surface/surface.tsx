@@ -68,6 +68,7 @@ export function DropdownMenuSurface(props: DropdownMenuSurfaceProps) {
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
+    onPointerDown,
     children,
     ...rest
   } = props
@@ -114,9 +115,20 @@ export function DropdownMenuSurface(props: DropdownMenuSurfaceProps) {
     [store],
   )
 
+  // Prevent pointer down from stealing focus from Input
+  const handlePointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      onPointerDown?.(event)
+    },
+    [onPointerDown],
+  )
+
   return (
     <SurfaceContext.Provider value={contextValue}>
-      <div {...rest}>{children}</div>
+      <div {...rest} onPointerDown={handlePointerDown}>
+        {children}
+      </div>
     </SurfaceContext.Provider>
   )
 }
