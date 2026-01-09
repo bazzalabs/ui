@@ -32,6 +32,7 @@ export const DropdownMenuInput = React.forwardRef<
   const { value: controlledValue, onValueChange, onKeyDown, ...rest } = props
 
   const { store } = useSurfaceContext()
+  const internalRef = React.useRef<HTMLInputElement>(null)
 
   // Get values from store
   const search = store.useState('search')
@@ -39,9 +40,11 @@ export const DropdownMenuInput = React.forwardRef<
   const listId = store.context.listId
   const inputId = store.context.inputId
 
-  // Register that an Input is present
+  // Register that an Input is present and auto-focus
   React.useEffect(() => {
     store.setHasInput(true)
+    // Auto-focus the input when it mounts
+    internalRef.current?.focus()
     return () => store.setHasInput(false)
   }, [store])
 
@@ -124,7 +127,17 @@ export const DropdownMenuInput = React.forwardRef<
 
   return (
     <input
-      ref={forwardedRef}
+      ref={(node) => {
+        // Merge refs
+        ;(
+          internalRef as React.MutableRefObject<HTMLInputElement | null>
+        ).current = node
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node)
+        } else if (forwardedRef) {
+          forwardedRef.current = node
+        }
+      }}
       {...rest}
       id={inputId}
       type="text"

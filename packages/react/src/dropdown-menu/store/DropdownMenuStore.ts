@@ -1,6 +1,5 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
-import * as React from 'react'
 import { commandScore } from '../utils/command-score.js'
 
 // ============================================================================
@@ -127,22 +126,26 @@ export class DropdownMenuStore extends ReactStore<
       selectors,
     )
 
-    // Auto-highlight first item when search changes
-    this.observe('search', () => {
-      if (this.context.autoHighlightFirst && this.state.open) {
-        const visibleIds = this.getVisibleItemIds()
-        if (visibleIds.length > 0 && visibleIds[0]) {
-          this.set('highlightedId', visibleIds[0])
-        } else {
-          this.set('highlightedId', null)
+    // Handle open/close
+    this.observe('open', (open) => {
+      if (open) {
+        // Auto-highlight first item when opening
+        if (this.context.autoHighlightFirst) {
+          this.highlightFirstItem()
         }
+      } else {
+        // Clear search and highlight on close
+        if (this.context.clearSearchOnClose) {
+          this.setSearch('')
+        }
+        this.set('highlightedId', null)
       }
     })
 
-    // Clear search on close
-    this.observe('open', (open) => {
-      if (!open && this.context.clearSearchOnClose) {
-        this.setSearch('')
+    // Recompute filtered items when search changes (handles controlled search via useControlledProp)
+    this.observe('search', (search, prevSearch) => {
+      if (search !== prevSearch) {
+        this.recomputeFilteredItems()
       }
     })
   }
@@ -159,7 +162,7 @@ export class DropdownMenuStore extends ReactStore<
   setSearch(search: string) {
     this.set('search', search)
     this.context.onSearchChange?.(search)
-    this.recomputeFilteredItems()
+    // Note: recomputeFilteredItems is called by the 'search' observer
   }
 
   setHighlightedId(id: string | null) {
@@ -276,16 +279,27 @@ export class DropdownMenuStore extends ReactStore<
     this.setSearch('')
   }
 
+  highlightFirstItem() {
+    const visibleIds = this.getVisibleItemIds()
+    if (visibleIds.length > 0 && visibleIds[0]) {
+      this.set('highlightedId', visibleIds[0])
+    } else {
+      this.set('highlightedId', null)
+    }
+  }
+
   // ============================================================================
   // Internal Helpers
   // ============================================================================
 
-  private getVisibleItemIds(): string[] {
+  getVisibleItemIds(): string[] {
     const result: string[] = []
+    const search = this.state.search
+    const filteredItems = this.state.filteredItems
 
     this.context.items.forEach((registration, id) => {
-      const score = this.state.filteredItems.get(id) ?? 0
-      const isVisible = this.state.search.length === 0 || score > 0
+      const score = filteredItems.get(id) ?? 0
+      const isVisible = search.length === 0 || score > 0
       if (isVisible && !registration.disabled) {
         result.push(id)
       }
@@ -332,11 +346,27 @@ export class DropdownMenuStore extends ReactStore<
       })
     }
 
+    // Auto-highlight first item when open and autoHighlightFirst is enabled
+    let highlightedId: string | null = this.state.highlightedId
+    if (this.context.autoHighlightFirst && this.state.open) {
+      // Find first visible item using the newly computed filteredItems
+      highlightedId = null
+      for (const [id, registration] of this.context.items) {
+        const score = filteredItems.get(id) ?? 0
+        const isVisible = search.length === 0 || score > 0
+        if (isVisible && !registration.disabled) {
+          highlightedId = id
+          break
+        }
+      }
+    }
+
     this.update({
       filteredItems,
       visibleGroups,
       filteredCount,
       filterTrigger: this.state.filterTrigger + 1,
+      highlightedId,
     })
   }
 
