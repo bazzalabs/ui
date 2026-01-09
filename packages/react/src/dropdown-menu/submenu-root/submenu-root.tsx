@@ -5,6 +5,7 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { RootContext, useMaybeRootContext } from '../contexts/root-context.js'
 import { SubmenuContext } from '../contexts/submenu-context.js'
+import { useSurfaceContext } from '../contexts/surface-context.js'
 import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
 
 export interface DropdownMenuSubmenuRootProps
@@ -47,6 +48,12 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
 
   const parentRootContext = useMaybeRootContext()
   const parentDepth = parentRootContext?.depth ?? 0
+
+  // Get parent surface ID for keyboard navigation back
+  const { surfaceId: parentSurfaceId } = useSurfaceContext()
+
+  // Generate unique surface ID for this submenu
+  const childSurfaceId = React.useId()
 
   // Ref for trigger element
   const triggerRef = React.useRef<HTMLElement | null>(null)
@@ -118,8 +125,10 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
       setOpen: (newOpen: boolean) => store.setOpen(newOpen),
       triggerRef,
       contentRef,
+      parentSurfaceId,
+      childSurfaceId,
     }),
-    [open, store],
+    [open, store, parentSurfaceId, childSurfaceId],
   )
 
   // Root context value with incremented depth

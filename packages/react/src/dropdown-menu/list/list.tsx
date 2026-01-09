@@ -3,6 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
+import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
@@ -57,10 +58,14 @@ export const DropdownMenuList = React.forwardRef<
     ...rest
   } = props
 
-  const { store } = useSurfaceContext()
+  const { store, surfaceId } = useSurfaceContext()
   const { depth } = useRootContext()
   const submenuContext = useMaybeSubmenuContext()
+  const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLDivElement>(null)
+
+  // Subscribe to focus ownership
+  const isOwner = focusOwnerStore.useState('isOwner', surfaceId)
 
   // Get values from store
   const search = store.useState('search')
@@ -70,20 +75,8 @@ export const DropdownMenuList = React.forwardRef<
   const listId = store.context.listId
 
   // When there's no Input, the List should receive focus and handle keyboard nav
+  // Note: Auto-focus is handled by Surface when it becomes the focus owner
   const shouldHandleKeyboard = !hasInput
-
-  // Auto-focus when there's no input (delay to let Input register first if present)
-  React.useEffect(() => {
-    if (!hasInput) {
-      // Use microtask to let Input register first if it exists
-      queueMicrotask(() => {
-        // Re-check hasInput via store.state since hasInput from useState might be stale
-        if (!store.state.hasInput && internalRef.current) {
-          internalRef.current.focus()
-        }
-      })
-    }
-  }, [hasInput, store])
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -91,6 +84,9 @@ export const DropdownMenuList = React.forwardRef<
 
       if (event.defaultPrevented) return
       if (!shouldHandleKeyboard) return
+
+      // Only handle keyboard if this surface owns focus
+      if (!isOwner) return
 
       // Check for IME composition
       if (event.nativeEvent.isComposing || event.keyCode === 229) return
@@ -113,6 +109,7 @@ export const DropdownMenuList = React.forwardRef<
         }
         case 'ArrowRight': {
           // Open submenu if highlighted item is a submenu trigger
+          // Note: Focus transfer is handled by SubmenuTrigger's registerSubmenuOpen callback
           if (store.isHighlightedSubmenuTrigger()) {
             event.preventDefault()
             store.openSubmenuForHighlighted()
@@ -124,6 +121,8 @@ export const DropdownMenuList = React.forwardRef<
           if (depth > 0 && submenuContext) {
             event.preventDefault()
             submenuContext.setOpen(false)
+            // Transfer focus back to parent surface
+            focusOwnerStore.setOwnerId(submenuContext.parentSurfaceId)
           }
           break
         }
@@ -143,7 +142,15 @@ export const DropdownMenuList = React.forwardRef<
         }
       }
     },
-    [onKeyDown, shouldHandleKeyboard, store, depth, submenuContext],
+    [
+      onKeyDown,
+      shouldHandleKeyboard,
+      store,
+      depth,
+      submenuContext,
+      isOwner,
+      focusOwnerStore,
+    ],
   )
 
   // Prevent pointer down from stealing focus from Input
