@@ -11,6 +11,10 @@ export interface SubmenuContextValue {
   triggerRef: React.RefObject<HTMLElement | null>
   /** Reference to the submenu content element (for aim guard rect calculations) */
   contentRef: React.RefObject<HTMLElement | null>
+  /** Surface ID of the parent menu (for keyboard navigation back) */
+  parentSurfaceId: string
+  /** Surface ID of this submenu (for keyboard navigation into) */
+  childSurfaceId: string
 }
 
 const SubmenuContext = React.createContext<SubmenuContextValue | null>(null)
