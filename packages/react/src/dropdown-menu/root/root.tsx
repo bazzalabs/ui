@@ -85,12 +85,46 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     [store, focusOwnerStore],
   )
 
+  // Registry for tracking open submenus (for closeAll)
+  type SurfaceEntry = { depth: number; setOpen: (open: boolean) => void }
+  const surfaceRegistryRef = React.useRef<Map<string, SurfaceEntry>>(new Map())
+
+  // Register a surface (submenu) for closeAll tracking
+  const registerSurface = React.useCallback(
+    (depth: number, setOpen: (open: boolean) => void) => {
+      const id = Math.random().toString(36).slice(2)
+      surfaceRegistryRef.current.set(id, { depth, setOpen })
+      return () => {
+        surfaceRegistryRef.current.delete(id)
+      }
+    },
+    [],
+  )
+
+  // Close the entire menu tree from deepest submenu to root
+  const closeAll = React.useCallback(() => {
+    // Sort surfaces by depth (deepest first)
+    const surfaces = [...surfaceRegistryRef.current.values()].sort(
+      (a, b) => b.depth - a.depth,
+    )
+
+    // Close each submenu from deepest to shallowest
+    for (const surface of surfaces) {
+      surface.setOpen(false)
+    }
+
+    // Finally close the root
+    store.setOpen(false)
+  }, [store])
+
   const contextValue = React.useMemo(
     () => ({
       store,
       depth: 0,
+      closeAll,
+      registerSurface,
     }),
-    [store],
+    [store, closeAll, registerSurface],
   )
 
   return (
