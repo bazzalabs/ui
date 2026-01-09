@@ -107,7 +107,7 @@ function SearchableExample() {
                     className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
-                <DropdownMenu.List className="max-h-[200px] overflow-y-auto p-1">
+                <DropdownMenu.List className="max-h-[200px] overflow-y-auto scroll-py-1 p-1">
                   {({ search, filteredCount }) => (
                     <>
                       {search && (
@@ -164,7 +164,7 @@ function GroupedExample() {
                     className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
-                <DropdownMenu.List className="max-h-[300px] overflow-y-auto p-1">
+                <DropdownMenu.List className="max-h-[300px] overflow-y-auto scroll-py-1 p-1">
                   {/* Edit Group */}
                   <DropdownMenu.Group>
                     <DropdownMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
@@ -328,7 +328,7 @@ function ControlledExample() {
                     className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                   />
                 </div>
-                <DropdownMenu.List className="max-h-[200px] overflow-y-auto p-1">
+                <DropdownMenu.List className="max-h-[200px] overflow-y-auto scroll-py-1 p-1">
                   {countries.map((country) => (
                     <DropdownMenu.Item
                       key={country.value}
