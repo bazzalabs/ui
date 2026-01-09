@@ -9,6 +9,9 @@ export { DropdownMenuPortal as Portal } from './portal/portal.js'
 export { DropdownMenuPositioner as Positioner } from './positioner/positioner.js'
 export { DropdownMenuRoot as Root } from './root/root.js'
 export { DropdownMenuSeparator as Separator } from './separator/separator.js'
+// Submenu components
+export { DropdownMenuSubmenuRoot as Submenu } from './submenu-root/submenu-root.js'
+export { DropdownMenuSubmenuTrigger as SubmenuTrigger } from './submenu-trigger/submenu-trigger.js'
 // Search components
 export { DropdownMenuSurface as Surface } from './surface/surface.js'
 export { DropdownMenuTrigger as Trigger } from './trigger/trigger.js'

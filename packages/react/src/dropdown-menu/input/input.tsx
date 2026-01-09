@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { useRootContext } from '../contexts/root-context.js'
+import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 
 export interface DropdownMenuInputProps
@@ -32,6 +34,8 @@ export const DropdownMenuInput = React.forwardRef<
   const { value: controlledValue, onValueChange, onKeyDown, ...rest } = props
 
   const { store } = useSurfaceContext()
+  const { depth } = useRootContext()
+  const submenuContext = useMaybeSubmenuContext()
   const internalRef = React.useRef<HTMLInputElement>(null)
 
   // Get values from store
@@ -102,6 +106,30 @@ export const DropdownMenuInput = React.forwardRef<
           }
           break
         }
+        case 'ArrowRight': {
+          // Open submenu if highlighted item is a submenu trigger
+          if (store.isHighlightedSubmenuTrigger()) {
+            event.preventDefault()
+            store.openSubmenuForHighlighted()
+          }
+          break
+        }
+        case 'l': {
+          // Ctrl+L - open submenu (vim binding)
+          if (event.ctrlKey && store.isHighlightedSubmenuTrigger()) {
+            event.preventDefault()
+            store.openSubmenuForHighlighted()
+          }
+          break
+        }
+        case 'ArrowLeft': {
+          // Close submenu and return to parent (only if in a submenu)
+          if (depth > 0 && submenuContext) {
+            event.preventDefault()
+            submenuContext.setOpen(false)
+          }
+          break
+        }
         case 'Enter': {
           event.preventDefault()
           store.selectHighlighted()
@@ -122,7 +150,7 @@ export const DropdownMenuInput = React.forwardRef<
         }
       }
     },
-    [onKeyDown, store],
+    [onKeyDown, store, depth, submenuContext],
   )
 
   return (
