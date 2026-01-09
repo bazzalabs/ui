@@ -9,6 +9,8 @@ export interface SubmenuContextValue {
   setOpen: (open: boolean) => void
   /** Reference to the trigger element */
   triggerRef: React.RefObject<HTMLElement | null>
+  /** Reference to the submenu content element (for aim guard rect calculations) */
+  contentRef: React.RefObject<HTMLElement | null>
 }
 
 const SubmenuContext = React.createContext<SubmenuContextValue | null>(null)

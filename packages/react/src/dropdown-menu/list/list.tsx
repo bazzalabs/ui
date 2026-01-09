@@ -1,26 +1,34 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 
-export interface DropdownMenuListState {
+/**
+ * State passed to children render function.
+ */
+export interface DropdownMenuListChildrenState {
   /** Current search query */
   search: string
   /** Number of items matching the current filter */
   filteredCount: number
 }
 
+// List doesn't expose data attributes - using empty state
+export interface DropdownMenuListState extends Record<string, unknown> {}
+
 export interface DropdownMenuListProps
-  extends Omit<React.ComponentPropsWithoutRef<'div'>, 'children'> {
+  extends Omit<ComponentProps<'div', DropdownMenuListState>, 'children'> {
   /**
    * Content to render inside the list.
    * Can be a render function that receives the current search state.
    */
   children:
     | React.ReactNode
-    | ((state: DropdownMenuListState) => React.ReactNode)
+    | ((state: DropdownMenuListChildrenState) => React.ReactNode)
 
   /**
    * Accessible label for the listbox.
@@ -41,6 +49,9 @@ export const DropdownMenuList = React.forwardRef<
   const {
     children,
     label = 'Suggestions',
+    render,
+    className,
+    style,
     onKeyDown,
     onPointerDown,
     ...rest
@@ -144,7 +155,7 @@ export const DropdownMenuList = React.forwardRef<
     [onPointerDown],
   )
 
-  const listState: DropdownMenuListState = React.useMemo(
+  const childrenState: DropdownMenuListChildrenState = React.useMemo(
     () => ({
       search,
       filteredCount,
@@ -153,38 +164,32 @@ export const DropdownMenuList = React.forwardRef<
   )
 
   const renderedChildren =
-    typeof children === 'function' ? children(listState) : children
+    typeof children === 'function' ? children(childrenState) : children
 
-  return (
-    <div
-      ref={(node) => {
-        // Merge refs
-        ;(
-          internalRef as React.MutableRefObject<HTMLDivElement | null>
-        ).current = node
-        if (typeof forwardedRef === 'function') {
-          forwardedRef(node)
-        } else if (forwardedRef) {
-          forwardedRef.current = node
-        }
-      }}
-      {...rest}
-      id={listId}
-      role="listbox"
-      aria-label={label}
-      aria-activedescendant={
-        shouldHandleKeyboard ? (highlightedId ?? undefined) : undefined
-      }
-      tabIndex={shouldHandleKeyboard ? 0 : -1}
-      onKeyDown={handleKeyDown}
-      onPointerDown={handlePointerDown}
-    >
-      {renderedChildren}
-    </div>
-  )
+  return useRender({
+    render,
+    ref: [internalRef, forwardedRef],
+    props: {
+      ...rest,
+      id: listId,
+      role: 'listbox',
+      'aria-label': label,
+      'aria-activedescendant': shouldHandleKeyboard
+        ? (highlightedId ?? undefined)
+        : undefined,
+      tabIndex: shouldHandleKeyboard ? 0 : -1,
+      className,
+      style,
+      onKeyDown: handleKeyDown,
+      onPointerDown: handlePointerDown,
+      children: renderedChildren,
+    },
+    defaultTagName: 'div',
+  })
 })
 
 export namespace DropdownMenuList {
+  export type State = DropdownMenuListState
+  export type ChildrenState = DropdownMenuListChildrenState
   export interface Props extends DropdownMenuListProps {}
-  export interface State extends DropdownMenuListState {}
 }

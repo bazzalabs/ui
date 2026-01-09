@@ -1,13 +1,28 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
+import { useAimGuard } from '../contexts/aim-guard-context.js'
+import { useRootContext } from '../contexts/root-context.js'
 import {
   useGroupContext,
   useSurfaceContext,
 } from '../contexts/surface-context.js'
 
+export interface DropdownMenuItemState extends Record<string, unknown> {
+  /**
+   * Whether the item is highlighted (via keyboard or pointer).
+   */
+  highlighted: boolean
+  /**
+   * Whether the item is disabled.
+   */
+  disabled: boolean
+}
+
 export interface DropdownMenuItemProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+  extends ComponentProps<'div', DropdownMenuItemState> {
   /**
    * Unique value for this item used for filtering.
    * If not provided, will be inferred from textContent.
@@ -59,6 +74,9 @@ export const DropdownMenuItem = React.forwardRef<
     onSelect,
     forceMount = false,
     closeOnClick = true,
+    render,
+    className,
+    style,
     onClick,
     onPointerDown,
     onPointerMove,
@@ -68,6 +86,8 @@ export const DropdownMenuItem = React.forwardRef<
 
   const { store } = useSurfaceContext()
   const groupContext = useGroupContext()
+  const { depth } = useRootContext()
+  const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
 
   const id = React.useId()
   const ref = React.useRef<HTMLDivElement>(null)
@@ -136,7 +156,7 @@ export const DropdownMenuItem = React.forwardRef<
     [onClick, disabled, onSelect, closeOnClick, store],
   )
 
-  const handlerPointerDown = React.useCallback(
+  const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       event.preventDefault()
       onPointerDown?.(event)
@@ -151,44 +171,56 @@ export const DropdownMenuItem = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
 
+      // Don't highlight if aim guard is active at this depth (user is moving toward submenu)
+      // Only block highlighting in the same menu where the trigger is located
+      if (aimGuardActiveRef.current && guardedDepthRef.current === depth) return
+
       // Highlight on hover
       store.setHighlightedId(id)
     },
-    [onPointerMove, disabled, store, id],
+    [
+      onPointerMove,
+      disabled,
+      aimGuardActiveRef,
+      guardedDepthRef,
+      depth,
+      store,
+      id,
+    ],
   )
 
-  // Don't render if not visible
-  if (!isVisible) return null
-
-  return (
-    <div
-      ref={(node) => {
-        // Merge refs
-        ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = node
-        if (typeof forwardedRef === 'function') {
-          forwardedRef(node)
-        } else if (forwardedRef) {
-          forwardedRef.current = node
-        }
-      }}
-      {...rest}
-      id={id}
-      role="option"
-      // tabIndex for accessibility - focus stays on Input via aria-activedescendant
-      tabIndex={-1}
-      aria-selected={isHighlighted}
-      aria-disabled={disabled || undefined}
-      data-highlighted={isHighlighted ? '' : undefined}
-      data-disabled={disabled ? '' : undefined}
-      onClick={handleClick}
-      onPointerMove={handlePointerMove}
-      onPointerDown={handlerPointerDown}
-    >
-      {children}
-    </div>
+  const state: DropdownMenuItemState = React.useMemo(
+    () => ({
+      highlighted: isHighlighted,
+      disabled,
+    }),
+    [isHighlighted, disabled],
   )
+
+  return useRender({
+    render,
+    ref: [ref, forwardedRef],
+    state,
+    props: {
+      ...rest,
+      id,
+      role: 'option',
+      tabIndex: -1,
+      'aria-selected': isHighlighted,
+      'aria-disabled': disabled || undefined,
+      className,
+      style,
+      onClick: handleClick,
+      onPointerMove: handlePointerMove,
+      onPointerDown: handlePointerDown,
+      children,
+    },
+    enabled: isVisible,
+    defaultTagName: 'div',
+  })
 })
 
 export namespace DropdownMenuItem {
+  export type State = DropdownMenuItemState
   export interface Props extends DropdownMenuItemProps {}
 }

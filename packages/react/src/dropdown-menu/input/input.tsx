@@ -1,13 +1,18 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 
+// Input doesn't expose data attributes - using empty state
+export interface DropdownMenuInputState extends Record<string, unknown> {}
+
 export interface DropdownMenuInputProps
   extends Omit<
-    React.ComponentPropsWithoutRef<'input'>,
+    ComponentProps<'input', DropdownMenuInputState>,
     'value' | 'onChange' | 'type'
   > {
   /**
@@ -31,7 +36,15 @@ export const DropdownMenuInput = React.forwardRef<
   HTMLInputElement,
   DropdownMenuInputProps
 >(function DropdownMenuInput(props, forwardedRef) {
-  const { value: controlledValue, onValueChange, onKeyDown, ...rest } = props
+  const {
+    value: controlledValue,
+    onValueChange,
+    render,
+    className,
+    style,
+    onKeyDown,
+    ...rest
+  } = props
 
   const { store } = useSurfaceContext()
   const { depth } = useRootContext()
@@ -153,37 +166,32 @@ export const DropdownMenuInput = React.forwardRef<
     [onKeyDown, store, depth, submenuContext],
   )
 
-  return (
-    <input
-      ref={(node) => {
-        // Merge refs
-        ;(
-          internalRef as React.MutableRefObject<HTMLInputElement | null>
-        ).current = node
-        if (typeof forwardedRef === 'function') {
-          forwardedRef(node)
-        } else if (forwardedRef) {
-          forwardedRef.current = node
-        }
-      }}
-      {...rest}
-      id={inputId}
-      type="text"
-      role="combobox"
-      aria-autocomplete="list"
-      aria-expanded={true}
-      aria-controls={listId}
-      aria-activedescendant={highlightedId ?? undefined}
-      autoComplete="off"
-      autoCorrect="off"
-      spellCheck={false}
-      value={displayValue}
-      onChange={handleChange}
-      onKeyDown={handleKeyDown}
-    />
-  )
+  return useRender({
+    render,
+    ref: [internalRef, forwardedRef],
+    props: {
+      ...rest,
+      id: inputId,
+      type: 'text',
+      role: 'combobox',
+      'aria-autocomplete': 'list',
+      'aria-expanded': true,
+      'aria-controls': listId,
+      'aria-activedescendant': highlightedId ?? undefined,
+      autoComplete: 'off',
+      autoCorrect: 'off',
+      spellCheck: false,
+      className,
+      style,
+      value: displayValue,
+      onChange: handleChange,
+      onKeyDown: handleKeyDown,
+    },
+    defaultTagName: 'input',
+  })
 })
 
 export namespace DropdownMenuInput {
+  export type State = DropdownMenuInputState
   export interface Props extends DropdownMenuInputProps {}
 }
