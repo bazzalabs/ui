@@ -2,6 +2,7 @@
 
 import { DropdownMenu } from '@bazza-ui/react'
 import * as React from 'react'
+import { toast } from 'sonner'
 
 export function Playground() {
   return (
@@ -29,7 +30,7 @@ function BasicExample() {
           <DropdownMenu.Positioner sideOffset={8}>
             <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
               <DropdownMenu.Surface>
-                <DropdownMenu.List>
+                <DropdownMenu.List className="focus:outline-none">
                   <DropdownMenu.Item
                     className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
                     onSelect={() => console.log('Profile clicked')}
@@ -41,6 +42,13 @@ function BasicExample() {
                     onSelect={() => console.log('Settings clicked')}
                   >
                     Settings
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Settings clicked')}
+                    closeOnClick={false}
+                  >
+                    Settings, but stay open
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
                   <DropdownMenu.Item
