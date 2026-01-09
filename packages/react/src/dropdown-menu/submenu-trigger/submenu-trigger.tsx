@@ -437,7 +437,7 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   // Don't render if not visible
   if (!isVisible) return null
 
-  return <Popover.Trigger render={element} />
+  return <Popover.Trigger nativeButton={false} render={element} />
 })
 
 export namespace DropdownMenuSubmenuTrigger {
