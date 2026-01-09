@@ -4,8 +4,10 @@ import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { AimGuardProvider } from '../contexts/aim-guard-context.js'
+import { FocusOwnerCtx } from '../contexts/focus-owner-context.js'
 import { RootContext } from '../contexts/root-context.js'
 import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
+import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 
 export interface DropdownMenuRootProps
   extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
@@ -58,6 +60,13 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     },
   )
 
+  // Create focus owner store (single instance for entire menu tree)
+  const focusOwnerStoreRef = React.useRef<FocusOwnerStore | null>(null)
+  if (!focusOwnerStoreRef.current) {
+    focusOwnerStoreRef.current = new FocusOwnerStore()
+  }
+  const focusOwnerStore = focusOwnerStoreRef.current
+
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
 
@@ -68,8 +77,12 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
   const handlePopoverOpenChange = React.useCallback(
     (newOpen: boolean) => {
       store.setOpen(newOpen)
+      // Clear focus ownership when menu closes
+      if (!newOpen) {
+        focusOwnerStore.clearOwner()
+      }
     },
-    [store],
+    [store, focusOwnerStore],
   )
 
   const contextValue = React.useMemo(
@@ -83,13 +96,15 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
   return (
     <RootContext.Provider value={contextValue}>
       <AimGuardProvider>
-        <Popover.Root
-          {...rest}
-          open={open}
-          onOpenChange={handlePopoverOpenChange}
-        >
-          {children}
-        </Popover.Root>
+        <FocusOwnerCtx.Provider value={focusOwnerStore}>
+          <Popover.Root
+            {...rest}
+            open={open}
+            onOpenChange={handlePopoverOpenChange}
+          >
+            {children}
+          </Popover.Root>
+        </FocusOwnerCtx.Provider>
       </AimGuardProvider>
     </RootContext.Provider>
   )

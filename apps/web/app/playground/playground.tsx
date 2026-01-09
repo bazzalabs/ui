@@ -407,9 +407,15 @@ function SubmenuExample() {
                     </DropdownMenu.SubmenuTrigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Positioner sideOffset={4}>
-                        <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                        <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
                           <DropdownMenu.Surface>
-                            <DropdownMenu.List className="focus:outline-none">
+                            <div className="border-b border-gray-200 p-2">
+                              <DropdownMenu.Input
+                                placeholder="Search..."
+                                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                              />
+                            </div>
+                            <DropdownMenu.List className="p-1 focus:outline-none">
                               <DropdownMenu.Item
                                 className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
                                 onSelect={() => toast('Share via Email')}
@@ -437,9 +443,15 @@ function SubmenuExample() {
                                 </DropdownMenu.SubmenuTrigger>
                                 <DropdownMenu.Portal>
                                   <DropdownMenu.Positioner sideOffset={4}>
-                                    <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                                    <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
                                       <DropdownMenu.Surface>
-                                        <DropdownMenu.List className="focus:outline-none">
+                                        <div className="border-b border-gray-200 p-2">
+                                          <DropdownMenu.Input
+                                            placeholder="Search..."
+                                            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                                          />
+                                        </div>
+                                        <DropdownMenu.List className="p-1 focus:outline-none">
                                           <DropdownMenu.Item
                                             className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
                                             onSelect={() =>
@@ -485,9 +497,15 @@ function SubmenuExample() {
                     </DropdownMenu.SubmenuTrigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Positioner sideOffset={4}>
-                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
                           <DropdownMenu.Surface>
-                            <DropdownMenu.List className="focus:outline-none">
+                            <div className="border-b border-gray-200 p-2">
+                              <DropdownMenu.Input
+                                placeholder="Search..."
+                                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                              />
+                            </div>
+                            <DropdownMenu.List className="p-1 focus:outline-none">
                               <DropdownMenu.Item
                                 className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
                                 onSelect={() => toast('Export as PDF')}

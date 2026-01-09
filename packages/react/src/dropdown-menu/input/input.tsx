@@ -3,6 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
+import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
@@ -46,10 +47,14 @@ export const DropdownMenuInput = React.forwardRef<
     ...rest
   } = props
 
-  const { store } = useSurfaceContext()
+  const { store, surfaceId } = useSurfaceContext()
   const { depth } = useRootContext()
   const submenuContext = useMaybeSubmenuContext()
+  const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)
+
+  // Subscribe to focus ownership
+  const isOwner = focusOwnerStore.useState('isOwner', surfaceId)
 
   // Get values from store
   const search = store.useState('search')
@@ -57,11 +62,10 @@ export const DropdownMenuInput = React.forwardRef<
   const listId = store.context.listId
   const inputId = store.context.inputId
 
-  // Register that an Input is present and auto-focus
+  // Register that an Input is present
+  // Note: Auto-focus is handled by Surface when it becomes the focus owner
   React.useEffect(() => {
     store.setHasInput(true)
-    // Auto-focus the input when it mounts
-    internalRef.current?.focus()
     return () => store.setHasInput(false)
   }, [store])
 
@@ -88,6 +92,9 @@ export const DropdownMenuInput = React.forwardRef<
       onKeyDown?.(event)
 
       if (event.defaultPrevented) return
+
+      // Only handle keyboard if this surface owns focus
+      if (!isOwner) return
 
       // Check for IME composition
       if (event.nativeEvent.isComposing || event.keyCode === 229) return
@@ -121,6 +128,7 @@ export const DropdownMenuInput = React.forwardRef<
         }
         case 'ArrowRight': {
           // Open submenu if highlighted item is a submenu trigger
+          // Note: Focus transfer is handled by SubmenuTrigger's registerSubmenuOpen callback
           if (store.isHighlightedSubmenuTrigger()) {
             event.preventDefault()
             store.openSubmenuForHighlighted()
@@ -129,6 +137,7 @@ export const DropdownMenuInput = React.forwardRef<
         }
         case 'l': {
           // Ctrl+L - open submenu (vim binding)
+          // Note: Focus transfer is handled by SubmenuTrigger's registerSubmenuOpen callback
           if (event.ctrlKey && store.isHighlightedSubmenuTrigger()) {
             event.preventDefault()
             store.openSubmenuForHighlighted()
@@ -140,6 +149,8 @@ export const DropdownMenuInput = React.forwardRef<
           if (depth > 0 && submenuContext) {
             event.preventDefault()
             submenuContext.setOpen(false)
+            // Transfer focus back to parent surface
+            focusOwnerStore.setOwnerId(submenuContext.parentSurfaceId)
           }
           break
         }
@@ -163,7 +174,7 @@ export const DropdownMenuInput = React.forwardRef<
         }
       }
     },
-    [onKeyDown, store, depth, submenuContext],
+    [onKeyDown, store, depth, submenuContext, isOwner, focusOwnerStore],
   )
 
   return useRender({
