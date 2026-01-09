@@ -8,6 +8,13 @@ export interface RootContextValue {
   store: DropdownMenuStore
   /** Nesting depth: 0 = root menu, 1+ = submenu */
   depth: number
+  /** Close the entire menu tree (deepest submenu to root, sequentially) */
+  closeAll: () => void
+  /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
+  registerSurface: (
+    depth: number,
+    setOpen: (open: boolean) => void,
+  ) => () => void
 }
 
 const RootContext = React.createContext<RootContextValue | null>(null)

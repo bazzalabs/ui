@@ -48,6 +48,8 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
 
   const parentRootContext = useMaybeRootContext()
   const parentDepth = parentRootContext?.depth ?? 0
+  const parentCloseAll = parentRootContext?.closeAll
+  const parentRegisterSurface = parentRootContext?.registerSurface
 
   // Get parent surface ID for keyboard navigation back
   const { surfaceId: parentSurfaceId } = useSurfaceContext()
@@ -118,6 +120,13 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
     }
   }, [parentOpen, store])
 
+  // Register this submenu with the root for closeAll tracking
+  const depth = parentDepth + 1
+  React.useEffect(() => {
+    if (!parentRegisterSurface) return
+    return parentRegisterSurface(depth, (newOpen) => store.setOpen(newOpen))
+  }, [parentRegisterSurface, depth, store])
+
   // Submenu context value
   const submenuContextValue = React.useMemo(
     () => ({
@@ -131,13 +140,25 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
     [open, store, parentSurfaceId, childSurfaceId],
   )
 
+  // Fallback registerSurface for edge cases (submenu without parent root)
+  const fallbackRegisterSurface = React.useCallback(() => () => {}, [])
+
   // Root context value with incremented depth
+  // Pass parent's closeAll and registerSurface through unchanged
   const rootContextValue = React.useMemo(
     () => ({
       store,
-      depth: parentDepth + 1,
+      depth,
+      closeAll: parentCloseAll ?? (() => store.setOpen(false)),
+      registerSurface: parentRegisterSurface ?? fallbackRegisterSurface,
     }),
-    [store, parentDepth],
+    [
+      store,
+      depth,
+      parentCloseAll,
+      parentRegisterSurface,
+      fallbackRegisterSurface,
+    ],
   )
 
   return (
