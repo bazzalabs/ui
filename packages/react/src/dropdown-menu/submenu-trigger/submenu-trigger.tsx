@@ -5,6 +5,7 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 import { useAimGuard } from '../contexts/aim-guard-context.js'
+import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useSubmenuContext } from '../contexts/submenu-context.js'
 import {
@@ -119,7 +120,11 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
 
   // Get submenu context for open state and refs
   const submenuContext = useSubmenuContext()
-  const { open, setOpen, triggerRef, contentRef } = submenuContext
+  const { open, setOpen, triggerRef, contentRef, childSurfaceId } =
+    submenuContext
+
+  // Get focus owner store for keyboard focus transfer
+  const focusOwnerStore = useFocusOwner()
 
   // Get aim guard for safe polygon navigation
   const {
@@ -172,9 +177,31 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   ])
 
   // Register submenu open callback with parent store
+  // When submenu is opened via keyboard (ArrowRight/Ctrl+L), transfer focus ownership
   React.useEffect(() => {
-    return parentStore.registerSubmenuOpen(id, () => setOpen(true))
-  }, [id, parentStore, setOpen])
+    return parentStore.registerSubmenuOpen(id, () => {
+      console.log(
+        '[SubmenuTrigger] registerSubmenuOpen callback - opening via KEYBOARD, transferring focus to:',
+        childSurfaceId,
+      )
+      setOpen(true)
+      // Transfer focus ownership to the submenu surface
+      focusOwnerStore.setOwnerId(childSurfaceId)
+      // Auto-focus after DOM is ready
+      requestAnimationFrame(() => {
+        const input = contentRef.current?.querySelector('input')
+        const list = contentRef.current?.querySelector('[role="listbox"]')
+        const focusTarget = input ?? list
+        console.log(
+          '[SubmenuTrigger] Keyboard open - focusing element:',
+          focusTarget?.tagName,
+        )
+        if (focusTarget && focusTarget instanceof HTMLElement) {
+          focusTarget.focus()
+        }
+      })
+    })
+  }, [id, parentStore, setOpen, focusOwnerStore, childSurfaceId, contentRef])
 
   // Register submenu close callback with parent store
   // This allows the store to close this submenu when another item is highlighted
@@ -258,6 +285,9 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
         return
 
       // Clear any existing aim guard and open submenu
+      console.log(
+        '[SubmenuTrigger] pointerEnter - opening submenu via HOVER (no focus transfer)',
+      )
       clearAimGuard()
       setOpen(true)
     },

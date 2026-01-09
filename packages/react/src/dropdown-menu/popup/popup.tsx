@@ -3,6 +3,7 @@
 import { Popover, type PopoverPopupProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import { useAimGuard } from '../contexts/aim-guard-context.js'
+import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 
 export interface DropdownMenuPopupProps extends PopoverPopupProps {}
@@ -17,11 +18,14 @@ export const DropdownMenuPopup = React.forwardRef<
 >(function DropdownMenuPopup(props, forwardedRef) {
   const { children, ...rest } = props
 
-  // Get submenu context to set contentRef for aim guard
+  // Get submenu context to set contentRef for aim guard and get childSurfaceId for focus transfer
   const submenuContext = useMaybeSubmenuContext()
 
   // Get aim guard to clear it when pointer enters submenu
-  const { clearAimGuard } = useAimGuard()
+  const { clearAimGuard, aimGuardActiveRef } = useAimGuard()
+
+  // Get focus owner store for transferring ownership
+  const focusOwnerStore = useFocusOwner()
 
   // Local ref for the popup element
   const popupRef = React.useRef<HTMLDivElement>(null)
@@ -50,20 +54,45 @@ export const DropdownMenuPopup = React.forwardRef<
   )
 
   // Clear aim guard when pointer moves inside this submenu popup
-  // Using onPointerMove instead of onPointerEnter for reliability with fast mouse movements
+  // Only clear if aim guard is actually active to avoid spam
   const handlePointerMove = React.useCallback(() => {
-    // Only clear if this is a submenu popup (not the root popup)
-    if (submenuContext) {
+    // Only handle if this is a submenu popup (not the root popup) and aim guard is active
+    if (submenuContext && aimGuardActiveRef.current) {
+      console.log('[Popup] pointerMove in submenu popup, clearing aim guard')
       clearAimGuard()
     }
-  }, [submenuContext, clearAimGuard])
+  }, [submenuContext, aimGuardActiveRef, clearAimGuard])
+
+  // Transfer focus ownership when pointer explicitly enters this submenu popup
+  // Using onPointerEnter (not onPointerMove) to avoid transferring focus
+  // when the popup appears near the cursor during open animation
+  const handlePointerEnter = React.useCallback(() => {
+    // Only transfer focus if this is a submenu popup (not the root popup)
+    // Use childSurfaceId from SubmenuContext since Popup is outside Surface in the component tree
+    if (submenuContext) {
+      console.log(
+        '[Popup] pointerEnter - transferring focus to submenu surface:',
+        submenuContext.childSurfaceId,
+      )
+      focusOwnerStore.setOwnerId(submenuContext.childSurfaceId)
+    }
+  }, [submenuContext, focusOwnerStore])
+
+  // For submenus, disable Base UI's auto-focus behavior
+  // Focus is managed by our FocusOwner system instead
+  const initialFocus = submenuContext ? false : undefined
 
   return (
     <Popover.Popup
       ref={combinedRef}
+      initialFocus={initialFocus}
       onPointerMove={(event) => {
         handlePointerMove()
         rest.onPointerMove?.(event)
+      }}
+      onPointerEnter={(event) => {
+        handlePointerEnter()
+        rest.onPointerEnter?.(event)
       }}
       {...rest}
     >

@@ -16,6 +16,8 @@ export type {
 export interface SurfaceContextValue {
   /** The DropdownMenu store instance */
   store: DropdownMenuStore
+  /** Unique identifier for this surface */
+  surfaceId: string
 }
 
 const SurfaceContext = React.createContext<SurfaceContextValue | null>(null)
