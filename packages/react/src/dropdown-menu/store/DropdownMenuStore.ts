@@ -21,6 +21,8 @@ export interface ItemRegistration {
   isSubmenuTrigger?: boolean
 }
 
+export type HighlightSource = 'keyboard' | 'pointer' | null
+
 export interface State {
   /** Whether the dropdown menu is open */
   open: boolean
@@ -28,6 +30,8 @@ export interface State {
   search: string
   /** Currently highlighted item ID */
   highlightedId: string | null
+  /** Source of the current highlight (keyboard or pointer) */
+  highlightSource: HighlightSource
   /** Whether an Input is present in the Surface */
   hasInput: boolean
   /** Filtered results: item ID to score */
@@ -77,6 +81,7 @@ const selectors = {
   open: createSelector((state: State) => state.open),
   search: createSelector((state: State) => state.search),
   highlightedId: createSelector((state: State) => state.highlightedId),
+  highlightSource: createSelector((state: State) => state.highlightSource),
   hasInput: createSelector((state: State) => state.hasInput),
   filteredCount: createSelector((state: State) => state.filteredCount),
   filteredItems: createSelector((state: State) => state.filteredItems),
@@ -146,7 +151,7 @@ export class DropdownMenuStore extends ReactStore<
         if (this.context.clearSearchOnClose) {
           this.setSearch('')
         }
-        this.set('highlightedId', null)
+        this.update({ highlightedId: null, highlightSource: null })
       }
     })
 
@@ -173,7 +178,7 @@ export class DropdownMenuStore extends ReactStore<
     // Note: recomputeFilteredItems is called by the 'search' observer
   }
 
-  setHighlightedId(id: string | null) {
+  setHighlightedId(id: string | null, cause: HighlightSource = 'pointer') {
     const prevId = this.state.highlightedId
     if (prevId === id) return
 
@@ -181,7 +186,7 @@ export class DropdownMenuStore extends ReactStore<
     // This ensures only one submenu is open at a time in this menu
     this.closeSiblingSubmenus(id)
 
-    this.set('highlightedId', id)
+    this.update({ highlightedId: id, highlightSource: cause })
   }
 
   setHasInput(hasInput: boolean) {
@@ -300,7 +305,7 @@ export class DropdownMenuStore extends ReactStore<
 
     const nextId = visibleIds[nextIndex]
     if (nextId) {
-      this.set('highlightedId', nextId)
+      this.setHighlightedId(nextId, 'keyboard')
     }
   }
 
@@ -319,7 +324,7 @@ export class DropdownMenuStore extends ReactStore<
 
     const prevId = visibleIds[prevIndex]
     if (prevId) {
-      this.set('highlightedId', prevId)
+      this.setHighlightedId(prevId, 'keyboard')
     }
   }
 
@@ -352,9 +357,10 @@ export class DropdownMenuStore extends ReactStore<
   highlightFirstItem() {
     const visibleIds = this.getVisibleItemIds()
     if (visibleIds.length > 0 && visibleIds[0]) {
-      this.set('highlightedId', visibleIds[0])
+      // Don't set a cause - auto-highlight shouldn't trigger scroll
+      this.update({ highlightedId: visibleIds[0], highlightSource: null })
     } else {
-      this.set('highlightedId', null)
+      this.update({ highlightedId: null, highlightSource: null })
     }
   }
 
@@ -437,6 +443,8 @@ export class DropdownMenuStore extends ReactStore<
       filteredCount,
       filterTrigger: this.state.filterTrigger + 1,
       highlightedId,
+      // Auto-highlight shouldn't trigger scroll
+      highlightSource: null,
     })
   }
 
@@ -466,6 +474,7 @@ function createInitialState(): State {
     open: false,
     search: '',
     highlightedId: null,
+    highlightSource: null,
     hasInput: false,
     filteredItems: new Map(),
     visibleGroups: new Set(),
