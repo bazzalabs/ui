@@ -86,7 +86,7 @@ export const DropdownMenuItem = React.forwardRef<
 
   const { store } = useSurfaceContext()
   const groupContext = useGroupContext()
-  const { depth } = useRootContext()
+  const { depth, closeAll } = useRootContext()
   const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
 
   const id = React.useId()
@@ -150,10 +150,10 @@ export const DropdownMenuItem = React.forwardRef<
       onSelect?.()
 
       if (closeOnClick) {
-        store.setOpen(false)
+        closeAll()
       }
     },
-    [onClick, disabled, onSelect, closeOnClick, store],
+    [onClick, disabled, onSelect, closeOnClick, closeAll],
   )
 
   const handlePointerDown = React.useCallback(
