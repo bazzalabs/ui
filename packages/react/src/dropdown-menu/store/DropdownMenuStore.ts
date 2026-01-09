@@ -1,0 +1,375 @@
+import { createSelector, ReactStore } from '@base-ui/utils/store'
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
+import * as React from 'react'
+import { commandScore } from '../utils/command-score.js'
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type FilterFn = (
+  value: string,
+  search: string,
+  keywords?: string[],
+) => number
+
+export interface ItemRegistration {
+  value: string
+  keywords?: string[]
+  groupId?: string
+  disabled?: boolean
+}
+
+export interface State {
+  /** Whether the dropdown menu is open */
+  open: boolean
+  /** Current search query */
+  search: string
+  /** Currently highlighted item ID */
+  highlightedId: string | null
+  /** Whether an Input is present in the Surface */
+  hasInput: boolean
+  /** Filtered results: item ID to score */
+  filteredItems: Map<string, number>
+  /** Groups that have at least one visible item */
+  visibleGroups: Set<string>
+  /** Count of visible items */
+  filteredCount: number
+  /** Counter to trigger re-filtering when items change */
+  filterTrigger: number
+}
+
+export interface Context {
+  /** Filter function or false to disable filtering */
+  filter: FilterFn | false
+  /** Whether to loop navigation */
+  loop: boolean
+  /** Whether to auto-highlight first item */
+  autoHighlightFirst: boolean
+  /** Whether to clear search on close */
+  clearSearchOnClose: boolean
+  /** ID for the list element (for aria-activedescendant) */
+  listId: string
+  /** ID for the input element */
+  inputId: string
+  /** Map of item ID to registration data */
+  readonly items: Map<string, ItemRegistration>
+  /** Map of group ID to set of item IDs */
+  readonly groups: Map<string, Set<string>>
+  /** Map of item ID to onSelect callback */
+  readonly itemSelects: Map<string, () => void>
+  /** Callback when open state changes */
+  onOpenChange: (open: boolean) => void
+  /** Callback when search state changes */
+  onSearchChange: ((search: string) => void) | undefined
+}
+
+// ============================================================================
+// Selectors
+// ============================================================================
+
+const selectors = {
+  open: createSelector((state: State) => state.open),
+  search: createSelector((state: State) => state.search),
+  highlightedId: createSelector((state: State) => state.highlightedId),
+  hasInput: createSelector((state: State) => state.hasInput),
+  filteredCount: createSelector((state: State) => state.filteredCount),
+  filteredItems: createSelector((state: State) => state.filteredItems),
+  visibleGroups: createSelector((state: State) => state.visibleGroups),
+
+  isHighlighted: createSelector(
+    (state: State, itemId: string) => state.highlightedId === itemId,
+  ),
+
+  isGroupVisible: createSelector(
+    (state: State, groupId: string) =>
+      state.search.length === 0 || state.visibleGroups.has(groupId),
+  ),
+
+  getItemScore: createSelector((state: State, itemId: string) => {
+    if (state.search.length === 0) {
+      return 1 // All items visible when no search
+    }
+    return state.filteredItems.get(itemId) ?? 0
+  }),
+
+  hasSearchWithNoResults: createSelector(
+    (state: State) => state.search.length > 0 && state.filteredCount === 0,
+  ),
+}
+
+// ============================================================================
+// Store
+// ============================================================================
+
+export class DropdownMenuStore extends ReactStore<
+  State,
+  Context,
+  typeof selectors
+> {
+  constructor(initialState?: Partial<State>, context?: Partial<Context>) {
+    super(
+      { ...createInitialState(), ...initialState },
+      {
+        filter: commandScore,
+        loop: true,
+        autoHighlightFirst: true,
+        clearSearchOnClose: true,
+        listId: '',
+        inputId: '',
+        items: new Map(),
+        groups: new Map(),
+        itemSelects: new Map(),
+        onOpenChange: () => {},
+        onSearchChange: undefined,
+        ...context,
+      },
+      selectors,
+    )
+
+    // Auto-highlight first item when search changes
+    this.observe('search', () => {
+      if (this.context.autoHighlightFirst && this.state.open) {
+        const visibleIds = this.getVisibleItemIds()
+        if (visibleIds.length > 0 && visibleIds[0]) {
+          this.set('highlightedId', visibleIds[0])
+        } else {
+          this.set('highlightedId', null)
+        }
+      }
+    })
+
+    // Clear search on close
+    this.observe('open', (open) => {
+      if (!open && this.context.clearSearchOnClose) {
+        this.setSearch('')
+      }
+    })
+  }
+
+  // ============================================================================
+  // Actions
+  // ============================================================================
+
+  setOpen(open: boolean) {
+    this.set('open', open)
+    this.context.onOpenChange(open)
+  }
+
+  setSearch(search: string) {
+    this.set('search', search)
+    this.context.onSearchChange?.(search)
+    this.recomputeFilteredItems()
+  }
+
+  setHighlightedId(id: string | null) {
+    this.set('highlightedId', id)
+  }
+
+  setHasInput(hasInput: boolean) {
+    this.set('hasInput', hasInput)
+  }
+
+  // ============================================================================
+  // Item Registration
+  // ============================================================================
+
+  registerItem(id: string, registration: ItemRegistration): () => void {
+    this.context.items.set(id, registration)
+
+    // Add to group if specified
+    if (registration.groupId) {
+      const groupItems = this.context.groups.get(registration.groupId)
+      if (groupItems) {
+        groupItems.add(id)
+      }
+    }
+
+    // Trigger recompute
+    this.recomputeFilteredItems()
+
+    return () => {
+      this.context.items.delete(id)
+      this.context.itemSelects.delete(id)
+
+      if (registration.groupId) {
+        const groupItems = this.context.groups.get(registration.groupId)
+        if (groupItems) {
+          groupItems.delete(id)
+        }
+      }
+
+      this.recomputeFilteredItems()
+    }
+  }
+
+  registerGroup(id: string): () => void {
+    this.context.groups.set(id, new Set())
+
+    return () => {
+      this.context.groups.delete(id)
+    }
+  }
+
+  registerItemSelect(
+    id: string,
+    onSelect: (() => void) | undefined,
+  ): () => void {
+    if (onSelect) {
+      this.context.itemSelects.set(id, onSelect)
+    }
+    return () => {
+      this.context.itemSelects.delete(id)
+    }
+  }
+
+  // ============================================================================
+  // Navigation
+  // ============================================================================
+
+  highlightNext() {
+    const visibleIds = this.getVisibleItemIds()
+    if (visibleIds.length === 0) return
+
+    const currentIndex = this.state.highlightedId
+      ? visibleIds.indexOf(this.state.highlightedId)
+      : -1
+    let nextIndex = currentIndex + 1
+
+    if (nextIndex >= visibleIds.length) {
+      nextIndex = this.context.loop ? 0 : visibleIds.length - 1
+    }
+
+    const nextId = visibleIds[nextIndex]
+    if (nextId) {
+      this.set('highlightedId', nextId)
+    }
+  }
+
+  highlightPrev() {
+    const visibleIds = this.getVisibleItemIds()
+    if (visibleIds.length === 0) return
+
+    const currentIndex = this.state.highlightedId
+      ? visibleIds.indexOf(this.state.highlightedId)
+      : visibleIds.length
+    let prevIndex = currentIndex - 1
+
+    if (prevIndex < 0) {
+      prevIndex = this.context.loop ? visibleIds.length - 1 : 0
+    }
+
+    const prevId = visibleIds[prevIndex]
+    if (prevId) {
+      this.set('highlightedId', prevId)
+    }
+  }
+
+  selectHighlighted() {
+    if (this.state.highlightedId) {
+      const onSelect = this.context.itemSelects.get(this.state.highlightedId)
+      onSelect?.()
+    }
+  }
+
+  clearSearch() {
+    this.setSearch('')
+  }
+
+  // ============================================================================
+  // Internal Helpers
+  // ============================================================================
+
+  private getVisibleItemIds(): string[] {
+    const result: string[] = []
+
+    this.context.items.forEach((registration, id) => {
+      const score = this.state.filteredItems.get(id) ?? 0
+      const isVisible = this.state.search.length === 0 || score > 0
+      if (isVisible && !registration.disabled) {
+        result.push(id)
+      }
+    })
+
+    return result
+  }
+
+  private recomputeFilteredItems() {
+    const { filter } = this.context
+    const search = this.state.search
+    const items = this.context.items
+    const groups = this.context.groups
+
+    const filteredItems = new Map<string, number>()
+    const visibleGroups = new Set<string>()
+    let filteredCount = 0
+
+    // If no search or filtering disabled, all items are visible
+    if (!search || filter === false) {
+      items.forEach((_, id) => {
+        filteredItems.set(id, 1)
+        filteredCount++
+      })
+      groups.forEach((_, groupId) => {
+        visibleGroups.add(groupId)
+      })
+    } else {
+      // Apply filter function
+      const filterFn = filter || commandScore
+      items.forEach((registration, id) => {
+        const score = filterFn(
+          registration.value,
+          search,
+          registration.keywords,
+        )
+        filteredItems.set(id, score)
+        if (score > 0) {
+          filteredCount++
+          if (registration.groupId) {
+            visibleGroups.add(registration.groupId)
+          }
+        }
+      })
+    }
+
+    this.update({
+      filteredItems,
+      visibleGroups,
+      filteredCount,
+      filterTrigger: this.state.filterTrigger + 1,
+    })
+  }
+
+  // ============================================================================
+  // Static Factory
+  // ============================================================================
+
+  static useStore(
+    externalStore: DropdownMenuStore | undefined,
+    initialState?: Partial<State>,
+    context?: Partial<Context>,
+  ): DropdownMenuStore {
+    const store = useRefWithInit(() => {
+      return externalStore ?? new DropdownMenuStore(initialState, context)
+    }).current
+
+    return store
+  }
+}
+
+// ============================================================================
+// Initial State Factory
+// ============================================================================
+
+function createInitialState(): State {
+  return {
+    open: false,
+    search: '',
+    highlightedId: null,
+    hasInput: false,
+    filteredItems: new Map(),
+    visibleGroups: new Set(),
+    filteredCount: 0,
+    filterTrigger: 0,
+  }
+}
