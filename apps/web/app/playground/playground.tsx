@@ -31,6 +31,13 @@ function BasicExample() {
           <DropdownMenu.Positioner sideOffset={8}>
             <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
               <DropdownMenu.Surface>
+                <div className="border-b border-gray-200 p-2">
+                  <DropdownMenu.Input
+                    hideUntilActive
+                    placeholder="Search..."
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
                 <DropdownMenu.List className="focus:outline-none">
                   <DropdownMenu.Item
                     className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
