@@ -36,6 +36,12 @@ export interface DropdownMenuItemProps
    * @default false
    */
   forceMount?: boolean
+
+  /**
+   * Whether clicking this item should close the menu.
+   * @default true
+   */
+  closeOnClick?: boolean
 }
 
 /**
@@ -52,6 +58,7 @@ export const DropdownMenuItem = React.forwardRef<
     disabled = false,
     onSelect,
     forceMount = false,
+    closeOnClick = true,
     onClick,
     onPointerDown,
     onPointerMove,
@@ -121,8 +128,12 @@ export const DropdownMenuItem = React.forwardRef<
 
       event.preventDefault()
       onSelect?.()
+
+      if (closeOnClick) {
+        store.setOpen(false)
+      }
     },
-    [onClick, disabled, onSelect],
+    [onClick, disabled, onSelect, closeOnClick, store],
   )
 
   const handlerPointerDown = React.useCallback(
