@@ -8,8 +8,13 @@ import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 
-// Input doesn't expose data attributes - using empty state
-export interface DropdownMenuInputState extends Record<string, unknown> {}
+export interface DropdownMenuInputState extends Record<string, unknown> {
+  /**
+   * Whether the input is active (visible).
+   * Only relevant when `hideUntilActive` is true.
+   */
+  active: boolean
+}
 
 export interface DropdownMenuInputProps
   extends Omit<
@@ -219,9 +224,17 @@ export const DropdownMenuInput = React.forwardRef<
     [onKeyDown, store, depth, submenuContext, isOwner, focusOwnerStore],
   )
 
+  const state: DropdownMenuInputState = React.useMemo(
+    () => ({
+      active: inputActive,
+    }),
+    [inputActive],
+  )
+
   const element = useRender({
     render,
     ref: [internalRef, forwardedRef],
+    state,
     props: {
       ...rest,
       id: inputId,
