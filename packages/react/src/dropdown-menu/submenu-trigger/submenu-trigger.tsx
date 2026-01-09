@@ -27,9 +27,13 @@ export interface DropdownMenuSubmenuTriggerState
    */
   submenuTrigger: boolean
   /**
-   * Whether the submenu is open.
+   * Whether the submenu popup is open.
    */
-  submenuOpen: boolean
+  popupOpen: boolean
+  /**
+   * Whether the submenu owns keyboard focus.
+   */
+  popupFocused: boolean
   /**
    * Whether the item is highlighted.
    */
@@ -46,9 +50,11 @@ const stateAttributesMapping = {
     value
       ? { [DropdownMenuSubmenuTriggerDataAttributes.submenuTrigger]: '' }
       : null,
-  submenuOpen: (value: unknown) =>
+  popupOpen: (value: unknown) =>
+    value ? { [DropdownMenuSubmenuTriggerDataAttributes.popupOpen]: '' } : null,
+  popupFocused: (value: unknown) =>
     value
-      ? { [DropdownMenuSubmenuTriggerDataAttributes.submenuOpen]: '' }
+      ? { [DropdownMenuSubmenuTriggerDataAttributes.popupFocused]: '' }
       : null,
   highlighted: (value: unknown) =>
     value
@@ -213,6 +219,9 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   const search = parentStore.useState('search')
   const isHighlighted = parentStore.useState('isHighlighted', id)
   const score = parentStore.useState('getItemScore', id)
+
+  // Check if this submenu owns keyboard focus
+  const isPopupFocused = focusOwnerStore.useState('isOwner', childSurfaceId)
 
   // Determine visibility based on filter score
   const hasSearch = search.length > 0
@@ -392,11 +401,12 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   const state: DropdownMenuSubmenuTriggerState = React.useMemo(
     () => ({
       submenuTrigger: true,
-      submenuOpen: open,
+      popupOpen: open,
+      popupFocused: isPopupFocused,
       highlighted: isHighlighted,
       disabled,
     }),
-    [open, isHighlighted, disabled],
+    [open, isPopupFocused, isHighlighted, disabled],
   )
 
   // Use useRender to create the element with state-based data attributes
