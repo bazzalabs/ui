@@ -12,6 +12,7 @@ export { DropdownMenuSeparator as Separator } from './separator/separator.js'
 // Submenu components
 export { DropdownMenuSubmenuRoot as Submenu } from './submenu-root/submenu-root.js'
 export { DropdownMenuSubmenuTrigger as SubmenuTrigger } from './submenu-trigger/submenu-trigger.js'
+export { DropdownMenuSubmenuTriggerIndicator as SubmenuTriggerIndicator } from './submenu-trigger/submenu-trigger-indicator.js'
 // Search components
 export { DropdownMenuSurface as Surface } from './surface/surface.js'
 export { DropdownMenuTrigger as Trigger } from './trigger/trigger.js'

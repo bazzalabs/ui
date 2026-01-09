@@ -132,12 +132,16 @@ export const DropdownMenuItem = React.forwardRef<
   const hasSearch = search.length > 0
   const isVisible = forceMount || !hasSearch || score > 0
 
-  // Scroll into view when highlighted via keyboard
+  // Scroll into view only when highlighted via keyboard
   React.useEffect(() => {
-    if (isHighlighted && ref.current) {
+    if (
+      isHighlighted &&
+      store.state.highlightSource === 'keyboard' &&
+      ref.current
+    ) {
       ref.current.scrollIntoView({ block: 'nearest' })
     }
-  }, [isHighlighted])
+  }, [isHighlighted, store])
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
