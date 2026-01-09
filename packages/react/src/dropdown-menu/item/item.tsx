@@ -105,6 +105,13 @@ export const DropdownMenuItem = React.forwardRef<
   const hasSearch = search.length > 0
   const isVisible = forceMount || !hasSearch || score > 0
 
+  // Scroll into view when highlighted via keyboard
+  React.useEffect(() => {
+    if (isHighlighted && ref.current) {
+      ref.current.scrollIntoView({ block: 'nearest' })
+    }
+  }, [isHighlighted])
+
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       onClick?.(event)
