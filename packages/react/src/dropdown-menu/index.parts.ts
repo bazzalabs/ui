@@ -1,5 +1,8 @@
 export { DropdownMenuArrow as Arrow } from './arrow/arrow.js'
 export { DropdownMenuBackdrop as Backdrop } from './backdrop/backdrop.js'
+// Checkbox components
+export { DropdownMenuCheckboxItem as CheckboxItem } from './checkbox-item/checkbox-item.js'
+export { DropdownMenuCheckboxItemIndicator as CheckboxItemIndicator } from './checkbox-item/checkbox-item-indicator.js'
 export { DropdownMenuEmpty as Empty } from './empty/empty.js'
 export { DropdownMenuGroup as Group } from './group/group.js'
 export { DropdownMenuGroupLabel as GroupLabel } from './group-label/group-label.js'
