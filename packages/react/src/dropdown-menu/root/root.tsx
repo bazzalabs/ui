@@ -31,6 +31,19 @@ export interface DropdownMenuRootProps
    */
   defaultOpen?: boolean
 
+  /**
+   * Determines if the dropdown menu enters a modal state when open.
+   *
+   * - `true`: user interaction is limited to the dropdown menu: document page scroll
+   *   is locked, and pointer interactions on outside elements are disabled.
+   * - `false`: user interaction with the rest of the document is allowed.
+   * - `'trap-focus'`: focus is trapped inside the dropdown menu, but document page
+   *   scroll is not locked and pointer interactions outside of it remain enabled.
+   *
+   * @default true
+   */
+  modal?: boolean | 'trap-focus'
+
   children: React.ReactNode
 }
 
@@ -44,6 +57,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     open: openProp,
     onOpenChange,
     defaultOpen = false,
+    modal = true,
     children,
     ...rest
   } = props
@@ -146,6 +160,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
               {...rest}
               open={open}
               onOpenChange={handlePopoverOpenChange}
+              modal={modal}
             >
               {children}
             </Popover.Root>

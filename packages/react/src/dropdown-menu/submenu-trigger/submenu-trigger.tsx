@@ -89,6 +89,26 @@ export interface DropdownMenuSubmenuTriggerProps
    * @default false
    */
   forceMount?: boolean
+
+  /**
+   * Whether the submenu opens when this trigger is highlighted.
+   * @default true
+   */
+  openOnHighlight?: boolean
+
+  /**
+   * Delay before opening the submenu (in milliseconds).
+   * Can be a number (applies to both pointer and keyboard) or an object
+   * with separate `pointer` and `keyboard` values.
+   * @default { pointer: 0, keyboard: 150 }
+   */
+  delay?: number | { pointer?: number; keyboard?: number }
+
+  /**
+   * Delay before closing the submenu when pointer leaves (in milliseconds).
+   * @default 0
+   */
+  closeDelay?: number
 }
 
 /**
@@ -105,6 +125,9 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
     keywords,
     disabled = false,
     forceMount = false,
+    openOnHighlight = true,
+    delay: delayProp,
+    closeDelay = 0,
     render,
     className,
     style,
@@ -116,6 +139,17 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
     ...rest
   } = props
 
+  // Normalize delay prop to { pointer, keyboard } format
+  const delay = React.useMemo(() => {
+    if (typeof delayProp === 'number') {
+      return { pointer: delayProp, keyboard: delayProp }
+    }
+    return {
+      pointer: delayProp?.pointer ?? 0,
+      keyboard: delayProp?.keyboard ?? 150,
+    }
+  }, [delayProp])
+
   // Get parent menu's store (from Surface context)
   const { store: parentStore } = useSurfaceContext()
   const groupContext = useGroupContext()
@@ -126,7 +160,7 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
 
   // Get submenu context for open state and refs
   const submenuContext = useSubmenuContext()
-  const { open, setOpen, triggerRef, contentRef, childSurfaceId, openDelay } =
+  const { open, setOpen, triggerRef, contentRef, childSurfaceId } =
     submenuContext
 
   // Timer for delayed opening (pointer / keyboard navigation)
@@ -279,6 +313,11 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   // This effect only handles *navigation* highlight (ArrowUp/Down).
   // Explicit open actions (ArrowRight, Ctrl+L) bypass this by calling registerSubmenuOpen directly.
   React.useEffect(() => {
+    // Skip if openOnHighlight is disabled
+    if (!openOnHighlight) {
+      return
+    }
+
     // Only schedule open when highlighted via keyboard
     if (!isHighlighted || parentStore.state.highlightSource !== 'keyboard') {
       clearOpenTimer()
@@ -290,18 +329,25 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       return
     }
 
-    const delay = openDelay.keyboard
-    if (delay <= 0) {
+    const keyboardDelay = delay.keyboard
+    if (keyboardDelay <= 0) {
       setOpen(true)
     } else {
       openTimerRef.current = setTimeout(() => {
         openTimerRef.current = null
         setOpen(true)
-      }, delay)
+      }, keyboardDelay)
     }
 
     return clearOpenTimer
-  }, [isHighlighted, parentStore, openDelay.keyboard, setOpen, clearOpenTimer])
+  }, [
+    isHighlighted,
+    parentStore,
+    delay.keyboard,
+    setOpen,
+    clearOpenTimer,
+    openOnHighlight,
+  ])
 
   // Set the trigger ref when element mounts
   React.useEffect(() => {
@@ -358,6 +404,9 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
 
+      // Skip if openOnHighlight is disabled
+      if (!openOnHighlight) return
+
       // Check if aim guard is blocking this trigger
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== id)
         return
@@ -366,25 +415,26 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       clearAimGuard()
       clearOpenTimer()
 
-      const delay = openDelay.pointer
-      if (delay <= 0) {
+      const pointerDelay = delay.pointer
+      if (pointerDelay <= 0) {
         setOpen(true)
       } else {
         openTimerRef.current = setTimeout(() => {
           openTimerRef.current = null
           setOpen(true)
-        }, delay)
+        }, pointerDelay)
       }
     },
     [
       onPointerEnter,
       disabled,
+      openOnHighlight,
       aimGuardActiveRef,
       guardedTriggerIdRef,
       id,
       clearAimGuard,
       clearOpenTimer,
-      openDelay.pointer,
+      delay.pointer,
       setOpen,
     ],
   )
