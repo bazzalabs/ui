@@ -5,9 +5,11 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { AimGuardProvider } from '../contexts/aim-guard-context.js'
 import { FocusOwnerCtx } from '../contexts/focus-owner-context.js'
+import { OpenChainCtx } from '../contexts/open-chain-context.js'
 import { RootContext } from '../contexts/root-context.js'
 import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
 import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
+import { OpenChainStore } from '../store/OpenChainStore.js'
 
 export interface DropdownMenuRootProps
   extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
@@ -67,6 +69,13 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
   }
   const focusOwnerStore = focusOwnerStoreRef.current
 
+  // Create open chain store (single instance for entire menu tree)
+  const openChainStoreRef = React.useRef<OpenChainStore | null>(null)
+  if (!openChainStoreRef.current) {
+    openChainStoreRef.current = new OpenChainStore()
+  }
+  const openChainStore = openChainStoreRef.current
+
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
 
@@ -77,12 +86,13 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
   const handlePopoverOpenChange = React.useCallback(
     (newOpen: boolean) => {
       store.setOpen(newOpen)
-      // Clear focus ownership when menu closes
+      // Clear focus ownership and open chain when menu closes
       if (!newOpen) {
         focusOwnerStore.clearOwner()
+        openChainStore.clear()
       }
     },
-    [store, focusOwnerStore],
+    [store, focusOwnerStore, openChainStore],
   )
 
   // Registry for tracking open submenus (for closeAll)
@@ -131,13 +141,15 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     <RootContext.Provider value={contextValue}>
       <AimGuardProvider>
         <FocusOwnerCtx.Provider value={focusOwnerStore}>
-          <Popover.Root
-            {...rest}
-            open={open}
-            onOpenChange={handlePopoverOpenChange}
-          >
-            {children}
-          </Popover.Root>
+          <OpenChainCtx.Provider value={openChainStore}>
+            <Popover.Root
+              {...rest}
+              open={open}
+              onOpenChange={handlePopoverOpenChange}
+            >
+              {children}
+            </Popover.Root>
+          </OpenChainCtx.Provider>
         </FocusOwnerCtx.Provider>
       </AimGuardProvider>
     </RootContext.Provider>
