@@ -7,6 +7,7 @@ import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
+import { useKeyboard } from '../utils/use-keyboard.js'
 
 /**
  * State passed to children render function.
@@ -64,9 +65,6 @@ export const DropdownMenuList = React.forwardRef<
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
-  // Subscribe to focus ownership
-  const isOwner = focusOwnerStore.useState('isOwner', surfaceId)
-
   // Get values from store
   const search = store.useState('search')
   const filteredCount = store.useState('filteredCount')
@@ -78,99 +76,17 @@ export const DropdownMenuList = React.forwardRef<
   // Note: Auto-focus is handled by Surface when it becomes the focus owner
   const shouldHandleKeyboard = !hasInput
 
-  const handleKeyDown = React.useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      onKeyDown?.(event)
-
-      if (event.defaultPrevented) return
-      if (!shouldHandleKeyboard) return
-
-      // Only handle keyboard if this surface owns focus
-      if (!isOwner) return
-
-      // Check for IME composition
-      if (event.nativeEvent.isComposing || event.keyCode === 229) return
-
-      // Type-to-search: detect printable characters when hideUntilActive is enabled
-      const hideUntilActive = store.context.hideUntilActive
-      const inputActive = store.state.inputActive
-
-      if (hideUntilActive && !inputActive) {
-        const isPrintable =
-          event.key.length === 1 &&
-          !event.ctrlKey &&
-          !event.metaKey &&
-          !event.altKey
-
-        if (isPrintable) {
-          event.preventDefault()
-          store.setPendingSearch(event.key)
-          store.setInputActive(true)
-          return
-        }
-      }
-
-      switch (event.key) {
-        case 'ArrowDown': {
-          event.preventDefault()
-          store.highlightNext()
-          break
-        }
-        case 'ArrowUp': {
-          event.preventDefault()
-          store.highlightPrev()
-          break
-        }
-        case 'Enter': {
-          event.preventDefault()
-          store.selectHighlighted()
-          break
-        }
-        case 'ArrowRight': {
-          // Open submenu if highlighted item is a submenu trigger
-          // Note: Focus transfer is handled by SubmenuTrigger's registerSubmenuOpen callback
-          if (store.isHighlightedSubmenuTrigger()) {
-            event.preventDefault()
-            store.openSubmenuForHighlighted()
-          }
-          break
-        }
-        case 'ArrowLeft': {
-          // Close submenu and return to parent (only if in a submenu)
-          if (depth > 0 && submenuContext) {
-            event.preventDefault()
-            submenuContext.setOpen(false)
-            // Transfer focus back to parent surface
-            focusOwnerStore.setOwnerId(submenuContext.parentSurfaceId)
-          }
-          break
-        }
-        case 'Home': {
-          event.preventDefault()
-          // Highlight first item - use highlightNext from null state
-          store.setHighlightedId(null)
-          store.highlightNext()
-          break
-        }
-        case 'End': {
-          event.preventDefault()
-          // Highlight last item - use highlightPrev from null state
-          store.setHighlightedId(null)
-          store.highlightPrev()
-          break
-        }
-      }
-    },
-    [
-      onKeyDown,
-      shouldHandleKeyboard,
-      store,
-      depth,
-      submenuContext,
-      isOwner,
-      focusOwnerStore,
-    ],
-  )
+  // Use centralized keyboard navigation hook
+  const { handleKeyDown } = useKeyboard({
+    store,
+    surfaceId,
+    focusOwnerStore,
+    depth,
+    submenuContext,
+    enabled: shouldHandleKeyboard,
+    enableTypeToSearch: true,
+    onKeyDown,
+  })
 
   // Prevent pointer down from stealing focus from Input
   const handlePointerDown = React.useCallback(
