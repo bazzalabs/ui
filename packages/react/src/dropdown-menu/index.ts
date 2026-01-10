@@ -10,7 +10,6 @@ export type { DropdownMenuCheckboxItem } from './checkbox-item/checkbox-item.js'
 export type { DropdownMenuCheckboxItemIndicator } from './checkbox-item/checkbox-item-indicator.js'
 // Context hooks (for advanced usage)
 export { useRootContext } from './contexts/root-context.js'
-export type { SubmenuOpenDelay } from './contexts/submenu-context.js'
 export type { FilterFn, ItemRegistration } from './contexts/surface-context.js'
 export { useSurfaceContext } from './contexts/surface-context.js'
 export { DropdownMenuEmptyDataAttributes } from './empty/empty.data-attrs.js'

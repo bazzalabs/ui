@@ -17,6 +17,8 @@ export function Playground() {
       <RadioGroupExample />
       <CheckboxItemExample />
       <ArrowBackdropExample />
+      <OpenOnHoverExample />
+      <ModalExample />
     </div>
   )
 }
@@ -1059,6 +1061,221 @@ function ArrowBackdropExample() {
                     onSelect={() => toast('Logout')}
                   >
                     Logout
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
+  )
+}
+
+/**
+ * Open on hover example - menu opens when hovering the trigger
+ */
+function OpenOnHoverExample() {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-sm text-gray-500">Open on Hover</span>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger
+          openOnHover
+          delay={300}
+          closeDelay={150}
+          className="rounded-md bg-cyan-600 px-4 py-2 text-white hover:bg-cyan-500"
+        >
+          Hover Me
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+              <DropdownMenu.Surface>
+                <DropdownMenu.List className="p-1 focus:outline-none">
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Dashboard')}
+                  >
+                    Dashboard
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Analytics')}
+                  >
+                    Analytics
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Reports')}
+                  >
+                    Reports
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Settings')}
+                  >
+                    Settings
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
+  )
+}
+
+/**
+ * Modal dropdown menu with submenus - modal={true} locks scroll and disables outside interactions
+ */
+function ModalExample() {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-sm text-gray-500">Modal + Submenu</span>
+      <DropdownMenu.Root modal>
+        <DropdownMenu.Trigger className="rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-500 aria-expanded:bg-violet-500 transition-colors">
+          Modal Menu
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+              <DropdownMenu.Surface>
+                <DropdownMenu.List className="p-1 focus:outline-none">
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('New Document')}
+                  >
+                    New Document
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                    onSelect={() => toast('Open Recent')}
+                  >
+                    Open Recent
+                  </DropdownMenu.Item>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  {/* Edit Submenu */}
+                  <DropdownMenu.Submenu>
+                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                      <span>Edit</span>
+                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
+                        <CaretRightIcon className="size-full" />
+                      </DropdownMenu.SubmenuTriggerIndicator>
+                    </DropdownMenu.SubmenuTrigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Positioner sideOffset={4}>
+                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                          <DropdownMenu.Surface>
+                            <DropdownMenu.List className="p-1 focus:outline-none">
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Undo')}
+                              >
+                                Undo
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Redo')}
+                              >
+                                Redo
+                              </DropdownMenu.Item>
+
+                              <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                              {/* Clipboard Nested Submenu */}
+                              <DropdownMenu.Submenu>
+                                <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                                  <span>Clipboard</span>
+                                  <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
+                                    <CaretRightIcon className="size-full" />
+                                  </DropdownMenu.SubmenuTriggerIndicator>
+                                </DropdownMenu.SubmenuTrigger>
+                                <DropdownMenu.Portal>
+                                  <DropdownMenu.Positioner sideOffset={4}>
+                                    <DropdownMenu.Popup className="min-w-[140px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                                      <DropdownMenu.Surface>
+                                        <DropdownMenu.List className="p-1 focus:outline-none">
+                                          <DropdownMenu.Item
+                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                            onSelect={() => toast('Cut')}
+                                          >
+                                            Cut
+                                          </DropdownMenu.Item>
+                                          <DropdownMenu.Item
+                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                            onSelect={() => toast('Copy')}
+                                          >
+                                            Copy
+                                          </DropdownMenu.Item>
+                                          <DropdownMenu.Item
+                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                            onSelect={() => toast('Paste')}
+                                          >
+                                            Paste
+                                          </DropdownMenu.Item>
+                                        </DropdownMenu.List>
+                                      </DropdownMenu.Surface>
+                                    </DropdownMenu.Popup>
+                                  </DropdownMenu.Positioner>
+                                </DropdownMenu.Portal>
+                              </DropdownMenu.Submenu>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                        </DropdownMenu.Popup>
+                      </DropdownMenu.Positioner>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Submenu>
+
+                  {/* View Submenu */}
+                  <DropdownMenu.Submenu>
+                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                      <span>View</span>
+                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
+                        <CaretRightIcon className="size-full" />
+                      </DropdownMenu.SubmenuTriggerIndicator>
+                    </DropdownMenu.SubmenuTrigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Positioner sideOffset={4}>
+                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                          <DropdownMenu.Surface>
+                            <DropdownMenu.List className="p-1 focus:outline-none">
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Zoom In')}
+                              >
+                                Zoom In
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Zoom Out')}
+                              >
+                                Zoom Out
+                              </DropdownMenu.Item>
+                              <DropdownMenu.Item
+                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                onSelect={() => toast('Reset Zoom')}
+                              >
+                                Reset Zoom
+                              </DropdownMenu.Item>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                        </DropdownMenu.Popup>
+                      </DropdownMenu.Positioner>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Submenu>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
+                    onSelect={() => toast('Close')}
+                  >
+                    Close
                   </DropdownMenu.Item>
                 </DropdownMenu.List>
               </DropdownMenu.Surface>
