@@ -15,6 +15,13 @@ export interface SubmenuContextValue {
   parentSurfaceId: string
   /** Surface ID of this submenu (for keyboard navigation into) */
   childSurfaceId: string
+  /**
+   * Whether pressing Escape in this submenu closes the entire menu from the root.
+   * When true, Escape closes the entire menu tree.
+   * When false, Escape only closes this submenu and moves focus to the parent.
+   * @default true
+   */
+  closeRootOnEsc: boolean
 }
 
 const SubmenuContext = React.createContext<SubmenuContextValue | null>(null)

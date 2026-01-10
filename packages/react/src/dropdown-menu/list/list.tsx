@@ -60,7 +60,7 @@ export const DropdownMenuList = React.forwardRef<
   } = props
 
   const { store, surfaceId } = useSurfaceContext()
-  const { depth } = useRootContext()
+  const { depth, closeAll } = useRootContext()
   const submenuContext = useMaybeSubmenuContext()
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLDivElement>(null)
@@ -86,6 +86,7 @@ export const DropdownMenuList = React.forwardRef<
     enabled: shouldHandleKeyboard,
     enableTypeToSearch: true,
     onKeyDown,
+    closeAll,
   })
 
   // Prevent pointer down from stealing focus from Input
