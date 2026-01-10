@@ -4,6 +4,10 @@ export type { DropdownMenuArrow } from './arrow/arrow.js'
 // Backdrop
 export { DropdownMenuBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
 export type { DropdownMenuBackdrop } from './backdrop/backdrop.js'
+// Checkbox components
+export { DropdownMenuCheckboxItemDataAttributes } from './checkbox-item/checkbox-item.data-attrs.js'
+export type { DropdownMenuCheckboxItem } from './checkbox-item/checkbox-item.js'
+export type { DropdownMenuCheckboxItemIndicator } from './checkbox-item/checkbox-item-indicator.js'
 // Context hooks (for advanced usage)
 export { useRootContext } from './contexts/root-context.js'
 export type { SubmenuOpenDelay } from './contexts/submenu-context.js'

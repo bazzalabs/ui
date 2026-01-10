@@ -3,6 +3,7 @@
 import { DropdownMenu } from '@bazza-ui/react'
 import * as React from 'react'
 import { toast } from 'sonner'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
 export function Playground() {
@@ -14,6 +15,7 @@ export function Playground() {
       <ControlledExample />
       <SubmenuExample />
       <RadioGroupExample />
+      <CheckboxItemExample />
       <ArrowBackdropExample />
     </div>
   )
@@ -678,6 +680,259 @@ const CaretRightIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
     >
       <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
     </svg>
+  )
+}
+
+/**
+ * CheckboxItem example with settings toggles
+ */
+function CheckboxItemExample() {
+  const [notifications, setNotifications] = React.useState(true)
+  const [darkMode, setDarkMode] = React.useState(false)
+  const [autoSave, setAutoSave] = React.useState(true)
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span className="text-sm text-gray-500">CheckboxItem</span>
+      <div className="text-xs text-gray-400">
+        Notifications: {notifications ? 'on' : 'off'} | Dark:{' '}
+        {darkMode ? 'on' : 'off'} | AutoSave: {autoSave ? 'on' : 'off'}
+      </div>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger className="rounded-md bg-teal-600 px-4 py-2 text-white hover:bg-teal-500">
+          Settings
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+              <DropdownMenu.Surface>
+                <DropdownMenu.List className="p-1 focus:outline-none">
+                  <DropdownMenu.CheckboxItem
+                    checked={notifications}
+                    onCheckedChange={setNotifications}
+                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <span>Notifications</span>
+                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                      <CheckIcon className="h-4 w-4 text-teal-600" />
+                    </DropdownMenu.CheckboxItemIndicator>
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    checked={darkMode}
+                    onCheckedChange={setDarkMode}
+                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <span>Dark Mode</span>
+                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                      <CheckIcon className="h-4 w-4 text-teal-600" />
+                    </DropdownMenu.CheckboxItemIndicator>
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    checked={autoSave}
+                    onCheckedChange={setAutoSave}
+                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <span>Auto-save</span>
+                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                      <CheckIcon className="h-4 w-4 text-teal-600" />
+                    </DropdownMenu.CheckboxItemIndicator>
+                  </DropdownMenu.CheckboxItem>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  {/* Uncontrolled checkbox example */}
+                  <DropdownMenu.CheckboxItem
+                    defaultChecked
+                    onCheckedChange={(checked) =>
+                      toast(`Remember me: ${checked}`)
+                    }
+                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <span>Remember me (uncontrolled)</span>
+                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                      <CheckIcon className="h-4 w-4 text-teal-600" />
+                    </DropdownMenu.CheckboxItemIndicator>
+                  </DropdownMenu.CheckboxItem>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  {/* Checkbox items using the Checkbox UI component */}
+                  <DropdownMenu.CheckboxItem
+                    defaultChecked
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <DropdownMenu.CheckboxItemIndicator
+                      keepMounted
+                      render={(props, state) => (
+                        <Checkbox checked={state.checked} tabIndex={-1} />
+                      )}
+                    />
+                    <span>Show sidebar</span>
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    defaultChecked={false}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <DropdownMenu.CheckboxItemIndicator
+                      keepMounted
+                      render={(props, state) => (
+                        <Checkbox checked={state.checked} tabIndex={-1} />
+                      )}
+                    />
+                    <span>Show minimap</span>
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    defaultChecked
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <DropdownMenu.CheckboxItemIndicator
+                      keepMounted
+                      render={(props, state) => (
+                        <Checkbox checked={state.checked} tabIndex={-1} />
+                      )}
+                    />
+                    <span>Word wrap</span>
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    defaultChecked={false}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <DropdownMenu.CheckboxItemIndicator
+                      keepMounted
+                      render={(props, state) => (
+                        <Checkbox checked={state.checked} tabIndex={-1} />
+                      )}
+                    />
+                    <span>Line numbers</span>
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    defaultChecked
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                  >
+                    <DropdownMenu.CheckboxItemIndicator
+                      keepMounted
+                      render={(props, state) => (
+                        <Checkbox checked={state.checked} tabIndex={-1} />
+                      )}
+                    />
+                    <span>Highlight current line</span>
+                  </DropdownMenu.CheckboxItem>
+
+                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                  {/* Checkbox items that close on click, unless checkbox is clicked directly */}
+                  <DropdownMenu.Group>
+                    <DropdownMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
+                      Privacy & Updates (closes on label click)
+                    </DropdownMenu.GroupLabel>
+                    <DropdownMenu.CheckboxItem
+                      defaultChecked
+                      closeOnClick
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                    >
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                      <span>Enable analytics</span>
+                    </DropdownMenu.CheckboxItem>
+                    <DropdownMenu.CheckboxItem
+                      defaultChecked={false}
+                      closeOnClick
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                    >
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                      <span>Share usage data</span>
+                    </DropdownMenu.CheckboxItem>
+                    <DropdownMenu.CheckboxItem
+                      defaultChecked
+                      closeOnClick
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                    >
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                      <span>Auto-update</span>
+                    </DropdownMenu.CheckboxItem>
+                    <DropdownMenu.CheckboxItem
+                      defaultChecked={false}
+                      closeOnClick
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                    >
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                      <span>Beta features</span>
+                    </DropdownMenu.CheckboxItem>
+                    <DropdownMenu.CheckboxItem
+                      defaultChecked
+                      closeOnClick
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                    >
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                      <span>Crash reports</span>
+                    </DropdownMenu.CheckboxItem>
+                  </DropdownMenu.Group>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
   )
 }
 
