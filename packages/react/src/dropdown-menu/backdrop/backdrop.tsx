@@ -6,16 +6,28 @@ import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useOpenChain } from '../contexts/open-chain-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 
-export interface DropdownMenuBackdropProps extends PopoverBackdropProps {}
+export interface DropdownMenuBackdropProps extends PopoverBackdropProps {
+  /**
+   * Controls when the backdrop becomes visible for submenus.
+   * - `"focus"`: Show when the submenu becomes the focus owner (prevents flicker on hover).
+   *   If a deeper submenu is open, the backdrop remains visible.
+   * - `"open"`: Show as soon as the submenu opens, regardless of focus.
+   *
+   * @default "focus" for submenus, "open" for root menu
+   */
+  showOn?: 'focus' | 'open'
+}
 
 /**
  * An overlay displayed beneath the dropdown menu popup.
  *
- * For submenus, the backdrop visibility follows these rules:
+ * For submenus with `showOn="focus"` (default), the backdrop visibility follows these rules:
  * - If this submenu is at the end of the open chain (deepest), it must be
  *   the focus owner to show the backdrop (prevents flicker on hover)
  * - If this submenu is in the chain but not at the end (has a deeper submenu open),
  *   the backdrop remains visible
+ *
+ * With `showOn="open"`, the backdrop shows as soon as the submenu opens.
  *
  * Renders a `<div>` element with `pointer-events: none`.
  */
@@ -23,7 +35,7 @@ export const DropdownMenuBackdrop = React.forwardRef<
   HTMLDivElement,
   DropdownMenuBackdropProps
 >(function DropdownMenuBackdrop(props, forwardedRef) {
-  const { ...rest } = props
+  const { showOn: showOnProp, ...rest } = props
 
   const submenuContext = useMaybeSubmenuContext()
   const openChainStore = useOpenChain()
@@ -31,6 +43,9 @@ export const DropdownMenuBackdrop = React.forwardRef<
 
   const isSubmenu = submenuContext !== null
   const surfaceId = submenuContext?.childSurfaceId ?? ''
+
+  // Default: "focus" for submenus, "open" for root
+  const showOn = showOnProp ?? (isSubmenu ? 'focus' : 'open')
 
   // Check if this surface is in the open chain
   const isInOpenChain = openChainStore.useState('isOpen', surfaceId)
@@ -41,15 +56,21 @@ export const DropdownMenuBackdrop = React.forwardRef<
   // Check if this surface is the focus owner
   const isFocusOwner = focusOwnerStore.useState('isOwner', surfaceId)
 
-  // Determine visibility for submenus
+  // Determine visibility
   let shouldShow = true
   if (isSubmenu) {
-    if (isLastInChain) {
-      // Deepest submenu: only show if we're the focus owner
-      shouldShow = isFocusOwner
-    } else {
-      // Not the deepest: show if we're in the chain (a deeper submenu is open)
+    if (showOn === 'open') {
+      // Show as soon as submenu is open
       shouldShow = isInOpenChain
+    } else {
+      // showOn === 'focus'
+      if (isLastInChain) {
+        // Deepest submenu: only show if we're the focus owner
+        shouldShow = isFocusOwner
+      } else {
+        // Not the deepest: show if we're in the chain (a deeper submenu is open)
+        shouldShow = isInOpenChain
+      }
     }
   }
 
