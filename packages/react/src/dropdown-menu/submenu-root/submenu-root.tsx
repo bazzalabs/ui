@@ -3,6 +3,7 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
+import { useOpenChain } from '../contexts/open-chain-context.js'
 import { RootContext, useMaybeRootContext } from '../contexts/root-context.js'
 import {
   SubmenuContext,
@@ -100,8 +101,20 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
 
+  // Get open chain store
+  const openChainStore = useOpenChain()
+
   // Get open state from store for Popover
   const open = store.useState('open')
+
+  // Track this submenu in the open chain
+  React.useEffect(() => {
+    if (open) {
+      openChainStore.open(childSurfaceId)
+    } else {
+      openChainStore.close(childSurfaceId)
+    }
+  }, [open, childSurfaceId, openChainStore])
 
   // Handle Popover's onOpenChange to update the store
   const handlePopoverOpenChange = React.useCallback(
