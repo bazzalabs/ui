@@ -1,3 +1,9 @@
+// Arrow
+export { DropdownMenuArrowDataAttributes } from './arrow/arrow.data-attrs.js'
+export type { DropdownMenuArrow } from './arrow/arrow.js'
+// Backdrop
+export { DropdownMenuBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
+export type { DropdownMenuBackdrop } from './backdrop/backdrop.js'
 // Context hooks (for advanced usage)
 export { useRootContext } from './contexts/root-context.js'
 export type { SubmenuOpenDelay } from './contexts/submenu-context.js'
