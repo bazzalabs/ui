@@ -126,8 +126,25 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
 
   // Get submenu context for open state and refs
   const submenuContext = useSubmenuContext()
-  const { open, setOpen, triggerRef, contentRef, childSurfaceId } =
+  const { open, setOpen, triggerRef, contentRef, childSurfaceId, openDelay } =
     submenuContext
+
+  // Timer for delayed opening (pointer / keyboard navigation)
+  const openTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearOpenTimer = React.useCallback(() => {
+    if (openTimerRef.current !== null) {
+      clearTimeout(openTimerRef.current)
+      openTimerRef.current = null
+    }
+  }, [])
+
+  // Cleanup timer on unmount
+  React.useEffect(() => clearOpenTimer, [clearOpenTimer])
+
+  // Track if submenu was just closed while highlighted (e.g. ArrowLeft back)
+  // to suppress the keyboard auto-open until highlight leaves and returns
+  const suppressAutoOpenRef = React.useRef(false)
 
   // Get focus owner store for keyboard focus transfer
   const focusOwnerStore = useFocusOwner()
@@ -234,6 +251,50 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
     }
   }, [isHighlighted])
 
+  // When submenu closes while this trigger is highlighted, suppress auto-open
+  const prevOpenRef = React.useRef(open)
+  React.useEffect(() => {
+    if (prevOpenRef.current && !open && isHighlighted) {
+      suppressAutoOpenRef.current = true
+    }
+    prevOpenRef.current = open
+  }, [open, isHighlighted])
+
+  // Reset suppression when highlight leaves this trigger
+  React.useEffect(() => {
+    if (!isHighlighted) {
+      suppressAutoOpenRef.current = false
+    }
+  }, [isHighlighted])
+
+  // When highlighted via keyboard, schedule open after keyboard delay
+  // This effect only handles *navigation* highlight (ArrowUp/Down).
+  // Explicit open actions (ArrowRight, Ctrl+L) bypass this by calling registerSubmenuOpen directly.
+  React.useEffect(() => {
+    // Only schedule open when highlighted via keyboard
+    if (!isHighlighted || parentStore.state.highlightSource !== 'keyboard') {
+      clearOpenTimer()
+      return
+    }
+
+    // Don't auto-open if user just explicitly closed the submenu (e.g. ArrowLeft)
+    if (suppressAutoOpenRef.current) {
+      return
+    }
+
+    const delay = openDelay.keyboard
+    if (delay <= 0) {
+      setOpen(true)
+    } else {
+      openTimerRef.current = setTimeout(() => {
+        openTimerRef.current = null
+        setOpen(true)
+      }, delay)
+    }
+
+    return clearOpenTimer
+  }, [isHighlighted, parentStore, openDelay.keyboard, setOpen, clearOpenTimer])
+
   // Set the trigger ref when element mounts
   React.useEffect(() => {
     ;(triggerRef as React.MutableRefObject<HTMLElement | null>).current =
@@ -293,12 +354,19 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== id)
         return
 
-      // Clear any existing aim guard and open submenu
-      console.log(
-        '[SubmenuTrigger] pointerEnter - opening submenu via HOVER (no focus transfer)',
-      )
+      // Clear any existing aim guard and schedule open with delay
       clearAimGuard()
-      setOpen(true)
+      clearOpenTimer()
+
+      const delay = openDelay.pointer
+      if (delay <= 0) {
+        setOpen(true)
+      } else {
+        openTimerRef.current = setTimeout(() => {
+          openTimerRef.current = null
+          setOpen(true)
+        }, delay)
+      }
     },
     [
       onPointerEnter,
@@ -307,6 +375,8 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
       guardedTriggerIdRef,
       id,
       clearAimGuard,
+      clearOpenTimer,
+      openDelay.pointer,
       setOpen,
     ],
   )
@@ -317,6 +387,9 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
 
       if (event.defaultPrevented) return
       if (disabled) return
+
+      // Cancel any pending open timer
+      clearOpenTimer()
 
       // Check if aim guard is blocking this trigger
       if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== id)
@@ -384,6 +457,7 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
     [
       onPointerLeave,
       disabled,
+      clearOpenTimer,
       aimGuardActiveRef,
       guardedTriggerIdRef,
       id,

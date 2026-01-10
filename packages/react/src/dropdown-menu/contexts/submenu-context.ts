@@ -2,6 +2,13 @@
 
 import * as React from 'react'
 
+export interface SubmenuOpenDelay {
+  /** Delay in ms before opening when hovering the trigger. @default 0 */
+  pointer?: number
+  /** Delay in ms before opening when navigating to the trigger via keyboard. @default 150 */
+  keyboard?: number
+}
+
 export interface SubmenuContextValue {
   /** Whether the submenu is open */
   open: boolean
@@ -15,6 +22,8 @@ export interface SubmenuContextValue {
   parentSurfaceId: string
   /** Surface ID of this submenu (for keyboard navigation into) */
   childSurfaceId: string
+  /** Delay before auto-opening the submenu based on input method */
+  openDelay: Required<SubmenuOpenDelay>
 }
 
 const SubmenuContext = React.createContext<SubmenuContextValue | null>(null)
