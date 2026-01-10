@@ -22,6 +22,12 @@ export type { DropdownMenuPortal } from './portal/portal.js'
 export { DropdownMenuPositionerCssVars } from './positioner/positioner.css-vars.js'
 export { DropdownMenuPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
 export type { DropdownMenuPositioner } from './positioner/positioner.js'
+// Radio components
+export { DropdownMenuRadioGroupDataAttributes } from './radio-group/radio-group.data-attrs.js'
+export type { DropdownMenuRadioGroup } from './radio-group/radio-group.js'
+export { DropdownMenuRadioItemDataAttributes } from './radio-item/radio-item.data-attrs.js'
+export type { DropdownMenuRadioItem } from './radio-item/radio-item.js'
+export type { DropdownMenuRadioItemIndicator } from './radio-item/radio-item-indicator.js'
 // Type exports
 export type { DropdownMenuRoot } from './root/root.js'
 export { DropdownMenuSeparatorDataAttributes } from './separator/separator.data-attrs.js'
