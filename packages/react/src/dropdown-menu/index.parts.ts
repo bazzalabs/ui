@@ -7,6 +7,10 @@ export { DropdownMenuList as List } from './list/list.js'
 export { DropdownMenuPopup as Popup } from './popup/popup.js'
 export { DropdownMenuPortal as Portal } from './portal/portal.js'
 export { DropdownMenuPositioner as Positioner } from './positioner/positioner.js'
+// Radio components
+export { DropdownMenuRadioGroup as RadioGroup } from './radio-group/radio-group.js'
+export { DropdownMenuRadioItem as RadioItem } from './radio-item/radio-item.js'
+export { DropdownMenuRadioItemIndicator as RadioItemIndicator } from './radio-item/radio-item-indicator.js'
 export { DropdownMenuRoot as Root } from './root/root.js'
 export { DropdownMenuSeparator as Separator } from './separator/separator.js'
 // Submenu components
