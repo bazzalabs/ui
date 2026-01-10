@@ -244,6 +244,14 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   const hasSearch = search.length > 0
   const isVisible = forceMount || !hasSearch || score > 0
 
+  // Close submenu when trigger becomes invisible (e.g., filtered out by search)
+  // This prevents the popup from rendering without its anchor element
+  React.useEffect(() => {
+    if (!isVisible && open) {
+      setOpen(false)
+    }
+  }, [isVisible, open, setOpen])
+
   // Scroll into view when highlighted via keyboard
   React.useEffect(() => {
     if (isHighlighted && ref.current) {
