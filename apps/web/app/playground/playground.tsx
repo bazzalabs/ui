@@ -725,7 +725,10 @@ function ArrowBackdropExample() {
                       </DropdownMenu.SubmenuTriggerIndicator>
                     </DropdownMenu.SubmenuTrigger>
                     <DropdownMenu.Portal>
-                      <DropdownMenu.Backdrop className="fixed inset-0 bg-black/10 pointer-events-none" />
+                      <DropdownMenu.Backdrop
+                        showOn="open"
+                        className="fixed inset-0 bg-black/10 pointer-events-none"
+                      />
                       <DropdownMenu.Positioner sideOffset={8}>
                         <DropdownMenu.Popup className="relative min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
                           <DropdownMenu.Arrow className="data-[side=right]:left-[-13px] rotate-270">
