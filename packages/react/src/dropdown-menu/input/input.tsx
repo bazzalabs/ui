@@ -7,6 +7,7 @@ import { useFocusOwner } from '../contexts/focus-owner-context.js'
 import { useRootContext } from '../contexts/root-context.js'
 import { useMaybeSubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
+import { useKeyboard } from '../utils/use-keyboard.js'
 
 export interface DropdownMenuInputState extends Record<string, unknown> {
   /**
@@ -66,9 +67,6 @@ export const DropdownMenuInput = React.forwardRef<
   const submenuContext = useMaybeSubmenuContext()
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)
-
-  // Subscribe to focus ownership
-  const isOwner = focusOwnerStore.useState('isOwner', surfaceId)
 
   // Get values from store
   const search = store.useState('search')
@@ -134,95 +132,17 @@ export const DropdownMenuInput = React.forwardRef<
     [isInputControlled, onValueChange, store],
   )
 
-  const handleKeyDown = React.useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      onKeyDown?.(event)
-
-      if (event.defaultPrevented) return
-
-      // Only handle keyboard if this surface owns focus
-      if (!isOwner) return
-
-      // Check for IME composition
-      if (event.nativeEvent.isComposing || event.keyCode === 229) return
-
-      switch (event.key) {
-        case 'ArrowDown': {
-          event.preventDefault()
-          store.highlightNext()
-          break
-        }
-        case 'ArrowUp': {
-          event.preventDefault()
-          store.highlightPrev()
-          break
-        }
-        case 'n': {
-          // Ctrl+N - next item (vim binding)
-          if (event.ctrlKey) {
-            event.preventDefault()
-            store.highlightNext()
-          }
-          break
-        }
-        case 'p': {
-          // Ctrl+P - previous item (vim binding)
-          if (event.ctrlKey) {
-            event.preventDefault()
-            store.highlightPrev()
-          }
-          break
-        }
-        case 'ArrowRight': {
-          // Open submenu if highlighted item is a submenu trigger
-          // Note: Focus transfer is handled by SubmenuTrigger's registerSubmenuOpen callback
-          if (store.isHighlightedSubmenuTrigger()) {
-            event.preventDefault()
-            store.openSubmenuForHighlighted()
-          }
-          break
-        }
-        case 'l': {
-          // Ctrl+L - open submenu (vim binding)
-          // Note: Focus transfer is handled by SubmenuTrigger's registerSubmenuOpen callback
-          if (event.ctrlKey && store.isHighlightedSubmenuTrigger()) {
-            event.preventDefault()
-            store.openSubmenuForHighlighted()
-          }
-          break
-        }
-        case 'ArrowLeft': {
-          // Close submenu and return to parent (only if in a submenu)
-          if (depth > 0 && submenuContext) {
-            event.preventDefault()
-            submenuContext.setOpen(false)
-            // Transfer focus back to parent surface
-            focusOwnerStore.setOwnerId(submenuContext.parentSurfaceId)
-          }
-          break
-        }
-        case 'Enter': {
-          event.preventDefault()
-          store.selectHighlighted()
-          break
-        }
-        case 'Home': {
-          // Move to first item
-          event.preventDefault()
-          // We'd need to expose a highlightFirst action, for now use highlightNext from start
-          // This is a simplification - could be improved
-          break
-        }
-        case 'End': {
-          // Move to last item
-          event.preventDefault()
-          // Similar to Home - could expose highlightLast
-          break
-        }
-      }
-    },
-    [onKeyDown, store, depth, submenuContext, isOwner, focusOwnerStore],
-  )
+  // Use centralized keyboard navigation hook
+  const { handleKeyDown } = useKeyboard({
+    store,
+    surfaceId,
+    focusOwnerStore,
+    depth,
+    submenuContext,
+    enabled: true,
+    enableTypeToSearch: false,
+    onKeyDown,
+  })
 
   const state: DropdownMenuInputState = React.useMemo(
     () => ({
