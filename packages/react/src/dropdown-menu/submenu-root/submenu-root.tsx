@@ -29,6 +29,14 @@ export interface DropdownMenuSubmenuRootProps
    */
   defaultOpen?: boolean
 
+  /**
+   * Whether pressing Escape in this submenu closes the entire menu from the root.
+   * When true (default), Escape closes the entire menu tree.
+   * When false, Escape only closes this submenu and moves focus to the parent.
+   * @default true
+   */
+  closeRootOnEsc?: boolean
+
   children: React.ReactNode
 }
 
@@ -43,6 +51,7 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
     open: openProp,
     onOpenChange,
     defaultOpen = false,
+    closeRootOnEsc = true,
     children,
     ...rest
   } = props
@@ -149,8 +158,9 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
       contentRef,
       parentSurfaceId,
       childSurfaceId,
+      closeRootOnEsc,
     }),
-    [open, store, parentSurfaceId, childSurfaceId],
+    [open, store, parentSurfaceId, childSurfaceId, closeRootOnEsc],
   )
 
   // Fallback registerSurface for edge cases (submenu without parent root)

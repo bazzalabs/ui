@@ -63,7 +63,7 @@ export const DropdownMenuInput = React.forwardRef<
   } = props
 
   const { store, surfaceId } = useSurfaceContext()
-  const { depth } = useRootContext()
+  const { depth, closeAll } = useRootContext()
   const submenuContext = useMaybeSubmenuContext()
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)
@@ -142,6 +142,7 @@ export const DropdownMenuInput = React.forwardRef<
     enabled: true,
     enableTypeToSearch: false,
     onKeyDown,
+    closeAll,
   })
 
   const state: DropdownMenuInputState = React.useMemo(

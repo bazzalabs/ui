@@ -27,6 +27,11 @@ export interface UseKeyboardParams {
   enableTypeToSearch?: boolean
   /** User's onKeyDown handler to compose with */
   onKeyDown?: React.KeyboardEventHandler
+  /**
+   * Callback to close the entire menu tree from the root.
+   * Used when Escape is pressed and closeRootOnEsc is true (default).
+   */
+  closeAll: () => void
 }
 
 export interface UseKeyboardReturn {
@@ -48,6 +53,7 @@ export function useKeyboard(params: UseKeyboardParams): UseKeyboardReturn {
     enabled,
     enableTypeToSearch = false,
     onKeyDown,
+    closeAll,
   } = params
 
   // Subscribe to focus ownership
@@ -172,6 +178,29 @@ export function useKeyboard(params: UseKeyboardParams): UseKeyboardReturn {
           store.highlightPrev()
           break
         }
+        case 'Escape': {
+          // Handle Escape based on depth and closeRootOnEsc setting
+          if (depth === 0) {
+            // Root menu: let Base UI's Popover handle it normally
+            // (closes the menu and returns focus to trigger)
+            break
+          }
+
+          // In a submenu: always prevent default to avoid Popover's focus restoration
+          event.preventDefault()
+          event.stopPropagation()
+
+          if (submenuContext?.closeRootOnEsc !== false) {
+            // closeRootOnEsc is true (default): close entire menu tree
+            closeAll()
+          } else {
+            // closeRootOnEsc is false: close only this submenu
+            submenuContext.setOpen(false)
+            // Transfer focus back to parent surface
+            focusOwnerStore.setOwnerId(submenuContext.parentSurfaceId)
+          }
+          break
+        }
       }
     },
     [
@@ -183,6 +212,7 @@ export function useKeyboard(params: UseKeyboardParams): UseKeyboardReturn {
       depth,
       submenuContext,
       focusOwnerStore,
+      closeAll,
     ],
   )
 
