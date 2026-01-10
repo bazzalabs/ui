@@ -5,10 +5,7 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { useOpenChain } from '../contexts/open-chain-context.js'
 import { RootContext, useMaybeRootContext } from '../contexts/root-context.js'
-import {
-  SubmenuContext,
-  type SubmenuOpenDelay,
-} from '../contexts/submenu-context.js'
+import { SubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
 
@@ -32,14 +29,6 @@ export interface DropdownMenuSubmenuRootProps
    */
   defaultOpen?: boolean
 
-  /**
-   * Delay (in ms) before auto-opening the submenu when hovering or navigating
-   * via keyboard. Does not apply to explicit actions (e.g. click, ArrowRight,
-   * Ctrl+L) which open immediately.
-   * @default { pointer: 0, keyboard: 150 }
-   */
-  openDelay?: SubmenuOpenDelay
-
   children: React.ReactNode
 }
 
@@ -54,19 +43,9 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
     open: openProp,
     onOpenChange,
     defaultOpen = false,
-    openDelay: openDelayProp,
     children,
     ...rest
   } = props
-
-  // Merge user-provided openDelay with defaults
-  const openDelay: Required<SubmenuOpenDelay> = React.useMemo(
-    () => ({
-      pointer: openDelayProp?.pointer ?? 0,
-      keyboard: openDelayProp?.keyboard ?? 150,
-    }),
-    [openDelayProp?.pointer, openDelayProp?.keyboard],
-  )
 
   const parentRootContext = useMaybeRootContext()
   const parentDepth = parentRootContext?.depth ?? 0
@@ -170,9 +149,8 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
       contentRef,
       parentSurfaceId,
       childSurfaceId,
-      openDelay,
     }),
-    [open, store, parentSurfaceId, childSurfaceId, openDelay],
+    [open, store, parentSurfaceId, childSurfaceId],
   )
 
   // Fallback registerSurface for edge cases (submenu without parent root)
