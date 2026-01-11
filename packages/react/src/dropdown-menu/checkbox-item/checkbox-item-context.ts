@@ -1,15 +1,16 @@
 'use client'
 
 import * as React from 'react'
+import type { ItemContextValue } from '../contexts/item-context.js'
 
-export interface CheckboxItemContextValue {
+/**
+ * Context value for checkbox menu items.
+ * Extends ItemContextValue with checkbox-specific state.
+ */
+export interface CheckboxItemContextValue extends ItemContextValue {
   /** Whether this checkbox item is currently checked */
   checked: boolean
-  /** Whether this checkbox item is currently highlighted */
-  highlighted: boolean
-  /** Whether this checkbox item is disabled */
-  disabled: boolean
-  /** Toggle the checked state without triggering closeOnClick */
+  /** Toggle the checked state */
   toggle: () => void
 }
 

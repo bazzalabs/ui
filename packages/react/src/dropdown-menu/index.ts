@@ -8,7 +8,12 @@ export type { DropdownMenuBackdrop } from './backdrop/backdrop.js'
 export { DropdownMenuCheckboxItemDataAttributes } from './checkbox-item/checkbox-item.data-attrs.js'
 export type { DropdownMenuCheckboxItem } from './checkbox-item/checkbox-item.js'
 export type { DropdownMenuCheckboxItemIndicator } from './checkbox-item/checkbox-item-indicator.js'
+export type { ItemContextValue } from './contexts/item-context.js'
 // Context hooks (for advanced usage)
+export {
+  useItemContext,
+  useMaybeItemContext,
+} from './contexts/item-context.js'
 export { useRootContext } from './contexts/root-context.js'
 export type { FilterFn, ItemRegistration } from './contexts/surface-context.js'
 export { useSurfaceContext } from './contexts/surface-context.js'
@@ -56,3 +61,6 @@ export { DropdownMenuTriggerDataAttributes } from './trigger/trigger.data-attrs.
 export type { DropdownMenuTrigger } from './trigger/trigger.js'
 // Filter utilities
 export { commandScore, defaultFilter } from './utils/command-score.js'
+export type { UseItemParams, UseItemReturn } from './utils/use-item.js'
+// Hook for custom items (for advanced usage)
+export { useItem } from './utils/use-item.js'
