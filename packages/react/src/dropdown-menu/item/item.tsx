@@ -3,13 +3,8 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
-import { useAimGuard } from '../contexts/aim-guard-context.js'
-import { useRootContext } from '../contexts/root-context.js'
-import {
-  useGroupContext,
-  useSurfaceContext,
-} from '../contexts/surface-context.js'
-import { ItemContext, type ItemContextValue } from './item-context.js'
+import { ItemContext } from '../contexts/item-context.js'
+import { useItem } from '../utils/use-item.js'
 
 export interface DropdownMenuItemState extends Record<string, unknown> {
   /**
@@ -76,7 +71,7 @@ export const DropdownMenuItem = React.forwardRef<
   DropdownMenuItemProps
 >(function DropdownMenuItem(props, forwardedRef) {
   const {
-    value: valueProp,
+    value,
     keywords,
     disabled = false,
     onSelect,
@@ -93,156 +88,71 @@ export const DropdownMenuItem = React.forwardRef<
     ...rest
   } = props
 
-  const { store } = useSurfaceContext()
-  const groupContext = useGroupContext()
-  const { depth, closeAll } = useRootContext()
-  const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
-
-  const id = React.useId()
-  const ref = React.useRef<HTMLDivElement>(null)
-
-  // Infer value from textContent if not provided
-  const [inferredValue, setInferredValue] = React.useState<string>('')
-
-  React.useLayoutEffect(() => {
-    if (valueProp === undefined && ref.current) {
-      const textContent = ref.current.textContent?.trim() ?? ''
-      setInferredValue(textContent)
-    }
-  }, [valueProp, children])
-
-  const value = valueProp ?? inferredValue
-
-  // Register item with store
-  React.useEffect(() => {
-    if (!value && !forceMount) return
-
-    const unregister = store.registerItem(id, {
-      value,
-      keywords,
-      groupId: groupContext?.groupId,
-      disabled,
-      shortcut,
-    })
-
-    return unregister
-  }, [
-    id,
+  const item = useItem({
     value,
     keywords,
-    groupContext?.groupId,
     disabled,
-    shortcut,
-    store,
     forceMount,
-  ])
+    shortcut,
+    onSelect,
+    closeOnClick,
+    children,
+  })
 
-  // Register onSelect handler
-  React.useEffect(() => {
-    return store.registerItemSelect(id, onSelect)
-  }, [id, onSelect, store])
+  const state: DropdownMenuItemState = React.useMemo(
+    () => ({
+      highlighted: item.isHighlighted,
+      disabled,
+    }),
+    [item.isHighlighted, disabled],
+  )
 
-  // Use selectors to get derived state
-  const search = store.useState('search')
-  const isHighlighted = store.useState('isHighlighted', id)
-  const score = store.useState('getItemScore', id)
-
-  // Determine visibility based on filter score
-  const hasSearch = search.length > 0
-  const isVisible = forceMount || !hasSearch || score > 0
-
-  // Scroll into view only when highlighted via keyboard
-  React.useEffect(() => {
-    if (
-      isHighlighted &&
-      store.state.highlightSource === 'keyboard' &&
-      ref.current
-    ) {
-      ref.current.scrollIntoView({ block: 'nearest' })
-    }
-  }, [isHighlighted, store])
-
+  // Merge user-provided handlers with item handlers
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       onClick?.(event)
-
-      if (event.defaultPrevented) return
-      if (disabled) return
-
-      event.preventDefault()
-      onSelect?.()
-
-      if (closeOnClick) {
-        closeAll()
+      if (!event.defaultPrevented) {
+        item.handlers.onClick(event)
       }
     },
-    [onClick, disabled, onSelect, closeOnClick, closeAll],
+    [onClick, item.handlers],
   )
 
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault()
+      item.handlers.onPointerDown(event)
       onPointerDown?.(event)
     },
-    [onPointerDown],
+    [item.handlers, onPointerDown],
   )
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       onPointerMove?.(event)
-
-      if (event.defaultPrevented) return
-      if (disabled) return
-
-      // Don't highlight if aim guard is active at this depth (user is moving toward submenu)
-      // Only block highlighting in the same menu where the trigger is located
-      if (aimGuardActiveRef.current && guardedDepthRef.current === depth) return
-
-      // Highlight on hover
-      store.setHighlightedId(id)
+      if (!event.defaultPrevented) {
+        item.handlers.onPointerMove(event)
+      }
     },
-    [
-      onPointerMove,
-      disabled,
-      aimGuardActiveRef,
-      guardedDepthRef,
-      depth,
-      store,
-      id,
-    ],
+    [onPointerMove, item.handlers],
   )
 
-  const state: DropdownMenuItemState = React.useMemo(
-    () => ({
-      highlighted: isHighlighted,
-      disabled,
-    }),
-    [isHighlighted, disabled],
-  )
-
-  // Context value for child components (like Shortcut) to access
-  const itemContextValue: ItemContextValue = React.useMemo(
-    () => ({ shortcut, highlighted: isHighlighted }),
-    [shortcut, isHighlighted],
-  )
-
-  // Wrap children with ItemContext.Provider so Shortcut can access the shortcut value
+  // Wrap children with ItemContext.Provider so child components can access item state
   const wrappedChildren = (
-    <ItemContext.Provider value={itemContextValue}>
+    <ItemContext.Provider value={item.contextValue}>
       {children}
     </ItemContext.Provider>
   )
 
   return useRender({
     render,
-    ref: [ref, forwardedRef],
+    ref: [item.ref, forwardedRef],
     state,
     props: {
       ...rest,
-      id,
+      id: item.id,
       role: 'option',
       tabIndex: -1,
-      'aria-selected': isHighlighted,
+      'aria-selected': item.isHighlighted,
       'aria-disabled': disabled || undefined,
       className,
       style,
@@ -251,7 +161,7 @@ export const DropdownMenuItem = React.forwardRef<
       onPointerDown: handlePointerDown,
       children: wrappedChildren,
     },
-    enabled: isVisible,
+    enabled: item.isVisible,
     defaultTagName: 'div',
   })
 })
