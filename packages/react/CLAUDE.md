@@ -1,3 +1,9 @@
+# General
+
+- Use `bun run type-check` to check types using `tsc`
+
+# Structing components and files
+
 Based on Base UI's component library patterns with kebab-case file naming.
 
 ## Folder Structure

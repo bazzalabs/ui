@@ -9,6 +9,7 @@ import {
   useGroupContext,
   useSurfaceContext,
 } from '../contexts/surface-context.js'
+import { ItemContext, type ItemContextValue } from './item-context.js'
 
 export interface DropdownMenuItemState extends Record<string, unknown> {
   /**
@@ -57,6 +58,13 @@ export interface DropdownMenuItemProps
    * @default true
    */
   closeOnClick?: boolean
+
+  /**
+   * Keyboard shortcut to trigger this item.
+   * When the menu is focused and the user presses this key, the item will be selected.
+   * Should be a single character (e.g., "1", "a", etc.).
+   */
+  shortcut?: string
 }
 
 /**
@@ -74,6 +82,7 @@ export const DropdownMenuItem = React.forwardRef<
     onSelect,
     forceMount = false,
     closeOnClick = true,
+    shortcut,
     render,
     className,
     style,
@@ -113,10 +122,20 @@ export const DropdownMenuItem = React.forwardRef<
       keywords,
       groupId: groupContext?.groupId,
       disabled,
+      shortcut,
     })
 
     return unregister
-  }, [id, value, keywords, groupContext?.groupId, disabled, store, forceMount])
+  }, [
+    id,
+    value,
+    keywords,
+    groupContext?.groupId,
+    disabled,
+    shortcut,
+    store,
+    forceMount,
+  ])
 
   // Register onSelect handler
   React.useEffect(() => {
@@ -201,6 +220,19 @@ export const DropdownMenuItem = React.forwardRef<
     [isHighlighted, disabled],
   )
 
+  // Context value for child components (like Shortcut) to access
+  const itemContextValue: ItemContextValue = React.useMemo(
+    () => ({ shortcut }),
+    [shortcut],
+  )
+
+  // Wrap children with ItemContext.Provider so Shortcut can access the shortcut value
+  const wrappedChildren = (
+    <ItemContext.Provider value={itemContextValue}>
+      {children}
+    </ItemContext.Provider>
+  )
+
   return useRender({
     render,
     ref: [ref, forwardedRef],
@@ -217,7 +249,7 @@ export const DropdownMenuItem = React.forwardRef<
       onClick: handleClick,
       onPointerMove: handlePointerMove,
       onPointerDown: handlePointerDown,
-      children,
+      children: wrappedChildren,
     },
     enabled: isVisible,
     defaultTagName: 'div',
