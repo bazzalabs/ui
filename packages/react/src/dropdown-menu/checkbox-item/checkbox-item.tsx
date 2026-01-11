@@ -9,6 +9,7 @@ import {
   useGroupContext,
   useSurfaceContext,
 } from '../contexts/surface-context.js'
+import { ItemContext, type ItemContextValue } from '../item/item-context.js'
 import { DropdownMenuCheckboxItemDataAttributes } from './checkbox-item.data-attrs.js'
 import {
   CheckboxItemContext,
@@ -77,6 +78,13 @@ export interface DropdownMenuCheckboxItemProps
    * @default false
    */
   closeOnClick?: boolean
+
+  /**
+   * Keyboard shortcut to trigger this item.
+   * When the menu is focused and the user presses this key, the item will be selected.
+   * Should be a single character (e.g., "1", "a", etc.).
+   */
+  shortcut?: string
 }
 
 const stateAttributesMapping = {
@@ -108,6 +116,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
     onSelect,
     forceMount = false,
     closeOnClick = false,
+    shortcut,
     render,
     className,
     style,
@@ -159,6 +168,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
       keywords,
       groupId: groupContext?.groupId,
       disabled,
+      shortcut,
     })
 
     return unregister
@@ -168,6 +178,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
     keywords,
     groupContext?.groupId,
     disabled,
+    shortcut,
     store,
     forceMount,
   ])
@@ -262,6 +273,12 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
     [checked, isHighlighted, disabled, toggleChecked],
   )
 
+  // Context value for child components (like Shortcut) to access
+  const itemContextValue: ItemContextValue = React.useMemo(
+    () => ({ shortcut, highlighted: isHighlighted }),
+    [shortcut, isHighlighted],
+  )
+
   const element = useRender({
     render,
     ref: [ref, forwardedRef],
@@ -290,9 +307,11 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
   }
 
   return (
-    <CheckboxItemContext.Provider value={checkboxItemContextValue}>
-      {element}
-    </CheckboxItemContext.Provider>
+    <ItemContext.Provider value={itemContextValue}>
+      <CheckboxItemContext.Provider value={checkboxItemContextValue}>
+        {element}
+      </CheckboxItemContext.Provider>
+    </ItemContext.Provider>
   )
 })
 
