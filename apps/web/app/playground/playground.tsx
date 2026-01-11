@@ -1,6 +1,8 @@
 'use client'
 
-import { DropdownMenu } from '@bazza-ui/react'
+import { ScrollArea } from '@base-ui/react/scroll-area'
+import { DropdownMenu, type DropdownMenuVirtualItem } from '@bazza-ui/react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -180,6 +182,7 @@ export function Playground() {
         </p>
       </div>
 
+      <VirtualizationDemo />
       <KeyboardShortcutsDemo />
       <SurfaceSearchDemo />
       <PositioningDemo />
@@ -187,6 +190,338 @@ export function Playground() {
       <SubmenuDemo />
       <TriggerBehaviorDemo />
     </div>
+  )
+}
+
+// ============================================================================
+// Demo: Virtualization
+// ============================================================================
+
+function VirtualizationDemo() {
+  const [search, setSearch] = React.useState('')
+  const [scrollElement, setScrollElement] =
+    React.useState<HTMLDivElement | null>(null)
+
+  // Config state - DropdownMenu
+  const [loop, setLoop] = React.useState(true)
+  const [autoHighlightFirst, setAutoHighlightFirst] = React.useState(true)
+
+  // Config state - Virtualizer
+  const [overscan, setOverscan] = React.useState(5)
+  const [itemHeight, setItemHeight] = React.useState(36)
+  const [listHeight, setListHeight] = React.useState(300)
+  const [itemCount, setItemCount] = React.useState(10000)
+
+  // Generate items based on count
+  const allItems = React.useMemo(() => {
+    const categories = [
+      'User',
+      'Project',
+      'Task',
+      'Document',
+      'Event',
+      'Report',
+    ]
+    const items: DropdownMenuVirtualItem[] = []
+
+    for (let i = 0; i < itemCount; i++) {
+      const category = categories[i % categories.length]
+      items.push({
+        value: `${category} ${i + 1}`,
+        keywords: [category?.toLowerCase() ?? '', `item-${i}`],
+      })
+    }
+
+    return items
+  }, [itemCount])
+
+  // Filter items based on search
+  const filteredItems = React.useMemo(() => {
+    if (!search) return allItems
+    const lowerSearch = search.toLowerCase()
+    return allItems.filter(
+      (item) =>
+        item.value.toLowerCase().includes(lowerSearch) ||
+        item.keywords?.some((k) => k.includes(lowerSearch)),
+    )
+  }, [search, allItems])
+
+  // Scroll padding (matches scroll-py-1 = 0.25rem = 4px)
+  const scrollPadding = 4
+
+  const virtualizer = useVirtualizer({
+    count: filteredItems.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => itemHeight,
+    overscan,
+    scrollPaddingStart: scrollPadding,
+    scrollPaddingEnd: scrollPadding,
+  })
+
+  // Use a ref to avoid stale closure issues with the virtualizer
+  const virtualizerRef = React.useRef(virtualizer)
+  virtualizerRef.current = virtualizer
+
+  // Sync highlighted item with virtualizer when item is not in DOM.
+  // This callback is only called when the item is virtualized out of view,
+  // so we need to scroll it into view via the virtualizer.
+  const handleHighlightChange = React.useCallback(
+    (value: string | null, index: number) => {
+      if (index < 0 || !value) return
+
+      // Find the first and last navigable (non-disabled) items
+      const firstNavigableValue = filteredItems.find(
+        (item) => !item.disabled,
+      )?.value
+      const lastNavigableValue = [...filteredItems]
+        .reverse()
+        .find((item) => !item.disabled)?.value
+
+      const isStart = value === firstNavigableValue
+      const isEnd = value === lastNavigableValue
+
+      // Use queueMicrotask to ensure DOM is ready before scrolling
+      queueMicrotask(() => {
+        if (isStart || isEnd) {
+          // For start/end positions (including loop jumps), use inverted alignment
+          // to ensure scroll padding is respected:
+          // - At end: use 'start' to put item at top, leaving room at bottom
+          // - At start: use 'end' to put item at bottom, leaving room at top
+          virtualizerRef.current.scrollToIndex(index, {
+            align: isEnd ? 'start' : 'end',
+          })
+        } else {
+          // Normal navigation - use auto alignment
+          virtualizerRef.current.scrollToIndex(index, { align: 'auto' })
+        }
+      })
+    },
+    [filteredItems],
+  )
+
+  // Reset scroll position when menu closes
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (!open && scrollElement) {
+        scrollElement.scrollTop = 0
+      }
+    },
+    [scrollElement],
+  )
+
+  return (
+    <DemoSection
+      title="Virtualization"
+      description="Render 10,000 items efficiently with @tanstack/react-virtual"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            {filteredItems.length.toLocaleString()} items
+          </div>
+          <DropdownMenu.Root
+            virtualized
+            items={filteredItems}
+            onHighlightChange={handleHighlightChange}
+            onOpenChange={handleOpenChange}
+          >
+            <DropdownMenu.Trigger className="rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-500">
+              Select Item
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner sideOffset={8}>
+                <DropdownMenu.Popup className="w-[300px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <DropdownMenu.Surface
+                    search={search}
+                    onSearchChange={setSearch}
+                    loop={loop}
+                    autoHighlightFirst={autoHighlightFirst}
+                  >
+                    <div className="border-b border-gray-200 p-2">
+                      <DropdownMenu.Input
+                        placeholder="Search 10,000 items..."
+                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                      />
+                    </div>
+                    <ScrollArea.Root style={{ height: listHeight }}>
+                      <DropdownMenu.List
+                        className="h-full overscroll-contain p-1 focus:outline-none scroll-py-1"
+                        render={(props) => (
+                          <ScrollArea.Viewport
+                            {...props}
+                            ref={(el) => {
+                              // Handle both the forwardedRef from List and our state setter
+                              setScrollElement(el)
+                              // Call the original ref if it exists
+                              const { ref } = props as {
+                                ref?: React.Ref<HTMLDivElement>
+                              }
+                              if (typeof ref === 'function') {
+                                ref(el)
+                              } else if (ref) {
+                                ;(
+                                  ref as React.MutableRefObject<HTMLDivElement | null>
+                                ).current = el
+                              }
+                            }}
+                          />
+                        )}
+                      >
+                        <div
+                          style={{
+                            height: virtualizer.getTotalSize(),
+                            width: '100%',
+                            position: 'relative',
+                          }}
+                        >
+                          {virtualizer.getVirtualItems().map((virtualRow) => {
+                            const item = filteredItems[virtualRow.index]
+                            if (!item) return null
+
+                            return (
+                              <DropdownMenu.Item
+                                key={item.value}
+                                value={item.value}
+                                disabled={item.disabled}
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: itemHeight,
+                                  transform: `translateY(${virtualRow.start}px)`,
+                                }}
+                                className={cn(
+                                  'flex cursor-pointer items-center rounded-md px-3 text-sm',
+                                  'data-[highlighted]:bg-gray-100/75',
+                                  'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
+                                )}
+                                onSelect={() =>
+                                  toast(`Selected: ${item.value}`)
+                                }
+                              >
+                                {item.value}
+                                {item.disabled && (
+                                  <span className="ml-auto text-xs text-gray-400">
+                                    disabled
+                                  </span>
+                                )}
+                              </DropdownMenu.Item>
+                            )
+                          })}
+                        </div>
+                      </DropdownMenu.List>
+                      <ScrollArea.Scrollbar className="m-1 flex w-1.5 justify-center rounded-full bg-gray-100 opacity-0 transition-opacity delay-300 data-[hovering]:opacity-100 data-[hovering]:delay-0 data-[scrolling]:opacity-100 data-[scrolling]:delay-0">
+                        <ScrollArea.Thumb className="w-full rounded-full bg-gray-400" />
+                      </ScrollArea.Scrollbar>
+                    </ScrollArea.Root>
+                    <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No items found
+                    </DropdownMenu.Empty>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="DropdownMenu Props">
+        <ConfigRow
+          label="loop"
+          description="Loop navigation from last to first"
+        >
+          <Toggle checked={loop} onChange={setLoop} />
+        </ConfigRow>
+        <ConfigRow
+          label="autoHighlightFirst"
+          description="Auto-highlight first item on open/search"
+        >
+          <Toggle
+            checked={autoHighlightFirst}
+            onChange={setAutoHighlightFirst}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Virtualizer Config">
+        <ConfigRow
+          label="itemCount"
+          description="Total number of items to generate"
+        >
+          <Select
+            value={String(itemCount)}
+            onChange={(v) => setItemCount(Number(v))}
+            options={[
+              { value: '100', label: '100' },
+              { value: '1000', label: '1,000' },
+              { value: '10000', label: '10,000' },
+              { value: '50000', label: '50,000' },
+              { value: '100000', label: '100,000' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="overscan"
+          description="Extra items rendered outside viewport"
+        >
+          <NumberInput
+            value={overscan}
+            onChange={setOverscan}
+            min={0}
+            max={50}
+          />
+        </ConfigRow>
+        <ConfigRow label="itemHeight" description="Height of each item (px)">
+          <NumberInput
+            value={itemHeight}
+            onChange={setItemHeight}
+            min={20}
+            max={80}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="listHeight"
+          description="Height of scroll container (px)"
+        >
+          <NumberInput
+            value={listHeight}
+            onChange={setListHeight}
+            min={100}
+            max={600}
+            step={50}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="How it works">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>1. Pass items to Root:</strong> The{' '}
+            <code className="rounded bg-gray-100 px-1">items</code> prop
+            pre-registers all items so keyboard navigation works for unmounted
+            items.
+          </p>
+          <p>
+            <strong>2. Enable virtualization:</strong> Set{' '}
+            <code className="rounded bg-gray-100 px-1">virtualized</code> to
+            skip internal scroll-into-view behavior.
+          </p>
+          <p>
+            <strong>3. Sync scroll position:</strong> Use{' '}
+            <code className="rounded bg-gray-100 px-1">onHighlightChange</code>{' '}
+            to call{' '}
+            <code className="rounded bg-gray-100 px-1">scrollToIndex</code> when
+            navigating with keyboard.
+          </p>
+          <p>
+            <strong>4. Correlate items:</strong> The{' '}
+            <code className="rounded bg-gray-100 px-1">value</code> prop on each
+            Item matches the value in the pre-registered items array.
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
   )
 }
 
