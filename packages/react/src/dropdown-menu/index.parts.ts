@@ -18,6 +18,7 @@ export { DropdownMenuRadioItem as RadioItem } from './radio-item/radio-item.js'
 export { DropdownMenuRadioItemIndicator as RadioItemIndicator } from './radio-item/radio-item-indicator.js'
 export { DropdownMenuRoot as Root } from './root/root.js'
 export { DropdownMenuSeparator as Separator } from './separator/separator.js'
+export { DropdownMenuShortcut as Shortcut } from './shortcut/shortcut.js'
 // Submenu components
 export { DropdownMenuSubmenuRoot as Submenu } from './submenu-root/submenu-root.js'
 export { DropdownMenuSubmenuTrigger as SubmenuTrigger } from './submenu-trigger/submenu-trigger.js'

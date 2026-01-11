@@ -19,6 +19,8 @@ export interface ItemRegistration {
   disabled?: boolean
   /** Whether this item is a submenu trigger */
   isSubmenuTrigger?: boolean
+  /** Single character keyboard shortcut to trigger this item */
+  shortcut?: string
 }
 
 export type HighlightSource = 'keyboard' | 'pointer' | null
@@ -73,6 +75,8 @@ export interface Context {
   readonly submenuOpens: Map<string, () => void>
   /** Map of submenu trigger ID to close callback */
   readonly submenuCloses: Map<string, () => void>
+  /** Map of shortcut key to item ID */
+  readonly shortcuts: Map<string, string>
   /** Callback when open state changes */
   onOpenChange: (open: boolean) => void
   /** Callback when search state changes */
@@ -141,6 +145,7 @@ export class DropdownMenuStore extends ReactStore<
         itemSelects: new Map(),
         submenuOpens: new Map(),
         submenuCloses: new Map(),
+        shortcuts: new Map(),
         onOpenChange: () => {},
         onSearchChange: undefined,
         ...context,
@@ -238,6 +243,12 @@ export class DropdownMenuStore extends ReactStore<
       }
     }
 
+    // Register shortcut if specified
+    if (registration.shortcut) {
+      const key = registration.shortcut.toLowerCase()
+      this.context.shortcuts.set(key, id)
+    }
+
     // Trigger recompute
     this.recomputeFilteredItems()
 
@@ -250,6 +261,12 @@ export class DropdownMenuStore extends ReactStore<
         if (groupItems) {
           groupItems.delete(id)
         }
+      }
+
+      // Unregister shortcut
+      if (registration.shortcut) {
+        const key = registration.shortcut.toLowerCase()
+        this.context.shortcuts.delete(key)
       }
 
       this.recomputeFilteredItems()
@@ -363,6 +380,27 @@ export class DropdownMenuStore extends ReactStore<
       const onSelect = this.context.itemSelects.get(this.state.highlightedId)
       onSelect?.()
     }
+  }
+
+  /**
+   * Select an item by its keyboard shortcut.
+   * Returns true if an item was found and selected, false otherwise.
+   */
+  selectByShortcut(key: string): boolean {
+    const itemId = this.context.shortcuts.get(key.toLowerCase())
+    if (!itemId) return false
+
+    const registration = this.context.items.get(itemId)
+    if (!registration || registration.disabled) return false
+
+    // Check if item is visible (passes filter)
+    const score = this.state.filteredItems.get(itemId) ?? 0
+    const isVisible = this.state.search.length === 0 || score > 0
+    if (!isVisible) return false
+
+    const onSelect = this.context.itemSelects.get(itemId)
+    onSelect?.()
+    return true
   }
 
   openSubmenuForHighlighted() {
