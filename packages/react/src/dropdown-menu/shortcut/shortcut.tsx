@@ -4,6 +4,7 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 import { useItemContext } from '../item/item-context.js'
+import { DropdownMenuShortcutDataAttributes } from './shortcut.data-attrs.js'
 
 /**
  * State for the Shortcut component, passed to children render function.
@@ -13,6 +14,10 @@ export interface DropdownMenuShortcutState extends Record<string, unknown> {
    * The keyboard shortcut value from the parent Item.
    */
   shortcut: string | undefined
+  /**
+   * Whether the parent item is highlighted.
+   */
+  highlighted: boolean
 }
 
 export interface DropdownMenuShortcutProps
@@ -49,17 +54,22 @@ export interface DropdownMenuShortcutProps
  * </DropdownMenu.Item>
  * ```
  */
+const stateAttributesMapping = {
+  highlighted: (value: unknown): Record<string, string> | null =>
+    value ? { [DropdownMenuShortcutDataAttributes.highlighted]: '' } : null,
+}
+
 export const DropdownMenuShortcut = React.forwardRef<
   HTMLElement,
   DropdownMenuShortcutProps
 >(function DropdownMenuShortcut(props, forwardedRef) {
   const { children, render, className, style, ...rest } = props
 
-  const { shortcut } = useItemContext()
+  const { shortcut, highlighted } = useItemContext()
 
   const state: DropdownMenuShortcutState = React.useMemo(
-    () => ({ shortcut }),
-    [shortcut],
+    () => ({ shortcut, highlighted }),
+    [shortcut, highlighted],
   )
 
   // Render children as function, custom children, or default to shortcut value
@@ -70,6 +80,7 @@ export const DropdownMenuShortcut = React.forwardRef<
     render,
     ref: forwardedRef,
     state,
+    stateAttributesMapping,
     props: {
       ...rest,
       className,

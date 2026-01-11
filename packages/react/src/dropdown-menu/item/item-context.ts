@@ -5,6 +5,8 @@ import * as React from 'react'
 export interface ItemContextValue {
   /** The keyboard shortcut for this item */
   shortcut: string | undefined
+  /** Whether the item is currently highlighted */
+  highlighted: boolean
 }
 
 export const ItemContext = React.createContext<ItemContextValue | null>(null)
