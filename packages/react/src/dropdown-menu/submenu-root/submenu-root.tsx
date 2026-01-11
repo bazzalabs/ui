@@ -7,7 +7,10 @@ import { useOpenChain } from '../contexts/open-chain-context.js'
 import { RootContext, useMaybeRootContext } from '../contexts/root-context.js'
 import { SubmenuContext } from '../contexts/submenu-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
-import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
+import {
+  DropdownMenuStore,
+  type VirtualItem,
+} from '../store/DropdownMenuStore.js'
 
 export interface DropdownMenuSubmenuRootProps
   extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
@@ -37,6 +40,28 @@ export interface DropdownMenuSubmenuRootProps
    */
   closeRootOnEsc?: boolean
 
+  /**
+   * Whether virtualization mode is enabled for this submenu.
+   * When true, items should provide an explicit `index` prop and
+   * the `items` prop should be provided for navigation to work correctly.
+   * @default false
+   */
+  virtualized?: boolean
+
+  /**
+   * Pre-registered items for virtualization.
+   * When provided with `virtualized={true}`, this allows navigation to work
+   * for items that aren't currently mounted in the DOM.
+   */
+  items?: VirtualItem[]
+
+  /**
+   * Callback when the highlighted item changes.
+   * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
+   * Only called when `virtualized={true}`.
+   */
+  onHighlightChange?: (id: string | null, index: number) => void
+
   children: React.ReactNode
 }
 
@@ -52,6 +77,9 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
     onOpenChange,
     defaultOpen = false,
     closeRootOnEsc = true,
+    virtualized = false,
+    items: itemsProp,
+    onHighlightChange,
     children,
     ...rest
   } = props
@@ -166,6 +194,16 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
   // Fallback registerSurface for edge cases (submenu without parent root)
   const fallbackRegisterSurface = React.useCallback(() => () => {}, [])
 
+  // Memoize virtualization config for this submenu
+  const virtualization = React.useMemo(() => {
+    if (!virtualized) return undefined
+    return {
+      virtualized: true as const,
+      items: itemsProp ?? [],
+      onHighlightChange,
+    }
+  }, [virtualized, itemsProp, onHighlightChange])
+
   // Root context value with incremented depth
   // Pass parent's closeAll and registerSurface through unchanged
   const rootContextValue = React.useMemo(
@@ -174,6 +212,7 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
       depth,
       closeAll: parentCloseAll ?? (() => store.setOpen(false)),
       registerSurface: parentRegisterSurface ?? fallbackRegisterSurface,
+      virtualization,
     }),
     [
       store,
@@ -181,6 +220,7 @@ export function DropdownMenuSubmenuRoot(props: DropdownMenuSubmenuRootProps) {
       parentCloseAll,
       parentRegisterSurface,
       fallbackRegisterSurface,
+      virtualization,
     ],
   )
 

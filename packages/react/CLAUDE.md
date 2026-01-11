@@ -1,3 +1,7 @@
+# Docs
+
+- Base UI component documentation can be found from here: https://base-ui.com/llms.txt
+
 # General
 
 - Use `bun run type-check` to check types using `tsc`

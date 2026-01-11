@@ -112,6 +112,9 @@ export const DropdownMenuSurface = React.forwardRef<
     onSearchChange?.(search)
   })
 
+  // Get virtualization config from root context
+  const { virtualization } = useRootContext()
+
   // Update store context with surface configuration
   React.useEffect(() => {
     store.context.filter = filter
@@ -121,6 +124,17 @@ export const DropdownMenuSurface = React.forwardRef<
     store.context.listId = listId
     store.context.inputId = inputId
     store.context.onSearchChange = handleSearchChange
+
+    // Configure virtualization if enabled
+    if (virtualization) {
+      store.setVirtualized(virtualization.virtualized)
+      store.setVirtualItems(virtualization.items)
+      store.setOnHighlightChange(virtualization.onHighlightChange)
+    } else {
+      store.setVirtualized(false)
+      store.setVirtualItems([])
+      store.setOnHighlightChange(undefined)
+    }
   }, [
     store,
     filter,
@@ -130,6 +144,7 @@ export const DropdownMenuSurface = React.forwardRef<
     listId,
     inputId,
     handleSearchChange,
+    virtualization,
   ])
 
   // Sync controlled search prop to store
@@ -143,35 +158,15 @@ export const DropdownMenuSurface = React.forwardRef<
 
   // Claim focus ownership when root menu opens
   React.useEffect(() => {
-    console.log(
-      '[Surface] depth=%d, open=%s, surfaceId=%s',
-      depth,
-      open,
-      surfaceId,
-    )
     if (depth === 0 && open) {
-      console.log(
-        '[Surface] Claiming ownership for root menu, surfaceId=%s',
-        surfaceId,
-      )
       focusOwnerStore.setOwnerId(surfaceId)
     }
   }, [depth, open, surfaceId, focusOwnerStore])
 
   // Auto-focus when becoming owner
   React.useEffect(() => {
-    console.log(
-      '[Surface] isOwner changed: %s, surfaceId=%s, depth=%d',
-      isOwner,
-      surfaceId,
-      depth,
-    )
     if (!isOwner) return
 
-    console.log(
-      '[Surface] Becoming owner, will auto-focus, surfaceId=%s',
-      surfaceId,
-    )
     requestAnimationFrame(() => {
       if (!surfaceRef.current) return
 
@@ -180,17 +175,11 @@ export const DropdownMenuSurface = React.forwardRef<
       const list = surfaceRef.current.querySelector('[role="listbox"]')
       const focusTarget = input ?? list
 
-      console.log(
-        '[Surface] Auto-focusing element:',
-        focusTarget?.tagName,
-        'surfaceId=%s',
-        surfaceId,
-      )
       if (focusTarget && focusTarget instanceof HTMLElement) {
         focusTarget.focus()
       }
     })
-  }, [isOwner, surfaceId, depth])
+  }, [isOwner])
 
   const contextValue = React.useMemo(
     () => ({
@@ -220,20 +209,12 @@ export const DropdownMenuSurface = React.forwardRef<
       // bubble through React portals from child surfaces
       const target = event.target as Node
       if (!surfaceRef.current?.contains(target)) {
-        console.log(
-          '[Surface] pointerMove - ignoring, target not in this surface, surfaceId=%s',
-          surfaceId,
-        )
         return
       }
 
       // Check store directly to avoid stale reactive state issues
       // Only claim ownership if we're not already the owner
       if (focusOwnerStore.state.ownerId !== surfaceId) {
-        console.log(
-          '[Surface] pointerMove - claiming ownership, surfaceId=%s',
-          surfaceId,
-        )
         focusOwnerStore.setOwnerId(surfaceId)
       }
     },

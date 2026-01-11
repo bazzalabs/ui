@@ -14,8 +14,9 @@ import {
  */
 export interface UseItemParams {
   /**
-   * Unique value for this item used for filtering.
+   * Unique value for this item used as identifier and for filtering.
    * If not provided, will be inferred from textContent.
+   * This value serves as the unique key for the item in the store.
    */
   value?: string
 
@@ -161,7 +162,6 @@ export function useItem(params: UseItemParams): UseItemReturn {
   const { depth, closeAll } = useRootContext()
   const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
 
-  const id = React.useId()
   const ref = React.useRef<HTMLDivElement>(null)
 
   // Infer value from textContent if not provided
@@ -174,13 +174,21 @@ export function useItem(params: UseItemParams): UseItemReturn {
     }
   }, [valueProp, children])
 
+  // Value serves as the unique identifier
+  // When value is provided, use it directly
+  // When inferred from textContent, use the inferred value
   const value = valueProp ?? inferredValue
 
-  // Register item with store
+  // Generate a stable ID for DOM id attribute (aria-activedescendant, etc.)
+  // This is separate from the store identifier (value)
+  const generatedDomId = React.useId()
+  const domId = `item-${generatedDomId}`
+
+  // Register item with store (using value as the unique identifier)
   React.useEffect(() => {
     if (!value && !forceMount) return
 
-    const unregister = store.registerItem(id, {
+    const unregister = store.registerItem(value, {
       value,
       keywords,
       groupId: groupContext?.groupId,
@@ -191,7 +199,6 @@ export function useItem(params: UseItemParams): UseItemReturn {
 
     return unregister
   }, [
-    id,
     value,
     keywords,
     groupContext?.groupId,
@@ -202,49 +209,49 @@ export function useItem(params: UseItemParams): UseItemReturn {
     forceMount,
   ])
 
+  // Register DOM ref with store for scroll behavior
+  React.useEffect(() => {
+    if (!value) return
+    return store.registerItemRef(value, ref)
+  }, [value, store])
+
   // Register onSelect handler if provided directly
   React.useEffect(() => {
-    if (!onSelect) return
-    return store.registerItemSelect(id, onSelect)
-  }, [id, onSelect, store])
+    if (!onSelect || !value) return
+    return store.registerItemSelect(value, onSelect)
+  }, [value, onSelect, store])
 
-  // Use selectors to get derived state
+  // Use selectors to get derived state (using value as identifier)
   const search = store.useState('search')
-  const isHighlighted = store.useState('isHighlighted', id)
-  const score = store.useState('getItemScore', id)
+  const isHighlighted = store.useState('isHighlighted', value)
+  const score = store.useState('getItemScore', value)
 
   // Determine visibility based on filter score
   const hasSearch = search.length > 0
   const isVisible = forceMount || !hasSearch || score > 0
 
-  // Scroll into view only when highlighted via keyboard
-  React.useEffect(() => {
-    if (
-      isHighlighted &&
-      store.state.highlightSource === 'keyboard' &&
-      ref.current
-    ) {
-      ref.current.scrollIntoView({ block: 'nearest' })
-    }
-  }, [isHighlighted, store])
+  // Note: Scroll behavior is now handled by the store's setHighlightedId method.
+  // It uses the registered DOM refs to call scrollIntoView when the element exists,
+  // or falls back to onHighlightChange for virtualizer sync.
 
   // Event handlers
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.defaultPrevented) return
       if (disabled) return
+      if (!value) return
 
       event.preventDefault()
 
       // Call the registered onSelect handler via store
-      const registeredHandler = store.context.itemSelects.get(id)
+      const registeredHandler = store.context.itemSelects.get(value)
       registeredHandler?.()
 
       if (closeOnClick) {
         closeAll()
       }
     },
-    [disabled, store, id, closeOnClick, closeAll],
+    [disabled, store, value, closeOnClick, closeAll],
   )
 
   const handlePointerDown = React.useCallback(
@@ -258,34 +265,36 @@ export function useItem(params: UseItemParams): UseItemReturn {
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.defaultPrevented) return
       if (disabled) return
+      if (!value) return
 
       // Don't highlight if aim guard is active at this depth (user is moving toward submenu)
       // Only block highlighting in the same menu where the trigger is located
       if (aimGuardActiveRef.current && guardedDepthRef.current === depth) return
 
-      // Highlight on hover
-      store.setHighlightedId(id)
+      // Highlight on hover (using value as identifier)
+      store.setHighlightedId(value)
     },
-    [disabled, aimGuardActiveRef, guardedDepthRef, depth, store, id],
+    [disabled, aimGuardActiveRef, guardedDepthRef, depth, store, value],
   )
 
   // Context value for child components
   const contextValue: ItemContextValue = React.useMemo(
     () => ({
-      id,
+      id: domId,
       highlighted: isHighlighted,
       disabled,
       shortcut,
     }),
-    [id, isHighlighted, disabled, shortcut],
+    [domId, isHighlighted, disabled, shortcut],
   )
 
   // Register a custom select handler (for checkbox/radio items)
   const registerSelect = React.useCallback(
     (handler: (() => void) | undefined) => {
-      return store.registerItemSelect(id, handler)
+      if (!value) return () => {}
+      return store.registerItemSelect(value, handler)
     },
-    [store, id],
+    [store, value],
   )
 
   const handlers = React.useMemo(
@@ -298,7 +307,7 @@ export function useItem(params: UseItemParams): UseItemReturn {
   )
 
   return {
-    id,
+    id: domId,
     ref,
     isHighlighted,
     isVisible,

@@ -23,7 +23,32 @@ export interface ItemRegistration {
   shortcut?: string
 }
 
+/**
+ * Pre-registered item for virtualization.
+ * This allows the store to know about all items even when they're not mounted.
+ * The `value` field serves as both the unique identifier and the filtering value.
+ */
+export interface VirtualItem {
+  /** Value used as unique identifier and for filtering/matching */
+  value: string
+  /** Additional keywords for filtering */
+  keywords?: string[]
+  /** Whether the item is disabled */
+  disabled?: boolean
+}
+
 export type HighlightSource = 'keyboard' | 'pointer' | null
+
+/**
+ * Refs for DOM elements used for scroll behavior.
+ * These are stored outside of reactive state to avoid unnecessary re-renders.
+ */
+export interface DOMRefs {
+  /** Ref to the list/scroll container element */
+  listRef: React.RefObject<HTMLElement | null>
+  /** Map of item ID to ref for the item's DOM element */
+  itemRefs: Map<string, React.RefObject<HTMLElement | null>>
+}
 
 export interface State {
   /** Whether the dropdown menu is open */
@@ -48,6 +73,8 @@ export interface State {
   filteredCount: number
   /** Counter to trigger re-filtering when items change */
   filterTrigger: number
+  /** Whether virtualization mode is enabled */
+  virtualized: boolean
 }
 
 export interface Context {
@@ -81,6 +108,22 @@ export interface Context {
   onOpenChange: (open: boolean) => void
   /** Callback when search state changes */
   onSearchChange: ((search: string) => void) | undefined
+  /**
+   * Pre-registered items for virtualization.
+   * When provided, navigation uses this array order instead of DOM registration order.
+   */
+  virtualItems: VirtualItem[]
+  /**
+   * Callback when highlighted item changes and needs scroll sync.
+   * Called only when the item is not in the DOM (virtualized out of view).
+   * Useful for synchronizing with virtualizers (scrollToIndex).
+   */
+  onHighlightChange: ((id: string | null, index: number) => void) | undefined
+  /**
+   * DOM refs for scroll behavior.
+   * Stored in context (not state) to avoid re-renders.
+   */
+  refs: DOMRefs
 }
 
 // ============================================================================
@@ -98,6 +141,7 @@ const selectors = {
   filteredCount: createSelector((state: State) => state.filteredCount),
   filteredItems: createSelector((state: State) => state.filteredItems),
   visibleGroups: createSelector((state: State) => state.visibleGroups),
+  virtualized: createSelector((state: State) => state.virtualized),
 
   isHighlighted: createSelector(
     (state: State, itemId: string) => state.highlightedId === itemId,
@@ -130,26 +174,33 @@ export class DropdownMenuStore extends ReactStore<
   typeof selectors
 > {
   constructor(initialState?: Partial<State>, context?: Partial<Context>) {
+    const defaultContext: Context = {
+      filter: commandScore,
+      loop: true,
+      autoHighlightFirst: true,
+      clearSearchOnClose: true,
+      hideUntilActive: false,
+      listId: '',
+      inputId: '',
+      items: new Map(),
+      groups: new Map(),
+      itemSelects: new Map(),
+      submenuOpens: new Map(),
+      submenuCloses: new Map(),
+      shortcuts: new Map(),
+      onOpenChange: () => {},
+      onSearchChange: undefined,
+      virtualItems: [],
+      onHighlightChange: undefined,
+      refs: {
+        listRef: { current: null },
+        itemRefs: new Map(),
+      },
+    }
+
     super(
       { ...createInitialState(), ...initialState },
-      {
-        filter: commandScore,
-        loop: true,
-        autoHighlightFirst: true,
-        clearSearchOnClose: true,
-        hideUntilActive: false,
-        listId: '',
-        inputId: '',
-        items: new Map(),
-        groups: new Map(),
-        itemSelects: new Map(),
-        submenuOpens: new Map(),
-        submenuCloses: new Map(),
-        shortcuts: new Map(),
-        onOpenChange: () => {},
-        onSearchChange: undefined,
-        ...context,
-      },
+      { ...defaultContext, ...context },
       selectors,
     )
 
@@ -206,6 +257,46 @@ export class DropdownMenuStore extends ReactStore<
     this.closeSiblingSubmenus(id)
 
     this.update({ highlightedId: id, highlightSource: cause })
+
+    // Handle scroll behavior for keyboard navigation
+    if (cause === 'keyboard' && id !== null) {
+      this.scrollItemIntoView(id)
+    }
+  }
+
+  /**
+   * Scroll the highlighted item into view.
+   * Uses native scrollIntoView if the element is in the DOM,
+   * otherwise falls back to onHighlightChange callback for virtualizer sync.
+   */
+  private scrollItemIntoView(id: string) {
+    const { refs, onHighlightChange } = this.context
+    const listEl = refs.listRef.current
+    const itemRef = refs.itemRefs.get(id)
+    const itemEl = itemRef?.current
+
+    // If the item element exists and is inside the list, use native scrollIntoView
+    if (itemEl && listEl) {
+      try {
+        const isInList = listEl.contains(itemEl)
+        if (isInList) {
+          itemEl.scrollIntoView({ block: 'nearest' })
+          return // Done - no need for virtualizer callback
+        }
+      } catch {
+        // Ignore errors from scrollIntoView
+      }
+    }
+
+    // Fallback: Call onHighlightChange for virtualizer to handle scrolling
+    // This is used when the item is not in the DOM (virtualized out of view)
+    if (onHighlightChange) {
+      // Use virtualItems index for scrollToIndex, not filtered index
+      const index = this.state.virtualized
+        ? this.getVirtualItemIndex(id)
+        : this.getVisibleItemIndex(id)
+      onHighlightChange(id, index)
+    }
   }
 
   setHasInput(hasInput: boolean) {
@@ -226,6 +317,70 @@ export class DropdownMenuStore extends ReactStore<
     if (enabled && this.state.search.length > 0) {
       this.setInputActive(true)
     }
+  }
+
+  setVirtualized(virtualized: boolean) {
+    this.set('virtualized', virtualized)
+  }
+
+  setVirtualItems(items: VirtualItem[]) {
+    this.context.virtualItems = items
+    // Pre-register all virtual items so filtering works for unmounted items
+    this.preRegisterVirtualItems()
+  }
+
+  setOnHighlightChange(
+    callback: ((id: string | null, index: number) => void) | undefined,
+  ) {
+    this.context.onHighlightChange = callback
+  }
+
+  // ============================================================================
+  // DOM Refs Management
+  // ============================================================================
+
+  /**
+   * Set the list element ref for scroll container detection.
+   */
+  setListRef(ref: React.RefObject<HTMLElement | null>) {
+    this.context.refs.listRef = ref
+  }
+
+  /**
+   * Register an item's DOM ref for scrollIntoView behavior.
+   * Returns a cleanup function.
+   */
+  registerItemRef(
+    id: string,
+    ref: React.RefObject<HTMLElement | null>,
+  ): () => void {
+    this.context.refs.itemRefs.set(id, ref)
+    return () => {
+      this.context.refs.itemRefs.delete(id)
+    }
+  }
+
+  /**
+   * Pre-register virtual items so they appear in filteredItems.
+   * This allows filtering to work for items that aren't mounted yet.
+   */
+  private preRegisterVirtualItems() {
+    const virtualItems = this.context.virtualItems
+    if (virtualItems.length === 0) return
+
+    // Register each virtual item (using value as the unique identifier)
+    for (const item of virtualItems) {
+      if (!this.context.items.has(item.value)) {
+        this.context.items.set(item.value, {
+          value: item.value,
+          keywords: item.keywords,
+          disabled: item.disabled,
+        })
+      }
+    }
+
+    // Recompute filtered items to include virtual items
+    this.recomputeFilteredItems()
   }
 
   // ============================================================================
@@ -440,7 +595,22 @@ export class DropdownMenuStore extends ReactStore<
     const result: string[] = []
     const search = this.state.search
     const filteredItems = this.state.filteredItems
+    const virtualItems = this.context.virtualItems
 
+    // When virtualized with items, use the virtualItems order
+    // This ensures navigation order matches the data array order
+    if (this.state.virtualized && virtualItems.length > 0) {
+      for (const item of virtualItems) {
+        const score = filteredItems.get(item.value) ?? 0
+        const isVisible = search.length === 0 || score > 0
+        if (isVisible && !item.disabled) {
+          result.push(item.value)
+        }
+      }
+      return result
+    }
+
+    // Non-virtualized: use mounted items order
     this.context.items.forEach((registration, id) => {
       const score = filteredItems.get(id) ?? 0
       const isVisible = search.length === 0 || score > 0
@@ -450,6 +620,25 @@ export class DropdownMenuStore extends ReactStore<
     })
 
     return result
+  }
+
+  /**
+   * Get the index of an item in the visible items list.
+   * Returns -1 if the item is not found or not visible.
+   */
+  getVisibleItemIndex(id: string): number {
+    return this.getVisibleItemIds().indexOf(id)
+  }
+
+  /**
+   * Get the index of an item in the virtualItems array.
+   * This is used for virtualizer scrollToIndex which needs the raw array index,
+   * not the filtered/visible index.
+   * Returns -1 if not found or not in virtualized mode.
+   */
+  getVirtualItemIndex(value: string): number {
+    if (!this.state.virtualized) return -1
+    return this.context.virtualItems.findIndex((item) => item.value === value)
   }
 
   private recomputeFilteredItems() {
@@ -491,16 +680,51 @@ export class DropdownMenuStore extends ReactStore<
     }
 
     // Auto-highlight first item when open and autoHighlightFirst is enabled
+    // BUT only if there's no current highlight (don't reset during navigation)
     let highlightedId: string | null = this.state.highlightedId
-    if (this.context.autoHighlightFirst && this.state.open) {
+
+    // Check if current highlight is still valid (visible and not disabled)
+    let currentHighlightValid = false
+    if (highlightedId) {
+      const score = filteredItems.get(highlightedId) ?? 0
+      const isVisible = search.length === 0 || score > 0
+      const registration = this.context.items.get(highlightedId)
+      const virtualItem = this.context.virtualItems.find(
+        (v) => v.value === highlightedId,
+      )
+      const isDisabled =
+        registration?.disabled ?? virtualItem?.disabled ?? false
+      currentHighlightValid = isVisible && !isDisabled
+    }
+
+    // Only auto-highlight first item if current highlight is invalid
+    if (
+      this.context.autoHighlightFirst &&
+      this.state.open &&
+      !currentHighlightValid
+    ) {
       // Find first visible item using the newly computed filteredItems
       highlightedId = null
-      for (const [id, registration] of this.context.items) {
-        const score = filteredItems.get(id) ?? 0
-        const isVisible = search.length === 0 || score > 0
-        if (isVisible && !registration.disabled) {
-          highlightedId = id
-          break
+
+      // When virtualized, use virtualItems order for first item
+      if (this.state.virtualized && this.context.virtualItems.length > 0) {
+        for (const item of this.context.virtualItems) {
+          const score = filteredItems.get(item.value) ?? 0
+          const isVisible = search.length === 0 || score > 0
+          if (isVisible && !item.disabled) {
+            highlightedId = item.value
+            break
+          }
+        }
+      } else {
+        // Non-virtualized: use mounted items
+        for (const [id, registration] of this.context.items) {
+          const score = filteredItems.get(id) ?? 0
+          const isVisible = search.length === 0 || score > 0
+          if (isVisible && !registration.disabled) {
+            highlightedId = id
+            break
+          }
         }
       }
     }
@@ -550,5 +774,6 @@ function createInitialState(): State {
     visibleGroups: new Set(),
     filteredCount: 0,
     filterTrigger: 0,
+    virtualized: false,
   }
 }

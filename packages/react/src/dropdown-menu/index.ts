@@ -51,6 +51,7 @@ export type { DropdownMenuShortcut } from './shortcut/shortcut.js'
 export type {
   Context as DropdownMenuStoreContext,
   State as DropdownMenuStoreState,
+  VirtualItem as DropdownMenuVirtualItem,
 } from './store/DropdownMenuStore.js'
 // Store (for advanced usage)
 export { DropdownMenuStore } from './store/DropdownMenuStore.js'

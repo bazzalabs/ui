@@ -7,7 +7,10 @@ import { AimGuardProvider } from '../contexts/aim-guard-context.js'
 import { FocusOwnerCtx } from '../contexts/focus-owner-context.js'
 import { OpenChainCtx } from '../contexts/open-chain-context.js'
 import { RootContext } from '../contexts/root-context.js'
-import { DropdownMenuStore } from '../store/DropdownMenuStore.js'
+import {
+  DropdownMenuStore,
+  type VirtualItem,
+} from '../store/DropdownMenuStore.js'
 import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { OpenChainStore } from '../store/OpenChainStore.js'
 
@@ -44,6 +47,28 @@ export interface DropdownMenuRootProps
    */
   modal?: boolean | 'trap-focus'
 
+  /**
+   * Whether virtualization mode is enabled.
+   * When true, items should provide an explicit `index` prop and
+   * the `items` prop should be provided for navigation to work correctly.
+   * @default false
+   */
+  virtualized?: boolean
+
+  /**
+   * Pre-registered items for virtualization.
+   * When provided with `virtualized={true}`, this allows navigation to work
+   * for items that aren't currently mounted in the DOM.
+   */
+  items?: VirtualItem[]
+
+  /**
+   * Callback when the highlighted item changes.
+   * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
+   * Only called when `virtualized={true}`.
+   */
+  onHighlightChange?: (id: string | null, index: number) => void
+
   children: React.ReactNode
 }
 
@@ -58,6 +83,9 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     onOpenChange,
     defaultOpen = false,
     modal = true,
+    virtualized = false,
+    items: itemsProp,
+    onHighlightChange,
     children,
     ...rest
   } = props
@@ -141,14 +169,25 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     store.setOpen(false)
   }, [store])
 
+  // Memoize virtualization config
+  const virtualization = React.useMemo(() => {
+    if (!virtualized) return undefined
+    return {
+      virtualized: true as const,
+      items: itemsProp ?? [],
+      onHighlightChange,
+    }
+  }, [virtualized, itemsProp, onHighlightChange])
+
   const contextValue = React.useMemo(
     () => ({
       store,
       depth: 0,
       closeAll,
       registerSurface,
+      virtualization,
     }),
-    [store, closeAll, registerSurface],
+    [store, closeAll, registerSurface, virtualization],
   )
 
   return (

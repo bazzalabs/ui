@@ -58,7 +58,6 @@ export const DropdownMenuPopup = React.forwardRef<
   const handlePointerMove = React.useCallback(() => {
     // Only handle if this is a submenu popup (not the root popup) and aim guard is active
     if (submenuContext && aimGuardActiveRef.current) {
-      console.log('[Popup] pointerMove in submenu popup, clearing aim guard')
       clearAimGuard()
     }
   }, [submenuContext, aimGuardActiveRef, clearAimGuard])
@@ -70,10 +69,6 @@ export const DropdownMenuPopup = React.forwardRef<
     // Only transfer focus if this is a submenu popup (not the root popup)
     // Use childSurfaceId from SubmenuContext since Popup is outside Surface in the component tree
     if (submenuContext) {
-      console.log(
-        '[Popup] pointerEnter - transferring focus to submenu surface:',
-        submenuContext.childSurfaceId,
-      )
       focusOwnerStore.setOwnerId(submenuContext.childSurfaceId)
     }
   }, [submenuContext, focusOwnerStore])

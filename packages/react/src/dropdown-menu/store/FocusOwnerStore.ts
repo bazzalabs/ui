@@ -38,12 +38,6 @@ export class FocusOwnerStore extends ReactStore<State, {}, typeof selectors> {
    * Call this when focus should transfer to a new surface.
    */
   setOwnerId(id: string | null) {
-    console.log(
-      '[FocusOwnerStore] setOwnerId:',
-      id,
-      'previous:',
-      this.state.ownerId,
-    )
     this.set('ownerId', id)
   }
 
