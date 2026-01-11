@@ -41,6 +41,8 @@ export type { DropdownMenuRadioItemIndicator } from './radio-item/radio-item-ind
 export type { DropdownMenuRoot } from './root/root.js'
 export { DropdownMenuSeparatorDataAttributes } from './separator/separator.data-attrs.js'
 export type { DropdownMenuSeparator } from './separator/separator.js'
+export { DropdownMenuShortcutDataAttributes } from './shortcut/shortcut.data-attrs.js'
+export type { DropdownMenuShortcut } from './shortcut/shortcut.js'
 export type {
   Context as DropdownMenuStoreContext,
   State as DropdownMenuStoreState,

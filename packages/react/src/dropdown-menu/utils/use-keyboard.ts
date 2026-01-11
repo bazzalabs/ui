@@ -201,6 +201,24 @@ export function useKeyboard(params: UseKeyboardParams): UseKeyboardReturn {
           }
           break
         }
+        default: {
+          // Handle single-character shortcuts (only when not typing in search input)
+          // Shortcuts are disabled when there's an active search to avoid conflicts
+          const hasActiveSearch = store.state.search.length > 0
+          const isPrintable =
+            event.key.length === 1 &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey
+
+          if (isPrintable && !hasActiveSearch) {
+            if (store.selectByShortcut(event.key)) {
+              event.preventDefault()
+              closeAll()
+            }
+          }
+          break
+        }
       }
     },
     [
