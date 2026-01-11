@@ -5,6 +5,7 @@ import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 import { ItemContext } from '../contexts/item-context.js'
 import { useItem } from '../utils/use-item.js'
+import { DropdownMenuItemDataAttributes } from './item.data-attrs.js'
 
 export interface DropdownMenuItemState extends Record<string, unknown> {
   /**
@@ -60,6 +61,13 @@ export interface DropdownMenuItemProps
    * Should be a single character (e.g., "1", "a", etc.).
    */
   shortcut?: string
+}
+
+const stateAttributesMapping = {
+  highlighted: (value: unknown): Record<string, string> | null =>
+    value ? { [DropdownMenuItemDataAttributes.highlighted]: '' } : null,
+  disabled: (value: unknown): Record<string, string> | null =>
+    value ? { [DropdownMenuItemDataAttributes.disabled]: '' } : null,
 }
 
 /**
@@ -147,6 +155,7 @@ export const DropdownMenuItem = React.forwardRef<
     render,
     ref: [item.ref, forwardedRef],
     state,
+    stateAttributesMapping,
     props: {
       ...rest,
       id: item.id,
