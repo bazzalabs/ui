@@ -222,8 +222,8 @@ export const DropdownMenuItem = React.forwardRef<
 
   // Context value for child components (like Shortcut) to access
   const itemContextValue: ItemContextValue = React.useMemo(
-    () => ({ shortcut }),
-    [shortcut],
+    () => ({ shortcut, highlighted: isHighlighted }),
+    [shortcut, isHighlighted],
   )
 
   // Wrap children with ItemContext.Provider so Shortcut can access the shortcut value

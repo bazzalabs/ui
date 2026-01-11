@@ -10,6 +10,7 @@ import {
   useGroupContext,
   useSurfaceContext,
 } from '../contexts/surface-context.js'
+import { ItemContext, type ItemContextValue } from '../item/item-context.js'
 import { DropdownMenuRadioItemDataAttributes } from './radio-item.data-attrs.js'
 import {
   RadioItemContext,
@@ -68,6 +69,13 @@ export interface DropdownMenuRadioItemProps<T = unknown>
    * @default false
    */
   closeOnClick?: boolean
+
+  /**
+   * Keyboard shortcut to trigger this item.
+   * When the menu is focused and the user presses this key, the item will be selected.
+   * Should be a single character (e.g., "1", "a", etc.).
+   */
+  shortcut?: string
 }
 
 const stateAttributesMapping = {
@@ -98,6 +106,7 @@ export const DropdownMenuRadioItem = React.forwardRef(
       onSelect,
       forceMount = false,
       closeOnClick = false,
+      shortcut,
       render,
       className,
       style,
@@ -142,6 +151,7 @@ export const DropdownMenuRadioItem = React.forwardRef(
         keywords,
         groupId: groupContext?.groupId,
         disabled,
+        shortcut,
       })
 
       return unregister
@@ -151,6 +161,7 @@ export const DropdownMenuRadioItem = React.forwardRef(
       keywords,
       groupContext?.groupId,
       disabled,
+      shortcut,
       store,
       forceMount,
     ])
@@ -258,6 +269,12 @@ export const DropdownMenuRadioItem = React.forwardRef(
       [checked, isHighlighted, disabled],
     )
 
+    // Context value for child components (like Shortcut) to access
+    const itemContextValue: ItemContextValue = React.useMemo(
+      () => ({ shortcut, highlighted: isHighlighted }),
+      [shortcut, isHighlighted],
+    )
+
     const element = useRender({
       render,
       ref: [ref, forwardedRef],
@@ -286,9 +303,11 @@ export const DropdownMenuRadioItem = React.forwardRef(
     }
 
     return (
-      <RadioItemContext.Provider value={radioItemContextValue}>
-        {element}
-      </RadioItemContext.Provider>
+      <ItemContext.Provider value={itemContextValue}>
+        <RadioItemContext.Provider value={radioItemContextValue}>
+          {element}
+        </RadioItemContext.Provider>
+      </ItemContext.Provider>
     )
   },
 ) as <T = unknown>(
