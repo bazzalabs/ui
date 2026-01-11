@@ -6,94 +6,201 @@ import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
+// ============================================================================
+// Config Panel Components
+// ============================================================================
+
+interface ConfigPanelProps {
+  title: string
+  children: React.ReactNode
+}
+
+function ConfigPanel({ title, children }: ConfigPanelProps) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 px-4 py-2">
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+      </div>
+      <div className="space-y-3 p-4">{children}</div>
+    </div>
+  )
+}
+
+interface ConfigRowProps {
+  label: string
+  description?: string
+  children: React.ReactNode
+}
+
+function ConfigRow({ label, description, children }: ConfigRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex-1">
+        <div className="text-sm font-medium text-gray-700">{label}</div>
+        {description && (
+          <div className="text-xs text-gray-400">{description}</div>
+        )}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  )
+}
+
+interface ToggleProps {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  disabled?: boolean
+}
+
+function Toggle({ checked, onChange, disabled }: ToggleProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors',
+        checked ? 'bg-blue-600' : 'bg-gray-200',
+        disabled && 'cursor-not-allowed opacity-50',
+      )}
+    >
+      <span
+        className={cn(
+          'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-4' : 'translate-x-0.5',
+        )}
+      />
+    </button>
+  )
+}
+
+interface SelectProps<T extends string> {
+  value: T
+  onChange: (value: T) => void
+  options: { value: T; label: string }[]
+}
+
+function Select<T extends string>({
+  value,
+  onChange,
+  options,
+}: SelectProps<T>) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as T)}
+      className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+interface NumberInputProps {
+  value: number
+  onChange: (value: number) => void
+  min?: number
+  max?: number
+  step?: number
+}
+
+function NumberInput({
+  value,
+  onChange,
+  min = 0,
+  max = 100,
+  step = 1,
+}: NumberInputProps) {
+  return (
+    <input
+      type="number"
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      min={min}
+      max={max}
+      step={step}
+      className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+    />
+  )
+}
+
+// ============================================================================
+// Demo Layout Components
+// ============================================================================
+
+interface DemoSectionProps {
+  title: string
+  description: string
+  children: React.ReactNode
+}
+
+function DemoSection({ title, description, children }: DemoSectionProps) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <p className="text-sm text-gray-500">{description}</p>
+      </div>
+      <div className="flex flex-wrap items-start gap-6">{children}</div>
+    </section>
+  )
+}
+
+interface DemoCardProps {
+  children: React.ReactNode
+}
+
+function DemoCard({ children }: DemoCardProps) {
+  return (
+    <div className="flex min-h-[200px] min-w-[300px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8">
+      {children}
+    </div>
+  )
+}
+
+// ============================================================================
+// Main Playground
+// ============================================================================
+
 export function Playground() {
   return (
-    <div className="grid grid-cols-3 gap-8 p-8">
-      <BasicExample />
-      <SearchableExample />
-      <GroupedExample />
-      <ControlledExample />
-      <SubmenuExample />
-      <RadioGroupExample />
-      <CheckboxItemExample />
-      <ArrowBackdropExample />
-      <OpenOnHoverExample />
-      <ModalExample />
+    <div className="space-y-12 p-8">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          DropdownMenu Playground
+        </h1>
+        <p className="text-gray-500">
+          Interactive demos to explore the DropdownMenu component features
+        </p>
+      </div>
+
+      <SurfaceSearchDemo />
+      <PositioningDemo />
+      <SelectionsDemo />
+      <SubmenuDemo />
+      <TriggerBehaviorDemo />
     </div>
   )
 }
 
-/**
- * Basic dropdown menu without search
- */
-function BasicExample() {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Basic</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800">
-          Basic Menu
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface>
-                <DropdownMenu.Input
-                  hideUntilActive
-                  placeholder="Search..."
-                  className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  render={(props, state) => (
-                    <div
-                      className={cn(
-                        'border-b border-gray-200 p-2',
-                        state.active ? '' : 'hidden',
-                      )}
-                    >
-                      <input {...props} />
-                    </div>
-                  )}
-                />
-                <DropdownMenu.List className="focus:outline-none p-1">
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => console.log('Profile clicked')}
-                  >
-                    Profile
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => console.log('Settings clicked')}
-                  >
-                    Settings
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Settings clicked')}
-                    closeOnClick={false}
-                  >
-                    Settings, but stay open
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
-                    onSelect={() => console.log('Sign out clicked')}
-                  >
-                    Sign out
-                  </DropdownMenu.Item>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
-  )
-}
+// ============================================================================
+// Demo 1: Surface & Search
+// ============================================================================
 
-/**
- * Searchable dropdown menu with fuzzy filtering
- */
-function SearchableExample() {
+function SurfaceSearchDemo() {
+  // Config state
+  const [loop, setLoop] = React.useState(true)
+  const [autoHighlightFirst, setAutoHighlightFirst] = React.useState(true)
+  const [clearSearchOnClose, setClearSearchOnClose] = React.useState(true)
+  const [hideUntilActive, setHideUntilActive] = React.useState(false)
+  const [filterEnabled, setFilterEnabled] = React.useState(true)
+
   const fruits = [
     { value: 'apple', label: 'Apple', keywords: ['fruit', 'red', 'green'] },
     { value: 'banana', label: 'Banana', keywords: ['fruit', 'yellow'] },
@@ -122,533 +229,766 @@ function SearchableExample() {
   ]
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Searchable</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-500">
-          Select Fruit
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[220px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface loop autoHighlightFirst clearSearchOnClose>
-                <div className="border-b border-gray-200 p-2">
+    <DemoSection
+      title="Surface & Search"
+      description="Configure search behavior, filtering, and navigation options"
+    >
+      <DemoCard>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-500">
+            Select Fruit
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={8}>
+              <DropdownMenu.Popup className="min-w-[220px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                <DropdownMenu.Surface
+                  loop={loop}
+                  autoHighlightFirst={autoHighlightFirst}
+                  clearSearchOnClose={clearSearchOnClose}
+                  filter={filterEnabled ? undefined : false}
+                >
                   <DropdownMenu.Input
+                    hideUntilActive={hideUntilActive}
                     placeholder="Search fruits..."
                     className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    render={(props, state) => (
+                      <div
+                        className={cn(
+                          'border-b border-gray-200 p-2',
+                          hideUntilActive && !state.active && 'hidden',
+                        )}
+                      >
+                        <input {...props} />
+                      </div>
+                    )}
                   />
-                </div>
-                <DropdownMenu.List className="max-h-[200px] overflow-y-auto scroll-py-1 p-1">
-                  {({ search, filteredCount }) => (
-                    <>
-                      {search && (
-                        <div className="px-3 py-1 text-xs text-gray-400">
-                          {filteredCount} result{filteredCount !== 1 ? 's' : ''}
-                        </div>
-                      )}
-                      {fruits.map((fruit) => (
-                        <DropdownMenu.Item
-                          key={fruit.value}
-                          value={fruit.value}
-                          keywords={fruit.keywords}
-                          className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
-                          onSelect={() =>
-                            console.log(`Selected: ${fruit.label}`)
-                          }
-                        >
-                          {fruit.label}
-                        </DropdownMenu.Item>
-                      ))}
-                    </>
-                  )}
-                </DropdownMenu.List>
-                <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
-                  No fruits found
-                </DropdownMenu.Empty>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
+                  <DropdownMenu.List className="max-h-[200px] overflow-y-auto scroll-py-1 p-1">
+                    {({ search, filteredCount }) => (
+                      <>
+                        {search && (
+                          <div className="px-3 py-1 text-xs text-gray-400">
+                            {filteredCount} result
+                            {filteredCount !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                        {fruits.map((fruit) => (
+                          <DropdownMenu.Item
+                            key={fruit.value}
+                            value={fruit.value}
+                            keywords={fruit.keywords}
+                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                            onSelect={() => toast(`Selected: ${fruit.label}`)}
+                          >
+                            {fruit.label}
+                          </DropdownMenu.Item>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenu.List>
+                  <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                    No fruits found
+                  </DropdownMenu.Empty>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Surface Props">
+        <ConfigRow
+          label="loop"
+          description="Loop navigation from last to first"
+        >
+          <Toggle checked={loop} onChange={setLoop} />
+        </ConfigRow>
+        <ConfigRow
+          label="autoHighlightFirst"
+          description="Auto-highlight first item on open/search"
+        >
+          <Toggle
+            checked={autoHighlightFirst}
+            onChange={setAutoHighlightFirst}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="clearSearchOnClose"
+          description="Clear search when menu closes"
+        >
+          <Toggle
+            checked={clearSearchOnClose}
+            onChange={setClearSearchOnClose}
+          />
+        </ConfigRow>
+        <ConfigRow label="filter" description="Enable fuzzy filtering">
+          <Toggle checked={filterEnabled} onChange={setFilterEnabled} />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Input Props">
+        <ConfigRow
+          label="hideUntilActive"
+          description="Hide input until user types"
+        >
+          <Toggle checked={hideUntilActive} onChange={setHideUntilActive} />
+        </ConfigRow>
+      </ConfigPanel>
+    </DemoSection>
   )
 }
 
-/**
- * Grouped dropdown menu with search
- */
-function GroupedExample() {
+// ============================================================================
+// Demo 2: Positioning
+// ============================================================================
+
+function PositioningDemo() {
+  // Config state
+  const [side, setSide] = React.useState<'top' | 'bottom' | 'left' | 'right'>(
+    'bottom',
+  )
+  const [align, setAlign] = React.useState<'start' | 'center' | 'end'>('center')
+  const [sideOffset, setSideOffset] = React.useState(8)
+  const [showArrow, setShowArrow] = React.useState(false)
+  const [showBackdrop, setShowBackdrop] = React.useState(false)
+
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Grouped</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">
-          Actions
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[240px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface loop autoHighlightFirst>
-                <div className="border-b border-gray-200 p-2">
-                  <DropdownMenu.Input
-                    placeholder="Search actions..."
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  />
-                </div>
-                <DropdownMenu.List className="max-h-[300px] overflow-y-auto scroll-py-1 p-1">
-                  {/* Edit Group */}
-                  <DropdownMenu.Group>
-                    <DropdownMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
-                      Edit
-                    </DropdownMenu.GroupLabel>
+    <DemoSection
+      title="Positioning"
+      description="Control where and how the dropdown appears relative to the trigger"
+    >
+      <DemoCard>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500">
+            Positioned Menu
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            {showBackdrop && (
+              <DropdownMenu.Backdrop className="fixed inset-0 bg-black/20 pointer-events-none" />
+            )}
+            <DropdownMenu.Positioner
+              side={side}
+              align={align}
+              sideOffset={sideOffset}
+            >
+              <DropdownMenu.Popup className="relative min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                {showArrow && (
+                  <DropdownMenu.Arrow className="data-[side=bottom]:top-[-8px] data-[side=top]:bottom-[-8px] data-[side=left]:right-[-8px] data-[side=right]:left-[-8px]">
+                    <ArrowSvg />
+                  </DropdownMenu.Arrow>
+                )}
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List className="p-1 focus:outline-none">
                     <DropdownMenu.Item
-                      value="undo"
-                      keywords={['revert', 'back']}
                       className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Undo')}
+                      onSelect={() => toast('Profile')}
                     >
-                      Undo
+                      Profile
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
-                      value="redo"
-                      keywords={['forward']}
                       className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Redo')}
+                      onSelect={() => toast('Settings')}
                     >
-                      Redo
+                      Settings
                     </DropdownMenu.Item>
+                    <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
                     <DropdownMenu.Item
-                      value="cut"
-                      keywords={['remove', 'move']}
-                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Cut')}
-                    >
-                      Cut
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      value="copy"
-                      keywords={['duplicate', 'clipboard']}
-                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Copy')}
-                    >
-                      Copy
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      value="paste"
-                      keywords={['insert', 'clipboard']}
-                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Paste')}
-                    >
-                      Paste
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Group>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* View Group */}
-                  <DropdownMenu.Group>
-                    <DropdownMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
-                      View
-                    </DropdownMenu.GroupLabel>
-                    <DropdownMenu.Item
-                      value="zoom-in"
-                      keywords={['magnify', 'larger', 'bigger']}
-                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Zoom In')}
-                    >
-                      Zoom In
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      value="zoom-out"
-                      keywords={['smaller', 'shrink']}
-                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Zoom Out')}
-                    >
-                      Zoom Out
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      value="fullscreen"
-                      keywords={['maximize', 'expand']}
-                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-emerald-50"
-                      onSelect={() => console.log('Fullscreen')}
-                    >
-                      Fullscreen
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Group>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* Danger Zone */}
-                  <DropdownMenu.Group>
-                    <DropdownMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-red-500">
-                      Danger Zone
-                    </DropdownMenu.GroupLabel>
-                    <DropdownMenu.Item
-                      value="delete"
-                      keywords={['remove', 'trash', 'destroy']}
                       className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
-                      onSelect={() => console.log('Delete')}
+                      onSelect={() => toast('Logout')}
+                    >
+                      Logout
+                    </DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Positioner Props">
+        <ConfigRow label="side" description="Which side of the trigger">
+          <Select
+            value={side}
+            onChange={setSide}
+            options={[
+              { value: 'top', label: 'top' },
+              { value: 'bottom', label: 'bottom' },
+              { value: 'left', label: 'left' },
+              { value: 'right', label: 'right' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow label="align" description="Alignment along the side">
+          <Select
+            value={align}
+            onChange={setAlign}
+            options={[
+              { value: 'start', label: 'start' },
+              { value: 'center', label: 'center' },
+              { value: 'end', label: 'end' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow label="sideOffset" description="Distance from trigger (px)">
+          <NumberInput
+            value={sideOffset}
+            onChange={setSideOffset}
+            min={0}
+            max={50}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Visual Props">
+        <ConfigRow label="Arrow" description="Show pointer arrow">
+          <Toggle checked={showArrow} onChange={setShowArrow} />
+        </ConfigRow>
+        <ConfigRow label="Backdrop" description="Show backdrop overlay">
+          <Toggle checked={showBackdrop} onChange={setShowBackdrop} />
+        </ConfigRow>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Demo 3: Selections (Radio & Checkbox)
+// ============================================================================
+
+function SelectionsDemo() {
+  // Radio state
+  const [sortBy, setSortBy] = React.useState<'name' | 'date' | 'size'>('name')
+
+  // Checkbox state
+  const [notifications, setNotifications] = React.useState(true)
+  const [darkMode, setDarkMode] = React.useState(false)
+  const [autoSave, setAutoSave] = React.useState(true)
+
+  // Config
+  const [closeCheckboxOnClick, setCloseCheckboxOnClick] = React.useState(false)
+  const [useCustomCheckbox, setUseCustomCheckbox] = React.useState(false)
+
+  return (
+    <DemoSection
+      title="Selections"
+      description="RadioGroup for single selection, CheckboxItem for multiple selections"
+    >
+      {/* Radio Demo */}
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">Sort: {sortBy}</div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500">
+              Sort by: {sortBy}
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner sideOffset={8}>
+                <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.List className="p-1 focus:outline-none">
+                      <DropdownMenu.RadioGroup
+                        value={sortBy}
+                        onValueChange={setSortBy}
+                      >
+                        <DropdownMenu.RadioItem
+                          value="name"
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-indigo-50"
+                        >
+                          <span>Name</span>
+                          <DropdownMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                            <CheckIcon className="h-4 w-4 text-indigo-600" />
+                          </DropdownMenu.RadioItemIndicator>
+                        </DropdownMenu.RadioItem>
+                        <DropdownMenu.RadioItem
+                          value="date"
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-indigo-50"
+                        >
+                          <span>Date</span>
+                          <DropdownMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                            <CheckIcon className="h-4 w-4 text-indigo-600" />
+                          </DropdownMenu.RadioItemIndicator>
+                        </DropdownMenu.RadioItem>
+                        <DropdownMenu.RadioItem
+                          value="size"
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-indigo-50"
+                        >
+                          <span>Size</span>
+                          <DropdownMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                            <CheckIcon className="h-4 w-4 text-indigo-600" />
+                          </DropdownMenu.RadioItemIndicator>
+                        </DropdownMenu.RadioItem>
+                      </DropdownMenu.RadioGroup>
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      </DemoCard>
+
+      {/* Checkbox Demo */}
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            N: {notifications ? 'on' : 'off'} | D: {darkMode ? 'on' : 'off'} |
+            A: {autoSave ? 'on' : 'off'}
+          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger className="rounded-md bg-teal-600 px-4 py-2 text-white hover:bg-teal-500">
+              Settings
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner sideOffset={8}>
+                <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.List className="p-1 focus:outline-none">
+                      {useCustomCheckbox ? (
+                        // Custom checkbox rendering using Checkbox UI component
+                        <>
+                          <DropdownMenu.CheckboxItem
+                            checked={notifications}
+                            onCheckedChange={setNotifications}
+                            closeOnClick={closeCheckboxOnClick}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                          >
+                            <DropdownMenu.CheckboxItemIndicator
+                              keepMounted
+                              render={(props, state) => (
+                                <Checkbox
+                                  checked={state.checked}
+                                  tabIndex={-1}
+                                  onClick={
+                                    closeCheckboxOnClick
+                                      ? (e) => {
+                                          e.stopPropagation()
+                                          state.toggle()
+                                        }
+                                      : undefined
+                                  }
+                                />
+                              )}
+                            />
+                            <span>Notifications</span>
+                          </DropdownMenu.CheckboxItem>
+                          <DropdownMenu.CheckboxItem
+                            checked={darkMode}
+                            onCheckedChange={setDarkMode}
+                            closeOnClick={closeCheckboxOnClick}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                          >
+                            <DropdownMenu.CheckboxItemIndicator
+                              keepMounted
+                              render={(props, state) => (
+                                <Checkbox
+                                  checked={state.checked}
+                                  tabIndex={-1}
+                                  onClick={
+                                    closeCheckboxOnClick
+                                      ? (e) => {
+                                          e.stopPropagation()
+                                          state.toggle()
+                                        }
+                                      : undefined
+                                  }
+                                />
+                              )}
+                            />
+                            <span>Dark Mode</span>
+                          </DropdownMenu.CheckboxItem>
+                          <DropdownMenu.CheckboxItem
+                            checked={autoSave}
+                            onCheckedChange={setAutoSave}
+                            closeOnClick={closeCheckboxOnClick}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                          >
+                            <DropdownMenu.CheckboxItemIndicator
+                              keepMounted
+                              render={(props, state) => (
+                                <Checkbox
+                                  checked={state.checked}
+                                  tabIndex={-1}
+                                  onClick={
+                                    closeCheckboxOnClick
+                                      ? (e) => {
+                                          e.stopPropagation()
+                                          state.toggle()
+                                        }
+                                      : undefined
+                                  }
+                                />
+                              )}
+                            />
+                            <span>Auto-save</span>
+                          </DropdownMenu.CheckboxItem>
+                        </>
+                      ) : (
+                        // Default indicator rendering
+                        <>
+                          <DropdownMenu.CheckboxItem
+                            checked={notifications}
+                            onCheckedChange={setNotifications}
+                            closeOnClick={closeCheckboxOnClick}
+                            className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                          >
+                            <span>Notifications</span>
+                            <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                              <CheckIcon className="h-4 w-4 text-teal-600" />
+                            </DropdownMenu.CheckboxItemIndicator>
+                          </DropdownMenu.CheckboxItem>
+                          <DropdownMenu.CheckboxItem
+                            checked={darkMode}
+                            onCheckedChange={setDarkMode}
+                            closeOnClick={closeCheckboxOnClick}
+                            className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                          >
+                            <span>Dark Mode</span>
+                            <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                              <CheckIcon className="h-4 w-4 text-teal-600" />
+                            </DropdownMenu.CheckboxItemIndicator>
+                          </DropdownMenu.CheckboxItem>
+                          <DropdownMenu.CheckboxItem
+                            checked={autoSave}
+                            onCheckedChange={setAutoSave}
+                            closeOnClick={closeCheckboxOnClick}
+                            className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
+                          >
+                            <span>Auto-save</span>
+                            <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                              <CheckIcon className="h-4 w-4 text-teal-600" />
+                            </DropdownMenu.CheckboxItemIndicator>
+                          </DropdownMenu.CheckboxItem>
+                        </>
+                      )}
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="CheckboxItem Props">
+        <ConfigRow
+          label="closeOnClick"
+          description="Close menu when clicking item"
+        >
+          <Toggle
+            checked={closeCheckboxOnClick}
+            onChange={setCloseCheckboxOnClick}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="Custom Checkbox"
+          description="Use Checkbox UI component"
+        >
+          <Toggle checked={useCustomCheckbox} onChange={setUseCustomCheckbox} />
+        </ConfigRow>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Demo 4: Submenus
+// ============================================================================
+
+function SubmenuDemo() {
+  // Config
+  const [closeRootOnEsc, setCloseRootOnEsc] = React.useState(true)
+  const [showSearchInSubmenu, setShowSearchInSubmenu] = React.useState(false)
+
+  return (
+    <DemoSection
+      title="Submenus"
+      description="Nested menus with configurable escape behavior and search"
+    >
+      <DemoCard>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger className="rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-500">
+            File Menu
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={8}>
+              <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List className="focus:outline-none p-1">
+                    <DropdownMenu.Item
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                      onSelect={() => toast('New File')}
+                    >
+                      New File
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                      onSelect={() => toast('Open')}
+                    >
+                      Open
+                    </DropdownMenu.Item>
+
+                    <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    {/* Share Submenu */}
+                    <DropdownMenu.Submenu closeRootOnEsc={closeRootOnEsc}>
+                      <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                        <span>Share</span>
+                        <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
+                          <CaretRightIcon className="size-full" />
+                        </DropdownMenu.SubmenuTriggerIndicator>
+                      </DropdownMenu.SubmenuTrigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Positioner sideOffset={4}>
+                          <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                            <DropdownMenu.Surface>
+                              {showSearchInSubmenu && (
+                                <div className="border-b border-gray-200 p-2">
+                                  <DropdownMenu.Input
+                                    placeholder="Search..."
+                                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                                  />
+                                </div>
+                              )}
+                              <DropdownMenu.List className="p-1 focus:outline-none">
+                                <DropdownMenu.Item
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                  onSelect={() => toast('Share via Email')}
+                                >
+                                  Email
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                  onSelect={() => toast('Share via Slack')}
+                                >
+                                  Slack
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                  onSelect={() => toast('Copy Link')}
+                                >
+                                  Copy Link
+                                </DropdownMenu.Item>
+
+                                {/* Nested Submenu */}
+                                <DropdownMenu.Submenu
+                                  closeRootOnEsc={closeRootOnEsc}
+                                >
+                                  <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
+                                    <span>Social Media</span>
+                                    <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
+                                      <CaretRightIcon className="size-full" />
+                                    </DropdownMenu.SubmenuTriggerIndicator>
+                                  </DropdownMenu.SubmenuTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.Positioner sideOffset={4}>
+                                      <DropdownMenu.Popup className="min-w-[140px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                                        <DropdownMenu.Surface>
+                                          <DropdownMenu.List className="p-1 focus:outline-none">
+                                            <DropdownMenu.Item
+                                              className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                              onSelect={() => toast('Twitter')}
+                                            >
+                                              Twitter
+                                            </DropdownMenu.Item>
+                                            <DropdownMenu.Item
+                                              className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                              onSelect={() => toast('Facebook')}
+                                            >
+                                              Facebook
+                                            </DropdownMenu.Item>
+                                            <DropdownMenu.Item
+                                              className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                                              onSelect={() => toast('LinkedIn')}
+                                            >
+                                              LinkedIn
+                                            </DropdownMenu.Item>
+                                          </DropdownMenu.List>
+                                        </DropdownMenu.Surface>
+                                      </DropdownMenu.Popup>
+                                    </DropdownMenu.Positioner>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Submenu>
+                              </DropdownMenu.List>
+                              {showSearchInSubmenu && (
+                                <DropdownMenu.Empty className="px-3 py-4 text-center text-sm text-gray-500">
+                                  No results
+                                </DropdownMenu.Empty>
+                              )}
+                            </DropdownMenu.Surface>
+                          </DropdownMenu.Popup>
+                        </DropdownMenu.Positioner>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Submenu>
+
+                    <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    <DropdownMenu.Item
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
+                      onSelect={() => toast('Delete')}
                     >
                       Delete
                     </DropdownMenu.Item>
-                  </DropdownMenu.Group>
-                </DropdownMenu.List>
-                <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
-                  No actions found
-                </DropdownMenu.Empty>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Submenu Props">
+        <ConfigRow
+          label="closeRootOnEsc"
+          description="Escape closes entire menu tree"
+        >
+          <Toggle checked={closeRootOnEsc} onChange={setCloseRootOnEsc} />
+        </ConfigRow>
+        <ConfigRow
+          label="Search in Submenu"
+          description="Show search input in submenus"
+        >
+          <Toggle
+            checked={showSearchInSubmenu}
+            onChange={setShowSearchInSubmenu}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+    </DemoSection>
   )
 }
 
-/**
- * Controlled dropdown with external state
- */
-function ControlledExample() {
-  const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState('')
-  const [selected, setSelected] = React.useState<string | null>(null)
+// ============================================================================
+// Demo 5: Trigger Behavior
+// ============================================================================
 
-  const countries = [
-    { value: 'us', label: 'United States', flag: '🇺🇸' },
-    { value: 'uk', label: 'United Kingdom', flag: '🇬🇧' },
-    { value: 'ca', label: 'Canada', flag: '🇨🇦' },
-    { value: 'au', label: 'Australia', flag: '🇦🇺' },
-    { value: 'de', label: 'Germany', flag: '🇩🇪' },
-    { value: 'fr', label: 'France', flag: '🇫🇷' },
-    { value: 'jp', label: 'Japan', flag: '🇯🇵' },
-    { value: 'br', label: 'Brazil', flag: '🇧🇷' },
-  ]
+function TriggerBehaviorDemo() {
+  // Config
+  const [modal, setModal] = React.useState<'true' | 'false' | 'trap-focus'>(
+    'true',
+  )
+  const [openOnHover, setOpenOnHover] = React.useState(false)
+  const [delay, setDelay] = React.useState(300)
+  const [closeDelay, setCloseDelay] = React.useState(150)
+  const [closeOnClickItem, setCloseOnClickItem] = React.useState(true)
 
-  const selectedCountry = countries.find((c) => c.value === selected)
+  const modalValue =
+    modal === 'true' ? true : modal === 'false' ? false : 'trap-focus'
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Controlled</span>
-      <div className="text-xs text-gray-400">
-        Search: "{search}" | Selected: {selected || 'none'}
-      </div>
-      <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-        <DropdownMenu.Trigger className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-white hover:bg-purple-500">
-          {selectedCountry ? (
-            <>
-              <span>{selectedCountry.flag}</span>
-              <span>{selectedCountry.label}</span>
-            </>
-          ) : (
-            'Select Country'
-          )}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[220px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface
-                search={search}
-                onSearchChange={setSearch}
-                loop
-                autoHighlightFirst
-                clearSearchOnClose
-              >
-                <div className="border-b border-gray-200 p-2">
-                  <DropdownMenu.Input
-                    placeholder="Search countries..."
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                  />
-                </div>
-                <DropdownMenu.List className="max-h-[200px] overflow-y-auto scroll-py-1 p-1">
-                  {countries.map((country) => (
+    <DemoSection
+      title="Trigger Behavior"
+      description="Control how the menu opens and interacts with the page"
+    >
+      <DemoCard>
+        <DropdownMenu.Root modal={modalValue}>
+          <DropdownMenu.Trigger
+            openOnHover={openOnHover}
+            delay={delay}
+            closeDelay={closeDelay}
+            className={cn(
+              'rounded-md px-4 py-2 text-white transition-colors',
+              openOnHover
+                ? 'bg-cyan-600 hover:bg-cyan-500'
+                : 'bg-violet-600 hover:bg-violet-500',
+            )}
+          >
+            {openOnHover ? 'Hover Me' : 'Click Me'}
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={8}>
+              <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List className="p-1 focus:outline-none">
                     <DropdownMenu.Item
-                      key={country.value}
-                      value={country.label}
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-purple-50"
-                      onSelect={() => {
-                        setSelected(country.value)
-                        setOpen(false)
-                      }}
+                      closeOnClick={closeOnClickItem}
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                      onSelect={() => toast('Dashboard')}
                     >
-                      <span>{country.flag}</span>
-                      <span>{country.label}</span>
-                      {selected === country.value && (
-                        <span className="ml-auto text-purple-600">✓</span>
-                      )}
+                      Dashboard
                     </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.List>
-                <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
-                  No countries found
-                </DropdownMenu.Empty>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
+                    <DropdownMenu.Item
+                      closeOnClick={closeOnClickItem}
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                      onSelect={() => toast('Analytics')}
+                    >
+                      Analytics
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      closeOnClick={closeOnClickItem}
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                      onSelect={() => toast('Reports')}
+                    >
+                      Reports
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+                    <DropdownMenu.Item
+                      closeOnClick={closeOnClickItem}
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
+                      onSelect={() => toast('Settings')}
+                    >
+                      Settings
+                    </DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Root Props">
+        <ConfigRow label="modal" description="Modal behavior when open">
+          <Select
+            value={modal}
+            onChange={setModal}
+            options={[
+              { value: 'true', label: 'true (lock scroll)' },
+              { value: 'false', label: 'false' },
+              { value: 'trap-focus', label: 'trap-focus' },
+            ]}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Trigger Props">
+        <ConfigRow label="openOnHover" description="Open menu on hover">
+          <Toggle checked={openOnHover} onChange={setOpenOnHover} />
+        </ConfigRow>
+        <ConfigRow label="delay" description="Delay before opening (ms)">
+          <NumberInput
+            value={delay}
+            onChange={setDelay}
+            min={0}
+            max={1000}
+            step={50}
+          />
+        </ConfigRow>
+        <ConfigRow label="closeDelay" description="Delay before closing (ms)">
+          <NumberInput
+            value={closeDelay}
+            onChange={setCloseDelay}
+            min={0}
+            max={1000}
+            step={50}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Item Props">
+        <ConfigRow
+          label="closeOnClick"
+          description="Close menu when item clicked"
+        >
+          <Toggle checked={closeOnClickItem} onChange={setCloseOnClickItem} />
+        </ConfigRow>
+      </ConfigPanel>
+    </DemoSection>
   )
 }
 
-/**
- * Dropdown menu with submenus
- */
-function SubmenuExample() {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Submenu</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-500">
-          With Submenu
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface>
-                <DropdownMenu.Input
-                  hideUntilActive
-                  placeholder="Search..."
-                  className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  render={(props, state) => (
-                    <div
-                      className={cn(
-                        'border-b border-gray-200 p-2',
-                        state.active ? '' : 'hidden',
-                      )}
-                    >
-                      <input {...props} />
-                    </div>
-                  )}
-                />
-                <DropdownMenu.List className="focus:outline-none p-1">
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('New File')}
-                  >
-                    New File
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Open')}
-                  >
-                    Open
-                  </DropdownMenu.Item>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* Share Submenu */}
-                  <DropdownMenu.Submenu>
-                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                      <span>Share</span>
-                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 data-[popup-open]:not-data-[popup-focused]:text-foreground/75 data-[popup-focused]:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4">
-                        <CaretRightIcon className="size-full" />
-                      </DropdownMenu.SubmenuTriggerIndicator>
-                    </DropdownMenu.SubmenuTrigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Positioner sideOffset={4}>
-                        <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <DropdownMenu.Surface>
-                            <div className="border-b border-gray-200 p-2">
-                              <DropdownMenu.Input
-                                placeholder="Search..."
-                                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                              />
-                            </div>
-                            <DropdownMenu.List className="p-1 focus:outline-none">
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Share via Email')}
-                              >
-                                Email
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Share via Slack')}
-                              >
-                                Slack
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Copy Link')}
-                              >
-                                Copy Link
-                              </DropdownMenu.Item>
-
-                              {/* Nested Submenu */}
-                              <DropdownMenu.Submenu>
-                                <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                                  <span>Social Media</span>
-                                  <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 data-[popup-open]:not-data-[popup-focused]:text-foreground/75 data-[popup-focused]:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4">
-                                    <CaretRightIcon className="size-full" />
-                                  </DropdownMenu.SubmenuTriggerIndicator>
-                                </DropdownMenu.SubmenuTrigger>
-                                <DropdownMenu.Portal>
-                                  <DropdownMenu.Positioner sideOffset={4}>
-                                    <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                                      <DropdownMenu.Surface>
-                                        <div className="border-b border-gray-200 p-2">
-                                          <DropdownMenu.Input
-                                            placeholder="Search..."
-                                            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                                          />
-                                        </div>
-                                        <DropdownMenu.List className="p-1 focus:outline-none">
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() =>
-                                              toast('Share on Twitter')
-                                            }
-                                          >
-                                            Twitter
-                                          </DropdownMenu.Item>
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() =>
-                                              toast('Share on Facebook')
-                                            }
-                                          >
-                                            Facebook
-                                          </DropdownMenu.Item>
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() =>
-                                              toast('Share on LinkedIn')
-                                            }
-                                          >
-                                            LinkedIn
-                                          </DropdownMenu.Item>
-                                        </DropdownMenu.List>
-                                      </DropdownMenu.Surface>
-                                    </DropdownMenu.Popup>
-                                  </DropdownMenu.Positioner>
-                                </DropdownMenu.Portal>
-                              </DropdownMenu.Submenu>
-                            </DropdownMenu.List>
-                          </DropdownMenu.Surface>
-                        </DropdownMenu.Popup>
-                      </DropdownMenu.Positioner>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu.Submenu>
-
-                  {/* Export Submenu - closeRootOnEsc={false} test */}
-                  <DropdownMenu.Submenu closeRootOnEsc={false}>
-                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                      <span>Export as (Esc closes submenu only)</span>
-                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 data-[popup-open]:not-data-[popup-focused]:text-foreground/75 data-[popup-focused]:text-foreground transition-[color] duration-50 ease-out shrink-0 size-4">
-                        <CaretRightIcon className="size-full" />
-                      </DropdownMenu.SubmenuTriggerIndicator>
-                    </DropdownMenu.SubmenuTrigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Positioner sideOffset={4}>
-                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <DropdownMenu.Surface>
-                            <div className="border-b border-gray-200 p-2">
-                              <DropdownMenu.Input
-                                placeholder="Search..."
-                                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                              />
-                            </div>
-                            <DropdownMenu.List className="p-1 focus:outline-none">
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Export as PDF')}
-                              >
-                                PDF
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Export as PNG')}
-                              >
-                                PNG
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Export as SVG')}
-                              >
-                                SVG
-                              </DropdownMenu.Item>
-                            </DropdownMenu.List>
-                          </DropdownMenu.Surface>
-                        </DropdownMenu.Popup>
-                      </DropdownMenu.Positioner>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu.Submenu>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
-                    onSelect={() => toast('Deleted!')}
-                  >
-                    Delete
-                  </DropdownMenu.Item>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
-  )
-}
-
-/**
- * RadioGroup example with sort options
- */
-function RadioGroupExample() {
-  const [sort, setSort] = React.useState<'name' | 'date' | 'size'>('name')
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">RadioGroup</span>
-      <div className="text-xs text-gray-400">Sort: {sort}</div>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500">
-          Sort by: {sort}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface>
-                <DropdownMenu.List className="p-1 focus:outline-none">
-                  <DropdownMenu.RadioGroup value={sort} onValueChange={setSort}>
-                    <DropdownMenu.RadioItem
-                      value="name"
-                      className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-indigo-50"
-                    >
-                      <span>Name</span>
-                      <DropdownMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
-                        <CheckIcon className="h-4 w-4 text-indigo-600" />
-                      </DropdownMenu.RadioItemIndicator>
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem
-                      value="date"
-                      className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-indigo-50"
-                    >
-                      <span>Date</span>
-                      <DropdownMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
-                        <CheckIcon className="h-4 w-4 text-indigo-600" />
-                      </DropdownMenu.RadioItemIndicator>
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem
-                      value="size"
-                      className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-indigo-50"
-                    >
-                      <span>Size</span>
-                      <DropdownMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
-                        <CheckIcon className="h-4 w-4 text-indigo-600" />
-                      </DropdownMenu.RadioItemIndicator>
-                    </DropdownMenu.RadioItem>
-                  </DropdownMenu.RadioGroup>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
-  )
-}
+// ============================================================================
+// Icons
+// ============================================================================
 
 const CheckIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
   return (
@@ -682,608 +1022,6 @@ const CaretRightIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
     >
       <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor" />
     </svg>
-  )
-}
-
-/**
- * CheckboxItem example with settings toggles
- */
-function CheckboxItemExample() {
-  const [notifications, setNotifications] = React.useState(true)
-  const [darkMode, setDarkMode] = React.useState(false)
-  const [autoSave, setAutoSave] = React.useState(true)
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">CheckboxItem</span>
-      <div className="text-xs text-gray-400">
-        Notifications: {notifications ? 'on' : 'off'} | Dark:{' '}
-        {darkMode ? 'on' : 'off'} | AutoSave: {autoSave ? 'on' : 'off'}
-      </div>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-teal-600 px-4 py-2 text-white hover:bg-teal-500">
-          Settings
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface>
-                <DropdownMenu.List className="p-1 focus:outline-none">
-                  <DropdownMenu.CheckboxItem
-                    checked={notifications}
-                    onCheckedChange={setNotifications}
-                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <span>Notifications</span>
-                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
-                      <CheckIcon className="h-4 w-4 text-teal-600" />
-                    </DropdownMenu.CheckboxItemIndicator>
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.CheckboxItem
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
-                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <span>Dark Mode</span>
-                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
-                      <CheckIcon className="h-4 w-4 text-teal-600" />
-                    </DropdownMenu.CheckboxItemIndicator>
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.CheckboxItem
-                    checked={autoSave}
-                    onCheckedChange={setAutoSave}
-                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <span>Auto-save</span>
-                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
-                      <CheckIcon className="h-4 w-4 text-teal-600" />
-                    </DropdownMenu.CheckboxItemIndicator>
-                  </DropdownMenu.CheckboxItem>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* Uncontrolled checkbox example */}
-                  <DropdownMenu.CheckboxItem
-                    defaultChecked
-                    onCheckedChange={(checked) =>
-                      toast(`Remember me: ${checked}`)
-                    }
-                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <span>Remember me (uncontrolled)</span>
-                    <DropdownMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
-                      <CheckIcon className="h-4 w-4 text-teal-600" />
-                    </DropdownMenu.CheckboxItemIndicator>
-                  </DropdownMenu.CheckboxItem>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* Checkbox items using the Checkbox UI component */}
-                  <DropdownMenu.CheckboxItem
-                    defaultChecked
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <DropdownMenu.CheckboxItemIndicator
-                      keepMounted
-                      render={(props, state) => (
-                        <Checkbox checked={state.checked} tabIndex={-1} />
-                      )}
-                    />
-                    <span>Show sidebar</span>
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.CheckboxItem
-                    defaultChecked={false}
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <DropdownMenu.CheckboxItemIndicator
-                      keepMounted
-                      render={(props, state) => (
-                        <Checkbox checked={state.checked} tabIndex={-1} />
-                      )}
-                    />
-                    <span>Show minimap</span>
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.CheckboxItem
-                    defaultChecked
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <DropdownMenu.CheckboxItemIndicator
-                      keepMounted
-                      render={(props, state) => (
-                        <Checkbox checked={state.checked} tabIndex={-1} />
-                      )}
-                    />
-                    <span>Word wrap</span>
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.CheckboxItem
-                    defaultChecked={false}
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <DropdownMenu.CheckboxItemIndicator
-                      keepMounted
-                      render={(props, state) => (
-                        <Checkbox checked={state.checked} tabIndex={-1} />
-                      )}
-                    />
-                    <span>Line numbers</span>
-                  </DropdownMenu.CheckboxItem>
-                  <DropdownMenu.CheckboxItem
-                    defaultChecked
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                  >
-                    <DropdownMenu.CheckboxItemIndicator
-                      keepMounted
-                      render={(props, state) => (
-                        <Checkbox checked={state.checked} tabIndex={-1} />
-                      )}
-                    />
-                    <span>Highlight current line</span>
-                  </DropdownMenu.CheckboxItem>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* Checkbox items that close on click, unless checkbox is clicked directly */}
-                  <DropdownMenu.Group>
-                    <DropdownMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
-                      Privacy & Updates (closes on label click)
-                    </DropdownMenu.GroupLabel>
-                    <DropdownMenu.CheckboxItem
-                      defaultChecked
-                      closeOnClick
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                    >
-                      <DropdownMenu.CheckboxItemIndicator
-                        keepMounted
-                        render={(props, state) => (
-                          <Checkbox
-                            checked={state.checked}
-                            tabIndex={-1}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              state.toggle()
-                            }}
-                          />
-                        )}
-                      />
-                      <span>Enable analytics</span>
-                    </DropdownMenu.CheckboxItem>
-                    <DropdownMenu.CheckboxItem
-                      defaultChecked={false}
-                      closeOnClick
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                    >
-                      <DropdownMenu.CheckboxItemIndicator
-                        keepMounted
-                        render={(props, state) => (
-                          <Checkbox
-                            checked={state.checked}
-                            tabIndex={-1}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              state.toggle()
-                            }}
-                          />
-                        )}
-                      />
-                      <span>Share usage data</span>
-                    </DropdownMenu.CheckboxItem>
-                    <DropdownMenu.CheckboxItem
-                      defaultChecked
-                      closeOnClick
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                    >
-                      <DropdownMenu.CheckboxItemIndicator
-                        keepMounted
-                        render={(props, state) => (
-                          <Checkbox
-                            checked={state.checked}
-                            tabIndex={-1}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              state.toggle()
-                            }}
-                          />
-                        )}
-                      />
-                      <span>Auto-update</span>
-                    </DropdownMenu.CheckboxItem>
-                    <DropdownMenu.CheckboxItem
-                      defaultChecked={false}
-                      closeOnClick
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                    >
-                      <DropdownMenu.CheckboxItemIndicator
-                        keepMounted
-                        render={(props, state) => (
-                          <Checkbox
-                            checked={state.checked}
-                            tabIndex={-1}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              state.toggle()
-                            }}
-                          />
-                        )}
-                      />
-                      <span>Beta features</span>
-                    </DropdownMenu.CheckboxItem>
-                    <DropdownMenu.CheckboxItem
-                      defaultChecked
-                      closeOnClick
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-teal-50"
-                    >
-                      <DropdownMenu.CheckboxItemIndicator
-                        keepMounted
-                        render={(props, state) => (
-                          <Checkbox
-                            checked={state.checked}
-                            tabIndex={-1}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              state.toggle()
-                            }}
-                          />
-                        )}
-                      />
-                      <span>Crash reports</span>
-                    </DropdownMenu.CheckboxItem>
-                  </DropdownMenu.Group>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
-  )
-}
-
-/**
- * Arrow and Backdrop example with nested submenus
- */
-function ArrowBackdropExample() {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Arrow & Backdrop</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger className="rounded-md bg-rose-600 px-4 py-2 text-white hover:bg-rose-500">
-          With Arrow & Backdrop
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Backdrop className="fixed inset-0 bg-black/20 pointer-events-none" />
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="relative min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Arrow className="data-[side=bottom]:top-[-8px] data-[side=top]:bottom-[-8px] data-[side=left]:right-[-8px] data-[side=right]:left-[-8px]">
-                <ArrowSvg />
-              </DropdownMenu.Arrow>
-              <DropdownMenu.Surface>
-                <DropdownMenu.List className="p-1 focus:outline-none">
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Profile')}
-                  >
-                    Profile
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Settings')}
-                  >
-                    Settings
-                  </DropdownMenu.Item>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* First Submenu */}
-                  <DropdownMenu.Submenu>
-                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                      <span>More Options</span>
-                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
-                        <CaretRightIcon className="size-full" />
-                      </DropdownMenu.SubmenuTriggerIndicator>
-                    </DropdownMenu.SubmenuTrigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Backdrop
-                        showOn="open"
-                        className="fixed inset-0 bg-black/10 pointer-events-none"
-                      />
-                      <DropdownMenu.Positioner sideOffset={8}>
-                        <DropdownMenu.Popup className="relative min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <DropdownMenu.Arrow className="data-[side=right]:left-[-13px] rotate-270">
-                            <ArrowSvg />
-                          </DropdownMenu.Arrow>
-                          <DropdownMenu.Surface>
-                            <DropdownMenu.List className="p-1 focus:outline-none">
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Option A')}
-                              >
-                                Option A
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Option B')}
-                              >
-                                Option B
-                              </DropdownMenu.Item>
-
-                              {/* Second nested Submenu */}
-                              <DropdownMenu.Submenu>
-                                <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                                  <span>Deep Options</span>
-                                  <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
-                                    <CaretRightIcon className="size-full" />
-                                  </DropdownMenu.SubmenuTriggerIndicator>
-                                </DropdownMenu.SubmenuTrigger>
-                                <DropdownMenu.Portal>
-                                  <DropdownMenu.Backdrop className="fixed inset-0 bg-black/5 pointer-events-none" />
-                                  <DropdownMenu.Positioner sideOffset={8}>
-                                    <DropdownMenu.Popup className="relative min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                                      <DropdownMenu.Arrow className="data-[side=right]:left-[-13px] rotate-270">
-                                        <ArrowSvg />
-                                      </DropdownMenu.Arrow>
-                                      <DropdownMenu.Surface>
-                                        <DropdownMenu.List className="p-1 focus:outline-none">
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() => toast('Deep 1')}
-                                          >
-                                            Deep Option 1
-                                          </DropdownMenu.Item>
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() => toast('Deep 2')}
-                                          >
-                                            Deep Option 2
-                                          </DropdownMenu.Item>
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() => toast('Deep 3')}
-                                          >
-                                            Deep Option 3
-                                          </DropdownMenu.Item>
-                                        </DropdownMenu.List>
-                                      </DropdownMenu.Surface>
-                                    </DropdownMenu.Popup>
-                                  </DropdownMenu.Positioner>
-                                </DropdownMenu.Portal>
-                              </DropdownMenu.Submenu>
-                            </DropdownMenu.List>
-                          </DropdownMenu.Surface>
-                        </DropdownMenu.Popup>
-                      </DropdownMenu.Positioner>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu.Submenu>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
-                    onSelect={() => toast('Logout')}
-                  >
-                    Logout
-                  </DropdownMenu.Item>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
-  )
-}
-
-/**
- * Open on hover example - menu opens when hovering the trigger
- */
-function OpenOnHoverExample() {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Open on Hover</span>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger
-          openOnHover
-          delay={300}
-          closeDelay={150}
-          className="rounded-md bg-cyan-600 px-4 py-2 text-white hover:bg-cyan-500"
-        >
-          Hover Me
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface>
-                <DropdownMenu.List className="p-1 focus:outline-none">
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Dashboard')}
-                  >
-                    Dashboard
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Analytics')}
-                  >
-                    Analytics
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Reports')}
-                  >
-                    Reports
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Settings')}
-                  >
-                    Settings
-                  </DropdownMenu.Item>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
-  )
-}
-
-/**
- * Modal dropdown menu with submenus - modal={true} locks scroll and disables outside interactions
- */
-function ModalExample() {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-sm text-gray-500">Modal + Submenu</span>
-      <DropdownMenu.Root modal>
-        <DropdownMenu.Trigger className="rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-500 aria-expanded:bg-violet-500 transition-colors">
-          Modal Menu
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Positioner sideOffset={8}>
-            <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
-              <DropdownMenu.Surface>
-                <DropdownMenu.List className="p-1 focus:outline-none">
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('New Document')}
-                  >
-                    New Document
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                    onSelect={() => toast('Open Recent')}
-                  >
-                    Open Recent
-                  </DropdownMenu.Item>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  {/* Edit Submenu */}
-                  <DropdownMenu.Submenu>
-                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                      <span>Edit</span>
-                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
-                        <CaretRightIcon className="size-full" />
-                      </DropdownMenu.SubmenuTriggerIndicator>
-                    </DropdownMenu.SubmenuTrigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Positioner sideOffset={4}>
-                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <DropdownMenu.Surface>
-                            <DropdownMenu.List className="p-1 focus:outline-none">
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Undo')}
-                              >
-                                Undo
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Redo')}
-                              >
-                                Redo
-                              </DropdownMenu.Item>
-
-                              <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                              {/* Clipboard Nested Submenu */}
-                              <DropdownMenu.Submenu>
-                                <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                                  <span>Clipboard</span>
-                                  <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
-                                    <CaretRightIcon className="size-full" />
-                                  </DropdownMenu.SubmenuTriggerIndicator>
-                                </DropdownMenu.SubmenuTrigger>
-                                <DropdownMenu.Portal>
-                                  <DropdownMenu.Positioner sideOffset={4}>
-                                    <DropdownMenu.Popup className="min-w-[140px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                                      <DropdownMenu.Surface>
-                                        <DropdownMenu.List className="p-1 focus:outline-none">
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() => toast('Cut')}
-                                          >
-                                            Cut
-                                          </DropdownMenu.Item>
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() => toast('Copy')}
-                                          >
-                                            Copy
-                                          </DropdownMenu.Item>
-                                          <DropdownMenu.Item
-                                            className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                            onSelect={() => toast('Paste')}
-                                          >
-                                            Paste
-                                          </DropdownMenu.Item>
-                                        </DropdownMenu.List>
-                                      </DropdownMenu.Surface>
-                                    </DropdownMenu.Popup>
-                                  </DropdownMenu.Positioner>
-                                </DropdownMenu.Portal>
-                              </DropdownMenu.Submenu>
-                            </DropdownMenu.List>
-                          </DropdownMenu.Surface>
-                        </DropdownMenu.Popup>
-                      </DropdownMenu.Positioner>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu.Submenu>
-
-                  {/* View Submenu */}
-                  <DropdownMenu.Submenu>
-                    <DropdownMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100">
-                      <span>View</span>
-                      <DropdownMenu.SubmenuTriggerIndicator className="text-muted-foreground/75 shrink-0 size-4">
-                        <CaretRightIcon className="size-full" />
-                      </DropdownMenu.SubmenuTriggerIndicator>
-                    </DropdownMenu.SubmenuTrigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Positioner sideOffset={4}>
-                        <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <DropdownMenu.Surface>
-                            <DropdownMenu.List className="p-1 focus:outline-none">
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Zoom In')}
-                              >
-                                Zoom In
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Zoom Out')}
-                              >
-                                Zoom Out
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100"
-                                onSelect={() => toast('Reset Zoom')}
-                              >
-                                Reset Zoom
-                              </DropdownMenu.Item>
-                            </DropdownMenu.List>
-                          </DropdownMenu.Surface>
-                        </DropdownMenu.Popup>
-                      </DropdownMenu.Positioner>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu.Submenu>
-
-                  <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
-
-                  <DropdownMenu.Item
-                    className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
-                    onSelect={() => toast('Close')}
-                  >
-                    Close
-                  </DropdownMenu.Item>
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
-            </DropdownMenu.Popup>
-          </DropdownMenu.Positioner>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-    </div>
   )
 }
 
