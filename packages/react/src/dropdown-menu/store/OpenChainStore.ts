@@ -50,7 +50,6 @@ export class OpenChainStore extends ReactStore<State, {}, typeof selectors> {
 
     const newChain = [...this.state.chain, surfaceId]
     this.set('chain', newChain)
-    console.log('[OpenChainStore] open:', surfaceId, 'chain:', newChain)
   }
 
   /**
@@ -59,14 +58,12 @@ export class OpenChainStore extends ReactStore<State, {}, typeof selectors> {
   close(surfaceId: string) {
     const newChain = this.state.chain.filter((id) => id !== surfaceId)
     this.set('chain', newChain)
-    console.log('[OpenChainStore] close:', surfaceId, 'chain:', newChain)
   }
 
   /**
    * Clear all open surfaces (menu tree closed).
    */
   clear() {
-    console.log('[OpenChainStore] clear')
     this.set('chain', [])
   }
 }

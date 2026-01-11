@@ -65,6 +65,11 @@ export const DropdownMenuList = React.forwardRef<
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
+  // Register list ref with store for scroll behavior
+  React.useEffect(() => {
+    store.setListRef(internalRef)
+  }, [store])
+
   // Get values from store
   const search = store.useState('search')
   const filteredCount = store.useState('filteredCount')

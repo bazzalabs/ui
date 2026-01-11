@@ -208,10 +208,6 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
   // When submenu is opened via keyboard (ArrowRight/Ctrl+L), transfer focus ownership
   React.useEffect(() => {
     return parentStore.registerSubmenuOpen(item.id, () => {
-      console.log(
-        '[SubmenuTrigger] registerSubmenuOpen callback - opening via KEYBOARD, transferring focus to:',
-        childSurfaceId,
-      )
       setOpen(true)
       // Transfer focus ownership to the submenu surface
       focusOwnerStore.setOwnerId(childSurfaceId)
@@ -220,10 +216,6 @@ export const DropdownMenuSubmenuTrigger = React.forwardRef<
         const input = contentRef.current?.querySelector('input')
         const list = contentRef.current?.querySelector('[role="listbox"]')
         const focusTarget = input ?? list
-        console.log(
-          '[SubmenuTrigger] Keyboard open - focusing element:',
-          focusTarget?.tagName,
-        )
         if (focusTarget && focusTarget instanceof HTMLElement) {
           focusTarget.focus()
         }
