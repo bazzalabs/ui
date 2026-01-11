@@ -3,7 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
-import { useItemContext } from '../item/item-context.js'
+import { useItemContext } from '../contexts/item-context.js'
 import { DropdownMenuShortcutDataAttributes } from './shortcut.data-attrs.js'
 
 /**
