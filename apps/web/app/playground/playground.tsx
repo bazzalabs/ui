@@ -180,6 +180,7 @@ export function Playground() {
         </p>
       </div>
 
+      <KeyboardShortcutsDemo />
       <SurfaceSearchDemo />
       <PositioningDemo />
       <SelectionsDemo />
@@ -187,6 +188,203 @@ export function Playground() {
       <TriggerBehaviorDemo />
     </div>
   )
+}
+
+// ============================================================================
+// Demo 0: Keyboard Shortcuts
+// ============================================================================
+
+function KeyboardShortcutsDemo() {
+  const [status, setStatus] = React.useState<string>('backlog')
+
+  const statuses = [
+    {
+      value: 'icebox',
+      label: 'Icebox',
+      shortcut: '1',
+      icon: StatusIcons.Icebox,
+    },
+    {
+      value: 'backlog',
+      label: 'Backlog',
+      shortcut: '2',
+      icon: StatusIcons.Backlog,
+    },
+    { value: 'todo', label: 'Todo', shortcut: '3', icon: StatusIcons.Todo },
+    {
+      value: 'inprogress',
+      label: 'In Progress',
+      shortcut: '4',
+      icon: StatusIcons.InProgress,
+    },
+    { value: 'done', label: 'Done', shortcut: '5', icon: StatusIcons.Done },
+  ]
+
+  const currentStatus = statuses.find((s) => s.value === status)
+
+  return (
+    <DemoSection
+      title="Keyboard Shortcuts"
+      description="Press number keys (1-5) to quickly select a status when the menu is open"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 flex items-center justify-center gap-2 text-xs text-gray-400">
+            Current: {currentStatus && <currentStatus.icon />}{' '}
+            {currentStatus?.label}
+          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-white hover:bg-purple-500">
+              {currentStatus && <currentStatus.icon />}
+              <span>{currentStatus?.label ?? 'Select status'}</span>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner sideOffset={8}>
+                <DropdownMenu.Popup className="min-w-[220px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.Input
+                      placeholder="Change status..."
+                      className={cn(
+                        'outline-hidden disabled:cursor-not-allowed disabled:opacity-50 min-h-10 max-h-10 px-4 border-b text-sm',
+                        'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+                        'caret-blue-500',
+                        'w-full',
+                      )}
+                    />
+                    <DropdownMenu.List className="p-1 focus:outline-none">
+                      {statuses.map((s) => (
+                        <DropdownMenu.Item
+                          key={s.value}
+                          shortcut={s.shortcut}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-purple-50"
+                          onSelect={() => {
+                            setStatus(s.value)
+                            toast(`Status changed to ${s.label}`)
+                          }}
+                        >
+                          <s.icon />
+                          <span className="flex-1">{s.label}</span>
+                          {status === s.value && (
+                            <CheckIcon className="h-4 w-4 text-purple-600" />
+                          )}
+                          <DropdownMenu.Shortcut
+                            className="text-xs text-gray-400"
+                            render={(props, state) => (
+                              <span {...props}>{state.shortcut}</span>
+                            )}
+                          />
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="How it works">
+        <div className="text-sm text-gray-600">
+          <p className="mb-2">
+            Each item has a{' '}
+            <code className="rounded bg-gray-100 px-1">shortcut</code> prop that
+            registers a keyboard shortcut.
+          </p>
+          <p className="mb-2">
+            When the menu is open and focused, pressing the shortcut key (1-5)
+            will immediately select that item.
+          </p>
+          <p>
+            The{' '}
+            <code className="rounded bg-gray-100 px-1">
+              &lt;DropdownMenu.Shortcut /&gt;
+            </code>{' '}
+            component automatically displays the shortcut value.
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// Status icons for keyboard shortcuts demo
+const StatusIcons = {
+  Icebox: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle
+        cx="7"
+        cy="7"
+        r="6"
+        fill="none"
+        stroke="#26b5ce"
+        strokeWidth="1.5"
+        strokeDasharray="1.4 1.74"
+        strokeDashoffset="0.65"
+      />
+    </svg>
+  ),
+  Backlog: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle
+        cx="7"
+        cy="7"
+        r="6"
+        fill="none"
+        stroke="#8a8f98"
+        strokeWidth="1.5"
+        strokeDasharray="1.4 1.74"
+        strokeDashoffset="0.65"
+      />
+    </svg>
+  ),
+  Todo: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle
+        cx="7"
+        cy="7"
+        r="6"
+        fill="none"
+        strokeWidth="1.5"
+        stroke="#8a8f98"
+      />
+    </svg>
+  ),
+  InProgress: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle
+        cx="7"
+        cy="7"
+        r="6"
+        fill="none"
+        stroke="#f5a623"
+        strokeWidth="1.5"
+      />
+      <circle
+        cx="7"
+        cy="7"
+        r="3"
+        fill="none"
+        stroke="#f5a623"
+        strokeWidth="6"
+        strokeDasharray="9.42 18.84"
+        transform="rotate(-90 7 7)"
+      />
+    </svg>
+  ),
+  Done: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="6" fill="#5e6ad2" stroke="none" />
+      <path
+        d="M10.2 4.8L5.95 9.05L3.8 6.9"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  ),
 }
 
 // ============================================================================
