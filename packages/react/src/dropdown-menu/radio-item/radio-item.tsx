@@ -3,14 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
-import { useAimGuard } from '../contexts/aim-guard-context.js'
+import { ItemContext } from '../contexts/item-context.js'
 import { useRadioGroupContext } from '../contexts/radio-group-context.js'
 import { useRootContext } from '../contexts/root-context.js'
-import {
-  useGroupContext,
-  useSurfaceContext,
-} from '../contexts/surface-context.js'
-import { ItemContext, type ItemContextValue } from '../item/item-context.js'
+import { useItem } from '../utils/use-item.js'
 import { DropdownMenuRadioItemDataAttributes } from './radio-item.data-attrs.js'
 import {
   RadioItemContext,
@@ -117,14 +113,8 @@ export const DropdownMenuRadioItem = React.forwardRef(
       ...rest
     } = props
 
-    const { store } = useSurfaceContext()
-    const groupContext = useGroupContext()
     const radioGroupContext = useRadioGroupContext<T>()
-    const { depth, closeAll } = useRootContext()
-    const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
-
-    const id = React.useId()
-    const ref = React.useRef<HTMLDivElement>(null)
+    const { closeAll } = useRootContext()
 
     // Combine disabled from props and RadioGroup
     const disabled = disabledProp || radioGroupContext.disabled
@@ -132,41 +122,16 @@ export const DropdownMenuRadioItem = React.forwardRef(
     // Check if this item is selected
     const checked = radioGroupContext.value === value
 
-    // Infer text value for filtering
-    const [inferredValue, setInferredValue] = React.useState<string>('')
-
-    React.useLayoutEffect(() => {
-      if (ref.current) {
-        const textContent = ref.current.textContent?.trim() ?? ''
-        setInferredValue(textContent)
-      }
-    }, [children])
-
-    // Register with store for navigation/filtering
-    React.useEffect(() => {
-      if (!inferredValue && !forceMount) return
-
-      const unregister = store.registerItem(id, {
-        value: inferredValue,
-        keywords,
-        groupId: groupContext?.groupId,
-        disabled,
-        shortcut,
-      })
-
-      return unregister
-    }, [
-      id,
-      inferredValue,
+    const item = useItem({
       keywords,
-      groupContext?.groupId,
       disabled,
-      shortcut,
-      store,
       forceMount,
-    ])
+      shortcut,
+      closeOnClick,
+      children,
+    })
 
-    // Register onSelect handler (called when Enter is pressed on highlighted item)
+    // Register the select handler that sets the radio value
     React.useEffect(() => {
       const handleSelect = () => {
         if (disabled) return
@@ -176,113 +141,67 @@ export const DropdownMenuRadioItem = React.forwardRef(
           closeAll()
         }
       }
-      return store.registerItemSelect(id, handleSelect)
+      return item.registerSelect(handleSelect)
     }, [
-      id,
       disabled,
       radioGroupContext,
       value,
       onSelect,
       closeOnClick,
       closeAll,
-      store,
+      item,
     ])
 
-    // Use selectors for state
-    const search = store.useState('search')
-    const isHighlighted = store.useState('isHighlighted', id)
-    const score = store.useState('getItemScore', id)
+    const state: DropdownMenuRadioItemState = React.useMemo(
+      () => ({ highlighted: item.isHighlighted, disabled, checked }),
+      [item.isHighlighted, disabled, checked],
+    )
 
-    // Visibility based on filter
-    const hasSearch = search.length > 0
-    const isVisible = forceMount || !hasSearch || score > 0
+    const radioItemContextValue: RadioItemContextValue = React.useMemo(
+      () => ({
+        ...item.contextValue,
+        checked,
+      }),
+      [item.contextValue, checked],
+    )
 
-    // Scroll into view on keyboard highlight
-    React.useEffect(() => {
-      if (
-        isHighlighted &&
-        store.state.highlightSource === 'keyboard' &&
-        ref.current
-      ) {
-        ref.current.scrollIntoView({ block: 'nearest' })
-      }
-    }, [isHighlighted, store])
-
+    // Merge user-provided handlers with item handlers
     const handleClick = React.useCallback(
       (event: React.MouseEvent<HTMLDivElement>) => {
         onClick?.(event)
-        if (event.defaultPrevented || disabled) return
-
-        event.preventDefault()
-        radioGroupContext.setValue(value)
-        onSelect?.()
-
-        if (closeOnClick) {
-          closeAll()
+        if (!event.defaultPrevented) {
+          item.handlers.onClick(event)
         }
       },
-      [
-        onClick,
-        disabled,
-        radioGroupContext,
-        value,
-        onSelect,
-        closeOnClick,
-        closeAll,
-      ],
+      [onClick, item.handlers],
     )
 
     const handlePointerDown = React.useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
-        event.preventDefault()
+        item.handlers.onPointerDown(event)
         onPointerDown?.(event)
       },
-      [onPointerDown],
+      [item.handlers, onPointerDown],
     )
 
     const handlePointerMove = React.useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
         onPointerMove?.(event)
-        if (event.defaultPrevented || disabled) return
-        if (aimGuardActiveRef.current && guardedDepthRef.current === depth)
-          return
-        store.setHighlightedId(id)
+        if (!event.defaultPrevented) {
+          item.handlers.onPointerMove(event)
+        }
       },
-      [
-        onPointerMove,
-        disabled,
-        aimGuardActiveRef,
-        guardedDepthRef,
-        depth,
-        store,
-        id,
-      ],
-    )
-
-    const state: DropdownMenuRadioItemState = React.useMemo(
-      () => ({ highlighted: isHighlighted, disabled, checked }),
-      [isHighlighted, disabled, checked],
-    )
-
-    const radioItemContextValue: RadioItemContextValue = React.useMemo(
-      () => ({ checked, highlighted: isHighlighted, disabled }),
-      [checked, isHighlighted, disabled],
-    )
-
-    // Context value for child components (like Shortcut) to access
-    const itemContextValue: ItemContextValue = React.useMemo(
-      () => ({ shortcut, highlighted: isHighlighted }),
-      [shortcut, isHighlighted],
+      [onPointerMove, item.handlers],
     )
 
     const element = useRender({
       render,
-      ref: [ref, forwardedRef],
+      ref: [item.ref, forwardedRef],
       state,
       stateAttributesMapping,
       props: {
         ...rest,
-        id,
+        id: item.id,
         role: 'menuitemradio',
         tabIndex: -1,
         'aria-checked': checked,
@@ -294,16 +213,16 @@ export const DropdownMenuRadioItem = React.forwardRef(
         onPointerDown: handlePointerDown,
         children,
       },
-      enabled: isVisible,
+      enabled: item.isVisible,
       defaultTagName: 'div',
     })
 
-    if (!isVisible) {
+    if (!item.isVisible) {
       return null
     }
 
     return (
-      <ItemContext.Provider value={itemContextValue}>
+      <ItemContext.Provider value={item.contextValue}>
         <RadioItemContext.Provider value={radioItemContextValue}>
           {element}
         </RadioItemContext.Provider>

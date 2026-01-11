@@ -1,14 +1,15 @@
 'use client'
 
 import * as React from 'react'
+import type { ItemContextValue } from '../contexts/item-context.js'
 
-export interface RadioItemContextValue {
+/**
+ * Context value for radio menu items.
+ * Extends ItemContextValue with radio-specific state.
+ */
+export interface RadioItemContextValue extends ItemContextValue {
   /** Whether this radio item is currently selected */
   checked: boolean
-  /** Whether this radio item is currently highlighted */
-  highlighted: boolean
-  /** Whether this radio item is disabled */
-  disabled: boolean
 }
 
 const RadioItemContext = React.createContext<RadioItemContextValue | null>(null)
