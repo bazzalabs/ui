@@ -1,6 +1,5 @@
 'use client'
 
-import { ScrollArea } from '@base-ui/react/scroll-area'
 import { DropdownMenu, type DropdownMenuVirtualItem } from '@bazza-ui/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
@@ -228,7 +227,7 @@ function VirtualizationDemo() {
       const category = categories[i % categories.length]
       items.push({
         value: `${category} ${i + 1}`,
-        keywords: [category?.toLowerCase() ?? '', `item-${i}`],
+        // keywords: [category?.toLowerCase() ?? '', `item-${i}`],
       })
     }
 
@@ -336,6 +335,7 @@ function VirtualizationDemo() {
                     onSearchChange={setSearch}
                     loop={loop}
                     autoHighlightFirst={autoHighlightFirst}
+                    filter={false}
                   >
                     <div className="border-b border-gray-200 p-2">
                       <DropdownMenu.Input
@@ -343,78 +343,53 @@ function VirtualizationDemo() {
                         className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
                       />
                     </div>
-                    <ScrollArea.Root style={{ height: listHeight }}>
-                      <DropdownMenu.List
-                        className="h-full overscroll-contain p-1 focus:outline-none scroll-py-1"
-                        render={(props) => (
-                          <ScrollArea.Viewport
-                            {...props}
-                            ref={(el) => {
-                              // Handle both the forwardedRef from List and our state setter
-                              setScrollElement(el)
-                              // Call the original ref if it exists
-                              const { ref } = props as {
-                                ref?: React.Ref<HTMLDivElement>
-                              }
-                              if (typeof ref === 'function') {
-                                ref(el)
-                              } else if (ref) {
-                                ;(
-                                  ref as React.MutableRefObject<HTMLDivElement | null>
-                                ).current = el
-                              }
-                            }}
-                          />
-                        )}
+                    <DropdownMenu.List
+                      ref={setScrollElement}
+                      className="overflow-auto p-1 focus:outline-none scroll-py-1"
+                      style={{ height: listHeight }}
+                    >
+                      <div
+                        style={{
+                          height: virtualizer.getTotalSize(),
+                          width: '100%',
+                          position: 'relative',
+                        }}
                       >
-                        <div
-                          style={{
-                            height: virtualizer.getTotalSize(),
-                            width: '100%',
-                            position: 'relative',
-                          }}
-                        >
-                          {virtualizer.getVirtualItems().map((virtualRow) => {
-                            const item = filteredItems[virtualRow.index]
-                            if (!item) return null
+                        {virtualizer.getVirtualItems().map((virtualRow) => {
+                          const item = filteredItems[virtualRow.index]
+                          if (!item) return null
 
-                            return (
-                              <DropdownMenu.Item
-                                key={item.value}
-                                value={item.value}
-                                disabled={item.disabled}
-                                style={{
-                                  position: 'absolute',
-                                  top: 0,
-                                  left: 0,
-                                  width: '100%',
-                                  height: itemHeight,
-                                  transform: `translateY(${virtualRow.start}px)`,
-                                }}
-                                className={cn(
-                                  'flex cursor-pointer items-center rounded-md px-3 text-sm',
-                                  'data-[highlighted]:bg-gray-100/75',
-                                  'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
-                                )}
-                                onSelect={() =>
-                                  toast(`Selected: ${item.value}`)
-                                }
-                              >
-                                {item.value}
-                                {item.disabled && (
-                                  <span className="ml-auto text-xs text-gray-400">
-                                    disabled
-                                  </span>
-                                )}
-                              </DropdownMenu.Item>
-                            )
-                          })}
-                        </div>
-                      </DropdownMenu.List>
-                      <ScrollArea.Scrollbar className="m-1 flex w-1.5 justify-center rounded-full bg-gray-100 opacity-0 transition-opacity delay-300 data-[hovering]:opacity-100 data-[hovering]:delay-0 data-[scrolling]:opacity-100 data-[scrolling]:delay-0">
-                        <ScrollArea.Thumb className="w-full rounded-full bg-gray-400" />
-                      </ScrollArea.Scrollbar>
-                    </ScrollArea.Root>
+                          return (
+                            <DropdownMenu.Item
+                              key={item.value}
+                              value={item.value}
+                              disabled={item.disabled}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: itemHeight,
+                                transform: `translateY(${virtualRow.start}px)`,
+                              }}
+                              className={cn(
+                                'flex cursor-pointer items-center rounded-md px-3 text-sm',
+                                'data-[highlighted]:bg-violet-50',
+                                'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
+                              )}
+                              onSelect={() => toast(`Selected: ${item.value}`)}
+                            >
+                              {item.value}
+                              {item.disabled && (
+                                <span className="ml-auto text-xs text-gray-400">
+                                  disabled
+                                </span>
+                              )}
+                            </DropdownMenu.Item>
+                          )
+                        })}
+                      </div>
+                    </DropdownMenu.List>
                     <DropdownMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
                       No items found
                     </DropdownMenu.Empty>
