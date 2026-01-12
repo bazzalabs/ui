@@ -19,16 +19,15 @@
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
-    "@base-ui/react": "^1.0.0",
     "@bazza-ui/action-menu": "workspace:*",
     "@bazza-ui/command-menu": "workspace:*",
+    "@bazza-ui/react": "workspace:*",
     "@bazza-ui/context-menu": "workspace:*",
     "@bazza-ui/dropdown-menu": "workspace:*",
     "@bazza-ui/filters": "workspace:*",
     "@bazza-ui/loaders": "workspace:*",
-    "@bazza-ui/menu": "workspace:*",
-    "@bazza-ui/react": "workspace:*",
     "@bazza-ui/select": "workspace:*",
+    "@bazza-ui/menu": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",

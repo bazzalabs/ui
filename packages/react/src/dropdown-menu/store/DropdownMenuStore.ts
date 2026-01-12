@@ -126,6 +126,32 @@ export interface Context {
   refs: DOMRefs
 }
 
+/**
+ * Options for the validateHighlight method.
+ */
+interface ValidateHighlightOptions {
+  /**
+   * Force highlighting the first item, even if current highlight is valid.
+   * Used when the list order changes (e.g., after filtering).
+   */
+  forceFirst?: boolean
+  /**
+   * The newly computed filteredItems map. If not provided, uses state.filteredItems.
+   * This is needed when calling from recomputeFilteredItems before state is updated.
+   */
+  filteredItems?: Map<string, number>
+  /**
+   * The new search query that corresponds to filteredItems.
+   * Used together with prevSearch to detect when search is cleared.
+   */
+  newSearch?: string
+  /**
+   * The previous search query before the change.
+   * Used together with newSearch to detect when search is cleared.
+   */
+  prevSearch?: string
+}
+
 // ============================================================================
 // Selectors
 // ============================================================================
@@ -228,7 +254,7 @@ export class DropdownMenuStore extends ReactStore<
     // Recompute filtered items when search changes (handles controlled search via useControlledProp)
     this.observe('search', (search, prevSearch) => {
       if (search !== prevSearch) {
-        this.recomputeFilteredItems()
+        this.recomputeFilteredItems(prevSearch)
       }
     })
   }
@@ -324,9 +350,29 @@ export class DropdownMenuStore extends ReactStore<
   }
 
   setVirtualItems(items: VirtualItem[]) {
+    const prevItems = this.context.virtualItems
     this.context.virtualItems = items
+
     // Pre-register all virtual items so filtering works for unmounted items
     this.preRegisterVirtualItems()
+
+    // Skip if items reference didn't change (same array)
+    if (items === prevItems) {
+      return
+    }
+
+    // Skip highlight validation if not in the right state
+    if (!this.state.virtualized || !this.state.open || items.length === 0) {
+      return
+    }
+
+    // Determine if we need to force highlight the first item
+    const prevFirstItem = prevItems.find((item) => !item.disabled)
+    const newFirstItem = items.find((item) => !item.disabled)
+    const firstItemChanged = newFirstItem?.value !== prevFirstItem?.value
+
+    // Validate and potentially update the highlight
+    this.validateHighlight({ forceFirst: firstItemChanged })
   }
 
   setOnHighlightChange(
@@ -388,6 +434,35 @@ export class DropdownMenuStore extends ReactStore<
   // ============================================================================
 
   registerItem(id: string, registration: ItemRegistration): () => void {
+    // Check if this item is already registered with the same properties
+    // This optimization reduces unnecessary recomputation in virtualized mode
+    const existing = this.context.items.get(id)
+    const isSameRegistration =
+      existing &&
+      existing.value === registration.value &&
+      existing.disabled === registration.disabled &&
+      existing.groupId === registration.groupId &&
+      existing.shortcut === registration.shortcut
+
+    if (isSameRegistration) {
+      // Item already registered with same properties, skip recompute
+      return () => {
+        // Only clean up if this item is still in the map
+        // (another registration might have replaced it)
+        if (this.context.items.get(id) === existing) {
+          this.context.items.delete(id)
+          this.context.itemSelects.delete(id)
+          if (registration.groupId) {
+            this.context.groups.get(registration.groupId)?.delete(id)
+          }
+          if (registration.shortcut) {
+            this.context.shortcuts.delete(registration.shortcut.toLowerCase())
+          }
+          this.recomputeFilteredItems()
+        }
+      }
+    }
+
     this.context.items.set(id, registration)
 
     // Add to group if specified
@@ -641,7 +716,110 @@ export class DropdownMenuStore extends ReactStore<
     return this.context.virtualItems.findIndex((item) => item.value === value)
   }
 
-  private recomputeFilteredItems() {
+  /**
+   * Validates and updates the highlighted item.
+   * This is the single source of truth for highlight management.
+   *
+   * @param options.forceFirst - Force highlight first item even if current is valid
+   * @param options.filteredItems - Use this map instead of state (for mid-update calls)
+   * @param options.newSearch - The search query for filteredItems (to detect search cleared)
+   */
+  private validateHighlight(
+    options: ValidateHighlightOptions = {},
+  ): string | null {
+    const {
+      forceFirst = false,
+      filteredItems = this.state.filteredItems,
+      newSearch,
+      prevSearch: optionsPrevSearch,
+    } = options
+
+    // Determine if search changed (requires reset to first item)
+    // Use prevSearch from options if provided (from observer), otherwise fall back to state
+    const prevSearch =
+      optionsPrevSearch !== undefined ? optionsPrevSearch : this.state.search
+    const effectiveSearch = newSearch !== undefined ? newSearch : prevSearch
+    const searchChanged = newSearch !== undefined && newSearch !== prevSearch
+
+    // If not open or autoHighlightFirst disabled, don't change anything
+    if (!this.state.open || !this.context.autoHighlightFirst) {
+      return this.state.highlightedId
+    }
+
+    const currentHighlight = this.state.highlightedId
+    const { filter } = this.context
+
+    // If search changed, force reset to first item
+    const shouldForceFirst = forceFirst || searchChanged
+
+    // Check if current highlight is valid
+    let isCurrentValid = false
+    if (currentHighlight && !shouldForceFirst) {
+      // Check if item exists and passes filter
+      const score = filteredItems.get(currentHighlight) ?? 0
+      const isVisible =
+        effectiveSearch.length === 0 || filter === false || score > 0
+
+      // Check if item is disabled
+      const registration = this.context.items.get(currentHighlight)
+      const virtualItem = this.context.virtualItems.find(
+        (v) => v.value === currentHighlight,
+      )
+      const isDisabled =
+        registration?.disabled ?? virtualItem?.disabled ?? false
+
+      // In virtualized mode, item must also be in virtualItems array
+      const inVirtualItems =
+        !this.state.virtualized ||
+        this.context.virtualItems.length === 0 ||
+        virtualItem !== undefined
+
+      isCurrentValid = isVisible && !isDisabled && inVirtualItems
+    }
+
+    // If current highlight is valid and we're not forcing first, keep it
+    if (isCurrentValid) {
+      return currentHighlight
+    }
+
+    // Find the first valid item to highlight
+    let newHighlightId: string | null = null
+
+    if (this.state.virtualized && this.context.virtualItems.length > 0) {
+      // Virtualized mode: use virtualItems order
+      for (const item of this.context.virtualItems) {
+        const score = filteredItems.get(item.value) ?? 0
+        const isVisible =
+          effectiveSearch.length === 0 || filter === false || score > 0
+        if (isVisible && !item.disabled) {
+          newHighlightId = item.value
+          break
+        }
+      }
+    } else {
+      // Non-virtualized mode: use mounted items
+      for (const [id, registration] of this.context.items) {
+        const score = filteredItems.get(id) ?? 0
+        const isVisible = effectiveSearch.length === 0 || score > 0
+        if (isVisible && !registration.disabled) {
+          newHighlightId = id
+          break
+        }
+      }
+    }
+
+    // Only update if highlight actually changed
+    if (newHighlightId !== currentHighlight) {
+      this.update({
+        highlightedId: newHighlightId,
+        highlightSource: null, // Auto-highlight shouldn't trigger scroll
+      })
+    }
+
+    return newHighlightId
+  }
+
+  private recomputeFilteredItems(prevSearch?: string) {
     const { filter } = this.context
     const search = this.state.search
     const items = this.context.items
@@ -653,10 +831,21 @@ export class DropdownMenuStore extends ReactStore<
 
     // If no search or filtering disabled, all items are visible
     if (!search || filter === false) {
-      items.forEach((_, id) => {
-        filteredItems.set(id, 1)
-        filteredCount++
-      })
+      // When virtualized with consumer-side filtering (filter === false),
+      // use virtualItems as the source of truth for what's visible.
+      // This ensures the scores match the consumer's filtered array,
+      // not just what's currently mounted.
+      if (this.state.virtualized && this.context.virtualItems.length > 0) {
+        for (const item of this.context.virtualItems) {
+          filteredItems.set(item.value, 1)
+          filteredCount++
+        }
+      } else {
+        items.forEach((_, id) => {
+          filteredItems.set(id, 1)
+          filteredCount++
+        })
+      }
       groups.forEach((_, groupId) => {
         visibleGroups.add(groupId)
       })
@@ -679,55 +868,13 @@ export class DropdownMenuStore extends ReactStore<
       })
     }
 
-    // Auto-highlight first item when open and autoHighlightFirst is enabled
-    // BUT only if there's no current highlight (don't reset during navigation)
-    let highlightedId: string | null = this.state.highlightedId
-
-    // Check if current highlight is still valid (visible and not disabled)
-    let currentHighlightValid = false
-    if (highlightedId) {
-      const score = filteredItems.get(highlightedId) ?? 0
-      const isVisible = search.length === 0 || score > 0
-      const registration = this.context.items.get(highlightedId)
-      const virtualItem = this.context.virtualItems.find(
-        (v) => v.value === highlightedId,
-      )
-      const isDisabled =
-        registration?.disabled ?? virtualItem?.disabled ?? false
-      currentHighlightValid = isVisible && !isDisabled
-    }
-
-    // Only auto-highlight first item if current highlight is invalid
-    if (
-      this.context.autoHighlightFirst &&
-      this.state.open &&
-      !currentHighlightValid
-    ) {
-      // Find first visible item using the newly computed filteredItems
-      highlightedId = null
-
-      // When virtualized, use virtualItems order for first item
-      if (this.state.virtualized && this.context.virtualItems.length > 0) {
-        for (const item of this.context.virtualItems) {
-          const score = filteredItems.get(item.value) ?? 0
-          const isVisible = search.length === 0 || score > 0
-          if (isVisible && !item.disabled) {
-            highlightedId = item.value
-            break
-          }
-        }
-      } else {
-        // Non-virtualized: use mounted items
-        for (const [id, registration] of this.context.items) {
-          const score = filteredItems.get(id) ?? 0
-          const isVisible = search.length === 0 || score > 0
-          if (isVisible && !registration.disabled) {
-            highlightedId = id
-            break
-          }
-        }
-      }
-    }
+    // Validate highlight using the newly computed filteredItems
+    // We pass filteredItems, newSearch, and prevSearch here because we need to detect search cleared
+    const highlightedId = this.validateHighlight({
+      filteredItems,
+      newSearch: search,
+      prevSearch,
+    })
 
     this.update({
       filteredItems,
