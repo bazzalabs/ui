@@ -14,6 +14,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./internal/listbox": {
+      "types": "./dist/internal/listbox/index.d.ts",
+      "import": "./dist/internal/listbox/index.js",
+      "require": "./dist/internal/listbox/index.cjs"
+    },
+    "./internal/popup-menu": {
+      "types": "./dist/internal/popup-menu/index.d.ts",
+      "import": "./dist/internal/popup-menu/index.js",
+      "require": "./dist/internal/popup-menu/index.cjs"
     }
   },
   "files": [

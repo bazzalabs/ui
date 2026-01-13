@@ -1,6 +1,10 @@
 'use client'
 
-import { DropdownMenu, type DropdownMenuVirtualItem } from '@bazza-ui/react'
+import {
+  ContextMenu,
+  DropdownMenu,
+  type DropdownMenuVirtualItem,
+} from '@bazza-ui/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -181,6 +185,7 @@ export function Playground() {
         </p>
       </div>
 
+      <ContextMenuDemo />
       <VirtualizationDemo />
       <KeyboardShortcutsDemo />
       <SurfaceSearchDemo />
@@ -189,6 +194,561 @@ export function Playground() {
       <SubmenuDemo />
       <TriggerBehaviorDemo />
     </div>
+  )
+}
+
+// ============================================================================
+// Demo: Context Menu
+// ============================================================================
+
+function ContextMenuDemo() {
+  // State for demonstrating various features
+  const [fontSize, setFontSize] = React.useState<'small' | 'medium' | 'large'>(
+    'medium',
+  )
+  const [showLineNumbers, setShowLineNumbers] = React.useState(true)
+  const [wordWrap, setWordWrap] = React.useState(false)
+  const [minimap, setMinimap] = React.useState(true)
+  const [theme, setTheme] = React.useState<'light' | 'dark' | 'system'>(
+    'system',
+  )
+
+  return (
+    <DemoSection
+      title="Context Menu (Comprehensive)"
+      description="Right-click to test inputs, multiple submenu levels, checkboxes, radio groups, disabled items, and more"
+    >
+      <DemoCard>
+        <ContextMenu.Root>
+          <ContextMenu.Trigger className="flex h-[250px] w-[400px] items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-100">
+            <div className="text-center">
+              <div className="text-sm font-medium">Right-click here</div>
+              <div className="text-xs text-gray-400">
+                or long-press on touch
+              </div>
+              <div className="mt-4 space-y-1 text-xs text-gray-500">
+                <div>Font: {fontSize}</div>
+                <div>Theme: {theme}</div>
+                <div>
+                  Lines: {showLineNumbers ? 'on' : 'off'} | Wrap:{' '}
+                  {wordWrap ? 'on' : 'off'} | Map: {minimap ? 'on' : 'off'}
+                </div>
+              </div>
+            </div>
+          </ContextMenu.Trigger>
+          <ContextMenu.Portal>
+            <ContextMenu.Positioner>
+              <ContextMenu.Popup className="min-w-[220px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                <ContextMenu.Surface>
+                  {/* Search Input */}
+                  <div className="border-b border-gray-200 p-2">
+                    <ContextMenu.Input
+                      placeholder="Search actions..."
+                      className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <ContextMenu.List className="max-h-[400px] overflow-y-auto p-1 focus:outline-none">
+                    {/* Basic Actions Group */}
+                    <ContextMenu.Group>
+                      <ContextMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
+                        Edit
+                      </ContextMenu.GroupLabel>
+                      <ContextMenu.Item
+                        shortcut="x"
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                        onSelect={() => toast('Cut')}
+                      >
+                        <span>Cut</span>
+                        <ContextMenu.Shortcut className="text-xs text-gray-400" />
+                      </ContextMenu.Item>
+                      <ContextMenu.Item
+                        shortcut="c"
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                        onSelect={() => toast('Copy')}
+                      >
+                        <span>Copy</span>
+                        <ContextMenu.Shortcut className="text-xs text-gray-400" />
+                      </ContextMenu.Item>
+                      <ContextMenu.Item
+                        shortcut="v"
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                        onSelect={() => toast('Paste')}
+                      >
+                        <span>Paste</span>
+                        <ContextMenu.Shortcut className="text-xs text-gray-400" />
+                      </ContextMenu.Item>
+                      <ContextMenu.Item
+                        disabled
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-blue-50"
+                      >
+                        <span>Paste Special</span>
+                        <span className="text-xs text-gray-400">
+                          (disabled)
+                        </span>
+                      </ContextMenu.Item>
+                    </ContextMenu.Group>
+
+                    <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    {/* View Settings - Checkboxes */}
+                    <ContextMenu.Group>
+                      <ContextMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
+                        View Options
+                      </ContextMenu.GroupLabel>
+                      <ContextMenu.CheckboxItem
+                        checked={showLineNumbers}
+                        onCheckedChange={setShowLineNumbers}
+                        closeOnClick={false}
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                      >
+                        <span>Line Numbers</span>
+                        <ContextMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                          <CheckIcon className="h-4 w-4 text-blue-600" />
+                        </ContextMenu.CheckboxItemIndicator>
+                      </ContextMenu.CheckboxItem>
+                      <ContextMenu.CheckboxItem
+                        checked={wordWrap}
+                        onCheckedChange={setWordWrap}
+                        closeOnClick={false}
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                      >
+                        <span>Word Wrap</span>
+                        <ContextMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                          <CheckIcon className="h-4 w-4 text-blue-600" />
+                        </ContextMenu.CheckboxItemIndicator>
+                      </ContextMenu.CheckboxItem>
+                      <ContextMenu.CheckboxItem
+                        checked={minimap}
+                        onCheckedChange={setMinimap}
+                        closeOnClick={false}
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                      >
+                        <span>Minimap</span>
+                        <ContextMenu.CheckboxItemIndicator className="flex h-4 w-4 items-center justify-center">
+                          <CheckIcon className="h-4 w-4 text-blue-600" />
+                        </ContextMenu.CheckboxItemIndicator>
+                      </ContextMenu.CheckboxItem>
+                    </ContextMenu.Group>
+
+                    <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    {/* Font Size - Radio Group */}
+                    <ContextMenu.Group>
+                      <ContextMenu.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
+                        Font Size
+                      </ContextMenu.GroupLabel>
+                      <ContextMenu.RadioGroup
+                        value={fontSize}
+                        onValueChange={setFontSize}
+                      >
+                        <ContextMenu.RadioItem
+                          value="small"
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                        >
+                          <span>Small</span>
+                          <ContextMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                            <CheckIcon className="h-4 w-4 text-blue-600" />
+                          </ContextMenu.RadioItemIndicator>
+                        </ContextMenu.RadioItem>
+                        <ContextMenu.RadioItem
+                          value="medium"
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                        >
+                          <span>Medium</span>
+                          <ContextMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                            <CheckIcon className="h-4 w-4 text-blue-600" />
+                          </ContextMenu.RadioItemIndicator>
+                        </ContextMenu.RadioItem>
+                        <ContextMenu.RadioItem
+                          value="large"
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                        >
+                          <span>Large</span>
+                          <ContextMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                            <CheckIcon className="h-4 w-4 text-blue-600" />
+                          </ContextMenu.RadioItemIndicator>
+                        </ContextMenu.RadioItem>
+                      </ContextMenu.RadioGroup>
+                    </ContextMenu.Group>
+
+                    <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    {/* Theme Submenu - Level 1 */}
+                    <ContextMenu.Submenu>
+                      <ContextMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50">
+                        <span>Theme</span>
+                        <ContextMenu.SubmenuTriggerIndicator className="text-gray-400">
+                          <CaretRightIcon className="h-4 w-4" />
+                        </ContextMenu.SubmenuTriggerIndicator>
+                      </ContextMenu.SubmenuTrigger>
+                      <ContextMenu.Portal>
+                        <ContextMenu.Positioner sideOffset={4}>
+                          <ContextMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                            <ContextMenu.Surface>
+                              <ContextMenu.List className="p-1 focus:outline-none">
+                                <ContextMenu.RadioGroup
+                                  value={theme}
+                                  onValueChange={setTheme}
+                                >
+                                  <ContextMenu.RadioItem
+                                    value="light"
+                                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  >
+                                    <span>Light</span>
+                                    <ContextMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                                      <CheckIcon className="h-4 w-4 text-blue-600" />
+                                    </ContextMenu.RadioItemIndicator>
+                                  </ContextMenu.RadioItem>
+                                  <ContextMenu.RadioItem
+                                    value="dark"
+                                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  >
+                                    <span>Dark</span>
+                                    <ContextMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                                      <CheckIcon className="h-4 w-4 text-blue-600" />
+                                    </ContextMenu.RadioItemIndicator>
+                                  </ContextMenu.RadioItem>
+                                  <ContextMenu.RadioItem
+                                    value="system"
+                                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  >
+                                    <span>System</span>
+                                    <ContextMenu.RadioItemIndicator className="flex h-4 w-4 items-center justify-center">
+                                      <CheckIcon className="h-4 w-4 text-blue-600" />
+                                    </ContextMenu.RadioItemIndicator>
+                                  </ContextMenu.RadioItem>
+                                </ContextMenu.RadioGroup>
+
+                                <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                                {/* Color Scheme Submenu - Level 2 */}
+                                <ContextMenu.Submenu>
+                                  <ContextMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50">
+                                    <span>Color Schemes</span>
+                                    <ContextMenu.SubmenuTriggerIndicator className="text-gray-400">
+                                      <CaretRightIcon className="h-4 w-4" />
+                                    </ContextMenu.SubmenuTriggerIndicator>
+                                  </ContextMenu.SubmenuTrigger>
+                                  <ContextMenu.Portal>
+                                    <ContextMenu.Positioner sideOffset={4}>
+                                      <ContextMenu.Popup className="min-w-[160px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                                        <ContextMenu.Surface>
+                                          <ContextMenu.List className="p-1 focus:outline-none">
+                                            <ContextMenu.Item
+                                              className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                              onSelect={() =>
+                                                toast('Default scheme')
+                                              }
+                                            >
+                                              Default
+                                            </ContextMenu.Item>
+                                            <ContextMenu.Item
+                                              className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                              onSelect={() =>
+                                                toast('Monokai scheme')
+                                              }
+                                            >
+                                              Monokai
+                                            </ContextMenu.Item>
+                                            <ContextMenu.Item
+                                              className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                              onSelect={() =>
+                                                toast('Solarized scheme')
+                                              }
+                                            >
+                                              Solarized
+                                            </ContextMenu.Item>
+
+                                            <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                                            {/* Custom Colors Submenu - Level 3 */}
+                                            <ContextMenu.Submenu>
+                                              <ContextMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50">
+                                                <span>Custom</span>
+                                                <ContextMenu.SubmenuTriggerIndicator className="text-gray-400">
+                                                  <CaretRightIcon className="h-4 w-4" />
+                                                </ContextMenu.SubmenuTriggerIndicator>
+                                              </ContextMenu.SubmenuTrigger>
+                                              <ContextMenu.Portal>
+                                                <ContextMenu.Positioner
+                                                  sideOffset={4}
+                                                >
+                                                  <ContextMenu.Popup className="min-w-[140px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                                                    <ContextMenu.Surface>
+                                                      <ContextMenu.List className="p-1 focus:outline-none">
+                                                        <ContextMenu.Item
+                                                          className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                          onSelect={() =>
+                                                            toast(
+                                                              'Nord selected',
+                                                            )
+                                                          }
+                                                        >
+                                                          Nord
+                                                        </ContextMenu.Item>
+                                                        <ContextMenu.Item
+                                                          className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                          onSelect={() =>
+                                                            toast(
+                                                              'Dracula selected',
+                                                            )
+                                                          }
+                                                        >
+                                                          Dracula
+                                                        </ContextMenu.Item>
+                                                        <ContextMenu.Item
+                                                          className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                          onSelect={() =>
+                                                            toast(
+                                                              'One Dark selected',
+                                                            )
+                                                          }
+                                                        >
+                                                          One Dark
+                                                        </ContextMenu.Item>
+                                                        <ContextMenu.Item
+                                                          className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                          onSelect={() =>
+                                                            toast(
+                                                              'GitHub selected',
+                                                            )
+                                                          }
+                                                        >
+                                                          GitHub
+                                                        </ContextMenu.Item>
+
+                                                        <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                                                        {/* Level 4 - Deep nesting test */}
+                                                        <ContextMenu.Submenu>
+                                                          <ContextMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50">
+                                                            <span>More...</span>
+                                                            <ContextMenu.SubmenuTriggerIndicator className="text-gray-400">
+                                                              <CaretRightIcon className="h-4 w-4" />
+                                                            </ContextMenu.SubmenuTriggerIndicator>
+                                                          </ContextMenu.SubmenuTrigger>
+                                                          <ContextMenu.Portal>
+                                                            <ContextMenu.Positioner
+                                                              sideOffset={4}
+                                                            >
+                                                              <ContextMenu.Popup className="min-w-[120px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                                                                <ContextMenu.Surface>
+                                                                  <ContextMenu.List className="p-1 focus:outline-none">
+                                                                    <ContextMenu.Item
+                                                                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                                      onSelect={() =>
+                                                                        toast(
+                                                                          'Ayu selected',
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      Ayu
+                                                                    </ContextMenu.Item>
+                                                                    <ContextMenu.Item
+                                                                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                                      onSelect={() =>
+                                                                        toast(
+                                                                          'Gruvbox selected',
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      Gruvbox
+                                                                    </ContextMenu.Item>
+                                                                    <ContextMenu.Item
+                                                                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                                                      onSelect={() =>
+                                                                        toast(
+                                                                          'Tokyo Night selected',
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      Tokyo
+                                                                      Night
+                                                                    </ContextMenu.Item>
+                                                                  </ContextMenu.List>
+                                                                </ContextMenu.Surface>
+                                                              </ContextMenu.Popup>
+                                                            </ContextMenu.Positioner>
+                                                          </ContextMenu.Portal>
+                                                        </ContextMenu.Submenu>
+                                                      </ContextMenu.List>
+                                                    </ContextMenu.Surface>
+                                                  </ContextMenu.Popup>
+                                                </ContextMenu.Positioner>
+                                              </ContextMenu.Portal>
+                                            </ContextMenu.Submenu>
+                                          </ContextMenu.List>
+                                        </ContextMenu.Surface>
+                                      </ContextMenu.Popup>
+                                    </ContextMenu.Positioner>
+                                  </ContextMenu.Portal>
+                                </ContextMenu.Submenu>
+                              </ContextMenu.List>
+                            </ContextMenu.Surface>
+                          </ContextMenu.Popup>
+                        </ContextMenu.Positioner>
+                      </ContextMenu.Portal>
+                    </ContextMenu.Submenu>
+
+                    {/* Share Submenu with search */}
+                    <ContextMenu.Submenu>
+                      <ContextMenu.SubmenuTrigger className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50">
+                        <span>Share</span>
+                        <ContextMenu.SubmenuTriggerIndicator className="text-gray-400">
+                          <CaretRightIcon className="h-4 w-4" />
+                        </ContextMenu.SubmenuTriggerIndicator>
+                      </ContextMenu.SubmenuTrigger>
+                      <ContextMenu.Portal>
+                        <ContextMenu.Positioner sideOffset={4}>
+                          <ContextMenu.Popup className="min-w-[180px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                            <ContextMenu.Surface>
+                              <div className="border-b border-gray-200 p-2">
+                                <ContextMenu.Input
+                                  placeholder="Search shares..."
+                                  className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+                              <ContextMenu.List className="p-1 focus:outline-none">
+                                <ContextMenu.Item
+                                  value="email"
+                                  keywords={['mail', 'send']}
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  onSelect={() => toast('Share via Email')}
+                                >
+                                  Email
+                                </ContextMenu.Item>
+                                <ContextMenu.Item
+                                  value="slack"
+                                  keywords={['message', 'chat']}
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  onSelect={() => toast('Share via Slack')}
+                                >
+                                  Slack
+                                </ContextMenu.Item>
+                                <ContextMenu.Item
+                                  value="discord"
+                                  keywords={['message', 'chat', 'gaming']}
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  onSelect={() => toast('Share via Discord')}
+                                >
+                                  Discord
+                                </ContextMenu.Item>
+                                <ContextMenu.Item
+                                  value="teams"
+                                  keywords={['microsoft', 'message']}
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  onSelect={() => toast('Share via Teams')}
+                                >
+                                  Microsoft Teams
+                                </ContextMenu.Item>
+                                <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+                                <ContextMenu.Item
+                                  value="link"
+                                  keywords={['copy', 'url']}
+                                  className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                                  onSelect={() => toast('Link copied!')}
+                                >
+                                  Copy Link
+                                </ContextMenu.Item>
+                              </ContextMenu.List>
+                              <ContextMenu.Empty className="px-3 py-4 text-center text-sm text-gray-500">
+                                No share options found
+                              </ContextMenu.Empty>
+                            </ContextMenu.Surface>
+                          </ContextMenu.Popup>
+                        </ContextMenu.Positioner>
+                      </ContextMenu.Portal>
+                    </ContextMenu.Submenu>
+
+                    <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    {/* Actions */}
+                    <ContextMenu.Item
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                      onSelect={() => toast('Refreshed!')}
+                    >
+                      Refresh
+                    </ContextMenu.Item>
+                    <ContextMenu.Item
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                      onSelect={() => toast('Duplicated!')}
+                    >
+                      Duplicate
+                    </ContextMenu.Item>
+
+                    <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+
+                    {/* Danger Zone */}
+                    <ContextMenu.Item
+                      className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-600 data-[highlighted]:bg-red-50"
+                      onSelect={() => toast('Deleted!')}
+                    >
+                      Delete
+                    </ContextMenu.Item>
+                  </ContextMenu.List>
+
+                  <ContextMenu.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                    No actions found
+                  </ContextMenu.Empty>
+                </ContextMenu.Surface>
+              </ContextMenu.Popup>
+            </ContextMenu.Positioner>
+          </ContextMenu.Portal>
+        </ContextMenu.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Features Demonstrated">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Search Input:</strong> Type to filter menu items
+          </p>
+          <p>
+            <strong>Groups & Labels:</strong> Organized sections with headers
+          </p>
+          <p>
+            <strong>Checkbox Items:</strong> Toggle settings without closing
+          </p>
+          <p>
+            <strong>Radio Groups:</strong> Single selection (font size)
+          </p>
+          <p>
+            <strong>Disabled Items:</strong> "Paste Special" is disabled
+          </p>
+          <p>
+            <strong>Keyboard Shortcuts:</strong> Press x/c/v to trigger actions
+          </p>
+          <p>
+            <strong>Submenus (4 levels):</strong> Theme → Color Schemes → Custom
+            → More
+          </p>
+          <p>
+            <strong>Submenu with Search:</strong> Share submenu has its own
+            filter
+          </p>
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="Current State">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Font Size:</strong> {fontSize}
+          </p>
+          <p>
+            <strong>Theme:</strong> {theme}
+          </p>
+          <p>
+            <strong>Line Numbers:</strong> {showLineNumbers ? 'On' : 'Off'}
+          </p>
+          <p>
+            <strong>Word Wrap:</strong> {wordWrap ? 'On' : 'Off'}
+          </p>
+          <p>
+            <strong>Minimap:</strong> {minimap ? 'On' : 'Off'}
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
   )
 }
 

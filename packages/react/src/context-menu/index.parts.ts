@@ -1,7 +1,7 @@
 // ============================================================================
-// Dropdown Menu Parts
+// Context Menu Parts
 // ============================================================================
-// Re-exports shared components from internal/popup-menu with dropdown-menu specific
+// Re-exports shared components from internal/popup-menu with context-menu specific
 // Root and Trigger components.
 
 // Re-export VirtualItem type from internal/listbox
@@ -37,6 +37,6 @@ export {
   // Content
   PopupMenuSurface as Surface,
 } from '../internal/popup-menu/index.js'
-// Dropdown-menu specific components
-export { DropdownMenuRoot as Root } from './root/root.js'
-export { DropdownMenuTrigger as Trigger } from './trigger/trigger.js'
+// Context-menu specific components
+export { ContextMenuRoot as Root } from './root/root.js'
+export { ContextMenuTrigger as Trigger } from './trigger/trigger.js'
