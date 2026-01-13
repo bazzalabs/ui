@@ -1,17 +1,16 @@
 // ============================================================================
-// Dropdown Menu Parts
+// Select Parts
 // ============================================================================
-// Re-exports shared components from internal/popup-menu with dropdown-menu specific
-// Root and Trigger components.
+// Re-exports shared components from internal/popup-menu with Select-specific
+// Root, Trigger, Value, Item, ItemLabel, and ItemIndicator components.
 
 // Re-export VirtualItem type from internal/listbox
 export type { VirtualItem } from '../internal/listbox/index.js'
+
 // Re-export shared components from internal/popup-menu
 export {
   PopupMenuArrow as Arrow,
   PopupMenuBackdrop as Backdrop,
-  PopupMenuCheckboxItem as CheckboxItem,
-  PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuEmpty as Empty,
   // Structure
   PopupMenuGroup as Group,
@@ -19,29 +18,23 @@ export {
   // Trigger components
   PopupMenuIcon as Icon,
   PopupMenuInput as Input,
-  // Items
-  PopupMenuItem as Item,
   PopupMenuList as List,
   PopupMenuPopup as Popup,
   // Positioning & Container
   PopupMenuPortal as Portal,
-  PopupMenuPositioner as Positioner,
-  PopupMenuRadioGroup as RadioGroup,
-  PopupMenuRadioItem as RadioItem,
-  PopupMenuRadioItemIndicator as RadioItemIndicator,
   // Scroll indicators
   PopupMenuScrollDownArrow as ScrollDownArrow,
   PopupMenuScrollUpArrow as ScrollUpArrow,
   PopupMenuSeparator as Separator,
-  // Utility
-  PopupMenuShortcut as Shortcut,
-  // Submenus
-  PopupMenuSubmenuRoot as Submenu,
-  PopupMenuSubmenuTrigger as SubmenuTrigger,
-  PopupMenuSubmenuTriggerIndicator as SubmenuTriggerIndicator,
-  // Content
-  PopupMenuSurface as Surface,
 } from '../internal/popup-menu/index.js'
-// Dropdown-menu specific components
-export { DropdownMenuRoot as Root } from './root/root.js'
-export { DropdownMenuTrigger as Trigger } from './trigger/trigger.js'
+export { SelectItem as Item } from './item/item.js'
+export { SelectItemIndicator as ItemIndicator } from './item-indicator/item-indicator.js'
+export { SelectItemLabel as ItemLabel } from './item-label/item-label.js'
+// Custom Select Positioner with alignItemWithTrigger support
+export { SelectPositioner as Positioner } from './positioner/positioner.js'
+// Select-specific components
+export { SelectRoot as Root } from './root/root.js'
+// Select-specific Surface with alignItemWithTrigger auto-highlight support
+export { SelectSurface as Surface } from './surface/surface.js'
+export { SelectTrigger as Trigger } from './trigger/trigger.js'
+export { SelectValue as Value } from './value/value.js'

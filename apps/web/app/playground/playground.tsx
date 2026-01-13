@@ -1,9 +1,14 @@
 'use client'
 
+import { Collapsible } from '@base-ui/react/collapsible'
 import {
+  Combobox,
+  type ComboboxVirtualItem,
   ContextMenu,
   DropdownMenu,
   type DropdownMenuVirtualItem,
+  Select as SelectPrimitive,
+  type SelectVirtualItem,
 } from '@bazza-ui/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
@@ -173,27 +178,1659 @@ function DemoCard({ children }: DemoCardProps) {
 // Main Playground
 // ============================================================================
 
+// ============================================================================
+// Collapsible Section Component
+// ============================================================================
+
+interface CollapsibleSectionProps {
+  title: string
+  description: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}
+
+function CollapsibleSection({
+  title,
+  description,
+  defaultOpen = false,
+  children,
+}: CollapsibleSectionProps) {
+  return (
+    <Collapsible.Root
+      defaultOpen={defaultOpen}
+      className="border-b border-gray-200"
+    >
+      <Collapsible.Trigger className="sticky top-12 z-10 flex w-full items-center justify-between py-4 text-left bg-white hover:bg-gray-50 transition-colors group">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+          <p className="text-sm text-gray-500">{description}</p>
+        </div>
+        <CollapsibleChevron className="h-5 w-5 text-gray-400 transition-transform duration-200 group-data-[panel-open]:rotate-90" />
+      </Collapsible.Trigger>
+      <Collapsible.Panel className="overflow-hidden data-[starting-style]:h-0 data-[ending-style]:h-0 transition-[height] duration-300">
+        <div className="space-y-8 py-6">{children}</div>
+      </Collapsible.Panel>
+    </Collapsible.Root>
+  )
+}
+
 export function Playground() {
   return (
-    <div className="space-y-12 p-8">
-      <div>
+    <div className="space-y-4 p-8">
+      <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          DropdownMenu Playground
+          Component Playground
         </h1>
         <p className="text-gray-500">
-          Interactive demos to explore the DropdownMenu component features
+          Interactive demos to explore DropdownMenu, ContextMenu, and Select
+          component features
         </p>
       </div>
 
-      <ContextMenuDemo />
-      <VirtualizationDemo />
-      <KeyboardShortcutsDemo />
-      <SurfaceSearchDemo />
-      <PositioningDemo />
-      <SelectionsDemo />
-      <SubmenuDemo />
-      <TriggerBehaviorDemo />
+      {/* Combobox Section */}
+      <CollapsibleSection
+        title="Combobox"
+        description="Input-based select with filtering and search functionality"
+        defaultOpen={true}
+      >
+        <BasicComboboxDemo />
+        <MultiComboboxDemo />
+        <FilterableComboboxDemo />
+        <GroupedComboboxDemo />
+        <VirtualizedComboboxDemo />
+      </CollapsibleSection>
+
+      {/* Select Section */}
+      <CollapsibleSection
+        title="Select"
+        description="Form-compatible select with single and multi-select support"
+        defaultOpen={false}
+      >
+        <BasicSelectDemo />
+        <MultiSelectDemo />
+        <SearchableSelectDemo />
+        <GroupedSelectDemo />
+        <VirtualizedSelectDemo />
+        <FormIntegrationDemo />
+      </CollapsibleSection>
+
+      {/* DropdownMenu Section */}
+      <CollapsibleSection
+        title="DropdownMenu"
+        description="Menu components with virtualization, shortcuts, and search"
+      >
+        <VirtualizationDemo />
+        <KeyboardShortcutsDemo />
+        <SurfaceSearchDemo />
+        <PositioningDemo />
+        <SelectionsDemo />
+        <SubmenuDemo />
+        <TriggerBehaviorDemo />
+      </CollapsibleSection>
+
+      {/* ContextMenu Section */}
+      <CollapsibleSection
+        title="ContextMenu"
+        description="Right-click context menus with submenus, checkboxes, radio groups"
+      >
+        <ContextMenuDemo />
+      </CollapsibleSection>
     </div>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Basic Combobox
+// ============================================================================
+
+function BasicComboboxDemo() {
+  const [value, setValue] = React.useState('')
+  const [openOnFocus, setOpenOnFocus] = React.useState(true)
+
+  const countries = [
+    { value: 'us', label: 'United States' },
+    { value: 'uk', label: 'United Kingdom' },
+    { value: 'ca', label: 'Canada' },
+    { value: 'au', label: 'Australia' },
+    { value: 'de', label: 'Germany' },
+    { value: 'fr', label: 'France' },
+    { value: 'jp', label: 'Japan' },
+    { value: 'br', label: 'Brazil' },
+  ]
+
+  // Create an items map for displaying value labels before items mount
+  const countryItems = React.useMemo(
+    () => Object.fromEntries(countries.map((c) => [c.value, c.label])),
+    [],
+  )
+
+  const selectedCountry = countries.find((c) => c.value === value)
+
+  return (
+    <DemoSection
+      title="Basic Combobox"
+      description="A simple combobox with input-as-trigger and filtering"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            Selected: {selectedCountry?.label ?? 'None'}
+          </div>
+          <Combobox.Root
+            value={value}
+            onValueChange={setValue}
+            items={countryItems}
+            openOnFocus={openOnFocus}
+          >
+            <div className="relative">
+              <Combobox.Input
+                placeholder="Search countries..."
+                className="w-[250px] rounded-md border border-gray-300 px-4 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+              <Combobox.Clear className="absolute right-8 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600">
+                <CloseIcon className="h-4 w-4" />
+              </Combobox.Clear>
+              <Combobox.Icon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 data-[popup-open]:rotate-180 transition-transform pointer-events-none">
+                <ChevronDownIcon className="h-4 w-4" />
+              </Combobox.Icon>
+            </div>
+            <Combobox.Portal>
+              <Combobox.Positioner sideOffset={4}>
+                <Combobox.Popup className="w-[250px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <Combobox.Surface>
+                    <Combobox.List className="max-h-[300px] overflow-y-auto p-1 focus:outline-none">
+                      {countries.map((country) => (
+                        <Combobox.Item
+                          key={country.value}
+                          value={country.value}
+                          textValue={country.label}
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50 data-[selected]:font-medium"
+                        >
+                          <Combobox.ItemLabel>
+                            {country.label}
+                          </Combobox.ItemLabel>
+                          <Combobox.ItemIndicator className="text-blue-600">
+                            <CheckIcon className="h-4 w-4" />
+                          </Combobox.ItemIndicator>
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                    <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No countries found
+                    </Combobox.Empty>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Root Props">
+        <ConfigRow
+          label="openOnFocus"
+          description="Open popup when input is focused"
+        >
+          <Toggle checked={openOnFocus} onChange={setOpenOnFocus} />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Current State">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Value:</strong> {value || '(empty)'}
+          </p>
+          <p>
+            <strong>Label:</strong> {selectedCountry?.label ?? 'None selected'}
+          </p>
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="Features">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Input as trigger:</strong> Click or type to open popup
+          </p>
+          <p>
+            <strong>Value sync:</strong> Input shows selected value when closed
+          </p>
+          <p>
+            <strong>Clear button:</strong> Clears the selected value
+          </p>
+          <p>
+            <strong>Fuzzy filtering:</strong> Type to filter items
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Multi-Select Combobox
+// ============================================================================
+
+function MultiComboboxDemo() {
+  const [values, setValues] = React.useState<string[]>(['react'])
+  const [closeOnSelect, setCloseOnSelect] = React.useState(false)
+
+  const frameworks = [
+    { value: 'react', label: 'React' },
+    { value: 'vue', label: 'Vue' },
+    { value: 'angular', label: 'Angular' },
+    { value: 'svelte', label: 'Svelte' },
+    { value: 'solid', label: 'Solid' },
+    { value: 'qwik', label: 'Qwik' },
+    { value: 'preact', label: 'Preact' },
+    { value: 'lit', label: 'Lit' },
+  ]
+
+  return (
+    <DemoSection
+      title="Multi-Select Combobox"
+      description="Select multiple values with toggle behavior"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            Selected: {values.length} framework{values.length !== 1 ? 's' : ''}
+          </div>
+          <Combobox.Root
+            multiple
+            values={values}
+            onValuesChange={setValues}
+            closeOnSelect={closeOnSelect}
+          >
+            <div className="relative">
+              <Combobox.Input
+                placeholder="Select frameworks..."
+                className="w-[280px] rounded-md border border-gray-300 px-4 py-2 pr-16 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              />
+              <Combobox.Clear className="absolute right-8 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600">
+                <CloseIcon className="h-4 w-4" />
+              </Combobox.Clear>
+              <Combobox.Icon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 data-[popup-open]:rotate-180 transition-transform pointer-events-none">
+                <ChevronDownIcon className="h-4 w-4" />
+              </Combobox.Icon>
+            </div>
+            <Combobox.Portal>
+              <Combobox.Positioner sideOffset={4}>
+                <Combobox.Popup className="w-[280px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <Combobox.Surface>
+                    <Combobox.List className="max-h-[300px] overflow-y-auto p-1 focus:outline-none">
+                      {frameworks.map((fw) => (
+                        <Combobox.Item
+                          key={fw.value}
+                          value={fw.value}
+                          textValue={fw.label}
+                          className="group flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-purple-50 data-[selected]:font-medium"
+                        >
+                          <span className="flex h-4 w-4 items-center justify-center rounded border border-gray-300 group-data-[selected]:border-purple-600 group-data-[selected]:bg-purple-600">
+                            <Combobox.ItemIndicator className="text-white">
+                              <CheckIcon className="h-3 w-3" />
+                            </Combobox.ItemIndicator>
+                          </span>
+                          <Combobox.ItemLabel>{fw.label}</Combobox.ItemLabel>
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                    <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No frameworks found
+                    </Combobox.Empty>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Root Props">
+        <ConfigRow
+          label="closeOnSelect"
+          description="Close popup after selecting"
+        >
+          <Toggle checked={closeOnSelect} onChange={setCloseOnSelect} />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Selected Values">
+        <div className="flex flex-wrap gap-1">
+          {values.length === 0 ? (
+            <span className="text-sm text-gray-400">None selected</span>
+          ) : (
+            values.map((v) => (
+              <span
+                key={v}
+                className="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700"
+              >
+                {frameworks.find((f) => f.value === v)?.label ?? v}
+              </span>
+            ))
+          )}
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Filterable Combobox
+// ============================================================================
+
+function FilterableComboboxDemo() {
+  const [value, setValue] = React.useState('')
+  const [filterEnabled, setFilterEnabled] = React.useState(true)
+
+  const timezones = [
+    {
+      value: 'pst',
+      label: 'Pacific Time (PT)',
+      keywords: ['los angeles', 'seattle', 'san francisco'],
+    },
+    {
+      value: 'mst',
+      label: 'Mountain Time (MT)',
+      keywords: ['denver', 'phoenix', 'salt lake'],
+    },
+    {
+      value: 'cst',
+      label: 'Central Time (CT)',
+      keywords: ['chicago', 'dallas', 'houston'],
+    },
+    {
+      value: 'est',
+      label: 'Eastern Time (ET)',
+      keywords: ['new york', 'miami', 'boston'],
+    },
+    {
+      value: 'gmt',
+      label: 'Greenwich Mean Time (GMT)',
+      keywords: ['london', 'uk', 'england'],
+    },
+    {
+      value: 'cet',
+      label: 'Central European Time (CET)',
+      keywords: ['paris', 'berlin', 'rome'],
+    },
+    {
+      value: 'jst',
+      label: 'Japan Standard Time (JST)',
+      keywords: ['tokyo', 'osaka', 'japan'],
+    },
+    {
+      value: 'aest',
+      label: 'Australian Eastern Time (AEST)',
+      keywords: ['sydney', 'melbourne', 'australia'],
+    },
+  ]
+
+  return (
+    <DemoSection
+      title="Filterable Combobox"
+      description="Filter items with keywords for better matching"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            Try searching "new york" or "tokyo"
+          </div>
+          <Combobox.Root value={value} onValueChange={setValue}>
+            <div className="relative">
+              <Combobox.Input
+                placeholder="Search timezones..."
+                className="w-[300px] rounded-md border border-gray-300 px-4 py-2 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+              />
+              <Combobox.Icon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 data-[popup-open]:rotate-180 transition-transform pointer-events-none">
+                <ChevronDownIcon className="h-4 w-4" />
+              </Combobox.Icon>
+            </div>
+            <Combobox.Portal>
+              <Combobox.Positioner sideOffset={4}>
+                <Combobox.Popup className="w-[300px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <Combobox.Surface filter={filterEnabled ? undefined : false}>
+                    <Combobox.List className="max-h-[250px] overflow-y-auto p-1 focus:outline-none">
+                      {timezones.map((tz) => (
+                        <Combobox.Item
+                          key={tz.value}
+                          value={tz.value}
+                          keywords={tz.keywords}
+                          textValue={tz.label}
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-green-50"
+                        >
+                          <Combobox.ItemLabel>{tz.label}</Combobox.ItemLabel>
+                          <Combobox.ItemIndicator className="text-green-600">
+                            <CheckIcon className="h-4 w-4" />
+                          </Combobox.ItemIndicator>
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                    <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No timezones found
+                    </Combobox.Empty>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Surface Props">
+        <ConfigRow label="filter" description="Enable fuzzy search filtering">
+          <Toggle checked={filterEnabled} onChange={setFilterEnabled} />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Search Features">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Fuzzy matching:</strong> Matches partial text in value
+          </p>
+          <p>
+            <strong>Keywords:</strong> Match against additional keywords (e.g.,
+            cities)
+          </p>
+          <p>
+            <strong>Empty state:</strong> Shows message when no matches found
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Grouped Combobox
+// ============================================================================
+
+function GroupedComboboxDemo() {
+  const [value, setValue] = React.useState('')
+
+  const foodGroups = [
+    {
+      label: 'Fruits',
+      items: [
+        { value: 'apple', label: 'Apple' },
+        { value: 'banana', label: 'Banana' },
+        { value: 'orange', label: 'Orange' },
+        { value: 'strawberry', label: 'Strawberry' },
+      ],
+    },
+    {
+      label: 'Vegetables',
+      items: [
+        { value: 'carrot', label: 'Carrot' },
+        { value: 'broccoli', label: 'Broccoli' },
+        { value: 'spinach', label: 'Spinach' },
+        { value: 'tomato', label: 'Tomato' },
+      ],
+    },
+    {
+      label: 'Proteins',
+      items: [
+        { value: 'chicken', label: 'Chicken' },
+        { value: 'beef', label: 'Beef' },
+        { value: 'fish', label: 'Fish' },
+        { value: 'tofu', label: 'Tofu' },
+      ],
+    },
+  ]
+
+  return (
+    <DemoSection
+      title="Grouped Combobox"
+      description="Organize items into labeled groups with separators"
+    >
+      <DemoCard>
+        <Combobox.Root value={value} onValueChange={setValue}>
+          <div className="relative">
+            <Combobox.Input
+              placeholder="Choose a food..."
+              className="w-[240px] rounded-md border border-gray-300 px-4 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            />
+            <Combobox.Icon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 data-[popup-open]:rotate-180 transition-transform pointer-events-none">
+              <ChevronDownIcon className="h-4 w-4" />
+            </Combobox.Icon>
+          </div>
+          <Combobox.Portal>
+            <Combobox.Positioner sideOffset={4}>
+              <Combobox.Popup className="w-[240px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                <Combobox.Surface>
+                  <Combobox.ScrollUpArrow className="flex h-6 items-center justify-center border-b border-gray-100 text-gray-400">
+                    <ChevronUpIcon className="h-4 w-4" />
+                  </Combobox.ScrollUpArrow>
+                  <Combobox.List className="max-h-[200px] overflow-y-auto p-1 focus:outline-none">
+                    {foodGroups.map((group, index) => (
+                      <React.Fragment key={group.label}>
+                        {index > 0 && (
+                          <Combobox.Separator className="my-1 h-px bg-gray-200" />
+                        )}
+                        <Combobox.Group>
+                          <Combobox.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
+                            {group.label}
+                          </Combobox.GroupLabel>
+                          {group.items.map((item) => (
+                            <Combobox.Item
+                              key={item.value}
+                              value={item.value}
+                              textValue={item.label}
+                              className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-amber-50"
+                            >
+                              <Combobox.ItemLabel>
+                                {item.label}
+                              </Combobox.ItemLabel>
+                              <Combobox.ItemIndicator className="text-amber-600">
+                                <CheckIcon className="h-4 w-4" />
+                              </Combobox.ItemIndicator>
+                            </Combobox.Item>
+                          ))}
+                        </Combobox.Group>
+                      </React.Fragment>
+                    ))}
+                  </Combobox.List>
+                  <Combobox.ScrollDownArrow className="flex h-6 items-center justify-center border-t border-gray-100 text-gray-400">
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </Combobox.ScrollDownArrow>
+                  <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                    No foods found
+                  </Combobox.Empty>
+                </Combobox.Surface>
+              </Combobox.Popup>
+            </Combobox.Positioner>
+          </Combobox.Portal>
+        </Combobox.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Current Selection">
+        <div className="text-sm text-gray-600">
+          <p>
+            <strong>Value:</strong> {value || '(none)'}
+          </p>
+          <p>
+            <strong>Group:</strong>{' '}
+            {foodGroups.find((g) => g.items.some((i) => i.value === value))
+              ?.label ?? 'N/A'}
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Virtualized Combobox
+// ============================================================================
+
+function VirtualizedComboboxDemo() {
+  const [value, setValue] = React.useState('')
+  const [inputValue, setInputValue] = React.useState('')
+  const [scrollElement, setScrollElement] =
+    React.useState<HTMLDivElement | null>(null)
+  const [itemCount, setItemCount] = React.useState(1000)
+
+  // Generate items
+  const allItems = React.useMemo(() => {
+    const categories = ['User', 'Project', 'Task', 'Document', 'Event']
+    const items: ComboboxVirtualItem[] = []
+    for (let i = 0; i < itemCount; i++) {
+      const category = categories[i % categories.length]
+      items.push({
+        value: `${category?.toLowerCase()}-${i + 1}`,
+      })
+    }
+    return items
+  }, [itemCount])
+
+  // Filter items
+  const filteredItems = React.useMemo(() => {
+    if (!inputValue) return allItems
+    const lowerSearch = inputValue.toLowerCase()
+    return allItems.filter((item) => item.value.includes(lowerSearch))
+  }, [inputValue, allItems])
+
+  const itemHeight = 36
+  const listHeight = 300
+
+  const virtualizer = useVirtualizer({
+    count: filteredItems.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => itemHeight,
+    overscan: 5,
+  })
+
+  const virtualizerRef = React.useRef(virtualizer)
+  virtualizerRef.current = virtualizer
+
+  const handleHighlightChange = React.useCallback(
+    (highlightedValue: string | null, index: number) => {
+      if (index >= 0) {
+        queueMicrotask(() => {
+          virtualizerRef.current.scrollToIndex(index, { align: 'auto' })
+        })
+      }
+    },
+    [],
+  )
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (!open && scrollElement) {
+        scrollElement.scrollTop = 0
+        setInputValue('')
+      }
+    },
+    [scrollElement],
+  )
+
+  return (
+    <DemoSection
+      title="Virtualized Combobox"
+      description="Efficiently render thousands of items with virtualization"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            {filteredItems.length.toLocaleString()} items
+          </div>
+          <Combobox.Root
+            value={value}
+            onValueChange={setValue}
+            inputValue={inputValue}
+            onInputValueChange={setInputValue}
+            virtualized
+            virtualItems={filteredItems}
+            onHighlightChange={handleHighlightChange}
+            onOpenChange={handleOpenChange}
+          >
+            <div className="relative">
+              <Combobox.Input
+                placeholder={`Search ${itemCount.toLocaleString()} items...`}
+                className="w-[300px] rounded-md border border-gray-300 px-4 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+              />
+              <Combobox.Icon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 data-[popup-open]:rotate-180 transition-transform pointer-events-none">
+                <ChevronDownIcon className="h-4 w-4" />
+              </Combobox.Icon>
+            </div>
+            <Combobox.Portal>
+              <Combobox.Positioner sideOffset={4}>
+                <Combobox.Popup className="w-[300px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <Combobox.Surface filter={false}>
+                    <Combobox.List
+                      ref={setScrollElement}
+                      className="overflow-auto p-1 focus:outline-none scroll-py-1"
+                      style={{ height: listHeight }}
+                    >
+                      <div
+                        style={{
+                          height: virtualizer.getTotalSize(),
+                          width: '100%',
+                          position: 'relative',
+                        }}
+                      >
+                        {virtualizer.getVirtualItems().map((virtualRow) => {
+                          const item = filteredItems[virtualRow.index]
+                          if (!item) return null
+                          return (
+                            <Combobox.Item
+                              key={item.value}
+                              value={item.value}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: itemHeight,
+                                transform: `translateY(${virtualRow.start}px)`,
+                              }}
+                              className="flex cursor-pointer items-center justify-between rounded-md px-3 text-sm data-[highlighted]:bg-cyan-50"
+                            >
+                              <span className="capitalize">
+                                {item.value.replace('-', ' #')}
+                              </span>
+                              <Combobox.ItemIndicator className="text-cyan-600">
+                                <CheckIcon className="h-4 w-4" />
+                              </Combobox.ItemIndicator>
+                            </Combobox.Item>
+                          )
+                        })}
+                      </div>
+                    </Combobox.List>
+                    <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No items found
+                    </Combobox.Empty>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Virtualizer Config">
+        <ConfigRow label="itemCount" description="Total number of items">
+          <Select
+            value={String(itemCount)}
+            onChange={(v) => setItemCount(Number(v))}
+            options={[
+              { value: '100', label: '100' },
+              { value: '1000', label: '1,000' },
+              { value: '10000', label: '10,000' },
+              { value: '50000', label: '50,000' },
+            ]}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="How it works">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>virtualized prop:</strong> Enables virtualization mode
+          </p>
+          <p>
+            <strong>virtualItems prop:</strong> Pre-registers items for keyboard
+            nav
+          </p>
+          <p>
+            <strong>onHighlightChange:</strong> Syncs scroll position
+          </p>
+          <p>
+            <strong>filter=false:</strong> Consumer handles filtering
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Select Demo: Basic Single Select
+// ============================================================================
+
+function BasicSelectDemo() {
+  const [value, setValue] = React.useState('de')
+  const [alignItemWithTrigger, setAlignItemWithTrigger] = React.useState(true)
+
+  const countries = [
+    { value: 'us', label: 'United States', flag: '🇺🇸' },
+    { value: 'uk', label: 'United Kingdom', flag: '🇬🇧' },
+    { value: 'ca', label: 'Canada', flag: '🇨🇦' },
+    { value: 'au', label: 'Australia', flag: '🇦🇺' },
+    { value: 'de', label: 'Germany', flag: '🇩🇪' },
+    { value: 'fr', label: 'France', flag: '🇫🇷' },
+    { value: 'jp', label: 'Japan', flag: '🇯🇵' },
+    { value: 'br', label: 'Brazil', flag: '🇧🇷' },
+  ]
+
+  // Create an items map for displaying value labels before items mount
+  const countryItems = React.useMemo(
+    () => Object.fromEntries(countries.map((c) => [c.value, c.label])),
+    [],
+  )
+
+  const selectedCountry = countries.find((c) => c.value === value)
+
+  return (
+    <DemoSection
+      title="Basic Single Select"
+      description="A simple single-select dropdown with alignItemWithTrigger positioning"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            Selected: {selectedCountry?.label ?? 'None'}
+          </div>
+          <SelectPrimitive.Root
+            value={value}
+            onValueChange={setValue}
+            items={countryItems}
+          >
+            <SelectPrimitive.Trigger className="inline-flex min-w-[200px] items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+              <SelectPrimitive.Value placeholder="Select a country..." />
+              <SelectPrimitive.Icon className="text-gray-400 data-[popup-open]:rotate-180 transition-transform">
+                <ChevronDownIcon className="h-4 w-4" />
+              </SelectPrimitive.Icon>
+            </SelectPrimitive.Trigger>
+            <SelectPrimitive.Portal>
+              <SelectPrimitive.Positioner
+                sideOffset={8}
+                alignItemWithTrigger={alignItemWithTrigger}
+              >
+                <SelectPrimitive.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <SelectPrimitive.Surface>
+                    <SelectPrimitive.Input
+                      // hideUntilActive
+                      placeholder="Search countries..."
+                      className="w-full border-b border-gray-200 px-3 py-2 text-sm outline-none focus:bg-gray-50 rounded-t-lg"
+                    />
+                    <SelectPrimitive.List className="max-h-[300px] overflow-y-auto p-1 focus:outline-none">
+                      {countries.map((country) => (
+                        <SelectPrimitive.Item
+                          key={country.value}
+                          value={country.value}
+                          textValue={country.label}
+                          keywords={[country.label]}
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50 data-[selected]:font-medium"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span>{country.flag}</span>
+                            <SelectPrimitive.ItemLabel />
+                          </span>
+                          <SelectPrimitive.ItemIndicator className="text-blue-600">
+                            <CheckIcon className="h-4 w-4" />
+                          </SelectPrimitive.ItemIndicator>
+                        </SelectPrimitive.Item>
+                      ))}
+                    </SelectPrimitive.List>
+                    <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No countries found
+                    </SelectPrimitive.Empty>
+                  </SelectPrimitive.Surface>
+                </SelectPrimitive.Popup>
+              </SelectPrimitive.Positioner>
+            </SelectPrimitive.Portal>
+          </SelectPrimitive.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Positioner Props">
+        <ConfigRow
+          label="alignItemWithTrigger"
+          description="Align selected item text with trigger"
+        >
+          <Toggle
+            checked={alignItemWithTrigger}
+            onChange={setAlignItemWithTrigger}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Current State">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Value:</strong> {value || '(empty)'}
+          </p>
+          <p>
+            <strong>Label:</strong> {selectedCountry?.label ?? 'None selected'}
+          </p>
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="Features">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>alignItemWithTrigger:</strong> Positions popup so selected
+            item aligns with trigger
+          </p>
+          <p>
+            <strong>Auto-fallback:</strong> Falls back to normal positioning if
+            near viewport edges
+          </p>
+          <p>
+            <strong>ItemLabel:</strong> Captures text for display and alignment
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Select Demo: Multi Select
+// ============================================================================
+
+function MultiSelectDemo() {
+  const [values, setValues] = React.useState<string[]>(['react'])
+
+  const frameworks = [
+    { value: 'react', label: 'React' },
+    { value: 'vue', label: 'Vue' },
+    { value: 'angular', label: 'Angular' },
+    { value: 'svelte', label: 'Svelte' },
+    { value: 'solid', label: 'Solid' },
+    { value: 'qwik', label: 'Qwik' },
+    { value: 'preact', label: 'Preact' },
+    { value: 'lit', label: 'Lit' },
+  ]
+
+  return (
+    <DemoSection
+      title="Multi Select"
+      description="Select multiple values that stay open for continued selection"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            Selected: {values.length} framework{values.length !== 1 ? 's' : ''}
+          </div>
+          <SelectPrimitive.Root
+            multiple
+            values={values}
+            onValuesChange={setValues}
+          >
+            <SelectPrimitive.Trigger className="inline-flex min-w-[250px] items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+              <SelectPrimitive.Value placeholder="Select frameworks...">
+                {({ values: selectedValues, getValueText }) => {
+                  if (selectedValues.length === 0) return 'Select frameworks...'
+                  if (selectedValues.length === 1) {
+                    return getValueText(selectedValues[0]!) ?? selectedValues[0]
+                  }
+                  if (selectedValues.length <= 3) {
+                    return selectedValues
+                      .map((v) => getValueText(v) ?? v)
+                      .join(', ')
+                  }
+                  return `${selectedValues.length} selected`
+                }}
+              </SelectPrimitive.Value>
+              <SelectPrimitive.Icon className="text-gray-400 data-[popup-open]:rotate-180 transition-transform">
+                <ChevronDownIcon className="h-4 w-4" />
+              </SelectPrimitive.Icon>
+            </SelectPrimitive.Trigger>
+            <SelectPrimitive.Portal>
+              <SelectPrimitive.Positioner sideOffset={8}>
+                <SelectPrimitive.Popup className="min-w-[250px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <SelectPrimitive.Surface>
+                    <SelectPrimitive.Input
+                      hideUntilActive
+                      placeholder="Search frameworks..."
+                      className="w-full border-b border-gray-200 px-3 py-2 text-sm outline-none focus:bg-gray-50"
+                    />
+                    <SelectPrimitive.List className="max-h-[300px] overflow-y-auto p-1 focus:outline-none">
+                      {frameworks.map((fw) => (
+                        <SelectPrimitive.Item
+                          key={fw.value}
+                          value={fw.value}
+                          textValue={fw.label}
+                          className="group flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-purple-50 data-[selected]:font-medium"
+                        >
+                          <span className="flex h-4 w-4 items-center justify-center rounded border border-gray-300 group-data-[selected]:border-purple-600 group-data-[selected]:bg-purple-600">
+                            <SelectPrimitive.ItemIndicator className="text-white">
+                              <CheckIcon className="h-3 w-3" />
+                            </SelectPrimitive.ItemIndicator>
+                          </span>
+                          <SelectPrimitive.ItemLabel>
+                            {fw.label}
+                          </SelectPrimitive.ItemLabel>
+                        </SelectPrimitive.Item>
+                      ))}
+                    </SelectPrimitive.List>
+                    <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No frameworks found
+                    </SelectPrimitive.Empty>
+                  </SelectPrimitive.Surface>
+                </SelectPrimitive.Popup>
+              </SelectPrimitive.Positioner>
+            </SelectPrimitive.Portal>
+          </SelectPrimitive.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Selected Values">
+        <div className="flex flex-wrap gap-1">
+          {values.length === 0 ? (
+            <span className="text-sm text-gray-400">None selected</span>
+          ) : (
+            values.map((v) => (
+              <span
+                key={v}
+                className="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700"
+              >
+                {frameworks.find((f) => f.value === v)?.label ?? v}
+              </span>
+            ))
+          )}
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="Multi-Select Behavior">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Stays open:</strong> Menu remains open after selection
+          </p>
+          <p>
+            <strong>Toggle:</strong> Clicking selected item deselects it
+          </p>
+          <p>
+            <strong>Custom render:</strong> Value shows count or comma-separated
+            list
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Select Demo: Searchable Select
+// ============================================================================
+
+function SearchableSelectDemo() {
+  const [value, setValue] = React.useState('')
+  const [filterEnabled, setFilterEnabled] = React.useState(true)
+
+  const timezones = [
+    {
+      value: 'pst',
+      label: 'Pacific Time (PT)',
+      keywords: ['los angeles', 'seattle', 'san francisco'],
+    },
+    {
+      value: 'mst',
+      label: 'Mountain Time (MT)',
+      keywords: ['denver', 'phoenix', 'salt lake'],
+    },
+    {
+      value: 'cst',
+      label: 'Central Time (CT)',
+      keywords: ['chicago', 'dallas', 'houston'],
+    },
+    {
+      value: 'est',
+      label: 'Eastern Time (ET)',
+      keywords: ['new york', 'miami', 'boston'],
+    },
+    {
+      value: 'gmt',
+      label: 'Greenwich Mean Time (GMT)',
+      keywords: ['london', 'uk', 'england'],
+    },
+    {
+      value: 'cet',
+      label: 'Central European Time (CET)',
+      keywords: ['paris', 'berlin', 'rome'],
+    },
+    {
+      value: 'jst',
+      label: 'Japan Standard Time (JST)',
+      keywords: ['tokyo', 'osaka', 'japan'],
+    },
+    {
+      value: 'aest',
+      label: 'Australian Eastern Time (AEST)',
+      keywords: ['sydney', 'melbourne', 'australia'],
+    },
+  ]
+
+  return (
+    <DemoSection
+      title="Searchable Select"
+      description="Filter items with fuzzy search, supports keywords for better matching"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            Try searching "new york" or "tokyo"
+          </div>
+          <SelectPrimitive.Root value={value} onValueChange={setValue}>
+            <SelectPrimitive.Trigger className="inline-flex min-w-[280px] items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+              <SelectPrimitive.Value placeholder="Select timezone..." />
+              <SelectPrimitive.Icon className="text-gray-400 transition-transform data-[popup-open]:rotate-180">
+                <ChevronDownIcon className="h-4 w-4" />
+              </SelectPrimitive.Icon>
+            </SelectPrimitive.Trigger>
+            <SelectPrimitive.Portal>
+              <SelectPrimitive.Positioner sideOffset={8}>
+                <SelectPrimitive.Popup className="min-w-[280px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <SelectPrimitive.Surface
+                    filter={filterEnabled ? undefined : false}
+                  >
+                    <div className="border-b border-gray-200 p-2">
+                      <SelectPrimitive.Input
+                        placeholder="Search timezones..."
+                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                      />
+                    </div>
+                    <SelectPrimitive.List className="max-h-[250px] overflow-y-auto p-1 focus:outline-none">
+                      {timezones.map((tz) => (
+                        <SelectPrimitive.Item
+                          key={tz.value}
+                          value={tz.value}
+                          keywords={tz.keywords}
+                          textValue={tz.label}
+                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-green-50"
+                        >
+                          <SelectPrimitive.ItemLabel>
+                            {tz.label}
+                          </SelectPrimitive.ItemLabel>
+                          <SelectPrimitive.ItemIndicator className="text-green-600">
+                            <CheckIcon className="h-4 w-4" />
+                          </SelectPrimitive.ItemIndicator>
+                        </SelectPrimitive.Item>
+                      ))}
+                    </SelectPrimitive.List>
+                    <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No timezones found
+                    </SelectPrimitive.Empty>
+                  </SelectPrimitive.Surface>
+                </SelectPrimitive.Popup>
+              </SelectPrimitive.Positioner>
+            </SelectPrimitive.Portal>
+          </SelectPrimitive.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Surface Props">
+        <ConfigRow label="filter" description="Enable fuzzy search filtering">
+          <Toggle checked={filterEnabled} onChange={setFilterEnabled} />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Search Features">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Fuzzy matching:</strong> Matches partial text in value
+          </p>
+          <p>
+            <strong>Keywords:</strong> Match against additional keywords (e.g.,
+            cities)
+          </p>
+          <p>
+            <strong>Empty state:</strong> Shows message when no matches found
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Select Demo: Grouped Select
+// ============================================================================
+
+function GroupedSelectDemo() {
+  const [value, setValue] = React.useState('')
+
+  const foodGroups = [
+    {
+      label: 'Fruits',
+      items: [
+        { value: 'apple', label: 'Apple' },
+        { value: 'banana', label: 'Banana' },
+        { value: 'orange', label: 'Orange' },
+        { value: 'strawberry', label: 'Strawberry' },
+      ],
+    },
+    {
+      label: 'Vegetables',
+      items: [
+        { value: 'carrot', label: 'Carrot' },
+        { value: 'broccoli', label: 'Broccoli' },
+        { value: 'spinach', label: 'Spinach' },
+        { value: 'tomato', label: 'Tomato' },
+      ],
+    },
+    {
+      label: 'Proteins',
+      items: [
+        { value: 'chicken', label: 'Chicken' },
+        { value: 'beef', label: 'Beef' },
+        { value: 'fish', label: 'Fish' },
+        { value: 'tofu', label: 'Tofu' },
+      ],
+    },
+  ]
+
+  return (
+    <DemoSection
+      title="Grouped Select"
+      description="Organize items into labeled groups with separators"
+    >
+      <DemoCard>
+        <SelectPrimitive.Root value={value} onValueChange={setValue}>
+          <SelectPrimitive.Trigger className="inline-flex min-w-[220px] items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+            <SelectPrimitive.Value placeholder="Choose a food..." />
+            <SelectPrimitive.Icon className="text-gray-400 transition-transform data-[popup-open]:rotate-180">
+              <ChevronDownIcon className="h-4 w-4" />
+            </SelectPrimitive.Icon>
+          </SelectPrimitive.Trigger>
+          <SelectPrimitive.Portal>
+            <SelectPrimitive.Positioner sideOffset={8}>
+              <SelectPrimitive.Popup className="min-w-[220px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                <SelectPrimitive.Surface>
+                  <SelectPrimitive.Input
+                    hideUntilActive
+                    placeholder="Search foods..."
+                    className="w-full border-b border-gray-200 px-3 py-2 text-sm outline-none focus:bg-gray-50"
+                  />
+                  <SelectPrimitive.ScrollUpArrow className="flex h-6 items-center justify-center border-b border-gray-100 text-gray-400">
+                    <ChevronUpIcon className="h-4 w-4" />
+                  </SelectPrimitive.ScrollUpArrow>
+                  <SelectPrimitive.List className="max-h-[200px] overflow-y-auto p-1 focus:outline-none">
+                    {foodGroups.map((group, index) => (
+                      <React.Fragment key={group.label}>
+                        {index > 0 && (
+                          <SelectPrimitive.Separator className="my-1 h-px bg-gray-200" />
+                        )}
+                        <SelectPrimitive.Group>
+                          <SelectPrimitive.GroupLabel className="px-3 py-1.5 text-xs font-semibold text-gray-500">
+                            {group.label}
+                          </SelectPrimitive.GroupLabel>
+                          {group.items.map((item) => (
+                            <SelectPrimitive.Item
+                              key={item.value}
+                              value={item.value}
+                              textValue={item.label}
+                              className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-amber-50"
+                            >
+                              <SelectPrimitive.ItemLabel>
+                                {item.label}
+                              </SelectPrimitive.ItemLabel>
+                              <SelectPrimitive.ItemIndicator className="text-amber-600">
+                                <CheckIcon className="h-4 w-4" />
+                              </SelectPrimitive.ItemIndicator>
+                            </SelectPrimitive.Item>
+                          ))}
+                        </SelectPrimitive.Group>
+                      </React.Fragment>
+                    ))}
+                  </SelectPrimitive.List>
+                  <SelectPrimitive.ScrollDownArrow className="flex h-6 items-center justify-center border-t border-gray-100 text-gray-400">
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </SelectPrimitive.ScrollDownArrow>
+                  <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                    No foods found
+                  </SelectPrimitive.Empty>
+                </SelectPrimitive.Surface>
+              </SelectPrimitive.Popup>
+            </SelectPrimitive.Positioner>
+          </SelectPrimitive.Portal>
+        </SelectPrimitive.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Current Selection">
+        <div className="text-sm text-gray-600">
+          <p>
+            <strong>Value:</strong> {value || '(none)'}
+          </p>
+          <p>
+            <strong>Group:</strong>{' '}
+            {foodGroups.find((g) => g.items.some((i) => i.value === value))
+              ?.label ?? 'N/A'}
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Select Demo: Virtualized Select
+// ============================================================================
+
+function VirtualizedSelectDemo() {
+  const [value, setValue] = React.useState('')
+  const [search, setSearch] = React.useState('')
+  const [scrollElement, setScrollElement] =
+    React.useState<HTMLDivElement | null>(null)
+  const [itemCount, setItemCount] = React.useState(1000)
+
+  // Generate items
+  const allItems = React.useMemo(() => {
+    const categories = ['User', 'Project', 'Task', 'Document', 'Event']
+    const items: SelectVirtualItem[] = []
+    for (let i = 0; i < itemCount; i++) {
+      const category = categories[i % categories.length]
+      items.push({
+        value: `${category?.toLowerCase()}-${i + 1}`,
+      })
+    }
+    return items
+  }, [itemCount])
+
+  // Filter items
+  const filteredItems = React.useMemo(() => {
+    if (!search) return allItems
+    const lowerSearch = search.toLowerCase()
+    return allItems.filter((item) => item.value.includes(lowerSearch))
+  }, [search, allItems])
+
+  const itemHeight = 36
+  const listHeight = 300
+
+  const virtualizer = useVirtualizer({
+    count: filteredItems.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => itemHeight,
+    overscan: 5,
+  })
+
+  const virtualizerRef = React.useRef(virtualizer)
+  virtualizerRef.current = virtualizer
+
+  const handleHighlightChange = React.useCallback(
+    (highlightedValue: string | null, index: number) => {
+      if (index >= 0) {
+        queueMicrotask(() => {
+          virtualizerRef.current.scrollToIndex(index, { align: 'auto' })
+        })
+      }
+    },
+    [],
+  )
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (!open && scrollElement) {
+        scrollElement.scrollTop = 0
+        setSearch('')
+      }
+    },
+    [scrollElement],
+  )
+
+  return (
+    <DemoSection
+      title="Virtualized Select"
+      description="Efficiently render thousands of items with virtualization"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            {filteredItems.length.toLocaleString()} items
+          </div>
+          <SelectPrimitive.Root
+            value={value}
+            onValueChange={setValue}
+            virtualized
+            virtualItems={filteredItems}
+            onHighlightChange={handleHighlightChange}
+            onOpenChange={handleOpenChange}
+          >
+            <SelectPrimitive.Trigger className="inline-flex min-w-[250px] items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+              <SelectPrimitive.Value placeholder="Select an item..." />
+              <SelectPrimitive.Icon className="text-gray-400 transition-transform data-[popup-open]:rotate-180">
+                <ChevronDownIcon className="h-4 w-4" />
+              </SelectPrimitive.Icon>
+            </SelectPrimitive.Trigger>
+            <SelectPrimitive.Portal>
+              <SelectPrimitive.Positioner sideOffset={8}>
+                <SelectPrimitive.Popup className="w-[300px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <SelectPrimitive.Surface
+                    search={search}
+                    onSearchChange={setSearch}
+                    filter={false}
+                  >
+                    <div className="border-b border-gray-200 p-2">
+                      <SelectPrimitive.Input
+                        placeholder={`Search ${itemCount.toLocaleString()} items...`}
+                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <SelectPrimitive.List
+                      ref={setScrollElement}
+                      className="overflow-auto p-1 focus:outline-none scroll-py-1"
+                      style={{ height: listHeight }}
+                    >
+                      <div
+                        style={{
+                          height: virtualizer.getTotalSize(),
+                          width: '100%',
+                          position: 'relative',
+                        }}
+                      >
+                        {virtualizer.getVirtualItems().map((virtualRow) => {
+                          const item = filteredItems[virtualRow.index]
+                          if (!item) return null
+                          return (
+                            <SelectPrimitive.Item
+                              key={item.value}
+                              value={item.value}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: itemHeight,
+                                transform: `translateY(${virtualRow.start}px)`,
+                              }}
+                              className="flex cursor-pointer items-center justify-between rounded-md px-3 text-sm data-[highlighted]:bg-cyan-50"
+                            >
+                              <span className="capitalize">
+                                {item.value.replace('-', ' #')}
+                              </span>
+                              <SelectPrimitive.ItemIndicator className="text-cyan-600">
+                                <CheckIcon className="h-4 w-4" />
+                              </SelectPrimitive.ItemIndicator>
+                            </SelectPrimitive.Item>
+                          )
+                        })}
+                      </div>
+                    </SelectPrimitive.List>
+                    <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No items found
+                    </SelectPrimitive.Empty>
+                  </SelectPrimitive.Surface>
+                </SelectPrimitive.Popup>
+              </SelectPrimitive.Positioner>
+            </SelectPrimitive.Portal>
+          </SelectPrimitive.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Virtualizer Config">
+        <ConfigRow label="itemCount" description="Total number of items">
+          <Select
+            value={String(itemCount)}
+            onChange={(v) => setItemCount(Number(v))}
+            options={[
+              { value: '100', label: '100' },
+              { value: '1000', label: '1,000' },
+              { value: '10000', label: '10,000' },
+              { value: '50000', label: '50,000' },
+            ]}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="How it works">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>virtualized prop:</strong> Enables virtualization mode
+          </p>
+          <p>
+            <strong>items prop:</strong> Pre-registers items for keyboard nav
+          </p>
+          <p>
+            <strong>onHighlightChange:</strong> Syncs scroll position
+          </p>
+          <p>
+            <strong>filter=false:</strong> Consumer handles filtering
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Select Demo: Form Integration
+// ============================================================================
+
+function FormIntegrationDemo() {
+  const [submitted, setSubmitted] = React.useState<{
+    country: string
+    languages: string[]
+  } | null>(null)
+
+  const countries = [
+    { value: 'us', label: 'United States' },
+    { value: 'uk', label: 'United Kingdom' },
+    { value: 'ca', label: 'Canada' },
+  ]
+
+  const languages = [
+    { value: 'en', label: 'English' },
+    { value: 'es', label: 'Spanish' },
+    { value: 'fr', label: 'French' },
+    { value: 'de', label: 'German' },
+    { value: 'zh', label: 'Chinese' },
+  ]
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    setSubmitted({
+      country: formData.get('country') as string,
+      languages: formData.getAll('languages') as string[],
+    })
+    toast.success('Form submitted!')
+  }
+
+  return (
+    <DemoSection
+      title="Form Integration"
+      description="Select components with hidden inputs for native form submission"
+    >
+      <DemoCard>
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+          <div className="space-y-2">
+            <span
+              id="country-label"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Country <span className="text-red-500">*</span>
+            </span>
+            <SelectPrimitive.Root name="country" required>
+              <SelectPrimitive.Trigger className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+                <SelectPrimitive.Value placeholder="Select country..." />
+                <SelectPrimitive.Icon className="text-gray-400 transition-transform data-[popup-open]:rotate-180">
+                  <ChevronDownIcon className="h-4 w-4" />
+                </SelectPrimitive.Icon>
+              </SelectPrimitive.Trigger>
+              <SelectPrimitive.Portal>
+                <SelectPrimitive.Positioner sideOffset={8}>
+                  <SelectPrimitive.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <SelectPrimitive.Surface>
+                      <SelectPrimitive.Input
+                        hideUntilActive
+                        placeholder="Search countries..."
+                        className="w-full border-b border-gray-200 px-3 py-2 text-sm outline-none focus:bg-gray-50"
+                      />
+                      <SelectPrimitive.List className="p-1 focus:outline-none">
+                        {countries.map((c) => (
+                          <SelectPrimitive.Item
+                            key={c.value}
+                            value={c.value}
+                            textValue={c.label}
+                            className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-blue-50"
+                          >
+                            <SelectPrimitive.ItemLabel>
+                              {c.label}
+                            </SelectPrimitive.ItemLabel>
+                            <SelectPrimitive.ItemIndicator className="text-blue-600">
+                              <CheckIcon className="h-4 w-4" />
+                            </SelectPrimitive.ItemIndicator>
+                          </SelectPrimitive.Item>
+                        ))}
+                      </SelectPrimitive.List>
+                      <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                        No countries found
+                      </SelectPrimitive.Empty>
+                    </SelectPrimitive.Surface>
+                  </SelectPrimitive.Popup>
+                </SelectPrimitive.Positioner>
+              </SelectPrimitive.Portal>
+            </SelectPrimitive.Root>
+          </div>
+
+          <div className="space-y-2">
+            <span
+              id="languages-label"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Languages
+            </span>
+            <SelectPrimitive.Root name="languages" multiple>
+              <SelectPrimitive.Trigger className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 data-[placeholder]:text-gray-400">
+                <SelectPrimitive.Value placeholder="Select languages..." />
+                <SelectPrimitive.Icon className="text-gray-400 transition-transform data-[popup-open]:rotate-180">
+                  <ChevronDownIcon className="h-4 w-4" />
+                </SelectPrimitive.Icon>
+              </SelectPrimitive.Trigger>
+              <SelectPrimitive.Portal>
+                <SelectPrimitive.Positioner sideOffset={8}>
+                  <SelectPrimitive.Popup className="min-w-[200px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <SelectPrimitive.Surface>
+                      <SelectPrimitive.Input
+                        hideUntilActive
+                        placeholder="Search languages..."
+                        className="w-full border-b border-gray-200 px-3 py-2 text-sm outline-none focus:bg-gray-50"
+                      />
+                      <SelectPrimitive.List className="p-1 focus:outline-none">
+                        {languages.map((lang) => (
+                          <SelectPrimitive.Item
+                            key={lang.value}
+                            value={lang.value}
+                            textValue={lang.label}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm data-[highlighted]:bg-purple-50"
+                          >
+                            <span className="flex h-4 w-4 items-center justify-center rounded border border-gray-300 data-[selected]:border-purple-600 data-[selected]:bg-purple-600">
+                              <SelectPrimitive.ItemIndicator className="text-white">
+                                <CheckIcon className="h-3 w-3" />
+                              </SelectPrimitive.ItemIndicator>
+                            </span>
+                            <SelectPrimitive.ItemLabel>
+                              {lang.label}
+                            </SelectPrimitive.ItemLabel>
+                          </SelectPrimitive.Item>
+                        ))}
+                      </SelectPrimitive.List>
+                      <SelectPrimitive.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                        No languages found
+                      </SelectPrimitive.Empty>
+                    </SelectPrimitive.Surface>
+                  </SelectPrimitive.Popup>
+                </SelectPrimitive.Positioner>
+              </SelectPrimitive.Portal>
+            </SelectPrimitive.Root>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+          >
+            Submit
+          </button>
+        </form>
+      </DemoCard>
+
+      <ConfigPanel title="Submitted Data">
+        {submitted ? (
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>
+              <strong>Country:</strong> {submitted.country}
+            </p>
+            <p>
+              <strong>Languages:</strong>{' '}
+              {submitted.languages.length > 0
+                ? submitted.languages.join(', ')
+                : '(none)'}
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">Submit the form to see data</p>
+        )}
+      </ConfigPanel>
+
+      <ConfigPanel title="Form Props">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>name:</strong> Field name for FormData
+          </p>
+          <p>
+            <strong>required:</strong> HTML5 required validation
+          </p>
+          <p>
+            <strong>form:</strong> Associate with form by ID
+          </p>
+          <p>
+            <strong>Hidden inputs:</strong> Automatically rendered for
+            submission
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
   )
 }
 
@@ -2108,6 +3745,76 @@ function ArrowSvg(props: React.ComponentProps<'svg'>) {
         d="M10.3333 3.34539L5.47654 7.71648C4.55842 8.54279 3.36693 9 2.13172 9H0V8H2.13172C3.11989 8 4.07308 7.63423 4.80758 6.97318L9.66437 2.60207C10.0447 2.25979 10.622 2.2598 11.0023 2.60207L15.8591 6.97318C16.5936 7.63423 17.5468 8 18.5349 8H20V9H18.5349C17.2998 9 16.1083 8.54278 15.1901 7.71648L10.3333 3.34539Z"
         className="dark:fill-gray-300"
       />
+    </svg>
+  )
+}
+
+const CloseIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
+
+const ChevronDownIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
+
+const ChevronUpIcon = ({ ...props }: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M3.13523 8.84197C3.3241 9.04343 3.64052 9.05363 3.84197 8.86477L7.5 5.43536L11.158 8.86477C11.3595 9.05363 11.6759 9.04343 11.8648 8.84197C12.0536 8.64051 12.0434 8.32409 11.842 8.13523L7.84197 4.38523C7.64964 4.20492 7.35036 4.20492 7.15803 4.38523L3.15803 8.13523C2.95657 8.32409 2.94637 8.64051 3.13523 8.84197Z"
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
+
+const CollapsibleChevron = ({
+  ...props
+}: React.HTMLAttributes<SVGSVGElement>) => {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" {...props}>
+      <path d="M3.5 9L7.5 5L3.5 1" stroke="currentcolor" strokeWidth="1.5" />
     </svg>
   )
 }
