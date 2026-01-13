@@ -2,6 +2,7 @@
 
 import { Popover, type PopoverPopupProps } from '@base-ui/react/popover'
 import * as React from 'react'
+import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
@@ -39,6 +40,9 @@ export const PopupMenuPopup = React.forwardRef<
 
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
+
+  // Get combobox context to detect if we're inside a combobox
+  const comboboxContext = useMaybeComboboxContext()
 
   // Local ref for the popup element
   const popupRef = React.useRef<HTMLDivElement>(null)
@@ -86,14 +90,20 @@ export const PopupMenuPopup = React.forwardRef<
     }
   }, [submenuContext, focusOwnerStore])
 
-  // For submenus, disable Base UI's auto-focus behavior
-  // Focus is managed by our FocusOwner system instead
-  const initialFocus = submenuContext ? false : undefined
+  // Disable Base UI's auto-focus behavior for:
+  // - Submenus: Focus is managed by our FocusOwner system
+  // - Combobox: Focus should stay on the input element (which is outside the popup)
+  const initialFocus = submenuContext || comboboxContext ? false : undefined
+
+  // Disable returning focus to trigger when popup closes for Combobox
+  // When clicking outside, we want focus to go to whatever was clicked, not back to input
+  const finalFocus = comboboxContext ? false : undefined
 
   return (
     <Popover.Popup
       ref={combinedRef}
       initialFocus={initialFocus}
+      finalFocus={finalFocus}
       onPointerMove={(event) => {
         handlePointerMove()
         rest.onPointerMove?.(event)

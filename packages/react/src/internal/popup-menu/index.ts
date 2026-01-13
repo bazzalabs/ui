@@ -106,6 +106,17 @@ export type {
 export { usePopupMenuKeyboard } from './hooks/use-popup-menu-keyboard.js'
 
 // ============================================================================
+// Trigger Components
+// ============================================================================
+
+export { PopupMenuIconDataAttributes } from './components/icon/icon.data-attrs.js'
+export type {
+  PopupMenuIconProps,
+  PopupMenuIconState,
+} from './components/icon/icon.js'
+export { PopupMenuIcon } from './components/icon/icon.js'
+
+// ============================================================================
 // Content Components
 // ============================================================================
 
@@ -125,6 +136,18 @@ export type {
   PopupMenuListState,
 } from './components/list/list.js'
 export { PopupMenuList } from './components/list/list.js'
+export { PopupMenuScrollArrowDataAttributes } from './components/scroll-arrow/scroll-arrow.data-attrs.js'
+export type {
+  PopupMenuScrollArrowProps,
+  PopupMenuScrollArrowState,
+  PopupMenuScrollDownArrowProps,
+  PopupMenuScrollUpArrowProps,
+} from './components/scroll-arrow/scroll-arrow.js'
+export {
+  PopupMenuScrollArrow,
+  PopupMenuScrollDownArrow,
+  PopupMenuScrollUpArrow,
+} from './components/scroll-arrow/scroll-arrow.js'
 export type {
   PopupMenuSurfaceProps,
   PopupMenuSurfaceState,
