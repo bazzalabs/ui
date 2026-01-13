@@ -27,7 +27,9 @@ export {
   PopupMenuSeparator as Separator,
 } from '../internal/popup-menu/index.js'
 export { ComboboxClear as Clear } from './clear/clear.js'
+export { useComboboxPositionerContext } from './contexts/combobox-positioner-context.js'
 export { ComboboxInput as Input } from './input/input.js'
+export { ComboboxInputWrapper as InputWrapper } from './input-wrapper/input-wrapper.js'
 export { ComboboxItem as Item } from './item/item.js'
 export { ComboboxItemIndicator as ItemIndicator } from './item-indicator/item-indicator.js'
 export { ComboboxItemLabel as ItemLabel } from './item-label/item-label.js'

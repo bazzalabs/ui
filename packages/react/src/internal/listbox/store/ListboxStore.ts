@@ -715,17 +715,30 @@ export class ListboxStore extends ReactStore<
   /**
    * Highlight a specific item by its value.
    * If the item is not visible or doesn't exist, falls back to highlighting the first item.
+   * Scrolls the highlighted item into view.
    */
   highlightItemByValue(value: string) {
     const visibleIds = this.getVisibleItemIds()
+    let highlightedId: string | null = null
+
     if (visibleIds.includes(value)) {
       // Item exists and is visible - highlight it
-      this.update({ highlightedId: value, highlightSource: null })
+      highlightedId = value
     } else if (visibleIds.length > 0 && visibleIds[0]) {
       // Fall back to first item if specified value not found
-      this.update({ highlightedId: visibleIds[0], highlightSource: null })
-    } else {
-      this.update({ highlightedId: null, highlightSource: null })
+      highlightedId = visibleIds[0]
+    }
+
+    this.update({ highlightedId, highlightSource: null })
+
+    // Scroll the highlighted item into view
+    // This is important when opening a combobox with a pre-selected value
+    // that may be far down the list
+    if (highlightedId) {
+      // Use requestAnimationFrame to ensure the DOM has updated
+      requestAnimationFrame(() => {
+        this.scrollItemIntoView(highlightedId)
+      })
     }
   }
 

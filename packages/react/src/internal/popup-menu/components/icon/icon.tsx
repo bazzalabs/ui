@@ -33,7 +33,15 @@ export const PopupMenuIcon = React.forwardRef<
   HTMLSpanElement,
   PopupMenuIconProps
 >(function PopupMenuIcon(props, forwardedRef) {
-  const { render, className, style, children, onPointerDown, ...rest } = props
+  const {
+    render,
+    className,
+    style,
+    children,
+    onPointerDown,
+    onClick,
+    ...rest
+  } = props
 
   const { store } = usePopupMenuContext()
   const open = store.useState('open')
@@ -54,6 +62,38 @@ export const PopupMenuIcon = React.forwardRef<
     [comboboxContext, onPointerDown],
   )
 
+  // Handle click to toggle the combobox (Combobox only)
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLSpanElement>) => {
+      onClick?.(event)
+      if (event.defaultPrevented) return
+
+      if (comboboxContext) {
+        if (open) {
+          comboboxContext.closeCombobox()
+        } else {
+          // Pre-set the input value BEFORE opening to avoid the empty intermediate state
+          // This mirrors what the input click handler does
+          const hasValue = comboboxContext.multiple
+            ? comboboxContext.values.length > 0
+            : comboboxContext.value !== ''
+
+          if (hasValue && !comboboxContext.multiple) {
+            // Get the label from the registry or items
+            const registryText = comboboxContext.itemTextRegistry.get(
+              comboboxContext.value,
+            )
+            const labelValue = registryText ?? comboboxContext.value
+            comboboxContext.onInputValueChange(labelValue)
+          }
+
+          comboboxContext.openCombobox()
+        }
+      }
+    },
+    [onClick, comboboxContext, open],
+  )
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -65,6 +105,7 @@ export const PopupMenuIcon = React.forwardRef<
       style,
       children,
       onPointerDown: handlePointerDown,
+      onClick: handleClick,
     },
     defaultTagName: 'span',
   })

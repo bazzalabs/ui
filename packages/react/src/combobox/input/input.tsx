@@ -4,10 +4,12 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useFocusOwner } from '../../internal/popup-menu/contexts/focus-owner-context.js'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
-import { usePopupMenuKeyboard } from '../../internal/popup-menu/hooks/use-popup-menu-keyboard.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
+import { useIsInsideInputWrapper } from '../input-wrapper/input-wrapper-context.js'
 import { ComboboxInputDataAttributes } from './input.data-attrs.js'
+import { useComboboxDisplayValue } from './use-combobox-display-value.js'
+import { useComboboxInputBehavior } from './use-combobox-input-behavior.js'
 
 export { ComboboxInputDataAttributes }
 
@@ -26,6 +28,14 @@ export interface ComboboxInputState extends Record<string, unknown> {
   placeholder: boolean
 }
 
+/**
+ * Cursor behavior when the combobox popup opens.
+ * - `'none'` - Don't move the cursor (cursor appears where clicked)
+ * - `'end'` - Move cursor to the end of the input
+ * - `'select-all'` - Move cursor to the end and select all text
+ */
+export type ComboboxInputCursorBehavior = 'none' | 'end' | 'select-all'
+
 export interface ComboboxInputProps
   extends Omit<
     ComponentProps<'input', ComboboxInputState>,
@@ -36,28 +46,16 @@ export interface ComboboxInputProps
    * Overrides the placeholder set on Combobox.Root.
    */
   placeholder?: string
-}
 
-/**
- * Helper to resolve label from items prop
- */
-function resolveLabelFromItems(
-  items:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
-    | undefined,
-  value: string,
-): string | undefined {
-  if (!items) return undefined
-
-  if (Array.isArray(items)) {
-    const item = items.find((i) => i.value === value)
-    const label = item?.label
-    return typeof label === 'string' ? label : undefined
-  }
-
-  const label = items[value]
-  return typeof label === 'string' ? label : undefined
+  /**
+   * Cursor behavior when the combobox popup opens.
+   * - `'none'` - Don't move the cursor (cursor appears where clicked)
+   * - `'end'` - Move cursor to the end of the input
+   * - `'select-all'` - Move cursor to the end and select all text
+   *
+   * @default 'none'
+   */
+  cursorBehavior?: ComboboxInputCursorBehavior
 }
 
 /**
@@ -71,6 +69,7 @@ export const ComboboxInput = React.forwardRef<
   const {
     placeholder: placeholderProp,
     disabled: disabledProp,
+    cursorBehavior = 'none',
     render,
     className,
     style,
@@ -84,6 +83,7 @@ export const ComboboxInput = React.forwardRef<
   const comboboxContext = useComboboxContext()
   const popupMenuContext = usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
+  const isInsideInputWrapper = useIsInsideInputWrapper()
 
   const disabled = disabledProp ?? comboboxContext.disabled
   const placeholder = placeholderProp ?? comboboxContext.placeholder
@@ -91,212 +91,28 @@ export const ComboboxInput = React.forwardRef<
   // Get open state
   const open = popupMenuContext.store.useState('open')
 
-  // Determine if showing placeholder (no value selected)
-  const hasValue = comboboxContext.multiple
-    ? comboboxContext.values.length > 0
-    : comboboxContext.value !== ''
-
-  // Get the display text for selected value
-  const getValueText = React.useCallback(
-    (value: string): string | undefined => {
-      // First try the registry (populated when items mount)
-      const registryText = comboboxContext.itemTextRegistry.get(value)
-      if (registryText !== undefined) {
-        return registryText
-      }
-
-      // Fall back to the items prop (for initial render before popup opens)
-      return resolveLabelFromItems(comboboxContext.items, value)
-    },
-    [comboboxContext.itemTextRegistry, comboboxContext.items],
-  )
-
-  // Determine the display value for the input
-  // When closed: show selected value's text
-  // When open: show the search/filter text
-  const displayValue = React.useMemo(() => {
-    if (open) {
-      // When open, use the input value for filtering
-      return comboboxContext.inputValue
-    }
-    // When closed, show the selected value's label
-    if (!hasValue) {
-      return ''
-    }
-    if (comboboxContext.multiple) {
-      // For multi-select when closed, show comma-separated values or count
-      const texts = comboboxContext.values
-        .map((v) => getValueText(v) ?? v)
-        .filter(Boolean)
-      if (texts.length <= 2) {
-        return texts.join(', ')
-      }
-      return `${texts.length} selected`
-    }
-    // Single-select: show the value's text
-    return getValueText(comboboxContext.value) ?? comboboxContext.value
-  }, [
+  // Use display value hook
+  const { hasValue, displayValue, getValueText } = useComboboxDisplayValue({
+    comboboxContext,
     open,
-    hasValue,
-    comboboxContext.inputValue,
-    comboboxContext.multiple,
-    comboboxContext.value,
-    comboboxContext.values,
-    getValueText,
-  ])
-
-  // Track if open was triggered by typing (to avoid overwriting typed character)
-  const openedByTypingRef = React.useRef(false)
-
-  // When opening, initialize input value with the selected value's label
-  // This allows users to see what's selected and modify it if needed
-  const prevOpenRef = React.useRef(open)
-  React.useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      // If opened by typing, don't overwrite the typed character
-      if (openedByTypingRef.current) {
-        openedByTypingRef.current = false
-        prevOpenRef.current = open
-        return
-      }
-
-      // Just opened - set input to show the selected value's label
-      if (hasValue) {
-        if (comboboxContext.multiple) {
-          // For multi-select, clear input for fresh search (can't edit multiple values)
-          comboboxContext.onInputValueChange('')
-        } else {
-          // For single-select, show the selected value's label
-          const selectedLabel =
-            getValueText(comboboxContext.value) ?? comboboxContext.value
-          comboboxContext.onInputValueChange(selectedLabel)
-        }
-      } else {
-        // No value selected, start with empty input
-        comboboxContext.onInputValueChange('')
-      }
-    }
-    prevOpenRef.current = open
-  }, [open, comboboxContext, hasValue, getValueText])
-
-  // Handle input change
-  const handleChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value
-      comboboxContext.onInputValueChange(newValue)
-
-      // Mark that the user has changed the query, enabling filtering
-      comboboxContext.markQueryChanged()
-
-      // Also update the store's search state for filtering
-      popupMenuContext.store.setSearch(newValue)
-
-      // Open the combobox if not already open
-      if (!popupMenuContext.store.state.open) {
-        // Mark that we're opening by typing so the effect doesn't overwrite the value
-        openedByTypingRef.current = true
-        comboboxContext.openCombobox()
-      }
-    },
-    [comboboxContext, popupMenuContext.store],
-  )
-
-  // Handle focus
-  const handleFocus = React.useCallback(
-    (event: React.FocusEvent<HTMLInputElement>) => {
-      onFocus?.(event)
-      if (event.defaultPrevented) return
-
-      if (comboboxContext.openOnFocus && !disabled) {
-        comboboxContext.openCombobox()
-      }
-    },
-    [onFocus, comboboxContext, disabled],
-  )
-
-  // Handle blur - close combobox when focus moves outside
-  const handleBlur = React.useCallback(
-    (event: React.FocusEvent<HTMLInputElement>) => {
-      onBlur?.(event)
-      if (event.defaultPrevented) return
-
-      // Use requestAnimationFrame to check where focus moved to
-      // This allows the click on an item to complete before we check
-      requestAnimationFrame(() => {
-        const activeElement = document.activeElement
-
-        // Check if focus moved to something inside the popup
-        // The popup is rendered in a portal, so we need to check if the active element
-        // is inside any element with role="listbox" that belongs to this combobox
-        const listbox = document.getElementById(comboboxContext.listId)
-        const isInsideListbox = listbox?.contains(activeElement)
-
-        // Also check if focus is still on the input itself
-        const isOnInput = activeElement === comboboxContext.inputRef.current
-
-        if (!isInsideListbox && !isOnInput) {
-          comboboxContext.closeCombobox()
-        }
-      })
-    },
-    [onBlur, comboboxContext],
-  )
-
-  // Handle click
-  const handleClick = React.useCallback(
-    (event: React.MouseEvent<HTMLInputElement>) => {
-      onClick?.(event)
-      if (event.defaultPrevented) return
-
-      if (!disabled) {
-        comboboxContext.openCombobox()
-      }
-    },
-    [onClick, comboboxContext, disabled],
-  )
-
-  // Handle keyboard when popup is closed (opening it)
-  const handleKeyDownWhenClosed = React.useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      // Let user handler run first
-      onKeyDown?.(event)
-      if (event.defaultPrevented) return
-
-      // If popup is closed, open it on arrow keys or Enter
-      if (!open) {
-        if (
-          event.key === 'ArrowDown' ||
-          event.key === 'ArrowUp' ||
-          event.key === 'Enter'
-        ) {
-          event.preventDefault()
-          comboboxContext.openCombobox()
-          return
-        }
-      }
-    },
-    [open, comboboxContext, onKeyDown],
-  )
-
-  // Use centralized keyboard navigation hook for when popup is open
-  // This handles Enter to select, arrow keys for navigation, Escape to close, etc.
-  const { handleKeyDown: handleKeyDownFromHook } = usePopupMenuKeyboard({
-    store: popupMenuContext.store,
-    surfaceId: 'combobox-input', // Input acts as a virtual surface for keyboard handling
-    focusOwnerStore,
-    depth: 0,
-    submenuContext: null,
-    enabled: open, // Only enabled when popup is open
-    enableTypeToSearch: false,
-    onKeyDown: handleKeyDownWhenClosed, // Chain with our closed-state handler
-    closeAll: comboboxContext.closeCombobox,
-    // Skip focus owner check because the input is outside the Surface
-    // but should still handle keyboard navigation when the popup is open
-    skipFocusOwnerCheck: true,
   })
 
-  // Combined keyboard handler
-  const handleKeyDown = handleKeyDownFromHook
+  // Use input behavior hook
+  const { handleChange, handleFocus, handleBlur, handleClick, handleKeyDown } =
+    useComboboxInputBehavior({
+      comboboxContext,
+      store: popupMenuContext.store,
+      focusOwnerStore,
+      open,
+      disabled,
+      cursorBehavior,
+      hasValue,
+      getValueText,
+      onFocus,
+      onBlur,
+      onClick,
+      onKeyDown,
+    })
 
   // Build data attributes
   const dataAttrs: Record<string, string> = {}
@@ -310,6 +126,10 @@ export const ComboboxInput = React.forwardRef<
   }
   if (!hasValue) {
     dataAttrs[ComboboxInputDataAttributes.placeholder] = ''
+  }
+  // Add input-embedded data attribute when layout is input-embedded
+  if (comboboxContext.layout === 'input-embedded') {
+    dataAttrs['data-input-embedded'] = ''
   }
 
   // Register input element for positioning
@@ -334,6 +154,13 @@ export const ComboboxInput = React.forwardRef<
     [open, disabled, hasValue],
   )
 
+  // When input-embedded layout, apply styles to position input above the popup
+  // Skip z-index if inside an InputWrapper (the wrapper handles z-index)
+  const inputEmbeddedStyles: React.CSSProperties | undefined =
+    comboboxContext.layout === 'input-embedded' && !isInsideInputWrapper
+      ? { position: 'relative', zIndex: 1 }
+      : undefined
+
   const element = useRender({
     render,
     ref: mergedRef,
@@ -353,7 +180,7 @@ export const ComboboxInput = React.forwardRef<
       disabled,
       placeholder: !hasValue ? placeholder : undefined,
       className,
-      style,
+      style: { ...inputEmbeddedStyles, ...style },
       value: displayValue,
       onChange: handleChange,
       onFocus: handleFocus,
