@@ -2,6 +2,12 @@
 
 - Use `bun run type-check` to check types using `tsc`
 
+## Base UI
+
+Documentation is available at https://base-ui/com/llms.txt
+
+Source code is available in their GitHub repository: https://github.com/mui/base-ui/tree/master/packages/react/src
+
 # Structing components and files
 
 Based on Base UI's component library patterns with kebab-case file naming.
