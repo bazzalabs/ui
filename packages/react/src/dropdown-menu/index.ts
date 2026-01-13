@@ -1,67 +1,166 @@
+// ============================================================================
+// Dropdown Menu Exports
+// ============================================================================
+
+// Namespace export
+export * as DropdownMenu from './index.parts.js'
+
+// ============================================================================
+// Dropdown-menu specific components
+// ============================================================================
+
+// Root
+export type { DropdownMenuRoot } from './root/root.js'
+
+// Trigger
+export { DropdownMenuTriggerDataAttributes } from './trigger/trigger.data-attrs.js'
+export type { DropdownMenuTrigger } from './trigger/trigger.js'
+
+// ============================================================================
+// Re-exported from internal/popup-menu (with DropdownMenu prefix)
+// ============================================================================
+
+// Portal
+// Submenu
+// Surface
+// List
+// Input
+// Empty
+// Group
+// Group Label
+// Separator
+export type {
+  PopupMenuArrow as DropdownMenuArrow,
+  PopupMenuArrowProps as DropdownMenuArrowProps,
+  PopupMenuBackdrop as DropdownMenuBackdrop,
+  PopupMenuBackdropProps as DropdownMenuBackdropProps,
+  PopupMenuCheckboxItem as DropdownMenuCheckboxItem,
+  PopupMenuCheckboxItemIndicator as DropdownMenuCheckboxItemIndicator,
+  PopupMenuCheckboxItemIndicatorProps as DropdownMenuCheckboxItemIndicatorProps,
+  PopupMenuCheckboxItemIndicatorState as DropdownMenuCheckboxItemIndicatorState,
+  PopupMenuCheckboxItemProps as DropdownMenuCheckboxItemProps,
+  PopupMenuCheckboxItemState as DropdownMenuCheckboxItemState,
+  PopupMenuEmpty as DropdownMenuEmpty,
+  PopupMenuEmptyProps as DropdownMenuEmptyProps,
+  PopupMenuEmptyState as DropdownMenuEmptyState,
+  PopupMenuGroup as DropdownMenuGroup,
+  PopupMenuGroupLabel as DropdownMenuGroupLabel,
+  PopupMenuGroupLabelProps as DropdownMenuGroupLabelProps,
+  PopupMenuGroupLabelState as DropdownMenuGroupLabelState,
+  PopupMenuGroupProps as DropdownMenuGroupProps,
+  PopupMenuGroupState as DropdownMenuGroupState,
+  PopupMenuInput as DropdownMenuInput,
+  PopupMenuInputProps as DropdownMenuInputProps,
+  PopupMenuInputState as DropdownMenuInputState,
+  PopupMenuItem as DropdownMenuItem,
+  PopupMenuItemProps as DropdownMenuItemProps,
+  PopupMenuItemState as DropdownMenuItemState,
+  PopupMenuList as DropdownMenuList,
+  PopupMenuListChildrenState as DropdownMenuListChildrenState,
+  PopupMenuListProps as DropdownMenuListProps,
+  PopupMenuListState as DropdownMenuListState,
+  PopupMenuPopup as DropdownMenuPopup,
+  PopupMenuPopupProps as DropdownMenuPopupProps,
+  PopupMenuPortal as DropdownMenuPortal,
+  PopupMenuPortalProps as DropdownMenuPortalProps,
+  PopupMenuPositioner as DropdownMenuPositioner,
+  PopupMenuPositionerProps as DropdownMenuPositionerProps,
+  PopupMenuRadioGroup as DropdownMenuRadioGroup,
+  PopupMenuRadioGroupProps as DropdownMenuRadioGroupProps,
+  PopupMenuRadioGroupState as DropdownMenuRadioGroupState,
+  PopupMenuRadioItem as DropdownMenuRadioItem,
+  PopupMenuRadioItemIndicator as DropdownMenuRadioItemIndicator,
+  PopupMenuRadioItemIndicatorProps as DropdownMenuRadioItemIndicatorProps,
+  PopupMenuRadioItemIndicatorState as DropdownMenuRadioItemIndicatorState,
+  PopupMenuRadioItemProps as DropdownMenuRadioItemProps,
+  PopupMenuRadioItemState as DropdownMenuRadioItemState,
+  PopupMenuSeparator as DropdownMenuSeparator,
+  PopupMenuSeparatorProps as DropdownMenuSeparatorProps,
+  PopupMenuSeparatorState as DropdownMenuSeparatorState,
+  PopupMenuShortcut as DropdownMenuShortcut,
+  PopupMenuShortcutProps as DropdownMenuShortcutProps,
+  PopupMenuShortcutState as DropdownMenuShortcutState,
+  PopupMenuSubmenuRoot as DropdownMenuSubmenuRoot,
+  PopupMenuSubmenuRootProps as DropdownMenuSubmenuRootProps,
+  PopupMenuSubmenuTrigger as DropdownMenuSubmenuTrigger,
+  PopupMenuSubmenuTriggerIndicator as DropdownMenuSubmenuTriggerIndicator,
+  PopupMenuSubmenuTriggerIndicatorProps as DropdownMenuSubmenuTriggerIndicatorProps,
+  PopupMenuSubmenuTriggerIndicatorState as DropdownMenuSubmenuTriggerIndicatorState,
+  PopupMenuSubmenuTriggerProps as DropdownMenuSubmenuTriggerProps,
+  PopupMenuSubmenuTriggerState as DropdownMenuSubmenuTriggerState,
+  PopupMenuSurface as DropdownMenuSurface,
+  PopupMenuSurfaceProps as DropdownMenuSurfaceProps,
+  PopupMenuSurfaceState as DropdownMenuSurfaceState,
+} from '../internal/popup-menu/index.js'
 // Arrow
-export { DropdownMenuArrowDataAttributes } from './arrow/arrow.data-attrs.js'
-export type { DropdownMenuArrow } from './arrow/arrow.js'
 // Backdrop
-export { DropdownMenuBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
-export type { DropdownMenuBackdrop } from './backdrop/backdrop.js'
-// Checkbox components
-export { DropdownMenuCheckboxItemDataAttributes } from './checkbox-item/checkbox-item.data-attrs.js'
-export type { DropdownMenuCheckboxItem } from './checkbox-item/checkbox-item.js'
-export type { DropdownMenuCheckboxItemIndicator } from './checkbox-item/checkbox-item-indicator.js'
-export type { ItemContextValue } from './contexts/item-context.js'
+// Popup
+// Positioner
+// Item
+// Checkbox Item
+// Radio Group
+// Radio Item
+// Submenu Trigger
+// Shortcut
+export {
+  PopupMenuArrowDataAttributes as DropdownMenuArrowDataAttributes,
+  PopupMenuBackdropDataAttributes as DropdownMenuBackdropDataAttributes,
+  PopupMenuCheckboxItemDataAttributes as DropdownMenuCheckboxItemDataAttributes,
+  PopupMenuItemDataAttributes as DropdownMenuItemDataAttributes,
+  PopupMenuPopupDataAttributes as DropdownMenuPopupDataAttributes,
+  PopupMenuPositionerCssVars as DropdownMenuPositionerCssVars,
+  PopupMenuPositionerDataAttributes as DropdownMenuPositionerDataAttributes,
+  PopupMenuRadioGroupDataAttributes as DropdownMenuRadioGroupDataAttributes,
+  PopupMenuRadioItemDataAttributes as DropdownMenuRadioItemDataAttributes,
+  PopupMenuShortcutDataAttributes as DropdownMenuShortcutDataAttributes,
+  PopupMenuSubmenuTriggerDataAttributes as DropdownMenuSubmenuTriggerDataAttributes,
+} from '../internal/popup-menu/index.js'
+
+// ============================================================================
 // Context hooks (for advanced usage)
+// ============================================================================
+
+export type {
+  ItemContextValue,
+  SurfaceContextValue,
+} from '../internal/listbox/index.js'
 export {
   useItemContext,
   useMaybeItemContext,
-} from './contexts/item-context.js'
-export { useRootContext } from './contexts/root-context.js'
-export type { FilterFn, ItemRegistration } from './contexts/surface-context.js'
-export { useSurfaceContext } from './contexts/surface-context.js'
-export { DropdownMenuEmptyDataAttributes } from './empty/empty.data-attrs.js'
-export type { DropdownMenuEmpty } from './empty/empty.js'
-export { DropdownMenuGroupDataAttributes } from './group/group.data-attrs.js'
-export type { DropdownMenuGroup } from './group/group.js'
-export { DropdownMenuGroupLabelDataAttributes } from './group-label/group-label.data-attrs.js'
-export type { DropdownMenuGroupLabel } from './group-label/group-label.js'
-export * as DropdownMenu from './index.parts.js'
-export { DropdownMenuInputDataAttributes } from './input/input.data-attrs.js'
-export type { DropdownMenuInput } from './input/input.js'
-export { DropdownMenuItemDataAttributes } from './item/item.data-attrs.js'
-export type { DropdownMenuItem } from './item/item.js'
-export { DropdownMenuListDataAttributes } from './list/list.data-attrs.js'
-export type { DropdownMenuList } from './list/list.js'
-export { DropdownMenuPopupDataAttributes } from './popup/popup.data-attrs.js'
-export type { DropdownMenuPopup } from './popup/popup.js'
-export type { DropdownMenuPortal } from './portal/portal.js'
-export { DropdownMenuPositionerCssVars } from './positioner/positioner.css-vars.js'
-export { DropdownMenuPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
-export type { DropdownMenuPositioner } from './positioner/positioner.js'
-// Radio components
-export { DropdownMenuRadioGroupDataAttributes } from './radio-group/radio-group.data-attrs.js'
-export type { DropdownMenuRadioGroup } from './radio-group/radio-group.js'
-export { DropdownMenuRadioItemDataAttributes } from './radio-item/radio-item.data-attrs.js'
-export type { DropdownMenuRadioItem } from './radio-item/radio-item.js'
-export type { DropdownMenuRadioItemIndicator } from './radio-item/radio-item-indicator.js'
-// Type exports
-export type { DropdownMenuRoot } from './root/root.js'
-export { DropdownMenuSeparatorDataAttributes } from './separator/separator.data-attrs.js'
-export type { DropdownMenuSeparator } from './separator/separator.js'
-export { DropdownMenuShortcutDataAttributes } from './shortcut/shortcut.data-attrs.js'
-export type { DropdownMenuShortcut } from './shortcut/shortcut.js'
-export type {
-  Context as DropdownMenuStoreContext,
-  State as DropdownMenuStoreState,
-  VirtualItem as DropdownMenuVirtualItem,
-} from './store/DropdownMenuStore.js'
+  useMaybeSurfaceContext,
+  useSurfaceContext,
+} from '../internal/listbox/index.js'
+export type { PopupMenuContextValue as RootContextValue } from '../internal/popup-menu/index.js'
+export {
+  useMaybePopupMenuContext as useMaybeRootContext,
+  usePopupMenuContext as useRootContext,
+} from '../internal/popup-menu/index.js'
+
+// ============================================================================
 // Store (for advanced usage)
-export { DropdownMenuStore } from './store/DropdownMenuStore.js'
-export { DropdownMenuSurfaceDataAttributes } from './surface/surface.data-attrs.js'
-export type { DropdownMenuSurface } from './surface/surface.js'
-// Data attributes
-export { DropdownMenuTriggerDataAttributes } from './trigger/trigger.data-attrs.js'
-export type { DropdownMenuTrigger } from './trigger/trigger.js'
+// ============================================================================
+
+export type {
+  FilterFn as DropdownMenuFilterFn,
+  ItemRegistration as DropdownMenuItemRegistration,
+  ListboxContext as DropdownMenuStoreContext,
+  ListboxState as DropdownMenuStoreState,
+  VirtualItem as DropdownMenuVirtualItem,
+} from '../internal/listbox/index.js'
+export { ListboxStore as DropdownMenuStore } from '../internal/listbox/index.js'
+
+// ============================================================================
 // Filter utilities
-export { commandScore, defaultFilter } from './utils/command-score.js'
-export type { UseItemParams, UseItemReturn } from './utils/use-item.js'
+// ============================================================================
+
+export { commandScore, defaultFilter } from '../internal/listbox/index.js'
+
+// ============================================================================
 // Hook for custom items (for advanced usage)
-export { useItem } from './utils/use-item.js'
+// ============================================================================
+
+export type {
+  UsePopupMenuItemParams as UseItemParams,
+  UsePopupMenuItemReturn as UseItemReturn,
+} from '../internal/popup-menu/index.js'
+export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'

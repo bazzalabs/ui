@@ -3,6 +3,8 @@ import { defineConfig, type Options } from 'tsup'
 export default defineConfig((options: Options) => ({
   entry: {
     index: './src/index.ts',
+    'internal/listbox/index': './src/internal/listbox/index.ts',
+    'internal/popup-menu/index': './src/internal/popup-menu/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
