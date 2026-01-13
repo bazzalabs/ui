@@ -37,6 +37,14 @@ export interface UsePopupMenuKeyboardParams {
    * Used when Escape is pressed and closeRootOnEsc is true (default).
    */
   closeAll: () => void
+  /**
+   * Whether to skip the focus owner check.
+   * When true, keyboard handling will work based on `enabled` prop alone,
+   * ignoring focus ownership. Useful for Combobox where the input is outside
+   * the Surface but should still handle keyboard navigation.
+   * @default false
+   */
+  skipFocusOwnerCheck?: boolean
 }
 
 export interface UsePopupMenuKeyboardReturn {
@@ -61,6 +69,7 @@ export function usePopupMenuKeyboard(
     enableTypeToSearch = false,
     onKeyDown,
     closeAll,
+    skipFocusOwnerCheck = false,
   } = params
 
   // Convert submenu context to the interface expected by the listbox hook
@@ -73,10 +82,10 @@ export function usePopupMenuKeyboard(
     }
   }, [submenuContext])
 
-  // Handle selection via keyboard (Enter or shortcut) - close the menu
+  // Handle selection via keyboard (Enter or shortcut)
   const handleSelect = React.useCallback(
-    (itemId: string | null) => {
-      if (itemId) {
+    (details: { itemId: string | null; closeOnClick: boolean }) => {
+      if (details.itemId && details.closeOnClick) {
         closeAll()
       }
     },
@@ -94,5 +103,6 @@ export function usePopupMenuKeyboard(
     depth,
     submenuContext: submenuInterface,
     enableTypeToSearch,
+    skipFocusOwnerCheck,
   })
 }

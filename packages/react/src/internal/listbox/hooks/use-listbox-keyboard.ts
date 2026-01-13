@@ -38,10 +38,10 @@ export interface UseListboxKeyboardParams {
   onKeyDown?: React.KeyboardEventHandler
   /**
    * Callback when an item is selected via keyboard (Enter or shortcut).
-   * Called with the selected item's ID. The consumer handles any
+   * Called with selection details. The consumer handles any
    * post-selection behavior like closing menus.
    */
-  onSelect?: (itemId: string | null) => void
+  onSelect?: (details: { itemId: string | null; closeOnClick: boolean }) => void
   /**
    * Callback to close the entire menu tree from the root.
    * Used when Escape is pressed and closeRootOnEsc is true (default).
@@ -63,6 +63,14 @@ export interface UseListboxKeyboardParams {
    * @default false
    */
   enableTypeToSearch?: boolean
+  /**
+   * Whether to skip the focus owner check.
+   * When true, keyboard handling will work based on `enabled` prop alone,
+   * ignoring focus ownership. Useful for Combobox where the input is outside
+   * the Surface but should still handle keyboard navigation.
+   * @default false
+   */
+  skipFocusOwnerCheck?: boolean
 }
 
 export interface UseListboxKeyboardReturn {
@@ -91,10 +99,13 @@ export function useListboxKeyboard(
     depth = 0,
     submenuContext,
     enableTypeToSearch = false,
+    skipFocusOwnerCheck = false,
   } = params
 
   // Subscribe to focus ownership if available
-  const isOwner = focusOwner?.useState('isOwner', surfaceId) ?? true
+  const focusOwnerIsOwner = focusOwner?.useState('isOwner', surfaceId) ?? true
+  // Skip this check for Combobox where input is outside Surface
+  const isOwner = skipFocusOwnerCheck ? true : focusOwnerIsOwner
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent) => {
@@ -199,8 +210,12 @@ export function useListboxKeyboard(
         case 'Enter': {
           event.preventDefault()
           const selectedId = store.state.highlightedId
+          const item = store.getHighlightedItem()
           store.selectHighlighted()
-          onSelect?.(selectedId)
+          onSelect?.({
+            itemId: selectedId,
+            closeOnClick: item?.closeOnClick ?? true,
+          })
           break
         }
         case 'Home': {
@@ -256,7 +271,11 @@ export function useListboxKeyboard(
             const itemId = store.context.shortcuts.get(event.key.toLowerCase())
             if (itemId && store.selectByShortcut(event.key)) {
               event.preventDefault()
-              onSelect?.(itemId)
+              const item = store.context.items.get(itemId)
+              onSelect?.({
+                itemId,
+                closeOnClick: item?.closeOnClick ?? true,
+              })
             }
           }
           break

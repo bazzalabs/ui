@@ -50,17 +50,26 @@ export interface PopupMenuSurfaceProps
   loop?: boolean
 
   /**
-   * Whether to automatically highlight the first item when the menu opens
-   * or when search results change.
+   * Controls auto-highlighting behavior when the menu opens.
+   * - `true`: highlight the first item (default)
+   * - `false`: don't auto-highlight any item
+   * - `string`: highlight the item with this specific value
    * @default true
    */
-  autoHighlightFirst?: boolean
+  autoHighlightFirst?: boolean | string
 
   /**
    * Whether to clear the search query when the menu closes.
    * @default true
    */
   clearSearchOnClose?: boolean
+
+  /**
+   * Whether to skip auto-focusing the input/list when this surface becomes the focus owner.
+   * Useful for Combobox where the input is outside the popup and should retain focus.
+   * @default false
+   */
+  skipAutoFocus?: boolean
 
   children: React.ReactNode
 }
@@ -82,6 +91,7 @@ export const PopupMenuSurface = React.forwardRef<
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
+    skipAutoFocus = false,
     render,
     className,
     style,
@@ -136,6 +146,13 @@ export const PopupMenuSurface = React.forwardRef<
       store.setVirtualItems([])
       store.setOnHighlightChange(undefined)
     }
+
+    // Apply auto-highlight after context is updated
+    // This handles the case where autoHighlightFirst is a string value
+    // (the open observer only handles boolean true for backwards compatibility)
+    if (typeof autoHighlightFirst === 'string') {
+      store.applyAutoHighlight()
+    }
   }, [
     store,
     filter,
@@ -165,8 +182,9 @@ export const PopupMenuSurface = React.forwardRef<
   }, [depth, open, surfaceId, focusOwnerStore])
 
   // Auto-focus when becoming owner
+  // Skip for Combobox where the input is outside the popup and should retain focus
   React.useEffect(() => {
-    if (!isOwner) return
+    if (!isOwner || skipAutoFocus) return
 
     requestAnimationFrame(() => {
       if (!surfaceRef.current) return
@@ -180,7 +198,7 @@ export const PopupMenuSurface = React.forwardRef<
         focusTarget.focus()
       }
     })
-  }, [isOwner])
+  }, [isOwner, skipAutoFocus])
 
   const contextValue = React.useMemo(
     () => ({
