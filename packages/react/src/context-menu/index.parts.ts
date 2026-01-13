@@ -16,6 +16,8 @@ export {
   // Structure
   PopupMenuGroup as Group,
   PopupMenuGroupLabel as GroupLabel,
+  // Trigger components
+  PopupMenuIcon as Icon,
   PopupMenuInput as Input,
   // Items
   PopupMenuItem as Item,
@@ -27,6 +29,9 @@ export {
   PopupMenuRadioGroup as RadioGroup,
   PopupMenuRadioItem as RadioItem,
   PopupMenuRadioItemIndicator as RadioItemIndicator,
+  // Scroll indicators
+  PopupMenuScrollDownArrow as ScrollDownArrow,
+  PopupMenuScrollUpArrow as ScrollUpArrow,
   PopupMenuSeparator as Separator,
   // Utility
   PopupMenuShortcut as Shortcut,

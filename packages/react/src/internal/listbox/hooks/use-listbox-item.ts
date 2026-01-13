@@ -67,6 +67,12 @@ export interface UseListboxItemParams {
   onSelect?: () => void
 
   /**
+   * Whether selecting this item should close the menu.
+   * @default true
+   */
+  closeOnClick?: boolean
+
+  /**
    * Callback invoked after selection occurs (via click).
    * Called with the item's ID. The consumer handles any
    * post-selection behavior like closing menus.
@@ -177,6 +183,7 @@ export function useListboxItem(
     shortcut,
     isSubmenuTrigger = false,
     onSelect,
+    closeOnClick = true,
     onAfterSelect,
     children,
     aimGuard,
@@ -219,6 +226,7 @@ export function useListboxItem(
       disabled,
       isSubmenuTrigger,
       shortcut,
+      closeOnClick,
     })
 
     return unregister
@@ -229,6 +237,7 @@ export function useListboxItem(
     disabled,
     isSubmenuTrigger,
     shortcut,
+    closeOnClick,
     store,
     forceMount,
   ])

@@ -61,6 +61,7 @@ export function usePopupMenuItem(
   return useListboxItem({
     ...rest,
     aimGuard,
+    closeOnClick,
     onAfterSelect: handleAfterSelect,
   })
 }

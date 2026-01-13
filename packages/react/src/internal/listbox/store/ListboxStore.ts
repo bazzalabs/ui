@@ -84,8 +84,13 @@ export interface ListboxContext {
   filter: FilterFn | false
   /** Whether to loop navigation */
   loop: boolean
-  /** Whether to auto-highlight first item */
-  autoHighlightFirst: boolean
+  /**
+   * Controls auto-highlighting behavior when the menu opens.
+   * - `true`: highlight the first item (default)
+   * - `false`: don't auto-highlight any item
+   * - `string`: highlight the item with this specific value
+   */
+  autoHighlightFirst: boolean | string
   /** Whether to clear search on close */
   clearSearchOnClose: boolean
   /** Whether hideUntilActive mode is enabled */
@@ -247,10 +252,16 @@ export class ListboxStore extends ReactStore<
     // Handle open/close
     this.observe('open', (open) => {
       if (open) {
-        // Auto-highlight first item when opening
-        if (this.context.autoHighlightFirst) {
+        // Auto-highlight is now handled by applyAutoHighlight() called from Surface
+        // after it has set the context. This ensures the correct value is used.
+        // We only handle the simple boolean true case here for backwards compatibility
+        // with components that don't use Surface (if any).
+        const autoHighlight = this.context.autoHighlightFirst
+        if (autoHighlight === true) {
+          // Default: highlight first item
           this.highlightFirstItem()
         }
+        // String values are handled by applyAutoHighlight() from Surface
       } else {
         // Clear search and highlight on close
         if (this.context.clearSearchOnClose) {
@@ -662,6 +673,15 @@ export class ListboxStore extends ReactStore<
     )
   }
 
+  /**
+   * Get the item registration for the highlighted item.
+   * Returns undefined if no item is highlighted.
+   */
+  getHighlightedItem(): ItemRegistration | undefined {
+    if (!this.state.highlightedId) return undefined
+    return this.context.items.get(this.state.highlightedId)
+  }
+
   clearSearch() {
     this.setSearch('')
   }
@@ -670,6 +690,39 @@ export class ListboxStore extends ReactStore<
     const visibleIds = this.getVisibleItemIds()
     if (visibleIds.length > 0 && visibleIds[0]) {
       // Don't set a cause - auto-highlight shouldn't trigger scroll
+      this.update({ highlightedId: visibleIds[0], highlightSource: null })
+    } else {
+      this.update({ highlightedId: null, highlightSource: null })
+    }
+  }
+
+  /**
+   * Apply auto-highlight based on the current context.autoHighlightFirst value.
+   * Called by Surface after updating the context to ensure correct value is used.
+   */
+  applyAutoHighlight() {
+    if (!this.state.open) return
+
+    const autoHighlight = this.context.autoHighlightFirst
+    if (autoHighlight === true) {
+      this.highlightFirstItem()
+    } else if (typeof autoHighlight === 'string') {
+      this.highlightItemByValue(autoHighlight)
+    }
+    // If false, don't highlight anything
+  }
+
+  /**
+   * Highlight a specific item by its value.
+   * If the item is not visible or doesn't exist, falls back to highlighting the first item.
+   */
+  highlightItemByValue(value: string) {
+    const visibleIds = this.getVisibleItemIds()
+    if (visibleIds.includes(value)) {
+      // Item exists and is visible - highlight it
+      this.update({ highlightedId: value, highlightSource: null })
+    } else if (visibleIds.length > 0 && visibleIds[0]) {
+      // Fall back to first item if specified value not found
       this.update({ highlightedId: visibleIds[0], highlightSource: null })
     } else {
       this.update({ highlightedId: null, highlightSource: null })
