@@ -12,11 +12,27 @@ export * as Combobox from './index.parts.js'
 // Clear
 export type { ComboboxClearProps, ComboboxClearState } from './clear/clear.js'
 export { ComboboxClear } from './clear/clear.js'
-
+// Positioner Context
+export type {
+  ComboboxLayout,
+  ComboboxPositionerContextValue,
+} from './contexts/combobox-positioner-context.js'
+export { useComboboxPositionerContext } from './contexts/combobox-positioner-context.js'
 // Input
 export { ComboboxInputDataAttributes } from './input/input.data-attrs.js'
-export type { ComboboxInputProps, ComboboxInputState } from './input/input.js'
+export type {
+  ComboboxInputCursorBehavior,
+  ComboboxInputProps,
+  ComboboxInputState,
+} from './input/input.js'
 export { ComboboxInput } from './input/input.js'
+// Input Wrapper
+export { ComboboxInputWrapperDataAttributes } from './input-wrapper/input-wrapper.data-attrs.js'
+export type {
+  ComboboxInputWrapperProps,
+  ComboboxInputWrapperState,
+} from './input-wrapper/input-wrapper.js'
+export { ComboboxInputWrapper } from './input-wrapper/input-wrapper.js'
 // Item
 export { ComboboxItemDataAttributes } from './item/item.data-attrs.js'
 export type { ComboboxItemProps, ComboboxItemState } from './item/item.js'

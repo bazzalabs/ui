@@ -1,11 +1,27 @@
 'use client'
 
 import * as React from 'react'
+import type { ComboboxLayout } from './combobox-positioner-context.js'
 
 // ============================================================================
 // Combobox Context
 // ============================================================================
 // Provides value management, input state, and form integration for Combobox.
+
+/**
+ * Filter mode for the combobox.
+ * Controls how the search/filter value is determined.
+ *
+ * State transitions:
+ * - Closed → open (no value) → { type: 'active' }
+ * - Closed → open (with value) → { type: 'showAll' }
+ * - Open + user types → { type: 'active' }
+ * - Open → close → { type: 'frozen', search: <current> }
+ */
+export type ComboboxFilterMode =
+  | { type: 'active' } // Normal: use inputValue for filtering
+  | { type: 'showAll' } // Opened with selected value, user hasn't typed yet
+  | { type: 'frozen'; search: string } // Closing: freeze to this value during exit animation
 
 /**
  * Item text registry for displaying selected values.
@@ -71,6 +87,10 @@ export interface ComboboxContextValue {
   inputRef: React.RefObject<HTMLInputElement | null>
   /** Callback to set the input element */
   setInputElement: (element: HTMLInputElement | null) => void
+  /** Ref to the input wrapper element (used as anchor when present) */
+  inputWrapperRef: React.RefObject<HTMLElement | null>
+  /** Callback to set the input wrapper element */
+  setInputWrapperElement: (element: HTMLElement | null) => void
 
   // ===== Behavior =====
   /** Whether to close on selection (default: true for single, false for multiple) */
@@ -82,15 +102,34 @@ export interface ComboboxContextValue {
   /** Close the combobox */
   closeCombobox: () => void
 
-  // ===== Filter Bypass =====
+  // ===== Filter Mode =====
   /**
-   * Whether to skip filtering.
-   * True when the popup just opened with a selected value and the user hasn't typed yet.
-   * This allows showing all items initially even though the input shows the selected label.
+   * Current filter mode for the combobox.
+   * Controls how the search/filter value is determined.
    */
-  skipFiltering: boolean
-  /** Mark that the user has changed the query (enables filtering) */
-  markQueryChanged: () => void
+  filterMode: ComboboxFilterMode
+  /** Set the filter mode to 'active' (normal filtering using inputValue) */
+  setFilterActive: () => void
+
+  // ===== Input Dimensions =====
+  /**
+   * Height of the input element in pixels.
+   * Used by the positioner for input-embedded layout calculations.
+   */
+  inputHeight: number
+  /**
+   * Width of the input element in pixels.
+   * Used by the positioner for input-embedded layout calculations.
+   */
+  inputWidth: number
+
+  // ===== Layout =====
+  /**
+   * The layout mode for the combobox popup.
+   * - `'floating'` - Standard dropdown positioning
+   * - `'input-embedded'` - Popup wraps around the input (macOS-style)
+   */
+  layout: ComboboxLayout
 }
 
 const ComboboxContext = React.createContext<ComboboxContextValue | null>(null)

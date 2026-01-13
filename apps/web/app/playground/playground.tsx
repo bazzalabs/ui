@@ -1,6 +1,7 @@
 'use client'
 
 import { Collapsible } from '@base-ui/react/collapsible'
+import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
   Combobox,
   type ComboboxVirtualItem,
@@ -9,12 +10,322 @@ import {
   type DropdownMenuVirtualItem,
   Select as SelectPrimitive,
   type SelectVirtualItem,
+  useComboboxItemContext,
 } from '@bazza-ui/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { ChevronsDownUpIcon, ChevronsUpDownIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+
+// ============================================================================
+// Animated Chevrons Icon (morphs between up-down and down-up states)
+// ============================================================================
+
+interface AnimatedChevronsIconProps {
+  open: boolean
+  className?: string
+}
+
+/**
+ * A highlight indicator that shows on highlighted items with layout animation.
+ * Uses layout animations to smoothly transition between items.
+ */
+function HighlightIndicator({ layoutId }: { layoutId: string }) {
+  const { highlighted } = useComboboxItemContext()
+
+  // Only render on the highlighted item - this is what animates between positions
+  if (!highlighted) return null
+
+  return (
+    <motion.div
+      layoutId={layoutId}
+      className="absolute inset-0 rounded-lg bg-neutral-200"
+      transition={{
+        type: 'spring',
+        stiffness: 500,
+        damping: 35,
+      }}
+    />
+  )
+}
+
+/**
+ * An animated chevrons icon that morphs between "chevrons-up-down" (closed) and "chevrons-down-up" (open) states.
+ * Animates by swapping the Y positions of the two chevrons.
+ *
+ * Lucide ChevronsUpDown paths:
+ *   <path d="m7 15 5 5 5-5"/>  (bottom chevron, points down)
+ *   <path d="m7 9 5-5 5 5"/>   (top chevron, points up)
+ */
+
+function AnimatedChevronsIcon({ open, className }: AnimatedChevronsIconProps) {
+  // The chevrons are 11px apart (y=4 to y=15 for the tips)
+  // We swap them by moving each by 11px in opposite directions
+  const swapDistance = 11
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Chevron pointing up - moves down when open */}
+      <motion.path
+        d="m7 9 5-5 5 5"
+        initial={false}
+        animate={{ y: open ? swapDistance : 0 }}
+        transition={{ duration: 0.15, ease: 'easeInOut' }}
+      />
+      {/* Chevron pointing down - moves up when open */}
+      <motion.path
+        d="m7 15 5 5 5-5"
+        initial={false}
+        animate={{ y: open ? -swapDistance : 0 }}
+        transition={{ duration: 0.15, ease: 'easeInOut' }}
+      />
+    </svg>
+  )
+}
+
+// ============================================================================
+// Custom Input with Styleable Caret
+// ============================================================================
+
+interface CustomCaretInputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'children'> {
+  /** Custom caret element to render - receives `active` state for pausing animations */
+  caret?: React.ReactNode | ((state: { active: boolean }) => React.ReactNode)
+  /** Class name for the container */
+  containerClassName?: string
+  /** Duration in ms before caret becomes inactive after last activity */
+  activeTimeout?: number
+}
+
+/**
+ * A custom input component with a separately styleable caret.
+ * Hides the native caret and renders a custom one that follows the cursor position.
+ * The caret receives an `active` state that can be used to pause blinking animations.
+ */
+const CustomCaretInput = React.forwardRef<
+  HTMLInputElement,
+  CustomCaretInputProps
+>(function CustomCaretInput(props, forwardedRef) {
+  const {
+    caret,
+    containerClassName,
+    className,
+    style,
+    activeTimeout = 500,
+    ...inputProps
+  } = props
+  const [isFocused, setIsFocused] = React.useState(false)
+  const [isActive, setIsActive] = React.useState(false)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const measureRef = React.useRef<HTMLSpanElement>(null)
+  const [caretLeft, setCaretLeft] = React.useState(0)
+  const activeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
+
+  // Merge refs
+  const mergedRef = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      if (typeof forwardedRef === 'function') {
+        forwardedRef(node)
+      } else if (forwardedRef) {
+        forwardedRef.current = node
+      }
+    },
+    [forwardedRef],
+  )
+
+  // Mark caret as active and reset timeout
+  const markActive = React.useCallback(() => {
+    setIsActive(true)
+    if (activeTimeoutRef.current) {
+      clearTimeout(activeTimeoutRef.current)
+    }
+    activeTimeoutRef.current = setTimeout(() => {
+      setIsActive(false)
+    }, activeTimeout)
+  }, [activeTimeout])
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (activeTimeoutRef.current) {
+        clearTimeout(activeTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Update caret position measurement
+  const updateCaretPosition = React.useCallback(() => {
+    const input = inputRef.current
+    const measure = measureRef.current
+    if (!input || !measure) return
+
+    const pos = input.selectionStart ?? 0
+
+    // Measure text width up to caret position
+    const textBeforeCaret = input.value.substring(0, pos)
+    measure.textContent = textBeforeCaret || '\u200b' // Zero-width space if empty
+
+    // Get the computed styles to match the input
+    const computedStyle = window.getComputedStyle(input)
+    measure.style.font = computedStyle.font
+    measure.style.letterSpacing = computedStyle.letterSpacing
+
+    const newLeft = measure.offsetWidth
+    if (newLeft !== caretLeft) {
+      setCaretLeft(newLeft)
+      markActive()
+    }
+  }, [caretLeft, markActive])
+
+  // Update on selection change
+  React.useEffect(() => {
+    const input = inputRef.current
+    if (!input) return
+
+    const handleSelectionChange = () => {
+      if (document.activeElement === input) {
+        updateCaretPosition()
+      }
+    }
+
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () =>
+      document.removeEventListener('selectionchange', handleSelectionChange)
+  }, [updateCaretPosition])
+
+  // Watch for external value changes (e.g., from Clear button)
+  const valueFromProps = inputProps.value
+  React.useEffect(() => {
+    // Use requestAnimationFrame to ensure the DOM has updated
+    requestAnimationFrame(() => {
+      updateCaretPosition()
+    })
+  }, [valueFromProps, updateCaretPosition])
+
+  const handleFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(true)
+      updateCaretPosition()
+      props.onFocus?.(e)
+    },
+    [props.onFocus, updateCaretPosition],
+  )
+
+  const handleBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(false)
+      setIsActive(false)
+      props.onBlur?.(e)
+    },
+    [props.onBlur],
+  )
+
+  const handleInput = React.useCallback(() => {
+    updateCaretPosition()
+    markActive()
+  }, [updateCaretPosition, markActive])
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Mark active on navigation keys
+      if (
+        e.key === 'ArrowLeft' ||
+        e.key === 'ArrowRight' ||
+        e.key === 'Home' ||
+        e.key === 'End'
+      ) {
+        markActive()
+      }
+      props.onKeyDown?.(e)
+    },
+    [markActive, props.onKeyDown],
+  )
+
+  const handleClick = React.useCallback(
+    (e: React.MouseEvent<HTMLInputElement>) => {
+      updateCaretPosition()
+      markActive()
+      inputProps.onClick?.(e)
+    },
+    [updateCaretPosition, markActive, inputProps.onClick],
+  )
+
+  const defaultCaret = (active: boolean) => (
+    <motion.div
+      className="w-[2px] h-[1.2em] bg-current rounded-full"
+      animate={{ opacity: active ? 1 : [1, 0] }}
+      transition={
+        active
+          ? { duration: 0.1 }
+          : {
+              duration: 0.5,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: 'reverse',
+            }
+      }
+    />
+  )
+
+  const renderedCaret =
+    typeof caret === 'function'
+      ? caret({ active: isActive })
+      : (caret ?? defaultCaret(isActive))
+
+  return (
+    <div className={cn('relative', containerClassName)}>
+      {/* Hidden span for measuring text width */}
+      <span
+        ref={measureRef}
+        className="absolute invisible whitespace-pre pointer-events-none"
+        aria-hidden="true"
+      />
+      {/* Actual input with hidden caret */}
+      <input
+        ref={mergedRef}
+        {...inputProps}
+        className={cn('caret-transparent', className)}
+        style={style}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        onClick={handleClick}
+      />
+      {/* Custom caret - animated position */}
+      {isFocused && (
+        <motion.div
+          className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
+          initial={false}
+          animate={{ x: caretLeft }}
+          transition={{
+            type: 'spring',
+            stiffness: 800,
+            damping: 40,
+          }}
+        >
+          {renderedCaret}
+        </motion.div>
+      )}
+    </div>
+  )
+})
 
 // ============================================================================
 // Config Panel Components
@@ -118,6 +429,7 @@ interface NumberInputProps {
   min?: number
   max?: number
   step?: number
+  disabled?: boolean
 }
 
 function NumberInput({
@@ -126,6 +438,7 @@ function NumberInput({
   min = 0,
   max = 100,
   step = 1,
+  disabled,
 }: NumberInputProps) {
   return (
     <input
@@ -135,7 +448,11 @@ function NumberInput({
       min={min}
       max={max}
       step={step}
-      className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      disabled={disabled}
+      className={cn(
+        'w-20 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500',
+        disabled && 'cursor-not-allowed opacity-50',
+      )}
     />
   )
 }
@@ -162,13 +479,17 @@ function DemoSection({ title, description, children }: DemoSectionProps) {
   )
 }
 
-interface DemoCardProps {
-  children: React.ReactNode
-}
+interface DemoCardProps
+  extends Pick<React.ComponentProps<'div'>, 'className' | 'children'> {}
 
-function DemoCard({ children }: DemoCardProps) {
+function DemoCard({ className, children }: DemoCardProps) {
   return (
-    <div className="flex min-h-[200px] min-w-[300px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8">
+    <div
+      className={cn(
+        'flex min-h-[200px] min-w-[300px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8',
+        className,
+      )}
+    >
       {children}
     </div>
   )
@@ -234,6 +555,8 @@ export function Playground() {
         defaultOpen={true}
       >
         <BasicComboboxDemo />
+        <AlignInputWithPopupComboboxDemo />
+        <InputEmbeddedMotionDemo />
         <MultiComboboxDemo />
         <FilterableComboboxDemo />
         <GroupedComboboxDemo />
@@ -399,6 +722,548 @@ function BasicComboboxDemo() {
           </p>
           <p>
             <strong>Fuzzy filtering:</strong> Type to filter items
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Align Input With Popup
+// ============================================================================
+
+function AlignInputWithPopupComboboxDemo() {
+  const [value, setValue] = React.useState('')
+  const [layout, setLayout] = React.useState<'floating' | 'input-embedded'>(
+    'input-embedded',
+  )
+  const [popupPadding, setPopupPadding] = React.useState(8)
+  const [cursorBehavior, setCursorBehavior] = React.useState<
+    'none' | 'end' | 'select-all'
+  >('none')
+
+  const fruits = [
+    { value: 'apple', label: 'Apple' },
+    { value: 'banana', label: 'Banana' },
+    { value: 'orange', label: 'Orange' },
+    { value: 'pineapple', label: 'Pineapple' },
+    { value: 'grape', label: 'Grape' },
+    { value: 'mango', label: 'Mango' },
+    { value: 'strawberry', label: 'Strawberry' },
+    { value: 'watermelon', label: 'Watermelon' },
+  ]
+
+  const fruitItems = React.useMemo(
+    () => Object.fromEntries(fruits.map((f) => [f.value, f.label])),
+    [],
+  )
+
+  return (
+    <DemoSection
+      title="Input-Embedded Layout"
+      description="Position the popup so the input appears inside it (macOS-style)"
+    >
+      <DemoCard>
+        <div className="text-center">
+          <div className="mb-2 text-xs text-gray-400">
+            {layout === 'input-embedded'
+              ? 'Input appears embedded in the popup'
+              : 'Standard dropdown positioning'}
+          </div>
+          <Combobox.Root
+            value={value}
+            onValueChange={setValue}
+            items={fruitItems}
+            layout={layout}
+          >
+            {/* z-index is auto-applied by library when layout="input-embedded" */}
+            <Combobox.Input
+              placeholder="Select a fruit..."
+              cursorBehavior={cursorBehavior}
+              className="h-10 w-[280px] rounded-xl bg-white px-4 text-sm outline-none not-[[data-input-embedded]]:border not-[[data-input-embedded]]:border-gray-300 not-[[data-input-embedded]]:focus:border-orange-500 not-[[data-input-embedded]]:focus:ring-1 not-[[data-input-embedded]]:focus:ring-orange-500"
+            />
+            <Combobox.Icon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 data-[popup-open]:rotate-180 transition-transform pointer-events-none">
+              <ChevronDownIcon className="h-4 w-4" />
+            </Combobox.Icon>
+            <Combobox.Portal>
+              <Combobox.Positioner popupPadding={popupPadding}>
+                {/* Styling adapts automatically based on data-input-embedded attribute */}
+                <Combobox.Popup className="z-50 rounded-xl shadow-lg border bg-white [&[data-input-embedded]]:bg-gray-100 not-[[data-input-embedded]]:w-[280px]">
+                  <Combobox.Surface>
+                    <Combobox.List className="max-h-[250px] overflow-y-auto focus:outline-none [&[data-input-embedded]]:mt-2 not-[[data-input-embedded]]:p-1">
+                      {fruits.map((fruit) => (
+                        <Combobox.Item
+                          key={fruit.value}
+                          value={fruit.value}
+                          textValue={fruit.label}
+                          className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm data-[highlighted]:bg-orange-50 data-[selected]:font-medium [[data-input-embedded]_&]:text-primary/60 [[data-input-embedded]_&]:data-[highlighted]:bg-gray-200 [[data-input-embedded]_&]:data-[highlighted]:text-primary [[data-input-embedded]_&]:data-[selected]:text-primary"
+                        >
+                          <Combobox.ItemLabel>{fruit.label}</Combobox.ItemLabel>
+                          <Combobox.ItemIndicator className="text-orange-600">
+                            <CheckIcon className="h-4 w-4" />
+                          </Combobox.ItemIndicator>
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                    <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
+                      No fruits found
+                    </Combobox.Empty>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </div>
+      </DemoCard>
+
+      <ConfigPanel title="Root Props">
+        <ConfigRow label="layout" description="Popup layout mode">
+          <Select
+            value={layout}
+            onChange={setLayout}
+            options={[
+              { value: 'floating', label: 'Floating' },
+              { value: 'input-embedded', label: 'Input-embedded' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="popupPadding"
+          description="Padding around the popup (px)"
+        >
+          <NumberInput
+            value={popupPadding}
+            onChange={setPopupPadding}
+            min={0}
+            max={24}
+            step={2}
+            disabled={layout !== 'input-embedded'}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Input Props">
+        <ConfigRow
+          label="cursorBehavior"
+          description="Cursor position when popup opens"
+        >
+          <Select
+            value={cursorBehavior}
+            onChange={setCursorBehavior}
+            options={[
+              { value: 'none', label: 'None (default)' },
+              { value: 'end', label: 'Move to end' },
+              { value: 'select-all', label: 'Select all' },
+            ]}
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="How It Works">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>layout="input-embedded":</strong> Enables macOS-style
+            positioning
+          </p>
+          <p>
+            <strong>data-input-embedded:</strong> Attribute added to Input,
+            Popup, List for CSS styling
+          </p>
+          <p>
+            <strong>popupPadding:</strong> Controls padding around the input
+            (default: 8px)
+          </p>
+          <p>
+            <strong>Auto-applied styles:</strong> Width, margin, and padding are
+            automatically calculated
+          </p>
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="Current State">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Value:</strong> {value || '(empty)'}
+          </p>
+          <p>
+            <strong>Label:</strong>{' '}
+            {fruits.find((f) => f.value === value)?.label ?? 'None selected'}
+          </p>
+        </div>
+      </ConfigPanel>
+    </DemoSection>
+  )
+}
+
+// ============================================================================
+// Combobox Demo: Input-Embedded with Motion Animations
+// ============================================================================
+
+function InputEmbeddedMotionDemo() {
+  const [value, setValue] = React.useState('')
+  const [open, setOpen] = React.useState(false)
+  // Becomes true on open, set to false after initial animation completes
+  const [shouldAnimateItems, setShouldAnimateItems] = React.useState(false)
+
+  // Positioner config
+  const [side, setSide] = React.useState<'top' | 'bottom'>('bottom')
+  const [align, setAlign] = React.useState<'start' | 'center' | 'end'>('center')
+  const [popupPadding, setPopupPadding] = React.useState(8)
+  const [showScrollGradients, setShowScrollGradients] = React.useState(true)
+
+  const fruits = [
+    { value: 'apple', label: 'Apple' },
+    { value: 'banana', label: 'Banana' },
+    { value: 'orange', label: 'Orange' },
+    { value: 'pineapple', label: 'Pineapple' },
+    { value: 'grape', label: 'Grape' },
+    { value: 'mango', label: 'Mango' },
+    { value: 'strawberry', label: 'Strawberry' },
+    { value: 'watermelon', label: 'Watermelon' },
+    { value: 'kiwi', label: 'Kiwi' },
+    { value: 'peach', label: 'Peach' },
+    { value: 'plum', label: 'Plum' },
+    { value: 'cherry', label: 'Cherry' },
+    { value: 'blueberry', label: 'Blueberry' },
+    { value: 'raspberry', label: 'Raspberry' },
+    { value: 'blackberry', label: 'Blackberry' },
+    { value: 'coconut', label: 'Coconut' },
+    { value: 'papaya', label: 'Papaya' },
+    { value: 'lemon', label: 'Lemon' },
+  ]
+
+  const fruitItems = React.useMemo(
+    () => Object.fromEntries(fruits.map((f) => [f.value, f.label])),
+    [],
+  )
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      console.log('[Demo] handleOpenChange', { nextOpen, currentOpen: open })
+      if (nextOpen) {
+        // Opening: enable stagger animation
+        setShouldAnimateItems(true)
+      }
+      setOpen(nextOpen)
+    },
+    [open],
+  )
+
+  return (
+    <DemoSection
+      title="Input-Embedded with Motion"
+      description="Same layout as above but using motion library for smooth animations"
+    >
+      <DemoCard className="bg-neutral-300">
+        <Combobox.Root
+          value={value}
+          onValueChange={setValue}
+          items={fruitItems}
+          layout="input-embedded"
+          open={open}
+          onOpenChange={handleOpenChange}
+        >
+          {/*<Combobox.Input className="h-10 w-[280px] rounded-xl bg-white text-sm outline-none px-4" />*/}
+          <Combobox.InputWrapper className="flex h-10 w-[280px] items-center gap-2 rounded-xl bg-white px-4 shadow-xs border">
+            <Combobox.Input
+              placeholder="Select a fruit..."
+              render={
+                <CustomCaretInput
+                  containerClassName="flex-1"
+                  caret={({ active }) => (
+                    <motion.div
+                      className="w-[2.5px] h-5 bg-blue-500 rounded-full"
+                      animate={{ opacity: active ? 1 : [1, 0.2] }}
+                      transition={
+                        active
+                          ? { duration: 0.05 }
+                          : {
+                              duration: 0.4,
+                              repeat: Number.POSITIVE_INFINITY,
+                              repeatType: 'reverse',
+                              ease: 'easeInOut',
+                            }
+                      }
+                    />
+                  )}
+                />
+              }
+              className="w-full bg-transparent text-sm outline-none"
+            />
+            <Combobox.Clear className="text-gray-400 hover:text-gray-600 cursor-pointer rounded p-0.5 transition-colors">
+              <CloseIcon className="h-3.5 w-3.5" />
+            </Combobox.Clear>
+            <Combobox.Icon className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+              <AnimatedChevronsIcon open={open} className="h-4 w-4" />
+            </Combobox.Icon>
+          </Combobox.InputWrapper>
+          <Combobox.Portal>
+            <AnimatePresence>
+              {open && (
+                <Combobox.Positioner
+                  side={side}
+                  align={align}
+                  popupPadding={popupPadding}
+                  className="group/positioner"
+                >
+                  <Combobox.Popup
+                    className="rounded-xl shadow-lg border bg-neutral-100"
+                    render={
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                          scale: 0.95,
+                          filter: 'blur(4px)',
+                        }}
+                        animate={{
+                          opacity: 1,
+                          scale: 1,
+                          filter: 'blur(0px)',
+                        }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.95,
+                          filter: 'blur(4px)',
+                        }}
+                        transition={{
+                          duration: 0.15,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                      />
+                    }
+                  >
+                    <Combobox.Surface
+                      className="group-data-[side=top]/positioner:mb-2 group-data-[side=bottom]/positioner:mt-2"
+                      autoHighlightFirst="selected"
+                    >
+                      <ScrollArea.Root
+                        className={cn('h-[calc(var(--spacing)*9*7)] relative')}
+                      >
+                        <ScrollArea.Viewport
+                          className={cn(
+                            'h-full scroll-py-5 scroll-smooth',
+                            showScrollGradients && [
+                              'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
+                              'before:block after:block',
+                              'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
+                              'before:w-full after:w-full before:z-10 after:z-10',
+                              'before:overscroll-contain after:overscroll-contain',
+                              'before:pointer-events-none after:pointer-events-none',
+                              'before:bg-gradient-to-b before:from-neutral-100 before:to-transparent',
+                              'after:bg-gradient-to-t after:from-neutral-100 after:to-transparent',
+                              'before:h-[min(30px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(30px,var(--scroll-area-overflow-y-end,30px))]',
+                            ],
+                          )}
+                        >
+                          <Combobox.List
+                            // className="h-fit"
+                            render={<ScrollArea.Content />}
+                          >
+                            <AnimatePresence>
+                              {fruits.map((fruit, index) => {
+                                const staggerDelay = shouldAnimateItems
+                                  ? index * 0.02
+                                  : 0
+                                const isSelected = value === fruit.value
+                                return (
+                                  <Combobox.Item
+                                    key={fruit.value}
+                                    value={fruit.value}
+                                    textValue={fruit.label}
+                                    className={cn(
+                                      'relative flex cursor-pointer items-center justify-between rounded-2xl px-3 h-9',
+                                      'text-sm font-medium text-primary/60 data-[highlighted]:text-primary/90 transition-colors',
+                                    )}
+                                    render={
+                                      <motion.div
+                                        initial={
+                                          shouldAnimateItems
+                                            ? { opacity: 0, x: -10 }
+                                            : false
+                                        }
+                                        animate={{
+                                          opacity: 1,
+                                          x: 0,
+                                          transition: {
+                                            duration: 0.15,
+                                            delay: staggerDelay,
+                                            ease: [0.4, 0, 0.2, 1],
+                                          },
+                                        }}
+                                        onAnimationComplete={() => {
+                                          // Disable stagger after last item animates
+                                          if (index === fruits.length - 1) {
+                                            setShouldAnimateItems(false)
+                                          }
+                                        }}
+                                      />
+                                    }
+                                  >
+                                    {/* Layout-animated highlight background */}
+                                    <HighlightIndicator layoutId="combobox-highlight" />
+                                    <Combobox.ItemLabel className="relative z-[1]">
+                                      {fruit.label}
+                                    </Combobox.ItemLabel>
+                                    {/* Selection checkmark */}
+                                    {isSelected && (
+                                      <motion.div className="relative z-[1] size-2 bg-blue-500 rounded-full" />
+                                    )}
+                                  </Combobox.Item>
+                                )
+                              })}
+                            </AnimatePresence>
+                          </Combobox.List>
+                        </ScrollArea.Viewport>
+
+                        <ScrollArea.Scrollbar
+                          orientation="vertical"
+                          className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
+                        >
+                          <ScrollArea.Thumb className="relative flex-1 rounded-full bg-neutral-300" />
+                        </ScrollArea.Scrollbar>
+                      </ScrollArea.Root>
+                      <Combobox.Empty className="px-3 py-8 text-center text-sm text-neutral-500">
+                        No fruits found
+                      </Combobox.Empty>
+                    </Combobox.Surface>
+                  </Combobox.Popup>
+                </Combobox.Positioner>
+              )}
+            </AnimatePresence>
+          </Combobox.Portal>
+        </Combobox.Root>
+      </DemoCard>
+
+      <ConfigPanel title="Selection">
+        <ConfigRow label="value" description="Currently selected item">
+          <Combobox.Root
+            value={value}
+            onValueChange={setValue}
+            items={fruitItems}
+          >
+            <div className="relative">
+              <Combobox.Input
+                placeholder="None"
+                className="w-[140px] rounded-md border border-gray-300 bg-white px-3 py-1.5 pr-8 text-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <Combobox.Icon className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <ChevronDownIcon className="h-4 w-4" />
+              </Combobox.Icon>
+            </div>
+            <Combobox.Portal>
+              <Combobox.Positioner sideOffset={4}>
+                <Combobox.Popup className="min-w-[140px] rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <Combobox.Surface>
+                    <Combobox.List className="max-h-[200px] overflow-y-auto p-1 focus:outline-none">
+                      {fruits.map((fruit) => (
+                        <Combobox.Item
+                          key={fruit.value}
+                          value={fruit.value}
+                          textValue={fruit.label}
+                          className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-sm text-gray-700 data-[highlighted]:bg-gray-100 data-[selected]:font-medium"
+                        >
+                          <Combobox.ItemLabel>{fruit.label}</Combobox.ItemLabel>
+                          <Combobox.ItemIndicator className="text-blue-600">
+                            <CheckIcon className="h-4 w-4" />
+                          </Combobox.ItemIndicator>
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Positioner Props">
+        <ConfigRow label="side" description="Preferred side for popup">
+          <Select
+            value={side}
+            onChange={setSide}
+            options={[
+              { value: 'bottom', label: 'Bottom' },
+              { value: 'top', label: 'Top' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow label="align" description="Alignment of popup">
+          <Select
+            value={align}
+            onChange={setAlign}
+            options={[
+              { value: 'center', label: 'Center' },
+              { value: 'start', label: 'Start' },
+              { value: 'end', label: 'End' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow label="popupPadding" description="Padding around input (px)">
+          <NumberInput
+            value={popupPadding}
+            onChange={setPopupPadding}
+            min={0}
+            max={24}
+            step={2}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="scrollGradients"
+          description="Show gradient fade on scroll edges"
+        >
+          <Checkbox
+            checked={showScrollGradients}
+            onCheckedChange={(checked) =>
+              setShowScrollGradients(checked === true)
+            }
+          />
+        </ConfigRow>
+      </ConfigPanel>
+
+      <ConfigPanel title="Animation Details">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Popup:</strong> Fade + scale animation on open/close
+          </p>
+          <p>
+            <strong>Items:</strong> Staggered slide-in from left
+          </p>
+          <p>
+            <strong>Check icon:</strong> Spring animation on selection
+          </p>
+          <p>
+            <strong>Chevron:</strong> Smooth rotation on open state
+          </p>
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="How It Works">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>AnimatePresence:</strong> Enables exit animations
+          </p>
+          <p>
+            <strong>render prop:</strong> Pass motion.div to Popup/Item
+          </p>
+          <p>
+            <strong>Controlled open:</strong> Required for AnimatePresence
+          </p>
+        </div>
+      </ConfigPanel>
+
+      <ConfigPanel title="Current State">
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Value:</strong> {value || '(empty)'}
+          </p>
+          <p>
+            <strong>Label:</strong>{' '}
+            {fruits.find((f) => f.value === value)?.label ?? 'None selected'}
+          </p>
+          <p>
+            <strong>Open:</strong> {open ? 'Yes' : 'No'}
           </p>
         </div>
       </ConfigPanel>
@@ -697,7 +1562,10 @@ function GroupedComboboxDemo() {
             <Combobox.Positioner sideOffset={4}>
               <Combobox.Popup className="w-[240px] rounded-lg border border-gray-200 bg-white shadow-lg">
                 <Combobox.Surface>
-                  <Combobox.ScrollUpArrow className="flex h-6 items-center justify-center border-b border-gray-100 text-gray-400">
+                  <Combobox.ScrollUpArrow
+                    keepMounted
+                    className="flex h-6 items-center justify-center border-b border-gray-100 text-gray-400 data-[visible=false]:opacity-30 data-[visible=false]:pointer-events-none"
+                  >
                     <ChevronUpIcon className="h-4 w-4" />
                   </Combobox.ScrollUpArrow>
                   <Combobox.List className="max-h-[200px] overflow-y-auto p-1 focus:outline-none">
@@ -729,7 +1597,10 @@ function GroupedComboboxDemo() {
                       </React.Fragment>
                     ))}
                   </Combobox.List>
-                  <Combobox.ScrollDownArrow className="flex h-6 items-center justify-center border-t border-gray-100 text-gray-400">
+                  <Combobox.ScrollDownArrow
+                    keepMounted
+                    className="flex h-6 items-center justify-center border-t border-gray-100 text-gray-400 data-[visible=false]:opacity-30 data-[visible=false]:pointer-events-none"
+                  >
                     <ChevronDownIcon className="h-4 w-4" />
                   </Combobox.ScrollDownArrow>
                   <Combobox.Empty className="px-3 py-8 text-center text-sm text-gray-500">
@@ -853,7 +1724,7 @@ function VirtualizedComboboxDemo() {
               </Combobox.Icon>
             </div>
             <Combobox.Portal>
-              <Combobox.Positioner sideOffset={4}>
+              <Combobox.Positioner sideOffset={4} className="z-50">
                 <Combobox.Popup className="w-[300px] rounded-lg border border-gray-200 bg-white shadow-lg">
                   <Combobox.Surface filter={false}>
                     <Combobox.List

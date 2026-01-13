@@ -10,8 +10,10 @@ import {
 import {
   ComboboxContext,
   type ComboboxContextValue,
+  type ComboboxFilterMode,
   type ItemTextRegistry,
 } from '../contexts/combobox-context.js'
+import type { ComboboxLayout } from '../contexts/combobox-positioner-context.js'
 
 export interface ComboboxRootProps
   extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
@@ -194,6 +196,22 @@ export interface ComboboxRootProps
    */
   onHighlightChange?: (id: string | null, index: number) => void
 
+  // ===== Layout =====
+  /**
+   * The layout mode for the combobox popup.
+   *
+   * - `'floating'` (default) - Standard dropdown positioning below/above the input
+   * - `'input-embedded'` - Popup wraps around the input (macOS Spotlight-style).
+   *   The input appears to be inside the popup at the top.
+   *
+   * When `'input-embedded'`:
+   * - `data-input-embedded` attribute is added to Input, Positioner, Popup, and List
+   * - Use CSS selectors like `[data-input-embedded]` to style components
+   *
+   * @default 'floating'
+   */
+  layout?: ComboboxLayout
+
   children: React.ReactNode
 }
 
@@ -236,6 +254,8 @@ export function ComboboxRoot(props: ComboboxRootProps) {
     virtualized = false,
     virtualItems,
     onHighlightChange,
+    // Layout
+    layout = 'floating',
     children,
     ...rest
   } = props
@@ -245,10 +265,32 @@ export function ComboboxRoot(props: ComboboxRootProps) {
 
   // ===== Element Refs for Positioning =====
   const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const inputWrapperRef = React.useRef<HTMLElement | null>(null)
+  const [inputHeight, setInputHeight] = React.useState(0)
+  const [inputWidth, setInputWidth] = React.useState(0)
 
   const setInputElement = React.useCallback(
     (element: HTMLInputElement | null) => {
       inputRef.current = element
+      // Only use input dimensions if there's no wrapper
+      if (element && !inputWrapperRef.current) {
+        const rect = element.getBoundingClientRect()
+        setInputHeight(rect.height)
+        setInputWidth(rect.width)
+      }
+    },
+    [],
+  )
+
+  const setInputWrapperElement = React.useCallback(
+    (element: HTMLElement | null) => {
+      inputWrapperRef.current = element
+      // When wrapper is present, use its dimensions instead of input
+      if (element) {
+        const rect = element.getBoundingClientRect()
+        setInputHeight(rect.height)
+        setInputWidth(rect.width)
+      }
     },
     [],
   )
@@ -262,7 +304,7 @@ export function ComboboxRoot(props: ComboboxRootProps) {
     registerSurface,
     closeAll,
     virtualization,
-    handleOpenChange,
+    handleOpenChange: baseHandleOpenChange,
   } = usePopupMenuRoot({
     onOpenChange,
     defaultOpen,
@@ -276,6 +318,30 @@ export function ComboboxRoot(props: ComboboxRootProps) {
 
   // Get open state from store for Popover
   const open = store.useState('open')
+
+  // Custom handleOpenChange that ignores close events when input has focus
+  // This prevents base-ui's Popover from closing when clicking on the input
+  const handleOpenChange = React.useCallback(
+    (newOpen: boolean) => {
+      console.log('[Combobox Root] handleOpenChange', {
+        newOpen,
+        activeElement: document.activeElement,
+        inputRef: inputRef.current,
+      })
+      // When trying to close, check if input has focus
+      if (!newOpen && inputRef.current) {
+        const activeElement = document.activeElement
+        // If the input has focus or will have focus, don't close
+        if (activeElement === inputRef.current) {
+          console.log('[Combobox Root] Ignoring close because input has focus')
+          return
+        }
+      }
+      console.log('[Combobox Root] Calling baseHandleOpenChange', { newOpen })
+      baseHandleOpenChange(newOpen)
+    },
+    [baseHandleOpenChange],
+  )
 
   // ===== Single Selection State =====
   const [internalValue, setInternalValue] = React.useState(defaultValue)
@@ -339,37 +405,70 @@ export function ComboboxRoot(props: ComboboxRootProps) {
   // ===== Close on Select =====
   const closeOnSelect = closeOnSelectProp ?? !multiple
 
-  // ===== Skip Filtering State =====
-  // When opening with a selected value, we want to show all items initially
-  // even though the input displays the selected label. Once the user types,
-  // filtering resumes.
-  const [skipFiltering, setSkipFiltering] = React.useState(false)
+  // ===== Filter Mode State Machine =====
+  // Controls how the search/filter value is determined.
+  //
+  // State transitions:
+  // - Closed → open (no value) → { type: 'active' }
+  // - Closed → open (with value) → { type: 'showAll' }
+  // - Open + user types → { type: 'active' }
+  // - Open → close → { type: 'frozen', search: <current> }
+  //
+  // We use a ref for synchronous access during close (to prevent flash of items).
+  const filterModeRef = React.useRef<ComboboxFilterMode>({ type: 'active' })
+  const [filterModeState, setFilterModeState] =
+    React.useState<ComboboxFilterMode>({
+      type: 'active',
+    })
 
-  const markQueryChanged = React.useCallback(() => {
-    setSkipFiltering(false)
+  const setFilterMode = React.useCallback((mode: ComboboxFilterMode) => {
+    filterModeRef.current = mode
+    setFilterModeState(mode)
   }, [])
 
-  // Reset skipFiltering when popup closes
-  React.useEffect(() => {
-    if (!open) {
-      setSkipFiltering(false)
-    }
-  }, [open])
+  // Read from ref for synchronous access
+  const filterMode = filterModeRef.current
+
+  const setFilterActive = React.useCallback(() => {
+    // User is typing, switch to active filtering
+    setFilterMode({ type: 'active' })
+  }, [setFilterMode])
 
   // ===== Open/Close Helpers =====
   const openCombobox = React.useCallback(() => {
+    console.log('[Combobox Root] openCombobox called', { disabled })
     if (!disabled) {
-      // If opening with a selected value (single-select), skip filtering initially
+      // If opening with a selected value (single-select), show all items initially.
+      // Otherwise, use active filtering.
       if (!multiple && value) {
-        setSkipFiltering(true)
+        setFilterMode({ type: 'showAll' })
+      } else {
+        setFilterMode({ type: 'active' })
       }
+      console.log('[Combobox Root] Calling store.setOpen(true)')
       store.setOpen(true)
     }
-  }, [disabled, store, multiple, value])
+  }, [disabled, store, multiple, value, setFilterMode])
 
   const closeCombobox = React.useCallback(() => {
+    // Freeze the current search state BEFORE closing to prevent filter changes
+    // during exit animations.
+    //
+    // Get the effective search value based on current filter mode:
+    // - 'active': freeze to current inputValue
+    // - 'showAll': freeze to '' (keep showing all items)
+    // - 'frozen': keep the existing frozen value (shouldn't happen, but handle it)
+    const currentMode = filterModeRef.current
+    const searchToFreeze =
+      currentMode.type === 'active'
+        ? internalInputValue
+        : currentMode.type === 'showAll'
+          ? ''
+          : currentMode.search
+
+    setFilterMode({ type: 'frozen', search: searchToFreeze })
     store.setOpen(false)
-  }, [store])
+  }, [store, setFilterMode, internalInputValue])
 
   // ===== Combobox Context =====
   const comboboxContextValue: ComboboxContextValue = React.useMemo(
@@ -392,12 +491,17 @@ export function ComboboxRoot(props: ComboboxRootProps) {
       listId,
       inputRef,
       setInputElement,
+      inputWrapperRef,
+      setInputWrapperElement,
       closeOnSelect,
       openOnFocus,
       openCombobox,
       closeCombobox,
-      skipFiltering,
-      markQueryChanged,
+      filterMode,
+      setFilterActive,
+      inputHeight,
+      inputWidth,
+      layout,
     }),
     [
       multiple,
@@ -416,12 +520,16 @@ export function ComboboxRoot(props: ComboboxRootProps) {
       registerItemText,
       listId,
       setInputElement,
+      setInputWrapperElement,
       closeOnSelect,
       openOnFocus,
       openCombobox,
       closeCombobox,
-      skipFiltering,
-      markQueryChanged,
+      filterMode,
+      setFilterActive,
+      inputHeight,
+      inputWidth,
+      layout,
     ],
   )
 
