@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "motion": {
+      "type": "local",
+      "command": ["npx", "-y", "@anthropic-ai/claude-mcp-motion@latest"],
+      "enabled": true
+    }
+  }
+}

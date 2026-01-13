@@ -2,6 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
@@ -62,6 +63,7 @@ export const PopupMenuList = React.forwardRef<
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
   const focusOwnerStore = useFocusOwner()
+  const comboboxContext = useMaybeComboboxContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
   // Register list ref with store for scroll behavior
@@ -113,6 +115,9 @@ export const PopupMenuList = React.forwardRef<
   const renderedChildren =
     typeof children === 'function' ? children(childrenState) : children
 
+  // Add data-input-embedded attribute when layout is input-embedded
+  const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
+
   return useRender({
     render,
     ref: [internalRef, forwardedRef],
@@ -125,6 +130,7 @@ export const PopupMenuList = React.forwardRef<
         ? (highlightedId ?? undefined)
         : undefined,
       tabIndex: shouldHandleKeyboard ? 0 : -1,
+      'data-input-embedded': isInputEmbedded ? '' : undefined,
       className,
       style,
       onKeyDown: handleKeyDown,

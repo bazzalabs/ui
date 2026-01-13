@@ -41,7 +41,7 @@ export const PopupMenuPopup = React.forwardRef<
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
 
-  // Get combobox context to detect if we're inside a combobox
+  // Get combobox context to detect if we're inside a combobox and for layout
   const comboboxContext = useMaybeComboboxContext()
 
   // Local ref for the popup element
@@ -99,11 +99,15 @@ export const PopupMenuPopup = React.forwardRef<
   // When clicking outside, we want focus to go to whatever was clicked, not back to input
   const finalFocus = comboboxContext ? false : undefined
 
+  // Add data-input-embedded attribute when layout is input-embedded
+  const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
+
   return (
     <Popover.Popup
       ref={combinedRef}
       initialFocus={initialFocus}
       finalFocus={finalFocus}
+      data-input-embedded={isInputEmbedded ? '' : undefined}
       onPointerMove={(event) => {
         handlePointerMove()
         rest.onPointerMove?.(event)
