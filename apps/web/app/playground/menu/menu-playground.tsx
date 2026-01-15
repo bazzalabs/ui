@@ -6,7 +6,38 @@ import { useComboboxItemContext } from '@bazza-ui/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { AnimatePresence, motion } from 'motion/react'
 import * as React from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+
+// ============================================================================
+// Helper: Prevent menu close when clicking config panel
+// ============================================================================
+
+interface OpenChangeEventDetails {
+  reason: string
+  event?: Event | null
+  cancel: () => void
+}
+
+/**
+ * Helper to prevent closing menus when clicking on the config panel.
+ * Call this at the start of any onOpenChange handler.
+ * Returns true if the close was cancelled (handler should return early).
+ */
+function shouldPreventCloseOnConfigPanel(
+  nextOpen: boolean,
+  eventDetails: OpenChangeEventDetails,
+): boolean {
+  if (!nextOpen && eventDetails.reason === 'outside-press') {
+    const configPanel = document.querySelector('[data-config-panel]')
+    const target = eventDetails.event?.target as Node | null
+    if (configPanel?.contains(target)) {
+      eventDetails.cancel()
+      return true
+    }
+  }
+  return false
+}
 
 // ============================================================================
 // Animated Chevrons Icon (morphs between up-down and down-up states)
@@ -75,9 +106,18 @@ function HighlightIndicator({ layoutId }: { layoutId: string }) {
 // Custom Input with Styleable Caret
 // ============================================================================
 
+interface CaretState {
+  /** Whether the caret was recently moved (for blink animation) */
+  active: boolean
+  /** Whether text is currently selected (selection mode) */
+  selecting: boolean
+  /** Position of this caret in the selection ('start' or 'end'), only meaningful when selecting */
+  position: 'start' | 'end'
+}
+
 interface CustomCaretInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'children'> {
-  caret?: React.ReactNode | ((state: { active: boolean }) => React.ReactNode)
+  caret?: React.ReactNode | ((state: CaretState) => React.ReactNode)
   containerClassName?: string
   activeTimeout?: number
 }
@@ -98,7 +138,25 @@ const CustomCaretInput = React.forwardRef<
   const [isActive, setIsActive] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const measureRef = React.useRef<HTMLSpanElement>(null)
+  // Caret position (the target position for animation)
   const [caretLeft, setCaretLeft] = React.useState(0)
+  // Initial position for caret animation (where it starts FROM)
+  const [caretInitialLeft, setCaretInitialLeft] = React.useState<number | null>(
+    null,
+  )
+  // Selection end caret position (only used when selecting)
+  const [selectionEndLeft, setSelectionEndLeft] = React.useState(0)
+  const [selecting, setSelecting] = React.useState(false)
+  // Key to force remount of caret when we need to change initial position
+  const [caretKey, setCaretKey] = React.useState(0)
+  // Track previous selection state to detect collapse direction
+  const prevSelectionRef = React.useRef<{
+    start: number
+    end: number
+    startLeft: number
+    endLeft: number
+    selecting: boolean
+  }>({ start: 0, end: 0, startLeft: 0, endLeft: 0, selecting: false })
   const activeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   )
@@ -133,25 +191,74 @@ const CustomCaretInput = React.forwardRef<
     }
   }, [])
 
-  const updateCaretPosition = React.useCallback(() => {
+  const measureTextWidth = React.useCallback((text: string) => {
     const input = inputRef.current
     const measure = measureRef.current
-    if (!input || !measure) return
+    if (!input || !measure) return 0
 
-    const pos = input.selectionStart ?? 0
-    const textBeforeCaret = input.value.substring(0, pos)
-    measure.textContent = textBeforeCaret || '\u200b'
-
+    measure.textContent = text || '\u200b'
     const computedStyle = window.getComputedStyle(input)
     measure.style.font = computedStyle.font
     measure.style.letterSpacing = computedStyle.letterSpacing
 
-    const newLeft = measure.offsetWidth
-    if (newLeft !== caretLeft) {
-      setCaretLeft(newLeft)
-      markActive()
+    return measure.offsetWidth
+  }, [])
+
+  const updateCaretPositions = React.useCallback(() => {
+    const input = inputRef.current
+    if (!input) return
+
+    const start = input.selectionStart ?? 0
+    const end = input.selectionEnd ?? 0
+    const isSelecting = start !== end
+    const prev = prevSelectionRef.current
+
+    // Calculate positions
+    const startLeft = measureTextWidth(input.value.substring(0, start))
+    const endLeft = measureTextWidth(input.value.substring(0, end))
+
+    // Detect if selection just collapsed
+    const selectionJustCollapsed = prev.selecting && !isSelecting
+
+    if (selectionJustCollapsed) {
+      // Selection collapsed - determine which end the cursor went to
+      const cursorAtEnd = start === prev.end
+
+      if (cursorAtEnd) {
+        // Cursor moved to end (pressed Right) - animate FROM start TO end
+        setCaretInitialLeft(prev.startLeft)
+        setCaretLeft(endLeft)
+        setCaretKey((k) => k + 1)
+      } else {
+        // Cursor moved to start (pressed Left) - animate FROM end TO start
+        setCaretInitialLeft(prev.endLeft)
+        setCaretLeft(startLeft)
+        setCaretKey((k) => k + 1)
+      }
+    } else if (isSelecting) {
+      // Active selection - caret at start, selection end caret at end
+      setCaretInitialLeft(null)
+      setCaretLeft(startLeft)
+      setSelectionEndLeft(endLeft)
+    } else {
+      // No selection, just cursor movement
+      setCaretInitialLeft(null)
+      setCaretLeft(startLeft)
     }
-  }, [caretLeft, markActive])
+
+    setSelecting(isSelecting)
+
+    // Update prev ref with positions
+    prevSelectionRef.current = {
+      start,
+      end,
+      startLeft,
+      endLeft,
+      selecting: isSelecting,
+    }
+
+    markActive()
+  }, [markActive, measureTextWidth])
 
   React.useEffect(() => {
     const input = inputRef.current
@@ -159,44 +266,45 @@ const CustomCaretInput = React.forwardRef<
 
     const handleSelectionChange = () => {
       if (document.activeElement === input) {
-        updateCaretPosition()
+        updateCaretPositions()
       }
     }
 
     document.addEventListener('selectionchange', handleSelectionChange)
     return () =>
       document.removeEventListener('selectionchange', handleSelectionChange)
-  }, [updateCaretPosition])
+  }, [updateCaretPositions])
 
   const valueFromProps = inputProps.value
   React.useEffect(() => {
     requestAnimationFrame(() => {
-      updateCaretPosition()
+      updateCaretPositions()
     })
-  }, [valueFromProps, updateCaretPosition])
+  }, [valueFromProps, updateCaretPositions])
 
   const handleFocus = React.useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true)
-      updateCaretPosition()
+      updateCaretPositions()
       props.onFocus?.(e)
     },
-    [props.onFocus, updateCaretPosition],
+    [props.onFocus, updateCaretPositions],
   )
 
   const handleBlur = React.useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false)
       setIsActive(false)
+      setSelecting(false)
       props.onBlur?.(e)
     },
     [props.onBlur],
   )
 
   const handleInput = React.useCallback(() => {
-    updateCaretPosition()
+    updateCaretPositions()
     markActive()
-  }, [updateCaretPosition, markActive])
+  }, [updateCaretPositions, markActive])
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -215,33 +323,44 @@ const CustomCaretInput = React.forwardRef<
 
   const handleClick = React.useCallback(
     (e: React.MouseEvent<HTMLInputElement>) => {
-      updateCaretPosition()
+      updateCaretPositions()
       markActive()
       inputProps.onClick?.(e)
     },
-    [updateCaretPosition, markActive, inputProps.onClick],
+    [updateCaretPositions, markActive, inputProps.onClick],
   )
 
-  const defaultCaret = (active: boolean) => (
-    <motion.div
-      className="w-[2px] h-[1.2em] bg-current rounded-full"
-      animate={{ opacity: active ? 1 : [1, 0] }}
-      transition={
-        active
-          ? { duration: 0.1 }
-          : {
-              duration: 0.5,
-              repeat: Number.POSITIVE_INFINITY,
-              repeatType: 'reverse',
-            }
-      }
-    />
-  )
+  const defaultCaret = (state: CaretState) => {
+    // When selecting, carets stay solid (no blinking)
+    // When not selecting, caret blinks when inactive
+    const shouldBlink = !state.selecting && !state.active
 
-  const renderedCaret =
-    typeof caret === 'function'
-      ? caret({ active: isActive })
-      : (caret ?? defaultCaret(isActive))
+    return (
+      <motion.div
+        className={cn(
+          'w-[2px] h-[1.2em] rounded-full',
+          state.selecting ? 'bg-blue-500' : 'bg-current',
+        )}
+        animate={{ opacity: shouldBlink ? [1, 0] : 1 }}
+        transition={
+          shouldBlink
+            ? {
+                duration: 0.5,
+                repeat: Number.POSITIVE_INFINITY,
+                repeatType: 'reverse',
+              }
+            : { duration: 0.1 }
+        }
+      />
+    )
+  }
+
+  const renderCaret = (position: 'start' | 'end') => {
+    const state: CaretState = { active: isActive, selecting, position }
+    return typeof caret === 'function'
+      ? caret(state)
+      : (caret ?? defaultCaret(state))
+  }
 
   return (
     <div className={cn('relative', containerClassName)}>
@@ -262,18 +381,42 @@ const CustomCaretInput = React.forwardRef<
         onClick={handleClick}
       />
       {isFocused && (
-        <motion.div
-          className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
-          initial={false}
-          animate={{ x: caretLeft }}
-          transition={{
-            type: 'spring',
-            stiffness: 800,
-            damping: 40,
-          }}
-        >
-          {renderedCaret}
-        </motion.div>
+        <>
+          {/* Primary caret - animates to cursor position */}
+          <motion.div
+            key={caretKey}
+            className="absolute top-1/2 pointer-events-none"
+            style={{ y: '-50%' }}
+            initial={{ x: caretInitialLeft ?? caretLeft }}
+            animate={{ x: caretLeft }}
+            transition={{
+              type: 'spring',
+              stiffness: 800,
+              damping: 40,
+            }}
+          >
+            {renderCaret('start')}
+          </motion.div>
+          {/* Selection end caret - shown when selecting, fades out when selection collapses */}
+          <AnimatePresence>
+            {selecting && (
+              <motion.div
+                className="absolute top-1/2 pointer-events-none"
+                style={{ y: '-50%' }}
+                initial={{ opacity: 0, scale: 0.8, x: selectionEndLeft }}
+                animate={{ opacity: 1, scale: 1, x: selectionEndLeft }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 800,
+                  damping: 40,
+                }}
+              >
+                {renderCaret('end')}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       )}
     </div>
   )
@@ -324,9 +467,15 @@ const COMPONENTS: ComponentSection[] = [
         component: 'DropdownMenu',
       },
       {
-        id: 'selections',
-        title: 'Selections',
-        description: 'Radio and checkbox selections',
+        id: 'radio-group',
+        title: 'Radio Group',
+        description: 'Single selection with radio items',
+        component: 'DropdownMenu',
+      },
+      {
+        id: 'checkbox-items',
+        title: 'Checkbox Items',
+        description: 'Toggle options with checkboxes',
         component: 'DropdownMenu',
       },
       {
@@ -559,15 +708,10 @@ function ConfigSection({
 function FloatingConfigPanel() {
   const { configContent, activeDemo } = usePlayground()
 
-  // Prevent pointer events from propagating to avoid closing open menus
-  const preventOutsideClick = React.useCallback((e: React.PointerEvent) => {
-    e.stopPropagation()
-  }, [])
-
   return (
     <aside
+      data-config-panel
       className="fixed top-20 right-4 w-72 max-h-[calc(100vh-6rem)] rounded-xl border border-border bg-background/95 backdrop-blur-sm shadow-lg overflow-hidden z-40"
-      onPointerDownCapture={preventOutsideClick}
     >
       <div className="bg-background border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold">Configuration</h3>
@@ -801,7 +945,8 @@ function MainPlayground() {
       <BasicDropdownDemo />
       <SearchableDropdownDemo />
       <KeyboardShortcutsDemo />
-      <SelectionsDropdownDemo />
+      <RadioGroupDemo />
+      <CheckboxItemsDemo />
       <SubmenusDemo />
 
       {/* ContextMenu Demos */}
@@ -830,12 +975,20 @@ import {
   DropdownMenu,
   Select as SelectPrimitive,
 } from '@bazza-ui/react'
+import { CheckedState } from '@radix-ui/react-checkbox'
 import { toast } from 'sonner'
 
 // --- Basic Dropdown Demo ---
 
 function BasicDropdownDemo() {
   const [closeOnClick, setCloseOnClick] = React.useState(true)
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
 
   const config = (
     <>
@@ -855,7 +1008,7 @@ function BasicDropdownDemo() {
       component="DropdownMenu"
       config={config}
     >
-      <DropdownMenu.Root>
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
         <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
           Open Menu
         </DropdownMenu.Trigger>
@@ -903,6 +1056,13 @@ function SearchableDropdownDemo() {
   const [autoHighlightFirst, setAutoHighlightFirst] = React.useState(true)
   const [filterEnabled, setFilterEnabled] = React.useState(true)
 
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
   const fruits = [
     { value: 'apple', label: 'Apple', keywords: ['fruit', 'red'] },
     { value: 'banana', label: 'Banana', keywords: ['fruit', 'yellow'] },
@@ -944,7 +1104,7 @@ function SearchableDropdownDemo() {
       description="Dropdown with search input and fuzzy filtering"
       config={config}
     >
-      <DropdownMenu.Root>
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
         <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
           Select Fruit
         </DropdownMenu.Trigger>
@@ -992,6 +1152,13 @@ function SearchableDropdownDemo() {
 function KeyboardShortcutsDemo() {
   const [status, setStatus] = React.useState('backlog')
 
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
   const statuses = [
     { value: 'icebox', label: 'Icebox', shortcut: '1' },
     { value: 'backlog', label: 'Backlog', shortcut: '2' },
@@ -1024,7 +1191,7 @@ function KeyboardShortcutsDemo() {
       description="Press number keys (1-5) to quickly select when menu is open"
       config={config}
     >
-      <DropdownMenu.Root>
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
         <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
           Status: {statuses.find((s) => s.value === status)?.label}
         </DropdownMenu.Trigger>
@@ -1062,18 +1229,22 @@ function KeyboardShortcutsDemo() {
   )
 }
 
-// --- Selections Demo ---
+// --- Radio Group Demo ---
 
-function SelectionsDropdownDemo() {
+function RadioGroupDemo() {
   const [sortBy, setSortBy] = React.useState<'name' | 'date' | 'size'>('name')
-  const [notifications, setNotifications] = React.useState(true)
-  const [darkMode, setDarkMode] = React.useState(false)
-  const [closeCheckboxOnClick, setCloseCheckboxOnClick] = React.useState(false)
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
 
   const config = (
     <>
       <ConfigSection title="Radio Selection">
-        <ConfigRow label="sortBy" description="Current sort order">
+        <ConfigRow label="value" description="Current selected value">
           <Select
             value={sortBy}
             onChange={setSortBy}
@@ -1085,6 +1256,82 @@ function SelectionsDropdownDemo() {
           />
         </ConfigRow>
       </ConfigSection>
+    </>
+  )
+
+  return (
+    <DemoSection
+      id="dropdown-menu-radio-group"
+      component="DropdownMenu"
+      title="Radio Group"
+      description="Single selection with radio items"
+      config={config}
+    >
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
+        <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
+          Sort by: {sortBy}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-border bg-popover shadow-lg">
+              <DropdownMenu.Surface>
+                <DropdownMenu.List className="p-1 focus:outline-none">
+                  <DropdownMenu.RadioGroup
+                    value={sortBy}
+                    onValueChange={setSortBy}
+                  >
+                    {(['name', 'date', 'size'] as const).map((val) => (
+                      <DropdownMenu.RadioItem
+                        key={val}
+                        value={val}
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm capitalize data-[highlighted]:bg-accent"
+                      >
+                        <span>{val}</span>
+                        <DropdownMenu.RadioItemIndicator className="h-4 w-4">
+                          <CheckIcon className="h-4 w-4 text-primary" />
+                        </DropdownMenu.RadioItemIndicator>
+                      </DropdownMenu.RadioItem>
+                    ))}
+                  </DropdownMenu.RadioGroup>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </DemoSection>
+  )
+}
+
+// --- Checkbox Items Demo ---
+
+function CheckboxItemsDemo() {
+  const [notifications, setNotifications] = React.useState(true)
+  const [darkMode, setDarkMode] = React.useState(false)
+  const [autoSave, setAutoSave] = React.useState(true)
+  const [closeOnClick, setCloseOnClick] = React.useState(false)
+  const [useStyledCheckbox, setUseStyledCheckbox] = React.useState(false)
+
+  // When styled checkbox is enabled, force closeOnClick to true
+  // This creates the pattern: clicking checkbox box = toggle only, clicking item = toggle + close
+  const effectiveCloseOnClick = useStyledCheckbox ? true : closeOnClick
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
+  // Simple checkmark indicator (just shows checkmark when checked)
+  const SimpleCheckboxIndicator = () => (
+    <DropdownMenu.CheckboxItemIndicator className="h-4 w-4">
+      <CheckIcon className="h-4 w-4 text-primary" />
+    </DropdownMenu.CheckboxItemIndicator>
+  )
+
+  const config = (
+    <>
       <ConfigSection title="Checkbox State">
         <ConfigRow label="notifications">
           <Toggle checked={notifications} onChange={setNotifications} />
@@ -1092,16 +1339,32 @@ function SelectionsDropdownDemo() {
         <ConfigRow label="darkMode">
           <Toggle checked={darkMode} onChange={setDarkMode} />
         </ConfigRow>
+        <ConfigRow label="autoSave">
+          <Toggle checked={autoSave} onChange={setAutoSave} />
+        </ConfigRow>
       </ConfigSection>
       <ConfigSection title="Behavior">
         <ConfigRow
           label="closeOnClick"
-          description="Close menu on checkbox click"
+          description={
+            useStyledCheckbox
+              ? 'Forced on: click checkbox = toggle, click item = toggle + close'
+              : 'Close menu when checkbox is clicked'
+          }
         >
           <Toggle
-            checked={closeCheckboxOnClick}
-            onChange={setCloseCheckboxOnClick}
+            checked={effectiveCloseOnClick}
+            onChange={setCloseOnClick}
+            disabled={useStyledCheckbox}
           />
+        </ConfigRow>
+      </ConfigSection>
+      <ConfigSection title="Styling">
+        <ConfigRow
+          label="Custom checkbox"
+          description="Use styled checkbox box indicator"
+        >
+          <Toggle checked={useStyledCheckbox} onChange={setUseStyledCheckbox} />
         </ConfigRow>
       </ConfigSection>
     </>
@@ -1109,86 +1372,108 @@ function SelectionsDropdownDemo() {
 
   return (
     <DemoSection
-      id="dropdown-menu-selections"
+      id="dropdown-menu-checkbox-items"
       component="DropdownMenu"
-      title="Selections"
-      description="Radio groups for single selection, checkboxes for multiple"
+      title="Checkbox Items"
+      description="Toggle multiple options with checkboxes"
       config={config}
     >
-      <div className="flex gap-4">
-        {/* Radio Demo */}
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
-            Sort by: {sortBy}
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner sideOffset={8}>
-              <DropdownMenu.Popup className="min-w-[160px] rounded-lg border border-border bg-popover shadow-lg">
-                <DropdownMenu.Surface>
-                  <DropdownMenu.List className="p-1 focus:outline-none">
-                    <DropdownMenu.RadioGroup
-                      value={sortBy}
-                      onValueChange={setSortBy}
-                    >
-                      {(['name', 'date', 'size'] as const).map((val) => (
-                        <DropdownMenu.RadioItem
-                          key={val}
-                          value={val}
-                          className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm capitalize data-[highlighted]:bg-accent"
-                        >
-                          <span>{val}</span>
-                          <DropdownMenu.RadioItemIndicator className="h-4 w-4">
-                            <CheckIcon className="h-4 w-4 text-primary" />
-                          </DropdownMenu.RadioItemIndicator>
-                        </DropdownMenu.RadioItem>
-                      ))}
-                    </DropdownMenu.RadioGroup>
-                  </DropdownMenu.List>
-                </DropdownMenu.Surface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-
-        {/* Checkbox Demo */}
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="rounded-md bg-secondary px-4 py-2 text-secondary-foreground hover:bg-secondary/80 transition-colors">
-            Settings
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner sideOffset={8}>
-              <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-border bg-popover shadow-lg">
-                <DropdownMenu.Surface>
-                  <DropdownMenu.List className="p-1 focus:outline-none">
-                    <DropdownMenu.CheckboxItem
-                      checked={notifications}
-                      onCheckedChange={setNotifications}
-                      closeOnClick={closeCheckboxOnClick}
-                      className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
-                    >
-                      <span>Notifications</span>
-                      <DropdownMenu.CheckboxItemIndicator className="h-4 w-4">
-                        <CheckIcon className="h-4 w-4 text-primary" />
-                      </DropdownMenu.CheckboxItemIndicator>
-                    </DropdownMenu.CheckboxItem>
-                    <DropdownMenu.CheckboxItem
-                      checked={darkMode}
-                      onCheckedChange={setDarkMode}
-                      closeOnClick={closeCheckboxOnClick}
-                      className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
-                    >
-                      <span>Dark Mode</span>
-                      <DropdownMenu.CheckboxItemIndicator className="h-4 w-4">
-                        <CheckIcon className="h-4 w-4 text-primary" />
-                      </DropdownMenu.CheckboxItemIndicator>
-                    </DropdownMenu.CheckboxItem>
-                  </DropdownMenu.List>
-                </DropdownMenu.Surface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      </div>
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
+        <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
+          Settings
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[180px] rounded-lg border border-border bg-popover shadow-lg">
+              <DropdownMenu.Surface>
+                <DropdownMenu.List className="p-1 focus:outline-none">
+                  <DropdownMenu.CheckboxItem
+                    checked={notifications}
+                    onCheckedChange={setNotifications}
+                    closeOnClick={effectiveCloseOnClick}
+                    className={cn(
+                      'group flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent',
+                      useStyledCheckbox ? 'gap-2' : 'justify-between',
+                    )}
+                  >
+                    {useStyledCheckbox && (
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                    )}
+                    <span>Notifications</span>
+                    {!useStyledCheckbox && <SimpleCheckboxIndicator />}
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    checked={darkMode}
+                    onCheckedChange={setDarkMode}
+                    closeOnClick={effectiveCloseOnClick}
+                    className={cn(
+                      'group flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent',
+                      useStyledCheckbox ? 'gap-2' : 'justify-between',
+                    )}
+                  >
+                    {useStyledCheckbox && (
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                    )}
+                    <span>Dark Mode</span>
+                    {!useStyledCheckbox && <SimpleCheckboxIndicator />}
+                  </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.CheckboxItem
+                    checked={autoSave}
+                    onCheckedChange={setAutoSave}
+                    closeOnClick={effectiveCloseOnClick}
+                    className={cn(
+                      'group flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent',
+                      useStyledCheckbox ? 'gap-2' : 'justify-between',
+                    )}
+                  >
+                    {useStyledCheckbox && (
+                      <DropdownMenu.CheckboxItemIndicator
+                        keepMounted
+                        render={(props, state) => (
+                          <Checkbox
+                            checked={state.checked}
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              state.toggle()
+                            }}
+                          />
+                        )}
+                      />
+                    )}
+                    <span>Auto Save</span>
+                    {!useStyledCheckbox && <SimpleCheckboxIndicator />}
+                  </DropdownMenu.CheckboxItem>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </DemoSection>
   )
 }
@@ -1197,6 +1482,13 @@ function SelectionsDropdownDemo() {
 
 function SubmenusDemo() {
   const [closeRootOnEsc, setCloseRootOnEsc] = React.useState(true)
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
 
   const config = (
     <>
@@ -1219,7 +1511,7 @@ function SubmenusDemo() {
       description="Nested submenu navigation"
       config={config}
     >
-      <DropdownMenu.Root>
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
         <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
           File Menu
         </DropdownMenu.Trigger>
@@ -1295,6 +1587,13 @@ function SubmenusDemo() {
 // --- Basic Context Menu Demo ---
 
 function BasicContextMenuDemo() {
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: ContextMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
   const config = (
     <>
       <ConfigSection title="Usage">
@@ -1313,7 +1612,7 @@ function BasicContextMenuDemo() {
       description="Right-click to open context menu"
       config={config}
     >
-      <ContextMenu.Root>
+      <ContextMenu.Root onOpenChange={handleOpenChange}>
         <ContextMenu.Trigger className="flex h-[200px] w-[300px] items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50">
           <div className="text-center">
             <div className="text-sm font-medium">Right-click here</div>
@@ -1367,19 +1666,138 @@ function BasicContextMenuDemo() {
 function BasicSelectDemo() {
   const [value, setValue] = React.useState('')
 
+  const handleOpenChange = React.useCallback(
+    (
+      open: boolean,
+      eventDetails: SelectPrimitive.Root.OpenChangeEventDetails,
+    ) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
+  // Positioner props
+  const [alignItemWithTrigger, setAlignItemWithTrigger] = React.useState(true)
+  const [side, setSide] = React.useState<'top' | 'bottom'>('bottom')
+  const [align, setAlign] = React.useState<'start' | 'center' | 'end'>('start')
+  const [sideOffset, setSideOffset] = React.useState(8)
+
+  // Root props
+  const [modal, setModal] = React.useState(true)
+  const [disabled, setDisabled] = React.useState(false)
+
   const countries = [
     { value: 'us', label: 'United States' },
     { value: 'uk', label: 'United Kingdom' },
     { value: 'ca', label: 'Canada' },
     { value: 'au', label: 'Australia' },
     { value: 'de', label: 'Germany' },
+    { value: 'fr', label: 'France' },
+    { value: 'jp', label: 'Japan' },
+    { value: 'br', label: 'Brazil' },
+    { value: 'in', label: 'India' },
+    { value: 'mx', label: 'Mexico' },
   ]
+
+  const countryItems = React.useMemo(
+    () => Object.fromEntries(countries.map((c) => [c.value, c.label])),
+    [],
+  )
 
   const config = (
     <>
-      <ConfigSection title="Current State">
-        <ConfigRow label="value" description="Selected value">
-          <span className="text-sm font-mono">{value || '(none)'}</span>
+      <ConfigSection title="Value">
+        <ConfigRow label="value" description="Current selection">
+          <Combobox.Root
+            value={value}
+            onValueChange={setValue}
+            items={countryItems}
+          >
+            <Combobox.InputWrapper className="flex h-7 w-32 items-center gap-1 rounded-md border border-border bg-background px-2">
+              <Combobox.Input
+                placeholder="(none)"
+                className="w-full bg-transparent text-xs outline-none"
+              />
+              <Combobox.Clear className="text-muted-foreground hover:text-foreground">
+                <CloseIcon className="h-3 w-3" />
+              </Combobox.Clear>
+            </Combobox.InputWrapper>
+            <Combobox.Portal>
+              <Combobox.Positioner sideOffset={4} className="z-50">
+                <Combobox.Popup className="w-40 rounded-md border border-border bg-popover shadow-md">
+                  <Combobox.Surface>
+                    <Combobox.List className="max-h-[200px] overflow-y-auto p-1">
+                      {countries.map((country) => (
+                        <Combobox.Item
+                          key={country.value}
+                          value={country.value}
+                          textValue={country.label}
+                          className="flex cursor-pointer items-center justify-between rounded px-2 py-1 text-xs data-[highlighted]:bg-accent"
+                        >
+                          <Combobox.ItemLabel />
+                          <Combobox.ItemIndicator className="text-primary">
+                            <CheckIcon className="h-3 w-3" />
+                          </Combobox.ItemIndicator>
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                    <Combobox.Empty className="px-2 py-4 text-center text-xs text-muted-foreground">
+                      No countries found
+                    </Combobox.Empty>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        </ConfigRow>
+      </ConfigSection>
+      <ConfigSection title="Root Props">
+        <ConfigRow label="modal" description="Lock scroll & trap focus">
+          <Toggle checked={modal} onChange={setModal} />
+        </ConfigRow>
+        <ConfigRow label="disabled" description="Disable the select">
+          <Toggle checked={disabled} onChange={setDisabled} />
+        </ConfigRow>
+      </ConfigSection>
+      <ConfigSection title="Positioner Props">
+        <ConfigRow
+          label="alignItemWithTrigger"
+          description="Align selected item with trigger"
+        >
+          <Toggle
+            checked={alignItemWithTrigger}
+            onChange={setAlignItemWithTrigger}
+          />
+        </ConfigRow>
+        <ConfigRow label="side" description="Preferred side">
+          <Select
+            value={side}
+            onChange={setSide}
+            options={[
+              { value: 'bottom', label: 'Bottom' },
+              { value: 'top', label: 'Top' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow label="align" description="Alignment on side">
+          <Select
+            value={align}
+            onChange={setAlign}
+            options={[
+              { value: 'start', label: 'Start' },
+              { value: 'center', label: 'Center' },
+              { value: 'end', label: 'End' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow label="sideOffset" description="Gap from trigger (px)">
+          <NumberInput
+            value={sideOffset}
+            onChange={setSideOffset}
+            min={0}
+            max={32}
+            step={2}
+          />
         </ConfigRow>
       </ConfigSection>
     </>
@@ -1393,15 +1811,32 @@ function BasicSelectDemo() {
       description="Single select dropdown"
       config={config}
     >
-      <SelectPrimitive.Root value={value} onValueChange={setValue}>
-        <SelectPrimitive.Trigger className="inline-flex min-w-[200px] items-center justify-between rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-accent/50 data-[placeholder]:text-muted-foreground">
+      <SelectPrimitive.Root
+        value={value}
+        onValueChange={setValue}
+        items={countryItems}
+        modal={modal}
+        disabled={disabled}
+        onOpenChange={handleOpenChange}
+      >
+        <SelectPrimitive.Trigger className="inline-flex min-w-[200px] items-center justify-between rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-accent/50 data-[placeholder]:text-muted-foreground data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed">
           <SelectPrimitive.Value placeholder="Select a country..." />
+          {/*<SelectPrimitive.Value placeholder="Select a country...">
+            {({ value, placeholder, getValueText }) =>
+              value ? getValueText(value) : placeholder
+            }
+          </SelectPrimitive.Value>*/}
           <SelectPrimitive.Icon className="text-muted-foreground data-[popup-open]:rotate-180 transition-transform">
             <ChevronIcon className="h-4 w-4" />
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
         <SelectPrimitive.Portal>
-          <SelectPrimitive.Positioner sideOffset={8}>
+          <SelectPrimitive.Positioner
+            alignItemWithTrigger={alignItemWithTrigger}
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+          >
             <SelectPrimitive.Popup className="min-w-[200px] rounded-lg border border-border bg-popover shadow-lg">
               <SelectPrimitive.Surface>
                 <SelectPrimitive.List className="p-1 focus:outline-none">
@@ -1432,6 +1867,16 @@ function BasicSelectDemo() {
 
 function MultiSelectDemo() {
   const [values, setValues] = React.useState<string[]>(['react'])
+
+  const handleOpenChange = React.useCallback(
+    (
+      open: boolean,
+      eventDetails: SelectPrimitive.Root.OpenChangeEventDetails,
+    ) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
 
   const frameworks = [
     { value: 'react', label: 'React' },
@@ -1470,7 +1915,12 @@ function MultiSelectDemo() {
       description="Select multiple values"
       config={config}
     >
-      <SelectPrimitive.Root multiple values={values} onValuesChange={setValues}>
+      <SelectPrimitive.Root
+        multiple
+        values={values}
+        onValuesChange={setValues}
+        onOpenChange={handleOpenChange}
+      >
         <SelectPrimitive.Trigger className="inline-flex min-w-[220px] items-center justify-between rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-accent/50 data-[placeholder]:text-muted-foreground">
           <SelectPrimitive.Value placeholder="Select frameworks...">
             {({ values: selectedValues }) => {
@@ -1525,6 +1975,13 @@ function BasicComboboxDemo() {
   const [value, setValue] = React.useState('')
   const [openOnFocus, setOpenOnFocus] = React.useState(true)
 
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: Combobox.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
   const countries = [
     { value: 'us', label: 'United States' },
     { value: 'uk', label: 'United Kingdom' },
@@ -1568,6 +2025,7 @@ function BasicComboboxDemo() {
         onValueChange={setValue}
         items={countryItems}
         openOnFocus={openOnFocus}
+        onOpenChange={handleOpenChange}
       >
         <div className="relative">
           <Combobox.Input
@@ -1611,7 +2069,11 @@ function BasicComboboxDemo() {
 
 // --- Input Embedded Combobox Demo with Motion ---
 
-function InputEmbeddedComboboxDemo() {
+export function InputEmbeddedComboboxDemo({
+  withoutConfig = false,
+}: {
+  withoutConfig?: boolean
+}) {
   const [value, setValue] = React.useState('')
   const [open, setOpen] = React.useState(false)
   const [shouldAnimateItems, setShouldAnimateItems] = React.useState(false)
@@ -1619,7 +2081,7 @@ function InputEmbeddedComboboxDemo() {
   // Positioner config
   const [side, setSide] = React.useState<'top' | 'bottom'>('bottom')
   const [align, setAlign] = React.useState<'start' | 'center' | 'end'>('center')
-  const [popupPadding, setPopupPadding] = React.useState(8)
+  const [popupPadding, setPopupPadding] = React.useState(4)
   const [showScrollGradients, setShowScrollGradients] = React.useState(true)
 
   const fruits = [
@@ -1648,12 +2110,17 @@ function InputEmbeddedComboboxDemo() {
     [],
   )
 
-  const handleOpenChange = React.useCallback((nextOpen: boolean) => {
-    if (nextOpen) {
-      setShouldAnimateItems(true)
-    }
-    setOpen(nextOpen)
-  }, [])
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean, eventDetails: Combobox.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(nextOpen, eventDetails)) return
+
+      if (nextOpen) {
+        setShouldAnimateItems(true)
+      }
+      setOpen(nextOpen)
+    },
+    [],
+  )
 
   const config = (
     <>
@@ -1706,6 +2173,178 @@ function InputEmbeddedComboboxDemo() {
     </>
   )
 
+  const component = (
+    <Combobox.Root
+      value={value}
+      onValueChange={setValue}
+      items={fruitItems}
+      layout="input-embedded"
+      open={open}
+      onOpenChange={handleOpenChange}
+      modal
+    >
+      <Combobox.InputWrapper className="flex h-10 w-[280px] items-center gap-2 rounded-xl bg-white px-4 shadow-xs border">
+        <Combobox.Input
+          placeholder="Select a fruit..."
+          cursorBehavior="none"
+          render={
+            <CustomCaretInput
+              containerClassName="flex-1"
+              caret={({ active, selecting }) => {
+                // When selecting, carets stay solid (no blinking)
+                const shouldBlink = !selecting && !active
+
+                return (
+                  <motion.div
+                    className={cn(
+                      'w-[2px] h-5 rounded-full',
+                      selecting ? 'bg-neutral-600' : 'bg-blue-500',
+                    )}
+                    animate={{ opacity: shouldBlink ? [1, 0] : 1 }}
+                    transition={
+                      shouldBlink
+                        ? {
+                            duration: 0.4,
+                            repeatDelay: 0.1,
+                            repeat: Number.POSITIVE_INFINITY,
+                            repeatType: 'reverse',
+                            ease: 'easeInOut',
+                          }
+                        : { duration: 0.05 }
+                    }
+                  />
+                )
+              }}
+            />
+          }
+          className="w-full bg-transparent text-sm outline-none placeholder:select-none"
+        />
+        <Combobox.Clear className="text-gray-400 hover:text-gray-600 cursor-pointer rounded p-0.5 transition-colors">
+          <CloseIcon className="h-3.5 w-3.5" />
+        </Combobox.Clear>
+        <Combobox.Icon className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <AnimatedChevronsIcon open={open} className="h-4 w-4" />
+        </Combobox.Icon>
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <AnimatePresence>
+          {open && (
+            <Combobox.Positioner
+              side={side}
+              align={align}
+              popupPadding={popupPadding}
+              className="group/positioner"
+            >
+              <Combobox.Popup
+                className="rounded-2xl shadow-lg border bg-neutral-100"
+                render={
+                  <motion.div
+                    initial={{
+                      opacity: 0,
+                      scale: 0.95,
+                      filter: 'blur(4px)',
+                    }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                  />
+                }
+              >
+                <Combobox.Surface
+                  className="group-data-[side=top]/positioner:mb-2 group-data-[side=bottom]/positioner:mt-2"
+                  autoHighlightFirst="selected"
+                >
+                  <ScrollArea.Root className="">
+                    <ScrollArea.Viewport
+                      className={cn(
+                        'max-h-[calc(var(--spacing)*9*7)] scroll-py-5 scroll-smooth overflow-y-scroll',
+                        showScrollGradients && [
+                          'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
+                          'before:block after:block',
+                          'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
+                          'before:w-full after:w-full before:z-10 after:z-10',
+                          'before:overscroll-contain after:overscroll-contain',
+                          'before:pointer-events-none after:pointer-events-none',
+                          'before:bg-gradient-to-b before:from-neutral-100 before:to-transparent',
+                          'after:bg-gradient-to-t after:from-neutral-100 after:to-transparent',
+                          'before:h-[min(30px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(30px,var(--scroll-area-overflow-y-end,30px))]',
+                        ],
+                      )}
+                    >
+                      <Combobox.List render={<ScrollArea.Content />}>
+                        <AnimatePresence>
+                          {fruits.map((fruit, index) => {
+                            const staggerDelay = shouldAnimateItems
+                              ? index * 0.02
+                              : 0
+                            const isSelected = value === fruit.value
+                            return (
+                              <Combobox.Item
+                                key={fruit.value}
+                                value={fruit.value}
+                                textValue={fruit.label}
+                                className={cn(
+                                  'relative flex cursor-pointer items-center justify-between rounded-2xl px-3 h-9',
+                                  'text-sm font-medium text-primary/60 data-[highlighted]:text-primary/90 transition-colors',
+                                )}
+                                render={
+                                  <motion.div
+                                    initial={
+                                      shouldAnimateItems
+                                        ? { opacity: 0, x: -10 }
+                                        : false
+                                    }
+                                    animate={{
+                                      opacity: 1,
+                                      x: 0,
+                                      transition: {
+                                        duration: 0.15,
+                                        delay: staggerDelay,
+                                        ease: [0.4, 0, 0.2, 1],
+                                      },
+                                    }}
+                                    onAnimationComplete={() => {
+                                      if (index === fruits.length - 1) {
+                                        setShouldAnimateItems(false)
+                                      }
+                                    }}
+                                  />
+                                }
+                              >
+                                <HighlightIndicator layoutId="combobox-highlight" />
+                                <Combobox.ItemLabel className="relative z-[1]">
+                                  {fruit.label}
+                                </Combobox.ItemLabel>
+                                {isSelected && (
+                                  <motion.div className="relative z-[1] size-2 bg-blue-500 rounded-full" />
+                                )}
+                              </Combobox.Item>
+                            )
+                          })}
+                        </AnimatePresence>
+                      </Combobox.List>
+                    </ScrollArea.Viewport>
+                    <ScrollArea.Scrollbar
+                      orientation="vertical"
+                      className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
+                    >
+                      <ScrollArea.Thumb className="relative flex-1 rounded-full bg-neutral-300" />
+                    </ScrollArea.Scrollbar>
+                  </ScrollArea.Root>
+                  <Combobox.Empty className="px-3 py-8 text-center text-sm text-neutral-500">
+                    No fruits found
+                  </Combobox.Empty>
+                </Combobox.Surface>
+              </Combobox.Popup>
+            </Combobox.Positioner>
+          )}
+        </AnimatePresence>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+
+  if (withoutConfig) return component
+
   return (
     <DemoSection
       id="combobox-input-embedded"
@@ -1714,163 +2353,8 @@ function InputEmbeddedComboboxDemo() {
       description="macOS-style popup with motion animations"
       config={config}
     >
-      <div className="rounded-2xl bg-neutral-300 p-12">
-        <Combobox.Root
-          value={value}
-          onValueChange={setValue}
-          items={fruitItems}
-          layout="input-embedded"
-          open={open}
-          onOpenChange={handleOpenChange}
-        >
-          <Combobox.InputWrapper className="flex h-10 w-[280px] items-center gap-2 rounded-xl bg-white px-4 shadow-xs border">
-            <Combobox.Input
-              placeholder="Select a fruit..."
-              render={
-                <CustomCaretInput
-                  containerClassName="flex-1"
-                  caret={({ active }) => (
-                    <motion.div
-                      className="w-[2.5px] h-5 bg-blue-500 rounded-full"
-                      animate={{ opacity: active ? 1 : [1, 0.2] }}
-                      transition={
-                        active
-                          ? { duration: 0.05 }
-                          : {
-                              duration: 0.4,
-                              repeat: Number.POSITIVE_INFINITY,
-                              repeatType: 'reverse',
-                              ease: 'easeInOut',
-                            }
-                      }
-                    />
-                  )}
-                />
-              }
-              className="w-full bg-transparent text-sm outline-none"
-            />
-            <Combobox.Clear className="text-gray-400 hover:text-gray-600 cursor-pointer rounded p-0.5 transition-colors">
-              <CloseIcon className="h-3.5 w-3.5" />
-            </Combobox.Clear>
-            <Combobox.Icon className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
-              <AnimatedChevronsIcon open={open} className="h-4 w-4" />
-            </Combobox.Icon>
-          </Combobox.InputWrapper>
-          <Combobox.Portal>
-            <AnimatePresence>
-              {open && (
-                <Combobox.Positioner
-                  side={side}
-                  align={align}
-                  popupPadding={popupPadding}
-                  className="group/positioner"
-                >
-                  <Combobox.Popup
-                    className="rounded-xl shadow-lg border bg-neutral-100"
-                    render={
-                      <motion.div
-                        initial={{
-                          opacity: 0,
-                          scale: 0.95,
-                          filter: 'blur(4px)',
-                        }}
-                        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-                      />
-                    }
-                  >
-                    <Combobox.Surface
-                      className="group-data-[side=top]/positioner:mb-2 group-data-[side=bottom]/positioner:mt-2"
-                      autoHighlightFirst="selected"
-                    >
-                      <ScrollArea.Root className="h-[calc(var(--spacing)*9*7)] relative">
-                        <ScrollArea.Viewport
-                          className={cn(
-                            'h-full scroll-py-5 scroll-smooth',
-                            showScrollGradients && [
-                              'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
-                              'before:block after:block',
-                              'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
-                              'before:w-full after:w-full before:z-10 after:z-10',
-                              'before:overscroll-contain after:overscroll-contain',
-                              'before:pointer-events-none after:pointer-events-none',
-                              'before:bg-gradient-to-b before:from-neutral-100 before:to-transparent',
-                              'after:bg-gradient-to-t after:from-neutral-100 after:to-transparent',
-                              'before:h-[min(30px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(30px,var(--scroll-area-overflow-y-end,30px))]',
-                            ],
-                          )}
-                        >
-                          <Combobox.List render={<ScrollArea.Content />}>
-                            <AnimatePresence>
-                              {fruits.map((fruit, index) => {
-                                const staggerDelay = shouldAnimateItems
-                                  ? index * 0.02
-                                  : 0
-                                const isSelected = value === fruit.value
-                                return (
-                                  <Combobox.Item
-                                    key={fruit.value}
-                                    value={fruit.value}
-                                    textValue={fruit.label}
-                                    className={cn(
-                                      'relative flex cursor-pointer items-center justify-between rounded-2xl px-3 h-9',
-                                      'text-sm font-medium text-primary/60 data-[highlighted]:text-primary/90 transition-colors',
-                                    )}
-                                    render={
-                                      <motion.div
-                                        initial={
-                                          shouldAnimateItems
-                                            ? { opacity: 0, x: -10 }
-                                            : false
-                                        }
-                                        animate={{
-                                          opacity: 1,
-                                          x: 0,
-                                          transition: {
-                                            duration: 0.15,
-                                            delay: staggerDelay,
-                                            ease: [0.4, 0, 0.2, 1],
-                                          },
-                                        }}
-                                        onAnimationComplete={() => {
-                                          if (index === fruits.length - 1) {
-                                            setShouldAnimateItems(false)
-                                          }
-                                        }}
-                                      />
-                                    }
-                                  >
-                                    <HighlightIndicator layoutId="combobox-highlight" />
-                                    <Combobox.ItemLabel className="relative z-[1]">
-                                      {fruit.label}
-                                    </Combobox.ItemLabel>
-                                    {isSelected && (
-                                      <motion.div className="relative z-[1] size-2 bg-blue-500 rounded-full" />
-                                    )}
-                                  </Combobox.Item>
-                                )
-                              })}
-                            </AnimatePresence>
-                          </Combobox.List>
-                        </ScrollArea.Viewport>
-                        <ScrollArea.Scrollbar
-                          orientation="vertical"
-                          className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
-                        >
-                          <ScrollArea.Thumb className="relative flex-1 rounded-full bg-neutral-300" />
-                        </ScrollArea.Scrollbar>
-                      </ScrollArea.Root>
-                      <Combobox.Empty className="px-3 py-8 text-center text-sm text-neutral-500">
-                        No fruits found
-                      </Combobox.Empty>
-                    </Combobox.Surface>
-                  </Combobox.Popup>
-                </Combobox.Positioner>
-              )}
-            </AnimatePresence>
-          </Combobox.Portal>
-        </Combobox.Root>
+      <div className="rounded-2xl bg-neutral-300 size-full flex flex-col items-center justify-center">
+        {component}
       </div>
     </DemoSection>
   )
@@ -1881,6 +2365,13 @@ function InputEmbeddedComboboxDemo() {
 function MultiComboboxDemo() {
   const [values, setValues] = React.useState<string[]>(['react'])
   const [closeOnSelect, setCloseOnSelect] = React.useState(false)
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: Combobox.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
 
   const frameworks = [
     { value: 'react', label: 'React' },
@@ -1934,6 +2425,7 @@ function MultiComboboxDemo() {
         values={values}
         onValuesChange={setValues}
         closeOnSelect={closeOnSelect}
+        onOpenChange={handleOpenChange}
       >
         <div className="relative">
           <Combobox.Input
@@ -2034,7 +2526,9 @@ function VirtualizedComboboxDemo() {
   )
 
   const handleOpenChange = React.useCallback(
-    (open: boolean) => {
+    (open: boolean, eventDetails: Combobox.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+
       if (!open && scrollElement) {
         scrollElement.scrollTop = 0
         setInputValue('')
@@ -2233,9 +2727,41 @@ const CloseIcon = ({ className }: { className?: string }) => (
 // ============================================================================
 
 export function MenuPlayground() {
-  const [activeDemo, setActiveDemo] = React.useState<string | null>(null)
+  const [activeDemo, setActiveDemoState] = React.useState<string | null>(() => {
+    // Initialize from URL hash on mount
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.slice(1)
+      if (hash) return hash
+    }
+    return null
+  })
   const [configContent, setConfigContent] =
     React.useState<React.ReactNode>(null)
+
+  // Sync activeDemo to URL hash for persistence across hot reloads
+  const setActiveDemo = React.useCallback((id: string | null) => {
+    setActiveDemoState(id)
+    if (typeof window !== 'undefined' && id) {
+      // Update hash without scrolling (we manage scroll ourselves)
+      window.history.replaceState(null, '', `#${id}`)
+    }
+  }, [])
+
+  // Restore scroll position on mount from hash
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.slice(1)
+      if (hash) {
+        // Delay to ensure elements are mounted
+        requestAnimationFrame(() => {
+          const element = document.getElementById(hash)
+          if (element) {
+            element.scrollIntoView({ behavior: 'instant' })
+          }
+        })
+      }
+    }
+  }, [])
 
   return (
     <PlaygroundContext.Provider

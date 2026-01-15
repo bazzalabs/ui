@@ -1,12 +1,17 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
-import type * as React from 'react'
+import { useCallback } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   PopupMenuProviders,
+  type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import type {
+  DropdownMenuHighlightChangeEventDetails,
+  DropdownMenuOpenChangeEventDetails,
+} from '../events.js'
 
 export interface DropdownMenuRootProps
   extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
@@ -18,8 +23,12 @@ export interface DropdownMenuRootProps
 
   /**
    * Callback when the open state changes.
+   * The second parameter contains event details including the reason for the change.
    */
-  onOpenChange?: (open: boolean) => void
+  onOpenChange?: (
+    open: boolean,
+    eventDetails: DropdownMenuOpenChangeEventDetails,
+  ) => void
 
   /**
    * Whether the dropdown menu is initially open.
@@ -60,8 +69,13 @@ export interface DropdownMenuRootProps
    * Callback when the highlighted item changes.
    * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
    * Only called when `virtualized={true}`.
+   * The third parameter contains event details including the reason for the change.
    */
-  onHighlightChange?: (id: string | null, index: number) => void
+  onHighlightChange?: (
+    id: string | null,
+    index: number,
+    eventDetails: DropdownMenuHighlightChangeEventDetails,
+  ) => void
 
   children: React.ReactNode
 }
@@ -94,11 +108,14 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     virtualization,
     handleOpenChange,
   } = usePopupMenuRoot({
-    onOpenChange,
+    // Cast to generic type - component handles type safety via narrowed types
+    onOpenChange:
+      onOpenChange as unknown as UsePopupMenuRootParams['onOpenChange'],
     defaultOpen,
     virtualized,
     items: itemsProp,
-    onHighlightChange,
+    onHighlightChange:
+      onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
   })
 
   // Sync controlled open prop to store
@@ -106,6 +123,19 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
 
   // Get open state from store for Popover
   const open = store.useState('open')
+
+  // Wrapper to adapt Popover's event details to our handleOpenChange
+  const handlePopoverOpenChange = useCallback(
+    (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
+      // Forward to our internal handler with the reason and event
+      handleOpenChange(
+        nextOpen,
+        popoverDetails.reason as DropdownMenuOpenChangeEventDetails['reason'],
+        popoverDetails.event,
+      )
+    },
+    [handleOpenChange],
+  )
 
   return (
     <PopupMenuProviders
@@ -121,7 +151,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
       <Popover.Root
         {...rest}
         open={open}
-        onOpenChange={handleOpenChange}
+        onOpenChange={handlePopoverOpenChange}
         modal={modal}
       >
         {children}
@@ -132,6 +162,8 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
 
 export namespace DropdownMenuRoot {
   export interface Props extends DropdownMenuRootProps {}
-  export type ChangeEventDetails = Popover.Root.ChangeEventDetails
+  export type OpenChangeEventDetails = DropdownMenuOpenChangeEventDetails
+  export type HighlightChangeEventDetails =
+    DropdownMenuHighlightChangeEventDetails
   export type Actions = Popover.Root.Actions
 }

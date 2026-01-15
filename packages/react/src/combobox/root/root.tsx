@@ -3,8 +3,10 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
+import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
   PopupMenuProviders,
+  type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
 import {
@@ -14,6 +16,10 @@ import {
   type ItemTextRegistry,
 } from '../contexts/combobox-context.js'
 import type { ComboboxLayout } from '../contexts/combobox-positioner-context.js'
+import type {
+  ComboboxHighlightChangeEventDetails,
+  ComboboxOpenChangeEventDetails,
+} from '../events.js'
 
 export interface ComboboxRootProps
   extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
@@ -26,8 +32,12 @@ export interface ComboboxRootProps
 
   /**
    * Callback when the open state changes.
+   * The second parameter contains event details including the reason for the change.
    */
-  onOpenChange?: (open: boolean) => void
+  onOpenChange?: (
+    open: boolean,
+    eventDetails: ComboboxOpenChangeEventDetails,
+  ) => void
 
   /**
    * Whether the combobox is initially open.
@@ -193,8 +203,13 @@ export interface ComboboxRootProps
    * Callback when the highlighted item changes.
    * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
    * Only called when `virtualized={true}`.
+   * The third parameter contains event details including the reason for the change.
    */
-  onHighlightChange?: (id: string | null, index: number) => void
+  onHighlightChange?: (
+    id: string | null,
+    index: number,
+    eventDetails: ComboboxHighlightChangeEventDetails,
+  ) => void
 
   // ===== Layout =====
   /**
@@ -306,11 +321,14 @@ export function ComboboxRoot(props: ComboboxRootProps) {
     virtualization,
     handleOpenChange: baseHandleOpenChange,
   } = usePopupMenuRoot({
-    onOpenChange,
+    // Cast to generic type - component handles type safety via narrowed types
+    onOpenChange:
+      onOpenChange as unknown as UsePopupMenuRootParams['onOpenChange'],
     defaultOpen,
     virtualized,
     items: virtualItems,
-    onHighlightChange,
+    onHighlightChange:
+      onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
   })
 
   // Sync controlled open prop to store
@@ -322,25 +340,40 @@ export function ComboboxRoot(props: ComboboxRootProps) {
   // Custom handleOpenChange that ignores close events when input has focus
   // This prevents base-ui's Popover from closing when clicking on the input
   const handleOpenChange = React.useCallback(
-    (newOpen: boolean) => {
-      console.log('[Combobox Root] handleOpenChange', {
-        newOpen,
-        activeElement: document.activeElement,
-        inputRef: inputRef.current,
-      })
+    (
+      newOpen: boolean,
+      reason?: ComboboxOpenChangeEventDetails['reason'],
+      event?: Event,
+    ) => {
       // When trying to close, check if input has focus
       if (!newOpen && inputRef.current) {
         const activeElement = document.activeElement
         // If the input has focus or will have focus, don't close
         if (activeElement === inputRef.current) {
-          console.log('[Combobox Root] Ignoring close because input has focus')
           return
         }
       }
-      console.log('[Combobox Root] Calling baseHandleOpenChange', { newOpen })
-      baseHandleOpenChange(newOpen)
+      // Cast reason - combobox has additional reasons beyond PopupMenu's reasons
+      baseHandleOpenChange(
+        newOpen,
+        reason as Parameters<typeof baseHandleOpenChange>[1],
+        event,
+      )
     },
     [baseHandleOpenChange],
+  )
+
+  // Wrapper to adapt Popover's event details to our handleOpenChange
+  const handlePopoverOpenChange = React.useCallback(
+    (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
+      // Forward to our internal handler with the reason and event
+      handleOpenChange(
+        nextOpen,
+        popoverDetails.reason as ComboboxOpenChangeEventDetails['reason'],
+        popoverDetails.event,
+      )
+    },
+    [handleOpenChange],
   )
 
   // ===== Single Selection State =====
@@ -436,7 +469,6 @@ export function ComboboxRoot(props: ComboboxRootProps) {
 
   // ===== Open/Close Helpers =====
   const openCombobox = React.useCallback(() => {
-    console.log('[Combobox Root] openCombobox called', { disabled })
     if (!disabled) {
       // If opening with a selected value (single-select), show all items initially.
       // Otherwise, use active filtering.
@@ -445,30 +477,38 @@ export function ComboboxRoot(props: ComboboxRootProps) {
       } else {
         setFilterMode({ type: 'active' })
       }
-      console.log('[Combobox Root] Calling store.setOpen(true)')
       store.setOpen(true)
     }
   }, [disabled, store, multiple, value, setFilterMode])
 
-  const closeCombobox = React.useCallback(() => {
-    // Freeze the current search state BEFORE closing to prevent filter changes
-    // during exit animations.
-    //
-    // Get the effective search value based on current filter mode:
-    // - 'active': freeze to current inputValue
-    // - 'showAll': freeze to '' (keep showing all items)
-    // - 'frozen': keep the existing frozen value (shouldn't happen, but handle it)
-    const currentMode = filterModeRef.current
-    const searchToFreeze =
-      currentMode.type === 'active'
-        ? internalInputValue
-        : currentMode.type === 'showAll'
-          ? ''
-          : currentMode.search
+  const closeCombobox = React.useCallback(
+    (reason?: ComboboxOpenChangeEventDetails['reason'], event?: Event) => {
+      // Freeze the current search state BEFORE closing to prevent filter changes
+      // during exit animations.
+      //
+      // Get the effective search value based on current filter mode:
+      // - 'active': freeze to current inputValue
+      // - 'showAll': freeze to '' (keep showing all items)
+      // - 'frozen': keep the existing frozen value (shouldn't happen, but handle it)
+      const currentMode = filterModeRef.current
+      const searchToFreeze =
+        currentMode.type === 'active'
+          ? internalInputValue
+          : currentMode.type === 'showAll'
+            ? ''
+            : currentMode.search
 
-    setFilterMode({ type: 'frozen', search: searchToFreeze })
-    store.setOpen(false)
-  }, [store, setFilterMode, internalInputValue])
+      setFilterMode({ type: 'frozen', search: searchToFreeze })
+      // Cast is safe: closeCombobox only receives close-related reasons
+      // which are a subset of PopupMenuOpenChangeReason
+      store.setOpen(
+        false,
+        reason as PopupMenuOpenChangeReason | undefined,
+        event,
+      )
+    },
+    [store, setFilterMode, internalInputValue],
+  )
 
   // ===== Combobox Context =====
   const comboboxContextValue: ComboboxContextValue = React.useMemo(
@@ -591,7 +631,7 @@ export function ComboboxRoot(props: ComboboxRootProps) {
         <Popover.Root
           {...rest}
           open={open}
-          onOpenChange={handleOpenChange}
+          onOpenChange={handlePopoverOpenChange}
           modal={modal}
         >
           {children}
@@ -603,6 +643,7 @@ export function ComboboxRoot(props: ComboboxRootProps) {
 
 export namespace ComboboxRoot {
   export interface Props extends ComboboxRootProps {}
-  export type ChangeEventDetails = Popover.Root.ChangeEventDetails
+  export type OpenChangeEventDetails = ComboboxOpenChangeEventDetails
+  export type HighlightChangeEventDetails = ComboboxHighlightChangeEventDetails
   export type Actions = Popover.Root.Actions
 }

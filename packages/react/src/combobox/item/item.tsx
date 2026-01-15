@@ -213,11 +213,12 @@ export const ComboboxItem = React.forwardRef<HTMLDivElement, ComboboxItemProps>(
       () => ({
         id: item.id,
         value,
+        textValue,
         highlighted: item.isHighlighted,
         disabled,
         selected,
       }),
-      [item.id, value, item.isHighlighted, disabled, selected],
+      [item.id, value, textValue, item.isHighlighted, disabled, selected],
     )
 
     // Merge user-provided handlers with item handlers

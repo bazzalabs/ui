@@ -2,8 +2,16 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  createChangeEventDetails,
+  REASONS,
+} from '../../../../utils/events/index.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
+import type {
+  CheckedChangeEventDetails,
+  CheckedChangeReason,
+} from '../../events.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import { PopupMenuCheckboxItemDataAttributes } from './checkbox-item.data-attrs.js'
 import {
@@ -43,8 +51,12 @@ export interface PopupMenuCheckboxItemProps
 
   /**
    * Callback fired when the checked state changes.
+   * The second parameter contains event details including the reason for the change.
    */
-  onCheckedChange?: (checked: boolean) => void
+  onCheckedChange?: (
+    checked: boolean,
+    eventDetails: CheckedChangeEventDetails,
+  ) => void
 
   /**
    * Additional keywords to match against when filtering.
@@ -130,13 +142,23 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const isControlled = checkedProp !== undefined
   const checked = isControlled ? checkedProp : internalChecked
 
-  const toggleChecked = React.useCallback(() => {
-    const newChecked = !checked
-    if (!isControlled) {
-      setInternalChecked(newChecked)
-    }
-    onCheckedChange?.(newChecked)
-  }, [checked, isControlled, onCheckedChange])
+  const toggleChecked = React.useCallback(
+    (reason: CheckedChangeReason = REASONS.itemPress, event?: Event) => {
+      const newChecked = !checked
+      const eventDetails = createChangeEventDetails(reason, event)
+
+      // Call user's callback first
+      onCheckedChange?.(newChecked, eventDetails)
+
+      // If canceled, don't update internal state
+      if (eventDetails.isCanceled) return
+
+      if (!isControlled) {
+        setInternalChecked(newChecked)
+      }
+    },
+    [checked, isControlled, onCheckedChange],
+  )
 
   const item = usePopupMenuItem({
     keywords,

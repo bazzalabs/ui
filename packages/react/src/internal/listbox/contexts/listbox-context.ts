@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { HighlightChangeEventDetails } from '../../popup-menu/events.js'
 import type { ListboxStore, VirtualItem } from '../store/ListboxStore.js'
 
 /**
@@ -11,8 +12,15 @@ export interface VirtualizationConfig {
   virtualized: boolean
   /** Pre-registered items for virtualization */
   items: VirtualItem[]
-  /** Callback when highlighted item changes (for scroll sync) */
-  onHighlightChange?: (id: string | null, index: number) => void
+  /**
+   * Callback when highlighted item changes (for scroll sync).
+   * The third parameter contains event details including the reason for the change.
+   */
+  onHighlightChange?: (
+    id: string | null,
+    index: number,
+    eventDetails: HighlightChangeEventDetails,
+  ) => void
 }
 
 export interface ListboxContextValue {

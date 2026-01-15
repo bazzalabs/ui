@@ -5,6 +5,7 @@ import type {
   ListboxStore,
   VirtualItem,
 } from '../../listbox/store/ListboxStore.js'
+import type { HighlightChangeEventDetails } from '../events.js'
 
 // ============================================================================
 // Popup Menu Context
@@ -28,8 +29,15 @@ export interface VirtualizationConfig {
   virtualized: boolean
   /** Pre-registered items for virtualization */
   items: VirtualItem[]
-  /** Callback when highlighted item changes (for scroll sync) */
-  onHighlightChange?: (id: string | null, index: number) => void
+  /**
+   * Callback when highlighted item changes (for scroll sync).
+   * The third parameter contains event details including the reason for the change.
+   */
+  onHighlightChange?: (
+    id: string | null,
+    index: number,
+    eventDetails: HighlightChangeEventDetails,
+  ) => void
 }
 
 /**
