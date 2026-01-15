@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { ComboboxOpenChangeReason } from '../events.js'
 import type { ComboboxLayout } from './combobox-positioner-context.js'
 
 // ============================================================================
@@ -99,8 +100,8 @@ export interface ComboboxContextValue {
   openOnFocus: boolean
   /** Open the combobox */
   openCombobox: () => void
-  /** Close the combobox */
-  closeCombobox: () => void
+  /** Close the combobox with an optional reason and event */
+  closeCombobox: (reason?: ComboboxOpenChangeReason, event?: Event) => void
 
   // ===== Filter Mode =====
   /**

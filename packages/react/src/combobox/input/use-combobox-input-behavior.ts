@@ -4,6 +4,7 @@ import * as React from 'react'
 import type { ListboxStore } from '../../internal/listbox/index.js'
 import { usePopupMenuKeyboard } from '../../internal/popup-menu/hooks/use-popup-menu-keyboard.js'
 import type { FocusOwnerStore } from '../../internal/popup-menu/store/FocusOwnerStore.js'
+import { REASONS } from '../../utils/events/index.js'
 import type { ComboboxContextValue } from '../contexts/combobox-context.js'
 import type { ComboboxInputCursorBehavior } from './input.js'
 
@@ -73,6 +74,45 @@ export function useComboboxInputBehavior(
 
   // Track the last selection to restore after controlled value updates
   const selectionRef = React.useRef<{ start: number; end: number } | null>(null)
+
+  // Track if blur was caused by a pointer event (to distinguish outside-press from focus-out)
+  // Also store the event itself so we can pass it to the close handler
+  const outsidePointerEventRef = React.useRef<PointerEvent | null>(null)
+
+  // Listen for pointerdown on document to detect outside clicks
+  React.useEffect(() => {
+    if (!open) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const input = comboboxContext.inputRef.current
+      const inputWrapper = comboboxContext.inputWrapperRef.current
+      const listbox = document.getElementById(comboboxContext.listId)
+
+      const target = event.target as Node
+
+      // Check if click is inside the input, wrapper, or listbox
+      const isInsideInput = input?.contains(target)
+      const isInsideWrapper = inputWrapper?.contains(target)
+      const isInsideListbox = listbox?.contains(target)
+
+      if (!isInsideInput && !isInsideWrapper && !isInsideListbox) {
+        // Pointer down outside - store the event for blur handler
+        outsidePointerEventRef.current = event
+      }
+    }
+
+    // Use capture phase so we see the event before stopPropagation can block it
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      outsidePointerEventRef.current = null
+    }
+  }, [
+    open,
+    comboboxContext.inputRef,
+    comboboxContext.inputWrapperRef,
+    comboboxContext.listId,
+  ])
 
   // Restore selection after React re-renders the controlled input
   React.useLayoutEffect(() => {
@@ -244,7 +284,11 @@ export function useComboboxInputBehavior(
         if (!isInsideListbox && !isOnInput) {
           // Reset the "already focused" flag when closing
           wasAlreadyFocusedRef.current = false
-          comboboxContext.closeCombobox()
+          // Use outside-press if blur was caused by a pointer event, otherwise focus-out
+          const pointerEvent = outsidePointerEventRef.current
+          const reason = pointerEvent ? REASONS.outsidePress : REASONS.focusOut
+          outsidePointerEventRef.current = null
+          comboboxContext.closeCombobox(reason, pointerEvent ?? undefined)
         }
       })
     },
@@ -259,10 +303,7 @@ export function useComboboxInputBehavior(
 
       const isOpen = store.state.open
 
-      console.log('[Combobox Input] handleClick', { isOpen, disabled })
-
       if (!disabled && !isOpen) {
-        console.log('[Combobox Input] Opening combobox from click')
         const inputElement = event.target as HTMLInputElement
 
         // Capture cursor position before opening (for cursorBehavior='none')
@@ -283,12 +324,9 @@ export function useComboboxInputBehavior(
 
         comboboxContext.openCombobox()
       } else if (isOpen) {
-        console.log('[Combobox Input] Already open, marking as already focused')
         // Clicking while already open - mark as already focused
         // This will prevent cursorBehavior from being applied if popup re-opens
         wasAlreadyFocusedRef.current = true
-      } else {
-        console.log('[Combobox Input] Click ignored', { disabled, isOpen })
       }
     },
     [
@@ -312,7 +350,7 @@ export function useComboboxInputBehavior(
       // Handle Escape to close popup (input stays focused)
       if (open && event.key === 'Escape') {
         event.preventDefault()
-        comboboxContext.closeCombobox()
+        comboboxContext.closeCombobox(REASONS.escapeKey)
         return
       }
 

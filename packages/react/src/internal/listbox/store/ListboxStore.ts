@@ -1,5 +1,18 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
+import {
+  type ChangeEventDetails,
+  createChangeEventDetails,
+  createGenericEventDetails,
+  type GenericEventDetails,
+  REASONS,
+} from '../../../utils/events/index.js'
+import type {
+  HighlightChangeEventDetails,
+  HighlightChangeReason,
+  PopupMenuOpenChangeEventDetails,
+  PopupMenuOpenChangeReason,
+} from '../../popup-menu/events.js'
 import { commandScore } from '../utils/command-score.js'
 
 // ============================================================================
@@ -111,8 +124,14 @@ export interface ListboxContext {
   readonly submenuCloses: Map<string, () => void>
   /** Map of shortcut key to item ID */
   readonly shortcuts: Map<string, string>
-  /** Callback when open state changes */
-  onOpenChange: (open: boolean) => void
+  /**
+   * Callback when open state changes.
+   * The second parameter contains event details including the reason for the change.
+   */
+  onOpenChange: (
+    open: boolean,
+    eventDetails: PopupMenuOpenChangeEventDetails,
+  ) => void
   /** Callback when search state changes */
   onSearchChange: ((search: string) => void) | undefined
   /**
@@ -124,8 +143,15 @@ export interface ListboxContext {
    * Callback when highlighted item changes and needs scroll sync.
    * Called only when the item is not in the DOM (virtualized out of view).
    * Useful for synchronizing with virtualizers (scrollToIndex).
+   * The third parameter contains event details including the reason for the change.
    */
-  onHighlightChange: ((id: string | null, index: number) => void) | undefined
+  onHighlightChange:
+    | ((
+        id: string | null,
+        index: number,
+        eventDetails: HighlightChangeEventDetails,
+      ) => void)
+    | undefined
   /**
    * DOM refs for scroll behavior.
    * Stored in context (not state) to avoid re-renders.
@@ -288,9 +314,29 @@ export class ListboxStore extends ReactStore<
   // Actions
   // ============================================================================
 
-  setOpen(open: boolean) {
+  /**
+   * Set the open state with event details.
+   *
+   * @param open - The new open state
+   * @param reason - The reason for the state change (default: 'none')
+   * @param event - The native DOM event that triggered the change (optional)
+   */
+  setOpen(
+    open: boolean,
+    reason: PopupMenuOpenChangeReason = REASONS.none,
+    event?: Event,
+  ) {
+    const eventDetails = createChangeEventDetails(reason, event)
+
+    // Call the user's callback first
+    this.context.onOpenChange(open, eventDetails)
+
+    // If the user canceled, don't update internal state
+    if (eventDetails.isCanceled) {
+      return
+    }
+
     this.set('open', open)
-    this.context.onOpenChange(open)
   }
 
   setSearch(search: string) {
@@ -319,8 +365,14 @@ export class ListboxStore extends ReactStore<
    * Scroll the highlighted item into view.
    * Uses native scrollIntoView if the element is in the DOM,
    * otherwise falls back to onHighlightChange callback for virtualizer sync.
+   *
+   * @param id - The item ID to scroll into view
+   * @param reason - The reason for the highlight change (default: 'keyboard')
    */
-  private scrollItemIntoView(id: string) {
+  private scrollItemIntoView(
+    id: string,
+    reason: HighlightChangeReason = REASONS.keyboard,
+  ) {
     const { refs, onHighlightChange } = this.context
     const listEl = refs.listRef.current
     const itemRef = refs.itemRefs.get(id)
@@ -346,7 +398,10 @@ export class ListboxStore extends ReactStore<
       const index = this.state.virtualized
         ? this.getVirtualItemIndex(id)
         : this.getVisibleItemIndex(id)
-      onHighlightChange(id, index)
+      const eventDetails = createGenericEventDetails(reason, undefined, {
+        index,
+      })
+      onHighlightChange(id, index, eventDetails)
     }
   }
 
@@ -401,7 +456,13 @@ export class ListboxStore extends ReactStore<
   }
 
   setOnHighlightChange(
-    callback: ((id: string | null, index: number) => void) | undefined,
+    callback:
+      | ((
+          id: string | null,
+          index: number,
+          eventDetails: HighlightChangeEventDetails,
+        ) => void)
+      | undefined,
   ) {
     this.context.onHighlightChange = callback
   }
