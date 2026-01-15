@@ -11,6 +11,8 @@ export interface ComboboxItemContextValue {
   id: string
   /** The item's value */
   value: string
+  /** The text value/label for this item */
+  textValue: string | undefined
   /** Whether the item is highlighted (via keyboard or pointer) */
   highlighted: boolean
   /** Whether the item is disabled */

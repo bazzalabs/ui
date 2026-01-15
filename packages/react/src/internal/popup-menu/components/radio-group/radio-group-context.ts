@@ -1,12 +1,18 @@
 'use client'
 
 import * as React from 'react'
+import type { RadioValueChangeReason } from '../../events.js'
 
 export interface RadioGroupContextValue<T = unknown> {
   /** Current selected value */
   value: T | undefined
-  /** Function to update the selected value */
-  setValue: (value: T) => void
+  /**
+   * Function to update the selected value.
+   * @param value - The new value to select
+   * @param reason - The reason for the change (default: 'item-press')
+   * @param event - The native DOM event that triggered the change
+   */
+  setValue: (value: T, reason?: RadioValueChangeReason, event?: Event) => void
   /** Whether all items in the group are disabled */
   disabled: boolean
 }

@@ -78,6 +78,11 @@ function calculateAlignmentPosition(
     return { shouldFallback: true, left: 0, top: 0 }
   }
 
+  // Fallback if no selected item to align with
+  if (!selectedItemText) {
+    return { shouldFallback: true, left: 0, top: 0 }
+  }
+
   let offsetX = 0
   let offsetY = 0
 
