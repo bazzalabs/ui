@@ -35,6 +35,7 @@ export const siblingOpen = 'sibling-open' as const
 // Highlight changes
 export const pointer = 'pointer' as const
 export const keyboard = 'keyboard' as const
+export const auto = 'auto' as const
 
 // Programmatic/other
 export const imperativeAction = 'imperative-action' as const

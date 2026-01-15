@@ -52,7 +52,7 @@ export interface VirtualItem {
   disabled?: boolean
 }
 
-export type HighlightSource = 'keyboard' | 'pointer' | null
+export type HighlightSource = 'keyboard' | 'pointer' | 'auto' | null
 
 /**
  * Refs for DOM elements used for scroll behavior.
@@ -139,6 +139,12 @@ export interface ListboxContext {
    * When provided, navigation uses this array order instead of DOM registration order.
    */
   virtualItems: VirtualItem[]
+  /**
+   * Consumer-provided ordered list of item values when filter={false}.
+   * Used to determine correct navigation/highlight order when consumer handles filtering externally.
+   * Must always be provided when filter={false}.
+   */
+  orderedItems: string[]
   /**
    * Callback when highlighted item changes and needs scroll sync.
    * Called only when the item is not in the DOM (virtualized out of view).
@@ -262,6 +268,7 @@ export class ListboxStore extends ReactStore<
       onOpenChange: () => {},
       onSearchChange: undefined,
       virtualItems: [],
+      orderedItems: [],
       onHighlightChange: undefined,
       refs: {
         listRef: { current: null },
@@ -455,6 +462,87 @@ export class ListboxStore extends ReactStore<
     this.validateHighlight({ forceFirst: firstItemChanged })
   }
 
+  /**
+   * Set the consumer-provided ordered items.
+   * Used when filter={false} and consumer controls item order/visibility.
+   * Must always be provided when filter={false}.
+   *
+   * @param items - Array of item IDs in display order
+   */
+  setOrderedItems(items: string[]) {
+    const prevItems = this.context.orderedItems
+    this.context.orderedItems = items
+
+    console.log('[ListboxStore.setOrderedItems] called:', {
+      items,
+      prevItems,
+      sameRef: items === prevItems,
+      open: this.state.open,
+      currentHighlight: this.state.highlightedId,
+    })
+
+    // Skip if items reference didn't change (same array)
+    if (items === prevItems) {
+      console.log('[ListboxStore.setOrderedItems] skipping - same reference')
+      return
+    }
+
+    // Skip highlight update if not open
+    if (!this.state.open) {
+      console.log('[ListboxStore.setOrderedItems] skipping - not open')
+      return
+    }
+
+    // When ordered items change, highlight the first registered item
+    // Use 'auto' source to indicate this is automatic (not user-initiated)
+    // This prevents submenus from auto-opening
+    if (items.length > 0) {
+      const firstRegisteredItem = items.find((id) => this.context.items.has(id))
+      console.log('[ListboxStore.setOrderedItems] highlighting first item:', {
+        firstRegisteredItem,
+        registeredItems: Array.from(this.context.items.keys()),
+      })
+      if (firstRegisteredItem !== undefined) {
+        this.setHighlightedId(firstRegisteredItem, 'auto')
+      } else {
+        this.setHighlightedId(null)
+      }
+    } else {
+      this.setHighlightedId(null)
+    }
+  }
+
+  /**
+   * Try to auto-highlight when an item registers.
+   * This handles the case where orderedItems was set before items mounted.
+   * Only highlights if:
+   * - filter={false} (using orderedItems)
+   * - Menu is open
+   * - No item is currently highlighted
+   * - autoHighlightFirst is enabled
+   * - The registering item is the first in orderedItems
+   */
+  private maybeAutoHighlightOnRegister(id: string) {
+    if (this.context.filter !== false) return
+    if (!this.state.open) return
+    if (this.state.highlightedId !== null) return
+    if (!this.context.autoHighlightFirst) return
+
+    const orderedItems = this.context.orderedItems
+    if (orderedItems.length === 0) return
+
+    // Find the first item in orderedItems that is registered
+    const firstRegisteredItem = orderedItems.find((itemId) =>
+      this.context.items.has(itemId),
+    )
+
+    // Only highlight if this is the first registered item
+    // Use 'auto' source to indicate this is automatic (not user-initiated)
+    if (firstRegisteredItem === id) {
+      this.setHighlightedId(id, 'auto')
+    }
+  }
+
   setOnHighlightChange(
     callback:
       | ((
@@ -567,6 +655,10 @@ export class ListboxStore extends ReactStore<
 
     // Trigger recompute
     this.recomputeFilteredItems()
+
+    // When filter={false} and we're open with no highlight, try to highlight
+    // This handles the case where orderedItems was set before items mounted
+    this.maybeAutoHighlightOnRegister(id)
 
     return () => {
       this.context.items.delete(id)
@@ -807,11 +899,19 @@ export class ListboxStore extends ReactStore<
   // Internal Helpers
   // ============================================================================
 
+  /**
+   * Returns whether filtering is disabled (consumer handles filtering externally).
+   */
+  isFilterDisabled(): boolean {
+    return this.context.filter === false
+  }
+
   getVisibleItemIds(): string[] {
     const result: string[] = []
     const search = this.state.search
     const filteredItems = this.state.filteredItems
     const virtualItems = this.context.virtualItems
+    const orderedItems = this.context.orderedItems
 
     // When virtualized with items, use the virtualItems order
     // This ensures navigation order matches the data array order
@@ -821,6 +921,19 @@ export class ListboxStore extends ReactStore<
         const isVisible = search.length === 0 || score > 0
         if (isVisible && !item.disabled) {
           result.push(item.value)
+        }
+      }
+      return result
+    }
+
+    // When consumer provides ordered items (filter={false}), use that order
+    // This ensures navigation matches the consumer's intended display order
+    if (this.context.filter === false && orderedItems.length > 0) {
+      for (const itemId of orderedItems) {
+        const registration = this.context.items.get(itemId)
+        // Only include if registered (mounted) and not disabled
+        if (registration && !registration.disabled) {
+          result.push(itemId)
         }
       }
       return result
@@ -909,13 +1022,17 @@ export class ListboxStore extends ReactStore<
       const isDisabled =
         registration?.disabled ?? virtualItem?.disabled ?? false
 
+      // Item must be registered (in items map) for non-virtualized mode
+      const isRegistered = this.state.virtualized || registration !== undefined
+
       // In virtualized mode, item must also be in virtualItems array
       const inVirtualItems =
         !this.state.virtualized ||
         this.context.virtualItems.length === 0 ||
         virtualItem !== undefined
 
-      isCurrentValid = isVisible && !isDisabled && inVirtualItems
+      isCurrentValid =
+        isVisible && !isDisabled && isRegistered && inVirtualItems
     }
 
     // If current highlight is valid and we're not forcing first, keep it
@@ -934,6 +1051,16 @@ export class ListboxStore extends ReactStore<
           effectiveSearch.length === 0 || filter === false || score > 0
         if (isVisible && !item.disabled) {
           newHighlightId = item.value
+          break
+        }
+      }
+    } else if (filter === false && this.context.orderedItems.length > 0) {
+      // Consumer-controlled filtering: use orderedItems order
+      for (const itemId of this.context.orderedItems) {
+        const registration = this.context.items.get(itemId)
+        // Only include if registered (mounted) and not disabled
+        if (registration && !registration.disabled) {
+          newHighlightId = itemId
           break
         }
       }
@@ -1007,6 +1134,20 @@ export class ListboxStore extends ReactStore<
           }
         }
       })
+    }
+
+    // When filter={false}, consumer controls highlighting via setConsumerFilteredItems.
+    // Don't call validateHighlight here because consumerFilteredItems hasn't been updated yet.
+    // The highlight will be set when setConsumerFilteredItems is called from the Surface effect.
+    if (filter === false) {
+      this.update({
+        filteredItems,
+        visibleGroups,
+        filteredCount,
+        filterTrigger: this.state.filterTrigger + 1,
+        // Don't change highlight - let setConsumerFilteredItems handle it
+      })
+      return
     }
 
     // Validate highlight using the newly computed filteredItems

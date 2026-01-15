@@ -12,6 +12,10 @@ export {
   PopupMenuBackdrop as Backdrop,
   PopupMenuCheckboxItem as CheckboxItem,
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
+  PopupMenuDataInput as DataInput,
+  PopupMenuDataList as DataList,
+  // Deep Search (Data-First API)
+  PopupMenuDataSurface as DataSurface,
   PopupMenuEmpty as Empty,
   // Structure
   PopupMenuGroup as Group,
