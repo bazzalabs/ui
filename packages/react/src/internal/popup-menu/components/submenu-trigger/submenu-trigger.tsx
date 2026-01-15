@@ -269,7 +269,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       return
     }
 
-    // Only schedule open when highlighted via keyboard
+    // Only schedule open when highlighted via explicit keyboard navigation
+    // Don't auto-open for 'auto' highlights (search results, initial open)
     if (
       !item.isHighlighted ||
       parentStore.state.highlightSource !== 'keyboard'

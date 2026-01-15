@@ -173,3 +173,38 @@ export type {
   UsePopupMenuItemReturn as UseItemReturn,
 } from '../internal/popup-menu/index.js'
 export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
+
+// ============================================================================
+// Deep Search (Data-First API)
+// ============================================================================
+
+export type {
+  DataListChildrenState,
+  DataListProps,
+  DataSurfaceContextValue,
+  DataSurfaceProps,
+  DeepSearchConfig,
+  DisplayNode,
+  GroupDef,
+  ItemDef,
+  ItemRenderParams,
+  NodeDef,
+  PopupMenuDataInputProps as DropdownMenuDataInputProps,
+  PopupMenuDataListProps as DropdownMenuDataListProps,
+  PopupMenuDataSurfaceProps as DropdownMenuDataSurfaceProps,
+  RenderNodeFn,
+  RowRenderContext,
+  ScoredNode,
+  SeparatorDef,
+  SubmenuDef,
+  SubmenuRenderParams,
+} from '../internal/popup-menu/index.js'
+
+export {
+  DataSurfaceContext,
+  PopupMenuDataInput as DropdownMenuDataInput,
+  PopupMenuDataList as DropdownMenuDataList,
+  PopupMenuDataSurface as DropdownMenuDataSurface,
+  useDataSurfaceContext,
+  useMaybeDataSurfaceContext,
+} from '../internal/popup-menu/index.js'

@@ -259,9 +259,13 @@ export function useListboxItem(
   const isHighlighted = store.useState('isHighlighted', value)
   const score = store.useState('getItemScore', value)
 
+  // Check if filtering is disabled (consumer handles filtering externally)
+  const filterDisabled = store.isFilterDisabled()
+
   // Determine visibility based on filter score
+  // When filterDisabled, consumer handles filtering so all items are visible
   const hasSearch = search.length > 0
-  const isVisible = forceMount || !hasSearch || score > 0
+  const isVisible = forceMount || filterDisabled || !hasSearch || score > 0
 
   // Note: Scroll behavior is now handled by the store's setHighlightedId method.
   // It uses the registered DOM refs to call scrollIntoView when the element exists,

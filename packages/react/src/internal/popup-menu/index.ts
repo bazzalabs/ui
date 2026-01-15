@@ -263,3 +263,62 @@ export {
   PopupMenuSubmenuTriggerDataAttributes,
   PopupMenuSubmenuTriggerIndicator,
 } from './components/submenu-trigger/submenu-trigger-indicator.js'
+
+// ============================================================================
+// Deep Search (Data-First API)
+// ============================================================================
+
+// Context
+export type {
+  DataSurfaceContextValue,
+  RenderNodeFn,
+} from './deep-search/context.js'
+export {
+  DataSurfaceContext,
+  useDataSurfaceContext,
+  useMaybeDataSurfaceContext,
+} from './deep-search/context.js'
+export type { PopupMenuDataInputProps } from './deep-search/data-input.js'
+export { PopupMenuDataInput } from './deep-search/data-input.js'
+export type { PopupMenuDataListProps } from './deep-search/data-list.js'
+export { PopupMenuDataList } from './deep-search/data-list.js'
+// Components
+export type { PopupMenuDataSurfaceProps } from './deep-search/data-surface.js'
+export { PopupMenuDataSurface } from './deep-search/data-surface.js'
+
+// Types
+export type {
+  DataListChildrenState,
+  DataListProps,
+  DataSurfaceProps,
+  DeepSearchConfig,
+  DisplayNode,
+  GroupDef,
+  ItemDef,
+  ItemRenderParams,
+  NodeDef,
+  RowRenderContext,
+  ScoredNode,
+  SeparatorDef,
+  SubmenuDef,
+  SubmenuRenderParams,
+} from './deep-search/types.js'
+
+// Utilities
+export type { FilterNodesOptions } from './deep-search/utils.js'
+export {
+  buildDisplayNodes,
+  deduplicateNodes,
+  filterNodes,
+  flattenNodes,
+  getBrowseNodes,
+  getFirstNavigableId,
+  getNavigableIds,
+  isGroupDef,
+  isItemDef,
+  isSeparatorDef,
+  isSubmenuDef,
+  partitionByKind,
+  scoreNodes,
+  sortByScore,
+} from './deep-search/utils.js'

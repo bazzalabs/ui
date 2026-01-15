@@ -795,4 +795,400 @@ describe('ListboxStore', () => {
       expect(store.state.highlightedId).toBe(null)
     })
   })
+
+  describe('orderedItems (filter={false})', () => {
+    it('highlights first ordered item when set', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      // Consumer provides order: cherry first
+      store.setOrderedItems(['cherry', 'apple'])
+
+      expect(store.state.highlightedId).toBe('cherry')
+    })
+
+    it('updates highlight when ordered items change', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      // Initial order
+      store.setOrderedItems(['cherry', 'apple'])
+      expect(store.state.highlightedId).toBe('cherry')
+
+      // Change order - banana first
+      store.setOrderedItems(['banana', 'cherry'])
+      expect(store.state.highlightedId).toBe('banana')
+    })
+
+    it('clears highlight when ordered items is empty', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      store.setOrderedItems(['apple'])
+      expect(store.state.highlightedId).toBe('apple')
+
+      store.setOrderedItems([])
+      expect(store.state.highlightedId).toBe(null)
+    })
+
+    it('skips unregistered items in ordered list', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      // 'banana' is not registered
+      store.setOrderedItems(['banana', 'cherry', 'apple'])
+
+      // Should highlight cherry (first registered item)
+      expect(store.state.highlightedId).toBe('cherry')
+    })
+
+    it('does not update highlight when not open', () => {
+      const store = createStore({ open: false }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      store.setOrderedItems(['banana', 'apple'])
+
+      // Should not change highlight when closed
+      expect(store.state.highlightedId).toBe(null)
+    })
+
+    it('getVisibleItemIds returns items in ordered order', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['cherry', 'apple', 'banana'])
+
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['cherry', 'apple', 'banana'])
+    })
+
+    it('getVisibleItemIds excludes disabled items', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana', disabled: true },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['cherry', 'banana', 'apple'])
+
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['cherry', 'apple'])
+    })
+
+    it('getVisibleItemIds excludes unregistered items', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      // 'banana' is not registered
+      store.setOrderedItems(['cherry', 'banana', 'apple'])
+
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['cherry', 'apple'])
+    })
+
+    it('highlights first item when items register after menu opens', () => {
+      // This simulates the real React timing:
+      // 1. Menu opens
+      // 2. Surface effect sets orderedItems
+      // 3. Items mount and register AFTER
+
+      const store = createStore({ open: false }, { filter: false })
+
+      // Set orderedItems before items are registered (like Surface effect)
+      store.setOrderedItems(['apple', 'banana'])
+
+      // Open menu - no items registered yet
+      store.setOpen(true)
+
+      // At this point, highlightFirstItem() found no registered items
+      expect(store.state.highlightedId).toBe(null)
+
+      // Now items register (like React components mounting)
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      // First item should now be highlighted
+      expect(store.state.highlightedId).toBe('apple')
+    })
+
+    it('highlights first item on re-open when orderedItems reference is same', () => {
+      // This simulates the bug: close and re-open with memoized orderedItems
+      const store = createStore({ open: false }, { filter: false })
+
+      const orderedItems = ['apple', 'banana']
+
+      // First open
+      store.setOrderedItems(orderedItems)
+      store.setOpen(true)
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+      expect(store.state.highlightedId).toBe('apple')
+
+      // Close - clears highlight
+      store.setOpen(false)
+      expect(store.state.highlightedId).toBe(null)
+
+      // Re-open with SAME orderedItems reference
+      store.setOrderedItems(orderedItems) // Same reference, setOrderedItems skips
+      store.setOpen(true)
+
+      // Items are still registered, so highlightFirstItem should work
+      // But if it doesn't, maybeAutoHighlightOnRegister won't help either
+      // because items are already registered
+
+      // Actually this case works because items ARE registered
+      // The bug was when items need to RE-register on re-mount
+      expect(store.state.highlightedId).toBe('apple')
+    })
+
+    it('does not highlight if autoHighlightFirst is false', () => {
+      const store = createStore(
+        { open: false },
+        { filter: false, autoHighlightFirst: false },
+      )
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setOpen(true)
+
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      // Should not auto-highlight when autoHighlightFirst is false
+      expect(store.state.highlightedId).toBe(null)
+    })
+
+    it('highlights first registered item in orderedItems order', () => {
+      const store = createStore({ open: false }, { filter: false })
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setOpen(true)
+
+      // Register banana first (but apple is first in orderedItems)
+      store.registerItem('banana', { value: 'Banana' })
+      // banana is highlighted because it's the first REGISTERED item in orderedItems
+      expect(store.state.highlightedId).toBe('banana')
+
+      // Register apple (first in orderedItems)
+      store.registerItem('apple', { value: 'Apple' })
+      // Highlight stays on banana - we don't re-highlight once something is highlighted
+      // This prevents jarring jumps as items mount
+      expect(store.state.highlightedId).toBe('banana')
+    })
+  })
+
+  describe('virtualItems and orderedItems interaction', () => {
+    it('virtualItems takes precedence over orderedItems', () => {
+      const store = createStore(
+        { open: true, virtualized: true },
+        { filter: false },
+      )
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      // Set both virtualItems and orderedItems
+      store.setVirtualItems([
+        { value: 'banana', disabled: false },
+        { value: 'apple', disabled: false },
+      ])
+      store.setOrderedItems(['cherry', 'apple', 'banana'])
+
+      // virtualItems should take precedence
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['banana', 'apple'])
+    })
+
+    it('orderedItems is used when not virtualized', () => {
+      const store = createStore(
+        { open: true, virtualized: false },
+        { filter: false },
+      )
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['cherry', 'apple', 'banana'])
+
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['cherry', 'apple', 'banana'])
+    })
+
+    it('falls back to mounted items order when neither is set', () => {
+      const store = createStore(
+        { open: true, virtualized: false },
+        { filter: false },
+      )
+
+      // Register in specific order
+      store.registerItem('banana', { value: 'Banana' })
+      store.registerItem('apple', { value: 'Apple' })
+      store.registerItem('cherry', { value: 'Cherry' })
+
+      // No orderedItems set
+      const visibleIds = store.getVisibleItemIds()
+      // Should be in registration order
+      expect(visibleIds).toEqual(['banana', 'apple', 'cherry'])
+    })
+
+    it('orderedItems works with keyboard navigation', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      // Set order: cherry, apple, banana
+      store.setOrderedItems(['cherry', 'apple', 'banana'])
+
+      // Navigate down from first
+      expect(store.state.highlightedId).toBe('cherry')
+
+      store.highlightNext()
+      expect(store.state.highlightedId).toBe('apple')
+
+      store.highlightNext()
+      expect(store.state.highlightedId).toBe('banana')
+
+      // Navigate up
+      store.highlightPrev()
+      expect(store.state.highlightedId).toBe('apple')
+    })
+
+    it('orderedItems respects loop setting', () => {
+      const store = createStore({ open: true }, { loop: true, filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['cherry', 'apple', 'banana'])
+
+      // Navigate to last item
+      store.setHighlightedId('banana')
+
+      // Navigate down should loop to first
+      store.highlightNext()
+      expect(store.state.highlightedId).toBe('cherry')
+    })
+
+    it('orderedItems is used when virtualItems is empty', () => {
+      const store = createStore(
+        { open: true, virtualized: true },
+        { filter: false },
+      )
+
+      // Register in specific order
+      store.registerItem('banana', { value: 'Banana' })
+      store.registerItem('apple', { value: 'Apple' })
+
+      store.setVirtualItems([]) // Empty virtualItems
+      store.setOrderedItems(['apple', 'banana'])
+
+      // With empty virtualItems, falls through to orderedItems
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['apple', 'banana'])
+    })
+
+    it('falls back to mounted items when no virtualItems or orderedItems', () => {
+      const store = createStore(
+        { open: true, virtualized: true },
+        { filter: false },
+      )
+
+      // Register in specific order
+      store.registerItem('banana', { value: 'Banana' })
+      store.registerItem('apple', { value: 'Apple' })
+
+      store.setVirtualItems([]) // Empty virtualItems
+      // No orderedItems set
+
+      // Falls back to mounted items order
+      const visibleIds = store.getVisibleItemIds()
+      expect(visibleIds).toEqual(['banana', 'apple'])
+    })
+  })
+
+  describe('filter={false} behavior', () => {
+    it('items are always visible when filter is false', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      // Set search that wouldn't match
+      store.setSearch('xyz')
+
+      // Items should still be in filteredItems with score 1
+      expect(store.state.filteredItems.get('apple')).toBe(1)
+      expect(store.state.filteredItems.get('banana')).toBe(1)
+    })
+
+    it('highlight moves to first registered item when orderedItems changes', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      store.setOrderedItems(['apple', 'banana'])
+      expect(store.state.highlightedId).toBe('apple')
+
+      // Unregister apple
+      store.context.items.delete('apple')
+
+      // Update orderedItems (simulating consumer updating after item removal)
+      store.setOrderedItems(['banana'])
+
+      // Highlight should move to banana since apple is no longer registered
+      expect(store.state.highlightedId).toBe('banana')
+    })
+
+    it('isFilterDisabled returns true when filter={false}', () => {
+      const store = createStore({}, { filter: false })
+      expect(store.isFilterDisabled()).toBe(true)
+    })
+
+    it('isFilterDisabled returns false when filter is a function', () => {
+      const store = createStore({})
+      expect(store.isFilterDisabled()).toBe(false)
+    })
+  })
 })
