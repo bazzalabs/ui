@@ -485,6 +485,18 @@ const COMPONENTS: ComponentSection[] = [
         component: 'DropdownMenu',
       },
       {
+        id: 'deep-search-simulated',
+        title: 'Deep Search (Simulated)',
+        description: 'Manual deep search with primitives',
+        component: 'DropdownMenu',
+      },
+      {
+        id: 'deep-search',
+        title: 'Deep Search',
+        description: 'Data-first deep search API',
+        component: 'DropdownMenu',
+      },
+      {
         id: 'virtualized',
         title: 'Virtualized',
         description: 'Virtualized list with 10k+ items',
@@ -938,9 +950,51 @@ function DemoSection({
 // Main Playground Area
 // ============================================================================
 
+const SCROLL_STORAGE_KEY = 'menu-playground-scroll'
+
 function MainPlayground() {
+  const scrollRef = React.useRef<HTMLElement>(null)
+
+  // Save scroll position on scroll (debounced)
+  React.useEffect(() => {
+    const element = scrollRef.current
+    if (!element) return
+
+    let timeoutId: ReturnType<typeof setTimeout>
+    const handleScroll = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        sessionStorage.setItem(SCROLL_STORAGE_KEY, String(element.scrollTop))
+      }, 100)
+    }
+
+    element.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      clearTimeout(timeoutId)
+      element.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  // Restore scroll position on mount (for HMR)
+  React.useEffect(() => {
+    const element = scrollRef.current
+    if (!element) return
+
+    const saved = sessionStorage.getItem(SCROLL_STORAGE_KEY)
+    if (saved) {
+      const scrollTop = Number.parseInt(saved, 10)
+      // Use requestAnimationFrame to ensure layout is ready
+      requestAnimationFrame(() => {
+        element.scrollTop = scrollTop
+      })
+    }
+  }, [])
+
   return (
-    <main className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth">
+    <main
+      ref={scrollRef}
+      className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth"
+    >
       {/* DropdownMenu Demos */}
       <BasicDropdownDemo />
       <SearchableDropdownDemo />
@@ -948,6 +1002,8 @@ function MainPlayground() {
       <RadioGroupDemo />
       <CheckboxItemsDemo />
       <SubmenusDemo />
+      <DeepSearchSimulatedDemo />
+      <DeepSearchDemo />
 
       {/* ContextMenu Demos */}
       <BasicContextMenuDemo />
@@ -975,8 +1031,6 @@ import {
   DropdownMenu,
   Select as SelectPrimitive,
 } from '@bazza-ui/react'
-import { CheckedState } from '@radix-ui/react-checkbox'
-import { toast } from 'sonner'
 
 // --- Basic Dropdown Demo ---
 
@@ -1576,6 +1630,1630 @@ function SubmenusDemo() {
                   </DropdownMenu.Item>
                 </DropdownMenu.List>
               </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </DemoSection>
+  )
+}
+
+// --- Deep Search (Simulated) Demo ---
+// This demo manually implements deep search using the standard submenu primitives.
+// When searching, it shows results from nested submenus with breadcrumbs.
+// For the real data-first deep search API, see DeepSearchRealDemo below.
+
+import { commandScore } from '@bazza-ui/react'
+import { ArrowLeftIcon, TagIcon } from 'lucide-react'
+import { toast } from 'sonner'
+
+// Label data with colors
+const LABEL_COLORS: Record<string, string> = {
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  amber: 'bg-amber-500',
+  yellow: 'bg-yellow-500',
+  lime: 'bg-lime-500',
+  green: 'bg-green-500',
+  teal: 'bg-teal-500',
+  cyan: 'bg-cyan-500',
+  blue: 'bg-blue-500',
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  purple: 'bg-purple-500',
+  pink: 'bg-pink-500',
+}
+
+// Status icons (simplified from Linear example)
+const StatusIcon = () => (
+  <svg className="size-3.5 fill-muted-foreground" viewBox="0 0 14 14">
+    <circle
+      cx="7"
+      cy="7"
+      r="6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeDasharray="1.4 1.74"
+    />
+  </svg>
+)
+
+const AssigneeIcon = () => (
+  <svg className="size-3.5 fill-muted-foreground" viewBox="0 0 16 16">
+    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z" />
+  </svg>
+)
+
+const PriorityIcon = () => (
+  <svg className="size-3.5 fill-muted-foreground" viewBox="0 0 16 16">
+    <path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5ZM3 6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 6Zm0 2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5Z" />
+  </svg>
+)
+
+const LabelsIcon = () => <TagIcon className="size-3.5 text-muted-foreground" />
+
+// Label dot component
+const LabelDot = ({ color }: { color: string }) => (
+  <div
+    className={cn(
+      'rounded-full size-2.5',
+      LABEL_COLORS[color] || 'bg-gray-500',
+    )}
+  />
+)
+
+// All labels data
+const labelsData = [
+  { id: 'bug', label: 'Bug', color: 'red' },
+  { id: 'enhancement', label: 'Enhancement', color: 'green' },
+  { id: 'task', label: 'Task', color: 'blue' },
+  { id: 'urgent', label: 'Urgent', color: 'pink' },
+  { id: 'frontend', label: 'Frontend', color: 'orange' },
+  { id: 'backend', label: 'Backend', color: 'teal' },
+  { id: 'database', label: 'Database', color: 'violet' },
+  { id: 'api', label: 'API', color: 'red' },
+  { id: 'documentation', label: 'Documentation', color: 'amber' },
+  { id: 'testing', label: 'Testing', color: 'yellow' },
+  { id: 'performance', label: 'Performance', color: 'lime' },
+  { id: 'security', label: 'Security', color: 'cyan' },
+  { id: 'refactor', label: 'Refactor', color: 'indigo' },
+  { id: 'feature', label: 'Feature Request', color: 'purple' },
+  { id: 'hotfix', label: 'Hotfix', color: 'red' },
+]
+
+// Item definition for deep search
+interface SearchableItem {
+  id: string
+  label: string
+  keywords?: string[]
+  icon: React.ReactNode
+  breadcrumb?: string // e.g., "Labels" for items inside Labels submenu
+  onSelect: () => void
+}
+
+// Build all searchable items (flattened for deep search)
+const allSearchableItems: SearchableItem[] = [
+  // Root items
+  {
+    id: 'status',
+    label: 'Status',
+    icon: <StatusIcon />,
+    onSelect: () => toast('Status'),
+  },
+  {
+    id: 'assignee',
+    label: 'Assignee',
+    icon: <AssigneeIcon />,
+    onSelect: () => toast('Assignee'),
+  },
+  {
+    id: 'priority',
+    label: 'Priority',
+    icon: <PriorityIcon />,
+    onSelect: () => toast('Priority'),
+  },
+  // Labels submenu trigger (searchable as a category)
+  {
+    id: 'labels',
+    label: 'Labels',
+    keywords: ['label', 'tag', 'category'],
+    icon: <LabelsIcon />,
+    onSelect: () => {}, // Submenu trigger - doesn't select directly
+  },
+  // Labels (nested items)
+  ...labelsData.map((label) => ({
+    id: `label-${label.id}`,
+    label: label.label,
+    keywords: [label.label, 'label', 'tag'],
+    icon: <LabelDot color={label.color} />,
+    breadcrumb: 'Labels',
+    onSelect: () => toast(`Added label: ${label.label}`),
+  })),
+]
+
+function DeepSearchSimulatedDemo() {
+  const [search, setSearch] = React.useState('')
+  const [deepSearchEnabled, setDeepSearchEnabled] = React.useState(true)
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+      if (!open) {
+        setSearch('')
+      }
+    },
+    [],
+  )
+
+  // Filter items for deep search results
+  const deepSearchResults = React.useMemo(() => {
+    if (!search || !deepSearchEnabled) return []
+
+    // Score and filter all items
+    const scored = allSearchableItems
+      .map((item) => {
+        const labelScore = commandScore(item.label, search)
+        const keywordScores =
+          item.keywords?.map((kw) => commandScore(kw, search)) || []
+        const maxScore = Math.max(labelScore, ...keywordScores)
+        return { item, score: maxScore }
+      })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return scored.map(({ item }) => item)
+  }, [search, deepSearchEnabled])
+
+  const isDeepSearching = search.length > 0 && deepSearchEnabled
+
+  // Root menu items (when not searching)
+  const rootItemIds = ['status', 'assignee', 'priority', 'labels']
+
+  // orderedItems must always be provided when filter={false}
+  // It defines the order for navigation/highlighting
+  const orderedItems = React.useMemo(
+    () => (isDeepSearching ? deepSearchResults.map((r) => r.id) : rootItemIds),
+    [isDeepSearching, deepSearchResults],
+  )
+
+  const config = (
+    <>
+      <ConfigSection title="Deep Search">
+        <ConfigRow label="enabled" description="Search across all submenus">
+          <Toggle checked={deepSearchEnabled} onChange={setDeepSearchEnabled} />
+        </ConfigRow>
+      </ConfigSection>
+      <ConfigSection title="How It Works" defaultOpen={true}>
+        <p className="text-xs text-muted-foreground">
+          This demo shows deep search with real submenus. Try searching for
+          "Bug" or "Frontend" - you'll see results from the Labels submenu with
+          breadcrumbs. Click the Labels submenu to browse normally.
+        </p>
+      </ConfigSection>
+    </>
+  )
+
+  return (
+    <DemoSection
+      id="dropdown-menu-deep-search-simulated"
+      component="DropdownMenu"
+      title="Deep Search (Simulated)"
+      description="Manual deep search with primitives"
+      config={config}
+    >
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
+        <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
+          Issue Properties
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="w-[280px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
+              <DropdownMenu.Surface filter={false} orderedItems={orderedItems}>
+                {/* Search Input */}
+                <div className="border-b border-border p-2">
+                  <DropdownMenu.Input
+                    value={search}
+                    onValueChange={setSearch}
+                    placeholder="Search..."
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                {/* Deep search indicator */}
+                {isDeepSearching && deepSearchResults.length > 0 && (
+                  <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30">
+                    Searching all menus...
+                  </div>
+                )}
+
+                <DropdownMenu.List className="max-h-[300px] overflow-y-auto p-1">
+                  {isDeepSearching ? (
+                    // Deep search results mode
+                    deepSearchResults.length === 0 ? (
+                      <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                        No results found
+                      </div>
+                    ) : (
+                      deepSearchResults.map((item) =>
+                        // Special handling for Labels submenu trigger
+                        item.id === 'labels' ? (
+                          <DropdownMenu.Submenu key={item.id}>
+                            <DropdownMenu.SubmenuTrigger
+                              value="labels"
+                              className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent w-full"
+                            >
+                              <span className="flex items-center justify-center size-4">
+                                {item.icon}
+                              </span>
+                              <span className="flex-1 text-left">
+                                {item.label}
+                              </span>
+                              <CaretRightIcon className="size-4 text-muted-foreground" />
+                            </DropdownMenu.SubmenuTrigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Positioner sideOffset={4}>
+                                <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
+                                  <DropdownMenu.Surface>
+                                    <div className="border-b border-border p-2">
+                                      <DropdownMenu.Input
+                                        placeholder="Search labels..."
+                                        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                      />
+                                    </div>
+                                    <DropdownMenu.List className="max-h-[250px] overflow-y-auto p-1">
+                                      {labelsData.map((label) => (
+                                        <DropdownMenu.Item
+                                          key={label.id}
+                                          className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                                          onSelect={() =>
+                                            toast(`Added label: ${label.label}`)
+                                          }
+                                        >
+                                          <LabelDot color={label.color} />
+                                          <span className="flex-1 truncate">
+                                            {label.label}
+                                          </span>
+                                        </DropdownMenu.Item>
+                                      ))}
+                                    </DropdownMenu.List>
+                                  </DropdownMenu.Surface>
+                                </DropdownMenu.Popup>
+                              </DropdownMenu.Positioner>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Submenu>
+                        ) : (
+                          <DropdownMenu.Item
+                            key={item.id}
+                            value={item.id}
+                            className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                            onSelect={item.onSelect}
+                          >
+                            <span className="flex items-center justify-center size-4">
+                              {item.icon}
+                            </span>
+                            <span className="flex-1 truncate">
+                              {item.breadcrumb && (
+                                <span className="text-xs text-muted-foreground mr-1">
+                                  {item.breadcrumb} &rsaquo;
+                                </span>
+                              )}
+                              {item.label}
+                            </span>
+                          </DropdownMenu.Item>
+                        ),
+                      )
+                    )
+                  ) : (
+                    // Normal browse mode with real submenus
+                    <>
+                      {/* Status - just an item for demo */}
+                      <DropdownMenu.Item
+                        value="status"
+                        className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                        onSelect={() => toast('Status')}
+                      >
+                        <span className="flex items-center justify-center size-4">
+                          <StatusIcon />
+                        </span>
+                        <span className="flex-1">Status</span>
+                      </DropdownMenu.Item>
+
+                      {/* Assignee - just an item for demo */}
+                      <DropdownMenu.Item
+                        value="assignee"
+                        className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                        onSelect={() => toast('Assignee')}
+                      >
+                        <span className="flex items-center justify-center size-4">
+                          <AssigneeIcon />
+                        </span>
+                        <span className="flex-1">Assignee</span>
+                      </DropdownMenu.Item>
+
+                      {/* Priority - just an item for demo */}
+                      <DropdownMenu.Item
+                        value="priority"
+                        className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                        onSelect={() => toast('Priority')}
+                      >
+                        <span className="flex items-center justify-center size-4">
+                          <PriorityIcon />
+                        </span>
+                        <span className="flex-1">Priority</span>
+                      </DropdownMenu.Item>
+
+                      {/* Labels - real submenu */}
+                      <DropdownMenu.Submenu>
+                        <DropdownMenu.SubmenuTrigger
+                          value="labels"
+                          className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent w-full"
+                        >
+                          <span className="flex items-center justify-center size-4">
+                            <LabelsIcon />
+                          </span>
+                          <span className="flex-1 text-left">Labels</span>
+                          <CaretRightIcon className="size-4 text-muted-foreground" />
+                        </DropdownMenu.SubmenuTrigger>
+                        <DropdownMenu.Portal>
+                          <DropdownMenu.Positioner sideOffset={4}>
+                            <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
+                              <DropdownMenu.Surface>
+                                <div className="border-b border-border p-2">
+                                  <DropdownMenu.Input
+                                    placeholder="Search labels..."
+                                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                  />
+                                </div>
+                                <DropdownMenu.List className="max-h-[250px] overflow-y-auto p-1">
+                                  {labelsData.map((label) => (
+                                    <DropdownMenu.Item
+                                      key={label.id}
+                                      className="flex items-center gap-2 cursor-pointer rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                                      onSelect={() =>
+                                        toast(`Added label: ${label.label}`)
+                                      }
+                                    >
+                                      <LabelDot color={label.color} />
+                                      <span className="flex-1 truncate">
+                                        {label.label}
+                                      </span>
+                                    </DropdownMenu.Item>
+                                  ))}
+                                </DropdownMenu.List>
+                              </DropdownMenu.Surface>
+                            </DropdownMenu.Popup>
+                          </DropdownMenu.Positioner>
+                        </DropdownMenu.Portal>
+                      </DropdownMenu.Submenu>
+                    </>
+                  )}
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </DemoSection>
+  )
+}
+
+// --- Deep Search Demo (Real Data-First API) ---
+// This demo uses the real DataSurface/DataList/DataInput components
+// which provide automatic deep search across nested submenus.
+// It mirrors the Linear example exactly.
+
+import type {
+  ItemDef,
+  ItemRenderParams,
+  NodeDef,
+  SubmenuDef,
+  SubmenuRenderParams,
+} from '@bazza-ui/react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  AssigneeIcon as LinearAssigneeIcon,
+  LabelsIcon as LinearLabelsIcon,
+  StatusIcon as LinearStatusIcon,
+  ProjectLeadIcon,
+  ProjectPriority,
+  ProjectPriorityIcon,
+  ProjectPropertiesIcon,
+  ProjectStatus,
+  ProjectStatusIcon,
+  ProjectStatusType,
+  ProjectStatusTypeIcon,
+  Status,
+} from './icons'
+
+// Label color styles (from Linear example)
+const DEEP_SEARCH_LABEL_STYLES: Record<string, string> = {
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  amber: 'bg-amber-500',
+  yellow: 'bg-yellow-500',
+  lime: 'bg-lime-500',
+  green: 'bg-green-500',
+  emerald: 'bg-emerald-500',
+  teal: 'bg-teal-500',
+  cyan: 'bg-cyan-500',
+  sky: 'bg-sky-500',
+  blue: 'bg-blue-500',
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  purple: 'bg-purple-500',
+  fuchsia: 'bg-fuchsia-500',
+  pink: 'bg-pink-500',
+  rose: 'bg-rose-500',
+  neutral: 'bg-neutral-500',
+}
+
+// Label data (from Linear example)
+const deepSearchLabelNodes = [
+  { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Bug', color: 'red' },
+  {
+    id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Enhancement',
+    color: 'green',
+  },
+  { id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8', name: 'Task', color: 'blue' },
+  { id: '6ba7b812-9dad-11d1-80b4-00c04fd430c8', name: 'Urgent', color: 'pink' },
+  {
+    id: '6ba7b813-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Low Priority',
+    color: 'lime',
+  },
+  {
+    id: '6ba7b814-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Frontend',
+    color: 'orange',
+  },
+  {
+    id: '6ba7b815-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Backend',
+    color: 'teal',
+  },
+  {
+    id: '6ba7b816-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Database',
+    color: 'violet',
+  },
+  { id: '6ba7b817-9dad-11d1-80b4-00c04fd430c8', name: 'API', color: 'red' },
+  {
+    id: '6ba7b818-9dad-11d1-80b4-00c04fd430c8',
+    name: 'AI Model',
+    color: 'cyan',
+  },
+  {
+    id: '6ba7b819-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Data Pipeline',
+    color: 'amber',
+  },
+  {
+    id: '6ba7b81a-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Inference',
+    color: 'emerald',
+  },
+  {
+    id: '6ba7b81b-9dad-11d1-80b4-00c04fd430c8',
+    name: 'AI Integration',
+    color: 'purple',
+  },
+  {
+    id: '6ba7b81c-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Ethics',
+    color: 'fuchsia',
+  },
+  {
+    id: '6ba7b81d-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Refactor',
+    color: 'lime',
+  },
+  {
+    id: '6ba7b81e-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Performance',
+    color: 'red',
+  },
+  {
+    id: '6ba7b81f-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Security',
+    color: 'sky',
+  },
+  {
+    id: '6ba7b820-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Testing',
+    color: 'yellow',
+  },
+  {
+    id: '6ba7b821-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Documentation',
+    color: 'rose',
+  },
+]
+
+// Project label data
+const deepSearchProjectLabelNodes = [
+  { id: 'pl-1', name: 'Strategic Initiative', color: 'purple' },
+  { id: 'pl-2', name: 'Customer Facing', color: 'blue' },
+  { id: 'pl-3', name: 'Internal Tooling', color: 'teal' },
+  { id: 'pl-4', name: 'Technical Debt', color: 'orange' },
+  { id: 'pl-5', name: 'Revenue Impact', color: 'green' },
+  { id: 'pl-6', name: 'Cost Reduction', color: 'emerald' },
+  { id: 'pl-7', name: 'Compliance', color: 'red' },
+  { id: 'pl-8', name: 'Platform', color: 'indigo' },
+  { id: 'pl-9', name: 'Infrastructure', color: 'violet' },
+  { id: 'pl-10', name: 'Growth', color: 'lime' },
+]
+
+// Assignee data
+const deepSearchAssignees = [
+  {
+    id: '@kianbazza',
+    name: 'Kian Bazza',
+    avatar: 'https://github.com/kianbazza.png',
+    fallback: 'KB',
+  },
+  {
+    id: '@shadcn',
+    name: 'shadcn',
+    avatar: 'https://github.com/shadcn.png',
+    fallback: 'CN',
+  },
+  {
+    id: '@rauchg',
+    name: 'Guillermo Rauch',
+    avatar: 'https://github.com/rauchg.png',
+    fallback: 'RG',
+  },
+  {
+    id: '@t3dotgg',
+    name: 'Theo Browne',
+    avatar: 'https://github.com/t3dotgg.png',
+    fallback: 'TB',
+  },
+]
+
+// Helper to create a submenu node
+function createSubmenuNode(
+  id: string,
+  title: string,
+  icon: React.ReactNode,
+  inputPlaceholder: string,
+  childNodes: NodeDef[],
+): SubmenuDef {
+  return {
+    kind: 'submenu',
+    id,
+    title,
+    label: title,
+    deepSearch: true,
+    nodes: childNodes,
+    render: ({ context, nodes, renderNode }: SubmenuRenderParams) => {
+      // Always render as a full submenu structure (even in deep search results)
+      // The only difference for deep search is showing breadcrumbs on the trigger
+      return (
+        <DropdownMenu.Submenu key={id}>
+          <DropdownMenu.SubmenuTrigger
+            value={id}
+            className={cn(
+              // Use group for icon compatibility with group-data-[highlighted]
+              'group group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
+              'py-1.5 px-4 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-4 flex items-center justify-center shrink-0">
+                {icon}
+              </span>
+              <DeepSearchLabelWithBreadcrumbs
+                label={title}
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </div>
+            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground! transition-colors duration-50 ease-out" />
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={-2} align="list-start">
+              <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+                <DropdownMenu.Surface>
+                  <div className="border-b border-border">
+                    <DropdownMenu.Input
+                      placeholder={inputPlaceholder}
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                    />
+                  </div>
+                  <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
+                    {nodes.map((node) => renderNode(node))}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      )
+    },
+  }
+}
+
+// Helper to create an item node
+function createItemNode(
+  id: string,
+  label: string,
+  icon: React.ReactNode,
+  keywords?: string[],
+): ItemDef {
+  return {
+    kind: 'item',
+    id,
+    label,
+    keywords,
+    onSelect: () => toast(`Changed to ${label}`),
+    render: ({ context }: ItemRenderParams) => (
+      <DropdownMenu.Item
+        key={id}
+        value={id}
+        className={cn(
+          // Use group for icon compatibility with group-data-[highlighted]
+          'group group/row flex items-center gap-2 text-sm select-none w-full',
+          'py-1.5 px-4 relative z-[1]',
+          'data-[highlighted]:text-accent-foreground',
+          'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+          'data-[highlighted]:before:bg-accent',
+        )}
+      >
+        <span className="size-4 flex items-center justify-center shrink-0">
+          {icon}
+        </span>
+        <DeepSearchLabelWithBreadcrumbs
+          label={label}
+          breadcrumbs={
+            context.isDeepSearchResult ? context.breadcrumbs : undefined
+          }
+        />
+      </DropdownMenu.Item>
+    ),
+  }
+}
+
+// Helper for label dot
+function DeepSearchLabelDot({ color }: { color: string }) {
+  return (
+    <div
+      className={cn(
+        'rounded-full size-2.5',
+        DEEP_SEARCH_LABEL_STYLES[color] || 'bg-neutral-500',
+      )}
+    />
+  )
+}
+
+// Helper for label with breadcrumbs (matches registry styling)
+function DeepSearchLabelWithBreadcrumbs({
+  label,
+  breadcrumbs,
+}: {
+  label: string
+  breadcrumbs?: string[]
+}) {
+  return (
+    <div className="flex items-center gap-1 truncate min-w-0">
+      {breadcrumbs?.map((crumb, idx) => (
+        <React.Fragment key={`${idx}-${crumb}`}>
+          <span className="text-muted-foreground truncate">{crumb}</span>
+          <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0" />
+        </React.Fragment>
+      ))}
+      <span className="truncate text-primary/90 group-data-[highlighted]/row:text-primary">
+        {label}
+      </span>
+    </div>
+  )
+}
+
+// ChevronRightIcon for breadcrumbs
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 15 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path
+        d="M6.1584 3.13508C6.35985 2.94621 6.67627 2.95642 6.86514 3.15788L10.6151 7.15788C10.7954 7.3502 10.7954 7.64949 10.6151 7.84182L6.86514 11.8418C6.67627 12.0433 6.35985 12.0535 6.1584 11.8646C5.95694 11.6757 5.94673 11.3593 6.1356 11.1579L9.565 7.49985L6.1356 3.84182C5.94673 3.64036 5.95694 3.32394 6.1584 3.13508Z"
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
+
+// Icons for notifications submenu
+function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M8 1.5A3.5 3.5 0 0 0 4.5 5v2.947c0 .478-.113.95-.329 1.38l-.93 1.86A.75.75 0 0 0 3.91 12.5h8.18a.75.75 0 0 0 .67-1.313l-.93-1.86a3.09 3.09 0 0 1-.33-1.38V5A3.5 3.5 0 0 0 8 1.5ZM6.5 13.5a1.5 1.5 0 0 0 3 0h-3Z" />
+    </svg>
+  )
+}
+
+function SortIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M3.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-1 0v-9a.5.5 0 0 1 .5-.5ZM6 7.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5ZM6.5 4a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1h-8ZM6 10.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5ZM6.5 13a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2Z" />
+    </svg>
+  )
+}
+
+function DeepSearchDemo() {
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
+  // State for checkbox items (notifications)
+  const [notifSettings, setNotifSettings] = React.useState({
+    enabled: true,
+    sounds: true,
+    badges: false,
+    desktop: true,
+    email: false,
+  })
+
+  // State for radio group (sort order)
+  const [sortOrder, setSortOrder] = React.useState<
+    'name' | 'date' | 'priority' | 'status'
+  >('date')
+
+  // Build the full menu structure matching the Linear example
+  const content: NodeDef[] = React.useMemo(() => {
+    // Status submenu items
+    const statusItems: ItemDef[] = [
+      createItemNode('status-icebox', 'Icebox', <Status.Icebox />),
+      createItemNode('status-backlog', 'Backlog', <Status.Backlog />),
+      createItemNode('status-todo', 'Todo', <Status.Todo />),
+      createItemNode(
+        'status-in-progress',
+        'In Progress',
+        <Status.InProgress />,
+      ),
+      createItemNode('status-done', 'Done', <Status.Done />),
+    ]
+
+    // Assignee submenu items
+    const assigneeItems: ItemDef[] = deepSearchAssignees.map((a) =>
+      createItemNode(
+        a.id,
+        a.name,
+        <Avatar className="size-4">
+          <AvatarImage src={a.avatar} alt={a.id} />
+          <AvatarFallback className="text-[10px]">{a.fallback}</AvatarFallback>
+        </Avatar>,
+        [a.name],
+      ),
+    )
+
+    // Priority submenu items
+    const priorityItems: ItemDef[] = [
+      createItemNode(
+        'priority-no',
+        'No priority',
+        <ProjectPriority.NoPriority />,
+      ),
+      createItemNode('priority-urgent', 'Urgent', <ProjectPriority.Urgent />),
+      createItemNode('priority-high', 'High', <ProjectPriority.High />),
+      createItemNode('priority-medium', 'Medium', <ProjectPriority.Medium />),
+      createItemNode('priority-low', 'Low', <ProjectPriority.Low />),
+    ]
+
+    // Labels submenu items
+    const labelItems: ItemDef[] = deepSearchLabelNodes.map((label) => ({
+      kind: 'item' as const,
+      id: `label-${label.id}`,
+      label: label.name,
+      keywords: [label.name],
+      onSelect: () => toast(`Added label: ${label.name}`),
+      render: ({ context }: ItemRenderParams) => (
+        <DropdownMenu.Item
+          key={`label-${label.id}`}
+          value={`label-${label.id}`}
+          className={cn(
+            'group/row flex items-center gap-2 text-sm select-none w-full',
+            'py-1.5 px-4 relative z-[1]',
+            'data-[highlighted]:text-accent-foreground',
+            'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+            'data-[highlighted]:before:bg-accent',
+          )}
+        >
+          <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+            <DeepSearchLabelDot color={label.color} />
+          </span>
+          <DeepSearchLabelWithBreadcrumbs
+            label={label.name}
+            breadcrumbs={
+              context.isDeepSearchResult ? context.breadcrumbs : undefined
+            }
+          />
+        </DropdownMenu.Item>
+      ),
+    }))
+
+    // Project Properties nested submenus
+    const projectStatusItems: ItemDef[] = [
+      createItemNode('proj-status-failed', 'Failed', <ProjectStatus.Failed />),
+      createItemNode(
+        'proj-status-backlog',
+        'Backlog',
+        <ProjectStatus.Backlog />,
+      ),
+      createItemNode(
+        'proj-status-planned',
+        'Planned',
+        <ProjectStatus.Planned />,
+      ),
+      createItemNode(
+        'proj-status-in-progress',
+        'In Progress',
+        <ProjectStatus.InProgress />,
+      ),
+      createItemNode(
+        'proj-status-completed',
+        'Completed',
+        <ProjectStatus.Completed />,
+      ),
+      createItemNode(
+        'proj-status-canceled',
+        'Canceled',
+        <ProjectStatus.Canceled />,
+      ),
+    ]
+
+    const projectStatusTypeItems: ItemDef[] = [
+      createItemNode(
+        'proj-type-backlog',
+        'Backlog',
+        <ProjectStatusType.Backlog />,
+      ),
+      createItemNode(
+        'proj-type-planned',
+        'Planned',
+        <ProjectStatusType.Planned />,
+      ),
+      createItemNode(
+        'proj-type-in-progress',
+        'In Progress',
+        <ProjectStatusType.InProgress />,
+      ),
+      createItemNode(
+        'proj-type-completed',
+        'Completed',
+        <ProjectStatusType.Completed />,
+      ),
+      createItemNode(
+        'proj-type-canceled',
+        'Canceled',
+        <ProjectStatusType.Canceled />,
+      ),
+    ]
+
+    const projectPriorityItems: ItemDef[] = [
+      createItemNode(
+        'proj-priority-no',
+        'No priority',
+        <ProjectPriority.NoPriority />,
+      ),
+      createItemNode(
+        'proj-priority-urgent',
+        'Urgent',
+        <ProjectPriority.Urgent />,
+      ),
+      createItemNode('proj-priority-high', 'High', <ProjectPriority.High />),
+      createItemNode(
+        'proj-priority-medium',
+        'Medium',
+        <ProjectPriority.Medium />,
+      ),
+      createItemNode('proj-priority-low', 'Low', <ProjectPriority.Low />),
+    ]
+
+    const projectLabelItems: ItemDef[] = deepSearchProjectLabelNodes.map(
+      (label) => ({
+        kind: 'item' as const,
+        id: `proj-label-${label.id}`,
+        label: label.name,
+        keywords: [label.name],
+        onSelect: () => toast(`Added project label: ${label.name}`),
+        render: ({ context }: ItemRenderParams) => (
+          <DropdownMenu.Item
+            key={`proj-label-${label.id}`}
+            value={`proj-label-${label.id}`}
+            className={cn(
+              'group/row flex items-center gap-2 text-sm select-none w-full',
+              'py-1.5 px-4 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+              <DeepSearchLabelDot color={label.color} />
+            </span>
+            <DeepSearchLabelWithBreadcrumbs
+              label={label.name}
+              breadcrumbs={
+                context.isDeepSearchResult ? context.breadcrumbs : undefined
+              }
+            />
+          </DropdownMenu.Item>
+        ),
+      }),
+    )
+
+    const projectLeadItems: ItemDef[] = deepSearchAssignees.map((a) =>
+      createItemNode(
+        `proj-lead-${a.id}`,
+        a.name,
+        <Avatar className="size-4">
+          <AvatarImage src={a.avatar} alt={a.id} />
+          <AvatarFallback className="text-[10px]">{a.fallback}</AvatarFallback>
+        </Avatar>,
+        [a.name],
+      ),
+    )
+
+    // Project Properties submenu (contains nested submenus)
+    const projectPropertiesSubmenu: SubmenuDef = {
+      kind: 'submenu',
+      id: 'project-properties',
+      title: 'Project properties',
+      label: 'Project properties',
+      deepSearch: true,
+      nodes: [
+        createSubmenuNode(
+          'proj-status',
+          'Project status',
+          <ProjectStatusIcon />,
+          'Project status...',
+          projectStatusItems,
+        ),
+        createSubmenuNode(
+          'proj-status-type',
+          'Project status type',
+          <ProjectStatusTypeIcon />,
+          'Project status type...',
+          projectStatusTypeItems,
+        ),
+        createSubmenuNode(
+          'proj-priority',
+          'Project priority',
+          <ProjectPriorityIcon />,
+          'Project priority...',
+          projectPriorityItems,
+        ),
+        createSubmenuNode(
+          'proj-labels',
+          'Project labels',
+          <LinearLabelsIcon />,
+          'Project labels...',
+          projectLabelItems,
+        ),
+        createSubmenuNode(
+          'proj-lead',
+          'Project lead',
+          <ProjectLeadIcon />,
+          'Project lead...',
+          projectLeadItems,
+        ),
+      ],
+      render: ({ context, nodes, renderNode }: SubmenuRenderParams) => {
+        // Always render as a full submenu structure (even in deep search results)
+        return (
+          <DropdownMenu.Submenu key="project-properties">
+            <DropdownMenu.SubmenuTrigger
+              value="project-properties"
+              className={cn(
+                // Use group for icon compatibility with group-data-[highlighted]
+                'group group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
+                'py-1.5 px-4 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="size-4 min-h-4 min-w-4 flex items-center justify-center shrink-0">
+                  <ProjectPropertiesIcon />
+                </span>
+                <DeepSearchLabelWithBreadcrumbs
+                  label="Project properties"
+                  breadcrumbs={
+                    context.isDeepSearchResult ? context.breadcrumbs : undefined
+                  }
+                />
+              </div>
+              <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground transition-colors duration-50 ease-out" />
+            </DropdownMenu.SubmenuTrigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner align="list-start" sideOffset={-2}>
+                <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+                  <DropdownMenu.Surface>
+                    <div className="border-b border-border">
+                      <DropdownMenu.Input
+                        placeholder="Project properties..."
+                        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                      />
+                    </div>
+                    <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
+                      {nodes.map((node) => renderNode(node))}
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Submenu>
+        )
+      },
+    }
+
+    // Notifications submenu with checkbox items
+    const notificationsSubmenu: SubmenuDef = {
+      kind: 'submenu',
+      id: 'notifications',
+      title: 'Notifications',
+      label: 'Notifications',
+      deepSearch: true,
+      nodes: [
+        {
+          kind: 'item',
+          id: 'notif-enabled',
+          label: 'Enable notifications',
+          keywords: ['notify', 'alerts', 'enable'],
+          render: ({ context }: ItemRenderParams) => (
+            <DropdownMenu.CheckboxItem
+              key="notif-enabled"
+              checked={notifSettings.enabled}
+              onCheckedChange={(checked) =>
+                setNotifSettings((prev) => ({ ...prev, enabled: checked }))
+              }
+              closeOnClick={true}
+              className={cn(
+                'group group/row flex items-center gap-2 text-sm select-none w-full',
+                'py-1.5 px-4 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
+            >
+              <DropdownMenu.CheckboxItemIndicator
+                keepMounted
+                render={(props, state) => (
+                  <Checkbox
+                    checked={state.checked}
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      state.toggle()
+                    }}
+                  />
+                )}
+              />
+              <DeepSearchLabelWithBreadcrumbs
+                label="Enable notifications"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+        {
+          kind: 'item',
+          id: 'notif-sounds',
+          label: 'Sounds',
+          keywords: ['audio', 'sound', 'noise'],
+          render: ({ context }: ItemRenderParams) => (
+            <DropdownMenu.CheckboxItem
+              key="notif-sounds"
+              checked={notifSettings.sounds}
+              onCheckedChange={(checked) =>
+                setNotifSettings((prev) => ({ ...prev, sounds: checked }))
+              }
+              closeOnClick={true}
+              className={cn(
+                'group group/row flex items-center gap-2 text-sm select-none w-full',
+                'py-1.5 px-4 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
+            >
+              <DropdownMenu.CheckboxItemIndicator
+                keepMounted
+                render={(props, state) => (
+                  <Checkbox
+                    checked={state.checked}
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      state.toggle()
+                    }}
+                  />
+                )}
+              />
+              <DeepSearchLabelWithBreadcrumbs
+                label="Sounds"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+        {
+          kind: 'item',
+          id: 'notif-badges',
+          label: 'Badge count',
+          keywords: ['badge', 'count', 'number'],
+          render: ({ context }: ItemRenderParams) => (
+            <DropdownMenu.CheckboxItem
+              key="notif-badges"
+              checked={notifSettings.badges}
+              onCheckedChange={(checked) =>
+                setNotifSettings((prev) => ({ ...prev, badges: checked }))
+              }
+              closeOnClick={true}
+              className={cn(
+                'group group/row flex items-center gap-2 text-sm select-none w-full',
+                'py-1.5 px-4 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
+            >
+              <DropdownMenu.CheckboxItemIndicator
+                keepMounted
+                render={(props, state) => (
+                  <Checkbox
+                    checked={state.checked}
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      state.toggle()
+                    }}
+                  />
+                )}
+              />
+              <DeepSearchLabelWithBreadcrumbs
+                label="Badge count"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+        {
+          kind: 'item',
+          id: 'notif-desktop',
+          label: 'Desktop notifications',
+          keywords: ['desktop', 'system', 'os'],
+          render: ({ context }: ItemRenderParams) => (
+            <DropdownMenu.CheckboxItem
+              key="notif-desktop"
+              checked={notifSettings.desktop}
+              onCheckedChange={(checked) =>
+                setNotifSettings((prev) => ({ ...prev, desktop: checked }))
+              }
+              closeOnClick={true}
+              className={cn(
+                'group group/row flex items-center gap-2 text-sm select-none w-full',
+                'py-1.5 px-4 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
+            >
+              <DropdownMenu.CheckboxItemIndicator
+                keepMounted
+                render={(props, state) => (
+                  <Checkbox
+                    checked={state.checked}
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      state.toggle()
+                    }}
+                  />
+                )}
+              />
+              <DeepSearchLabelWithBreadcrumbs
+                label="Desktop notifications"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+        {
+          kind: 'item',
+          id: 'notif-email',
+          label: 'Email notifications',
+          keywords: ['email', 'mail', 'inbox'],
+          render: ({ context }: ItemRenderParams) => (
+            <DropdownMenu.CheckboxItem
+              key="notif-email"
+              checked={notifSettings.email}
+              onCheckedChange={(checked) =>
+                setNotifSettings((prev) => ({ ...prev, email: checked }))
+              }
+              closeOnClick={true}
+              className={cn(
+                'group group/row flex items-center gap-2 text-sm select-none w-full',
+                'py-1.5 px-4 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
+            >
+              <DropdownMenu.CheckboxItemIndicator
+                keepMounted
+                render={(props, state) => (
+                  <Checkbox
+                    checked={state.checked}
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      state.toggle()
+                    }}
+                  />
+                )}
+              />
+              <DeepSearchLabelWithBreadcrumbs
+                label="Email notifications"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+      ],
+      render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (
+        <DropdownMenu.Submenu key="notifications">
+          <DropdownMenu.SubmenuTrigger
+            value="notifications"
+            className={cn(
+              'group group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
+              'py-1.5 px-4 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-4 flex items-center justify-center shrink-0">
+                <BellIcon className="size-4 fill-muted-foreground group-data-[highlighted]:fill-primary" />
+              </span>
+              <DeepSearchLabelWithBreadcrumbs
+                label="Notifications"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </div>
+            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground transition-colors duration-50 ease-out" />
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={-2} align="list-start">
+              <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+                <DropdownMenu.Surface>
+                  <div className="border-b border-border">
+                    <DropdownMenu.Input
+                      placeholder="Notifications..."
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                    />
+                  </div>
+                  <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
+                    {nodes.map((node) => renderNode(node))}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    }
+
+    // Sort order submenu with radio items
+    // Helper to wrap radio item - when surfaced via deep search, we need to provide RadioGroup context
+    const renderRadioItem = (
+      id: string,
+      value: typeof sortOrder,
+      label: string,
+      context: ItemRenderParams['context'],
+    ) => {
+      const radioItem = (
+        <DropdownMenu.RadioItem
+          key={id}
+          value={value}
+          className={cn(
+            'group group/row flex items-center justify-between gap-2 text-sm select-none w-full',
+            'py-1.5 px-4 relative z-[1]',
+            'data-[highlighted]:text-accent-foreground',
+            'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+            'data-[highlighted]:before:bg-accent',
+          )}
+        >
+          <DeepSearchLabelWithBreadcrumbs
+            label={label}
+            breadcrumbs={
+              context.isDeepSearchResult ? context.breadcrumbs : undefined
+            }
+          />
+          <DropdownMenu.RadioItemIndicator className="size-4 flex items-center justify-center shrink-0">
+            <CheckIcon className="size-3.5 text-primary" />
+          </DropdownMenu.RadioItemIndicator>
+        </DropdownMenu.RadioItem>
+      )
+
+      // When surfaced via deep search, wrap in RadioGroup to provide context
+      if (context.isDeepSearchResult) {
+        return (
+          <DropdownMenu.RadioGroup
+            key={id}
+            value={sortOrder}
+            onValueChange={(val) => setSortOrder(val as typeof sortOrder)}
+          >
+            {radioItem}
+          </DropdownMenu.RadioGroup>
+        )
+      }
+
+      return radioItem
+    }
+
+    const sortOrderSubmenu: SubmenuDef = {
+      kind: 'submenu',
+      id: 'sort-order',
+      title: 'Sort by',
+      label: 'Sort by',
+      deepSearch: true,
+      nodes: [
+        {
+          kind: 'item',
+          id: 'sort-name',
+          label: 'Name',
+          keywords: ['alphabetical', 'a-z', 'name'],
+          render: ({ context }: ItemRenderParams) =>
+            renderRadioItem('sort-name', 'name', 'Name', context),
+        },
+        {
+          kind: 'item',
+          id: 'sort-date',
+          label: 'Date modified',
+          keywords: ['date', 'time', 'modified', 'recent'],
+          render: ({ context }: ItemRenderParams) =>
+            renderRadioItem('sort-date', 'date', 'Date modified', context),
+        },
+        {
+          kind: 'item',
+          id: 'sort-priority',
+          label: 'Priority',
+          keywords: ['priority', 'importance', 'urgent'],
+          render: ({ context }: ItemRenderParams) =>
+            renderRadioItem('sort-priority', 'priority', 'Priority', context),
+        },
+        {
+          kind: 'item',
+          id: 'sort-status',
+          label: 'Status',
+          keywords: ['status', 'state', 'progress'],
+          render: ({ context }: ItemRenderParams) =>
+            renderRadioItem('sort-status', 'status', 'Status', context),
+        },
+      ],
+      render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (
+        <DropdownMenu.Submenu key="sort-order">
+          <DropdownMenu.SubmenuTrigger
+            value="sort-order"
+            className={cn(
+              'group group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
+              'py-1.5 px-4 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-4 flex items-center justify-center shrink-0">
+                <SortIcon className="size-4 fill-muted-foreground group-data-[highlighted]:fill-primary" />
+              </span>
+              <DeepSearchLabelWithBreadcrumbs
+                label="Sort by"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </div>
+            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground transition-colors duration-50 ease-out" />
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={-2} align="list-start">
+              <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+                <DropdownMenu.Surface>
+                  <div className="border-b border-border">
+                    <DropdownMenu.Input
+                      placeholder="Sort by..."
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                    />
+                  </div>
+                  <DropdownMenu.RadioGroup
+                    value={sortOrder}
+                    onValueChange={(val) =>
+                      setSortOrder(val as typeof sortOrder)
+                    }
+                  >
+                    <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
+                      {nodes.map((node) => renderNode(node))}
+                    </DropdownMenu.List>
+                  </DropdownMenu.RadioGroup>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    }
+
+    // Root menu
+    return [
+      createSubmenuNode(
+        'status',
+        'Status',
+        <LinearStatusIcon />,
+        'Status...',
+        statusItems,
+      ),
+      createSubmenuNode(
+        'assignee',
+        'Assignee',
+        <LinearAssigneeIcon />,
+        'Assignee...',
+        assigneeItems,
+      ),
+      createSubmenuNode(
+        'priority',
+        'Priority',
+        <ProjectPriorityIcon />,
+        'Priority...',
+        priorityItems,
+      ),
+      createSubmenuNode(
+        'labels',
+        'Labels',
+        <LinearLabelsIcon />,
+        'Labels...',
+        labelItems,
+      ),
+      notificationsSubmenu,
+      sortOrderSubmenu,
+      projectPropertiesSubmenu,
+    ]
+  }, [notifSettings, sortOrder])
+
+  const config = React.useMemo(
+    () => (
+      <>
+        <ConfigSection title="Data-First API">
+          <p className="text-xs text-muted-foreground">
+            This demo mirrors the Linear example exactly using the data-first
+            API. Define your menu structure as NodeDef[] with render functions.
+          </p>
+        </ConfigSection>
+        <ConfigSection title="How It Works" defaultOpen={true}>
+          <p className="text-xs text-muted-foreground">
+            Type 2+ characters to activate deep search. Try "Bug", "Frontend",
+            "Kian", or "Strategic" to find items across all nested submenus.
+          </p>
+        </ConfigSection>
+        <ConfigSection title="Checkbox & Radio" defaultOpen={true}>
+          <p className="text-xs text-muted-foreground">
+            Try searching "sound" or "badge" to test checkbox items, or "date"
+            or "priority" to test radio items surfaced via deep search.
+          </p>
+          <div className="mt-2 space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Sort by:</span>
+              <span className="font-medium">{sortOrder}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Notifications:</span>
+              <span className="font-medium">
+                {notifSettings.enabled ? 'On' : 'Off'}
+              </span>
+            </div>
+          </div>
+        </ConfigSection>
+      </>
+    ),
+    [sortOrder, notifSettings.enabled],
+  )
+
+  return (
+    <DemoSection
+      id="dropdown-menu-deep-search"
+      component="DropdownMenu"
+      title="Deep Search"
+      description="Data-first deep search API"
+      config={config}
+    >
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
+        <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors -translate-x-8">
+          Filter
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8} align="start">
+            <DropdownMenu.Popup className="min-w-[260px] max-w-[500px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+              <DropdownMenu.DataSurface
+                content={content}
+                deepSearch={{ enabled: true, minLength: 2 }}
+              >
+                {/* Search Input */}
+                <div className="border-b border-border">
+                  <DropdownMenu.DataInput
+                    placeholder="Filter..."
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                  />
+                </div>
+
+                {/* Data List with render prop */}
+                <DropdownMenu.DataList className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
+                  {({ nodes, renderNode, isDeepSearching, count, search }) => (
+                    <>
+                      {/* Deep search indicator */}
+                      {isDeepSearching && count > 0 && (
+                        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
+                          Searching all menus...
+                        </div>
+                      )}
+
+                      {/* Render nodes */}
+                      {count === 0 && search.length >= 2 ? (
+                        <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
+                          No matching options.
+                        </div>
+                      ) : (
+                        nodes.map((displayNode) => renderNode(displayNode))
+                      )}
+                    </>
+                  )}
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>

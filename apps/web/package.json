@@ -21,6 +21,7 @@
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
+    "@base-ui/react": "^1.0.0",
     "@bazza-ui/action-menu": "workspace:*",
     "@bazza-ui/command-menu": "workspace:*",
     "@bazza-ui/react": "workspace:*",

@@ -40,6 +40,7 @@ export type PopupMenuOpenChangeEventDetails =
 export type HighlightChangeReason =
   | typeof REASONS.pointer
   | typeof REASONS.keyboard
+  | typeof REASONS.auto
   | typeof REASONS.none
 
 /**

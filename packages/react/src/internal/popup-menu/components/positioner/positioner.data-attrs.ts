@@ -18,7 +18,7 @@ export enum PopupMenuPositionerDataAttributes {
   side = 'data-side',
   /**
    * Indicates how the popup is aligned relative to specified side.
-   * @type {'start' | 'center' | 'end'}
+   * @type {'start' | 'center' | 'end' | 'list-start'}
    */
   align = 'data-align',
 }
