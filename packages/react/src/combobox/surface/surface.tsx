@@ -35,10 +35,26 @@ export const ComboboxSurface = React.forwardRef<
     autoHighlightFirst: autoHighlightFirstProp,
     search: searchProp,
     onSearchChange: onSearchChangeProp,
+    onPointerMove: onPointerMoveProp,
     ...rest
   } = props
 
   const comboboxContext = useComboboxContext()
+
+  // Focus the input when cursor moves inside the popup
+  // This allows users to immediately type to filter after hovering
+  const handlePointerMove = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      onPointerMoveProp?.(event)
+
+      // Focus the input if it's not already focused
+      const input = comboboxContext.inputRef.current
+      if (input && document.activeElement !== input) {
+        input.focus()
+      }
+    },
+    [onPointerMoveProp, comboboxContext.inputRef],
+  )
 
   // Resolve autoHighlightFirst:
   // - 'selected': use the current selected value (falls back to true if no selection)
@@ -94,6 +110,7 @@ export const ComboboxSurface = React.forwardRef<
       autoHighlightFirst={autoHighlightFirst}
       search={search}
       onSearchChange={handleSearchChange}
+      onPointerMove={handlePointerMove}
       // Skip auto-focus because the Combobox.Input is outside the popup
       // and should retain focus while the dropdown is open
       skipAutoFocus

@@ -52,7 +52,8 @@ export const SelectItemLabel = React.forwardRef<
   // Resolve label content:
   // 1. Explicit children (override)
   // 2. Label from items prop lookup
-  // 3. Fall back to item value
+  // 3. textValue from item context
+  // 4. Fall back to item value
   const resolvedLabel = React.useMemo(() => {
     if (children !== undefined) {
       return children
@@ -66,8 +67,12 @@ export const SelectItemLabel = React.forwardRef<
       return labelFromItems
     }
 
+    if (itemContext.textValue !== undefined) {
+      return itemContext.textValue
+    }
+
     return itemContext.value
-  }, [children, selectContext.items, itemContext.value])
+  }, [children, selectContext.items, itemContext.value, itemContext.textValue])
 
   // Register the text content when mounted (for Select.Value display)
   React.useEffect(() => {

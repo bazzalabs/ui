@@ -5,9 +5,14 @@ import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   PopupMenuProviders,
+  type UsePopupMenuRootParams,
   usePopupMenuRoot,
   type VirtualAnchor,
 } from '../../internal/popup-menu/index.js'
+import type {
+  ContextMenuHighlightChangeEventDetails,
+  ContextMenuOpenChangeEventDetails,
+} from '../events.js'
 
 export interface ContextMenuRootProps {
   /**
@@ -18,8 +23,12 @@ export interface ContextMenuRootProps {
 
   /**
    * Callback when the open state changes.
+   * The second parameter contains event details including the reason for the change.
    */
-  onOpenChange?: (open: boolean) => void
+  onOpenChange?: (
+    open: boolean,
+    eventDetails: ContextMenuOpenChangeEventDetails,
+  ) => void
 
   /**
    * Whether the context menu is initially open.
@@ -47,8 +56,13 @@ export interface ContextMenuRootProps {
    * Callback when the highlighted item changes.
    * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
    * Only called when `virtualized={true}`.
+   * The third parameter contains event details including the reason for the change.
    */
-  onHighlightChange?: (id: string | null, index: number) => void
+  onHighlightChange?: (
+    id: string | null,
+    index: number,
+    eventDetails: ContextMenuHighlightChangeEventDetails,
+  ) => void
 
   /**
    * Whether the component should ignore user interaction.
@@ -150,11 +164,14 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
     virtualization,
     handleOpenChange,
   } = usePopupMenuRoot({
-    onOpenChange,
+    // Cast to generic type - component handles type safety via narrowed types
+    onOpenChange:
+      onOpenChange as unknown as UsePopupMenuRootParams['onOpenChange'],
     defaultOpen,
     virtualized,
     items: itemsProp,
-    onHighlightChange,
+    onHighlightChange:
+      onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
   })
 
   // Sync controlled open prop to store
@@ -187,6 +204,19 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
     handleOpenChange(false)
   }, [handleOpenChange])
 
+  // Wrapper to adapt Popover's event details to our handleOpenChange
+  const handlePopoverOpenChange = React.useCallback(
+    (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
+      // Forward to our internal handler with the reason and event
+      handleOpenChange(
+        nextOpen,
+        popoverDetails.reason as ContextMenuOpenChangeEventDetails['reason'],
+        popoverDetails.event,
+      )
+    },
+    [handleOpenChange],
+  )
+
   // Internal context for Trigger
   const internalContextValue: ContextMenuInternalContextValue = React.useMemo(
     () => ({
@@ -212,7 +242,11 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
         virtualAnchor={virtualAnchor}
         menuType="context"
       >
-        <Popover.Root open={open} onOpenChange={handleOpenChange} modal={modal}>
+        <Popover.Root
+          open={open}
+          onOpenChange={handlePopoverOpenChange}
+          modal={modal}
+        >
           {children}
         </Popover.Root>
       </PopupMenuProviders>
@@ -222,4 +256,7 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
 
 export namespace ContextMenuRoot {
   export interface Props extends ContextMenuRootProps {}
+  export type OpenChangeEventDetails = ContextMenuOpenChangeEventDetails
+  export type HighlightChangeEventDetails =
+    ContextMenuHighlightChangeEventDetails
 }

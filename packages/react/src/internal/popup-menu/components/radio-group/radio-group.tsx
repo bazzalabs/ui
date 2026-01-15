@@ -2,8 +2,16 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  createChangeEventDetails,
+  REASONS,
+} from '../../../../utils/events/index.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import type {
+  RadioValueChangeEventDetails,
+  RadioValueChangeReason,
+} from '../../events.js'
 import { PopupMenuRadioGroupDataAttributes } from './radio-group.data-attrs.js'
 import {
   RadioGroupContext,
@@ -33,8 +41,9 @@ export interface PopupMenuRadioGroupProps<T = unknown>
 
   /**
    * Callback fired when the selected value changes.
+   * The second parameter contains event details including the reason for the change.
    */
-  onValueChange?: (value: T) => void
+  onValueChange?: (value: T, eventDetails: RadioValueChangeEventDetails) => void
 
   /**
    * Whether all items in this group are disabled.
@@ -90,11 +99,22 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const value = isControlled ? valueProp : internalValue
 
     const setValue = React.useCallback(
-      (newValue: T) => {
+      (
+        newValue: T,
+        reason: RadioValueChangeReason = REASONS.itemPress,
+        event?: Event,
+      ) => {
+        const eventDetails = createChangeEventDetails(reason, event)
+
+        // Call user's callback first
+        onValueChange?.(newValue, eventDetails)
+
+        // If canceled, don't update internal state
+        if (eventDetails.isCanceled) return
+
         if (!isControlled) {
           setInternalValue(newValue)
         }
-        onValueChange?.(newValue)
       },
       [isControlled, onValueChange],
     )

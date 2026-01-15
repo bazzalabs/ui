@@ -12,6 +12,8 @@ export interface SelectItemContextValue {
   id: string
   /** The value of this item */
   value: string
+  /** The text value/label for this item */
+  textValue: string | undefined
   /** Whether the item is highlighted */
   highlighted: boolean
   /** Whether the item is disabled */
