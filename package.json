@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:up": "turbo run dev test:watch --concurrency 25",
-    "dev:react": "turbo run dev --filter=@bazza-ui/react --filter=web",
+    "dev:react": "turbo run dev test:watch --filter=@bazza-ui/react --filter=web",
     "types:meta": "turbo run types:meta",
     "types:meta:watch": "turbo run types:meta:watch",
     "test": "turbo run test",
