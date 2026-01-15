@@ -103,32 +103,25 @@ export const PopupMenuInput = React.forwardRef<
   // Consume pending search on activation
   React.useEffect(() => {
     if (pendingSearch && internalRef.current) {
-      // Set the search value from pending
-      if (isInputControlled) {
-        onValueChange?.(pendingSearch)
-      } else {
-        store.setSearch(pendingSearch)
-        onValueChange?.(pendingSearch)
-      }
+      // Always sync to store for filtering/highlighting, even in controlled mode
+      store.setSearch(pendingSearch)
+      onValueChange?.(pendingSearch)
       // Clear pending search
       store.setPendingSearch('')
       // Focus the input
       internalRef.current.focus()
     }
-  }, [pendingSearch, store, isInputControlled, onValueChange])
+  }, [pendingSearch, store, onValueChange])
 
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = event.target.value
 
-      if (isInputControlled) {
-        onValueChange?.(newValue)
-      } else {
-        store.setSearch(newValue)
-        onValueChange?.(newValue)
-      }
+      // Always sync to store for filtering/highlighting, even in controlled mode
+      store.setSearch(newValue)
+      onValueChange?.(newValue)
     },
-    [isInputControlled, onValueChange, store],
+    [onValueChange, store],
   )
 
   // Use centralized keyboard navigation hook

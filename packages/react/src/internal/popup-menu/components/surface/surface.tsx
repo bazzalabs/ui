@@ -71,6 +71,13 @@ export interface PopupMenuSurfaceProps
    */
   skipAutoFocus?: boolean
 
+  /**
+   * Ordered list of item values when using `filter={false}`.
+   * This tells the store the intended display order for navigation/highlighting.
+   * Required when `filter={false}` - must always be provided with the current visible items.
+   */
+  orderedItems?: string[]
+
   children: React.ReactNode
 }
 
@@ -92,6 +99,7 @@ export const PopupMenuSurface = React.forwardRef<
     autoHighlightFirst = true,
     clearSearchOnClose = true,
     skipAutoFocus = false,
+    orderedItems,
     render,
     className,
     style,
@@ -164,6 +172,14 @@ export const PopupMenuSurface = React.forwardRef<
     handleSearchChange,
     virtualization,
   ])
+
+  // Sync consumer-provided ordered items to store
+  // This is separate from the config effect since orderedItems changes on each search
+  React.useEffect(() => {
+    if (orderedItems) {
+      store.setOrderedItems(orderedItems)
+    }
+  }, [store, orderedItems])
 
   // Sync controlled search prop to store
   store.useControlledProp('search', searchProp, defaultSearch)
