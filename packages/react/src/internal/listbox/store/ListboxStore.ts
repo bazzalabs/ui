@@ -473,23 +473,13 @@ export class ListboxStore extends ReactStore<
     const prevItems = this.context.orderedItems
     this.context.orderedItems = items
 
-    console.log('[ListboxStore.setOrderedItems] called:', {
-      items,
-      prevItems,
-      sameRef: items === prevItems,
-      open: this.state.open,
-      currentHighlight: this.state.highlightedId,
-    })
-
     // Skip if items reference didn't change (same array)
     if (items === prevItems) {
-      console.log('[ListboxStore.setOrderedItems] skipping - same reference')
       return
     }
 
     // Skip highlight update if not open
     if (!this.state.open) {
-      console.log('[ListboxStore.setOrderedItems] skipping - not open')
       return
     }
 
@@ -498,10 +488,6 @@ export class ListboxStore extends ReactStore<
     // This prevents submenus from auto-opening
     if (items.length > 0) {
       const firstRegisteredItem = items.find((id) => this.context.items.has(id))
-      console.log('[ListboxStore.setOrderedItems] highlighting first item:', {
-        firstRegisteredItem,
-        registeredItems: Array.from(this.context.items.keys()),
-      })
       if (firstRegisteredItem !== undefined) {
         this.setHighlightedId(firstRegisteredItem, 'auto')
       } else {
@@ -523,13 +509,23 @@ export class ListboxStore extends ReactStore<
    * - The registering item is the first in orderedItems
    */
   private maybeAutoHighlightOnRegister(id: string) {
-    if (this.context.filter !== false) return
-    if (!this.state.open) return
-    if (this.state.highlightedId !== null) return
-    if (!this.context.autoHighlightFirst) return
+    if (this.context.filter !== false) {
+      return
+    }
+    if (!this.state.open) {
+      return
+    }
+    if (this.state.highlightedId !== null) {
+      return
+    }
+    if (!this.context.autoHighlightFirst) {
+      return
+    }
 
     const orderedItems = this.context.orderedItems
-    if (orderedItems.length === 0) return
+    if (orderedItems.length === 0) {
+      return
+    }
 
     // Find the first item in orderedItems that is registered
     const firstRegisteredItem = orderedItems.find((itemId) =>

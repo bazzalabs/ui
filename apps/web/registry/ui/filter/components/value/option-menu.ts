@@ -1,12 +1,7 @@
-import type { CheckboxItemDef, DropdownNodeDef } from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended, FilterModel } from '@bazza-ui/filters'
+import type { CheckboxItemDef } from '@bazza-ui/react'
+import { createOptionItemRenderer } from './option-item'
 import type { FilterValueControllerProps } from './types'
-
-/**
- * A checkbox item node with option data.
- * Uses `unknown` data type for compatibility with DropdownMenu's generic types.
- */
-export type OptionMenuNode = CheckboxItemDef & { id: string }
 
 export interface CreateOptionMenuProps<TData>
   extends Omit<FilterValueControllerProps<TData, 'option'>, 'filter'> {
@@ -14,12 +9,12 @@ export interface CreateOptionMenuProps<TData>
 }
 
 export interface CreateOptionMenuResult {
-  nodes: DropdownNodeDef[]
+  nodes: CheckboxItemDef[]
 }
 
 /**
- * Creates option menu for filter values
- * Uses sticky rows middleware to keep checked items at the top
+ * Creates option menu nodes for filter values.
+ * Returns CheckboxItemDef[] for use with the Data-First API.
  */
 export function createOptionMenu<TData>({
   column,
@@ -27,16 +22,20 @@ export function createOptionMenu<TData>({
   filter,
 }: CreateOptionMenuProps<TData>): CreateOptionMenuResult {
   const counts = column.getFacetedUniqueValues()
-  const nodes: DropdownNodeDef[] = column.getOptions().map((option) => {
+  const nodes: CheckboxItemDef[] = column.getOptions().map((option) => {
     const isCurrentlySelected = filter?.values.includes(option.value) ?? false
+    const optionData: ColumnOptionExtended = {
+      value: option.value,
+      label: option.label,
+      icon: option.icon,
+      count: counts?.get(option.value) ?? 0,
+    }
 
     return {
-      kind: 'item' as const,
-      variant: 'checkbox' as const,
+      kind: 'checkbox-item' as const,
       id: option.value,
       label: option.label,
       keywords: [option.value, option.label],
-      icon: option.icon,
       checked: isCurrentlySelected,
       onCheckedChange: (checked: boolean) => {
         if (checked) {
@@ -45,14 +44,9 @@ export function createOptionMenu<TData>({
           actions.removeFilterValue(column, [option.value])
         }
       },
-      data: {
-        value: option.value,
-        label: option.label,
-        icon: option.icon,
-        count: counts?.get(option.value) ?? 0,
-      } satisfies ColumnOptionExtended,
       closeOnSelect: false,
-    } satisfies OptionMenuNode
+      render: createOptionItemRenderer(optionData),
+    } satisfies CheckboxItemDef
   })
 
   return {

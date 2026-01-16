@@ -327,11 +327,243 @@ function MenuWithHideUntilActive() {
   )
 }
 
+/**
+ * A nested menu for testing data attributes on Popup components.
+ */
+function NestedMenuForDataAttrs() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup-root">
+            <DropdownMenu.Surface data-testid="surface-root">
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="root-item-1" value="item1">
+                  Item 1
+                </DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-1">
+                    Submenu 1
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup data-testid="popup-submenu-1">
+                        <DropdownMenu.Surface data-testid="surface-submenu-1">
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item
+                              data-testid="submenu1-item-1"
+                              value="sub1-item1"
+                            >
+                              Submenu 1 Item 1
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Submenu>
+                              <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-2">
+                                Submenu 2
+                              </DropdownMenu.SubmenuTrigger>
+                              <DropdownMenu.Portal>
+                                <DropdownMenu.Positioner>
+                                  <DropdownMenu.Popup data-testid="popup-submenu-2">
+                                    <DropdownMenu.Surface data-testid="surface-submenu-2">
+                                      <DropdownMenu.List>
+                                        <DropdownMenu.Item
+                                          data-testid="submenu2-item-1"
+                                          value="sub2-item1"
+                                        >
+                                          Submenu 2 Item 1
+                                        </DropdownMenu.Item>
+                                      </DropdownMenu.List>
+                                    </DropdownMenu.Surface>
+                                  </DropdownMenu.Popup>
+                                </DropdownMenu.Positioner>
+                              </DropdownMenu.Portal>
+                            </DropdownMenu.Submenu>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
 
 describe('PopupMenu', () => {
+  describe('data-focused attribute', () => {
+    it('root popup has data-focused when menu opens', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const rootPopup = screen.getByTestId('popup-root')
+      expect(rootPopup).toHaveAttribute('data-focused', '')
+    })
+
+    it('submenu popup has data-focused when submenu opens', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      // Open submenu by hovering over trigger
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      // Move pointer into submenu to transfer focus
+      // Wait a bit after popup opens to bypass the debounce for phantom pointer events
+      // (see POINTER_EVENT_DEBOUNCE_MS in constants.ts)
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      await new Promise((r) => setTimeout(r, 150))
+      await user.hover(submenuPopup)
+
+      await waitFor(() => {
+        expect(submenuPopup).toHaveAttribute('data-focused', '')
+      })
+
+      // Root should no longer have data-focused
+      const rootPopup = screen.getByTestId('popup-root')
+      expect(rootPopup).not.toHaveAttribute('data-focused')
+    })
+  })
+
+  describe('data-has-open-submenu attribute', () => {
+    it('root popup does not have data-has-open-submenu when no submenu is open', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const rootPopup = screen.getByTestId('popup-root')
+      expect(rootPopup).not.toHaveAttribute('data-has-open-submenu')
+    })
+
+    it('root popup has data-has-open-submenu when submenu is open', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      // Open submenu
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const rootPopup = screen.getByTestId('popup-root')
+      expect(rootPopup).toHaveAttribute('data-has-open-submenu', '')
+    })
+
+    it('all parent popups have data-has-open-submenu in deep submenu chain', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      // Open first submenu
+      const submenuTrigger1 = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger1)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      // Open second submenu
+      const submenuTrigger2 = screen.getByTestId('submenu-trigger-2')
+      await user.hover(submenuTrigger2)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-2')).toBeInTheDocument()
+      })
+
+      // Root and first submenu should both have data-has-open-submenu
+      const rootPopup = screen.getByTestId('popup-root')
+      const submenu1Popup = screen.getByTestId('popup-submenu-1')
+      const submenu2Popup = screen.getByTestId('popup-submenu-2')
+
+      expect(rootPopup).toHaveAttribute('data-has-open-submenu', '')
+      expect(submenu1Popup).toHaveAttribute('data-has-open-submenu', '')
+      // Deepest submenu should NOT have data-has-open-submenu
+      expect(submenu2Popup).not.toHaveAttribute('data-has-open-submenu')
+    })
+
+    it('removes data-has-open-submenu when submenu closes', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      // Open submenu
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const rootPopup = screen.getByTestId('popup-root')
+      expect(rootPopup).toHaveAttribute('data-has-open-submenu', '')
+
+      // Move back to root item to close submenu
+      const rootItem = screen.getByTestId('root-item-1')
+      await user.hover(rootItem)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
+      })
+
+      // Root should no longer have data-has-open-submenu
+      expect(rootPopup).not.toHaveAttribute('data-has-open-submenu')
+    })
+  })
+
   describe('search and filtering', () => {
     it('filters items by keyword search', async () => {
       const user = userEvent.setup()

@@ -67,6 +67,7 @@ export type {
   PopupMenuPortal as ContextMenuPortal,
   PopupMenuPortalProps as ContextMenuPortalProps,
   PopupMenuPositioner as ContextMenuPositioner,
+  PopupMenuPositionerAlign as ContextMenuPositionerAlign,
   PopupMenuPositionerProps as ContextMenuPositionerProps,
   PopupMenuRadioGroup as ContextMenuRadioGroup,
   PopupMenuRadioGroupProps as ContextMenuRadioGroupProps,
@@ -139,10 +140,15 @@ export {
   useMaybeSurfaceContext,
   useSurfaceContext,
 } from '../internal/listbox/index.js'
-export type { PopupMenuContextValue as RootContextValue } from '../internal/popup-menu/index.js'
+export type {
+  PopupMenuContextValue as RootContextValue,
+  SubmenuContextValue,
+} from '../internal/popup-menu/index.js'
 export {
   useMaybePopupMenuContext as useMaybeRootContext,
+  useMaybeSubmenuContext,
   usePopupMenuContext as useRootContext,
+  useSubmenuContext,
 } from '../internal/popup-menu/index.js'
 
 // ============================================================================
@@ -173,3 +179,58 @@ export type {
   UsePopupMenuItemReturn as UseItemReturn,
 } from '../internal/popup-menu/index.js'
 export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
+
+// ============================================================================
+// Deep Search (Data-First API)
+// ============================================================================
+
+export type {
+  CheckboxItemDef,
+  CheckboxItemRenderParams,
+  CheckboxItemRenderProps,
+  DataListChildrenState,
+  DataListProps,
+  DataSurfaceContextValue,
+  DataSurfaceProps,
+  DeepSearchConfig,
+  DisplayGroupNode,
+  DisplayNode,
+  DisplayRadioGroupNode,
+  DisplayRowNode,
+  GroupBehavior,
+  GroupDef,
+  GroupRenderContext,
+  GroupRenderParams,
+  ItemDef,
+  ItemRenderParams,
+  ItemRenderProps,
+  NodeDef,
+  PopupMenuDataInputProps as ContextMenuDataInputProps,
+  PopupMenuDataListProps as ContextMenuDataListProps,
+  PopupMenuDataSurfaceProps as ContextMenuDataSurfaceProps,
+  PopupMenuRadioGroupValueProps as ContextMenuRadioGroupValueProps,
+  RadioGroupDef,
+  RadioGroupRenderParams,
+  RadioGroupRenderProps,
+  RenderNodeFn,
+  RowRenderContext,
+  ScoredNode,
+  SeparatorDef,
+  SubmenuDef,
+  SubmenuRenderParams,
+  SubmenuRenderProps,
+} from '../internal/popup-menu/index.js'
+
+export {
+  DataSurfaceContext,
+  defineRadioGroup,
+  isDisplayGroupNode,
+  isDisplayRadioGroupNode,
+  isDisplayRowNode,
+  PopupMenuDataInput as ContextMenuDataInput,
+  PopupMenuDataList as ContextMenuDataList,
+  PopupMenuDataSurface as ContextMenuDataSurface,
+  PopupMenuRadioGroupValue as ContextMenuRadioGroupValue,
+  useDataSurfaceContext,
+  useMaybeDataSurfaceContext,
+} from '../internal/popup-menu/index.js'

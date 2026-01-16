@@ -58,6 +58,14 @@ export interface UsePopupMenuRootParams {
     index: number,
     eventDetails: GenericEventDetails<string, { index: number }>,
   ) => void
+
+  /**
+   * When to close the menu on outside interactions.
+   * - 'pointerdown': Close immediately when pointer is pressed outside (default)
+   * - 'click': Close when a full click (pointerdown + pointerup) occurs outside
+   * @default 'pointerdown'
+   */
+  closeOnOutsidePress?: 'click' | 'pointerdown'
 }
 
 export interface UsePopupMenuRootReturn {
@@ -107,6 +115,7 @@ export function usePopupMenuRoot(
     virtualized = false,
     items: itemsProp,
     onHighlightChange,
+    closeOnOutsidePress = 'pointerdown',
   } = params
 
   // Track outside pointer events to distinguish outside-press from focus-out
@@ -163,29 +172,6 @@ export function usePopupMenuRoot(
   // Get current open state for the pointer event listener
   const isOpen = store.useState('open')
 
-  // Listen for pointerdown events on document to detect outside clicks
-  // This allows us to convert focus-out to outside-press when appropriate
-  React.useEffect(() => {
-    if (!isOpen) {
-      outsidePointerEventRef.current = null
-      return
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      // Store any pointerdown event while the menu is open
-      // We'll check if it's truly "outside" when the close event fires
-      // by looking at the event target in the user's cancel logic
-      outsidePointerEventRef.current = event
-    }
-
-    // Use capture phase to see the event before any stopPropagation
-    document.addEventListener('pointerdown', handlePointerDown, true)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, true)
-      outsidePointerEventRef.current = null
-    }
-  }, [isOpen])
-
   // Create focus owner store (single instance for entire menu tree)
   const focusOwnerStoreRef = React.useRef<FocusOwnerStore | null>(null)
   if (!focusOwnerStoreRef.current) {
@@ -238,6 +224,48 @@ export function usePopupMenuRoot(
     },
     [store, focusOwnerStore, openChainStore],
   )
+
+  // Ref to hold closeAll for use in the pointerdown effect
+  const closeAllRef = React.useRef(closeAll)
+  closeAllRef.current = closeAll
+
+  // Listen for pointerdown events on document to detect outside clicks
+  // This is a single listener at the root level that handles the entire menu tree.
+  // Behavior depends on closeOnOutsidePress:
+  // - 'pointerdown': Close immediately when pointer is pressed outside
+  // - 'click': Store event and convert focus-out to outside-press reason
+  React.useEffect(() => {
+    if (!isOpen) {
+      outsidePointerEventRef.current = null
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (!target) return
+
+      // Check if the pointerdown is inside any part of the menu tree or its triggers
+      // base-ui sets data-open on popups and data-popup-open on triggers
+      const isInsidePopup = target.closest('[data-open]') !== null
+      const isInsideTrigger = target.closest('[data-popup-open]') !== null
+      const isInside = isInsidePopup || isInsideTrigger
+
+      if (closeOnOutsidePress === 'pointerdown' && !isInside) {
+        // Close entire menu tree immediately on pointerdown outside
+        closeAllRef.current(REASONS.outsidePress, event)
+      } else {
+        // Store the event for focus-out-to-outside-press conversion
+        outsidePointerEventRef.current = event
+      }
+    }
+
+    // Use capture phase to see the event before any stopPropagation
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      outsidePointerEventRef.current = null
+    }
+  }, [isOpen, closeOnOutsidePress])
 
   // Handle open state change
   const handleOpenChange = React.useCallback(

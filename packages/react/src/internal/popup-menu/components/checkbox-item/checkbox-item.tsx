@@ -117,6 +117,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   PopupMenuCheckboxItemProps
 >(function PopupMenuCheckboxItem(props, forwardedRef) {
   const {
+    id,
     checked: checkedProp,
     defaultChecked = false,
     onCheckedChange,
@@ -161,6 +162,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   )
 
   const item = usePopupMenuItem({
+    id,
     keywords,
     disabled,
     forceMount,

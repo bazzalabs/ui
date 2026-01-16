@@ -11,7 +11,9 @@ import {
   useListboxContext,
   useSurfaceContext as useParentSurfaceContext,
 } from '../../../listbox/index.js'
+import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 
 // Surface doesn't expose data attributes - using empty state
@@ -118,13 +120,22 @@ export const PopupMenuSurface = React.forwardRef<
   // Get focus owner store
   const focusOwnerStore = useFocusOwner()
 
+  // Track when surface opened to ignore initial pointer events
+  // This prevents focus transfer when a popup appears under a stationary cursor
+  const openTimeRef = React.useRef<number>(0)
+
   // Generate stable IDs
   const listId = React.useId()
   const inputId = React.useId()
   const generatedSurfaceId = React.useId()
 
-  // Use childSurfaceId from submenu context if available, otherwise generate our own
-  const surfaceId = submenuContext?.childSurfaceId ?? generatedSurfaceId
+  // Get surfaceId from Popup context (if available) to ensure Popup and Surface share the same ID
+  const popupSurfaceId = usePopupSurfaceId()
+
+  // Priority: PopupSurfaceIdContext > SubmenuContext > generated
+  // This ensures Popup and Surface share the same ID for data attribute tracking
+  const surfaceId =
+    popupSurfaceId ?? submenuContext?.childSurfaceId ?? generatedSurfaceId
 
   // Subscribe to focus ownership
   const isOwner = focusOwnerStore.useState('isOwner', surfaceId)
@@ -190,6 +201,13 @@ export const PopupMenuSurface = React.forwardRef<
   // Ref to the surface element for finding focusable elements
   const surfaceRef = React.useRef<HTMLDivElement | null>(null)
 
+  // Record open time when surface opens
+  React.useEffect(() => {
+    if (open) {
+      openTimeRef.current = Date.now()
+    }
+  }, [open])
+
   // Claim focus ownership when root menu opens
   React.useEffect(() => {
     if (depth === 0 && open) {
@@ -238,6 +256,13 @@ export const PopupMenuSurface = React.forwardRef<
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       onPointerMove?.(event)
+
+      // Ignore pointer events briefly after surface opens
+      // This prevents focus transfer when popup appears under stationary cursor
+      const timeSinceOpen = Date.now() - openTimeRef.current
+      if (timeSinceOpen < POINTER_EVENT_DEBOUNCE_MS) {
+        return
+      }
 
       // Check if the event target is actually within this surface's DOM
       // This prevents parent surfaces from claiming ownership when events

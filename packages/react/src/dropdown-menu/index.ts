@@ -14,7 +14,10 @@ export type { DropdownMenuRoot } from './root/root.js'
 
 // Trigger
 export { DropdownMenuTriggerDataAttributes } from './trigger/trigger.data-attrs.js'
-export type { DropdownMenuTrigger } from './trigger/trigger.js'
+export type {
+  DropdownMenuTrigger,
+  DropdownMenuTriggerProps,
+} from './trigger/trigger.js'
 
 // ============================================================================
 // Re-exported from internal/popup-menu (with DropdownMenu prefix)
@@ -67,6 +70,7 @@ export type {
   PopupMenuPortal as DropdownMenuPortal,
   PopupMenuPortalProps as DropdownMenuPortalProps,
   PopupMenuPositioner as DropdownMenuPositioner,
+  PopupMenuPositionerAlign as DropdownMenuPositionerAlign,
   PopupMenuPositionerProps as DropdownMenuPositionerProps,
   PopupMenuRadioGroup as DropdownMenuRadioGroup,
   PopupMenuRadioGroupProps as DropdownMenuRadioGroupProps,
@@ -139,10 +143,15 @@ export {
   useMaybeSurfaceContext,
   useSurfaceContext,
 } from '../internal/listbox/index.js'
-export type { PopupMenuContextValue as RootContextValue } from '../internal/popup-menu/index.js'
+export type {
+  PopupMenuContextValue as RootContextValue,
+  SubmenuContextValue,
+} from '../internal/popup-menu/index.js'
 export {
   useMaybePopupMenuContext as useMaybeRootContext,
+  useMaybeSubmenuContext,
   usePopupMenuContext as useRootContext,
+  useSubmenuContext,
 } from '../internal/popup-menu/index.js'
 
 // ============================================================================
@@ -179,32 +188,56 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 // ============================================================================
 
 export type {
+  CheckboxItemDef,
+  CheckboxItemRenderParams,
+  CheckboxItemRenderProps,
   DataListChildrenState,
   DataListProps,
   DataSurfaceContextValue,
   DataSurfaceProps,
   DeepSearchConfig,
+  DisplayGroupNode,
   DisplayNode,
+  DisplayRadioGroupNode,
+  DisplayRowNode,
+  DisplaySeparatorNode,
+  GroupBehavior,
   GroupDef,
+  GroupRenderContext,
+  GroupRenderParams,
   ItemDef,
   ItemRenderParams,
+  ItemRenderProps,
   NodeDef,
   PopupMenuDataInputProps as DropdownMenuDataInputProps,
   PopupMenuDataListProps as DropdownMenuDataListProps,
   PopupMenuDataSurfaceProps as DropdownMenuDataSurfaceProps,
+  PopupMenuRadioGroupValueProps as DropdownMenuRadioGroupValueProps,
+  RadioGroupBehavior,
+  RadioGroupDef,
+  RadioGroupRenderParams,
+  RadioGroupRenderProps,
   RenderNodeFn,
   RowRenderContext,
   ScoredNode,
   SeparatorDef,
+  SeparatorRenderParams,
   SubmenuDef,
   SubmenuRenderParams,
+  SubmenuRenderProps,
 } from '../internal/popup-menu/index.js'
 
 export {
   DataSurfaceContext,
+  defineRadioGroup,
+  isDisplayGroupNode,
+  isDisplayRadioGroupNode,
+  isDisplayRowNode,
+  isDisplaySeparatorNode,
   PopupMenuDataInput as DropdownMenuDataInput,
   PopupMenuDataList as DropdownMenuDataList,
   PopupMenuDataSurface as DropdownMenuDataSurface,
+  PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
   useDataSurfaceContext,
   useMaybeDataSurfaceContext,
 } from '../internal/popup-menu/index.js'

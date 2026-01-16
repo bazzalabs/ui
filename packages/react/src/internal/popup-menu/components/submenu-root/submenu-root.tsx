@@ -241,6 +241,8 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       virtualization,
       virtualAnchor: parentPopupMenuContext?.virtualAnchor,
       menuType: parentPopupMenuContext?.menuType ?? ('dropdown' as const),
+      closeOnOutsidePress:
+        parentPopupMenuContext?.closeOnOutsidePress ?? 'pointerdown',
     }),
     [
       store,
@@ -251,6 +253,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       virtualization,
       parentPopupMenuContext?.virtualAnchor,
       parentPopupMenuContext?.menuType,
+      parentPopupMenuContext?.closeOnOutsidePress,
     ],
   )
 
