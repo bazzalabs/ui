@@ -77,6 +77,14 @@ export interface DropdownMenuRootProps
     eventDetails: DropdownMenuHighlightChangeEventDetails,
   ) => void
 
+  /**
+   * When to close the menu on outside interactions (clicking outside or clicking the trigger when open).
+   * - `'pointerdown'`: Close immediately when pointer is pressed outside (default)
+   * - `'click'`: Close when a full click (pointerdown + pointerup) occurs outside
+   * @default 'pointerdown'
+   */
+  closeOnOutsidePress?: 'click' | 'pointerdown'
+
   children: React.ReactNode
 }
 
@@ -94,6 +102,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     virtualized = false,
     items: itemsProp,
     onHighlightChange,
+    closeOnOutsidePress = 'pointerdown',
     children,
     ...rest
   } = props
@@ -116,6 +125,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     items: itemsProp,
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
+    closeOnOutsidePress,
   })
 
   // Sync controlled open prop to store
@@ -147,6 +157,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
       registerSurface={registerSurface}
       virtualization={virtualization}
       menuType="dropdown"
+      closeOnOutsidePress={closeOnOutsidePress}
     >
       <Popover.Root
         {...rest}

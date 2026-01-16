@@ -497,6 +497,19 @@ const COMPONENTS: ComponentSection[] = [
         component: 'DropdownMenu',
       },
       {
+        id: 'deep-search-groups',
+        title: 'Deep Search - Groups',
+        description: 'Groups with custom rendering at multiple depths',
+        component: 'DropdownMenu',
+      },
+      {
+        id: 'deep-search-stateful',
+        title: 'Deep Search - Stateful',
+        description:
+          'Uses stateful components like checkbox items and radio group + radio items',
+        component: 'DropdownMenu',
+      },
+      {
         id: 'virtualized',
         title: 'Virtualized',
         description: 'Virtualized list with 10k+ items',
@@ -881,15 +894,8 @@ interface DemoSectionProps {
   config?: React.ReactNode
 }
 
-function DemoSection({
-  id,
-  title,
-  description,
-  component,
-  children,
-  config,
-}: DemoSectionProps) {
-  const { setActiveDemo, setConfigContent, activeDemo } = usePlayground()
+function DemoSection({ id, children, config }: DemoSectionProps) {
+  const { setActiveDemo, setConfigContent } = usePlayground()
   const ref = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -912,36 +918,13 @@ function DemoSection({
     return () => observer.disconnect()
   }, [id, config, setActiveDemo, setConfigContent])
 
-  const isActive = activeDemo === id
-
   return (
     <section
       ref={ref}
       id={id}
-      className="h-screen w-full snap-start snap-always flex flex-col"
+      className="h-screen w-full snap-start snap-always flex items-center justify-center"
     >
-      {/* Header */}
-      <div className="shrink-0 px-8 pt-8 pb-4">
-        <div className="text-xs font-medium text-primary/70 uppercase tracking-wider mb-1">
-          {component}
-        </div>
-        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{description}</p>
-      </div>
-
-      {/* Demo Area */}
-      <div className="flex-1 px-8 pb-8 min-h-0">
-        <div
-          className={cn(
-            'h-full w-full rounded-2xl border-2 flex items-center justify-center transition-all duration-300',
-            isActive
-              ? 'border-primary/20 bg-gradient-to-br from-primary/5 to-transparent'
-              : 'border-border/50 bg-muted/10',
-          )}
-        >
-          {children}
-        </div>
-      </div>
+      {children}
     </section>
   )
 }
@@ -1004,6 +987,8 @@ function MainPlayground() {
       <SubmenusDemo />
       <DeepSearchSimulatedDemo />
       <DeepSearchDemo />
+      <DeepSearchGroupsDemo />
+      <DeepSearchStatefulDemo />
 
       {/* ContextMenu Demos */}
       <BasicContextMenuDemo />
@@ -1117,16 +1102,19 @@ function SearchableDropdownDemo() {
     [],
   )
 
-  const fruits = [
-    { value: 'apple', label: 'Apple', keywords: ['fruit', 'red'] },
-    { value: 'banana', label: 'Banana', keywords: ['fruit', 'yellow'] },
-    { value: 'cherry', label: 'Cherry', keywords: ['fruit', 'red'] },
-    { value: 'dragonfruit', label: 'Dragon Fruit', keywords: ['exotic'] },
-    { value: 'elderberry', label: 'Elderberry', keywords: ['berry'] },
-    { value: 'fig', label: 'Fig', keywords: ['mediterranean'] },
-    { value: 'grape', label: 'Grape', keywords: ['wine'] },
-    { value: 'honeydew', label: 'Honeydew', keywords: ['melon'] },
-  ]
+  const fruits = React.useMemo(
+    () => [
+      { value: 'apple', label: 'Apple', keywords: ['fruit', 'red'] },
+      { value: 'banana', label: 'Banana', keywords: ['fruit', 'yellow'] },
+      { value: 'cherry', label: 'Cherry', keywords: ['fruit', 'red'] },
+      { value: 'dragonfruit', label: 'Dragon Fruit', keywords: ['exotic'] },
+      { value: 'elderberry', label: 'Elderberry', keywords: ['berry'] },
+      { value: 'fig', label: 'Fig', keywords: ['mediterranean'] },
+      { value: 'grape', label: 'Grape', keywords: ['wine'] },
+      { value: 'honeydew', label: 'Honeydew', keywords: ['melon'] },
+    ],
+    [],
+  )
 
   const config = (
     <>
@@ -1176,7 +1164,7 @@ function SearchableDropdownDemo() {
                     className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
-                <DropdownMenu.List className="max-h-[200px] overflow-y-auto p-1 focus:outline-none">
+                <DropdownMenu.List className="max-h-[200px] overflow-y-auto p-1 focus:outline-none scroll-py-1">
                   {fruits.map((fruit) => (
                     <DropdownMenu.Item
                       key={fruit.value}
@@ -1258,16 +1246,16 @@ function KeyboardShortcutsDemo() {
                     <DropdownMenu.Item
                       key={s.value}
                       shortcut={s.shortcut}
-                      className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
+                      className="flex gap-2 cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm data-[highlighted]:bg-accent"
                       onSelect={() => {
                         setStatus(s.value)
                         toast(`Status: ${s.label}`)
                       }}
                     >
-                      <span className="flex items-center gap-2">
+                      <span className="flex flex-1 items-center gap-2">
                         <span>{s.label}</span>
                         {status === s.value && (
-                          <CheckIcon className="h-4 w-4 text-primary" />
+                          <CheckIcon className="ml-auto h-4 w-4 text-primary" />
                         )}
                       </span>
                       <DropdownMenu.Shortcut className="text-xs text-muted-foreground" />
@@ -1644,7 +1632,31 @@ function SubmenusDemo() {
 // For the real data-first deep search API, see DeepSearchRealDemo below.
 
 import { commandScore } from '@bazza-ui/react'
-import { ArrowLeftIcon, TagIcon } from 'lucide-react'
+import {
+  ArrowLeftIcon,
+  ArrowUpDownIcon,
+  BellIcon,
+  BugIcon,
+  ClipboardIcon,
+  CopyIcon,
+  FileIcon,
+  FlaskConicalIcon,
+  FolderIcon,
+  GlobeIcon,
+  HelpCircleIcon,
+  KeyIcon,
+  LayoutIcon,
+  LockIcon,
+  PaletteIcon,
+  ScissorsIcon,
+  SettingsIcon,
+  SparklesIcon,
+  TagIcon,
+  Trash2Icon,
+  TypeIcon,
+  WebhookIcon,
+  WrenchIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 // Label data with colors
@@ -2044,6 +2056,8 @@ function DeepSearchSimulatedDemo() {
 // It mirrors the Linear example exactly.
 
 import type {
+  GroupDef,
+  GroupRenderParams,
   ItemDef,
   ItemRenderParams,
   NodeDef,
@@ -2286,17 +2300,19 @@ function createItemNode(
   label: string,
   icon: React.ReactNode,
   keywords?: string[],
+  shortcut?: string,
 ): ItemDef {
   return {
     kind: 'item',
     id,
     label,
     keywords,
-    onSelect: () => toast(`Changed to ${label}`),
     render: ({ context }: ItemRenderParams) => (
       <DropdownMenu.Item
         key={id}
         value={id}
+        shortcut={shortcut}
+        onSelect={() => toast(`Changed to ${label}`)}
         className={cn(
           // Use group for icon compatibility with group-data-[highlighted]
           'group group/row flex items-center gap-2 text-sm select-none w-full',
@@ -2315,6 +2331,9 @@ function createItemNode(
             context.isDeepSearchResult ? context.breadcrumbs : undefined
           }
         />
+        {shortcut && (
+          <DropdownMenu.Shortcut className="ml-auto text-xs text-muted-foreground" />
+        )}
       </DropdownMenu.Item>
     ),
   }
@@ -2376,36 +2395,7 @@ function ChevronRightIcon({ className }: { className?: string }) {
   )
 }
 
-// Icons for notifications submenu
-function BellIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M8 1.5A3.5 3.5 0 0 0 4.5 5v2.947c0 .478-.113.95-.329 1.38l-.93 1.86A.75.75 0 0 0 3.91 12.5h8.18a.75.75 0 0 0 .67-1.313l-.93-1.86a3.09 3.09 0 0 1-.33-1.38V5A3.5 3.5 0 0 0 8 1.5ZM6.5 13.5a1.5 1.5 0 0 0 3 0h-3Z" />
-    </svg>
-  )
-}
-
-function SortIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M3.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-1 0v-9a.5.5 0 0 1 .5-.5ZM6 7.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5ZM6.5 4a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1h-8ZM6 10.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5ZM6.5 13a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2Z" />
-    </svg>
-  )
-}
+// Icons for notifications submenu - BellIcon, ArrowUpDownIcon imported from lucide-react
 
 function DeepSearchDemo() {
   const handleOpenChange = React.useCallback(
@@ -2433,15 +2423,29 @@ function DeepSearchDemo() {
   const content: NodeDef[] = React.useMemo(() => {
     // Status submenu items
     const statusItems: ItemDef[] = [
-      createItemNode('status-icebox', 'Icebox', <Status.Icebox />),
-      createItemNode('status-backlog', 'Backlog', <Status.Backlog />),
-      createItemNode('status-todo', 'Todo', <Status.Todo />),
+      createItemNode(
+        'status-icebox',
+        'Icebox',
+        <Status.Icebox />,
+        undefined,
+        '1',
+      ),
+      createItemNode(
+        'status-backlog',
+        'Backlog',
+        <Status.Backlog />,
+        undefined,
+        '2',
+      ),
+      createItemNode('status-todo', 'Todo', <Status.Todo />, undefined, '3'),
       createItemNode(
         'status-in-progress',
         'In Progress',
         <Status.InProgress />,
+        undefined,
+        '4',
       ),
-      createItemNode('status-done', 'Done', <Status.Done />),
+      createItemNode('status-done', 'Done', <Status.Done />, undefined, '5'),
     ]
 
     // Assignee submenu items
@@ -2463,11 +2467,37 @@ function DeepSearchDemo() {
         'priority-no',
         'No priority',
         <ProjectPriority.NoPriority />,
+        undefined,
+        '1',
       ),
-      createItemNode('priority-urgent', 'Urgent', <ProjectPriority.Urgent />),
-      createItemNode('priority-high', 'High', <ProjectPriority.High />),
-      createItemNode('priority-medium', 'Medium', <ProjectPriority.Medium />),
-      createItemNode('priority-low', 'Low', <ProjectPriority.Low />),
+      createItemNode(
+        'priority-urgent',
+        'Urgent',
+        <ProjectPriority.Urgent />,
+        undefined,
+        '2',
+      ),
+      createItemNode(
+        'priority-high',
+        'High',
+        <ProjectPriority.High />,
+        undefined,
+        '3',
+      ),
+      createItemNode(
+        'priority-medium',
+        'Medium',
+        <ProjectPriority.Medium />,
+        undefined,
+        '4',
+      ),
+      createItemNode(
+        'priority-low',
+        'Low',
+        <ProjectPriority.Low />,
+        undefined,
+        '5',
+      ),
     ]
 
     // Labels submenu items
@@ -2476,11 +2506,11 @@ function DeepSearchDemo() {
       id: `label-${label.id}`,
       label: label.name,
       keywords: [label.name],
-      onSelect: () => toast(`Added label: ${label.name}`),
       render: ({ context }: ItemRenderParams) => (
         <DropdownMenu.Item
           key={`label-${label.id}`}
           value={`label-${label.id}`}
+          onSelect={() => toast(`Added label: ${label.name}`)}
           className={cn(
             'group/row flex items-center gap-2 text-sm select-none w-full',
             'py-1.5 px-4 relative z-[1]',
@@ -2504,31 +2534,47 @@ function DeepSearchDemo() {
 
     // Project Properties nested submenus
     const projectStatusItems: ItemDef[] = [
-      createItemNode('proj-status-failed', 'Failed', <ProjectStatus.Failed />),
+      createItemNode(
+        'proj-status-failed',
+        'Failed',
+        <ProjectStatus.Failed />,
+        undefined,
+        '1',
+      ),
       createItemNode(
         'proj-status-backlog',
         'Backlog',
         <ProjectStatus.Backlog />,
+        undefined,
+        '2',
       ),
       createItemNode(
         'proj-status-planned',
         'Planned',
         <ProjectStatus.Planned />,
+        undefined,
+        '3',
       ),
       createItemNode(
         'proj-status-in-progress',
         'In Progress',
         <ProjectStatus.InProgress />,
+        undefined,
+        '4',
       ),
       createItemNode(
         'proj-status-completed',
         'Completed',
         <ProjectStatus.Completed />,
+        undefined,
+        '5',
       ),
       createItemNode(
         'proj-status-canceled',
         'Canceled',
         <ProjectStatus.Canceled />,
+        undefined,
+        '6',
       ),
     ]
 
@@ -2537,26 +2583,36 @@ function DeepSearchDemo() {
         'proj-type-backlog',
         'Backlog',
         <ProjectStatusType.Backlog />,
+        undefined,
+        '1',
       ),
       createItemNode(
         'proj-type-planned',
         'Planned',
         <ProjectStatusType.Planned />,
+        undefined,
+        '2',
       ),
       createItemNode(
         'proj-type-in-progress',
         'In Progress',
         <ProjectStatusType.InProgress />,
+        undefined,
+        '3',
       ),
       createItemNode(
         'proj-type-completed',
         'Completed',
         <ProjectStatusType.Completed />,
+        undefined,
+        '4',
       ),
       createItemNode(
         'proj-type-canceled',
         'Canceled',
         <ProjectStatusType.Canceled />,
+        undefined,
+        '5',
       ),
     ]
 
@@ -2565,19 +2621,37 @@ function DeepSearchDemo() {
         'proj-priority-no',
         'No priority',
         <ProjectPriority.NoPriority />,
+        undefined,
+        '1',
       ),
       createItemNode(
         'proj-priority-urgent',
         'Urgent',
         <ProjectPriority.Urgent />,
+        undefined,
+        '2',
       ),
-      createItemNode('proj-priority-high', 'High', <ProjectPriority.High />),
+      createItemNode(
+        'proj-priority-high',
+        'High',
+        <ProjectPriority.High />,
+        undefined,
+        '3',
+      ),
       createItemNode(
         'proj-priority-medium',
         'Medium',
         <ProjectPriority.Medium />,
+        undefined,
+        '4',
       ),
-      createItemNode('proj-priority-low', 'Low', <ProjectPriority.Low />),
+      createItemNode(
+        'proj-priority-low',
+        'Low',
+        <ProjectPriority.Low />,
+        undefined,
+        '5',
+      ),
     ]
 
     const projectLabelItems: ItemDef[] = deepSearchProjectLabelNodes.map(
@@ -2586,11 +2660,11 @@ function DeepSearchDemo() {
         id: `proj-label-${label.id}`,
         label: label.name,
         keywords: [label.name],
-        onSelect: () => toast(`Added project label: ${label.name}`),
         render: ({ context }: ItemRenderParams) => (
           <DropdownMenu.Item
             key={`proj-label-${label.id}`}
             value={`proj-label-${label.id}`}
+            onSelect={() => toast(`Added project label: ${label.name}`)}
             className={cn(
               'group/row flex items-center gap-2 text-sm select-none w-full',
               'py-1.5 px-4 relative z-[1]',
@@ -3027,7 +3101,10 @@ function DeepSearchDemo() {
           <DropdownMenu.RadioGroup
             key={id}
             value={sortOrder}
-            onValueChange={(val) => setSortOrder(val as typeof sortOrder)}
+            onValueChange={(val) => {
+              setSortOrder(val as typeof sortOrder)
+              toast(`Sort by: ${val}`)
+            }}
           >
             {radioItem}
           </DropdownMenu.RadioGroup>
@@ -3091,7 +3168,7 @@ function DeepSearchDemo() {
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className="size-4 flex items-center justify-center shrink-0">
-                <SortIcon className="size-4 fill-muted-foreground group-data-[highlighted]:fill-primary" />
+                <ArrowUpDownIcon className="size-4 text-muted-foreground group-data-[highlighted]:text-primary" />
               </span>
               <DeepSearchLabelWithBreadcrumbs
                 label="Sort by"
@@ -3114,9 +3191,10 @@ function DeepSearchDemo() {
                   </div>
                   <DropdownMenu.RadioGroup
                     value={sortOrder}
-                    onValueChange={(val) =>
+                    onValueChange={(val) => {
                       setSortOrder(val as typeof sortOrder)
-                    }
+                      toast(`Sort by: ${val}`)
+                    }}
                   >
                     <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
                       {nodes.map((node) => renderNode(node))}
@@ -3222,6 +3300,998 @@ function DeepSearchDemo() {
               <DropdownMenu.DataSurface
                 content={content}
                 deepSearch={{ enabled: true, minLength: 2 }}
+              >
+                {/* Search Input */}
+                <div className="border-b border-border">
+                  <DropdownMenu.DataInput
+                    placeholder="Filter..."
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                  />
+                </div>
+
+                {/* Data List with render prop */}
+                <DropdownMenu.DataList className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
+                  {({ nodes, renderNode, isDeepSearching, count, search }) => (
+                    <>
+                      {/* Deep search indicator */}
+                      {isDeepSearching && count > 0 && (
+                        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
+                          Searching all menus...
+                        </div>
+                      )}
+
+                      {/* Render nodes */}
+                      {count === 0 && search.length >= 2 ? (
+                        <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
+                          No matching options.
+                        </div>
+                      ) : (
+                        nodes.map((displayNode) => renderNode(displayNode))
+                      )}
+                    </>
+                  )}
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </DemoSection>
+  )
+}
+
+// --- Deep Search Groups Demo ---
+
+function DeepSearchGroupsDemo() {
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
+  const [groupSearchBehavior, setGroupSearchBehavior] = React.useState<
+    'preserve' | 'flatten'
+  >('preserve')
+  const [sortGroups, setSortGroups] = React.useState(true)
+
+  // Helper to create an item node with consistent styling
+  const createItem = ({
+    id,
+    label,
+    icon,
+    keywords,
+  }: {
+    id: string
+    label: string
+    icon?: React.ReactNode
+    keywords?: string[]
+  }): ItemDef => ({
+    kind: 'item',
+    id,
+    label,
+    keywords,
+    onSelect: () => toast(`Selected: ${label}`),
+    render: ({ context }: ItemRenderParams) => (
+      <DropdownMenu.Item
+        key={id}
+        value={id}
+        className={cn(
+          'group/row flex items-center gap-2 text-sm select-none w-full',
+          'py-1.5 px-3 relative z-[1]',
+          'data-[highlighted]:text-accent-foreground',
+          'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
+          'data-[highlighted]:before:bg-accent',
+        )}
+      >
+        {icon && (
+          <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+            {icon}
+          </span>
+        )}
+        <span className="flex-1">{label}</span>
+        {context.isDeepSearchResult && context.breadcrumbs.length > 0 && (
+          <span className="text-xs text-muted-foreground ml-2">
+            {context.breadcrumbs.join(' > ')}
+          </span>
+        )}
+      </DropdownMenu.Item>
+    ),
+  })
+
+  // Helper to create a group with custom rendering
+  const createGroup = ({
+    id,
+    label,
+    nodes,
+  }: {
+    id: string
+    label: string
+    nodes: NodeDef[]
+  }): GroupDef => ({
+    kind: 'group',
+    id,
+    label,
+    nodes,
+    render: ({ context, children }: GroupRenderParams) => (
+      <div key={id} className="py-1">
+        <div className="px-3 py-1 flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            {label}
+          </span>
+          {context.search && (
+            <span className="text-[10px] text-muted-foreground/60">
+              ({context.matchCount} match{context.matchCount !== 1 ? 'es' : ''})
+            </span>
+          )}
+          {context.isDeepSearchResult && context.breadcrumbs.length > 0 && (
+            <span className="text-[10px] text-muted-foreground/60 ml-auto">
+              in {context.breadcrumbs.join(' > ')}
+            </span>
+          )}
+        </div>
+        {children}
+      </div>
+    ),
+  })
+
+  // Helper to create a submenu
+  const createSubmenu = ({
+    id,
+    title,
+    icon,
+    nodes,
+    inputPlaceholder,
+  }: {
+    id: string
+    title: string
+    icon: React.ReactNode
+    nodes: NodeDef[]
+    inputPlaceholder?: string
+  }): SubmenuDef => ({
+    kind: 'submenu',
+    id,
+    title,
+    label: title,
+    nodes,
+    render: ({
+      context,
+      nodes: childNodes,
+      renderNode,
+    }: SubmenuRenderParams) => {
+      if (context.isDeepSearchResult) {
+        return null // Don't render submenu triggers when surfaced
+      }
+      return (
+        <DropdownMenu.Submenu key={id}>
+          <DropdownMenu.SubmenuTrigger
+            value={id}
+            className={cn(
+              'group/row flex items-center gap-2 text-sm select-none w-full',
+              'py-1.5 px-3 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+              {icon}
+            </span>
+            <span className="flex-1">{title}</span>
+            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground transition-colors duration-50 ease-out" />
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner
+              side="right"
+              sideOffset={-2}
+              align="list-start"
+            >
+              <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden *:transition-[opacity] *:ease-out *:duration-150 *:opacity-100 data-[open]:not-data-[focused]:not-data-[has-open-submenu]:*:opacity-65">
+                <DropdownMenu.Surface>
+                  <DropdownMenu.Input
+                    hideUntilActive
+                    placeholder={
+                      inputPlaceholder ?? `Search ${title.toLowerCase()}...`
+                    }
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-10 px-3 border-b border-border caret-blue-500"
+                  />
+                  <ScrollArea.Root>
+                    <ScrollArea.Viewport
+                      className={cn(
+                        'max-h-[300px] scroll-py-1',
+                        // Gradient fade effect
+                        'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
+                        'before:block after:block',
+                        'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
+                        'before:w-full after:w-full before:z-10 after:z-10',
+                        'before:overscroll-contain after:overscroll-contain',
+                        'before:pointer-events-none after:pointer-events-none',
+                        'before:bg-gradient-to-b before:from-popover before:to-transparent',
+                        'after:bg-gradient-to-t after:from-popover after:to-transparent',
+                        'before:h-[min(24px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(24px,var(--scroll-area-overflow-y-end,24px))]',
+                      )}
+                    >
+                      <DropdownMenu.List
+                        className="py-1 focus:outline-none"
+                        render={<ScrollArea.Content />}
+                      >
+                        {childNodes.map(renderNode)}
+                      </DropdownMenu.List>
+                    </ScrollArea.Viewport>
+                    <ScrollArea.Scrollbar
+                      orientation="vertical"
+                      className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
+                    >
+                      <ScrollArea.Thumb className="relative flex-1 rounded-full bg-border" />
+                    </ScrollArea.Scrollbar>
+                  </ScrollArea.Root>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      )
+    },
+  })
+
+  // Build menu content with groups at multiple depths
+  const content: NodeDef[] = React.useMemo(() => {
+    // Root level group: Quick Actions
+    const quickActionsGroup = createGroup({
+      id: 'quick-actions',
+      label: 'Quick Actions',
+      nodes: [
+        createItem({
+          id: 'new-file',
+          label: 'New File',
+          icon: <FileIcon className="h-4 w-4" />,
+          keywords: ['create', 'add'],
+        }),
+        createItem({
+          id: 'new-folder',
+          label: 'New Folder',
+          icon: <FolderIcon className="h-4 w-4" />,
+          keywords: ['create', 'add', 'directory'],
+        }),
+        createItem({
+          id: 'duplicate',
+          label: 'Duplicate',
+          icon: <CopyIcon className="h-4 w-4" />,
+          keywords: ['copy', 'clone'],
+        }),
+      ],
+    })
+
+    // Root level group: Edit Actions
+    const editActionsGroup = createGroup({
+      id: 'edit-actions',
+      label: 'Edit',
+      nodes: [
+        createItem({
+          id: 'cut',
+          label: 'Cut',
+          icon: <ScissorsIcon className="h-4 w-4" />,
+          keywords: ['remove'],
+        }),
+        createItem({
+          id: 'copy',
+          label: 'Copy',
+          icon: <CopyIcon className="h-4 w-4" />,
+        }),
+        createItem({
+          id: 'paste',
+          label: 'Paste',
+          icon: <ClipboardIcon className="h-4 w-4" />,
+        }),
+        createItem({
+          id: 'delete',
+          label: 'Delete',
+          icon: <Trash2Icon className="h-4 w-4" />,
+          keywords: ['remove', 'trash'],
+        }),
+      ],
+    })
+
+    // Level 2: Settings submenu with groups
+    const settingsSubmenu = createSubmenu({
+      id: 'settings',
+      title: 'Settings',
+      icon: <SettingsIcon className="h-4 w-4" />,
+      nodes: [
+        createGroup({
+          id: 'appearance',
+          label: 'Appearance',
+          nodes: [
+            createItem({
+              id: 'theme',
+              label: 'Theme',
+              icon: <PaletteIcon className="h-4 w-4" />,
+              keywords: ['dark', 'light', 'colors'],
+            }),
+            createItem({
+              id: 'font-size',
+              label: 'Font Size',
+              icon: <TypeIcon className="h-4 w-4" />,
+              keywords: ['text', 'size'],
+            }),
+            createItem({
+              id: 'layout',
+              label: 'Layout',
+              icon: <LayoutIcon className="h-4 w-4" />,
+              keywords: ['view', 'arrangement'],
+            }),
+          ],
+        }),
+        createGroup({
+          id: 'preferences',
+          label: 'Preferences',
+          nodes: [
+            createItem({
+              id: 'notifications',
+              label: 'Notifications',
+              icon: <BellIcon className="h-4 w-4" />,
+              keywords: ['alerts', 'sounds'],
+            }),
+            createItem({
+              id: 'privacy',
+              label: 'Privacy',
+              icon: <LockIcon className="h-4 w-4" />,
+              keywords: ['security', 'data'],
+            }),
+            createItem({
+              id: 'language',
+              label: 'Language',
+              icon: <GlobeIcon className="h-4 w-4" />,
+              keywords: ['locale', 'region'],
+            }),
+          ],
+        }),
+        // Level 3: Advanced settings submenu with groups
+        createSubmenu({
+          id: 'advanced',
+          title: 'Advanced',
+          icon: <WrenchIcon className="h-4 w-4" />,
+          nodes: [
+            createGroup({
+              id: 'developer',
+              label: 'Developer',
+              nodes: [
+                createItem({
+                  id: 'debug-mode',
+                  label: 'Debug Mode',
+                  icon: <BugIcon className="h-4 w-4" />,
+                  keywords: ['dev', 'console'],
+                }),
+                createItem({
+                  id: 'api-keys',
+                  label: 'API Keys',
+                  icon: <KeyIcon className="h-4 w-4" />,
+                  keywords: ['tokens', 'secrets'],
+                }),
+                createItem({
+                  id: 'webhooks',
+                  label: 'Webhooks',
+                  icon: <WebhookIcon className="h-4 w-4" />,
+                  keywords: ['integrations', 'endpoints'],
+                }),
+              ],
+            }),
+            createGroup({
+              id: 'experimental',
+              label: 'Experimental',
+              nodes: [
+                createItem({
+                  id: 'beta-features',
+                  label: 'Beta Features',
+                  icon: <FlaskConicalIcon className="h-4 w-4" />,
+                  keywords: ['new', 'preview'],
+                }),
+                createItem({
+                  id: 'ai-assist',
+                  label: 'AI Assist',
+                  icon: <SparklesIcon className="h-4 w-4" />,
+                  keywords: ['machine learning', 'smart'],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+
+    // Root level ungrouped item
+    const helpItem = createItem({
+      id: 'help',
+      label: 'Help & Support',
+      icon: <HelpCircleIcon className="h-4 w-4" />,
+      keywords: ['faq', 'docs', 'support'],
+    })
+
+    return [
+      quickActionsGroup,
+      editActionsGroup,
+      { kind: 'separator' as const },
+      settingsSubmenu,
+      { kind: 'separator' as const },
+      helpItem,
+    ]
+  }, [])
+
+  const config = (
+    <>
+      <ConfigSection title="Group Search Behavior">
+        <ConfigRow
+          label="groupSearchBehavior"
+          description="How groups render during search (browse mode always preserves)"
+        >
+          <Select
+            value={groupSearchBehavior}
+            onChange={setGroupSearchBehavior}
+            options={[
+              { value: 'preserve', label: 'Preserve' },
+              { value: 'flatten', label: 'Flatten' },
+            ]}
+          />
+        </ConfigRow>
+        <ConfigRow
+          label="sortGroups"
+          description="Sort groups by best match score"
+        >
+          <Toggle checked={sortGroups} onChange={setSortGroups} />
+        </ConfigRow>
+      </ConfigSection>
+      <ConfigSection title="Try Searching" defaultOpen={false}>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>
+            <strong>Root groups:</strong> "copy", "delete", "new"
+          </p>
+          <p>
+            <strong>Settings groups:</strong> "theme", "notifications"
+          </p>
+          <p>
+            <strong>Advanced groups:</strong> "debug", "beta", "ai"
+          </p>
+        </div>
+      </ConfigSection>
+    </>
+  )
+
+  return (
+    <DemoSection
+      id="dropdown-menu-deep-search-groups"
+      component="DropdownMenu"
+      title="Deep Search - Groups"
+      description="Groups with custom rendering at multiple depths (3 levels)"
+      config={config}
+    >
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
+        <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors">
+          Open Menu
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8}>
+            <DropdownMenu.Popup className="min-w-[280px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
+              <DropdownMenu.DataSurface
+                content={content}
+                deepSearch={{
+                  enabled: true,
+                  groupSearchBehavior,
+                  sortGroups,
+                }}
+              >
+                <DropdownMenu.DataInput
+                  placeholder="Search actions..."
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-10 px-3 border-b border-border caret-blue-500"
+                />
+                <ScrollArea.Root>
+                  <ScrollArea.Viewport
+                    className={cn(
+                      'max-h-[300px] scroll-py-1',
+                      // Gradient fade effect
+                      'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
+                      'before:block after:block',
+                      'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
+                      'before:w-full after:w-full before:z-10 after:z-10',
+                      'before:overscroll-contain after:overscroll-contain',
+                      'before:pointer-events-none after:pointer-events-none',
+                      'before:bg-gradient-to-b before:from-popover before:to-transparent',
+                      'after:bg-gradient-to-t after:from-popover after:to-transparent',
+                      'before:h-[min(24px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(24px,var(--scroll-area-overflow-y-end,24px))]',
+                    )}
+                  >
+                    <DropdownMenu.DataList
+                      className="focus:outline-none py-1"
+                      render={<ScrollArea.Content />}
+                    >
+                      {({ nodes, renderNode }) => (
+                        <>
+                          {nodes.length === 0 ? (
+                            <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                              No results found
+                            </div>
+                          ) : (
+                            nodes.map(renderNode)
+                          )}
+                        </>
+                      )}
+                    </DropdownMenu.DataList>
+                  </ScrollArea.Viewport>
+                  <ScrollArea.Scrollbar
+                    orientation="vertical"
+                    className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
+                  >
+                    <ScrollArea.Thumb className="relative flex-1 rounded-full bg-border" />
+                  </ScrollArea.Scrollbar>
+                </ScrollArea.Root>
+              </DropdownMenu.DataSurface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </DemoSection>
+  )
+}
+
+// --- Deep Search Stateful Demo (CheckboxItemDef & RadioGroupDef) ---
+// This demo showcases the new stateful item types for deep search:
+// - CheckboxItemDef: Checkbox items with controlled state
+// - RadioGroupDef: Radio groups that preserve their items together during search
+
+import type {
+  CheckboxItemDef,
+  CheckboxItemRenderParams,
+  RadioGroupBehavior,
+  RadioGroupRenderParams,
+} from '@bazza-ui/react'
+import { defineRadioGroup } from '@bazza-ui/react'
+
+function DeepSearchStatefulDemo() {
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {
+      if (shouldPreventCloseOnConfigPanel(open, eventDetails)) return
+    },
+    [],
+  )
+
+  // State for status (radio group)
+  const [status, setStatus] = React.useState<string>('todo')
+
+  // State for labels (checkboxes)
+  const [selectedLabels, setSelectedLabels] = React.useState<Set<string>>(
+    () => new Set(['bug']),
+  )
+
+  // State for radio group search behavior
+  const [radioGroupSearchBehavior, setRadioGroupSearchBehavior] =
+    React.useState<RadioGroupBehavior>('preserve')
+
+  const toggleLabel = React.useCallback((labelId: string, checked: boolean) => {
+    setSelectedLabels((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        next.add(labelId)
+      } else {
+        next.delete(labelId)
+      }
+      return next
+    })
+  }, [])
+
+  // Build menu content with submenus containing RadioGroupDef and CheckboxItemDef
+  const content = React.useMemo((): NodeDef[] => {
+    // Helper to create a radio item for status
+    const createStatusRadioItem = (
+      id: string,
+      value: string,
+      label: string,
+      icon: React.ReactNode,
+      keywords: string[],
+    ): ItemDef => ({
+      kind: 'item',
+      id,
+      label,
+      keywords,
+      render: ({ props, context }: ItemRenderParams) => (
+        <DropdownMenu.RadioItem
+          key={id}
+          id={props.id}
+          value={value}
+          disabled={props.disabled}
+          className={cn(
+            'group group/row flex items-center justify-between gap-2 text-sm select-none w-full',
+            'py-1.5 px-4 relative z-[1]',
+            'data-[highlighted]:text-accent-foreground',
+            'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+            'data-[highlighted]:before:bg-accent',
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <span className="size-4 flex items-center justify-center shrink-0">
+              {icon}
+            </span>
+            <DeepSearchLabelWithBreadcrumbs
+              label={label}
+              breadcrumbs={
+                context.isDeepSearchResult ? context.breadcrumbs : undefined
+              }
+            />
+          </div>
+          <DropdownMenu.RadioItemIndicator className="size-4 flex items-center justify-center shrink-0">
+            <CheckIcon className="size-3.5 text-primary" />
+          </DropdownMenu.RadioItemIndicator>
+        </DropdownMenu.RadioItem>
+      ),
+    })
+
+    // Status Radio Group - demonstrates RadioGroupDef inside a submenu
+    // Radio groups are ALWAYS preserved together during deep search (never flattened)
+    const statusRadioGroup = defineRadioGroup({
+      kind: 'radio-group',
+      id: 'status-group',
+      label: 'Status',
+      value: status,
+      onValueChange: (value) => {
+        setStatus(value)
+        toast(`Status changed to: ${value}`)
+      },
+      nodes: [
+        createStatusRadioItem(
+          'status-icebox',
+          'icebox',
+          'Icebox',
+          <Status.Icebox />,
+          ['ice', 'cold', 'frozen'],
+        ),
+        createStatusRadioItem(
+          'status-backlog',
+          'backlog',
+          'Backlog',
+          <Status.Backlog />,
+          ['queue', 'waiting', 'pending'],
+        ),
+        createStatusRadioItem('status-todo', 'todo', 'Todo', <Status.Todo />, [
+          'to do',
+          'task',
+          'work',
+        ]),
+        createStatusRadioItem(
+          'status-in-progress',
+          'in-progress',
+          'In Progress',
+          <Status.InProgress />,
+          ['working', 'active', 'doing'],
+        ),
+        createStatusRadioItem('status-done', 'done', 'Done', <Status.Done />, [
+          'complete',
+          'finished',
+          'closed',
+        ]),
+      ],
+      render: ({ props, context, children }: RadioGroupRenderParams) => (
+        <DropdownMenu.RadioGroupValue
+          key="status-group"
+          value={props.value}
+          onValueChange={props.onValueChange}
+          disabled={props.disabled}
+        >
+          <div className="py-1">
+            {context.isDeepSearchResult && (
+              <div className="px-4 py-1.5 flex items-center gap-2">
+                <span className="size-4 flex items-center justify-center text-muted-foreground">
+                  <LinearStatusIcon />
+                </span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {context.label}
+                </span>
+                {context.breadcrumbs.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground/60 ml-auto">
+                    in {context.breadcrumbs.join(' > ')}
+                  </span>
+                )}
+              </div>
+            )}
+            {children}
+          </div>
+        </DropdownMenu.RadioGroupValue>
+      ),
+    })
+
+    // Status Submenu - contains the RadioGroupDef
+    const statusSubmenu: SubmenuDef = {
+      kind: 'submenu',
+      id: 'status',
+      title: 'Status',
+      label: 'Status',
+      deepSearch: true,
+      nodes: [statusRadioGroup],
+      render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (
+        <DropdownMenu.Submenu key="status">
+          <DropdownMenu.SubmenuTrigger
+            value="status"
+            className={cn(
+              'group group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
+              'py-1.5 px-4 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-4 flex items-center justify-center shrink-0">
+                <LinearStatusIcon />
+              </span>
+              <DeepSearchLabelWithBreadcrumbs
+                label="Status"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </div>
+            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground! transition-colors duration-50 ease-out" />
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={-2} align="list-start">
+              <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+                <DropdownMenu.Surface>
+                  <div className="border-b border-border">
+                    <DropdownMenu.Input
+                      placeholder="Status..."
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                    />
+                  </div>
+                  <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
+                    {nodes.map((node) => renderNode(node))}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    }
+
+    // Labels data
+    const labelData = [
+      { id: 'bug', name: 'Bug', color: 'red', keywords: ['error', 'issue'] },
+      {
+        id: 'enhancement',
+        name: 'Enhancement',
+        color: 'green',
+        keywords: ['feature', 'improvement'],
+      },
+      { id: 'urgent', name: 'Urgent', color: 'pink', keywords: ['critical'] },
+      {
+        id: 'frontend',
+        name: 'Frontend',
+        color: 'orange',
+        keywords: ['ui', 'client'],
+      },
+      {
+        id: 'backend',
+        name: 'Backend',
+        color: 'teal',
+        keywords: ['server', 'api'],
+      },
+    ]
+
+    // Labels as CheckboxItemDef - demonstrates CheckboxItemDef inside a submenu
+    const labelCheckboxItems: CheckboxItemDef[] = labelData.map((label) => ({
+      kind: 'checkbox-item',
+      id: `label-${label.id}`,
+      label: label.name,
+      keywords: label.keywords,
+      checked: selectedLabels.has(label.id),
+      onCheckedChange: (checked) => toggleLabel(label.id, checked),
+      closeOnSelect: false,
+      render: ({ props, context }: CheckboxItemRenderParams) => (
+        <DropdownMenu.CheckboxItem
+          key={`label-${label.id}`}
+          id={props.id}
+          checked={props.checked}
+          onCheckedChange={props.onCheckedChange}
+          disabled={props.disabled}
+          closeOnClick={props.closeOnSelect ?? false}
+          className={cn(
+            'group group/row flex items-center gap-2 text-sm select-none w-full',
+            'py-1.5 px-4 relative z-[1]',
+            'data-[highlighted]:text-accent-foreground',
+            'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+            'data-[highlighted]:before:bg-accent',
+          )}
+        >
+          <DropdownMenu.CheckboxItemIndicator
+            keepMounted
+            render={(indicatorProps, state) => (
+              <Checkbox
+                checked={state.checked}
+                tabIndex={-1}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  state.toggle()
+                }}
+              />
+            )}
+          />
+          <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+            <DeepSearchLabelDot color={label.color} />
+          </span>
+          <DeepSearchLabelWithBreadcrumbs
+            label={label.name}
+            breadcrumbs={
+              context.isDeepSearchResult ? context.breadcrumbs : undefined
+            }
+          />
+        </DropdownMenu.CheckboxItem>
+      ),
+    }))
+
+    // Labels Submenu - contains CheckboxItemDef items
+    const labelsSubmenu: SubmenuDef = {
+      kind: 'submenu',
+      id: 'labels',
+      title: 'Labels',
+      label: 'Labels',
+      deepSearch: true,
+      nodes: labelCheckboxItems,
+      render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (
+        <DropdownMenu.Submenu key="labels">
+          <DropdownMenu.SubmenuTrigger
+            value="labels"
+            className={cn(
+              'group group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
+              'py-1.5 px-4 relative z-[1]',
+              'data-[highlighted]:text-accent-foreground',
+              'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+              'data-[highlighted]:before:bg-accent',
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-4 flex items-center justify-center shrink-0">
+                <LinearLabelsIcon />
+              </span>
+              <DeepSearchLabelWithBreadcrumbs
+                label="Labels"
+                breadcrumbs={
+                  context.isDeepSearchResult ? context.breadcrumbs : undefined
+                }
+              />
+            </div>
+            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground! transition-colors duration-50 ease-out" />
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner sideOffset={-2} align="list-start">
+              <DropdownMenu.Popup className="w-[220px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+                <DropdownMenu.Surface>
+                  <div className="border-b border-border">
+                    <DropdownMenu.Input
+                      placeholder="Labels..."
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
+                    />
+                  </div>
+                  <DropdownMenu.List className="max-h-[250px] overflow-y-auto py-1">
+                    {nodes.map((node) => renderNode(node))}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    }
+
+    // Assignee submenu for comparison with regular items
+    const assigneeItems: ItemDef[] = deepSearchAssignees.slice(0, 2).map((a) =>
+      createItemNode(
+        a.id,
+        a.name,
+        <Avatar className="size-4">
+          <AvatarImage src={a.avatar} alt={a.id} />
+          <AvatarFallback className="text-[10px]">{a.fallback}</AvatarFallback>
+        </Avatar>,
+        [a.name],
+      ),
+    )
+
+    const assigneeSubmenu = createSubmenuNode(
+      'assignee',
+      'Assignee',
+      <LinearAssigneeIcon />,
+      'Assignee...',
+      assigneeItems,
+    )
+
+    return [statusSubmenu, labelsSubmenu, assigneeSubmenu]
+  }, [status, selectedLabels, toggleLabel])
+
+  const selectedLabelNames = React.useMemo(() => {
+    const names: string[] = []
+    for (const id of selectedLabels) {
+      const found = deepSearchLabelNodes.find(
+        (l) => l.id === id || l.name.toLowerCase() === id,
+      )
+      if (found) names.push(found.name)
+      else names.push(id)
+    }
+    return names.length > 0 ? names.join(', ') : 'None'
+  }, [selectedLabels])
+
+  const config = React.useMemo(
+    () => (
+      <>
+        <ConfigSection title="Radio Group Search" defaultOpen={true}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-medium">Behavior</span>
+            <Select
+              value={radioGroupSearchBehavior}
+              onChange={setRadioGroupSearchBehavior}
+              options={[
+                { value: 'preserve', label: 'Preserve' },
+                { value: 'preserve-show-all', label: 'Show All' },
+                { value: 'flatten', label: 'Flatten' },
+              ]}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            <strong>preserve:</strong> Only matching items shown
+            <br />
+            <strong>show-all:</strong> All items shown when any matches
+            <br />
+            <strong>flatten:</strong> Items shown individually
+          </p>
+        </ConfigSection>
+        <ConfigSection title="Current State" defaultOpen={true}>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status:</span>
+              <span className="font-medium capitalize">
+                {status.replace('-', ' ')}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Labels:</span>
+              <span className="font-medium max-w-[100px] truncate">
+                {selectedLabelNames}
+              </span>
+            </div>
+          </div>
+        </ConfigSection>
+        <ConfigSection title="Try Searching" defaultOpen={false}>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>
+              <strong>Radio:</strong> "todo", "backlog", "done"
+            </p>
+            <p>
+              <strong>Checkbox:</strong> "bug", "frontend"
+            </p>
+          </div>
+        </ConfigSection>
+      </>
+    ),
+    [status, selectedLabelNames, radioGroupSearchBehavior],
+  )
+
+  return (
+    <DemoSection
+      id="dropdown-menu-deep-search-stateful"
+      component="DropdownMenu"
+      title="Deep Search - Stateful"
+      description="CheckboxItemDef & RadioGroupDef in submenus"
+      config={config}
+    >
+      <DropdownMenu.Root onOpenChange={handleOpenChange}>
+        <DropdownMenu.Trigger className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90 transition-colors -translate-x-8">
+          Filter (Stateful)
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner sideOffset={8} align="start">
+            <DropdownMenu.Popup className="min-w-[260px] max-w-[500px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
+              <DropdownMenu.DataSurface
+                content={content}
+                deepSearch={{
+                  enabled: true,
+                  minLength: 2,
+                  radioGroupSearchBehavior,
+                }}
               >
                 {/* Search Input */}
                 <div className="border-b border-border">
@@ -4335,19 +5405,17 @@ function VirtualizedComboboxDemo() {
 
 const CheckIcon = ({ className }: { className?: string }) => (
   <svg
-    width="15"
-    height="15"
-    viewBox="0 0 15 15"
-    fill="none"
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="currentColor"
+    role="img"
+    focusable="false"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
   >
-    <path
-      d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z"
-      fill="currentColor"
-      fillRule="evenodd"
-      clipRule="evenodd"
-    />
+    <path d="M6.336 13.6a1.049 1.049 0 0 1-.8-.376L2.632 9.736a.992.992 0 0 1 .152-1.424 1.056 1.056 0 0 1 1.456.152l2.008 2.4 5.448-8a1.048 1.048 0 0 1 1.432-.288A.992.992 0 0 1 13.424 4L7.2 13.144a1.04 1.04 0 0 1-.8.456h-.064Z" />
   </svg>
 )
 

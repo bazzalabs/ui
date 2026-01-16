@@ -22,9 +22,16 @@ export interface AimGuardRefs {
  */
 export interface UseListboxItemParams {
   /**
+   * Explicit unique identifier for this item in the store.
+   * Takes highest priority for item registration.
+   * Used by data-first APIs to ensure consistent IDs.
+   */
+  id?: string
+
+  /**
    * Unique value for this item used as identifier and for filtering.
    * If not provided, will be inferred from textContent.
-   * This value serves as the unique key for the item in the store.
+   * Used for registration when `id` is not provided.
    */
   value?: string
 
@@ -176,6 +183,7 @@ export function useListboxItem(
   params: UseListboxItemParams,
 ): UseListboxItemReturn {
   const {
+    id: idProp,
     value: valueProp,
     keywords,
     disabled = false,
@@ -199,28 +207,31 @@ export function useListboxItem(
   const [inferredValue, setInferredValue] = React.useState<string>('')
 
   React.useLayoutEffect(() => {
-    if (valueProp === undefined && ref.current) {
+    if (idProp === undefined && valueProp === undefined && ref.current) {
       const textContent = ref.current.textContent?.trim() ?? ''
       setInferredValue(textContent)
     }
-  }, [valueProp, children])
+  }, [idProp, valueProp, children])
 
-  // Value serves as the unique identifier
-  // When value is provided, use it directly
-  // When inferred from textContent, use the inferred value
-  const value = valueProp ?? inferredValue
+  // Registration ID priority: id prop > value prop > textContent inference
+  // This ensures data-first APIs can provide explicit IDs that match their internal tracking
+  const registrationId = idProp ?? valueProp ?? inferredValue
 
   // Generate a stable ID for DOM id attribute (aria-activedescendant, etc.)
   // This is separate from the store identifier (value)
   const generatedDomId = React.useId()
   const domId = `item-${generatedDomId}`
 
-  // Register item with store (using value as the unique identifier)
-  React.useEffect(() => {
-    if (!value && !forceMount) return
+  // Stabilize keywords to prevent infinite loops when passed as inline arrays
+  // We use JSON.stringify to compare by value rather than reference
+  const keywordsKey = keywords ? JSON.stringify(keywords) : undefined
 
-    const unregister = store.registerItem(value, {
-      value,
+  // Register item with store (using registrationId as the unique identifier)
+  React.useEffect(() => {
+    if (!registrationId && !forceMount) return
+
+    const unregister = store.registerItem(registrationId, {
+      value: registrationId,
       keywords,
       groupId: groupContext?.groupId,
       disabled,
@@ -230,9 +241,10 @@ export function useListboxItem(
     })
 
     return unregister
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keywordsKey is a stable representation of keywords
   }, [
-    value,
-    keywords,
+    registrationId,
+    keywordsKey,
     groupContext?.groupId,
     disabled,
     isSubmenuTrigger,
@@ -244,20 +256,20 @@ export function useListboxItem(
 
   // Register DOM ref with store for scroll behavior
   React.useEffect(() => {
-    if (!value) return
-    return store.registerItemRef(value, ref)
-  }, [value, store])
+    if (!registrationId) return
+    return store.registerItemRef(registrationId, ref)
+  }, [registrationId, store])
 
   // Register onSelect handler if provided directly
   React.useEffect(() => {
-    if (!onSelect || !value) return
-    return store.registerItemSelect(value, onSelect)
-  }, [value, onSelect, store])
+    if (!onSelect || !registrationId) return
+    return store.registerItemSelect(registrationId, onSelect)
+  }, [registrationId, onSelect, store])
 
-  // Use selectors to get derived state (using value as identifier)
+  // Use selectors to get derived state (using registrationId as identifier)
   const search = store.useState('search')
-  const isHighlighted = store.useState('isHighlighted', value)
-  const score = store.useState('getItemScore', value)
+  const isHighlighted = store.useState('isHighlighted', registrationId)
+  const score = store.useState('getItemScore', registrationId)
 
   // Check if filtering is disabled (consumer handles filtering externally)
   const filterDisabled = store.isFilterDisabled()
@@ -276,18 +288,18 @@ export function useListboxItem(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.defaultPrevented) return
       if (disabled) return
-      if (!value) return
+      if (!registrationId) return
 
       event.preventDefault()
 
       // Call the registered onSelect handler via store
-      const registeredHandler = store.context.itemSelects.get(value)
+      const registeredHandler = store.context.itemSelects.get(registrationId)
       registeredHandler?.()
 
       // Notify consumer that selection occurred (for closing menus, etc.)
-      onAfterSelect?.(value)
+      onAfterSelect?.(registrationId)
     },
-    [disabled, store, value, onAfterSelect],
+    [disabled, store, registrationId, onAfterSelect],
   )
 
   const handlePointerDown = React.useCallback(
@@ -301,7 +313,7 @@ export function useListboxItem(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.defaultPrevented) return
       if (disabled) return
-      if (!value) return
+      if (!registrationId) return
 
       // Don't highlight if aim guard is active at this depth (user is moving toward submenu)
       // Only block highlighting in the same menu where the trigger is located
@@ -311,10 +323,10 @@ export function useListboxItem(
           return
       }
 
-      // Highlight on hover (using value as identifier)
-      store.setHighlightedId(value)
+      // Highlight on hover (using registrationId as identifier)
+      store.setHighlightedId(registrationId)
     },
-    [disabled, aimGuard, depth, store, value],
+    [disabled, aimGuard, depth, store, registrationId],
   )
 
   // Context value for child components
@@ -331,10 +343,10 @@ export function useListboxItem(
   // Register a custom select handler (for checkbox/radio items)
   const registerSelect = React.useCallback(
     (handler: (() => void) | undefined) => {
-      if (!value) return () => {}
-      return store.registerItemSelect(value, handler)
+      if (!registrationId) return () => {}
+      return store.registerItemSelect(registrationId, handler)
     },
-    [store, value],
+    [store, registrationId],
   )
 
   const handlers = React.useMemo(
@@ -348,7 +360,7 @@ export function useListboxItem(
 
   return {
     id: domId,
-    storeId: value,
+    storeId: registrationId,
     ref,
     isHighlighted,
     isVisible,

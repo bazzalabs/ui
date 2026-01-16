@@ -14,8 +14,9 @@ Before running any command, check `package.json` for existing scripts and use th
 
 ## Development Commands
 
+**NEVER run `bun run dev` or any dev server commands.** Assume the user already has the dev server running in the background.
+
 - Install dependencies: `bun install`
-- Run dev server: `bun run dev`
 - Run tests: `bun run test`
 - Run tests in watch mode: `bun run test:watch`
 - Type check: `bun run type-check`
@@ -58,6 +59,8 @@ This is a Turborepo monorepo with Bun workspaces.
 Run commands for specific packages using Turbo filters:
 - `bun run dev --filter=@bazza-ui/react` - Dev only the react package
 - `bun run dev:react` - Dev react package + web app with tests
+
+Note: These are for reference only. Assume the dev server is already running.
 
 ## Changesets
 
