@@ -31,6 +31,7 @@ export {
   PopupMenuPortal as Portal,
   PopupMenuPositioner as Positioner,
   PopupMenuRadioGroup as RadioGroup,
+  PopupMenuRadioGroupValue as RadioGroupValue,
   PopupMenuRadioItem as RadioItem,
   PopupMenuRadioItemIndicator as RadioItemIndicator,
   // Scroll indicators

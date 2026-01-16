@@ -1,6 +1,5 @@
 'use client'
 
-import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import {
   booleanFilterOperators,
   type Column,
@@ -22,11 +21,18 @@ import {
   t,
   textFilterOperators,
 } from '@bazza-ui/filters'
+import type {
+  ItemDef,
+  ItemRenderParams,
+  NodeDef,
+  RadioGroupDef,
+  RadioGroupRenderParams,
+} from '@bazza-ui/react'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { type ComponentPropsWithoutRef, forwardRef } from 'react'
+import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
 import {
   useFilterActions,
   useFilterLocale,
@@ -64,19 +70,19 @@ export interface FilterOperatorProps<
   locale?: Locale
 }
 
-interface CreateOperatorMenuParams<TData, TType extends ColumnDataType> {
+interface CreateOperatorNodesParams<TData, TType extends ColumnDataType> {
   filter: FilterModel<TType>
   column: Column<TData, TType>
   actions: DataTableFilterActions
   locale: Locale
 }
 
-function createOperatorMenu<TData, TType extends ColumnDataType>({
+function createOperatorNodes<TData, TType extends ColumnDataType>({
   filter,
   column,
   actions,
   locale,
-}: CreateOperatorMenuParams<TData, TType>): MenuDef {
+}: CreateOperatorNodesParams<TData, TType>): NodeDef[] {
   const getOperators = () => {
     if (isTextColumn(column)) return textFilterOperators
     if (isOptionColumn(column)) return optionFilterOperators
@@ -93,32 +99,48 @@ function createOperatorMenu<TData, TType extends ColumnDataType>({
     (o: any) => currentOperator && o.target === currentOperator.target,
   )
 
-  return {
-    id: `filter-operator-${column.id}`,
-    hideSearchUntilActive: true,
-    defaults: {
-      item: {
-        closeOnSelect: true,
-      },
+  const radioGroup: RadioGroupDef = {
+    kind: 'radio-group',
+    id: 'operators',
+    value: filter.operator,
+    onValueChange: (value) => {
+      actions.setFilterOperator(column.id, value as any)
     },
-    nodes: [
-      {
-        kind: 'group' as const,
-        variant: 'radio' as const,
-        id: 'operators',
-        value: filter.operator,
-        onValueChange: (value) => {
-          actions.setFilterOperator(column.id, value as any)
-        },
-        nodes: relatedOperators.map((op: any) => ({
-          kind: 'item' as const,
-          variant: 'radio' as const,
-          id: op.value,
-          label: t(op.key, locale),
-        })),
-      },
-    ],
+    // Wrap children in RadioGroup to provide context for RadioItem
+    render: ({ props, children }: RadioGroupRenderParams) => (
+      <DropdownMenu.RadioGroup
+        value={props.value}
+        onValueChange={props.onValueChange}
+      >
+        {children}
+      </DropdownMenu.RadioGroup>
+    ),
+    nodes: relatedOperators.map((op: any): ItemDef => {
+      const operatorLabel = t(op.key, locale)
+      return {
+        kind: 'item',
+        id: op.value,
+        label: operatorLabel,
+        closeOnSelect: true,
+        render: ({ props }: ItemRenderParams) => (
+          <DropdownMenu.RadioItem
+            key={props.id}
+            value={props.id}
+            disabled={props.disabled}
+            className="flex items-center gap-4"
+          >
+            <span>{operatorLabel}</span>
+            <DropdownMenu.RadioItemIndicator
+              keepMounted
+              className="invisible group-aria-checked/row:visible"
+            />
+          </DropdownMenu.RadioItem>
+        ),
+      }
+    }),
   }
+
+  return [radioGroup]
 }
 
 /**
@@ -157,7 +179,11 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
       )
     }
 
-    const menu = createOperatorMenu({ filter, column, actions, locale })
+    // Memoize nodes to avoid recreating on every render
+    const nodes = useMemo(
+      () => createOperatorNodes({ filter, column, actions, locale }),
+      [filter.operator, column.id, actions, locale],
+    )
 
     const operatorDetails = filterTypeOperatorDetails[column.type] as Record<
       string,
@@ -167,23 +193,44 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
     const label = operator ? t(operator.key, locale) : filter.operator
 
     return (
-      <DropdownMenu menu={menu} trackAnchor={false}>
-        <Button
-          ref={ref}
-          data-slot="filter-operator"
-          data-column-type={column.type}
-          data-operator={filter.operator}
-          variant="ghost"
-          className={cn(
-            filterOperatorVariants({ variant }),
-            variant === 'default' ? 'text-muted-foreground' : '',
-            className,
-          )}
-          {...props}
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger
+          render={
+            <Button
+              ref={ref}
+              data-slot="filter-operator"
+              data-column-type={column.type}
+              data-operator={filter.operator}
+              variant="ghost"
+              className={cn(
+                filterOperatorVariants({ variant }),
+                variant === 'default' ? 'text-muted-foreground' : '',
+                className,
+              )}
+              {...props}
+            />
+          }
         >
           <span>{label}</span>
-        </Button>
-      </DropdownMenu>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner align="start">
+            <DropdownMenu.Popup className="min-w-fit">
+              <DropdownMenu.DataSurface content={nodes}>
+                <DropdownMenu.DataInput hideUntilActive />
+                <DropdownMenu.DataList>
+                  {({ nodes: displayNodes, renderNode }) => (
+                    <>
+                      {displayNodes.map(renderNode)}
+                      <DropdownMenu.Empty />
+                    </>
+                  )}
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     )
   },
 )

@@ -1,50 +1,98 @@
 'use client'
 
-import {
-  type ItemNode,
-  type ItemSlotProps,
-  renderIcon,
-} from '@bazza-ui/dropdown-menu'
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
+import type { CheckboxItemRenderParams } from '@bazza-ui/react'
+import * as React from 'react'
+import { isValidElement } from 'react'
+import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
-import { LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  LabelWithBreadcrumbs,
+} from '@/registry/ui/dropdown-menu-v2'
 
-export function OptionItem({ node: nodeProp, bind, search }: ItemSlotProps) {
-  const props = bind.getRowProps({
-    className: 'group/row justify-between gap-4 min-w-0',
-  })
-
-  const node = nodeProp as ItemNode<ColumnOptionExtended>
-
-  // For checkbox items, the checked state comes from node.checked (if variant is checkbox)
-  const isChecked =
-    (node as any).variant === 'checkbox' ? (node as any).checked : false
+/**
+ * Renders an option/checkbox item for option-based filter values.
+ * Used as a render function in CheckboxItemDef.
+ */
+export function renderOptionItem(
+  option: ColumnOptionExtended,
+  params: CheckboxItemRenderParams,
+): React.ReactNode {
+  const { props, context } = params
+  const { id, checked, onCheckedChange, disabled, closeOnSelect } = props
 
   return (
-    <li {...props}>
+    <DropdownMenu.CheckboxItem
+      key={id}
+      id={id}
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      disabled={disabled}
+      closeOnClick={closeOnSelect ?? false}
+      onSelect={() => {
+        console.log(`${option.value} changed to: ${!checked}`)
+      }}
+      className={cn(
+        'group/row justify-between gap-4 min-w-0',
+        option.icon && 'gap-2',
+      )}
+    >
       <div className="flex items-center gap-2 truncate">
-        <Checkbox
-          checked={isChecked}
-          className="opacity-0 data-[state=checked]:opacity-100 group-data-[focused=true]/row:opacity-100 dark:border-ring shrink-0"
+        <DropdownMenu.CheckboxItemIndicator
+          keepMounted
+          render={(indicatorProps, state) => (
+            <Checkbox
+              checked={state.checked}
+              tabIndex={-1}
+              className="opacity-0 data-[state=checked]:opacity-100 group-data-[highlighted]/row:opacity-100 dark:border-ring shrink-0"
+              onClick={(e) => {
+                e.stopPropagation()
+                state.toggle()
+              }}
+            />
+          )}
         />
-        {node.icon && (
+        {option.icon && (
           <div className="size-4 min-h-4 min-w-4 flex items-center justify-center">
-            {renderIcon(
-              node.icon,
-              'size-4 shrink-0 text-muted-foreground group-data-[focused=true]/row:text-primary',
+            {isValidElement(option.icon) ? (
+              option.icon
+            ) : (
+              <DropdownMenu.Icon>
+                {React.createElement(
+                  option.icon as React.ComponentType<{ className?: string }>,
+                  {
+                    className:
+                      'size-4 shrink-0 text-muted-foreground group-data-[highlighted]/row:text-primary',
+                  },
+                )}
+              </DropdownMenu.Icon>
             )}
           </div>
         )}
         <LabelWithBreadcrumbs
-          label={node.label ?? ''}
-          breadcrumbs={search?.breadcrumbs}
+          label={option.label ?? ''}
+          breadcrumbs={
+            context.isDeepSearchResult ? context.breadcrumbs : undefined
+          }
         />
       </div>
-      {node.data?.count && (
+      {option.count !== undefined && option.count > 0 && (
         <span className="tabular-nums text-muted-foreground tracking-tight text-xs">
-          {new Intl.NumberFormat().format(node.data?.count)}
+          {new Intl.NumberFormat().format(option.count)}
         </span>
       )}
-    </li>
+    </DropdownMenu.CheckboxItem>
   )
+}
+
+/**
+ * Creates a render function for an option item.
+ * This is used when building CheckboxItemDef nodes.
+ */
+export function createOptionItemRenderer(option: ColumnOptionExtended) {
+  return (params: CheckboxItemRenderParams): React.ReactNode => {
+    return renderOptionItem(option, params)
+  }
 }

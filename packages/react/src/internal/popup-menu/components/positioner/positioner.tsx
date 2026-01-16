@@ -16,7 +16,9 @@ type Side = 'top' | 'bottom' | 'left' | 'right' | 'inline-end' | 'inline-start'
  * - 'start' | 'center' | 'end': Standard Base UI alignment
  * - 'list-start': Align trigger top with the top of the List component (horizontal sides only)
  */
-type Align = PopoverPositionerProps['align'] | 'list-start'
+export type PopupMenuPositionerAlign =
+  | PopoverPositionerProps['align']
+  | 'list-start'
 
 export interface PopupMenuPositionerProps
   extends Omit<PopoverPositionerProps, 'align' | 'style'> {
@@ -34,7 +36,7 @@ export interface PopupMenuPositionerProps
    * - 'list-start': align the List component's top with the anchor top (horizontal sides only)
    * @default 'start' for submenus, 'center' for root dropdowns
    */
-  align?: Align
+  align?: PopupMenuPositionerAlign
 
   /**
    * Custom styles for the positioner.

@@ -81,6 +81,14 @@ export interface ContextMenuRootProps {
    */
   modal?: boolean
 
+  /**
+   * When to close the menu on outside interactions.
+   * - `'pointerdown'`: Close immediately when pointer is pressed outside (default)
+   * - `'click'`: Close when a full click (pointerdown + pointerup) occurs outside
+   * @default 'pointerdown'
+   */
+  closeOnOutsidePress?: 'click' | 'pointerdown'
+
   children: React.ReactNode
 }
 
@@ -151,6 +159,7 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
     onHighlightChange,
     disabled = false,
     modal = true,
+    closeOnOutsidePress = 'pointerdown',
     children,
   } = props
 
@@ -172,6 +181,7 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
     items: itemsProp,
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
+    closeOnOutsidePress,
   })
 
   // Sync controlled open prop to store
@@ -241,6 +251,7 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
         virtualization={virtualization}
         virtualAnchor={virtualAnchor}
         menuType="context"
+        closeOnOutsidePress={closeOnOutsidePress}
       >
         <Popover.Root
           open={open}

@@ -1,10 +1,8 @@
 'use client'
 
-import type { MenuDef, SeparatorDef } from '@bazza-ui/dropdown-menu'
 import type {
   Column,
   ColumnDataType,
-  ColumnOptionExtended,
   DataTableFilterActions,
   FilterModel,
   FilterStrategy,
@@ -19,16 +17,22 @@ import {
   isMultiOptionFilter,
   isNumberColumn,
   isNumberFilter,
-  isOptionBasedColumn,
   isOptionColumn,
   isOptionFilter,
   isTextColumn,
   isTextFilter,
   take,
 } from '@bazza-ui/filters'
+import type {
+  CheckboxItemDef,
+  NodeDef,
+  SeparatorDef,
+  SeparatorRenderParams,
+} from '@bazza-ui/react'
 import { cva } from 'class-variance-authority'
 import { format } from 'date-fns'
 import { Ellipsis } from 'lucide-react'
+import type * as React from 'react'
 import {
   cloneElement,
   forwardRef,
@@ -39,7 +43,7 @@ import {
 } from 'react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
 import {
   type FilterVariant,
   useFilterActions,
@@ -51,11 +55,9 @@ import {
 import {
   createMultiOptionMenu,
   createOptionMenu,
-  createTextMenu,
+  createTextFilterItems,
   FilterValueDateController,
   FilterValueNumberController,
-  OptionItem,
-  TextItem,
 } from '../value'
 import { useFilterItemContext } from './filter-item'
 
@@ -103,79 +105,74 @@ function partitionNodesBySelection<T extends { id: string }>(
   return { selected, unselected }
 }
 
-// Helper function to create menu with separator
-function createMenuWithSeparator(
-  columnId: string,
-  nodes: any[],
+// Helper function to create nodes with a separator between selected and unselected
+function createNodesWithSeparator(
+  nodes: CheckboxItemDef[],
   initialValues: (string | number | bigint | boolean | Date)[],
-): MenuDef<ColumnOptionExtended> {
+): NodeDef[] {
   const { selected, unselected } = partitionNodesBySelection(
     nodes,
     initialValues as string[], // option/multiOption values are always strings
   )
-  const showSeparator = selected.length > 0 && unselected.length > 0
-  const separator = {
-    id: 'separator',
-    kind: 'separator',
-  } satisfies SeparatorDef
 
-  return {
-    id: `filter-value-${columnId}`,
-    nodes: [...selected, ...(showSeparator ? [separator] : []), ...unselected],
-  } satisfies MenuDef<ColumnOptionExtended>
-}
+  const result: NodeDef[] = [...selected]
 
-// Helper function to create controller menu for date types
-function createDateControllerMenu<TData>(
-  filter: FilterModel<'date'>,
-  column: Column<TData, 'date'>,
-  actions: DataTableFilterActions,
-  strategy: FilterStrategy,
-  locale: Locale,
-): MenuDef {
-  return {
-    id: `filter-value-${column.id}`,
-    nodes: [],
-    render: () => (
-      <FilterValueDateController
-        filter={filter}
-        column={column}
-        actions={actions}
-        strategy={strategy}
-        locale={locale}
-      />
-    ),
+  // Add separator between selected and unselected if both have items
+  if (selected.length > 0 && unselected.length > 0) {
+    const separator: SeparatorDef = {
+      kind: 'separator',
+      id: 'selected-separator',
+      render: ({ props }: SeparatorRenderParams) => (
+        <DropdownMenu.Separator key={props.id} />
+      ),
+    }
+    result.push(separator)
   }
+
+  result.push(...unselected)
+  return result
 }
 
-// Helper function to create controller menu for number types
-function createNumberControllerMenu<TData>(
-  filter: FilterModel<'number'>,
-  column: Column<TData, 'number'>,
-  actions: DataTableFilterActions,
-  strategy: FilterStrategy,
-  locale: Locale,
-): MenuDef {
-  return {
-    id: `filter-value-${column.id}`,
-    nodes: [],
-    render: () => (
-      <FilterValueNumberController
-        filter={filter}
-        column={column}
-        actions={actions}
-        strategy={strategy}
-        locale={locale}
+// Text filter value dropdown content with controlled search
+function TextFilterValueContent({
+  column,
+  actions,
+}: {
+  column: Column<unknown, 'text'>
+  actions: DataTableFilterActions
+}) {
+  const [query, setQuery] = useState('')
+
+  const nodes = useMemo(
+    () => createTextFilterItems({ query, column, actions }),
+    [query, column, actions],
+  )
+
+  return (
+    <DropdownMenu.DataSurface content={nodes}>
+      <DropdownMenu.DataInput
+        // hideUntilActive
+        placeholder="Type to filter..."
+        value={query}
+        onValueChange={setQuery}
       />
-    ),
-  }
-}
-
-// Helper function to determine which Item slot to use
-function getItemSlot<TData>(column: Column<TData>) {
-  if (isTextColumn(column)) return TextItem
-  if (isOptionBasedColumn(column)) return OptionItem
-  return undefined
+      <DropdownMenu.DataList>
+        {({ nodes: displayNodes, renderNode }) =>
+          displayNodes.length > 0 ? (
+            displayNodes.map(renderNode)
+          ) : query.trim() ? (
+            <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
+              Press enter to filter by "{query}"
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
+              Type to search...
+            </div>
+          )
+        }
+      </DropdownMenu.DataList>
+    </DropdownMenu.DataSurface>
+  )
 }
 
 /**
@@ -233,27 +230,25 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
       if (isBooleanColumn(resolvedColumn)) e.preventDefault()
     }
 
+    // Keep a ref to the latest filter values to avoid stale closure in onOpenChange
+    const latestFilterValuesRef = useRef(resolvedFilter.values)
+    latestFilterValuesRef.current = resolvedFilter.values
+
     // Used only for option/multiOption to track initial selection order
     const initialFilterValuesRef = useRef<
       (string | number | bigint | boolean | Date)[]
     >([])
 
-    // Create menu configuration for all column types
+    // Create menu nodes for all column types
     // biome-ignore lint/correctness/useExhaustiveDependencies: re-create on open to show new selection order
-    const menu: MenuDef | null = useMemo(() => {
-      const baseId = `filter-value-${resolvedColumn.id}`
-
-      // For text type, use the text menu creator
+    const { nodes, isTextType, isDateType, isNumberType } = useMemo(() => {
+      // For text type, we use controlled search in the content component
       if (isTextColumn(resolvedColumn)) {
         return {
-          id: baseId,
-          ...(createTextMenu({
-            filter: resolvedFilter as FilterModel<'text'>,
-            column: resolvedColumn,
-            actions: resolvedActions,
-            locale,
-            strategy: resolvedStrategy,
-          }) as any),
+          nodes: [] as NodeDef[],
+          isTextType: true,
+          isDateType: false,
+          isNumberType: false,
         }
       }
 
@@ -267,11 +262,15 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           filter: resolvedFilter as FilterModel<'option'>,
         })
 
-        return createMenuWithSeparator(
-          resolvedColumn.id,
-          nodes,
-          initialFilterValuesRef.current,
-        )
+        return {
+          nodes: createNodesWithSeparator(
+            nodes,
+            initialFilterValuesRef.current,
+          ),
+          isTextType: false,
+          isDateType: false,
+          isNumberType: false,
+        }
       }
 
       // For multiOption type
@@ -284,40 +283,42 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           filter: resolvedFilter as FilterModel<'multiOption'>,
         })
 
-        return createMenuWithSeparator(
-          resolvedColumn.id,
-          nodes,
-          initialFilterValuesRef.current,
-        )
+        return {
+          nodes: createNodesWithSeparator(
+            nodes,
+            initialFilterValuesRef.current,
+          ),
+          isTextType: false,
+          isDateType: false,
+          isNumberType: false,
+        }
       }
 
-      // For date type, use the controller renderer
+      // For date and number types, we use custom controller content
       if (isDateColumn(resolvedColumn)) {
-        return createDateControllerMenu(
-          resolvedFilter as FilterModel<'date'>,
-          resolvedColumn,
-          resolvedActions,
-          resolvedStrategy,
-          locale,
-        )
+        return {
+          nodes: [] as NodeDef[],
+          isTextType: false,
+          isDateType: true,
+          isNumberType: false,
+        }
       }
 
-      // For number type, use the controller renderer
       if (isNumberColumn(resolvedColumn)) {
-        return createNumberControllerMenu(
-          resolvedFilter as FilterModel<'number'>,
-          resolvedColumn,
-          resolvedActions,
-          resolvedStrategy,
-          locale,
-        )
+        return {
+          nodes: [] as NodeDef[],
+          isTextType: false,
+          isDateType: false,
+          isNumberType: true,
+        }
       }
 
-      if (isBooleanColumn(resolvedColumn)) {
-        return null
+      return {
+        nodes: [] as NodeDef[],
+        isTextType: false,
+        isDateType: false,
+        isNumberType: false,
       }
-
-      return null
     }, [
       resolvedColumn,
       resolvedFilter,
@@ -350,28 +351,27 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
     }
 
     return (
-      <DropdownMenu
-        slots={{
-          Item: getItemSlot(resolvedColumn),
-        }}
-        menu={menu!}
+      <DropdownMenu.Root
         open={open}
         onOpenChange={(value) => {
           if (value) {
-            initialFilterValuesRef.current = resolvedFilter.values
+            // Capture filter values when CLOSING - use ref to avoid stale closure
+            initialFilterValuesRef.current = latestFilterValuesRef.current
           }
-
           setOpen(value)
         }}
-        trackAnchor={false}
       >
-        <Button
-          ref={ref}
-          data-slot="filter-value"
-          data-column-type={resolvedColumn.type}
-          variant="ghost"
-          className={cn(filterValueVariants({ variant }), className)}
-          onClick={handleClick}
+        <DropdownMenu.Trigger
+          render={
+            <Button
+              ref={ref}
+              data-slot="filter-value"
+              data-column-type={resolvedColumn.type}
+              variant="ghost"
+              className={cn(filterValueVariants({ variant }), className)}
+              onClick={handleClick}
+            />
+          }
         >
           <FilterValueDisplay
             filter={resolvedFilter}
@@ -379,8 +379,52 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
             locale={locale}
             entityName={entityName}
           />
-        </Button>
-      </DropdownMenu>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner align="list-start" disableAnchorTracking>
+            <DropdownMenu.Popup>
+              {isTextType ? (
+                <TextFilterValueContent
+                  column={resolvedColumn as Column<unknown, 'text'>}
+                  actions={resolvedActions}
+                />
+              ) : isDateType ? (
+                <DropdownMenu.Surface>
+                  <FilterValueDateController
+                    filter={resolvedFilter as FilterModel<'date'>}
+                    column={resolvedColumn as Column<unknown, 'date'>}
+                    actions={resolvedActions}
+                    strategy={resolvedStrategy}
+                    locale={locale}
+                  />
+                </DropdownMenu.Surface>
+              ) : isNumberType ? (
+                <DropdownMenu.Surface>
+                  <FilterValueNumberController
+                    filter={resolvedFilter as FilterModel<'number'>}
+                    column={resolvedColumn as Column<unknown, 'number'>}
+                    actions={resolvedActions}
+                    strategy={resolvedStrategy}
+                    locale={locale}
+                  />
+                </DropdownMenu.Surface>
+              ) : (
+                <DropdownMenu.DataSurface content={nodes}>
+                  <DropdownMenu.DataInput
+                    placeholder={`Search ${resolvedColumn.displayName.toLowerCase()}...`}
+                  />
+                  <DropdownMenu.DataList>
+                    {({ nodes: displayNodes, renderNode }) =>
+                      displayNodes.map(renderNode)
+                    }
+                  </DropdownMenu.DataList>
+                  <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
+                </DropdownMenu.DataSurface>
+              )}
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     )
   },
 )

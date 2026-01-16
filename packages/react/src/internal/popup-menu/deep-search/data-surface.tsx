@@ -50,11 +50,21 @@ export const PopupMenuDataSurface = React.forwardRef<
   // Parse deep search config
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
     if (typeof deepSearch === 'boolean') {
-      return { enabled: deepSearch, minLength: 0 }
+      return {
+        enabled: deepSearch,
+        minLength: 0,
+        groupSearchBehavior: 'preserve',
+        radioGroupSearchBehavior: 'preserve',
+        sortGroups: true,
+      }
     }
     return {
       enabled: deepSearch.enabled ?? true,
       minLength: deepSearch.minLength ?? 0,
+      groupSearchBehavior: deepSearch.groupSearchBehavior ?? 'preserve',
+      radioGroupSearchBehavior:
+        deepSearch.radioGroupSearchBehavior ?? 'preserve',
+      sortGroups: deepSearch.sortGroups ?? true,
     }
   }, [deepSearch])
 

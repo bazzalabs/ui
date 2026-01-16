@@ -30,4 +30,19 @@ export enum PopupMenuPopupDataAttributes {
    * @type {'click' | 'dismiss'}
    */
   instant = 'data-instant',
+  /**
+   * Present when this popup's surface is the focus owner.
+   * Useful for styling the currently focused menu in a submenu chain.
+   */
+  focused = 'data-focused',
+  /**
+   * Present when this popup has an open submenu below it in the menu tree.
+   * Useful for styling all parent menus in an open submenu chain.
+   */
+  hasOpenSubmenu = 'data-has-open-submenu',
+  /**
+   * Present when this popup is a submenu (not the root menu).
+   * Useful for applying different styles to submenus vs root menus.
+   */
+  submenu = 'data-submenu',
 }

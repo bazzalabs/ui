@@ -5,7 +5,10 @@ import type {
   ListboxStore,
   VirtualItem,
 } from '../../listbox/store/ListboxStore.js'
-import type { HighlightChangeEventDetails } from '../events.js'
+import type {
+  HighlightChangeEventDetails,
+  PopupMenuOpenChangeReason,
+} from '../events.js'
 
 // ============================================================================
 // Popup Menu Context
@@ -50,7 +53,7 @@ export interface PopupMenuContextValue {
   /** Nesting depth: 0 = root menu, 1+ = submenu */
   depth: number
   /** Close the entire menu tree (deepest submenu to root, sequentially) */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,
@@ -70,6 +73,13 @@ export interface PopupMenuContextValue {
    * - 'context': positions at cursor with fixed positioning
    */
   menuType: 'dropdown' | 'context'
+  /**
+   * When to close the menu on outside interactions.
+   * - 'pointerdown': Close immediately when pointer is pressed outside (default)
+   * - 'click': Close when a full click (pointerdown + pointerup) occurs outside
+   * @default 'pointerdown'
+   */
+  closeOnOutsidePress: 'click' | 'pointerdown'
 }
 
 const PopupMenuContext = React.createContext<PopupMenuContextValue | null>(null)

@@ -98,6 +98,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
   const {
+    id,
     value,
     keywords,
     disabled: disabledProp = false,
@@ -124,6 +125,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
   const checked = radioGroupContext.value === value
 
   const item = usePopupMenuItem({
+    id,
     keywords,
     disabled,
     forceMount,

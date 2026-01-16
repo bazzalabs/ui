@@ -48,6 +48,11 @@ export interface PopupMenuProvidersProps {
    * @default 'dropdown'
    */
   menuType?: 'dropdown' | 'context'
+  /**
+   * When to close the menu on outside interactions.
+   * @default 'pointerdown'
+   */
+  closeOnOutsidePress?: 'click' | 'pointerdown'
   children: React.ReactNode
 }
 
@@ -75,6 +80,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     virtualization,
     virtualAnchor,
     menuType = 'dropdown',
+    closeOnOutsidePress = 'pointerdown',
     children,
   } = props
 
@@ -88,6 +94,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       virtualization,
       virtualAnchor,
       menuType,
+      closeOnOutsidePress,
     }),
     [
       store,
@@ -97,6 +104,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       virtualization,
       virtualAnchor,
       menuType,
+      closeOnOutsidePress,
     ],
   )
 
