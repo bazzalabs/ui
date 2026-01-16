@@ -27,6 +27,10 @@ export {
   useMaybePopupMenuContext,
   usePopupMenuContext,
 } from './contexts/popup-menu-context.js'
+export {
+  PopupSurfaceIdContext,
+  usePopupSurfaceId,
+} from './contexts/popup-surface-id-context.js'
 export type { SubmenuContextValue } from './contexts/submenu-context.js'
 export {
   SubmenuContext,
@@ -79,13 +83,19 @@ export { PopupMenuBackdropDataAttributes } from './components/backdrop/backdrop.
 export type { PopupMenuBackdropProps } from './components/backdrop/backdrop.js'
 export { PopupMenuBackdrop } from './components/backdrop/backdrop.js'
 export { PopupMenuPopupDataAttributes } from './components/popup/popup.data-attrs.js'
-export type { PopupMenuPopupProps } from './components/popup/popup.js'
+export type {
+  PopupMenuPopupProps,
+  PopupMenuPopupState,
+} from './components/popup/popup.js'
 export { PopupMenuPopup } from './components/popup/popup.js'
 export type { PopupMenuPortalProps } from './components/portal/portal.js'
 export { PopupMenuPortal } from './components/portal/portal.js'
 export { PopupMenuPositionerCssVars } from './components/positioner/positioner.css-vars.js'
 export { PopupMenuPositionerDataAttributes } from './components/positioner/positioner.data-attrs.js'
-export type { PopupMenuPositionerProps } from './components/positioner/positioner.js'
+export type {
+  PopupMenuPositionerAlign,
+  PopupMenuPositionerProps,
+} from './components/positioner/positioner.js'
 export { PopupMenuPositioner } from './components/positioner/positioner.js'
 export type { PopupMenuProvidersProps } from './components/providers.js'
 export { PopupMenuProviders } from './components/providers.js'
@@ -197,6 +207,8 @@ export {
   RadioGroupContext,
   useRadioGroupContext,
 } from './components/radio-group/radio-group-context.js'
+export type { PopupMenuRadioGroupValueProps } from './components/radio-group/radio-group-value.js'
+export { PopupMenuRadioGroupValue } from './components/radio-group/radio-group-value.js'
 export type {
   PopupMenuRadioItemProps,
   PopupMenuRadioItemState,
@@ -288,34 +300,61 @@ export { PopupMenuDataSurface } from './deep-search/data-surface.js'
 
 // Types
 export type {
+  CheckboxItemDef,
+  CheckboxItemRenderParams,
+  CheckboxItemRenderProps,
   DataListChildrenState,
   DataListProps,
   DataSurfaceProps,
   DeepSearchConfig,
+  DisplayGroupNode,
   DisplayNode,
+  DisplayRadioGroupNode,
+  DisplayRowNode,
+  DisplaySeparatorNode,
+  GroupBehavior,
   GroupDef,
+  GroupRenderContext,
+  GroupRenderParams,
   ItemDef,
   ItemRenderParams,
+  ItemRenderProps,
   NodeDef,
+  RadioGroupBehavior,
+  RadioGroupDef,
+  RadioGroupRenderParams,
+  RadioGroupRenderProps,
   RowRenderContext,
   ScoredNode,
   SeparatorDef,
+  SeparatorRenderParams,
   SubmenuDef,
   SubmenuRenderParams,
+  SubmenuRenderProps,
+} from './deep-search/types.js'
+export {
+  defineRadioGroup,
+  isDisplayGroupNode,
+  isDisplayRadioGroupNode,
+  isDisplayRowNode,
+  isDisplaySeparatorNode,
 } from './deep-search/types.js'
 
 // Utilities
 export type { FilterNodesOptions } from './deep-search/utils.js'
 export {
-  buildDisplayNodes,
+  buildDisplayRowNodes,
   deduplicateNodes,
   filterNodes,
   flattenNodes,
-  getBrowseNodes,
+  getBrowseNodesFlatten,
+  getBrowseNodesPreserve,
   getFirstNavigableId,
   getNavigableIds,
+  isCheckboxItemDef,
   isGroupDef,
   isItemDef,
+  isRadioGroupDef,
   isSeparatorDef,
   isSubmenuDef,
   partitionByKind,

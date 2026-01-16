@@ -33,12 +33,17 @@ export { FilterTrigger as Trigger } from './components/trigger/filter-trigger'
 
 // Value utilities (for advanced usage)
 export {
+  // Menu creators
   createMultiOptionMenu,
+  // Render functions for custom item rendering
+  createOptionItemRenderer,
   createOptionMenu,
-  createTextFilterMiddleware,
-  createTextMenu,
+  // Text filter utilities
+  createTextFilterItems,
+  createTextItemRenderer,
+  // Controllers
   FilterValueDateController,
   FilterValueNumberController,
-  OptionItem,
-  TextItem,
+  renderOptionItem,
+  renderTextItem,
 } from './components/value'

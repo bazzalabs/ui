@@ -25,6 +25,14 @@ const selectors = {
       state.chain.length > 0 &&
       state.chain[state.chain.length - 1] === surfaceId,
   ),
+  /**
+   * Returns true if there's an open submenu below the given depth.
+   * - Root (depth 0): true if any submenu is open
+   * - Submenu at depth N: true if a deeper submenu is open
+   */
+  hasOpenSubmenu: createSelector(
+    (state: OpenChainState, depth: number) => state.chain.length > depth,
+  ),
 }
 
 // ============================================================================

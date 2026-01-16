@@ -81,6 +81,7 @@ export const PopupMenuItem = React.forwardRef<
   PopupMenuItemProps
 >(function PopupMenuItem(props, forwardedRef) {
   const {
+    id,
     value,
     keywords,
     disabled = false,
@@ -99,6 +100,7 @@ export const PopupMenuItem = React.forwardRef<
   } = props
 
   const item = usePopupMenuItem({
+    id,
     value,
     keywords,
     disabled,
