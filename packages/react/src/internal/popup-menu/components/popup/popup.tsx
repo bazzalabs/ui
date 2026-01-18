@@ -152,9 +152,10 @@ export const PopupMenuPopup = React.forwardRef<
   // - Combobox: Focus should stay on the input element (which is outside the popup)
   const initialFocus = submenuContext || comboboxContext ? false : undefined
 
-  // Disable returning focus to trigger when popup closes for Combobox
-  // When clicking outside, we want focus to go to whatever was clicked, not back to input
-  const finalFocus = comboboxContext ? false : undefined
+  // Disable returning focus to trigger when popup closes for:
+  // - Submenus: Focus is managed by our FocusOwner system (we transfer to parent surface's input/list)
+  // - Combobox: When clicking outside, we want focus to go to whatever was clicked, not back to input
+  const finalFocus = submenuContext || comboboxContext ? false : undefined
 
   // Add data-input-embedded attribute when layout is input-embedded
   const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
