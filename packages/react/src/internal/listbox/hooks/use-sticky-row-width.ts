@@ -203,7 +203,8 @@ export function useStickyRowWidth(
   }, [getTargetElement])
 
   // Re-apply the CSS variable when the target element resizes (e.g., viewport changes)
-  React.useLayoutEffect(() => {
+  // Use useEffect (not useLayoutEffect) to avoid conflicts with React's commit phase
+  React.useEffect(() => {
     if (!enabled) return
 
     const container = getTargetElement()
@@ -212,13 +213,29 @@ export function useStickyRowWidth(
     // ResizeObserver may not be available in some environments (SSR, older browsers, tests)
     if (typeof ResizeObserver === 'undefined') return
 
+    let rafId: number | null = null
+
     const ro = new ResizeObserver(() => {
-      if (maxSeenRef.current > 0) {
-        applyVar(maxSeenRef.current)
+      // Defer to next frame to avoid flushSync conflicts during React's commit phase
+      // This prevents errors when virtualizers or other components use flushSync
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
       }
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        if (maxSeenRef.current > 0) {
+          applyVar(maxSeenRef.current)
+        }
+      })
     })
     ro.observe(container)
-    return () => ro.disconnect()
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+      ro.disconnect()
+    }
   }, [getTargetElement, enabled, applyVar])
 
   return { queueMeasurement, resetMeasurements }
