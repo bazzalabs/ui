@@ -214,7 +214,9 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner align="list-start" disableAnchorTracking>
-            <DropdownMenu.Popup>
+            <DropdownMenu.Popup
+              className={cn((isDateType || isNumberType) && 'w-full')}
+            >
               {isTextType ? (
                 <TextEditorContent
                   column={resolvedColumn as Column<unknown, 'text'>}
