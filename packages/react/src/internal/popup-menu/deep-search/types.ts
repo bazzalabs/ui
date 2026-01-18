@@ -701,4 +701,18 @@ export interface DataListProps {
 
   /** Additional styles */
   style?: React.CSSProperties
+
+  /**
+   * When true, measures row widths and applies `--row-width` CSS variable.
+   * Keeps the list at the maximum width seen while scrolling.
+   * Useful for virtualized lists where content width varies.
+   * @default true
+   */
+  measureRowWidth?: boolean
+
+  /**
+   * Maximum width cap for row measurement (in pixels).
+   * Only used when `measureRowWidth` is true.
+   */
+  maxRowWidth?: number
 }

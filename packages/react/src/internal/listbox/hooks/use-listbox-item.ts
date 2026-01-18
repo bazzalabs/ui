@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useGroupContext } from '../contexts/group-context.js'
 import type { ItemContextValue } from '../contexts/item-context.js'
 import { useListboxContext } from '../contexts/listbox-context.js'
+import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
 
 /**
@@ -259,6 +260,15 @@ export function useListboxItem(
     if (!registrationId) return
     return store.registerItemRef(registrationId, ref)
   }, [registrationId, store])
+
+  // Register for row width measurement if enabled
+  const rowWidthContext = useMaybeRowWidthContext()
+
+  React.useLayoutEffect(() => {
+    if (rowWidthContext && ref.current && registrationId) {
+      rowWidthContext.queueMeasurement(ref.current, registrationId)
+    }
+  }, [rowWidthContext, registrationId])
 
   // Register onSelect handler if provided directly
   React.useEffect(() => {
