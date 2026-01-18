@@ -21,7 +21,7 @@ export function renderOptionItem(
   params: CheckboxItemRenderParams,
 ): React.ReactNode {
   const { props, context } = params
-  const { id, checked, onCheckedChange, disabled, closeOnSelect } = props
+  const { id, checked, onCheckedChange, disabled, closeOnClick } = props
 
   return (
     <DropdownMenu.CheckboxItem
@@ -30,7 +30,7 @@ export function renderOptionItem(
       checked={checked}
       onCheckedChange={onCheckedChange}
       disabled={disabled}
-      closeOnClick={closeOnSelect ?? false}
+      closeOnClick={closeOnClick ?? false}
       onSelect={() => {
         console.log(`${option.value} changed to: ${!checked}`)
       }}

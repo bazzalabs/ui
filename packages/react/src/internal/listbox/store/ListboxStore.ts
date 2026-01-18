@@ -743,6 +743,7 @@ export class ListboxStore extends ReactStore<
 
   highlightNext() {
     const visibleIds = this.getVisibleItemIds()
+
     if (visibleIds.length === 0) return
 
     const currentIndex = this.state.highlightedId
@@ -755,6 +756,7 @@ export class ListboxStore extends ReactStore<
     }
 
     const nextId = visibleIds[nextIndex]
+
     if (nextId) {
       this.setHighlightedId(nextId, 'keyboard')
     }
@@ -762,6 +764,7 @@ export class ListboxStore extends ReactStore<
 
   highlightPrev() {
     const visibleIds = this.getVisibleItemIds()
+
     if (visibleIds.length === 0) return
 
     const currentIndex = this.state.highlightedId
@@ -774,6 +777,7 @@ export class ListboxStore extends ReactStore<
     }
 
     const prevId = visibleIds[prevIndex]
+
     if (prevId) {
       this.setHighlightedId(prevId, 'keyboard')
     }
@@ -925,13 +929,36 @@ export class ListboxStore extends ReactStore<
     // When consumer provides ordered items (filter={false}), use that order
     // This ensures navigation matches the consumer's intended display order
     if (this.context.filter === false && orderedItems.length > 0) {
+      // Track unregistered items for warning
+      const unregisteredItems: string[] = []
+
       for (const itemId of orderedItems) {
         const registration = this.context.items.get(itemId)
         // Only include if registered (mounted) and not disabled
         if (registration && !registration.disabled) {
           result.push(itemId)
+        } else if (!registration) {
+          unregisteredItems.push(itemId)
         }
       }
+
+      // Only warn about unregistered items if SOME items are registered
+      // If no items are registered, we're likely in the initial mount phase
+      // and items will register shortly via maybeAutoHighlightOnRegister
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        unregisteredItems.length > 0 &&
+        result.length > 0
+      ) {
+        for (const itemId of unregisteredItems) {
+          console.warn(
+            `[ListboxStore] Item "${itemId}" is in orderedItems but not registered. ` +
+              'This may cause keyboard navigation to skip this item. ' +
+              'Make sure the render function passes the `id` prop: <Item {...props}>...</Item>',
+          )
+        }
+      }
+
       return result
     }
 
