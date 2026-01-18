@@ -2,6 +2,10 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "tasks": {
+    "//#sgrep:watch": {
+      "cache": false,
+      "persistent": true
+    },
     "vercel:install": {
       "cache": false
     },

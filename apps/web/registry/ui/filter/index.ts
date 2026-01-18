@@ -23,5 +23,16 @@ export type {
 // Type exports - all types re-exported at top level
 export type { FilterRootProps } from './components/root/filter-root'
 export type { FilterTriggerProps } from './components/trigger/filter-trigger'
+export type { OptionEditorContentProps } from './components/value/editors/option-editor'
+export type { TextEditorContentProps } from './components/value/editors/text-editor'
+// Value editor types
+export type {
+  CreateMultiOptionMenuProps,
+  CreateMultiOptionMenuResult,
+  CreateOptionMenuProps,
+  CreateOptionMenuResult,
+  CreateSelectableMenuResult,
+  SelectableColumnType,
+} from './components/value/selectable-menu'
 export type { FilterValueControllerProps } from './components/value/types'
 export * as Filter from './index.parts'

@@ -104,8 +104,13 @@ export interface ListboxContext {
    * - `string`: highlight the item with this specific value
    */
   autoHighlightFirst: boolean | string
-  /** Whether to clear search on close */
-  clearSearchOnClose: boolean
+  /**
+   * Whether to clear search on close.
+   * - `true`: clear immediately when menu closes (default)
+   * - `false`: preserve search when menu closes
+   * - `'after-exit'`: clear after exit animation completes (requires Surface to call clearSearch)
+   */
+  clearSearchOnClose: boolean | 'after-exit'
   /** Whether hideUntilActive mode is enabled */
   hideUntilActive: boolean
   /** ID for the list element (for aria-activedescendant) */
@@ -297,13 +302,19 @@ export class ListboxStore extends ReactStore<
         // String values are handled by applyAutoHighlight() from Surface
       } else {
         // Clear search and highlight on close
-        if (this.context.clearSearchOnClose) {
+        // When 'after-exit', search is cleared by Root after animation completes
+        if (this.context.clearSearchOnClose === true) {
           this.setSearch('')
         }
+
+        // When 'after-exit', also defer hiding the input until animation completes
+        // This prevents the input from disappearing before the popup animates out
+        const deferInputHide = this.context.clearSearchOnClose === 'after-exit'
+
         this.update({
           highlightedId: null,
           highlightSource: null,
-          inputActive: false,
+          inputActive: deferInputHide ? this.state.inputActive : false,
           pendingSearch: '',
         })
       }
