@@ -24,7 +24,7 @@ import type {
   SubmenuRenderParams,
 } from '@bazza-ui/react'
 import * as React from 'react'
-import { isValidElement, memo, useMemo, useState } from 'react'
+import { isValidElement, memo, useMemo } from 'react'
 import {
   DropdownMenu,
   LabelWithBreadcrumbs,
@@ -38,9 +38,9 @@ import { FilterTrigger } from '../trigger/filter-trigger'
 import {
   createMultiOptionMenu,
   createOptionMenu,
-  createTextFilterItems,
   FilterValueDateController,
   FilterValueNumberController,
+  TextEditorContent,
 } from '../value'
 
 // ============================================================================
@@ -298,7 +298,7 @@ function createMultiOptionSubmenuDef<TData>({
 }
 
 /**
- * Text submenu content component that manages controlled search state.
+ * Text submenu content component that renders a submenu with TextEditorContent.
  */
 function TextSubmenuContent<TData>({
   id,
@@ -315,13 +315,6 @@ function TextSubmenuContent<TData>({
   actions: DataTableFilterActions
   context: SubmenuRenderParams['context']
 }) {
-  const [query, setQuery] = useState('')
-
-  const nodes = useMemo(
-    () => createTextFilterItems({ query, column, actions }),
-    [query, column, actions],
-  )
-
   return (
     <DropdownMenu.Submenu key={id}>
       <DropdownMenu.SubmenuTrigger value={id} className="group/row">
@@ -336,31 +329,12 @@ function TextSubmenuContent<TData>({
         </div>
       </DropdownMenu.SubmenuTrigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Positioner sideOffset={-2}>
+        <DropdownMenu.Positioner sideOffset={-2} align="start" alignOffset={-3}>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface content={nodes}>
-              <DropdownMenu.DataInput
-                hideUntilActive
-                placeholder="Type to filter..."
-                value={query}
-                onValueChange={setQuery}
-              />
-              <DropdownMenu.DataList>
-                {({ nodes: displayNodes, renderNode }) =>
-                  displayNodes.length > 0 ? (
-                    displayNodes.map(renderNode)
-                  ) : query.trim() ? (
-                    <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-                      Press enter to filter by "{query}"
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-                      Type to search...
-                    </div>
-                  )
-                }
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+            <TextEditorContent
+              column={column as Column<unknown, 'text'>}
+              actions={actions}
+            />
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>

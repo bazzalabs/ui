@@ -13,17 +13,10 @@ export function renderTextItem(
   data: TextFilterItemData,
   params: ItemRenderParams,
 ): React.ReactNode {
-  const { props, context } = params
-  const { id, disabled, closeOnClick } = props
+  const { props } = params
 
   return (
-    <DropdownMenu.Item
-      key={id}
-      id={id}
-      disabled={disabled}
-      closeOnClick={closeOnClick}
-      className="group/row gap-1"
-    >
+    <DropdownMenu.Item {...props} className={'group/row gap-1'}>
       <span className="text-muted-foreground shrink-0">{data.operator}</span>
       <span className="truncate">{data.values[0]}</span>
     </DropdownMenu.Item>

@@ -115,25 +115,29 @@ function createOperatorNodes<TData, TType extends ColumnDataType>({
         {children}
       </DropdownMenu.RadioGroup>
     ),
-    nodes: relatedOperators.map((op: any): ItemDef => {
+    nodes: relatedOperators.map((op: any, index: number): ItemDef => {
       const operatorLabel = t(op.key, locale)
+      // Only assign shortcuts 1-9 to first 9 operators
+      const shortcut = index < 9 ? String(index + 1) : undefined
       return {
         kind: 'item',
         id: op.value,
         label: operatorLabel,
+        shortcut,
         closeOnSelect: true,
         render: ({ props }: ItemRenderParams) => (
           <DropdownMenu.RadioItem
-            key={props.id}
-            value={props.id}
-            disabled={props.disabled}
+            {...props}
+            shortcut={`${shortcut}`}
+            value={props.value!}
             className="flex items-center gap-4"
           >
-            <span>{operatorLabel}</span>
+            <span className="flex-1">{operatorLabel}</span>
             <DropdownMenu.RadioItemIndicator
               keepMounted
               className="invisible group-aria-checked/row:visible"
             />
+            <DropdownMenu.Shortcut />
           </DropdownMenu.RadioItem>
         ),
       }
@@ -215,7 +219,7 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner align="start">
-            <DropdownMenu.Popup className="min-w-fit">
+            <DropdownMenu.Popup className="min-w-[150px]">
               <DropdownMenu.DataSurface content={nodes}>
                 <DropdownMenu.DataInput hideUntilActive />
                 <DropdownMenu.DataList>

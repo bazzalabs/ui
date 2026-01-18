@@ -23,12 +23,7 @@ import {
   isTextFilter,
   take,
 } from '@bazza-ui/filters'
-import type {
-  CheckboxItemDef,
-  NodeDef,
-  SeparatorDef,
-  SeparatorRenderParams,
-} from '@bazza-ui/react'
+
 import { cva } from 'class-variance-authority'
 import { format } from 'date-fns'
 import { Ellipsis } from 'lucide-react'
@@ -53,11 +48,10 @@ import {
   useFilterVariant,
 } from '../root/filter-context'
 import {
-  createMultiOptionMenu,
-  createOptionMenu,
-  createTextFilterItems,
   FilterValueDateController,
   FilterValueNumberController,
+  OptionEditorContent,
+  TextEditorContent,
 } from '../value'
 import { useFilterItemContext } from './filter-item'
 
@@ -93,86 +87,6 @@ export interface FilterValueProps<
   entityName?: string
   className?: string
   variant?: FilterVariant
-}
-
-// Helper function to partition nodes into selected and unselected
-function partitionNodesBySelection<T extends { id: string }>(
-  nodes: T[],
-  initialValues: string[],
-): { selected: T[]; unselected: T[] } {
-  const selected = nodes.filter((node) => initialValues.includes(node.id))
-  const unselected = nodes.filter((node) => !initialValues.includes(node.id))
-  return { selected, unselected }
-}
-
-// Helper function to create nodes with a separator between selected and unselected
-function createNodesWithSeparator(
-  nodes: CheckboxItemDef[],
-  initialValues: (string | number | bigint | boolean | Date)[],
-): NodeDef[] {
-  const { selected, unselected } = partitionNodesBySelection(
-    nodes,
-    initialValues as string[], // option/multiOption values are always strings
-  )
-
-  const result: NodeDef[] = [...selected]
-
-  // Add separator between selected and unselected if both have items
-  if (selected.length > 0 && unselected.length > 0) {
-    const separator: SeparatorDef = {
-      kind: 'separator',
-      id: 'selected-separator',
-      render: ({ props }: SeparatorRenderParams) => (
-        <DropdownMenu.Separator key={props.id} />
-      ),
-    }
-    result.push(separator)
-  }
-
-  result.push(...unselected)
-  return result
-}
-
-// Text filter value dropdown content with controlled search
-function TextFilterValueContent({
-  column,
-  actions,
-}: {
-  column: Column<unknown, 'text'>
-  actions: DataTableFilterActions
-}) {
-  const [query, setQuery] = useState('')
-
-  const nodes = useMemo(
-    () => createTextFilterItems({ query, column, actions }),
-    [query, column, actions],
-  )
-
-  return (
-    <DropdownMenu.DataSurface content={nodes}>
-      <DropdownMenu.DataInput
-        // hideUntilActive
-        placeholder="Type to filter..."
-        value={query}
-        onValueChange={setQuery}
-      />
-      <DropdownMenu.DataList>
-        {({ nodes: displayNodes, renderNode }) =>
-          displayNodes.length > 0 ? (
-            displayNodes.map(renderNode)
-          ) : query.trim() ? (
-            <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-              Press enter to filter by "{query}"
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-              Type to search...
-            </div>
-          )
-        }
-      </DropdownMenu.DataList>
-    </DropdownMenu.DataSurface>
-  )
 }
 
 /**
@@ -239,94 +153,12 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
       (string | number | bigint | boolean | Date)[]
     >([])
 
-    // Create menu nodes for all column types
-    // biome-ignore lint/correctness/useExhaustiveDependencies: re-create on open to show new selection order
-    const { nodes, isTextType, isDateType, isNumberType } = useMemo(() => {
-      // For text type, we use controlled search in the content component
-      if (isTextColumn(resolvedColumn)) {
-        return {
-          nodes: [] as NodeDef[],
-          isTextType: true,
-          isDateType: false,
-          isNumberType: false,
-        }
-      }
-
-      // For option type
-      if (isOptionColumn(resolvedColumn)) {
-        const { nodes } = createOptionMenu({
-          column: resolvedColumn,
-          actions: resolvedActions,
-          locale,
-          strategy: resolvedStrategy,
-          filter: resolvedFilter as FilterModel<'option'>,
-        })
-
-        return {
-          nodes: createNodesWithSeparator(
-            nodes,
-            initialFilterValuesRef.current,
-          ),
-          isTextType: false,
-          isDateType: false,
-          isNumberType: false,
-        }
-      }
-
-      // For multiOption type
-      if (isMultiOptionColumn(resolvedColumn)) {
-        const { nodes } = createMultiOptionMenu({
-          column: resolvedColumn,
-          actions: resolvedActions,
-          locale,
-          strategy: resolvedStrategy,
-          filter: resolvedFilter as FilterModel<'multiOption'>,
-        })
-
-        return {
-          nodes: createNodesWithSeparator(
-            nodes,
-            initialFilterValuesRef.current,
-          ),
-          isTextType: false,
-          isDateType: false,
-          isNumberType: false,
-        }
-      }
-
-      // For date and number types, we use custom controller content
-      if (isDateColumn(resolvedColumn)) {
-        return {
-          nodes: [] as NodeDef[],
-          isTextType: false,
-          isDateType: true,
-          isNumberType: false,
-        }
-      }
-
-      if (isNumberColumn(resolvedColumn)) {
-        return {
-          nodes: [] as NodeDef[],
-          isTextType: false,
-          isDateType: false,
-          isNumberType: true,
-        }
-      }
-
-      return {
-        nodes: [] as NodeDef[],
-        isTextType: false,
-        isDateType: false,
-        isNumberType: false,
-      }
-    }, [
-      resolvedColumn,
-      resolvedFilter,
-      resolvedActions,
-      locale,
-      resolvedStrategy,
-      open,
-    ])
+    // Determine column type for rendering
+    const isTextType = isTextColumn(resolvedColumn)
+    const isDateType = isDateColumn(resolvedColumn)
+    const isNumberType = isNumberColumn(resolvedColumn)
+    const isSelectableType =
+      isOptionColumn(resolvedColumn) || isMultiOptionColumn(resolvedColumn)
 
     if (isBooleanColumn(resolvedColumn)) {
       return (
@@ -384,7 +216,7 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           <DropdownMenu.Positioner align="list-start" disableAnchorTracking>
             <DropdownMenu.Popup>
               {isTextType ? (
-                <TextFilterValueContent
+                <TextEditorContent
                   column={resolvedColumn as Column<unknown, 'text'>}
                   actions={resolvedActions}
                 />
@@ -399,28 +231,34 @@ const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
                   />
                 </DropdownMenu.Surface>
               ) : isNumberType ? (
-                <DropdownMenu.Surface>
-                  <FilterValueNumberController
-                    filter={resolvedFilter as FilterModel<'number'>}
-                    column={resolvedColumn as Column<unknown, 'number'>}
-                    actions={resolvedActions}
-                    strategy={resolvedStrategy}
-                    locale={locale}
-                  />
-                </DropdownMenu.Surface>
-              ) : (
-                <DropdownMenu.DataSurface content={nodes}>
-                  <DropdownMenu.DataInput
-                    placeholder={`Search ${resolvedColumn.displayName.toLowerCase()}...`}
-                  />
-                  <DropdownMenu.DataList>
-                    {({ nodes: displayNodes, renderNode }) =>
-                      displayNodes.map(renderNode)
-                    }
-                  </DropdownMenu.DataList>
-                  <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
-                </DropdownMenu.DataSurface>
-              )}
+                // <DropdownMenu.Surface>
+                <FilterValueNumberController
+                  filter={resolvedFilter as FilterModel<'number'>}
+                  column={resolvedColumn as Column<unknown, 'number'>}
+                  actions={resolvedActions}
+                  strategy={resolvedStrategy}
+                  locale={locale}
+                />
+                // </DropdownMenu.Surface>
+              ) : isSelectableType ? (
+                <OptionEditorContent
+                  column={
+                    resolvedColumn as
+                      | Column<unknown, 'option'>
+                      | Column<unknown, 'multiOption'>
+                  }
+                  actions={resolvedActions}
+                  filter={
+                    resolvedFilter as
+                      | FilterModel<'option'>
+                      | FilterModel<'multiOption'>
+                  }
+                  locale={locale}
+                  strategy={resolvedStrategy}
+                  initialValues={initialFilterValuesRef.current}
+                  showSeparator
+                />
+              ) : null}
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -449,7 +287,7 @@ export function FilterValueDisplay<TData, TType extends ColumnDataType>({
 }: FilterValueDisplayProps<TData, TType>) {
   if (isOptionColumn(column) && isOptionFilter(filter)) {
     return (
-      <FilterValueOptionDisplay
+      <FilterValueSelectableDisplay
         filter={filter}
         column={column as Column<unknown, 'option'>}
       />
@@ -458,7 +296,7 @@ export function FilterValueDisplay<TData, TType extends ColumnDataType>({
 
   if (isMultiOptionColumn(column) && isMultiOptionFilter(filter)) {
     return (
-      <FilterValueMultiOptionDisplay
+      <FilterValueSelectableDisplay
         filter={filter}
         column={column as Column<unknown, 'multiOption'>}
       />
@@ -489,67 +327,23 @@ export function FilterValueDisplay<TData, TType extends ColumnDataType>({
   return null
 }
 
-function FilterValueOptionDisplay({
+/**
+ * Unified display component for option and multiOption filter values.
+ * Shows single selection with icon, or multiple selections with count.
+ */
+function FilterValueSelectableDisplay({
   filter,
   column,
 }: {
-  filter: FilterModel<'option'>
-  column: Column<unknown, 'option'>
+  filter: FilterModel<'option'> | FilterModel<'multiOption'>
+  column: Column<unknown, 'option'> | Column<unknown, 'multiOption'>
 }) {
   const options = useMemo(() => column.getOptions(), [column])
-  const selected = options.filter((o) => filter?.values.includes(o.value))
-
-  if (selected.length === 1 && selected[0]) {
-    const { label, icon: Icon } = selected[0]
-    const hasIcon = !!Icon
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        {hasIcon &&
-          (isValidElement(Icon) ? (
-            Icon
-          ) : (
-            <Icon className="size-4 text-primary" />
-          ))}
-        <span>{label}</span>
-      </span>
-    )
-  }
-
-  const name = column.displayName.toLowerCase()
-  const pluralName = name.endsWith('s') ? `${name}es` : `${name}s`
-  const hasOptionIcons = !options?.some((o) => !o.icon)
-
-  return (
-    <div className="inline-flex items-center gap-2">
-      {hasOptionIcons && (
-        <div key="icons" className="inline-flex items-center gap-0.5">
-          {take(selected, 3).map(({ value, icon }) => {
-            const Icon = icon!
-            return isValidElement(Icon) ? (
-              cloneElement(Icon, { key: value })
-            ) : (
-              <Icon key={value} className="size-4" />
-            )
-          })}
-        </div>
-      )}
-      <span>
-        {selected.length} {pluralName}
-      </span>
-    </div>
+  const selected = options.filter((o) =>
+    filter?.values.includes(o.value as string),
   )
-}
 
-function FilterValueMultiOptionDisplay({
-  filter,
-  column,
-}: {
-  filter: FilterModel<'multiOption'>
-  column: Column<unknown, 'multiOption'>
-}) {
-  const options = useMemo(() => column.getOptions(), [column])
-  const selected = options.filter((o) => filter.values.includes(o.value))
-
+  // Single selection - show label with icon
   if (selected.length === 1 && selected[0]) {
     const { label, icon: Icon } = selected[0]
     const hasIcon = !!Icon
@@ -566,7 +360,15 @@ function FilterValueMultiOptionDisplay({
     )
   }
 
+  // Multiple selections - show count with icons
   const name = column.displayName.toLowerCase()
+  // For 'option' type, pluralize; for 'multiOption', use as-is
+  const displayName =
+    column.type === 'option'
+      ? name.endsWith('s')
+        ? `${name}es`
+        : `${name}s`
+      : name
   const hasOptionIcons = !options?.some((o) => !o.icon)
 
   return (
@@ -576,15 +378,15 @@ function FilterValueMultiOptionDisplay({
           {take(selected, 3).map(({ value, icon }) => {
             const Icon = icon!
             return isValidElement(Icon) ? (
-              cloneElement(Icon, { key: value })
+              cloneElement(Icon, { key: value as string })
             ) : (
-              <Icon key={value} className="size-4" />
+              <Icon key={value as string} className="size-4" />
             )
           })}
         </div>
       )}
       <span>
-        {selected.length} {name}
+        {selected.length} {displayName}
       </span>
     </div>
   )

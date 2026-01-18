@@ -31,9 +31,6 @@ export function renderOptionItem(
       onCheckedChange={onCheckedChange}
       disabled={disabled}
       closeOnClick={closeOnClick ?? false}
-      onSelect={() => {
-        console.log(`${option.value} changed to: ${!checked}`)
-      }}
       className={cn(
         'group/row justify-between gap-4 min-w-0',
         option.icon && 'gap-2',

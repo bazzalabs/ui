@@ -207,19 +207,29 @@
           "target": "components/ui/filter/components/value/text-item.tsx"
         },
         {
-          "path": "registry/ui/filter/components/value/option-menu.ts",
+          "path": "registry/ui/filter/components/value/selectable-menu.ts",
           "type": "registry:file",
-          "target": "components/ui/filter/components/value/option-menu.ts"
+          "target": "components/ui/filter/components/value/selectable-menu.ts"
         },
         {
-          "path": "registry/ui/filter/components/value/multi-option-menu.ts",
+          "path": "registry/ui/filter/components/value/text-menu.tsx",
           "type": "registry:file",
-          "target": "components/ui/filter/components/value/multi-option-menu.ts"
+          "target": "components/ui/filter/components/value/text-menu.tsx"
         },
         {
-          "path": "registry/ui/filter/components/value/text-menu.ts",
+          "path": "registry/ui/filter/components/value/editors/index.ts",
           "type": "registry:file",
-          "target": "components/ui/filter/components/value/text-menu.ts"
+          "target": "components/ui/filter/components/value/editors/index.ts"
+        },
+        {
+          "path": "registry/ui/filter/components/value/editors/option-editor.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/editors/option-editor.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/value/editors/text-editor.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/editors/text-editor.tsx"
         },
         {
           "path": "registry/ui/filter/components/value/filter-value-date-controller.tsx",
@@ -232,9 +242,19 @@
           "target": "components/ui/filter/components/value/filter-value-number-controller.tsx"
         },
         {
+          "path": "registry/ui/filter/hooks/index.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/hooks/index.ts"
+        },
+        {
           "path": "registry/ui/filter/hooks/use-debounce-callback.tsx",
           "type": "registry:file",
           "target": "components/ui/filter/hooks/use-debounce-callback.tsx"
+        },
+        {
+          "path": "registry/ui/filter/hooks/use-resolved-filter-props.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/hooks/use-resolved-filter-props.ts"
         },
         {
           "path": "registry/ui/filter/hooks/use-unmount.tsx",

@@ -111,13 +111,16 @@ export const PopupMenuDataList = React.forwardRef<
       const { node, context } = displayNode
 
       if (node.kind === 'item') {
-        const element = (
+        return (
           <React.Fragment key={node.id}>
             {node.render({
               props: {
                 id: node.id,
                 disabled: node.disabled ?? false,
                 closeOnClick: node.closeOnSelect,
+                onSelect: node.onSelect,
+                shortcut: node.shortcut,
+                value: node.value ?? node.id,
               },
               context: {
                 ...context,
@@ -126,13 +129,6 @@ export const PopupMenuDataList = React.forwardRef<
             })}
           </React.Fragment>
         )
-        console.log(
-          '[renderRowNode] returning item element with key:',
-          node.id,
-          'element.key:',
-          (element as any).key,
-        )
-        return element
       }
 
       if (node.kind === 'checkbox-item') {
@@ -159,15 +155,8 @@ export const PopupMenuDataList = React.forwardRef<
       if (node.kind === 'submenu') {
         // For submenus, provide the nodes and a recursive renderNode function
         const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
-          console.log(
-            '[submenuRenderNode] childNode:',
-            childNode.kind,
-            childNode.id,
-          )
-
           // Skip separators
           if (childNode.kind === 'separator') {
-            console.log('[submenuRenderNode] skipping separator')
             return null
           }
 
@@ -244,10 +233,6 @@ export const PopupMenuDataList = React.forwardRef<
             childNode.kind !== 'checkbox-item' &&
             childNode.kind !== 'submenu'
           ) {
-            console.log(
-              '[submenuRenderNode] skipping unknown kind:',
-              (childNode as NodeDef).kind,
-            )
             return null
           }
 
@@ -261,10 +246,6 @@ export const PopupMenuDataList = React.forwardRef<
             group: null,
           }
 
-          console.log(
-            '[submenuRenderNode] returning item/checkbox/submenu with key:',
-            childNode.id,
-          )
           // renderRowNode already wraps in a keyed Fragment
           return renderRowNode({
             node: childNode,
@@ -272,13 +253,6 @@ export const PopupMenuDataList = React.forwardRef<
           })
         }
 
-        console.log(
-          '[renderRowNode] rendering submenu:',
-          node.id,
-          'with',
-          node.nodes?.length ?? 0,
-          'child nodes',
-        )
         return (
           <React.Fragment key={node.id}>
             {node.render({
@@ -372,25 +346,6 @@ export const PopupMenuDataList = React.forwardRef<
   // Build the renderNode function that handles groups, radio groups, and rows
   const renderNode: RenderNodeFn = React.useCallback(
     (displayNode: DisplayNode): React.ReactNode => {
-      console.log(
-        '[renderNode] displayNode type:',
-        isDisplayGroupNode(displayNode)
-          ? 'group'
-          : isDisplayRadioGroupNode(displayNode)
-            ? 'radio-group'
-            : isDisplaySeparatorNode(displayNode)
-              ? 'separator'
-              : 'row',
-        'id:',
-        isDisplayGroupNode(displayNode)
-          ? displayNode.group.id
-          : isDisplayRadioGroupNode(displayNode)
-            ? displayNode.radioGroup.id
-            : isDisplaySeparatorNode(displayNode)
-              ? displayNode.separator.id
-              : displayNode.node.id,
-      )
-
       // Handle group display nodes
       if (isDisplayGroupNode(displayNode)) {
         const { group, context, items } = displayNode

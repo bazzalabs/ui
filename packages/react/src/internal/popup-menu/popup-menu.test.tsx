@@ -250,11 +250,13 @@ function MenuWithControlledSearch({
  */
 function MenuWithClearSearchOnClose({
   clearSearchOnClose = true,
+  onOpenChangeComplete,
 }: {
-  clearSearchOnClose?: boolean
+  clearSearchOnClose?: boolean | 'after-exit'
+  onOpenChangeComplete?: (open: boolean) => void
 }) {
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root onOpenChangeComplete={onOpenChangeComplete}>
       <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
@@ -809,6 +811,102 @@ describe('PopupMenu', () => {
       expect(screen.getByTestId('item-apple')).toBeInTheDocument()
       expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
       expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
+    })
+
+    it('clears search after exit animation when clearSearchOnClose is "after-exit"', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+      render(
+        <MenuWithClearSearchOnClose
+          clearSearchOnClose="after-exit"
+          onOpenChangeComplete={onOpenChangeComplete}
+        />,
+      )
+
+      // Open menu
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // Type to filter
+      const input = screen.getByTestId('search-input')
+      await user.type(input, 'apple')
+      expect(input).toHaveValue('apple')
+
+      // Only apple should be visible
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
+
+      // Close menu
+      await user.keyboard('{Escape}')
+
+      // Wait for menu to close and onOpenChangeComplete to be called
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+
+      // onOpenChangeComplete should have been called with false
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+      })
+
+      // Reopen menu
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // Search should be cleared (cleared after animation completed)
+      const newInput = screen.getByTestId('search-input')
+      expect(newInput).toHaveValue('')
+
+      // All items should be visible
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.getByTestId('item-banana')).toBeInTheDocument()
+      expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
+    })
+
+    it('calls onOpenChangeComplete after animation completes', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+      render(
+        <MenuWithClearSearchOnClose
+          clearSearchOnClose="after-exit"
+          onOpenChangeComplete={onOpenChangeComplete}
+        />,
+      )
+
+      // Open menu
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // onOpenChangeComplete should be called with true after open animation
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(true)
+      })
+
+      // Close menu
+      await user.keyboard('{Escape}')
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+
+      // onOpenChangeComplete should be called with false after close animation
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+      })
+
+      // Should have been called twice total (open and close)
+      expect(onOpenChangeComplete).toHaveBeenCalledTimes(2)
     })
   })
 

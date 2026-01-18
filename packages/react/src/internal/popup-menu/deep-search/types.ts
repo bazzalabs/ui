@@ -64,6 +64,15 @@ export interface ItemRenderProps {
   disabled: boolean
   /** Whether clicking should close the menu */
   closeOnClick?: boolean
+  /** Callback when the item is selected */
+  onSelect?: () => void
+  /** Keyboard shortcut for this item (e.g., "1", "2", etc.) */
+  shortcut?: string
+  /**
+   * Value for this item when used inside a RadioGroup.
+   * Defaults to the item's `id` if not specified.
+   */
+  value?: string
 }
 
 /**
@@ -259,6 +268,13 @@ export interface ItemDef extends BaseNodeDef {
   onSelect?: () => void
   /** Whether to close the menu when this item is selected (default: true) */
   closeOnSelect?: boolean
+  /** Keyboard shortcut for this item (e.g., "1", "2", etc.) */
+  shortcut?: string
+  /**
+   * Value for this item when used inside a RadioGroup.
+   * Defaults to the item's `id` if not specified.
+   */
+  value?: string
 
   /**
    * Render function for this item row.
@@ -624,8 +640,13 @@ export interface DataSurfaceProps {
   /** Auto-highlight behavior when menu opens */
   autoHighlightFirst?: boolean | string
 
-  /** Whether to clear search on close */
-  clearSearchOnClose?: boolean
+  /**
+   * Whether to clear search on close.
+   * - `true`: clear immediately when menu closes (default)
+   * - `false`: preserve search when menu closes
+   * - `'after-exit'`: clear after exit animation completes
+   */
+  clearSearchOnClose?: boolean | 'after-exit'
 
   /** Children (Input, List, etc.) */
   children: React.ReactNode

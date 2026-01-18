@@ -67,6 +67,13 @@ export interface PopupMenuSubmenuRootProps
    */
   onHighlightChange?: (id: string | null, index: number) => void
 
+  /**
+   * Event handler called after any open/close animations have completed.
+   * When `clearSearchOnClose="after-exit"` is set on Surface, the search
+   * will be cleared before this callback is invoked.
+   */
+  onOpenChangeComplete?: (open: boolean) => void
+
   children: React.ReactNode
 }
 
@@ -85,6 +92,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     virtualized = false,
     items: itemsProp,
     onHighlightChange,
+    onOpenChangeComplete: onOpenChangeCompleteProp,
     children,
     ...rest
   } = props
@@ -144,6 +152,20 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       store.setOpen(newOpen)
     },
     [store],
+  )
+
+  // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
+  const handleOpenChangeComplete = React.useCallback(
+    (nextOpen: boolean) => {
+      // Clear search and hide input after exit animation completes
+      if (!nextOpen && store.context.clearSearchOnClose === 'after-exit') {
+        store.clearSearch()
+        store.setInputActive(false)
+      }
+      // Call user's callback
+      onOpenChangeCompleteProp?.(nextOpen)
+    },
+    [store, onOpenChangeCompleteProp],
   )
 
   // Close submenu when parent menu closes
@@ -265,6 +287,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
             {...rest}
             open={open}
             onOpenChange={handlePopoverOpenChange}
+            onOpenChangeComplete={handleOpenChangeComplete}
           >
             {children}
           </Popover.Root>
