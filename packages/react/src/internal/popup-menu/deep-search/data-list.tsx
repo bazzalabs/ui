@@ -111,41 +111,63 @@ export const PopupMenuDataList = React.forwardRef<
       const { node, context } = displayNode
 
       if (node.kind === 'item') {
-        return node.render({
-          props: {
-            id: node.id,
-            disabled: node.disabled ?? false,
-            closeOnClick: node.closeOnSelect,
-          },
-          context: {
-            ...context,
-            disabled: node.disabled ?? false,
-          },
-        })
+        const element = (
+          <React.Fragment key={node.id}>
+            {node.render({
+              props: {
+                id: node.id,
+                disabled: node.disabled ?? false,
+                closeOnClick: node.closeOnSelect,
+              },
+              context: {
+                ...context,
+                disabled: node.disabled ?? false,
+              },
+            })}
+          </React.Fragment>
+        )
+        console.log(
+          '[renderRowNode] returning item element with key:',
+          node.id,
+          'element.key:',
+          (element as any).key,
+        )
+        return element
       }
 
       if (node.kind === 'checkbox-item') {
-        return node.render({
-          props: {
-            id: node.id,
-            checked: node.checked,
-            onCheckedChange: node.onCheckedChange,
-            disabled: node.disabled ?? false,
-            closeOnSelect: node.closeOnSelect,
-          },
-          context: {
-            ...context,
-            checked: node.checked,
-            disabled: node.disabled ?? false,
-          },
-        })
+        return (
+          <React.Fragment key={node.id}>
+            {node.render({
+              props: {
+                id: node.id,
+                checked: node.checked,
+                onCheckedChange: node.onCheckedChange,
+                disabled: node.disabled ?? false,
+                closeOnClick: node.closeOnSelect,
+              },
+              context: {
+                ...context,
+                checked: node.checked,
+                disabled: node.disabled ?? false,
+              },
+            })}
+          </React.Fragment>
+        )
       }
 
       if (node.kind === 'submenu') {
         // For submenus, provide the nodes and a recursive renderNode function
         const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
+          console.log(
+            '[submenuRenderNode] childNode:',
+            childNode.kind,
+            childNode.id,
+          )
+
           // Skip separators
           if (childNode.kind === 'separator') {
+            console.log('[submenuRenderNode] skipping separator')
             return null
           }
 
@@ -163,7 +185,7 @@ export const PopupMenuDataList = React.forwardRef<
               return null
             }
 
-            // Render group items
+            // Render group items - renderRowNode already wraps in keyed Fragment
             const groupChildren = groupItems.map((item) => {
               const itemContext: RowRenderContext = {
                 search: null,
@@ -222,6 +244,10 @@ export const PopupMenuDataList = React.forwardRef<
             childNode.kind !== 'checkbox-item' &&
             childNode.kind !== 'submenu'
           ) {
+            console.log(
+              '[submenuRenderNode] skipping unknown kind:',
+              (childNode as NodeDef).kind,
+            )
             return null
           }
 
@@ -235,23 +261,39 @@ export const PopupMenuDataList = React.forwardRef<
             group: null,
           }
 
+          console.log(
+            '[submenuRenderNode] returning item/checkbox/submenu with key:',
+            childNode.id,
+          )
+          // renderRowNode already wraps in a keyed Fragment
           return renderRowNode({
             node: childNode,
             context: childContext,
           })
         }
 
-        return node.render({
-          props: {
-            disabled: node.disabled ?? false,
-          },
-          context: {
-            ...context,
-            disabled: node.disabled ?? false,
-          },
-          nodes: node.nodes ?? [],
-          renderNode: submenuRenderNode,
-        })
+        console.log(
+          '[renderRowNode] rendering submenu:',
+          node.id,
+          'with',
+          node.nodes?.length ?? 0,
+          'child nodes',
+        )
+        return (
+          <React.Fragment key={node.id}>
+            {node.render({
+              props: {
+                disabled: node.disabled ?? false,
+              },
+              context: {
+                ...context,
+                disabled: node.disabled ?? false,
+              },
+              nodes: node.nodes ?? [],
+              renderNode: submenuRenderNode,
+            })}
+          </React.Fragment>
+        )
       }
 
       return null
@@ -275,7 +317,7 @@ export const PopupMenuDataList = React.forwardRef<
         isDeepSearchResult,
       }
 
-      // Render children
+      // Render children - renderRowNode already wraps in keyed Fragment
       const childElements = radioGroup.nodes.map((item) => {
         if (item.hidden) return null
 
@@ -288,11 +330,7 @@ export const PopupMenuDataList = React.forwardRef<
           group: null,
         }
 
-        return (
-          <React.Fragment key={item.id}>
-            {renderRowNode({ node: item, context: itemContext })}
-          </React.Fragment>
-        )
+        return renderRowNode({ node: item, context: itemContext })
       })
 
       // Use custom render if provided
@@ -334,16 +372,31 @@ export const PopupMenuDataList = React.forwardRef<
   // Build the renderNode function that handles groups, radio groups, and rows
   const renderNode: RenderNodeFn = React.useCallback(
     (displayNode: DisplayNode): React.ReactNode => {
+      console.log(
+        '[renderNode] displayNode type:',
+        isDisplayGroupNode(displayNode)
+          ? 'group'
+          : isDisplayRadioGroupNode(displayNode)
+            ? 'radio-group'
+            : isDisplaySeparatorNode(displayNode)
+              ? 'separator'
+              : 'row',
+        'id:',
+        isDisplayGroupNode(displayNode)
+          ? displayNode.group.id
+          : isDisplayRadioGroupNode(displayNode)
+            ? displayNode.radioGroup.id
+            : isDisplaySeparatorNode(displayNode)
+              ? displayNode.separator.id
+              : displayNode.node.id,
+      )
+
       // Handle group display nodes
       if (isDisplayGroupNode(displayNode)) {
         const { group, context, items } = displayNode
 
-        // Render children
-        const children = items.map((item) => (
-          <React.Fragment key={item.node.id}>
-            {renderRowNode(item)}
-          </React.Fragment>
-        ))
+        // Render children - renderRowNode already wraps in keyed Fragment
+        const children = items.map((item) => renderRowNode(item))
 
         // Use custom render if provided
         if (group.render) {
@@ -374,12 +427,8 @@ export const PopupMenuDataList = React.forwardRef<
       if (isDisplayRadioGroupNode(displayNode)) {
         const { radioGroup, context, items } = displayNode
 
-        // Render children
-        const children = items.map((item) => (
-          <React.Fragment key={item.node.id}>
-            {renderRowNode(item)}
-          </React.Fragment>
-        ))
+        // Render children - renderRowNode already wraps in keyed Fragment
+        const children = items.map((item) => renderRowNode(item))
 
         // Use custom render if provided
         if (radioGroup.render) {
@@ -435,6 +484,7 @@ export const PopupMenuDataList = React.forwardRef<
       }
 
       // Handle row display nodes (items/checkbox items/submenus)
+      // renderRowNode already wraps in keyed Fragment
       return renderRowNode(displayNode)
     },
     [renderRowNode],

@@ -178,7 +178,7 @@ export interface CheckboxItemRenderProps {
   /** Whether the item is disabled */
   disabled: boolean
   /** Whether clicking should close the menu */
-  closeOnSelect?: boolean
+  closeOnClick?: boolean
 }
 
 /**

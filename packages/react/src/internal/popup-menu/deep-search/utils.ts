@@ -1051,6 +1051,7 @@ export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
         }
       }
     } else if (isDisplaySeparatorNode(node)) {
+      // Separators are not navigable
     } else {
       // Row node (item, checkbox item, or submenu)
       if (!node.node.disabled) {
