@@ -127,8 +127,9 @@ export function OptionEditorContent<TData>({
       <DropdownMenu.DataInput
         placeholder={`Search ${column.displayName.toLowerCase()}...`}
       />
-      <DropdownMenu.VirtualizedDataList maxHeight={300} />
-      <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
+      <DropdownMenu.VirtualizedDataList maxHeight={300}>
+        <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
+      </DropdownMenu.VirtualizedDataList>
     </DropdownMenu.DataSurface>
   )
 }

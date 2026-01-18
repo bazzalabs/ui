@@ -246,10 +246,7 @@ DataList.displayName = 'DropdownMenu.DataList'
 // ============================================================================
 
 export interface VirtualizedDataListProps
-  extends Omit<
-    React.ComponentProps<typeof Primitive.DataList>,
-    'children' | 'render'
-  > {
+  extends Omit<React.ComponentProps<typeof Primitive.DataList>, 'render'> {
   /** Maximum height of the scrollable area in pixels. */
   maxHeight?: number
   /** Estimated size of each item in pixels. Used by virtualizer. */
@@ -280,6 +277,7 @@ const VirtualizedDataList = forwardRef<
   (
     {
       className,
+      children,
       maxHeight = 300,
       estimateSize = 36,
       overscan = 5,
@@ -302,13 +300,16 @@ const VirtualizedDataList = forwardRef<
         {...props}
       >
         {(state: DataListChildrenState) => (
-          <VirtualizedDataListContent
-            state={state}
-            scrollContainerRef={scrollContainerRef}
-            maxHeight={maxHeight}
-            estimateSize={estimateSize}
-            overscan={overscan}
-          />
+          <>
+            {children}
+            <VirtualizedDataListContent
+              state={state}
+              scrollContainerRef={scrollContainerRef}
+              maxHeight={maxHeight}
+              estimateSize={estimateSize}
+              overscan={overscan}
+            />
+          </>
         )}
       </Primitive.DataList>
     )
