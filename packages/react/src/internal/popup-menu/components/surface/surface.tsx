@@ -218,20 +218,30 @@ export const PopupMenuSurface = React.forwardRef<
   // Auto-focus when becoming owner
   // Skip for Combobox where the input is outside the popup and should retain focus
   React.useEffect(() => {
-    if (!isOwner || skipAutoFocus) return
+    if (!isOwner || skipAutoFocus) {
+      return
+    }
 
-    requestAnimationFrame(() => {
-      if (!surfaceRef.current) return
+    // Use setTimeout(0) to push focus to the next macrotask
+    // This allows FloatingFocusManager's cleanup to complete before we focus
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (!surfaceRef.current) {
+          return
+        }
 
-      // Find input or list within this surface
-      const input = surfaceRef.current.querySelector('input')
-      const list = surfaceRef.current.querySelector('[role="listbox"]')
-      const focusTarget = input ?? list
+        // Find input or list within this surface
+        const input = surfaceRef.current.querySelector('input')
+        const list = surfaceRef.current.querySelector('[role="listbox"]')
+        const focusTarget = input ?? list
 
-      if (focusTarget && focusTarget instanceof HTMLElement) {
-        focusTarget.focus()
-      }
-    })
+        if (focusTarget && focusTarget instanceof HTMLElement) {
+          focusTarget.focus()
+        }
+      })
+    }, 0)
+
+    return () => clearTimeout(timeoutId)
   }, [isOwner, skipAutoFocus])
 
   const contextValue = React.useMemo(

@@ -2242,11 +2242,11 @@ function createSubmenuNode(
     label: title,
     deepSearch: true,
     nodes: childNodes,
-    render: ({ context, nodes, renderNode }: SubmenuRenderParams) => {
+    render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => {
       // Always render as a full submenu structure (even in deep search results)
       // The only difference for deep search is showing breadcrumbs on the trigger
       return (
-        <DropdownMenu.Submenu key={id}>
+        <DropdownMenu.Submenu {...props}>
           <DropdownMenu.SubmenuTrigger
             value={id}
             className={cn(
@@ -2307,9 +2307,9 @@ function createItemNode(
     id,
     label,
     keywords,
-    render: ({ context }: ItemRenderParams) => (
+    render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
-        key={id}
+        {...props}
         value={id}
         shortcut={shortcut}
         onSelect={() => toast(`Changed to ${label}`)}
@@ -2506,10 +2506,11 @@ function DeepSearchDemo() {
       id: `label-${label.id}`,
       label: label.name,
       keywords: [label.name],
-      render: ({ context }: ItemRenderParams) => (
+      render: ({ props, context }: ItemRenderParams) => (
         <DropdownMenu.Item
-          key={`label-${label.id}`}
-          value={`label-${label.id}`}
+          {...props}
+          // key={`label-${label.id}`}
+          // value={`label-${label.id}`}
           onSelect={() => toast(`Added label: ${label.name}`)}
           className={cn(
             'group/row flex items-center gap-2 text-sm select-none w-full',
@@ -2660,10 +2661,9 @@ function DeepSearchDemo() {
         id: `proj-label-${label.id}`,
         label: label.name,
         keywords: [label.name],
-        render: ({ context }: ItemRenderParams) => (
+        render: ({ props, context }: ItemRenderParams) => (
           <DropdownMenu.Item
-            key={`proj-label-${label.id}`}
-            value={`proj-label-${label.id}`}
+            {...props}
             onSelect={() => toast(`Added project label: ${label.name}`)}
             className={cn(
               'group/row flex items-center gap-2 text-sm select-none w-full',
@@ -2743,10 +2743,10 @@ function DeepSearchDemo() {
           projectLeadItems,
         ),
       ],
-      render: ({ context, nodes, renderNode }: SubmenuRenderParams) => {
+      render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => {
         // Always render as a full submenu structure (even in deep search results)
         return (
-          <DropdownMenu.Submenu key="project-properties">
+          <DropdownMenu.Submenu {...props}>
             <DropdownMenu.SubmenuTrigger
               value="project-properties"
               className={cn(
@@ -2806,14 +2806,13 @@ function DeepSearchDemo() {
           id: 'notif-enabled',
           label: 'Enable notifications',
           keywords: ['notify', 'alerts', 'enable'],
-          render: ({ context }: ItemRenderParams) => (
+          render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
-              key="notif-enabled"
+              {...props}
               checked={notifSettings.enabled}
               onCheckedChange={(checked) =>
                 setNotifSettings((prev) => ({ ...prev, enabled: checked }))
               }
-              closeOnClick={true}
               className={cn(
                 'group group/row flex items-center gap-2 text-sm select-none w-full',
                 'py-1.5 px-4 relative z-[1]',
@@ -2849,14 +2848,13 @@ function DeepSearchDemo() {
           id: 'notif-sounds',
           label: 'Sounds',
           keywords: ['audio', 'sound', 'noise'],
-          render: ({ context }: ItemRenderParams) => (
+          render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
-              key="notif-sounds"
+              {...props}
               checked={notifSettings.sounds}
               onCheckedChange={(checked) =>
                 setNotifSettings((prev) => ({ ...prev, sounds: checked }))
               }
-              closeOnClick={true}
               className={cn(
                 'group group/row flex items-center gap-2 text-sm select-none w-full',
                 'py-1.5 px-4 relative z-[1]',
@@ -2892,14 +2890,13 @@ function DeepSearchDemo() {
           id: 'notif-badges',
           label: 'Badge count',
           keywords: ['badge', 'count', 'number'],
-          render: ({ context }: ItemRenderParams) => (
+          render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
-              key="notif-badges"
+              {...props}
               checked={notifSettings.badges}
               onCheckedChange={(checked) =>
                 setNotifSettings((prev) => ({ ...prev, badges: checked }))
               }
-              closeOnClick={true}
               className={cn(
                 'group group/row flex items-center gap-2 text-sm select-none w-full',
                 'py-1.5 px-4 relative z-[1]',
@@ -2935,14 +2932,13 @@ function DeepSearchDemo() {
           id: 'notif-desktop',
           label: 'Desktop notifications',
           keywords: ['desktop', 'system', 'os'],
-          render: ({ context }: ItemRenderParams) => (
+          render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
-              key="notif-desktop"
+              {...props}
               checked={notifSettings.desktop}
               onCheckedChange={(checked) =>
                 setNotifSettings((prev) => ({ ...prev, desktop: checked }))
               }
-              closeOnClick={true}
               className={cn(
                 'group group/row flex items-center gap-2 text-sm select-none w-full',
                 'py-1.5 px-4 relative z-[1]',
@@ -2978,14 +2974,13 @@ function DeepSearchDemo() {
           id: 'notif-email',
           label: 'Email notifications',
           keywords: ['email', 'mail', 'inbox'],
-          render: ({ context }: ItemRenderParams) => (
+          render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
-              key="notif-email"
+              {...props}
               checked={notifSettings.email}
               onCheckedChange={(checked) =>
                 setNotifSettings((prev) => ({ ...prev, email: checked }))
               }
-              closeOnClick={true}
               className={cn(
                 'group group/row flex items-center gap-2 text-sm select-none w-full',
                 'py-1.5 px-4 relative z-[1]',
@@ -3070,10 +3065,11 @@ function DeepSearchDemo() {
       value: typeof sortOrder,
       label: string,
       context: ItemRenderParams['context'],
+      props: ItemRenderParams['props'],
     ) => {
       const radioItem = (
         <DropdownMenu.RadioItem
-          key={id}
+          {...props}
           value={value}
           className={cn(
             'group group/row flex items-center justify-between gap-2 text-sm select-none w-full',
@@ -3126,32 +3122,44 @@ function DeepSearchDemo() {
           id: 'sort-name',
           label: 'Name',
           keywords: ['alphabetical', 'a-z', 'name'],
-          render: ({ context }: ItemRenderParams) =>
-            renderRadioItem('sort-name', 'name', 'Name', context),
+          render: ({ props, context }: ItemRenderParams) =>
+            renderRadioItem('sort-name', 'name', 'Name', context, props),
         },
         {
           kind: 'item',
           id: 'sort-date',
           label: 'Date modified',
           keywords: ['date', 'time', 'modified', 'recent'],
-          render: ({ context }: ItemRenderParams) =>
-            renderRadioItem('sort-date', 'date', 'Date modified', context),
+          render: ({ props, context }: ItemRenderParams) =>
+            renderRadioItem(
+              'sort-date',
+              'date',
+              'Date modified',
+              context,
+              props,
+            ),
         },
         {
           kind: 'item',
           id: 'sort-priority',
           label: 'Priority',
           keywords: ['priority', 'importance', 'urgent'],
-          render: ({ context }: ItemRenderParams) =>
-            renderRadioItem('sort-priority', 'priority', 'Priority', context),
+          render: ({ props, context }: ItemRenderParams) =>
+            renderRadioItem(
+              'sort-priority',
+              'priority',
+              'Priority',
+              context,
+              props,
+            ),
         },
         {
           kind: 'item',
           id: 'sort-status',
           label: 'Status',
           keywords: ['status', 'state', 'progress'],
-          render: ({ context }: ItemRenderParams) =>
-            renderRadioItem('sort-status', 'status', 'Status', context),
+          render: ({ props, context }: ItemRenderParams) =>
+            renderRadioItem('sort-status', 'status', 'Status', context, props),
         },
       ],
       render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (
@@ -3372,8 +3380,9 @@ function DeepSearchGroupsDemo() {
     label,
     keywords,
     onSelect: () => toast(`Selected: ${label}`),
-    render: ({ context }: ItemRenderParams) => (
+    render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
+        {...props}
         key={id}
         value={id}
         className={cn(
@@ -3710,9 +3719,9 @@ function DeepSearchGroupsDemo() {
     return [
       quickActionsGroup,
       editActionsGroup,
-      { kind: 'separator' as const },
+      { kind: 'separator' as const, id: 'separator-1' },
       settingsSubmenu,
-      { kind: 'separator' as const },
+      { kind: 'separator' as const, id: 'separator-2' },
       helpItem,
     ]
   }, [])
@@ -4090,7 +4099,7 @@ function DeepSearchStatefulDemo() {
           checked={props.checked}
           onCheckedChange={props.onCheckedChange}
           disabled={props.disabled}
-          closeOnClick={props.closeOnSelect ?? false}
+          closeOnClick={props.closeOnClick ?? false}
           className={cn(
             'group group/row flex items-center gap-2 text-sm select-none w-full',
             'py-1.5 px-4 relative z-[1]',
