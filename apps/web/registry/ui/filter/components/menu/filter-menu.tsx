@@ -108,9 +108,9 @@ function createSubmenuRenderer(
               <DropdownMenu.Surface>
                 <DropdownMenu.Input placeholder={inputPlaceholder} />
                 <DropdownMenu.List>
+                  <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
                   {displayNodes.map(renderNode)}
                 </DropdownMenu.List>
-                <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
               </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
