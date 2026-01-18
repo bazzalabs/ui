@@ -6,7 +6,6 @@ import { ListFilterIcon } from 'lucide-react'
 import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import type { FilterVariant } from '../root/filter-context'
 
 export interface FilterTriggerProps extends ComponentPropsWithoutRef<'button'> {
@@ -38,25 +37,23 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
     const Comp = asChild ? Slot : Button
 
     return (
-      <DropdownMenu.Trigger asChild>
-        <Comp
-          ref={ref}
-          data-slot="filter-trigger"
-          data-state={hasVisibleFilters ? 'has-filters' : 'empty'}
-          variant="outline"
-          className={cn('h-7', hasVisibleFilters && 'w-fit !px-2', className)}
-          {...props}
-        >
-          {asChild ? (
-            children
-          ) : (
-            <>
-              <ListFilterIcon className="size-4" />
-              {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
-            </>
-          )}
-        </Comp>
-      </DropdownMenu.Trigger>
+      <Comp
+        ref={ref}
+        data-slot="filter-trigger"
+        data-state={hasVisibleFilters ? 'has-filters' : 'empty'}
+        variant="outline"
+        className={cn('h-7', hasVisibleFilters && 'w-fit !px-2', className)}
+        {...props}
+      >
+        {asChild ? (
+          children
+        ) : (
+          <>
+            <ListFilterIcon className="size-4" />
+            {!hasVisibleFilters && <span>{t('filter', locale)}</span>}
+          </>
+        )}
+      </Comp>
     )
   },
 )
