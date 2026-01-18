@@ -36,12 +36,14 @@ const scrollAreaViewportVariants = cva('scroll-py-1', {
 
 const scrollAreaScrollbarVariants = cva([
   'z-10',
-  'flex w-2 touch-none select-none p-0.5',
-  'transition-opacity duration-150',
-  'data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0',
+  'flex w-1 touch-none select-none mx-0.5 my-2 bg-border/50 rounded-full',
+  'data-[hovering]:opacity-100 hover:w-1.5 data-[scrolling]:opacity-100 opacity-0',
+  'transition-[width,opacity] duration-150 ease-out',
 ])
 
-const scrollAreaThumbVariants = cva('relative flex-1 rounded-full bg-border')
+const scrollAreaThumbVariants = cva(
+  'relative flex-1 rounded-full bg-muted-foreground/50',
+)
 
 const menuItemVariants = cva(
   [
@@ -81,7 +83,7 @@ const inputVariants = cva([
   'caret-blue-500',
 ])
 
-const listVariants = cva('py-1 outline-none')
+const listVariants = cva(['py-1 outline-none', '!min-w-full'])
 
 const surfaceVariants = cva('divide-y')
 
