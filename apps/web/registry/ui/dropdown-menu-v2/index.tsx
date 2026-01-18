@@ -1,96 +1,96 @@
 'use client'
 
+import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
   DropdownMenu as Primitive,
   useMaybeSubmenuContext,
 } from '@bazza-ui/react'
+import { cva } from 'class-variance-authority'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import type * as React from 'react'
 import { Fragment, forwardRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
-// ============================================================================
-// Re-export types from @bazza-ui/react for convenience
-// ============================================================================
+const scrollAreaViewportVariants = cva('scroll-py-1', {
+  variants: {
+    withScrollFade: {
+      true: [
+        // Gradient fade effect using CSS custom properties from Base UI ScrollArea
+        'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
+        'before:block after:block',
+        'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
+        'before:w-full after:w-full before:z-10 after:z-10',
+        'before:overscroll-contain after:overscroll-contain',
+        'before:pointer-events-none after:pointer-events-none',
+        'before:bg-gradient-to-b before:from-popover before:to-transparent',
+        'after:bg-gradient-to-t after:from-popover after:to-transparent',
+        'before:h-[min(24px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(24px,var(--scroll-area-overflow-y-end,24px))]',
+      ],
+      false: '',
+    },
+  },
+  defaultVariants: {
+    withScrollFade: true,
+  },
+})
 
-export type {
-  // Data-First API types
-  CheckboxItemDef,
-  CheckboxItemRenderParams,
-  DataListChildrenState,
-  DisplayGroupNode,
-  DisplayNode,
-  DisplayRadioGroupNode,
-  DisplayRowNode,
-  // Event types
-  DropdownMenuArrowProps,
-  DropdownMenuBackdropProps,
-  DropdownMenuCheckboxItemIndicatorProps,
-  DropdownMenuCheckboxItemProps,
-  DropdownMenuDataInputProps,
-  DropdownMenuDataListProps,
-  DropdownMenuDataSurfaceProps,
-  DropdownMenuEmptyProps,
-  DropdownMenuGroupLabelProps,
-  DropdownMenuGroupProps,
-  DropdownMenuIconProps,
-  DropdownMenuInputProps,
-  DropdownMenuItemProps,
-  DropdownMenuListProps,
-  DropdownMenuPopupProps,
-  DropdownMenuPortalProps,
-  DropdownMenuPositionerProps,
-  DropdownMenuRadioGroupProps,
-  DropdownMenuRadioGroupValueProps,
-  DropdownMenuRadioItemIndicatorProps,
-  DropdownMenuRadioItemProps,
-  DropdownMenuSeparatorProps,
-  DropdownMenuShortcutProps,
-  DropdownMenuSubmenuTriggerIndicatorProps,
-  DropdownMenuSubmenuTriggerProps,
-  DropdownMenuSurfaceProps,
-  GroupDef,
-  GroupRenderParams,
-  ItemDef,
-  ItemRenderParams,
-  NodeDef,
-  RadioGroupDef,
-  RadioGroupRenderParams,
-  RowRenderContext,
-  SeparatorDef,
-  SubmenuDef,
-  SubmenuRenderParams,
-} from '@bazza-ui/react'
+const scrollAreaScrollbarVariants = cva([
+  'z-10',
+  'flex w-2 touch-none select-none p-0.5',
+  'transition-opacity duration-150',
+  'data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0',
+])
 
-export {
-  defineRadioGroup,
-  // Utilities
-  isDisplayGroupNode,
-  isDisplayRadioGroupNode,
-  isDisplayRowNode,
-  // Context hooks
-  useItemContext,
-  useMaybeItemContext,
-  useMaybeRootContext,
-  useMaybeSurfaceContext,
-  useRootContext,
-  useSurfaceContext,
-} from '@bazza-ui/react'
+const scrollAreaThumbVariants = cva('relative flex-1 rounded-full bg-border')
 
-// ============================================================================
-// Styled Components
-// ============================================================================
+const menuItemVariants = cva(
+  [
+    // Base styles shared by all menu items
+    'group group/row flex items-center text-sm select-none',
+    'data-[highlighted]:text-accent-foreground',
+    'py-1.5 px-4',
+    'w-full relative z-[1]',
+    // Highlight background pseudo-element
+    'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
+    'data-[highlighted]:before:bg-accent',
+  ],
+  {
+    variants: {
+      variant: {
+        item: 'gap-2 aria-disabled:opacity-50',
+        checkbox: 'gap-2 aria-disabled:opacity-50',
+        radio: 'justify-between gap-2 aria-disabled:opacity-50',
+        submenuTrigger: [
+          'justify-between gap-4 cursor-default',
+          'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+          'overflow-x-hidden',
+        ],
+      },
+    },
+    defaultVariants: {
+      variant: 'item',
+    },
+  },
+)
 
-// Root - no styling needed, just re-export
+const inputVariants = cva([
+  'w-full bg-transparent text-sm outline-none',
+  'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+  'disabled:cursor-not-allowed disabled:opacity-50',
+  'min-h-9 max-h-9 px-4',
+  'caret-blue-500',
+])
+
+const listVariants = cva('py-1 outline-none')
+
+const surfaceVariants = cva('divide-y')
+
 const Root = Primitive.Root
 
-// Trigger - no default styling, just re-export
 const Trigger = Primitive.Trigger
 
-// Portal - no styling needed
 const Portal = Primitive.Portal
 
-// Positioner
 const Positioner = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Positioner>
@@ -98,7 +98,6 @@ const Positioner = forwardRef<
   const submenuContext = useMaybeSubmenuContext()
   const isSubmenu = !!submenuContext
 
-  // Default align: 'list-start' for submenus, undefined (let base handle it) for root
   const align = alignProp ?? (isSubmenu ? 'list-start' : undefined)
 
   return (
@@ -113,7 +112,6 @@ const Positioner = forwardRef<
 })
 Positioner.displayName = 'DropdownMenu.Positioner'
 
-// Popup
 const Popup = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Popup>
@@ -127,13 +125,10 @@ const Popup = forwardRef<
         'min-w-[250px] max-w-[500px]',
         'overflow-hidden',
         !state.isSubmenu && [
-          // Base styles (final state)
           'opacity-100 scale-100',
           'origin-(--transform-origin)',
           'transition-[opacity,scale] duration-150 ease-out',
-          // Enter animation: @starting-style defines initial state
           'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
-          // Exit animation: data-[ending-style] defines final state
           'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
         ],
         className,
@@ -144,188 +139,166 @@ const Popup = forwardRef<
 ))
 Popup.displayName = 'DropdownMenu.Popup'
 
-// Surface
 const Surface = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Surface>
 >(({ className, clearSearchOnClose = 'after-exit', ...props }, ref) => (
   <Primitive.Surface
     ref={ref}
-    className={className}
+    className={cn(surfaceVariants(), className)}
     clearSearchOnClose={clearSearchOnClose}
     {...props}
   />
 ))
 Surface.displayName = 'DropdownMenu.Surface'
 
-// DataSurface
 const DataSurface = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.DataSurface>
 >(({ className, clearSearchOnClose = 'after-exit', ...props }, ref) => (
   <Primitive.DataSurface
     ref={ref}
-    className={className}
+    className={cn(surfaceVariants(), className)}
     clearSearchOnClose={clearSearchOnClose}
     {...props}
   />
 ))
 DataSurface.displayName = 'DropdownMenu.DataSurface'
 
-// List
 const List = forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof Primitive.List>
->(({ className, ...props }, ref) => (
-  <Primitive.List
-    ref={ref}
-    className={cn(
-      'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
-      'w-full max-h-[500px]',
-      'py-1',
-      className,
-    )}
-    {...props}
-  />
+  React.ComponentProps<typeof Primitive.List> & {
+    /** Maximum height of the scrollable area. */
+    maxHeight?: string | number
+    /** Whether to show gradient fade at scroll edges. */
+    withScrollFade?: boolean
+  }
+>(({ className, maxHeight = 342, withScrollFade = true, ...props }, ref) => (
+  <ScrollArea.Root>
+    <ScrollArea.Viewport
+      className={scrollAreaViewportVariants({ withScrollFade })}
+      style={{
+        maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+      }}
+    >
+      <Primitive.List
+        ref={ref}
+        className={cn(listVariants(), className)}
+        render={<ScrollArea.Content />}
+        {...props}
+      />
+    </ScrollArea.Viewport>
+    <ScrollArea.Scrollbar
+      orientation="vertical"
+      className={scrollAreaScrollbarVariants()}
+    >
+      <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
+    </ScrollArea.Scrollbar>
+  </ScrollArea.Root>
 ))
 List.displayName = 'DropdownMenu.List'
 
-// DataList
 const DataList = forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof Primitive.DataList>
->(({ className, ...props }, ref) => (
-  <Primitive.DataList
-    ref={ref}
-    className={cn(
-      'scroll-py-1 overflow-y-auto overflow-x-hidden outline-none',
-      'w-full flex-1 min-h-0',
-      'py-1',
-      className,
-    )}
-    {...props}
-  />
+  React.ComponentProps<typeof Primitive.DataList> & {
+    /** Maximum height of the scrollable area. */
+    maxHeight?: string | number
+    /** Whether to show gradient fade at scroll edges. */
+    withScrollFade?: boolean
+  }
+>(({ className, maxHeight = 342, withScrollFade = true, ...props }, ref) => (
+  <ScrollArea.Root>
+    <ScrollArea.Viewport
+      className={scrollAreaViewportVariants({ withScrollFade })}
+      style={{
+        maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+      }}
+    >
+      <Primitive.DataList
+        ref={ref}
+        className={cn(listVariants(), className)}
+        render={<ScrollArea.Content />}
+        {...props}
+      />
+    </ScrollArea.Viewport>
+    <ScrollArea.Scrollbar
+      orientation="vertical"
+      className={scrollAreaScrollbarVariants()}
+    >
+      <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
+    </ScrollArea.Scrollbar>
+  </ScrollArea.Root>
 ))
 DataList.displayName = 'DropdownMenu.DataList'
 
-// Input
 const Input = forwardRef<
   HTMLInputElement,
   React.ComponentProps<typeof Primitive.Input>
 >(({ className, placeholder = 'Search...', ...props }, ref) => (
   <Primitive.Input
     ref={ref}
-    className={cn(
-      'w-full bg-transparent text-sm outline-none',
-      'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      'min-h-9 max-h-9 px-4 border-b',
-      'caret-blue-500',
-      className,
-    )}
+    className={cn(inputVariants(), className)}
     placeholder={placeholder}
     {...props}
   />
 ))
 Input.displayName = 'DropdownMenu.Input'
 
-// DataInput
 const DataInput = forwardRef<
   HTMLInputElement,
   React.ComponentProps<typeof Primitive.DataInput>
 >(({ className, placeholder = 'Search...', ...props }, ref) => (
   <Primitive.DataInput
     ref={ref}
-    className={cn(
-      'w-full bg-transparent text-sm outline-none',
-      'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      'min-h-9 max-h-9 px-4 border-b',
-      'caret-blue-500',
-      className,
-    )}
+    className={cn(inputVariants(), className)}
     placeholder={placeholder}
     {...props}
   />
 ))
 DataInput.displayName = 'DropdownMenu.DataInput'
 
-// Item
 const Item = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Item>
 >(({ className, ...props }, ref) => (
   <Primitive.Item
     ref={ref}
-    className={cn(
-      'group group/row flex items-center gap-2 text-sm select-none',
-      'data-[highlighted]:text-accent-foreground',
-      'aria-disabled:opacity-50',
-      'py-1.5 px-4',
-      'w-full relative z-[1]',
-      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
-      'data-[highlighted]:before:bg-accent',
-      className,
-    )}
+    className={cn(menuItemVariants({ variant: 'item' }), className)}
     {...props}
   />
 ))
 Item.displayName = 'DropdownMenu.Item'
 
-// CheckboxItem
 const CheckboxItem = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.CheckboxItem>
 >(({ className, ...props }, ref) => (
   <Primitive.CheckboxItem
     ref={ref}
-    className={cn(
-      'group group/row flex items-center gap-2 text-sm select-none',
-      'data-[highlighted]:text-accent-foreground',
-      'aria-disabled:opacity-50',
-      'py-1.5 px-4',
-      'w-full relative z-[1]',
-      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
-      'data-[highlighted]:before:bg-accent',
-      className,
-    )}
+    className={cn(menuItemVariants({ variant: 'checkbox' }), className)}
     {...props}
   />
 ))
 CheckboxItem.displayName = 'DropdownMenu.CheckboxItem'
 
-// CheckboxItemIndicator
 const CheckboxItemIndicator = Primitive.CheckboxItemIndicator
 
-// RadioGroup
 const RadioGroup = Primitive.RadioGroup
 
-// RadioGroupValue (for Data-First API)
 const RadioGroupValue = Primitive.RadioGroupValue
 
-// RadioItem
 const RadioItem = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.RadioItem>
 >(({ className, ...props }, ref) => (
   <Primitive.RadioItem
     ref={ref}
-    className={cn(
-      'group group/row flex items-center justify-between gap-2 text-sm select-none',
-      'data-[highlighted]:text-accent-foreground',
-      'aria-disabled:opacity-50',
-      'py-1.5 px-4',
-      'w-full relative z-[1]',
-      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
-      'data-[highlighted]:before:bg-accent',
-      className,
-    )}
+    className={cn(menuItemVariants({ variant: 'radio' }), className)}
     {...props}
   />
 ))
 RadioItem.displayName = 'DropdownMenu.RadioItem'
 
-// RadioItemIndicator
 const RadioItemIndicator = forwardRef<
   HTMLSpanElement,
   React.ComponentProps<typeof Primitive.RadioItemIndicator>
@@ -343,7 +316,6 @@ const RadioItemIndicator = forwardRef<
 ))
 RadioItemIndicator.displayName = 'DropdownMenu.RadioItemIndicator'
 
-// Separator
 const Separator = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Separator>
@@ -356,10 +328,8 @@ const Separator = forwardRef<
 ))
 Separator.displayName = 'DropdownMenu.Separator'
 
-// Group
 const Group = Primitive.Group
 
-// GroupLabel
 const GroupLabel = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.GroupLabel>
@@ -376,26 +346,15 @@ const GroupLabel = forwardRef<
 ))
 GroupLabel.displayName = 'DropdownMenu.GroupLabel'
 
-// Submenu
 const Submenu = Primitive.Submenu
 
-// SubmenuTrigger
 const SubmenuTrigger = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.SubmenuTrigger>
 >(({ className, children, ...props }, ref) => (
   <Primitive.SubmenuTrigger
     ref={ref}
-    className={cn(
-      'group group/row flex items-center justify-between gap-4 text-sm select-none cursor-default',
-      'data-[highlighted]:text-accent-foreground',
-      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-      'py-1.5 px-4',
-      'overflow-x-hidden w-full relative z-[1]',
-      'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
-      'data-[highlighted]:before:bg-accent',
-      className,
-    )}
+    className={cn(menuItemVariants({ variant: 'submenuTrigger' }), className)}
     {...props}
   >
     {children}
@@ -414,7 +373,6 @@ const SubmenuTrigger = forwardRef<
 ))
 SubmenuTrigger.displayName = 'DropdownMenu.SubmenuTrigger'
 
-// SubmenuTriggerIndicator
 const SubmenuTriggerIndicator = forwardRef<
   HTMLSpanElement,
   React.ComponentProps<typeof Primitive.SubmenuTriggerIndicator>
@@ -435,7 +393,6 @@ const SubmenuTriggerIndicator = forwardRef<
 ))
 SubmenuTriggerIndicator.displayName = 'DropdownMenu.SubmenuTriggerIndicator'
 
-// Empty
 const Empty = forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof Primitive.Empty>, 'children'> & {
@@ -455,13 +412,10 @@ const Empty = forwardRef<
 ))
 Empty.displayName = 'DropdownMenu.Empty'
 
-// Arrow
 const Arrow = Primitive.Arrow
 
-// Backdrop
 const Backdrop = Primitive.Backdrop
 
-// Shortcut
 const Shortcut = forwardRef<
   HTMLSpanElement,
   React.ComponentProps<typeof Primitive.Shortcut>
@@ -474,7 +428,6 @@ const Shortcut = forwardRef<
 ))
 Shortcut.displayName = 'DropdownMenu.Shortcut'
 
-// Icon
 const Icon = forwardRef<
   HTMLSpanElement,
   React.ComponentProps<typeof Primitive.Icon>
@@ -491,10 +444,8 @@ const Icon = forwardRef<
 ))
 Icon.displayName = 'DropdownMenu.Icon'
 
-// ScrollUpArrow
 const ScrollUpArrow = Primitive.ScrollUpArrow
 
-// ScrollDownArrow
 const ScrollDownArrow = Primitive.ScrollDownArrow
 
 // ============================================================================
