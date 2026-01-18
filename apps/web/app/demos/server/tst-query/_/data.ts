@@ -112,11 +112,6 @@ export const ISSUE_LABELS: IssueLabel[] = [
     color: 'purple',
   },
   {
-    id: '6ba7b81c-9dad-11d1-80b4-00c04fd430c8',
-    name: 'Ethics a super duper long name here to see what happens hello hi there hiiiiiiiiiii',
-    color: 'fuchsia',
-  },
-  {
     id: '6ba7b81d-9dad-11d1-80b4-00c04fd430c8',
     name: 'Refactor',
     color: 'lime',
@@ -310,6 +305,11 @@ export const ISSUE_LABELS: IssueLabel[] = [
     id: '6ba7b847-9dad-11d1-80b4-00c04fd430c8',
     name: 'Data Quality',
     color: 'pink',
+  },
+  {
+    id: '6ba7b81c-9dad-11d1-80b4-00c04fd430c8',
+    name: 'Ethics a super duper long name here to see what happens hello hi there hiiiiiiiiiii',
+    color: 'fuchsia',
   },
   {
     id: '6ba7b848-9dad-11d1-80b4-00c04fd430c8',

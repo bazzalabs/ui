@@ -116,6 +116,7 @@ export {
   PopupMenuCheckboxItemDataAttributes as ContextMenuCheckboxItemDataAttributes,
   PopupMenuIconDataAttributes as ContextMenuIconDataAttributes,
   PopupMenuItemDataAttributes as ContextMenuItemDataAttributes,
+  PopupMenuListDataAttributes as ContextMenuListDataAttributes,
   PopupMenuPopupDataAttributes as ContextMenuPopupDataAttributes,
   PopupMenuPositionerCssVars as ContextMenuPositionerCssVars,
   PopupMenuPositionerDataAttributes as ContextMenuPositionerDataAttributes,
