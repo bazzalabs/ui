@@ -122,6 +122,7 @@ export function useListboxKeyboard(
       if (event.nativeEvent.isComposing || event.keyCode === 229) return
 
       // Type-to-search: detect printable characters when enabled
+      // Note: Shortcuts take priority over type-to-search, so we check for shortcuts first
       if (enableTypeToSearch) {
         const hideUntilActive = store.context.hideUntilActive
         const inputActive = store.state.inputActive
@@ -134,6 +135,21 @@ export function useListboxKeyboard(
             !event.altKey
 
           if (isPrintable) {
+            // Check if this key is a registered shortcut first
+            const shortcutItemId = store.context.shortcuts.get(
+              event.key.toLowerCase(),
+            )
+            if (shortcutItemId && store.selectByShortcut(event.key)) {
+              event.preventDefault()
+              const item = store.context.items.get(shortcutItemId)
+              onSelect?.({
+                itemId: shortcutItemId,
+                closeOnClick: item?.closeOnClick ?? true,
+              })
+              return
+            }
+
+            // No shortcut match, trigger type-to-search
             event.preventDefault()
             store.setPendingSearch(event.key)
             store.setInputActive(true)

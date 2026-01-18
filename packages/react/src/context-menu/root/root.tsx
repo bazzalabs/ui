@@ -89,6 +89,13 @@ export interface ContextMenuRootProps {
    */
   closeOnOutsidePress?: 'click' | 'pointerdown'
 
+  /**
+   * Event handler called after any open/close animations have completed.
+   * When `clearSearchOnClose="after-exit"` is set on Surface, the search
+   * will be cleared before this callback is invoked.
+   */
+  onOpenChangeComplete?: (open: boolean) => void
+
   children: React.ReactNode
 }
 
@@ -160,6 +167,7 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
     disabled = false,
     modal = true,
     closeOnOutsidePress = 'pointerdown',
+    onOpenChangeComplete: onOpenChangeCompleteProp,
     children,
   } = props
 
@@ -214,6 +222,20 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
     handleOpenChange(false)
   }, [handleOpenChange])
 
+  // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
+  const handleOpenChangeComplete = React.useCallback(
+    (nextOpen: boolean) => {
+      // Clear search and hide input after exit animation completes
+      if (!nextOpen && store.context.clearSearchOnClose === 'after-exit') {
+        store.clearSearch()
+        store.setInputActive(false)
+      }
+      // Call user's callback
+      onOpenChangeCompleteProp?.(nextOpen)
+    },
+    [store, onOpenChangeCompleteProp],
+  )
+
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = React.useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
@@ -256,6 +278,7 @@ export function ContextMenuRoot(props: ContextMenuRootProps) {
         <Popover.Root
           open={open}
           onOpenChange={handlePopoverOpenChange}
+          onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
         >
           {children}

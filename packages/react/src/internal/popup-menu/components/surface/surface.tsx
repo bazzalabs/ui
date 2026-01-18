@@ -62,9 +62,12 @@ export interface PopupMenuSurfaceProps
 
   /**
    * Whether to clear the search query when the menu closes.
+   * - `true`: clear immediately when menu closes (default)
+   * - `false`: preserve search when menu closes
+   * - `'after-exit'`: clear after exit animation completes
    * @default true
    */
-  clearSearchOnClose?: boolean
+  clearSearchOnClose?: boolean | 'after-exit'
 
   /**
    * Whether to skip auto-focusing the input/list when this surface becomes the focus owner.

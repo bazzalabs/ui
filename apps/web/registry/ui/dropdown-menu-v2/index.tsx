@@ -127,11 +127,14 @@ const Popup = forwardRef<
         'min-w-[250px] max-w-[500px]',
         'overflow-hidden',
         !state.isSubmenu && [
-          'data-[open]:animate-in data-[open]:fade-in-0 data-[open]:zoom-in-95',
-          'data-[closed]:animate-out data-[closed]:fade-out-0 data-[closed]:zoom-out-95',
-          'data-[open]:origin-(--transform-origin) data-[closed]:origin-(--transform-origin)',
-          'data-[open]:transition-[filter,scale,opacity] data-[open]:duration-150 data-[open]:ease-out',
-          'data-[closed]:transition-[filter,scale,opacity] data-[closed]:duration-150 data-[closed]:ease-out',
+          // Base styles (final state)
+          'opacity-100 scale-100',
+          'origin-(--transform-origin)',
+          'transition-[opacity,scale] duration-150 ease-out',
+          // Enter animation: @starting-style defines initial state
+          'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
+          // Exit animation: data-[ending-style] defines final state
+          'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
         ],
         className,
       )
@@ -145,8 +148,13 @@ Popup.displayName = 'DropdownMenu.Popup'
 const Surface = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Surface>
->(({ className, ...props }, ref) => (
-  <Primitive.Surface ref={ref} className={className} {...props} />
+>(({ className, clearSearchOnClose = 'after-exit', ...props }, ref) => (
+  <Primitive.Surface
+    ref={ref}
+    className={className}
+    clearSearchOnClose={clearSearchOnClose}
+    {...props}
+  />
 ))
 Surface.displayName = 'DropdownMenu.Surface'
 
@@ -154,8 +162,13 @@ Surface.displayName = 'DropdownMenu.Surface'
 const DataSurface = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.DataSurface>
->(({ className, ...props }, ref) => (
-  <Primitive.DataSurface ref={ref} className={className} {...props} />
+>(({ className, clearSearchOnClose = 'after-exit', ...props }, ref) => (
+  <Primitive.DataSurface
+    ref={ref}
+    className={className}
+    clearSearchOnClose={clearSearchOnClose}
+    {...props}
+  />
 ))
 DataSurface.displayName = 'DropdownMenu.DataSurface'
 
