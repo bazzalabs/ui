@@ -2,13 +2,17 @@
 
 import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
+  type DataListChildrenState,
+  type DisplayNode,
   DropdownMenu as Primitive,
   useMaybeSubmenuContext,
+  useSurfaceContext,
 } from '@bazza-ui/react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { cva } from 'class-variance-authority'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import type * as React from 'react'
-import { Fragment, forwardRef, useCallback } from 'react'
+import { Fragment, forwardRef, useCallback, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 const scrollAreaViewportVariants = cva('scroll-py-1', {
@@ -124,7 +128,11 @@ const Popup = forwardRef<
       cn(
         'border bg-popover z-50 rounded-lg text-sm',
         'drop-shadow-xl',
-        'min-w-[250px] max-w-[500px]',
+        // Dynamic width based on measured row content:
+        // - Uses --row-width CSS variable set by the List component
+        // - Clamps between 250px min and 500px max
+        // - Falls back to 250px if --row-width is not set
+        'w-[clamp(250px,var(--row-width,250px),500px)]',
         'overflow-hidden',
         !state.isSubmenu && [
           'opacity-100 scale-100',
@@ -232,6 +240,213 @@ const DataList = forwardRef<
   </ScrollArea.Root>
 ))
 DataList.displayName = 'DropdownMenu.DataList'
+
+// ============================================================================
+// Virtualized DataList
+// ============================================================================
+
+export interface VirtualizedDataListProps
+  extends Omit<
+    React.ComponentProps<typeof Primitive.DataList>,
+    'children' | 'render'
+  > {
+  /** Maximum height of the scrollable area in pixels. */
+  maxHeight?: number
+  /** Estimated size of each item in pixels. Used by virtualizer. */
+  estimateSize?: number
+  /** Number of items to render outside the visible area. */
+  overscan?: number
+  /**
+   * When true, measures row widths and applies `--row-width` CSS variable.
+   * Useful for virtualized lists where content width varies.
+   * @default true
+   */
+  measureRowWidth?: boolean
+  /**
+   * Maximum width cap for row measurement (in pixels).
+   * Only used when `measureRowWidth` is true.
+   */
+  maxRowWidth?: number
+}
+
+/**
+ * A virtualized version of DataList that efficiently renders large lists
+ * by only rendering visible items. Uses @tanstack/react-virtual.
+ */
+const VirtualizedDataList = forwardRef<
+  HTMLDivElement,
+  VirtualizedDataListProps
+>(
+  (
+    {
+      className,
+      maxHeight = 300,
+      estimateSize = 36,
+      overscan = 5,
+      label = 'Menu',
+      measureRowWidth = true,
+      maxRowWidth,
+      ...props
+    },
+    ref,
+  ) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+    return (
+      <Primitive.DataList
+        ref={ref}
+        label={label}
+        className={cn(listVariants(), className)}
+        measureRowWidth={measureRowWidth}
+        maxRowWidth={maxRowWidth}
+        {...props}
+      >
+        {(state: DataListChildrenState) => (
+          <VirtualizedDataListContent
+            state={state}
+            scrollContainerRef={scrollContainerRef}
+            maxHeight={maxHeight}
+            estimateSize={estimateSize}
+            overscan={overscan}
+          />
+        )}
+      </Primitive.DataList>
+    )
+  },
+)
+VirtualizedDataList.displayName = 'DropdownMenu.VirtualizedDataList'
+
+interface VirtualizedDataListContentProps {
+  state: DataListChildrenState
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>
+  maxHeight: number
+  estimateSize: number
+  overscan: number
+}
+
+function VirtualizedDataListContent({
+  state,
+  scrollContainerRef,
+  maxHeight,
+  estimateSize,
+  overscan,
+}: VirtualizedDataListContentProps) {
+  const { nodes, renderNode } = state
+  const { store } = useSurfaceContext()
+
+  // Get the highlighted item ID from store for scroll sync
+  const highlightedId = store.useState('highlightedId')
+
+  // Create stable key function
+  const getItemKey = useCallback(
+    (index: number) => {
+      const node = nodes[index]
+      if (!node) return index
+      return getNodeKey(node)
+    },
+    [nodes],
+  )
+
+  // Create virtualizer
+  const virtualizer = useVirtualizer({
+    count: nodes.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => estimateSize,
+    getItemKey,
+    overscan,
+  })
+
+  const virtualItems = virtualizer.getVirtualItems()
+  const totalSize = virtualizer.getTotalSize()
+
+  // Sync scroll position when highlighted item changes via keyboard
+  useEffect(() => {
+    if (!highlightedId) return
+
+    // Find the index of the highlighted item
+    const index = nodes.findIndex((node) => {
+      const key = getNodeKey(node)
+      return key === highlightedId
+    })
+
+    if (index !== -1) {
+      virtualizer.scrollToIndex(index, { align: 'auto' })
+    }
+  }, [highlightedId, nodes, virtualizer])
+
+  // Register list ref with store for scroll behavior
+  useEffect(() => {
+    store.setListRef(scrollContainerRef as React.RefObject<HTMLElement | null>)
+  }, [store, scrollContainerRef])
+
+  return (
+    <div
+      ref={scrollContainerRef}
+      style={{
+        maxHeight: `${maxHeight}px`,
+        overflow: 'auto',
+      }}
+      className="scroll-py-1"
+    >
+      <div
+        style={{
+          height: `${totalSize}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualItems.map((virtualItem) => {
+          const node = nodes[virtualItem.index]
+          if (!node) return null
+
+          return (
+            <div
+              key={virtualItem.key}
+              data-index={virtualItem.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              {renderNode(node)}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Get a unique key for a display node.
+ */
+function getNodeKey(node: DisplayNode): string {
+  // Handle row nodes (items, checkbox items, submenus)
+  if ('node' in node && node.node) {
+    return node.node.id
+  }
+
+  // Handle group nodes
+  if ('group' in node && node.group) {
+    return node.group.id
+  }
+
+  // Handle radio group nodes
+  if ('radioGroup' in node && node.radioGroup) {
+    return node.radioGroup.id
+  }
+
+  // Handle separator nodes
+  if ('separator' in node && node.separator) {
+    return node.separator.id ?? 'separator'
+  }
+
+  return String(Math.random())
+}
 
 const Input = forwardRef<
   HTMLInputElement,
@@ -464,6 +679,7 @@ export const DropdownMenu = {
   DataSurface,
   List,
   DataList,
+  VirtualizedDataList,
   Input,
   DataInput,
   Item,

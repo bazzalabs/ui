@@ -4,10 +4,18 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import type { ComponentProps } from '../../../../utils/types.js'
-import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
+import {
+  RowWidthContext,
+  useListboxContext,
+  useStickyRowWidth,
+  useSurfaceContext,
+} from '../../../listbox/index.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
+import { PopupMenuListDataAttributes } from './list.data-attrs.js'
+
+export { PopupMenuListDataAttributes }
 
 /**
  * State passed to children render function.
@@ -37,6 +45,20 @@ export interface PopupMenuListProps
    * @default 'Suggestions'
    */
   label?: string
+
+  /**
+   * When true, measures row widths and applies `--row-width` CSS variable.
+   * Keeps the list at the maximum width seen while scrolling.
+   * Useful for virtualized lists where content width varies.
+   * @default true
+   */
+  measureRowWidth?: boolean
+
+  /**
+   * Maximum width cap for row measurement (in pixels).
+   * Only used when `measureRowWidth` is true.
+   */
+  maxRowWidth?: number
 }
 
 /**
@@ -51,6 +73,8 @@ export const PopupMenuList = React.forwardRef<
   const {
     children,
     label = 'Suggestions',
+    measureRowWidth = true,
+    maxRowWidth,
     render,
     className,
     style,
@@ -66,10 +90,47 @@ export const PopupMenuList = React.forwardRef<
   const comboboxContext = useMaybeComboboxContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
+  // Ref to the popup element (found via closest) for applying --row-width CSS var
+  const popupRef = React.useRef<HTMLElement | null>(null)
+
   // Register list ref with store for scroll behavior
   React.useEffect(() => {
     store.setListRef(internalRef)
   }, [store])
+
+  // Find popup element on mount for row width measurement target
+  React.useLayoutEffect(() => {
+    if (!measureRowWidth || !internalRef.current) return
+    // Find the closest popup element (Base UI's Popover.Popup adds data-open)
+    const popup = internalRef.current.closest(
+      '[data-open]',
+    ) as HTMLElement | null
+    popupRef.current = popup
+  }, [measureRowWidth])
+
+  // Row width measurement - apply CSS var to popup instead of list
+  const { queueMeasurement, resetMeasurements } = useStickyRowWidth({
+    listRef: internalRef,
+    targetRef: popupRef,
+    maxWidth: maxRowWidth,
+    enabled: measureRowWidth,
+  })
+
+  // Register resetMeasurements callback with store for close completion
+  React.useEffect(() => {
+    if (measureRowWidth) {
+      store.context.onCloseComplete = resetMeasurements
+      return () => {
+        store.context.onCloseComplete = undefined
+      }
+    }
+  }, [measureRowWidth, resetMeasurements, store])
+
+  // Row width context value
+  const rowWidthContextValue = React.useMemo(
+    () => (measureRowWidth ? { queueMeasurement } : null),
+    [measureRowWidth, queueMeasurement],
+  )
 
   // Get values from store
   const search = store.useState('search')
@@ -115,6 +176,15 @@ export const PopupMenuList = React.forwardRef<
   const renderedChildren =
     typeof children === 'function' ? children(childrenState) : children
 
+  // Wrap children with RowWidthContext if measurement is enabled
+  const wrappedChildren = rowWidthContextValue ? (
+    <RowWidthContext.Provider value={rowWidthContextValue}>
+      {renderedChildren}
+    </RowWidthContext.Provider>
+  ) : (
+    renderedChildren
+  )
+
   // Add data-input-embedded attribute when layout is input-embedded
   const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
 
@@ -130,12 +200,13 @@ export const PopupMenuList = React.forwardRef<
         ? (highlightedId ?? undefined)
         : undefined,
       tabIndex: shouldHandleKeyboard ? 0 : -1,
+      [PopupMenuListDataAttributes.list]: '',
       'data-input-embedded': isInputEmbedded ? '' : undefined,
       className,
       style,
       onKeyDown: handleKeyDown,
       onPointerDown: handlePointerDown,
-      children: renderedChildren,
+      children: wrappedChildren,
     },
     defaultTagName: 'div',
   })

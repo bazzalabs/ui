@@ -44,7 +44,15 @@ export const PopupMenuDataList = React.forwardRef<
   HTMLDivElement,
   PopupMenuDataListProps
 >(function PopupMenuDataList(props, forwardedRef) {
-  const { children, label = 'Menu', className, style, render } = props
+  const {
+    children,
+    label = 'Menu',
+    className,
+    style,
+    render,
+    measureRowWidth,
+    maxRowWidth,
+  } = props
 
   // Get data surface context for content and deep search config
   const dataSurfaceCtx = useDataSurfaceContext()
@@ -467,6 +475,8 @@ export const PopupMenuDataList = React.forwardRef<
       className={className}
       style={style}
       render={render}
+      measureRowWidth={measureRowWidth}
+      maxRowWidth={maxRowWidth}
     >
       {renderedChildren}
     </PopupMenuList>

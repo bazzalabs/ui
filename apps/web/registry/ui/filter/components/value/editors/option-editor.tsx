@@ -127,9 +127,7 @@ export function OptionEditorContent<TData>({
       <DropdownMenu.DataInput
         placeholder={`Search ${column.displayName.toLowerCase()}...`}
       />
-      <DropdownMenu.DataList className="max-h-[300px]">
-        {({ nodes: displayNodes, renderNode }) => displayNodes.map(renderNode)}
-      </DropdownMenu.DataList>
+      <DropdownMenu.VirtualizedDataList maxHeight={300} />
       <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
     </DropdownMenu.DataSurface>
   )

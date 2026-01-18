@@ -162,6 +162,10 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
         store.clearSearch()
         store.setInputActive(false)
       }
+      // Reset row width measurements after close animation completes
+      if (!nextOpen) {
+        store.context.onCloseComplete?.()
+      }
       // Call user's callback
       onOpenChangeCompleteProp?.(nextOpen)
     },
