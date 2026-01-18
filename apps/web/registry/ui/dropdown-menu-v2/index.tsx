@@ -208,132 +208,142 @@ const List = forwardRef<
 ))
 List.displayName = 'DropdownMenu.List'
 
-const DataList = forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<typeof Primitive.DataList> & {
-    /** Maximum height of the scrollable area. */
-    maxHeight?: string | number
-    /** Whether to show gradient fade at scroll edges. */
-    withScrollFade?: boolean
-  }
->(({ className, maxHeight = 342, withScrollFade = true, ...props }, ref) => (
-  <ScrollArea.Root>
-    <ScrollArea.Viewport
-      className={scrollAreaViewportVariants({ withScrollFade })}
-      style={{
-        maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
-      }}
-    >
-      <Primitive.DataList
-        ref={ref}
-        className={cn(listVariants(), className)}
-        render={<ScrollArea.Content />}
-        {...props}
-      />
-    </ScrollArea.Viewport>
-    <ScrollArea.Scrollbar
-      orientation="vertical"
-      className={scrollAreaScrollbarVariants()}
-    >
-      <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
-    </ScrollArea.Scrollbar>
-  </ScrollArea.Root>
-))
-DataList.displayName = 'DropdownMenu.DataList'
-
-// ============================================================================
-// Virtualized DataList
-// ============================================================================
-
-export interface VirtualizedDataListProps
-  extends Omit<React.ComponentProps<typeof Primitive.DataList>, 'render'> {
-  /** Maximum height of the scrollable area in pixels. */
-  maxHeight?: number
-  /** Estimated size of each item in pixels. Used by virtualizer. */
+export interface DataListProps
+  extends Omit<
+    React.ComponentProps<typeof Primitive.DataList>,
+    'render' | 'children'
+  > {
+  /** Maximum height of the scrollable area. */
+  maxHeight?: string | number
+  /** Whether to show gradient fade at scroll edges. */
+  withScrollFade?: boolean
+  /**
+   * Enable virtualization for large lists.
+   * When true, only visible items are rendered for better performance.
+   */
+  virtualized?: boolean
+  /**
+   * Estimated size of each item in pixels. Used by virtualizer.
+   * Only applies when `virtualized` is true.
+   * @default 36
+   */
   estimateSize?: number
-  /** Number of items to render outside the visible area. */
+  /**
+   * Number of items to render outside the visible area.
+   * Only applies when `virtualized` is true.
+   * @default 5
+   */
   overscan?: number
   /**
-   * When true, measures row widths and applies `--row-width` CSS variable.
-   * Useful for virtualized lists where content width varies.
-   * @default true
+   * Content to render inside the list.
+   * When virtualized, this can include static elements like Empty.
+   * When not virtualized, this should be a render function receiving DataListChildrenState.
    */
-  measureRowWidth?: boolean
-  /**
-   * Maximum width cap for row measurement (in pixels).
-   * Only used when `measureRowWidth` is true.
-   */
-  maxRowWidth?: number
+  children?:
+    | React.ReactNode
+    | ((state: DataListChildrenState) => React.ReactNode)
 }
 
-/**
- * A virtualized version of DataList that efficiently renders large lists
- * by only rendering visible items. Uses @tanstack/react-virtual.
- */
-const VirtualizedDataList = forwardRef<
-  HTMLDivElement,
-  VirtualizedDataListProps
->(
+const DataList = forwardRef<HTMLDivElement, DataListProps>(
   (
     {
       className,
-      children,
-      maxHeight = 300,
+      maxHeight = 342,
+      withScrollFade = true,
+      virtualized = false,
       estimateSize = 36,
       overscan = 5,
-      label = 'Menu',
-      measureRowWidth = true,
-      maxRowWidth,
+      children,
       ...props
     },
     ref,
   ) => {
-    const scrollContainerRef = useRef<HTMLDivElement>(null)
+    const maxHeightPx =
+      typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight
+    const maxHeightNum =
+      typeof maxHeight === 'number' ? maxHeight : Number.parseInt(maxHeight, 10)
+
+    if (virtualized) {
+      return (
+        <ScrollArea.Root>
+          <Primitive.DataList
+            ref={ref}
+            className={cn(listVariants(), className)}
+            {...props}
+          >
+            {(state: DataListChildrenState) => (
+              <>
+                {/* Render static children like Empty */}
+                {typeof children !== 'function' && children}
+                <VirtualizedDataListContent
+                  state={state}
+                  maxHeight={maxHeightNum}
+                  estimateSize={estimateSize}
+                  overscan={overscan}
+                  withScrollFade={withScrollFade}
+                />
+              </>
+            )}
+          </Primitive.DataList>
+          <ScrollArea.Scrollbar
+            orientation="vertical"
+            className={scrollAreaScrollbarVariants()}
+          >
+            <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
+          </ScrollArea.Scrollbar>
+        </ScrollArea.Root>
+      )
+    }
 
     return (
-      <Primitive.DataList
-        ref={ref}
-        label={label}
-        className={cn(listVariants(), className)}
-        measureRowWidth={measureRowWidth}
-        maxRowWidth={maxRowWidth}
-        {...props}
-      >
-        {(state: DataListChildrenState) => (
-          <>
-            {children}
-            <VirtualizedDataListContent
-              state={state}
-              scrollContainerRef={scrollContainerRef}
-              maxHeight={maxHeight}
-              estimateSize={estimateSize}
-              overscan={overscan}
-            />
-          </>
-        )}
-      </Primitive.DataList>
+      <ScrollArea.Root>
+        <ScrollArea.Viewport
+          className={scrollAreaViewportVariants({ withScrollFade })}
+          style={{ maxHeight: maxHeightPx }}
+        >
+          <Primitive.DataList
+            ref={ref}
+            className={cn(listVariants(), className)}
+            render={<ScrollArea.Content />}
+            {...props}
+          >
+            {children as (state: DataListChildrenState) => React.ReactNode}
+          </Primitive.DataList>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar
+          orientation="vertical"
+          className={scrollAreaScrollbarVariants()}
+        >
+          <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
     )
   },
 )
-VirtualizedDataList.displayName = 'DropdownMenu.VirtualizedDataList'
+DataList.displayName = 'DropdownMenu.DataList'
+
+// ============================================================================
+// Virtualized DataList Content (internal)
+// ============================================================================
 
 interface VirtualizedDataListContentProps {
   state: DataListChildrenState
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>
   maxHeight: number
   estimateSize: number
   overscan: number
+  withScrollFade: boolean
 }
 
 function VirtualizedDataListContent({
   state,
-  scrollContainerRef,
   maxHeight,
   estimateSize,
   overscan,
+  withScrollFade,
 }: VirtualizedDataListContentProps) {
   const { nodes, renderNode } = state
   const { store } = useSurfaceContext()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Get the highlighted item ID from store for scroll sync
   const highlightedId = store.useState('highlightedId')
@@ -381,15 +391,12 @@ function VirtualizedDataListContent({
   }, [store, scrollContainerRef])
 
   return (
-    <div
+    <ScrollArea.Viewport
       ref={scrollContainerRef}
-      style={{
-        maxHeight: `${maxHeight}px`,
-        overflow: 'auto',
-      }}
-      className="scroll-py-1"
+      className={scrollAreaViewportVariants({ withScrollFade })}
+      style={{ maxHeight: `${maxHeight}px` }}
     >
-      <div
+      <ScrollArea.Content
         style={{
           height: `${totalSize}px`,
           width: '100%',
@@ -417,8 +424,8 @@ function VirtualizedDataListContent({
             </div>
           )
         })}
-      </div>
-    </div>
+      </ScrollArea.Content>
+    </ScrollArea.Viewport>
   )
 }
 
@@ -529,7 +536,9 @@ const RadioItemIndicator = forwardRef<
     )}
     {...props}
   >
-    {children ?? <CheckIcon className="size-4 text-primary" />}
+    {children ?? (
+      <CheckIcon className="size-5 shrink-0 text-primary/75 group-data-[highlighted]/row:text-primary" />
+    )}
   </Primitive.RadioItemIndicator>
 ))
 RadioItemIndicator.displayName = 'DropdownMenu.RadioItemIndicator'
@@ -680,7 +689,6 @@ export const DropdownMenu = {
   DataSurface,
   List,
   DataList,
-  VirtualizedDataList,
   Input,
   DataInput,
   Item,

@@ -84,11 +84,7 @@ function createSubmenuRenderer(
   nodes: NodeDef[],
   inputPlaceholder = 'Search...',
 ): (params: SubmenuRenderParams) => React.ReactNode {
-  return ({
-    context,
-    nodes: displayNodes,
-    renderNode,
-  }: SubmenuRenderParams) => {
+  return ({ context }: SubmenuRenderParams) => {
     return (
       <DropdownMenu.Submenu key={id}>
         <DropdownMenu.SubmenuTrigger value={id} className="group/row">
@@ -105,13 +101,12 @@ function createSubmenuRenderer(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner sideOffset={-2}>
             <DropdownMenu.Popup>
-              <DropdownMenu.Surface>
-                <DropdownMenu.Input placeholder={inputPlaceholder} />
-                <DropdownMenu.List>
+              <DropdownMenu.DataSurface content={nodes}>
+                <DropdownMenu.DataInput placeholder={inputPlaceholder} />
+                <DropdownMenu.DataList virtualized>
                   <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
-                  {displayNodes.map(renderNode)}
-                </DropdownMenu.List>
-              </DropdownMenu.Surface>
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -145,7 +140,7 @@ function createCustomSubmenuRenderer(
         </DropdownMenu.SubmenuTrigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner sideOffset={-2}>
-            <DropdownMenu.Popup>
+            <DropdownMenu.Popup className="w-full">
               <DropdownMenu.Surface>{content}</DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
