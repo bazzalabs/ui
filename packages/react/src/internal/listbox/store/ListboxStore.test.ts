@@ -472,6 +472,32 @@ describe('ListboxStore', () => {
       expect(store.state.search).toBe('test')
     })
 
+    it('preserves search when closing (clearSearchOnClose="after-exit")', () => {
+      const store = createStore(
+        { open: true, search: 'test' },
+        { clearSearchOnClose: 'after-exit' },
+      )
+
+      store.setOpen(false)
+
+      // Search should NOT be cleared immediately - it's deferred to after animation
+      expect(store.state.search).toBe('test')
+    })
+
+    it('clears search via clearSearch() when clearSearchOnClose="after-exit"', () => {
+      const store = createStore(
+        { open: true, search: 'test' },
+        { clearSearchOnClose: 'after-exit' },
+      )
+
+      store.setOpen(false)
+      expect(store.state.search).toBe('test')
+
+      // Simulates what Root.onOpenChangeComplete does after animation completes
+      store.clearSearch()
+      expect(store.state.search).toBe('')
+    })
+
     it('clears highlight when closing', () => {
       const store = createStore({ open: true })
       registerItems(store, [{ id: 'item-1', value: 'Item 1' }])

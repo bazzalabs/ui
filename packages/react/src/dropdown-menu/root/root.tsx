@@ -1,7 +1,7 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   PopupMenuProviders,
@@ -85,6 +85,13 @@ export interface DropdownMenuRootProps
    */
   closeOnOutsidePress?: 'click' | 'pointerdown'
 
+  /**
+   * Event handler called after any open/close animations have completed.
+   * When `clearSearchOnClose="after-exit"` is set on Surface, the search
+   * will be cleared before this callback is invoked.
+   */
+  onOpenChangeComplete?: (open: boolean) => void
+
   children: React.ReactNode
 }
 
@@ -103,6 +110,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
     items: itemsProp,
     onHighlightChange,
     closeOnOutsidePress = 'pointerdown',
+    onOpenChangeComplete: onOpenChangeCompleteProp,
     children,
     ...rest
   } = props
@@ -134,6 +142,20 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
   // Get open state from store for Popover
   const open = store.useState('open')
 
+  // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
+  const handleOpenChangeComplete = useCallback(
+    (nextOpen: boolean) => {
+      // Clear search and hide input after exit animation completes
+      if (!nextOpen && store.context.clearSearchOnClose === 'after-exit') {
+        store.clearSearch()
+        store.setInputActive(false)
+      }
+      // Call user's callback
+      onOpenChangeCompleteProp?.(nextOpen)
+    },
+    [store, onOpenChangeCompleteProp],
+  )
+
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
@@ -163,6 +185,7 @@ export function DropdownMenuRoot(props: DropdownMenuRootProps) {
         {...rest}
         open={open}
         onOpenChange={handlePopoverOpenChange}
+        onOpenChangeComplete={handleOpenChangeComplete}
         modal={modal}
       >
         {children}

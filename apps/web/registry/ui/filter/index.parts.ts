@@ -38,12 +38,16 @@ export {
   // Render functions for custom item rendering
   createOptionItemRenderer,
   createOptionMenu,
+  createSelectableMenu,
   // Text filter utilities
   createTextFilterItems,
   createTextItemRenderer,
   // Controllers
   FilterValueDateController,
   FilterValueNumberController,
+  // Shared editor content components (for custom menu implementations)
+  OptionEditorContent,
   renderOptionItem,
   renderTextItem,
+  TextEditorContent,
 } from './components/value'
