@@ -145,7 +145,10 @@ export type {
   PopupMenuListProps,
   PopupMenuListState,
 } from './components/list/list.js'
-export { PopupMenuList } from './components/list/list.js'
+export {
+  PopupMenuList,
+  PopupMenuListDataAttributes,
+} from './components/list/list.js'
 export { PopupMenuScrollArrowDataAttributes } from './components/scroll-arrow/scroll-arrow.data-attrs.js'
 export type {
   PopupMenuScrollArrowProps,

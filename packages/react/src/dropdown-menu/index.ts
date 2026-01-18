@@ -119,6 +119,7 @@ export {
   PopupMenuCheckboxItemDataAttributes as DropdownMenuCheckboxItemDataAttributes,
   PopupMenuIconDataAttributes as DropdownMenuIconDataAttributes,
   PopupMenuItemDataAttributes as DropdownMenuItemDataAttributes,
+  PopupMenuListDataAttributes as DropdownMenuListDataAttributes,
   PopupMenuPopupDataAttributes as DropdownMenuPopupDataAttributes,
   PopupMenuPositionerCssVars as DropdownMenuPositionerCssVars,
   PopupMenuPositionerDataAttributes as DropdownMenuPositionerDataAttributes,

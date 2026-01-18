@@ -25,6 +25,13 @@ export {
   useListboxContext,
   useMaybeListboxContext,
 } from './contexts/listbox-context.js'
+// Row Width Measurement
+export type { RowWidthContextValue } from './contexts/row-width-context.js'
+export {
+  RowWidthContext,
+  useMaybeRowWidthContext,
+  useRowWidthContext,
+} from './contexts/row-width-context.js'
 export type { SurfaceContextValue } from './contexts/surface-context.js'
 export {
   SurfaceContext,
@@ -46,6 +53,11 @@ export type {
 } from './hooks/use-listbox-keyboard.js'
 export { useListboxKeyboard } from './hooks/use-listbox-keyboard.js'
 export type {
+  UseStickyRowWidthOptions,
+  UseStickyRowWidthReturn,
+} from './hooks/use-sticky-row-width.js'
+export { useStickyRowWidth } from './hooks/use-sticky-row-width.js'
+export type {
   Context,
   DOMRefs,
   FilterFn,
@@ -58,6 +70,5 @@ export type {
 } from './store/ListboxStore.js'
 // Store
 export { ListboxStore } from './store/ListboxStore.js'
-
 // Utils
 export { commandScore, defaultFilter } from './utils/command-score.js'

@@ -168,6 +168,11 @@ export interface ListboxContext {
    * Stored in context (not state) to avoid re-renders.
    */
   refs: DOMRefs
+  /**
+   * Callback when menu close animation completes.
+   * Used for resetting row width measurements.
+   */
+  onCloseComplete?: () => void
 }
 
 /**
@@ -279,6 +284,7 @@ export class ListboxStore extends ReactStore<
         listRef: { current: null },
         itemRefs: new Map(),
       },
+      onCloseComplete: undefined,
     }
 
     super(
