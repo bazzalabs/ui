@@ -15,7 +15,7 @@ import type {
   SeparatorRenderParams,
 } from '@bazza-ui/react'
 import { useMemo } from 'react'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import { createMultiOptionMenu, createOptionMenu } from '../selectable-menu'
 
 export interface OptionEditorContentProps<TData = unknown> {
