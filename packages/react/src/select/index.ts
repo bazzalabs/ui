@@ -99,6 +99,8 @@ export {
   PopupMenuArrowDataAttributes as SelectArrowDataAttributes,
   PopupMenuBackdropDataAttributes as SelectBackdropDataAttributes,
   PopupMenuIconDataAttributes as SelectIconDataAttributes,
+  PopupMenuListCssVars as SelectListCssVars,
+  PopupMenuListDataAttributes as SelectListDataAttributes,
   PopupMenuPopupDataAttributes as SelectPopupDataAttributes,
   PopupMenuPositionerCssVars as SelectPositionerCssVars,
   PopupMenuPositionerDataAttributes as SelectPositionerDataAttributes,

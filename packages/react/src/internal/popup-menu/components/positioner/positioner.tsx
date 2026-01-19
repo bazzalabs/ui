@@ -99,7 +99,7 @@ function isHorizontalSide(side: Side): boolean {
  */
 export const PopupMenuPositioner = React.forwardRef<
   HTMLDivElement,
-  PopupMenuPositionerProps
+  PopupMenuPositioner.Props
 >(function PopupMenuPositioner(props, ref) {
   const {
     side: sideProp,

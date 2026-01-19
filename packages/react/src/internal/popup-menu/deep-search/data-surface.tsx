@@ -29,7 +29,7 @@ export interface PopupMenuDataSurfaceProps extends DataSurfaceProps {
  */
 export const PopupMenuDataSurface = React.forwardRef<
   HTMLDivElement,
-  PopupMenuDataSurfaceProps
+  PopupMenuDataSurface.Props
 >(function PopupMenuDataSurface(props, forwardedRef) {
   const {
     content,

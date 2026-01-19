@@ -23,7 +23,7 @@ export interface PopupMenuShortcutState extends Record<string, unknown> {
 }
 
 export interface PopupMenuShortcutProps
-  extends Omit<ComponentProps<'kbd', PopupMenuShortcutState>, 'children'> {
+  extends Omit<ComponentProps<'kbd', PopupMenuShortcut.State>, 'children'> {
   /**
    * Content to render inside the shortcut.
    * Can be a render function that receives the shortcut value.
@@ -63,13 +63,13 @@ const stateAttributesMapping = {
  */
 export const PopupMenuShortcut = React.forwardRef<
   HTMLElement,
-  PopupMenuShortcutProps
+  PopupMenuShortcut.Props
 >(function PopupMenuShortcut(props, forwardedRef) {
   const { children, render, className, style, ...rest } = props
 
   const { shortcut, highlighted } = useItemContext()
 
-  const state: PopupMenuShortcutState = React.useMemo(
+  const state: PopupMenuShortcut.State = React.useMemo(
     () => ({ shortcut, highlighted }),
     [shortcut, highlighted],
   )

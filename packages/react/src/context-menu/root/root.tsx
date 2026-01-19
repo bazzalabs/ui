@@ -156,7 +156,7 @@ function createVirtualAnchor(
  * Manages open state and provides context to children.
  * Doesn't render its own HTML element.
  */
-export function ContextMenuRoot(props: ContextMenuRootProps) {
+export function ContextMenuRoot(props: ContextMenuRoot.Props) {
   const {
     open: openProp,
     onOpenChange,

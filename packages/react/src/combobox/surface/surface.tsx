@@ -29,7 +29,7 @@ export interface ComboboxSurfaceProps
  */
 export const ComboboxSurface = React.forwardRef<
   HTMLDivElement,
-  ComboboxSurfaceProps
+  ComboboxSurface.Props
 >(function ComboboxSurface(props, forwardedRef) {
   const {
     autoHighlightFirst: autoHighlightFirstProp,

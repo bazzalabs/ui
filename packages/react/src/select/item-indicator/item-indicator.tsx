@@ -1,10 +1,14 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
 import { useSelectItemContext } from '../item/item-context.js'
 import { SelectItemIndicatorDataAttributes } from './item-indicator.data-attrs.js'
 
-export interface SelectItemIndicatorState {
+export { SelectItemIndicatorDataAttributes }
+
+export interface SelectItemIndicatorState extends Record<string, unknown> {
   /**
    * Whether the item is selected.
    */
@@ -12,7 +16,7 @@ export interface SelectItemIndicatorState {
 }
 
 export interface SelectItemIndicatorProps
-  extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
+  extends Omit<ComponentProps<'span', SelectItemIndicator.State>, 'children'> {
   /**
    * Whether to force render even when the item is not selected.
    * @default false
@@ -32,7 +36,12 @@ export interface SelectItemIndicatorProps
    */
   children?:
     | React.ReactNode
-    | ((state: SelectItemIndicatorState) => React.ReactNode)
+    | ((state: SelectItemIndicator.State) => React.ReactNode)
+}
+
+const stateAttributesMapping = {
+  selected: (value: unknown): Record<string, string> | null =>
+    value ? { [SelectItemIndicatorDataAttributes.selected]: '' } : null,
 }
 
 /**
@@ -43,19 +52,28 @@ export interface SelectItemIndicatorProps
  */
 export const SelectItemIndicator = React.forwardRef<
   HTMLSpanElement,
-  SelectItemIndicatorProps
+  SelectItemIndicator.Props
 >(function SelectItemIndicator(props, forwardedRef) {
-  const { forceMount = false, keepMounted = false, children, ...rest } = props
+  const {
+    render,
+    className,
+    style,
+    forceMount = false,
+    keepMounted = false,
+    children,
+    ...rest
+  } = props
 
   const itemContext = useSelectItemContext()
   const selected = itemContext.selected
 
-  const state: SelectItemIndicatorState = { selected }
+  const state: SelectItemIndicator.State = React.useMemo(
+    () => ({ selected }),
+    [selected],
+  )
 
-  // Don't render if not selected (unless forceMount or keepMounted)
-  if (!forceMount && !keepMounted && !selected) {
-    return null
-  }
+  // Determine if we should render
+  const shouldRender = forceMount || keepMounted || selected
 
   // For keepMounted, only render children when selected
   const content =
@@ -65,16 +83,26 @@ export const SelectItemIndicator = React.forwardRef<
         ? null
         : children
 
-  return (
-    <span
-      ref={forwardedRef}
-      aria-hidden="true"
-      {...(selected && { [SelectItemIndicatorDataAttributes.selected]: '' })}
-      {...rest}
-    >
-      {content}
-    </span>
-  )
+  const element = useRender({
+    render,
+    ref: forwardedRef,
+    state,
+    stateAttributesMapping,
+    props: {
+      ...rest,
+      'aria-hidden': true,
+      className,
+      style,
+      children: content,
+    },
+    defaultTagName: 'span',
+  })
+
+  if (!shouldRender) {
+    return null
+  }
+
+  return element
 })
 
 export namespace SelectItemIndicator {

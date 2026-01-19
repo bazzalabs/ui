@@ -42,7 +42,7 @@ export interface PopupMenuDataListProps extends DataListProps {
  */
 export const PopupMenuDataList = React.forwardRef<
   HTMLDivElement,
-  PopupMenuDataListProps
+  PopupMenuDataList.Props
 >(function PopupMenuDataList(props, forwardedRef) {
   const {
     children,

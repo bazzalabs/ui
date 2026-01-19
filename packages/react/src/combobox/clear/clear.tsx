@@ -17,7 +17,7 @@ export interface ComboboxClearState extends Record<string, unknown> {
 }
 
 export interface ComboboxClearProps
-  extends ComponentProps<'button', ComboboxClearState> {
+  extends ComponentProps<'button', ComboboxClear.State> {
   /**
    * Whether to render the button even when there's no value to clear.
    * @default false
@@ -31,7 +31,7 @@ export interface ComboboxClearProps
  */
 export const ComboboxClear = React.forwardRef<
   HTMLButtonElement,
-  ComboboxClearProps
+  ComboboxClear.Props
 >(function ComboboxClear(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -76,7 +76,7 @@ export const ComboboxClear = React.forwardRef<
     [],
   )
 
-  const state: ComboboxClearState = React.useMemo(
+  const state: ComboboxClear.State = React.useMemo(
     () => ({
       hasValue,
       disabled,

@@ -7,7 +7,7 @@
     "predev": "bun run generate-fonts",
     "dev": "next dev --turbopack",
     "prebuild": "bun run generate-fonts",
-    "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
+    "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/index.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
     "build": "next build --turbopack",
     "type-check": "tsc --noEmit",
     "vercel:install": "./vercel-submodule.sh && bun install",

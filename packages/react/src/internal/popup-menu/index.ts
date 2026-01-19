@@ -147,6 +147,7 @@ export type {
 } from './components/list/list.js'
 export {
   PopupMenuList,
+  PopupMenuListCssVars,
   PopupMenuListDataAttributes,
 } from './components/list/list.js'
 export { PopupMenuScrollArrowDataAttributes } from './components/scroll-arrow/scroll-arrow.data-attrs.js'

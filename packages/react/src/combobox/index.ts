@@ -99,6 +99,8 @@ export {
   PopupMenuArrowDataAttributes as ComboboxArrowDataAttributes,
   PopupMenuBackdropDataAttributes as ComboboxBackdropDataAttributes,
   PopupMenuIconDataAttributes as ComboboxIconDataAttributes,
+  PopupMenuListCssVars as ComboboxListCssVars,
+  PopupMenuListDataAttributes as ComboboxListDataAttributes,
   PopupMenuPopupDataAttributes as ComboboxPopupDataAttributes,
   PopupMenuPositionerCssVars as ComboboxPositionerCssVars,
   PopupMenuPositionerDataAttributes as ComboboxPositionerDataAttributes,

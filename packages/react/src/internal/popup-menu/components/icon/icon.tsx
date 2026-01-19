@@ -17,7 +17,7 @@ export interface PopupMenuIconState extends Record<string, unknown> {
 }
 
 export interface PopupMenuIconProps
-  extends ComponentProps<'span', PopupMenuIconState> {}
+  extends ComponentProps<'span', PopupMenuIcon.State> {}
 
 const stateAttributesMapping = {
   open: (value: unknown): Record<string, string> | null =>
@@ -31,7 +31,7 @@ const stateAttributesMapping = {
  */
 export const PopupMenuIcon = React.forwardRef<
   HTMLSpanElement,
-  PopupMenuIconProps
+  PopupMenuIcon.Props
 >(function PopupMenuIcon(props, forwardedRef) {
   const {
     render,
@@ -49,7 +49,7 @@ export const PopupMenuIcon = React.forwardRef<
   // Check if inside a Combobox to apply special focus handling
   const comboboxContext = useMaybeComboboxContext()
 
-  const state: PopupMenuIconState = React.useMemo(() => ({ open }), [open])
+  const state: PopupMenuIcon.State = React.useMemo(() => ({ open }), [open])
 
   // Prevent pointer down from stealing focus from the input (Combobox only)
   const handlePointerDown = React.useCallback(

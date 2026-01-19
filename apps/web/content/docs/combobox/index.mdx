@@ -1,0 +1,408 @@
+---
+title: Combobox
+section: Getting Started
+summary: A text input with autocomplete suggestions. Supports single and multi-select, custom filtering, and free-form input.
+---
+
+A combobox combines a text input with a dropdown list of suggestions. It's ideal for autocomplete scenarios, searchable selects, and tagging interfaces. Supports both single-value and multi-value selection modes.
+
+## Installation
+
+```bash
+bun add @bazza-ui/react
+```
+
+## Basic Usage
+
+```tsx
+import { Combobox } from '@bazza-ui/react'
+
+function Demo() {
+  const [value, setValue] = React.useState('')
+
+  return (
+    <Combobox.Root value={value} onValueChange={setValue}>
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Search fruits..." />
+        <Combobox.Clear />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Item value="apple">
+              <Combobox.ItemIndicator />
+              <Combobox.ItemLabel>Apple</Combobox.ItemLabel>
+            </Combobox.Item>
+            <Combobox.Item value="banana">
+              <Combobox.ItemIndicator />
+              <Combobox.ItemLabel>Banana</Combobox.ItemLabel>
+            </Combobox.Item>
+            <Combobox.Item value="orange">
+              <Combobox.ItemIndicator />
+              <Combobox.ItemLabel>Orange</Combobox.ItemLabel>
+            </Combobox.Item>
+            <Combobox.Empty>No fruits found</Combobox.Empty>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+## Anatomy
+
+```tsx
+<Combobox.Root>
+  <Combobox.InputWrapper>
+    <Combobox.Icon />
+    <Combobox.Input />
+    <Combobox.Clear />
+  </Combobox.InputWrapper>
+  <Combobox.Portal>
+    <Combobox.Backdrop />
+    <Combobox.Positioner>
+      <Combobox.Popup>
+        <Combobox.Arrow />
+        <Combobox.Surface>
+          <Combobox.List>
+            <Combobox.Group>
+              <Combobox.GroupLabel />
+              <Combobox.Item>
+                <Combobox.ItemIndicator />
+                <Combobox.ItemLabel />
+              </Combobox.Item>
+            </Combobox.Group>
+            <Combobox.Separator />
+            <Combobox.Empty />
+          </Combobox.List>
+        </Combobox.Surface>
+        <Combobox.ScrollUpArrow />
+        <Combobox.ScrollDownArrow />
+      </Combobox.Popup>
+    </Combobox.Positioner>
+  </Combobox.Portal>
+</Combobox.Root>
+```
+
+## Features
+
+- **Autocomplete** - Filter suggestions as user types
+- **Single & Multi-select** - Support for selecting one or multiple values
+- **Free-form input** - Allow users to enter custom values not in the list
+- **Fuzzy matching** - Built-in fuzzy search algorithm
+- **Groups** - Organize options into labeled groups
+- **Virtualized** - Support for virtualized lists with thousands of items
+- **Controlled & Uncontrolled** - Works in both modes
+
+## Examples
+
+### Multi-Select Tags
+
+```tsx
+function TagsCombobox() {
+  const [values, setValues] = React.useState<string[]>([])
+
+  return (
+    <Combobox.Root
+      value={values}
+      onValueChange={setValues}
+      multiple
+    >
+      <Combobox.InputWrapper>
+        <div className="flex flex-wrap gap-1">
+          {values.map((tag) => (
+            <span key={tag} className="px-2 py-1 bg-blue-100 rounded text-sm">
+              {tag}
+              <button onClick={() => setValues(values.filter((v) => v !== tag))}>
+                x
+              </button>
+            </span>
+          ))}
+          <Combobox.Input placeholder="Add tags..." />
+        </div>
+        <Combobox.Clear />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Item value="react">React</Combobox.Item>
+            <Combobox.Item value="typescript">TypeScript</Combobox.Item>
+            <Combobox.Item value="javascript">JavaScript</Combobox.Item>
+            <Combobox.Item value="css">CSS</Combobox.Item>
+            <Combobox.Item value="html">HTML</Combobox.Item>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+### With Custom Filtering
+
+```tsx
+function CustomFilterCombobox() {
+  const customFilter = (value: string, search: string) => {
+    // Case-insensitive starts-with matching
+    return value.toLowerCase().startsWith(search.toLowerCase()) ? 1 : 0
+  }
+
+  return (
+    <Combobox.Root filter={customFilter}>
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Type to filter..." />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Item value="apple">Apple</Combobox.Item>
+            <Combobox.Item value="apricot">Apricot</Combobox.Item>
+            <Combobox.Item value="banana">Banana</Combobox.Item>
+            <Combobox.Item value="blueberry">Blueberry</Combobox.Item>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+### With Groups
+
+```tsx
+function GroupedCombobox() {
+  return (
+    <Combobox.Root>
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Search..." />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Group>
+              <Combobox.GroupLabel>Fruits</Combobox.GroupLabel>
+              <Combobox.Item value="apple">Apple</Combobox.Item>
+              <Combobox.Item value="banana">Banana</Combobox.Item>
+            </Combobox.Group>
+            <Combobox.Separator />
+            <Combobox.Group>
+              <Combobox.GroupLabel>Vegetables</Combobox.GroupLabel>
+              <Combobox.Item value="carrot">Carrot</Combobox.Item>
+              <Combobox.Item value="spinach">Spinach</Combobox.Item>
+            </Combobox.Group>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+### Allow Custom Values
+
+```tsx
+function FreetextCombobox() {
+  const [value, setValue] = React.useState('')
+
+  return (
+    <Combobox.Root
+      value={value}
+      onValueChange={setValue}
+      allowCustomValue
+    >
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Type or select..." />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Item value="option1">Option 1</Combobox.Item>
+            <Combobox.Item value="option2">Option 2</Combobox.Item>
+            <Combobox.Item value="option3">Option 3</Combobox.Item>
+            <Combobox.Empty>
+              Press Enter to add "{value}"
+            </Combobox.Empty>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+## Differences from Select
+
+| Feature | Combobox | Select |
+|---------|----------|--------|
+| Input | Text input for typing | Button trigger |
+| Filtering | As-you-type filtering | Optional search input |
+| Custom values | Can allow free-form input | No custom values |
+| Multi-select | Native support | Not supported |
+| Use case | Autocomplete, tagging | Single selection |
+
+## API Reference
+
+### Root
+
+Groups all parts of the combobox. Manages value and open state. Doesn't render its own HTML element.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="ComboboxRootProps" pkg="@bazza-ui/react" />
+
+### InputWrapper
+
+Container for the input and related elements (icon, clear button). Renders a `<div>` element.
+
+<TypeTableAuto type="ComboboxInputWrapperProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxInputWrapperState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxInputWrapperDataAttributes" pkg="@bazza-ui/react" />
+
+### Input
+
+The text input for typing and filtering. Renders an `<input>` element.
+
+<TypeTableAuto type="ComboboxInputProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxInputState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxInputDataAttributes" pkg="@bazza-ui/react" />
+
+### Clear
+
+A button to clear the current value. Renders a `<button>` element.
+
+<TypeTableAuto type="ComboboxClearProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxClearState" pkg="@bazza-ui/react" />
+
+### Icon
+
+A decorative icon in the input wrapper. Renders a `<span>` element.
+
+<TypeTableAuto type="ComboboxIconProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxIconState" pkg="@bazza-ui/react" />
+
+### Portal
+
+Renders children outside the DOM hierarchy using a React Portal.
+
+<BaseUIReference component="popover" part="portal" />
+
+<TypeTableAuto type="ComboboxPortalProps" pkg="@bazza-ui/react" />
+
+### Backdrop
+
+An optional overlay behind the combobox popup. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="backdrop" wrapper />
+
+<TypeTableAuto type="ComboboxBackdropProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxBackdropDataAttributes" pkg="@bazza-ui/react" />
+
+### Positioner
+
+Positions the popup relative to the input. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="positioner" wrapper />
+
+<TypeTableAuto type="ComboboxPositionerProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxPositionerDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="ComboboxPositionerCssVars" pkg="@bazza-ui/react" />
+
+### Popup
+
+Container for the combobox content with animation support. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="popup" wrapper />
+
+<TypeTableAuto type="ComboboxPopupProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxPopupDataAttributes" pkg="@bazza-ui/react" />
+
+### Arrow
+
+An optional arrow pointing to the input. Renders an `<svg>` element.
+
+<BaseUIReference component="popover" part="arrow" />
+
+<TypeTableAuto type="ComboboxArrowProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxArrowDataAttributes" pkg="@bazza-ui/react" />
+
+### Surface
+
+Wraps the list and manages search state. Renders a `<div>` element.
+
+<TypeTableAuto type="ComboboxSurfaceProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxSurfaceState" pkg="@bazza-ui/react" />
+
+### List
+
+Container for combobox items. Manages keyboard navigation. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="ComboboxListProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxListState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxListDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="ComboboxListCssVars" pkg="@bazza-ui/react" />
+
+### Item
+
+A selectable option in the list. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="ComboboxItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxItemDataAttributes" pkg="@bazza-ui/react" />
+
+### ItemIndicator
+
+Displays a check mark when the item is selected. Renders a `<span>` element.
+
+<TypeTableAuto type="ComboboxItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxItemIndicatorState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ComboboxItemIndicatorDataAttributes" pkg="@bazza-ui/react" />
+
+### ItemLabel
+
+The text label for an item. Used for display and filtering. Renders a `<span>` element.
+
+<TypeTableAuto type="ComboboxItemLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxItemLabelState" pkg="@bazza-ui/react" />
+
+### Group
+
+Groups related options together. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="ComboboxGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxGroupState" pkg="@bazza-ui/react" />
+
+### GroupLabel
+
+A label for a group of options. Renders a `<div>` element.
+
+<TypeTableAuto type="ComboboxGroupLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxGroupLabelState" pkg="@bazza-ui/react" />
+
+### Separator
+
+A visual separator between options. Renders a `<div>` element with `role="separator"`.
+
+<TypeTableAuto type="ComboboxSeparatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxSeparatorState" pkg="@bazza-ui/react" />
+
+### Empty
+
+Displayed when no items match the current search. Renders a `<div>` element.
+
+<TypeTableAuto type="ComboboxEmptyProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxEmptyState" pkg="@bazza-ui/react" />
+
+### ScrollUpArrow
+
+Shows when content is scrollable upward. Renders a `<div>` element.
+
+<TypeTableAuto type="ComboboxScrollUpArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxScrollArrowState" pkg="@bazza-ui/react" />
+
+### ScrollDownArrow
+
+Shows when content is scrollable downward. Renders a `<div>` element.
+
+<TypeTableAuto type="ComboboxScrollDownArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ComboboxScrollArrowState" pkg="@bazza-ui/react" />

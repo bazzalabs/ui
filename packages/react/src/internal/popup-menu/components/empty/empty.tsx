@@ -9,7 +9,7 @@ import { useSurfaceContext } from '../../../listbox/index.js'
 export interface PopupMenuEmptyState extends Record<string, unknown> {}
 
 export interface PopupMenuEmptyProps
-  extends ComponentProps<'div', PopupMenuEmptyState> {
+  extends ComponentProps<'div', PopupMenuEmpty.State> {
   children: React.ReactNode
 }
 
@@ -20,7 +20,7 @@ export interface PopupMenuEmptyProps
  */
 export const PopupMenuEmpty = React.forwardRef<
   HTMLDivElement,
-  PopupMenuEmptyProps
+  PopupMenuEmpty.Props
 >(function PopupMenuEmpty(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
