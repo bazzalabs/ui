@@ -4,7 +4,7 @@ import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()

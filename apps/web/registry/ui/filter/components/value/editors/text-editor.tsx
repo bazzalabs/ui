@@ -3,7 +3,7 @@
 import type { Column, DataTableFilterActions } from '@bazza-ui/filters'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import { createTextFilterItems } from '../text-menu'
 
 export interface TextEditorContentProps<TData = unknown> {
