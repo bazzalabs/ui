@@ -3,6 +3,7 @@
 import type {
   Column,
   DataTableFilterActions,
+  DurationUnit,
   FilterModel,
   FilterStrategy,
   FiltersState,
@@ -36,7 +37,7 @@ import {
   createMultiOptionMenu,
   createOptionMenu,
   FilterValueDateController,
-  FilterValueNumberController,
+  NumberEditorContent,
   TextEditorContent,
 } from '../value'
 
@@ -184,36 +185,84 @@ function createDateSubmenuDef<TData>({
   }
 }
 
-function createNumberSubmenuDef<TData>({
-  filter,
+/**
+ * Number submenu content component that renders a submenu with NumberEditorContent.
+ * Similar to TextSubmenuContent but for number columns with optional duration unit support.
+ */
+function NumberSubmenuContent<TData>({
+  id,
+  title,
+  icon,
   column,
   actions,
-  locale = 'en',
-  strategy,
+  context,
+  baseUnit,
 }: {
-  filter: FilterModel<'number'>
+  id: string
+  title: string
+  icon: React.ReactElement | React.ElementType | undefined
   column: Column<TData, 'number'>
   actions: DataTableFilterActions
-  locale?: Locale
-  strategy: FilterStrategy
+  context: SubmenuRenderParams['context']
+  baseUnit?: DurationUnit
+}) {
+  return (
+    <DropdownMenu.Submenu key={id}>
+      <DropdownMenu.SubmenuTrigger value={id} className="group/row">
+        <div className="flex items-center gap-2 min-w-0">
+          {renderColumnIcon(icon)}
+          <LabelWithBreadcrumbs
+            label={title}
+            breadcrumbs={
+              context.isDeepSearchResult ? context.breadcrumbs : undefined
+            }
+          />
+        </div>
+      </DropdownMenu.SubmenuTrigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner sideOffset={-2} align="start" alignOffset={-3}>
+          <DropdownMenu.Popup>
+            <NumberEditorContent
+              column={column as Column<unknown, 'number'>}
+              actions={actions}
+              baseUnit={baseUnit}
+            />
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Submenu>
+  )
+}
+
+function createNumberSubmenuDef<TData>({
+  column,
+  actions,
+  baseUnit,
+}: {
+  column: Column<TData, 'number'>
+  actions: DataTableFilterActions
+  /** The base unit the column stores values in. When specified, enables duration parsing. */
+  baseUnit?: DurationUnit
 }): SubmenuDef {
   return {
     kind: 'submenu',
     id: column.id,
     title: column.displayName,
     label: column.displayName,
-    render: createCustomSubmenuRenderer(
-      column.id,
-      column.displayName,
-      column.icon,
-      <FilterValueNumberController
-        filter={filter}
-        column={column}
-        actions={actions}
-        strategy={strategy}
-        locale={locale}
-      />,
-    ),
+    // Number menus need controlled search - we'll handle this with a custom renderer
+    render: (params: SubmenuRenderParams) => {
+      return (
+        <NumberSubmenuContent
+          id={column.id}
+          title={column.displayName}
+          icon={column.icon}
+          column={column as Column<unknown, 'number'>}
+          actions={actions}
+          context={params.context}
+          baseUnit={baseUnit}
+        />
+      )
+    },
   }
 }
 
@@ -472,16 +521,13 @@ function __FilterMenu<TData>({
         }
 
         if (isNumberColumn(column)) {
-          const numberFilter = filters.find(
-            (f): f is FilterModel<'number'> =>
-              f.columnId === column.id && f.type === 'number',
-          )
+          // Get the base unit from column meta if available
+          const baseUnit = (column.meta as { number?: { unit?: DurationUnit } })
+            ?.number?.unit
           return createNumberSubmenuDef({
-            filter: numberFilter as FilterModel<'number'>,
             column,
             actions,
-            locale,
-            strategy,
+            baseUnit,
           })
         }
 

@@ -154,6 +154,16 @@ export const tstColumnDefs = [
       )
     },
   }),
+  columnHelper.accessor((row) => row.priority, {
+    id: 'priority',
+    header: 'Priority',
+    enableColumnFilter: true,
+    cell: ({ row }) => {
+      const priority = row.getValue<number>('priority')
+
+      return <span className="tabular-nums tracking-tighter">{priority}</span>
+    },
+  }),
   columnHelper.accessor((row) => row.startDate, {
     id: 'startDate',
     header: 'Start Date',

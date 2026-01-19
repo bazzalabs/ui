@@ -255,11 +255,15 @@
     "packages/filters": {
       "name": "@bazza-ui/filters",
       "version": "0.4.0-canary.4",
+      "dependencies": {
+        "ms": "^2.1.3",
+      },
       "devDependencies": {
         "@bazza-ui/typescript-config": "*",
         "@ndaidong/txtgen": "^4.0.1",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/react": "^16.3.0",
+        "@types/ms": "^2.1.0",
         "@types/react": "^19.1.1",
         "@types/react-dom": "^19.1.2",
         "@vitejs/plugin-react": "^4.3.4",
