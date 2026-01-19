@@ -1,6 +1,0 @@
-{
-  "name": "@bazza-ui/registry-multi-select",
-  "version": "0.1.0-canary.1",
-  "private": true,
-  "description": "Registry component: Multi-select styled for shadcn/ui"
-}

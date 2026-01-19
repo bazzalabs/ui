@@ -24,11 +24,7 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
-    "build": "tsup"
-  },
+  "scripts": {},
   "devDependencies": {
     "@bazza-ui/typescript-config": "workspace:*",
     "@tanstack/react-query": "^5.62.14",
