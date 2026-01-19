@@ -22,7 +22,7 @@ export interface PopupMenuScrollArrowState extends Record<string, unknown> {
 }
 
 export interface PopupMenuScrollArrowProps
-  extends ComponentProps<'div', PopupMenuScrollArrowState> {
+  extends ComponentProps<'div', PopupMenuScrollArrow.State> {
   /**
    * The direction to scroll when hovering over this arrow.
    */
@@ -59,7 +59,7 @@ const stateAttributesMapping = {
  */
 export const PopupMenuScrollArrow = React.forwardRef<
   HTMLDivElement,
-  PopupMenuScrollArrowProps
+  PopupMenuScrollArrow.Props
 >(function PopupMenuScrollArrow(props, forwardedRef) {
   const {
     direction,
@@ -163,7 +163,7 @@ export const PopupMenuScrollArrow = React.forwardRef<
     }
   }, [])
 
-  const state: PopupMenuScrollArrowState = React.useMemo(
+  const state: PopupMenuScrollArrow.State = React.useMemo(
     () => ({ direction, visible }),
     [direction, visible],
   )
@@ -214,7 +214,7 @@ export interface PopupMenuScrollUpArrowProps
  */
 export const PopupMenuScrollUpArrow = React.forwardRef<
   HTMLDivElement,
-  PopupMenuScrollUpArrowProps
+  PopupMenuScrollUpArrow.Props
 >(function PopupMenuScrollUpArrow(props, forwardedRef) {
   return <PopupMenuScrollArrow ref={forwardedRef} direction="up" {...props} />
 })
@@ -234,7 +234,7 @@ export interface PopupMenuScrollDownArrowProps
  */
 export const PopupMenuScrollDownArrow = React.forwardRef<
   HTMLDivElement,
-  PopupMenuScrollDownArrowProps
+  PopupMenuScrollDownArrow.Props
 >(function PopupMenuScrollDownArrow(props, forwardedRef) {
   return <PopupMenuScrollArrow ref={forwardedRef} direction="down" {...props} />
 })

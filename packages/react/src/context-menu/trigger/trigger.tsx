@@ -27,7 +27,7 @@ export interface ContextMenuTriggerState extends Record<string, unknown> {
 }
 
 export interface ContextMenuTriggerProps
-  extends ComponentProps<'div', ContextMenuTriggerState> {
+  extends ComponentProps<'div', ContextMenuTrigger.State> {
   /**
    * Whether the trigger is disabled.
    * When disabled, right-click and long-press will not open the menu.
@@ -51,7 +51,7 @@ const stateAttributesMapping = {
  */
 export const ContextMenuTrigger = React.forwardRef<
   HTMLDivElement,
-  ContextMenuTriggerProps
+  ContextMenuTrigger.Props
 >(function ContextMenuTrigger(props, forwardedRef) {
   const {
     disabled: disabledProp = false,
@@ -200,7 +200,7 @@ export const ContextMenuTrigger = React.forwardRef<
     [onTouchCancel, clearLongPressTimeout],
   )
 
-  const state: ContextMenuTriggerState = React.useMemo(
+  const state: ContextMenuTrigger.State = React.useMemo(
     () => ({
       open,
       pressed,

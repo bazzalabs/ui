@@ -57,6 +57,8 @@ function parseArgs(argv: string[]): Args {
 export type PropMeta = {
   name: string
   type: string
+  /** Short display type (e.g., "Align" for a union type alias) */
+  shortType?: string
   /** Prettier-formatted version of the type (for complex types) */
   formattedType?: string
   required: boolean
@@ -71,13 +73,29 @@ export type PropMeta = {
   referencePath?: string
 }
 
+/** Metadata for enum members (data attributes, CSS variables, etc.) */
+export type EnumMemberMeta = {
+  /** The enum member name (e.g., "highlighted") */
+  name: string
+  /** The enum value (e.g., "data-highlighted" or "--available-width") */
+  value: string
+  /** Description from JSDoc */
+  description?: string
+  /** Type annotation from @type JSDoc tag (e.g., "'top' | 'bottom'" for data attributes with values) */
+  valueType?: string
+}
+
 export type TypeMeta = {
   name: string
   kind: 'interface' | 'typealias' | 'enum'
+  /** For enums: 'dataAttributes' | 'cssVars' | 'other' */
+  enumCategory?: 'dataAttributes' | 'cssVars' | 'other'
   typeParams?: Array<{ name: string; constraint?: string; default?: string }>
   doc?: string
   props?: PropMeta[] // not present for enums
   definition?: string // not present for enums
+  /** Enum members with their values and descriptions */
+  members?: EnumMemberMeta[]
 }
 
 export type PackageMeta = {
@@ -99,6 +117,120 @@ function isIntersectionType(t: ts.Type): t is ts.IntersectionType {
 
 function isObjectLikeType(t: ts.Type): boolean {
   return (t.flags & ts.TypeFlags.Object) !== 0
+}
+
+/**
+ * Recursively expand a type to its full form, resolving all type aliases.
+ * This handles nested type references like `Align | 'list-start'` where
+ * `Align` should be expanded to `'start' | 'center' | 'end'`.
+ */
+function expandTypeRecursively(
+  type: ts.Type,
+  checker: ts.TypeChecker,
+  visited: Set<ts.Type> = new Set(),
+  filterUndefined = true,
+): string {
+  // Prevent infinite recursion
+  if (visited.has(type)) {
+    return checker.typeToString(type)
+  }
+  visited.add(type)
+
+  // Handle union types - expand each member
+  if (isUnionType(type)) {
+    const expandedParts: string[] = []
+    for (const memberType of type.types) {
+      // Filter out 'undefined' from unions (we show this via the Optional badge instead)
+      if (filterUndefined && memberType.flags & ts.TypeFlags.Undefined) {
+        continue
+      }
+      const expanded = expandTypeRecursively(
+        memberType,
+        checker,
+        visited,
+        filterUndefined,
+      )
+      // If the member itself expands to a union, we should include its parts individually
+      // to avoid nested parentheses like `('start' | 'center' | 'end') | 'list-start'`
+      if (isUnionType(memberType) && !memberType.aliasSymbol) {
+        expandedParts.push(expanded)
+      } else {
+        expandedParts.push(expanded)
+      }
+    }
+    // Deduplicate and join
+    const uniqueParts = [...new Set(expandedParts)]
+    return uniqueParts.join(' | ')
+  }
+
+  // Handle intersection types
+  if (isIntersectionType(type)) {
+    const parts = type.types.map((t) =>
+      expandTypeRecursively(t, checker, visited),
+    )
+    return parts.join(' & ')
+  }
+
+  // Handle type aliases - try to get the underlying type
+  const symbol = type.getSymbol() ?? type.aliasSymbol
+  if (symbol) {
+    const declarations = symbol.getDeclarations()
+    if (declarations && declarations.length > 0) {
+      const decl = declarations[0]!
+      if (isTypeAliasDecl(decl)) {
+        // Get the type that the alias points to
+        const aliasedType = checker.getTypeFromTypeNode(decl.type)
+        // If the aliased type is a union, expand it
+        if (isUnionType(aliasedType)) {
+          return expandTypeRecursively(aliasedType, checker, visited)
+        }
+      }
+    }
+  }
+
+  // For literal types and primitives, just use typeToString
+  return checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation)
+}
+
+/**
+ * Check if a type is a type alias (not a primitive, object, or anonymous type)
+ * and return its expanded form if so.
+ */
+function expandTypeAlias(
+  type: ts.Type,
+  checker: ts.TypeChecker,
+): string | null {
+  // Check if this is an alias (type reference to a type alias)
+  const aliasSymbol = type.aliasSymbol
+  if (!aliasSymbol) {
+    // Even without an alias symbol, unions should be expanded
+    if (isUnionType(type)) {
+      const expanded = expandTypeRecursively(type, checker)
+      const simple = checker.typeToString(type)
+      return expanded !== simple ? expanded : null
+    }
+    return null
+  }
+
+  // Try recursive expansion first
+  const expandedType = expandTypeRecursively(type, checker)
+  const aliasName = aliasSymbol.getName()
+
+  // If the expanded type is different from just the alias name, return it
+  if (expandedType !== aliasName) {
+    return expandedType
+  }
+
+  // Fallback: Use typeToString with NoTruncation
+  const fallbackExpanded = checker.typeToString(
+    type,
+    undefined,
+    ts.TypeFormatFlags.NoTruncation |
+      ts.TypeFormatFlags.InTypeAlias |
+      ts.TypeFormatFlags.WriteTypeArgumentsOfSignature,
+  )
+
+  return fallbackExpanded !== aliasName ? fallbackExpanded : null
 }
 
 /** Collect properties only from object(-like) types. Flattens intersections. */
@@ -123,15 +255,18 @@ async function collectObjectProps(
     addProps(t)
   }
 
+  // Filter out inherited HTML/React props unless they have custom documentation
+  const filteredSymbols = [...seen.values()].filter((sym) =>
+    shouldIncludeProp(sym, checker),
+  )
+
   // If context is provided, use it for type expansion
   if (ctx) {
-    return await Promise.all(
-      [...seen.values()].map((sym) => propMeta(sym, ctx)),
-    )
+    return await Promise.all(filteredSymbols.map((sym) => propMeta(sym, ctx)))
   }
 
   // Fallback for backward compatibility (shouldn't happen in practice)
-  return [...seen.values()].map((sym) => {
+  return filteredSymbols.map((sym) => {
     const decl = (sym.valueDeclaration ?? sym.declarations?.[0]) as
       | ts.Declaration
       | undefined
@@ -257,22 +392,403 @@ function getSymbolDefaultValue(sym: ts.Symbol): string | undefined {
 }
 
 /**
+ * Extract @type value from JSDoc tags (used for data attribute value types)
+ */
+function getSymbolTypeTag(sym: ts.Symbol): string | undefined {
+  const tags = sym.getJsDocTags()
+  const typeTag = tags.find((tag) => tag.name === 'type')
+  if (!typeTag) return undefined
+
+  const text = typeTag.text
+    ? ts.displayPartsToString(
+        Array.isArray(typeTag.text) ? typeTag.text : [typeTag.text],
+      )
+    : undefined
+
+  return text?.trim() || undefined
+}
+
+/**
+ * Check if a symbol has the @ignore JSDoc tag
+ */
+function hasIgnoreTag(sym: ts.Symbol): boolean {
+  const tags = sym.getJsDocTags()
+  return tags.some((tag) => tag.name === 'ignore')
+}
+
+/**
+ * Check if a declaration comes from a library file (node_modules or @types)
+ */
+function isFromLibrary(decl: ts.Declaration | undefined): boolean {
+  if (!decl) return false
+  const sourceFile = decl.getSourceFile()
+  const fileName = sourceFile.fileName
+  return (
+    fileName.includes('node_modules') ||
+    fileName.includes('/lib.') || // TypeScript lib files
+    fileName.includes('\\lib.') // Windows path
+  )
+}
+
+/**
+ * Props that should ALWAYS be included in documentation, even if from library files.
+ * These are core API props that users need to see.
+ * Note: `children` is NOT included here - it only shows when custom (e.g., render function)
+ */
+const ALWAYS_INCLUDE_PROPS = new Set(['render', 'className', 'style'])
+
+/**
+ * Props that should ALWAYS be hidden from documentation.
+ * These are internal implementation details or rarely used props.
+ */
+const ALWAYS_HIDE_PROPS = new Set(['virtualAnchor'])
+
+/**
+ * Common HTML/React/ARIA props that should be filtered out unless customized.
+ * These are inherited from HTML element types and don't need documentation.
+ */
+const NATIVE_PROPS_TO_FILTER = new Set([
+  // React internal
+  'key',
+  'ref',
+  // Common HTML attributes (covered by native HTML docs)
+  'id',
+  'hidden',
+  'title',
+  'lang',
+  'dir',
+  'tabIndex',
+  'accessKey',
+  'draggable',
+  'contentEditable',
+  'spellCheck',
+  'autoCapitalize',
+  'autoCorrect',
+  'autoFocus',
+  'inputMode',
+  'enterKeyHint',
+  'is',
+  'slot',
+  'translate',
+  'inert',
+  'popover',
+  'popoverTarget',
+  'popoverTargetAction',
+  // Form-related
+  'form',
+  'name',
+  'value',
+  'defaultValue',
+  'defaultChecked',
+  'disabled',
+  'readOnly',
+  'required',
+  'placeholder',
+  'autoComplete',
+  'type',
+  // Event handlers (too many to list - filter by prefix)
+  // ... handled separately below
+])
+
+/**
+ * Check if a prop name is a native HTML/React event handler
+ */
+function isNativeEventHandler(name: string): boolean {
+  // React event handlers like onClick, onFocus, onKeyDown, etc.
+  if (name.startsWith('on') && name.length > 2) {
+    const thirdChar = name[2]
+    if (thirdChar && thirdChar === thirdChar.toUpperCase()) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Check if a prop name is an ARIA attribute
+ */
+function isAriaAttribute(name: string): boolean {
+  return name.startsWith('aria-')
+}
+
+/**
+ * Check if a prop name is a data attribute
+ */
+function isDataAttribute(name: string): boolean {
+  return name.startsWith('data-')
+}
+
+/**
+ * Check if a prop should be included in documentation.
+ * Excludes inherited HTML/React props.
+ */
+function shouldIncludeProp(sym: ts.Symbol, checker: ts.TypeChecker): boolean {
+  // Always skip props marked with @ignore
+  if (hasIgnoreTag(sym)) {
+    return false
+  }
+
+  const name = sym.getName()
+  const decl = sym.valueDeclaration ?? sym.declarations?.[0]
+
+  // Always include core API props (render, className, style, children)
+  if (ALWAYS_INCLUDE_PROPS.has(name)) {
+    return true
+  }
+
+  // Always hide internal/implementation props
+  if (ALWAYS_HIDE_PROPS.has(name)) {
+    return false
+  }
+
+  // Check if this is a native prop that we should always filter
+  const isInNativeSet = NATIVE_PROPS_TO_FILTER.has(name)
+  const isEventHandler = isNativeEventHandler(name)
+  const isAria = isAriaAttribute(name)
+  const isData = isDataAttribute(name)
+
+  // Always filter out ARIA and data attributes - they're HTML standard
+  if (isAria || isData) {
+    return false
+  }
+
+  // For event handlers (on*), only filter if from library files
+  // This keeps custom callbacks like onOpenChange, onHighlightChange while
+  // filtering native handlers like onClick, onFocus from React types
+  if (isEventHandler) {
+    return !isFromLibrary(decl)
+  }
+
+  // For other native props, filter if declared in a library file
+  if (isInNativeSet) {
+    // Only include if it's declared in our source files (not inherited from React types)
+    return !isFromLibrary(decl)
+  }
+
+  // If prop is declared in a library file, skip it
+  if (isFromLibrary(decl)) {
+    return false
+  }
+
+  // Props from our source files are included
+  return true
+}
+
+/**
+ * Determine the enum category based on its name
+ */
+function getEnumCategory(
+  enumName: string,
+): 'dataAttributes' | 'cssVars' | 'other' {
+  if (enumName.endsWith('DataAttributes') || enumName.endsWith('DataAttrs')) {
+    return 'dataAttributes'
+  }
+  if (enumName.endsWith('CssVars') || enumName.endsWith('CSSVars')) {
+    return 'cssVars'
+  }
+  return 'other'
+}
+
+/**
+ * Extract enum members with their values and JSDoc
+ */
+function extractEnumMembers(
+  enumDecl: ts.EnumDeclaration,
+  checker: ts.TypeChecker,
+): EnumMemberMeta[] {
+  const members: EnumMemberMeta[] = []
+
+  for (const member of enumDecl.members) {
+    const memberName = member.name.getText()
+    const memberSym = checker.getSymbolAtLocation(member.name)
+
+    // Get the enum member value
+    let value: string | undefined
+    if (member.initializer) {
+      // If there's an explicit initializer, use it
+      if (ts.isStringLiteral(member.initializer)) {
+        value = member.initializer.text
+      } else {
+        value = member.initializer.getText()
+      }
+    }
+
+    if (!value) continue // Skip members without explicit string values
+
+    const description = memberSym ? getSymbolDoc(memberSym, checker) : undefined
+    const valueType = memberSym ? getSymbolTypeTag(memberSym) : undefined
+
+    members.push({
+      name: memberName,
+      value,
+      description,
+      valueType,
+    })
+  }
+
+  return members
+}
+
+/**
+ * Component prefixes for namespace conversion.
+ * Maps internal prefixes to their namespace form.
+ */
+const COMPONENT_PREFIXES = [
+  'PopupMenu',
+  'DropdownMenu',
+  'ContextMenu',
+  'Select',
+  'Combobox',
+] as const
+
+/**
+ * Component parts that follow the prefix (e.g., Item, Trigger, Surface).
+ * These get converted to dot notation.
+ */
+const COMPONENT_PARTS = [
+  'Arrow',
+  'Backdrop',
+  'CheckboxItem',
+  'CheckboxItemIndicator',
+  'Clear',
+  'DataInput',
+  'DataList',
+  'DataSurface',
+  'Empty',
+  'Group',
+  'GroupLabel',
+  'Icon',
+  'Input',
+  'InputWrapper',
+  'Item',
+  'ItemIndicator',
+  'ItemLabel',
+  'List',
+  'Popup',
+  'Portal',
+  'Positioner',
+  'RadioGroup',
+  'RadioGroupValue',
+  'RadioItem',
+  'RadioItemIndicator',
+  'Root',
+  'ScrollArrow',
+  'ScrollDownArrow',
+  'ScrollUpArrow',
+  'Separator',
+  'Shortcut',
+  'SubmenuRoot',
+  'SubmenuTrigger',
+  'SubmenuTriggerIndicator',
+  'Surface',
+  'Trigger',
+  'Value',
+] as const
+
+/**
+ * Type suffixes that get converted to namespace form.
+ */
+const TYPE_SUFFIXES = ['State', 'Props', 'ChildrenState'] as const
+
+/**
+ * Convert internal type names to namespaced form.
+ * e.g., PopupMenuItemState → PopupMenu.Item.State
+ */
+function convertToNamespacedType(typeStr: string): string {
+  let result = typeStr
+
+  // Build regex patterns for each prefix
+  for (const prefix of COMPONENT_PREFIXES) {
+    for (const part of COMPONENT_PARTS) {
+      for (const suffix of TYPE_SUFFIXES) {
+        // Match the full type name (e.g., PopupMenuItemState)
+        const fullTypeName = `${prefix}${part}${suffix}`
+        // Convert to namespace form (e.g., PopupMenu.Item.State)
+        const namespacedForm = `${prefix}.${part}.${suffix}`
+
+        // Use word boundary to avoid partial matches
+        const regex = new RegExp(`\\b${fullTypeName}\\b`, 'g')
+        result = result.replace(regex, namespacedForm)
+      }
+    }
+  }
+
+  return result
+}
+
+/**
+ * Clean up a type string for better readability in documentation.
+ * This simplifies complex React types and expands known type aliases.
+ *
+ * Transformations:
+ * - ReactElement<unknown, string | JSXElementConstructor<any>> → ReactElement
+ * - ComponentRenderFn<Props, State> → ((props: Props, state: State) => ReactElement)
+ * - Remove trailing "| undefined" (shown via "Optional" badge instead)
+ * - PopupMenuItemState → PopupMenu.Item.State (namespace form)
+ */
+function cleanDetailedType(typeStr: string): string {
+  let result = typeStr
+
+  // Remove trailing "| undefined" - we show "Optional" badge instead
+  result = result.replace(/\s*\|\s*undefined\s*$/, '')
+
+  // Simplify ReactElement<unknown, string | JSXElementConstructor<any>> to ReactElement
+  // This pattern appears in render prop types
+  result = result.replace(
+    /ReactElement<\s*unknown\s*,\s*string\s*\|\s*JSXElementConstructor<any>\s*>/g,
+    'ReactElement',
+  )
+
+  // Also handle React.ReactElement variant
+  result = result.replace(
+    /React\.ReactElement<\s*unknown\s*,\s*string\s*\|\s*JSXElementConstructor<any>\s*>/g,
+    'ReactElement',
+  )
+
+  // Expand ComponentRenderFn<Props, State> to ((props: Props, state: State) => ReactElement)
+  // Need to handle nested angle brackets properly
+  result = result.replace(
+    /ComponentRenderFn<([^<>]+(?:<[^<>]*>)?),\s*([^<>]+(?:<[^<>]*>)?)>/g,
+    '((props: $1, state: $2) => ReactElement)',
+  )
+
+  // Simplify HTMLProps<any> to HTMLProps
+  result = result.replace(/HTMLProps<any>/g, 'HTMLProps')
+
+  // Convert internal type names to namespaced form
+  result = convertToNamespacedType(result)
+
+  // Clean up any double spaces
+  result = result.replace(/\s{2,}/g, ' ')
+
+  return result.trim()
+}
+
+/**
  * Format a TypeScript type string using Prettier
  */
 async function formatTypeString(typeStr: string): Promise<string | undefined> {
+  // First, clean up the type for better readability
+  const cleanedType = cleanDetailedType(typeStr)
+
   // Skip formatting for simple types
-  if (typeStr.length < 50 && !typeStr.includes('{') && !typeStr.includes('(')) {
-    return undefined // Return undefined to indicate no formatting needed
+  if (
+    cleanedType.length < 50 &&
+    !cleanedType.includes('{') &&
+    !cleanedType.includes('(')
+  ) {
+    // Still return the cleaned type if it's different from original
+    return cleanedType !== typeStr ? cleanedType : undefined
   }
 
   // Skip types with truncation markers (...) as they're not valid TypeScript
-  if (typeStr.includes('...')) {
-    return undefined
+  if (cleanedType.includes('...')) {
+    return cleanedType !== typeStr ? cleanedType : undefined
   }
 
   try {
     // Wrap the type in a declaration to make it valid TypeScript
-    const wrappedType = `type FormattedType = ${typeStr}`
+    const wrappedType = `type FormattedType = ${cleanedType}`
 
     // Format using prettier (async in Prettier 3.x)
     const formatted = await prettier.format(wrappedType, {
@@ -297,11 +813,11 @@ async function formatTypeString(typeStr: string): Promise<string | undefined> {
     // Only return if it's actually different from the original
     return result !== typeStr ? result : undefined
   } catch (error) {
-    // If formatting fails, return undefined
+    // If formatting fails, return the cleaned type if different
     if (process.env.DEBUG_TYPES) {
-      console.warn('Failed to format type:', typeStr, error)
+      console.warn('Failed to format type:', cleanedType, error)
     }
-    return undefined
+    return cleanedType !== typeStr ? cleanedType : undefined
   }
 }
 
@@ -408,11 +924,58 @@ async function propMeta(
   const baseTypeName = extractBaseTypeName(typeStr)
   const description = getSymbolDoc(propSym, checker)
   const defaultValue = getSymbolDefaultValue(propSym)
-  const formattedType = await formatTypeString(typeStr)
+
+  // Well-known types that shouldn't be expanded (everyone knows what they are)
+  const SKIP_EXPANSION_TYPES = new Set([
+    'ReactNode',
+    'ReactElement',
+    'CSSProperties',
+    'HTMLAttributes',
+    'RefObject',
+    'MutableRefObject',
+  ])
+
+  // Check if the type is a well-known type that shouldn't be expanded
+  const shouldSkipExpansion =
+    SKIP_EXPANSION_TYPES.has(typeStr) ||
+    SKIP_EXPANSION_TYPES.has(typeStr.replace(/ \| undefined$/, ''))
+
+  // Try to expand type aliases to show their full definition
+  const expandedTypeStr = shouldSkipExpansion
+    ? null
+    : expandTypeAlias(type, checker)
+  // Use expanded type for formatting if available, otherwise use the type string
+  const typeToFormat = expandedTypeStr ?? typeStr
+  // Format the type for display
+  let formattedType = shouldSkipExpansion
+    ? undefined
+    : await formatTypeString(typeToFormat)
+  // If we have an expanded type that's different from the original,
+  // always include it even if formatTypeString didn't change it
+  if (!formattedType && expandedTypeStr && expandedTypeStr !== typeStr) {
+    formattedType = cleanDetailedType(expandedTypeStr)
+  }
+
+  // Extract short type name from type alias (e.g., "Align" from PopupMenuPositionerAlign)
+  // This is used for display in the collapsed type column
+  let shortType: string | undefined
+  const aliasSymbol = type.aliasSymbol
+  if (aliasSymbol) {
+    const aliasName = aliasSymbol.getName()
+    // Extract the last part of the type name (e.g., "Align" from "PopupMenuPositionerAlign")
+    // Look for common suffixes like Align, Side, etc.
+    const suffixMatch = aliasName.match(
+      /(Align|Side|Placement|Position|Size|Variant|Direction|Orientation|Mode|Status|State)$/,
+    )
+    if (suffixMatch) {
+      shortType = suffixMatch[1]
+    }
+  }
 
   const meta: PropMeta = {
     name: propSym.getName(),
     type: typeStr,
+    shortType,
     formattedType,
     required,
     description,
@@ -544,7 +1107,15 @@ async function collectPackageTypes(
       meta.definition = nodeText(decl.type) // e.g. "'item' | 'group' | 'submenu'"
     }
 
-    if (kind !== 'enum') {
+    if (kind === 'enum' && isEnumDecl(decl)) {
+      // Extract enum members with values and JSDoc
+      const members = extractEnumMembers(decl, checker)
+      if (members.length > 0) {
+        meta.members = members
+      }
+      // Categorize the enum (dataAttributes, cssVars, or other)
+      meta.enumCategory = getEnumCategory(exp.getName())
+    } else if (kind !== 'enum') {
       const declaredType = checker.getDeclaredTypeOfSymbol(
         target /* not exp; see alias fix */,
       )

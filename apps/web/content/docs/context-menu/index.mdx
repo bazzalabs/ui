@@ -1,0 +1,462 @@
+---
+title: Context Menu
+section: Getting Started
+summary: A menu that appears on right-click. Supports items, checkboxes, radio groups, submenus, and deep search.
+---
+
+A context menu displays a list of options when triggered by a right-click (or long-press on touch devices). It supports all the same features as dropdown menus: items, checkbox items, radio groups, nested submenus, keyboard navigation, and deep search filtering.
+
+## Installation
+
+```bash
+bun add @bazza-ui/react
+```
+
+## Basic Usage
+
+```tsx
+import { ContextMenu } from '@bazza-ui/react'
+
+function Demo() {
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        <div className="p-8 border rounded-lg">
+          Right-click here
+        </div>
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner>
+          <ContextMenu.Popup>
+            <ContextMenu.Item onSelect={() => console.log('Cut')}>
+              Cut
+            </ContextMenu.Item>
+            <ContextMenu.Item onSelect={() => console.log('Copy')}>
+              Copy
+            </ContextMenu.Item>
+            <ContextMenu.Item onSelect={() => console.log('Paste')}>
+              Paste
+            </ContextMenu.Item>
+            <ContextMenu.Separator />
+            <ContextMenu.Item onSelect={() => console.log('Delete')}>
+              Delete
+            </ContextMenu.Item>
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  )
+}
+```
+
+## Anatomy
+
+```tsx
+<ContextMenu.Root>
+  <ContextMenu.Trigger />
+  <ContextMenu.Portal>
+    <ContextMenu.Backdrop />
+    <ContextMenu.Positioner>
+      <ContextMenu.Popup>
+        <ContextMenu.Arrow />
+        <ContextMenu.Surface>
+          <ContextMenu.Input />
+          <ContextMenu.List>
+            <ContextMenu.Group>
+              <ContextMenu.GroupLabel />
+              <ContextMenu.Item>
+                <ContextMenu.Icon />
+                <ContextMenu.Shortcut />
+              </ContextMenu.Item>
+            </ContextMenu.Group>
+            <ContextMenu.Separator />
+            <ContextMenu.CheckboxItem>
+              <ContextMenu.CheckboxItemIndicator />
+            </ContextMenu.CheckboxItem>
+            <ContextMenu.RadioGroup>
+              <ContextMenu.RadioItem>
+                <ContextMenu.RadioItemIndicator />
+              </ContextMenu.RadioItem>
+            </ContextMenu.RadioGroup>
+            <ContextMenu.Submenu>
+              <ContextMenu.SubmenuTrigger>
+                <ContextMenu.SubmenuTriggerIndicator />
+              </ContextMenu.SubmenuTrigger>
+              {/* Nested Positioner/Popup/Surface/List */}
+            </ContextMenu.Submenu>
+            <ContextMenu.Empty />
+          </ContextMenu.List>
+        </ContextMenu.Surface>
+        <ContextMenu.ScrollUpArrow />
+        <ContextMenu.ScrollDownArrow />
+      </ContextMenu.Popup>
+    </ContextMenu.Positioner>
+  </ContextMenu.Portal>
+</ContextMenu.Root>
+```
+
+## Features
+
+- **Right-click activation** - Opens on right-click (contextmenu event)
+- **Touch support** - Opens on long-press for touch devices
+- **Virtual anchor** - Menu appears at cursor position
+- **Accessible** - Full keyboard navigation and ARIA attributes
+- **Composable** - Build menus with any combination of items, checkboxes, radio groups, and submenus
+- **Deep Search** - Built-in typeahead filtering with fuzzy matching
+- **Submenus** - Nested menus with intelligent aim tracking
+
+## Examples
+
+### File Browser Context Menu
+
+```tsx
+function FileContextMenu() {
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        <div className="p-4 border rounded-lg flex items-center gap-2">
+          <FileIcon />
+          <span>document.pdf</span>
+        </div>
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner>
+          <ContextMenu.Popup>
+            <ContextMenu.Item>
+              <ContextMenu.Icon><OpenIcon /></ContextMenu.Icon>
+              Open
+            </ContextMenu.Item>
+            <ContextMenu.Item>
+              <ContextMenu.Icon><OpenInNewIcon /></ContextMenu.Icon>
+              Open in new tab
+            </ContextMenu.Item>
+            <ContextMenu.Separator />
+            <ContextMenu.Item>
+              <ContextMenu.Icon><CopyIcon /></ContextMenu.Icon>
+              Copy
+              <ContextMenu.Shortcut>Ctrl+C</ContextMenu.Shortcut>
+            </ContextMenu.Item>
+            <ContextMenu.Item>
+              <ContextMenu.Icon><CutIcon /></ContextMenu.Icon>
+              Cut
+              <ContextMenu.Shortcut>Ctrl+X</ContextMenu.Shortcut>
+            </ContextMenu.Item>
+            <ContextMenu.Separator />
+            <ContextMenu.Submenu>
+              <ContextMenu.SubmenuTrigger>
+                <ContextMenu.Icon><ShareIcon /></ContextMenu.Icon>
+                Share
+                <ContextMenu.SubmenuTriggerIndicator />
+              </ContextMenu.SubmenuTrigger>
+              <ContextMenu.Portal>
+                <ContextMenu.Positioner>
+                  <ContextMenu.Popup>
+                    <ContextMenu.Item>Copy link</ContextMenu.Item>
+                    <ContextMenu.Item>Email</ContextMenu.Item>
+                    <ContextMenu.Item>Slack</ContextMenu.Item>
+                  </ContextMenu.Popup>
+                </ContextMenu.Positioner>
+              </ContextMenu.Portal>
+            </ContextMenu.Submenu>
+            <ContextMenu.Separator />
+            <ContextMenu.Item className="text-red-500">
+              <ContextMenu.Icon><TrashIcon /></ContextMenu.Icon>
+              Delete
+            </ContextMenu.Item>
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  )
+}
+```
+
+### Canvas Context Menu
+
+```tsx
+function CanvasContextMenu() {
+  const [tool, setTool] = React.useState('select')
+
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        <canvas className="w-full h-64 border rounded-lg bg-slate-50" />
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner>
+          <ContextMenu.Popup>
+            <ContextMenu.RadioGroup value={tool} onValueChange={setTool}>
+              <ContextMenu.GroupLabel>Tools</ContextMenu.GroupLabel>
+              <ContextMenu.RadioItem value="select">
+                <ContextMenu.RadioItemIndicator />
+                Select
+              </ContextMenu.RadioItem>
+              <ContextMenu.RadioItem value="pen">
+                <ContextMenu.RadioItemIndicator />
+                Pen
+              </ContextMenu.RadioItem>
+              <ContextMenu.RadioItem value="eraser">
+                <ContextMenu.RadioItemIndicator />
+                Eraser
+              </ContextMenu.RadioItem>
+            </ContextMenu.RadioGroup>
+            <ContextMenu.Separator />
+            <ContextMenu.Item>Undo</ContextMenu.Item>
+            <ContextMenu.Item>Redo</ContextMenu.Item>
+            <ContextMenu.Separator />
+            <ContextMenu.Item>Clear canvas</ContextMenu.Item>
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  )
+}
+```
+
+## Differences from Dropdown Menu
+
+| Feature | Context Menu | Dropdown Menu |
+|---------|-------------|---------------|
+| Trigger | Right-click / long-press | Click on button |
+| Anchor | Cursor position | Trigger element |
+| Use case | Contextual actions | Navigation / actions |
+
+## API Reference
+
+### Root
+
+Groups all parts of the context menu. Manages open state and provides context to children. Doesn't render its own HTML element.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="ContextMenuRootProps" pkg="@bazza-ui/react" />
+
+### Trigger
+
+The element that triggers the context menu on right-click. Renders a `<span>` element that wraps its children.
+
+<BaseUIReference component="popover" part="trigger" wrapper />
+
+<TypeTableAuto type="ContextMenuTriggerProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuTriggerDataAttributes" pkg="@bazza-ui/react" />
+
+### Portal
+
+Renders children outside the DOM hierarchy using a React Portal. Useful for ensuring the menu appears above other content.
+
+<BaseUIReference component="popover" part="portal" />
+
+<TypeTableAuto type="ContextMenuPortalProps" pkg="@bazza-ui/react" />
+
+### Backdrop
+
+An optional overlay behind the menu. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="backdrop" wrapper />
+
+<TypeTableAuto type="ContextMenuBackdropProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuBackdropDataAttributes" pkg="@bazza-ui/react" />
+
+### Positioner
+
+Positions the popup at the cursor position using Floating UI. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="positioner" wrapper />
+
+<TypeTableAuto type="ContextMenuPositionerProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuPositionerDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="ContextMenuPositionerCssVars" pkg="@bazza-ui/react" />
+
+### Popup
+
+Container for the menu content with animation support. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="popup" wrapper />
+
+<TypeTableAuto type="ContextMenuPopupProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuPopupDataAttributes" pkg="@bazza-ui/react" />
+
+### Arrow
+
+An optional arrow pointing to the anchor position. Renders an `<svg>` element.
+
+<BaseUIReference component="popover" part="arrow" />
+
+<TypeTableAuto type="ContextMenuArrowProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuArrowDataAttributes" pkg="@bazza-ui/react" />
+
+### Surface
+
+Wraps the list and manages the search state. Renders a `<div>` element.
+
+<TypeTableAuto type="ContextMenuSurfaceProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuSurfaceState" pkg="@bazza-ui/react" />
+
+### Input
+
+A text input for filtering menu items. Renders an `<input>` element.
+
+<TypeTableAuto type="ContextMenuInputProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuInputState" pkg="@bazza-ui/react" />
+
+### List
+
+Container for menu items. Manages keyboard navigation. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="ContextMenuListProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuListState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuListDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="ContextMenuListCssVars" pkg="@bazza-ui/react" />
+
+### Item
+
+A selectable item in the menu. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="ContextMenuItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuItemDataAttributes" pkg="@bazza-ui/react" />
+
+### Icon
+
+An icon displayed within a menu item. Renders a `<span>` element.
+
+<TypeTableAuto type="ContextMenuIconProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuIconState" pkg="@bazza-ui/react" />
+
+### Shortcut
+
+Displays a keyboard shortcut hint. Renders a `<span>` element.
+
+<TypeTableAuto type="ContextMenuShortcutProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuShortcutState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuShortcutDataAttributes" pkg="@bazza-ui/react" />
+
+### Group
+
+Groups related menu items together. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="ContextMenuGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuGroupState" pkg="@bazza-ui/react" />
+
+### GroupLabel
+
+A label for a group of menu items. Renders a `<div>` element.
+
+<TypeTableAuto type="ContextMenuGroupLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuGroupLabelState" pkg="@bazza-ui/react" />
+
+### Separator
+
+A visual separator between menu items. Renders a `<div>` element with `role="separator"`.
+
+<TypeTableAuto type="ContextMenuSeparatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuSeparatorState" pkg="@bazza-ui/react" />
+
+### Empty
+
+Displayed when no items match the current search filter. Renders a `<div>` element.
+
+<TypeTableAuto type="ContextMenuEmptyProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuEmptyState" pkg="@bazza-ui/react" />
+
+### CheckboxItem
+
+A menu item with a checkbox. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="ContextMenuCheckboxItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuCheckboxItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuCheckboxItemDataAttributes" pkg="@bazza-ui/react" />
+
+### CheckboxItemIndicator
+
+Displays a check mark when the checkbox item is checked. Renders a `<span>` element.
+
+<TypeTableAuto type="ContextMenuCheckboxItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuCheckboxItemIndicatorState" pkg="@bazza-ui/react" />
+
+### RadioGroup
+
+Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="ContextMenuRadioGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuRadioGroupState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuRadioGroupDataAttributes" pkg="@bazza-ui/react" />
+
+### RadioItem
+
+A radio option within a radio group. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="ContextMenuRadioItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuRadioItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuRadioItemDataAttributes" pkg="@bazza-ui/react" />
+
+### RadioItemIndicator
+
+Displays a dot when the radio item is selected. Renders a `<span>` element.
+
+<TypeTableAuto type="ContextMenuRadioItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuRadioItemIndicatorState" pkg="@bazza-ui/react" />
+
+### Submenu
+
+Root component for a nested submenu. Manages submenu open state.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="ContextMenuSubmenuRootProps" pkg="@bazza-ui/react" />
+
+### SubmenuTrigger
+
+A menu item that opens a submenu. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="trigger" wrapper />
+
+<TypeTableAuto type="ContextMenuSubmenuTriggerProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuSubmenuTriggerState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuSubmenuTriggerDataAttributes" pkg="@bazza-ui/react" />
+
+### SubmenuTriggerIndicator
+
+An indicator (chevron) showing that an item has a submenu. Renders a `<span>` element.
+
+<TypeTableAuto type="ContextMenuSubmenuTriggerIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuSubmenuTriggerIndicatorState" pkg="@bazza-ui/react" />
+
+### ScrollUpArrow
+
+Shows when content is scrollable upward. Renders a `<div>` element.
+
+<TypeTableAuto type="ContextMenuScrollUpArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuScrollArrowState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuScrollArrowDataAttributes" pkg="@bazza-ui/react" />
+
+### ScrollDownArrow
+
+Shows when content is scrollable downward. Renders a `<div>` element.
+
+<TypeTableAuto type="ContextMenuScrollDownArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuScrollArrowState" pkg="@bazza-ui/react" />
+
+---
+
+### Data-First API
+
+The Data-First API provides a declarative way to define menu content using data structures instead of JSX. It enables deep search functionality that can search through nested submenus and supports dynamic filtering.
+
+#### DataSurface
+
+Wraps the list and provides deep search functionality. Use instead of `Surface` when using the data-first approach. Renders a `<div>` element.
+
+<TypeTableAuto type="ContextMenuDataSurfaceProps" pkg="@bazza-ui/react" />
+
+#### DataList
+
+Renders menu items from a data structure using a render prop pattern. Handles filtering, keyboard navigation, and dynamic rendering. Place inside `DataSurface`. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="ContextMenuDataListProps" pkg="@bazza-ui/react" />
+
+#### DataInput
+
+A text input for filtering menu items in the data-first API. Functionally identical to the standard `Input` component. Renders an `<input>` element.
+
+<TypeTableAuto type="ContextMenuDataInputProps" pkg="@bazza-ui/react" />

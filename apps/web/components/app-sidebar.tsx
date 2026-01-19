@@ -79,6 +79,26 @@ type ComponentItem =
 
 const componentItems: ComponentItem[] = [
   {
+    type: 'single',
+    title: 'Dropdown Menu',
+    url: '/docs/dropdown-menu',
+  },
+  {
+    type: 'single',
+    title: 'Context Menu',
+    url: '/docs/context-menu',
+  },
+  {
+    type: 'single',
+    title: 'Select',
+    url: '/docs/select',
+  },
+  {
+    type: 'single',
+    title: 'Combobox',
+    url: '/docs/combobox',
+  },
+  {
     type: 'collapsible',
     title: 'Filters',
     urlPrefix: '/docs/filters',

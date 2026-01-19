@@ -18,7 +18,7 @@ export interface ComboboxInputWrapperState extends Record<string, unknown> {
 }
 
 export interface ComboboxInputWrapperProps
-  extends ComponentProps<'div', ComboboxInputWrapperState> {}
+  extends ComponentProps<'div', ComboboxInputWrapper.State> {}
 
 const stateAttributesMapping = {
   open: (value: unknown): Record<string, string> | null =>
@@ -34,7 +34,7 @@ const stateAttributesMapping = {
  */
 export const ComboboxInputWrapper = React.forwardRef<
   HTMLDivElement,
-  ComboboxInputWrapperProps
+  ComboboxInputWrapper.Props
 >(function ComboboxInputWrapper(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
@@ -42,7 +42,7 @@ export const ComboboxInputWrapper = React.forwardRef<
   const comboboxContext = useComboboxContext()
   const open = store.useState('open')
 
-  const state: ComboboxInputWrapperState = React.useMemo(
+  const state: ComboboxInputWrapper.State = React.useMemo(
     () => ({ open }),
     [open],
   )
