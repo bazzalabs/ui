@@ -24,14 +24,7 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "dev": "tsc --watch",
-    "type-check": "tsc --noEmit",
-    "build": "tsup",
-    "bench": "vitest bench --run",
-    "bench:watch": "vitest bench --watch",
-    "changeset": "changeset add"
-  },
+  "scripts": {},
   "devDependencies": {
     "@bazza-ui/typescript-config": "*",
     "@tanstack/react-query": "^5.62.14",

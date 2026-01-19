@@ -38,15 +38,8 @@
       "version": "0.0.0",
       "dependencies": {
         "@base-ui/react": "^1.0.0",
-        "@bazza-ui/action-menu": "workspace:*",
-        "@bazza-ui/command-menu": "workspace:*",
-        "@bazza-ui/context-menu": "workspace:*",
-        "@bazza-ui/dropdown-menu": "workspace:*",
         "@bazza-ui/filters": "workspace:*",
-        "@bazza-ui/loaders": "workspace:*",
-        "@bazza-ui/menu": "workspace:*",
         "@bazza-ui/react": "workspace:*",
-        "@bazza-ui/select": "workspace:*",
         "@hookform/resolvers": "^5.2.2",
         "@mdx-js/loader": "^3.1.1",
         "@mdx-js/react": "^3.1.1",
@@ -134,33 +127,9 @@
         "unified": "^11.0.5",
       },
     },
-    "apps/web/registry/ui/action-menu": {
-      "name": "@bazza-ui/registry-action-menu",
-      "version": "0.1.0-canary.1",
-    },
-    "apps/web/registry/ui/command-menu": {
-      "name": "@bazza-ui/registry-command-menu",
-      "version": "0.1.0-canary.1",
-    },
-    "apps/web/registry/ui/context-menu": {
-      "name": "@bazza-ui/registry-context-menu",
-      "version": "0.1.0-canary.1",
-    },
-    "apps/web/registry/ui/dropdown-menu": {
-      "name": "@bazza-ui/registry-dropdown-menu",
-      "version": "0.1.0-canary.1",
-    },
     "apps/web/registry/ui/filter": {
       "name": "@bazza-ui/registry-filters",
       "version": "0.2.0-canary.3",
-    },
-    "apps/web/registry/ui/multi-select": {
-      "name": "@bazza-ui/registry-multi-select",
-      "version": "0.1.0-canary.1",
-    },
-    "apps/web/registry/ui/select": {
-      "name": "@bazza-ui/registry-select",
-      "version": "0.1.0-canary.1",
     },
     "packages/action-menu": {
       "name": "@bazza-ui/action-menu",
@@ -582,19 +551,7 @@
 
     "@bazza-ui/react": ["@bazza-ui/react@workspace:packages/react"],
 
-    "@bazza-ui/registry-action-menu": ["@bazza-ui/registry-action-menu@workspace:apps/web/registry/ui/action-menu"],
-
-    "@bazza-ui/registry-command-menu": ["@bazza-ui/registry-command-menu@workspace:apps/web/registry/ui/command-menu"],
-
-    "@bazza-ui/registry-context-menu": ["@bazza-ui/registry-context-menu@workspace:apps/web/registry/ui/context-menu"],
-
-    "@bazza-ui/registry-dropdown-menu": ["@bazza-ui/registry-dropdown-menu@workspace:apps/web/registry/ui/dropdown-menu"],
-
     "@bazza-ui/registry-filters": ["@bazza-ui/registry-filters@workspace:apps/web/registry/ui/filter"],
-
-    "@bazza-ui/registry-multi-select": ["@bazza-ui/registry-multi-select@workspace:apps/web/registry/ui/multi-select"],
-
-    "@bazza-ui/registry-select": ["@bazza-ui/registry-select@workspace:apps/web/registry/ui/select"],
 
     "@bazza-ui/select": ["@bazza-ui/select@workspace:packages/select"],
 

@@ -19,11 +19,7 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "dev": "tsc --watch",
-    "type-check": "tsc --noEmit",
-    "build": "tsup"
-  },
+  "scripts": {},
   "devDependencies": {
     "@bazza-ui/typescript-config": "workspace:*",
     "@types/react": "^19.1.2",

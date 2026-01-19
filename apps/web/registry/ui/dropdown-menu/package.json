@@ -1,6 +1,0 @@
-{
-  "name": "@bazza-ui/registry-dropdown-menu",
-  "version": "0.1.0-canary.1",
-  "private": true,
-  "description": "Registry component: Dropdown menu styled for shadcn/ui"
-}

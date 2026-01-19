@@ -1,6 +1,0 @@
-{
-  "name": "@bazza-ui/registry-select",
-  "version": "0.1.0-canary.1",
-  "private": true,
-  "description": "Registry component: Select styled for shadcn/ui"
-}
