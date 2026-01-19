@@ -9,7 +9,10 @@ export type Issue = {
   assignee?: User
   startDate?: Date
   endDate?: Date
+  /** Estimated time in hours (supports duration unit parsing like "1hr", "30min") */
   estimatedHours?: number
+  /** Priority score (1-100, plain number without units) */
+  priority: number
   isUrgent: boolean
 }
 

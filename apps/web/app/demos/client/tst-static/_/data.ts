@@ -575,6 +575,9 @@ export function generateSampleIssue(): Issue {
 
   const estimatedHours = randomInteger(1, 16)
 
+  // Priority score 1-100, weighted towards lower values
+  const priority = Math.floor(Math.random() ** 0.5 * 100) + 1
+
   const isUrgent = Math.random() > 0.9
 
   return {
@@ -587,6 +590,7 @@ export function generateSampleIssue(): Issue {
     startDate,
     endDate,
     estimatedHours,
+    priority,
     isUrgent,
   }
 }

@@ -39,6 +39,7 @@
     "@ndaidong/txtgen": "^4.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.3.0",
+    "@types/ms": "^2.1.0",
     "@types/react": "^19.1.1",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.3.4",
@@ -56,5 +57,8 @@
     "@tanstack/react-table": ">=8.0.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "ms": "^2.1.3"
   }
 }

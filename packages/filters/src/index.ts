@@ -1,6 +1,7 @@
 export { createColumnConfigHelper } from './core/columns/index.js'
 export * from './core/operators.js'
 export * from './core/types.js'
+export * from './core/units.js'
 export {
   createTypedDataTableFilters,
   useDataTableFilters,

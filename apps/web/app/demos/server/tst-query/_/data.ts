@@ -570,6 +570,9 @@ export function generateSampleIssue(): Issue {
 
   const estimatedHours = randomInteger(1, 16)
 
+  // Priority score 1-100, weighted towards lower values
+  const priority = Math.floor(Math.random() ** 0.5 * 100) + 1
+
   return {
     id: nanoid(),
     title,
@@ -580,6 +583,7 @@ export function generateSampleIssue(): Issue {
     startDate,
     endDate,
     estimatedHours,
+    priority,
   }
 }
 
