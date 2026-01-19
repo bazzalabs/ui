@@ -42,10 +42,6 @@ const items = [
     url: '/docs/getting-started',
   },
   {
-    title: 'Components',
-    url: '/docs/components',
-  },
-  {
     title: 'Feedback',
     url: '/docs/feedback',
   },
