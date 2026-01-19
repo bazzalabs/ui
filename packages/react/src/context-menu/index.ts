@@ -10,11 +10,15 @@ export * as ContextMenu from './index.parts.js'
 // ============================================================================
 
 // Root
-export type { ContextMenuRoot } from './root/root.js'
+export type { ContextMenuRoot, ContextMenuRootProps } from './root/root.js'
 
 // Trigger
 export { ContextMenuTriggerDataAttributes } from './trigger/trigger.data-attrs.js'
-export type { ContextMenuTrigger } from './trigger/trigger.js'
+export type {
+  ContextMenuTrigger,
+  ContextMenuTriggerProps,
+  ContextMenuTriggerState,
+} from './trigger/trigger.js'
 
 // ============================================================================
 // Re-exported from internal/popup-menu (with ContextMenu prefix)
@@ -116,6 +120,7 @@ export {
   PopupMenuCheckboxItemDataAttributes as ContextMenuCheckboxItemDataAttributes,
   PopupMenuIconDataAttributes as ContextMenuIconDataAttributes,
   PopupMenuItemDataAttributes as ContextMenuItemDataAttributes,
+  PopupMenuListCssVars as ContextMenuListCssVars,
   PopupMenuListDataAttributes as ContextMenuListDataAttributes,
   PopupMenuPopupDataAttributes as ContextMenuPopupDataAttributes,
   PopupMenuPositionerCssVars as ContextMenuPositionerCssVars,

@@ -10,7 +10,7 @@ export * as DropdownMenu from './index.parts.js'
 // ============================================================================
 
 // Root
-export type { DropdownMenuRoot } from './root/root.js'
+export type { DropdownMenuRoot, DropdownMenuRootProps } from './root/root.js'
 
 // Trigger
 export { DropdownMenuTriggerDataAttributes } from './trigger/trigger.data-attrs.js'
@@ -119,6 +119,7 @@ export {
   PopupMenuCheckboxItemDataAttributes as DropdownMenuCheckboxItemDataAttributes,
   PopupMenuIconDataAttributes as DropdownMenuIconDataAttributes,
   PopupMenuItemDataAttributes as DropdownMenuItemDataAttributes,
+  PopupMenuListCssVars as DropdownMenuListCssVars,
   PopupMenuListDataAttributes as DropdownMenuListDataAttributes,
   PopupMenuPopupDataAttributes as DropdownMenuPopupDataAttributes,
   PopupMenuPositionerCssVars as DropdownMenuPositionerCssVars,

@@ -13,9 +13,10 @@ import {
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
+import { PopupMenuListCssVars } from './list.css-vars.js'
 import { PopupMenuListDataAttributes } from './list.data-attrs.js'
 
-export { PopupMenuListDataAttributes }
+export { PopupMenuListCssVars, PopupMenuListDataAttributes }
 
 /**
  * State passed to children render function.
@@ -31,7 +32,7 @@ export interface PopupMenuListChildrenState {
 export interface PopupMenuListState extends Record<string, unknown> {}
 
 export interface PopupMenuListProps
-  extends Omit<ComponentProps<'div', PopupMenuListState>, 'children'> {
+  extends Omit<ComponentProps<'div', PopupMenuList.State>, 'children'> {
   /**
    * Content to render inside the list.
    * Can be a render function that receives the current search state.
@@ -68,7 +69,7 @@ export interface PopupMenuListProps
  */
 export const PopupMenuList = React.forwardRef<
   HTMLDivElement,
-  PopupMenuListProps
+  PopupMenuList.Props
 >(function PopupMenuList(props, forwardedRef) {
   const {
     children,
@@ -165,7 +166,7 @@ export const PopupMenuList = React.forwardRef<
     [onPointerDown],
   )
 
-  const childrenState: PopupMenuListChildrenState = React.useMemo(
+  const childrenState: PopupMenuList.ChildrenState = React.useMemo(
     () => ({
       search,
       filteredCount,

@@ -28,7 +28,7 @@ export interface PopupMenuRadioGroupState extends Record<string, unknown> {
 }
 
 export interface PopupMenuRadioGroupProps<T = unknown>
-  extends ComponentProps<'div', PopupMenuRadioGroupState> {
+  extends ComponentProps<'div', PopupMenuRadioGroup.State> {
   /**
    * The controlled selected value.
    */
@@ -137,7 +137,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
 
     const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
 
-    const state: PopupMenuRadioGroupState = React.useMemo(
+    const state: PopupMenuRadioGroup.State = React.useMemo(
       () => ({ disabled }),
       [disabled],
     )

@@ -21,7 +21,7 @@ export interface SelectSurfaceProps extends PopupMenuSurfaceProps {}
  */
 export const SelectSurface = React.forwardRef<
   HTMLDivElement,
-  SelectSurfaceProps
+  SelectSurface.Props
 >(function SelectSurface(props, forwardedRef) {
   const { autoHighlightFirst: autoHighlightFirstProp, ...rest } = props
 

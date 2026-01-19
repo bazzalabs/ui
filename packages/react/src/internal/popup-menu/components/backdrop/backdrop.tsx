@@ -35,7 +35,7 @@ export interface PopupMenuBackdropProps extends PopoverBackdropProps {
  */
 export const PopupMenuBackdrop = React.forwardRef<
   HTMLDivElement,
-  PopupMenuBackdropProps
+  PopupMenuBackdrop.Props
 >(function PopupMenuBackdrop(props, forwardedRef) {
   const { showOn: showOnProp, ...rest } = props
 

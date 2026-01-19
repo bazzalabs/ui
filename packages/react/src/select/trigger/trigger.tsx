@@ -1,7 +1,10 @@
 'use client'
 
 import { Popover, type PopoverTriggerProps } from '@base-ui/react/popover'
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import type { ComponentProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { SelectTriggerDataAttributes } from './trigger.data-attrs.js'
 
@@ -22,17 +25,44 @@ export interface SelectTriggerState extends Record<string, unknown> {
   placeholder: boolean
 }
 
-export interface SelectTriggerProps extends PopoverTriggerProps {}
+export interface SelectTriggerProps
+  extends ComponentProps<'button', SelectTrigger.State> {
+  /**
+   * Whether the trigger is disabled.
+   */
+  disabled?: boolean
+}
+
+const stateAttributesMapping = {
+  open: (value: unknown): Record<string, string> | null =>
+    value ? { [SelectTriggerDataAttributes.open]: '' } : null,
+  disabled: (value: unknown): Record<string, string> | null =>
+    value ? { [SelectTriggerDataAttributes.disabled]: '' } : null,
+  placeholder: (value: unknown): Record<string, string> | null =>
+    value ? { [SelectTriggerDataAttributes.placeholder]: '' } : null,
+}
 
 /**
- * A button that opens the select dropdown.
- * Renders a `<button>` element with combobox ARIA semantics.
+ * Inner component that renders using useRender.
+ * This allows us to use hooks while being called from Popover.Trigger's render prop.
  */
-export const SelectTrigger = React.forwardRef<
+const SelectTriggerInner = React.forwardRef<
   HTMLButtonElement,
-  SelectTriggerProps
->(function SelectTrigger(props, forwardedRef) {
-  const { children, disabled: disabledProp, className, style, ...rest } = props
+  SelectTriggerProps & {
+    triggerProps: React.ComponentPropsWithRef<'button'>
+    triggerState: { open: boolean }
+  }
+>(function SelectTriggerInner(props, forwardedRef) {
+  const {
+    render,
+    children,
+    disabled: disabledProp,
+    className,
+    style,
+    triggerProps,
+    triggerState,
+    ...rest
+  } = props
 
   const selectContext = useSelectContext()
   const disabled = disabledProp ?? selectContext.disabled
@@ -42,42 +72,69 @@ export const SelectTrigger = React.forwardRef<
     ? selectContext.values.length > 0
     : selectContext.value !== ''
 
-  // Build data attributes
-  const dataAttrs: Record<string, string> = {}
-  if (disabled) {
-    dataAttrs[SelectTriggerDataAttributes.disabled] = ''
-  }
-  if (!hasValue) {
-    dataAttrs[SelectTriggerDataAttributes.placeholder] = ''
-  }
+  const state: SelectTrigger.State = React.useMemo(
+    () => ({
+      open: triggerState.open,
+      disabled,
+      placeholder: !hasValue,
+    }),
+    [triggerState.open, disabled, hasValue],
+  )
 
   // Register trigger element for positioning
-  const mergedRef = React.useCallback(
+  const internalRef = React.useCallback(
     (node: HTMLButtonElement | null) => {
       selectContext.setTriggerElement(node)
-      if (typeof forwardedRef === 'function') {
-        forwardedRef(node)
-      } else if (forwardedRef) {
-        forwardedRef.current = node
-      }
     },
-    [forwardedRef, selectContext],
+    [selectContext],
   )
+
+  return useRender({
+    render,
+    ref: forwardedRef,
+    state,
+    stateAttributesMapping,
+    props: {
+      ...triggerProps,
+      ...rest,
+      ref: internalRef,
+      role: 'combobox' as const,
+      'aria-haspopup': 'listbox' as const,
+      'aria-controls': selectContext.listId,
+      className,
+      style,
+      children,
+    },
+    defaultTagName: 'button',
+  })
+})
+
+/**
+ * A button that opens the select dropdown.
+ * Renders a `<button>` element with combobox ARIA semantics.
+ */
+export const SelectTrigger = React.forwardRef<
+  HTMLButtonElement,
+  SelectTrigger.Props
+>(function SelectTrigger(props, forwardedRef) {
+  const { disabled: disabledProp, ...rest } = props
+  const selectContext = useSelectContext()
+  const disabled = disabledProp ?? selectContext.disabled
 
   return (
     <Popover.Trigger
-      ref={mergedRef}
+      ref={forwardedRef}
       disabled={disabled}
-      role="combobox"
-      aria-haspopup="listbox"
-      aria-controls={selectContext.listId}
-      className={className}
-      style={style}
-      {...dataAttrs}
-      {...rest}
-    >
-      {children}
-    </Popover.Trigger>
+      render={(triggerProps, triggerState) => (
+        <SelectTriggerInner
+          {...rest}
+          disabled={disabled}
+          triggerProps={triggerProps}
+          triggerState={triggerState}
+          ref={triggerProps.ref as React.Ref<HTMLButtonElement>}
+        />
+      )}
+    />
   )
 })
 

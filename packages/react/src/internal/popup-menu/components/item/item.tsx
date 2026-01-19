@@ -21,7 +21,7 @@ export interface PopupMenuItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuItemProps
-  extends ComponentProps<'div', PopupMenuItemState> {
+  extends ComponentProps<'div', PopupMenuItem.State> {
   /**
    * Unique value for this item used for filtering.
    * If not provided, will be inferred from textContent.
@@ -78,7 +78,7 @@ const stateAttributesMapping = {
  */
 export const PopupMenuItem = React.forwardRef<
   HTMLDivElement,
-  PopupMenuItemProps
+  PopupMenuItem.Props
 >(function PopupMenuItem(props, forwardedRef) {
   const {
     id,
@@ -111,7 +111,7 @@ export const PopupMenuItem = React.forwardRef<
     children,
   })
 
-  const state: PopupMenuItemState = React.useMemo(
+  const state: PopupMenuItem.State = React.useMemo(
     () => ({
       highlighted: item.isHighlighted,
       disabled,

@@ -61,7 +61,7 @@ const stateAttributesMapping = {
 }
 
 export interface PopupMenuSubmenuTriggerProps
-  extends ComponentProps<'div', PopupMenuSubmenuTriggerState> {
+  extends ComponentProps<'div', PopupMenuSubmenuTrigger.State> {
   /**
    * Unique value for this item used for filtering.
    * If not provided, will be inferred from textContent.
@@ -114,7 +114,7 @@ export interface PopupMenuSubmenuTriggerProps
  */
 export const PopupMenuSubmenuTrigger = React.forwardRef<
   HTMLDivElement,
-  PopupMenuSubmenuTriggerProps
+  PopupMenuSubmenuTrigger.Props
 >(function PopupMenuSubmenuTrigger(props, forwardedRef) {
   const {
     value,
@@ -494,7 +494,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     ],
   )
 
-  const state: PopupMenuSubmenuTriggerState = React.useMemo(
+  const state: PopupMenuSubmenuTrigger.State = React.useMemo(
     () => ({
       submenuTrigger: true,
       popupOpen: open,

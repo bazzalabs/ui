@@ -37,7 +37,7 @@ export interface PopupMenuCheckboxItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuCheckboxItemProps
-  extends ComponentProps<'div', PopupMenuCheckboxItemState> {
+  extends ComponentProps<'div', PopupMenuCheckboxItem.State> {
   /**
    * The controlled checked state.
    */
@@ -114,7 +114,7 @@ const stateAttributesMapping = {
  */
 export const PopupMenuCheckboxItem = React.forwardRef<
   HTMLDivElement,
-  PopupMenuCheckboxItemProps
+  PopupMenuCheckboxItem.Props
 >(function PopupMenuCheckboxItem(props, forwardedRef) {
   const {
     id,
@@ -182,7 +182,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     return item.registerSelect(handleSelect)
   }, [disabled, toggleChecked, onSelect, item])
 
-  const state: PopupMenuCheckboxItemState = React.useMemo(
+  const state: PopupMenuCheckboxItem.State = React.useMemo(
     () => ({ highlighted: item.isHighlighted, disabled, checked }),
     [item.isHighlighted, disabled, checked],
   )

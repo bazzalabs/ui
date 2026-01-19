@@ -30,7 +30,7 @@ const stateAttributesMapping = {
 }
 
 export interface PopupMenuSubmenuTriggerIndicatorProps
-  extends ComponentProps<'span', PopupMenuSubmenuTriggerIndicatorState> {}
+  extends ComponentProps<'span', PopupMenuSubmenuTriggerIndicator.State> {}
 
 /**
  * An indicator element for submenu triggers that reflects the submenu's open and focus state.
@@ -40,7 +40,7 @@ export interface PopupMenuSubmenuTriggerIndicatorProps
  */
 export const PopupMenuSubmenuTriggerIndicator = React.forwardRef<
   HTMLSpanElement,
-  PopupMenuSubmenuTriggerIndicatorProps
+  PopupMenuSubmenuTriggerIndicator.Props
 >(function PopupMenuSubmenuTriggerIndicator(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
@@ -51,7 +51,7 @@ export const PopupMenuSubmenuTriggerIndicator = React.forwardRef<
   const focusOwnerStore = useFocusOwner()
   const isPopupFocused = focusOwnerStore.useState('isOwner', childSurfaceId)
 
-  const state: PopupMenuSubmenuTriggerIndicatorState = React.useMemo(
+  const state: PopupMenuSubmenuTriggerIndicator.State = React.useMemo(
     () => ({
       popupOpen: open,
       popupFocused: isPopupFocused,

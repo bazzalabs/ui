@@ -29,7 +29,7 @@ export interface SelectItemState extends Record<string, unknown> {
 }
 
 export interface SelectItemProps
-  extends ComponentProps<'div', SelectItemState> {
+  extends ComponentProps<'div', SelectItem.State> {
   /**
    * The value of this item. Required and must be unique within the Select.
    */
@@ -98,7 +98,7 @@ function resolveLabelFromItems(
   return items[value]
 }
 
-export const SelectItem = React.forwardRef<HTMLDivElement, SelectItemProps>(
+export const SelectItem = React.forwardRef<HTMLDivElement, SelectItem.Props>(
   function SelectItem(props, forwardedRef) {
     const {
       value,
@@ -200,7 +200,7 @@ export const SelectItem = React.forwardRef<HTMLDivElement, SelectItemProps>(
       }
     }, [children, textValue, value, selectContext])
 
-    const state: SelectItemState = React.useMemo(
+    const state: SelectItem.State = React.useMemo(
       () => ({
         highlighted: item.isHighlighted,
         disabled,

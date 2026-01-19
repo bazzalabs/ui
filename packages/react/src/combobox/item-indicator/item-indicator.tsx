@@ -16,7 +16,7 @@ export interface ComboboxItemIndicatorState extends Record<string, unknown> {
 }
 
 export interface ComboboxItemIndicatorProps
-  extends ComponentProps<'span', ComboboxItemIndicatorState> {
+  extends ComponentProps<'span', ComboboxItemIndicator.State> {
   /**
    * Whether to always render the indicator regardless of selection state.
    * When false (default), only renders when the item is selected.
@@ -37,13 +37,13 @@ const stateAttributesMapping = {
  */
 export const ComboboxItemIndicator = React.forwardRef<
   HTMLSpanElement,
-  ComboboxItemIndicatorProps
+  ComboboxItemIndicator.Props
 >(function ComboboxItemIndicator(props, forwardedRef) {
   const { keepMounted = false, render, className, style, ...rest } = props
 
   const itemContext = useComboboxItemContext()
 
-  const state: ComboboxItemIndicatorState = React.useMemo(
+  const state: ComboboxItemIndicator.State = React.useMemo(
     () => ({
       selected: itemContext.selected,
     }),

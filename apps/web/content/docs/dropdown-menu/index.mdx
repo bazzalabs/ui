@@ -1,0 +1,478 @@
+---
+title: Dropdown Menu
+section: Getting Started
+summary: A menu that appears when triggered by a button. Supports items, checkboxes, radio groups, submenus, and deep search.
+---
+
+A dropdown menu displays a list of options when activated by a trigger element. It supports regular items, checkbox items, radio groups, nested submenus, keyboard navigation, and deep search filtering.
+
+## Installation
+
+```bash
+bun add @bazza-ui/react
+```
+
+## Basic Usage
+
+```tsx
+import { DropdownMenu } from '@bazza-ui/react'
+
+function Demo() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>Open Menu</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Item onSelect={() => console.log('New')}>
+              New
+            </DropdownMenu.Item>
+            <DropdownMenu.Item onSelect={() => console.log('Open')}>
+              Open
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item onSelect={() => console.log('Save')}>
+              Save
+            </DropdownMenu.Item>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+```
+
+## Anatomy
+
+```tsx
+<DropdownMenu.Root>
+  <DropdownMenu.Trigger />
+  <DropdownMenu.Portal>
+    <DropdownMenu.Backdrop />
+    <DropdownMenu.Positioner>
+      <DropdownMenu.Popup>
+        <DropdownMenu.Arrow />
+        <DropdownMenu.Surface>
+          <DropdownMenu.Input />
+          <DropdownMenu.List>
+            <DropdownMenu.Group>
+              <DropdownMenu.GroupLabel />
+              <DropdownMenu.Item>
+                <DropdownMenu.Icon />
+                <DropdownMenu.Shortcut />
+              </DropdownMenu.Item>
+            </DropdownMenu.Group>
+            <DropdownMenu.Separator />
+            <DropdownMenu.CheckboxItem>
+              <DropdownMenu.CheckboxItemIndicator />
+            </DropdownMenu.CheckboxItem>
+            <DropdownMenu.RadioGroup>
+              <DropdownMenu.RadioItem>
+                <DropdownMenu.RadioItemIndicator />
+              </DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+            <DropdownMenu.Submenu>
+              <DropdownMenu.SubmenuTrigger>
+                <DropdownMenu.SubmenuTriggerIndicator />
+              </DropdownMenu.SubmenuTrigger>
+              {/* Nested Positioner/Popup/Surface/List */}
+            </DropdownMenu.Submenu>
+            <DropdownMenu.Empty />
+          </DropdownMenu.List>
+        </DropdownMenu.Surface>
+        <DropdownMenu.ScrollUpArrow />
+        <DropdownMenu.ScrollDownArrow />
+      </DropdownMenu.Popup>
+    </DropdownMenu.Positioner>
+  </DropdownMenu.Portal>
+</DropdownMenu.Root>
+```
+
+## Features
+
+- **Accessible** - Full keyboard navigation and ARIA attributes
+- **Composable** - Build menus with any combination of items, checkboxes, radio groups, and submenus
+- **Deep Search** - Built-in typeahead filtering with fuzzy matching
+- **Virtualized** - Support for virtualized lists with thousands of items
+- **Submenus** - Nested menus with intelligent aim tracking
+- **Controlled & Uncontrolled** - Works in both modes with `open` and `onOpenChange`
+
+## Examples
+
+### With Checkbox Items
+
+```tsx
+function CheckboxDemo() {
+  const [showToolbar, setShowToolbar] = React.useState(true)
+  const [showSidebar, setShowSidebar] = React.useState(false)
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>View Options</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.CheckboxItem
+              checked={showToolbar}
+              onCheckedChange={setShowToolbar}
+            >
+              <DropdownMenu.CheckboxItemIndicator />
+              Show Toolbar
+            </DropdownMenu.CheckboxItem>
+            <DropdownMenu.CheckboxItem
+              checked={showSidebar}
+              onCheckedChange={setShowSidebar}
+            >
+              <DropdownMenu.CheckboxItemIndicator />
+              Show Sidebar
+            </DropdownMenu.CheckboxItem>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+```
+
+### With Radio Group
+
+```tsx
+function RadioDemo() {
+  const [sortBy, setSortBy] = React.useState('name')
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>Sort By</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.RadioGroup value={sortBy} onValueChange={setSortBy}>
+              <DropdownMenu.RadioItem value="name">
+                <DropdownMenu.RadioItemIndicator />
+                Name
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="date">
+                <DropdownMenu.RadioItemIndicator />
+                Date
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="size">
+                <DropdownMenu.RadioItemIndicator />
+                Size
+              </DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+```
+
+### With Submenu
+
+```tsx
+function SubmenuDemo() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>Edit</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Item>Undo</DropdownMenu.Item>
+            <DropdownMenu.Item>Redo</DropdownMenu.Item>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Submenu>
+              <DropdownMenu.SubmenuTrigger>
+                Find and Replace
+                <DropdownMenu.SubmenuTriggerIndicator />
+              </DropdownMenu.SubmenuTrigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Positioner>
+                  <DropdownMenu.Popup>
+                    <DropdownMenu.Item>Find</DropdownMenu.Item>
+                    <DropdownMenu.Item>Find Next</DropdownMenu.Item>
+                    <DropdownMenu.Item>Find Previous</DropdownMenu.Item>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item>Replace</DropdownMenu.Item>
+                    <DropdownMenu.Item>Replace All</DropdownMenu.Item>
+                  </DropdownMenu.Popup>
+                </DropdownMenu.Positioner>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Submenu>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+```
+
+### With Search Input
+
+```tsx
+function SearchDemo() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>Commands</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface clearSearchOnClose="after-exit">
+              <DropdownMenu.Input placeholder="Search commands..." />
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="new-file">New File</DropdownMenu.Item>
+                <DropdownMenu.Item value="open-file">Open File</DropdownMenu.Item>
+                <DropdownMenu.Item value="save-file">Save File</DropdownMenu.Item>
+                <DropdownMenu.Item value="save-as">Save As...</DropdownMenu.Item>
+                <DropdownMenu.Item value="close-file">Close File</DropdownMenu.Item>
+              </DropdownMenu.List>
+              <DropdownMenu.Empty>No results found</DropdownMenu.Empty>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+```
+
+## API Reference
+
+### Root
+
+Groups all parts of the dropdown menu. Manages open state and provides context to children. Doesn't render its own HTML element.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="DropdownMenuRootProps" pkg="@bazza-ui/react" />
+
+### Trigger
+
+A button that opens the dropdown menu. Renders a `<button>` element.
+
+<BaseUIReference component="popover" part="trigger" wrapper />
+
+<TypeTableAuto type="DropdownMenuTriggerProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuTriggerState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuTriggerDataAttributes" pkg="@bazza-ui/react" />
+
+### Portal
+
+Renders children outside the DOM hierarchy using a React Portal. Useful for ensuring the menu appears above other content.
+
+<BaseUIReference component="popover" part="portal" />
+
+<TypeTableAuto type="DropdownMenuPortalProps" pkg="@bazza-ui/react" />
+
+### Backdrop
+
+An optional overlay behind the menu. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="backdrop" wrapper />
+
+<TypeTableAuto type="DropdownMenuBackdropProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuBackdropDataAttributes" pkg="@bazza-ui/react" />
+
+### Positioner
+
+Positions the popup relative to the trigger using Floating UI. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="positioner" wrapper />
+
+<TypeTableAuto type="DropdownMenuPositionerProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuPositionerDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="DropdownMenuPositionerCssVars" pkg="@bazza-ui/react" />
+
+### Popup
+
+Container for the menu content with animation support. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="popup" wrapper />
+
+<TypeTableAuto type="DropdownMenuPopupProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuPopupDataAttributes" pkg="@bazza-ui/react" />
+
+### Arrow
+
+An optional arrow pointing to the trigger. Renders an `<svg>` element.
+
+<BaseUIReference component="popover" part="arrow" />
+
+<TypeTableAuto type="DropdownMenuArrowProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuArrowDataAttributes" pkg="@bazza-ui/react" />
+
+### Surface
+
+Wraps the list and manages the search state. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuSurfaceProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuSurfaceState" pkg="@bazza-ui/react" />
+
+### Input
+
+A text input for filtering menu items. Renders an `<input>` element.
+
+<TypeTableAuto type="DropdownMenuInputProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuInputState" pkg="@bazza-ui/react" />
+
+### List
+
+Container for menu items. Manages keyboard navigation. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="DropdownMenuListProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuListState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuListDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="DropdownMenuListCssVars" pkg="@bazza-ui/react" />
+
+### Item
+
+A selectable item in the menu. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="DropdownMenuItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuItemDataAttributes" pkg="@bazza-ui/react" />
+
+### Icon
+
+An icon displayed within a menu item. Renders a `<span>` element.
+
+<TypeTableAuto type="DropdownMenuIconProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuIconState" pkg="@bazza-ui/react" />
+
+### Shortcut
+
+Displays a keyboard shortcut hint. Renders a `<span>` element.
+
+<TypeTableAuto type="DropdownMenuShortcutProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuShortcutState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuShortcutDataAttributes" pkg="@bazza-ui/react" />
+
+### Group
+
+Groups related menu items together. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="DropdownMenuGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuGroupState" pkg="@bazza-ui/react" />
+
+### GroupLabel
+
+A label for a group of menu items. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuGroupLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuGroupLabelState" pkg="@bazza-ui/react" />
+
+### Separator
+
+A visual separator between menu items. Renders a `<div>` element with `role="separator"`.
+
+<TypeTableAuto type="DropdownMenuSeparatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuSeparatorState" pkg="@bazza-ui/react" />
+
+### Empty
+
+Displayed when no items match the current search filter. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuEmptyProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuEmptyState" pkg="@bazza-ui/react" />
+
+### CheckboxItem
+
+A menu item with a checkbox. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="DropdownMenuCheckboxItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuCheckboxItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuCheckboxItemDataAttributes" pkg="@bazza-ui/react" />
+
+### CheckboxItemIndicator
+
+Displays a check mark when the checkbox item is checked. Renders a `<span>` element.
+
+<TypeTableAuto type="DropdownMenuCheckboxItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuCheckboxItemIndicatorState" pkg="@bazza-ui/react" />
+
+### RadioGroup
+
+Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="DropdownMenuRadioGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuRadioGroupState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuRadioGroupDataAttributes" pkg="@bazza-ui/react" />
+
+### RadioItem
+
+A radio option within a radio group. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="DropdownMenuRadioItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuRadioItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuRadioItemDataAttributes" pkg="@bazza-ui/react" />
+
+### RadioItemIndicator
+
+Displays a dot when the radio item is selected. Renders a `<span>` element.
+
+<TypeTableAuto type="DropdownMenuRadioItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuRadioItemIndicatorState" pkg="@bazza-ui/react" />
+
+### Submenu
+
+Root component for a nested submenu. Manages submenu open state.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="DropdownMenuSubmenuRootProps" pkg="@bazza-ui/react" />
+
+### SubmenuTrigger
+
+A menu item that opens a submenu. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="trigger" wrapper />
+
+<TypeTableAuto type="DropdownMenuSubmenuTriggerProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuSubmenuTriggerState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuSubmenuTriggerDataAttributes" pkg="@bazza-ui/react" />
+
+### SubmenuTriggerIndicator
+
+An indicator (chevron) showing that an item has a submenu. Renders a `<span>` element.
+
+<TypeTableAuto type="DropdownMenuSubmenuTriggerIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuSubmenuTriggerIndicatorState" pkg="@bazza-ui/react" />
+
+### ScrollUpArrow
+
+Shows when content is scrollable upward. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuScrollUpArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuScrollArrowState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuScrollArrowDataAttributes" pkg="@bazza-ui/react" />
+
+### ScrollDownArrow
+
+Shows when content is scrollable downward. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuScrollDownArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuScrollArrowState" pkg="@bazza-ui/react" />
+
+---
+
+### Data-First API
+
+The Data-First API provides a declarative way to define menu content using data structures instead of JSX. It enables deep search functionality that can search through nested submenus and supports dynamic filtering.
+
+#### DataSurface
+
+Wraps the list and provides deep search functionality. Use instead of `Surface` when using the data-first approach. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuDataSurfaceProps" pkg="@bazza-ui/react" />
+
+#### DataList
+
+Renders menu items from a data structure using a render prop pattern. Handles filtering, keyboard navigation, and dynamic rendering. Place inside `DataSurface`. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="DropdownMenuDataListProps" pkg="@bazza-ui/react" />
+
+#### DataInput
+
+A text input for filtering menu items in the data-first API. Functionally identical to the standard `Input` component. Renders an `<input>` element.
+
+<TypeTableAuto type="DropdownMenuDataInputProps" pkg="@bazza-ui/react" />

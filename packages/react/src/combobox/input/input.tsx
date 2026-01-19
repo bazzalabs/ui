@@ -38,7 +38,7 @@ export type ComboboxInputCursorBehavior = 'none' | 'end' | 'select-all'
 
 export interface ComboboxInputProps
   extends Omit<
-    ComponentProps<'input', ComboboxInputState>,
+    ComponentProps<'input', ComboboxInput.State>,
     'value' | 'onChange' | 'type'
   > {
   /**
@@ -64,7 +64,7 @@ export interface ComboboxInputProps
  */
 export const ComboboxInput = React.forwardRef<
   HTMLInputElement,
-  ComboboxInputProps
+  ComboboxInput.Props
 >(function ComboboxInput(props, forwardedRef) {
   const {
     placeholder: placeholderProp,
@@ -145,7 +145,7 @@ export const ComboboxInput = React.forwardRef<
     [forwardedRef, comboboxContext],
   )
 
-  const state: ComboboxInputState = React.useMemo(
+  const state: ComboboxInput.State = React.useMemo(
     () => ({
       open,
       disabled,

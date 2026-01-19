@@ -100,7 +100,7 @@ export interface DropdownMenuRootProps
  * Manages open state and provides context to children.
  * Doesn't render its own HTML element.
  */
-export function DropdownMenuRoot(props: DropdownMenuRootProps) {
+export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
   const {
     open: openProp,
     onOpenChange,
