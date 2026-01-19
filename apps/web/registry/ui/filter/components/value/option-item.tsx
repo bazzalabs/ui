@@ -7,10 +7,7 @@ import { isValidElement } from 'react'
 import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
-import {
-  DropdownMenu,
-  LabelWithBreadcrumbs,
-} from '@/registry/ui/dropdown-menu-v2'
+import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
 
 /**
  * Renders an option/checkbox item for option-based filter values.

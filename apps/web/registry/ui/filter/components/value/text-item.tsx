@@ -2,7 +2,7 @@
 
 import type { ItemRenderParams } from '@bazza-ui/react'
 import type * as React from 'react'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu-v2'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import type { TextFilterItemData } from './text-menu'
 
 /**

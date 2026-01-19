@@ -25,10 +25,7 @@ import type {
 } from '@bazza-ui/react'
 import * as React from 'react'
 import { isValidElement, memo, useMemo } from 'react'
-import {
-  DropdownMenu,
-  LabelWithBreadcrumbs,
-} from '@/registry/ui/dropdown-menu-v2'
+import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
 import {
   type FilterVariant,
   useFilterContext,
