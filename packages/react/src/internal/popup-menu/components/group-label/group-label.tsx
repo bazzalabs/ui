@@ -8,7 +8,7 @@ import type { ComponentProps } from '../../../../utils/types.js'
 export interface PopupMenuGroupLabelState extends Record<string, unknown> {}
 
 export interface PopupMenuGroupLabelProps
-  extends ComponentProps<'div', PopupMenuGroupLabelState> {
+  extends ComponentProps<'div', PopupMenuGroupLabel.State> {
   children: React.ReactNode
 }
 
@@ -18,7 +18,7 @@ export interface PopupMenuGroupLabelProps
  */
 export const PopupMenuGroupLabel = React.forwardRef<
   HTMLDivElement,
-  PopupMenuGroupLabelProps
+  PopupMenuGroupLabel.Props
 >(function PopupMenuGroupLabel(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 

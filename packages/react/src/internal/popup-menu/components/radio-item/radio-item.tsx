@@ -30,7 +30,7 @@ export interface PopupMenuRadioItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuRadioItemProps<T = unknown>
-  extends ComponentProps<'div', PopupMenuRadioItemState> {
+  extends ComponentProps<'div', PopupMenuRadioItem.State> {
   /**
    * The value to set when this item is selected.
    * This is required and must be unique within the RadioGroup.
@@ -145,7 +145,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
     return item.registerSelect(handleSelect)
   }, [disabled, radioGroupContext, value, onSelect, item])
 
-  const state: PopupMenuRadioItemState = React.useMemo(
+  const state: PopupMenuRadioItem.State = React.useMemo(
     () => ({ highlighted: item.isHighlighted, disabled, checked }),
     [item.isHighlighted, disabled, checked],
   )

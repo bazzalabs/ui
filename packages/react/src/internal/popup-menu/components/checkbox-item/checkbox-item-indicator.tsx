@@ -29,7 +29,7 @@ export interface PopupMenuCheckboxItemIndicatorState
 }
 
 export interface PopupMenuCheckboxItemIndicatorProps
-  extends ComponentProps<'span', PopupMenuCheckboxItemIndicatorState> {
+  extends ComponentProps<'span', PopupMenuCheckboxItemIndicator.State> {
   /**
    * Whether to keep the indicator mounted in the DOM when unchecked.
    * Useful for animations.
@@ -54,7 +54,7 @@ const stateAttributesMapping = {
  */
 export const PopupMenuCheckboxItemIndicator = React.forwardRef<
   HTMLSpanElement,
-  PopupMenuCheckboxItemIndicatorProps
+  PopupMenuCheckboxItemIndicator.Props
 >(function PopupMenuCheckboxItemIndicator(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -67,7 +67,7 @@ export const PopupMenuCheckboxItemIndicator = React.forwardRef<
 
   const { checked, highlighted, disabled, toggle } = useCheckboxItemContext()
 
-  const state: PopupMenuCheckboxItemIndicatorState = React.useMemo(
+  const state: PopupMenuCheckboxItemIndicator.State = React.useMemo(
     () => ({ checked, highlighted, disabled, toggle }),
     [checked, highlighted, disabled, toggle],
   )

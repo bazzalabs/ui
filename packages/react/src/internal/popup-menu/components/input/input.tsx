@@ -18,7 +18,7 @@ export interface PopupMenuInputState extends Record<string, unknown> {
 
 export interface PopupMenuInputProps
   extends Omit<
-    ComponentProps<'input', PopupMenuInputState>,
+    ComponentProps<'input', PopupMenuInput.State>,
     'value' | 'onChange' | 'type'
   > {
   /**
@@ -48,7 +48,7 @@ export interface PopupMenuInputProps
  */
 export const PopupMenuInput = React.forwardRef<
   HTMLInputElement,
-  PopupMenuInputProps
+  PopupMenuInput.Props
 >(function PopupMenuInput(props, forwardedRef) {
   const {
     value: controlledValue,
@@ -137,7 +137,7 @@ export const PopupMenuInput = React.forwardRef<
     closeAll,
   })
 
-  const state: PopupMenuInputState = React.useMemo(
+  const state: PopupMenuInput.State = React.useMemo(
     () => ({
       active: inputActive,
     }),

@@ -9,7 +9,7 @@ import { useSurfaceContext } from '../../../listbox/index.js'
 export interface PopupMenuSeparatorState extends Record<string, unknown> {}
 
 export interface PopupMenuSeparatorProps
-  extends ComponentProps<'div', PopupMenuSeparatorState> {
+  extends ComponentProps<'div', PopupMenuSeparator.State> {
   /**
    * Whether to always render the separator, even during search.
    * By default, separators are hidden when there's an active search query.
@@ -25,7 +25,7 @@ export interface PopupMenuSeparatorProps
  */
 export const PopupMenuSeparator = React.forwardRef<
   HTMLDivElement,
-  PopupMenuSeparatorProps
+  PopupMenuSeparator.Props
 >(function PopupMenuSeparator(props, forwardedRef) {
   const { alwaysRender = false, render, className, style, ...rest } = props
 

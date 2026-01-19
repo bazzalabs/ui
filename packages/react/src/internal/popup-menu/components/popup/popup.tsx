@@ -47,7 +47,7 @@ export interface PopupMenuPopupProps
  */
 export const PopupMenuPopup = React.forwardRef<
   HTMLDivElement,
-  PopupMenuPopupProps
+  PopupMenuPopup.Props
 >(function PopupMenuPopup(props, forwardedRef) {
   const { children, className: classNameProp, ...rest } = props
 

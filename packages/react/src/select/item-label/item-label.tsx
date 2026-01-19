@@ -1,11 +1,32 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { useSelectItemContext } from '../item/item-context.js'
 
+export interface SelectItemLabelState extends Record<string, unknown> {
+  /**
+   * The value of the parent item.
+   */
+  value: string
+  /**
+   * Whether the parent item is selected.
+   */
+  selected: boolean
+  /**
+   * Whether the parent item is highlighted.
+   */
+  highlighted: boolean
+  /**
+   * Whether the parent item is disabled.
+   */
+  disabled: boolean
+}
+
 export interface SelectItemLabelProps
-  extends React.HTMLAttributes<HTMLSpanElement> {}
+  extends ComponentProps<'span', SelectItemLabel.State> {}
 
 /**
  * Helper to resolve label from items prop
@@ -41,9 +62,9 @@ function resolveLabelFromItems(
  */
 export const SelectItemLabel = React.forwardRef<
   HTMLSpanElement,
-  SelectItemLabelProps
+  SelectItemLabel.Props
 >(function SelectItemLabel(props, forwardedRef) {
-  const { children, ...rest } = props
+  const { render, className, style, children, ...rest } = props
 
   const selectContext = useSelectContext()
   const itemContext = useSelectItemContext()
@@ -74,6 +95,22 @@ export const SelectItemLabel = React.forwardRef<
     return itemContext.value
   }, [children, selectContext.items, itemContext.value, itemContext.textValue])
 
+  // Build state for render prop and className/style functions
+  const state: SelectItemLabel.State = React.useMemo(
+    () => ({
+      value: itemContext.value,
+      selected: itemContext.selected,
+      highlighted: itemContext.highlighted,
+      disabled: itemContext.disabled,
+    }),
+    [
+      itemContext.value,
+      itemContext.selected,
+      itemContext.highlighted,
+      itemContext.disabled,
+    ],
+  )
+
   // Register the text content when mounted (for Select.Value display)
   React.useEffect(() => {
     if (typeof resolvedLabel === 'string') {
@@ -81,33 +118,35 @@ export const SelectItemLabel = React.forwardRef<
     }
   }, [resolvedLabel, selectContext, itemContext.value])
 
-  // Register this element as the selected item text for alignItemWithTrigger positioning
-  React.useLayoutEffect(() => {
-    if (itemContext.selected && textRef.current) {
-      selectContext.selectedItemTextRef.current = textRef.current
-    }
-  }, [itemContext.selected, selectContext])
-
-  // Merge refs
+  // Merge refs - need to track for positioning AND pass to useRender
   const mergedRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
       textRef.current = node
-      if (typeof forwardedRef === 'function') {
-        forwardedRef(node)
-      } else if (forwardedRef) {
-        forwardedRef.current = node
+
+      // Register this element as the selected item text for alignItemWithTrigger positioning
+      if (itemContext.selected && node) {
+        selectContext.selectedItemTextRef.current = node
       }
     },
-    [forwardedRef],
+    [itemContext.selected, selectContext],
   )
 
-  return (
-    <span ref={mergedRef} {...rest}>
-      {resolvedLabel}
-    </span>
-  )
+  return useRender({
+    render,
+    ref: forwardedRef,
+    state,
+    props: {
+      ...rest,
+      ref: mergedRef,
+      className,
+      style,
+      children: resolvedLabel,
+    },
+    defaultTagName: 'span',
+  })
 })
 
 export namespace SelectItemLabel {
   export interface Props extends SelectItemLabelProps {}
+  export type State = SelectItemLabelState
 }

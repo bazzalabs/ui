@@ -104,7 +104,7 @@ function getInputEmbeddedStyles(
  */
 export const ComboboxPositioner = React.forwardRef<
   HTMLDivElement,
-  ComboboxPositionerProps
+  ComboboxPositioner.Props
 >(function ComboboxPositioner(props, forwardedRef) {
   const {
     layout: layoutProp,

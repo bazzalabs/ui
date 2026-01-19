@@ -2,12 +2,15 @@ import { ConstructionIcon, LinkIcon } from 'lucide-react'
 import type { MDXComponents } from 'mdx/types'
 import Image from 'next/image'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
+import { BaseUIReference } from '@/components/base-ui-reference'
+import { CssVarsTable } from '@/components/css-vars-table'
+import { DataAttrsTable } from '@/components/data-attrs-table'
 import { TypeDebug } from '@/components/type-debug'
 import { TypeDiff } from '@/components/type-diff'
 import { TypeReference } from '@/components/type-reference'
 import { TypeSignature } from '@/components/type-signature'
 import { TypeTable } from '@/components/type-table'
-import { TypeTableAuto } from '@/components/type-table-auto'
+import { StateTableAuto, TypeTableAuto } from '@/components/type-table-auto'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
 import {
@@ -268,9 +271,13 @@ const components = {
   TypeTable,
   TypeReference,
   TypeTableAuto,
+  StateTableAuto,
   TypeSignature,
+  BaseUIReference,
   TypeDebug,
   TypeDiff,
+  DataAttrsTable,
+  CssVarsTable,
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,

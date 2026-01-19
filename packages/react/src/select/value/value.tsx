@@ -1,9 +1,14 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps, HTMLProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
+import { SelectValueDataAttributes } from './value.data-attrs.js'
 
-export interface SelectValueState {
+export { SelectValueDataAttributes }
+
+export interface SelectValueState extends Record<string, unknown> {
   /**
    * The currently selected value (single-select mode).
    */
@@ -33,7 +38,7 @@ export interface SelectValueState {
 }
 
 export interface SelectValueProps
-  extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
+  extends Omit<ComponentProps<'span', SelectValue.State>, 'children'> {
   /**
    * Placeholder text when no value is selected.
    * Overrides the placeholder set on Select.Root.
@@ -41,10 +46,18 @@ export interface SelectValueProps
   placeholder?: string
 
   /**
-   * Custom render function for the selected value.
-   * Receives the current state and should return the element to render.
+   * Custom render function for the selected value content.
+   * Receives the current state and should return the content to render.
+   * This is different from the `render` prop which replaces the element.
    */
-  children?: React.ReactNode | ((state: SelectValueState) => React.ReactNode)
+  children?: React.ReactNode | ((state: SelectValue.State) => React.ReactNode)
+}
+
+const stateAttributesMapping = {
+  hasValue: (value: unknown): Record<string, string> | null =>
+    !value ? { [SelectValueDataAttributes.placeholder]: '' } : null,
+  multiple: (value: unknown): Record<string, string> | null =>
+    value ? { [SelectValueDataAttributes.multiple]: '' } : null,
 }
 
 /**
@@ -52,9 +65,16 @@ export interface SelectValueProps
  * Typically placed inside Select.Trigger.
  * Renders a `<span>` element.
  */
-export const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(
+export const SelectValue = React.forwardRef<HTMLSpanElement, SelectValue.Props>(
   function SelectValue(props, forwardedRef) {
-    const { placeholder: placeholderProp, children, ...rest } = props
+    const {
+      render,
+      className,
+      style,
+      placeholder: placeholderProp,
+      children,
+      ...rest
+    } = props
 
     const selectContext = useSelectContext()
 
@@ -93,16 +113,26 @@ export const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(
       [selectContext.itemTextRegistry, selectContext.items],
     )
 
-    const state: SelectValueState = {
-      value: selectContext.value,
-      values: selectContext.values,
-      multiple: selectContext.multiple,
-      hasValue,
-      placeholder,
-      getValueText,
-    }
+    const state: SelectValue.State = React.useMemo(
+      () => ({
+        value: selectContext.value,
+        values: selectContext.values,
+        multiple: selectContext.multiple,
+        hasValue,
+        placeholder,
+        getValueText,
+      }),
+      [
+        selectContext.value,
+        selectContext.values,
+        selectContext.multiple,
+        hasValue,
+        placeholder,
+        getValueText,
+      ],
+    )
 
-    // Determine what to render
+    // Determine what to render as content
     let content: React.ReactNode
 
     if (typeof children === 'function') {
@@ -128,23 +158,27 @@ export const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(
     }
 
     // Register value element for positioning
-    const mergedRef = React.useCallback(
+    const internalRef = React.useCallback(
       (node: HTMLSpanElement | null) => {
         selectContext.setValueElement(node)
-        if (typeof forwardedRef === 'function') {
-          forwardedRef(node)
-        } else if (forwardedRef) {
-          forwardedRef.current = node
-        }
       },
-      [forwardedRef, selectContext],
+      [selectContext],
     )
 
-    return (
-      <span ref={mergedRef} {...rest}>
-        {content}
-      </span>
-    )
+    return useRender({
+      render,
+      ref: forwardedRef,
+      state,
+      stateAttributesMapping,
+      props: {
+        ...rest,
+        ref: internalRef,
+        className,
+        style,
+        children: content,
+      },
+      defaultTagName: 'span',
+    })
   },
 )
 

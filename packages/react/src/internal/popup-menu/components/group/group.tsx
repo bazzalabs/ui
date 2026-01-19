@@ -13,7 +13,7 @@ export interface PopupMenuGroupState extends Record<string, unknown> {
 }
 
 export interface PopupMenuGroupProps
-  extends ComponentProps<'div', PopupMenuGroupState> {
+  extends ComponentProps<'div', PopupMenuGroup.State> {
   /**
    * Whether to force render this group regardless of filter results.
    * @default false
@@ -30,7 +30,7 @@ export interface PopupMenuGroupProps
  */
 export const PopupMenuGroup = React.forwardRef<
   HTMLDivElement,
-  PopupMenuGroupProps
+  PopupMenuGroup.Props
 >(function PopupMenuGroup(props, forwardedRef) {
   const {
     forceMount = false,
@@ -57,7 +57,7 @@ export const PopupMenuGroup = React.forwardRef<
   // Provide group context to children
   const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
 
-  const state: PopupMenuGroupState = React.useMemo(
+  const state: PopupMenuGroup.State = React.useMemo(
     () => ({
       hidden: !isVisible,
     }),

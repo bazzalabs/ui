@@ -1,24 +1,43 @@
 'use client'
 
-import { Popover, type PopoverTriggerProps } from '@base-ui/react/popover'
+import { Popover } from '@base-ui/react/popover'
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
 import { REASONS } from '../../utils/events/index.js'
+import type { ComponentProps } from '../../utils/types.js'
+import { DropdownMenuTriggerDataAttributes } from './trigger.data-attrs.js'
 
-export interface DropdownMenuTriggerProps extends PopoverTriggerProps {
+export { DropdownMenuTriggerDataAttributes }
+
+export interface DropdownMenuTriggerState extends Record<string, unknown> {
+  /**
+   * Whether the dropdown menu is open.
+   */
+  open: boolean
+  /**
+   * Whether the trigger is disabled.
+   */
+  disabled: boolean
+}
+
+export interface DropdownMenuTriggerProps
+  extends ComponentProps<'button', DropdownMenuTrigger.State> {
+  /**
+   * Whether the trigger is disabled.
+   */
+  disabled?: boolean
   /**
    * Whether the menu opens when hovering the trigger.
    * @default false
    */
   openOnHover?: boolean
-
   /**
    * Delay before opening on hover (in milliseconds).
    * Only applies when `openOnHover` is true.
    * @default 100
    */
   delay?: number
-
   /**
    * Delay before closing when pointer leaves (in milliseconds).
    * Only applies when `openOnHover` is true.
@@ -26,6 +45,61 @@ export interface DropdownMenuTriggerProps extends PopoverTriggerProps {
    */
   closeDelay?: number
 }
+
+const stateAttributesMapping = {
+  open: (value: unknown): Record<string, string> | null =>
+    value ? { [DropdownMenuTriggerDataAttributes.popupOpen]: '' } : null,
+  disabled: (value: unknown): Record<string, string> | null =>
+    value ? { 'data-disabled': '' } : null,
+}
+
+/**
+ * Inner component that renders using useRender.
+ */
+const DropdownMenuTriggerInner = React.forwardRef<
+  HTMLButtonElement,
+  DropdownMenuTriggerProps & {
+    triggerProps: React.ComponentPropsWithRef<'button'>
+    triggerState: { open: boolean; disabled: boolean }
+  }
+>(function DropdownMenuTriggerInner(props, forwardedRef) {
+  const {
+    render,
+    children,
+    disabled,
+    className,
+    style,
+    triggerProps,
+    triggerState,
+    openOnHover,
+    delay,
+    closeDelay,
+    ...rest
+  } = props
+
+  const state: DropdownMenuTrigger.State = React.useMemo(
+    () => ({
+      open: triggerState.open,
+      disabled: triggerState.disabled,
+    }),
+    [triggerState.open, triggerState.disabled],
+  )
+
+  return useRender({
+    render,
+    ref: forwardedRef,
+    state,
+    stateAttributesMapping,
+    props: {
+      ...triggerProps,
+      ...rest,
+      className,
+      style,
+      children,
+    },
+    defaultTagName: 'button',
+  })
+})
 
 /**
  * A button that opens the dropdown menu.
@@ -39,8 +113,10 @@ export interface DropdownMenuTriggerProps extends PopoverTriggerProps {
  */
 export const DropdownMenuTrigger = React.forwardRef<
   HTMLButtonElement,
-  DropdownMenuTriggerProps
+  DropdownMenuTrigger.Props
 >(function DropdownMenuTrigger(props, forwardedRef) {
+  const { disabled, openOnHover, delay, closeDelay, ...rest } = props
+
   const { store, closeAll, closeOnOutsidePress } = usePopupMenuContext()
   const isOpen = store.useState('open')
 
@@ -91,10 +167,27 @@ export const DropdownMenuTrigger = React.forwardRef<
     }
   }, [isOpen, closeAll, closeOnOutsidePress])
 
-  return <Popover.Trigger {...props} ref={setRef} />
+  return (
+    <Popover.Trigger
+      ref={setRef}
+      disabled={disabled}
+      openOnHover={openOnHover}
+      delay={delay}
+      closeDelay={closeDelay}
+      render={(triggerProps, triggerState) => (
+        <DropdownMenuTriggerInner
+          {...rest}
+          disabled={disabled}
+          triggerProps={triggerProps}
+          triggerState={triggerState}
+          ref={triggerProps.ref as React.Ref<HTMLButtonElement>}
+        />
+      )}
+    />
+  )
 })
 
 export namespace DropdownMenuTrigger {
   export interface Props extends DropdownMenuTriggerProps {}
-  export type State = Popover.Trigger.State
+  export type State = DropdownMenuTriggerState
 }

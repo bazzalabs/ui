@@ -20,7 +20,7 @@ import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
 
 export interface PopupMenuSurfaceProps
-  extends ComponentProps<'div', PopupMenuSurfaceState> {
+  extends ComponentProps<'div', PopupMenuSurface.State> {
   /**
    * Filter function for matching items against search query.
    * Returns a score between 0 and 1 (0 = no match, > 0 = match).
@@ -93,7 +93,7 @@ export interface PopupMenuSurfaceProps
  */
 export const PopupMenuSurface = React.forwardRef<
   HTMLDivElement,
-  PopupMenuSurfaceProps
+  PopupMenuSurface.Props
 >(function PopupMenuSurface(props, forwardedRef) {
   const {
     filter = defaultFilter,

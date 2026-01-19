@@ -23,7 +23,7 @@ export interface PopupMenuRadioItemIndicatorState
 }
 
 export interface PopupMenuRadioItemIndicatorProps
-  extends ComponentProps<'span', PopupMenuRadioItemIndicatorState> {
+  extends ComponentProps<'span', PopupMenuRadioItemIndicator.State> {
   /**
    * Whether to keep the indicator mounted in the DOM when unchecked.
    * Useful for animations.
@@ -48,7 +48,7 @@ const stateAttributesMapping = {
  */
 export const PopupMenuRadioItemIndicator = React.forwardRef<
   HTMLSpanElement,
-  PopupMenuRadioItemIndicatorProps
+  PopupMenuRadioItemIndicator.Props
 >(function PopupMenuRadioItemIndicator(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -61,7 +61,7 @@ export const PopupMenuRadioItemIndicator = React.forwardRef<
 
   const { checked, highlighted, disabled } = useRadioItemContext()
 
-  const state: PopupMenuRadioItemIndicatorState = React.useMemo(
+  const state: PopupMenuRadioItemIndicator.State = React.useMemo(
     () => ({ checked, highlighted, disabled }),
     [checked, highlighted, disabled],
   )

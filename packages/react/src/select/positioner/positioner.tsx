@@ -140,7 +140,7 @@ function calculateAlignmentPosition(
  */
 export const SelectPositioner = React.forwardRef<
   HTMLDivElement,
-  SelectPositionerProps
+  SelectPositioner.Props
 >(function SelectPositioner(props, forwardedRef) {
   const {
     alignItemWithTrigger = true,

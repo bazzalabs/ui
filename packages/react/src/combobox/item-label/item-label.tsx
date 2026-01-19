@@ -1,11 +1,32 @@
 'use client'
 
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { useComboboxItemContext } from '../item/item-context.js'
 
+export interface ComboboxItemLabelState extends Record<string, unknown> {
+  /**
+   * The value of the parent item.
+   */
+  value: string
+  /**
+   * Whether the parent item is selected.
+   */
+  selected: boolean
+  /**
+   * Whether the parent item is highlighted.
+   */
+  highlighted: boolean
+  /**
+   * Whether the parent item is disabled.
+   */
+  disabled: boolean
+}
+
 export interface ComboboxItemLabelProps
-  extends React.HTMLAttributes<HTMLSpanElement> {}
+  extends ComponentProps<'span', ComboboxItemLabel.State> {}
 
 /**
  * Helper to resolve label from items prop
@@ -40,14 +61,12 @@ function resolveLabelFromItems(
  */
 export const ComboboxItemLabel = React.forwardRef<
   HTMLSpanElement,
-  ComboboxItemLabelProps
+  ComboboxItemLabel.Props
 >(function ComboboxItemLabel(props, forwardedRef) {
-  const { children, ...rest } = props
+  const { render, className, style, children, ...rest } = props
 
   const comboboxContext = useComboboxContext()
   const itemContext = useComboboxItemContext()
-
-  const internalRef = React.useRef<HTMLSpanElement>(null)
 
   // Resolve label content:
   // 1. Explicit children (override)
@@ -79,6 +98,22 @@ export const ComboboxItemLabel = React.forwardRef<
     itemContext.textValue,
   ])
 
+  // Build state for render prop and className/style functions
+  const state: ComboboxItemLabel.State = React.useMemo(
+    () => ({
+      value: itemContext.value,
+      selected: itemContext.selected,
+      highlighted: itemContext.highlighted,
+      disabled: itemContext.disabled,
+    }),
+    [
+      itemContext.value,
+      itemContext.selected,
+      itemContext.highlighted,
+      itemContext.disabled,
+    ],
+  )
+
   // Register text content when mounted or resolved label changes
   React.useEffect(() => {
     if (typeof resolvedLabel === 'string') {
@@ -86,27 +121,21 @@ export const ComboboxItemLabel = React.forwardRef<
     }
   }, [resolvedLabel, comboboxContext, itemContext.value])
 
-  // Merge refs
-  const mergedRef = React.useCallback(
-    (node: HTMLSpanElement | null) => {
-      ;(internalRef as React.MutableRefObject<HTMLSpanElement | null>).current =
-        node
-      if (typeof forwardedRef === 'function') {
-        forwardedRef(node)
-      } else if (forwardedRef) {
-        forwardedRef.current = node
-      }
+  return useRender({
+    render,
+    ref: forwardedRef,
+    state,
+    props: {
+      ...rest,
+      className,
+      style,
+      children: resolvedLabel,
     },
-    [forwardedRef],
-  )
-
-  return (
-    <span ref={mergedRef} {...rest}>
-      {resolvedLabel}
-    </span>
-  )
+    defaultTagName: 'span',
+  })
 })
 
 export namespace ComboboxItemLabel {
   export interface Props extends ComboboxItemLabelProps {}
+  export type State = ComboboxItemLabelState
 }
