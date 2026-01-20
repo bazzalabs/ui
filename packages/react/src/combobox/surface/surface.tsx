@@ -6,6 +6,9 @@ import {
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
+import { ComboboxSurfaceDataAttributes } from './surface.data-attrs.js'
+
+export { ComboboxSurfaceDataAttributes }
 
 export interface ComboboxSurfaceProps
   extends Omit<PopupMenuSurfaceProps, 'autoHighlightFirst'> {
@@ -114,6 +117,7 @@ export const ComboboxSurface = React.forwardRef<
       // Skip auto-focus because the Combobox.Input is outside the popup
       // and should retain focus while the dropdown is open
       skipAutoFocus
+      {...{ [ComboboxSurfaceDataAttributes.slot]: '' }}
       {...rest}
     />
   )

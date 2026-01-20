@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 
 // GroupLabel doesn't have any state - using an empty object type
 export interface PopupMenuGroupLabelState extends Record<string, unknown> {}
@@ -22,11 +26,16 @@ export const PopupMenuGroupLabel = React.forwardRef<
 >(function PopupMenuGroupLabel(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'group-label')
+
   return useRender({
     render,
     ref: forwardedRef,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       // Presentation role - this is a visual label, not interactive
       role: 'presentation',
       // aria-hidden since the group label is decorative for screen readers

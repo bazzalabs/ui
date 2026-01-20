@@ -96,16 +96,23 @@ export type {
 } from '../internal/popup-menu/index.js'
 
 export {
-  PopupMenuArrowDataAttributes as SelectArrowDataAttributes,
-  PopupMenuBackdropDataAttributes as SelectBackdropDataAttributes,
-  PopupMenuIconDataAttributes as SelectIconDataAttributes,
   PopupMenuListCssVars as SelectListCssVars,
-  PopupMenuListDataAttributes as SelectListDataAttributes,
-  PopupMenuPopupDataAttributes as SelectPopupDataAttributes,
   PopupMenuPositionerCssVars as SelectPositionerCssVars,
-  PopupMenuPositionerDataAttributes as SelectPositionerDataAttributes,
-  PopupMenuScrollArrowDataAttributes as SelectScrollArrowDataAttributes,
 } from '../internal/popup-menu/index.js'
+
+// Select-specific data attributes (with hardcoded bazzaui-select-* slot values)
+export { SelectArrowDataAttributes } from './arrow/arrow.data-attrs.js'
+export { SelectBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
+export { SelectEmptyDataAttributes } from './empty/empty.data-attrs.js'
+export { SelectGroupDataAttributes } from './group/group.data-attrs.js'
+export { SelectGroupLabelDataAttributes } from './group-label/group-label.data-attrs.js'
+export { SelectIconDataAttributes } from './icon/icon.data-attrs.js'
+export { SelectInputDataAttributes } from './input/input.data-attrs.js'
+export { SelectListDataAttributes } from './list/list.data-attrs.js'
+export { SelectPopupDataAttributes } from './popup/popup.data-attrs.js'
+export { SelectPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
+export { SelectScrollArrowDataAttributes } from './scroll-arrow/scroll-arrow.data-attrs.js'
+export { SelectSeparatorDataAttributes } from './separator/separator.data-attrs.js'
 // Surface (Select-specific with alignItemWithTrigger support)
 export type { SelectSurfaceProps } from './surface/surface.js'
 export { SelectSurface } from './surface/surface.js'

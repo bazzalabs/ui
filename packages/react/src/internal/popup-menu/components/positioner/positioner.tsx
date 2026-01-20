@@ -2,6 +2,10 @@
 
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 
@@ -243,6 +247,10 @@ export const PopupMenuPositioner = React.forwardRef<
     ? { ...styleProp, transition: 'none' }
     : styleProp
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'positioner')
+
   return (
     <Popover.Positioner
       ref={ref}
@@ -251,6 +259,7 @@ export const PopupMenuPositioner = React.forwardRef<
       alignOffset={effectiveAlignOffset}
       collisionAvoidance={collisionAvoidance}
       style={style}
+      {...(slotAttr ? { [slotAttr]: '' } : {})}
       // Override data-align to show 'list-start' when using list-start alignment
       data-align={useListStartAlign ? 'list-start' : undefined}
       {...anchorProps}

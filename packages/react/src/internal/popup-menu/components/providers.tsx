@@ -4,6 +4,10 @@ import * as React from 'react'
 import type { ListboxContextValue } from '../../listbox/contexts/listbox-context.js'
 import { ListboxContext as ListboxContextProvider } from '../../listbox/contexts/listbox-context.js'
 import type { ListboxStore, VirtualItem } from '../../listbox/index.js'
+import {
+  type ComponentName,
+  ComponentNameContext,
+} from '../contexts/component-name-context.js'
 import { FocusOwnerContext } from '../contexts/focus-owner-context.js'
 import { OpenChainContext } from '../contexts/open-chain-context.js'
 import {
@@ -53,6 +57,11 @@ export interface PopupMenuProvidersProps {
    * @default 'pointerdown'
    */
   closeOnOutsidePress?: 'click' | 'pointerdown'
+  /**
+   * Component name for generating bazzaui-* slot attributes.
+   * E.g., 'dropdown-menu', 'context-menu', 'select', 'combobox'
+   */
+  componentName: ComponentName
   children: React.ReactNode
 }
 
@@ -81,6 +90,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     virtualAnchor,
     menuType = 'dropdown',
     closeOnOutsidePress = 'pointerdown',
+    componentName,
     children,
   } = props
 
@@ -121,16 +131,18 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   )
 
   return (
-    <PopupMenuContext.Provider value={popupMenuContextValue}>
-      <ListboxContextProvider.Provider value={listboxContextValue}>
-        <AimGuardProvider>
-          <FocusOwnerContext.Provider value={focusOwnerStore}>
-            <OpenChainContext.Provider value={openChainStore}>
-              {children}
-            </OpenChainContext.Provider>
-          </FocusOwnerContext.Provider>
-        </AimGuardProvider>
-      </ListboxContextProvider.Provider>
-    </PopupMenuContext.Provider>
+    <ComponentNameContext.Provider value={componentName}>
+      <PopupMenuContext.Provider value={popupMenuContextValue}>
+        <ListboxContextProvider.Provider value={listboxContextValue}>
+          <AimGuardProvider>
+            <FocusOwnerContext.Provider value={focusOwnerStore}>
+              <OpenChainContext.Provider value={openChainStore}>
+                {children}
+              </OpenChainContext.Provider>
+            </FocusOwnerContext.Provider>
+          </AimGuardProvider>
+        </ListboxContextProvider.Provider>
+      </PopupMenuContext.Provider>
+    </ComponentNameContext.Provider>
   )
 }

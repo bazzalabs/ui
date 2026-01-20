@@ -97,6 +97,7 @@ const SelectTriggerInner = React.forwardRef<
     props: {
       ...triggerProps,
       ...rest,
+      [SelectTriggerDataAttributes.slot]: '',
       ref: internalRef,
       role: 'combobox' as const,
       'aria-haspopup': 'listbox' as const,

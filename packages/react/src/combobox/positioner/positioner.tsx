@@ -10,6 +10,9 @@ import {
   type ComboboxPositionerContextValue,
   type Side,
 } from '../contexts/combobox-positioner-context.js'
+import { ComboboxPositionerDataAttributes } from './positioner.data-attrs.js'
+
+export { ComboboxPositionerDataAttributes }
 
 // ============================================================================
 // Types
@@ -160,6 +163,7 @@ export const ComboboxPositioner = React.forwardRef<
         className={className}
         style={basePositionerStyles}
         data-input-embedded=""
+        {...{ [ComboboxPositionerDataAttributes.slot]: '' }}
         {...rest}
         render={(renderProps, state) => {
           const actualSide = state.side as Side
@@ -248,6 +252,7 @@ export const ComboboxPositioner = React.forwardRef<
         anchor={anchor}
         className={className}
         style={positionerStyles}
+        {...{ [ComboboxPositionerDataAttributes.slot]: '' }}
         {...rest}
       >
         {children}

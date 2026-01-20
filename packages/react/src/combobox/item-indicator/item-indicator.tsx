@@ -57,6 +57,7 @@ export const ComboboxItemIndicator = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      [ComboboxItemIndicatorDataAttributes.slot]: '',
       'aria-hidden': true,
       className,
       style,

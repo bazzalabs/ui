@@ -257,6 +257,7 @@ export const SelectItem = React.forwardRef<HTMLDivElement, SelectItem.Props>(
       stateAttributesMapping,
       props: {
         ...rest,
+        [SelectItemDataAttributes.slot]: '',
         id: item.id,
         role: 'option',
         tabIndex: -1,

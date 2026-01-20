@@ -1,5 +1,10 @@
 export enum PopupMenuSubmenuTriggerDataAttributes {
   /**
+   * Identifies the component part.
+   * @type {'bazzaui-dropdown-menu-submenu-trigger' | 'bazzaui-context-menu-submenu-trigger'}
+   */
+  slot = 'bazzaui-[component]-submenu-trigger',
+  /**
    * Present on submenu trigger elements.
    */
   submenuTrigger = 'data-submenu-trigger',

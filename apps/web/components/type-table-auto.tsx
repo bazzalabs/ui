@@ -192,7 +192,7 @@ export function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
       {/** biome-ignore lint/a11y/noStaticElementInteractions: ignore */}
       <div
         className={cn(
-          'grid grid-cols-subgrid col-span-3 group hover:bg-muted/50 border-b border-border',
+          'grid grid-cols-subgrid col-span-3 group hover:bg-muted/50 border-b border-border items-center',
           hasDetails && 'cursor-pointer',
         )}
         onClick={() => hasDetails && setIsExpanded(!isExpanded)}
@@ -214,22 +214,18 @@ export function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
                 <ChevronRight className="size-4" />
               )}
             </div>
-            <code className="rounded-sm bg-blue-300/25 dark:text-primary text-blue-700 dark:bg-blue-600/50 px-[0.35rem] py-[0.2rem] text-sm font-mono">
+            <code className="rounded-sm bg-blue-300/25 dark:text-primary text-blue-700 dark:bg-blue-600/50 px-[0.35rem] py-[0.2rem] text-[13px] font-mono">
               {prop.name}
               {!prop.required && '?'}
             </code>
           </div>
         </div>
         <div className="px-4 py-2">
-          <span className="rounded-sm bg-muted px-[0.35rem] py-[0.2rem] text-sm inline-block">
-            <HighlightedType code={simplifiedType} className="font-mono" />
-          </span>
+          <HighlightedType code={simplifiedType} />
         </div>
         <div className="px-4 py-2">
           {prop.default ? (
-            <code className="rounded-sm bg-muted px-[0.35rem] py-[0.2rem] text-sm font-mono">
-              {prop.default}
-            </code>
+            <HighlightedType code={prop.default} />
           ) : (
             <span className="text-muted-foreground/50 text-xs select-none">
               —
@@ -250,7 +246,8 @@ export function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
               </div>
               <div className="col-span-2 ">
                 <code className="bg-inherit py-1 font-mono break-words min-w-0">
-                  {prop.name}
+                  <HighlightedType code={prop.name} />
+                  {/*{prop.name}*/}
                 </code>
               </div>
             </div>
@@ -281,7 +278,7 @@ export function ExpandablePropRow({ prop, depth = 0 }: ExpandablePropRowProps) {
                 </div>
                 <div className="col-span-2">
                   <code className="bg-inherit py-1 font-mono text-sm break-words min-w-0">
-                    {prop.default}
+                    <HighlightedType code={prop.default} />
                   </code>
                 </div>
               </div>
@@ -448,16 +445,16 @@ export function TypeTableAuto({ type, pkg }: TypeTableAutoProps) {
 
   return (
     <div className="my-6 border border-border rounded-md overflow-hidden">
-      <div className="w-full text-sm grid grid-cols-[35%_30%_35%]">
+      <div className="w-full grid grid-cols-[35%_35%_30%]">
         {/* Header */}
-        <div className="grid grid-cols-subgrid col-span-3 bg-neutral-100 dark:bg-neutral-900 border-b border-border">
-          <div className="px-4 py-3 font-mono font-semibold">Property</div>
-          <div className="px-4 py-3 font-mono font-semibold">Type</div>
-          <div className="px-4 py-3 font-mono font-semibold">Default</div>
+        <div className="grid grid-cols-subgrid col-span-3 bg-neutral-100 dark:bg-neutral-900 border-b border-border text-sm">
+          <div className="px-4 py-3 font-medium">Property</div>
+          <div className="px-4 py-3 font-medium">Type</div>
+          <div className="px-4 py-3 font-medium">Default</div>
         </div>
 
         {/* Body */}
-        <div className="grid grid-cols-subgrid col-span-3 bg-white dark:bg-black">
+        <div className="text-[13px] grid grid-cols-subgrid col-span-3 bg-white dark:bg-black">
           {typeMeta.props.map((prop: any) => (
             <ExpandablePropRow key={prop.name} prop={prop} />
           ))}

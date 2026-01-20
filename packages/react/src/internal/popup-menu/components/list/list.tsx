@@ -10,6 +10,10 @@ import {
   useStickyRowWidth,
   useSurfaceContext,
 } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -189,11 +193,16 @@ export const PopupMenuList = React.forwardRef<
   // Add data-input-embedded attribute when layout is input-embedded
   const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'list')
+
   return useRender({
     render,
     ref: [internalRef, forwardedRef],
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: listId,
       role: 'listbox',
       'aria-label': label,

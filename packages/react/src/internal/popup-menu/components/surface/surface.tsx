@@ -12,6 +12,10 @@ import {
   useSurfaceContext as useParentSurfaceContext,
 } from '../../../listbox/index.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
@@ -294,11 +298,16 @@ export const PopupMenuSurface = React.forwardRef<
     [onPointerMove, surfaceId, focusOwnerStore],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'surface')
+
   const element = useRender({
     render,
     ref: [surfaceRef, forwardedRef],
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       className,
       style,
       onPointerDown: handlePointerDown,

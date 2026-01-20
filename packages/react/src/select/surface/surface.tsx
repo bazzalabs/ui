@@ -7,6 +7,9 @@ import {
 } from '../../internal/popup-menu/index.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { useSelectPositionerContext } from '../contexts/select-positioner-context.js'
+import { SelectSurfaceDataAttributes } from './surface.data-attrs.js'
+
+export { SelectSurfaceDataAttributes }
 
 export interface SelectSurfaceProps extends PopupMenuSurfaceProps {}
 
@@ -63,6 +66,7 @@ export const SelectSurface = React.forwardRef<
     <PopupMenuSurface
       ref={forwardedRef}
       autoHighlightFirst={autoHighlightFirst}
+      {...{ [SelectSurfaceDataAttributes.slot]: '' }}
       {...rest}
     />
   )

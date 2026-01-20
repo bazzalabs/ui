@@ -184,6 +184,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       virtualization={virtualization}
       menuType="dropdown"
       closeOnOutsidePress={closeOnOutsidePress}
+      componentName="dropdown-menu"
     >
       <Popover.Root
         {...rest}

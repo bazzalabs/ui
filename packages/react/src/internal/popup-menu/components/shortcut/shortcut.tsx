@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useItemContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { PopupMenuShortcutDataAttributes } from './shortcut.data-attrs.js'
 
 export { PopupMenuShortcutDataAttributes }
@@ -78,6 +82,10 @@ export const PopupMenuShortcut = React.forwardRef<
   const renderedChildren =
     typeof children === 'function' ? children(state) : (children ?? shortcut)
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'shortcut')
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -85,6 +93,7 @@ export const PopupMenuShortcut = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       className,
       style,
       children: renderedChildren,

@@ -7,8 +7,8 @@ import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
 import type { JSX } from 'react'
 import { Fragment } from 'react'
 import { jsx, jsxs } from 'react/jsx-runtime'
-import type { BundledLanguage, Highlighter } from 'shiki/bundle/web'
-import { createHighlighter } from 'shiki/bundle/web'
+import type { BundledLanguage, Highlighter } from 'shiki'
+import { createHighlighter } from 'shiki'
 
 // Singleton highlighter instance
 let highlighterInstance: Highlighter | null = null
@@ -30,7 +30,7 @@ async function getHighlighter(): Promise<Highlighter> {
 
   // Create new highlighter instance
   highlighterPromise = createHighlighter({
-    themes: ['github-light', 'github-dark'],
+    themes: ['github-light', 'github-dark', 'github-light-high-contrast'],
     langs: ['typescript', 'javascript', 'tsx', 'jsx', 'json', 'bash', 'sh'],
   })
 
@@ -46,8 +46,6 @@ export async function highlight(code: string, lang: BundledLanguage) {
       light: 'github-light',
       dark: 'github-dark',
     },
-    // Use CSS variables for colors instead of inline styles
-    // This allows the theme to be controlled via CSS (html.light/html.dark selectors)
     defaultColor: false,
     transformers: [transformerNotationDiff(), transformerNotationHighlight()],
     colorReplacements: {
@@ -66,7 +64,7 @@ export async function highlightInline(code: string, lang: BundledLanguage) {
   const highlighter = await getHighlighter()
   const hast = highlighter.codeToHast(code, {
     lang,
-    themes: { light: 'github-light', dark: 'github-dark' },
+    themes: { light: 'github-light-high-contrast', dark: 'github-dark' },
     defaultColor: false,
     transformers: [transformerNotationDiff(), transformerNotationHighlight()],
     colorReplacements: {

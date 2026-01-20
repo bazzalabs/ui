@@ -101,11 +101,16 @@ const Portal = Primitive.Portal
 const Positioner = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Positioner>
->(({ className, sideOffset = 8, align: alignProp, ...props }, ref) => {
+>((props, ref) => {
   const submenuContext = useMaybeSubmenuContext()
   const isSubmenu = !!submenuContext
 
-  const align = alignProp ?? (isSubmenu ? 'list-start' : undefined)
+  const {
+    className,
+    align = isSubmenu ? 'list-start' : 'start',
+    sideOffset = isSubmenu ? -2 : 8,
+    ...rest
+  } = props
 
   return (
     <Primitive.Positioner
@@ -113,7 +118,7 @@ const Positioner = forwardRef<
       sideOffset={sideOffset}
       align={align}
       className={cn('z-50', className)}
-      {...props}
+      {...rest}
     />
   )
 })
@@ -133,7 +138,7 @@ const Popup = forwardRef<
         // - Uses --row-width CSS variable set by the List component
         // - Clamps between 250px min and 500px max
         // - Falls back to 250px if --row-width is not set
-        'w-[clamp(250px,var(--row-width,250px),500px)]',
+        'w-[clamp(175px,var(--row-width,175px),500px)]',
         'overflow-hidden',
         !state.isSubmenu && [
           'opacity-100 scale-100',
@@ -537,7 +542,19 @@ const CheckboxItemIndicator = forwardRef<
   />
 ))
 
-const RadioGroup = Primitive.RadioGroup
+const RadioGroup = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.RadioGroup>
+>(({ className, ...props }, ref) => (
+  <Primitive.RadioGroup
+    ref={ref}
+    className={cn(
+      'first:[&_[bazzaui-dropdown-menu-group-label]]:mt-2',
+      className,
+    )}
+    {...props}
+  />
+))
 
 const RadioGroupValue = Primitive.RadioGroupValue
 
@@ -561,7 +578,7 @@ const RadioItemIndicator = forwardRef<
     ref={ref}
     keepMounted
     className={cn(
-      'size-4 flex items-center justify-center shrink-0 text-transparent data-[checked]:text-primary/75 data-[checked]:data-[highlighted]:text-primary',
+      'size-4 flex items-center justify-center shrink-0 text-transparent not-data-checked:data-highlighted:text-primary/15 data-checked:text-primary/75 data-checked:data-highlighted:text-primary',
       className,
     )}
     {...props}
@@ -587,7 +604,14 @@ const Group = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Group>
 >(({ className, ...props }, ref) => (
-  <Primitive.Group ref={ref} className={cn('group', className)} {...props} />
+  <Primitive.Group
+    ref={ref}
+    className={cn(
+      'first:[&_[bazzaui-dropdown-menu-group-label]]:mt-1',
+      className,
+    )}
+    {...props}
+  />
 ))
 Group.displayName = 'DropdownMenu.Group'
 
@@ -598,7 +622,7 @@ const GroupLabel = forwardRef<
   <Primitive.GroupLabel
     ref={ref}
     className={cn(
-      'mt-3 group-first:mt-1 mb-2',
+      'mt-3 mb-2',
       'text-xs font-medium text-muted-foreground px-3',
       className,
     )}

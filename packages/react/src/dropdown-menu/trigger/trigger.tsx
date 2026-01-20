@@ -93,6 +93,7 @@ const DropdownMenuTriggerInner = React.forwardRef<
     props: {
       ...triggerProps,
       ...rest,
+      [DropdownMenuTriggerDataAttributes.slot]: '',
       className,
       style,
       children,

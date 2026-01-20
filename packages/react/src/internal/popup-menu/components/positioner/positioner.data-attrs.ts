@@ -1,5 +1,10 @@
 export enum PopupMenuPositionerDataAttributes {
   /**
+   * Identifies the component part.
+   * @type {'bazzaui-dropdown-menu-positioner' | 'bazzaui-context-menu-positioner' | 'bazzaui-select-positioner' | 'bazzaui-combobox-positioner'}
+   */
+  slot = 'bazzaui-[component]-positioner',
+  /**
    * Present when the popup menu is open.
    */
   open = 'data-open',

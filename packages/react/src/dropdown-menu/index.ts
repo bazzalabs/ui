@@ -103,33 +103,41 @@ export type {
   PopupMenuSurfaceProps as DropdownMenuSurfaceProps,
   PopupMenuSurfaceState as DropdownMenuSurfaceState,
 } from '../internal/popup-menu/index.js'
-// Arrow
-// Backdrop
-// Popup
-// Positioner
-// Item
-// Checkbox Item
-// Radio Group
-// Radio Item
-// Submenu Trigger
-// Shortcut
+// CSS variables (still from popup-menu as they don't have component-specific values)
 export {
-  PopupMenuArrowDataAttributes as DropdownMenuArrowDataAttributes,
-  PopupMenuBackdropDataAttributes as DropdownMenuBackdropDataAttributes,
-  PopupMenuCheckboxItemDataAttributes as DropdownMenuCheckboxItemDataAttributes,
-  PopupMenuIconDataAttributes as DropdownMenuIconDataAttributes,
-  PopupMenuItemDataAttributes as DropdownMenuItemDataAttributes,
   PopupMenuListCssVars as DropdownMenuListCssVars,
-  PopupMenuListDataAttributes as DropdownMenuListDataAttributes,
-  PopupMenuPopupDataAttributes as DropdownMenuPopupDataAttributes,
   PopupMenuPositionerCssVars as DropdownMenuPositionerCssVars,
-  PopupMenuPositionerDataAttributes as DropdownMenuPositionerDataAttributes,
-  PopupMenuRadioGroupDataAttributes as DropdownMenuRadioGroupDataAttributes,
-  PopupMenuRadioItemDataAttributes as DropdownMenuRadioItemDataAttributes,
-  PopupMenuScrollArrowDataAttributes as DropdownMenuScrollArrowDataAttributes,
-  PopupMenuShortcutDataAttributes as DropdownMenuShortcutDataAttributes,
-  PopupMenuSubmenuTriggerDataAttributes as DropdownMenuSubmenuTriggerDataAttributes,
 } from '../internal/popup-menu/index.js'
+
+// Data attributes with component-specific bazzaui-* selectors
+export { DropdownMenuArrowDataAttributes } from './arrow/arrow.data-attrs.js'
+export { DropdownMenuBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
+export {
+  DropdownMenuCheckboxItemDataAttributes,
+  DropdownMenuCheckboxItemIndicatorDataAttributes,
+} from './checkbox-item/checkbox-item.data-attrs.js'
+export { DropdownMenuEmptyDataAttributes } from './empty/empty.data-attrs.js'
+export { DropdownMenuGroupDataAttributes } from './group/group.data-attrs.js'
+export { DropdownMenuGroupLabelDataAttributes } from './group-label/group-label.data-attrs.js'
+export { DropdownMenuIconDataAttributes } from './icon/icon.data-attrs.js'
+export { DropdownMenuInputDataAttributes } from './input/input.data-attrs.js'
+export { DropdownMenuItemDataAttributes } from './item/item.data-attrs.js'
+export { DropdownMenuListDataAttributes } from './list/list.data-attrs.js'
+export { DropdownMenuPopupDataAttributes } from './popup/popup.data-attrs.js'
+export { DropdownMenuPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
+export { DropdownMenuRadioGroupDataAttributes } from './radio-group/radio-group.data-attrs.js'
+export {
+  DropdownMenuRadioItemDataAttributes,
+  DropdownMenuRadioItemIndicatorDataAttributes,
+} from './radio-item/radio-item.data-attrs.js'
+export { DropdownMenuScrollArrowDataAttributes } from './scroll-arrow/scroll-arrow.data-attrs.js'
+export { DropdownMenuSeparatorDataAttributes } from './separator/separator.data-attrs.js'
+export { DropdownMenuShortcutDataAttributes } from './shortcut/shortcut.data-attrs.js'
+export {
+  DropdownMenuSubmenuTriggerDataAttributes,
+  DropdownMenuSubmenuTriggerIndicatorDataAttributes,
+} from './submenu-trigger/submenu-trigger.data-attrs.js'
+export { DropdownMenuSurfaceDataAttributes } from './surface/surface.data-attrs.js'
 
 // ============================================================================
 // Context hooks (for advanced usage)
