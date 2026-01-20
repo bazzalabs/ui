@@ -74,6 +74,7 @@ export const ComboboxInputWrapper = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      [ComboboxInputWrapperDataAttributes.slot]: '',
       className,
       style: { ...inputEmbeddedStyles, ...style },
       children,

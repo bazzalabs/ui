@@ -3,6 +3,10 @@
 import { Popover, type PopoverBackdropProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
+import {
   useFocusOwner,
   useMaybeSubmenuContext,
   useOpenChain,
@@ -76,6 +80,10 @@ export const PopupMenuBackdrop = React.forwardRef<
     }
   }
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'backdrop')
+
   if (!shouldShow) {
     return null
   }
@@ -87,7 +95,14 @@ export const PopupMenuBackdrop = React.forwardRef<
     ...rest.style,
   }
 
-  return <Popover.Backdrop ref={forwardedRef} {...rest} style={style} />
+  return (
+    <Popover.Backdrop
+      ref={forwardedRef}
+      {...(slotAttr ? { [slotAttr]: '' } : {})}
+      {...rest}
+      style={style}
+    />
+  )
 })
 
 export namespace PopupMenuBackdrop {

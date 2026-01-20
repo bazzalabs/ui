@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { PopupMenuRadioItemDataAttributes } from './radio-item.data-attrs.js'
 import { useRadioItemContext } from './radio-item-context.js'
 
@@ -68,6 +72,10 @@ export const PopupMenuRadioItemIndicator = React.forwardRef<
 
   const shouldRender = keepMounted || checked
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'radio-item-indicator')
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -75,6 +83,7 @@ export const PopupMenuRadioItemIndicator = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       'aria-hidden': true,
       className,
       style,

@@ -8,6 +8,10 @@ import {
 } from '../../../../utils/events/index.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import type {
   CheckedChangeEventDetails,
   CheckedChangeReason,
@@ -225,6 +229,10 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     [onPointerMove, item.handlers],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'checkbox-item')
+
   const element = useRender({
     render,
     ref: [item.ref, forwardedRef],
@@ -232,6 +240,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitemcheckbox',
       tabIndex: -1,

@@ -3,6 +3,7 @@ import type { MDXComponents } from 'mdx/types'
 import Image from 'next/image'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
 import { BaseUIReference } from '@/components/base-ui-reference'
+import { CssSelector } from '@/components/css-selector'
 import { CssVarsTable } from '@/components/css-vars-table'
 import { DataAttrsTable } from '@/components/data-attrs-table'
 import { TypeDebug } from '@/components/type-debug'
@@ -279,6 +280,7 @@ const components = {
   TypeDiff,
   DataAttrsTable,
   CssVarsTable,
+  CssSelector,
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,

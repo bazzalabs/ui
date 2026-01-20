@@ -14,7 +14,9 @@ export default function DropdownMenuSubmenu() {
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
             <DropdownMenu.Surface>
+              <DropdownMenu.Input hideUntilActive />
               <DropdownMenu.List>
+                <DropdownMenu.Empty />
                 <DropdownMenu.Item onSelect={() => toast('Undo')}>
                   Undo
                 </DropdownMenu.Item>
@@ -25,13 +27,14 @@ export default function DropdownMenuSubmenu() {
                 <DropdownMenu.Submenu>
                   <DropdownMenu.SubmenuTrigger>
                     Find and Replace
-                    <DropdownMenu.SubmenuTriggerIndicator />
                   </DropdownMenu.SubmenuTrigger>
                   <DropdownMenu.Portal>
                     <DropdownMenu.Positioner>
                       <DropdownMenu.Popup>
                         <DropdownMenu.Surface>
+                          <DropdownMenu.Input hideUntilActive />
                           <DropdownMenu.List>
+                            <DropdownMenu.Empty />
                             <DropdownMenu.Item onSelect={() => toast('Find')}>
                               Find
                             </DropdownMenu.Item>

@@ -278,6 +278,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         virtualAnchor={virtualAnchor}
         menuType="context"
         closeOnOutsidePress={closeOnOutsidePress}
+        componentName="context-menu"
       >
         <Popover.Root
           open={open}

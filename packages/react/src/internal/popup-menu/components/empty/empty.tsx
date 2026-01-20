@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useSurfaceContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 
 // Empty doesn't have any state - using an empty object type
 export interface PopupMenuEmptyState extends Record<string, unknown> {}
@@ -26,11 +30,16 @@ export const PopupMenuEmpty = React.forwardRef<
 
   const { store } = useSurfaceContext()
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'empty')
+
   const element = useRender({
     render,
     ref: forwardedRef,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       role: 'presentation',
       className,
       style,

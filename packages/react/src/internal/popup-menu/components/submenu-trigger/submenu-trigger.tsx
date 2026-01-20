@@ -9,6 +9,10 @@ import {
   useListboxContext,
   useSurfaceContext,
 } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useSubmenuContext } from '../../contexts/submenu-context.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
@@ -512,6 +516,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     </ItemContext.Provider>
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'submenu-trigger')
+
   // Use useRender to create the element with state-based data attributes
   const element = useRender({
     render,
@@ -520,6 +528,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitem',
       'aria-haspopup': 'menu',

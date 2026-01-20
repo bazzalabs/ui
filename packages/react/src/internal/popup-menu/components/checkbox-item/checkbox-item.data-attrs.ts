@@ -1,5 +1,10 @@
 export enum PopupMenuCheckboxItemDataAttributes {
   /**
+   * Identifies the component part.
+   * @type {'bazzaui-dropdown-menu-checkbox-item' | 'bazzaui-context-menu-checkbox-item'}
+   */
+  slot = 'bazzaui-[component]-checkbox-item',
+  /**
    * Present when the checkbox item is checked.
    */
   checked = 'data-checked',

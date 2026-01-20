@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useSubmenuContext } from '../../contexts/submenu-context.js'
 import { PopupMenuSubmenuTriggerDataAttributes } from './submenu-trigger.data-attrs.js'
@@ -59,6 +63,10 @@ export const PopupMenuSubmenuTriggerIndicator = React.forwardRef<
     [open, isPopupFocused],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'submenu-trigger-indicator')
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -66,6 +74,7 @@ export const PopupMenuSubmenuTriggerIndicator = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       'aria-hidden': true,
       className,
       style,

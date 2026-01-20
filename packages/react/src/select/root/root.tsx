@@ -412,6 +412,7 @@ export function SelectRoot(props: SelectRootProps) {
         registerSurface={registerSurface}
         virtualization={virtualization}
         menuType="dropdown"
+        componentName="select"
       >
         {hiddenInputs}
         <Popover.Root

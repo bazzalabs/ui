@@ -2650,10 +2650,79 @@
         "name": "ComboboxSurfaceState",
         "kind": "interface"
       },
+      "ComboboxListCssVars": {
+        "name": "ComboboxListCssVars",
+        "kind": "enum",
+        "doc": "CSS custom properties applied to the List component.",
+        "members": [
+          {
+            "name": "rowWidth",
+            "value": "--row-width",
+            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
+      "ComboboxPositionerCssVars": {
+        "name": "ComboboxPositionerCssVars",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "availableWidth",
+            "value": "--available-width",
+            "description": "The available width between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "availableHeight",
+            "value": "--available-height",
+            "description": "The available height between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorWidth",
+            "value": "--anchor-width",
+            "description": "The anchor's width.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorHeight",
+            "value": "--anchor-height",
+            "description": "The anchor's height.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "transformOrigin",
+            "value": "--transform-origin",
+            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
+            "valueType": "{string}"
+          },
+          {
+            "name": "positionerWidth",
+            "value": "--positioner-width",
+            "description": "The width of the positioner element.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "positionerHeight",
+            "value": "--positioner-height",
+            "description": "The height of the positioner element.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
       "ComboboxArrowDataAttributes": {
         "name": "ComboboxArrowDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-combobox-arrow",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-arrow'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -2689,6 +2758,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-combobox-backdrop",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-backdrop'}"
+          },
+          {
             "name": "open",
             "value": "data-open",
             "description": "Present when the popup menu is open."
@@ -2711,24 +2786,55 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "ComboboxListCssVars": {
-        "name": "ComboboxListCssVars",
+      "ComboboxEmptyDataAttributes": {
+        "name": "ComboboxEmptyDataAttributes",
         "kind": "enum",
-        "doc": "CSS custom properties applied to the List component.",
         "members": [
           {
-            "name": "rowWidth",
-            "value": "--row-width",
-            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
-            "valueType": "{number}"
+            "name": "slot",
+            "value": "bazzaui-combobox-empty",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-empty'}"
           }
         ],
-        "enumCategory": "cssVars"
+        "enumCategory": "dataAttributes"
+      },
+      "ComboboxGroupDataAttributes": {
+        "name": "ComboboxGroupDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-combobox-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-group'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ComboboxGroupLabelDataAttributes": {
+        "name": "ComboboxGroupLabelDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-combobox-group-label",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-group-label'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
       },
       "ComboboxListDataAttributes": {
         "name": "ComboboxListDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-combobox-list",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-list'}"
+          },
           {
             "name": "list",
             "value": "data-popup-menu-list",
@@ -2741,6 +2847,12 @@
         "name": "ComboboxPopupDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-combobox-popup",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-popup'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -2797,85 +2909,15 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "ComboboxPositionerCssVars": {
-        "name": "ComboboxPositionerCssVars",
+      "ComboboxSeparatorDataAttributes": {
+        "name": "ComboboxSeparatorDataAttributes",
         "kind": "enum",
         "members": [
           {
-            "name": "availableWidth",
-            "value": "--available-width",
-            "description": "The available width between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "availableHeight",
-            "value": "--available-height",
-            "description": "The available height between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorWidth",
-            "value": "--anchor-width",
-            "description": "The anchor's width.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorHeight",
-            "value": "--anchor-height",
-            "description": "The anchor's height.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "transformOrigin",
-            "value": "--transform-origin",
-            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
-            "valueType": "{string}"
-          },
-          {
-            "name": "positionerWidth",
-            "value": "--positioner-width",
-            "description": "The width of the positioner element.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "positionerHeight",
-            "value": "--positioner-height",
-            "description": "The height of the positioner element.",
-            "valueType": "{number}"
-          }
-        ],
-        "enumCategory": "cssVars"
-      },
-      "ComboboxPositionerDataAttributes": {
-        "name": "ComboboxPositionerDataAttributes",
-        "kind": "enum",
-        "members": [
-          {
-            "name": "open",
-            "value": "data-open",
-            "description": "Present when the popup menu is open."
-          },
-          {
-            "name": "closed",
-            "value": "data-closed",
-            "description": "Present when the popup menu is closed."
-          },
-          {
-            "name": "anchorHidden",
-            "value": "data-anchor-hidden",
-            "description": "Present when the anchor is hidden."
-          },
-          {
-            "name": "side",
-            "value": "data-side",
-            "description": "Indicates which side the popup is positioned relative to the trigger.",
-            "valueType": "{'top' | 'bottom' | 'left' | 'right' | 'inline-end' | 'inline-start'}"
-          },
-          {
-            "name": "align",
-            "value": "data-align",
-            "description": "Indicates how the popup is aligned relative to specified side.",
-            "valueType": "{'start' | 'center' | 'end' | 'list-start'}"
+            "name": "slot",
+            "value": "bazzaui-combobox-separator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-combobox-separator'}"
           }
         ],
         "enumCategory": "dataAttributes"
@@ -3532,6 +3574,12 @@
         "name": "ContextMenuTriggerDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-trigger",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-trigger'}"
+          },
           {
             "name": "popupOpen",
             "value": "data-popup-open",
@@ -5220,10 +5268,79 @@
         "name": "ContextMenuSurfaceState",
         "kind": "interface"
       },
+      "ContextMenuListCssVars": {
+        "name": "ContextMenuListCssVars",
+        "kind": "enum",
+        "doc": "CSS custom properties applied to the List component.",
+        "members": [
+          {
+            "name": "rowWidth",
+            "value": "--row-width",
+            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
+      "ContextMenuPositionerCssVars": {
+        "name": "ContextMenuPositionerCssVars",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "availableWidth",
+            "value": "--available-width",
+            "description": "The available width between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "availableHeight",
+            "value": "--available-height",
+            "description": "The available height between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorWidth",
+            "value": "--anchor-width",
+            "description": "The anchor's width.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorHeight",
+            "value": "--anchor-height",
+            "description": "The anchor's height.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "transformOrigin",
+            "value": "--transform-origin",
+            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
+            "valueType": "{string}"
+          },
+          {
+            "name": "positionerWidth",
+            "value": "--positioner-width",
+            "description": "The width of the positioner element.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "positionerHeight",
+            "value": "--positioner-height",
+            "description": "The height of the positioner element.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
       "ContextMenuArrowDataAttributes": {
         "name": "ContextMenuArrowDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-arrow",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-arrow'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -5259,6 +5376,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-context-menu-backdrop",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-backdrop'}"
+          },
+          {
             "name": "open",
             "value": "data-open",
             "description": "Present when the popup menu is open."
@@ -5286,6 +5409,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-context-menu-checkbox-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-checkbox-item'}"
+          },
+          {
             "name": "checked",
             "value": "data-checked",
             "description": "Present when the checkbox item is checked."
@@ -5308,10 +5437,101 @@
         ],
         "enumCategory": "dataAttributes"
       },
+      "ContextMenuCheckboxItemIndicatorDataAttributes": {
+        "name": "ContextMenuCheckboxItemIndicatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-checkbox-item-indicator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-checkbox-item-indicator'}"
+          },
+          {
+            "name": "checked",
+            "value": "data-checked",
+            "description": "Present when the checkbox item is checked."
+          },
+          {
+            "name": "unchecked",
+            "value": "data-unchecked",
+            "description": "Present when the checkbox item is unchecked."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuEmptyDataAttributes": {
+        "name": "ContextMenuEmptyDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-empty",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-empty'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuGroupDataAttributes": {
+        "name": "ContextMenuGroupDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-group'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuGroupLabelDataAttributes": {
+        "name": "ContextMenuGroupLabelDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-group-label",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-group-label'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuInputDataAttributes": {
+        "name": "ContextMenuInputDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-input",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-input'}"
+          },
+          {
+            "name": "open",
+            "value": "data-open",
+            "description": "Present when the popup menu is open."
+          },
+          {
+            "name": "closed",
+            "value": "data-closed",
+            "description": "Present when the popup menu is closed."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
       "ContextMenuItemDataAttributes": {
         "name": "ContextMenuItemDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-item'}"
+          },
           {
             "name": "highlighted",
             "value": "data-highlighted",
@@ -5325,24 +5545,16 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "ContextMenuListCssVars": {
-        "name": "ContextMenuListCssVars",
-        "kind": "enum",
-        "doc": "CSS custom properties applied to the List component.",
-        "members": [
-          {
-            "name": "rowWidth",
-            "value": "--row-width",
-            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
-            "valueType": "{number}"
-          }
-        ],
-        "enumCategory": "cssVars"
-      },
       "ContextMenuListDataAttributes": {
         "name": "ContextMenuListDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-list",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-list'}"
+          },
           {
             "name": "list",
             "value": "data-popup-menu-list",
@@ -5355,6 +5567,12 @@
         "name": "ContextMenuPopupDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-popup",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-popup'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -5411,59 +5629,16 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "ContextMenuPositionerCssVars": {
-        "name": "ContextMenuPositionerCssVars",
-        "kind": "enum",
-        "members": [
-          {
-            "name": "availableWidth",
-            "value": "--available-width",
-            "description": "The available width between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "availableHeight",
-            "value": "--available-height",
-            "description": "The available height between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorWidth",
-            "value": "--anchor-width",
-            "description": "The anchor's width.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorHeight",
-            "value": "--anchor-height",
-            "description": "The anchor's height.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "transformOrigin",
-            "value": "--transform-origin",
-            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
-            "valueType": "{string}"
-          },
-          {
-            "name": "positionerWidth",
-            "value": "--positioner-width",
-            "description": "The width of the positioner element.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "positionerHeight",
-            "value": "--positioner-height",
-            "description": "The height of the positioner element.",
-            "valueType": "{number}"
-          }
-        ],
-        "enumCategory": "cssVars"
-      },
       "ContextMenuPositionerDataAttributes": {
         "name": "ContextMenuPositionerDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-positioner",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-positioner'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -5499,6 +5674,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-context-menu-radio-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-radio-group'}"
+          },
+          {
             "name": "disabled",
             "value": "data-disabled",
             "description": "Present when the radio group is disabled."
@@ -5510,6 +5691,12 @@
         "name": "ContextMenuRadioItemDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-radio-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-radio-item'}"
+          },
           {
             "name": "checked",
             "value": "data-checked",
@@ -5533,10 +5720,52 @@
         ],
         "enumCategory": "dataAttributes"
       },
+      "ContextMenuRadioItemIndicatorDataAttributes": {
+        "name": "ContextMenuRadioItemIndicatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-radio-item-indicator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-radio-item-indicator'}"
+          },
+          {
+            "name": "checked",
+            "value": "data-checked",
+            "description": "Present when the radio item is checked/selected."
+          },
+          {
+            "name": "unchecked",
+            "value": "data-unchecked",
+            "description": "Present when the radio item is unchecked."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuSeparatorDataAttributes": {
+        "name": "ContextMenuSeparatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-separator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-separator'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
       "ContextMenuShortcutDataAttributes": {
         "name": "ContextMenuShortcutDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-shortcut",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-shortcut'}"
+          },
           {
             "name": "highlighted",
             "value": "data-highlighted",
@@ -5549,6 +5778,12 @@
         "name": "ContextMenuSubmenuTriggerDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-submenu-trigger",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-submenu-trigger'}"
+          },
           {
             "name": "submenuTrigger",
             "value": "data-submenu-trigger",
@@ -5573,6 +5808,37 @@
             "name": "disabled",
             "value": "data-disabled",
             "description": "Present when the item is disabled."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuSubmenuTriggerIndicatorDataAttributes": {
+        "name": "ContextMenuSubmenuTriggerIndicatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-submenu-trigger-indicator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-submenu-trigger-indicator'}"
+          },
+          {
+            "name": "popupOpen",
+            "value": "data-popup-open",
+            "description": "Present when the submenu popup is open."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuSurfaceDataAttributes": {
+        "name": "ContextMenuSurfaceDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-surface",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-surface'}"
           }
         ],
         "enumCategory": "dataAttributes"
@@ -7604,6 +7870,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-trigger",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-trigger'}"
+          },
+          {
             "name": "popupOpen",
             "value": "data-popup-open",
             "description": "Present when the corresponding dropdown menu is open."
@@ -9282,10 +9554,79 @@
         "name": "DropdownMenuSurfaceState",
         "kind": "interface"
       },
+      "DropdownMenuListCssVars": {
+        "name": "DropdownMenuListCssVars",
+        "kind": "enum",
+        "doc": "CSS custom properties applied to the List component.",
+        "members": [
+          {
+            "name": "rowWidth",
+            "value": "--row-width",
+            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
+      "DropdownMenuPositionerCssVars": {
+        "name": "DropdownMenuPositionerCssVars",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "availableWidth",
+            "value": "--available-width",
+            "description": "The available width between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "availableHeight",
+            "value": "--available-height",
+            "description": "The available height between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorWidth",
+            "value": "--anchor-width",
+            "description": "The anchor's width.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorHeight",
+            "value": "--anchor-height",
+            "description": "The anchor's height.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "transformOrigin",
+            "value": "--transform-origin",
+            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
+            "valueType": "{string}"
+          },
+          {
+            "name": "positionerWidth",
+            "value": "--positioner-width",
+            "description": "The width of the positioner element.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "positionerHeight",
+            "value": "--positioner-height",
+            "description": "The height of the positioner element.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
       "DropdownMenuArrowDataAttributes": {
         "name": "DropdownMenuArrowDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-arrow",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-arrow'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -9321,6 +9662,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-backdrop",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-backdrop'}"
+          },
+          {
             "name": "open",
             "value": "data-open",
             "description": "Present when the popup menu is open."
@@ -9348,6 +9695,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-checkbox-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-checkbox-item'}"
+          },
+          {
             "name": "checked",
             "value": "data-checked",
             "description": "Present when the checkbox item is checked."
@@ -9370,10 +9723,101 @@
         ],
         "enumCategory": "dataAttributes"
       },
+      "DropdownMenuCheckboxItemIndicatorDataAttributes": {
+        "name": "DropdownMenuCheckboxItemIndicatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-checkbox-item-indicator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-checkbox-item-indicator'}"
+          },
+          {
+            "name": "checked",
+            "value": "data-checked",
+            "description": "Present when the checkbox item is checked."
+          },
+          {
+            "name": "unchecked",
+            "value": "data-unchecked",
+            "description": "Present when the checkbox item is unchecked."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuEmptyDataAttributes": {
+        "name": "DropdownMenuEmptyDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-empty",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-empty'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuGroupDataAttributes": {
+        "name": "DropdownMenuGroupDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-group'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuGroupLabelDataAttributes": {
+        "name": "DropdownMenuGroupLabelDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-group-label",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-group-label'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuInputDataAttributes": {
+        "name": "DropdownMenuInputDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-input",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-input'}"
+          },
+          {
+            "name": "open",
+            "value": "data-open",
+            "description": "Present when the popup menu is open."
+          },
+          {
+            "name": "closed",
+            "value": "data-closed",
+            "description": "Present when the popup menu is closed."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
       "DropdownMenuItemDataAttributes": {
         "name": "DropdownMenuItemDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-item'}"
+          },
           {
             "name": "highlighted",
             "value": "data-highlighted",
@@ -9387,24 +9831,16 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "DropdownMenuListCssVars": {
-        "name": "DropdownMenuListCssVars",
-        "kind": "enum",
-        "doc": "CSS custom properties applied to the List component.",
-        "members": [
-          {
-            "name": "rowWidth",
-            "value": "--row-width",
-            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
-            "valueType": "{number}"
-          }
-        ],
-        "enumCategory": "cssVars"
-      },
       "DropdownMenuListDataAttributes": {
         "name": "DropdownMenuListDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-list",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-list'}"
+          },
           {
             "name": "list",
             "value": "data-popup-menu-list",
@@ -9417,6 +9853,12 @@
         "name": "DropdownMenuPopupDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-popup",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-popup'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -9473,59 +9915,16 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "DropdownMenuPositionerCssVars": {
-        "name": "DropdownMenuPositionerCssVars",
-        "kind": "enum",
-        "members": [
-          {
-            "name": "availableWidth",
-            "value": "--available-width",
-            "description": "The available width between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "availableHeight",
-            "value": "--available-height",
-            "description": "The available height between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorWidth",
-            "value": "--anchor-width",
-            "description": "The anchor's width.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorHeight",
-            "value": "--anchor-height",
-            "description": "The anchor's height.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "transformOrigin",
-            "value": "--transform-origin",
-            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
-            "valueType": "{string}"
-          },
-          {
-            "name": "positionerWidth",
-            "value": "--positioner-width",
-            "description": "The width of the positioner element.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "positionerHeight",
-            "value": "--positioner-height",
-            "description": "The height of the positioner element.",
-            "valueType": "{number}"
-          }
-        ],
-        "enumCategory": "cssVars"
-      },
       "DropdownMenuPositionerDataAttributes": {
         "name": "DropdownMenuPositionerDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-positioner",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-positioner'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -9561,6 +9960,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-radio-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-radio-group'}"
+          },
+          {
             "name": "disabled",
             "value": "data-disabled",
             "description": "Present when the radio group is disabled."
@@ -9572,6 +9977,12 @@
         "name": "DropdownMenuRadioItemDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-radio-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-radio-item'}"
+          },
           {
             "name": "checked",
             "value": "data-checked",
@@ -9595,10 +10006,52 @@
         ],
         "enumCategory": "dataAttributes"
       },
+      "DropdownMenuRadioItemIndicatorDataAttributes": {
+        "name": "DropdownMenuRadioItemIndicatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-radio-item-indicator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-radio-item-indicator'}"
+          },
+          {
+            "name": "checked",
+            "value": "data-checked",
+            "description": "Present when the radio item is checked/selected."
+          },
+          {
+            "name": "unchecked",
+            "value": "data-unchecked",
+            "description": "Present when the radio item is unchecked."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuSeparatorDataAttributes": {
+        "name": "DropdownMenuSeparatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-separator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-separator'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
       "DropdownMenuShortcutDataAttributes": {
         "name": "DropdownMenuShortcutDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-shortcut",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-shortcut'}"
+          },
           {
             "name": "highlighted",
             "value": "data-highlighted",
@@ -9611,6 +10064,12 @@
         "name": "DropdownMenuSubmenuTriggerDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-submenu-trigger",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-submenu-trigger'}"
+          },
           {
             "name": "submenuTrigger",
             "value": "data-submenu-trigger",
@@ -9635,6 +10094,37 @@
             "name": "disabled",
             "value": "data-disabled",
             "description": "Present when the item is disabled."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuSubmenuTriggerIndicatorDataAttributes": {
+        "name": "DropdownMenuSubmenuTriggerIndicatorDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-submenu-trigger-indicator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-submenu-trigger-indicator'}"
+          },
+          {
+            "name": "popupOpen",
+            "value": "data-popup-open",
+            "description": "Present when the submenu popup is open."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuSurfaceDataAttributes": {
+        "name": "DropdownMenuSurfaceDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-surface",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-surface'}"
           }
         ],
         "enumCategory": "dataAttributes"
@@ -11366,10 +11856,79 @@
         "name": "SelectSurfaceState",
         "kind": "interface"
       },
+      "SelectListCssVars": {
+        "name": "SelectListCssVars",
+        "kind": "enum",
+        "doc": "CSS custom properties applied to the List component.",
+        "members": [
+          {
+            "name": "rowWidth",
+            "value": "--row-width",
+            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
+      "SelectPositionerCssVars": {
+        "name": "SelectPositionerCssVars",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "availableWidth",
+            "value": "--available-width",
+            "description": "The available width between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "availableHeight",
+            "value": "--available-height",
+            "description": "The available height between the trigger and the edge of the viewport.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorWidth",
+            "value": "--anchor-width",
+            "description": "The anchor's width.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "anchorHeight",
+            "value": "--anchor-height",
+            "description": "The anchor's height.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "transformOrigin",
+            "value": "--transform-origin",
+            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
+            "valueType": "{string}"
+          },
+          {
+            "name": "positionerWidth",
+            "value": "--positioner-width",
+            "description": "The width of the positioner element.",
+            "valueType": "{number}"
+          },
+          {
+            "name": "positionerHeight",
+            "value": "--positioner-height",
+            "description": "The height of the positioner element.",
+            "valueType": "{number}"
+          }
+        ],
+        "enumCategory": "cssVars"
+      },
       "SelectArrowDataAttributes": {
         "name": "SelectArrowDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-select-arrow",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-arrow'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -11405,6 +11964,12 @@
         "kind": "enum",
         "members": [
           {
+            "name": "slot",
+            "value": "bazzaui-select-backdrop",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-backdrop'}"
+          },
+          {
             "name": "open",
             "value": "data-open",
             "description": "Present when the popup menu is open."
@@ -11427,24 +11992,78 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "SelectListCssVars": {
-        "name": "SelectListCssVars",
+      "SelectEmptyDataAttributes": {
+        "name": "SelectEmptyDataAttributes",
         "kind": "enum",
-        "doc": "CSS custom properties applied to the List component.",
         "members": [
           {
-            "name": "rowWidth",
-            "value": "--row-width",
-            "description": "The maximum measured row width.\nApplied when `measureRowWidth` is true.\nUseful for keeping virtualized lists at a consistent width.",
-            "valueType": "{number}"
+            "name": "slot",
+            "value": "bazzaui-select-empty",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-empty'}"
           }
         ],
-        "enumCategory": "cssVars"
+        "enumCategory": "dataAttributes"
+      },
+      "SelectGroupDataAttributes": {
+        "name": "SelectGroupDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-select-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-group'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "SelectGroupLabelDataAttributes": {
+        "name": "SelectGroupLabelDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-select-group-label",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-group-label'}"
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "SelectInputDataAttributes": {
+        "name": "SelectInputDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-select-input",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-input'}"
+          },
+          {
+            "name": "open",
+            "value": "data-open",
+            "description": "Present when the popup menu is open."
+          },
+          {
+            "name": "closed",
+            "value": "data-closed",
+            "description": "Present when the popup menu is closed."
+          }
+        ],
+        "enumCategory": "dataAttributes"
       },
       "SelectListDataAttributes": {
         "name": "SelectListDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-select-list",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-list'}"
+          },
           {
             "name": "list",
             "value": "data-popup-menu-list",
@@ -11457,6 +12076,12 @@
         "name": "SelectPopupDataAttributes",
         "kind": "enum",
         "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-select-popup",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-popup'}"
+          },
           {
             "name": "open",
             "value": "data-open",
@@ -11513,85 +12138,15 @@
         ],
         "enumCategory": "dataAttributes"
       },
-      "SelectPositionerCssVars": {
-        "name": "SelectPositionerCssVars",
+      "SelectSeparatorDataAttributes": {
+        "name": "SelectSeparatorDataAttributes",
         "kind": "enum",
         "members": [
           {
-            "name": "availableWidth",
-            "value": "--available-width",
-            "description": "The available width between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "availableHeight",
-            "value": "--available-height",
-            "description": "The available height between the trigger and the edge of the viewport.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorWidth",
-            "value": "--anchor-width",
-            "description": "The anchor's width.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "anchorHeight",
-            "value": "--anchor-height",
-            "description": "The anchor's height.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "transformOrigin",
-            "value": "--transform-origin",
-            "description": "The coordinates that this element is anchored to. Used for animations and transitions.",
-            "valueType": "{string}"
-          },
-          {
-            "name": "positionerWidth",
-            "value": "--positioner-width",
-            "description": "The width of the positioner element.",
-            "valueType": "{number}"
-          },
-          {
-            "name": "positionerHeight",
-            "value": "--positioner-height",
-            "description": "The height of the positioner element.",
-            "valueType": "{number}"
-          }
-        ],
-        "enumCategory": "cssVars"
-      },
-      "SelectPositionerDataAttributes": {
-        "name": "SelectPositionerDataAttributes",
-        "kind": "enum",
-        "members": [
-          {
-            "name": "open",
-            "value": "data-open",
-            "description": "Present when the popup menu is open."
-          },
-          {
-            "name": "closed",
-            "value": "data-closed",
-            "description": "Present when the popup menu is closed."
-          },
-          {
-            "name": "anchorHidden",
-            "value": "data-anchor-hidden",
-            "description": "Present when the anchor is hidden."
-          },
-          {
-            "name": "side",
-            "value": "data-side",
-            "description": "Indicates which side the popup is positioned relative to the trigger.",
-            "valueType": "{'top' | 'bottom' | 'left' | 'right' | 'inline-end' | 'inline-start'}"
-          },
-          {
-            "name": "align",
-            "value": "data-align",
-            "description": "Indicates how the popup is aligned relative to specified side.",
-            "valueType": "{'start' | 'center' | 'end' | 'list-start'}"
+            "name": "slot",
+            "value": "bazzaui-select-separator",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-select-separator'}"
           }
         ],
         "enumCategory": "dataAttributes"

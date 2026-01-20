@@ -90,6 +90,7 @@ export const SelectItemIndicator = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      [SelectItemIndicatorDataAttributes.slot]: '',
       'aria-hidden': true,
       className,
       style,

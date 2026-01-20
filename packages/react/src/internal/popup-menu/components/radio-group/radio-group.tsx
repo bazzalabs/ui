@@ -8,6 +8,10 @@ import {
 } from '../../../../utils/events/index.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import type {
   RadioValueChangeEventDetails,
   RadioValueChangeReason,
@@ -142,6 +146,10 @@ export const PopupMenuRadioGroup = React.forwardRef(
       [disabled],
     )
 
+    // Get component name for slot attribute
+    const componentName = useMaybeComponentName()
+    const slotAttr = getSlotAttribute(componentName, 'radio-group')
+
     const element = useRender({
       render,
       ref: forwardedRef,
@@ -149,6 +157,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
       stateAttributesMapping,
       props: {
         ...rest,
+        ...(slotAttr ? { [slotAttr]: '' } : {}),
         role: 'group',
         'aria-disabled': disabled || undefined,
         className,

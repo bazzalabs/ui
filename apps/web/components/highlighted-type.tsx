@@ -61,7 +61,8 @@ export function HighlightedType({
     <span
       className={cn(
         className,
-        '[&_.shiki-inline]:bg-transparent [&_code]:text-inherit [&_code]:font-mono [&_code]:whitespace-pre-wrap',
+        '[&_code]:font-mono [&_code]:whitespace-pre-wrap',
+        // '[&_span]:!text-(--shiki-light)',
       )}
     >
       {highlighted}

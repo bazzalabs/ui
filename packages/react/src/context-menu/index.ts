@@ -104,33 +104,41 @@ export type {
   PopupMenuSurfaceProps as ContextMenuSurfaceProps,
   PopupMenuSurfaceState as ContextMenuSurfaceState,
 } from '../internal/popup-menu/index.js'
-// Arrow
-// Backdrop
-// Popup
-// Positioner
-// Item
-// Checkbox Item
-// Radio Group
-// Radio Item
-// Submenu Trigger
-// Shortcut
+// CSS variables (still from popup-menu as they don't have component-specific values)
 export {
-  PopupMenuArrowDataAttributes as ContextMenuArrowDataAttributes,
-  PopupMenuBackdropDataAttributes as ContextMenuBackdropDataAttributes,
-  PopupMenuCheckboxItemDataAttributes as ContextMenuCheckboxItemDataAttributes,
-  PopupMenuIconDataAttributes as ContextMenuIconDataAttributes,
-  PopupMenuItemDataAttributes as ContextMenuItemDataAttributes,
   PopupMenuListCssVars as ContextMenuListCssVars,
-  PopupMenuListDataAttributes as ContextMenuListDataAttributes,
-  PopupMenuPopupDataAttributes as ContextMenuPopupDataAttributes,
   PopupMenuPositionerCssVars as ContextMenuPositionerCssVars,
-  PopupMenuPositionerDataAttributes as ContextMenuPositionerDataAttributes,
-  PopupMenuRadioGroupDataAttributes as ContextMenuRadioGroupDataAttributes,
-  PopupMenuRadioItemDataAttributes as ContextMenuRadioItemDataAttributes,
-  PopupMenuScrollArrowDataAttributes as ContextMenuScrollArrowDataAttributes,
-  PopupMenuShortcutDataAttributes as ContextMenuShortcutDataAttributes,
-  PopupMenuSubmenuTriggerDataAttributes as ContextMenuSubmenuTriggerDataAttributes,
 } from '../internal/popup-menu/index.js'
+
+// Data attributes with component-specific bazzaui-* selectors
+export { ContextMenuArrowDataAttributes } from './arrow/arrow.data-attrs.js'
+export { ContextMenuBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
+export {
+  ContextMenuCheckboxItemDataAttributes,
+  ContextMenuCheckboxItemIndicatorDataAttributes,
+} from './checkbox-item/checkbox-item.data-attrs.js'
+export { ContextMenuEmptyDataAttributes } from './empty/empty.data-attrs.js'
+export { ContextMenuGroupDataAttributes } from './group/group.data-attrs.js'
+export { ContextMenuGroupLabelDataAttributes } from './group-label/group-label.data-attrs.js'
+export { ContextMenuIconDataAttributes } from './icon/icon.data-attrs.js'
+export { ContextMenuInputDataAttributes } from './input/input.data-attrs.js'
+export { ContextMenuItemDataAttributes } from './item/item.data-attrs.js'
+export { ContextMenuListDataAttributes } from './list/list.data-attrs.js'
+export { ContextMenuPopupDataAttributes } from './popup/popup.data-attrs.js'
+export { ContextMenuPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
+export { ContextMenuRadioGroupDataAttributes } from './radio-group/radio-group.data-attrs.js'
+export {
+  ContextMenuRadioItemDataAttributes,
+  ContextMenuRadioItemIndicatorDataAttributes,
+} from './radio-item/radio-item.data-attrs.js'
+export { ContextMenuScrollArrowDataAttributes } from './scroll-arrow/scroll-arrow.data-attrs.js'
+export { ContextMenuSeparatorDataAttributes } from './separator/separator.data-attrs.js'
+export { ContextMenuShortcutDataAttributes } from './shortcut/shortcut.data-attrs.js'
+export {
+  ContextMenuSubmenuTriggerDataAttributes,
+  ContextMenuSubmenuTriggerIndicatorDataAttributes,
+} from './submenu-trigger/submenu-trigger.data-attrs.js'
+export { ContextMenuSurfaceDataAttributes } from './surface/surface.data-attrs.js'
 
 // ============================================================================
 // Context hooks (for advanced usage)

@@ -172,6 +172,7 @@ export const SelectValue = React.forwardRef<HTMLSpanElement, SelectValue.Props>(
       stateAttributesMapping,
       props: {
         ...rest,
+        [SelectValueDataAttributes.slot]: '',
         ref: internalRef,
         className,
         style,

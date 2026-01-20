@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useSurfaceContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { PopupMenuScrollArrowDataAttributes } from './scroll-arrow.data-attrs.js'
 
 export { PopupMenuScrollArrowDataAttributes }
@@ -171,6 +175,13 @@ export const PopupMenuScrollArrow = React.forwardRef<
   // Determine if we should render
   const shouldRender = visible || keepMounted
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(
+    componentName,
+    direction === 'up' ? 'scroll-up-arrow' : 'scroll-down-arrow',
+  )
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -178,6 +189,7 @@ export const PopupMenuScrollArrow = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       className,
       style,
       onPointerEnter: (event: React.PointerEvent<HTMLDivElement>) => {

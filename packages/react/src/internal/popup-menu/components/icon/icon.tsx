@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { PopupMenuIconDataAttributes } from './icon.data-attrs.js'
 
@@ -94,6 +98,10 @@ export const PopupMenuIcon = React.forwardRef<
     [onClick, comboboxContext, open],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'icon')
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -101,6 +109,7 @@ export const PopupMenuIcon = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       className,
       style,
       children,

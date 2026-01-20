@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import { useRadioGroupContext } from '../radio-group/radio-group-context.js'
 import { PopupMenuRadioItemDataAttributes } from './radio-item.data-attrs.js'
@@ -187,6 +191,10 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
     [onPointerMove, item.handlers],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'radio-item')
+
   const element = useRender({
     render,
     ref: [item.ref, forwardedRef],
@@ -194,6 +202,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitemradio',
       tabIndex: -1,

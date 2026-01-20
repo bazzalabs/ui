@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import { PopupMenuItemDataAttributes } from './item.data-attrs.js'
 
@@ -155,6 +159,10 @@ export const PopupMenuItem = React.forwardRef<
     </ItemContext.Provider>
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'item')
+
   return useRender({
     render,
     ref: [item.ref, forwardedRef],
@@ -162,6 +170,7 @@ export const PopupMenuItem = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'option',
       tabIndex: -1,

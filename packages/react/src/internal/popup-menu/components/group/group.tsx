@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 
 export interface PopupMenuGroupState extends Record<string, unknown> {
   /**
@@ -64,12 +68,17 @@ export const PopupMenuGroup = React.forwardRef<
     [isVisible],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'group')
+
   const element = useRender({
     render,
     ref: forwardedRef,
     state,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       // Using role="presentation" since we're inside a listbox.
       // The group is purely visual - items are the semantic options.
       role: 'presentation',
