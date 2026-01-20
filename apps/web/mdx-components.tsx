@@ -26,6 +26,7 @@ import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
 import { ComponentPreview } from './components/component-preview'
 import { ComponentsList } from './components/components-list'
+import { Example } from './components/example'
 import { Examples } from './components/examples'
 import { Media } from './components/media'
 import PropRow from './components/prop-row'
@@ -281,6 +282,7 @@ const components = {
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,
+  Example,
   ComponentPreview: ({ className, ...props }) => (
     <ComponentPreview className={cn('my-6', className)} {...props} />
   ),

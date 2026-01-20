@@ -1,45 +1,27 @@
 ---
 title: Dropdown Menu
 section: Getting Started
-summary: A menu that appears when triggered by a button. Supports items, checkboxes, radio groups, submenus, and deep search.
+summary: Displays a menu to the user—such as a set of actions or functions—triggered by a button. Supports items, checkboxes, radio groups, submenus, and deep search.
 ---
-
-A dropdown menu displays a list of options when activated by a trigger element. It supports regular items, checkbox items, radio groups, nested submenus, keyboard navigation, and deep search filtering.
 
 ## Installation
 
-```bash
-bun add @bazza-ui/react
+```npm
+npx shadcn@latest add https://bazza-ui.com/r/dropdown-menu
 ```
 
-## Basic Usage
+```tsx
+import { DropdownMenu } from '@/components/ui/dropdown-menu';
+```
+
+If you want to install the unstyled, primitive component:
+
+```npm
+npm install @bazza-ui/react
+```
 
 ```tsx
-import { DropdownMenu } from '@bazza-ui/react'
-
-function Demo() {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>Open Menu</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.Item onSelect={() => console.log('New')}>
-              New
-            </DropdownMenu.Item>
-            <DropdownMenu.Item onSelect={() => console.log('Open')}>
-              Open
-            </DropdownMenu.Item>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item onSelect={() => console.log('Save')}>
-              Save
-            </DropdownMenu.Item>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
+import { DropdownMenu } from '@bazza-ui/react';
 ```
 
 ## Anatomy
@@ -55,186 +37,119 @@ function Demo() {
         <DropdownMenu.Surface>
           <DropdownMenu.Input />
           <DropdownMenu.List>
+            {/* Scroll up/down arrows */}
+            <DropdownMenu.ScrollUpArrow />
+            <DropdownMenu.ScrollDownArrow />
+            {/* Items */}
+            <DropdownMenu.Item>
+              <DropdownMenu.Icon />
+              <DropdownMenu.Shortcut />
+            </DropdownMenu.Item>
+            {/* Groups */}
             <DropdownMenu.Group>
               <DropdownMenu.GroupLabel />
-              <DropdownMenu.Item>
-                <DropdownMenu.Icon />
-                <DropdownMenu.Shortcut />
-              </DropdownMenu.Item>
             </DropdownMenu.Group>
-            <DropdownMenu.Separator />
+            {/* Checkbox items */}
             <DropdownMenu.CheckboxItem>
               <DropdownMenu.CheckboxItemIndicator />
             </DropdownMenu.CheckboxItem>
+            {/* Radio group + radio items */}
             <DropdownMenu.RadioGroup>
               <DropdownMenu.RadioItem>
                 <DropdownMenu.RadioItemIndicator />
               </DropdownMenu.RadioItem>
             </DropdownMenu.RadioGroup>
+            {/* Separator */}
+            <DropdownMenu.Separator />
+            {/* Submenus */}
             <DropdownMenu.Submenu>
+              {/* Submenu Trigger */}
               <DropdownMenu.SubmenuTrigger>
                 <DropdownMenu.SubmenuTriggerIndicator />
               </DropdownMenu.SubmenuTrigger>
-              {/* Nested Positioner/Popup/Surface/List */}
             </DropdownMenu.Submenu>
             <DropdownMenu.Empty />
           </DropdownMenu.List>
         </DropdownMenu.Surface>
-        <DropdownMenu.ScrollUpArrow />
-        <DropdownMenu.ScrollDownArrow />
       </DropdownMenu.Popup>
     </DropdownMenu.Positioner>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>
 ```
 
-## Features
-
-- **Accessible** - Full keyboard navigation and ARIA attributes
-- **Composable** - Build menus with any combination of items, checkboxes, radio groups, and submenus
-- **Deep Search** - Built-in typeahead filtering with fuzzy matching
-- **Virtualized** - Support for virtualized lists with thousands of items
-- **Submenus** - Nested menus with intelligent aim tracking
-- **Controlled & Uncontrolled** - Works in both modes with `open` and `onOpenChange`
-
 ## Examples
 
-### With Checkbox Items
+> These examples use the styled primitive from our shadcn/ui registry.
+
+### Basic
+
+Each item accepts an `onSelect` callback that fires when the item is selected via click or keyboard.
+
+<Example name="dropdown-menu-basic">
+  <Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Item onSelect={() => toast('Copied!')} />
+  ```
+
+  </Example.PreviewCode>
+</Example>
+
+### Close on click
+
+Use the `closeOnClick` prop to close the menu when an item is selected.
+
+<Example name="dropdown-menu-close-on-click">
+<Example.PreviewCode>
 
 ```tsx
-function CheckboxDemo() {
-  const [showToolbar, setShowToolbar] = React.useState(true)
-  const [showSidebar, setShowSidebar] = React.useState(false)
-
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>View Options</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.CheckboxItem
-              checked={showToolbar}
-              onCheckedChange={setShowToolbar}
-            >
-              <DropdownMenu.CheckboxItemIndicator />
-              Show Toolbar
-            </DropdownMenu.CheckboxItem>
-            <DropdownMenu.CheckboxItem
-              checked={showSidebar}
-              onCheckedChange={setShowSidebar}
-            >
-              <DropdownMenu.CheckboxItemIndicator />
-              Show Sidebar
-            </DropdownMenu.CheckboxItem>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
+// Override the default behaviour for each item
+<DropdownMenu.Item closeOnClick={false} />
+<DropdownMenu.CheckboxItem closeOnClick />
+<DropdownMenu.RadioItem closeOnClick />
 ```
 
-### With Radio Group
+</Example.PreviewCode>
 
-```tsx
-function RadioDemo() {
-  const [sortBy, setSortBy] = React.useState('name')
+</Example>
 
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>Sort By</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.RadioGroup value={sortBy} onValueChange={setSortBy}>
-              <DropdownMenu.RadioItem value="name">
-                <DropdownMenu.RadioItemIndicator />
-                Name
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="date">
-                <DropdownMenu.RadioItemIndicator />
-                Date
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="size">
-                <DropdownMenu.RadioItemIndicator />
-                Size
-              </DropdownMenu.RadioItem>
-            </DropdownMenu.RadioGroup>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
-```
+### Hidden input
 
-### With Submenu
+We recommend **always** composing your menu with the `<DropdownMenu.Input>` part.
 
-```tsx
-function SubmenuDemo() {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>Edit</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.Item>Undo</DropdownMenu.Item>
-            <DropdownMenu.Item>Redo</DropdownMenu.Item>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Submenu>
-              <DropdownMenu.SubmenuTrigger>
-                Find and Replace
-                <DropdownMenu.SubmenuTriggerIndicator />
-              </DropdownMenu.SubmenuTrigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Positioner>
-                  <DropdownMenu.Popup>
-                    <DropdownMenu.Item>Find</DropdownMenu.Item>
-                    <DropdownMenu.Item>Find Next</DropdownMenu.Item>
-                    <DropdownMenu.Item>Find Previous</DropdownMenu.Item>
-                    <DropdownMenu.Separator />
-                    <DropdownMenu.Item>Replace</DropdownMenu.Item>
-                    <DropdownMenu.Item>Replace All</DropdownMenu.Item>
-                  </DropdownMenu.Popup>
-                </DropdownMenu.Positioner>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Submenu>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
-```
+If you want a cleaner look, the `hideUntilActive` prop can be used to hide the input until the user starts typing.
 
-### With Search Input
+<Example name="dropdown-menu-hidden-input">
 
-```tsx
-function SearchDemo() {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>Commands</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.Surface clearSearchOnClose="after-exit">
-              <DropdownMenu.Input placeholder="Search commands..." />
-              <DropdownMenu.List>
-                <DropdownMenu.Item value="new-file">New File</DropdownMenu.Item>
-                <DropdownMenu.Item value="open-file">Open File</DropdownMenu.Item>
-                <DropdownMenu.Item value="save-file">Save File</DropdownMenu.Item>
-                <DropdownMenu.Item value="save-as">Save As...</DropdownMenu.Item>
-                <DropdownMenu.Item value="close-file">Close File</DropdownMenu.Item>
-              </DropdownMenu.List>
-              <DropdownMenu.Empty>No results found</DropdownMenu.Empty>
-            </DropdownMenu.Surface>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
-```
+<Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Input hideUntilActive />
+  ```
+
+</Example.PreviewCode>
+
+</Example>
+
+### Checkbox items
+
+Use the `<DropdownMenu.CheckboxItem>` part to create a menu item that can toggle a setting on or off.
+
+It can be used uncontrolled, or controlled via `checked` and `onCheckedChange` props.
+
+<Example name="dropdown-menu-checkbox" />
+
+### Radio group
+
+<Example name="dropdown-menu-radio" />
+
+### Submenu
+
+<Example name="dropdown-menu-submenu" />
+
+### Search input
+
+<Example name="dropdown-menu-search" />
 
 ## API Reference
 

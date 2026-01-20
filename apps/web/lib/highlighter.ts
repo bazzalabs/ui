@@ -46,6 +46,9 @@ export async function highlight(code: string, lang: BundledLanguage) {
       light: 'github-light',
       dark: 'github-dark',
     },
+    // Use CSS variables for colors instead of inline styles
+    // This allows the theme to be controlled via CSS (html.light/html.dark selectors)
+    defaultColor: false,
     transformers: [transformerNotationDiff(), transformerNotationHighlight()],
     colorReplacements: {
       '#24292e': 'oklch(0.205 0 0)',
@@ -64,6 +67,7 @@ export async function highlightInline(code: string, lang: BundledLanguage) {
   const hast = highlighter.codeToHast(code, {
     lang,
     themes: { light: 'github-light', dark: 'github-dark' },
+    defaultColor: false,
     transformers: [transformerNotationDiff(), transformerNotationHighlight()],
     colorReplacements: {
       '#24292e': 'oklch(0.205 0 0)',

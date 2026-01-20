@@ -29,6 +29,23 @@ export type RegistryIndex = Record<string, RegistryEntry>
 // =============================================================================
 // Examples
 // =============================================================================
+//
+// Examples can be structured in two ways:
+//
+// 1. Single file (flat):
+//    registry/examples/dropdown-menu-basic.tsx
+//    files: ['registry/examples/dropdown-menu-basic.tsx']
+//
+// 2. Multi-file (folder):
+//    registry/examples/dropdown-menu-complex/index.tsx
+//    registry/examples/dropdown-menu-complex/data.ts
+//    files: [
+//      'registry/examples/dropdown-menu-complex/index.tsx',
+//      'registry/examples/dropdown-menu-complex/data.ts',
+//    ]
+//
+// The first file in the `files` array is used as the main component to render.
+// All files are shown as tabs in the code viewer.
 
 export const examples: RegistryIndex = {
   'filter-variants': {
@@ -36,6 +53,101 @@ export const examples: RegistryIndex = {
     type: 'registry:example',
     component: React.lazy(() => import('@/registry/examples/filter-variants')),
     files: ['registry/examples/filter-variants.tsx'],
+  },
+  'dropdown-menu-basic': {
+    name: 'dropdown-menu-basic',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/basic'),
+    ),
+    files: ['registry/examples/dropdown-menu/basic/index.tsx'],
+  },
+  'dropdown-menu-close-on-click': {
+    name: 'dropdown-menu-close-on-click',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/close-on-click'),
+    ),
+    files: ['registry/examples/dropdown-menu/close-on-click/index.tsx'],
+  },
+  'dropdown-menu-hidden-input': {
+    name: 'dropdown-menu-hidden-input',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/hidden-input'),
+    ),
+    files: ['registry/examples/dropdown-menu/hidden-input/index.tsx'],
+  },
+  'dropdown-menu-checkbox': {
+    name: 'dropdown-menu-checkbox',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/checkbox'),
+    ),
+    files: ['registry/examples/dropdown-menu/checkbox/index.tsx'],
+  },
+  'dropdown-menu-radio': {
+    name: 'dropdown-menu-radio',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/radio'),
+    ),
+    files: ['registry/examples/dropdown-menu/radio/index.tsx'],
+  },
+  'dropdown-menu-submenu': {
+    name: 'dropdown-menu-submenu',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/submenu'),
+    ),
+    files: ['registry/examples/dropdown-menu/submenu/index.tsx'],
+  },
+  'dropdown-menu-search': {
+    name: 'dropdown-menu-search',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/search'),
+    ),
+    files: ['registry/examples/dropdown-menu/search/index.tsx'],
+  },
+  'guides/dropdown-menu/your-first-menu/surface-hidden-input': {
+    name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/guides/your-first-menu/surface-hidden-input'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/guides/your-first-menu/surface-hidden-input.tsx',
+    ],
+  },
+  'guides/dropdown-menu/your-first-menu/01-initial': {
+    name: 'guides/dropdown-menu/your-first-menu/01-initial',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/guides/your-first-menu/items-01'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/guides/your-first-menu/items-01.tsx',
+    ],
+  },
+  'guides/dropdown-menu/your-first-menu/items-02': {
+    name: 'guides/dropdown-menu/your-first-menu/items-02',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/guides/your-first-menu/items-02'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/guides/your-first-menu/items-02.tsx',
+    ],
   },
 }
 
