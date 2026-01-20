@@ -1,0 +1,122 @@
+<div className='hidden'>
+
+## Guides
+
+### Your first menu
+
+Everything starts off with the root component -- it must wrap the whole menu:
+
+```tsx
+<DropdownMenu.Root>
+  {/* ... */}
+</DropdownMenu.Root>
+```
+
+First, let's render the menu trigger, which opens the menu when pressed:
+
+```tsx
+<DropdownMenu.Root>
+  <DropdownMenu.Trigger>
+    Click me!
+  <DropdownMenu.Trigger>
+</DropdownMenu.Root>
+```
+
+We can render a custom element in place of the default `<button>` using the `render` prop.
+
+For example, here we're using the shadcn/ui button with outline variant:
+
+```tsx
+<DropdownMenu.Root>
+  <DropdownMenu.Trigger render={<Button variant="outline" />}>
+    Click me!
+  <DropdownMenu.Trigger>
+</DropdownMenu.Root>
+```
+
+<br />
+
+Next, let's render the actual menu popup.
+
+- `Portal` moves the popup to a different part of the DOM; by default, it is appended to `<body>`.
+- `Positioner` positions the popup against the trigger.
+- `Popup` renders the actual popup container.
+
+Optionally, we can also use `Overlay` and `Arrow`... but we'll omit these for this basic example.
+
+```tsx
+<DropdownMenu.Root>
+  {/* ...  */}
+  <DropdownMenu.Portal>
+    <DropdownMenu.Positioner>
+      <DropdownMenu.Popup>
+        {/* ... */}
+      </DropdownMenu.Popup>
+    </DropdownMenu.Positioner>
+  </DropdownMenu.Portal>
+</DropdownMenu.Root>
+```
+
+<br />
+
+Within the menu popup, we can render our actual menu surface (via `DropdownMenu.Surface`), which handles the core listbox logic for us.
+
+A menu surface usually contains:
+
+- `DropdownMenu.Input` to search/filter the menu items.
+- `DropdownMenu.List` to wrap our menu rows.
+- `DropdownMenu.Empty` automatically renders when there are no items matching the search query; to be rendered inside `DropdownMenu.List`.
+
+
+```tsx
+<DropdownMenu.Surface>
+  <DropdownMenu.Input />
+  <DropdownMenu.List>
+    <DropdownMenu.Empty>
+      No matching results.
+    </DropdownMenu.Empty>
+  </DropdownMenu.List>
+</DropdownMenu.Surface>
+```
+
+If you don't want the input to be visible, we recommend rendering the input with the `hideUntilActive` prop, hiding the input until the user starts typing:
+
+<Example name="guides/dropdown-menu/your-first-menu/surface-hidden-input">
+  <Example.PreviewComponent />
+  <Example.PreviewCode>
+
+```tsx
+<DropdownMenu.Input hideUntilActive />
+```
+
+  </Example.PreviewCode>
+</Example>
+
+
+
+<br />
+
+Let's add some items to this menu. We'll use the `onSelect` prop to configure *what* happens when you select an item:
+
+<Example name="guides/dropdown-menu/your-first-menu/items-02">
+  <Example.PreviewComponent />
+  <Example.PreviewCode>
+
+```tsx
+<DropdownMenu.List>
+  <DropdownMenu.Item onSelect={() => toast('Apple')}>
+    Apple
+  </DropdownMenu.Item>
+  <DropdownMenu.Item onSelect={() => toast('Banana')}>
+    Banana
+  </DropdownMenu.Item>
+  <DropdownMenu.Item onSelect={() => toast('Orange')}>
+    Orange
+  </DropdownMenu.Item>
+</DropdownMenu.List>
+```
+
+  </Example.PreviewCode>
+</Example>
+
+</div>

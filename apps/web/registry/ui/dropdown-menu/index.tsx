@@ -13,6 +13,7 @@ import { cva } from 'class-variance-authority'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import type * as React from 'react'
 import { Fragment, forwardRef, useCallback, useEffect, useRef } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
 const scrollAreaViewportVariants = cva('scroll-py-1', {
@@ -497,16 +498,44 @@ Item.displayName = 'DropdownMenu.Item'
 const CheckboxItem = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.CheckboxItem>
->(({ className, ...props }, ref) => (
+>(({ className, checked, onCheckedChange, children, ...props }, ref) => (
   <Primitive.CheckboxItem
     ref={ref}
+    checked={checked}
+    onCheckedChange={onCheckedChange}
     className={cn(menuItemVariants({ variant: 'checkbox' }), className)}
     {...props}
-  />
+  >
+    {children}
+  </Primitive.CheckboxItem>
 ))
 CheckboxItem.displayName = 'DropdownMenu.CheckboxItem'
 
-const CheckboxItemIndicator = Primitive.CheckboxItemIndicator
+const CheckboxItemIndicator = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.CheckboxItemIndicator>
+>(({ className, keepMounted = true, ...props }, ref) => (
+  <Primitive.CheckboxItemIndicator
+    ref={ref}
+    className={cn(
+      'flex items-center justify-center shrink-0 relative',
+      "after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']",
+      className,
+    )}
+    keepMounted={keepMounted}
+    render={(props, state) => (
+      <Checkbox
+        {...props}
+        checked={state.checked}
+        onClick={(e) => {
+          e.stopPropagation()
+          state.toggle()
+        }}
+      />
+    )}
+    {...props}
+  />
+))
 
 const RadioGroup = Primitive.RadioGroup
 
@@ -530,15 +559,14 @@ const RadioItemIndicator = forwardRef<
 >(({ className, children, ...props }, ref) => (
   <Primitive.RadioItemIndicator
     ref={ref}
+    keepMounted
     className={cn(
-      'size-4 flex items-center justify-center shrink-0',
+      'size-4 flex items-center justify-center shrink-0 text-transparent data-[checked]:text-primary/75 data-[checked]:data-[highlighted]:text-primary',
       className,
     )}
     {...props}
   >
-    {children ?? (
-      <CheckIcon className="size-5 shrink-0 text-primary/75 group-data-[highlighted]/row:text-primary" />
-    )}
+    {children ?? <CheckIcon className="size-5 shrink-0 " />}
   </Primitive.RadioItemIndicator>
 ))
 RadioItemIndicator.displayName = 'DropdownMenu.RadioItemIndicator'
@@ -555,7 +583,13 @@ const Separator = forwardRef<
 ))
 Separator.displayName = 'DropdownMenu.Separator'
 
-const Group = Primitive.Group
+const Group = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Group>
+>(({ className, ...props }, ref) => (
+  <Primitive.Group ref={ref} className={cn('group', className)} {...props} />
+))
+Group.displayName = 'DropdownMenu.Group'
 
 const GroupLabel = forwardRef<
   HTMLDivElement,
@@ -564,7 +598,7 @@ const GroupLabel = forwardRef<
   <Primitive.GroupLabel
     ref={ref}
     className={cn(
-      'mt-3 data-[index=0]:mt-1 mb-2',
+      'mt-3 group-first:mt-1 mb-2',
       'text-xs font-medium text-muted-foreground px-3',
       className,
     )}

@@ -5,6 +5,7 @@ import 'rehype-callouts/theme/github'
 import { FlaskConicalIcon, TriangleDashedIcon } from 'lucide-react'
 import Link from 'next/link'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { ViewMarkdown } from '@/components/view-markdown'
 import { useMDXComponents } from '@/mdx-components'
 import { InlineTOCContainer } from './inline-toc-container'
 
@@ -151,10 +152,14 @@ export default async function Page({
         <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
           {slug.includes('menu') && <ExperimentalWarning />}
           {slug.includes('action-menu') && <DeprecationWarning />}
-          <div className="flex items-start gap-2">
+          <div className="flex items-end justify-between gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}
             </span>
+            <ViewMarkdown
+              markdownUrl={`${page.url}.mdx`}
+              githubUrl={`https://github.com/bazzadev/ui/blob/main/apps/web/content/docs/${page.path}`}
+            />
           </div>
           <div className="text-muted-foreground">{metadata.summary}</div>
         </div>
