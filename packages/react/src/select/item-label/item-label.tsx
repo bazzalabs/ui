@@ -5,6 +5,9 @@ import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { useSelectItemContext } from '../item/item-context.js'
+import { SelectItemLabelDataAttributes } from './item-label.data-attrs.js'
+
+export { SelectItemLabelDataAttributes }
 
 export interface SelectItemLabelState extends Record<string, unknown> {
   /**
@@ -137,6 +140,7 @@ export const SelectItemLabel = React.forwardRef<
     state,
     props: {
       ...rest,
+      [SelectItemLabelDataAttributes.slot]: '',
       ref: mergedRef,
       className,
       style,

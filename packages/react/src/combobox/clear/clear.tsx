@@ -4,6 +4,9 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
+import { ComboboxClearDataAttributes } from './clear.data-attrs.js'
+
+export { ComboboxClearDataAttributes }
 
 export interface ComboboxClearState extends Record<string, unknown> {
   /**
@@ -90,6 +93,7 @@ export const ComboboxClear = React.forwardRef<
     state,
     props: {
       ...rest,
+      [ComboboxClearDataAttributes.slot]: '',
       type: 'button',
       tabIndex: -1, // Not tabbable - use keyboard shortcuts instead
       'aria-label': 'Clear selection',

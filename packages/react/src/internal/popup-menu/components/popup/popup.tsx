@@ -4,6 +4,10 @@ import { Popover, type PopoverPopupProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useOpenChain } from '../../contexts/open-chain-context.js'
 import { useMaybePopupMenuContext } from '../../contexts/popup-menu-context.js'
@@ -174,6 +178,10 @@ export const PopupMenuPopup = React.forwardRef<
     return classNameProp
   }, [classNameProp, isSubmenu])
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'popup')
+
   return (
     <PopupSurfaceIdContext.Provider value={surfaceId}>
       <Popover.Popup
@@ -182,6 +190,7 @@ export const PopupMenuPopup = React.forwardRef<
         finalFocus={finalFocus}
         className={className}
         data-input-embedded={isInputEmbedded ? '' : undefined}
+        {...(slotAttr ? { [slotAttr]: '' } : {})}
         {...{
           [PopupMenuPopupDataAttributes.focused]: isFocused ? '' : undefined,
           [PopupMenuPopupDataAttributes.hasOpenSubmenu]: hasOpenSubmenu

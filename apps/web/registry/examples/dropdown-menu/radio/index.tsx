@@ -16,12 +16,14 @@ export default function DropdownMenuRadio() {
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
             <DropdownMenu.Surface>
+              <DropdownMenu.Input hideUntilActive />
               <DropdownMenu.List>
+                <DropdownMenu.Empty />
                 <DropdownMenu.RadioGroup
                   value={sortBy}
-                  onValueChange={setSortBy}
+                  onValueChange={(value) => setSortBy(value)}
                 >
-                  <DropdownMenu.GroupLabel>Hi there!</DropdownMenu.GroupLabel>
+                  <DropdownMenu.GroupLabel>Sort by</DropdownMenu.GroupLabel>
                   <DropdownMenu.RadioItem value="name">
                     Name
                     <DropdownMenu.RadioItemIndicator />

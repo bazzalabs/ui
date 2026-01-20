@@ -259,6 +259,7 @@ export const ComboboxItem = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      [ComboboxItemDataAttributes.slot]: '',
       id: item.id,
       role: 'option',
       tabIndex: -1,

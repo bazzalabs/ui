@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useSurfaceContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 
 // Separator doesn't have any state - using an empty object type
 export interface PopupMenuSeparatorState extends Record<string, unknown> {}
@@ -38,11 +42,16 @@ export const PopupMenuSeparator = React.forwardRef<
   const hasSearch = search.length > 0
   const isHidden = hasSearch && !alwaysRender
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'separator')
+
   const element = useRender({
     render,
     ref: forwardedRef,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       // Using role="none" as this is a purely visual separator within a listbox.
       // The semantic separator role requires focus for interactive separators.
       role: 'none',

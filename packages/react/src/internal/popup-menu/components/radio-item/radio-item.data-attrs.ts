@@ -1,5 +1,10 @@
 export enum PopupMenuRadioItemDataAttributes {
   /**
+   * Identifies the component part.
+   * @type {'bazzaui-dropdown-menu-radio-item' | 'bazzaui-context-menu-radio-item'}
+   */
+  slot = 'bazzaui-[component]-radio-item',
+  /**
    * Present when the radio item is checked/selected.
    */
   checked = 'data-checked',

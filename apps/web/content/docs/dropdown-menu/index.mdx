@@ -166,6 +166,7 @@ Groups all parts of the dropdown menu. Manages open state and provides context t
 A button that opens the dropdown menu. Renders a `<button>` element.
 
 <BaseUIReference component="popover" part="trigger" wrapper />
+<CssSelector type="DropdownMenuTriggerDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuTriggerProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuTriggerState" pkg="@bazza-ui/react" />
@@ -184,6 +185,7 @@ Renders children outside the DOM hierarchy using a React Portal. Useful for ensu
 An optional overlay behind the menu. Renders a `<div>` element.
 
 <BaseUIReference component="popover" part="backdrop" wrapper />
+<CssSelector type="DropdownMenuBackdropDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuBackdropProps" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuBackdropDataAttributes" pkg="@bazza-ui/react" />
@@ -193,6 +195,7 @@ An optional overlay behind the menu. Renders a `<div>` element.
 Positions the popup relative to the trigger using Floating UI. Renders a `<div>` element.
 
 <BaseUIReference component="popover" part="positioner" wrapper />
+<CssSelector type="DropdownMenuPositionerDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuPositionerProps" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuPositionerDataAttributes" pkg="@bazza-ui/react" />
@@ -203,6 +206,7 @@ Positions the popup relative to the trigger using Floating UI. Renders a `<div>`
 Container for the menu content with animation support. Renders a `<div>` element.
 
 <BaseUIReference component="popover" part="popup" wrapper />
+<CssSelector type="DropdownMenuPopupDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuPopupProps" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuPopupDataAttributes" pkg="@bazza-ui/react" />
@@ -212,6 +216,7 @@ Container for the menu content with animation support. Renders a `<div>` element
 An optional arrow pointing to the trigger. Renders an `<svg>` element.
 
 <BaseUIReference component="popover" part="arrow" />
+<CssSelector type="DropdownMenuArrowDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuArrowProps" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuArrowDataAttributes" pkg="@bazza-ui/react" />
@@ -220,6 +225,8 @@ An optional arrow pointing to the trigger. Renders an `<svg>` element.
 
 Wraps the list and manages the search state. Renders a `<div>` element.
 
+<CssSelector type="DropdownMenuSurfaceDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuSurfaceProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuSurfaceState" pkg="@bazza-ui/react" />
 
@@ -227,12 +234,16 @@ Wraps the list and manages the search state. Renders a `<div>` element.
 
 A text input for filtering menu items. Renders an `<input>` element.
 
+<CssSelector type="DropdownMenuInputDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuInputProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuInputState" pkg="@bazza-ui/react" />
 
 ### List
 
 Container for menu items. Manages keyboard navigation. Renders a `<div>` element with `role="listbox"`.
+
+<CssSelector type="DropdownMenuListDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuListProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuListState" pkg="@bazza-ui/react" />
@@ -243,6 +254,8 @@ Container for menu items. Manages keyboard navigation. Renders a `<div>` element
 
 A selectable item in the menu. Renders a `<div>` element with `role="option"`.
 
+<CssSelector type="DropdownMenuItemDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuItemProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuItemState" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuItemDataAttributes" pkg="@bazza-ui/react" />
@@ -251,12 +264,16 @@ A selectable item in the menu. Renders a `<div>` element with `role="option"`.
 
 An icon displayed within a menu item. Renders a `<span>` element.
 
+<CssSelector type="DropdownMenuIconDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuIconProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuIconState" pkg="@bazza-ui/react" />
 
 ### Shortcut
 
 Displays a keyboard shortcut hint. Renders a `<span>` element.
+
+<CssSelector type="DropdownMenuShortcutDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuShortcutProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuShortcutState" pkg="@bazza-ui/react" />
@@ -266,12 +283,16 @@ Displays a keyboard shortcut hint. Renders a `<span>` element.
 
 Groups related menu items together. Renders a `<div>` element with `role="group"`.
 
+<CssSelector type="DropdownMenuGroupDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuGroupState" pkg="@bazza-ui/react" />
 
 ### GroupLabel
 
 A label for a group of menu items. Renders a `<div>` element.
+
+<CssSelector type="DropdownMenuGroupLabelDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuGroupLabelProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuGroupLabelState" pkg="@bazza-ui/react" />
@@ -280,6 +301,8 @@ A label for a group of menu items. Renders a `<div>` element.
 
 A visual separator between menu items. Renders a `<div>` element with `role="separator"`.
 
+<CssSelector type="DropdownMenuSeparatorDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuSeparatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuSeparatorState" pkg="@bazza-ui/react" />
 
@@ -287,12 +310,16 @@ A visual separator between menu items. Renders a `<div>` element with `role="sep
 
 Displayed when no items match the current search filter. Renders a `<div>` element.
 
+<CssSelector type="DropdownMenuEmptyDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuEmptyProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuEmptyState" pkg="@bazza-ui/react" />
 
 ### CheckboxItem
 
 A menu item with a checkbox. Renders a `<div>` element with `role="option"`.
+
+<CssSelector type="DropdownMenuCheckboxItemDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuCheckboxItemProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuCheckboxItemState" pkg="@bazza-ui/react" />
@@ -302,12 +329,16 @@ A menu item with a checkbox. Renders a `<div>` element with `role="option"`.
 
 Displays a check mark when the checkbox item is checked. Renders a `<span>` element.
 
+<CssSelector type="DropdownMenuCheckboxItemIndicatorDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuCheckboxItemIndicatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuCheckboxItemIndicatorState" pkg="@bazza-ui/react" />
 
 ### RadioGroup
 
 Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="group"`.
+
+<CssSelector type="DropdownMenuRadioGroupDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuRadioGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuRadioGroupState" pkg="@bazza-ui/react" />
@@ -317,6 +348,8 @@ Groups radio items together. Manages the selected value. Renders a `<div>` eleme
 
 A radio option within a radio group. Renders a `<div>` element with `role="option"`.
 
+<CssSelector type="DropdownMenuRadioItemDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuRadioItemProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuRadioItemState" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuRadioItemDataAttributes" pkg="@bazza-ui/react" />
@@ -324,6 +357,8 @@ A radio option within a radio group. Renders a `<div>` element with `role="optio
 ### RadioItemIndicator
 
 Displays a dot when the radio item is selected. Renders a `<span>` element.
+
+<CssSelector type="DropdownMenuRadioItemIndicatorDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuRadioItemIndicatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuRadioItemIndicatorState" pkg="@bazza-ui/react" />
@@ -341,6 +376,7 @@ Root component for a nested submenu. Manages submenu open state.
 A menu item that opens a submenu. Renders a `<div>` element.
 
 <BaseUIReference component="popover" part="trigger" wrapper />
+<CssSelector type="DropdownMenuSubmenuTriggerDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuSubmenuTriggerProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuSubmenuTriggerState" pkg="@bazza-ui/react" />
@@ -350,12 +386,16 @@ A menu item that opens a submenu. Renders a `<div>` element.
 
 An indicator (chevron) showing that an item has a submenu. Renders a `<span>` element.
 
+<CssSelector type="DropdownMenuSubmenuTriggerIndicatorDataAttributes" />
+
 <TypeTableAuto type="DropdownMenuSubmenuTriggerIndicatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuSubmenuTriggerIndicatorState" pkg="@bazza-ui/react" />
 
 ### ScrollUpArrow
 
 Shows when content is scrollable upward. Renders a `<div>` element.
+
+<CssSelector type="DropdownMenuScrollArrowDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuScrollUpArrowProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuScrollArrowState" pkg="@bazza-ui/react" />
@@ -364,6 +404,8 @@ Shows when content is scrollable upward. Renders a `<div>` element.
 ### ScrollDownArrow
 
 Shows when content is scrollable downward. Renders a `<div>` element.
+
+<CssSelector type="DropdownMenuScrollArrowDataAttributes" />
 
 <TypeTableAuto type="DropdownMenuScrollDownArrowProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuScrollArrowState" pkg="@bazza-ui/react" />

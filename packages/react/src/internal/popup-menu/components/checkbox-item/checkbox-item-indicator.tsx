@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { PopupMenuCheckboxItemDataAttributes } from './checkbox-item.data-attrs.js'
 import { useCheckboxItemContext } from './checkbox-item-context.js'
 
@@ -74,6 +78,10 @@ export const PopupMenuCheckboxItemIndicator = React.forwardRef<
 
   const shouldRender = keepMounted || checked
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'checkbox-item-indicator')
+
   return useRender({
     render,
     ref: forwardedRef,
@@ -81,6 +89,7 @@ export const PopupMenuCheckboxItemIndicator = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       'aria-hidden': true,
       className,
       style,

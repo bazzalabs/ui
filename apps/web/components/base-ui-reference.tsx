@@ -1,4 +1,4 @@
-import { ExternalLinkIcon } from 'lucide-react'
+import { ArrowUpRightIcon, ExternalLinkIcon } from 'lucide-react'
 
 interface BaseUIReferenceProps {
   /**
@@ -49,10 +49,10 @@ export function BaseUIReference({
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
       >
         Base UI {formattedName}
-        <ExternalLinkIcon className="size-3" />
+        <ArrowUpRightIcon className="size-4 translate-y-[-4px] translate-x-[-2px] text-muted-foreground" />
       </a>
       .
     </div>

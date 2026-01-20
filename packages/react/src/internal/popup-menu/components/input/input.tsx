@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
+import {
+  getSlotAttribute,
+  useMaybeComponentName,
+} from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -144,12 +148,17 @@ export const PopupMenuInput = React.forwardRef<
     [inputActive],
   )
 
+  // Get component name for slot attribute
+  const componentName = useMaybeComponentName()
+  const slotAttr = getSlotAttribute(componentName, 'input')
+
   const element = useRender({
     render,
     ref: [internalRef, forwardedRef],
     state,
     props: {
       ...rest,
+      ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: inputId,
       type: 'text',
       role: 'combobox',

@@ -216,6 +216,7 @@ export const ContextMenuTrigger = React.forwardRef<
     stateAttributesMapping,
     props: {
       ...rest,
+      [ContextMenuTriggerDataAttributes.slot]: '',
       onContextMenu: handleContextMenu,
       onTouchStart: handleTouchStart,
       onTouchMove: handleTouchMove,

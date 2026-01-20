@@ -96,16 +96,22 @@ export type {
 } from '../internal/popup-menu/index.js'
 
 export {
-  PopupMenuArrowDataAttributes as ComboboxArrowDataAttributes,
-  PopupMenuBackdropDataAttributes as ComboboxBackdropDataAttributes,
-  PopupMenuIconDataAttributes as ComboboxIconDataAttributes,
   PopupMenuListCssVars as ComboboxListCssVars,
-  PopupMenuListDataAttributes as ComboboxListDataAttributes,
-  PopupMenuPopupDataAttributes as ComboboxPopupDataAttributes,
   PopupMenuPositionerCssVars as ComboboxPositionerCssVars,
-  PopupMenuPositionerDataAttributes as ComboboxPositionerDataAttributes,
-  PopupMenuScrollArrowDataAttributes as ComboboxScrollArrowDataAttributes,
 } from '../internal/popup-menu/index.js'
+
+// Combobox-specific data attributes (with hardcoded bazzaui-combobox-* slot values)
+export { ComboboxArrowDataAttributes } from './arrow/arrow.data-attrs.js'
+export { ComboboxBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
+export { ComboboxEmptyDataAttributes } from './empty/empty.data-attrs.js'
+export { ComboboxGroupDataAttributes } from './group/group.data-attrs.js'
+export { ComboboxGroupLabelDataAttributes } from './group-label/group-label.data-attrs.js'
+export { ComboboxIconDataAttributes } from './icon/icon.data-attrs.js'
+export { ComboboxListDataAttributes } from './list/list.data-attrs.js'
+export { ComboboxPopupDataAttributes } from './popup/popup.data-attrs.js'
+export { ComboboxPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
+export { ComboboxScrollArrowDataAttributes } from './scroll-arrow/scroll-arrow.data-attrs.js'
+export { ComboboxSeparatorDataAttributes } from './separator/separator.data-attrs.js'
 
 // ============================================================================
 // Context hooks (for advanced usage)

@@ -10,6 +10,9 @@ import {
   type SelectPositionerContextValue,
   type Side,
 } from '../contexts/select-positioner-context.js'
+import { SelectPositionerDataAttributes } from './positioner.data-attrs.js'
+
+export { SelectPositionerDataAttributes }
 
 // ============================================================================
 // Types
@@ -290,6 +293,7 @@ export const SelectPositioner = React.forwardRef<
           // Use visibility:hidden instead of hidden attribute so element can be measured
           ...(shouldHide ? { visibility: 'hidden' } : {}),
         }}
+        {...{ [SelectPositionerDataAttributes.slot]: '' }}
         {...rest}
       >
         {children}

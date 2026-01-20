@@ -4,8 +4,6 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:up": "turbo run dev test:watch",
-    "types:meta": "turbo run types:meta",
-    "types:meta:watch": "turbo run types:meta:watch",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
     "bench": "turbo run bench",
@@ -20,6 +18,7 @@
     "sgrep:watch": "sgrep watch .",
     "build": "turbo run build",
     "registry:build": "turbo run registry:build",
+    "docs:type-gen": "turbo run type-gen --filter web",
     "start": "turbo run start",
     "prepare": "husky",
     "changeset": "changeset add",

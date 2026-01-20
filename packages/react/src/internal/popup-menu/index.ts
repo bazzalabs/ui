@@ -5,6 +5,13 @@
 // Used by: DropdownMenu, ContextMenu
 
 // Contexts
+export type { ComponentName } from './contexts/component-name-context.js'
+export {
+  ComponentNameContext,
+  getSlotAttribute,
+  useComponentName,
+  useMaybeComponentName,
+} from './contexts/component-name-context.js'
 export {
   FocusOwnerContext,
   useFocusOwner,

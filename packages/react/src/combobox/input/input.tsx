@@ -115,7 +115,9 @@ export const ComboboxInput = React.forwardRef<
     })
 
   // Build data attributes
-  const dataAttrs: Record<string, string> = {}
+  const dataAttrs: Record<string, string> = {
+    [ComboboxInputDataAttributes.slot]: '',
+  }
   if (open) {
     dataAttrs[ComboboxInputDataAttributes.open] = ''
   } else {

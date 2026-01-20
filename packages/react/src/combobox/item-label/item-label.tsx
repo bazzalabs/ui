@@ -5,6 +5,9 @@ import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { useComboboxItemContext } from '../item/item-context.js'
+import { ComboboxItemLabelDataAttributes } from './item-label.data-attrs.js'
+
+export { ComboboxItemLabelDataAttributes }
 
 export interface ComboboxItemLabelState extends Record<string, unknown> {
   /**
@@ -127,6 +130,7 @@ export const ComboboxItemLabel = React.forwardRef<
     state,
     props: {
       ...rest,
+      [ComboboxItemLabelDataAttributes.slot]: '',
       className,
       style,
       children: resolvedLabel,

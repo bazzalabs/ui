@@ -649,6 +649,7 @@ export function ComboboxRoot(props: ComboboxRootProps) {
         registerSurface={registerSurface}
         virtualization={virtualization}
         menuType="dropdown"
+        componentName="combobox"
       >
         {hiddenInputs}
         <Popover.Root
