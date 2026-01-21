@@ -1274,7 +1274,7 @@ function KeyboardShortcutsDemo() {
 // --- Radio Group Demo ---
 
 function RadioGroupDemo() {
-  const [sortBy, setSortBy] = React.useState<'name' | 'date' | 'size'>('name')
+  const [sortBy, setSortBy] = React.useState('name')
 
   const handleOpenChange = React.useCallback(
     (open: boolean, eventDetails: DropdownMenu.Root.OpenChangeEventDetails) => {

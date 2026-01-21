@@ -33,13 +33,13 @@ export interface PopupMenuRadioItemState extends Record<string, unknown> {
   checked: boolean
 }
 
-export interface PopupMenuRadioItemProps<T = unknown>
+export interface PopupMenuRadioItemProps
   extends ComponentProps<'div', PopupMenuRadioItem.State> {
   /**
    * The value to set when this item is selected.
    * This is required and must be unique within the RadioGroup.
    */
-  value: T
+  value: string
 
   /**
    * Additional keywords to match against when filtering.
@@ -95,10 +95,8 @@ const stateAttributesMapping = {
  * Only one RadioItem can be selected at a time within a RadioGroup.
  * Renders a `<div>` element with role="menuitemradio".
  */
-export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
-  T,
->(
-  props: PopupMenuRadioItemProps<T>,
+export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
+  props: PopupMenuRadioItemProps,
   forwardedRef: React.ForwardedRef<HTMLDivElement>,
 ) {
   const {
@@ -120,7 +118,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
     ...rest
   } = props
 
-  const radioGroupContext = useRadioGroupContext<T>()
+  const radioGroupContext = useRadioGroupContext()
 
   // Combine disabled from props and RadioGroup
   const disabled = disabledProp || radioGroupContext.disabled
@@ -230,11 +228,9 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem<
       </RadioItemContext.Provider>
     </ItemContext.Provider>
   )
-}) as <T = unknown>(
-  props: PopupMenuRadioItemProps<T> & React.RefAttributes<HTMLDivElement>,
-) => React.ReactElement | null
+})
 
 export namespace PopupMenuRadioItem {
   export type State = PopupMenuRadioItemState
-  export interface Props<T = unknown> extends PopupMenuRadioItemProps<T> {}
+  export interface Props extends PopupMenuRadioItemProps {}
 }

@@ -4414,31 +4414,25 @@
       "ContextMenuRadioGroupProps": {
         "name": "ContextMenuRadioGroupProps",
         "kind": "interface",
-        "typeParams": [
-          {
-            "name": "T",
-            "default": "unknown"
-          }
-        ],
         "props": [
           {
             "name": "value",
-            "type": "T | undefined",
-            "formattedType": "T",
+            "type": "string | undefined",
+            "formattedType": "string",
             "required": false,
             "description": "The controlled selected value."
           },
           {
             "name": "defaultValue",
-            "type": "T | undefined",
-            "formattedType": "T",
+            "type": "string | undefined",
+            "formattedType": "string",
             "required": false,
             "description": "The default value for uncontrolled mode."
           },
           {
             "name": "onValueChange",
-            "type": "((value: T, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  value: T,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
+            "type": "((value: string, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
           },
@@ -4564,16 +4558,10 @@
       "ContextMenuRadioItemProps": {
         "name": "ContextMenuRadioItemProps",
         "kind": "interface",
-        "typeParams": [
-          {
-            "name": "T",
-            "default": "unknown"
-          }
-        ],
         "props": [
           {
             "name": "value",
-            "type": "T",
+            "type": "string",
             "required": true,
             "description": "The value to set when this item is selected.\nThis is required and must be unique within the RadioGroup."
           },
@@ -7379,24 +7367,18 @@
       "ContextMenuRadioGroupValueProps": {
         "name": "ContextMenuRadioGroupValueProps",
         "kind": "interface",
-        "typeParams": [
-          {
-            "name": "T",
-            "default": "unknown"
-          }
-        ],
         "props": [
           {
             "name": "value",
-            "type": "T | undefined",
-            "formattedType": "T",
+            "type": "string | undefined",
+            "formattedType": "string",
             "required": true,
             "description": "The controlled selected value."
           },
           {
             "name": "onValueChange",
-            "type": "((value: T, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  value: T,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
+            "type": "((value: string, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
           },
@@ -8700,31 +8682,25 @@
       "DropdownMenuRadioGroupProps": {
         "name": "DropdownMenuRadioGroupProps",
         "kind": "interface",
-        "typeParams": [
-          {
-            "name": "T",
-            "default": "unknown"
-          }
-        ],
         "props": [
           {
             "name": "value",
-            "type": "T | undefined",
-            "formattedType": "T",
+            "type": "string | undefined",
+            "formattedType": "string",
             "required": false,
             "description": "The controlled selected value."
           },
           {
             "name": "defaultValue",
-            "type": "T | undefined",
-            "formattedType": "T",
+            "type": "string | undefined",
+            "formattedType": "string",
             "required": false,
             "description": "The default value for uncontrolled mode."
           },
           {
             "name": "onValueChange",
-            "type": "((value: T, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  value: T,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
+            "type": "((value: string, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
           },
@@ -8850,16 +8826,10 @@
       "DropdownMenuRadioItemProps": {
         "name": "DropdownMenuRadioItemProps",
         "kind": "interface",
-        "typeParams": [
-          {
-            "name": "T",
-            "default": "unknown"
-          }
-        ],
         "props": [
           {
             "name": "value",
-            "type": "T",
+            "type": "string",
             "required": true,
             "description": "The value to set when this item is selected.\nThis is required and must be unique within the RadioGroup."
           },
@@ -10650,24 +10620,18 @@
       "DropdownMenuRadioGroupValueProps": {
         "name": "DropdownMenuRadioGroupValueProps",
         "kind": "interface",
-        "typeParams": [
-          {
-            "name": "T",
-            "default": "unknown"
-          }
-        ],
         "props": [
           {
             "name": "value",
-            "type": "T | undefined",
-            "formattedType": "T",
+            "type": "string | undefined",
+            "formattedType": "string",
             "required": true,
             "description": "The controlled selected value."
           },
           {
             "name": "onValueChange",
-            "type": "((value: T, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  value: T,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
+            "type": "((value: string, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
           },
