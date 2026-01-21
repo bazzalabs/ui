@@ -14,17 +14,20 @@ import {
   type RadioGroupContextValue,
 } from './radio-group-context.js'
 
-export interface PopupMenuRadioGroupValueProps<T = unknown> {
+export interface PopupMenuRadioGroupValueProps {
   /**
    * The controlled selected value.
    */
-  value: T | undefined
+  value: string | undefined
 
   /**
    * Callback fired when the selected value changes.
    * The second parameter contains event details including the reason for the change.
    */
-  onValueChange?: (value: T, eventDetails: RadioValueChangeEventDetails) => void
+  onValueChange?: (
+    value: string,
+    eventDetails: RadioValueChangeEventDetails,
+  ) => void
 
   /**
    * Whether all items in this group are disabled.
@@ -54,14 +57,12 @@ export interface PopupMenuRadioGroupValueProps<T = unknown> {
  * </DropdownMenu.RadioGroupValue>
  * ```
  */
-export function PopupMenuRadioGroupValue<T>(
-  props: PopupMenuRadioGroupValueProps<T>,
-) {
+export function PopupMenuRadioGroupValue(props: PopupMenuRadioGroupValueProps) {
   const { value, onValueChange, disabled = false, children } = props
 
   const setValue = React.useCallback(
     (
-      newValue: T,
+      newValue: string,
       reason: RadioValueChangeReason = REASONS.itemPress,
       event?: Event,
     ) => {
@@ -71,19 +72,18 @@ export function PopupMenuRadioGroupValue<T>(
     [onValueChange],
   )
 
-  const contextValue: RadioGroupContextValue<T> = React.useMemo(
+  const contextValue: RadioGroupContextValue = React.useMemo(
     () => ({ value, setValue, disabled }),
     [value, setValue, disabled],
   )
 
   return (
-    <RadioGroupContext.Provider value={contextValue as RadioGroupContextValue}>
+    <RadioGroupContext.Provider value={contextValue}>
       {children}
     </RadioGroupContext.Provider>
   )
 }
 
 export namespace PopupMenuRadioGroupValue {
-  export interface Props<T = unknown>
-    extends PopupMenuRadioGroupValueProps<T> {}
+  export interface Props extends PopupMenuRadioGroupValueProps {}
 }

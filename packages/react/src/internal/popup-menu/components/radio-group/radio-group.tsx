@@ -31,23 +31,26 @@ export interface PopupMenuRadioGroupState extends Record<string, unknown> {
   disabled: boolean
 }
 
-export interface PopupMenuRadioGroupProps<T = unknown>
+export interface PopupMenuRadioGroupProps
   extends ComponentProps<'div', PopupMenuRadioGroup.State> {
   /**
    * The controlled selected value.
    */
-  value?: T
+  value?: string
 
   /**
    * The default value for uncontrolled mode.
    */
-  defaultValue?: T
+  defaultValue?: string
 
   /**
    * Callback fired when the selected value changes.
    * The second parameter contains event details including the reason for the change.
    */
-  onValueChange?: (value: T, eventDetails: RadioValueChangeEventDetails) => void
+  onValueChange?: (
+    value: string,
+    eventDetails: RadioValueChangeEventDetails,
+  ) => void
 
   /**
    * Whether all items in this group are disabled.
@@ -75,8 +78,8 @@ const stateAttributesMapping = {
  * Renders a `<div>` element with role="group".
  */
 export const PopupMenuRadioGroup = React.forwardRef(
-  function PopupMenuRadioGroup<T>(
-    props: PopupMenuRadioGroupProps<T>,
+  function PopupMenuRadioGroup(
+    props: PopupMenuRadioGroupProps,
     forwardedRef: React.ForwardedRef<HTMLDivElement>,
   ) {
     const {
@@ -96,15 +99,15 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const groupId = React.useId()
 
     // Controlled/uncontrolled state management
-    const [internalValue, setInternalValue] = React.useState<T | undefined>(
-      defaultValue,
-    )
+    const [internalValue, setInternalValue] = React.useState<
+      string | undefined
+    >(defaultValue)
     const isControlled = valueProp !== undefined
     const value = isControlled ? valueProp : internalValue
 
     const setValue = React.useCallback(
       (
-        newValue: T,
+        newValue: string,
         reason: RadioValueChangeReason = REASONS.itemPress,
         event?: Event,
       ) => {
@@ -134,7 +137,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const isVisible = forceMount || isGroupVisible
 
     // Context values
-    const radioGroupContextValue: RadioGroupContextValue<T> = React.useMemo(
+    const radioGroupContextValue: RadioGroupContextValue = React.useMemo(
       () => ({ value, setValue, disabled }),
       [value, setValue, disabled],
     )
@@ -173,20 +176,16 @@ export const PopupMenuRadioGroup = React.forwardRef(
     }
 
     return (
-      <RadioGroupContext.Provider
-        value={radioGroupContextValue as RadioGroupContextValue}
-      >
+      <RadioGroupContext.Provider value={radioGroupContextValue}>
         <GroupContext.Provider value={groupContextValue}>
           {element}
         </GroupContext.Provider>
       </RadioGroupContext.Provider>
     )
   },
-) as <T = unknown>(
-  props: PopupMenuRadioGroupProps<T> & React.RefAttributes<HTMLDivElement>,
-) => React.ReactElement | null
+)
 
 export namespace PopupMenuRadioGroup {
   export type State = PopupMenuRadioGroupState
-  export interface Props<T = unknown> extends PopupMenuRadioGroupProps<T> {}
+  export interface Props extends PopupMenuRadioGroupProps {}
 }
