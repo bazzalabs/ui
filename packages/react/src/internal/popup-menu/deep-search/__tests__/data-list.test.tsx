@@ -256,14 +256,14 @@ describe('DataList getItemId', () => {
         expect(screen.getByTestId('item-apple')).toBeInTheDocument()
       })
 
-      // Items at root level should have their value as ID
+      // Items at root level should have slugified IDs
       const apple = screen.getByTestId('item-apple')
       const banana = screen.getByTestId('item-banana')
       const cherry = screen.getByTestId('item-cherry')
 
-      expect(apple).toHaveAttribute('id', 'Apple')
-      expect(banana).toHaveAttribute('id', 'Banana')
-      expect(cherry).toHaveAttribute('id', 'Cherry')
+      expect(apple).toHaveAttribute('id', 'apple')
+      expect(banana).toHaveAttribute('id', 'banana')
+      expect(cherry).toHaveAttribute('id', 'cherry')
     })
 
     it('renders items with composite IDs when surfaced from submenus', async () => {
@@ -286,10 +286,10 @@ describe('DataList getItemId', () => {
         expect(items.length).toBe(2)
       })
 
-      // Find items by their composite IDs (now using value instead of id)
-      const statusBacklog = document.getElementById('Status.Backlog')
+      // Find items by their composite IDs (slugified)
+      const statusBacklog = document.getElementById('status.backlog')
       const projectStatusBacklog = document.getElementById(
-        'Project Status.Backlog',
+        'project-status.backlog',
       )
 
       expect(statusBacklog).toBeInTheDocument()
@@ -316,9 +316,9 @@ describe('DataList getItemId', () => {
       })
 
       // Both items should have data-value="Backlog" (the original value)
-      const statusBacklog = document.getElementById('Status.Backlog')
+      const statusBacklog = document.getElementById('status.backlog')
       const projectStatusBacklog = document.getElementById(
-        'Project Status.Backlog',
+        'project-status.backlog',
       )
 
       expect(statusBacklog).toHaveAttribute('data-value', 'Backlog')
@@ -348,21 +348,21 @@ describe('DataList getItemId', () => {
       // First item should auto-highlight after search
       // Wait for auto-highlight to settle
       await waitFor(() => {
-        const statusBacklog = document.getElementById('Status.Backlog')
+        const statusBacklog = document.getElementById('status.backlog')
         expect(statusBacklog).toHaveAttribute('data-highlighted', '')
       })
 
-      // Navigate down - should highlight second item (Project Status.Backlog)
+      // Navigate down - should highlight second item (project-status.backlog)
       await user.keyboard('{ArrowDown}')
 
       await waitFor(() => {
         const projectStatusBacklog = document.getElementById(
-          'Project Status.Backlog',
+          'project-status.backlog',
         )
         expect(projectStatusBacklog).toHaveAttribute('data-highlighted', '')
       })
 
-      const statusBacklog = document.getElementById('Status.Backlog')
+      const statusBacklog = document.getElementById('status.backlog')
       expect(statusBacklog).not.toHaveAttribute('data-highlighted')
     })
 
@@ -392,8 +392,8 @@ describe('DataList getItemId', () => {
         expect(items.length).toBe(2)
       })
 
-      // Click the first backlog (Status.Backlog)
-      const statusBacklog = document.getElementById('Status.Backlog')
+      // Click the first backlog (status.backlog)
+      const statusBacklog = document.getElementById('status.backlog')
       await user.click(statusBacklog!)
 
       expect(onSelectStatus).toHaveBeenCalledTimes(1)
@@ -421,7 +421,7 @@ describe('DataList getItemId', () => {
       // First item should be auto-highlighted after search
       // The aria-activedescendant is set on the input (combobox role)
       await waitFor(() => {
-        expect(input).toHaveAttribute('aria-activedescendant', 'Status.Backlog')
+        expect(input).toHaveAttribute('aria-activedescendant', 'status.backlog')
       })
 
       // Navigate down to second item
@@ -430,7 +430,7 @@ describe('DataList getItemId', () => {
       await waitFor(() => {
         expect(input).toHaveAttribute(
           'aria-activedescendant',
-          'Project Status.Backlog',
+          'project-status.backlog',
         )
       })
     })
@@ -649,11 +649,11 @@ describe('DataList getItemId', () => {
         expect(screen.getByText('Item With Dashes')).toBeInTheDocument()
       })
 
-      // Verify composite IDs work with values (now using value instead of id)
+      // Verify composite IDs are slugified
       const underscoreItem = document.getElementById(
-        'My Submenu.Item With Underscore',
+        'my-submenu.item-with-underscore',
       )
-      const dashItem = document.getElementById('My Submenu.Item With Dashes')
+      const dashItem = document.getElementById('my-submenu.item-with-dashes')
 
       expect(underscoreItem).toBeInTheDocument()
       expect(dashItem).toBeInTheDocument()
