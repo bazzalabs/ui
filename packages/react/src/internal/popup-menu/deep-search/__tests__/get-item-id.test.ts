@@ -111,9 +111,9 @@ function createGetItemIdContext(
 // ============================================================================
 
 describe('defaultGetItemId', () => {
-  it('returns value when breadcrumbs is empty', () => {
+  it('returns slugified value when breadcrumbs is empty', () => {
     const ctx = createGetItemIdContext({
-      value: 'my-item',
+      value: 'My Item',
       breadcrumbs: [],
     })
 
@@ -122,8 +122,8 @@ describe('defaultGetItemId', () => {
 
   it('returns composite ID with single breadcrumb', () => {
     const ctx = createGetItemIdContext({
-      value: 'backlog',
-      breadcrumbs: ['status'],
+      value: 'Backlog',
+      breadcrumbs: ['Status'],
     })
 
     expect(defaultGetItemId(ctx)).toBe('status.backlog')
@@ -131,48 +131,62 @@ describe('defaultGetItemId', () => {
 
   it('returns composite ID with multiple breadcrumbs', () => {
     const ctx = createGetItemIdContext({
-      value: 'option',
-      breadcrumbs: ['settings', 'advanced'],
+      value: 'Dark Mode',
+      breadcrumbs: ['Settings', 'Appearance'],
     })
 
-    expect(defaultGetItemId(ctx)).toBe('settings.advanced.option')
+    expect(defaultGetItemId(ctx)).toBe('settings.appearance.dark-mode')
   })
 
   it('handles deeply nested breadcrumbs', () => {
     const ctx = createGetItemIdContext({
-      value: 'leaf',
-      breadcrumbs: ['level1', 'level2', 'level3', 'level4'],
+      value: 'Leaf Item',
+      breadcrumbs: ['Level 1', 'Level 2', 'Level 3', 'Level 4'],
     })
 
-    expect(defaultGetItemId(ctx)).toBe('level1.level2.level3.level4.leaf')
+    expect(defaultGetItemId(ctx)).toBe(
+      'level-1.level-2.level-3.level-4.leaf-item',
+    )
   })
 
   it('handles empty value gracefully', () => {
     const ctx = createGetItemIdContext({
       value: '',
-      breadcrumbs: ['parent'],
+      breadcrumbs: ['Parent'],
     })
 
+    // Empty value after slugify results in trailing dot
     expect(defaultGetItemId(ctx)).toBe('parent.')
   })
 
-  it('handles values with special characters', () => {
+  it('slugifies special characters', () => {
     const ctx = createGetItemIdContext({
-      value: 'item-with-dashes',
-      breadcrumbs: ['sub_menu'],
+      value: "What's New!",
+      breadcrumbs: ['Help & Support'],
     })
 
-    expect(defaultGetItemId(ctx)).toBe('sub_menu.item-with-dashes')
+    expect(defaultGetItemId(ctx)).toBe('help-support.whats-new')
   })
 
-  it('handles values that already contain dots', () => {
+  it('removes dots from values (dots are reserved for path separator)', () => {
     const ctx = createGetItemIdContext({
-      value: 'item.with.dots',
-      breadcrumbs: ['parent'],
+      value: 'v1.0.0',
+      breadcrumbs: ['Versions'],
     })
 
-    // This is allowed - the user is responsible for ensuring uniqueness
-    expect(defaultGetItemId(ctx)).toBe('parent.item.with.dots')
+    // Dots are removed by slugify, only used as path separator
+    expect(defaultGetItemId(ctx)).toBe('versions.v100')
+  })
+
+  it('handles spaces in breadcrumbs and values', () => {
+    const ctx = createGetItemIdContext({
+      value: 'User Settings',
+      breadcrumbs: ['Account Settings', 'Privacy Options'],
+    })
+
+    expect(defaultGetItemId(ctx)).toBe(
+      'account-settings.privacy-options.user-settings',
+    )
   })
 })
 
@@ -189,7 +203,7 @@ describe('computeItemIds behavior', () => {
   // The actual function is tested through integration tests in data-list.test.tsx.
 
   describe('expected ID generation for different node types', () => {
-    it('ungrouped items should use node.value directly at root level', () => {
+    it('ungrouped items should use slugified node.value at root level', () => {
       const item = createItemDef('apple', 'Apple')
       const ctx = createGetItemIdContext({
         node: item,
@@ -198,10 +212,10 @@ describe('computeItemIds behavior', () => {
         breadcrumbs: [],
       })
 
-      expect(defaultGetItemId(ctx)).toBe('Apple')
+      expect(defaultGetItemId(ctx)).toBe('apple')
     })
 
-    it('deep search items should include breadcrumbs', () => {
+    it('deep search items should include slugified breadcrumbs', () => {
       const item = createItemDef('backlog', 'Backlog')
       const ctx = createGetItemIdContext({
         node: item,
@@ -211,7 +225,7 @@ describe('computeItemIds behavior', () => {
         isDeepSearchResult: true,
       })
 
-      expect(defaultGetItemId(ctx)).toBe('Status.Backlog')
+      expect(defaultGetItemId(ctx)).toBe('status.backlog')
     })
 
     it('items from groups should not include group ID in breadcrumbs', () => {
@@ -226,7 +240,7 @@ describe('computeItemIds behavior', () => {
         group: { id: 'my-group', label: 'My Group' },
       })
 
-      expect(defaultGetItemId(ctx)).toBe('Option 1')
+      expect(defaultGetItemId(ctx)).toBe('option-1')
     })
 
     it('items from radio groups should not include radioGroup ID in breadcrumbs', () => {
@@ -240,7 +254,7 @@ describe('computeItemIds behavior', () => {
         radioGroup: { id: 'theme', label: 'Theme' },
       })
 
-      expect(defaultGetItemId(ctx)).toBe('Light Theme')
+      expect(defaultGetItemId(ctx)).toBe('light-theme')
     })
 
     it('checkbox items should work the same as regular items', () => {
@@ -256,7 +270,7 @@ describe('computeItemIds behavior', () => {
         breadcrumbs: ['Settings'],
       })
 
-      expect(defaultGetItemId(ctx)).toBe('Settings.Notifications')
+      expect(defaultGetItemId(ctx)).toBe('settings.notifications')
     })
 
     it('submenu triggers should work the same as items', () => {
@@ -268,7 +282,7 @@ describe('computeItemIds behavior', () => {
         breadcrumbs: ['Settings'],
       })
 
-      expect(defaultGetItemId(ctx)).toBe('Settings.Advanced Settings')
+      expect(defaultGetItemId(ctx)).toBe('settings.advanced-settings')
     })
   })
 
@@ -290,8 +304,8 @@ describe('computeItemIds behavior', () => {
       const statusId = defaultGetItemId(statusBacklogCtx)
       const projectStatusId = defaultGetItemId(projectStatusBacklogCtx)
 
-      expect(statusId).toBe('Status.Backlog')
-      expect(projectStatusId).toBe('Project Status.Backlog')
+      expect(statusId).toBe('status.backlog')
+      expect(projectStatusId).toBe('project-status.backlog')
       expect(statusId).not.toBe(projectStatusId)
     })
 
@@ -308,8 +322,8 @@ describe('computeItemIds behavior', () => {
         breadcrumbs: ['Settings', 'Audio'],
       })
 
-      expect(defaultGetItemId(displayOptionCtx)).toBe('Settings.Display.Option')
-      expect(defaultGetItemId(audioOptionCtx)).toBe('Settings.Audio.Option')
+      expect(defaultGetItemId(displayOptionCtx)).toBe('settings.display.option')
+      expect(defaultGetItemId(audioOptionCtx)).toBe('settings.audio.option')
     })
   })
 })
@@ -467,5 +481,92 @@ describe('custom getItemId function', () => {
         radioGroup: null,
       }),
     )
+  })
+})
+
+// ============================================================================
+// Value Slugification in defaultGetItemId
+// ============================================================================
+
+describe('defaultGetItemId slugification', () => {
+  it('converts value to lowercase', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', 'SETTINGS'),
+      value: 'SETTINGS',
+      index: 0,
+      breadcrumbs: [],
+    })
+
+    expect(defaultGetItemId(ctx)).toBe('settings')
+  })
+
+  it('replaces spaces with hyphens in value', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', 'Dark Mode'),
+      value: 'Dark Mode',
+      index: 0,
+      breadcrumbs: [],
+    })
+
+    expect(defaultGetItemId(ctx)).toBe('dark-mode')
+  })
+
+  it('slugifies breadcrumbs', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', 'Dark Mode'),
+      value: 'Dark Mode',
+      index: 0,
+      breadcrumbs: ['User Settings', 'Appearance Options'],
+    })
+
+    expect(defaultGetItemId(ctx)).toBe(
+      'user-settings.appearance-options.dark-mode',
+    )
+  })
+
+  it('removes special characters', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', "What's New!"),
+      value: "What's New!",
+      index: 0,
+      breadcrumbs: ['Help & Support'],
+    })
+
+    expect(defaultGetItemId(ctx)).toBe('help-support.whats-new')
+  })
+
+  it('handles empty string after slugifying', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', '   '),
+      value: '   ',
+      index: 0,
+      breadcrumbs: [],
+    })
+
+    expect(defaultGetItemId(ctx)).toBe('')
+  })
+
+  it('filters empty breadcrumbs after slugifying', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', 'Item'),
+      value: 'Item',
+      index: 0,
+      breadcrumbs: ['  ', 'Valid Section', '!@#'],
+    })
+
+    // Empty breadcrumbs (whitespace-only or special-chars-only) are filtered out
+    expect(defaultGetItemId(ctx)).toBe('valid-section.item')
+  })
+
+  it('handles all empty breadcrumbs', () => {
+    const ctx = createGetItemIdContext({
+      node: createItemDef('item1', 'Item'),
+      value: 'Item',
+      index: 0,
+      breadcrumbs: ['  ', '   ', '\t'],
+    })
+
+    // All breadcrumbs are empty after slugifying, returns just the slugified value
+    expect(defaultGetItemId(ctx)).toBe('item')
   })
 })
