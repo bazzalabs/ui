@@ -2230,7 +2230,7 @@ const deepSearchAssignees = [
 // Helper to create a submenu node
 function createSubmenuNode(
   id: string,
-  title: string,
+  value: string,
   icon: React.ReactNode,
   inputPlaceholder: string,
   childNodes: NodeDef[],
@@ -2238,8 +2238,7 @@ function createSubmenuNode(
   return {
     kind: 'submenu',
     id,
-    title,
-    label: title,
+    value,
     deepSearch: true,
     nodes: childNodes,
     render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => {
@@ -2263,7 +2262,7 @@ function createSubmenuNode(
                 {icon}
               </span>
               <DeepSearchLabelWithBreadcrumbs
-                label={title}
+                label={value}
                 breadcrumbs={
                   context.isDeepSearchResult ? context.breadcrumbs : undefined
                 }
@@ -2297,7 +2296,7 @@ function createSubmenuNode(
 // Helper to create an item node
 function createItemNode(
   id: string,
-  label: string,
+  value: string,
   icon: React.ReactNode,
   keywords?: string[],
   shortcut?: string,
@@ -2305,14 +2304,14 @@ function createItemNode(
   return {
     kind: 'item',
     id,
-    label,
+    value,
     keywords,
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
         value={id}
         shortcut={shortcut}
-        onSelect={() => toast(`Changed to ${label}`)}
+        onSelect={() => toast(`Changed to ${value}`)}
         className={cn(
           // Use group for icon compatibility with group-data-[highlighted]
           'group group/row flex items-center gap-2 text-sm select-none w-full',
@@ -2326,7 +2325,7 @@ function createItemNode(
           {icon}
         </span>
         <DeepSearchLabelWithBreadcrumbs
-          label={label}
+          label={value}
           breadcrumbs={
             context.isDeepSearchResult ? context.breadcrumbs : undefined
           }
@@ -2504,7 +2503,7 @@ function DeepSearchDemo() {
     const labelItems: ItemDef[] = deepSearchLabelNodes.map((label) => ({
       kind: 'item' as const,
       id: `label-${label.id}`,
-      label: label.name,
+      value: label.name,
       keywords: [label.name],
       render: ({ props, context }: ItemRenderParams) => (
         <DropdownMenu.Item
@@ -2659,7 +2658,7 @@ function DeepSearchDemo() {
       (label) => ({
         kind: 'item' as const,
         id: `proj-label-${label.id}`,
-        label: label.name,
+        value: label.name,
         keywords: [label.name],
         render: ({ props, context }: ItemRenderParams) => (
           <DropdownMenu.Item
@@ -2703,8 +2702,7 @@ function DeepSearchDemo() {
     const projectPropertiesSubmenu: SubmenuDef = {
       kind: 'submenu',
       id: 'project-properties',
-      title: 'Project properties',
-      label: 'Project properties',
+      value: 'Project properties',
       deepSearch: true,
       nodes: [
         createSubmenuNode(
@@ -2797,14 +2795,13 @@ function DeepSearchDemo() {
     const notificationsSubmenu: SubmenuDef = {
       kind: 'submenu',
       id: 'notifications',
-      title: 'Notifications',
-      label: 'Notifications',
+      value: 'Notifications',
       deepSearch: true,
       nodes: [
         {
           kind: 'item',
           id: 'notif-enabled',
-          label: 'Enable notifications',
+          value: 'Enable notifications',
           keywords: ['notify', 'alerts', 'enable'],
           render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
@@ -2846,7 +2843,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'notif-sounds',
-          label: 'Sounds',
+          value: 'Sounds',
           keywords: ['audio', 'sound', 'noise'],
           render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
@@ -2888,7 +2885,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'notif-badges',
-          label: 'Badge count',
+          value: 'Badge count',
           keywords: ['badge', 'count', 'number'],
           render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
@@ -2930,7 +2927,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'notif-desktop',
-          label: 'Desktop notifications',
+          value: 'Desktop notifications',
           keywords: ['desktop', 'system', 'os'],
           render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
@@ -2972,7 +2969,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'notif-email',
-          label: 'Email notifications',
+          value: 'Email notifications',
           keywords: ['email', 'mail', 'inbox'],
           render: ({ props, context }: ItemRenderParams) => (
             <DropdownMenu.CheckboxItem
@@ -3113,14 +3110,13 @@ function DeepSearchDemo() {
     const sortOrderSubmenu: SubmenuDef = {
       kind: 'submenu',
       id: 'sort-order',
-      title: 'Sort by',
-      label: 'Sort by',
+      value: 'Sort by',
       deepSearch: true,
       nodes: [
         {
           kind: 'item',
           id: 'sort-name',
-          label: 'Name',
+          value: 'Name',
           keywords: ['alphabetical', 'a-z', 'name'],
           render: ({ props, context }: ItemRenderParams) =>
             renderRadioItem('sort-name', 'name', 'Name', context, props),
@@ -3128,7 +3124,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'sort-date',
-          label: 'Date modified',
+          value: 'Date modified',
           keywords: ['date', 'time', 'modified', 'recent'],
           render: ({ props, context }: ItemRenderParams) =>
             renderRadioItem(
@@ -3142,7 +3138,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'sort-priority',
-          label: 'Priority',
+          value: 'Priority',
           keywords: ['priority', 'importance', 'urgent'],
           render: ({ props, context }: ItemRenderParams) =>
             renderRadioItem(
@@ -3156,7 +3152,7 @@ function DeepSearchDemo() {
         {
           kind: 'item',
           id: 'sort-status',
-          label: 'Status',
+          value: 'Status',
           keywords: ['status', 'state', 'progress'],
           render: ({ props, context }: ItemRenderParams) =>
             renderRadioItem('sort-status', 'status', 'Status', context, props),
@@ -3377,7 +3373,7 @@ function DeepSearchGroupsDemo() {
   }): ItemDef => ({
     kind: 'item',
     id,
-    label,
+    value: label,
     keywords,
     onSelect: () => toast(`Selected: ${label}`),
     render: ({ props, context }: ItemRenderParams) => (
@@ -3460,8 +3456,7 @@ function DeepSearchGroupsDemo() {
   }): SubmenuDef => ({
     kind: 'submenu',
     id,
-    title,
-    label: title,
+    value: title,
     nodes,
     render: ({
       context,
@@ -3898,7 +3893,7 @@ function DeepSearchStatefulDemo() {
     ): ItemDef => ({
       kind: 'item',
       id,
-      label,
+      value: label,
       keywords,
       render: ({ props, context }: ItemRenderParams) => (
         <DropdownMenu.RadioItem
@@ -4009,8 +4004,7 @@ function DeepSearchStatefulDemo() {
     const statusSubmenu: SubmenuDef = {
       kind: 'submenu',
       id: 'status',
-      title: 'Status',
-      label: 'Status',
+      value: 'Status',
       deepSearch: true,
       nodes: [statusRadioGroup],
       render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (
@@ -4087,7 +4081,7 @@ function DeepSearchStatefulDemo() {
     const labelCheckboxItems: CheckboxItemDef[] = labelData.map((label) => ({
       kind: 'checkbox-item',
       id: `label-${label.id}`,
-      label: label.name,
+      value: label.name,
       keywords: label.keywords,
       checked: selectedLabels.has(label.id),
       onCheckedChange: (checked) => toggleLabel(label.id, checked),
@@ -4138,8 +4132,7 @@ function DeepSearchStatefulDemo() {
     const labelsSubmenu: SubmenuDef = {
       kind: 'submenu',
       id: 'labels',
-      title: 'Labels',
-      label: 'Labels',
+      value: 'Labels',
       deepSearch: true,
       nodes: labelCheckboxItems,
       render: ({ context, nodes, renderNode }: SubmenuRenderParams) => (

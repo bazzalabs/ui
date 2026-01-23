@@ -72,3 +72,4 @@ export type {
 export { ListboxStore } from './store/ListboxStore.js'
 // Utils
 export { commandScore, defaultFilter } from './utils/command-score.js'
+export { normalizeValue } from './utils/normalize.js'

@@ -27,13 +27,13 @@ import {
 
 function createItemDef(
   id: string,
-  label: string,
+  value: string,
   options: Partial<ItemDef> = {},
 ): ItemDef {
   return {
     kind: 'item',
     id,
-    label,
+    value,
     render: () => null,
     ...options,
   }
@@ -41,14 +41,14 @@ function createItemDef(
 
 function createCheckboxItemDef(
   id: string,
-  label: string,
+  value: string,
   checked: boolean,
   options: Partial<CheckboxItemDef> = {},
 ): CheckboxItemDef {
   return {
     kind: 'checkbox-item',
     id,
-    label,
+    value,
     checked,
     render: () => null,
     ...options,
@@ -57,14 +57,14 @@ function createCheckboxItemDef(
 
 function createSubmenuDef(
   id: string,
-  title: string,
+  value: string,
   nodes: NodeDef[],
   options: Partial<SubmenuDef> = {},
 ): SubmenuDef {
   return {
     kind: 'submenu',
     id,
-    title,
+    value,
     nodes,
     render: () => null,
     ...options,

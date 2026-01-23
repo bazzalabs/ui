@@ -323,6 +323,8 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySeparatorNode,
+  GetItemIdContext,
+  GetItemIdFn,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -356,6 +358,7 @@ export type { FilterNodesOptions } from './deep-search/utils.js'
 export {
   buildDisplayRowNodes,
   deduplicateNodes,
+  defaultGetItemId,
   filterNodes,
   flattenNodes,
   getBrowseNodesFlatten,

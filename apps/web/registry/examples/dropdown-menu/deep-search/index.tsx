@@ -113,7 +113,7 @@ function createItemNode(
   return {
     kind: 'item',
     id,
-    label,
+    value: label,
     keywords,
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
@@ -154,8 +154,7 @@ function createSubmenuNode(
   return {
     kind: 'submenu',
     id,
-    title,
-    label: title,
+    value: title,
     deepSearch: true,
     nodes: childNodes,
     render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => (
@@ -214,7 +213,7 @@ export default function DropdownMenuDeepSearch() {
     const labelItems: ItemDef[] = labels.map((label) => ({
       kind: 'item',
       id: `label-${label.id}`,
-      label: label.name,
+      value: label.name,
       keywords: [label.name, 'label', 'tag'],
       render: ({ props, context }: ItemRenderParams) => (
         <DropdownMenu.Item

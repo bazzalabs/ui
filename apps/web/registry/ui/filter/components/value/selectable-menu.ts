@@ -48,7 +48,7 @@ function createSelectableMenuInternal({
     return {
       kind: 'checkbox-item' as const,
       id: option.value as string,
-      label: option.label,
+      value: option.label,
       keywords: [option.value as string, option.label],
       checked: isCurrentlySelected,
       onCheckedChange: (checked: boolean) => {
