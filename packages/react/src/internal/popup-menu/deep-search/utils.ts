@@ -1,5 +1,5 @@
 import { commandScore } from '../../listbox/utils/command-score.js'
-import { normalizeValue } from '../../listbox/utils/normalize.js'
+import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
 import type {
   CheckboxItemDef,
   DisplayGroupNode,
@@ -31,17 +31,24 @@ import {
 
 /**
  * Default function to generate unique IDs for items.
- * Joins breadcrumbs (parent submenu values) with the node's value using '.' separator.
- * When there are no breadcrumbs (item is in root menu), returns the value as-is.
- * Values are normalized (trimmed) to ensure consistent ID generation.
+ * Creates a slug-style ID by joining breadcrumbs with the node's value using '.' separator.
+ * Each segment is slugified (lowercase, alphanumeric, hyphens for spaces).
+ *
+ * @example
+ * // "Settings" > "User Settings" > "Notifications"
+ * // becomes "settings.user-settings.notifications"
  */
 export function defaultGetItemId(ctx: GetItemIdContext): string {
-  const normalizedValue = normalizeValue(ctx.value)
+  const slugValue = slugify(ctx.value)
   if (ctx.breadcrumbs.length > 0) {
-    const normalizedBreadcrumbs = ctx.breadcrumbs.map((b) => normalizeValue(b))
-    return [...normalizedBreadcrumbs, normalizedValue].join('.')
+    const slugBreadcrumbs = ctx.breadcrumbs
+      .map((b) => slugify(b))
+      .filter(Boolean)
+    if (slugBreadcrumbs.length > 0) {
+      return [...slugBreadcrumbs, slugValue].join('.')
+    }
   }
-  return normalizedValue
+  return slugValue
 }
 
 // ============================================================================

@@ -798,3 +798,89 @@ describe('Mixed Content', () => {
     expect(flattened).toHaveLength(1)
   })
 })
+
+// ============================================================================
+// Value Normalization Tests
+// ============================================================================
+
+describe('Value Normalization', () => {
+  describe('scoreNodes', () => {
+    it('should match items with leading/trailing whitespace in value', () => {
+      const nodes: NodeDef[] = [
+        createItemDef('item1', '  Dark Mode  '), // value with whitespace
+        createItemDef('item2', 'Light Mode'),
+      ]
+
+      const flattened = flattenNodes(nodes)
+      const scored = scoreNodes(flattened, 'dark')
+
+      // Should match despite whitespace in value
+      expect(scored).toHaveLength(1)
+      expect(scored[0].node.id).toBe('item1')
+      expect(scored[0].score).toBeGreaterThan(0)
+    })
+
+    it('should match items with whitespace-only keywords filtered out', () => {
+      const nodes: NodeDef[] = [
+        createItemDef('item1', 'Settings', {
+          keywords: ['  ', 'config', '  preferences  '],
+        }),
+      ]
+
+      const flattened = flattenNodes(nodes)
+      const scored = scoreNodes(flattened, 'preferences')
+
+      // Should match on trimmed keyword
+      expect(scored).toHaveLength(1)
+      expect(scored[0].score).toBeGreaterThan(0)
+    })
+
+    it('should not match whitespace-only values', () => {
+      const nodes: NodeDef[] = [
+        createItemDef('item1', '   '), // whitespace-only value
+        createItemDef('item2', 'Valid'),
+      ]
+
+      const flattened = flattenNodes(nodes)
+      const scored = scoreNodes(flattened, 'valid')
+
+      expect(scored).toHaveLength(1)
+      expect(scored[0].node.id).toBe('item2')
+    })
+  })
+
+  describe('flattenNodes with breadcrumbs', () => {
+    it('should normalize submenu values in breadcrumbs', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef('submenu1', '  Settings  ', [
+          createItemDef('item1', 'Dark Mode'),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      // Find the nested item
+      const nestedItem = flattened.find((f) => f.node.id === 'item1')
+      expect(nestedItem).toBeDefined()
+      // Breadcrumb should be trimmed
+      expect(nestedItem?.breadcrumbs).toEqual(['Settings'])
+    })
+
+    it('should normalize deeply nested breadcrumbs', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef('sub1', '  Level 1  ', [
+          createSubmenuDef('sub2', '  Level 2  ', [
+            createItemDef('item1', 'Deep Item'),
+          ]),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      const deepItem = flattened.find((f) => f.node.id === 'item1')
+      expect(deepItem).toBeDefined()
+      // All breadcrumbs should be trimmed
+      expect(deepItem?.breadcrumbs).toEqual(['Level 1', 'Level 2'])
+    })
+  })
+})
