@@ -67,6 +67,13 @@ const stateAttributesMapping = {
 export interface PopupMenuSubmenuTriggerProps
   extends ComponentProps<'div', PopupMenuSubmenuTrigger.State> {
   /**
+   * Explicit unique identifier for this item in the store.
+   * When provided (e.g., from data-first API's computed composite ID),
+   * this takes priority over `value` for store registration.
+   */
+  id?: string
+
+  /**
    * Unique value for this item used for filtering.
    * If not provided, will be inferred from textContent.
    */
@@ -121,6 +128,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   PopupMenuSubmenuTrigger.Props
 >(function PopupMenuSubmenuTrigger(props, forwardedRef) {
   const {
+    id: idProp,
     value,
     keywords,
     disabled = false,
@@ -195,7 +203,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   const mouseTrailRef = useMouseTrail(4)
 
   // Use the shared item hook for registration, visibility, and highlight state
+  // When id is provided (e.g., from data-first API), it takes priority for store registration
   const item = usePopupMenuItem({
+    id: idProp,
     value,
     keywords,
     disabled,

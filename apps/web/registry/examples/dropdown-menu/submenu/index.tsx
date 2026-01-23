@@ -32,7 +32,7 @@ export default function DropdownMenuSubmenu() {
                     <DropdownMenu.Positioner>
                       <DropdownMenu.Popup>
                         <DropdownMenu.Surface>
-                          <DropdownMenu.Input hideUntilActive />
+                          <DropdownMenu.Input />
                           <DropdownMenu.List>
                             <DropdownMenu.Empty />
                             <DropdownMenu.Item onSelect={() => toast('Find')}>

@@ -144,7 +144,33 @@ export const PopupMenuPopup = React.forwardRef<
 
       // Only transfer focus if this is a submenu popup (not the root popup)
       // Use childSurfaceId from SubmenuContext since Popup is outside Surface in the component tree
-      if (submenuContext) {
+      if (!submenuContext) {
+        return
+      }
+
+      // Check if the event target is actually within this popup's DOM
+      // This prevents parent popups from claiming ownership when events
+      // bubble through React portals from child submenus
+      const target = event.target as Node
+      if (!popupRef.current?.contains(target)) {
+        return
+      }
+
+      // Check if the target is inside a nested submenu popup
+      // If so, don't claim ownership - let the nested popup handle it
+      const targetElement =
+        target instanceof Element ? target : target.parentElement
+      if (targetElement) {
+        // Find the closest popup ancestor of the target
+        const closestPopup = targetElement.closest('[data-base-ui-focusable]')
+        // If the closest popup is not this popup, don't claim ownership
+        if (closestPopup && closestPopup !== popupRef.current) {
+          return
+        }
+      }
+
+      // Only claim ownership if we're not already the owner
+      if (focusOwnerStore.state.ownerId !== submenuContext.childSurfaceId) {
         focusOwnerStore.setOwnerId(submenuContext.childSurfaceId)
       }
     },

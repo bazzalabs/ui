@@ -113,11 +113,30 @@ Use the `closeOnClick` prop to close the menu when an item is selected.
 
 </Example>
 
+### Search
+
+Search works out-of-the-box and fully customizable; use the `<DropdownMenu.Input>` part.
+
+The `value` and `keywords` props are used to filter the items.
+
+<Example name="dropdown-menu-search">
+
+<Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Item value="bug" keywords={['issue', 'fix']} />
+  ```
+
+</Example.PreviewCode>
+
+</Example>
+
 ### Hidden input
 
-We recommend **always** composing your menu with the `<DropdownMenu.Input>` part.
+We recommend **always** rendering the `<DropdownMenu.Input>` part.
 
 If you want a cleaner look, the `hideUntilActive` prop can be used to hide the input until the user starts typing.
+
 
 <Example name="dropdown-menu-hidden-input">
 
@@ -131,6 +150,7 @@ If you want a cleaner look, the `hideUntilActive` prop can be used to hide the i
 
 </Example>
 
+
 ### Checkbox items
 
 Use the `<DropdownMenu.CheckboxItem>` part to create a menu item that can toggle a setting on or off.
@@ -141,15 +161,54 @@ It can be used uncontrolled, or controlled via `checked` and `onCheckedChange` p
 
 ### Radio group
 
-<Example name="dropdown-menu-radio" />
+Use the `<DropdownMenu.RadioGroup>` and `<DropdownMenu.RadioItem>` parts to create menu items that work like radio buttons.
+
+Optionally, add a label using the `<DropdownMenu.GroupLabel>` part.
+
+<Example name="dropdown-menu-radio">
+<Example.PreviewCode>
+
+```tsx
+const [sortBy, setSortBy] = React.useState('name')
+
+<DropdownMenu.RadioGroup
+  value={sortBy}
+  onValueChange={(value) => setSortBy(value)}
+>
+  <DropdownMenu.GroupLabel>Sort by</DropdownMenu.GroupLabel>
+  <DropdownMenu.RadioItem value="name">Name</DropdownMenu.RadioItem>
+<DropdownMenu.RadioGroup />
+```
+
+</Example.PreviewCode>
+
+</Example>
 
 ### Submenu
 
-<Example name="dropdown-menu-submenu" />
+Create nested menus by starting with the `<DropdownMenu.Submenu>` part.
 
-### Search input
+Use the `<DropdownMenu.SubmenuTrigger>` part to create a menu item that opens the submenu when highlighted.
 
-<Example name="dropdown-menu-search" />
+Then, compose with the same parts for the root menu to render the popup.
+
+<Example name="dropdown-menu-submenu">
+  <Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Submenu>
+    <DropdownMenu.SubmenuTrigger>
+      More details
+    </DropdownMenu.SubmenuTrigger>
+  </DropdownMenu.Submenu>
+  ```
+
+  </Example.PreviewCode>
+</Example>
+
+### Deep search
+
+<Example name="dropdown-menu-deep-search-linear" />
 
 ## API Reference
 

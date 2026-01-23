@@ -53,7 +53,7 @@ const scrollAreaThumbVariants = cva(
 const menuItemVariants = cva(
   [
     // Base styles shared by all menu items
-    'group group/row flex items-center text-sm select-none',
+    'group group/row flex items-center text-sm truncate select-none',
     'data-[highlighted]:text-accent-foreground',
     'py-1.5 px-4',
     'w-full relative z-[1]',
@@ -441,7 +441,7 @@ function VirtualizedDataListContent({
 function getNodeKey(node: DisplayNode): string {
   // Handle row nodes (items, checkbox items, submenus)
   if ('node' in node && node.node) {
-    return node.node.id
+    return node.node.id ?? node.node.value
   }
 
   // Handle group nodes

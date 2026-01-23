@@ -54,7 +54,7 @@ export function createTextFilterItems<TData>({
     {
       kind: 'item' as const,
       id: `${column.id}-text-contains-${query}`,
-      label: `contains ${query}`,
+      value: `contains ${query}`,
       keywords: [query],
       onSelect: () => {
         changeText(query, 'contains')
@@ -64,7 +64,7 @@ export function createTextFilterItems<TData>({
     {
       kind: 'item' as const,
       id: `${column.id}-text-does-not-contain-${query}`,
-      label: `does not contain ${query}`,
+      value: `does not contain ${query}`,
       keywords: [query],
       onSelect: () => {
         changeText(query, 'does not contain')

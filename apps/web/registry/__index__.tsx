@@ -108,7 +108,30 @@ export const examples: RegistryIndex = {
     component: React.lazy(
       () => import('@/registry/examples/dropdown-menu/search'),
     ),
-    files: ['registry/examples/dropdown-menu/search/index.tsx'],
+    files: [
+      'registry/examples/dropdown-menu/search/index.tsx',
+      'registry/examples/dropdown-menu/search/data.ts',
+    ],
+  },
+  'dropdown-menu-deep-search': {
+    name: 'dropdown-menu-deep-search',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/deep-search'),
+    ),
+    files: ['registry/examples/dropdown-menu/deep-search/index.tsx'],
+  },
+  'dropdown-menu-deep-search-linear': {
+    name: 'dropdown-menu-deep-search-linear',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/deep-search-linear'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/deep-search-linear/index.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear/components.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear/icons.tsx',
+    ],
   },
   'guides/dropdown-menu/your-first-menu/surface-hidden-input': {
     name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
