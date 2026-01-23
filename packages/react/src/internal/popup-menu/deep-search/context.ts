@@ -1,7 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import type { DeepSearchConfig, DisplayNode, NodeDef } from './types.js'
+import type {
+  DeepSearchConfig,
+  DisplayNode,
+  GetItemIdFn,
+  NodeDef,
+} from './types.js'
 
 // ============================================================================
 // Data Surface Context
@@ -16,6 +21,9 @@ export interface DataSurfaceContextValue {
 
   /** List element ID for aria-activedescendant */
   listId: string
+
+  /** Function to generate unique IDs for items */
+  getItemId: GetItemIdFn
 }
 
 export const DataSurfaceContext =

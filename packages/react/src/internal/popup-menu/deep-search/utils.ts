@@ -1,10 +1,12 @@
 import { commandScore } from '../../listbox/utils/command-score.js'
+import { normalizeValue } from '../../listbox/utils/normalize.js'
 import type {
   CheckboxItemDef,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,
   DisplayRowNode,
+  GetItemIdContext,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -22,6 +24,25 @@ import {
   isDisplayRadioGroupNode,
   isDisplaySeparatorNode,
 } from './types.js'
+
+// ============================================================================
+// Default getItemId Implementation
+// ============================================================================
+
+/**
+ * Default function to generate unique IDs for items.
+ * Joins breadcrumbs (parent submenu values) with the node's value using '.' separator.
+ * When there are no breadcrumbs (item is in root menu), returns the value as-is.
+ * Values are normalized (trimmed) to ensure consistent ID generation.
+ */
+export function defaultGetItemId(ctx: GetItemIdContext): string {
+  const normalizedValue = normalizeValue(ctx.value)
+  if (ctx.breadcrumbs.length > 0) {
+    const normalizedBreadcrumbs = ctx.breadcrumbs.map((b) => normalizeValue(b))
+    return [...normalizedBreadcrumbs, normalizedValue].join('.')
+  }
+  return normalizedValue
+}
 
 // ============================================================================
 // Type Guards
@@ -60,10 +81,8 @@ export function isSeparatorDef(
 interface FlattenOptions {
   /** Whether to include children of submenus (deep search) */
   deep?: boolean
-  /** Parent breadcrumb titles */
+  /** Parent breadcrumb values (submenu values from root to parent) */
   breadcrumbs?: string[]
-  /** Parent breadcrumb IDs */
-  breadcrumbIds?: string[]
   /** Current group context (nested groups not supported) */
   group?: { id: string; label?: string; groupDef: GroupDef } | null
   /** Current radio group context */
@@ -76,8 +95,8 @@ interface FlattenOptions {
 
 interface FlattenedNode {
   node: ItemDef | CheckboxItemDef | SubmenuDef
+  /** Breadcrumb values (submenu values from root to parent) */
   breadcrumbs: string[]
-  breadcrumbIds: string[]
   /** The group this node belongs to, if any */
   group: { id: string; label?: string; groupDef: GroupDef } | null
   /** The radio group this node belongs to, if any */
@@ -100,7 +119,6 @@ export function flattenNodes(
   const {
     deep = false,
     breadcrumbs = [],
-    breadcrumbIds = [],
     group = null,
     radioGroup = null,
   } = options
@@ -120,7 +138,6 @@ export function flattenNodes(
         ...flattenNodes(node.nodes, {
           deep,
           breadcrumbs,
-          breadcrumbIds,
           group: groupInfo,
           radioGroup: null, // Reset radio group when entering a regular group
         }),
@@ -141,7 +158,6 @@ export function flattenNodes(
         ...flattenNodes(node.nodes, {
           deep,
           breadcrumbs,
-          breadcrumbIds,
           group: null, // Reset regular group when entering a radio group
           radioGroup: radioGroupInfo,
         }),
@@ -157,7 +173,6 @@ export function flattenNodes(
       result.push({
         node,
         breadcrumbs,
-        breadcrumbIds,
         group,
         radioGroup,
       })
@@ -169,21 +184,19 @@ export function flattenNodes(
       result.push({
         node,
         breadcrumbs,
-        breadcrumbIds,
         group,
         radioGroup,
       })
 
       // If deep search enabled and submenu allows it, include children
       if (deep && node.deepSearch !== false && node.nodes) {
-        const childBreadcrumbs = [...breadcrumbs, node.title]
-        const childBreadcrumbIds = [...breadcrumbIds, node.id]
+        // Normalize submenu value when adding to breadcrumbs
+        const childBreadcrumbs = [...breadcrumbs, normalizeValue(node.value)]
 
         result.push(
           ...flattenNodes(node.nodes, {
             deep,
             breadcrumbs: childBreadcrumbs,
-            breadcrumbIds: childBreadcrumbIds,
             // Reset group and radio group context when entering a submenu
             group: null,
             radioGroup: null,
@@ -211,17 +224,10 @@ export function scoreNodes(
   if (!query) {
     // No query - return all nodes with score 1
     return flattenedNodes.map(
-      ({
-        node,
-        breadcrumbs,
-        breadcrumbIds,
-        group,
-        radioGroup,
-      }): ScoredNode => ({
+      ({ node, breadcrumbs, group, radioGroup }): ScoredNode => ({
         node,
         score: 1,
         breadcrumbs,
-        breadcrumbIds,
         group,
         radioGroup,
       }),
@@ -230,25 +236,20 @@ export function scoreNodes(
 
   const results: ScoredNode[] = []
 
-  for (const {
-    node,
-    breadcrumbs,
-    breadcrumbIds,
-    group,
-    radioGroup,
-  } of flattenedNodes) {
-    const label =
-      node.kind === 'submenu' ? (node.label ?? node.title) : node.label
-    const keywords = node.keywords
+  for (const { node, breadcrumbs, group, radioGroup } of flattenedNodes) {
+    // Normalize value and keywords to match cmdk's behavior
+    const normalizedValue = normalizeValue(node.value)
+    const normalizedKeywords = node.keywords
+      ?.map((k) => normalizeValue(k))
+      .filter(Boolean)
 
-    const score = commandScore(label, query, keywords)
+    const score = commandScore(normalizedValue, query, normalizedKeywords)
 
     if (score > 0) {
       results.push({
         node,
         score,
         breadcrumbs,
-        breadcrumbIds,
         group,
         radioGroup,
       })
@@ -282,17 +283,21 @@ export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
 }
 
 /**
- * Deduplicates nodes by their composite ID (breadcrumbIds + node.id).
+ * Deduplicates nodes by their composite ID (breadcrumbs + node.value).
  * This handles the case where the same node appears multiple times in the tree.
+ * Values are normalized (trimmed) for consistent deduplication.
  */
 export function deduplicateNodes(nodes: ScoredNode[]): ScoredNode[] {
   const seen = new Set<string>()
   const result: ScoredNode[] = []
 
   for (const scoredNode of nodes) {
-    const compositeId = [...scoredNode.breadcrumbIds, scoredNode.node.id].join(
-      '.',
-    )
+    // Normalize value for consistent deduplication
+    // Note: breadcrumbs are already normalized in flattenNodes
+    const compositeId = [
+      ...scoredNode.breadcrumbs,
+      normalizeValue(scoredNode.node.value),
+    ].join('.')
     if (!seen.has(compositeId)) {
       seen.add(compositeId)
       result.push(scoredNode)
@@ -326,6 +331,7 @@ export function buildDisplayRowNodes(
           }
         : null,
       breadcrumbs: scoredNode.breadcrumbs,
+      // breadcrumbs already set above
       isDeepSearchResult,
       highlighted: scoredNode.node.id === highlightedId,
       disabled: scoredNode.node.disabled ?? false,
@@ -337,6 +343,9 @@ export function buildDisplayRowNodes(
     return {
       node: scoredNode.node,
       context,
+      radioGroup: scoredNode.radioGroup
+        ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
+        : undefined,
     }
   })
 }
@@ -371,6 +380,9 @@ function buildDisplayRowNode(
   return {
     node: scoredNode.node,
     context,
+    radioGroup: scoredNode.radioGroup
+      ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
+      : undefined,
   }
 }
 
@@ -510,7 +522,11 @@ export function getBrowseNodesPreserve(
           group: null, // Radio items don't belong to a regular group
         }
 
-        radioItems.push({ node: child, context: itemContext })
+        radioItems.push({
+          node: child,
+          context: itemContext,
+          radioGroup: { id: node.id, label: node.label },
+        })
       }
 
       // Only include radio group if it has items
@@ -705,7 +721,6 @@ function filterNodesFlatten(options: FilterNodesOptions): {
             node: flatNode.node,
             score: matchingScores.get(flatNode.node.id) ?? 0,
             breadcrumbs: flatNode.breadcrumbs,
-            breadcrumbIds: flatNode.breadcrumbIds,
             group: flatNode.group,
             radioGroup: flatNode.radioGroup,
           }))
@@ -918,7 +933,6 @@ function filterNodesPreserve(options: FilterNodesOptions): {
             node: flatNode.node,
             score: matchingScores.get(flatNode.node.id) ?? 0,
             breadcrumbs: flatNode.breadcrumbs,
-            breadcrumbIds: flatNode.breadcrumbIds,
             group: flatNode.group,
             radioGroup: flatNode.radioGroup,
           }))
@@ -1031,6 +1045,9 @@ export function filterNodes(options: FilterNodesOptions): {
  * Handles row nodes, group nodes, and radio group nodes (extracts item IDs).
  * Separators are skipped as they're not navigable.
  * Used for keyboard navigation.
+ *
+ * Note: Uses `node.id ?? node.value` as the identifier. For proper ID handling
+ * with custom getItemId functions, use `getOrderedItemIds` from DataList instead.
  */
 export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
   const ids: string[] = []
@@ -1040,14 +1057,14 @@ export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
       // Add IDs of items within the group
       for (const item of node.items) {
         if (!item.node.disabled) {
-          ids.push(item.node.id)
+          ids.push(item.node.id ?? item.node.value)
         }
       }
     } else if (isDisplayRadioGroupNode(node)) {
       // Add IDs of items within the radio group
       for (const item of node.items) {
         if (!item.node.disabled) {
-          ids.push(item.node.id)
+          ids.push(item.node.id ?? item.node.value)
         }
       }
     } else if (isDisplaySeparatorNode(node)) {
@@ -1055,7 +1072,7 @@ export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
     } else {
       // Row node (item, checkbox item, or submenu)
       if (!node.node.disabled) {
-        ids.push(node.node.id)
+        ids.push(node.node.id ?? node.node.value)
       }
     }
   }

@@ -122,7 +122,7 @@ function createOperatorNodes<TData, TType extends ColumnDataType>({
       return {
         kind: 'item',
         id: op.value,
-        label: operatorLabel,
+        value: operatorLabel,
         shortcut,
         closeOnSelect: true,
         render: ({ props }: ItemRenderParams) => (

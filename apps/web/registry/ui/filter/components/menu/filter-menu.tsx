@@ -167,8 +167,7 @@ function createDateSubmenuDef<TData>({
   return {
     kind: 'submenu',
     id: column.id,
-    title: column.displayName,
-    label: column.displayName,
+    value: column.displayName,
     render: createCustomSubmenuRenderer(
       column.id,
       column.displayName,
@@ -200,8 +199,7 @@ function createNumberSubmenuDef<TData>({
   return {
     kind: 'submenu',
     id: column.id,
-    title: column.displayName,
-    label: column.displayName,
+    value: column.displayName,
     render: createCustomSubmenuRenderer(
       column.id,
       column.displayName,
@@ -240,8 +238,7 @@ function createOptionSubmenuDef<TData>({
   return {
     kind: 'submenu',
     id: column.id,
-    title: column.displayName,
-    label: column.displayName,
+    value: column.displayName,
     nodes,
     render: createSubmenuRenderer(
       column.id,
@@ -276,8 +273,7 @@ function createMultiOptionSubmenuDef<TData>({
   return {
     kind: 'submenu',
     id: column.id,
-    title: column.displayName,
-    label: column.displayName,
+    value: column.displayName,
     nodes,
     render: createSubmenuRenderer(
       column.id,
@@ -344,8 +340,7 @@ function createTextSubmenuDef<TData>({
   return {
     kind: 'submenu',
     id: column.id,
-    title: column.displayName,
-    label: column.displayName,
+    value: column.displayName,
     // Text menus need controlled search - we'll handle this with a custom renderer
     render: (params: SubmenuRenderParams) => {
       return (
@@ -372,7 +367,7 @@ function createBooleanItemDef<TData>({
   return {
     kind: 'item',
     id: `filter-value-${column.id}`,
-    label: column.displayName,
+    value: column.displayName,
     onSelect: () => {
       actions.setFilterValue(column, [false])
     },
@@ -524,8 +519,7 @@ function __FilterMenu<TData>({
         return {
           kind: 'submenu',
           id: column.id,
-          title: column.displayName,
-          label: column.displayName,
+          value: column.displayName,
           render: createSubmenuRenderer(
             column.id,
             column.displayName,

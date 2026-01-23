@@ -5,6 +5,49 @@ import type {
 } from '../events.js'
 
 // ============================================================================
+// getItemId - Unique ID Generation
+// ============================================================================
+
+/**
+ * Context passed to the getItemId function.
+ * Provides all information needed to generate a unique ID for an item.
+ */
+export interface GetItemIdContext {
+  /** The node definition */
+  node: ItemDef | CheckboxItemDef | SubmenuDef
+
+  /** The node's value (node.value) - used as default identifier */
+  value: string
+
+  /** Position in the flattened display list (0-based) */
+  index: number
+
+  /**
+   * Breadcrumb values from root to parent (e.g., ['Settings', 'Advanced']).
+   * These are the `value` props of parent submenus.
+   */
+  breadcrumbs: string[]
+
+  /** Search context, null if browsing */
+  search: { query: string; score: number } | null
+
+  /** Whether surfaced via deep search */
+  isDeepSearchResult: boolean
+
+  /** Group context, if any */
+  group: { id: string; label?: string } | null
+
+  /** Radio group context, if any */
+  radioGroup: { id: string; label?: string } | null
+}
+
+/**
+ * Function that generates a unique ID for an item.
+ * Used for React keys, store registration, and DOM id attributes.
+ */
+export type GetItemIdFn = (context: GetItemIdContext) => string
+
+// ============================================================================
 // Render Context - passed to all render functions
 // ============================================================================
 
@@ -25,7 +68,7 @@ export interface RowRenderContext {
   } | null
 
   /**
-   * Full path of submenu titles from root to this row's parent.
+   * Full path of submenu values from root to this row's parent.
    * e.g., ['Settings', 'Advanced'] for an item inside the Advanced submenu.
    * Empty array [] for items directly in root menu.
    */
@@ -83,6 +126,8 @@ export interface ItemRenderParams {
   props: ItemRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
   context: RowRenderContext & {
+    /** The node's value (ItemDef.value) */
+    value: string
     disabled: boolean
   }
 }
@@ -95,6 +140,8 @@ export interface ItemRenderParams {
  * Props to spread onto the SubmenuTrigger component.
  */
 export interface SubmenuRenderProps {
+  /** Unique ID for the submenu trigger - must be passed to the rendered component for navigation to work */
+  id: string
   /** Whether the submenu trigger is disabled */
   disabled: boolean
 }
@@ -108,6 +155,8 @@ export interface SubmenuRenderParams {
   props: SubmenuRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
   context: RowRenderContext & {
+    /** The node's value (SubmenuDef.value) */
+    value: string
     disabled: boolean
   }
   /** The submenu's child node definitions */
@@ -198,6 +247,8 @@ export interface CheckboxItemRenderParams {
   props: CheckboxItemRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
   context: RowRenderContext & {
+    /** The node's value (CheckboxItemDef.value) */
+    value: string
     checked?: boolean
     disabled: boolean
   }
@@ -246,8 +297,12 @@ export interface RadioGroupRenderParams {
  * Base properties shared by all node types.
  */
 interface BaseNodeDef {
-  /** Unique identifier for this node */
-  id: string
+  /**
+   * Unique identifier for this node.
+   * If not provided, a composite ID is generated from the `value` and breadcrumbs
+   * using the `getItemId` function.
+   */
+  id?: string
   /** Whether this node is hidden */
   hidden?: boolean
 }
@@ -258,8 +313,11 @@ interface BaseNodeDef {
  */
 export interface ItemDef extends BaseNodeDef {
   kind: 'item'
-  /** Label used for search matching */
-  label: string
+  /**
+   * Primary identifier and search text for this item.
+   * Used for search matching and as the default identifier.
+   */
+  value: string
   /** Additional keywords for search matching */
   keywords?: string[]
   /** Whether the item is disabled */
@@ -270,11 +328,6 @@ export interface ItemDef extends BaseNodeDef {
   closeOnSelect?: boolean
   /** Keyboard shortcut for this item (e.g., "1", "2", etc.) */
   shortcut?: string
-  /**
-   * Value for this item when used inside a RadioGroup.
-   * Defaults to the item's `id` if not specified.
-   */
-  value?: string
 
   /**
    * Render function for this item row.
@@ -289,8 +342,11 @@ export interface ItemDef extends BaseNodeDef {
  */
 export interface CheckboxItemDef extends BaseNodeDef {
   kind: 'checkbox-item'
-  /** Label used for search matching */
-  label: string
+  /**
+   * Primary identifier and search text for this checkbox item.
+   * Used for search matching and as the default identifier.
+   */
+  value: string
   /** Additional keywords for search matching */
   keywords?: string[]
   /** Whether the item is disabled */
@@ -319,12 +375,10 @@ export interface CheckboxItemDef extends BaseNodeDef {
 export interface SubmenuDef extends BaseNodeDef {
   kind: 'submenu'
   /**
-   * Title used for breadcrumbs (required).
-   * This is different from the trigger's display label.
+   * Primary identifier and search text for this submenu trigger.
+   * Also used for breadcrumbs when deep search surfaces child items.
    */
-  title: string
-  /** Label used for search matching (defaults to title) */
-  label?: string
+  value: string
   /** Additional keywords for search matching */
   keywords?: string[]
   /** Whether the submenu trigger is disabled */
@@ -440,10 +494,11 @@ export interface ScoredNode {
   node: ItemDef | CheckboxItemDef | SubmenuDef
   /** Search match score (0-1) */
   score: number
-  /** Breadcrumb titles leading to this node */
+  /**
+   * Breadcrumb values leading to this node.
+   * These are the `value` props of parent submenus.
+   */
   breadcrumbs: string[]
-  /** Breadcrumb IDs leading to this node */
-  breadcrumbIds: string[]
   /** The group this node belongs to, if any */
   group: { id: string; label?: string; groupDef: GroupDef } | null
   /** The radio group this node belongs to, if any */
@@ -467,6 +522,8 @@ export interface DisplayRowNode {
   node: ItemDef | CheckboxItemDef | SubmenuDef
   /** Pre-computed render context for this node */
   context: RowRenderContext
+  /** Radio group this node belongs to, if rendering inside one */
+  radioGroup?: { id: string; label?: string }
 }
 
 /**
@@ -647,6 +704,17 @@ export interface DataSurfaceProps {
    * - `'after-exit'`: clear after exit animation completes
    */
   clearSearchOnClose?: boolean | 'after-exit'
+
+  /**
+   * Function to generate unique IDs for items.
+   * Called for each item when rendering to produce IDs for:
+   * - React keys
+   * - Store registration
+   * - DOM id attributes
+   *
+   * @default Joins breadcrumbs with node.value using '.' separator
+   */
+  getItemId?: GetItemIdFn
 
   /** Children (Input, List, etc.) */
   children: React.ReactNode

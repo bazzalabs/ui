@@ -1,30 +1,44 @@
 'use client'
 
+import React from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 
 export default function DropdownMenuCheckbox() {
+  const [minimap, setMinimap] = React.useState(true)
+  const [search, setSearch] = React.useState(true)
+  const [sidebar, setSidebar] = React.useState(false)
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger render={<Button variant="outline" />}>
-        View Options
+        Layout
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
             <DropdownMenu.Surface>
               <DropdownMenu.List>
-                <DropdownMenu.CheckboxItem>
+                <DropdownMenu.CheckboxItem
+                  checked={minimap}
+                  onCheckedChange={setMinimap}
+                >
                   <DropdownMenu.CheckboxItemIndicator />
-                  This is a checkbox item
+                  Minimap
                 </DropdownMenu.CheckboxItem>
-                <DropdownMenu.CheckboxItem>
+                <DropdownMenu.CheckboxItem
+                  checked={search}
+                  onCheckedChange={setSearch}
+                >
                   <DropdownMenu.CheckboxItemIndicator />
-                  By default, they stay open when selected
+                  Search
                 </DropdownMenu.CheckboxItem>
-                <DropdownMenu.CheckboxItem closeOnClick>
+                <DropdownMenu.CheckboxItem
+                  checked={sidebar}
+                  onCheckedChange={setSidebar}
+                >
                   <DropdownMenu.CheckboxItemIndicator />
-                  This closes when clicked
+                  Sidebar
                 </DropdownMenu.CheckboxItem>
               </DropdownMenu.List>
             </DropdownMenu.Surface>

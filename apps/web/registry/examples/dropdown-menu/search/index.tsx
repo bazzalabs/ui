@@ -1,57 +1,51 @@
 'use client'
 
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { LABEL_STYLES_BG, labelData, type TW_COLOR } from './data'
 
 export default function DropdownMenuSearch() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger render={<Button variant="outline" />}>
-        Commands
+        Labels
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.Surface clearSearchOnClose="after-exit">
-              <DropdownMenu.Input placeholder="Search commands..." />
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input placeholder="Search labels..." />
               <DropdownMenu.List>
-                <DropdownMenu.Item
-                  value="new-file"
-                  onSelect={() => toast('New File')}
-                >
-                  New File
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  value="open-file"
-                  onSelect={() => toast('Open File')}
-                >
-                  Open File
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  value="save-file"
-                  onSelect={() => toast('Save File')}
-                >
-                  Save File
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  value="save-as"
-                  onSelect={() => toast('Save As...')}
-                >
-                  Save As...
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  value="close-file"
-                  onSelect={() => toast('Close File')}
-                >
-                  Close File
-                </DropdownMenu.Item>
+                <DropdownMenu.Empty />
+                {labelData.map((label) => (
+                  <DropdownMenu.Item
+                    key={label.id}
+                    value={label.name}
+                    keywords={label.keywords}
+                  >
+                    <DropdownMenu.Icon>
+                      <LabelDot color={label.color} />
+                    </DropdownMenu.Icon>
+                    {label.name}
+                  </DropdownMenu.Item>
+                ))}
               </DropdownMenu.List>
-              <DropdownMenu.Empty>No results found</DropdownMenu.Empty>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+function LabelDot({ color }: { color: string }) {
+  return (
+    <div
+      className={cn(
+        'rounded-full size-2.5',
+        LABEL_STYLES_BG[color as TW_COLOR] ?? 'bg-neutral-500',
+      )}
+    />
   )
 }

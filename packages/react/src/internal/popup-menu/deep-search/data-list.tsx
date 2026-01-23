@@ -9,7 +9,9 @@ import type {
   DataListChildrenState,
   DataListProps,
   DisplayNode,
+  DisplayRadioGroupNode,
   DisplayRowNode,
+  GetItemIdFn,
   GroupRenderContext,
   ItemDef,
   NodeDef,
@@ -22,7 +24,117 @@ import {
   isDisplayRadioGroupNode,
   isDisplaySeparatorNode,
 } from './types.js'
-import { filterNodes, getNavigableIds } from './utils.js'
+import { filterNodes } from './utils.js'
+
+// ============================================================================
+// Helper: Compute composite IDs for all row nodes
+// ============================================================================
+
+interface ComputedItemId {
+  compositeId: string
+  index: number
+}
+
+/**
+ * Computes composite IDs for all row nodes in the display list.
+ * The index is the flat position across all items (including those inside groups).
+ */
+function computeItemIds(
+  displayNodes: DisplayNode[],
+  getItemId: GetItemIdFn,
+): Map<DisplayRowNode, ComputedItemId> {
+  const idMap = new Map<DisplayRowNode, ComputedItemId>()
+  let index = 0
+
+  for (const displayNode of displayNodes) {
+    if (isDisplayGroupNode(displayNode)) {
+      for (const item of displayNode.items) {
+        const compositeId = getItemId({
+          node: item.node,
+          value: item.node.value,
+          index,
+          breadcrumbs: item.context.breadcrumbs,
+          search: item.context.search,
+          isDeepSearchResult: item.context.isDeepSearchResult,
+          group: item.context.group,
+          radioGroup: null,
+        })
+        idMap.set(item, { compositeId, index })
+        index++
+      }
+    } else if (isDisplayRadioGroupNode(displayNode)) {
+      for (const item of displayNode.items) {
+        const compositeId = getItemId({
+          node: item.node,
+          value: item.node.value,
+          index,
+          breadcrumbs: item.context.breadcrumbs,
+          search: item.context.search,
+          isDeepSearchResult: item.context.isDeepSearchResult,
+          group: null,
+          radioGroup: item.radioGroup ?? null,
+        })
+        idMap.set(item, { compositeId, index })
+        index++
+      }
+    } else if (isDisplaySeparatorNode(displayNode)) {
+      // Separators don't need IDs
+    } else {
+      // Row node
+      const compositeId = getItemId({
+        node: displayNode.node,
+        value: displayNode.node.value,
+        index,
+        breadcrumbs: displayNode.context.breadcrumbs,
+        search: displayNode.context.search,
+        isDeepSearchResult: displayNode.context.isDeepSearchResult,
+        group: displayNode.context.group,
+        radioGroup: displayNode.radioGroup ?? null,
+      })
+      idMap.set(displayNode, { compositeId, index })
+      index++
+    }
+  }
+
+  return idMap
+}
+
+/**
+ * Extracts ordered composite IDs from the id map for store navigation.
+ */
+function getOrderedItemIds(
+  displayNodes: DisplayNode[],
+  idMap: Map<DisplayRowNode, ComputedItemId>,
+): string[] {
+  const ids: string[] = []
+
+  for (const displayNode of displayNodes) {
+    if (isDisplayGroupNode(displayNode)) {
+      for (const item of displayNode.items) {
+        if (!item.node.disabled) {
+          const computed = idMap.get(item)
+          if (computed) ids.push(computed.compositeId)
+        }
+      }
+    } else if (isDisplayRadioGroupNode(displayNode)) {
+      for (const item of displayNode.items) {
+        if (!item.node.disabled) {
+          const computed = idMap.get(item)
+          if (computed) ids.push(computed.compositeId)
+        }
+      }
+    } else if (isDisplaySeparatorNode(displayNode)) {
+      // skip
+    } else {
+      if (!displayNode.node.disabled) {
+        const computed = idMap.get(displayNode)
+        if (computed) ids.push(computed.compositeId)
+      }
+    }
+  }
+
+  return ids
+}
 
 // ============================================================================
 // DataList Component
@@ -56,7 +168,7 @@ export const PopupMenuDataList = React.forwardRef<
 
   // Get data surface context for content and deep search config
   const dataSurfaceCtx = useDataSurfaceContext()
-  const { content, deepSearchConfig } = dataSurfaceCtx
+  const { content, deepSearchConfig, getItemId } = dataSurfaceCtx
 
   // Get store from surface context for search state
   const { store } = useSurfaceContext()
@@ -79,6 +191,12 @@ export const PopupMenuDataList = React.forwardRef<
     return result
   }, [search, content, deepSearchConfig])
 
+  // Compute composite IDs for all row nodes
+  const itemIdMap = React.useMemo(
+    () => computeItemIds(displayNodes, getItemId),
+    [displayNodes, getItemId],
+  )
+
   // Sync orderedItems with the store when display nodes change
   // This is needed because DataSurface sets filter={false} on the underlying Surface
   //
@@ -86,10 +204,10 @@ export const PopupMenuDataList = React.forwardRef<
   // triggering highlight resets when the content hasn't actually changed.
   const prevOrderedItemIdsRef = React.useRef<string[]>([])
 
-  // Compute new ordered IDs
+  // Compute new ordered IDs using composite IDs
   const newOrderedItemIds = React.useMemo(
-    () => getNavigableIds(displayNodes),
-    [displayNodes],
+    () => getOrderedItemIds(displayNodes, itemIdMap),
+    [displayNodes, itemIdMap],
   )
 
   // Memoize the ordered IDs, only returning a new array if content changed
@@ -118,20 +236,25 @@ export const PopupMenuDataList = React.forwardRef<
     (displayNode: DisplayRowNode): React.ReactNode => {
       const { node, context } = displayNode
 
+      // Get composite ID from the map, fallback to node.value for submenu children
+      const computed = itemIdMap.get(displayNode)
+      const compositeId = computed?.compositeId ?? node.id ?? node.value
+
       if (node.kind === 'item') {
         return (
-          <React.Fragment key={node.id}>
+          <React.Fragment key={compositeId}>
             {node.render({
               props: {
-                id: node.id,
+                id: compositeId,
                 disabled: node.disabled ?? false,
                 closeOnClick: node.closeOnSelect,
                 onSelect: node.onSelect,
                 shortcut: node.shortcut,
-                value: node.value ?? node.id,
+                value: node.value,
               },
               context: {
                 ...context,
+                value: node.value,
                 disabled: node.disabled ?? false,
               },
             })}
@@ -141,10 +264,10 @@ export const PopupMenuDataList = React.forwardRef<
 
       if (node.kind === 'checkbox-item') {
         return (
-          <React.Fragment key={node.id}>
+          <React.Fragment key={compositeId}>
             {node.render({
               props: {
-                id: node.id,
+                id: compositeId,
                 checked: node.checked,
                 onCheckedChange: node.onCheckedChange,
                 disabled: node.disabled ?? false,
@@ -152,6 +275,7 @@ export const PopupMenuDataList = React.forwardRef<
               },
               context: {
                 ...context,
+                value: node.value,
                 checked: node.checked,
                 disabled: node.disabled ?? false,
               },
@@ -162,6 +286,8 @@ export const PopupMenuDataList = React.forwardRef<
 
       if (node.kind === 'submenu') {
         // For submenus, provide the nodes and a recursive renderNode function
+        // Note: We pass the compositeId to the submenu trigger so it registers with the
+        // correct ID for keyboard navigation during deep search
         const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
           // Skip separators
           if (childNode.kind === 'separator') {
@@ -186,7 +312,7 @@ export const PopupMenuDataList = React.forwardRef<
             const groupChildren = groupItems.map((item) => {
               const itemContext: RowRenderContext = {
                 search: null,
-                breadcrumbs: [...context.breadcrumbs, node.title],
+                breadcrumbs: [...context.breadcrumbs, node.value],
                 isDeepSearchResult: false,
                 highlighted: false,
                 disabled: item.disabled ?? false,
@@ -201,7 +327,7 @@ export const PopupMenuDataList = React.forwardRef<
               const groupContext: GroupRenderContext = {
                 search: null,
                 matchCount: groupItems.length,
-                breadcrumbs: [...context.breadcrumbs, node.title],
+                breadcrumbs: [...context.breadcrumbs, node.value],
                 isDeepSearchResult: false,
               }
               return (
@@ -231,7 +357,7 @@ export const PopupMenuDataList = React.forwardRef<
           if (childNode.kind === 'radio-group') {
             return renderRadioGroup(childNode, [
               ...context.breadcrumbs,
-              node.title,
+              node.value,
             ])
           }
 
@@ -247,7 +373,7 @@ export const PopupMenuDataList = React.forwardRef<
           // Create context for child node (no deep search in submenu)
           const childContext: RowRenderContext = {
             search: null,
-            breadcrumbs: [...context.breadcrumbs, node.title],
+            breadcrumbs: [...context.breadcrumbs, node.value],
             isDeepSearchResult: false,
             highlighted: false,
             disabled: childNode.disabled ?? false,
@@ -262,13 +388,15 @@ export const PopupMenuDataList = React.forwardRef<
         }
 
         return (
-          <React.Fragment key={node.id}>
+          <React.Fragment key={compositeId}>
             {node.render({
               props: {
+                id: compositeId,
                 disabled: node.disabled ?? false,
               },
               context: {
                 ...context,
+                value: node.value,
                 disabled: node.disabled ?? false,
               },
               nodes: node.nodes ?? [],
@@ -280,7 +408,7 @@ export const PopupMenuDataList = React.forwardRef<
 
       return null
     },
-    [],
+    [itemIdMap],
   )
 
   // Helper to render a radio group
@@ -312,7 +440,11 @@ export const PopupMenuDataList = React.forwardRef<
           group: null,
         }
 
-        return renderRowNode({ node: item, context: itemContext })
+        return renderRowNode({
+          node: item,
+          context: itemContext,
+          radioGroup: { id: radioGroup.id, label: radioGroup.label },
+        })
       })
 
       // Use custom render if provided

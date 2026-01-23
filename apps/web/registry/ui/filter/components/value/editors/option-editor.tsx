@@ -39,12 +39,16 @@ export interface OptionEditorContentProps<TData = unknown> {
 /**
  * Helper function to partition nodes into selected and unselected.
  */
-function partitionNodesBySelection<T extends { id: string }>(
+function partitionNodesBySelection<T extends { id?: string }>(
   nodes: T[],
   initialValues: string[],
 ): { selected: T[]; unselected: T[] } {
-  const selected = nodes.filter((node) => initialValues.includes(node.id))
-  const unselected = nodes.filter((node) => !initialValues.includes(node.id))
+  const selected = nodes.filter(
+    (node) => node.id != null && initialValues.includes(node.id),
+  )
+  const unselected = nodes.filter(
+    (node) => node.id == null || !initialValues.includes(node.id),
+  )
   return { selected, unselected }
 }
 

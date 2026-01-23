@@ -1,11 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { useListboxContext } from '../../listbox/index.js'
 import { PopupMenuSurface } from '../components/surface/surface.js'
 import { DataSurfaceContext, type DataSurfaceContextValue } from './context.js'
 import type { DataSurfaceProps, DeepSearchConfig } from './types.js'
-import { filterNodes } from './utils.js'
+import { defaultGetItemId } from './utils.js'
 
 // ============================================================================
 // DataSurface Component
@@ -41,6 +40,7 @@ export const PopupMenuDataSurface = React.forwardRef<
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
+    getItemId = defaultGetItemId,
     className,
     style,
     render,
@@ -78,8 +78,9 @@ export const PopupMenuDataSurface = React.forwardRef<
       content,
       deepSearchConfig,
       listId,
+      getItemId,
     }),
-    [content, deepSearchConfig, listId],
+    [content, deepSearchConfig, listId, getItemId],
   )
 
   return (

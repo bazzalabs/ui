@@ -6,6 +6,7 @@ import type { ItemContextValue } from '../contexts/item-context.js'
 import { useListboxContext } from '../contexts/listbox-context.js'
 import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
+import { normalizeValue } from '../utils/normalize.js'
 
 /**
  * Aim guard refs for submenu navigation.
@@ -216,16 +217,24 @@ export function useListboxItem(
 
   // Registration ID priority: id prop > value prop > textContent inference
   // This ensures data-first APIs can provide explicit IDs that match their internal tracking
-  const registrationId = idProp ?? valueProp ?? inferredValue
+  // Note: valueProp is normalized (trimmed) to match cmdk's behavior
+  const registrationId = idProp ?? (normalizeValue(valueProp) || inferredValue)
 
   // Generate a stable ID for DOM id attribute (aria-activedescendant, etc.)
-  // This is separate from the store identifier (value)
+  // When id prop is provided (data-first APIs), use it directly for DOM ID
+  // This ensures aria-activedescendant works correctly with composite IDs
   const generatedDomId = React.useId()
-  const domId = `item-${generatedDomId}`
+  const domId = idProp ?? `item-${generatedDomId}`
 
   // Stabilize keywords to prevent infinite loops when passed as inline arrays
   // We use JSON.stringify to compare by value rather than reference
-  const keywordsKey = keywords ? JSON.stringify(keywords) : undefined
+  // Keywords are also normalized (trimmed) to match cmdk's behavior
+  const normalizedKeywords = keywords
+    ?.map((k) => normalizeValue(k))
+    .filter(Boolean)
+  const keywordsKey = normalizedKeywords
+    ? JSON.stringify(normalizedKeywords)
+    : undefined
 
   // Register item with store (using registrationId as the unique identifier)
   React.useEffect(() => {
@@ -233,7 +242,7 @@ export function useListboxItem(
 
     const unregister = store.registerItem(registrationId, {
       value: registrationId,
-      keywords,
+      keywords: normalizedKeywords,
       groupId: groupContext?.groupId,
       disabled,
       isSubmenuTrigger,
