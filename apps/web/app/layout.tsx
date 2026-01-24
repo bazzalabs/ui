@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Agentation } from 'agentation'
 import type { Viewport } from 'next'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import OneDollarStatsScript from '@/app/stats'
@@ -76,6 +77,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       {/* <Script src="https://cdn.jsdelivr.net/npm/react-scan/dist/auto.global.js" /> */}
+      {process.env.NODE_ENV === 'development' && <Agentation />}
       <OneDollarStatsScript />
       <head>
         <script

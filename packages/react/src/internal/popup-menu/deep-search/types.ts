@@ -5,6 +5,155 @@ import type {
 } from '../events.js'
 
 // ============================================================================
+// Async Loader Types
+// ============================================================================
+
+/**
+ * Library-agnostic result from an async loader.
+ * Compatible with TanStack Query, SWR, and custom loaders.
+ */
+export interface AsyncLoaderResult<T> {
+  /** The loaded data, undefined while loading or on error */
+  data: T | undefined
+  /** Error if the load failed, null otherwise */
+  error: Error | null
+  /** Whether the loader is currently loading */
+  isLoading: boolean
+  /** Whether the loader encountered an error */
+  isError: boolean
+  /** Optional function to refetch the data */
+  refetch?: () => void
+}
+
+/**
+ * Props passed to loader components.
+ * The component should call hooks internally and pass the result to children.
+ */
+export interface LoaderComponentProps {
+  /** Search query (for query-dependent loaders) */
+  query: string
+  /** Render function receiving loader state */
+  children: (state: AsyncLoaderResult<NodeDef[]>) => React.ReactNode
+}
+
+/**
+ * Static loader configuration.
+ * Loads data once, then filters client-side.
+ */
+export interface StaticLoaderConfig {
+  type: 'static'
+  /**
+   * Component that calls hooks and provides loader state.
+   * This component pattern allows hooks to be called legally within React's rules.
+   */
+  Loader: React.ComponentType<LoaderComponentProps>
+  /**
+   * When to trigger the loader:
+   * - 'eager': Load when menu opens (good for deep search)
+   * - 'lazy': Load when submenu opens (default)
+   * @default 'lazy'
+   */
+  loadStrategy?: 'eager' | 'lazy'
+}
+
+/**
+ * Query-dependent loader configuration.
+ * Refetches based on search query - server does the filtering.
+ */
+export interface QueryDependentLoaderConfig {
+  type: 'query'
+  /**
+   * Component that calls hooks and provides loader state.
+   * Receives the current search query as a prop.
+   */
+  Loader: React.ComponentType<LoaderComponentProps>
+  /**
+   * Minimum query length before fetching.
+   * @default 1
+   */
+  minQueryLength?: number
+  /**
+   * Initial query to pre-fetch on menu open.
+   * Set to '' to fetch all items eagerly.
+   * If undefined, no pre-fetch occurs.
+   */
+  initialQuery?: string
+  /**
+   * What to show when query is below minQueryLength.
+   * - 'empty': Show nothing
+   * - 'placeholder': Show placeholderNodes
+   * @default 'empty'
+   */
+  belowMinBehavior?: 'empty' | 'placeholder'
+  /**
+   * Placeholder nodes shown when query is below minQueryLength.
+   */
+  placeholderNodes?: NodeDef[]
+}
+
+/**
+ * Union of all async loader configurations.
+ */
+export type AsyncLoaderConfig = StaticLoaderConfig | QueryDependentLoaderConfig
+
+/**
+ * Base options for async nodes that apply to both loader types.
+ */
+interface AsyncNodesBaseOptions {
+  /**
+   * Include this menu's async content in parent's deep search.
+   * - Static loaders: default true (data loaded, filter client-side)
+   * - Query loaders: default true (pass query to server)
+   */
+  includeInDeepSearch?: boolean
+}
+
+/**
+ * Static async nodes configuration for submenus.
+ */
+export type StaticAsyncNodesConfig = StaticLoaderConfig & AsyncNodesBaseOptions
+
+/**
+ * Query-dependent async nodes configuration for submenus.
+ */
+export type QueryAsyncNodesConfig = QueryDependentLoaderConfig &
+  AsyncNodesBaseOptions
+
+/**
+ * Async nodes configuration for submenus.
+ * Union of static and query-dependent loader configs with deep search options.
+ */
+export type AsyncNodesConfig = StaticAsyncNodesConfig | QueryAsyncNodesConfig
+
+/**
+ * Async state exposed to submenu render functions.
+ */
+export interface AsyncRenderState {
+  /** Whether the loader is currently loading */
+  isLoading: boolean
+  /** Whether the loader encountered an error */
+  isError: boolean
+  /** The error if any */
+  error: Error | null
+  /** For query loaders: whether query is below minQueryLength */
+  isBelowMinLength?: boolean
+}
+
+/**
+ * Aggregate async state exposed to DataList children.
+ */
+export interface AsyncState {
+  /** Any loader is currently loading */
+  isLoading: boolean
+  /** Static loaders specifically are loading */
+  isStaticLoading: boolean
+  /** Query loaders specifically are loading */
+  isQueryLoading: boolean
+  /** Menus that failed (skipped from results) */
+  skippedMenus: Array<{ id: string; reason: 'error' }>
+}
+
+// ============================================================================
 // getItemId - Unique ID Generation
 // ============================================================================
 
@@ -158,9 +307,20 @@ export interface SubmenuRenderParams {
     /** The node's value (SubmenuDef.value) */
     value: string
     disabled: boolean
+    /** Async loading state (if asyncNodes configured) */
+    async?: AsyncRenderState
   }
-  /** The submenu's child node definitions */
+  /**
+   * The submenu's static child node definitions.
+   * Does NOT include async results - use `asyncContent` for that.
+   */
   nodes: NodeDef[]
+  /**
+   * Async content configuration for this submenu.
+   * Pass this to the submenu's DataSurface to enable async loading
+   * with the submenu's own search query (independent of parent search).
+   */
+  asyncContent?: AsyncNodesConfig
   /**
    * Function to render a child node.
    * Call this for each node in the submenu's list.
@@ -386,6 +546,13 @@ export interface SubmenuDef extends BaseNodeDef {
 
   /** Static child nodes */
   nodes?: NodeDef[]
+
+  /**
+   * Async child nodes configuration.
+   * When provided, the Loader component will be rendered to fetch async data.
+   * Async nodes are merged with static nodes.
+   */
+  asyncNodes?: AsyncNodesConfig
 
   /**
    * Whether to include this submenu's children in deep search.
@@ -672,7 +839,14 @@ export interface DeepSearchConfig {
  */
 export interface DataSurfaceProps {
   /** The menu content (node definitions with render functions) */
-  content: NodeDef[]
+  content?: NodeDef[]
+
+  /**
+   * Async content configuration for root-level async loading.
+   * When provided, the Loader component will be rendered to fetch async data.
+   * Async content is merged with static content.
+   */
+  asyncContent?: AsyncLoaderConfig
 
   /** Deep search configuration */
   deepSearch?: DeepSearchConfig | boolean
@@ -749,6 +923,9 @@ export interface DataListChildrenState {
 
   /** Whether deep search is active (query length >= minLength) */
   isDeepSearching: boolean
+
+  /** Aggregate async loading state across all menus */
+  async: AsyncState
 }
 
 /**

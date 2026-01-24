@@ -198,6 +198,13 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 // ============================================================================
 
 export type {
+  // Async types
+  AsyncLoaderConfig,
+  AsyncLoaderResult,
+  AsyncNodesConfig,
+  AsyncRenderState,
+  AsyncState,
+  // Node types
   CheckboxItemDef,
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,
@@ -218,11 +225,14 @@ export type {
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
+  LoaderComponentProps,
   NodeDef,
   PopupMenuDataInputProps as DropdownMenuDataInputProps,
   PopupMenuDataListProps as DropdownMenuDataListProps,
   PopupMenuDataSurfaceProps as DropdownMenuDataSurfaceProps,
   PopupMenuRadioGroupValueProps as DropdownMenuRadioGroupValueProps,
+  QueryAsyncNodesConfig,
+  QueryDependentLoaderConfig,
   RadioGroupBehavior,
   RadioGroupDef,
   RadioGroupRenderParams,
@@ -232,6 +242,8 @@ export type {
   ScoredNode,
   SeparatorDef,
   SeparatorRenderParams,
+  StaticAsyncNodesConfig,
+  StaticLoaderConfig,
   SubmenuDef,
   SubmenuRenderParams,
   SubmenuRenderProps,

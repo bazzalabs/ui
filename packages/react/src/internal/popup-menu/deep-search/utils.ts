@@ -1,6 +1,7 @@
 import { commandScore } from '../../listbox/utils/command-score.js'
 import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
 import type {
+  AsyncNodesConfig,
   CheckboxItemDef,
   DisplayGroupNode,
   DisplayNode,
@@ -1095,4 +1096,204 @@ export function getFirstNavigableId(
 ): string | null {
   const ids = getNavigableIds(displayNodes)
   return ids[0] ?? null
+}
+
+// ============================================================================
+// Async Node Collection & Merging
+// ============================================================================
+
+/**
+ * Info about an async submenu for registration with coordinator.
+ */
+export interface AsyncSubmenuInfo {
+  /** Unique identifier (uses node value and breadcrumbs) */
+  id: string
+  /** Breadcrumbs path to this submenu */
+  breadcrumbs: string[]
+  /** The submenu node definition */
+  node: SubmenuDef
+  /** The async configuration */
+  config: AsyncNodesConfig
+}
+
+/**
+ * Collects all async submenus from a node tree.
+ * Recursively traverses groups and submenus to find all async configurations.
+ */
+export function collectAsyncSubmenus(
+  nodes: NodeDef[],
+  breadcrumbs: string[] = [],
+): AsyncSubmenuInfo[] {
+  const result: AsyncSubmenuInfo[] = []
+
+  for (const node of nodes) {
+    if (node.kind === 'separator') {
+      continue
+    }
+
+    if (node.kind === 'group') {
+      // Recurse into groups
+      result.push(...collectAsyncSubmenus(node.nodes, breadcrumbs))
+      continue
+    }
+
+    if (node.kind === 'radio-group') {
+      if (node.hidden) continue
+      // Recurse into radio groups
+      result.push(...collectAsyncSubmenus(node.nodes, breadcrumbs))
+      continue
+    }
+
+    if (node.kind === 'submenu') {
+      if (node.hidden) continue
+
+      // If this submenu has async nodes, add it to the result
+      if (node.asyncNodes) {
+        const id = [...breadcrumbs, normalizeValue(node.value)].join('.')
+        result.push({
+          id,
+          breadcrumbs,
+          node,
+          config: node.asyncNodes,
+        })
+      }
+
+      // Recurse into submenu's static nodes
+      if (node.nodes) {
+        const childBreadcrumbs = [...breadcrumbs, normalizeValue(node.value)]
+        result.push(...collectAsyncSubmenus(node.nodes, childBreadcrumbs))
+      }
+    }
+  }
+
+  return result
+}
+
+/**
+ * Merges async nodes into a submenu's node list.
+ * Static nodes come first, async nodes are appended.
+ */
+export function mergeSubmenuNodes(
+  staticNodes: NodeDef[] | undefined,
+  asyncNodes: NodeDef[] | undefined,
+): NodeDef[] {
+  const static_ = staticNodes ?? []
+  const async_ = asyncNodes ?? []
+  return [...static_, ...async_]
+}
+
+/**
+ * Async data from the coordinator ready for merging.
+ */
+interface AsyncNodeData {
+  id: string
+  breadcrumbs: string[]
+  nodes: NodeDef[]
+}
+
+/**
+ * Creates a merged content tree with async nodes injected at their proper locations.
+ * This function modifies the tree to include async nodes where they belong.
+ */
+export function mergeAsyncNodesIntoTree(
+  staticContent: NodeDef[],
+  asyncData: AsyncNodeData[],
+): NodeDef[] {
+  // If no async data, return static content as-is
+  if (asyncData.length === 0) {
+    return staticContent
+  }
+
+  // Build a map of async data by breadcrumb path
+  const asyncMap = new Map<string, NodeDef[]>()
+  for (const data of asyncData) {
+    // The id is the full path including the submenu value
+    // We need to find the parent path to inject into
+    asyncMap.set(data.id, data.nodes)
+  }
+
+  // Recursively merge async nodes into the tree
+  function mergeRecursive(
+    nodes: NodeDef[],
+    currentBreadcrumbs: string[],
+  ): NodeDef[] {
+    return nodes.map((node) => {
+      if (node.kind === 'submenu') {
+        const submenuPath = [
+          ...currentBreadcrumbs,
+          normalizeValue(node.value),
+        ].join('.')
+        const asyncNodes = asyncMap.get(submenuPath)
+
+        // Get merged child nodes
+        const mergedStaticChildren = node.nodes
+          ? mergeRecursive(node.nodes, [
+              ...currentBreadcrumbs,
+              normalizeValue(node.value),
+            ])
+          : undefined
+
+        // If there are async nodes for this submenu, merge them
+        if (asyncNodes) {
+          return {
+            ...node,
+            nodes: mergeSubmenuNodes(mergedStaticChildren, asyncNodes),
+          }
+        }
+
+        // If children were modified, return updated node
+        if (mergedStaticChildren !== node.nodes) {
+          return { ...node, nodes: mergedStaticChildren }
+        }
+      }
+
+      if (node.kind === 'group') {
+        const mergedChildren = mergeRecursive(node.nodes, currentBreadcrumbs)
+        if (mergedChildren !== node.nodes) {
+          return { ...node, nodes: mergedChildren }
+        }
+      }
+
+      if (node.kind === 'radio-group') {
+        const mergedChildren = mergeRecursive(
+          node.nodes,
+          currentBreadcrumbs,
+        ) as (ItemDef | CheckboxItemDef | SubmenuDef)[]
+        if (mergedChildren !== node.nodes) {
+          return { ...node, nodes: mergedChildren }
+        }
+      }
+
+      return node
+    })
+  }
+
+  return mergeRecursive(staticContent, [])
+}
+
+/**
+ * Checks if deep search should include this async config.
+ */
+export function shouldIncludeInDeepSearch(config: AsyncNodesConfig): boolean {
+  // Default behavior:
+  // - Static loaders: include by default
+  // - Query loaders: include by default
+  if (config.includeInDeepSearch !== undefined) {
+    return config.includeInDeepSearch
+  }
+  return true
+}
+
+/**
+ * Checks if an async loader should be rendered eagerly.
+ */
+export function shouldLoadEagerly(config: AsyncNodesConfig): boolean {
+  if (config.type === 'static') {
+    return config.loadStrategy === 'eager'
+  }
+  // Query loaders can have initialQuery for eager loading
+  if (config.type === 'query') {
+    return config.initialQuery !== undefined
+  }
+  return false
 }
