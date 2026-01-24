@@ -53,10 +53,12 @@ const scrollAreaThumbVariants = cva(
 const menuItemVariants = cva(
   [
     // Base styles shared by all menu items
-    'group group/row flex items-center text-sm truncate select-none',
+    'group group/row flex items-center text-sm select-none',
     'data-[highlighted]:text-accent-foreground',
     'py-1.5 px-4',
-    'w-full relative z-[1]',
+    'w-full',
+    // 'min-w-[200px] max-w-[min(500px,var(--row-width))]',
+    'relative z-[1]',
     // Highlight background pseudo-element
     'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
     'data-[highlighted]:before:bg-accent',
@@ -88,11 +90,58 @@ const inputVariants = cva([
   'caret-blue-500',
 ])
 
-const listVariants = cva(['py-1 outline-none', '!min-w-full'])
+const listVariants = cva(['py-1 outline-none', '!min-w-full w-full'])
 
 const surfaceVariants = cva('divide-y')
 
-const Root = Primitive.Root
+function Root({
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof Primitive.Root>) {
+  const handleOpenChange = useCallback(
+    (
+      open: boolean,
+      eventDetails: Parameters<
+        NonNullable<React.ComponentProps<typeof Primitive.Root>['onOpenChange']>
+      >[1],
+    ) => {
+      console.log('[DropdownMenu.Root] onOpenChange:', {
+        open,
+        reason: eventDetails.reason,
+        hasEvent: !!eventDetails.event,
+        hasCancel: typeof eventDetails.cancel === 'function',
+      })
+
+      // Prevent closing when clicking on feedback toolbar elements
+      if (
+        !open &&
+        (eventDetails.reason === 'outside-press' ||
+          eventDetails.reason === 'focus-out') &&
+        eventDetails.event
+      ) {
+        const target = eventDetails.event.target as Element | null
+        const feedbackToolbar = target?.closest(
+          '[data-feedback-toolbar="true"]',
+        )
+        console.log('[DropdownMenu.Root] outside-press check:', {
+          target: target?.tagName,
+          targetClasses: target?.className,
+          feedbackToolbar: !!feedbackToolbar,
+          feedbackToolbarEl: feedbackToolbar?.tagName,
+        })
+        if (feedbackToolbar) {
+          console.log('[DropdownMenu.Root] Cancelling close!')
+          eventDetails.cancel()
+          return
+        }
+      }
+      onOpenChange?.(open, eventDetails)
+    },
+    [onOpenChange],
+  )
+
+  return <Primitive.Root onOpenChange={handleOpenChange} {...props} />
+}
 
 const Trigger = Primitive.Trigger
 
@@ -138,7 +187,10 @@ const Popup = forwardRef<
         // - Uses --row-width CSS variable set by the List component
         // - Clamps between 250px min and 500px max
         // - Falls back to 250px if --row-width is not set
-        'w-[clamp(175px,var(--row-width,175px),500px)]',
+        // 'w-[min(500px,max(var(--row-width),175px))]',
+        // 'min-w-[175px] max-w-[500px]',
+        // 'w-full',
+        'min-w-[195px] max-w-[500px]',
         'overflow-hidden',
         !state.isSubmenu && [
           'opacity-100 scale-100',
@@ -631,7 +683,55 @@ const GroupLabel = forwardRef<
 ))
 GroupLabel.displayName = 'DropdownMenu.GroupLabel'
 
-const Submenu = Primitive.Submenu
+function Submenu({
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof Primitive.Submenu>) {
+  const handleOpenChange = useCallback(
+    (
+      open: boolean,
+      eventDetails: Parameters<
+        NonNullable<
+          React.ComponentProps<typeof Primitive.Submenu>['onOpenChange']
+        >
+      >[1],
+    ) => {
+      console.log('[DropdownMenu.Submenu] onOpenChange:', {
+        open,
+        reason: eventDetails.reason,
+        hasEvent: !!eventDetails.event,
+        hasCancel: typeof eventDetails.cancel === 'function',
+      })
+
+      // Prevent closing when clicking on feedback toolbar elements
+      if (
+        !open &&
+        (eventDetails.reason === 'outside-press' ||
+          eventDetails.reason === 'focus-out') &&
+        eventDetails.event
+      ) {
+        const target = eventDetails.event.target as Element | null
+        const feedbackToolbar = target?.closest(
+          '[data-feedback-toolbar="true"]',
+        )
+        console.log('[DropdownMenu.Submenu] outside-press check:', {
+          target: target?.tagName,
+          targetClasses: target?.className,
+          feedbackToolbar: !!feedbackToolbar,
+        })
+        if (feedbackToolbar) {
+          console.log('[DropdownMenu.Submenu] Cancelling close!')
+          eventDetails.cancel()
+          return
+        }
+      }
+      onOpenChange?.(open, eventDetails)
+    },
+    [onOpenChange],
+  )
+
+  return <Primitive.Submenu onOpenChange={handleOpenChange} {...props} />
+}
 
 const SubmenuTrigger = forwardRef<
   HTMLDivElement,

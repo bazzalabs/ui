@@ -2,6 +2,15 @@
 
 import * as React from 'react'
 
+// Debug flag - set to true to enable console logging
+const DEBUG_ROW_WIDTH = true
+
+function debugLog(...args: unknown[]) {
+  if (DEBUG_ROW_WIDTH) {
+    console.log('[useStickyRowWidth]', ...args)
+  }
+}
+
 function px(n: number) {
   return `${Math.ceil(n)}px`
 }
@@ -113,6 +122,16 @@ export function useStickyRowWidth(
       // Apply hard cap if specified
       const capped = maxWidth !== undefined ? Math.min(width, maxWidth) : width
 
+      debugLog('--row-width updated:', {
+        rawWidth: width,
+        cappedWidth: capped,
+        cssValue: px(capped),
+        maxWidthCap: maxWidth,
+        targetElement:
+          el.tagName +
+          (el.className ? `.${el.className.split(' ').join('.')}` : ''),
+      })
+
       el.style.setProperty('--row-width', px(capped))
     },
     [getTargetElement, maxWidth],
@@ -133,17 +152,71 @@ export function useStickyRowWidth(
       let foundNewMax = false
 
       if (measurements.length > 0) {
+        debugLog('Measuring batch of', measurements.length, 'rows')
+
         for (const { element, id } of measurements) {
           // Skip if already measured
           if (measuredIds.current.has(id)) continue
 
+          // Skip if element is no longer in the DOM (unmounted before RAF fired)
+          if (!element.isConnected) {
+            debugLog('Row skipped (unmounted):', { id })
+            continue
+          }
+
           // Read natural width without interleaving writes
           const prevWidth = element.style.width
+          const prevMaxWidth = element.style.maxWidth
+
+          // Temporarily remove max-width constraint to get true natural width
+          element.style.maxWidth = 'none'
           element.style.width = 'max-content'
 
           const w = Math.max(element.scrollWidth, element.offsetWidth) + 1
 
+          // Log computed styles to debug constraint issues
+          const computed = getComputedStyle(element)
+          debugLog('Row measurement details:', {
+            id,
+            measuredWidth: w,
+            scrollWidth: element.scrollWidth,
+            offsetWidth: element.offsetWidth,
+            computedWidth: computed.width,
+            computedMaxWidth: computed.maxWidth,
+            inlineMaxWidth: prevMaxWidth,
+            textContent: element.textContent?.slice(0, 50),
+          })
+
           element.style.width = prevWidth
+          element.style.maxWidth = prevMaxWidth
+
+          // Debug: if width is suspiciously small, log more info
+          if (w <= 1) {
+            const rect = element.getBoundingClientRect()
+            const computed = getComputedStyle(element)
+            debugLog('Row skipped (0-width, will retry):', {
+              id,
+              width: w,
+              scrollWidth: element.scrollWidth,
+              offsetWidth: element.offsetWidth,
+              boundingRect: { width: rect.width, height: rect.height },
+              display: computed.display,
+              visibility: computed.visibility,
+              innerHTML: element.innerHTML.slice(0, 100),
+              isConnected: element.isConnected,
+              parentElement: element.parentElement?.tagName,
+            })
+            // Don't mark as measured - element was likely unmounted/replaced
+            // before we could measure it. It will be re-queued when it re-mounts.
+            continue
+          }
+
+          debugLog('Row measured:', {
+            id,
+            width: w,
+            currentMax: maxWidth,
+            isNewMax: w > maxWidth,
+          })
 
           if (w > maxWidth) {
             maxWidth = w
@@ -158,6 +231,11 @@ export function useStickyRowWidth(
 
       // === WRITE PHASE: Apply styles after all reads complete ===
       if (foundNewMax) {
+        debugLog('New max width found:', {
+          previousMax: maxSeenRef.current,
+          newMax: maxWidth,
+          totalMeasured: measuredIds.current.size,
+        })
         maxSeenRef.current = maxWidth
         writeQueue.current.push(() => applyVar(maxWidth))
       }
@@ -175,10 +253,22 @@ export function useStickyRowWidth(
    */
   const queueMeasurement = React.useCallback(
     (element: HTMLElement, id: string) => {
-      if (!enabled) return
+      if (!enabled) {
+        debugLog('queueMeasurement skipped (disabled):', id)
+        return
+      }
 
       // Skip if already measured
-      if (measuredIds.current.has(id)) return
+      if (measuredIds.current.has(id)) {
+        debugLog('queueMeasurement skipped (already measured):', id)
+        return
+      }
+
+      debugLog('queueMeasurement:', {
+        id,
+        queueSize: readQueue.current.length + 1,
+        element: element.tagName,
+      })
 
       // Add to read queue
       readQueue.current.push({ element, id })
@@ -192,6 +282,9 @@ export function useStickyRowWidth(
    * This clears the tracked IDs and resets the max width.
    */
   const resetMeasurements = React.useCallback(() => {
+    const prevMax = maxSeenRef.current
+    const prevCount = measuredIds.current.size
+
     measuredIds.current.clear()
     maxSeenRef.current = 0
 
@@ -200,6 +293,12 @@ export function useStickyRowWidth(
     if (el) {
       el.style.removeProperty('--row-width')
     }
+
+    debugLog('Measurements reset:', {
+      previousMaxWidth: prevMax,
+      previousMeasuredCount: prevCount,
+      targetElement: el?.tagName,
+    })
   }, [getTargetElement])
 
   // Re-apply the CSS variable when the target element resizes (e.g., viewport changes)
@@ -215,7 +314,7 @@ export function useStickyRowWidth(
 
     let rafId: number | null = null
 
-    const ro = new ResizeObserver(() => {
+    const ro = new ResizeObserver((entries) => {
       // Defer to next frame to avoid flushSync conflicts during React's commit phase
       // This prevents errors when virtualizers or other components use flushSync
       if (rafId !== null) {
@@ -224,6 +323,10 @@ export function useStickyRowWidth(
       rafId = requestAnimationFrame(() => {
         rafId = null
         if (maxSeenRef.current > 0) {
+          debugLog('ResizeObserver triggered re-apply:', {
+            currentMax: maxSeenRef.current,
+            containerSize: entries[0]?.contentRect,
+          })
           applyVar(maxSeenRef.current)
         }
       })

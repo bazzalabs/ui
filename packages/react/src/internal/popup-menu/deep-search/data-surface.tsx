@@ -32,6 +32,7 @@ export const PopupMenuDataSurface = React.forwardRef<
 >(function PopupMenuDataSurface(props, forwardedRef) {
   const {
     content,
+    asyncContent,
     deepSearch = true,
     filter,
     search: searchProp,
@@ -75,12 +76,13 @@ export const PopupMenuDataSurface = React.forwardRef<
   // Note: The actual filtering happens in DataList which has access to the store's search
   const contextValue: DataSurfaceContextValue = React.useMemo(
     () => ({
-      content,
+      content: content ?? [],
+      asyncContent,
       deepSearchConfig,
       listId,
       getItemId,
     }),
-    [content, deepSearchConfig, listId, getItemId],
+    [content, asyncContent, deepSearchConfig, listId, getItemId],
   )
 
   return (

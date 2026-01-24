@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import type {
+  AsyncLoaderConfig,
   DeepSearchConfig,
   DisplayNode,
   GetItemIdFn,
@@ -15,6 +16,9 @@ import type {
 export interface DataSurfaceContextValue {
   /** The original node definitions */
   content: NodeDef[]
+
+  /** Async content configuration for root-level async loading */
+  asyncContent?: AsyncLoaderConfig
 
   /** Deep search configuration */
   deepSearchConfig: DeepSearchConfig

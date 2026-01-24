@@ -3,8 +3,15 @@
 import * as React from 'react'
 import { useSurfaceContext } from '../../listbox/index.js'
 import { PopupMenuList } from '../components/list/list.js'
+import {
+  AsyncMenuCoordinatorProvider,
+  type AsyncMenuState,
+  useAsyncMenuCoordinator,
+} from './async-coordinator.js'
 import { type RenderNodeFn, useDataSurfaceContext } from './context.js'
 import type {
+  AsyncLoaderResult,
+  AsyncNodesConfig,
   CheckboxItemDef,
   DataListChildrenState,
   DataListProps,
@@ -24,7 +31,14 @@ import {
   isDisplayRadioGroupNode,
   isDisplaySeparatorNode,
 } from './types.js'
-import { filterNodes } from './utils.js'
+import {
+  type AsyncSubmenuInfo,
+  collectAsyncSubmenus,
+  filterNodes,
+  mergeAsyncNodesIntoTree,
+  shouldIncludeInDeepSearch,
+  shouldLoadEagerly,
+} from './utils.js'
 
 // ============================================================================
 // Helper: Compute composite IDs for all row nodes
@@ -137,6 +151,205 @@ function getOrderedItemIds(
 }
 
 // ============================================================================
+// Async Loader Component
+// ============================================================================
+
+interface AsyncLoaderRendererProps {
+  info: AsyncSubmenuInfo
+  query: string
+  enabled: boolean
+}
+
+/**
+ * Renders an async loader component and registers its state with the coordinator.
+ * This component exists solely to call the Loader component (which contains hooks).
+ */
+function AsyncLoaderRenderer({
+  info,
+  query,
+  enabled,
+}: AsyncLoaderRendererProps) {
+  const coordinator = useAsyncMenuCoordinator()
+  const { config, id, breadcrumbs, node } = info
+  const Loader = config.Loader
+
+  // For query-dependent loaders, determine effective query
+  const effectiveQuery = React.useMemo(() => {
+    if (config.type === 'query') {
+      const minLength = config.minQueryLength ?? 1
+      if (query.length < minLength) {
+        return ''
+      }
+    }
+    return query
+  }, [config, query])
+
+  // Track if this loader should be active
+  const isActive = enabled || shouldLoadEagerly(config)
+
+  if (!isActive) {
+    return null
+  }
+
+  return (
+    <Loader query={effectiveQuery}>
+      {(result) => (
+        <AsyncLoaderResultHandler
+          id={id}
+          breadcrumbs={breadcrumbs}
+          config={config}
+          result={result}
+          coordinator={coordinator}
+        />
+      )}
+    </Loader>
+  )
+}
+
+interface AsyncLoaderResultHandlerProps {
+  id: string
+  breadcrumbs: string[]
+  config: AsyncNodesConfig
+  result: AsyncLoaderResult<NodeDef[]>
+  coordinator: ReturnType<typeof useAsyncMenuCoordinator>
+}
+
+/**
+ * Handles registering and updating loader results with the coordinator.
+ * This is a separate component to avoid re-rendering the Loader on every result change.
+ */
+function AsyncLoaderResultHandler({
+  id,
+  breadcrumbs,
+  config,
+  result,
+  coordinator,
+}: AsyncLoaderResultHandlerProps) {
+  // Use refs to hold the latest values without causing re-renders
+  // This is critical because coordinator changes on every state update (new Map)
+  const breadcrumbsRef = React.useRef(breadcrumbs)
+  const configRef = React.useRef(config)
+  const coordinatorRef = React.useRef(coordinator)
+  const resultRef = React.useRef(result)
+
+  // Track previous result values to avoid unnecessary updates
+  // TanStack Query returns new object references on every render
+  const prevResultRef = React.useRef<{
+    data: unknown
+    isLoading: boolean
+    isError: boolean
+    error: Error | null
+  } | null>(null)
+
+  // Keep refs up to date
+  breadcrumbsRef.current = breadcrumbs
+  configRef.current = config
+  coordinatorRef.current = coordinator
+  resultRef.current = result
+
+  // Register on mount, unregister on unmount
+  // IMPORTANT: Only depend on `id` - coordinator is accessed via ref to avoid
+  // infinite loops (coordinator object changes on every state update)
+  React.useEffect(() => {
+    const coord = coordinatorRef.current
+    if (!coord) return
+
+    const state: AsyncMenuState = {
+      id,
+      breadcrumbs: breadcrumbsRef.current,
+      config: configRef.current,
+      result: resultRef.current,
+    }
+
+    coord.registerLoader(state)
+
+    return () => {
+      coord.unregisterLoader(id)
+    }
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update result when meaningful values change
+  // IMPORTANT: Depend on individual result values, not the result object reference.
+  // TanStack Query creates new object references on every render, but we only want
+  // to trigger updates when actual values change.
+  // Using coordinatorRef prevents re-running when coordinator context changes.
+  React.useEffect(() => {
+    const coord = coordinatorRef.current
+    if (!coord) return
+
+    // Compare against previous values to avoid unnecessary updates
+    const prev = prevResultRef.current
+    const hasChanged =
+      prev === null ||
+      prev.data !== result.data ||
+      prev.isLoading !== result.isLoading ||
+      prev.isError !== result.isError ||
+      prev.error !== result.error
+
+    if (hasChanged) {
+      prevResultRef.current = {
+        data: result.data,
+        isLoading: result.isLoading,
+        isError: result.isError,
+        error: result.error,
+      }
+      coord.updateLoaderResult(id, result)
+    }
+  }, [id, result.data, result.isLoading, result.isError, result.error]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null
+}
+
+// ============================================================================
+// Root Async Loader Component
+// ============================================================================
+
+interface RootAsyncLoaderProps {
+  query: string
+}
+
+/**
+ * Renders the root async content loader if configured.
+ */
+function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
+  const dataSurfaceCtx = useDataSurfaceContext()
+  const coordinator = useAsyncMenuCoordinator()
+  const { asyncContent } = dataSurfaceCtx
+
+  // For query-dependent loaders, determine effective query
+  const effectiveQuery = React.useMemo(() => {
+    if (!asyncContent) return ''
+    if (asyncContent.type === 'query') {
+      const minLength = asyncContent.minQueryLength ?? 1
+      if (query.length < minLength) {
+        return ''
+      }
+    }
+    return query
+  }, [asyncContent, query])
+
+  if (!asyncContent) {
+    return null
+  }
+
+  const Loader = asyncContent.Loader
+
+  return (
+    <Loader query={effectiveQuery}>
+      {(result) => (
+        <AsyncLoaderResultHandler
+          id="__root__"
+          breadcrumbs={[]}
+          config={asyncContent as AsyncNodesConfig}
+          result={result}
+          coordinator={coordinator}
+        />
+      )}
+    </Loader>
+  )
+}
+
+// ============================================================================
 // DataList Component
 // ============================================================================
 
@@ -168,362 +381,413 @@ export const PopupMenuDataList = React.forwardRef<
 
   // Get data surface context for content and deep search config
   const dataSurfaceCtx = useDataSurfaceContext()
-  const { content, deepSearchConfig, getItemId } = dataSurfaceCtx
+  const { content, asyncContent, deepSearchConfig, getItemId } = dataSurfaceCtx
 
   // Get store from surface context for search state
   const { store } = useSurfaceContext()
   const search = store.useState('search')
 
-  // Compute filtered display nodes
-  // Note: We don't include highlightedId in dependencies - primitives handle their own highlighting
-  const { displayNodes, isDeepSearching } = React.useMemo(() => {
-    const result = filterNodes({
-      query: search,
-      nodes: content,
-      highlightedId: null, // Primitives handle highlighting via store
-      deepSearch: deepSearchConfig.enabled,
-      minLength: deepSearchConfig.minLength,
-      groupSearchBehavior: deepSearchConfig.groupSearchBehavior,
-      radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
-      sortGroups: deepSearchConfig.sortGroups,
-    })
-
-    return result
-  }, [search, content, deepSearchConfig])
-
-  // Compute composite IDs for all row nodes
-  const itemIdMap = React.useMemo(
-    () => computeItemIds(displayNodes, getItemId),
-    [displayNodes, getItemId],
+  // Wrap with coordinator provider
+  return (
+    <AsyncMenuCoordinatorProvider searchQuery={search}>
+      <DataListInner
+        ref={forwardedRef}
+        {...props}
+        content={content}
+        asyncContent={asyncContent}
+        deepSearchConfig={deepSearchConfig}
+        getItemId={getItemId}
+        search={search}
+        store={store}
+      />
+    </AsyncMenuCoordinatorProvider>
   )
+})
 
-  // Sync orderedItems with the store when display nodes change
-  // This is needed because DataSurface sets filter={false} on the underlying Surface
-  //
-  // We use a ref to track the previous IDs and do a deep comparison to avoid
-  // triggering highlight resets when the content hasn't actually changed.
-  const prevOrderedItemIdsRef = React.useRef<string[]>([])
+// ============================================================================
+// DataList Inner Component (with coordinator access)
+// ============================================================================
 
-  // Compute new ordered IDs using composite IDs
-  const newOrderedItemIds = React.useMemo(
-    () => getOrderedItemIds(displayNodes, itemIdMap),
-    [displayNodes, itemIdMap],
-  )
+interface DataListInnerProps extends PopupMenuDataListProps {
+  content: NodeDef[]
+  asyncContent: ReturnType<typeof useDataSurfaceContext>['asyncContent']
+  deepSearchConfig: ReturnType<typeof useDataSurfaceContext>['deepSearchConfig']
+  getItemId: GetItemIdFn
+  search: string
+  store: ReturnType<typeof useSurfaceContext>['store']
+}
 
-  // Memoize the ordered IDs, only returning a new array if content changed
-  const orderedItemIds = React.useMemo(() => {
-    const prev = prevOrderedItemIdsRef.current
-    const current = newOrderedItemIds
+const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
+  function DataListInner(props, forwardedRef) {
+    const {
+      children,
+      label = 'Menu',
+      className,
+      style,
+      render,
+      measureRowWidth,
+      maxRowWidth,
+      content,
+      asyncContent,
+      deepSearchConfig,
+      getItemId,
+      search,
+      store,
+    } = props
 
-    // Deep comparison
-    const changed =
-      prev.length !== current.length || prev.some((id, i) => id !== current[i])
+    // Get coordinator for async state
+    const coordinator = useAsyncMenuCoordinator()
 
-    if (changed) {
-      prevOrderedItemIdsRef.current = current
-      return current
-    }
+    // Collect async submenus from content
+    const asyncSubmenus = React.useMemo(
+      () => collectAsyncSubmenus(content),
+      [content],
+    )
 
-    return prev
-  }, [newOrderedItemIds])
+    // Determine if deep search is active
+    const minLength = deepSearchConfig.minLength ?? 0
+    const isDeepSearchActive =
+      deepSearchConfig.enabled !== false && search.length >= minLength
 
-  React.useEffect(() => {
-    store.setOrderedItems(orderedItemIds)
-  }, [store, orderedItemIds])
+    // Determine which async loaders should be rendered
+    const shouldRenderAsyncLoaders =
+      isDeepSearchActive ||
+      asyncSubmenus.some((s) => shouldLoadEagerly(s.config)) ||
+      (asyncContent &&
+        (asyncContent.type === 'static'
+          ? asyncContent.loadStrategy === 'eager'
+          : asyncContent.initialQuery !== undefined))
 
-  // Helper to render a single row node (item, checkbox item, or submenu)
-  const renderRowNode = React.useCallback(
-    (displayNode: DisplayRowNode): React.ReactNode => {
-      const { node, context } = displayNode
+    // Get async nodes from coordinator
+    const asyncNodes = React.useMemo(() => {
+      if (!coordinator) return []
+      return coordinator.getAsyncNodes()
+    }, [coordinator, coordinator?.loaders])
 
-      // Get composite ID from the map, fallback to node.value for submenu children
-      const computed = itemIdMap.get(displayNode)
-      const compositeId = computed?.compositeId ?? node.id ?? node.value
+    // Merge async nodes into content tree
+    const mergedContent = React.useMemo(() => {
+      if (asyncNodes.length === 0) return content
+      return mergeAsyncNodesIntoTree(content, asyncNodes)
+    }, [content, asyncNodes])
 
-      if (node.kind === 'item') {
-        return (
-          <React.Fragment key={compositeId}>
-            {node.render({
-              props: {
-                id: compositeId,
-                disabled: node.disabled ?? false,
-                closeOnClick: node.closeOnSelect,
-                onSelect: node.onSelect,
-                shortcut: node.shortcut,
-                value: node.value,
-              },
-              context: {
-                ...context,
-                value: node.value,
-                disabled: node.disabled ?? false,
-              },
-            })}
-          </React.Fragment>
-        )
+    // Handle root async content if available
+    const contentWithRootAsync = React.useMemo(() => {
+      const rootAsyncData = asyncNodes.find((n) => n.id === '__root__')
+      if (!rootAsyncData) return mergedContent
+
+      // When asyncContent is provided, it's the sole data source - use only its results
+      if (asyncContent) {
+        return rootAsyncData.nodes
       }
 
-      if (node.kind === 'checkbox-item') {
-        return (
-          <React.Fragment key={compositeId}>
-            {node.render({
-              props: {
-                id: compositeId,
-                checked: node.checked,
-                onCheckedChange: node.onCheckedChange,
-                disabled: node.disabled ?? false,
-                closeOnClick: node.closeOnSelect,
-              },
-              context: {
-                ...context,
-                value: node.value,
-                checked: node.checked,
-                disabled: node.disabled ?? false,
-              },
-            })}
-          </React.Fragment>
-        )
-      }
+      // For root-level DataSurface without asyncContent, append to static content
+      return [...mergedContent, ...rootAsyncData.nodes]
+    }, [mergedContent, asyncNodes, asyncContent])
 
-      if (node.kind === 'submenu') {
-        // For submenus, provide the nodes and a recursive renderNode function
-        // Note: We pass the compositeId to the submenu trigger so it registers with the
-        // correct ID for keyboard navigation during deep search
-        const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
-          // Skip separators
-          if (childNode.kind === 'separator') {
-            return null
-          }
-
-          // Handle groups - render the group with its children
-          if (childNode.kind === 'group') {
-            const groupItems = childNode.nodes.filter(
-              (n): n is ItemDef | CheckboxItemDef | SubmenuDef =>
-                (n.kind === 'item' ||
-                  n.kind === 'checkbox-item' ||
-                  n.kind === 'submenu') &&
-                !n.hidden,
-            )
-
-            if (groupItems.length === 0) {
-              return null
-            }
-
-            // Render group items - renderRowNode already wraps in keyed Fragment
-            const groupChildren = groupItems.map((item) => {
-              const itemContext: RowRenderContext = {
-                search: null,
-                breadcrumbs: [...context.breadcrumbs, node.value],
-                isDeepSearchResult: false,
-                highlighted: false,
-                disabled: item.disabled ?? false,
-                group: { id: childNode.id, label: childNode.label },
-              }
-
-              return renderRowNode({ node: item, context: itemContext })
-            })
-
-            // Use custom group render if provided
-            if (childNode.render) {
-              const groupContext: GroupRenderContext = {
-                search: null,
-                matchCount: groupItems.length,
-                breadcrumbs: [...context.breadcrumbs, node.value],
-                isDeepSearchResult: false,
-              }
-              return (
-                <React.Fragment key={childNode.id}>
-                  {childNode.render({
-                    props: {},
-                    context: {
-                      ...groupContext,
-                      label: childNode.label,
-                    },
-                    children: <>{groupChildren}</>,
-                  })}
-                </React.Fragment>
-              )
-            }
-
-            // Default group rendering
-            return (
-              // biome-ignore lint/a11y/useSemanticElements: ignore for now
-              <div key={childNode.id} role="group" aria-label={childNode.label}>
-                {groupChildren}
-              </div>
-            )
-          }
-
-          // Handle radio groups inside submenus
-          if (childNode.kind === 'radio-group') {
-            return renderRadioGroup(childNode, [
-              ...context.breadcrumbs,
-              node.value,
-            ])
-          }
-
-          // Handle items, checkbox items, and submenus
-          if (
-            childNode.kind !== 'item' &&
-            childNode.kind !== 'checkbox-item' &&
-            childNode.kind !== 'submenu'
-          ) {
-            return null
-          }
-
-          // Create context for child node (no deep search in submenu)
-          const childContext: RowRenderContext = {
-            search: null,
-            breadcrumbs: [...context.breadcrumbs, node.value],
-            isDeepSearchResult: false,
-            highlighted: false,
-            disabled: childNode.disabled ?? false,
-            group: null,
-          }
-
-          // renderRowNode already wraps in a keyed Fragment
-          return renderRowNode({
-            node: childNode,
-            context: childContext,
-          })
-        }
-
-        return (
-          <React.Fragment key={compositeId}>
-            {node.render({
-              props: {
-                id: compositeId,
-                disabled: node.disabled ?? false,
-              },
-              context: {
-                ...context,
-                value: node.value,
-                disabled: node.disabled ?? false,
-              },
-              nodes: node.nodes ?? [],
-              renderNode: submenuRenderNode,
-            })}
-          </React.Fragment>
-        )
-      }
-
-      return null
-    },
-    [itemIdMap],
-  )
-
-  // Helper to render a radio group
-  const renderRadioGroup = React.useCallback(
-    (
-      radioGroup: RadioGroupDef,
-      breadcrumbs: string[] = [],
-    ): React.ReactNode => {
-      const isDeepSearchResult = breadcrumbs.length > 0
-
-      // Build group context
-      const groupContext: GroupRenderContext = {
-        search: null,
-        matchCount: radioGroup.nodes.length,
-        breadcrumbs,
-        isDeepSearchResult,
-      }
-
-      // Render children - renderRowNode already wraps in keyed Fragment
-      const childElements = radioGroup.nodes.map((item) => {
-        if (item.hidden) return null
-
-        const itemContext: RowRenderContext = {
-          search: null,
-          breadcrumbs,
-          isDeepSearchResult,
-          highlighted: false,
-          disabled: item.disabled ?? false,
-          group: null,
-        }
-
-        return renderRowNode({
-          node: item,
-          context: itemContext,
-          radioGroup: { id: radioGroup.id, label: radioGroup.label },
-        })
+    // Compute filtered display nodes
+    const { displayNodes, isDeepSearching } = React.useMemo(() => {
+      return filterNodes({
+        query: search,
+        nodes: contentWithRootAsync,
+        highlightedId: null, // Primitives handle highlighting via store
+        deepSearch: deepSearchConfig.enabled,
+        minLength: deepSearchConfig.minLength,
+        groupSearchBehavior: deepSearchConfig.groupSearchBehavior,
+        radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
+        sortGroups: deepSearchConfig.sortGroups,
       })
+    }, [search, contentWithRootAsync, deepSearchConfig])
 
-      // Use custom render if provided
-      if (radioGroup.render) {
-        return (
-          <React.Fragment key={radioGroup.id}>
-            {radioGroup.render({
-              props: {
-                value: radioGroup.value,
-                onValueChange: radioGroup.onValueChange,
-                disabled: radioGroup.disabled ?? false,
-              },
-              context: {
-                ...groupContext,
-                label: radioGroup.label,
-                value: radioGroup.value,
-                disabled: radioGroup.disabled ?? false,
-              },
-              children: <>{childElements}</>,
-            })}
-          </React.Fragment>
-        )
+    // Compute composite IDs for all row nodes
+    const itemIdMap = React.useMemo(
+      () => computeItemIds(displayNodes, getItemId),
+      [displayNodes, getItemId],
+    )
+
+    // Sync orderedItems with the store when display nodes change
+    // This is needed because DataSurface sets filter={false} on the underlying Surface
+    //
+    // We use a ref to track the previous IDs and do a deep comparison to avoid
+    // triggering highlight resets when the content hasn't actually changed.
+    const prevOrderedItemIdsRef = React.useRef<string[]>([])
+
+    // Compute new ordered IDs using composite IDs
+    const newOrderedItemIds = React.useMemo(
+      () => getOrderedItemIds(displayNodes, itemIdMap),
+      [displayNodes, itemIdMap],
+    )
+
+    // Memoize the ordered IDs, only returning a new array if content changed
+    const orderedItemIds = React.useMemo(() => {
+      const prev = prevOrderedItemIdsRef.current
+      const current = newOrderedItemIds
+
+      // Deep comparison
+      const changed =
+        prev.length !== current.length ||
+        prev.some((id, i) => id !== current[i])
+
+      if (changed) {
+        prevOrderedItemIdsRef.current = current
+        return current
       }
 
-      // Minimal default: just render children with a wrapper
-      return (
-        <div
-          key={radioGroup.id}
-          role="radiogroup"
-          aria-label={radioGroup.label}
-        >
-          {childElements}
-        </div>
-      )
-    },
-    [renderRowNode],
-  )
+      return prev
+    }, [newOrderedItemIds])
 
-  // Build the renderNode function that handles groups, radio groups, and rows
-  const renderNode: RenderNodeFn = React.useCallback(
-    (displayNode: DisplayNode): React.ReactNode => {
-      // Handle group display nodes
-      if (isDisplayGroupNode(displayNode)) {
-        const { group, context, items } = displayNode
+    React.useEffect(() => {
+      store.setOrderedItems(orderedItemIds)
+    }, [store, orderedItemIds])
 
-        // Render children - renderRowNode already wraps in keyed Fragment
-        const children = items.map((item) => renderRowNode(item))
+    // Helper to render a single row node (item, checkbox item, or submenu)
+    const renderRowNode = React.useCallback(
+      (displayNode: DisplayRowNode): React.ReactNode => {
+        const { node, context } = displayNode
 
-        // Use custom render if provided
-        if (group.render) {
+        // Get composite ID from the map, fallback to node.value for submenu children
+        const computed = itemIdMap.get(displayNode)
+        const compositeId = computed?.compositeId ?? node.id ?? node.value
+
+        if (node.kind === 'item') {
           return (
-            <React.Fragment key={group.id}>
-              {group.render({
-                props: {},
+            <React.Fragment key={compositeId}>
+              {node.render({
+                props: {
+                  id: compositeId,
+                  disabled: node.disabled ?? false,
+                  closeOnClick: node.closeOnSelect,
+                  onSelect: node.onSelect,
+                  shortcut: node.shortcut,
+                  value: node.value,
+                },
                 context: {
                   ...context,
-                  label: group.label,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
                 },
-                children: <>{children}</>,
               })}
             </React.Fragment>
           )
         }
 
-        // Minimal default: just render children with a wrapper
-        return (
-          // biome-ignore lint/a11y/useSemanticElements: ignore for now
-          <div key={group.id} role="group" aria-label={group.label}>
-            {children}
-          </div>
-        )
-      }
+        if (node.kind === 'checkbox-item') {
+          return (
+            <React.Fragment key={compositeId}>
+              {node.render({
+                props: {
+                  id: compositeId,
+                  checked: node.checked,
+                  onCheckedChange: node.onCheckedChange,
+                  disabled: node.disabled ?? false,
+                  closeOnClick: node.closeOnSelect,
+                },
+                context: {
+                  ...context,
+                  value: node.value,
+                  checked: node.checked,
+                  disabled: node.disabled ?? false,
+                },
+              })}
+            </React.Fragment>
+          )
+        }
 
-      // Handle radio group display nodes
-      if (isDisplayRadioGroupNode(displayNode)) {
-        const { radioGroup, context, items } = displayNode
+        if (node.kind === 'submenu') {
+          // For submenus, provide the nodes and a recursive renderNode function
+          // Note: We pass the compositeId to the submenu trigger so it registers with the
+          // correct ID for keyboard navigation during deep search
+
+          // Get async state for this submenu if it has asyncNodes
+          let submenuAsyncState:
+            | {
+                isLoading: boolean
+                isError: boolean
+                error: Error | null
+                isBelowMinLength?: boolean
+              }
+            | undefined
+          if (node.asyncNodes && coordinator) {
+            const asyncResult = coordinator.loaders.get(compositeId)
+            if (asyncResult) {
+              const isBelowMinLength =
+                node.asyncNodes.type === 'query' &&
+                search.length < (node.asyncNodes.minQueryLength ?? 1)
+              submenuAsyncState = {
+                isLoading: asyncResult.result.isLoading,
+                isError: asyncResult.result.isError,
+                error: asyncResult.result.error,
+                isBelowMinLength,
+              }
+            }
+          }
+
+          // Static nodes only - async content is handled by the submenu's own DataSurface
+          const staticNodes = node.nodes ?? []
+
+          const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
+            // Skip separators
+            if (childNode.kind === 'separator') {
+              return null
+            }
+
+            // Handle groups - render the group with its children
+            if (childNode.kind === 'group') {
+              const groupItems = childNode.nodes.filter(
+                (n): n is ItemDef | CheckboxItemDef | SubmenuDef =>
+                  (n.kind === 'item' ||
+                    n.kind === 'checkbox-item' ||
+                    n.kind === 'submenu') &&
+                  !n.hidden,
+              )
+
+              if (groupItems.length === 0) {
+                return null
+              }
+
+              // Render group items - renderRowNode already wraps in keyed Fragment
+              const groupChildren = groupItems.map((item) => {
+                const itemContext: RowRenderContext = {
+                  search: null,
+                  breadcrumbs: [...context.breadcrumbs, node.value],
+                  isDeepSearchResult: false,
+                  highlighted: false,
+                  disabled: item.disabled ?? false,
+                  group: { id: childNode.id, label: childNode.label },
+                }
+
+                return renderRowNode({ node: item, context: itemContext })
+              })
+
+              // Use custom group render if provided
+              if (childNode.render) {
+                const groupContext: GroupRenderContext = {
+                  search: null,
+                  matchCount: groupItems.length,
+                  breadcrumbs: [...context.breadcrumbs, node.value],
+                  isDeepSearchResult: false,
+                }
+                return (
+                  <React.Fragment key={childNode.id}>
+                    {childNode.render({
+                      props: {},
+                      context: {
+                        ...groupContext,
+                        label: childNode.label,
+                      },
+                      children: <>{groupChildren}</>,
+                    })}
+                  </React.Fragment>
+                )
+              }
+
+              // Default group rendering
+              return (
+                // biome-ignore lint/a11y/useSemanticElements: ignore for now
+                <div
+                  key={childNode.id}
+                  role="group"
+                  aria-label={childNode.label}
+                >
+                  {groupChildren}
+                </div>
+              )
+            }
+
+            // Handle radio groups inside submenus
+            if (childNode.kind === 'radio-group') {
+              return renderRadioGroup(childNode, [
+                ...context.breadcrumbs,
+                node.value,
+              ])
+            }
+
+            // Handle items, checkbox items, and submenus
+            if (
+              childNode.kind !== 'item' &&
+              childNode.kind !== 'checkbox-item' &&
+              childNode.kind !== 'submenu'
+            ) {
+              return null
+            }
+
+            // Create context for child node (no deep search in submenu)
+            const childContext: RowRenderContext = {
+              search: null,
+              breadcrumbs: [...context.breadcrumbs, node.value],
+              isDeepSearchResult: false,
+              highlighted: false,
+              disabled: childNode.disabled ?? false,
+              group: null,
+            }
+
+            // renderRowNode already wraps in a keyed Fragment
+            return renderRowNode({
+              node: childNode,
+              context: childContext,
+            })
+          }
+
+          return (
+            <React.Fragment key={compositeId}>
+              {node.render({
+                props: {
+                  id: compositeId,
+                  disabled: node.disabled ?? false,
+                },
+                context: {
+                  ...context,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
+                  async: submenuAsyncState,
+                },
+                nodes: staticNodes,
+                asyncContent: node.asyncNodes,
+                renderNode: submenuRenderNode,
+              })}
+            </React.Fragment>
+          )
+        }
+
+        return null
+      },
+      [itemIdMap, coordinator, search],
+    )
+
+    // Helper to render a radio group
+    const renderRadioGroup = React.useCallback(
+      (
+        radioGroup: RadioGroupDef,
+        breadcrumbs: string[] = [],
+      ): React.ReactNode => {
+        const isDeepSearchResult = breadcrumbs.length > 0
+
+        // Build group context
+        const groupContext: GroupRenderContext = {
+          search: null,
+          matchCount: radioGroup.nodes.length,
+          breadcrumbs,
+          isDeepSearchResult,
+        }
 
         // Render children - renderRowNode already wraps in keyed Fragment
-        const children = items.map((item) => renderRowNode(item))
+        const childElements = radioGroup.nodes.map((item) => {
+          if (item.hidden) return null
+
+          const itemContext: RowRenderContext = {
+            search: null,
+            breadcrumbs,
+            isDeepSearchResult,
+            highlighted: false,
+            disabled: item.disabled ?? false,
+            group: null,
+          }
+
+          return renderRowNode({
+            node: item,
+            context: itemContext,
+            radioGroup: { id: radioGroup.id, label: radioGroup.label },
+          })
+        })
 
         // Use custom render if provided
         if (radioGroup.render) {
@@ -536,12 +800,12 @@ export const PopupMenuDataList = React.forwardRef<
                   disabled: radioGroup.disabled ?? false,
                 },
                 context: {
-                  ...context,
+                  ...groupContext,
                   label: radioGroup.label,
                   value: radioGroup.value,
                   disabled: radioGroup.disabled ?? false,
                 },
-                children: <>{children}</>,
+                children: <>{childElements}</>,
               })}
             </React.Fragment>
           )
@@ -554,66 +818,184 @@ export const PopupMenuDataList = React.forwardRef<
             role="radiogroup"
             aria-label={radioGroup.label}
           >
-            {children}
+            {childElements}
           </div>
         )
-      }
+      },
+      [renderRowNode],
+    )
 
-      // Handle separator display nodes
-      if (isDisplaySeparatorNode(displayNode)) {
-        const { separator } = displayNode
+    // Build the renderNode function that handles groups, radio groups, and rows
+    const renderNode: RenderNodeFn = React.useCallback(
+      (displayNode: DisplayNode): React.ReactNode => {
+        // Handle group display nodes
+        if (isDisplayGroupNode(displayNode)) {
+          const { group, context, items } = displayNode
 
-        // Use custom render if provided
-        if (separator.render) {
+          // Render children - renderRowNode already wraps in keyed Fragment
+          const children = items.map((item) => renderRowNode(item))
+
+          // Use custom render if provided
+          if (group.render) {
+            return (
+              <React.Fragment key={group.id}>
+                {group.render({
+                  props: {},
+                  context: {
+                    ...context,
+                    label: group.label,
+                  },
+                  children: <>{children}</>,
+                })}
+              </React.Fragment>
+            )
+          }
+
+          // Minimal default: just render children with a wrapper
           return (
-            <React.Fragment key={separator.id ?? 'separator'}>
-              {separator.render({
-                props: { id: separator.id },
-              })}
-            </React.Fragment>
+            // biome-ignore lint/a11y/useSemanticElements: ignore for now
+            <div key={group.id} role="group" aria-label={group.label}>
+              {children}
+            </div>
           )
         }
 
-        // Minimal default: render a div with role="none"
-        return <div key={separator.id ?? 'separator'} role="none" />
+        // Handle radio group display nodes
+        if (isDisplayRadioGroupNode(displayNode)) {
+          const { radioGroup, context, items } = displayNode
+
+          // Render children - renderRowNode already wraps in keyed Fragment
+          const children = items.map((item) => renderRowNode(item))
+
+          // Use custom render if provided
+          if (radioGroup.render) {
+            return (
+              <React.Fragment key={radioGroup.id}>
+                {radioGroup.render({
+                  props: {
+                    value: radioGroup.value,
+                    onValueChange: radioGroup.onValueChange,
+                    disabled: radioGroup.disabled ?? false,
+                  },
+                  context: {
+                    ...context,
+                    label: radioGroup.label,
+                    value: radioGroup.value,
+                    disabled: radioGroup.disabled ?? false,
+                  },
+                  children: <>{children}</>,
+                })}
+              </React.Fragment>
+            )
+          }
+
+          // Minimal default: just render children with a wrapper
+          return (
+            <div
+              key={radioGroup.id}
+              role="radiogroup"
+              aria-label={radioGroup.label}
+            >
+              {children}
+            </div>
+          )
+        }
+
+        // Handle separator display nodes
+        if (isDisplaySeparatorNode(displayNode)) {
+          const { separator } = displayNode
+
+          // Use custom render if provided
+          if (separator.render) {
+            return (
+              <React.Fragment key={separator.id ?? 'separator'}>
+                {separator.render({
+                  props: { id: separator.id },
+                })}
+              </React.Fragment>
+            )
+          }
+
+          // Minimal default: render a div with role="none"
+          return <div key={separator.id ?? 'separator'} role="none" />
+        }
+
+        // Handle row display nodes (items/checkbox items/submenus)
+        // renderRowNode already wraps in keyed Fragment
+        return renderRowNode(displayNode)
+      },
+      [renderRowNode],
+    )
+
+    // Get async state from coordinator
+    const asyncState = React.useMemo(() => {
+      if (!coordinator) {
+        return {
+          isLoading: false,
+          isStaticLoading: false,
+          isQueryLoading: false,
+          skippedMenus: [] as Array<{
+            id: string
+            reason: 'error'
+          }>,
+        }
       }
+      return coordinator.getAsyncState()
+    }, [coordinator, coordinator?.loaders, coordinator?.erroredLoaders])
 
-      // Handle row display nodes (items/checkbox items/submenus)
-      // renderRowNode already wraps in keyed Fragment
-      return renderRowNode(displayNode)
-    },
-    [renderRowNode],
-  )
+    // Build children state
+    const childrenState: DataListChildrenState = React.useMemo(
+      () => ({
+        search,
+        nodes: displayNodes,
+        renderNode,
+        count: displayNodes.length,
+        isDeepSearching,
+        async: asyncState,
+      }),
+      [search, displayNodes, renderNode, isDeepSearching, asyncState],
+    )
 
-  // Build children state
-  const childrenState: DataListChildrenState = React.useMemo(
-    () => ({
-      search,
-      nodes: displayNodes,
-      renderNode,
-      count: displayNodes.length,
-      isDeepSearching,
-    }),
-    [search, displayNodes, renderNode, isDeepSearching],
-  )
+    const renderedChildren = children(childrenState)
 
-  const renderedChildren = children(childrenState)
+    // Use PopupMenuList which handles keyboard navigation
+    return (
+      <>
+        {/* Render async loaders (hidden, just for hook execution) */}
+        {shouldRenderAsyncLoaders && (
+          <>
+            {/* Root async content loader */}
+            <RootAsyncLoader query={search} />
 
-  // Use PopupMenuList which handles keyboard navigation
-  return (
-    <PopupMenuList
-      ref={forwardedRef}
-      label={label}
-      className={className}
-      style={style}
-      render={render}
-      measureRowWidth={measureRowWidth}
-      maxRowWidth={maxRowWidth}
-    >
-      {renderedChildren}
-    </PopupMenuList>
-  )
-})
+            {/* Submenu async loaders */}
+            {asyncSubmenus.map((info) => (
+              <AsyncLoaderRenderer
+                key={info.id}
+                info={info}
+                query={search}
+                enabled={
+                  isDeepSearchActive && shouldIncludeInDeepSearch(info.config)
+                }
+              />
+            ))}
+          </>
+        )}
+
+        <PopupMenuList
+          ref={forwardedRef}
+          label={label}
+          className={className}
+          style={style}
+          render={render}
+          measureRowWidth={measureRowWidth}
+          maxRowWidth={maxRowWidth}
+        >
+          {renderedChildren}
+        </PopupMenuList>
+      </>
+    )
+  },
+)
 
 export namespace PopupMenuDataList {
   export interface Props extends PopupMenuDataListProps {}
