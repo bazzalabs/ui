@@ -1,6 +1,7 @@
 'use client'
 
 import type {
+  AsyncNodesConfig,
   ItemDef,
   ItemRenderParams,
   NodeDef,
@@ -11,7 +12,11 @@ import type * as React from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
+import {
+  DiamondSpinner,
+  DropdownMenu,
+  LabelWithBreadcrumbs,
+} from '@/registry/ui/dropdown-menu'
 
 // =============================================================================
 // Label Color Mapping
@@ -218,7 +223,7 @@ export function createSubmenuNode(
     value: title,
     deepSearch: true,
     nodes: childNodes,
-    render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => (
+    render: ({ props, context, nodes }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>
           <div className="flex items-center gap-2">
@@ -240,13 +245,92 @@ export function createSubmenuNode(
                   hideUntilActive={hideInputUntilActive}
                 />
                 <DropdownMenu.DataList>
-                  {({
-                    nodes: filteredNodes,
-                    renderNode: renderFilteredNode,
-                  }) => (
+                  {({ nodes: filteredNodes, renderNode }) => (
                     <>
                       <DropdownMenu.Empty />
-                      {filteredNodes.map((node) => renderFilteredNode(node))}
+                      {filteredNodes.map((node) => renderNode(node))}
+                    </>
+                  )}
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Submenu>
+    ),
+  }
+}
+
+/**
+ * Creates an async submenu node with deep search enabled.
+ * Shows a loading spinner in the trigger when async content is loading.
+ *
+ * The submenu passes `asyncContent` to its DataSurface so it can run its own
+ * loader with its own search query, independent of the parent's deep search.
+ */
+export function createAsyncSubmenuNode(
+  id: string,
+  title: string,
+  icon: React.ReactNode,
+  asyncNodes: AsyncNodesConfig,
+  options?: {
+    inputPlaceholder?: string
+    hideInputUntilActive?: boolean
+    /** Static nodes to show alongside async content */
+    staticNodes?: NodeDef[]
+  },
+): SubmenuDef {
+  const {
+    inputPlaceholder = `${title}...`,
+    hideInputUntilActive = false,
+    staticNodes = [],
+  } = options ?? {}
+
+  return {
+    kind: 'submenu',
+    id,
+    value: title,
+    deepSearch: true,
+    nodes: staticNodes,
+    asyncNodes,
+    render: ({ props, context, nodes, asyncContent }: SubmenuRenderParams) => (
+      <DropdownMenu.Submenu>
+        <DropdownMenu.SubmenuTrigger {...props}>
+          <div className="flex items-center gap-2 flex-1">
+            <DropdownMenu.Icon>{icon}</DropdownMenu.Icon>
+            <LabelWithBreadcrumbs
+              label={title}
+              breadcrumbs={
+                context.isDeepSearchResult ? context.breadcrumbs : undefined
+              }
+            />
+          </div>
+          {context.async?.isLoading && <DiamondSpinner className="size-3.5" />}
+        </DropdownMenu.SubmenuTrigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              {/*
+                The submenu uses asyncContent as its sole data source.
+                This runs its OWN loader with its OWN search query.
+              */}
+              <DropdownMenu.DataSurface asyncContent={asyncContent}>
+                <DropdownMenu.DataInput
+                  placeholder={inputPlaceholder}
+                  hideUntilActive={hideInputUntilActive}
+                />
+                <DropdownMenu.DataList>
+                  {({ nodes: filteredNodes, renderNode, async, count }) => (
+                    <>
+                      {/* Show DiamondSpinner while loading, Empty when no results */}
+                      {async.isLoading ? (
+                        <div className="flex items-center justify-center py-6 text-muted-foreground">
+                          <DiamondSpinner className="size-5" />
+                        </div>
+                      ) : (
+                        count === 0 && <DropdownMenu.Empty />
+                      )}
+                      {filteredNodes.map((node) => renderNode(node))}
                     </>
                   )}
                 </DropdownMenu.DataList>

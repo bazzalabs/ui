@@ -291,6 +291,17 @@ export {
 // Deep Search (Data-First API)
 // ============================================================================
 
+// Async Coordinator
+export type {
+  AsyncMenuCoordinatorValue,
+  AsyncMenuState,
+} from './deep-search/async-coordinator.js'
+export {
+  AsyncMenuCoordinatorContext,
+  AsyncMenuCoordinatorProvider,
+  useAsyncMenuCoordinator,
+  useMaybeAsyncMenuCoordinator,
+} from './deep-search/async-coordinator.js'
 // Context
 export type {
   DataSurfaceContextValue,
@@ -308,9 +319,15 @@ export { PopupMenuDataList } from './deep-search/data-list.js'
 // Components
 export type { PopupMenuDataSurfaceProps } from './deep-search/data-surface.js'
 export { PopupMenuDataSurface } from './deep-search/data-surface.js'
-
 // Types
 export type {
+  // Async types
+  AsyncLoaderConfig,
+  AsyncLoaderResult,
+  AsyncNodesConfig,
+  AsyncRenderState,
+  AsyncState,
+  // Node types
   CheckboxItemDef,
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,
@@ -332,7 +349,10 @@ export type {
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
+  LoaderComponentProps,
   NodeDef,
+  QueryAsyncNodesConfig,
+  QueryDependentLoaderConfig,
   RadioGroupBehavior,
   RadioGroupDef,
   RadioGroupRenderParams,
@@ -341,6 +361,8 @@ export type {
   ScoredNode,
   SeparatorDef,
   SeparatorRenderParams,
+  StaticAsyncNodesConfig,
+  StaticLoaderConfig,
   SubmenuDef,
   SubmenuRenderParams,
   SubmenuRenderProps,
@@ -354,9 +376,13 @@ export {
 } from './deep-search/types.js'
 
 // Utilities
-export type { FilterNodesOptions } from './deep-search/utils.js'
+export type {
+  AsyncSubmenuInfo,
+  FilterNodesOptions,
+} from './deep-search/utils.js'
 export {
   buildDisplayRowNodes,
+  collectAsyncSubmenus,
   deduplicateNodes,
   defaultGetItemId,
   filterNodes,
@@ -371,7 +397,11 @@ export {
   isRadioGroupDef,
   isSeparatorDef,
   isSubmenuDef,
+  mergeAsyncNodesIntoTree,
+  mergeSubmenuNodes,
   partitionByKind,
   scoreNodes,
+  shouldIncludeInDeepSearch,
+  shouldLoadEagerly,
   sortByScore,
 } from './deep-search/utils.js'

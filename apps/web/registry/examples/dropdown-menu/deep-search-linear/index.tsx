@@ -34,6 +34,11 @@ const labelData = [
   { id: 'bug', name: 'Bug', color: 'red' },
   { id: 'enhancement', name: 'Enhancement', color: 'green' },
   { id: 'task', name: 'Task', color: 'blue' },
+  {
+    id: 'random-long',
+    name: 'Super duper long label name here to test how overflow will be handled!',
+    color: 'blue',
+  },
   { id: 'urgent', name: 'Urgent', color: 'pink' },
   { id: 'low-priority', name: 'Low Priority', color: 'lime' },
   { id: 'frontend', name: 'Frontend', color: 'orange' },

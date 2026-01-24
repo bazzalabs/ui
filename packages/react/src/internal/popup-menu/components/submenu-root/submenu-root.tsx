@@ -27,8 +27,12 @@ export interface PopupMenuSubmenuRootProps
 
   /**
    * Callback when the open state changes.
+   * The second parameter contains event details including the reason for the change.
    */
-  onOpenChange?: (open: boolean) => void
+  onOpenChange?: (
+    open: boolean,
+    eventDetails: Popover.Root.ChangeEventDetails,
+  ) => void
 
   /**
    * Whether the submenu is initially open.
@@ -114,19 +118,8 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // Ref for submenu content element (used for aim guard rect calculations)
   const contentRef = React.useRef<HTMLElement | null>(null)
 
-  // Create stable callback for onOpenChange
-  const handleOpenChange = useStableCallback((newOpen: boolean) => {
-    onOpenChange?.(newOpen)
-  })
-
   // Create the store instance for this submenu
-  const store = ListboxStore.useStore(
-    undefined,
-    { open: defaultOpen },
-    {
-      onOpenChange: handleOpenChange,
-    },
-  )
+  const store = ListboxStore.useStore(undefined, { open: defaultOpen })
 
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
@@ -146,12 +139,20 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     }
   }, [open, childSurfaceId, openChainStore])
 
-  // Handle Popover's onOpenChange to update the store
+  // Handle Popover's onOpenChange to update the store and call user's callback
   const handlePopoverOpenChange = React.useCallback(
-    (newOpen: boolean) => {
+    (newOpen: boolean, eventDetails: Popover.Root.ChangeEventDetails) => {
+      // Call user's onOpenChange first so they can cancel
+      onOpenChange?.(newOpen, eventDetails)
+
+      // If the user cancelled, don't update the store
+      if (eventDetails.isCanceled) {
+        return
+      }
+
       store.setOpen(newOpen)
     },
-    [store],
+    [store, onOpenChange],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
