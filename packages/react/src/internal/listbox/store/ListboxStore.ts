@@ -90,6 +90,8 @@ export interface ListboxState {
   filterTrigger: number
   /** Whether virtualization mode is enabled */
   virtualized: boolean
+  /** Count of virtual items (from items prop) */
+  virtualItemsCount: number
 }
 
 export interface ListboxContext {
@@ -236,10 +238,19 @@ const selectors = {
     return state.filteredItems.get(itemId) ?? 0
   }),
 
-  hasSearchWithNoResults: createSelector(
-    (state: ListboxState) =>
-      state.search.length > 0 && state.filteredCount === 0,
-  ),
+  hasSearchWithNoResults: createSelector((state: ListboxState) => {
+    // Must have an active search
+    if (state.search.length === 0) return false
+
+    // In virtualized mode with items prop, check virtualItemsCount
+    // (filteredCount won't be accurate since items aren't registered in DOM)
+    if (state.virtualized && state.virtualItemsCount >= 0) {
+      return state.virtualItemsCount === 0
+    }
+
+    // Non-virtualized mode: check filteredCount from registered items
+    return state.filteredCount === 0
+  }),
 }
 
 // ============================================================================
@@ -456,6 +467,9 @@ export class ListboxStore extends ReactStore<
   setVirtualItems(items: VirtualItem[]) {
     const prevItems = this.context.virtualItems
     this.context.virtualItems = items
+
+    // Update count in state for selectors to use
+    this.set('virtualItemsCount', items.length)
 
     // Pre-register all virtual items so filtering works for unmounted items
     this.preRegisterVirtualItems()
@@ -1244,6 +1258,7 @@ function createInitialState(): ListboxState {
     filteredCount: 0,
     filterTrigger: 0,
     virtualized: false,
+    virtualItemsCount: 0,
   }
 }
 
