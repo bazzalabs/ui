@@ -3,7 +3,7 @@
 import * as React from 'react'
 
 // Debug flag - set to true to enable console logging
-const DEBUG_ROW_WIDTH = true
+const DEBUG_ROW_WIDTH = false
 
 function debugLog(...args: unknown[]) {
   if (DEBUG_ROW_WIDTH) {

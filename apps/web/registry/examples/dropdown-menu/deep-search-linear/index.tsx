@@ -278,7 +278,7 @@ export default function DropdownMenuDeepSearchLinear() {
               deepSearch={{ enabled: true, minLength: 2 }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
-              <DropdownMenu.DataList>
+              <DropdownMenu.DataList virtualized>
                 {({ nodes, renderNode, isDeepSearching, count }) => (
                   <>
                     {isDeepSearching && count > 0 && (

@@ -55,7 +55,7 @@ const menuItemVariants = cva(
     // Base styles shared by all menu items
     'group group/row flex items-center text-sm select-none',
     'data-[highlighted]:text-accent-foreground',
-    'py-1.5 px-4',
+    'h-8 px-4',
     'w-full',
     // 'min-w-[200px] max-w-[min(500px,var(--row-width))]',
     'relative z-[1]',
@@ -236,34 +236,48 @@ DataSurface.displayName = 'DropdownMenu.DataSurface'
 const List = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.List> & {
+    viewportRef?: React.Ref<HTMLDivElement>
     /** Maximum height of the scrollable area. */
     maxHeight?: string | number
     /** Whether to show gradient fade at scroll edges. */
     withScrollFade?: boolean
   }
->(({ className, maxHeight = 342, withScrollFade = true, ...props }, ref) => (
-  <ScrollArea.Root>
-    <ScrollArea.Viewport
-      className={scrollAreaViewportVariants({ withScrollFade })}
-      style={{
-        maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
-      }}
-    >
-      <Primitive.List
-        ref={ref}
-        className={cn(listVariants(), className)}
-        render={<ScrollArea.Content />}
-        {...props}
-      />
-    </ScrollArea.Viewport>
-    <ScrollArea.Scrollbar
-      orientation="vertical"
-      className={scrollAreaScrollbarVariants()}
-    >
-      <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
-    </ScrollArea.Scrollbar>
-  </ScrollArea.Root>
-))
+>(
+  (
+    {
+      className,
+      viewportRef,
+      maxHeight = 342,
+      withScrollFade = true,
+      ...props
+    },
+    ref,
+  ) => (
+    <ScrollArea.Root>
+      <ScrollArea.Viewport
+        ref={viewportRef}
+        className={scrollAreaViewportVariants({ withScrollFade })}
+        style={{
+          maxHeight:
+            typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+        }}
+      >
+        <Primitive.List
+          ref={ref}
+          className={cn(listVariants(), className)}
+          render={<ScrollArea.Content />}
+          {...props}
+        />
+      </ScrollArea.Viewport>
+      <ScrollArea.Scrollbar
+        orientation="vertical"
+        className={scrollAreaScrollbarVariants()}
+      >
+        <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
+      </ScrollArea.Scrollbar>
+    </ScrollArea.Root>
+  ),
+)
 List.displayName = 'DropdownMenu.List'
 
 export interface DataListProps
@@ -630,7 +644,7 @@ const RadioItemIndicator = forwardRef<
     ref={ref}
     keepMounted
     className={cn(
-      'size-4 flex items-center justify-center shrink-0 text-transparent not-data-checked:data-highlighted:text-primary/15 data-checked:text-primary/75 data-checked:data-highlighted:text-primary',
+      'size-4 flex items-center justify-center shrink-0 text-transparent data-checked:text-primary/75 data-checked:data-highlighted:text-primary',
       className,
     )}
     {...props}
@@ -674,8 +688,8 @@ const GroupLabel = forwardRef<
   <Primitive.GroupLabel
     ref={ref}
     className={cn(
-      'mt-3 mb-2',
-      'text-xs font-medium text-muted-foreground px-3',
+      'mt-3 mb-1',
+      'text-xs font-medium text-muted-foreground px-4',
       className,
     )}
     {...props}
