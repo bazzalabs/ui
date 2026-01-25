@@ -154,6 +154,23 @@ export const examples: RegistryIndex = {
     ),
     files: ['registry/examples/dropdown-menu/async-deep-search/index.tsx'],
   },
+  'dropdown-menu-virtualized': {
+    name: 'dropdown-menu-virtualized',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/virtualized'),
+    ),
+    files: ['registry/examples/dropdown-menu/virtualized/index.tsx'],
+  },
+  'dropdown-menu-virtualized-advanced': {
+    name: 'dropdown-menu-virtualized-advanced',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/virtualized-advanced'),
+    ),
+    files: ['registry/examples/dropdown-menu/virtualized-advanced/index.tsx'],
+  },
+
   'guides/dropdown-menu/your-first-menu/surface-hidden-input': {
     name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
     type: 'registry:example',
