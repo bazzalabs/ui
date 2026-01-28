@@ -22,17 +22,17 @@ import {
   textFilterOperators,
 } from '@bazza-ui/filters'
 import type {
-  ItemDef,
-  ItemRenderParams,
   NodeDef,
   RadioGroupDef,
   RadioGroupRenderParams,
+  RadioItemDef,
+  RadioItemRenderParams,
 } from '@bazza-ui/react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
 import {
   useFilterActions,
   useFilterLocale,
@@ -115,31 +115,34 @@ function createOperatorNodes<TData, TType extends ColumnDataType>({
         {children}
       </DropdownMenu.RadioGroup>
     ),
-    nodes: relatedOperators.map((op: any, index: number): ItemDef => {
+    nodes: relatedOperators.map((op: any, index: number): RadioItemDef => {
       const operatorLabel = t(op.key, locale)
       // Only assign shortcuts 1-9 to first 9 operators
       const shortcut = index < 9 ? String(index + 1) : undefined
       return {
-        kind: 'item',
-        id: op.value,
-        value: operatorLabel,
+        kind: 'radio-item',
+        value: op.value,
+        keywords: [operatorLabel],
         shortcut,
-        closeOnSelect: true,
-        render: ({ props }: ItemRenderParams) => (
-          <DropdownMenu.RadioItem
-            {...props}
-            shortcut={`${shortcut}`}
-            value={props.value!}
-            className="flex items-center gap-4"
-          >
-            <span className="flex-1">{operatorLabel}</span>
-            <DropdownMenu.RadioItemIndicator
-              keepMounted
-              className="invisible group-aria-checked/row:visible"
-            />
-            <DropdownMenu.Shortcut />
-          </DropdownMenu.RadioItem>
-        ),
+        closeOnClick: true,
+        render: ({ props }: RadioItemRenderParams) => {
+          return (
+            <DropdownMenu.RadioItem
+              {...props}
+              className="justify-between gap-4"
+              data-keywords={operatorLabel}
+            >
+              <LabelWithBreadcrumbs label={operatorLabel} />
+              <div className="flex items-center gap-4">
+                <DropdownMenu.RadioItemIndicator
+                  keepMounted
+                  className="invisible group-aria-checked/row:visible"
+                />
+                <DropdownMenu.Shortcut />
+              </div>
+            </DropdownMenu.RadioItem>
+          )
+        },
       }
     }),
   }

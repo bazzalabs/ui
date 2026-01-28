@@ -5,6 +5,7 @@ import type {
   ItemDef,
   NodeDef,
   RadioGroupDef,
+  RadioItemDef,
   SubmenuDef,
 } from '../types.js'
 import {
@@ -84,10 +85,24 @@ function createGroupDef(
   }
 }
 
+function createRadioItemDef(
+  id: string,
+  value: string,
+  options: Partial<RadioItemDef> = {},
+): RadioItemDef {
+  return {
+    kind: 'radio-item',
+    id,
+    value,
+    render: () => null,
+    ...options,
+  }
+}
+
 function createRadioGroupDef(
   id: string,
   value: string | undefined,
-  nodes: (ItemDef | CheckboxItemDef | SubmenuDef)[],
+  nodes: RadioItemDef[],
   options: Partial<RadioGroupDef> = {},
 ): RadioGroupDef {
   return {
@@ -239,9 +254,9 @@ describe('RadioGroupDef', () => {
     it('should include items from radio groups', () => {
       const nodes: NodeDef[] = [
         createRadioGroupDef('rg1', 'option1', [
-          createItemDef('opt1', 'Option 1'),
-          createItemDef('opt2', 'Option 2'),
-          createItemDef('opt3', 'Option 3'),
+          createRadioItemDef('opt1', 'Option 1'),
+          createRadioItemDef('opt2', 'Option 2'),
+          createRadioItemDef('opt3', 'Option 3'),
         ]),
       ]
 
@@ -256,7 +271,9 @@ describe('RadioGroupDef', () => {
     it('should track radioGroup separately from group', () => {
       const nodes: NodeDef[] = [
         createGroupDef('g1', [createItemDef('item1', 'Item 1')]),
-        createRadioGroupDef('rg1', 'opt1', [createItemDef('opt1', 'Option 1')]),
+        createRadioGroupDef('rg1', 'opt1', [
+          createRadioItemDef('opt1', 'Option 1'),
+        ]),
       ]
 
       const flattened = flattenNodes(nodes)
@@ -276,9 +293,9 @@ describe('RadioGroupDef', () => {
           'rg1',
           'light',
           [
-            createItemDef('light', 'Light Theme'),
-            createItemDef('dark', 'Dark Theme'),
-            createItemDef('system', 'System Default'),
+            createRadioItemDef('light', 'Light Theme'),
+            createRadioItemDef('dark', 'Dark Theme'),
+            createRadioItemDef('system', 'System Default'),
           ],
           { label: 'Theme' },
         ),
@@ -307,8 +324,8 @@ describe('RadioGroupDef', () => {
           'rg1',
           'opt1',
           [
-            createItemDef('opt1', 'Option One'),
-            createItemDef('opt2', 'Option Two'),
+            createRadioItemDef('opt1', 'Option One'),
+            createRadioItemDef('opt2', 'Option Two'),
           ],
           { label: 'Options' },
         ),
@@ -332,7 +349,10 @@ describe('RadioGroupDef', () => {
           createRadioGroupDef(
             'rg1',
             'light',
-            [createItemDef('light', 'Light'), createItemDef('dark', 'Dark')],
+            [
+              createRadioItemDef('light', 'Light'),
+              createRadioItemDef('dark', 'Dark'),
+            ],
             { label: 'Theme' },
           ),
         ]),
@@ -363,8 +383,8 @@ describe('RadioGroupDef', () => {
           'rg1',
           'opt1',
           [
-            createItemDef('opt1', 'Option 1'),
-            createItemDef('opt2', 'Option 2'),
+            createRadioItemDef('opt1', 'Option 1'),
+            createRadioItemDef('opt2', 'Option 2'),
           ],
           { label: 'Options' },
         ),
@@ -378,6 +398,177 @@ describe('RadioGroupDef', () => {
         expect(displayNodes[0].items).toHaveLength(2)
         expect(displayNodes[0].radioGroup.label).toBe('Options')
       }
+    })
+  })
+})
+
+// ============================================================================
+// RadioItemDef Tests
+// ============================================================================
+
+describe('RadioItemDef', () => {
+  describe('flattenNodes', () => {
+    it('should include radio items in flattened results', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef('rg1', 'opt1', [
+          createRadioItemDef('opt1', 'Option 1'),
+          createRadioItemDef('opt2', 'Option 2'),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes)
+
+      expect(flattened).toHaveLength(2)
+      expect(flattened[0].node.kind).toBe('radio-item')
+      expect(flattened[1].node.kind).toBe('radio-item')
+    })
+
+    it('should track radioGroup context for radio items', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef(
+          'rg1',
+          'opt1',
+          [createRadioItemDef('opt1', 'Option 1')],
+          { label: 'Options' },
+        ),
+      ]
+
+      const flattened = flattenNodes(nodes)
+
+      expect(flattened).toHaveLength(1)
+      expect(flattened[0].radioGroup?.id).toBe('rg1')
+      expect(flattened[0].radioGroup?.label).toBe('Options')
+    })
+  })
+
+  describe('scoreNodes - keyword matching', () => {
+    it('should score radio items based on value', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef('rg1', 'opt1', [
+          createRadioItemDef('opt1', 'Light Theme'),
+          createRadioItemDef('opt2', 'Dark Theme'),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes)
+      const scored = scoreNodes(flattened, 'dark')
+
+      expect(scored).toHaveLength(1)
+      expect(scored[0].node.value).toBe('Dark Theme')
+      expect(scored[0].score).toBeGreaterThan(0)
+    })
+
+    it('should score radio items based on keywords', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef('rg1', 'opt1', [
+          createRadioItemDef('opt1', 'eq', { keywords: ['equals', 'is'] }),
+          createRadioItemDef('opt2', 'contains', {
+            keywords: ['includes', 'has'],
+          }),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes)
+      const scored = scoreNodes(flattened, 'equals')
+
+      expect(scored).toHaveLength(1)
+      expect(scored[0].node.value).toBe('eq')
+      expect(scored[0].score).toBeGreaterThan(0)
+    })
+
+    it('should match radio items by keyword even when value does not match', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef('rg1', 'opt1', [
+          createRadioItemDef('eq', 'eq', {
+            keywords: ['equals', 'is', 'same'],
+          }),
+          createRadioItemDef('neq', 'neq', {
+            keywords: ['not equals', 'different'],
+          }),
+          createRadioItemDef('contains', 'contains', {
+            keywords: ['includes', 'has'],
+          }),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes)
+
+      // Search for 'same' - should match 'eq' via keywords
+      const scoredSame = scoreNodes(flattened, 'same')
+      expect(scoredSame).toHaveLength(1)
+      expect(scoredSame[0].node.value).toBe('eq')
+
+      // Search for 'includes' - should match 'contains' via keywords
+      const scoredIncludes = scoreNodes(flattened, 'includes')
+      expect(scoredIncludes).toHaveLength(1)
+      expect(scoredIncludes[0].node.value).toBe('contains')
+    })
+  })
+
+  describe('filterNodes - radio item filtering', () => {
+    it('should filter radio groups showing only matching radio items', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef(
+          'operators',
+          'eq',
+          [
+            createRadioItemDef('eq', 'eq', { keywords: ['same', 'is'] }),
+            createRadioItemDef('neq', 'neq', { keywords: ['different'] }),
+            createRadioItemDef('contains', 'contains', {
+              keywords: ['includes'],
+            }),
+          ],
+          { label: 'Operators' },
+        ),
+      ]
+
+      const { displayNodes } = filterNodes({
+        query: 'same',
+        nodes,
+        highlightedId: null,
+      })
+
+      expect(displayNodes).toHaveLength(1)
+      expect(isDisplayRadioGroupNode(displayNodes[0])).toBe(true)
+      if (isDisplayRadioGroupNode(displayNodes[0])) {
+        // Only the matching item should be shown
+        expect(displayNodes[0].items).toHaveLength(1)
+        expect(displayNodes[0].items[0].node.value).toBe('eq')
+      }
+    })
+
+    it('should include radio items in deep search results from submenus', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef('sub1', 'Filters', [
+          createRadioGroupDef(
+            'operators',
+            'eq',
+            [
+              createRadioItemDef('eq', 'eq', { keywords: ['equals', 'is'] }),
+              createRadioItemDef('contains', 'contains', {
+                keywords: ['includes'],
+              }),
+            ],
+            { label: 'Operators' },
+          ),
+        ]),
+      ]
+
+      const { displayNodes, isDeepSearching } = filterNodes({
+        query: 'includes',
+        nodes,
+        highlightedId: null,
+        deepSearch: true,
+        minLength: 0,
+      })
+
+      expect(isDeepSearching).toBe(true)
+
+      const radioGroups = displayNodes.filter(isDisplayRadioGroupNode)
+      expect(radioGroups).toHaveLength(1)
+      expect(radioGroups[0].items).toHaveLength(1)
+      expect(radioGroups[0].items[0].node.value).toBe('contains')
+      expect(radioGroups[0].context.breadcrumbs).toContain('Filters')
     })
   })
 })
@@ -454,9 +645,9 @@ describe('radioGroupSearchBehavior', () => {
       'theme',
       'light',
       [
-        createItemDef('light', 'Light Theme'),
-        createItemDef('dark', 'Dark Theme'),
-        createItemDef('system', 'System Default'),
+        createRadioItemDef('light', 'Light Theme'),
+        createRadioItemDef('dark', 'Dark Theme'),
+        createRadioItemDef('system', 'System Default'),
       ],
       { label: 'Theme' },
     )
@@ -466,9 +657,9 @@ describe('radioGroupSearchBehavior', () => {
       'priority',
       'medium',
       [
-        createItemDef('low', 'Low Priority'),
-        createItemDef('medium', 'Medium Priority'),
-        createItemDef('high', 'High Priority'),
+        createRadioItemDef('low', 'Low Priority'),
+        createRadioItemDef('medium', 'Medium Priority'),
+        createRadioItemDef('high', 'High Priority'),
       ],
       { label: 'Priority' },
     )
@@ -770,8 +961,8 @@ describe('Mixed Content', () => {
       createItemDef('item1', 'Regular Item'),
       createCheckboxItemDef('cb1', 'Checkbox Item', true),
       createRadioGroupDef('rg1', 'opt1', [
-        createItemDef('opt1', 'Radio Option 1'),
-        createItemDef('opt2', 'Radio Option 2'),
+        createRadioItemDef('opt1', 'Radio Option 1'),
+        createRadioItemDef('opt2', 'Radio Option 2'),
       ]),
     ]
 

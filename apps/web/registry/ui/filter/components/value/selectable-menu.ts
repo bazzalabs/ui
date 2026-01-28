@@ -62,7 +62,7 @@ function createSelectableMenuInternal({
           ])
         }
       },
-      closeOnSelect: false,
+      closeOnClick: false,
       render: createOptionItemRenderer(optionData),
     } satisfies CheckboxItemDef
   })
