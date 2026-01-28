@@ -57,7 +57,8 @@ const menuItemVariants = cva(
     'data-[highlighted]:text-accent-foreground',
     'h-8 px-4',
     'w-full',
-    // 'min-w-[200px] max-w-[min(500px,var(--row-width))]',
+    // Clip overflow at row level (like Linear)
+    'overflow-hidden',
     'relative z-[1]',
     // Highlight background pseudo-element
     'before:absolute before:top-0 before:left-1 before:right-1 before:h-full before:rounded-md before:z-[-1]',
@@ -90,7 +91,10 @@ const inputVariants = cva([
   'caret-blue-500',
 ])
 
-const listVariants = cva(['py-1 outline-none', '!min-w-full w-full'])
+const listVariants = cva([
+  'py-1 outline-none',
+  '!min-w-full w-[min(500px,max(var(--row-width),200px))]',
+])
 
 const surfaceVariants = cva('divide-y')
 
@@ -183,14 +187,7 @@ const Popup = forwardRef<
       cn(
         'border bg-popover z-50 rounded-lg text-sm',
         'drop-shadow-xl',
-        // Dynamic width based on measured row content:
-        // - Uses --row-width CSS variable set by the List component
-        // - Clamps between 250px min and 500px max
-        // - Falls back to 250px if --row-width is not set
         // 'w-[min(500px,max(var(--row-width),175px))]',
-        // 'min-w-[175px] max-w-[500px]',
-        // 'w-full',
-        'min-w-[195px] max-w-[500px]',
         'overflow-hidden',
         !state.isSubmenu && [
           'opacity-100 scale-100',
