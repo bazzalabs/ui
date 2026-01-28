@@ -5,6 +5,10 @@ import * as React from 'react'
 // Debug flag - set to true to enable console logging
 const DEBUG_ROW_WIDTH = false
 
+// Debug flag - when true, keeps measurement styles applied (doesn't reset them)
+// This lets you visually inspect what elements look like during measurement
+const DEBUG_FREEZE_MEASUREMENT = false
+
 function debugLog(...args: unknown[]) {
   if (DEBUG_ROW_WIDTH) {
     console.log('[useStickyRowWidth]', ...args)
@@ -168,6 +172,9 @@ export function useStickyRowWidth(
           const prevWidth = element.style.width
           const prevMaxWidth = element.style.maxWidth
 
+          // Add data-measuring attribute so CSS can remove constraints on descendants
+          element.setAttribute('data-measuring', '')
+
           // Temporarily remove max-width constraint to get true natural width
           element.style.maxWidth = 'none'
           element.style.width = 'max-content'
@@ -187,8 +194,12 @@ export function useStickyRowWidth(
             textContent: element.textContent?.slice(0, 50),
           })
 
-          element.style.width = prevWidth
-          element.style.maxWidth = prevMaxWidth
+          // Reset styles unless DEBUG_FREEZE_MEASUREMENT is enabled
+          if (!DEBUG_FREEZE_MEASUREMENT) {
+            element.style.width = prevWidth
+            element.style.maxWidth = prevMaxWidth
+            element.removeAttribute('data-measuring')
+          }
 
           // Debug: if width is suspiciously small, log more info
           if (w <= 1) {

@@ -29,11 +29,12 @@ export function renderOptionItem(
       disabled={disabled}
       closeOnClick={closeOnClick ?? false}
       className={cn(
-        'group/row justify-between gap-4 min-w-0',
+        'group/row justify-between gap-4 data-measuring:w-max not-data-measuring:w-[min(500px,max(var(--row-width),200px))]',
+
         option.icon && 'gap-2',
       )}
     >
-      <div className="flex items-center gap-2 truncate">
+      <div className="flex items-center gap-2 group-data-measuring/row:w-max w-full min-w-0">
         <DropdownMenu.CheckboxItemIndicator
           keepMounted
           render={(indicatorProps, state) => (
