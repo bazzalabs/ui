@@ -1,4 +1,9 @@
 import type * as React from 'react'
+import type { PopupMenuCheckboxItemProps } from '../components/checkbox-item/checkbox-item.js'
+import type { PopupMenuItemProps } from '../components/item/item.js'
+import type { PopupMenuRadioGroupProps } from '../components/radio-group/radio-group.js'
+import type { PopupMenuRadioItemProps } from '../components/radio-item/radio-item.js'
+import type { PopupMenuSubmenuTriggerProps } from '../components/submenu-trigger/submenu-trigger.js'
 import type {
   CheckedChangeEventDetails,
   RadioValueChangeEventDetails,
@@ -163,7 +168,7 @@ export interface AsyncState {
  */
 export interface GetItemIdContext {
   /** The node definition */
-  node: ItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
 
   /** The node's value (node.value) - used as default identifier */
   value: string
@@ -248,24 +253,13 @@ export interface RowRenderContext {
 
 /**
  * Props to spread onto the Item component.
+ * Derived from PopupMenuItemProps.
  */
-export interface ItemRenderProps {
+export type ItemRenderProps = {
   /** Unique ID for the item - must be passed to the rendered component for navigation to work */
   id: string
-  /** Whether the item is disabled */
-  disabled: boolean
-  /** Whether clicking should close the menu */
-  closeOnClick?: boolean
-  /** Callback when the item is selected */
-  onSelect?: () => void
-  /** Keyboard shortcut for this item (e.g., "1", "2", etc.) */
-  shortcut?: string
-  /**
-   * Value for this item when used inside a RadioGroup.
-   * Defaults to the item's `id` if not specified.
-   */
-  value?: string
-}
+} & Required<Pick<PopupMenuItemProps, 'disabled'>> &
+  Pick<PopupMenuItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>
 
 /**
  * Parameters passed to item render functions.
@@ -282,18 +276,45 @@ export interface ItemRenderParams {
 }
 
 // ============================================================================
+// Radio Item Render Params
+// ============================================================================
+
+/**
+ * Props to spread onto the RadioItem component.
+ * Derived from PopupMenuRadioItemProps.
+ */
+export type RadioItemRenderProps = {
+  /** Unique ID for the item - must be passed to the rendered component for navigation to work */
+  id: string
+} & Required<Pick<PopupMenuRadioItemProps, 'value' | 'disabled'>> &
+  Pick<PopupMenuRadioItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>
+
+/**
+ * Parameters passed to radio item render functions.
+ */
+export interface RadioItemRenderParams {
+  /** Props to spread onto the RadioItem component */
+  props: RadioItemRenderProps
+  /** Context for conditional rendering (includes props values for convenience) */
+  context: RowRenderContext & {
+    /** The node's value (RadioItemDef.value) */
+    value: string
+    disabled: boolean
+  }
+}
+
+// ============================================================================
 // Submenu Render Params
 // ============================================================================
 
 /**
  * Props to spread onto the SubmenuTrigger component.
+ * Derived from PopupMenuSubmenuTriggerProps.
  */
-export interface SubmenuRenderProps {
+export type SubmenuRenderProps = {
   /** Unique ID for the submenu trigger - must be passed to the rendered component for navigation to work */
   id: string
-  /** Whether the submenu trigger is disabled */
-  disabled: boolean
-}
+} & Required<Pick<PopupMenuSubmenuTriggerProps, 'disabled'>>
 
 /**
  * Parameters passed to submenu render functions.
@@ -382,22 +403,16 @@ export interface GroupRenderParams {
 
 /**
  * Props to spread onto the CheckboxItem component.
+ * Derived from PopupMenuCheckboxItemProps.
  */
-export interface CheckboxItemRenderProps {
+export type CheckboxItemRenderProps = {
   /** Unique ID for the item - must be passed to the rendered component for navigation to work */
   id: string
-  /** Whether the checkbox is checked */
-  checked?: boolean
-  /** Callback fired when checked state changes */
-  onCheckedChange?: (
-    checked: boolean,
-    details: CheckedChangeEventDetails,
-  ) => void
-  /** Whether the item is disabled */
-  disabled: boolean
-  /** Whether clicking should close the menu */
-  closeOnClick?: boolean
-}
+} & Required<Pick<PopupMenuCheckboxItemProps, 'disabled'>> &
+  Pick<
+    PopupMenuCheckboxItemProps,
+    'checked' | 'onCheckedChange' | 'closeOnClick'
+  >
 
 /**
  * Parameters passed to checkbox item render functions.
@@ -420,15 +435,12 @@ export interface CheckboxItemRenderParams {
 
 /**
  * Props to spread onto the RadioGroup component.
+ * Derived from PopupMenuRadioGroupProps.
  */
-export interface RadioGroupRenderProps {
-  /** Current selected value */
-  value?: string
-  /** Callback fired when value changes */
-  onValueChange?: (value: string, details: RadioValueChangeEventDetails) => void
-  /** Whether the radio group is disabled */
-  disabled: boolean
-}
+export type RadioGroupRenderProps = Required<
+  Pick<PopupMenuRadioGroupProps, 'disabled'>
+> &
+  Pick<PopupMenuRadioGroupProps, 'value' | 'onValueChange'>
 
 /**
  * Parameters passed to radio group render functions.
@@ -470,25 +482,16 @@ interface BaseNodeDef {
 /**
  * Item node definition.
  * Represents a selectable menu item.
+ * Props derived from PopupMenuItemProps.
  */
-export interface ItemDef extends BaseNodeDef {
+export interface ItemDef
+  extends BaseNodeDef,
+    Required<Pick<PopupMenuItemProps, 'value'>>,
+    Pick<
+      PopupMenuItemProps,
+      'keywords' | 'disabled' | 'onSelect' | 'closeOnClick' | 'shortcut'
+    > {
   kind: 'item'
-  /**
-   * Primary identifier and search text for this item.
-   * Used for search matching and as the default identifier.
-   */
-  value: string
-  /** Additional keywords for search matching */
-  keywords?: string[]
-  /** Whether the item is disabled */
-  disabled?: boolean
-  /** Callback when the item is selected */
-  onSelect?: () => void
-  /** Whether to close the menu when this item is selected (default: true) */
-  closeOnSelect?: boolean
-  /** Keyboard shortcut for this item (e.g., "1", "2", etc.) */
-  shortcut?: string
-
   /**
    * Render function for this item row.
    * Returns the JSX for the item.
@@ -497,30 +500,42 @@ export interface ItemDef extends BaseNodeDef {
 }
 
 /**
+ * Radio item node definition.
+ * Represents a selectable radio menu item for use within RadioGroupDef.
+ * Props derived from PopupMenuRadioItemProps.
+ */
+export interface RadioItemDef
+  extends BaseNodeDef,
+    Required<Pick<PopupMenuRadioItemProps, 'value'>>,
+    Pick<
+      PopupMenuRadioItemProps,
+      'keywords' | 'disabled' | 'onSelect' | 'closeOnClick' | 'shortcut'
+    > {
+  kind: 'radio-item'
+  /**
+   * Render function for this radio item row.
+   * Returns the JSX for the radio item.
+   */
+  render: (params: RadioItemRenderParams) => React.ReactNode
+}
+
+/**
  * Checkbox item node definition.
  * Represents a toggleable checkbox menu item.
+ * Props derived from PopupMenuCheckboxItemProps.
  */
-export interface CheckboxItemDef extends BaseNodeDef {
+export interface CheckboxItemDef
+  extends BaseNodeDef,
+    Pick<
+      PopupMenuCheckboxItemProps,
+      'keywords' | 'disabled' | 'checked' | 'onCheckedChange' | 'closeOnClick'
+    > {
   kind: 'checkbox-item'
   /**
    * Primary identifier and search text for this checkbox item.
    * Used for search matching and as the default identifier.
    */
   value: string
-  /** Additional keywords for search matching */
-  keywords?: string[]
-  /** Whether the item is disabled */
-  disabled?: boolean
-  /** Whether the checkbox is checked */
-  checked?: boolean
-  /** Callback when the checked state changes */
-  onCheckedChange?: (
-    checked: boolean,
-    details: CheckedChangeEventDetails,
-  ) => void
-  /** Whether to close the menu when this item is selected (default: false for checkboxes) */
-  closeOnSelect?: boolean
-
   /**
    * Render function for this checkbox item row.
    * Returns the JSX for the checkbox item.
@@ -531,18 +546,13 @@ export interface CheckboxItemDef extends BaseNodeDef {
 /**
  * Submenu node definition.
  * Represents a submenu trigger that opens a nested menu.
+ * Props derived from PopupMenuSubmenuTriggerProps.
  */
-export interface SubmenuDef extends BaseNodeDef {
+export interface SubmenuDef
+  extends BaseNodeDef,
+    Required<Pick<PopupMenuSubmenuTriggerProps, 'value'>>,
+    Pick<PopupMenuSubmenuTriggerProps, 'keywords' | 'disabled'> {
   kind: 'submenu'
-  /**
-   * Primary identifier and search text for this submenu trigger.
-   * Also used for breadcrumbs when deep search surfaces child items.
-   */
-  value: string
-  /** Additional keywords for search matching */
-  keywords?: string[]
-  /** Whether the submenu trigger is disabled */
-  disabled?: boolean
 
   /** Static child nodes */
   nodes?: NodeDef[]
@@ -609,23 +619,22 @@ export interface GroupDef {
 /**
  * Radio group node definition.
  * Represents a group of radio items where only one can be selected.
+ * Props derived from PopupMenuRadioGroupProps.
  */
-export interface RadioGroupDef {
+export interface RadioGroupDef
+  extends Pick<
+    PopupMenuRadioGroupProps,
+    'value' | 'onValueChange' | 'disabled'
+  > {
   kind: 'radio-group'
   /** Unique identifier for this radio group */
   id: string
   /** Optional group heading/label */
   label?: string
-  /** Current selected value */
-  value?: string
-  /** Callback when value changes */
-  onValueChange?: (value: string, details: RadioValueChangeEventDetails) => void
   /** Whether the radio group is hidden */
   hidden?: boolean
-  /** Whether the radio group is disabled */
-  disabled?: boolean
-  /** Child nodes in this radio group (typically ItemDef nodes that act as radio options) */
-  nodes: (ItemDef | CheckboxItemDef | SubmenuDef)[]
+  /** Child nodes in this radio group - must be RadioItemDef nodes */
+  nodes: RadioItemDef[]
   /** Optional render function for the radio group container */
   render?: (params: RadioGroupRenderParams) => React.ReactNode
 }
@@ -642,6 +651,7 @@ export function defineRadioGroup(def: RadioGroupDef): RadioGroupDef {
  */
 export type NodeDef =
   | ItemDef
+  | RadioItemDef
   | CheckboxItemDef
   | SubmenuDef
   | SeparatorDef
@@ -658,7 +668,7 @@ export type NodeDef =
  */
 export interface ScoredNode {
   /** The original node definition */
-  node: ItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
   /** Search match score (0-1) */
   score: number
   /**
@@ -682,11 +692,11 @@ export interface ScoredNode {
 
 /**
  * A row node ready for display with its render context.
- * Used for items, checkbox items, and submenu triggers.
+ * Used for items, radio items, checkbox items, and submenu triggers.
  */
 export interface DisplayRowNode {
   /** The original node definition */
-  node: ItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
   /** Pre-computed render context for this node */
   context: RowRenderContext
   /** Radio group this node belongs to, if rendering inside one */

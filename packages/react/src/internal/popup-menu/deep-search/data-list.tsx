@@ -23,6 +23,7 @@ import type {
   ItemDef,
   NodeDef,
   RadioGroupDef,
+  RadioItemDef,
   RowRenderContext,
   SubmenuDef,
 } from './types.js'
@@ -555,10 +556,31 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                 props: {
                   id: compositeId,
                   disabled: node.disabled ?? false,
-                  closeOnClick: node.closeOnSelect,
+                  closeOnClick: node.closeOnClick,
                   onSelect: node.onSelect,
                   shortcut: node.shortcut,
+                },
+                context: {
+                  ...context,
                   value: node.value,
+                  disabled: node.disabled ?? false,
+                },
+              })}
+            </React.Fragment>
+          )
+        }
+
+        if (node.kind === 'radio-item') {
+          return (
+            <React.Fragment key={compositeId}>
+              {node.render({
+                props: {
+                  id: compositeId,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
+                  closeOnClick: node.closeOnClick,
+                  onSelect: node.onSelect,
+                  shortcut: node.shortcut,
                 },
                 context: {
                   ...context,
@@ -579,7 +601,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                   checked: node.checked,
                   onCheckedChange: node.onCheckedChange,
                   disabled: node.disabled ?? false,
-                  closeOnClick: node.closeOnSelect,
+                  closeOnClick: node.closeOnClick,
                 },
                 context: {
                   ...context,

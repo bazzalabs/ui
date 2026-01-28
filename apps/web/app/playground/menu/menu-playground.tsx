@@ -3846,6 +3846,8 @@ import type {
   CheckboxItemRenderParams,
   RadioGroupBehavior,
   RadioGroupRenderParams,
+  RadioItemDef,
+  RadioItemRenderParams,
 } from '@bazza-ui/react'
 import { defineRadioGroup } from '@bazza-ui/react'
 
@@ -3890,12 +3892,12 @@ function DeepSearchStatefulDemo() {
       label: string,
       icon: React.ReactNode,
       keywords: string[],
-    ): ItemDef => ({
-      kind: 'item',
+    ): RadioItemDef => ({
+      kind: 'radio-item',
       id,
-      value: label,
+      value,
       keywords,
-      render: ({ props, context }: ItemRenderParams) => (
+      render: ({ props, context }: RadioItemRenderParams) => (
         <DropdownMenu.RadioItem
           key={id}
           id={props.id}
@@ -4085,7 +4087,7 @@ function DeepSearchStatefulDemo() {
       keywords: label.keywords,
       checked: selectedLabels.has(label.id),
       onCheckedChange: (checked) => toggleLabel(label.id, checked),
-      closeOnSelect: false,
+      closeOnClick: false,
       render: ({ props, context }: CheckboxItemRenderParams) => (
         <DropdownMenu.CheckboxItem
           key={`label-${label.id}`}

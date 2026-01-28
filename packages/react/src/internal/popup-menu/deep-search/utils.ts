@@ -15,6 +15,7 @@ import type {
   NodeDef,
   RadioGroupBehavior,
   RadioGroupDef,
+  RadioItemDef,
   RowRenderContext,
   ScoredNode,
   SeparatorDef,
@@ -60,6 +61,10 @@ export function isItemDef(node: NodeDef): node is ItemDef {
   return node.kind === 'item'
 }
 
+export function isRadioItemDef(node: NodeDef): node is RadioItemDef {
+  return node.kind === 'radio-item'
+}
+
 export function isCheckboxItemDef(node: NodeDef): node is CheckboxItemDef {
   return node.kind === 'checkbox-item'
 }
@@ -102,7 +107,7 @@ interface FlattenOptions {
 }
 
 interface FlattenedNode {
-  node: ItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
   /** Breadcrumb values (submenu values from root to parent) */
   breadcrumbs: string[]
   /** The group this node belongs to, if any */
@@ -177,7 +182,11 @@ export function flattenNodes(
       continue
     }
 
-    if (node.kind === 'item' || node.kind === 'checkbox-item') {
+    if (
+      node.kind === 'item' ||
+      node.kind === 'radio-item' ||
+      node.kind === 'checkbox-item'
+    ) {
       result.push({
         node,
         breadcrumbs,
@@ -284,7 +293,10 @@ export function sortByScore(nodes: ScoredNode[]): ScoredNode[] {
  */
 export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
   const items = nodes.filter(
-    (n) => n.node.kind === 'item' || n.node.kind === 'checkbox-item',
+    (n) =>
+      n.node.kind === 'item' ||
+      n.node.kind === 'radio-item' ||
+      n.node.kind === 'checkbox-item',
   )
   const submenus = nodes.filter((n) => n.node.kind === 'submenu')
   return [...items, ...submenus]
@@ -1254,14 +1266,10 @@ export function mergeAsyncNodesIntoTree(
         }
       }
 
+      // Radio groups contain static RadioItemDef[] and don't support async loading,
+      // so we skip processing them in the async merge
       if (node.kind === 'radio-group') {
-        const mergedChildren = mergeRecursive(
-          node.nodes,
-          currentBreadcrumbs,
-        ) as (ItemDef | CheckboxItemDef | SubmenuDef)[]
-        if (mergedChildren !== node.nodes) {
-          return { ...node, nodes: mergedChildren }
-        }
+        return node
       }
 
       return node
