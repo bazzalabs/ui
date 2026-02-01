@@ -429,12 +429,15 @@ function VirtualizedDataListContent({
   )
 
   // Create virtualizer
+  // Disable flushSync to avoid "flushSync was called from inside a lifecycle method" warning
+  // when the list re-renders during search/filtering. This is recommended for React 19+ compatibility.
   const virtualizer = useVirtualizer({
     count: nodes.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => estimateSize,
     getItemKey,
     overscan,
+    useFlushSync: false,
   })
 
   const virtualItems = virtualizer.getVirtualItems()
