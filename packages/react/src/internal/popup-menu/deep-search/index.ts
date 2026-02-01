@@ -21,6 +21,7 @@ export type { PopupMenuDataSurfaceProps } from './data-surface.js'
 export { PopupMenuDataSurface } from './data-surface.js'
 // Types
 export type {
+  BreadcrumbNode,
   CheckboxItemDef,
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,
@@ -33,8 +34,8 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySeparatorNode,
-  GetItemIdContext,
-  GetItemIdFn,
+  GetQualifiedRowIdContext,
+  GetQualifiedRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -69,7 +70,7 @@ export type { FilterNodesOptions } from './utils.js'
 export {
   buildDisplayRowNodes,
   deduplicateNodes,
-  defaultGetItemId,
+  defaultGetQualifiedRowId,
   filterNodes,
   flattenNodes,
   getBrowseNodesFlatten,

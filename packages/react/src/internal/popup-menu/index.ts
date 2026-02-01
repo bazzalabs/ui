@@ -327,6 +327,8 @@ export type {
   AsyncNodesConfig,
   AsyncRenderState,
   AsyncState,
+  // ID generation types
+  BreadcrumbNode,
   // Node types
   CheckboxItemDef,
   CheckboxItemRenderParams,
@@ -340,8 +342,6 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySeparatorNode,
-  GetItemIdContext,
-  GetItemIdFn,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -387,7 +387,7 @@ export {
   buildDisplayRowNodes,
   collectAsyncSubmenus,
   deduplicateNodes,
-  defaultGetItemId,
+  defaultGetQualifiedRowId,
   filterNodes,
   flattenNodes,
   getBrowseNodesFlatten,
