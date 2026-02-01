@@ -115,32 +115,36 @@ function createItemNode(
     id,
     value: label,
     keywords,
-    render: ({ props, context }: ItemRenderParams) => (
-      <DropdownMenu.Item
-        {...props}
-        value={id}
-        onSelect={() => toast(`Selected: ${label}`)}
-        className={cn(
-          'group/row flex items-center gap-2 text-sm select-none w-full',
-          'py-1.5 px-3 relative z-[1]',
-          'data-[highlighted]:text-accent-foreground',
-          'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
-          'data-[highlighted]:before:bg-accent',
-        )}
-      >
-        {icon && (
-          <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
-            {icon}
-          </span>
-        )}
-        <LabelWithBreadcrumbs
-          label={label}
-          breadcrumbs={
-            context.isDeepSearchResult ? context.breadcrumbs : undefined
-          }
-        />
-      </DropdownMenu.Item>
-    ),
+    render: ({ props, context }: ItemRenderParams) => {
+      console.log('rendering item', {
+        id: props.id,
+      })
+      return (
+        <DropdownMenu.Item
+          {...props}
+          onSelect={() => toast(`Selected: ${label}`)}
+          className={cn(
+            'group/row flex items-center gap-2 text-sm select-none w-full',
+            'py-1.5 px-3 relative z-[1]',
+            'data-[highlighted]:text-accent-foreground',
+            'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
+            'data-[highlighted]:before:bg-accent',
+          )}
+        >
+          {icon && (
+            <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+              {icon}
+            </span>
+          )}
+          <LabelWithBreadcrumbs
+            label={label}
+            breadcrumbs={
+              context.isDeepSearchResult ? context.breadcrumbs : undefined
+            }
+          />
+        </DropdownMenu.Item>
+      )
+    },
   }
 }
 
@@ -158,9 +162,9 @@ function createSubmenuNode(
     deepSearch: true,
     nodes: childNodes,
     render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => (
-      <DropdownMenu.Submenu {...props}>
+      <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger
-          value={id}
+          {...props}
           className={cn(
             'group/row flex items-center justify-between gap-4 cursor-default text-sm select-none w-full',
             'py-1.5 px-3 relative z-[1]',

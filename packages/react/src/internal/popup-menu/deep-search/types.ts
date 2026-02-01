@@ -701,6 +701,12 @@ export interface DisplayRowNode {
   context: RowRenderContext
   /** Radio group this node belongs to, if rendering inside one */
   radioGroup?: { id: string; label?: string }
+  /**
+   * Computed composite ID for this node.
+   * Includes breadcrumb path for deep search results (e.g., "status.in-progress").
+   * Set after filtering via `computeItemIds`.
+   */
+  compositeId?: string
 }
 
 /**
