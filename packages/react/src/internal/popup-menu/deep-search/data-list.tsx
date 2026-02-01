@@ -45,26 +45,21 @@ import {
 // Helper: Compute composite IDs for all row nodes
 // ============================================================================
 
-interface ComputedItemId {
-  compositeId: string
-  index: number
-}
-
 /**
- * Computes composite IDs for all row nodes in the display list.
+ * Computes and sets composite IDs directly on all row nodes in the display list.
+ * Mutates the displayNodes in place for performance.
  * The index is the flat position across all items (including those inside groups).
  */
 function computeItemIds(
   displayNodes: DisplayNode[],
   getItemId: GetItemIdFn,
-): Map<DisplayRowNode, ComputedItemId> {
-  const idMap = new Map<DisplayRowNode, ComputedItemId>()
+): void {
   let index = 0
 
   for (const displayNode of displayNodes) {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        const compositeId = getItemId({
+        item.compositeId = getItemId({
           node: item.node,
           value: item.node.value,
           index,
@@ -74,12 +69,11 @@ function computeItemIds(
           group: item.context.group,
           radioGroup: null,
         })
-        idMap.set(item, { compositeId, index })
         index++
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        const compositeId = getItemId({
+        item.compositeId = getItemId({
           node: item.node,
           value: item.node.value,
           index,
@@ -89,14 +83,13 @@ function computeItemIds(
           group: null,
           radioGroup: item.radioGroup ?? null,
         })
-        idMap.set(item, { compositeId, index })
         index++
       }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // Separators don't need IDs
     } else {
       // Row node
-      const compositeId = getItemId({
+      displayNode.compositeId = getItemId({
         node: displayNode.node,
         value: displayNode.node.value,
         index,
@@ -106,44 +99,36 @@ function computeItemIds(
         group: displayNode.context.group,
         radioGroup: displayNode.radioGroup ?? null,
       })
-      idMap.set(displayNode, { compositeId, index })
       index++
     }
   }
-
-  return idMap
 }
 
 /**
- * Extracts ordered composite IDs from the id map for store navigation.
+ * Extracts ordered composite IDs from display nodes for store navigation.
+ * Assumes `computeItemIds` has already been called to set `compositeId` on each node.
  */
-function getOrderedItemIds(
-  displayNodes: DisplayNode[],
-  idMap: Map<DisplayRowNode, ComputedItemId>,
-): string[] {
+function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
   const ids: string[] = []
 
   for (const displayNode of displayNodes) {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        if (!item.node.disabled) {
-          const computed = idMap.get(item)
-          if (computed) ids.push(computed.compositeId)
+        if (!item.node.disabled && item.compositeId) {
+          ids.push(item.compositeId)
         }
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        if (!item.node.disabled) {
-          const computed = idMap.get(item)
-          if (computed) ids.push(computed.compositeId)
+        if (!item.node.disabled && item.compositeId) {
+          ids.push(item.compositeId)
         }
       }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // skip
     } else {
-      if (!displayNode.node.disabled) {
-        const computed = idMap.get(displayNode)
-        if (computed) ids.push(computed.compositeId)
+      if (!displayNode.node.disabled && displayNode.compositeId) {
+        ids.push(displayNode.compositeId)
       }
     }
   }
@@ -485,9 +470,9 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       return [...mergedContent, ...rootAsyncData.nodes]
     }, [mergedContent, asyncNodes, asyncContent])
 
-    // Compute filtered display nodes
+    // Compute filtered display nodes and set composite IDs
     const { displayNodes, isDeepSearching } = React.useMemo(() => {
-      return filterNodes({
+      const result = filterNodes({
         query: search,
         nodes: contentWithRootAsync,
         highlightedId: null, // Primitives handle highlighting via store
@@ -497,13 +482,10 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
         sortGroups: deepSearchConfig.sortGroups,
       })
-    }, [search, contentWithRootAsync, deepSearchConfig])
-
-    // Compute composite IDs for all row nodes
-    const itemIdMap = React.useMemo(
-      () => computeItemIds(displayNodes, getItemId),
-      [displayNodes, getItemId],
-    )
+      // Set composite IDs directly on the freshly created display nodes
+      computeItemIds(result.displayNodes, getItemId)
+      return result
+    }, [search, contentWithRootAsync, deepSearchConfig, getItemId])
 
     // Sync orderedItems with the store when display nodes change
     // This is needed because DataSurface sets filter={false} on the underlying Surface
@@ -514,8 +496,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
 
     // Compute new ordered IDs using composite IDs
     const newOrderedItemIds = React.useMemo(
-      () => getOrderedItemIds(displayNodes, itemIdMap),
-      [displayNodes, itemIdMap],
+      () => getOrderedItemIds(displayNodes),
+      [displayNodes],
     )
 
     // Memoize the ordered IDs, only returning a new array if content changed
@@ -545,9 +527,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       (displayNode: DisplayRowNode): React.ReactNode => {
         const { node, context } = displayNode
 
-        // Get composite ID from the map, fallback to node.value for submenu children
-        const computed = itemIdMap.get(displayNode)
-        const compositeId = computed?.compositeId ?? node.id ?? node.value
+        // Use composite ID from display node, fallback to node.id/value for submenu children
+        const compositeId = displayNode.compositeId ?? node.id ?? node.value
 
         if (node.kind === 'item') {
           return (
@@ -772,7 +753,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
 
         return null
       },
-      [itemIdMap, coordinator, search],
+      [coordinator, search],
     )
 
     // Helper to render a radio group

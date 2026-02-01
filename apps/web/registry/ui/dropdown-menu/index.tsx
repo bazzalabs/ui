@@ -500,11 +500,13 @@ function VirtualizedDataListContent({
 
 /**
  * Get a unique key for a display node.
+ * Prefers compositeId (includes breadcrumb path) for row nodes.
  */
 function getNodeKey(node: DisplayNode): string {
   // Handle row nodes (items, checkbox items, submenus)
+  // Prefer compositeId which includes breadcrumb path for deep search results
   if ('node' in node && node.node) {
-    return node.node.id ?? node.node.value
+    return node.compositeId ?? node.node.id ?? node.node.value
   }
 
   // Handle group nodes

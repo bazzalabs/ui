@@ -97,7 +97,6 @@ export function createItemNode(
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() =>
           toast(
             `Changed ${context.breadcrumbs?.[0]?.toLowerCase() ?? 'value'} to ${label}.`,
@@ -132,7 +131,6 @@ export function createLabelItemNode(
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() => toast(`Added label: ${name}`)}
       >
         <DropdownMenu.Icon>
@@ -165,7 +163,6 @@ export function createAssigneeItemNode(
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() => toast(`Assigned to ${name}`)}
       >
         <DropdownMenu.Icon>
