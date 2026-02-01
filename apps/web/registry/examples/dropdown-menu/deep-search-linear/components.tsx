@@ -91,7 +91,6 @@ export function createItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    // id,
     value: label,
     keywords,
     render: ({ props, context }: ItemRenderParams) => (
@@ -125,7 +124,6 @@ export function createLabelItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    id,
     value: name,
     keywords: [name],
     render: ({ props, context }: ItemRenderParams) => (
@@ -157,7 +155,6 @@ export function createAssigneeItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    id,
     value: name,
     keywords: [name, username],
     render: ({ props, context }: ItemRenderParams) => (
@@ -211,11 +208,10 @@ export function createSubmenuNode(
 
   return {
     kind: 'submenu',
-    id,
     value: title,
     deepSearch: true,
     nodes: childNodes,
-    render: ({ props, context, nodes, renderNode }: SubmenuRenderParams) => (
+    render: ({ props, context, nodes }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>
           <div className="flex items-center gap-2">
