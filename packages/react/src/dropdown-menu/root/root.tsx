@@ -3,6 +3,7 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useCallback, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
+import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
 import {
   PopupMenuProviders,
   type UsePopupMenuRootParams,
@@ -92,6 +93,27 @@ export interface DropdownMenuRootProps
    */
   onOpenChangeComplete?: (open: boolean) => void
 
+  /**
+   * Function to generate qualified unique IDs for rows.
+   * Defined once at the root level and applied to all surfaces (root and submenus).
+   *
+   * Default behavior:
+   * - If node.id is provided, use it as-is (treat as globally unique)
+   * - Otherwise, compute from breadcrumbs + value when deep searching
+   *
+   * @example
+   * ```tsx
+   * <DropdownMenu.Root
+   *   getQualifiedRowId={(ctx) => {
+   *     if (ctx.id) return ctx.id
+   *     const path = ctx.breadcrumbs.map(b => b.id ?? slugify(b.value))
+   *     return [...path, slugify(ctx.value)].join('.')
+   *   }}
+   * >
+   * ```
+   */
+  getQualifiedRowId?: GetQualifiedRowIdFn
+
   children: React.ReactNode
 }
 
@@ -111,6 +133,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     onHighlightChange,
     closeOnOutsidePress = 'pointerdown',
     onOpenChangeComplete: onOpenChangeCompleteProp,
+    getQualifiedRowId,
     children,
     ...rest
   } = props
@@ -184,6 +207,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       virtualization={virtualization}
       menuType="dropdown"
       closeOnOutsidePress={closeOnOutsidePress}
+      getQualifiedRowId={getQualifiedRowId}
       componentName="dropdown-menu"
     >
       <Popover.Root

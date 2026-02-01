@@ -1,6 +1,7 @@
 'use client'
 
 import type {
+  BreadcrumbNode,
   ItemDef,
   ItemRenderParams,
   NodeDef,
@@ -42,13 +43,13 @@ function LabelWithBreadcrumbs({
   breadcrumbs,
 }: {
   label: string
-  breadcrumbs?: string[]
+  breadcrumbs?: BreadcrumbNode[]
 }) {
   return (
     <span className="flex items-center gap-1 truncate min-w-0">
       {breadcrumbs?.map((crumb, idx) => (
-        <React.Fragment key={`${idx}-${crumb}`}>
-          <span className="text-muted-foreground truncate">{crumb}</span>
+        <React.Fragment key={`${idx}-${crumb.id ?? crumb.value}`}>
+          <span className="text-muted-foreground truncate">{crumb.value}</span>
           <ChevronRightIcon className="size-3 text-muted-foreground/75 shrink-0" />
         </React.Fragment>
       ))}

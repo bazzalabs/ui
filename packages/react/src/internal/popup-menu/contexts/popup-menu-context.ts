@@ -5,6 +5,7 @@ import type {
   ListboxStore,
   VirtualItem,
 } from '../../listbox/store/ListboxStore.js'
+import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
 import type {
   HighlightChangeEventDetails,
   PopupMenuOpenChangeReason,
@@ -80,6 +81,12 @@ export interface PopupMenuContextValue {
    * @default 'pointerdown'
    */
   closeOnOutsidePress: 'click' | 'pointerdown'
+  /**
+   * Function to generate qualified unique IDs for rows.
+   * Defined once at the root level and applied to all surfaces (root and submenus).
+   * If not provided, uses the default implementation.
+   */
+  getQualifiedRowId?: GetQualifiedRowIdFn
 }
 
 const PopupMenuContext = React.createContext<PopupMenuContextValue | null>(null)

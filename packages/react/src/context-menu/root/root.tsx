@@ -3,6 +3,7 @@
 import { Popover } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
+import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
 import {
   PopupMenuProviders,
   type UsePopupMenuRootParams,
@@ -96,6 +97,16 @@ export interface ContextMenuRootProps {
    */
   onOpenChangeComplete?: (open: boolean) => void
 
+  /**
+   * Function to generate qualified unique IDs for rows.
+   * Defined once at the root level and applied to all surfaces (root and submenus).
+   *
+   * Default behavior:
+   * - If node.id is provided, use it as-is (treat as globally unique)
+   * - Otherwise, qualify with breadcrumbs + slugified value when deep searching
+   */
+  getQualifiedRowId?: GetQualifiedRowIdFn
+
   children: React.ReactNode
 }
 
@@ -168,6 +179,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     modal = true,
     closeOnOutsidePress = 'pointerdown',
     onOpenChangeComplete: onOpenChangeCompleteProp,
+    getQualifiedRowId,
     children,
   } = props
 
@@ -279,6 +291,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         menuType="context"
         closeOnOutsidePress={closeOnOutsidePress}
         componentName="context-menu"
+        getQualifiedRowId={getQualifiedRowId}
       >
         <Popover.Root
           open={open}

@@ -91,7 +91,7 @@ export function createItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    id,
+    // id,
     value: label,
     keywords,
     render: ({ props, context }: ItemRenderParams) => (
@@ -99,7 +99,7 @@ export function createItemNode(
         {...props}
         onSelect={() =>
           toast(
-            `Changed ${context.breadcrumbs?.[0]?.toLowerCase() ?? 'value'} to ${label}.`,
+            `Changed ${context.breadcrumbs?.[0]?.value?.toLowerCase() ?? 'value'} to ${label}.`,
           )
         }
       >

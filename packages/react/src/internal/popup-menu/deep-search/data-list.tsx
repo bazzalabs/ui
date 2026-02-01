@@ -12,13 +12,14 @@ import { type RenderNodeFn, useDataSurfaceContext } from './context.js'
 import type {
   AsyncLoaderResult,
   AsyncNodesConfig,
+  BreadcrumbNode,
   CheckboxItemDef,
   DataListChildrenState,
   DataListProps,
   DisplayNode,
   DisplayRadioGroupNode,
   DisplayRowNode,
-  GetItemIdFn,
+  GetQualifiedRowIdFn,
   GroupRenderContext,
   ItemDef,
   NodeDef,
@@ -52,18 +53,21 @@ import {
  */
 function computeItemIds(
   displayNodes: DisplayNode[],
-  getItemId: GetItemIdFn,
+  getQualifiedRowId: GetQualifiedRowIdFn,
+  isDeepSearching: boolean,
 ): void {
   let index = 0
 
   for (const displayNode of displayNodes) {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        item.compositeId = getItemId({
+        item.compositeId = getQualifiedRowId({
           node: item.node,
           value: item.node.value,
+          id: item.node.id,
           index,
           breadcrumbs: item.context.breadcrumbs,
+          isDeepSearching,
           search: item.context.search,
           isDeepSearchResult: item.context.isDeepSearchResult,
           group: item.context.group,
@@ -73,11 +77,13 @@ function computeItemIds(
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        item.compositeId = getItemId({
+        item.compositeId = getQualifiedRowId({
           node: item.node,
           value: item.node.value,
+          id: item.node.id,
           index,
           breadcrumbs: item.context.breadcrumbs,
+          isDeepSearching,
           search: item.context.search,
           isDeepSearchResult: item.context.isDeepSearchResult,
           group: null,
@@ -89,11 +95,13 @@ function computeItemIds(
       // Separators don't need IDs
     } else {
       // Row node
-      displayNode.compositeId = getItemId({
+      displayNode.compositeId = getQualifiedRowId({
         node: displayNode.node,
         value: displayNode.node.value,
+        id: displayNode.node.id,
         index,
         breadcrumbs: displayNode.context.breadcrumbs,
+        isDeepSearching,
         search: displayNode.context.search,
         isDeepSearchResult: displayNode.context.isDeepSearchResult,
         group: displayNode.context.group,
@@ -367,7 +375,8 @@ export const PopupMenuDataList = React.forwardRef<
 
   // Get data surface context for content and deep search config
   const dataSurfaceCtx = useDataSurfaceContext()
-  const { content, asyncContent, deepSearchConfig, getItemId } = dataSurfaceCtx
+  const { content, asyncContent, deepSearchConfig, getQualifiedRowId } =
+    dataSurfaceCtx
 
   // Get store from surface context for search state
   const { store } = useSurfaceContext()
@@ -382,7 +391,7 @@ export const PopupMenuDataList = React.forwardRef<
         content={content}
         asyncContent={asyncContent}
         deepSearchConfig={deepSearchConfig}
-        getItemId={getItemId}
+        getQualifiedRowId={getQualifiedRowId}
         search={search}
         store={store}
       />
@@ -398,7 +407,7 @@ interface DataListInnerProps extends PopupMenuDataListProps {
   content: NodeDef[]
   asyncContent: ReturnType<typeof useDataSurfaceContext>['asyncContent']
   deepSearchConfig: ReturnType<typeof useDataSurfaceContext>['deepSearchConfig']
-  getItemId: GetItemIdFn
+  getQualifiedRowId: GetQualifiedRowIdFn
   search: string
   store: ReturnType<typeof useSurfaceContext>['store']
 }
@@ -416,7 +425,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       content,
       asyncContent,
       deepSearchConfig,
-      getItemId,
+      getQualifiedRowId,
       search,
       store,
     } = props
@@ -483,9 +492,13 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         sortGroups: deepSearchConfig.sortGroups,
       })
       // Set composite IDs directly on the freshly created display nodes
-      computeItemIds(result.displayNodes, getItemId)
+      computeItemIds(
+        result.displayNodes,
+        getQualifiedRowId,
+        result.isDeepSearching,
+      )
       return result
-    }, [search, contentWithRootAsync, deepSearchConfig, getItemId])
+    }, [search, contentWithRootAsync, deepSearchConfig, getQualifiedRowId])
 
     // Sync orderedItems with the store when display nodes change
     // This is needed because DataSurface sets filter={false} on the underlying Surface
@@ -536,6 +549,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
               {node.render({
                 props: {
                   id: compositeId,
+                  value: node.value,
                   disabled: node.disabled ?? false,
                   closeOnClick: node.closeOnClick,
                   onSelect: node.onSelect,
@@ -579,6 +593,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
               {node.render({
                 props: {
                   id: compositeId,
+                  value: node.value,
                   checked: node.checked,
                   onCheckedChange: node.onCheckedChange,
                   disabled: node.disabled ?? false,
@@ -627,6 +642,13 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
           // Static nodes only - async content is handled by the submenu's own DataSurface
           const staticNodes = node.nodes ?? []
 
+          // Create breadcrumb node for current submenu (used in child contexts)
+          const submenuBreadcrumb: BreadcrumbNode = {
+            node,
+            value: node.value,
+            id: node.id,
+          }
+
           const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
             // Skip separators
             if (childNode.kind === 'separator') {
@@ -651,7 +673,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
               const groupChildren = groupItems.map((item) => {
                 const itemContext: RowRenderContext = {
                   search: null,
-                  breadcrumbs: [...context.breadcrumbs, node.value],
+                  breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
                   isDeepSearchResult: false,
                   highlighted: false,
                   disabled: item.disabled ?? false,
@@ -666,7 +688,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                 const groupContext: GroupRenderContext = {
                   search: null,
                   matchCount: groupItems.length,
-                  breadcrumbs: [...context.breadcrumbs, node.value],
+                  breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
                   isDeepSearchResult: false,
                 }
                 return (
@@ -700,7 +722,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
             if (childNode.kind === 'radio-group') {
               return renderRadioGroup(childNode, [
                 ...context.breadcrumbs,
-                node.value,
+                submenuBreadcrumb,
               ])
             }
 
@@ -716,7 +738,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
             // Create context for child node (no deep search in submenu)
             const childContext: RowRenderContext = {
               search: null,
-              breadcrumbs: [...context.breadcrumbs, node.value],
+              breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
               isDeepSearchResult: false,
               highlighted: false,
               disabled: childNode.disabled ?? false,
@@ -735,6 +757,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
               {node.render({
                 props: {
                   id: compositeId,
+                  value: node.value,
                   disabled: node.disabled ?? false,
                 },
                 context: {
@@ -760,7 +783,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
     const renderRadioGroup = React.useCallback(
       (
         radioGroup: RadioGroupDef,
-        breadcrumbs: string[] = [],
+        breadcrumbs: BreadcrumbNode[] = [],
       ): React.ReactNode => {
         const isDeepSearchResult = breadcrumbs.length > 0
 

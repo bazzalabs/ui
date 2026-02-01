@@ -2056,6 +2056,7 @@ function DeepSearchSimulatedDemo() {
 // It mirrors the Linear example exactly.
 
 import type {
+  BreadcrumbNode,
   GroupDef,
   GroupRenderParams,
   ItemDef,
@@ -2356,13 +2357,13 @@ function DeepSearchLabelWithBreadcrumbs({
   breadcrumbs,
 }: {
   label: string
-  breadcrumbs?: string[]
+  breadcrumbs?: BreadcrumbNode[]
 }) {
   return (
     <div className="flex items-center gap-1 truncate min-w-0">
       {breadcrumbs?.map((crumb, idx) => (
-        <React.Fragment key={`${idx}-${crumb}`}>
-          <span className="text-muted-foreground truncate">{crumb}</span>
+        <React.Fragment key={`${idx}-${crumb.id ?? crumb.value}`}>
+          <span className="text-muted-foreground truncate">{crumb.value}</span>
           <ChevronRightIcon className="size-3 text-muted-foreground/75 stroke-[2.5px] shrink-0" />
         </React.Fragment>
       ))}

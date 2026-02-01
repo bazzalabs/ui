@@ -159,33 +159,52 @@ export interface AsyncState {
 }
 
 // ============================================================================
-// getItemId - Unique ID Generation
+// getQualifiedRowId - Unique ID Generation
 // ============================================================================
 
 /**
- * Context passed to the getItemId function.
- * Provides all information needed to generate a unique ID for an item.
+ * Submenu node info passed in breadcrumbs context.
+ * Contains the full submenu definition for maximum flexibility.
  */
-export interface GetItemIdContext {
+export interface BreadcrumbNode {
+  /** The submenu node definition */
+  node: SubmenuDef
+  /** The submenu's value */
+  value: string
+  /** The submenu's explicit id (if provided) */
+  id?: string
+}
+
+/**
+ * Context passed to the getQualifiedRowId function.
+ * Provides all information needed to generate a unique ID for a row.
+ */
+export interface GetQualifiedRowIdContext {
   /** The node definition */
   node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
 
-  /** The node's value (node.value) - used as default identifier */
+  /** The node's value (node.value) - used for search/filtering and as fallback identifier */
   value: string
+
+  /** The node's explicit id (node.id) - if provided, treated as globally unique */
+  id: string | undefined
 
   /** Position in the flattened display list (0-based) */
   index: number
 
   /**
-   * Breadcrumb values from root to parent (e.g., ['Settings', 'Advanced']).
-   * These are the `value` props of parent submenus.
+   * Breadcrumb nodes from root to parent.
+   * Contains full submenu node definitions for maximum flexibility.
    */
-  breadcrumbs: string[]
+  breadcrumbs: BreadcrumbNode[]
+
+  /** Whether deep search is currently active (search query meets minLength threshold) */
+  isDeepSearching: boolean
 
   /** Search context, null if browsing */
   search: { query: string; score: number } | null
 
-  /** Whether surfaced via deep search */
+  /** Whether surfaced via deep search (rendered outside its home menu) */
   isDeepSearchResult: boolean
 
   /** Group context, if any */
@@ -196,10 +215,27 @@ export interface GetItemIdContext {
 }
 
 /**
- * Function that generates a unique ID for an item.
+ * Function that generates a unique qualified ID for a row.
  * Used for React keys, store registration, and DOM id attributes.
+ *
+ * Default behavior:
+ * - If node.id is provided, use it as-is (treat as globally unique)
+ * - Otherwise, compute from breadcrumbs + value when deep searching
+ *
+ * @example
+ * ```ts
+ * // Custom implementation
+ * const getQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
+ *   // Use explicit id if provided
+ *   if (ctx.id) return ctx.id
+ *
+ *   // Otherwise, build from breadcrumbs + value
+ *   const path = ctx.breadcrumbs.map(b => b.id ?? slugify(b.value))
+ *   return [...path, slugify(ctx.value)].join('.')
+ * }
+ * ```
  */
-export type GetItemIdFn = (context: GetItemIdContext) => string
+export type GetQualifiedRowIdFn = (context: GetQualifiedRowIdContext) => string
 
 // ============================================================================
 // Render Context - passed to all render functions
@@ -222,11 +258,11 @@ export interface RowRenderContext {
   } | null
 
   /**
-   * Full path of submenu values from root to this row's parent.
-   * e.g., ['Settings', 'Advanced'] for an item inside the Advanced submenu.
+   * Full path of submenu nodes from root to this row's parent.
+   * Contains the full submenu node definitions for maximum flexibility.
    * Empty array [] for items directly in root menu.
    */
-  breadcrumbs: string[]
+  breadcrumbs: BreadcrumbNode[]
 
   /**
    * True if this row is being rendered outside its "home" menu
@@ -256,8 +292,17 @@ export interface RowRenderContext {
  * Derived from PopupMenuItemProps.
  */
 export type ItemRenderProps = {
-  /** Unique ID for the item - must be passed to the rendered component for navigation to work */
+  /**
+   * Qualified unique ID for the item.
+   * Must be passed to the rendered component for navigation to work.
+   * This is the computed qualified ID (includes breadcrumb path for deep search results).
+   */
   id: string
+  /**
+   * The original value from the node definition.
+   * Use this for display, search matching, or any logic that needs the raw value.
+   */
+  value: string
 } & Required<Pick<PopupMenuItemProps, 'disabled'>> &
   Pick<PopupMenuItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>
 
@@ -284,7 +329,10 @@ export interface ItemRenderParams {
  * Derived from PopupMenuRadioItemProps.
  */
 export type RadioItemRenderProps = {
-  /** Unique ID for the item - must be passed to the rendered component for navigation to work */
+  /**
+   * Qualified unique ID for the radio item.
+   * Must be passed to the rendered component for navigation to work.
+   */
   id: string
 } & Required<Pick<PopupMenuRadioItemProps, 'value' | 'disabled'>> &
   Pick<PopupMenuRadioItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>
@@ -312,8 +360,15 @@ export interface RadioItemRenderParams {
  * Derived from PopupMenuSubmenuTriggerProps.
  */
 export type SubmenuRenderProps = {
-  /** Unique ID for the submenu trigger - must be passed to the rendered component for navigation to work */
+  /**
+   * Qualified unique ID for the submenu trigger.
+   * Must be passed to the rendered component for navigation to work.
+   */
   id: string
+  /**
+   * The original value from the node definition.
+   */
+  value: string
 } & Required<Pick<PopupMenuSubmenuTriggerProps, 'disabled'>>
 
 /**
@@ -373,10 +428,10 @@ export interface GroupRenderContext {
   matchCount: number
 
   /**
-   * Breadcrumbs if this group is from a surfaced submenu.
+   * Breadcrumb nodes if this group is from a surfaced submenu.
    * Empty array [] for groups in the root menu.
    */
-  breadcrumbs: string[]
+  breadcrumbs: BreadcrumbNode[]
 
   /** Whether this group is from deep search (surfaced from a submenu) */
   isDeepSearchResult: boolean
@@ -406,8 +461,15 @@ export interface GroupRenderParams {
  * Derived from PopupMenuCheckboxItemProps.
  */
 export type CheckboxItemRenderProps = {
-  /** Unique ID for the item - must be passed to the rendered component for navigation to work */
+  /**
+   * Qualified unique ID for the checkbox item.
+   * Must be passed to the rendered component for navigation to work.
+   */
   id: string
+  /**
+   * The original value from the node definition.
+   */
+  value: string
 } & Required<Pick<PopupMenuCheckboxItemProps, 'disabled'>> &
   Pick<
     PopupMenuCheckboxItemProps,
@@ -672,10 +734,10 @@ export interface ScoredNode {
   /** Search match score (0-1) */
   score: number
   /**
-   * Breadcrumb values leading to this node.
-   * These are the `value` props of parent submenus.
+   * Breadcrumb nodes leading to this node.
+   * Contains the full submenu definitions for maximum flexibility.
    */
-  breadcrumbs: string[]
+  breadcrumbs: BreadcrumbNode[]
   /** The group this node belongs to, if any */
   group: { id: string; label?: string; groupDef: GroupDef } | null
   /** The radio group this node belongs to, if any */
@@ -896,15 +958,15 @@ export interface DataSurfaceProps {
   clearSearchOnClose?: boolean | 'after-exit'
 
   /**
-   * Function to generate unique IDs for items.
+   * Function to generate qualified IDs for row items.
    * Called for each item when rendering to produce IDs for:
    * - React keys
    * - Store registration
    * - DOM id attributes
    *
-   * @default Joins breadcrumbs with node.value using '.' separator
+   * @default Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value
    */
-  getItemId?: GetItemIdFn
+  getQualifiedRowId?: GetQualifiedRowIdFn
 
   /** Children (Input, List, etc.) */
   children: React.ReactNode

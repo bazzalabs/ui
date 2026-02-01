@@ -2,6 +2,7 @@
 
 import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
+  type BreadcrumbNode,
   type DataListChildrenState,
   type DisplayNode,
   DropdownMenu as Primitive,
@@ -992,7 +993,7 @@ export const LabelWithBreadcrumbs = ({
   classNames,
 }: {
   label: React.ReactNode
-  breadcrumbs?: string[]
+  breadcrumbs?: BreadcrumbNode[]
   classNames?: {
     label?: string
     breadcrumb?: string
@@ -1001,14 +1002,14 @@ export const LabelWithBreadcrumbs = ({
 }) => (
   <div className="flex items-center gap-1 truncate">
     {breadcrumbs?.map((crumb, idx) => (
-      <Fragment key={`${idx}-${crumb}`}>
+      <Fragment key={`${idx}-${crumb.id ?? crumb.value}`}>
         <span
           className={cn(
             'text-muted-foreground truncate',
             classNames?.breadcrumb,
           )}
         >
-          {crumb}
+          {crumb.value}
         </span>
         <ChevronRightIcon
           className={cn(

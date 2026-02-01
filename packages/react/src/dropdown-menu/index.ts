@@ -204,6 +204,8 @@ export type {
   AsyncNodesConfig,
   AsyncRenderState,
   AsyncState,
+  // ID generation types
+  BreadcrumbNode,
   // Node types
   CheckboxItemDef,
   CheckboxItemRenderParams,

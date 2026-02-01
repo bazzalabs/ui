@@ -2,12 +2,13 @@ import { commandScore } from '../../listbox/utils/command-score.js'
 import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
 import type {
   AsyncNodesConfig,
+  BreadcrumbNode,
   CheckboxItemDef,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,
   DisplayRowNode,
-  GetItemIdContext,
+  GetQualifiedRowIdContext,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -28,28 +29,51 @@ import {
 } from './types.js'
 
 // ============================================================================
-// Default getItemId Implementation
+// Default getQualifiedRowId Implementation
 // ============================================================================
 
 /**
- * Default function to generate unique IDs for items.
- * Creates a slug-style ID by joining breadcrumbs with the node's value using '.' separator.
- * Each segment is slugified (lowercase, alphanumeric, hyphens for spaces).
+ * Default function to generate qualified unique IDs for rows.
+ *
+ * Logic:
+ * - If node.id is provided, use it as-is (treat as globally unique)
+ * - Otherwise, when deep searching, qualify with breadcrumb path + value
+ * - When not deep searching, just use the slugified value
  *
  * @example
- * // "Settings" > "User Settings" > "Notifications"
- * // becomes "settings.user-settings.notifications"
+ * // With explicit id:
+ * // { id: 'my-unique-id', value: 'In Progress' }
+ * // => 'my-unique-id'
+ *
+ * // Without id, deep searching in "Status" submenu:
+ * // { value: 'In Progress' } in Status submenu
+ * // => 'status.in-progress'
+ *
+ * // Without id, not deep searching:
+ * // { value: 'In Progress' }
+ * // => 'in-progress'
  */
-export function defaultGetItemId(ctx: GetItemIdContext): string {
+export function defaultGetQualifiedRowId(
+  ctx: GetQualifiedRowIdContext,
+): string {
+  // If explicit id is provided, use it as-is (treat as globally unique)
+  if (ctx.id) {
+    return ctx.id
+  }
+
+  // Otherwise, compute from breadcrumbs + value
   const slugValue = slugify(ctx.value)
-  if (ctx.breadcrumbs.length > 0) {
+
+  // Only qualify with breadcrumbs when deep searching
+  if (ctx.isDeepSearching && ctx.breadcrumbs.length > 0) {
     const slugBreadcrumbs = ctx.breadcrumbs
-      .map((b) => slugify(b))
+      .map((b) => b.id ?? slugify(b.value))
       .filter(Boolean)
     if (slugBreadcrumbs.length > 0) {
       return [...slugBreadcrumbs, slugValue].join('.')
     }
   }
+
   return slugValue
 }
 
@@ -94,8 +118,8 @@ export function isSeparatorDef(
 interface FlattenOptions {
   /** Whether to include children of submenus (deep search) */
   deep?: boolean
-  /** Parent breadcrumb values (submenu values from root to parent) */
-  breadcrumbs?: string[]
+  /** Parent breadcrumb nodes (submenu nodes from root to parent) */
+  breadcrumbs?: BreadcrumbNode[]
   /** Current group context (nested groups not supported) */
   group?: { id: string; label?: string; groupDef: GroupDef } | null
   /** Current radio group context */
@@ -108,8 +132,8 @@ interface FlattenOptions {
 
 interface FlattenedNode {
   node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
-  /** Breadcrumb values (submenu values from root to parent) */
-  breadcrumbs: string[]
+  /** Breadcrumb nodes (submenu nodes from root to parent) */
+  breadcrumbs: BreadcrumbNode[]
   /** The group this node belongs to, if any */
   group: { id: string; label?: string; groupDef: GroupDef } | null
   /** The radio group this node belongs to, if any */
@@ -207,8 +231,16 @@ export function flattenNodes(
 
       // If deep search enabled and submenu allows it, include children
       if (deep && node.deepSearch !== false && node.nodes) {
-        // Normalize submenu value when adding to breadcrumbs
-        const childBreadcrumbs = [...breadcrumbs, normalizeValue(node.value)]
+        // Create breadcrumb node for this submenu
+        const submenuBreadcrumb: BreadcrumbNode = {
+          node,
+          value: node.value,
+          id: node.id,
+        }
+        const childBreadcrumbs: BreadcrumbNode[] = [
+          ...breadcrumbs,
+          submenuBreadcrumb,
+        ]
 
         result.push(
           ...flattenNodes(node.nodes, {
@@ -643,7 +675,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     {
       radioGroupDef: RadioGroupDef
       items: FlattenedNode[]
-      breadcrumbs: string[]
+      breadcrumbs: BreadcrumbNode[]
     }
   >()
 
@@ -673,7 +705,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     {
       radioGroupDef: RadioGroupDef
       items: ScoredNode[]
-      breadcrumbs: string[]
+      breadcrumbs: BreadcrumbNode[]
     }
   >()
   const regularItems: ScoredNode[] = []
@@ -831,7 +863,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     {
       radioGroupDef: RadioGroupDef
       items: FlattenedNode[]
-      breadcrumbs: string[]
+      breadcrumbs: BreadcrumbNode[]
     }
   >()
 
@@ -858,14 +890,14 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   // Partition into groups, radio groups, and ungrouped
   const groupedItems = new Map<
     string,
-    { groupDef: GroupDef; items: ScoredNode[]; breadcrumbs: string[] }
+    { groupDef: GroupDef; items: ScoredNode[]; breadcrumbs: BreadcrumbNode[] }
   >()
   const radioGroupedItems = new Map<
     string,
     {
       radioGroupDef: RadioGroupDef
       items: ScoredNode[]
-      breadcrumbs: string[]
+      breadcrumbs: BreadcrumbNode[]
     }
   >()
   const ungroupedItems: ScoredNode[] = []
