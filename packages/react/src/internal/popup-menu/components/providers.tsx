@@ -16,6 +16,7 @@ import {
   type VirtualAnchor,
   type VirtualizationConfig,
 } from '../contexts/popup-menu-context.js'
+import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
@@ -58,6 +59,11 @@ export interface PopupMenuProvidersProps {
    */
   closeOnOutsidePress?: 'click' | 'pointerdown'
   /**
+   * Function to generate qualified unique IDs for rows.
+   * Defined once at the root level and applied to all surfaces (root and submenus).
+   */
+  getQualifiedRowId?: GetQualifiedRowIdFn
+  /**
    * Component name for generating bazzaui-* slot attributes.
    * E.g., 'dropdown-menu', 'context-menu', 'select', 'combobox'
    */
@@ -90,6 +96,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     virtualAnchor,
     menuType = 'dropdown',
     closeOnOutsidePress = 'pointerdown',
+    getQualifiedRowId,
     componentName,
     children,
   } = props
@@ -105,6 +112,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       virtualAnchor,
       menuType,
       closeOnOutsidePress,
+      getQualifiedRowId,
     }),
     [
       store,
@@ -115,6 +123,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       virtualAnchor,
       menuType,
       closeOnOutsidePress,
+      getQualifiedRowId,
     ],
   )
 

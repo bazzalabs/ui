@@ -2,9 +2,10 @@
 
 import * as React from 'react'
 import { PopupMenuSurface } from '../components/surface/surface.js'
+import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import { DataSurfaceContext, type DataSurfaceContextValue } from './context.js'
 import type { DataSurfaceProps, DeepSearchConfig } from './types.js'
-import { defaultGetItemId } from './utils.js'
+import { defaultGetQualifiedRowId } from './utils.js'
 
 // ============================================================================
 // DataSurface Component
@@ -41,12 +42,19 @@ export const PopupMenuDataSurface = React.forwardRef<
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
-    getItemId = defaultGetItemId,
+    getQualifiedRowId: getQualifiedRowIdProp,
     className,
     style,
     render,
     children,
   } = props
+
+  // Get getQualifiedRowId from popup menu context (set at Root level), or use prop, or use default
+  const popupMenuContext = usePopupMenuContext()
+  const getQualifiedRowId =
+    getQualifiedRowIdProp ??
+    popupMenuContext.getQualifiedRowId ??
+    defaultGetQualifiedRowId
 
   // Parse deep search config
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
@@ -80,9 +88,9 @@ export const PopupMenuDataSurface = React.forwardRef<
       asyncContent,
       deepSearchConfig,
       listId,
-      getItemId,
+      getQualifiedRowId,
     }),
-    [content, asyncContent, deepSearchConfig, listId, getItemId],
+    [content, asyncContent, deepSearchConfig, listId, getQualifiedRowId],
   )
 
   return (

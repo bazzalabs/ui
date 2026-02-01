@@ -105,7 +105,7 @@ export function createItemNode(
         value={id}
         onSelect={() =>
           toast(
-            `Changed ${context.breadcrumbs?.[0]?.toLowerCase() ?? 'value'} to ${label}.`,
+            `Changed ${context.breadcrumbs?.[0]?.value?.toLowerCase() ?? 'value'} to ${label}.`,
           )
         }
       >

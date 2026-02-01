@@ -5,7 +5,7 @@ import type {
   AsyncLoaderConfig,
   DeepSearchConfig,
   DisplayNode,
-  GetItemIdFn,
+  GetQualifiedRowIdFn,
   NodeDef,
 } from './types.js'
 
@@ -26,8 +26,8 @@ export interface DataSurfaceContextValue {
   /** List element ID for aria-activedescendant */
   listId: string
 
-  /** Function to generate unique IDs for items */
-  getItemId: GetItemIdFn
+  /** Function to generate qualified IDs for row items */
+  getQualifiedRowId: GetQualifiedRowIdFn
 }
 
 export const DataSurfaceContext =
