@@ -53,8 +53,9 @@ export const SelectSurface = React.forwardRef<
   // - Otherwise, use the prop value (defaulting to true)
   const autoHighlightFirst = React.useMemo(() => {
     // Helper to serialize a value to a string for highlighting
+    // Returns true (highlight first) when there's no meaningful value
     const serializeValue = (value: unknown): string | true => {
-      if (value == null) return true
+      if (value == null || value === '') return true
       return stringifyAsValue(value, selectContext.itemToStringValue)
     }
 

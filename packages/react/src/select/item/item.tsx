@@ -189,6 +189,7 @@ function SelectItemImpl<Value = unknown>(
         selectContext.isItemEqualToValue,
       )
     : selectContext.value != null &&
+      selectContext.value !== '' &&
       compareItemEquality(
         selectContext.value,
         value,
