@@ -59,7 +59,8 @@ export const PopupMenuPopup = React.forwardRef<
   const submenuContext = useMaybeSubmenuContext()
 
   // Get aim guard to clear it when pointer enters submenu
-  const { clearAimGuard, aimGuardActiveRef } = useAimGuard()
+  const { clearAimGuard, aimGuardActiveRef, guardedSubmenuSurfaceIdRef } =
+    useAimGuard()
 
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
@@ -122,13 +123,24 @@ export const PopupMenuPopup = React.forwardRef<
   )
 
   // Clear aim guard when pointer moves inside this submenu popup
-  // Only clear if aim guard is actually active to avoid spam
+  // Only clear if aim guard is actually active AND this is the target submenu
   const handlePointerMove = React.useCallback(() => {
     // Only handle if this is a submenu popup (not the root popup) and aim guard is active
-    if (submenuContext && aimGuardActiveRef.current) {
+    // Also verify this is the specific submenu the user was aiming for
+    if (
+      submenuContext &&
+      aimGuardActiveRef.current &&
+      guardedSubmenuSurfaceIdRef.current === surfaceId
+    ) {
       clearAimGuard()
     }
-  }, [submenuContext, aimGuardActiveRef, clearAimGuard])
+  }, [
+    submenuContext,
+    aimGuardActiveRef,
+    guardedSubmenuSurfaceIdRef,
+    surfaceId,
+    clearAimGuard,
+  ])
 
   // Transfer focus ownership when pointer moves inside this submenu popup
   // We ignore events shortly after open to prevent focus transfer when

@@ -371,7 +371,7 @@ describe('RadioGroupDef', () => {
       // Find the radio group
       const radioGroups = displayNodes.filter(isDisplayRadioGroupNode)
       expect(radioGroups).toHaveLength(1)
-      expect(radioGroups[0].context.breadcrumbs).toContain('Settings')
+      expect(radioGroups[0].context.breadcrumbs[0].value).toBe('Settings')
       expect(radioGroups[0].context.isDeepSearchResult).toBe(true)
     })
   })
@@ -568,7 +568,7 @@ describe('RadioItemDef', () => {
       expect(radioGroups).toHaveLength(1)
       expect(radioGroups[0].items).toHaveLength(1)
       expect(radioGroups[0].items[0].node.value).toBe('contains')
-      expect(radioGroups[0].context.breadcrumbs).toContain('Filters')
+      expect(radioGroups[0].context.breadcrumbs[0].value).toBe('Filters')
     })
   })
 })
@@ -793,7 +793,7 @@ describe('radioGroupSearchBehavior', () => {
       expect(radioGroups).toHaveLength(1)
       if (radioGroups[0]) {
         // Should have breadcrumbs
-        expect(radioGroups[0].context.breadcrumbs).toContain('Settings')
+        expect(radioGroups[0].context.breadcrumbs[0].value).toBe('Settings')
         // Should have all 3 items
         expect(radioGroups[0].items).toHaveLength(3)
       }
@@ -1041,7 +1041,7 @@ describe('Value Normalization', () => {
   })
 
   describe('flattenNodes with breadcrumbs', () => {
-    it('should normalize submenu values in breadcrumbs', () => {
+    it('should preserve raw submenu values in breadcrumbs', () => {
       const nodes: NodeDef[] = [
         createSubmenuDef('submenu1', '  Settings  ', [
           createItemDef('item1', 'Dark Mode'),
@@ -1053,11 +1053,13 @@ describe('Value Normalization', () => {
       // Find the nested item
       const nestedItem = flattened.find((f) => f.node.id === 'item1')
       expect(nestedItem).toBeDefined()
-      // Breadcrumb should be trimmed
-      expect(nestedItem?.breadcrumbs).toEqual(['Settings'])
+      // BreadcrumbNode.value preserves the raw value; normalization happens via slugify during ID generation
+      expect(nestedItem?.breadcrumbs.map((b) => b.value)).toEqual([
+        '  Settings  ',
+      ])
     })
 
-    it('should normalize deeply nested breadcrumbs', () => {
+    it('should preserve raw values in deeply nested breadcrumbs', () => {
       const nodes: NodeDef[] = [
         createSubmenuDef('sub1', '  Level 1  ', [
           createSubmenuDef('sub2', '  Level 2  ', [
@@ -1070,8 +1072,11 @@ describe('Value Normalization', () => {
 
       const deepItem = flattened.find((f) => f.node.id === 'item1')
       expect(deepItem).toBeDefined()
-      // All breadcrumbs should be trimmed
-      expect(deepItem?.breadcrumbs).toEqual(['Level 1', 'Level 2'])
+      // BreadcrumbNode.value preserves raw values; normalization happens via slugify during ID generation
+      expect(deepItem?.breadcrumbs.map((b) => b.value)).toEqual([
+        '  Level 1  ',
+        '  Level 2  ',
+      ])
     })
   })
 })

@@ -121,10 +121,18 @@ export interface CreateQueryLoaderProps {
    */
   minQueryLength?: number
   /**
-   * Initial query to pre-fetch on menu open.
-   * Set to '' to fetch all items eagerly.
+   * Initial query to use when the loader becomes active.
+   * Set to '' to fetch all items immediately when the submenu opens.
+   * If undefined, waits for user to type before fetching.
    */
   initialQuery?: string
+  /**
+   * When to trigger the loader:
+   * - 'eager': Load when root menu opens (good for deep search)
+   * - 'lazy': Load when submenu opens (default)
+   * @default 'lazy'
+   */
+  loadStrategy?: 'eager' | 'lazy'
   /**
    * What to show when query is below minQueryLength.
    * @default 'empty'
@@ -170,6 +178,7 @@ export function createQueryLoader(
     useQuery,
     minQueryLength = 1,
     initialQuery,
+    loadStrategy,
     belowMinBehavior = 'empty',
     placeholderNodes,
   } = props
@@ -184,6 +193,7 @@ export function createQueryLoader(
     Loader,
     minQueryLength,
     initialQuery,
+    loadStrategy,
     belowMinBehavior,
     placeholderNodes,
   }

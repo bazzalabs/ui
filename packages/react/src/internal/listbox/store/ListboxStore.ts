@@ -175,6 +175,11 @@ export interface ListboxContext {
    * Used for resetting row width measurements.
    */
   onCloseComplete?: () => void
+  /**
+   * Last known pointer position for detecting actual pointer movement.
+   * Used to prevent "phantom" highlights when content shifts under a stationary pointer.
+   */
+  lastPointerPosition: { x: number; y: number } | null
 }
 
 /**
@@ -296,6 +301,7 @@ export class ListboxStore extends ReactStore<
         itemRefs: new Map(),
       },
       onCloseComplete: undefined,
+      lastPointerPosition: null,
     }
 
     super(
@@ -307,6 +313,9 @@ export class ListboxStore extends ReactStore<
     // Handle open/close
     this.observe('open', (open) => {
       if (open) {
+        // Reset pointer position tracking on open to prevent phantom highlights
+        this.resetPointerPosition()
+
         // Auto-highlight is now handled by applyAutoHighlight() called from Surface
         // after it has set the context. This ensures the correct value is used.
         // We only handle the simple boolean true case here for backwards compatibility
@@ -340,6 +349,9 @@ export class ListboxStore extends ReactStore<
     // Recompute filtered items when search changes (handles controlled search via useControlledProp)
     this.observe('search', (search, prevSearch) => {
       if (search !== prevSearch) {
+        // Reset pointer position when search changes - content is about to shift
+        // and we don't want stationary pointers to trigger phantom highlights
+        this.resetPointerPosition()
         this.recomputeFilteredItems(prevSearch)
       }
     })
@@ -390,6 +402,9 @@ export class ListboxStore extends ReactStore<
 
     this.update({ highlightedId: id, highlightSource: cause })
 
+    // Always notify about highlight changes (for virtualization, analytics, etc.)
+    this.notifyHighlightChange(id, cause)
+
     // Handle scroll behavior for keyboard navigation
     if (cause === 'keyboard' && id !== null) {
       this.scrollItemIntoView(id)
@@ -397,18 +412,47 @@ export class ListboxStore extends ReactStore<
   }
 
   /**
+   * Notify listeners about highlight changes.
+   * Called whenever highlightedId changes, regardless of virtualization or DOM state.
+   * Useful for virtualization scroll sync, analytics, or any other tracking needs.
+   *
+   * @param id - The newly highlighted item ID (or null if cleared)
+   * @param cause - What caused the highlight change
+   */
+  private notifyHighlightChange(id: string | null, cause: HighlightSource) {
+    const { onHighlightChange } = this.context
+    if (!onHighlightChange) return
+
+    // Map cause to reason
+    const reason: HighlightChangeReason =
+      cause === 'keyboard'
+        ? REASONS.keyboard
+        : cause === 'pointer'
+          ? REASONS.pointer
+          : REASONS.auto
+
+    // Get the index of the highlighted item
+    const index =
+      id === null
+        ? -1
+        : this.state.virtualized
+          ? this.getVirtualItemIndex(id)
+          : this.getVisibleItemIndex(id)
+
+    const eventDetails = createGenericEventDetails(reason, undefined, { index })
+    onHighlightChange(id, index, eventDetails)
+  }
+
+  /**
    * Scroll the highlighted item into view.
-   * Uses native scrollIntoView if the element is in the DOM,
-   * otherwise falls back to onHighlightChange callback for virtualizer sync.
+   * Uses native scrollIntoView if the element is in the DOM.
+   * For virtualized lists, the onHighlightChange callback (called from setHighlightedId)
+   * should handle scrolling via the virtualizer.
    *
    * @param id - The item ID to scroll into view
-   * @param reason - The reason for the highlight change (default: 'keyboard')
    */
-  private scrollItemIntoView(
-    id: string,
-    reason: HighlightChangeReason = REASONS.keyboard,
-  ) {
-    const { refs, onHighlightChange } = this.context
+  private scrollItemIntoView(id: string) {
+    const { refs } = this.context
     const listEl = refs.listRef.current
     const itemRef = refs.itemRefs.get(id)
     const itemEl = itemRef?.current
@@ -419,25 +463,13 @@ export class ListboxStore extends ReactStore<
         const isInList = listEl.contains(itemEl)
         if (isInList) {
           itemEl.scrollIntoView({ block: 'nearest' })
-          return // Done - no need for virtualizer callback
         }
       } catch {
         // Ignore errors from scrollIntoView
       }
     }
-
-    // Fallback: Call onHighlightChange for virtualizer to handle scrolling
-    // This is used when the item is not in the DOM (virtualized out of view)
-    if (onHighlightChange) {
-      // Use virtualItems index for scrollToIndex, not filtered index
-      const index = this.state.virtualized
-        ? this.getVirtualItemIndex(id)
-        : this.getVisibleItemIndex(id)
-      const eventDetails = createGenericEventDetails(reason, undefined, {
-        index,
-      })
-      onHighlightChange(id, index, eventDetails)
-    }
+    // For virtualized lists where the item is not in the DOM,
+    // the onHighlightChange callback handles scroll via virtualizer
   }
 
   setHasInput(hasInput: boolean) {
@@ -605,6 +637,50 @@ export class ListboxStore extends ReactStore<
     return () => {
       this.context.refs.itemRefs.delete(id)
     }
+  }
+
+  // ============================================================================
+  // Pointer Position Tracking
+  // ============================================================================
+
+  /**
+   * Check if pointer has moved and should allow highlight.
+   * This prevents "phantom" highlights when content shifts under a stationary pointer
+   * (e.g., when search results change or menu items reorder).
+   *
+   * @param x - Current pointer X position
+   * @param y - Current pointer Y position
+   * @returns true if pointer has actually moved and highlight should be allowed
+   */
+  shouldAllowPointerHighlight(x: number, y: number): boolean {
+    const last = this.context.lastPointerPosition
+    if (last === null) {
+      // First pointer event - record position and allow highlight
+      this.context.lastPointerPosition = { x, y }
+      return true
+    }
+
+    // Check if pointer has actually moved (with small tolerance for sub-pixel movements)
+    const dx = Math.abs(x - last.x)
+    const dy = Math.abs(y - last.y)
+    const hasMoved = dx > 1 || dy > 1
+
+    if (hasMoved) {
+      // Update position and allow highlight
+      this.context.lastPointerPosition = { x, y }
+      return true
+    }
+
+    // Pointer hasn't moved - don't allow highlight
+    return false
+  }
+
+  /**
+   * Reset pointer position tracking.
+   * Call this when the menu opens or content changes significantly.
+   */
+  resetPointerPosition() {
+    this.context.lastPointerPosition = null
   }
 
   /**

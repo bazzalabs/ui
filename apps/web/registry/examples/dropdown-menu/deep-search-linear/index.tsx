@@ -34,11 +34,11 @@ const labelData = [
   { id: 'bug', name: 'Bug', color: 'red' },
   { id: 'enhancement', name: 'Enhancement', color: 'green' },
   { id: 'task', name: 'Task', color: 'blue' },
-  {
-    id: 'random-long',
-    name: 'Super duper long label name here to test how overflow will be handled!',
-    color: 'blue',
-  },
+  // {
+  //   id: 'random-long',
+  //   name: 'Super duper long label name here to test how overflow will be handled!',
+  //   color: 'blue',
+  // },
   { id: 'urgent', name: 'Urgent', color: 'pink' },
   { id: 'low-priority', name: 'Low Priority', color: 'lime' },
   { id: 'frontend', name: 'Frontend', color: 'orange' },
@@ -220,18 +220,18 @@ function buildMenuContent(): NodeDef[] {
   )
 
   // Project Properties > Project Lead submenu
-  // const projectLeadMenu = createSubmenuNode(
-  //   'project-lead',
-  //   'Project lead',
-  //   <ProjectLeadIcon />,
-  //   [
-  //     createAssigneeItemNode('@kianbazza', 'Kian Bazza', 'kianbazza'),
-  //     createAssigneeItemNode('@shadcn', 'shadcn', 'shadcn'),
-  //     createAssigneeItemNode('@rauchg', 'Guillermo Rauch', 'rauchg'),
-  //     createAssigneeItemNode('@t3dotgg', 'Theo Browne', 't3dotgg'),
-  //   ],
-  //   { inputPlaceholder: 'Project lead...' },
-  // )
+  const projectLeadMenu = createSubmenuNode(
+    'project-lead',
+    'Project lead',
+    <ProjectLeadIcon />,
+    [
+      createAssigneeItemNode('@kianbazza', 'Kian Bazza', 'kianbazza'),
+      createAssigneeItemNode('@shadcn', 'shadcn', 'shadcn'),
+      createAssigneeItemNode('@rauchg', 'Guillermo Rauch', 'rauchg'),
+      createAssigneeItemNode('@t3dotgg', 'Theo Browne', 't3dotgg'),
+    ],
+    { inputPlaceholder: 'Project lead...' },
+  )
 
   // Project Properties submenu (nested)
   const projectPropertiesMenu = createSubmenuNode(
@@ -243,7 +243,7 @@ function buildMenuContent(): NodeDef[] {
       projectStatusTypeMenu,
       projectPriorityMenu,
       projectLabelsMenu,
-      // projectLeadMenu,
+      projectLeadMenu,
     ],
     { inputPlaceholder: 'Project properties...' },
   )
@@ -275,20 +275,12 @@ export default function DropdownMenuDeepSearchLinear() {
           <DropdownMenu.Popup>
             <DropdownMenu.DataSurface
               content={content}
-              deepSearch={{ enabled: true, minLength: 2 }}
+              deepSearch={{ enabled: true, minLength: 0 }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
               <DropdownMenu.DataList virtualized>
-                {({ nodes, renderNode, isDeepSearching, count }) => (
-                  <>
-                    {isDeepSearching && count > 0 && (
-                      <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
-                        Searching all menus...
-                      </div>
-                    )}
-                    <DropdownMenu.Empty />
-                    {nodes.map((node) => renderNode(node))}
-                  </>
+                {({ nodes, renderNode }) => (
+                  <>{nodes.map((node) => renderNode(node))}</>
                 )}
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>

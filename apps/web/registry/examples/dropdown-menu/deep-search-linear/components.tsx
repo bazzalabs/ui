@@ -227,20 +227,20 @@ export function createSubmenuNode(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner>
             <DropdownMenu.Popup>
-              <DropdownMenu.DataSurface content={nodes}>
+              <DropdownMenu.DataSurface
+                content={nodes}
+                deepSearch={{ enabled: true, minLength: 0 }}
+              >
                 <DropdownMenu.DataInput
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList>
+                <DropdownMenu.DataList virtualized>
                   {({
                     nodes: filteredNodes,
                     renderNode: renderFilteredNode,
                   }) => (
-                    <>
-                      <DropdownMenu.Empty />
-                      {filteredNodes.map((node) => renderFilteredNode(node))}
-                    </>
+                    <>{filteredNodes.map((node) => renderFilteredNode(node))}</>
                   )}
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
