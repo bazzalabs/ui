@@ -231,6 +231,261 @@ function FreetextCombobox() {
 }
 ```
 
+## Guides
+
+### Basics
+
+Combobox combines a text input with a dropdown list of suggestions. It's ideal for autocomplete scenarios.
+
+#### Controlled vs Uncontrolled
+
+```tsx
+// Uncontrolled - Combobox manages its own value
+<Combobox.Root defaultValue="">
+  ...
+</Combobox.Root>
+
+// Controlled - You manage the value
+const [value, setValue] = React.useState('')
+
+<Combobox.Root value={value} onValueChange={setValue}>
+  ...
+</Combobox.Root>
+```
+
+---
+
+### Multi-Select Mode
+
+Enable multi-select for tagging interfaces:
+
+```tsx
+const [values, setValues] = React.useState<string[]>([])
+
+<Combobox.Root multiple values={values} onValuesChange={setValues}>
+  <Combobox.InputWrapper>
+    {/* Render selected tags */}
+    <div className="flex flex-wrap gap-1">
+      {values.map((tag) => (
+        <span key={tag} className="px-2 py-1 bg-blue-100 rounded text-sm">
+          {tag}
+          <button onClick={() => setValues(values.filter(v => v !== tag))}>
+            x
+          </button>
+        </span>
+      ))}
+      <Combobox.Input placeholder="Add tags..." />
+    </div>
+    <Combobox.Clear />
+  </Combobox.InputWrapper>
+  ...
+</Combobox.Root>
+```
+
+---
+
+### Filtering
+
+Combobox filters automatically as users type. The built-in fuzzy search uses the `commandScore` algorithm.
+
+#### Value and Keywords
+
+Use `value` and `keywords` for better matching:
+
+```tsx
+<Combobox.Item value="apple" keywords={['fruit', 'red', 'healthy']}>
+  Apple
+</Combobox.Item>
+```
+
+#### Custom Filter Function
+
+Replace the default fuzzy search:
+
+```tsx
+<Combobox.Surface
+  filter={(value, search, keywords) => {
+    // Return score between 0 (no match) and 1 (perfect match)
+    return value.toLowerCase().startsWith(search.toLowerCase()) ? 1 : 0
+  }}
+>
+  ...
+</Combobox.Surface>
+```
+
+---
+
+### Allow Custom Values
+
+Let users enter values not in the list:
+
+```tsx
+<Combobox.Root allowCustomValue value={value} onValueChange={setValue}>
+  <Combobox.InputWrapper>
+    <Combobox.Input placeholder="Type or select..." />
+  </Combobox.InputWrapper>
+  <Combobox.Portal>
+    <Combobox.Positioner>
+      <Combobox.Popup>
+        <Combobox.Item value="option1">Option 1</Combobox.Item>
+        <Combobox.Item value="option2">Option 2</Combobox.Item>
+        <Combobox.Empty>
+          Press Enter to add "{value}"
+        </Combobox.Empty>
+      </Combobox.Popup>
+    </Combobox.Positioner>
+  </Combobox.Portal>
+</Combobox.Root>
+```
+
+---
+
+### Clear Button
+
+Add a clear button to reset the input:
+
+```tsx
+<Combobox.InputWrapper>
+  <Combobox.Input placeholder="Search..." />
+  <Combobox.Clear>
+    <XIcon className="h-4 w-4" />
+  </Combobox.Clear>
+</Combobox.InputWrapper>
+```
+
+The clear button is automatically hidden when there's no value.
+
+---
+
+### Groups
+
+Organize options into labeled groups:
+
+```tsx
+<Combobox.List>
+  <Combobox.Group>
+    <Combobox.GroupLabel>Fruits</Combobox.GroupLabel>
+    <Combobox.Item value="apple">Apple</Combobox.Item>
+    <Combobox.Item value="banana">Banana</Combobox.Item>
+  </Combobox.Group>
+  <Combobox.Separator />
+  <Combobox.Group>
+    <Combobox.GroupLabel>Vegetables</Combobox.GroupLabel>
+    <Combobox.Item value="carrot">Carrot</Combobox.Item>
+    <Combobox.Item value="broccoli">Broccoli</Combobox.Item>
+  </Combobox.Group>
+</Combobox.List>
+```
+
+---
+
+### Input Cursor Behavior
+
+Control how the cursor behaves when an item is selected:
+
+```tsx
+<Combobox.Input
+  cursorBehavior="end"  // Move cursor to end (default)
+  // cursorBehavior="start" // Move cursor to start
+  // cursorBehavior="select" // Select all text
+/>
+```
+
+---
+
+### Virtualization
+
+For large lists, use virtualization:
+
+```tsx
+import { useVirtualizer } from '@tanstack/react-virtual'
+
+const items = Array.from({ length: 1000 }, (_, i) => ({
+  value: `item-${i}`,
+  label: `Item ${i}`,
+}))
+
+function VirtualizedCombobox() {
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 36,
+  })
+
+  return (
+    <Combobox.Root
+      virtualized
+      virtualItems={items}
+      onHighlightChange={(id, index) => {
+        virtualizer.scrollToIndex(index, { align: 'auto' })
+      }}
+    >
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Search items..." />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Surface filter={false}>
+              <Combobox.List viewportRef={scrollRef}>
+                <div style={{ height: virtualizer.getTotalSize() }}>
+                  {virtualizer.getVirtualItems().map((row) => (
+                    <div
+                      key={row.key}
+                      style={{
+                        position: 'absolute',
+                        top: row.start,
+                        height: row.size,
+                        width: '100%',
+                      }}
+                    >
+                      <Combobox.Item value={items[row.index].value}>
+                        <Combobox.ItemIndicator />
+                        <Combobox.ItemLabel>{items[row.index].label}</Combobox.ItemLabel>
+                      </Combobox.Item>
+                    </div>
+                  ))}
+                </div>
+              </Combobox.List>
+            </Combobox.Surface>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+---
+
+### Styling with Data Attributes
+
+All Combobox components expose data attributes for styling:
+
+```css
+/* Style the input wrapper based on state */
+[data-bazzaui-combobox-input-wrapper][data-open] {
+  border-color: blue;
+}
+
+[data-bazzaui-combobox-input-wrapper][data-focused] {
+  box-shadow: 0 0 0 2px blue;
+}
+
+/* Style items based on state */
+[data-bazzaui-combobox-item][data-highlighted] {
+  background: var(--highlight-bg);
+}
+
+[data-bazzaui-combobox-item][data-selected] {
+  font-weight: bold;
+}
+```
+
+---
+
 ## Differences from Select
 
 | Feature | Combobox | Select |
@@ -238,7 +493,7 @@ function FreetextCombobox() {
 | Input | Text input for typing | Button trigger |
 | Filtering | As-you-type filtering | Optional search input |
 | Custom values | Can allow free-form input | No custom values |
-| Multi-select | Native support | Not supported |
+| Multi-select | Native support | Native support |
 | Use case | Autocomplete, tagging | Single selection |
 
 ## API Reference
