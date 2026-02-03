@@ -23,6 +23,9 @@ export { SelectItemIndicator } from './item-indicator/item-indicator.js'
 // Item Label (renamed from ItemText)
 export type { SelectItemLabelProps } from './item-label/item-label.js'
 export { SelectItemLabel } from './item-label/item-label.js'
+// Popup (Select-specific with alignItemWithTriggerActive state)
+export type { SelectPopupProps, SelectPopupState } from './popup/popup.js'
+export { SelectPopup } from './popup/popup.js'
 // Positioner (custom implementation with alignItemWithTrigger support)
 export type { SelectPositionerProps } from './positioner/positioner.js'
 export { SelectPositioner } from './positioner/positioner.js'
@@ -81,8 +84,6 @@ export type {
   PopupMenuListChildrenState as SelectListChildrenState,
   PopupMenuListProps as SelectListProps,
   PopupMenuListState as SelectListState,
-  PopupMenuPopup as SelectPopup,
-  PopupMenuPopupProps as SelectPopupProps,
   PopupMenuPortal as SelectPortal,
   PopupMenuPortalProps as SelectPortalProps,
   PopupMenuScrollArrowProps as SelectScrollArrowProps,

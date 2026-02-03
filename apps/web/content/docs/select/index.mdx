@@ -12,42 +12,6 @@ A select component displays a trigger that opens a dropdown with selectable opti
 bun add @bazza-ui/react
 ```
 
-## Basic Usage
-
-```tsx
-import { Select } from '@bazza-ui/react'
-
-function Demo() {
-  const [value, setValue] = React.useState('')
-
-  return (
-    <Select.Root value={value} onValueChange={setValue}>
-      <Select.Trigger>
-        <Select.Value placeholder="Select a fruit..." />
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Positioner>
-          <Select.Popup>
-            <Select.Item value="apple">
-              <Select.ItemIndicator />
-              <Select.ItemLabel>Apple</Select.ItemLabel>
-            </Select.Item>
-            <Select.Item value="banana">
-              <Select.ItemIndicator />
-              <Select.ItemLabel>Banana</Select.ItemLabel>
-            </Select.Item>
-            <Select.Item value="orange">
-              <Select.ItemIndicator />
-              <Select.ItemLabel>Orange</Select.ItemLabel>
-            </Select.Item>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
-  )
-}
-```
-
 ## Anatomy
 
 ```tsx
@@ -67,8 +31,8 @@ function Demo() {
             <Select.Group>
               <Select.GroupLabel />
               <Select.Item>
-                <Select.ItemIndicator />
                 <Select.ItemLabel />
+                <Select.ItemIndicator />
               </Select.Item>
             </Select.Group>
             <Select.Separator />
@@ -95,148 +59,147 @@ function Demo() {
 
 ## Examples
 
-### With Groups
+### Basic
+
+A simple single-select dropdown with a list of options.
+
+<Example name="select-basic">
+<Example.PreviewCode>
 
 ```tsx
-function GroupedSelect() {
-  return (
-    <Select.Root>
-      <Select.Trigger>
-        <Select.Value placeholder="Select a food..." />
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Positioner>
-          <Select.Popup>
-            <Select.Group>
-              <Select.GroupLabel>Fruits</Select.GroupLabel>
-              <Select.Item value="apple">
-                <Select.ItemIndicator />
-                <Select.ItemLabel>Apple</Select.ItemLabel>
-              </Select.Item>
-              <Select.Item value="banana">
-                <Select.ItemIndicator />
-                <Select.ItemLabel>Banana</Select.ItemLabel>
-              </Select.Item>
-            </Select.Group>
-            <Select.Separator />
-            <Select.Group>
-              <Select.GroupLabel>Vegetables</Select.GroupLabel>
-              <Select.Item value="carrot">
-                <Select.ItemIndicator />
-                <Select.ItemLabel>Carrot</Select.ItemLabel>
-              </Select.Item>
-              <Select.Item value="broccoli">
-                <Select.ItemIndicator />
-                <Select.ItemLabel>Broccoli</Select.ItemLabel>
-              </Select.Item>
-            </Select.Group>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
-  )
-}
+<Select.Root value={value} onValueChange={setValue}>
+  <Select.Trigger>
+    <Select.Value placeholder="Select a fruit..." />
+  </Select.Trigger>
+  <Select.Portal>
+    <Select.Positioner>
+      <Select.Popup>
+        <Select.Surface>
+          <Select.List>
+            <Select.Item value="apple">
+              <Select.ItemLabel>Apple</Select.ItemLabel>
+              <Select.ItemIndicator />
+            </Select.Item>
+            ...
+          </Select.List>
+        </Select.Surface>
+      </Select.Popup>
+    </Select.Positioner>
+  </Select.Portal>
+</Select.Root>
 ```
+
+</Example.PreviewCode>
+</Example>
+
+### With Groups
+
+Organize options into labeled groups with separators.
+
+<Example name="select-groups">
+<Example.PreviewCode>
+
+```tsx
+<Select.Group>
+  <Select.GroupLabel>Fruits</Select.GroupLabel>
+  <Select.Item value="apple">Apple</Select.Item>
+  <Select.Item value="banana">Banana</Select.Item>
+</Select.Group>
+<Select.Separator />
+<Select.Group>
+  <Select.GroupLabel>Vegetables</Select.GroupLabel>
+  <Select.Item value="carrot">Carrot</Select.Item>
+</Select.Group>
+```
+
+</Example.PreviewCode>
+</Example>
 
 ### With Search
 
+Add a search input to filter options. Use `value` and `keywords` props for better filtering.
+
+<Example name="select-search">
+<Example.PreviewCode>
+
 ```tsx
-function SearchableSelect() {
-  return (
-    <Select.Root>
-      <Select.Trigger>
-        <Select.Value placeholder="Search countries..." />
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Positioner>
-          <Select.Popup>
-            <Select.Surface>
-              <Select.Input placeholder="Search..." />
-              <Select.List>
-                <Select.Item value="us">
-                  <Select.ItemLabel>United States</Select.ItemLabel>
-                </Select.Item>
-                <Select.Item value="uk">
-                  <Select.ItemLabel>United Kingdom</Select.ItemLabel>
-                </Select.Item>
-                <Select.Item value="ca">
-                  <Select.ItemLabel>Canada</Select.ItemLabel>
-                </Select.Item>
-                <Select.Item value="au">
-                  <Select.ItemLabel>Australia</Select.ItemLabel>
-                </Select.Item>
-              </Select.List>
-              <Select.Empty>No countries found</Select.Empty>
-            </Select.Surface>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
-  )
-}
+<Select.Surface>
+  <Select.Input placeholder="Search..." />
+  <Select.List>
+    <Select.Item value="us" keywords={['america', 'usa']}>
+      United States
+    </Select.Item>
+    ...
+  </Select.List>
+  <Select.Empty>No countries found</Select.Empty>
+</Select.Surface>
 ```
+
+</Example.PreviewCode>
+</Example>
 
 ### With Form
 
-```tsx
-function FormSelect() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    console.log('Selected:', formData.get('priority'))
-  }
+Select integrates with native HTML forms. Use `name` and `required` props for form submission.
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <Select.Root name="priority" required>
-        <Select.Trigger>
-          <Select.Value placeholder="Select priority..." />
-        </Select.Trigger>
-        <Select.Portal>
-          <Select.Positioner>
-            <Select.Popup>
-              <Select.Item value="low">
-                <Select.ItemLabel>Low</Select.ItemLabel>
-              </Select.Item>
-              <Select.Item value="medium">
-                <Select.ItemLabel>Medium</Select.ItemLabel>
-              </Select.Item>
-              <Select.Item value="high">
-                <Select.ItemLabel>High</Select.ItemLabel>
-              </Select.Item>
-            </Select.Popup>
-          </Select.Positioner>
-        </Select.Portal>
-      </Select.Root>
-      <button type="submit">Submit</button>
-    </form>
-  )
-}
+<Example name="select-form">
+<Example.PreviewCode>
+
+```tsx
+<form onSubmit={handleSubmit}>
+  <Select.Root name="priority" required>
+    <Select.Trigger>
+      <Select.Value placeholder="Select priority..." />
+    </Select.Trigger>
+    ...
+  </Select.Root>
+  <button type="submit">Submit</button>
+</form>
 ```
+
+</Example.PreviewCode>
+</Example>
+
+### With Object Values
+
+Use objects as values for complex data structures. Provide custom equality and label functions.
+
+<Example name="select-object-values">
+<Example.PreviewCode>
+
+```tsx
+<Select.Root
+  value={selected}
+  onValueChange={setSelected}
+  isItemEqualToValue={(a, b) => a.id === b.id}
+  itemToStringLabel={(u) => u.name}
+  itemToStringValue={(u) => String(u.id)}
+>
+  ...
+  {users.map((user) => (
+    <Select.Item key={user.id} value={user}>
+      <Select.ItemLabel />
+      <Select.ItemIndicator />
+    </Select.Item>
+  ))}
+</Select.Root>
+```
+
+</Example.PreviewCode>
+</Example>
 
 ### Align Item With Trigger
 
 Enable native-select-like behavior where the selected item aligns with the trigger:
 
 ```tsx
-function AlignedSelect() {
-  return (
-    <Select.Root>
-      <Select.Trigger>
-        <Select.Value placeholder="Select..." />
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Positioner alignItemWithTrigger>
-          <Select.Popup>
-            <Select.Item value="1">Option 1</Select.Item>
-            <Select.Item value="2">Option 2</Select.Item>
-            <Select.Item value="3">Option 3</Select.Item>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
-  )
-}
+<Select.Positioner alignItemWithTrigger>
+  <Select.Popup>
+    <Select.Item value="1">Option 1</Select.Item>
+    <Select.Item value="2">Option 2</Select.Item>
+    <Select.Item value="3">Option 3</Select.Item>
+  </Select.Popup>
+</Select.Positioner>
 ```
 
 ## Guides
@@ -477,6 +440,140 @@ function VirtualizedSelect() {
     </Select.Root>
   )
 }
+```
+
+---
+
+### Object Values
+
+Select supports using objects as values instead of just strings. This is useful when working with complex data structures like database records or API responses.
+
+#### Auto-detected `{ value, label }` Objects
+
+If your objects have a `value` and `label` property, Select will automatically use them:
+
+```tsx
+interface Fruit {
+  value: string
+  label: string
+}
+
+const fruits: Fruit[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+]
+
+function ObjectSelect() {
+  const [selected, setSelected] = React.useState<Fruit | null>(null)
+
+  return (
+    <Select.Root value={selected} onValueChange={setSelected}>
+      <Select.Trigger>
+        <Select.Value placeholder="Select a fruit..." />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner>
+          <Select.Popup>
+            <Select.Surface>
+              <Select.List>
+                {fruits.map((fruit) => (
+                  <Select.Item key={fruit.value} value={fruit}>
+                    <Select.ItemIndicator />
+                    <Select.ItemLabel />
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  )
+}
+```
+
+- **Display**: Uses `label` property for `<Select.Value>` and `<Select.ItemLabel>`
+- **Form submission**: Uses `value` property for hidden form inputs
+- **Equality**: Uses reference equality by default
+
+#### Custom Object Shapes
+
+For objects with different shapes, use `isItemEqualToValue`, `itemToStringLabel`, and `itemToStringValue`:
+
+```tsx
+interface User {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+}
+
+const users: User[] = [
+  { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
+  { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' },
+]
+
+function UserSelect() {
+  const [selected, setSelected] = React.useState<User | null>(null)
+
+  return (
+    <Select.Root
+      value={selected}
+      onValueChange={setSelected}
+      // Compare by ID instead of reference
+      isItemEqualToValue={(item, value) => item.id === value.id}
+      // Display full name
+      itemToStringLabel={(user) => `${user.firstName} ${user.lastName}`}
+      // Submit ID to form
+      itemToStringValue={(user) => String(user.id)}
+    >
+      <Select.Trigger>
+        <Select.Value placeholder="Select a user..." />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner>
+          <Select.Popup>
+            <Select.Surface>
+              <Select.List>
+                {users.map((user) => (
+                  <Select.Item key={user.id} value={user}>
+                    <Select.ItemIndicator />
+                    <Select.ItemLabel />
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  )
+}
+```
+
+**Props explained:**
+
+| Prop | Purpose | Example |
+|------|---------|---------|
+| `isItemEqualToValue` | Compare item to selected value | `(a, b) => a.id === b.id` |
+| `itemToStringLabel` | Convert object to display string | `(u) => u.name` |
+| `itemToStringValue` | Convert object for form submission | `(u) => String(u.id)` |
+
+#### Multi-Select with Objects
+
+Object values work with multi-select too:
+
+```tsx
+const [selected, setSelected] = React.useState<Fruit[]>([])
+
+<Select.Root
+  multiple
+  values={selected}
+  onValuesChange={setSelected}
+>
+  ...
+</Select.Root>
 ```
 
 ---

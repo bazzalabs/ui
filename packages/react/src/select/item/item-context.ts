@@ -7,11 +7,11 @@ import * as React from 'react'
 // ============================================================================
 // Provides select-specific item state to child components.
 
-export interface SelectItemContextValue {
+export interface SelectItemContextValue<Value = unknown> {
   /** Unique ID for this item (for DOM id attribute) */
   id: string
   /** The value of this item */
-  value: string
+  value: Value
   /** The text value/label for this item */
   textValue: string | undefined
   /** Whether the item is highlighted */
@@ -26,18 +26,24 @@ const SelectItemContext = React.createContext<SelectItemContextValue | null>(
   null,
 )
 
-export function useSelectItemContext(): SelectItemContextValue {
+export function useSelectItemContext<
+  Value = unknown,
+>(): SelectItemContextValue<Value> {
   const context = React.useContext(SelectItemContext)
   if (!context) {
     throw new Error(
       'Select.Item child components must be used within a Select.Item',
     )
   }
-  return context
+  return context as SelectItemContextValue<Value>
 }
 
-export function useMaybeSelectItemContext(): SelectItemContextValue | null {
-  return React.useContext(SelectItemContext)
+export function useMaybeSelectItemContext<
+  Value = unknown,
+>(): SelectItemContextValue<Value> | null {
+  return React.useContext(
+    SelectItemContext,
+  ) as SelectItemContextValue<Value> | null
 }
 
 export { SelectItemContext }
