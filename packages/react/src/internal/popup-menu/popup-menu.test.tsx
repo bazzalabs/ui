@@ -542,9 +542,11 @@ describe('PopupMenu', () => {
         expect(screen.getByTestId('popup-root')).toBeInTheDocument()
       })
 
-      // Open submenu
+      // Open submenu using pointer events with explicit coordinates
       const submenuTrigger = screen.getByTestId('submenu-trigger-1')
-      await user.hover(submenuTrigger)
+      await user.pointer([
+        { target: submenuTrigger, coords: { x: 100, y: 50 } },
+      ])
 
       await waitFor(() => {
         expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
@@ -553,9 +555,13 @@ describe('PopupMenu', () => {
       const rootPopup = screen.getByTestId('popup-root')
       expect(rootPopup).toHaveAttribute('data-has-open-submenu', '')
 
-      // Move back to root item to close submenu
+      // Wait for aim guard debounce to settle
+      await new Promise((r) => setTimeout(r, 150))
+
+      // Move back to root item to close submenu - use explicit coordinates
+      // that are different from the previous position to trigger movement detection
       const rootItem = screen.getByTestId('root-item-1')
-      await user.hover(rootItem)
+      await user.pointer([{ target: rootItem, coords: { x: 100, y: 20 } }])
 
       await waitFor(() => {
         expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
