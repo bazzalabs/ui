@@ -1,5 +1,4 @@
-import { highlight } from '@/lib/highlighter'
-import { getLanguageFromPath, transformRegistryPaths } from '@/lib/registry'
+import { transformRegistryPaths } from '@/lib/registry'
 import {
   getRegistryEntryPrimarySource,
   getRegistryEntrySources,
@@ -86,8 +85,6 @@ async function ComponentSourcePrimary({
   const content = transformPaths
     ? transformRegistryPaths(source.content)
     : source.content
-  const lang = getLanguageFromPath(source.path)
-  const highlighted = await highlight(content, lang)
 
   return (
     <div
@@ -98,7 +95,9 @@ async function ComponentSourcePrimary({
     >
       <div className="overflow-x-auto p-4">
         <div className="[&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0 [&_code]:text-sm">
-          {highlighted}
+          <pre>
+            <code>{content}</code>
+          </pre>
         </div>
       </div>
     </div>
@@ -137,8 +136,6 @@ async function ComponentSourceAllFiles({
     const content = transformPaths
       ? transformRegistryPaths(source.content)
       : source.content
-    const lang = getLanguageFromPath(source.path)
-    const highlighted = await highlight(content, lang)
 
     return (
       <div
@@ -154,7 +151,9 @@ async function ComponentSourceAllFiles({
         </div>
         <div className="overflow-x-auto p-4">
           <div className="[&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0 [&_code]:text-sm">
-            {highlighted}
+            <pre>
+              <code>{content}</code>
+            </pre>
           </div>
         </div>
       </div>
@@ -162,18 +161,14 @@ async function ComponentSourceAllFiles({
   }
 
   // Multiple files - show tabs
-  const highlightedSources = await Promise.all(
-    sources.map(async (source) => {
-      const content = transformPaths
-        ? transformRegistryPaths(source.content)
-        : source.content
-      const lang = getLanguageFromPath(source.path)
-      const highlighted = await highlight(content, lang)
-      return { ...source, highlighted }
-    }),
-  )
+  const processedSources = sources.map((source) => {
+    const content = transformPaths
+      ? transformRegistryPaths(source.content)
+      : source.content
+    return { ...source, content }
+  })
 
-  const firstFileName = getFileName(highlightedSources[0]!.path)
+  const firstFileName = getFileName(processedSources[0]!.path)
 
   return (
     <div
@@ -182,7 +177,7 @@ async function ComponentSourceAllFiles({
       <Tabs defaultValue={firstFileName} className="w-full">
         <div className="border-b bg-muted px-2">
           <TabsList className="h-auto bg-transparent p-0">
-            {highlightedSources.map((source) => {
+            {processedSources.map((source) => {
               const fileName = getFileName(source.path)
               return (
                 <TabsTrigger
@@ -196,7 +191,7 @@ async function ComponentSourceAllFiles({
             })}
           </TabsList>
         </div>
-        {highlightedSources.map((source) => {
+        {processedSources.map((source) => {
           const fileName = getFileName(source.path)
           return (
             <TabsContent
@@ -206,7 +201,9 @@ async function ComponentSourceAllFiles({
             >
               <div className="overflow-x-auto p-4">
                 <div className="[&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0 [&_code]:text-sm">
-                  {source.highlighted}
+                  <pre>
+                    <code>{source.content}</code>
+                  </pre>
                 </div>
               </div>
             </TabsContent>
