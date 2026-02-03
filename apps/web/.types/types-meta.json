@@ -12993,12 +12993,12 @@
         "kind": "interface",
         "props": [
           {
-            "name": "filter",
-            "type": "false | FilterFn | undefined",
-            "formattedType": "false | FilterFn",
+            "name": "autoHighlightFirst",
+            "type": "string | boolean | undefined",
+            "formattedType": "string | false | true",
             "required": false,
-            "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "description": "Controls auto-highlighting behavior when the select opens.\n- `true`: highlight the first item (default when alignItemWithTrigger is inactive)\n- `false`: don't auto-highlight any item\n- `'selected'`: highlight the currently selected item, or first item if none selected\n- `string`: highlight the item with this specific value\n\nNote: When the Positioner's `alignItemWithTrigger` is active and this prop\nis not explicitly set, the selected item is automatically highlighted.",
+            "default": "true (or selected value when alignItemWithTrigger is active)"
           },
           {
             "name": "search",
@@ -13008,19 +13008,26 @@
             "description": "Controlled search value."
           },
           {
-            "name": "onSearchChange",
-            "type": "((search: string) => void) | undefined",
-            "formattedType": "(search: string) => void",
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuSurfaceState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Surface.State) => CSSProperties",
             "required": false,
-            "description": "Callback when search value changes."
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
           },
           {
-            "name": "defaultSearch",
-            "type": "string | undefined",
-            "formattedType": "string",
+            "name": "filter",
+            "type": "false | FilterFn | undefined",
+            "formattedType": "false | FilterFn",
             "required": false,
-            "description": "Default search value for uncontrolled usage.",
-            "default": "''"
+            "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
+            "default": "commandScore (fuzzy matching)"
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Surface.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
           },
           {
             "name": "loop",
@@ -13028,14 +13035,6 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether navigation should loop from last to first item and vice versa.",
-            "default": "true"
-          },
-          {
-            "name": "autoHighlightFirst",
-            "type": "string | boolean | undefined",
-            "formattedType": "string | false | true",
-            "required": false,
-            "description": "Controls auto-highlighting behavior when the menu opens.\n- `true`: highlight the first item (default)\n- `false`: don't auto-highlight any item\n- `string`: highlight the item with this specific value",
             "default": "true"
           },
           {
@@ -13047,12 +13046,11 @@
             "default": "true"
           },
           {
-            "name": "skipAutoFocus",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
+            "name": "onSearchChange",
+            "type": "((search: string) => void) | undefined",
+            "formattedType": "(search: string) => void",
             "required": false,
-            "description": "Whether to skip auto-focusing the input/list when this surface becomes the focus owner.\nUseful for Combobox where the input is outside the popup and should retain focus.",
-            "default": "false"
+            "description": "Callback when search value changes."
           },
           {
             "name": "orderedItems",
@@ -13067,25 +13065,27 @@
             "required": true
           },
           {
-            "name": "style",
-            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuSurfaceState) => CSSProperties | undefined)) | undefined",
-            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Surface.State) => CSSProperties",
-            "required": false,
-            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
-          },
-          {
-            "name": "className",
-            "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
-            "formattedType": "string | (state: PopupMenu.Surface.State) => string",
-            "required": false,
-            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
-          },
-          {
             "name": "render",
             "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuSurfaceState> | undefined",
             "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Surface.State,\n    ) => ReactElement)",
             "required": false,
             "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          },
+          {
+            "name": "defaultSearch",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Default search value for uncontrolled usage.",
+            "default": "''"
+          },
+          {
+            "name": "skipAutoFocus",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to skip auto-focusing the input/list when this surface becomes the focus owner.\nUseful for Combobox where the input is outside the popup and should retain focus.",
+            "default": "false"
           }
         ]
       },
