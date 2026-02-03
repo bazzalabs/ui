@@ -78,10 +78,6 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
   const guardTimerRef = React.useRef<number | null>(null)
 
   const clearAimGuard = React.useCallback(() => {
-    console.log('[AimGuard] CLEARED', {
-      wasActive: aimGuardActiveRef.current,
-      wasGuarding: guardedTriggerIdRef.current,
-    })
     if (guardTimerRef.current) {
       window.clearTimeout(guardTimerRef.current)
       guardTimerRef.current = null
@@ -103,12 +99,6 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       submenuSurfaceId: string,
       timeoutMs = 450,
     ) => {
-      console.log('[AimGuard] ACTIVATED', {
-        triggerId,
-        depth,
-        submenuSurfaceId,
-        timeoutMs,
-      })
       aimGuardActiveRef.current = true
       guardedTriggerIdRef.current = triggerId
       guardedDepthRef.current = depth
@@ -119,7 +109,6 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       setAimGuardActive(true)
       if (guardTimerRef.current) window.clearTimeout(guardTimerRef.current)
       guardTimerRef.current = window.setTimeout(() => {
-        console.log('[AimGuard] TIMEOUT EXPIRED', { triggerId })
         aimGuardActiveRef.current = false
         guardedTriggerIdRef.current = null
         guardedDepthRef.current = null
