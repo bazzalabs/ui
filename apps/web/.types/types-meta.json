@@ -1348,6 +1348,179 @@
   "@bazza-ui/react": {
     "entrypoint": "../../packages/react/src/index.ts",
     "types": {
+      "CreateQueryLoaderProps": {
+        "name": "CreateQueryLoaderProps",
+        "kind": "interface",
+        "doc": "Props for creating a query-dependent loader component.",
+        "props": [
+          {
+            "name": "useQuery",
+            "type": "(query: string) => TanStackQueryResult<NodeDef[], Error>",
+            "formattedType": "(\n  query: string,\n) => TanStackQueryResult<NodeDef[], Error>",
+            "required": true,
+            "description": "Hook that returns a TanStack Query result based on the search query.\nThis hook will be called inside the loader component with the current query."
+          },
+          {
+            "name": "minQueryLength",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Minimum query length before fetching.",
+            "default": "1"
+          },
+          {
+            "name": "initialQuery",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Initial query to use when the loader becomes active.\nSet to '' to fetch all items immediately when the submenu opens.\nIf undefined, waits for user to type before fetching."
+          },
+          {
+            "name": "loadStrategy",
+            "type": "\"eager\" | \"lazy\" | undefined",
+            "formattedType": "\"eager\" | \"lazy\"",
+            "required": false,
+            "description": "When to trigger the loader:\n- 'eager': Load when root menu opens (good for deep search)\n- 'lazy': Load when submenu opens (default)",
+            "default": "'lazy'"
+          },
+          {
+            "name": "belowMinBehavior",
+            "type": "\"empty\" | \"placeholder\" | undefined",
+            "formattedType": "\"empty\" | \"placeholder\"",
+            "required": false,
+            "description": "What to show when query is below minQueryLength.",
+            "default": "'empty'"
+          },
+          {
+            "name": "placeholderNodes",
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
+            "description": "Placeholder nodes shown when query is below minQueryLength."
+          }
+        ]
+      },
+      "CreateStaticLoaderProps": {
+        "name": "CreateStaticLoaderProps",
+        "kind": "interface",
+        "doc": "Props for creating a static loader component.",
+        "props": [
+          {
+            "name": "useQuery",
+            "type": "() => TanStackQueryResult<NodeDef[], Error>",
+            "formattedType": "() => TanStackQueryResult<\n  NodeDef[],\n  Error\n>",
+            "required": true,
+            "description": "Hook that returns a TanStack Query result.\nThis hook will be called inside the loader component."
+          }
+        ]
+      },
+      "TanStackQueryResult": {
+        "name": "TanStackQueryResult",
+        "kind": "interface",
+        "typeParams": [
+          {
+            "name": "TData"
+          },
+          {
+            "name": "TError",
+            "default": "Error"
+          }
+        ],
+        "doc": "TanStack Query result shape (subset of UseQueryResult).\nThis allows the adapter to work without requiring",
+        "props": [
+          {
+            "name": "data",
+            "type": "TData | undefined",
+            "formattedType": "TData",
+            "required": true
+          },
+          {
+            "name": "error",
+            "type": "TError | null",
+            "formattedType": "null | TError",
+            "required": true
+          },
+          {
+            "name": "isLoading",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "isError",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "isFetching",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false
+          },
+          {
+            "name": "refetch",
+            "type": "() => void",
+            "required": true
+          }
+        ]
+      },
+      "CreateVanillaQueryLoaderProps": {
+        "name": "CreateVanillaQueryLoaderProps",
+        "kind": "interface",
+        "doc": "Props for creating a query-dependent loader with vanilla fetch.",
+        "props": [
+          {
+            "name": "fetcher",
+            "type": "(query: string) => Promise<NodeDef[]>",
+            "required": true,
+            "description": "Async function that fetches menu items based on the search query."
+          },
+          {
+            "name": "minQueryLength",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Minimum query length before fetching.",
+            "default": "1"
+          },
+          {
+            "name": "initialQuery",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Initial query to pre-fetch on menu open."
+          },
+          {
+            "name": "belowMinBehavior",
+            "type": "\"empty\" | \"placeholder\" | undefined",
+            "formattedType": "\"empty\" | \"placeholder\"",
+            "required": false,
+            "description": "What to show when query is below minQueryLength.",
+            "default": "'empty'"
+          },
+          {
+            "name": "placeholderNodes",
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
+            "description": "Placeholder nodes shown when query is below minQueryLength."
+          }
+        ]
+      },
+      "CreateVanillaStaticLoaderProps": {
+        "name": "CreateVanillaStaticLoaderProps",
+        "kind": "interface",
+        "doc": "Props for creating a static loader with vanilla fetch.",
+        "props": [
+          {
+            "name": "fetcher",
+            "type": "() => Promise<NodeDef[]>",
+            "required": true,
+            "description": "Async function that fetches the menu items."
+          }
+        ]
+      },
       "ComboboxClearProps": {
         "name": "ComboboxClearProps",
         "kind": "interface",
@@ -2022,6 +2195,13 @@
             "default": "commandScore (fuzzy matching)"
           },
           {
+            "name": "className",
+            "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Surface.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
             "name": "loop",
             "type": "boolean | undefined",
             "formattedType": "false | true",
@@ -2055,13 +2235,6 @@
             "name": "children",
             "type": "ReactNode",
             "required": true
-          },
-          {
-            "name": "className",
-            "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
-            "formattedType": "string | (state: PopupMenu.Surface.State) => string",
-            "required": false,
-            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
           },
           {
             "name": "render",
@@ -3370,6 +3543,13 @@
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when menu close animation completes.\nUsed for resetting row width measurements."
+          },
+          {
+            "name": "lastPointerPosition",
+            "type": "{ x: number; y: number; } | null",
+            "formattedType": "null | { x: number; y: number }",
+            "required": true,
+            "description": "Last known pointer position for detecting actual pointer movement.\nUsed to prevent \"phantom\" highlights when content shifts under a stationary pointer."
           }
         ]
       },
@@ -3454,6 +3634,12 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether virtualization mode is enabled"
+          },
+          {
+            "name": "virtualItemsCount",
+            "type": "number",
+            "required": true,
+            "description": "Count of virtual items (from items prop)"
           }
         ]
       },
@@ -3562,6 +3748,13 @@
             "formattedType": "(open: boolean) => void",
             "required": false,
             "description": "Event handler called after any open/close animations have completed.\nWhen `clearSearchOnClose=\"after-exit\"` is set on Surface, the search\nwill be cleared before this callback is invoked."
+          },
+          {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn | undefined",
+            "formattedType": "GetQualifiedRowIdFn",
+            "required": false,
+            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, qualify with breadcrumbs + slugified value when deep searching"
           },
           {
             "name": "children",
@@ -4925,10 +5118,10 @@
           },
           {
             "name": "onOpenChange",
-            "type": "((open: boolean) => void) | undefined",
-            "formattedType": "(open: boolean) => void",
+            "type": "((open: boolean, eventDetails: PopoverRootChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  open: boolean,\n  eventDetails: PopoverRootChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback when the open state changes."
+            "description": "Callback when the open state changes.\nThe second parameter contains event details including the reason for the change."
           },
           {
             "name": "defaultOpen",
@@ -5034,6 +5227,13 @@
         "name": "ContextMenuSubmenuTriggerProps",
         "kind": "interface",
         "props": [
+          {
+            "name": "id",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Explicit unique identifier for this item in the store.\nWhen provided (e.g., from data-first API's computed composite ID),\nthis takes priority over `value` for store registration."
+          },
           {
             "name": "value",
             "type": "string | undefined",
@@ -5914,6 +6114,13 @@
             "required": true,
             "description": "When to close the menu on outside interactions.\n- 'pointerdown': Close immediately when pointer is pressed outside (default)\n- 'click': Close when a full click (pointerdown + pointerup) occurs outside",
             "default": "'pointerdown'"
+          },
+          {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn | undefined",
+            "formattedType": "GetQualifiedRowIdFn",
+            "required": false,
+            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\nIf not provided, uses the default implementation."
           }
         ]
       },
@@ -6154,6 +6361,13 @@
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when menu close animation completes.\nUsed for resetting row width measurements."
+          },
+          {
+            "name": "lastPointerPosition",
+            "type": "{ x: number; y: number; } | null",
+            "formattedType": "null | { x: number; y: number }",
+            "required": true,
+            "description": "Last known pointer position for detecting actual pointer movement.\nUsed to prevent \"phantom\" highlights when content shifts under a stationary pointer."
           }
         ]
       },
@@ -6238,6 +6452,12 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether virtualization mode is enabled"
+          },
+          {
+            "name": "virtualItemsCount",
+            "type": "number",
+            "required": true,
+            "description": "Count of virtual items (from items prop)"
           }
         ]
       },
@@ -6408,7 +6628,7 @@
       "CheckboxItemDef": {
         "name": "CheckboxItemDef",
         "kind": "interface",
-        "doc": "Checkbox item node definition.\nRepresents a toggleable checkbox menu item.",
+        "doc": "Checkbox item node definition.\nRepresents a toggleable checkbox menu item.\nProps derived from PopupMenuCheckboxItemProps.",
         "props": [
           {
             "name": "kind",
@@ -6416,45 +6636,10 @@
             "required": true
           },
           {
-            "name": "label",
+            "name": "value",
             "type": "string",
             "required": true,
-            "description": "Label used for search matching"
-          },
-          {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords for search matching"
-          },
-          {
-            "name": "disabled",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether the item is disabled"
-          },
-          {
-            "name": "checked",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether the checkbox is checked"
-          },
-          {
-            "name": "onCheckedChange",
-            "type": "((checked: boolean, details: CheckedChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  checked: boolean,\n  details: CheckedChangeEventDetails,\n) => void",
-            "required": false,
-            "description": "Callback when the checked state changes"
-          },
-          {
-            "name": "closeOnSelect",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether to close the menu when this item is selected (default: false for checkboxes)"
+            "description": "Primary identifier and search text for this checkbox item.\nUsed for search matching and as the default identifier."
           },
           {
             "name": "render",
@@ -6465,9 +6650,10 @@
           },
           {
             "name": "id",
-            "type": "string",
-            "required": true,
-            "description": "Unique identifier for this node"
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
           },
           {
             "name": "hidden",
@@ -6475,6 +6661,43 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this node is hidden"
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation.",
+            "default": "false"
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu.",
+            "default": "false"
+          },
+          {
+            "name": "checked",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "The controlled checked state."
+          },
+          {
+            "name": "onCheckedChange",
+            "type": "((checked: boolean, eventDetails: CheckedChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  checked: boolean,\n  eventDetails: CheckedChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the checked state changes.\nThe second parameter contains event details including the reason for the change."
           }
         ]
       },
@@ -6486,13 +6709,14 @@
           {
             "name": "props",
             "type": "CheckboxItemRenderProps",
+            "formattedType": "{\n  id: string\n  value: string\n} & Required<\n  Pick<PopupMenu.CheckboxItem.Props, 'disabled'>\n> &\n  Pick<\n    PopupMenu.CheckboxItem.Props,\n    'closeOnClick' | 'checked' | 'onCheckedChange'\n  >",
             "required": true,
             "description": "Props to spread onto the CheckboxItem component"
           },
           {
             "name": "context",
-            "type": "RowRenderContext & { checked?: boolean | undefined; disabled: boolean; }",
-            "formattedType": "RowRenderContext & {\n  checked?: boolean | undefined\n  disabled: boolean\n}",
+            "type": "RowRenderContext & { value: string; checked?: boolean | undefined; disabled: boolean; }",
+            "formattedType": "RowRenderContext & {\n  value: string\n  checked?: boolean | undefined\n  disabled: boolean\n}",
             "required": true,
             "description": "Context for conditional rendering (includes props values for convenience)"
           }
@@ -6500,42 +6724,51 @@
       },
       "CheckboxItemRenderProps": {
         "name": "CheckboxItemRenderProps",
-        "kind": "interface",
-        "doc": "Props to spread onto the CheckboxItem component.",
+        "kind": "typealias",
+        "doc": "Props to spread onto the CheckboxItem component.\nDerived from PopupMenuCheckboxItemProps.",
+        "definition": "{\n    /**\n     * Qualified unique ID for the checkbox item.\n     * Must be passed to the rendered component for navigation to work.\n     */\n    id: string;\n    /**\n     * The original value from the node definition.\n     */\n    value: string;\n} & Required<Pick<PopupMenuCheckboxItemProps, 'disabled'>> & Pick<PopupMenuCheckboxItemProps, 'checked' | 'onCheckedChange' | 'closeOnClick'>",
         "props": [
           {
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique ID for the item - must be passed to the rendered component for navigation to work"
+            "description": "Qualified unique ID for the checkbox item.\nMust be passed to the rendered component for navigation to work."
           },
           {
-            "name": "checked",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether the checkbox is checked"
-          },
-          {
-            "name": "onCheckedChange",
-            "type": "((checked: boolean, details: CheckedChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  checked: boolean,\n  details: CheckedChangeEventDetails,\n) => void",
-            "required": false,
-            "description": "Callback fired when checked state changes"
+            "name": "value",
+            "type": "string",
+            "required": true,
+            "description": "The original value from the node definition."
           },
           {
             "name": "disabled",
             "type": "boolean",
             "formattedType": "false | true",
-            "required": true,
-            "description": "Whether the item is disabled"
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation.",
+            "default": "false"
           },
           {
             "name": "closeOnClick",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": false,
-            "description": "Whether clicking should close the menu"
+            "description": "Whether clicking this item should close the menu.",
+            "default": "false"
+          },
+          {
+            "name": "checked",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "The controlled checked state."
+          },
+          {
+            "name": "onCheckedChange",
+            "type": "((checked: boolean, eventDetails: CheckedChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  checked: boolean,\n  eventDetails: CheckedChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the checked state changes.\nThe second parameter contains event details including the reason for the change."
           }
         ]
       },
@@ -6574,6 +6807,12 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether deep search is active (query length >= minLength)"
+          },
+          {
+            "name": "async",
+            "type": "AsyncState",
+            "required": true,
+            "description": "Aggregate async loading state across all menus"
           }
         ]
       },
@@ -6637,6 +6876,13 @@
             "description": "The original node definitions"
           },
           {
+            "name": "asyncContent",
+            "type": "AsyncLoaderConfig | undefined",
+            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "required": false,
+            "description": "Async content configuration for root-level async loading"
+          },
+          {
             "name": "deepSearchConfig",
             "type": "DeepSearchConfig",
             "required": true,
@@ -6688,6 +6934,13 @@
             "type": "string",
             "required": true,
             "description": "List element ID for aria-activedescendant"
+          },
+          {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn",
+            "formattedType": "(\n  context: GetQualifiedRowIdContext,\n) => string",
+            "required": true,
+            "description": "Function to generate qualified IDs for row items"
           }
         ]
       },
@@ -6698,9 +6951,17 @@
         "props": [
           {
             "name": "content",
-            "type": "NodeDef[]",
-            "required": true,
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
             "description": "The menu content (node definitions with render functions)"
+          },
+          {
+            "name": "asyncContent",
+            "type": "AsyncLoaderConfig | undefined",
+            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "required": false,
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
           },
           {
             "name": "deepSearch",
@@ -6757,6 +7018,14 @@
             "formattedType": "false | true | \"after-exit\"",
             "required": false,
             "description": "Whether to clear search on close.\n- `true`: clear immediately when menu closes (default)\n- `false`: preserve search when menu closes\n- `'after-exit'`: clear after exit animation completes"
+          },
+          {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn | undefined",
+            "formattedType": "GetQualifiedRowIdFn",
+            "required": false,
+            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
+            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
           },
           {
             "name": "children",
@@ -6892,11 +7161,12 @@
       "DisplayRowNode": {
         "name": "DisplayRowNode",
         "kind": "interface",
-        "doc": "A row node ready for display with its render context.\nUsed for items, checkbox items, and submenu triggers.",
+        "doc": "A row node ready for display with its render context.\nUsed for items, radio items, checkbox items, and submenu triggers.",
         "props": [
           {
             "name": "node",
-            "type": "ItemDef | CheckboxItemDef | SubmenuDef",
+            "type": "ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef",
+            "formattedType": "| ItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef",
             "required": true,
             "description": "The original node definition"
           },
@@ -6905,6 +7175,20 @@
             "type": "RowRenderContext",
             "required": true,
             "description": "Pre-computed render context for this node"
+          },
+          {
+            "name": "radioGroup",
+            "type": "{ id: string; label?: string | undefined; } | undefined",
+            "formattedType": "{\n  id: string\n  label?: string | undefined\n}",
+            "required": false,
+            "description": "Radio group this node belongs to, if rendering inside one"
+          },
+          {
+            "name": "compositeId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Computed composite ID for this node.\nIncludes breadcrumb path for deep search results (e.g., \"status.in-progress\").\nSet after filtering via `computeItemIds`."
           }
         ]
       },
@@ -6972,9 +7256,9 @@
           },
           {
             "name": "breadcrumbs",
-            "type": "string[]",
+            "type": "BreadcrumbNode[]",
             "required": true,
-            "description": "Breadcrumbs if this group is from a surfaced submenu.\nEmpty array [] for groups in the root menu."
+            "description": "Breadcrumb nodes if this group is from a surfaced submenu.\nEmpty array [] for groups in the root menu."
           },
           {
             "name": "isDeepSearchResult",
@@ -7015,60 +7299,12 @@
       "ItemDef": {
         "name": "ItemDef",
         "kind": "interface",
-        "doc": "Item node definition.\nRepresents a selectable menu item.",
+        "doc": "Item node definition.\nRepresents a selectable menu item.\nProps derived from PopupMenuItemProps.",
         "props": [
           {
             "name": "kind",
             "type": "\"item\"",
             "required": true
-          },
-          {
-            "name": "label",
-            "type": "string",
-            "required": true,
-            "description": "Label used for search matching"
-          },
-          {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords for search matching"
-          },
-          {
-            "name": "disabled",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether the item is disabled"
-          },
-          {
-            "name": "onSelect",
-            "type": "(() => void) | undefined",
-            "formattedType": "() => void",
-            "required": false,
-            "description": "Callback when the item is selected"
-          },
-          {
-            "name": "closeOnSelect",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether to close the menu when this item is selected (default: true)"
-          },
-          {
-            "name": "shortcut",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false,
-            "description": "Keyboard shortcut for this item (e.g., \"1\", \"2\", etc.)"
-          },
-          {
-            "name": "value",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false,
-            "description": "Value for this item when used inside a RadioGroup.\nDefaults to the item's `id` if not specified."
           },
           {
             "name": "render",
@@ -7078,9 +7314,10 @@
           },
           {
             "name": "id",
-            "type": "string",
-            "required": true,
-            "description": "Unique identifier for this node"
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
           },
           {
             "name": "hidden",
@@ -7088,6 +7325,48 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this node is hidden"
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation."
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click or Enter key)."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu.",
+            "default": "true"
           }
         ]
       },
@@ -7099,13 +7378,14 @@
           {
             "name": "props",
             "type": "ItemRenderProps",
+            "formattedType": "{\n  id: string\n  value: string\n} & Required<Pick<PopupMenu.Item.Props, 'disabled'>> &\n  Pick<\n    PopupMenu.Item.Props,\n    'shortcut' | 'onSelect' | 'closeOnClick'\n  >",
             "required": true,
             "description": "Props to spread onto the Item component"
           },
           {
             "name": "context",
-            "type": "RowRenderContext & { disabled: boolean; }",
-            "formattedType": "RowRenderContext & {\n  disabled: boolean\n}",
+            "type": "RowRenderContext & { value: string; disabled: boolean; }",
+            "formattedType": "RowRenderContext & {\n  value: string\n  disabled: boolean\n}",
             "required": true,
             "description": "Context for conditional rendering (includes props values for convenience)"
           }
@@ -7113,49 +7393,50 @@
       },
       "ItemRenderProps": {
         "name": "ItemRenderProps",
-        "kind": "interface",
-        "doc": "Props to spread onto the Item component.",
+        "kind": "typealias",
+        "doc": "Props to spread onto the Item component.\nDerived from PopupMenuItemProps.",
+        "definition": "{\n    /**\n     * Qualified unique ID for the item.\n     * Must be passed to the rendered component for navigation to work.\n     * This is the computed qualified ID (includes breadcrumb path for deep search results).\n     */\n    id: string;\n    /**\n     * The original value from the node definition.\n     * Use this for display, search matching, or any logic that needs the raw value.\n     */\n    value: string;\n} & Required<Pick<PopupMenuItemProps, 'disabled'>> & Pick<PopupMenuItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>",
         "props": [
           {
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Unique ID for the item - must be passed to the rendered component for navigation to work"
+            "description": "Qualified unique ID for the item.\nMust be passed to the rendered component for navigation to work.\nThis is the computed qualified ID (includes breadcrumb path for deep search results)."
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": true,
+            "description": "The original value from the node definition.\nUse this for display, search matching, or any logic that needs the raw value."
           },
           {
             "name": "disabled",
             "type": "boolean",
             "formattedType": "false | true",
-            "required": true,
-            "description": "Whether the item is disabled"
-          },
-          {
-            "name": "closeOnClick",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
             "required": false,
-            "description": "Whether clicking should close the menu"
-          },
-          {
-            "name": "onSelect",
-            "type": "(() => void) | undefined",
-            "formattedType": "() => void",
-            "required": false,
-            "description": "Callback when the item is selected"
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation."
           },
           {
             "name": "shortcut",
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Keyboard shortcut for this item (e.g., \"1\", \"2\", etc.)"
+            "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
           },
           {
-            "name": "value",
-            "type": "string | undefined",
-            "formattedType": "string",
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
             "required": false,
-            "description": "Value for this item when used inside a RadioGroup.\nDefaults to the item's `id` if not specified."
+            "description": "Callback when this item is selected (via click or Enter key)."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu.",
+            "default": "true"
           }
         ]
       },
@@ -7163,7 +7444,7 @@
         "name": "NodeDef",
         "kind": "typealias",
         "doc": "Union of all node definition types.",
-        "definition": "ItemDef | CheckboxItemDef | SubmenuDef | SeparatorDef | GroupDef | RadioGroupDef"
+        "definition": "ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SeparatorDef | GroupDef | RadioGroupDef"
       },
       "ContextMenuDataInputProps": {
         "name": "ContextMenuDataInputProps",
@@ -7295,10 +7576,18 @@
           },
           {
             "name": "content",
-            "type": "NodeDef[]",
-            "required": true,
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
             "description": "The menu content (node definitions with render functions)",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "asyncContent",
+            "type": "AsyncLoaderConfig | undefined",
+            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "required": false,
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
           },
           {
             "name": "deepSearch",
@@ -7357,6 +7646,14 @@
             "description": "Whether to clear search on close.\n- `true`: clear immediately when menu closes (default)\n- `false`: preserve search when menu closes\n- `'after-exit'`: clear after exit animation completes"
           },
           {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn | undefined",
+            "formattedType": "GetQualifiedRowIdFn",
+            "required": false,
+            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
+            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true,
@@ -7401,7 +7698,7 @@
       "RadioGroupDef": {
         "name": "RadioGroupDef",
         "kind": "interface",
-        "doc": "Radio group node definition.\nRepresents a group of radio items where only one can be selected.",
+        "doc": "Radio group node definition.\nRepresents a group of radio items where only one can be selected.\nProps derived from PopupMenuRadioGroupProps.",
         "props": [
           {
             "name": "kind",
@@ -7422,20 +7719,6 @@
             "description": "Optional group heading/label"
           },
           {
-            "name": "value",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false,
-            "description": "Current selected value"
-          },
-          {
-            "name": "onValueChange",
-            "type": "((value: string, details: RadioValueChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  value: string,\n  details: RadioValueChangeEventDetails,\n) => void",
-            "required": false,
-            "description": "Callback when value changes"
-          },
-          {
             "name": "hidden",
             "type": "boolean | undefined",
             "formattedType": "false | true",
@@ -7443,18 +7726,10 @@
             "description": "Whether the radio group is hidden"
           },
           {
-            "name": "disabled",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether the radio group is disabled"
-          },
-          {
             "name": "nodes",
-            "type": "(ItemDef | CheckboxItemDef | SubmenuDef)[]",
-            "formattedType": "(\n  | ItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n)[]",
+            "type": "RadioItemDef[]",
             "required": true,
-            "description": "Child nodes in this radio group (typically ItemDef nodes that act as radio options)"
+            "description": "Child nodes in this radio group - must be RadioItemDef nodes"
           },
           {
             "name": "render",
@@ -7462,6 +7737,28 @@
             "formattedType": "(\n  params: RadioGroupRenderParams,\n) => ReactNode",
             "required": false,
             "description": "Optional render function for the radio group container"
+          },
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The controlled selected value."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
           }
         ]
       },
@@ -7473,6 +7770,7 @@
           {
             "name": "props",
             "type": "RadioGroupRenderProps",
+            "formattedType": "Required<\n  Pick<PopupMenu.RadioGroup.Props, 'disabled'>\n> &\n  Pick<\n    PopupMenu.RadioGroup.Props,\n    'value' | 'onValueChange'\n  >",
             "required": true,
             "description": "Props to spread onto the RadioGroup component"
           },
@@ -7494,29 +7792,31 @@
       },
       "RadioGroupRenderProps": {
         "name": "RadioGroupRenderProps",
-        "kind": "interface",
-        "doc": "Props to spread onto the RadioGroup component.",
+        "kind": "typealias",
+        "doc": "Props to spread onto the RadioGroup component.\nDerived from PopupMenuRadioGroupProps.",
+        "definition": "Required<Pick<PopupMenuRadioGroupProps, 'disabled'>> & Pick<PopupMenuRadioGroupProps, 'value' | 'onValueChange'>",
         "props": [
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
           {
             "name": "value",
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Current selected value"
+            "description": "The controlled selected value."
           },
           {
             "name": "onValueChange",
-            "type": "((value: string, details: RadioValueChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  value: string,\n  details: RadioValueChangeEventDetails,\n) => void",
+            "type": "((value: string, eventDetails: RadioValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string,\n  eventDetails: RadioValueChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback fired when value changes"
-          },
-          {
-            "name": "disabled",
-            "type": "boolean",
-            "formattedType": "false | true",
-            "required": true,
-            "description": "Whether the radio group is disabled"
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
           }
         ]
       },
@@ -7539,9 +7839,9 @@
           },
           {
             "name": "breadcrumbs",
-            "type": "string[]",
+            "type": "BreadcrumbNode[]",
             "required": true,
-            "description": "Full path of submenu titles from root to this row's parent.\ne.g., ['Settings', 'Advanced'] for an item inside the Advanced submenu.\nEmpty array [] for items directly in root menu."
+            "description": "Full path of submenu nodes from root to this row's parent.\nContains the full submenu node definitions for maximum flexibility.\nEmpty array [] for items directly in root menu."
           },
           {
             "name": "isDeepSearchResult",
@@ -7580,7 +7880,8 @@
         "props": [
           {
             "name": "node",
-            "type": "ItemDef | CheckboxItemDef | SubmenuDef",
+            "type": "ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef",
+            "formattedType": "| ItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef",
             "required": true,
             "description": "The original node definition",
             "referencePath": "@bazza-ui/react.ItemDef"
@@ -7593,15 +7894,9 @@
           },
           {
             "name": "breadcrumbs",
-            "type": "string[]",
+            "type": "BreadcrumbNode[]",
             "required": true,
-            "description": "Breadcrumb titles leading to this node"
-          },
-          {
-            "name": "breadcrumbIds",
-            "type": "string[]",
-            "required": true,
-            "description": "Breadcrumb IDs leading to this node"
+            "description": "Breadcrumb nodes leading to this node.\nContains the full submenu definitions for maximum flexibility."
           },
           {
             "name": "group",
@@ -7648,39 +7943,12 @@
       "SubmenuDef": {
         "name": "SubmenuDef",
         "kind": "interface",
-        "doc": "Submenu node definition.\nRepresents a submenu trigger that opens a nested menu.",
+        "doc": "Submenu node definition.\nRepresents a submenu trigger that opens a nested menu.\nProps derived from PopupMenuSubmenuTriggerProps.",
         "props": [
           {
             "name": "kind",
             "type": "\"submenu\"",
             "required": true
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "required": true,
-            "description": "Title used for breadcrumbs (required).\nThis is different from the trigger's display label."
-          },
-          {
-            "name": "label",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false,
-            "description": "Label used for search matching (defaults to title)"
-          },
-          {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords for search matching"
-          },
-          {
-            "name": "disabled",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "Whether the submenu trigger is disabled"
           },
           {
             "name": "nodes",
@@ -7689,6 +7957,13 @@
             "required": false,
             "description": "Static child nodes",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "asyncNodes",
+            "type": "AsyncNodesConfig | undefined",
+            "formattedType": "| (StaticLoaderConfig & AsyncNodesBaseOptions)\n  | (QueryDependentLoaderConfig & AsyncNodesBaseOptions)",
+            "required": false,
+            "description": "Async child nodes configuration.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync nodes are merged with static nodes."
           },
           {
             "name": "deepSearch",
@@ -7707,9 +7982,10 @@
           },
           {
             "name": "id",
-            "type": "string",
-            "required": true,
-            "description": "Unique identifier for this node"
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
           },
           {
             "name": "hidden",
@@ -7717,6 +7993,26 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this node is hidden"
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
           }
         ]
       },
@@ -7728,13 +8024,14 @@
           {
             "name": "props",
             "type": "SubmenuRenderProps",
+            "formattedType": "{\n  id: string\n  value: string\n} & Required<\n  Pick<PopupMenu.SubmenuTrigger.Props, 'disabled'>\n>",
             "required": true,
             "description": "Props to spread onto the SubmenuTrigger"
           },
           {
             "name": "context",
-            "type": "RowRenderContext & { disabled: boolean; }",
-            "formattedType": "RowRenderContext & {\n  disabled: boolean\n}",
+            "type": "RowRenderContext & { value: string; disabled: boolean; async?: AsyncRenderState | undefined; }",
+            "formattedType": "RowRenderContext & {\n  value: string\n  disabled: boolean\n  async?: AsyncRenderState | undefined\n}",
             "required": true,
             "description": "Context for conditional rendering (includes props values for convenience)",
             "referencePath": "@bazza-ui/react.RowRenderContext"
@@ -7743,8 +8040,15 @@
             "name": "nodes",
             "type": "NodeDef[]",
             "required": true,
-            "description": "The submenu's child node definitions",
+            "description": "The submenu's static child node definitions.\nDoes NOT include async results - use `asyncContent` for that.",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "asyncContent",
+            "type": "AsyncNodesConfig | undefined",
+            "formattedType": "| (StaticLoaderConfig & AsyncNodesBaseOptions)\n  | (QueryDependentLoaderConfig & AsyncNodesBaseOptions)",
+            "required": false,
+            "description": "Async content configuration for this submenu.\nPass this to the submenu's DataSurface to enable async loading\nwith the submenu's own search query (independent of parent search)."
           },
           {
             "name": "renderNode",
@@ -7756,15 +8060,28 @@
       },
       "SubmenuRenderProps": {
         "name": "SubmenuRenderProps",
-        "kind": "interface",
-        "doc": "Props to spread onto the SubmenuTrigger component.",
+        "kind": "typealias",
+        "doc": "Props to spread onto the SubmenuTrigger component.\nDerived from PopupMenuSubmenuTriggerProps.",
+        "definition": "{\n    /**\n     * Qualified unique ID for the submenu trigger.\n     * Must be passed to the rendered component for navigation to work.\n     */\n    id: string;\n    /**\n     * The original value from the node definition.\n     */\n    value: string;\n} & Required<Pick<PopupMenuSubmenuTriggerProps, 'disabled'>>",
         "props": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Qualified unique ID for the submenu trigger.\nMust be passed to the rendered component for navigation to work."
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": true,
+            "description": "The original value from the node definition."
+          },
           {
             "name": "disabled",
             "type": "boolean",
             "formattedType": "false | true",
-            "required": true,
-            "description": "Whether the submenu trigger is disabled"
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation."
           }
         ]
       },
@@ -7838,6 +8155,13 @@
             "formattedType": "(open: boolean) => void",
             "required": false,
             "description": "Event handler called after any open/close animations have completed.\nWhen `clearSearchOnClose=\"after-exit\"` is set on Surface, the search\nwill be cleared before this callback is invoked."
+          },
+          {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn | undefined",
+            "formattedType": "GetQualifiedRowIdFn",
+            "required": false,
+            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, compute from breadcrumbs + value when deep searching"
           },
           {
             "name": "children",
@@ -9193,10 +9517,10 @@
           },
           {
             "name": "onOpenChange",
-            "type": "((open: boolean) => void) | undefined",
-            "formattedType": "(open: boolean) => void",
+            "type": "((open: boolean, eventDetails: PopoverRootChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  open: boolean,\n  eventDetails: PopoverRootChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback when the open state changes."
+            "description": "Callback when the open state changes.\nThe second parameter contains event details including the reason for the change."
           },
           {
             "name": "defaultOpen",
@@ -9302,6 +9626,13 @@
         "name": "DropdownMenuSubmenuTriggerProps",
         "kind": "interface",
         "props": [
+          {
+            "name": "id",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Explicit unique identifier for this item in the store.\nWhen provided (e.g., from data-first API's computed composite ID),\nthis takes priority over `value` for store registration."
+          },
           {
             "name": "value",
             "type": "string | undefined",
@@ -10285,6 +10616,13 @@
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when menu close animation completes.\nUsed for resetting row width measurements."
+          },
+          {
+            "name": "lastPointerPosition",
+            "type": "{ x: number; y: number; } | null",
+            "formattedType": "null | { x: number; y: number }",
+            "required": true,
+            "description": "Last known pointer position for detecting actual pointer movement.\nUsed to prevent \"phantom\" highlights when content shifts under a stationary pointer."
           }
         ]
       },
@@ -10369,6 +10707,12 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether virtualization mode is enabled"
+          },
+          {
+            "name": "virtualItemsCount",
+            "type": "number",
+            "required": true,
+            "description": "Count of virtual items (from items prop)"
           }
         ]
       },
@@ -10399,6 +10743,162 @@
           }
         ]
       },
+      "AsyncLoaderConfig": {
+        "name": "AsyncLoaderConfig",
+        "kind": "typealias",
+        "doc": "Union of all async loader configurations.",
+        "definition": "StaticLoaderConfig | QueryDependentLoaderConfig"
+      },
+      "AsyncLoaderResult": {
+        "name": "AsyncLoaderResult",
+        "kind": "interface",
+        "typeParams": [
+          {
+            "name": "T"
+          }
+        ],
+        "doc": "Library-agnostic result from an async loader.\nCompatible with TanStack Query, SWR, and custom loaders.",
+        "props": [
+          {
+            "name": "data",
+            "type": "T | undefined",
+            "formattedType": "T",
+            "required": true,
+            "description": "The loaded data, undefined while loading or on error"
+          },
+          {
+            "name": "error",
+            "type": "Error | null",
+            "formattedType": "null | Error",
+            "required": true,
+            "description": "Error if the load failed, null otherwise"
+          },
+          {
+            "name": "isLoading",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the loader is currently loading"
+          },
+          {
+            "name": "isError",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the loader encountered an error"
+          },
+          {
+            "name": "refetch",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Optional function to refetch the data"
+          }
+        ]
+      },
+      "AsyncNodesConfig": {
+        "name": "AsyncNodesConfig",
+        "kind": "typealias",
+        "doc": "Async nodes configuration for submenus.\nUnion of static and query-dependent loader configs with deep search options.",
+        "definition": "StaticAsyncNodesConfig | QueryAsyncNodesConfig"
+      },
+      "AsyncRenderState": {
+        "name": "AsyncRenderState",
+        "kind": "interface",
+        "doc": "Async state exposed to submenu render functions.",
+        "props": [
+          {
+            "name": "isLoading",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the loader is currently loading"
+          },
+          {
+            "name": "isError",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the loader encountered an error"
+          },
+          {
+            "name": "error",
+            "type": "Error | null",
+            "formattedType": "null | Error",
+            "required": true,
+            "description": "The error if any"
+          },
+          {
+            "name": "isBelowMinLength",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "For query loaders: whether query is below minQueryLength"
+          }
+        ]
+      },
+      "AsyncState": {
+        "name": "AsyncState",
+        "kind": "interface",
+        "doc": "Aggregate async state exposed to DataList children.",
+        "props": [
+          {
+            "name": "isLoading",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Any loader is currently loading"
+          },
+          {
+            "name": "isStaticLoading",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Static loaders specifically are loading"
+          },
+          {
+            "name": "isQueryLoading",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Query loaders specifically are loading"
+          },
+          {
+            "name": "skippedMenus",
+            "type": "{ id: string; reason: \"error\"; }[]",
+            "formattedType": "{ id: string; reason: 'error' }[]",
+            "required": true,
+            "description": "Menus that failed (skipped from results)"
+          }
+        ]
+      },
+      "BreadcrumbNode": {
+        "name": "BreadcrumbNode",
+        "kind": "interface",
+        "doc": "Submenu node info passed in breadcrumbs context.\nContains the full submenu definition for maximum flexibility.",
+        "props": [
+          {
+            "name": "node",
+            "type": "SubmenuDef",
+            "required": true,
+            "description": "The submenu node definition",
+            "referencePath": "@bazza-ui/react.SubmenuDef"
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": true,
+            "description": "The submenu's value"
+          },
+          {
+            "name": "id",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The submenu's explicit id (if provided)"
+          }
+        ]
+      },
       "DisplaySeparatorNode": {
         "name": "DisplaySeparatorNode",
         "kind": "interface",
@@ -10415,6 +10915,26 @@
             "required": true,
             "description": "The separator definition",
             "referencePath": "@bazza-ui/react.SeparatorDef"
+          }
+        ]
+      },
+      "LoaderComponentProps": {
+        "name": "LoaderComponentProps",
+        "kind": "interface",
+        "doc": "Props passed to loader components.\nThe component should call hooks internally and pass the result to children.",
+        "props": [
+          {
+            "name": "query",
+            "type": "string",
+            "required": true,
+            "description": "Search query (for query-dependent loaders)"
+          },
+          {
+            "name": "children",
+            "type": "(state: AsyncLoaderResult<NodeDef[]>) => ReactNode",
+            "formattedType": "(\n  state: AsyncLoaderResult<NodeDef[]>,\n) => ReactNode",
+            "required": true,
+            "description": "Render function receiving loader state"
           }
         ]
       },
@@ -10548,10 +11068,19 @@
           },
           {
             "name": "content",
-            "type": "NodeDef[]",
-            "required": true,
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
             "description": "The menu content (node definitions with render functions)",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "asyncContent",
+            "type": "AsyncLoaderConfig | undefined",
+            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "required": false,
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content.",
+            "referencePath": "@bazza-ui/react.AsyncLoaderConfig"
           },
           {
             "name": "deepSearch",
@@ -10610,6 +11139,14 @@
             "description": "Whether to clear search on close.\n- `true`: clear immediately when menu closes (default)\n- `false`: preserve search when menu closes\n- `'after-exit'`: clear after exit animation completes"
           },
           {
+            "name": "getQualifiedRowId",
+            "type": "GetQualifiedRowIdFn | undefined",
+            "formattedType": "GetQualifiedRowIdFn",
+            "required": false,
+            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
+            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true,
@@ -10651,11 +11188,283 @@
           }
         ]
       },
+      "QueryAsyncNodesConfig": {
+        "name": "QueryAsyncNodesConfig",
+        "kind": "typealias",
+        "doc": "Query-dependent async nodes configuration for submenus.",
+        "definition": "QueryDependentLoaderConfig & AsyncNodesBaseOptions",
+        "props": [
+          {
+            "name": "type",
+            "type": "\"query\"",
+            "required": true
+          },
+          {
+            "name": "Loader",
+            "type": "ComponentType<LoaderComponentProps>",
+            "formattedType": "| ComponentClass<LoaderComponentProps, any>\n  | FunctionComponent<LoaderComponentProps>",
+            "required": true,
+            "description": "Component that calls hooks and provides loader state.\nReceives the current search query as a prop."
+          },
+          {
+            "name": "minQueryLength",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Minimum query length before fetching.",
+            "default": "1"
+          },
+          {
+            "name": "initialQuery",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Initial query to use when the loader becomes active.\nSet to '' to fetch all items immediately when the submenu opens.\nIf undefined, waits for user to type before fetching."
+          },
+          {
+            "name": "loadStrategy",
+            "type": "\"eager\" | \"lazy\" | undefined",
+            "formattedType": "\"eager\" | \"lazy\"",
+            "required": false,
+            "description": "When to trigger the loader:\n- 'eager': Load when root menu opens (good for deep search)\n- 'lazy': Load when submenu opens (default)",
+            "default": "'lazy'"
+          },
+          {
+            "name": "belowMinBehavior",
+            "type": "\"empty\" | \"placeholder\" | undefined",
+            "formattedType": "\"empty\" | \"placeholder\"",
+            "required": false,
+            "description": "What to show when query is below minQueryLength.\n- 'empty': Show nothing\n- 'placeholder': Show placeholderNodes",
+            "default": "'empty'"
+          },
+          {
+            "name": "placeholderNodes",
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
+            "description": "Placeholder nodes shown when query is below minQueryLength.",
+            "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "includeInDeepSearch",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Include this menu's async content in parent's deep search.\n- Static loaders: default true (data loaded, filter client-side)\n- Query loaders: default true (pass query to server)"
+          }
+        ]
+      },
+      "QueryDependentLoaderConfig": {
+        "name": "QueryDependentLoaderConfig",
+        "kind": "interface",
+        "doc": "Query-dependent loader configuration.\nRefetches based on search query - server does the filtering.",
+        "props": [
+          {
+            "name": "type",
+            "type": "\"query\"",
+            "required": true
+          },
+          {
+            "name": "Loader",
+            "type": "ComponentType<LoaderComponentProps>",
+            "formattedType": "| ComponentClass<LoaderComponentProps, any>\n  | FunctionComponent<LoaderComponentProps>",
+            "required": true,
+            "description": "Component that calls hooks and provides loader state.\nReceives the current search query as a prop."
+          },
+          {
+            "name": "minQueryLength",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Minimum query length before fetching.",
+            "default": "1"
+          },
+          {
+            "name": "initialQuery",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Initial query to use when the loader becomes active.\nSet to '' to fetch all items immediately when the submenu opens.\nIf undefined, waits for user to type before fetching."
+          },
+          {
+            "name": "loadStrategy",
+            "type": "\"eager\" | \"lazy\" | undefined",
+            "formattedType": "\"eager\" | \"lazy\"",
+            "required": false,
+            "description": "When to trigger the loader:\n- 'eager': Load when root menu opens (good for deep search)\n- 'lazy': Load when submenu opens (default)",
+            "default": "'lazy'"
+          },
+          {
+            "name": "belowMinBehavior",
+            "type": "\"empty\" | \"placeholder\" | undefined",
+            "formattedType": "\"empty\" | \"placeholder\"",
+            "required": false,
+            "description": "What to show when query is below minQueryLength.\n- 'empty': Show nothing\n- 'placeholder': Show placeholderNodes",
+            "default": "'empty'"
+          },
+          {
+            "name": "placeholderNodes",
+            "type": "NodeDef[] | undefined",
+            "formattedType": "NodeDef[]",
+            "required": false,
+            "description": "Placeholder nodes shown when query is below minQueryLength.",
+            "referencePath": "@bazza-ui/react.NodeDef"
+          }
+        ]
+      },
       "RadioGroupBehavior": {
         "name": "RadioGroupBehavior",
         "kind": "typealias",
         "doc": "Defines how radio groups behave during deep search.\n- 'flatten': Radio group items are shown individually in the flat list (not recommended).\n- 'preserve': Radio group is shown with only matching items visible.\n- 'preserve-show-all': Radio group is shown with ALL items visible when any item matches.\n  This is useful when you want users to see all options in a radio group.",
         "definition": "'flatten' | 'preserve' | 'preserve-show-all'"
+      },
+      "RadioItemDef": {
+        "name": "RadioItemDef",
+        "kind": "interface",
+        "doc": "Radio item node definition.\nRepresents a selectable radio menu item for use within RadioGroupDef.\nProps derived from PopupMenuRadioItemProps.",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"radio-item\"",
+            "required": true
+          },
+          {
+            "name": "render",
+            "type": "(params: RadioItemRenderParams) => ReactNode",
+            "formattedType": "(\n  params: RadioItemRenderParams,\n) => ReactNode",
+            "required": true,
+            "description": "Render function for this radio item row.\nReturns the JSX for the radio item."
+          },
+          {
+            "name": "id",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+          },
+          {
+            "name": "hidden",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this node is hidden"
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": true,
+            "description": "The value to set when this item is selected.\nThis is required and must be unique within the RadioGroup."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation.",
+            "default": "false"
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu.",
+            "default": "false"
+          }
+        ]
+      },
+      "RadioItemRenderParams": {
+        "name": "RadioItemRenderParams",
+        "kind": "interface",
+        "doc": "Parameters passed to radio item render functions.",
+        "props": [
+          {
+            "name": "props",
+            "type": "RadioItemRenderProps",
+            "formattedType": "{ id: string } & Required<\n  Pick<PopupMenu.RadioItem.Props, 'value' | 'disabled'>\n> &\n  Pick<\n    PopupMenu.RadioItem.Props,\n    'shortcut' | 'onSelect' | 'closeOnClick'\n  >",
+            "required": true,
+            "description": "Props to spread onto the RadioItem component"
+          },
+          {
+            "name": "context",
+            "type": "RowRenderContext & { value: string; disabled: boolean; }",
+            "formattedType": "RowRenderContext & {\n  value: string\n  disabled: boolean\n}",
+            "required": true,
+            "description": "Context for conditional rendering (includes props values for convenience)",
+            "referencePath": "@bazza-ui/react.RowRenderContext"
+          }
+        ]
+      },
+      "RadioItemRenderProps": {
+        "name": "RadioItemRenderProps",
+        "kind": "typealias",
+        "doc": "Props to spread onto the RadioItem component.\nDerived from PopupMenuRadioItemProps.",
+        "definition": "{\n    /**\n     * Qualified unique ID for the radio item.\n     * Must be passed to the rendered component for navigation to work.\n     */\n    id: string;\n} & Required<Pick<PopupMenuRadioItemProps, 'value' | 'disabled'>> & Pick<PopupMenuRadioItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>",
+        "props": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Qualified unique ID for the radio item.\nMust be passed to the rendered component for navigation to work."
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": true,
+            "description": "The value to set when this item is selected.\nThis is required and must be unique within the RadioGroup."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation.",
+            "default": "false"
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu.",
+            "default": "false"
+          }
+        ]
       },
       "SeparatorRenderParams": {
         "name": "SeparatorRenderParams",
@@ -10668,6 +11477,68 @@
             "formattedType": "{ id?: string | undefined }",
             "required": true,
             "description": "Props to spread on the separator element"
+          }
+        ]
+      },
+      "StaticAsyncNodesConfig": {
+        "name": "StaticAsyncNodesConfig",
+        "kind": "typealias",
+        "doc": "Static async nodes configuration for submenus.",
+        "definition": "StaticLoaderConfig & AsyncNodesBaseOptions",
+        "props": [
+          {
+            "name": "type",
+            "type": "\"static\"",
+            "required": true
+          },
+          {
+            "name": "Loader",
+            "type": "ComponentType<LoaderComponentProps>",
+            "formattedType": "| ComponentClass<LoaderComponentProps, any>\n  | FunctionComponent<LoaderComponentProps>",
+            "required": true,
+            "description": "Component that calls hooks and provides loader state.\nThis component pattern allows hooks to be called legally within React's rules."
+          },
+          {
+            "name": "loadStrategy",
+            "type": "\"eager\" | \"lazy\" | undefined",
+            "formattedType": "\"eager\" | \"lazy\"",
+            "required": false,
+            "description": "When to trigger the loader:\n- 'eager': Load when menu opens (good for deep search)\n- 'lazy': Load when submenu opens (default)",
+            "default": "'lazy'"
+          },
+          {
+            "name": "includeInDeepSearch",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Include this menu's async content in parent's deep search.\n- Static loaders: default true (data loaded, filter client-side)\n- Query loaders: default true (pass query to server)"
+          }
+        ]
+      },
+      "StaticLoaderConfig": {
+        "name": "StaticLoaderConfig",
+        "kind": "interface",
+        "doc": "Static loader configuration.\nLoads data once, then filters client-side.",
+        "props": [
+          {
+            "name": "type",
+            "type": "\"static\"",
+            "required": true
+          },
+          {
+            "name": "Loader",
+            "type": "ComponentType<LoaderComponentProps>",
+            "formattedType": "| ComponentClass<LoaderComponentProps, any>\n  | FunctionComponent<LoaderComponentProps>",
+            "required": true,
+            "description": "Component that calls hooks and provides loader state.\nThis component pattern allows hooks to be called legally within React's rules."
+          },
+          {
+            "name": "loadStrategy",
+            "type": "\"eager\" | \"lazy\" | undefined",
+            "formattedType": "\"eager\" | \"lazy\"",
+            "required": false,
+            "description": "When to trigger the loader:\n- 'eager': Load when menu opens (good for deep search)\n- 'lazy': Load when submenu opens (default)",
+            "default": "'lazy'"
           }
         ]
       },
@@ -11959,6 +12830,7 @@
       "SelectEmptyDataAttributes": {
         "name": "SelectEmptyDataAttributes",
         "kind": "enum",
+        "doc": "Data attributes applied to Select.Empty for styling.\nDisplayed when no items match the current search filter.",
         "members": [
           {
             "name": "slot",
@@ -12021,6 +12893,7 @@
       "SelectListDataAttributes": {
         "name": "SelectListDataAttributes",
         "kind": "enum",
+        "doc": "Data attributes applied to Select.List for styling.\nContainer for select items with role=\"listbox\".",
         "members": [
           {
             "name": "slot",
@@ -12634,6 +13507,13 @@
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when menu close animation completes.\nUsed for resetting row width measurements."
+          },
+          {
+            "name": "lastPointerPosition",
+            "type": "{ x: number; y: number; } | null",
+            "formattedType": "null | { x: number; y: number }",
+            "required": true,
+            "description": "Last known pointer position for detecting actual pointer movement.\nUsed to prevent \"phantom\" highlights when content shifts under a stationary pointer."
           }
         ]
       },
@@ -12718,6 +13598,12 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether virtualization mode is enabled"
+          },
+          {
+            "name": "virtualItemsCount",
+            "type": "number",
+            "required": true,
+            "description": "Count of virtual items (from items prop)"
           }
         ]
       },

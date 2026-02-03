@@ -221,6 +221,57 @@ function CanvasContextMenu() {
 | Anchor | Cursor position | Trigger element |
 | Use case | Contextual actions | Navigation / actions |
 
+## Guides
+
+Context Menu shares almost all functionality with [Dropdown Menu](/docs/dropdown-menu). For detailed guides on the following topics, see the Dropdown Menu documentation:
+
+- [Basics](/docs/dropdown-menu#basics) - Controlled vs uncontrolled, open change events
+- [Item Selection](/docs/dropdown-menu#item-selection) - `onSelect`, `closeOnClick`, disabled items
+- [Search & Filtering](/docs/dropdown-menu#search--filtering) - Built-in fuzzy search, custom filters
+- [Groups](/docs/dropdown-menu#groups) - Organizing items with labels
+- [Checkbox & Radio Items](/docs/dropdown-menu#checkbox--radio-items) - Toggle and mutually exclusive options
+- [Submenus](/docs/dropdown-menu#submenus) - Nested menus with aim guard
+- [Keyboard Shortcuts](/docs/dropdown-menu#keyboard-shortcuts) - The `shortcut` prop
+- [Deep Search & Data-First API](/docs/dropdown-menu#deep-search--data-first-api) - `DataSurface`, `NodeDef`, and render patterns
+- [Virtualization](/docs/dropdown-menu#virtualization) - Large lists with TanStack Virtual
+
+### Trigger Behavior
+
+The key difference from Dropdown Menu is how the menu is triggered:
+
+```tsx
+<ContextMenu.Root>
+  {/* The Trigger wraps an element that responds to right-click */}
+  <ContextMenu.Trigger>
+    <div className="p-8 border rounded-lg">
+      Right-click anywhere in this area
+    </div>
+  </ContextMenu.Trigger>
+  ...
+</ContextMenu.Root>
+```
+
+**Trigger Events:**
+- **Desktop**: Right-click (`contextmenu` event)
+- **Touch**: Long-press (press and hold)
+
+### Virtual Anchor Positioning
+
+Unlike Dropdown Menu which anchors to the trigger element, Context Menu positions itself at the cursor location. The menu appears where the user clicked:
+
+```tsx
+<ContextMenu.Positioner>
+  {/* Menu appears at click coordinates, not attached to trigger element */}
+  <ContextMenu.Popup>
+    ...
+  </ContextMenu.Popup>
+</ContextMenu.Positioner>
+```
+
+This creates a more natural "right-click menu" experience where actions appear directly under the cursor.
+
+---
+
 ## API Reference
 
 ### Root
@@ -460,3 +511,14 @@ Renders menu items from a data structure using a render prop pattern. Handles fi
 A text input for filtering menu items in the data-first API. Functionally identical to the standard `Input` component. Renders an `<input>` element.
 
 <TypeTableAuto type="ContextMenuDataInputProps" pkg="@bazza-ui/react" />
+
+---
+
+### Node Definition Types
+
+Context Menu uses the same node definition types as Dropdown Menu for the Data-First API. See the [Dropdown Menu Node Definition Types](/docs/dropdown-menu#node-definition-types) documentation for:
+
+- `NodeDef` - Union type of all node definitions
+- `ItemDef`, `SubmenuDef`, `CheckboxItemDef`, `RadioItemDef`, `RadioGroupDef`, `GroupDef`, `SeparatorDef`
+- `ItemRenderParams`, `SubmenuRenderParams`, and other render parameter types
+- `BreadcrumbNode`, `RowRenderContext`, `DeepSearchConfig`

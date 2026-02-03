@@ -1,3 +1,15 @@
+/**
+ * Data attributes applied to Select.List for styling.
+ * Container for select items with role="listbox".
+ *
+ * @example
+ * ```css
+ * [data-bazzaui-select-list] {
+ *   max-height: 300px;
+ *   overflow-y: auto;
+ * }
+ * ```
+ */
 export enum SelectListDataAttributes {
   /**
    * Identifies the component part.
