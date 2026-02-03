@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { ItemEqualityComparer } from '../../utils/item-equality.js'
 import type { ComboboxOpenChangeReason } from '../events.js'
 import type { ComboboxLayout } from './combobox-positioner-context.js'
 
@@ -26,26 +27,51 @@ export type ComboboxFilterMode =
 
 /**
  * Item text registry for displaying selected values.
- * Maps item value to its text content.
+ * Maps serialized item value to its text content.
  */
 export type ItemTextRegistry = Map<string, string>
 
 /**
  * Context value for Combobox components.
  * Provides value state, input state, callbacks, and form integration.
+ *
+ * @template Value - The type of the combobox value (can be a primitive or object)
  */
-export interface ComboboxContextValue {
+export interface ComboboxContextValue<Value = unknown> {
   // ===== Selection State =====
   /** Whether multi-select mode is enabled */
   multiple: boolean
   /** Current selected value (single-select mode) */
-  value: string
+  value: Value | null
   /** Current selected values (multi-select mode) */
-  values: string[]
+  values: Value[]
   /** Callback when value changes (single-select mode) */
-  onValueChange: (value: string) => void
+  onValueChange: (value: Value) => void
   /** Callback when values change (multi-select mode) */
-  onValuesChange: (values: string[]) => void
+  onValuesChange: (values: Value[]) => void
+
+  // ===== Object Value Support =====
+  /**
+   * Custom comparison logic used to determine if a combobox item value
+   * matches the current selected value.
+   * Useful when item values are objects without matching referentially.
+   * Defaults to Object.is comparison.
+   */
+  isItemEqualToValue: ItemEqualityComparer<Value>
+  /**
+   * When the item values are objects, this function converts the object
+   * value to a string representation for display in the input.
+   * If the shape of the object is { value, label }, the label will be
+   * used automatically without needing to specify this prop.
+   */
+  itemToStringLabel?: (itemValue: Value) => string
+  /**
+   * When the item values are objects, this function converts the object
+   * value to a string representation for form submission.
+   * If the shape of the object is { value, label }, the value will be
+   * used automatically without needing to specify this prop.
+   */
+  itemToStringValue?: (itemValue: Value) => string
 
   // ===== Input State =====
   /** Current input value */
@@ -133,26 +159,31 @@ export interface ComboboxContextValue {
   layout: ComboboxLayout
 }
 
-const ComboboxContext = React.createContext<ComboboxContextValue | null>(null)
+const ComboboxContext =
+  React.createContext<ComboboxContextValue<unknown> | null>(null)
 
 /**
  * Hook to access the Combobox context.
  * Throws if used outside a Combobox.Root.
  */
-export function useComboboxContext(): ComboboxContextValue {
+export function useComboboxContext<
+  Value = unknown,
+>(): ComboboxContextValue<Value> {
   const context = React.useContext(ComboboxContext)
   if (!context) {
     throw new Error('Combobox components must be used within a Combobox.Root')
   }
-  return context
+  return context as ComboboxContextValue<Value>
 }
 
 /**
  * Hook to optionally access the Combobox context.
  * Returns null if used outside a Combobox.Root.
  */
-export function useMaybeComboboxContext(): ComboboxContextValue | null {
-  return React.useContext(ComboboxContext)
+export function useMaybeComboboxContext<
+  Value = unknown,
+>(): ComboboxContextValue<Value> | null {
+  return React.useContext(ComboboxContext) as ComboboxContextValue<Value> | null
 }
 
 export { ComboboxContext }

@@ -19,7 +19,6 @@ export {
   PopupMenuIcon as Icon,
   PopupMenuInput as Input,
   PopupMenuList as List,
-  PopupMenuPopup as Popup,
   // Positioning & Container
   PopupMenuPortal as Portal,
   // Scroll indicators
@@ -30,6 +29,9 @@ export {
 export { SelectItem as Item } from './item/item.js'
 export { SelectItemIndicator as ItemIndicator } from './item-indicator/item-indicator.js'
 export { SelectItemLabel as ItemLabel } from './item-label/item-label.js'
+// Select-specific Popup with alignItemWithTriggerActive state
+export type { SelectPopupProps, SelectPopupState } from './popup/popup.js'
+export { SelectPopup as Popup } from './popup/popup.js'
 // Custom Select Positioner with alignItemWithTrigger support
 export { SelectPositioner as Positioner } from './positioner/positioner.js'
 // Select-specific components

@@ -1,6 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import {
+  resolveLabel,
+  stringifyAsValue,
+} from '../../utils/resolve-value-label.js'
 import type { ComboboxContextValue } from '../contexts/combobox-context.js'
 
 /**
@@ -25,12 +29,12 @@ function resolveLabelFromItems(
   return typeof label === 'string' ? label : undefined
 }
 
-export interface UseComboboxDisplayValueParams {
-  comboboxContext: ComboboxContextValue
+export interface UseComboboxDisplayValueParams<Value = unknown> {
+  comboboxContext: ComboboxContextValue<Value>
   open: boolean
 }
 
-export interface UseComboboxDisplayValueReturn {
+export interface UseComboboxDisplayValueReturn<Value = unknown> {
   /** Whether a value is selected */
   hasValue: boolean
   /** The value to display in the input */
@@ -38,7 +42,7 @@ export interface UseComboboxDisplayValueReturn {
   /** The label of the selected value(s) */
   selectedLabel: string
   /** Get the display text for a value */
-  getValueText: (value: string) => string | undefined
+  getValueText: (value: Value) => string | undefined
 }
 
 /**
@@ -49,29 +53,58 @@ export interface UseComboboxDisplayValueReturn {
  * - Computing the display label for selected values
  * - Switching between selected label (closed) and input value (open)
  */
-export function useComboboxDisplayValue(
-  params: UseComboboxDisplayValueParams,
-): UseComboboxDisplayValueReturn {
+export function useComboboxDisplayValue<Value = unknown>(
+  params: UseComboboxDisplayValueParams<Value>,
+): UseComboboxDisplayValueReturn<Value> {
   const { comboboxContext, open } = params
 
   // Determine if showing placeholder (no value selected)
   const hasValue = comboboxContext.multiple
     ? comboboxContext.values.length > 0
-    : comboboxContext.value !== ''
+    : comboboxContext.value != null
 
   // Get the display text for selected value
   const getValueText = React.useCallback(
-    (value: string): string | undefined => {
+    (value: Value): string | undefined => {
+      // Serialize for registry lookup
+      const serializedValue = stringifyAsValue(
+        value,
+        comboboxContext.itemToStringValue,
+      )
+
       // First try the registry (populated when items mount)
-      const registryText = comboboxContext.itemTextRegistry.get(value)
+      const registryText = comboboxContext.itemTextRegistry.get(serializedValue)
       if (registryText !== undefined) {
         return registryText
       }
 
       // Fall back to the items prop (for initial render before popup opens)
-      return resolveLabelFromItems(comboboxContext.items, value)
+      const itemsLabel = resolveLabelFromItems(
+        comboboxContext.items,
+        serializedValue,
+      )
+      if (itemsLabel !== undefined) {
+        return itemsLabel
+      }
+
+      // Fall back to itemToStringLabel for object values
+      const resolvedLabel = resolveLabel(
+        value,
+        comboboxContext.itemToStringLabel,
+      )
+      // Only return if it's different from the serialized value (meaning we got a real label)
+      if (resolvedLabel && resolvedLabel !== serializedValue) {
+        return resolvedLabel
+      }
+
+      return undefined
     },
-    [comboboxContext.itemTextRegistry, comboboxContext.items],
+    [
+      comboboxContext.itemTextRegistry,
+      comboboxContext.items,
+      comboboxContext.itemToStringLabel,
+      comboboxContext.itemToStringValue,
+    ],
   )
 
   // Get the label for the selected value (used when closed or just opened)
@@ -82,7 +115,15 @@ export function useComboboxDisplayValue(
     if (comboboxContext.multiple) {
       // For multi-select, show comma-separated values or count
       const texts = comboboxContext.values
-        .map((v) => getValueText(v) ?? v)
+        .map((v) => {
+          const text = getValueText(v)
+          if (text !== undefined) return text
+          // Fall back to resolved label or serialized value
+          return (
+            resolveLabel(v, comboboxContext.itemToStringLabel) ||
+            stringifyAsValue(v, comboboxContext.itemToStringValue)
+          )
+        })
         .filter(Boolean)
       if (texts.length <= 2) {
         return texts.join(', ')
@@ -90,12 +131,23 @@ export function useComboboxDisplayValue(
       return `${texts.length} selected`
     }
     // Single-select: show the value's text
-    return getValueText(comboboxContext.value) ?? comboboxContext.value
+    const value = comboboxContext.value
+    if (value == null) return ''
+
+    const text = getValueText(value)
+    if (text !== undefined) return text
+    // Fall back to resolved label or serialized value
+    return (
+      resolveLabel(value, comboboxContext.itemToStringLabel) ||
+      stringifyAsValue(value, comboboxContext.itemToStringValue)
+    )
   }, [
     hasValue,
     comboboxContext.multiple,
     comboboxContext.value,
     comboboxContext.values,
+    comboboxContext.itemToStringLabel,
+    comboboxContext.itemToStringValue,
     getValueText,
   ])
 

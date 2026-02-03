@@ -760,4 +760,483 @@ describe('<Select.Root />', () => {
       expect(banana).toHaveAttribute('aria-disabled', 'true')
     })
   })
+
+  // ============================================================================
+  // Object Values Support
+  // ============================================================================
+
+  describe('object values', () => {
+    // Standard { value, label } shape - auto-detected
+    interface Fruit {
+      value: string
+      label: string
+    }
+
+    const fruits: Fruit[] = [
+      { value: 'apple', label: 'Apple' },
+      { value: 'banana', label: 'Banana' },
+      { value: 'cherry', label: 'Cherry' },
+    ]
+
+    function ObjectValueSelect({
+      defaultValue,
+      onValueChange,
+    }: {
+      defaultValue?: Fruit
+      onValueChange?: (value: Fruit) => void
+    }) {
+      return (
+        <Select.Root defaultValue={defaultValue} onValueChange={onValueChange}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" placeholder="Select a fruit..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    {fruits.map((fruit) => (
+                      <Select.Item
+                        key={fruit.value}
+                        data-testid={`item-${fruit.value}`}
+                        value={fruit}
+                      >
+                        <Select.ItemLabel />
+                      </Select.Item>
+                    ))}
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      )
+    }
+
+    it('displays label from { value, label } object (auto-detected)', () => {
+      render(<ObjectValueSelect defaultValue={fruits[1]} />)
+
+      const value = screen.getByTestId('value')
+      expect(value).toHaveTextContent('Banana')
+    })
+
+    it('selects object value and calls onValueChange with object', async () => {
+      const user = userEvent.setup()
+      const onValueChange = vi.fn()
+      render(<ObjectValueSelect onValueChange={onValueChange} />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('item-cherry'))
+
+      expect(onValueChange).toHaveBeenCalledWith(fruits[2])
+    })
+
+    it('marks correct item as selected with object value', async () => {
+      const user = userEvent.setup()
+      render(<ObjectValueSelect defaultValue={fruits[0]} />)
+
+      const trigger = screen.getByTestId('trigger')
+      await user.click(trigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      expect(screen.getByTestId('item-apple')).toHaveAttribute('data-selected')
+      expect(screen.getByTestId('item-banana')).not.toHaveAttribute(
+        'data-selected',
+      )
+    })
+
+    // Custom object shape with isItemEqualToValue
+    describe('custom equality comparison', () => {
+      interface User {
+        id: number
+        name: string
+        email: string
+      }
+
+      const users: User[] = [
+        { id: 1, name: 'John Doe', email: 'john@example.com' },
+        { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+        { id: 3, name: 'Bob Wilson', email: 'bob@example.com' },
+      ]
+
+      function UserSelect({
+        defaultValue,
+        onValueChange,
+      }: {
+        defaultValue?: User
+        onValueChange?: (value: User) => void
+      }) {
+        return (
+          <Select.Root
+            defaultValue={defaultValue}
+            onValueChange={onValueChange}
+            isItemEqualToValue={(a, b) => a.id === b.id}
+            itemToStringLabel={(u) => u.name}
+            itemToStringValue={(u) => String(u.id)}
+          >
+            <Select.Trigger data-testid="trigger">
+              <Select.Value
+                data-testid="value"
+                placeholder="Select a user..."
+              />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.List>
+                      {users.map((user) => (
+                        <Select.Item
+                          key={user.id}
+                          data-testid={`item-${user.id}`}
+                          value={user}
+                        >
+                          <Select.ItemLabel />
+                        </Select.Item>
+                      ))}
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
+        )
+      }
+
+      it('displays label using itemToStringLabel', () => {
+        render(<UserSelect defaultValue={users[1]} />)
+
+        const value = screen.getByTestId('value')
+        expect(value).toHaveTextContent('Jane Smith')
+      })
+
+      it('matches values using isItemEqualToValue (by ID)', async () => {
+        const user = userEvent.setup()
+        // Create a new object with same ID but different reference
+        const defaultUser = {
+          id: 2,
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+        }
+        render(<UserSelect defaultValue={defaultUser} />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        // Item with id=2 should be selected even though object reference differs
+        expect(screen.getByTestId('item-2')).toHaveAttribute('data-selected')
+        expect(screen.getByTestId('item-1')).not.toHaveAttribute(
+          'data-selected',
+        )
+      })
+
+      it('calls onValueChange with the item value from the list', async () => {
+        const user = userEvent.setup()
+        const onValueChange = vi.fn()
+        render(<UserSelect onValueChange={onValueChange} />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByTestId('item-1'))
+
+        expect(onValueChange).toHaveBeenCalledWith(users[0])
+      })
+    })
+
+    // Form integration with object values
+    describe('form integration with object values', () => {
+      function ObjectValueSelectWithForm() {
+        return (
+          <form data-testid="form">
+            <Select.Root
+              name="user"
+              defaultValue={{ value: 'user-123', label: 'John Doe' }}
+            >
+              <Select.Trigger data-testid="trigger">
+                <Select.Value placeholder="Select..." />
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner>
+                  <Select.Popup>
+                    <Select.Surface data-testid="surface">
+                      <Select.List>
+                        <Select.Item
+                          value={{ value: 'user-123', label: 'John Doe' }}
+                        >
+                          <Select.ItemLabel />
+                        </Select.Item>
+                        <Select.Item
+                          value={{ value: 'user-456', label: 'Jane Smith' }}
+                        >
+                          <Select.ItemLabel />
+                        </Select.Item>
+                      </Select.List>
+                    </Select.Surface>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
+          </form>
+        )
+      }
+
+      it('serializes object value to hidden input using auto-detected .value property', () => {
+        render(<ObjectValueSelectWithForm />)
+
+        const hiddenInput = document.querySelector(
+          'input[type="hidden"][name="user"]',
+        )
+        expect(hiddenInput).toBeInTheDocument()
+        expect(hiddenInput).toHaveValue('user-123')
+      })
+
+      it('updates hidden input when selection changes', async () => {
+        const user = userEvent.setup()
+        render(<ObjectValueSelectWithForm />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByText('Jane Smith'))
+
+        const hiddenInput = document.querySelector(
+          'input[type="hidden"][name="user"]',
+        )
+        expect(hiddenInput).toHaveValue('user-456')
+      })
+    })
+
+    // Multi-select with object values
+    describe('multi-select with object values', () => {
+      function MultiObjectSelect({
+        defaultValues,
+        onValuesChange,
+      }: {
+        defaultValues?: Fruit[]
+        onValuesChange?: (values: Fruit[]) => void
+      }) {
+        return (
+          <Select.Root
+            multiple
+            defaultValues={defaultValues}
+            onValuesChange={onValuesChange}
+          >
+            <Select.Trigger data-testid="trigger">
+              <Select.Value
+                data-testid="value"
+                placeholder="Select fruits..."
+              />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.List>
+                      {fruits.map((fruit) => (
+                        <Select.Item
+                          key={fruit.value}
+                          data-testid={`item-${fruit.value}`}
+                          value={fruit}
+                        >
+                          <Select.ItemLabel />
+                        </Select.Item>
+                      ))}
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
+        )
+      }
+
+      it('allows selecting multiple object values', async () => {
+        const user = userEvent.setup()
+        const onValuesChange = vi.fn()
+        render(<MultiObjectSelect onValuesChange={onValuesChange} />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        await user.click(screen.getByTestId('item-apple'))
+        expect(onValuesChange).toHaveBeenLastCalledWith([fruits[0]])
+
+        await user.click(screen.getByTestId('item-cherry'))
+        expect(onValuesChange).toHaveBeenLastCalledWith([fruits[0], fruits[2]])
+      })
+
+      it('marks multiple items as selected', async () => {
+        const user = userEvent.setup()
+        render(<MultiObjectSelect defaultValues={[fruits[0], fruits[2]]} />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-selected',
+        )
+        expect(screen.getByTestId('item-banana')).not.toHaveAttribute(
+          'data-selected',
+        )
+        expect(screen.getByTestId('item-cherry')).toHaveAttribute(
+          'data-selected',
+        )
+      })
+
+      it('toggles object value selection', async () => {
+        const user = userEvent.setup()
+        const onValuesChange = vi.fn()
+        render(<MultiObjectSelect onValuesChange={onValuesChange} />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        // Select apple
+        await user.click(screen.getByTestId('item-apple'))
+        expect(onValuesChange).toHaveBeenLastCalledWith([fruits[0]])
+
+        // Deselect apple
+        await user.click(screen.getByTestId('item-apple'))
+        expect(onValuesChange).toHaveBeenLastCalledWith([])
+      })
+    })
+
+    // Controlled mode with object values
+    describe('controlled mode with object values', () => {
+      function ControlledObjectSelect({
+        value,
+        onValueChange,
+      }: {
+        value: Fruit | null
+        onValueChange: (value: Fruit) => void
+      }) {
+        return (
+          <Select.Root value={value} onValueChange={onValueChange}>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value
+                data-testid="value"
+                placeholder="Select a fruit..."
+              />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.List>
+                      {fruits.map((fruit) => (
+                        <Select.Item
+                          key={fruit.value}
+                          data-testid={`item-${fruit.value}`}
+                          value={fruit}
+                        >
+                          <Select.ItemLabel />
+                        </Select.Item>
+                      ))}
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
+        )
+      }
+
+      it('displays controlled object value', () => {
+        const onValueChange = vi.fn()
+        render(
+          <ControlledObjectSelect
+            value={fruits[1]}
+            onValueChange={onValueChange}
+          />,
+        )
+
+        expect(screen.getByTestId('value')).toHaveTextContent('Banana')
+      })
+
+      it('updates display when controlled value changes', () => {
+        const onValueChange = vi.fn()
+        const { rerender } = render(
+          <ControlledObjectSelect
+            value={fruits[0]}
+            onValueChange={onValueChange}
+          />,
+        )
+
+        expect(screen.getByTestId('value')).toHaveTextContent('Apple')
+
+        rerender(
+          <ControlledObjectSelect
+            value={fruits[2]}
+            onValueChange={onValueChange}
+          />,
+        )
+
+        expect(screen.getByTestId('value')).toHaveTextContent('Cherry')
+      })
+    })
+
+    // Keyboard navigation with object values
+    describe('keyboard navigation with object values', () => {
+      it('highlights and selects object values with keyboard', async () => {
+        const user = userEvent.setup()
+        const onValueChange = vi.fn()
+        render(<ObjectValueSelect onValueChange={onValueChange} />)
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        // First item should be auto-highlighted
+        await waitFor(() => {
+          expect(screen.getByTestId('item-apple')).toHaveAttribute(
+            'data-highlighted',
+          )
+        })
+
+        // Navigate down and select
+        const list = screen.getByRole('listbox')
+        list.focus()
+        await user.keyboard('{ArrowDown}{Enter}')
+
+        expect(onValueChange).toHaveBeenCalledWith(fruits[1])
+      })
+    })
+  })
 })
