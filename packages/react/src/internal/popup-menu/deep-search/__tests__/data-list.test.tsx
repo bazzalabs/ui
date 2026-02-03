@@ -4,8 +4,8 @@ import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import type {
-  GetItemIdContext,
-  GetItemIdFn,
+  GetQualifiedRowIdContext,
+  GetQualifiedRowIdFn,
   ItemDef,
   NodeDef,
   SubmenuDef,
@@ -16,21 +16,23 @@ import type {
 // ============================================================================
 
 /**
- * Creates an ItemDef with a render function that includes data-testid
+ * Creates an ItemDef with a render function that includes data-testid.
+ * Note: Does NOT set explicit `id` so that defaultGetQualifiedRowId generates
+ * composite IDs from breadcrumbs + value during deep search.
  */
 function createTestItemDef(
-  id: string,
+  testId: string,
   value: string,
   options: Partial<ItemDef> = {},
 ): ItemDef {
   return {
     kind: 'item',
-    id,
+    // Note: No explicit `id` - allows composite ID generation from breadcrumbs + value
     value,
     render: ({ props, context }) => (
       <DropdownMenu.Item
         {...props}
-        data-testid={`item-${id}`}
+        data-testid={`item-${testId}`}
         data-value={context.value}
       >
         {value}
@@ -82,14 +84,14 @@ function createTestSubmenuDef(
 
 /**
  * Menu with DataSurface that has items with duplicate IDs across submenus.
- * This is the core problem that getItemId() solves.
+ * This is the core problem that getQualifiedRowId() solves.
  */
 function MenuWithDuplicateIds({
-  getItemId,
+  getQualifiedRowId,
   onSelectStatus,
   onSelectProjectStatus,
 }: {
-  getItemId?: GetItemIdFn
+  getQualifiedRowId?: GetQualifiedRowIdFn
   onSelectStatus?: () => void
   onSelectProjectStatus?: () => void
 }) {
@@ -125,7 +127,7 @@ function MenuWithDuplicateIds({
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
-              getItemId={getItemId}
+              getQualifiedRowId={getQualifiedRowId}
             >
               <DropdownMenu.DataInput
                 data-testid="search-input"
@@ -153,7 +155,11 @@ function MenuWithDuplicateIds({
 /**
  * Menu with flat items (no submenus) for basic ID testing.
  */
-function MenuWithFlatItems({ getItemId }: { getItemId?: GetItemIdFn }) {
+function MenuWithFlatItems({
+  getQualifiedRowId,
+}: {
+  getQualifiedRowId?: GetQualifiedRowIdFn
+}) {
   const content: NodeDef[] = React.useMemo(
     () => [
       createTestItemDef('apple', 'Apple'),
@@ -173,7 +179,7 @@ function MenuWithFlatItems({ getItemId }: { getItemId?: GetItemIdFn }) {
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true }}
-              getItemId={getItemId}
+              getQualifiedRowId={getQualifiedRowId}
             >
               <DropdownMenu.DataList>
                 {({ nodes, renderNode }) => nodes.map(renderNode)}
@@ -187,21 +193,21 @@ function MenuWithFlatItems({ getItemId }: { getItemId?: GetItemIdFn }) {
 }
 
 /**
- * Menu for testing custom getItemId function.
+ * Menu for testing custom getQualifiedRowId function.
  */
-function MenuWithCustomGetItemId({
-  getItemId,
-  getItemIdSpy,
+function MenuWithCustomGetQualifiedRowId({
+  getQualifiedRowId,
+  getQualifiedRowIdSpy,
 }: {
-  getItemId: GetItemIdFn
-  getItemIdSpy?: (ctx: GetItemIdContext) => void
+  getQualifiedRowId: GetQualifiedRowIdFn
+  getQualifiedRowIdSpy?: (ctx: GetQualifiedRowIdContext) => void
 }) {
-  const wrappedGetItemId: GetItemIdFn = React.useCallback(
+  const wrappedGetQualifiedRowId: GetQualifiedRowIdFn = React.useCallback(
     (ctx) => {
-      getItemIdSpy?.(ctx)
-      return getItemId(ctx)
+      getQualifiedRowIdSpy?.(ctx)
+      return getQualifiedRowId(ctx)
     },
-    [getItemId, getItemIdSpy],
+    [getQualifiedRowId, getQualifiedRowIdSpy],
   )
 
   const content: NodeDef[] = React.useMemo(
@@ -225,7 +231,7 @@ function MenuWithCustomGetItemId({
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
-              getItemId={wrappedGetItemId}
+              getQualifiedRowId={wrappedGetQualifiedRowId}
             >
               <DropdownMenu.DataInput
                 data-testid="search-input"
@@ -246,7 +252,7 @@ function MenuWithCustomGetItemId({
 // Tests
 // ============================================================================
 
-describe('DataList getItemId', () => {
+describe('DataList getQualifiedRowId', () => {
   describe('DOM ID verification', () => {
     it('renders items with their node.value as DOM id at root level', async () => {
       render(<MenuWithFlatItems />)
@@ -436,19 +442,23 @@ describe('DataList getItemId', () => {
     })
   })
 
-  describe('custom getItemId function', () => {
+  describe('custom getQualifiedRowId function', () => {
     it('uses custom function for ID generation', async () => {
       const user = userEvent.setup()
 
       // Custom function that uses "/" as separator
-      const customGetItemId: GetItemIdFn = (ctx) => {
+      const customGetQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
         if (ctx.breadcrumbs.length > 0) {
-          return [...ctx.breadcrumbs, ctx.value].join('/')
+          return [...ctx.breadcrumbs.map((b) => b.value), ctx.value].join('/')
         }
         return ctx.value
       }
 
-      render(<MenuWithCustomGetItemId getItemId={customGetItemId} />)
+      render(
+        <MenuWithCustomGetQualifiedRowId
+          getQualifiedRowId={customGetQualifiedRowId}
+        />,
+      )
 
       // Wait for menu to open
       await waitFor(() => {
@@ -470,19 +480,19 @@ describe('DataList getItemId', () => {
 
     it('calls custom function with correct context', async () => {
       const user = userEvent.setup()
-      const getItemIdSpy = vi.fn()
+      const getQualifiedRowIdSpy = vi.fn()
 
-      const customGetItemId: GetItemIdFn = (ctx) => {
+      const customGetQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
         if (ctx.breadcrumbs.length > 0) {
-          return [...ctx.breadcrumbs, ctx.value].join('.')
+          return [...ctx.breadcrumbs.map((b) => b.value), ctx.value].join('.')
         }
         return ctx.value
       }
 
       render(
-        <MenuWithCustomGetItemId
-          getItemId={customGetItemId}
-          getItemIdSpy={getItemIdSpy}
+        <MenuWithCustomGetQualifiedRowId
+          getQualifiedRowId={customGetQualifiedRowId}
+          getQualifiedRowIdSpy={getQualifiedRowIdSpy}
         />,
       )
 
@@ -501,18 +511,18 @@ describe('DataList getItemId', () => {
 
       // Find the call for the "Theme" item - look for calls where query contains 'theme' (case insensitive)
       // The spy is called incrementally as the user types, so we need to find the right call
-      const themeCall = getItemIdSpy.mock.calls.find(
+      const themeCall = getQualifiedRowIdSpy.mock.calls.find(
         (call) =>
           call[0].value === 'Theme' &&
           call[0].search?.query?.toLowerCase().includes('theme'),
       )
 
       expect(themeCall).toBeDefined()
-      const ctx = themeCall![0] as GetItemIdContext
+      const ctx = themeCall![0] as GetQualifiedRowIdContext
 
       // Verify context fields
       expect(ctx.value).toBe('Theme')
-      expect(ctx.breadcrumbs).toEqual(['Settings'])
+      expect(ctx.breadcrumbs.map((b) => b.value)).toEqual(['Settings'])
       expect(ctx.isDeepSearchResult).toBe(true)
       // The query should contain 'theme' at some point
       expect(ctx.search?.query.toLowerCase()).toContain('theme')
@@ -522,11 +532,15 @@ describe('DataList getItemId', () => {
       const user = userEvent.setup()
 
       // Custom function that uses index prefix
-      const customGetItemId: GetItemIdFn = (ctx) => {
+      const customGetQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
         return `item-${ctx.index}-${ctx.value}`
       }
 
-      render(<MenuWithCustomGetItemId getItemId={customGetItemId} />)
+      render(
+        <MenuWithCustomGetQualifiedRowId
+          getQualifiedRowId={customGetQualifiedRowId}
+        />,
+      )
 
       // Wait for menu to open
       await waitFor(() => {

@@ -17,14 +17,12 @@ import type {
   DataListChildrenState,
   DataListProps,
   DisplayNode,
-  DisplayRadioGroupNode,
   DisplayRowNode,
   GetQualifiedRowIdFn,
   GroupRenderContext,
   ItemDef,
   NodeDef,
   RadioGroupDef,
-  RadioItemDef,
   RowRenderContext,
   SubmenuDef,
 } from './types.js'
@@ -448,10 +446,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
     const shouldRenderAsyncLoaders =
       isDeepSearchActive ||
       asyncSubmenus.some((s) => shouldLoadEagerly(s.config)) ||
-      (asyncContent &&
-        (asyncContent.type === 'static'
-          ? asyncContent.loadStrategy === 'eager'
-          : asyncContent.initialQuery !== undefined))
+      (asyncContent && asyncContent.loadStrategy === 'eager')
 
     // Get async nodes from coordinator
     const asyncNodes = React.useMemo(() => {

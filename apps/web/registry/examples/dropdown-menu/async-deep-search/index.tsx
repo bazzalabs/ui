@@ -94,7 +94,6 @@ function createFoodItemNode(id: string, name: string, emoji: string): ItemDef {
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() => toast(`Selected: ${emoji} ${name}`)}
       >
         <DropdownMenu.Icon>{emoji}</DropdownMenu.Icon>
@@ -113,9 +112,11 @@ function createFoodItemNode(id: string, name: string, emoji: string): ItemDef {
 // Async Fetch Functions (Server-side filtering simulation)
 // =============================================================================
 
+const LOAD_TIME = 30_000 as const
+
 async function fetchFruits(search: string): Promise<NodeDef[]> {
   console.log(`[Server] Fetching fruits matching "${search}"...`)
-  await sleep(800)
+  await sleep(LOAD_TIME)
 
   const filtered = search
     ? FRUITS.filter((fruit) =>
@@ -131,7 +132,7 @@ async function fetchFruits(search: string): Promise<NodeDef[]> {
 
 async function fetchVegetables(search: string): Promise<NodeDef[]> {
   console.log(`[Server] Fetching vegetables matching "${search}"...`)
-  await sleep(1200)
+  await sleep(LOAD_TIME)
 
   const filtered = search
     ? VEGETABLES.filter((veg) =>
@@ -145,7 +146,7 @@ async function fetchVegetables(search: string): Promise<NodeDef[]> {
 
 async function fetchMeats(search: string): Promise<NodeDef[]> {
   console.log(`[Server] Fetching meats matching "${search}"...`)
-  await sleep(1000)
+  await sleep(LOAD_TIME)
 
   const filtered = search
     ? MEATS.filter((meat) =>
@@ -168,7 +169,7 @@ const fruitsLoader = createQueryLoader({
     useQuery({
       queryKey: ['fruits', query],
       queryFn: () => fetchFruits(query),
-      staleTime: 30_000, // Cache for 30 seconds
+      staleTime: 1, // Cache for 30 seconds
     }),
   minQueryLength: 0, // Fetch even with empty query
   initialQuery: '', // Pre-fetch all items when submenu opens
@@ -179,7 +180,7 @@ const vegetablesLoader = createQueryLoader({
     useQuery({
       queryKey: ['vegetables', query],
       queryFn: () => fetchVegetables(query),
-      staleTime: 30_000,
+      staleTime: 1,
     }),
   minQueryLength: 0,
   initialQuery: '',
@@ -190,7 +191,7 @@ const meatsLoader = createQueryLoader({
     useQuery({
       queryKey: ['meats', query],
       queryFn: () => fetchMeats(query),
-      staleTime: 30_000,
+      staleTime: 1,
     }),
   minQueryLength: 0,
   initialQuery: '',
@@ -213,10 +214,11 @@ function createAsyncFoodSubmenu(
     deepSearch: true,
     asyncNodes: {
       ...loader,
-      // No loadStrategy: 'eager' - uses lazy loading by default
+      // Lazy loading: fetches when submenu opens or during deep search
+      // Use loadStrategy: 'eager' to fetch when root menu opens instead
       includeInDeepSearch: true,
     },
-    render: ({ props, context, nodes, asyncContent }: SubmenuRenderParams) => (
+    render: ({ props, context, asyncContent }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>
           <div className="flex items-center gap-2 flex-1">
@@ -228,7 +230,6 @@ function createAsyncFoodSubmenu(
               }
             />
           </div>
-          {context.async?.isLoading && <DiamondSpinner className="size-3.5" />}
         </DropdownMenu.SubmenuTrigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner>
@@ -248,8 +249,10 @@ function createAsyncFoodSubmenu(
                       {filteredNodes.map((node) => renderNode(node))}
                       {/* Show DiamondSpinner while loading, Empty when no results */}
                       {async.isLoading ? (
-                        <div className="flex items-center justify-center py-6 text-muted-foreground">
-                          <DiamondSpinner className="size-5" />
+                        <div className="flex items-center h-8 w-[min(500px,max(var(--row-width,200px),200px))]">
+                          <div className="flex items-center justify-center text-muted-foreground w-full">
+                            <DiamondSpinner className="size-5" />
+                          </div>
                         </div>
                       ) : (
                         count === 0 && <DropdownMenu.Empty />
@@ -311,9 +314,11 @@ export default function DropdownMenuAsyncDeepSearch() {
                     {nodes.map((node) => renderNode(node))}
                     {/* Show DiamondSpinner while loading during deep search, Empty when no results */}
                     {isDeepSearching && async.isLoading ? (
-                      <div className="flex items-center justify-center gap-2 py-3 text-muted-foreground">
-                        <DiamondSpinner className="size-5" />
-                        <span>Loading...</span>
+                      <div className="flex items-center w-full h-8">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <DiamondSpinner className="size-5" />
+                          <span>Loading...</span>
+                        </div>
                       </div>
                     ) : (
                       count === 0 && <DropdownMenu.Empty />

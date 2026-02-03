@@ -357,6 +357,7 @@ export default function DropdownMenuDeepSearchLinearAsync() {
               <DropdownMenu.DataList>
                 {({ nodes, renderNode, isDeepSearching, count, async }) => (
                   <>
+                    <DropdownMenu.Empty />
                     {isDeepSearching && (
                       <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
                         {async.isLoading
@@ -365,12 +366,10 @@ export default function DropdownMenuDeepSearchLinearAsync() {
                       </div>
                     )}
                     {/* Show DiamondSpinner while loading during deep search, Empty when no results */}
-                    {isDeepSearching && async.isLoading ? (
+                    {isDeepSearching && async.isLoading && (
                       <div className="flex items-center justify-center py-6 text-muted-foreground">
                         <DiamondSpinner className="size-5" />
                       </div>
-                    ) : (
-                      count === 0 && <DropdownMenu.Empty />
                     )}
                     {nodes.map((node) => renderNode(node))}
                   </>

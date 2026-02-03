@@ -162,15 +162,15 @@ export const PopupMenuSurface = React.forwardRef<
     store.context.inputId = inputId
     store.context.onSearchChange = handleSearchChange
 
-    // Configure virtualization if enabled
+    // Configure virtualization if enabled via props
+    // Note: We only manage virtualization when explicitly provided via props.
+    // When virtualization is undefined, we don't clear it - this allows child
+    // components (like VirtualizedDataListContent) to manage virtualization
+    // independently without being overwritten by Surface.
     if (virtualization) {
       store.setVirtualized(virtualization.virtualized)
       store.setVirtualItems(virtualization.items)
       store.setOnHighlightChange(virtualization.onHighlightChange)
-    } else {
-      store.setVirtualized(false)
-      store.setVirtualItems([])
-      store.setOnHighlightChange(undefined)
     }
 
     // Apply auto-highlight after context is updated
