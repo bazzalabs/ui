@@ -114,13 +114,13 @@ const Popup = forwardRef<
         'min-w-[200px] max-w-[500px] w-full',
         'drop-shadow-xl',
         'overflow-hidden',
-        !state.alignItemWithTriggerActive && [
-          'origin-(--transform-origin)',
-          'opacity-100 scale-100',
-          'transition-[opacity,scale] duration-150 ease-out',
-          'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
-          'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
-        ],
+        // !state.alignItemWithTriggerActive && [
+        //   'origin-(--transform-origin)',
+        //   'opacity-100 scale-100',
+        //   'transition-[opacity,scale] duration-150 ease-out',
+        //   'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
+        //   'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
+        // ],
         className,
       )
     }

@@ -49,7 +49,8 @@ interface CalculatePositionParams {
   triggerElement: HTMLElement
   positioner: HTMLDivElement
   valueElement: HTMLElement | null
-  selectedItemText: HTMLElement | null
+  /** The text element to align with (selected item or first item) */
+  itemText: HTMLElement | null
 }
 
 interface CalculatePositionResult {
@@ -62,7 +63,7 @@ interface CalculatePositionResult {
 function calculateAlignmentPosition(
   params: CalculatePositionParams,
 ): CalculatePositionResult {
-  const { triggerElement, positioner, valueElement, selectedItemText } = params
+  const { triggerElement, positioner, valueElement, itemText } = params
 
   const triggerRect = triggerElement.getBoundingClientRect()
   const positionerRect = positioner.getBoundingClientRect()
@@ -81,8 +82,8 @@ function calculateAlignmentPosition(
     return { shouldFallback: true, left: 0, top: 0 }
   }
 
-  // Fallback if no selected item to align with
-  if (!selectedItemText) {
+  // Fallback if no item text element to align with
+  if (!itemText) {
     return { shouldFallback: true, left: 0, top: 0 }
   }
 
@@ -90,9 +91,9 @@ function calculateAlignmentPosition(
   let offsetY = 0
 
   // Calculate offsets based on text elements if available
-  if (selectedItemText && valueElement) {
+  if (itemText && valueElement) {
     const valueRect = valueElement.getBoundingClientRect()
-    const textRect = selectedItemText.getBoundingClientRect()
+    const textRect = itemText.getBoundingClientRect()
 
     // Align text baselines (horizontal)
     const valueLeftFromTrigger = valueRect.left - triggerRect.left
@@ -203,10 +204,15 @@ export const SelectPositioner = React.forwardRef<
     const triggerElement = selectContext.triggerRef.current
     const valueElement = selectContext.valueRef.current
     const selectedItemText = selectContext.selectedItemTextRef.current
+    const firstItemText = selectContext.firstItemTextRef.current
 
     if (!positioner || !triggerElement) {
       return
     }
+
+    // Use selected item text if available, otherwise fall back to first item text
+    // This enables alignment even when no item is selected (aligns to first item)
+    const itemText = selectedItemText ?? firstItemText
 
     // Calculate position synchronously - useLayoutEffect runs after DOM mutations
     // but before paint, so getBoundingClientRect will return correct values
@@ -214,7 +220,7 @@ export const SelectPositioner = React.forwardRef<
       triggerElement,
       positioner,
       valueElement,
-      selectedItemText,
+      itemText,
     })
 
     if (result.shouldFallback) {
