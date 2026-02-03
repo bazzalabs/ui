@@ -5,6 +5,7 @@ import {
   PopupMenuSurface,
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
+import { stringifyAsValue } from '../../utils/resolve-value-label.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { ComboboxSurfaceDataAttributes } from './surface.data-attrs.js'
 
@@ -73,8 +74,15 @@ export const ComboboxSurface = React.forwardRef<
         ? comboboxContext.values[0]
         : comboboxContext.value
 
-      // If there's a selected value, highlight it; otherwise highlight first
-      return selectedValue || true
+      // If there's a selected value, serialize it to a string and use for highlighting
+      if (selectedValue != null) {
+        return stringifyAsValue(
+          selectedValue,
+          comboboxContext.itemToStringValue,
+        )
+      }
+      // Otherwise highlight first
+      return true
     }
 
     return prop
@@ -83,6 +91,7 @@ export const ComboboxSurface = React.forwardRef<
     comboboxContext.multiple,
     comboboxContext.value,
     comboboxContext.values,
+    comboboxContext.itemToStringValue,
   ])
 
   // Sync search with combobox's input value based on filter mode:

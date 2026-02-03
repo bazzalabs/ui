@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { ItemEqualityComparer } from '../../utils/item-equality.js'
 
 // ============================================================================
 // Select Context
@@ -10,26 +11,51 @@ import * as React from 'react'
 
 /**
  * Item text registry for displaying selected values.
- * Maps item value to its text content.
+ * Maps serialized item value to its text content.
  */
 export type ItemTextRegistry = Map<string, string>
 
 /**
  * Context value for Select components.
  * Provides value state, callbacks, and form integration.
+ *
+ * @template Value - The type of the select value (can be a primitive or object)
  */
-export interface SelectContextValue {
+export interface SelectContextValue<Value = unknown> {
   // ===== Selection State =====
   /** Whether multi-select mode is enabled */
   multiple: boolean
   /** Current selected value (single-select mode) */
-  value: string
+  value: Value | null
   /** Current selected values (multi-select mode) */
-  values: string[]
+  values: Value[]
   /** Callback when value changes (single-select mode) */
-  onValueChange: (value: string) => void
+  onValueChange: (value: Value) => void
   /** Callback when values change (multi-select mode) */
-  onValuesChange: (values: string[]) => void
+  onValuesChange: (values: Value[]) => void
+
+  // ===== Object Value Support =====
+  /**
+   * Custom comparison logic used to determine if a select item value
+   * matches the current selected value.
+   * Useful when item values are objects without matching referentially.
+   * Defaults to Object.is comparison.
+   */
+  isItemEqualToValue: ItemEqualityComparer<Value>
+  /**
+   * When the item values are objects, this function converts the object
+   * value to a string representation for display in the trigger.
+   * If the shape of the object is { value, label }, the label will be
+   * used automatically without needing to specify this prop.
+   */
+  itemToStringLabel?: (itemValue: Value) => string
+  /**
+   * When the item values are objects, this function converts the object
+   * value to a string representation for form submission.
+   * If the shape of the object is { value, label }, the value will be
+   * used automatically without needing to specify this prop.
+   */
+  itemToStringValue?: (itemValue: Value) => string
 
   // ===== Form Integration =====
   /** Form field name for submission */
@@ -74,26 +100,30 @@ export interface SelectContextValue {
   setValueElement: (element: HTMLElement | null) => void
 }
 
-const SelectContext = React.createContext<SelectContextValue | null>(null)
+const SelectContext = React.createContext<SelectContextValue<unknown> | null>(
+  null,
+)
 
 /**
  * Hook to access the Select context.
  * Throws if used outside a Select.Root.
  */
-export function useSelectContext(): SelectContextValue {
+export function useSelectContext<Value = unknown>(): SelectContextValue<Value> {
   const context = React.useContext(SelectContext)
   if (!context) {
     throw new Error('Select components must be used within a Select.Root')
   }
-  return context
+  return context as SelectContextValue<Value>
 }
 
 /**
  * Hook to optionally access the Select context.
  * Returns null if used outside a Select.Root.
  */
-export function useMaybeSelectContext(): SelectContextValue | null {
-  return React.useContext(SelectContext)
+export function useMaybeSelectContext<
+  Value = unknown,
+>(): SelectContextValue<Value> | null {
+  return React.useContext(SelectContext) as SelectContextValue<Value> | null
 }
 
 export { SelectContext }

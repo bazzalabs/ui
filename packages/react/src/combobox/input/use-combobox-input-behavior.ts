@@ -5,6 +5,7 @@ import type { ListboxStore } from '../../internal/listbox/index.js'
 import { usePopupMenuKeyboard } from '../../internal/popup-menu/hooks/use-popup-menu-keyboard.js'
 import type { FocusOwnerStore } from '../../internal/popup-menu/store/FocusOwnerStore.js'
 import { REASONS } from '../../utils/events/index.js'
+import { resolveLabel } from '../../utils/resolve-value-label.js'
 import type { ComboboxContextValue } from '../contexts/combobox-context.js'
 import type { ComboboxInputCursorBehavior } from './input.js'
 
@@ -16,7 +17,8 @@ export interface UseComboboxInputBehaviorParams {
   disabled: boolean
   cursorBehavior: ComboboxInputCursorBehavior
   hasValue: boolean
-  getValueText: (value: string) => string | undefined
+  /** Get display text for a value - receives the raw value (possibly an object) */
+  getValueText: (value: unknown) => string | undefined
   // User event handlers to chain
   onFocus?: React.FocusEventHandler<HTMLInputElement>
   onBlur?: React.FocusEventHandler<HTMLInputElement>
@@ -252,7 +254,11 @@ export function useComboboxInputBehavior(
         // Pre-set the input value BEFORE opening to avoid the empty intermediate state
         if (hasValue && !comboboxContext.multiple) {
           const labelValue =
-            getValueText(comboboxContext.value) ?? comboboxContext.value
+            getValueText(comboboxContext.value) ??
+            resolveLabel(
+              comboboxContext.value,
+              comboboxContext.itemToStringLabel,
+            )
           comboboxContext.onInputValueChange(labelValue)
         }
         comboboxContext.openCombobox()
@@ -318,7 +324,11 @@ export function useComboboxInputBehavior(
         // This prevents the flash where displayValue goes from "Banana" -> "" -> "Banana"
         if (hasValue && !comboboxContext.multiple) {
           const labelValue =
-            getValueText(comboboxContext.value) ?? comboboxContext.value
+            getValueText(comboboxContext.value) ??
+            resolveLabel(
+              comboboxContext.value,
+              comboboxContext.itemToStringLabel,
+            )
           comboboxContext.onInputValueChange(labelValue)
         }
 
@@ -365,7 +375,11 @@ export function useComboboxInputBehavior(
           // Pre-set the input value BEFORE opening to avoid the empty intermediate state
           if (hasValue && !comboboxContext.multiple) {
             const labelValue =
-              getValueText(comboboxContext.value) ?? comboboxContext.value
+              getValueText(comboboxContext.value) ??
+              resolveLabel(
+                comboboxContext.value,
+                comboboxContext.itemToStringLabel,
+              )
             comboboxContext.onInputValueChange(labelValue)
           }
           comboboxContext.openCombobox()

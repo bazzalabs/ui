@@ -210,6 +210,40 @@ export const examples: RegistryIndex = {
       'registry/examples/dropdown-menu/guides/your-first-menu/items-02.tsx',
     ],
   },
+
+  // Select examples
+  'select-basic': {
+    name: 'select-basic',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/basic')),
+    files: ['registry/examples/select/basic/index.tsx'],
+  },
+  'select-groups': {
+    name: 'select-groups',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/groups')),
+    files: ['registry/examples/select/groups/index.tsx'],
+  },
+  'select-search': {
+    name: 'select-search',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/search')),
+    files: ['registry/examples/select/search/index.tsx'],
+  },
+  'select-form': {
+    name: 'select-form',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/form')),
+    files: ['registry/examples/select/form/index.tsx'],
+  },
+  'select-object-values': {
+    name: 'select-object-values',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/select/object-values'),
+    ),
+    files: ['registry/examples/select/object-values/index.tsx'],
+  },
 }
 
 // =============================================================================

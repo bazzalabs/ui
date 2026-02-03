@@ -3,6 +3,15 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuItem } from '../../internal/popup-menu/index.js'
+import {
+  compareItemEquality,
+  itemIncludes,
+  removeItem,
+} from '../../utils/item-equality.js'
+import {
+  resolveLabel,
+  stringifyAsValue,
+} from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { ComboboxItemDataAttributes } from './item.data-attrs.js'
@@ -28,16 +37,18 @@ export interface ComboboxItemState extends Record<string, unknown> {
   selected: boolean
 }
 
-export interface ComboboxItemProps
+export interface ComboboxItemProps<Value = unknown>
   extends ComponentProps<'div', ComboboxItem.State> {
   /**
    * The value of this item. Required and must be unique within the Combobox.
+   * Can be a primitive or an object.
    */
-  value: string
+  value: Value
 
   /**
    * Text value to use for display in the input when this item is selected.
    * If not provided, the text content of the item will be used.
+   * For object values, this can be auto-detected from `{ label }` shape.
    */
   textValue?: string
 
@@ -75,7 +86,7 @@ const stateAttributesMapping = {
 }
 
 /**
- * Helper to resolve label from items prop
+ * Helper to resolve label from items prop (for legacy string-keyed items)
  */
 function resolveLabelFromItems(
   items:
@@ -97,11 +108,13 @@ function resolveLabelFromItems(
 /**
  * A selectable item in the combobox dropdown.
  * Renders a `<div>` element with role="option".
+ *
+ * @template Value - The type of the item value (can be a primitive or object)
  */
-export const ComboboxItem = React.forwardRef<
-  HTMLDivElement,
-  ComboboxItem.Props
->(function ComboboxItem(props, forwardedRef) {
+function ComboboxItemImpl<Value = unknown>(
+  props: ComboboxItemProps<Value>,
+  forwardedRef: React.ForwardedRef<HTMLDivElement>,
+) {
   const {
     value,
     textValue: textValueProp,
@@ -119,44 +132,74 @@ export const ComboboxItem = React.forwardRef<
     ...rest
   } = props
 
-  const comboboxContext = useComboboxContext()
+  const comboboxContext = useComboboxContext<Value>()
 
-  // Resolve label from items prop (for auto-populating textValue and keywords)
-  const labelFromItems = React.useMemo(
-    () => resolveLabelFromItems(comboboxContext.items, value),
-    [comboboxContext.items, value],
+  // Serialize value for registry key and internal lookups
+  const serializedValue = React.useMemo(
+    () => stringifyAsValue(value, comboboxContext.itemToStringValue),
+    [value, comboboxContext.itemToStringValue],
   )
 
-  // Auto-populate textValue: explicit prop > label from items (if string) > undefined
+  // Resolve label from items prop (for auto-populating textValue and keywords)
+  // This works for legacy string-keyed items
+  const labelFromItems = React.useMemo(
+    () => resolveLabelFromItems(comboboxContext.items, serializedValue),
+    [comboboxContext.items, serializedValue],
+  )
+
+  // Auto-resolve label from object value shape { label }
+  const labelFromObjectValue = React.useMemo(
+    () => resolveLabel(value, comboboxContext.itemToStringLabel),
+    [value, comboboxContext.itemToStringLabel],
+  )
+
+  // Auto-populate textValue: explicit prop > label from items (if string) > label from object > undefined
   const textValue = React.useMemo(() => {
     if (textValueProp !== undefined) return textValueProp
     if (typeof labelFromItems === 'string') return labelFromItems
+    // For object values, use the resolved label
+    if (labelFromObjectValue && labelFromObjectValue !== serializedValue) {
+      return labelFromObjectValue
+    }
     return undefined
-  }, [textValueProp, labelFromItems])
+  }, [textValueProp, labelFromItems, labelFromObjectValue, serializedValue])
 
   // Auto-add label to keywords for search/filter
   const keywords = React.useMemo(() => {
     const labelStr =
-      typeof labelFromItems === 'string' ? labelFromItems : undefined
+      typeof labelFromItems === 'string'
+        ? labelFromItems
+        : labelFromObjectValue && labelFromObjectValue !== serializedValue
+          ? labelFromObjectValue
+          : undefined
     if (!labelStr) return keywordsProp
     if (!keywordsProp) return [labelStr]
     // Only add if not already included
     if (keywordsProp.includes(labelStr)) return keywordsProp
     return [...keywordsProp, labelStr]
-  }, [keywordsProp, labelFromItems])
+  }, [keywordsProp, labelFromItems, labelFromObjectValue, serializedValue])
 
   const textRef = React.useRef<string | undefined>(textValue)
 
-  // Track if this item is selected
+  // Track if this item is selected using custom equality
   const selected = comboboxContext.multiple
-    ? comboboxContext.values.includes(value)
-    : comboboxContext.value === value
+    ? itemIncludes(
+        comboboxContext.values,
+        value,
+        comboboxContext.isItemEqualToValue,
+      )
+    : comboboxContext.value != null &&
+      compareItemEquality(
+        comboboxContext.value,
+        value,
+        comboboxContext.isItemEqualToValue,
+      )
 
   // Determine close behavior based on context setting
   const closeOnClick = comboboxContext.closeOnSelect
 
   const item = usePopupMenuItem({
-    value,
+    value: serializedValue,
     keywords,
     disabled,
     forceMount,
@@ -170,9 +213,13 @@ export const ComboboxItem = React.forwardRef<
       if (disabled) return
 
       if (comboboxContext.multiple) {
-        // Toggle value in array
+        // Toggle value in array using custom equality
         const newValues = selected
-          ? comboboxContext.values.filter((v) => v !== value)
+          ? removeItem(
+              comboboxContext.values,
+              value,
+              comboboxContext.isItemEqualToValue,
+            )
           : [...comboboxContext.values, value]
         comboboxContext.onValuesChange(newValues)
       } else {
@@ -190,17 +237,17 @@ export const ComboboxItem = React.forwardRef<
     // Use textValue if provided, otherwise extract from children
     const text = textRef.current
     if (text) {
-      return comboboxContext.registerItemText(value, text)
+      return comboboxContext.registerItemText(serializedValue, text)
     }
-  }, [value, comboboxContext])
+  }, [serializedValue, comboboxContext])
 
   // Update text ref when children might have changed (for extraction)
   React.useEffect(() => {
     if (!textValue && typeof children === 'string') {
       textRef.current = children
-      comboboxContext.registerItemText(value, children)
+      comboboxContext.registerItemText(serializedValue, children)
     }
-  }, [children, textValue, value, comboboxContext])
+  }, [children, textValue, serializedValue, comboboxContext])
 
   const state: ComboboxItem.State = React.useMemo(
     () => ({
@@ -211,7 +258,7 @@ export const ComboboxItem = React.forwardRef<
     [item.isHighlighted, disabled, selected],
   )
 
-  const itemContextValue: ComboboxItemContextValue = React.useMemo(
+  const itemContextValue: ComboboxItemContextValue<Value> = React.useMemo(
     () => ({
       id: item.id,
       value,
@@ -281,13 +328,21 @@ export const ComboboxItem = React.forwardRef<
   }
 
   return (
-    <ComboboxItemContext.Provider value={itemContextValue}>
+    <ComboboxItemContext.Provider
+      value={itemContextValue as ComboboxItemContextValue}
+    >
       {element}
     </ComboboxItemContext.Provider>
   )
-})
+}
+
+export const ComboboxItem = React.forwardRef(ComboboxItemImpl) as <
+  Value = unknown,
+>(
+  props: ComboboxItemProps<Value> & React.RefAttributes<HTMLDivElement>,
+) => React.ReactElement | null
 
 export namespace ComboboxItem {
   export type State = ComboboxItemState
-  export interface Props extends ComboboxItemProps {}
+  export interface Props<Value = unknown> extends ComboboxItemProps<Value> {}
 }

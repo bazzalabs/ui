@@ -10,6 +10,11 @@ import {
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
 import {
+  defaultItemEquality,
+  type ItemEqualityComparer,
+} from '../../utils/item-equality.js'
+import { stringifyAsValue } from '../../utils/resolve-value-label.js'
+import {
   ComboboxContext,
   type ComboboxContextValue,
   type ComboboxFilterMode,
@@ -21,8 +26,18 @@ import type {
   ComboboxOpenChangeEventDetails,
 } from '../events.js'
 
-export interface ComboboxRootProps
-  extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
+/**
+ * Helper type to determine the value type based on the multiple flag.
+ */
+type ComboboxValueType<
+  Value,
+  Multiple extends boolean | undefined,
+> = Multiple extends true ? Value[] : Value | null
+
+export interface ComboboxRootProps<
+  Value = unknown,
+  Multiple extends boolean | undefined = false,
+> extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
   // ===== Open State =====
   /**
    * Whether the combobox is open.
@@ -50,43 +65,71 @@ export interface ComboboxRootProps
   /**
    * Current selected value (single-select mode).
    * Use for controlled mode.
+   * Can be a primitive or an object.
    */
-  value?: string
+  value?: ComboboxValueType<Value, Multiple>
 
   /**
    * Default selected value (single-select mode).
    * Use for uncontrolled mode.
    */
-  defaultValue?: string
+  defaultValue?: ComboboxValueType<Value, Multiple>
 
   /**
    * Callback when the selected value changes (single-select mode).
    */
-  onValueChange?: (value: string) => void
+  onValueChange?: (value: Value) => void
 
   // ===== Multi Selection =====
   /**
    * Whether multi-select mode is enabled.
    * @default false
    */
-  multiple?: boolean
+  multiple?: Multiple
 
   /**
    * Current selected values (multi-select mode).
    * Use for controlled mode.
    */
-  values?: string[]
+  values?: Value[]
 
   /**
    * Default selected values (multi-select mode).
    * Use for uncontrolled mode.
    */
-  defaultValues?: string[]
+  defaultValues?: Value[]
 
   /**
    * Callback when the selected values change (multi-select mode).
    */
-  onValuesChange?: (values: string[]) => void
+  onValuesChange?: (values: Value[]) => void
+
+  // ===== Object Value Support =====
+  /**
+   * Custom comparison logic used to determine if a combobox item value
+   * matches the current selected value.
+   * Useful when item values are objects without matching referentially.
+   * Defaults to Object.is comparison.
+   */
+  isItemEqualToValue?: ItemEqualityComparer<Value>
+
+  /**
+   * When the item values are objects (`<Combobox.Item value={object}>`),
+   * this function converts the object value to a string representation
+   * for display in the input.
+   * If the shape of the object is `{ value, label }`, the label will be
+   * used automatically without needing to specify this prop.
+   */
+  itemToStringLabel?: (itemValue: Value) => string
+
+  /**
+   * When the item values are objects (`<Combobox.Item value={object}>`),
+   * this function converts the object value to a string representation
+   * for form submission.
+   * If the shape of the object is `{ value, label }`, the value will be
+   * used automatically without needing to specify this prop.
+   */
+  itemToStringValue?: (itemValue: Value) => string
 
   // ===== Input State =====
   /**
@@ -241,8 +284,14 @@ export interface ComboboxRootProps
  * Groups all parts of the combobox.
  * Manages open state, selection state, input state, and provides context to children.
  * Doesn't render its own HTML element.
+ *
+ * @template Value - The type of the combobox value (can be a primitive or object)
+ * @template Multiple - Whether multiple selection is enabled
  */
-export function ComboboxRoot(props: ComboboxRootProps) {
+export function ComboboxRoot<
+  Value = unknown,
+  Multiple extends boolean | undefined = false,
+>(props: ComboboxRootProps<Value, Multiple>): React.JSX.Element {
   const {
     // Open state
     open: openProp,
@@ -250,13 +299,17 @@ export function ComboboxRoot(props: ComboboxRootProps) {
     defaultOpen = false,
     // Single selection
     value: valueProp,
-    defaultValue = '',
+    defaultValue,
     onValueChange,
     // Multi selection
-    multiple = false,
+    multiple = false as Multiple,
     values: valuesProp,
-    defaultValues = [],
+    defaultValues,
     onValuesChange,
+    // Object value support
+    isItemEqualToValue = defaultItemEquality as ItemEqualityComparer<Value>,
+    itemToStringLabel,
+    itemToStringValue,
     // Input state
     inputValue: inputValueProp,
     defaultInputValue = '',
@@ -400,11 +453,14 @@ export function ComboboxRoot(props: ComboboxRootProps) {
   )
 
   // ===== Single Selection State =====
-  const [internalValue, setInternalValue] = React.useState(defaultValue)
-  const value = valueProp !== undefined ? valueProp : internalValue
+  const [internalValue, setInternalValue] = React.useState<Value | null>(
+    defaultValue !== undefined ? (defaultValue as Value | null) : null,
+  )
+  const value: Value | null =
+    valueProp !== undefined ? (valueProp as Value | null) : internalValue
 
   const handleValueChange = React.useCallback(
-    (newValue: string) => {
+    (newValue: Value) => {
       if (valueProp === undefined) {
         setInternalValue(newValue)
       }
@@ -414,11 +470,13 @@ export function ComboboxRoot(props: ComboboxRootProps) {
   )
 
   // ===== Multi Selection State =====
-  const [internalValues, setInternalValues] = React.useState(defaultValues)
-  const values = valuesProp !== undefined ? valuesProp : internalValues
+  const [internalValues, setInternalValues] = React.useState<Value[]>(
+    defaultValues ?? [],
+  )
+  const values: Value[] = valuesProp !== undefined ? valuesProp : internalValues
 
   const handleValuesChange = React.useCallback(
-    (newValues: string[]) => {
+    (newValues: Value[]) => {
       if (valuesProp === undefined) {
         setInternalValues(newValues)
       }
@@ -472,10 +530,9 @@ export function ComboboxRoot(props: ComboboxRootProps) {
   //
   // We use a ref for synchronous access during close (to prevent flash of items).
   const filterModeRef = React.useRef<ComboboxFilterMode>({ type: 'active' })
-  const [filterModeState, setFilterModeState] =
-    React.useState<ComboboxFilterMode>({
-      type: 'active',
-    })
+  const [, setFilterModeState] = React.useState<ComboboxFilterMode>({
+    type: 'active',
+  })
 
   const setFilterMode = React.useCallback((mode: ComboboxFilterMode) => {
     filterModeRef.current = mode
@@ -495,7 +552,7 @@ export function ComboboxRoot(props: ComboboxRootProps) {
     if (!disabled) {
       // If opening with a selected value (single-select), show all items initially.
       // Otherwise, use active filtering.
-      if (!multiple && value) {
+      if (!multiple && value != null) {
         setFilterMode({ type: 'showAll' })
       } else {
         setFilterMode({ type: 'active' })
@@ -534,13 +591,16 @@ export function ComboboxRoot(props: ComboboxRootProps) {
   )
 
   // ===== Combobox Context =====
-  const comboboxContextValue: ComboboxContextValue = React.useMemo(
+  const comboboxContextValue: ComboboxContextValue<Value> = React.useMemo(
     () => ({
-      multiple,
+      multiple: multiple as boolean,
       value,
       values,
       onValueChange: handleValueChange,
       onValuesChange: handleValuesChange,
+      isItemEqualToValue,
+      itemToStringLabel,
+      itemToStringValue,
       inputValue,
       onInputValueChange: handleInputValueChange,
       name,
@@ -572,6 +632,9 @@ export function ComboboxRoot(props: ComboboxRootProps) {
       values,
       handleValueChange,
       handleValuesChange,
+      isItemEqualToValue,
+      itemToStringLabel,
+      itemToStringValue,
       inputValue,
       handleInputValueChange,
       name,
@@ -603,16 +666,19 @@ export function ComboboxRoot(props: ComboboxRootProps) {
     if (multiple) {
       // Multiple hidden inputs for array submission
       if (values.length > 0) {
-        return values.map((v, index) => (
-          <input
-            key={v}
-            type="hidden"
-            name={name}
-            value={v}
-            form={form}
-            required={required && index === 0}
-          />
-        ))
+        return values.map((v, index) => {
+          const serializedValue = stringifyAsValue(v, itemToStringValue)
+          return (
+            <input
+              key={serializedValue}
+              type="hidden"
+              name={name}
+              value={serializedValue}
+              form={form}
+              required={required && index === 0}
+            />
+          )
+        })
       }
       // Empty hidden input to ensure field is submitted even when empty
       return (
@@ -631,15 +697,17 @@ export function ComboboxRoot(props: ComboboxRootProps) {
       <input
         type="hidden"
         name={name}
-        value={value}
+        value={value != null ? stringifyAsValue(value, itemToStringValue) : ''}
         form={form}
         required={required}
       />
     )
-  }, [name, form, required, multiple, value, values])
+  }, [name, form, required, multiple, value, values, itemToStringValue])
 
   return (
-    <ComboboxContext.Provider value={comboboxContextValue}>
+    <ComboboxContext.Provider
+      value={comboboxContextValue as ComboboxContextValue<unknown>}
+    >
       <PopupMenuProviders
         store={store}
         focusOwnerStore={focusOwnerStore}
@@ -667,7 +735,10 @@ export function ComboboxRoot(props: ComboboxRootProps) {
 }
 
 export namespace ComboboxRoot {
-  export interface Props extends ComboboxRootProps {}
+  export interface Props<
+    Value = unknown,
+    Multiple extends boolean | undefined = false,
+  > extends ComboboxRootProps<Value, Multiple> {}
   export type OpenChangeEventDetails = ComboboxOpenChangeEventDetails
   export type HighlightChangeEventDetails = ComboboxHighlightChangeEventDetails
   export type Actions = Popover.Root.Actions

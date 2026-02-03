@@ -5,6 +5,7 @@ import {
   PopupMenuSurface,
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
+import { stringifyAsValue } from '../../utils/resolve-value-label.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { useSelectPositionerContext } from '../contexts/select-positioner-context.js'
 import { SelectSurfaceDataAttributes } from './surface.data-attrs.js'
@@ -51,6 +52,12 @@ export const SelectSurface = React.forwardRef<
   // - If alignItemWithTrigger is active and prop is not set, highlight the selected item
   // - Otherwise, use the prop value (defaulting to true)
   const autoHighlightFirst = React.useMemo(() => {
+    // Helper to serialize a value to a string for highlighting
+    const serializeValue = (value: unknown): string | true => {
+      if (value == null) return true
+      return stringifyAsValue(value, selectContext.itemToStringValue)
+    }
+
     // Handle 'selected' shorthand - resolve to actual selected value
     if (autoHighlightFirstProp === 'selected') {
       // For single-select, use the selected value
@@ -59,8 +66,8 @@ export const SelectSurface = React.forwardRef<
         ? selectContext.values[0]
         : selectContext.value
 
-      // If there's a selected value, highlight it; otherwise highlight first
-      return selectedValue || true
+      // If there's a selected value, serialize and use for highlighting
+      return serializeValue(selectedValue)
     }
 
     // If user explicitly passed a value (other than 'selected'), respect it
@@ -73,10 +80,10 @@ export const SelectSurface = React.forwardRef<
     if (positionerContext?.alignItemWithTriggerActive) {
       // For single-select, use the value
       // For multi-select, use the first selected value (or fall back to true)
-      if (selectContext.multiple) {
-        return selectContext.values[0] ?? true
-      }
-      return selectContext.value || true
+      const selectedValue = selectContext.multiple
+        ? selectContext.values[0]
+        : selectContext.value
+      return serializeValue(selectedValue)
     }
 
     // Default behavior
@@ -87,6 +94,7 @@ export const SelectSurface = React.forwardRef<
     selectContext.multiple,
     selectContext.value,
     selectContext.values,
+    selectContext.itemToStringValue,
   ])
 
   return (

@@ -1738,19 +1738,25 @@
       "ComboboxItemProps": {
         "name": "ComboboxItemProps",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "props": [
           {
             "name": "value",
-            "type": "string",
+            "type": "Value",
             "required": true,
-            "description": "The value of this item. Required and must be unique within the Combobox."
+            "description": "The value of this item. Required and must be unique within the Combobox.\nCan be a primitive or an object."
           },
           {
             "name": "textValue",
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Text value to use for display in the input when this item is selected.\nIf not provided, the text content of the item will be used."
+            "description": "Text value to use for display in the input when this item is selected.\nIf not provided, the text content of the item will be used.\nFor object values, this can be auto-detected from `{ label }` shape."
           },
           {
             "name": "keywords",
@@ -1952,6 +1958,17 @@
       "ComboboxRootProps": {
         "name": "ComboboxRootProps",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          },
+          {
+            "name": "Multiple",
+            "constraint": "boolean | undefined",
+            "default": "false"
+          }
+        ],
         "props": [
           {
             "name": "open",
@@ -1977,53 +1994,74 @@
           },
           {
             "name": "value",
-            "type": "string | undefined",
-            "formattedType": "string",
+            "type": "ComboboxValueType<Value, Multiple> | undefined",
+            "formattedType": "ComboboxValueType<Value, Multiple>",
             "required": false,
-            "description": "Current selected value (single-select mode).\nUse for controlled mode."
+            "description": "Current selected value (single-select mode).\nUse for controlled mode.\nCan be a primitive or an object."
           },
           {
             "name": "defaultValue",
-            "type": "string | undefined",
-            "formattedType": "string",
+            "type": "ComboboxValueType<Value, Multiple> | undefined",
+            "formattedType": "ComboboxValueType<Value, Multiple>",
             "required": false,
             "description": "Default selected value (single-select mode).\nUse for uncontrolled mode."
           },
           {
             "name": "onValueChange",
-            "type": "((value: string) => void) | undefined",
-            "formattedType": "(value: string) => void",
+            "type": "((value: Value) => void) | undefined",
+            "formattedType": "(value: Value) => void",
             "required": false,
             "description": "Callback when the selected value changes (single-select mode)."
           },
           {
             "name": "multiple",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
+            "type": "Multiple | undefined",
+            "formattedType": "Multiple",
             "required": false,
             "description": "Whether multi-select mode is enabled.",
             "default": "false"
           },
           {
             "name": "values",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
+            "type": "Value[] | undefined",
+            "formattedType": "Value[]",
             "required": false,
             "description": "Current selected values (multi-select mode).\nUse for controlled mode."
           },
           {
             "name": "defaultValues",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
+            "type": "Value[] | undefined",
+            "formattedType": "Value[]",
             "required": false,
             "description": "Default selected values (multi-select mode).\nUse for uncontrolled mode."
           },
           {
             "name": "onValuesChange",
-            "type": "((values: string[]) => void) | undefined",
-            "formattedType": "(values: string[]) => void",
+            "type": "((values: Value[]) => void) | undefined",
+            "formattedType": "(values: Value[]) => void",
             "required": false,
             "description": "Callback when the selected values change (multi-select mode)."
+          },
+          {
+            "name": "isItemEqualToValue",
+            "type": "ItemEqualityComparer<Value> | undefined",
+            "formattedType": "ItemEqualityComparer<Value>",
+            "required": false,
+            "description": "Custom comparison logic used to determine if a combobox item value\nmatches the current selected value.\nUseful when item values are objects without matching referentially.\nDefaults to Object.is comparison."
+          },
+          {
+            "name": "itemToStringLabel",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects (`<Combobox.Item value={object}>`),\nthis function converts the object value to a string representation\nfor display in the input.\nIf the shape of the object is `{ value, label }`, the label will be\nused automatically without needing to specify this prop."
+          },
+          {
+            "name": "itemToStringValue",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects (`<Combobox.Item value={object}>`),\nthis function converts the object value to a string representation\nfor form submission.\nIf the shape of the object is `{ value, label }`, the value will be\nused automatically without needing to specify this prop."
           },
           {
             "name": "inputValue",
@@ -3116,6 +3154,12 @@
       "ComboboxContextValue": {
         "name": "ComboboxContextValue",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "doc": "Context value for Combobox components.\nProvides value state, input state, callbacks, and form integration.",
         "props": [
           {
@@ -3127,27 +3171,48 @@
           },
           {
             "name": "value",
-            "type": "string",
+            "type": "Value | null",
+            "formattedType": "null | Value",
             "required": true,
             "description": "Current selected value (single-select mode)"
           },
           {
             "name": "values",
-            "type": "string[]",
+            "type": "Value[]",
             "required": true,
             "description": "Current selected values (multi-select mode)"
           },
           {
             "name": "onValueChange",
-            "type": "(value: string) => void",
+            "type": "(value: Value) => void",
             "required": true,
             "description": "Callback when value changes (single-select mode)"
           },
           {
             "name": "onValuesChange",
-            "type": "(values: string[]) => void",
+            "type": "(values: Value[]) => void",
             "required": true,
             "description": "Callback when values change (multi-select mode)"
+          },
+          {
+            "name": "isItemEqualToValue",
+            "type": "ItemEqualityComparer<Value>",
+            "required": true,
+            "description": "Custom comparison logic used to determine if a combobox item value\nmatches the current selected value.\nUseful when item values are objects without matching referentially.\nDefaults to Object.is comparison."
+          },
+          {
+            "name": "itemToStringLabel",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects, this function converts the object\nvalue to a string representation for display in the input.\nIf the shape of the object is { value, label }, the label will be\nused automatically without needing to specify this prop."
+          },
+          {
+            "name": "itemToStringValue",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects, this function converts the object\nvalue to a string representation for form submission.\nIf the shape of the object is { value, label }, the value will be\nused automatically without needing to specify this prop."
           },
           {
             "name": "inputValue",
@@ -3313,6 +3378,12 @@
       "ComboboxItemContextValue": {
         "name": "ComboboxItemContextValue",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "doc": "Context value for ComboboxItem.\nProvides item state to child components like ItemIndicator.",
         "props": [
           {
@@ -3323,7 +3394,7 @@
           },
           {
             "name": "value",
-            "type": "string",
+            "type": "Value",
             "required": true,
             "description": "The item's value"
           },
@@ -11545,19 +11616,25 @@
       "SelectItemProps": {
         "name": "SelectItemProps",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "props": [
           {
             "name": "value",
-            "type": "string",
+            "type": "Value",
             "required": true,
-            "description": "The value of this item. Required and must be unique within the Select."
+            "description": "The value of this item. Required and must be unique within the Select.\nCan be a primitive or an object."
           },
           {
             "name": "textValue",
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Text value to use for display in Select.Value when this item is selected.\nIf not provided, the text content of the item will be used."
+            "description": "Text value to use for display in Select.Value when this item is selected.\nIf not provided, the text content of the item will be used.\nFor object values, this can be auto-detected from `{ label }` shape."
           },
           {
             "name": "keywords",
@@ -11766,6 +11843,17 @@
       "SelectRootProps": {
         "name": "SelectRootProps",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          },
+          {
+            "name": "Multiple",
+            "constraint": "boolean | undefined",
+            "default": "false"
+          }
+        ],
         "props": [
           {
             "name": "open",
@@ -11791,53 +11879,74 @@
           },
           {
             "name": "value",
-            "type": "string | undefined",
-            "formattedType": "string",
+            "type": "SelectValue<Value, Multiple> | undefined",
+            "formattedType": "SelectValue<Value, Multiple>",
             "required": false,
-            "description": "Current selected value (single-select mode).\nUse for controlled mode."
+            "description": "Current selected value (single-select mode).\nUse for controlled mode.\nCan be a primitive or an object."
           },
           {
             "name": "defaultValue",
-            "type": "string | undefined",
-            "formattedType": "string",
+            "type": "SelectValue<Value, Multiple> | undefined",
+            "formattedType": "SelectValue<Value, Multiple>",
             "required": false,
             "description": "Default selected value (single-select mode).\nUse for uncontrolled mode."
           },
           {
             "name": "onValueChange",
-            "type": "((value: string) => void) | undefined",
-            "formattedType": "(value: string) => void",
+            "type": "((value: Value) => void) | undefined",
+            "formattedType": "(value: Value) => void",
             "required": false,
             "description": "Callback when the selected value changes (single-select mode)."
           },
           {
             "name": "multiple",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
+            "type": "Multiple | undefined",
+            "formattedType": "Multiple",
             "required": false,
             "description": "Whether multi-select mode is enabled.",
             "default": "false"
           },
           {
             "name": "values",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
+            "type": "Value[] | undefined",
+            "formattedType": "Value[]",
             "required": false,
             "description": "Current selected values (multi-select mode).\nUse for controlled mode."
           },
           {
             "name": "defaultValues",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
+            "type": "Value[] | undefined",
+            "formattedType": "Value[]",
             "required": false,
             "description": "Default selected values (multi-select mode).\nUse for uncontrolled mode."
           },
           {
             "name": "onValuesChange",
-            "type": "((values: string[]) => void) | undefined",
-            "formattedType": "(values: string[]) => void",
+            "type": "((values: Value[]) => void) | undefined",
+            "formattedType": "(values: Value[]) => void",
             "required": false,
             "description": "Callback when the selected values change (multi-select mode)."
+          },
+          {
+            "name": "isItemEqualToValue",
+            "type": "ItemEqualityComparer<Value> | undefined",
+            "formattedType": "ItemEqualityComparer<Value>",
+            "required": false,
+            "description": "Custom comparison logic used to determine if a select item value\nmatches the current selected value.\nUseful when item values are objects without matching referentially.\nDefaults to Object.is comparison."
+          },
+          {
+            "name": "itemToStringLabel",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects (`<Select.Item value={object}>`),\nthis function converts the object value to a string representation\nfor display in the trigger.\nIf the shape of the object is `{ value, label }`, the label will be\nused automatically without needing to specify this prop."
+          },
+          {
+            "name": "itemToStringValue",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects (`<Select.Item value={object}>`),\nthis function converts the object value to a string representation\nfor form submission.\nIf the shape of the object is `{ value, label }`, the value will be\nused automatically without needing to specify this prop."
           },
           {
             "name": "name",
@@ -11985,6 +12094,12 @@
       "SelectValueProps": {
         "name": "SelectValueProps",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "props": [
           {
             "name": "placeholder",
@@ -11995,29 +12110,29 @@
           },
           {
             "name": "children",
-            "type": "ReactNode | ((state: SelectValueState) => ReactNode)",
-            "formattedType": "null | string | number | bigint | false | true | ReactElement | Iterable<ReactNode> | ReactPortal | Promise<AwaitedReactNode> | (state: Select.Value.State) => ReactNode",
+            "type": "ReactNode | ((state: SelectValueState<Value>) => ReactNode)",
+            "formattedType": "null | string | number | bigint | false | true | ReactElement | Iterable<ReactNode> | ReactPortal | Promise<AwaitedReactNode> | (state: Select.Value.State<Value>) => ReactNode",
             "required": false,
             "description": "Custom render function for the selected value content.\nReceives the current state and should return the content to render.\nThis is different from the `render` prop which replaces the element."
           },
           {
             "name": "style",
-            "type": "CSSProperties | (CSSProperties & ((state: SelectValueState) => CSSProperties | undefined)) | undefined",
-            "formattedType": "CSSProperties | CSSProperties & (state: Select.Value.State) => CSSProperties",
+            "type": "CSSProperties | (CSSProperties & ((state: SelectValueState<Value>) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: Select.Value.State<Value>) => CSSProperties",
             "required": false,
             "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
           },
           {
             "name": "className",
-            "type": "string | ((state: SelectValueState) => string | undefined) | undefined",
-            "formattedType": "string | (state: Select.Value.State) => string",
+            "type": "string | ((state: SelectValueState<Value>) => string | undefined) | undefined",
+            "formattedType": "string | (state: Select.Value.State<Value>) => string",
             "required": false,
             "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
           },
           {
             "name": "render",
-            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, SelectValueState> | undefined",
-            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: Select.Value.State,\n    ) => ReactElement)",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, SelectValueState<Value>> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: Select.Value.State<Value>,\n    ) => ReactElement)",
             "required": false,
             "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
           }
@@ -12026,16 +12141,23 @@
       "SelectValueState": {
         "name": "SelectValueState",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "props": [
           {
             "name": "value",
-            "type": "string",
+            "type": "Value | null",
+            "formattedType": "null | Value",
             "required": true,
             "description": "The currently selected value (single-select mode)."
           },
           {
             "name": "values",
-            "type": "string[]",
+            "type": "Value[]",
             "required": true,
             "description": "The currently selected values (multi-select mode)."
           },
@@ -12061,9 +12183,9 @@
           },
           {
             "name": "getValueText",
-            "type": "(value: string) => ReactNode",
+            "type": "(value: Value) => ReactNode",
             "required": true,
-            "description": "Get the display content for a value.\nFirst checks the item text registry (populated when items mount),\nthen falls back to the `items` prop passed to SelectRoot."
+            "description": "Get the display content for a value.\nFirst checks the item text registry (populated when items mount),\nthen falls back to the `items` prop passed to SelectRoot,\nthen falls back to `itemToStringLabel` for object values."
           }
         ]
       },
@@ -13092,6 +13214,12 @@
       "SelectContextValue": {
         "name": "SelectContextValue",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "doc": "Context value for Select components.\nProvides value state, callbacks, and form integration.",
         "props": [
           {
@@ -13103,27 +13231,48 @@
           },
           {
             "name": "value",
-            "type": "string",
+            "type": "Value | null",
+            "formattedType": "null | Value",
             "required": true,
             "description": "Current selected value (single-select mode)"
           },
           {
             "name": "values",
-            "type": "string[]",
+            "type": "Value[]",
             "required": true,
             "description": "Current selected values (multi-select mode)"
           },
           {
             "name": "onValueChange",
-            "type": "(value: string) => void",
+            "type": "(value: Value) => void",
             "required": true,
             "description": "Callback when value changes (single-select mode)"
           },
           {
             "name": "onValuesChange",
-            "type": "(values: string[]) => void",
+            "type": "(values: Value[]) => void",
             "required": true,
             "description": "Callback when values change (multi-select mode)"
+          },
+          {
+            "name": "isItemEqualToValue",
+            "type": "ItemEqualityComparer<Value>",
+            "required": true,
+            "description": "Custom comparison logic used to determine if a select item value\nmatches the current selected value.\nUseful when item values are objects without matching referentially.\nDefaults to Object.is comparison."
+          },
+          {
+            "name": "itemToStringLabel",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects, this function converts the object\nvalue to a string representation for display in the trigger.\nIf the shape of the object is { value, label }, the label will be\nused automatically without needing to specify this prop."
+          },
+          {
+            "name": "itemToStringValue",
+            "type": "((itemValue: Value) => string) | undefined",
+            "formattedType": "(itemValue: Value) => string",
+            "required": false,
+            "description": "When the item values are objects, this function converts the object\nvalue to a string representation for form submission.\nIf the shape of the object is { value, label }, the value will be\nused automatically without needing to specify this prop."
           },
           {
             "name": "name",
@@ -13278,6 +13427,12 @@
       "SelectItemContextValue": {
         "name": "SelectItemContextValue",
         "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Value",
+            "default": "unknown"
+          }
+        ],
         "props": [
           {
             "name": "id",
@@ -13287,7 +13442,7 @@
           },
           {
             "name": "value",
-            "type": "string",
+            "type": "Value",
             "required": true,
             "description": "The value of this item"
           },

@@ -231,6 +231,65 @@ function FreetextCombobox() {
 }
 ```
 
+### With Object Values
+
+Use objects as values for complex data structures:
+
+```tsx
+interface User {
+  id: number
+  name: string
+  email: string
+}
+
+const users: User[] = [
+  { id: 1, name: 'John Doe', email: 'john@example.com' },
+  { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+  { id: 3, name: 'Bob Wilson', email: 'bob@example.com' },
+]
+
+function UserCombobox() {
+  const [selected, setSelected] = React.useState<User | null>(null)
+
+  return (
+    <Combobox.Root
+      value={selected}
+      onValueChange={setSelected}
+      isItemEqualToValue={(a, b) => a.id === b.id}
+      itemToStringLabel={(u) => u.name}
+      itemToStringValue={(u) => String(u.id)}
+    >
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Search users..." />
+        <Combobox.Clear />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Surface>
+              <Combobox.List>
+                {users.map((user) => (
+                  <Combobox.Item key={user.id} value={user}>
+                    <Combobox.ItemIndicator />
+                    <div>
+                      <Combobox.ItemLabel />
+                      <span className="text-muted-foreground text-sm">
+                        {user.email}
+                      </span>
+                    </div>
+                  </Combobox.Item>
+                ))}
+              </Combobox.List>
+              <Combobox.Empty>No users found</Combobox.Empty>
+            </Combobox.Surface>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
 ## Guides
 
 ### Basics
@@ -456,6 +515,156 @@ function VirtualizedCombobox() {
     </Combobox.Root>
   )
 }
+```
+
+---
+
+### Object Values
+
+Combobox supports using objects as values instead of just strings. This is useful when working with complex data structures like database records or API responses.
+
+#### Auto-detected `{ value, label }` Objects
+
+If your objects have a `value` and `label` property, Combobox will automatically use them:
+
+```tsx
+interface Fruit {
+  value: string
+  label: string
+}
+
+const fruits: Fruit[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+]
+
+function ObjectCombobox() {
+  const [selected, setSelected] = React.useState<Fruit | null>(null)
+
+  return (
+    <Combobox.Root value={selected} onValueChange={setSelected}>
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Search fruits..." />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Surface>
+              <Combobox.List>
+                {fruits.map((fruit) => (
+                  <Combobox.Item key={fruit.value} value={fruit}>
+                    <Combobox.ItemIndicator />
+                    <Combobox.ItemLabel />
+                  </Combobox.Item>
+                ))}
+              </Combobox.List>
+            </Combobox.Surface>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+- **Display**: Uses `label` property for input display and `<Combobox.ItemLabel>`
+- **Form submission**: Uses `value` property for hidden form inputs
+- **Equality**: Uses reference equality by default
+
+#### Custom Object Shapes
+
+For objects with different shapes, use `isItemEqualToValue`, `itemToStringLabel`, and `itemToStringValue`:
+
+```tsx
+interface User {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+}
+
+const users: User[] = [
+  { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
+  { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' },
+]
+
+function UserCombobox() {
+  const [selected, setSelected] = React.useState<User | null>(null)
+
+  return (
+    <Combobox.Root
+      value={selected}
+      onValueChange={setSelected}
+      // Compare by ID instead of reference
+      isItemEqualToValue={(item, value) => item.id === value.id}
+      // Display full name in input
+      itemToStringLabel={(user) => `${user.firstName} ${user.lastName}`}
+      // Submit ID to form
+      itemToStringValue={(user) => String(user.id)}
+    >
+      <Combobox.InputWrapper>
+        <Combobox.Input placeholder="Search users..." />
+        <Combobox.Clear />
+      </Combobox.InputWrapper>
+      <Combobox.Portal>
+        <Combobox.Positioner>
+          <Combobox.Popup>
+            <Combobox.Surface>
+              <Combobox.List>
+                {users.map((user) => (
+                  <Combobox.Item key={user.id} value={user}>
+                    <Combobox.ItemIndicator />
+                    <Combobox.ItemLabel />
+                  </Combobox.Item>
+                ))}
+              </Combobox.List>
+            </Combobox.Surface>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
+  )
+}
+```
+
+**Props explained:**
+
+| Prop | Purpose | Example |
+|------|---------|---------|
+| `isItemEqualToValue` | Compare item to selected value | `(a, b) => a.id === b.id` |
+| `itemToStringLabel` | Convert object to display string | `(u) => u.name` |
+| `itemToStringValue` | Convert object for form submission | `(u) => String(u.id)` |
+
+#### Multi-Select with Objects
+
+Object values work with multi-select too:
+
+```tsx
+const [selected, setSelected] = React.useState<User[]>([])
+
+<Combobox.Root
+  multiple
+  values={selected}
+  onValuesChange={setSelected}
+  isItemEqualToValue={(a, b) => a.id === b.id}
+  itemToStringLabel={(u) => u.name}
+>
+  <Combobox.InputWrapper>
+    <div className="flex flex-wrap gap-1">
+      {selected.map((user) => (
+        <span key={user.id} className="px-2 py-1 bg-blue-100 rounded text-sm">
+          {user.name}
+          <button onClick={() => setSelected(selected.filter(u => u.id !== user.id))}>
+            ×
+          </button>
+        </span>
+      ))}
+      <Combobox.Input placeholder="Add users..." />
+    </div>
+  </Combobox.InputWrapper>
+  ...
+</Combobox.Root>
 ```
 
 ---

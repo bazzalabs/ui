@@ -5,12 +5,14 @@ import * as React from 'react'
 /**
  * Context value for ComboboxItem.
  * Provides item state to child components like ItemIndicator.
+ *
+ * @template Value - The type of the item value (can be a primitive or object)
  */
-export interface ComboboxItemContextValue {
+export interface ComboboxItemContextValue<Value = unknown> {
   /** Unique ID for the item element */
   id: string
   /** The item's value */
-  value: string
+  value: Value
   /** The text value/label for this item */
   textValue: string | undefined
   /** Whether the item is highlighted (via keyboard or pointer) */
@@ -28,22 +30,28 @@ const ComboboxItemContext =
  * Hook to access the ComboboxItem context.
  * Throws if used outside a ComboboxItem.
  */
-export function useComboboxItemContext(): ComboboxItemContextValue {
+export function useComboboxItemContext<
+  Value = unknown,
+>(): ComboboxItemContextValue<Value> {
   const context = React.useContext(ComboboxItemContext)
   if (!context) {
     throw new Error(
       'ComboboxItem child components must be used within a Combobox.Item',
     )
   }
-  return context
+  return context as ComboboxItemContextValue<Value>
 }
 
 /**
  * Hook to optionally access the ComboboxItem context.
  * Returns null if used outside a ComboboxItem.
  */
-export function useMaybeComboboxItemContext(): ComboboxItemContextValue | null {
-  return React.useContext(ComboboxItemContext)
+export function useMaybeComboboxItemContext<
+  Value = unknown,
+>(): ComboboxItemContextValue<Value> | null {
+  return React.useContext(
+    ComboboxItemContext,
+  ) as ComboboxItemContextValue<Value> | null
 }
 
 export { ComboboxItemContext }
