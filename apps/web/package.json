@@ -3,8 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "generate-fonts": "tsx scripts/generate-fonts.ts",
+    "predev": "bun run generate-fonts",
     "dev": "next dev --turbopack",
-    "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/menu=../../packages/menu/src/index.ts --pkg @bazza-ui/dropdown-menu=../../packages/dropdown-menu/src/index.ts --pkg @bazza-ui/context-menu=../../packages/context-menu/src/index.ts --pkg @bazza-ui/command-menu=../../packages/command-menu/src/index.ts --pkg @bazza-ui/loaders=../../packages/loaders/src/index.ts --pkg @bazza-ui/popup-menu=../../packages/popup-menu/src/index.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
+    "prebuild": "bun run generate-fonts",
     "build": "next build --turbopack",
     "type-check": "tsc --noEmit",
     "vercel:install": "./vercel-submodule.sh && bun install",
