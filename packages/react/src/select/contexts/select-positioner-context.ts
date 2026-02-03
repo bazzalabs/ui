@@ -41,6 +41,12 @@ export interface SelectPositionerContextValue {
    * Callback to disable alignItemWithTrigger (fallback to normal positioning).
    */
   setAlignItemWithTriggerActive: (active: boolean) => void
+
+  /**
+   * Callback to reset positioning state after close animation completes.
+   * This preserves positioning during exit animations.
+   */
+  resetPositioningState: () => void
 }
 
 const SelectPositionerContext =

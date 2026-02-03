@@ -761,6 +761,116 @@ describe('<Select.Root />', () => {
     })
   })
 
+  describe('animation', () => {
+    it('calls onOpenChangeComplete after animation completes', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+
+      render(
+        <Select.Root defaultOpen onOpenChangeComplete={onOpenChangeComplete}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    <Select.Item value="apple">Apple</Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // Close the select
+      await user.keyboard('{Escape}')
+
+      // onOpenChangeComplete should be called with false after close animation
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+      })
+    })
+
+    it('preserves positioning state until close animation completes', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+
+      render(
+        <Select.Root defaultOpen onOpenChangeComplete={onOpenChangeComplete}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner alignItemWithTrigger>
+              <Select.Popup data-testid="popup">
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    <Select.Item value="apple">Apple</Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // Close the select
+      await user.keyboard('{Escape}')
+
+      // onOpenChangeComplete should be called with false after close animation
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+      })
+    })
+
+    it('calls onOpenChangeComplete after open animation completes', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+
+      render(
+        <Select.Root onOpenChangeComplete={onOpenChangeComplete}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    <Select.Item value="apple">Apple</Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      // Open the select
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // onOpenChangeComplete should be called with true after open animation
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(true)
+      })
+    })
+  })
+
   // ============================================================================
   // Object Values Support
   // ============================================================================

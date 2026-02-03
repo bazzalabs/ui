@@ -52,6 +52,12 @@ export interface SelectRootProps<
   ) => void
 
   /**
+   * Callback called after any animations complete when the select opens or closes.
+   * Useful for resetting state after exit animations finish.
+   */
+  onOpenChangeComplete?: (open: boolean) => void
+
+  /**
    * Whether the select is initially open.
    * Use for uncontrolled mode.
    * @default false
@@ -240,6 +246,7 @@ export function SelectRoot<
     // Open state
     open: openProp,
     onOpenChange,
+    onOpenChangeComplete,
     defaultOpen = false,
     // Single selection
     value: valueProp,
@@ -286,6 +293,21 @@ export function SelectRoot<
   const setValueElement = React.useCallback((element: HTMLElement | null) => {
     valueRef.current = element
   }, [])
+
+  // ===== Positioner Reset Callback =====
+  // Store callback to reset positioning state after close animation
+  const resetPositioningCallbackRef = React.useRef<(() => void) | null>(null)
+
+  const registerResetPositioningCallback = React.useCallback(
+    (callback: (() => void) | null) => {
+      resetPositioningCallbackRef.current = callback
+      // Return cleanup function
+      return () => {
+        resetPositioningCallbackRef.current = null
+      }
+    },
+    [],
+  )
 
   // ===== Open State =====
   // Use shared hook to create stores and utilities
@@ -387,6 +409,7 @@ export function SelectRoot<
       selectedItemTextRef,
       setTriggerElement,
       setValueElement,
+      registerResetPositioningCallback,
     }),
     [
       multiple,
@@ -407,6 +430,7 @@ export function SelectRoot<
       listId,
       setTriggerElement,
       setValueElement,
+      registerResetPositioningCallback,
     ],
   )
 
@@ -468,6 +492,20 @@ export function SelectRoot<
     [handleOpenChange],
   )
 
+  // Handle animation complete - reset positioning state after close animation
+  const handleOpenChangeComplete = React.useCallback(
+    (nextOpen: boolean) => {
+      // Reset positioning state after close animation completes
+      // This preserves the aligned position during the exit animation
+      if (!nextOpen) {
+        resetPositioningCallbackRef.current?.()
+      }
+      // Call user's callback
+      onOpenChangeComplete?.(nextOpen)
+    },
+    [onOpenChangeComplete],
+  )
+
   return (
     <SelectContext.Provider
       value={selectContextValue as SelectContextValue<unknown>}
@@ -488,6 +526,7 @@ export function SelectRoot<
           {...rest}
           open={open}
           onOpenChange={handlePopoverOpenChange}
+          onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
         >
           {children}

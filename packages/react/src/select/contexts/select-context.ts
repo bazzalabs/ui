@@ -98,6 +98,12 @@ export interface SelectContextValue<Value = unknown> {
   setTriggerElement: (element: HTMLElement | null) => void
   /** Callback to set the value element */
   setValueElement: (element: HTMLElement | null) => void
+
+  // ===== Positioner Callback Registration =====
+  /** Register a callback to reset positioning state after close animation */
+  registerResetPositioningCallback: (
+    callback: (() => void) | null,
+  ) => () => void
 }
 
 const SelectContext = React.createContext<SelectContextValue<unknown> | null>(

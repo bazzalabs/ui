@@ -193,7 +193,6 @@ const Popup = forwardRef<
       cn(
         'border bg-popover z-50 rounded-lg text-sm',
         'drop-shadow-xl',
-        // 'w-[min(500px,max(var(--row-width),175px))]',
         'overflow-hidden',
         !state.isSubmenu && [
           'opacity-100 scale-100',
