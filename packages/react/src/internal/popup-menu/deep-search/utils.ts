@@ -1326,14 +1326,9 @@ export function shouldIncludeInDeepSearch(config: AsyncNodesConfig): boolean {
 
 /**
  * Checks if an async loader should be rendered eagerly.
+ * Eager loaders mount when the root menu opens (before their submenu is opened).
  */
 export function shouldLoadEagerly(config: AsyncNodesConfig): boolean {
-  if (config.type === 'static') {
-    return config.loadStrategy === 'eager'
-  }
-  // Query loaders can have initialQuery for eager loading
-  if (config.type === 'query') {
-    return config.initialQuery !== undefined
-  }
-  return false
+  // Both static and query loaders use explicit loadStrategy
+  return config.loadStrategy === 'eager'
 }

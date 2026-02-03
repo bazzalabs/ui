@@ -345,14 +345,36 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
 
+      // Check if pointer has actually moved (prevents phantom highlights)
+      if (
+        !parentStore.shouldAllowPointerHighlight(event.clientX, event.clientY)
+      ) {
+        console.log(
+          '[SubmenuTrigger] pointerMove blocked by shouldAllowPointerHighlight',
+          { id: item.id },
+        )
+        return
+      }
+
       // Don't highlight if aim guard is active at this depth for a different trigger
       if (
         aimGuardActiveRef.current &&
         guardedDepthRef.current === parentDepth &&
         guardedTriggerIdRef.current !== item.id
-      )
+      ) {
+        console.log('[SubmenuTrigger] pointerMove blocked by aim guard', {
+          id: item.id,
+          guardedTriggerId: guardedTriggerIdRef.current,
+          guardedDepth: guardedDepthRef.current,
+          parentDepth,
+        })
         return
+      }
 
+      console.log('[SubmenuTrigger] pointerMove -> highlighting', {
+        id: item.id,
+        storeId: item.storeId,
+      })
       // Highlight on hover (use storeId for store operations)
       parentStore.setHighlightedId(item.storeId)
     },
@@ -377,8 +399,26 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (disabled) return
 
       // Check if aim guard is blocking this trigger
-      if (aimGuardActiveRef.current && guardedTriggerIdRef.current !== item.id)
+      if (
+        aimGuardActiveRef.current &&
+        guardedTriggerIdRef.current !== item.id
+      ) {
+        console.log('[SubmenuTrigger] pointerEnter blocked by aim guard', {
+          id: item.id,
+          guardedTriggerId: guardedTriggerIdRef.current,
+        })
         return
+      }
+
+      console.log(
+        '[SubmenuTrigger] pointerEnter -> highlighting and scheduling open',
+        {
+          id: item.id,
+          storeId: item.storeId,
+          openOnHighlight,
+          pointerDelay: delay.pointer,
+        },
+      )
 
       // Highlight the trigger on pointer enter (use storeId for store operations)
       parentStore.setHighlightedId(item.storeId)
@@ -396,6 +436,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       } else {
         openTimerRef.current = setTimeout(() => {
           openTimerRef.current = null
+          console.log(
+            '[SubmenuTrigger] pointerEnter timer fired -> opening submenu',
+            { id: item.id },
+          )
           setOpen(true)
         }, pointerDelay)
       }
@@ -480,11 +524,21 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (hit) {
         // User is aiming at submenu - activate aim guard for 600ms
         // Guard is activated at parentDepth to block highlighting in the parent menu only
-        activateAimGuard(item.id, parentDepth, 600)
+        console.log('[SubmenuTrigger] pointerLeave -> aim guard ACTIVATED', {
+          id: item.id,
+          parentDepth,
+          childSurfaceId,
+          heading,
+        })
+        activateAimGuard(item.id, parentDepth, childSurfaceId, 600)
         parentStore.setHighlightedId(item.storeId)
         setOpen(true)
       } else {
         // User is not aiming at submenu - close it
+        console.log('[SubmenuTrigger] pointerLeave -> closing (not aiming)', {
+          id: item.id,
+          heading,
+        })
         clearAimGuard()
         setOpen(false)
       }
@@ -504,6 +558,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       mouseTrailRef,
       activateAimGuard,
       parentDepth,
+      childSurfaceId,
       parentStore,
     ],
   )

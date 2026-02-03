@@ -5,6 +5,10 @@ import {
   type BreadcrumbNode,
   type DataListChildrenState,
   type DisplayNode,
+  type DropdownMenuVirtualItem,
+  isDisplayGroupNode,
+  isDisplayRadioGroupNode,
+  isDisplaySeparatorNode,
   DropdownMenu as Primitive,
   useMaybeSubmenuContext,
   useSurfaceContext,
@@ -13,7 +17,14 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { cva } from 'class-variance-authority'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import type * as React from 'react'
-import { Fragment, forwardRef, useCallback, useEffect, useRef } from 'react'
+import {
+  Fragment,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
@@ -94,7 +105,7 @@ const inputVariants = cva([
 
 const listVariants = cva([
   'py-1 outline-none',
-  '!min-w-full w-[min(500px,max(var(--row-width),200px))]',
+  '!min-w-full w-[min(500px,max(var(--row-width,200px),200px))]',
 ])
 
 const surfaceVariants = cva('divide-y')
@@ -110,13 +121,6 @@ function Root({
         NonNullable<React.ComponentProps<typeof Primitive.Root>['onOpenChange']>
       >[1],
     ) => {
-      console.log('[DropdownMenu.Root] onOpenChange:', {
-        open,
-        reason: eventDetails.reason,
-        hasEvent: !!eventDetails.event,
-        hasCancel: typeof eventDetails.cancel === 'function',
-      })
-
       // Prevent closing when clicking on feedback toolbar elements
       if (
         !open &&
@@ -128,14 +132,7 @@ function Root({
         const feedbackToolbar = target?.closest(
           '[data-feedback-toolbar="true"]',
         )
-        console.log('[DropdownMenu.Root] outside-press check:', {
-          target: target?.tagName,
-          targetClasses: target?.className,
-          feedbackToolbar: !!feedbackToolbar,
-          feedbackToolbarEl: feedbackToolbar?.tagName,
-        })
         if (feedbackToolbar) {
-          console.log('[DropdownMenu.Root] Cancelling close!')
           eventDetails.cancel()
           return
         }
@@ -145,7 +142,15 @@ function Root({
     [onOpenChange],
   )
 
-  return <Primitive.Root onOpenChange={handleOpenChange} {...props} />
+  return (
+    <Primitive.Root
+      onOpenChange={handleOpenChange}
+      onHighlightChange={(id, index) => {
+        console.log('highlight changed to', id, 'at index', index)
+      }}
+      {...props}
+    />
+  )
 }
 
 const Trigger = Primitive.Trigger
@@ -396,6 +401,56 @@ DataList.displayName = 'DropdownMenu.DataList'
 // Virtualized DataList Content (internal)
 // ============================================================================
 
+/**
+ * Converts DisplayNode[] to VirtualItem[] for store pre-registration.
+ * This enables keyboard navigation (Home/End) to work correctly with virtualization
+ * by letting the store know about ALL items, not just mounted ones.
+ */
+function displayNodesToVirtualItems(
+  nodes: DisplayNode[],
+): DropdownMenuVirtualItem[] {
+  const items: DropdownMenuVirtualItem[] = []
+
+  for (const displayNode of nodes) {
+    if (isDisplayGroupNode(displayNode)) {
+      // Extract items from group
+      for (const item of displayNode.items) {
+        if (item.compositeId) {
+          items.push({
+            value: item.compositeId,
+            disabled: item.node.disabled ?? false,
+            keywords: item.node.keywords,
+          })
+        }
+      }
+    } else if (isDisplayRadioGroupNode(displayNode)) {
+      // Extract items from radio group
+      for (const item of displayNode.items) {
+        if (item.compositeId) {
+          items.push({
+            value: item.compositeId,
+            disabled: item.node.disabled ?? false,
+            keywords: item.node.keywords,
+          })
+        }
+      }
+    } else if (isDisplaySeparatorNode(displayNode)) {
+      // Skip separators - they're not navigable
+    } else {
+      // Row node (item, checkbox item, submenu)
+      if (displayNode.compositeId) {
+        items.push({
+          value: displayNode.compositeId,
+          disabled: displayNode.node.disabled ?? false,
+          keywords: displayNode.node.keywords,
+        })
+      }
+    }
+  }
+
+  return items
+}
+
 interface VirtualizedDataListContentProps {
   state: DataListChildrenState
   maxHeight: number
@@ -415,9 +470,6 @@ function VirtualizedDataListContent({
   const { store } = useSurfaceContext()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Get the highlighted item ID from store for scroll sync
-  const highlightedId = store.useState('highlightedId')
-
   // Create stable key function
   const getItemKey = useCallback(
     (index: number) => {
@@ -428,10 +480,13 @@ function VirtualizedDataListContent({
     [nodes],
   )
 
+  const virtualizerEnabled = useMemo(() => nodes.length > 0, [nodes.length])
+
   // Create virtualizer
   // Disable flushSync to avoid "flushSync was called from inside a lifecycle method" warning
   // when the list re-renders during search/filtering. This is recommended for React 19+ compatibility.
   const virtualizer = useVirtualizer({
+    enabled: virtualizerEnabled,
     count: nodes.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => estimateSize,
@@ -443,20 +498,46 @@ function VirtualizedDataListContent({
   const virtualItems = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
 
-  // Sync scroll position when highlighted item changes via keyboard
+  // Convert display nodes to VirtualItem[] for store pre-registration
+  const storeVirtualItems = useMemo(
+    () => displayNodesToVirtualItems(nodes),
+    [nodes],
+  )
+
+  // Register virtualization with store - this enables proper Home/End navigation
+  // by letting the store know about ALL items (not just mounted ones)
   useEffect(() => {
-    if (!highlightedId) return
+    store.setVirtualized(true)
+    store.setVirtualItems(storeVirtualItems)
 
-    // Find the index of the highlighted item
-    const index = nodes.findIndex((node) => {
-      const key = getNodeKey(node)
-      return key === highlightedId
-    })
-
-    if (index !== -1) {
-      virtualizer.scrollToIndex(index, { align: 'auto' })
+    return () => {
+      // Cleanup when unmounted
+      store.setVirtualized(false)
+      store.setVirtualItems([])
     }
-  }, [highlightedId, nodes, virtualizer])
+  }, [store, storeVirtualItems])
+
+  // Create stable callback for highlight changes to sync virtualizer scroll
+  const handleHighlightChange = useCallback(
+    (id: string | null, index: number, details: { reason: string }) => {
+      // Only scroll for keyboard navigation, not pointer (pointer scrolls naturally)
+      // Also check for valid item (index >= 0) and non-null id
+      if (id !== null && index >= 0 && details.reason === 'keyboard') {
+        // Use queueMicrotask to avoid "flushSync" warnings from virtualizer
+        queueMicrotask(() => {
+          virtualizer.scrollToIndex(index, { align: 'auto' })
+        })
+      }
+    },
+    [virtualizer],
+  )
+
+  // Wire up onHighlightChange callback for scroll sync
+  // This is the proper store contract for virtualization (instead of useEffect on highlightedId)
+  useEffect(() => {
+    store.setOnHighlightChange(handleHighlightChange)
+    return () => store.setOnHighlightChange(undefined)
+  }, [store, handleHighlightChange])
 
   // Register list ref with store for scroll behavior
   useEffect(() => {
@@ -471,11 +552,12 @@ function VirtualizedDataListContent({
     >
       <ScrollArea.Content
         style={{
-          height: `${totalSize}px`,
+          height: virtualizerEnabled ? `${totalSize}px` : '100%',
           width: '100%',
           position: 'relative',
         }}
       >
+        <Empty />
         {virtualItems.map((virtualItem) => {
           const node = nodes[virtualItem.index]
           if (!node) return null

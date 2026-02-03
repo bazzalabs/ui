@@ -342,6 +342,12 @@ export function useListboxItem(
           return
       }
 
+      // Check if pointer has actually moved - prevents phantom highlights when
+      // content shifts under a stationary pointer (e.g., search results changing)
+      if (!store.shouldAllowPointerHighlight(event.clientX, event.clientY)) {
+        return
+      }
+
       // Highlight on hover (using registrationId as identifier)
       store.setHighlightedId(registrationId)
     },
