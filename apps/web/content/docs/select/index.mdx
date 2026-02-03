@@ -239,6 +239,274 @@ function AlignedSelect() {
 }
 ```
 
+## Guides
+
+### Basics
+
+Select provides a form control for selecting a single value from a list of options.
+
+#### Controlled vs Uncontrolled
+
+```tsx
+// Uncontrolled - Select manages its own value
+<Select.Root defaultValue="apple">
+  ...
+</Select.Root>
+
+// Controlled - You manage the value
+const [value, setValue] = React.useState('')
+
+<Select.Root value={value} onValueChange={setValue}>
+  ...
+</Select.Root>
+```
+
+#### Multi-Select Mode
+
+Enable multi-select with the `multiple` prop:
+
+```tsx
+const [values, setValues] = React.useState<string[]>([])
+
+<Select.Root multiple values={values} onValuesChange={setValues}>
+  ...
+</Select.Root>
+```
+
+---
+
+### Form Integration
+
+Select integrates seamlessly with native HTML forms:
+
+```tsx
+<form onSubmit={handleSubmit}>
+  <Select.Root name="priority" required>
+    <Select.Trigger>
+      <Select.Value placeholder="Select priority..." />
+    </Select.Trigger>
+    ...
+  </Select.Root>
+  <button type="submit">Submit</button>
+</form>
+```
+
+**Form props:**
+- `name` - Field name for FormData submission
+- `form` - Associate with a form by ID
+- `required` - Mark field as required
+
+Hidden inputs are automatically rendered for form submission.
+
+---
+
+### Search & Filtering
+
+Add a search input to filter options. Works the same as Dropdown Menu:
+
+```tsx
+<Select.Surface>
+  <Select.Input placeholder="Search..." />
+  <Select.List>
+    <Select.Item value="apple">Apple</Select.Item>
+    <Select.Item value="banana">Banana</Select.Item>
+    ...
+  </Select.List>
+  <Select.Empty>No results found</Select.Empty>
+</Select.Surface>
+```
+
+#### Value and Keywords
+
+Use `value` and `keywords` for better filtering:
+
+```tsx
+<Select.Item value="us" keywords={['united states', 'america', 'usa']}>
+  United States
+</Select.Item>
+```
+
+---
+
+### Groups
+
+Organize options into labeled groups:
+
+```tsx
+<Select.List>
+  <Select.Group>
+    <Select.GroupLabel>Fruits</Select.GroupLabel>
+    <Select.Item value="apple">Apple</Select.Item>
+    <Select.Item value="banana">Banana</Select.Item>
+  </Select.Group>
+  <Select.Separator />
+  <Select.Group>
+    <Select.GroupLabel>Vegetables</Select.GroupLabel>
+    <Select.Item value="carrot">Carrot</Select.Item>
+    <Select.Item value="broccoli">Broccoli</Select.Item>
+  </Select.Group>
+</Select.List>
+```
+
+---
+
+### Displaying Values
+
+The `<Select.Value>` component displays the selected value or a placeholder:
+
+```tsx
+<Select.Trigger>
+  <Select.Value placeholder="Select an option..." />
+  <Select.Icon />
+</Select.Trigger>
+```
+
+#### Using the Items Prop
+
+For automatic label resolution, pass an `items` prop to Root:
+
+```tsx
+<Select.Root
+  value={value}
+  onValueChange={setValue}
+  items={{
+    us: 'United States',
+    uk: 'United Kingdom',
+    ca: 'Canada',
+  }}
+>
+  <Select.Trigger>
+    {/* Displays "United States" when value is "us" */}
+    <Select.Value placeholder="Select country..." />
+  </Select.Trigger>
+  ...
+</Select.Root>
+```
+
+The `items` prop accepts either a record or an array:
+
+```tsx
+// Record format
+items={{ us: 'United States', uk: 'United Kingdom' }}
+
+// Array format
+items={[
+  { value: 'us', label: 'United States' },
+  { value: 'uk', label: 'United Kingdom' },
+]}
+```
+
+---
+
+### Align Item With Trigger
+
+Enable native-select-like behavior where the selected item aligns with the trigger:
+
+```tsx
+<Select.Positioner alignItemWithTrigger>
+  <Select.Popup>
+    ...
+  </Select.Popup>
+</Select.Positioner>
+```
+
+This creates a visual connection between the trigger and the selected option, similar to native `<select>` elements.
+
+---
+
+### Virtualization
+
+For selects with many options (100+), use virtualization:
+
+```tsx
+import { useVirtualizer } from '@tanstack/react-virtual'
+
+const items = Array.from({ length: 1000 }, (_, i) => ({
+  value: `item-${i}`,
+  label: `Item ${i}`,
+}))
+
+function VirtualizedSelect() {
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 36,
+  })
+
+  return (
+    <Select.Root
+      virtualized
+      virtualItems={items}
+      onHighlightChange={(id, index) => {
+        virtualizer.scrollToIndex(index, { align: 'auto' })
+      }}
+    >
+      <Select.Trigger>
+        <Select.Value placeholder="Select item..." />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner>
+          <Select.Popup>
+            <Select.Surface filter={false}>
+              <Select.List viewportRef={scrollRef}>
+                <div style={{ height: virtualizer.getTotalSize() }}>
+                  {virtualizer.getVirtualItems().map((row) => (
+                    <div
+                      key={row.key}
+                      style={{
+                        position: 'absolute',
+                        top: row.start,
+                        height: row.size,
+                        width: '100%',
+                      }}
+                    >
+                      <Select.Item value={items[row.index].value}>
+                        <Select.ItemIndicator />
+                        <Select.ItemLabel>{items[row.index].label}</Select.ItemLabel>
+                      </Select.Item>
+                    </div>
+                  ))}
+                </div>
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  )
+}
+```
+
+---
+
+### Styling with Data Attributes
+
+All Select components expose data attributes for styling:
+
+```css
+/* Style the trigger based on open state */
+[data-bazzaui-select-trigger][data-open] {
+  border-color: blue;
+}
+
+/* Style items based on state */
+[data-bazzaui-select-item][data-highlighted] {
+  background: var(--highlight-bg);
+}
+
+[data-bazzaui-select-item][data-selected] {
+  font-weight: bold;
+}
+
+[data-bazzaui-select-item][data-disabled] {
+  opacity: 0.5;
+}
+```
+
+---
+
 ## API Reference
 
 ### Root
