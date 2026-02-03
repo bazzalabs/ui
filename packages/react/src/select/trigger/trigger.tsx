@@ -68,9 +68,10 @@ const SelectTriggerInner = React.forwardRef<
   const disabled = disabledProp ?? selectContext.disabled
 
   // Determine if showing placeholder
+  // Match Base UI: null, undefined, or empty string = no selection
   const hasValue = selectContext.multiple
     ? selectContext.values.length > 0
-    : selectContext.value !== ''
+    : selectContext.value != null && selectContext.value !== ''
 
   const state: SelectTrigger.State = React.useMemo(
     () => ({

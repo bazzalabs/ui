@@ -285,6 +285,7 @@ export function SelectRoot<
   const triggerRef = React.useRef<HTMLElement | null>(null)
   const valueRef = React.useRef<HTMLElement | null>(null)
   const selectedItemTextRef = React.useRef<HTMLElement | null>(null)
+  const firstItemTextRef = React.useRef<HTMLElement | null>(null)
 
   const setTriggerElement = React.useCallback((element: HTMLElement | null) => {
     triggerRef.current = element
@@ -407,6 +408,7 @@ export function SelectRoot<
       triggerRef,
       valueRef,
       selectedItemTextRef,
+      firstItemTextRef,
       setTriggerElement,
       setValueElement,
       registerResetPositioningCallback,
@@ -499,6 +501,8 @@ export function SelectRoot<
       // This preserves the aligned position during the exit animation
       if (!nextOpen) {
         resetPositioningCallbackRef.current?.()
+        // Clear first item text ref so it can be set fresh on next open
+        firstItemTextRef.current = null
       }
       // Call user's callback
       onOpenChangeComplete?.(nextOpen)

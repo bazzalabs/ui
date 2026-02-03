@@ -94,6 +94,8 @@ export interface SelectContextValue<Value = unknown> {
   valueRef: React.RefObject<HTMLElement | null>
   /** Ref to the selected item's text element */
   selectedItemTextRef: React.MutableRefObject<HTMLElement | null>
+  /** Ref to the first item's text element (used when no selection for alignItemWithTrigger) */
+  firstItemTextRef: React.MutableRefObject<HTMLElement | null>
   /** Callback to set the trigger element */
   setTriggerElement: (element: HTMLElement | null) => void
   /** Callback to set the value element */

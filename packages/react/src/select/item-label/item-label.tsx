@@ -135,8 +135,17 @@ export const SelectItemLabel = React.forwardRef<
       if (itemContext.selected && node) {
         selectContext.selectedItemTextRef.current = node
       }
+
+      // Register as the first item text for alignment fallback
+      // Only set if not already set - first non-disabled item to render wins
+      // The positioner will prefer selectedItemTextRef over firstItemTextRef
+      if (node && !itemContext.disabled) {
+        if (!selectContext.firstItemTextRef.current) {
+          selectContext.firstItemTextRef.current = node
+        }
+      }
     },
-    [itemContext.selected, selectContext],
+    [itemContext.selected, itemContext.disabled, selectContext],
   )
 
   return useRender({

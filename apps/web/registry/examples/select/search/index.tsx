@@ -27,8 +27,9 @@ export default function SelectSearch() {
         <Select.Positioner>
           <Select.Popup>
             <Select.Surface>
-              <Select.Input placeholder="Search countries..." />
+              <Select.Input hideUntilActive placeholder="Search countries..." />
               <Select.List>
+                <Select.Empty>No countries found.</Select.Empty>
                 {countries.map((country) => (
                   <Select.Item
                     key={country.value}
@@ -40,7 +41,6 @@ export default function SelectSearch() {
                   </Select.Item>
                 ))}
               </Select.List>
-              <Select.Empty>No countries found</Select.Empty>
             </Select.Surface>
           </Select.Popup>
         </Select.Positioner>

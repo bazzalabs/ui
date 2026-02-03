@@ -1,4 +1,5 @@
-import { Geist_Mono, Inter } from 'next/font/google'
+import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 
 export const inter = Inter({
   style: ['normal', 'italic'],
@@ -8,8 +9,9 @@ export const inter = Inter({
   display: 'swap',
 })
 
-export const monoFont = Geist_Mono({
-  subsets: ['latin'],
+export const monoFont = localFont({
+  src: '../assets/fonts/berkeley-mono/BerkeleyMono-Variable.woff2',
+  style: 'normal',
   variable: '--font-mono',
   display: 'swap',
 })
