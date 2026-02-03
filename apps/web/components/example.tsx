@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
-import { highlight } from '@/lib/highlighter'
-import { getLanguageFromPath, transformRegistryPaths } from '@/lib/registry'
+import { transformRegistryPaths } from '@/lib/registry'
 import { getRegistryEntrySources } from '@/lib/registry.server'
 import {
   ExampleClient,
@@ -56,22 +55,22 @@ async function ExampleRoot({
   // Fetch and highlight all source files
   const sources = await getRegistryEntrySources(name)
 
-  const processedSources = await Promise.all(
-    sources.map(async (source) => {
-      const content = transformPaths
-        ? transformRegistryPaths(source.content)
-        : source.content
-      const lang = getLanguageFromPath(source.path)
-      const highlighted = await highlight(content, lang)
-      const fileName = getFileName(source.path)
-      return {
-        path: source.path,
-        fileName,
-        content,
-        highlighted,
-      }
-    }),
-  )
+  const processedSources = sources.map((source) => {
+    const content = transformPaths
+      ? transformRegistryPaths(source.content)
+      : source.content
+    const fileName = getFileName(source.path)
+    return {
+      path: source.path,
+      fileName,
+      content,
+      highlighted: (
+        <pre>
+          <code>{content}</code>
+        </pre>
+      ),
+    }
+  })
 
   const fileNames = processedSources.map((s) => s.fileName)
   const contents = processedSources.map((s) => s.content)
@@ -139,17 +138,20 @@ export interface ExamplePreviewCodeProps {
  * </Example>
  * ```
  */
-async function ExamplePreviewCode({
+function ExamplePreviewCode({
   children,
   lang = 'tsx',
 }: ExamplePreviewCodeProps) {
-  // If children is a string, highlight it
+  // If children is a string, render as plain code
   if (typeof children === 'string') {
     const code = children.trim()
-    const highlighted = await highlight(code, lang)
     return (
       <div data-example-slot="preview-code">
-        <ExamplePreviewCodeContent>{highlighted}</ExamplePreviewCodeContent>
+        <ExamplePreviewCodeContent>
+          <pre>
+            <code>{code}</code>
+          </pre>
+        </ExamplePreviewCodeContent>
       </div>
     )
   }

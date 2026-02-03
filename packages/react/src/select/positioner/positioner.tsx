@@ -176,13 +176,20 @@ export const SelectPositioner = React.forwardRef<
   const scrollUpArrowRef = React.useRef<HTMLDivElement | null>(null)
   const scrollDownArrowRef = React.useRef<HTMLDivElement | null>(null)
 
-  // Reset state when closed
+  // Reset positioning state after close animation completes
+  // This preserves positioning during exit animations via onOpenChangeComplete
+  const resetPositioningState = React.useCallback(() => {
+    setAlignItemWithTriggerActive(alignItemWithTrigger)
+    setPositionState({ positioned: false })
+  }, [alignItemWithTrigger])
+
+  // Register reset callback with SelectContext so Root can call it after animation
   React.useEffect(() => {
-    if (!open) {
-      setAlignItemWithTriggerActive(alignItemWithTrigger)
-      setPositionState({ positioned: false })
-    }
-  }, [open, alignItemWithTrigger])
+    const cleanup = selectContext.registerResetPositioningCallback(
+      resetPositioningState,
+    )
+    return cleanup
+  }, [selectContext, resetPositioningState])
 
   // Calculate position when alignItemWithTrigger is active
   // We use useLayoutEffect to calculate before paint, preventing flash
@@ -241,8 +248,14 @@ export const SelectPositioner = React.forwardRef<
       scrollUpArrowRef,
       scrollDownArrowRef,
       setAlignItemWithTriggerActive,
+      resetPositioningState,
     }),
-    [alignItemWithTriggerActive, renderedSide, alignProp],
+    [
+      alignItemWithTriggerActive,
+      renderedSide,
+      alignProp,
+      resetPositioningState,
+    ],
   )
 
   // Merge refs
@@ -264,7 +277,8 @@ export const SelectPositioner = React.forwardRef<
   // - Apply fixed positioning with calculated coordinates after measurement
   // - Show element after positioning is done
 
-  const shouldHide = alignItemWithTriggerActive && !positionState.positioned
+  const shouldHide =
+    open && alignItemWithTriggerActive && !positionState.positioned
 
   // Build position styles for alignment mode
   const alignmentStyles: React.CSSProperties =

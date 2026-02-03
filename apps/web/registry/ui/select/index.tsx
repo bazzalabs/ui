@@ -121,7 +121,6 @@ const Popup = forwardRef<
           'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
           'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
         ],
-
         className,
       )
     }

@@ -66,6 +66,8 @@ const stateAttributesMapping = {
     !value ? { [SelectValueDataAttributes.placeholder]: '' } : null,
   multiple: (value: unknown): Record<string, string> | null =>
     value ? { [SelectValueDataAttributes.multiple]: '' } : null,
+  // Exclude function from data attributes to avoid hydration mismatch
+  getValueText: () => null,
 }
 
 /**
@@ -92,7 +94,7 @@ function SelectValueImpl<Value = unknown>(
 
   const hasValue = selectContext.multiple
     ? selectContext.values.length > 0
-    : selectContext.value != null
+    : Boolean(selectContext.value)
 
   // Helper to get text for a value
   // First check the item text registry (populated when items mount),

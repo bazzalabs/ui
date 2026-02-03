@@ -11805,6 +11805,53 @@
           }
         ]
       },
+      "SelectPopupProps": {
+        "name": "SelectPopupProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "className",
+            "type": "string | ((state: SelectPopupState) => string) | undefined",
+            "formattedType": "string | (state: Select.Popup.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopoverPopupState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopoverPopupState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component’s state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopoverPopupState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopoverPopupState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component’s HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SelectPopupState": {
+        "name": "SelectPopupState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "alignItemWithTriggerActive",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the popup is currently using align-item-with-trigger positioning.\nThis reflects the actual state, not just the prop value - it will be false\nif alignment couldn't be applied (e.g., not enough space, no selected item)."
+          },
+          {
+            "name": "isSubmenu",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether this popup is a submenu (not the root menu)."
+          }
+        ]
+      },
       "SelectPositionerProps": {
         "name": "SelectPositionerProps",
         "kind": "interface",
@@ -11868,6 +11915,13 @@
             "formattedType": "(\n  open: boolean,\n  eventDetails: SelectOpenChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback when the open state changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "onOpenChangeComplete",
+            "type": "((open: boolean) => void) | undefined",
+            "formattedType": "(open: boolean) => void",
+            "required": false,
+            "description": "Callback called after any animations complete when the select opens or closes.\nUseful for resetting state after exit animations finish."
           },
           {
             "name": "defaultOpen",
@@ -12558,33 +12612,6 @@
         "name": "SelectListState",
         "kind": "interface"
       },
-      "SelectPopupProps": {
-        "name": "SelectPopupProps",
-        "kind": "interface",
-        "props": [
-          {
-            "name": "className",
-            "type": "string | ((state: PopupMenuPopupState) => string) | undefined",
-            "formattedType": "string | (state: PopupMenu.Popup.State) => string",
-            "required": false,
-            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
-          },
-          {
-            "name": "style",
-            "type": "CSSProperties | (CSSProperties & ((state: PopoverPopupState) => CSSProperties | undefined)) | undefined",
-            "formattedType": "CSSProperties | CSSProperties & (state: PopoverPopupState) => CSSProperties",
-            "required": false,
-            "description": "Style applied to the element, or a function that\nreturns a style object based on the component’s state."
-          },
-          {
-            "name": "render",
-            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopoverPopupState> | undefined",
-            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopoverPopupState,\n    ) => ReactElement)",
-            "required": false,
-            "description": "Allows you to replace the component’s HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
-          }
-        ]
-      },
       "SelectPortalProps": {
         "name": "SelectPortalProps",
         "kind": "interface",
@@ -13034,65 +13061,12 @@
       "SelectPopupDataAttributes": {
         "name": "SelectPopupDataAttributes",
         "kind": "enum",
+        "doc": "Select-specific popup data attributes (in addition to PopupMenuPopupDataAttributes).",
         "members": [
           {
-            "name": "slot",
-            "value": "bazzaui-select-popup",
-            "description": "Identifies the component part.",
-            "valueType": "{'bazzaui-select-popup'}"
-          },
-          {
-            "name": "open",
-            "value": "data-open",
-            "description": "Present when the popup menu is open."
-          },
-          {
-            "name": "closed",
-            "value": "data-closed",
-            "description": "Present when the popup menu is closed."
-          },
-          {
-            "name": "side",
-            "value": "data-side",
-            "description": "Indicates which side the popup is positioned relative to the trigger.",
-            "valueType": "{'top' | 'bottom' | 'left' | 'right'}"
-          },
-          {
-            "name": "align",
-            "value": "data-align",
-            "description": "Indicates how the popup is aligned relative to specified side.",
-            "valueType": "{'start' | 'center' | 'end'}"
-          },
-          {
-            "name": "startingStyle",
-            "value": "data-starting-style",
-            "description": "Present when the popup is animating in."
-          },
-          {
-            "name": "endingStyle",
-            "value": "data-ending-style",
-            "description": "Present when the popup is animating out."
-          },
-          {
-            "name": "instant",
-            "value": "data-instant",
-            "description": "Present if animations should be instant.",
-            "valueType": "{'click' | 'dismiss'}"
-          },
-          {
-            "name": "focused",
-            "value": "data-focused",
-            "description": "Present when this popup's surface is the focus owner.\nUseful for styling the currently focused menu in a submenu chain."
-          },
-          {
-            "name": "hasOpenSubmenu",
-            "value": "data-has-open-submenu",
-            "description": "Present when this popup has an open submenu below it in the menu tree.\nUseful for styling all parent menus in an open submenu chain."
-          },
-          {
-            "name": "submenu",
-            "value": "data-submenu",
-            "description": "Present when this popup is a submenu (not the root menu).\nUseful for applying different styles to submenus vs root menus."
+            "name": "alignItemWithTrigger",
+            "value": "data-align-item-with-trigger",
+            "description": "Present when the popup is using align-item-with-trigger positioning.\nThis reflects the actual state, not just the prop value."
           }
         ],
         "enumCategory": "dataAttributes"
@@ -13364,6 +13338,13 @@
             "type": "(element: HTMLElement | null) => void",
             "required": true,
             "description": "Callback to set the value element"
+          },
+          {
+            "name": "registerResetPositioningCallback",
+            "type": "(callback: (() => void) | null) => () => void",
+            "formattedType": "(\n  callback: (() => void) | null,\n) => () => void",
+            "required": true,
+            "description": "Register a callback to reset positioning state after close animation"
           }
         ]
       },
@@ -13416,6 +13397,12 @@
             "type": "(active: boolean) => void",
             "required": true,
             "description": "Callback to disable alignItemWithTrigger (fallback to normal positioning)."
+          },
+          {
+            "name": "resetPositioningState",
+            "type": "() => void",
+            "required": true,
+            "description": "Callback to reset positioning state after close animation completes.\nThis preserves positioning during exit animations."
           }
         ]
       },
