@@ -11,7 +11,22 @@ import { SelectSurfaceDataAttributes } from './surface.data-attrs.js'
 
 export { SelectSurfaceDataAttributes }
 
-export interface SelectSurfaceProps extends PopupMenuSurfaceProps {}
+export interface SelectSurfaceProps
+  extends Omit<PopupMenuSurfaceProps, 'autoHighlightFirst'> {
+  /**
+   * Controls auto-highlighting behavior when the select opens.
+   * - `true`: highlight the first item (default when alignItemWithTrigger is inactive)
+   * - `false`: don't auto-highlight any item
+   * - `'selected'`: highlight the currently selected item, or first item if none selected
+   * - `string`: highlight the item with this specific value
+   *
+   * Note: When the Positioner's `alignItemWithTrigger` is active and this prop
+   * is not explicitly set, the selected item is automatically highlighted.
+   *
+   * @default true (or selected value when alignItemWithTrigger is active)
+   */
+  autoHighlightFirst?: boolean | 'selected' | string
+}
 
 /**
  * Provides search context and manages item registration for Select.
@@ -32,11 +47,23 @@ export const SelectSurface = React.forwardRef<
   const positionerContext = useSelectPositionerContext()
 
   // Determine autoHighlightFirst value:
-  // - If alignItemWithTrigger is active and there's a selected value,
-  //   highlight the selected item instead of the first item
+  // - 'selected': use the current selected value (falls back to true if no selection)
+  // - If alignItemWithTrigger is active and prop is not set, highlight the selected item
   // - Otherwise, use the prop value (defaulting to true)
   const autoHighlightFirst = React.useMemo(() => {
-    // If user explicitly passed a value, respect it
+    // Handle 'selected' shorthand - resolve to actual selected value
+    if (autoHighlightFirstProp === 'selected') {
+      // For single-select, use the selected value
+      // For multi-select, use the first selected value
+      const selectedValue = selectContext.multiple
+        ? selectContext.values[0]
+        : selectContext.value
+
+      // If there's a selected value, highlight it; otherwise highlight first
+      return selectedValue || true
+    }
+
+    // If user explicitly passed a value (other than 'selected'), respect it
     if (autoHighlightFirstProp !== undefined) {
       return autoHighlightFirstProp
     }
