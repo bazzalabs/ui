@@ -1,12 +1,13 @@
 {
-  "mode": "exit",
+  "mode": "pre",
   "tag": "canary",
   "initialVersions": {
+    "playground-nextjs": "0.1.0",
     "web": "0.0.0",
     "@bazza-ui/filters": "0.3.2025091001",
-    "@bazza-ui/typescript-config": "0.0.0",
-    "@bazza-ui/registry-filters": "0.1.0",
-    "playground-nextjs": "0.1.0"
+    "@bazza-ui/registry-filters": "0.2.0-canary.3",
+    "@bazza-ui/react": "0.1.0-canary.0",
+    "@bazza-ui/typescript-config": "0.0.0"
   },
   "changesets": [
     "blue-shoes-fry",
