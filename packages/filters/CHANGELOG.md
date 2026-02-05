@@ -1,5 +1,15 @@
 # @bazza-ui/filters
 
+## 0.0.0-20260205122308
+
+### Minor Changes
+
+- [#222](https://github.com/bazzalabs/ui/pull/222) [`5f47618`](https://github.com/bazzalabs/ui/commit/5f476182eda80b46083e6ccb0d8a58bd060795b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Extract `faceted` type definition to `FacetedColumnData` type.
+
+- [#218](https://github.com/bazzalabs/ui/pull/218) [`1bcdad9`](https://github.com/bazzalabs/ui/commit/1bcdad982db5b8b228e3e20d5dbb8f5a015bb074) Thanks [@kianbazza](https://github.com/kianbazza)! - Add type guards for `Column` and `FilterModel` to narrow down column data type
+
+- [#242](https://github.com/bazzalabs/ui/pull/242) [`ac8fa02`](https://github.com/bazzalabs/ui/commit/ac8fa0256a0b716c6805dc71bb341981a72da51c) Thanks [@kianbazza](https://github.com/kianbazza)! - This PR resolves an issue where bigint faceted options supplied in the useDataTableFilters() hook were not being injected into the final Column instance.
+
 ## 0.4.0-canary.4
 
 ### Minor Changes
