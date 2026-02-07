@@ -1,0 +1,6 @@
+{
+  "name": "@bazza-ui/registry-data-view",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Registry component: Data view filter, sort, and view management primitives"
+}
