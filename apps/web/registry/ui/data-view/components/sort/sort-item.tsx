@@ -1,54 +1,113 @@
 'use client'
 
-import { ArrowDownIcon, ArrowUpIcon, XIcon } from 'lucide-react'
-
+import type { Column, SortRule, ViewLayer } from '@bazza-ui/data-view/react'
+import { cva, type VariantProps } from 'class-variance-authority'
+import { ArrowDownIcon, ArrowUpIcon, X } from 'lucide-react'
+import { type ComponentPropsWithoutRef, forwardRef } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import {
+  useDataViewContext,
+  useDataViewVariant,
+} from '../root/data-view-context'
 
-import { useDataViewInstance } from '../provider/data-view-context'
+const sortItemVariants = cva(
+  'flex items-center gap-1 text-xs font-medium h-7 pr-1',
+  {
+    variants: {
+      variant: {
+        default: 'rounded-md border border-border bg-background shadow-xs',
+        clean: 'rounded-md bg-accent border-none shadow-none',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
 
-// ---------------------------------------------------------------------------
-// SortItem
-// ---------------------------------------------------------------------------
-
-export interface SortItemProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Column ID of the sort rule */
-  columnId: string
+export interface SortItemProps<TData = unknown>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'>,
+    VariantProps<typeof sortItemVariants> {
+  rule: SortRule
+  column?: Column<TData>
+  layer?: ViewLayer<TData>
 }
 
-export function SortItem({ columnId, className, ...props }: SortItemProps) {
-  const instance = useDataViewInstance()
-  const column = instance.columns.find((c) => c.id === columnId)
-  if (!column) return null
+/**
+ * Displays a single sort rule as a badge/chip with direction arrow and remove button.
+ * Renders a `<div>` element.
+ */
+const SortItem = forwardRef<HTMLDivElement, SortItemProps>(
+  (
+    {
+      rule,
+      column: columnProp,
+      layer: layerProp,
+      className,
+      variant: variantProp,
+      ...props
+    },
+    ref,
+  ) => {
+    const context = useDataViewContext()
+    const contextVariant = useDataViewVariant()
+    const variant = variantProp ?? contextVariant ?? 'default'
+    const layer = layerProp ?? context.layer
 
-  const sortDir = column.getIsSorted()
-  if (!sortDir) return null
+    // Resolve column from context if not provided
+    const column =
+      columnProp ??
+      (rule.type === 'column'
+        ? context.columns.find((c) => c.id === rule.columnId)
+        : undefined)
 
-  const Icon = column.icon as
-    | React.ComponentType<{ className?: string }>
-    | undefined
+    const displayName =
+      rule.type === 'column' ? (column?.displayName ?? rule.columnId) : rule.id
 
-  return (
-    <div
-      className={cn(
-        'inline-flex items-center gap-1 rounded-md border bg-background text-sm shadow-xs h-7 px-2',
-        className,
-      )}
-      {...props}
-    >
-      {sortDir === 'asc' ? (
-        <ArrowUpIcon className="size-3 text-muted-foreground" />
-      ) : (
-        <ArrowDownIcon className="size-3 text-muted-foreground" />
-      )}
-      {Icon && <Icon className="size-3 text-muted-foreground" />}
-      <span className="text-xs font-medium">{column.displayName}</span>
-      <button
-        type="button"
-        onClick={() => column.clearSorting()}
-        className="flex items-center justify-center size-4 rounded-sm hover:bg-muted transition-colors text-muted-foreground hover:text-foreground ml-0.5"
+    const direction = rule.type === 'column' ? rule.direction : undefined
+
+    function handleRemove() {
+      if (rule.type === 'column') {
+        // Toggle off the current sort direction
+        layer.toggleColumnSort(rule.columnId)
+      } else {
+        layer.setCustomSort(rule.id, false)
+      }
+    }
+
+    return (
+      <div
+        ref={ref}
+        data-slot="sort-item"
+        className={cn(sortItemVariants({ variant }), className)}
+        {...props}
       >
-        <XIcon className="size-3" />
-      </button>
-    </div>
-  )
+        <span className="flex items-center gap-1 px-2">
+          {direction === 'asc' ? (
+            <ArrowUpIcon className="size-3" />
+          ) : direction === 'desc' ? (
+            <ArrowDownIcon className="size-3" />
+          ) : null}
+          <span>{displayName}</span>
+        </span>
+        <Button
+          variant="ghost"
+          className="h-5 w-5 p-0 text-muted-foreground hover:text-primary rounded-sm"
+          onClick={handleRemove}
+        >
+          <X className="size-3" />
+        </Button>
+      </div>
+    )
+  },
+)
+
+SortItem.displayName = 'SortItem'
+
+export { SortItem, sortItemVariants }
+
+export namespace SortItem {
+  export type Props<TData = unknown> = SortItemProps<TData>
 }

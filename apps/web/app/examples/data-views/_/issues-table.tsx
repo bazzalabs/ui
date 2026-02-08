@@ -68,32 +68,22 @@ import {
 } from '@/components/ui/tooltip'
 
 import { cn } from '@/lib/utils'
+import { FilterActions } from '@/registry/ui/data-view/components/actions/filter-actions'
+import { FilterItem } from '@/registry/ui/data-view/components/item/filter-item'
+import { FilterOperator } from '@/registry/ui/data-view/components/item/filter-operator'
+import { FilterRemove } from '@/registry/ui/data-view/components/item/filter-remove'
+import { FilterSubject } from '@/registry/ui/data-view/components/item/filter-subject'
+import { FilterValue } from '@/registry/ui/data-view/components/item/filter-value'
+import { FilterList } from '@/registry/ui/data-view/components/list/filter-list'
+import { FilterMenu } from '@/registry/ui/data-view/components/menu/filter-menu'
+import { DataViewProvider } from '@/registry/ui/data-view/components/provider/data-view-provider'
 import { columnsConfig } from './columns'
-import { ISSUE_LABELS, ISSUE_STATUSES, ISSUES } from './data'
+import { ISSUES } from './data'
 // Ensure module augmentation for DataViewStateMeta is loaded
 import type { Issue } from './types'
 import { DEFAULT_VIEW, PRESET_VIEWS } from './views'
 
 // ── Helpers ────────────────────────────────────────────────
-
-function getFilterLabel(columnId: string, values: unknown[]): string {
-  switch (columnId) {
-    case 'status': {
-      return values
-        .map((v) => ISSUE_STATUSES.find((s) => s.id === v)?.name ?? v)
-        .join(', ')
-    }
-    case 'labels': {
-      return values
-        .map((v) => ISSUE_LABELS.find((l) => l.id === v)?.name ?? v)
-        .join(', ')
-    }
-    case 'isUrgent':
-      return values[0] === true ? 'Yes' : 'No'
-    default:
-      return values.map(String).join(', ')
-  }
-}
 
 function findActiveView(
   views: DataViewState[],
@@ -428,9 +418,6 @@ function ViewEditor({
               {Icon && <Icon className="size-3" />}
               <span className="font-medium">{col.displayName}</span>
               <span className="text-muted-foreground">{filter.operator}</span>
-              <span className="max-w-[120px] truncate">
-                {getFilterLabel(filter.columnId, filter.values)}
-              </span>
               <button
                 type="button"
                 onClick={() => handleRemoveEditFilter(filter.columnId)}
@@ -596,209 +583,6 @@ function ViewEditor({
           </PopoverContent>
         </Popover>
       </div>
-    </div>
-  )
-}
-
-// ── FilterBar ──────────────────────────────────────────────
-
-function FilterBar({
-  columns,
-  filters,
-  onAddFilter,
-  onRemoveFilter,
-  onClearAll,
-}: {
-  columns: Column<Issue>[]
-  filters: FiltersState
-  onAddFilter: (column: Column<Issue>, value: string) => void
-  onRemoveFilter: (columnId: string) => void
-  onClearAll: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null)
-
-  const filterableColumns = columns.filter(
-    (c) =>
-      c.type === 'option' || c.type === 'multiOption' || c.type === 'boolean',
-  )
-
-  const selectedColumn = selectedColumnId
-    ? columns.find((c) => c.id === selectedColumnId)
-    : null
-
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1">
-            <PlusIcon className="size-3.5" />
-            Filter
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[220px] p-0" align="start">
-          {!selectedColumn ? (
-            <Command>
-              <CommandInput placeholder="Filter by..." />
-              <CommandList>
-                <CommandEmpty>No columns found.</CommandEmpty>
-                <CommandGroup>
-                  {filterableColumns.map((col) => {
-                    const Icon = col.icon as React.ComponentType<{
-                      className?: string
-                    }>
-                    return (
-                      <CommandItem
-                        key={col.id}
-                        onSelect={() => setSelectedColumnId(col.id)}
-                      >
-                        {Icon && (
-                          <Icon className="size-4 text-muted-foreground" />
-                        )}
-                        {col.displayName}
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          ) : (
-            <Command>
-              <CommandInput
-                placeholder={`Search ${selectedColumn.displayName}...`}
-              />
-              <CommandList>
-                <CommandEmpty>No options found.</CommandEmpty>
-                <CommandGroup>
-                  {selectedColumn.type === 'boolean' ? (
-                    <>
-                      {[
-                        { label: 'Yes', value: 'true' },
-                        { label: 'No', value: 'false' },
-                      ].map((opt) => {
-                        const existingFilter = filters.find(
-                          (f) => f.columnId === selectedColumn.id,
-                        )
-                        const isSelected =
-                          existingFilter?.values[0] === (opt.value === 'true')
-                        return (
-                          <CommandItem
-                            key={opt.value}
-                            onSelect={() => {
-                              onAddFilter(selectedColumn, opt.value)
-                              setSelectedColumnId(null)
-                              setOpen(false)
-                            }}
-                          >
-                            <div
-                              className={cn(
-                                'flex size-4 items-center justify-center rounded-sm border border-primary',
-                                isSelected
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'opacity-50',
-                              )}
-                            >
-                              {isSelected && <CheckIcon className="size-3" />}
-                            </div>
-                            {opt.label}
-                          </CommandItem>
-                        )
-                      })}
-                    </>
-                  ) : (
-                    selectedColumn.getOptions().map((opt) => {
-                      const existingFilter = filters.find(
-                        (f) => f.columnId === selectedColumn.id,
-                      )
-                      const isSelected =
-                        existingFilter?.values.includes(opt.value) ?? false
-                      const Icon = opt.icon as
-                        | React.ComponentType<{ className?: string }>
-                        | undefined
-
-                      return (
-                        <CommandItem
-                          key={opt.value}
-                          onSelect={() => {
-                            onAddFilter(selectedColumn, opt.value)
-                          }}
-                        >
-                          <div
-                            className={cn(
-                              'flex size-4 items-center justify-center rounded-sm border border-primary',
-                              isSelected
-                                ? 'bg-primary text-primary-foreground'
-                                : 'opacity-50',
-                            )}
-                          >
-                            {isSelected && <CheckIcon className="size-3" />}
-                          </div>
-                          {Icon && (
-                            <Icon className="size-4 text-muted-foreground" />
-                          )}
-                          {opt.label}
-                        </CommandItem>
-                      )
-                    })
-                  )}
-                </CommandGroup>
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={() => {
-                      setSelectedColumnId(null)
-                    }}
-                    className="justify-center text-muted-foreground"
-                  >
-                    Back to columns
-                  </CommandItem>
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          )}
-        </PopoverContent>
-      </Popover>
-
-      {filters.map((filter) => {
-        const col = columns.find((c) => c.id === filter.columnId)
-        if (!col) return null
-        const Icon = col.icon as
-          | React.ComponentType<{ className?: string }>
-          | undefined
-
-        return (
-          <Badge
-            key={filter.columnId}
-            variant="secondary"
-            className="gap-1 pr-1"
-          >
-            {Icon && <Icon className="size-3" />}
-            <span className="font-medium">{col.displayName}</span>
-            <span className="text-muted-foreground">{filter.operator}</span>
-            <span className="max-w-[120px] truncate">
-              {getFilterLabel(filter.columnId, filter.values)}
-            </span>
-            <button
-              type="button"
-              onClick={() => onRemoveFilter(filter.columnId)}
-              className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
-            >
-              <XIcon className="size-3" />
-            </button>
-          </Badge>
-        )
-      })}
-
-      {filters.length > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 text-muted-foreground"
-          onClick={onClearAll}
-        >
-          Clear all
-        </Button>
-      )}
     </div>
   )
 }
@@ -1119,125 +903,118 @@ export function IssuesTable() {
     baseView.load(fallback)
   }, [activeView, baseView])
 
-  // ── Filter Handlers ─────────────────────────────────────
-
-  function handleAddFilter(column: Column<Issue>, value: string) {
-    if (column.type === 'boolean') {
-      column.setFilterValue([value === 'true'])
-      return
-    }
-
-    const existing = overrides.filters.find((f) => f.columnId === column.id)
-    if (existing?.values.includes(value)) {
-      column.removeFilterValue([value])
-    } else {
-      column.addFilterValue([value])
-    }
-  }
-
   // ── Render ──────────────────────────────────────────────
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
-        {/* View Switcher (tab bar) */}
-        <ViewSwitcher
-          views={views}
-          activeView={activeView}
-          hasOverrides={hasOverrides}
-          onLoadView={handleLoadView}
-          onSaveView={handleSaveNewView}
-        />
-
-        {/* View Header (name + ... menu) */}
-        <ViewHeader
-          activeView={activeView}
-          hasOverrides={hasOverrides}
-          onEdit={handleEditView}
-          onDuplicate={handleDuplicateView}
-          onDelete={handleDeleteView}
-        />
-
-        {/* Inline View Editor (Linear-style) */}
-        {editingView && (
-          <ViewEditor
-            view={editingView}
-            columns={columns}
-            onSave={handleSaveEdit}
-            onCancel={handleCancelEdit}
+      <DataViewProvider instance={dataView} layer="overrides">
+        <div className="space-y-4">
+          {/* View Switcher (tab bar) */}
+          <ViewSwitcher
+            views={views}
+            activeView={activeView}
+            hasOverrides={hasOverrides}
+            onLoadView={handleLoadView}
+            onSaveView={handleSaveNewView}
           />
-        )}
 
-        {/* Override Toolbar */}
-        <div className="flex items-center justify-between">
-          <FilterBar
-            columns={columns}
-            filters={overrides.filters}
-            onAddFilter={handleAddFilter}
-            onRemoveFilter={(columnId) => overrides.removeFilter(columnId)}
-            onClearAll={() => overrides.removeAllFilters()}
+          {/* View Header (name + ... menu) */}
+          <ViewHeader
+            activeView={activeView}
+            hasOverrides={hasOverrides}
+            onEdit={handleEditView}
+            onDuplicate={handleDuplicateView}
+            onDelete={handleDeleteView}
           />
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {processedData.length} of {ISSUES.length} issues
-            </span>
-            {sort.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-muted-foreground"
-                onClick={() => overrides.clearSort()}
-              >
-                Clear sort
-              </Button>
-            )}
+
+          {/* Inline View Editor (Linear-style) */}
+          {editingView && (
+            <ViewEditor
+              view={editingView}
+              columns={columns}
+              onSave={handleSaveEdit}
+              onCancel={handleCancelEdit}
+            />
+          )}
+
+          {/* Override Toolbar — FilterMenu + FilterList + FilterActions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-wrap">
+              <FilterMenu />
+              <FilterList>
+                {({ filter, column }) => (
+                  <FilterItem filter={filter} column={column}>
+                    <FilterSubject />
+                    <FilterOperator />
+                    <FilterValue />
+                    <FilterRemove />
+                  </FilterItem>
+                )}
+              </FilterList>
+              <FilterActions />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {processedData.length} of {ISSUES.length} issues
+              </span>
+              {sort.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-muted-foreground"
+                  onClick={() => overrides.clearSort()}
+                >
+                  Clear sort
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Virtualized Table */}
+          <VirtualizedTable
+            data={processedData}
+            columns={columns}
+            parentRef={tableContainerRef}
+          />
+
+          {/* Debug info */}
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer hover:text-foreground">
+              View state (debug)
+            </summary>
+            <pre className="mt-2 rounded-md bg-muted p-4 overflow-auto max-h-[300px]">
+              {JSON.stringify(
+                {
+                  activeView: activeView
+                    ? {
+                        id: activeView.id,
+                        name: activeView.name,
+                        description: activeView.meta?.description,
+                        isPreset: activeView.meta?.isPreset,
+                      }
+                    : null,
+                  baseView: {
+                    id: baseView.id,
+                    name: baseView.name,
+                    filters: baseView.filters,
+                    sort: baseView.sort,
+                  },
+                  overrides: {
+                    filters: overrides.filters,
+                    sort: overrides.sort,
+                  },
+                  effective: dataView.view,
+                  savedViews: views
+                    .filter((v) => !v.meta?.isPreset)
+                    .map((v) => ({ id: v.id, name: v.name })),
+                },
+                null,
+                2,
+              )}
+            </pre>
+          </details>
         </div>
-
-        {/* Virtualized Table */}
-        <VirtualizedTable
-          data={processedData}
-          columns={columns}
-          parentRef={tableContainerRef}
-        />
-
-        {/* Debug info */}
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer hover:text-foreground">
-            View state (debug)
-          </summary>
-          <pre className="mt-2 rounded-md bg-muted p-4 overflow-auto max-h-[300px]">
-            {JSON.stringify(
-              {
-                activeView: activeView
-                  ? {
-                      id: activeView.id,
-                      name: activeView.name,
-                      description: activeView.meta?.description,
-                      isPreset: activeView.meta?.isPreset,
-                    }
-                  : null,
-                baseView: {
-                  id: baseView.id,
-                  name: baseView.name,
-                  filters: baseView.filters,
-                  sort: baseView.sort,
-                },
-                overrides: {
-                  filters: overrides.filters,
-                  sort: overrides.sort,
-                },
-                effective: dataView.view,
-                savedViews: views
-                  .filter((v) => !v.meta?.isPreset)
-                  .map((v) => ({ id: v.id, name: v.name })),
-              },
-              null,
-              2,
-            )}
-          </pre>
-        </details>
-      </div>
+      </DataViewProvider>
     </TooltipProvider>
   )
 }

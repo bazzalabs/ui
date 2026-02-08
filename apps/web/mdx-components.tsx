@@ -1,7 +1,6 @@
 import { ConstructionIcon, LinkIcon } from 'lucide-react'
 import type { MDXComponents } from 'mdx/types'
 import Image from 'next/image'
-import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
 import { BaseUIReference } from '@/components/base-ui-reference'
 import { CssSelector } from '@/components/css-selector'
 import { CssVarsTable } from '@/components/css-vars-table'
@@ -25,7 +24,7 @@ import {
 import CollapsibleCodeBlock from './components/collapsible-code-block'
 import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
-import { ComponentPreview } from './components/component-preview'
+import type { ComponentPreviewProps } from './components/component-preview'
 import { ComponentsList } from './components/components-list'
 import { Example } from './components/example'
 import { Examples } from './components/examples'
@@ -53,6 +52,23 @@ const HeadingAnchor = ({
     />
   </a>
 )
+
+const IssuesTableWrapper = async () => {
+  const { IssuesTableWrapper } = await import(
+    '@/app/demos/client/tst-static/_/issues-table-wrapper'
+  )
+
+  return <IssuesTableWrapper />
+}
+
+const ComponentPreview = async ({
+  className,
+  ...props
+}: ComponentPreviewProps) => {
+  const { ComponentPreview } = await import('./components/component-preview')
+
+  return <ComponentPreview className={cn('my-6', className)} {...props} />
+}
 
 const components = {
   h1: (props) => (
@@ -281,13 +297,9 @@ const components = {
   DataAttrsTable,
   CssVarsTable,
   CssSelector,
-  IssuesTableWrapper,
   // @ts-expect-error
   Examples,
   Example,
-  ComponentPreview: ({ className, ...props }) => (
-    <ComponentPreview className={cn('my-6', className)} {...props} />
-  ),
   ComponentCode: ComponentCode,
   ComponentFrame,
   CodeInline,
@@ -326,6 +338,23 @@ const components = {
   CodeBlockTab,
 } satisfies MDXComponents
 
-export function useMDXComponents(): MDXComponents {
-  return components as any
+interface UseMDXComponentsOptions {
+  slug?: string[]
+}
+
+export function useMDXComponents({
+  slug,
+}: UseMDXComponentsOptions = {}): MDXComponents {
+  const includeFilterDemos =
+    slug?.includes('filters') || slug?.includes('data-table-filter')
+
+  if (!includeFilterDemos) {
+    return components as any
+  }
+
+  return {
+    ...components,
+    IssuesTableWrapper,
+    ComponentPreview,
+  } as any
 }

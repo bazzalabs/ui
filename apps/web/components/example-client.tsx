@@ -12,7 +12,6 @@ import {
   useRef,
   useState,
 } from 'react'
-import { getRegistryComponent } from '@/lib/registry'
 import { cn } from '@/lib/utils'
 import {
   Collapsible,
@@ -52,6 +51,10 @@ export interface ExampleClientProps {
    * These are parsed to extract previewCode and previewComponent
    */
   compoundChildren?: ReactNode
+  /**
+   * The live preview element for this example
+   */
+  preview: ReactNode
 }
 
 interface ExampleCodeContentProps {
@@ -121,6 +124,7 @@ export const ExamplePreviewComponentContent =
 
 export function ExampleClient({
   name,
+  preview,
   className,
   align = 'center',
   fileNames,
@@ -131,8 +135,6 @@ export function ExampleClient({
   const [isOpen, setIsOpen] = useState(false)
   const [isStuck, setIsStuck] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const Component = useMemo(() => getRegistryComponent(name), [name])
-
   // Parse compound children to extract previewCode and previewComponent
   const { previewCode, previewComponent } = useMemo(() => {
     let previewCode: ReactNode = null
@@ -178,7 +180,7 @@ export function ExampleClient({
   const codeBlocks = Children.toArray(children)
   const hasPreviewCode = !!previewCode
 
-  if (!Component) {
+  if (!preview) {
     return (
       <div
         className={cn(
@@ -201,9 +203,7 @@ export function ExampleClient({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {/* Preview area */}
         <PreviewArea align={align} previewComponent={previewComponent}>
-          <Suspense fallback={<ExampleSkeleton />}>
-            <Component />
-          </Suspense>
+          <Suspense fallback={<ExampleSkeleton />}>{preview}</Suspense>
         </PreviewArea>
 
         {/* Preview code section - shown when collapsed and previewCode is provided */}

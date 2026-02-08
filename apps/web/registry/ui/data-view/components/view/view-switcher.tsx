@@ -1,57 +1,65 @@
 'use client'
 
-import type { DataViewState } from '@bazza-ui/data-view/react'
-import { PlusIcon } from 'lucide-react'
+import type { BaseViewLayer, DataViewState } from '@bazza-ui/data-view/react'
+import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
-import { useDataViewContext } from '../provider/data-view-context'
+import { useDataViewContext } from '../root/data-view-context'
 
-export interface ViewSwitcherProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface ViewSwitcherProps extends ComponentPropsWithoutRef<'div'> {
+  /** Array of saved/preset views to display as tabs. */
   views: DataViewState[]
+  /** Currently active view ID (matched against `view.id`). */
+  activeViewId?: string
+  /** Callback when a view tab is clicked. Defaults to `baseView.load(view)`. */
   onViewSelect?: (view: DataViewState) => void
-  onCreateView?: () => void
+  /** Custom render function for individual tabs. */
   renderTab?: (view: DataViewState, isActive: boolean) => React.ReactNode
 }
 
-export function ViewSwitcher({
-  views,
-  onViewSelect,
-  onCreateView,
-  renderTab,
-  className,
-  ...props
-}: ViewSwitcherProps) {
-  const { instance } = useDataViewContext()
+/**
+ * Tab bar for switching between saved/preset views.
+ * Renders a `<div>` element with tab buttons.
+ */
+const ViewSwitcher = forwardRef<HTMLDivElement, ViewSwitcherProps>(
+  (
+    {
+      views,
+      activeViewId,
+      onViewSelect: onViewSelectProp,
+      renderTab,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
+    const context = useDataViewContext()
+    const baseView = context.instance.baseView
 
-  const activeViewId = instance.baseView.id
-  const isActiveView = (view: DataViewState) => {
-    if (activeViewId && view.id) return activeViewId === view.id
+    const onViewSelect =
+      onViewSelectProp ??
+      ((view: DataViewState) => {
+        baseView.load(view)
+      })
+
     return (
-      JSON.stringify(view.filters) ===
-        JSON.stringify(instance.baseView.filters) &&
-      JSON.stringify(view.sort) === JSON.stringify(instance.baseView.sort)
-    )
-  }
-
-  const handleSelect = (view: DataViewState) => {
-    instance.baseView.load(view)
-    onViewSelect?.(view)
-  }
-
-  return (
-    <div className={cn('flex items-center gap-1', className)} {...props}>
-      <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+      <div
+        ref={ref}
+        data-slot="view-switcher"
+        className={cn(
+          'flex items-center gap-0.5 rounded-lg bg-muted p-0.5',
+          className,
+        )}
+        {...props}
+      >
         {views.map((view) => {
-          const isActive = isActiveView(view)
-          const key = view.id ?? view.name ?? JSON.stringify(view.filters)
+          const isActive = view.id === activeViewId
 
           if (renderTab) {
             return (
               <button
-                key={key}
+                key={view.id ?? view.name}
                 type="button"
-                onClick={() => handleSelect(view)}
-                className="contents"
+                onClick={() => onViewSelect(view)}
               >
                 {renderTab(view, isActive)}
               </button>
@@ -60,9 +68,9 @@ export function ViewSwitcher({
 
           return (
             <button
-              key={key}
+              key={view.id ?? view.name}
               type="button"
-              onClick={() => handleSelect(view)}
+              onClick={() => onViewSelect(view)}
               className={cn(
                 'px-3 py-1 text-sm rounded-md transition-colors',
                 isActive
@@ -70,21 +78,19 @@ export function ViewSwitcher({
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {view.name ?? 'Untitled'}
+              {view.name ?? view.id ?? 'Untitled'}
             </button>
           )
         })}
       </div>
+    )
+  },
+)
 
-      {onCreateView && (
-        <button
-          type="button"
-          onClick={onCreateView}
-          className="flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <PlusIcon className="size-3.5" />
-        </button>
-      )}
-    </div>
-  )
+ViewSwitcher.displayName = 'ViewSwitcher'
+
+export { ViewSwitcher }
+
+export namespace ViewSwitcher {
+  export type Props = ViewSwitcherProps
 }

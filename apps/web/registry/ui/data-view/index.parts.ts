@@ -1,30 +1,68 @@
 // Compound component parts — import as `import { DataView } from '@/registry/ui/data-view'`
-// Usage: <DataView.Provider>, <DataView.FilterBar>, <DataView.SortMenu>, etc.
+// Usage: <DataView.Provider>, <DataView.List>, <DataView.Menu>, etc.
 
-export { FilterActions } from './components/filter/filter-actions'
-// ── Filter ──────────────────────────────────────────────────
-export { FilterBar } from './components/filter/filter-bar'
-export { FilterItem } from './components/filter/filter-item'
-export { FilterMenu } from './components/filter/filter-menu'
-export { FilterOperator } from './components/filter/filter-operator'
-export { FilterRemove } from './components/filter/filter-remove'
-export { FilterSubject } from './components/filter/filter-subject'
-export { FilterValue } from './components/filter/filter-value'
+// ── Actions ──────────────────────────────────────────────────
+export { FilterActions as Actions } from './components/actions/filter-actions'
+
+// ── Item Components ──────────────────────────────────────────
+export {
+  FilterItem as Item,
+  useFilterItemContext,
+} from './components/item/filter-item'
+export { FilterOperator as Operator } from './components/item/filter-operator'
+export { FilterRemove as Remove } from './components/item/filter-remove'
+export { FilterSubject as Subject } from './components/item/filter-subject'
+export { FilterValue as Value } from './components/item/filter-value'
+
+// ── List ─────────────────────────────────────────────────────
+export { FilterList as List } from './components/list/filter-list'
+export { FilterListMobileContainer as ListMobileContainer } from './components/list/filter-list-mobile-container'
+
+// ── Menu and Trigger ─────────────────────────────────────────
+export { FilterMenu as Menu } from './components/menu/filter-menu'
+// ── Provider ─────────────────────────────────────────────────
+export { DataViewProvider as Provider } from './components/provider/data-view-provider'
+// ── Context Exports ──────────────────────────────────────────
 export {
   DataViewContext as Context,
-  DataViewFilterItemContext as FilterItemContext,
+  useDataViewColumn,
   useDataViewColumns,
   useDataViewContext,
-  useDataViewFilterItemContext,
+  useDataViewEntityName,
+  useDataViewFilters,
   useDataViewInstance,
   useDataViewLayer,
-} from './components/provider/data-view-context'
-// ── Provider ────────────────────────────────────────────────
-export { DataViewProvider as Provider } from './components/provider/data-view-provider'
+  useDataViewLocale,
+  useDataViewSort,
+  useDataViewStrategy,
+  useDataViewVariant,
+} from './components/root/data-view-context'
+// ── Root ─────────────────────────────────────────────────────
+export { DataViewRoot as Root } from './components/root/data-view-root'
+// ── Sort ─────────────────────────────────────────────────────
 export { SortItem } from './components/sort/sort-item'
-// ── Sort ────────────────────────────────────────────────────
 export { SortMenu } from './components/sort/sort-menu'
 export { SortToggle } from './components/sort/sort-toggle'
-
-// ── View ────────────────────────────────────────────────────
+export { FilterTrigger as Trigger } from './components/trigger/filter-trigger'
+// ── Value Utilities (for advanced usage) ─────────────────────
+export {
+  // Menu creators
+  createMultiOptionMenu,
+  // Render functions for custom item rendering
+  createOptionItemRenderer,
+  createOptionMenu,
+  createSelectableMenu,
+  // Text filter utilities
+  createTextFilterItems,
+  createTextItemRenderer,
+  // Controllers
+  FilterValueDateController,
+  FilterValueNumberController,
+  // Shared editor content components (for custom menu implementations)
+  OptionEditorContent,
+  renderOptionItem,
+  renderTextItem,
+  TextEditorContent,
+} from './components/value'
+// ── View ─────────────────────────────────────────────────────
 export { ViewSwitcher } from './components/view/view-switcher'

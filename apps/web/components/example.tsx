@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { ReactNode } from 'react'
 import { transformRegistryPaths } from '@/lib/registry'
-import { getRegistryEntrySources } from '@/lib/registry.server'
+import { getRegistryPreviewEntry } from '@/lib/registry-preview.server'
 import {
   ExampleClient,
   ExampleCodeContent,
@@ -52,8 +54,18 @@ async function ExampleRoot({
   transformPaths = true,
   children,
 }: ExampleProps) {
-  // Fetch and highlight all source files
-  const sources = await getRegistryEntrySources(name)
+  const entry = getRegistryPreviewEntry(name)
+  const PreviewComponent = entry ? (await entry.load()).default : null
+
+  const sources = (entry?.files ?? []).flatMap((filePath) => {
+    try {
+      const fullPath = join(process.cwd(), filePath)
+      const content = readFileSync(fullPath, 'utf-8')
+      return [{ path: filePath, content }]
+    } catch {
+      return []
+    }
+  })
 
   const processedSources = sources.map((source) => {
     const content = transformPaths
@@ -78,6 +90,7 @@ async function ExampleRoot({
   return (
     <ExampleClient
       name={name}
+      preview={PreviewComponent ? <PreviewComponent /> : null}
       className={className}
       align={align}
       fileNames={fileNames}
