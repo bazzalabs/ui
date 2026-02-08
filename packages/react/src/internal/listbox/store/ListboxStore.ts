@@ -511,6 +511,30 @@ export class ListboxStore extends ReactStore<
       return
     }
 
+    // Skip if the navigation-relevant data hasn't changed.
+    // Virtual items are often recreated (new array reference) when parent content
+    // re-renders due to non-navigation changes (e.g. checkbox checked state).
+    // Only trigger highlight validation when values or disabled states actually differ.
+    if (prevItems.length === items.length) {
+      let same = true
+      for (let i = 0; i < prevItems.length; i++) {
+        const prev = prevItems[i]
+        const next = items[i]
+        if (
+          !prev ||
+          !next ||
+          prev.value !== next.value ||
+          prev.disabled !== next.disabled
+        ) {
+          same = false
+          break
+        }
+      }
+      if (same) {
+        return
+      }
+    }
+
     // Skip highlight validation if not in the right state
     if (!this.state.virtualized || !this.state.open || items.length === 0) {
       return
@@ -519,7 +543,11 @@ export class ListboxStore extends ReactStore<
     // Determine if we need to force highlight the first item
     const prevFirstItem = prevItems.find((item) => !item.disabled)
     const newFirstItem = items.find((item) => !item.disabled)
-    const firstItemChanged = newFirstItem?.value !== prevFirstItem?.value
+    // Only force "first item" behavior when there was a previous first item.
+    // This avoids transient resets caused by virtualization effect cleanup
+    // temporarily clearing virtual items between renders.
+    const firstItemChanged =
+      prevFirstItem !== undefined && newFirstItem?.value !== prevFirstItem.value
 
     // Validate and potentially update the highlight
     this.validateHighlight({ forceFirst: firstItemChanged })

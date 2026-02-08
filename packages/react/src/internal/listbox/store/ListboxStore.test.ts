@@ -689,6 +689,92 @@ describe('ListboxStore', () => {
         expect.objectContaining({ reason: 'keyboard' }),
       )
     })
+
+    it('keeps highlight when virtual items are recreated with same values', () => {
+      const store = createStore({ open: true, virtualized: true })
+
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo' },
+        { value: 'in-progress' },
+      ])
+      store.setHighlightedId('todo', 'pointer')
+
+      // New array reference, same navigation-relevant data
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo' },
+        { value: 'in-progress' },
+      ])
+
+      expect(store.state.highlightedId).toBe('todo')
+    })
+
+    it('keeps highlight across transient virtualization cleanup', () => {
+      const store = createStore({ open: true, virtualized: true })
+
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo' },
+        { value: 'in-progress' },
+      ])
+      store.setHighlightedId('todo', 'pointer')
+
+      // Simulate effect cleanup/re-run sequence:
+      // cleanup -> setVirtualized(false) + setVirtualItems([])
+      // rerun   -> setVirtualized(true) + setVirtualItems(items)
+      store.setVirtualized(false)
+      store.setVirtualItems([])
+      store.setVirtualized(true)
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo' },
+        { value: 'in-progress' },
+      ])
+
+      expect(store.state.highlightedId).toBe('todo')
+    })
+
+    it('revalidates highlight when highlighted item becomes disabled', () => {
+      const store = createStore({ open: true, virtualized: true })
+
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo' },
+        { value: 'in-progress' },
+      ])
+      store.setHighlightedId('todo', 'pointer')
+
+      // Highlighted item becomes disabled — should move highlight away
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo', disabled: true },
+        { value: 'in-progress' },
+      ])
+
+      expect(store.state.highlightedId).not.toBe('todo')
+    })
+
+    it('revalidates highlight when items are reordered', () => {
+      const store = createStore({ open: true, virtualized: true })
+
+      store.setVirtualItems([
+        { value: 'backlog' },
+        { value: 'todo' },
+        { value: 'in-progress' },
+      ])
+      store.setHighlightedId('todo', 'pointer')
+
+      // Reordered — different first item should trigger forceFirst
+      store.setVirtualItems([
+        { value: 'in-progress' },
+        { value: 'todo' },
+        { value: 'backlog' },
+      ])
+
+      // Highlight should move to the new first item
+      expect(store.state.highlightedId).toBe('in-progress')
+    })
   })
 
   describe('submenu management', () => {
