@@ -5,6 +5,7 @@ import type { OperatorSet } from '../core/operator-set.js'
 import { defaultOperatorSets } from '../core/operator-sets.js'
 import type {
   BuiltInColumnDataType,
+  Column,
   ColumnOption,
   FilterModel,
   FiltersState,

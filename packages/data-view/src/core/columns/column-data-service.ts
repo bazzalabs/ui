@@ -41,7 +41,9 @@ export class ColumnDataService<TData> {
     }
 
     if (this.strategy === 'server' && !column.options) {
-      throw new Error('column options are required for server-side filtering')
+      // Options not yet available (e.g. still loading via React Query).
+      // Return empty — the column will re-compute once options are provided.
+      return []
     }
 
     // If static options are provided, use them as the base

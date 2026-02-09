@@ -37,7 +37,7 @@ describe('lib/serialize', () => {
           {
             columnId: 'age',
             type: 'number',
-            operator: 'is between',
+            operator: 'is_between',
             values: [18, 65],
           },
         ],
@@ -71,7 +71,7 @@ describe('lib/serialize', () => {
           {
             columnId: 'tags',
             type: 'multiOption',
-            operator: 'include any of',
+            operator: 'include_any_of',
             values: ['bug', 'feature'],
           },
         ],
@@ -95,7 +95,7 @@ describe('lib/serialize', () => {
           {
             columnId: 'createdAt',
             type: 'date',
-            operator: 'is between',
+            operator: 'is_between',
             values: [date1, date2],
           },
         ],
@@ -154,7 +154,7 @@ describe('lib/serialize', () => {
           {
             columnId: 'amount',
             type: 'bigint',
-            operator: 'is between',
+            operator: 'is_between',
             values: [BigInt(100), BigInt(99999999999999)],
           },
         ],

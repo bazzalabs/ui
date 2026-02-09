@@ -224,6 +224,30 @@ export class ColumnBuilder<
     return newInstance
   }
 
+  /**
+   * Sets the server field path for query generation.
+   *
+   * Convention:
+   * - `'db_column_name'` → rename: the DB column has a different name than the column ID.
+   * - `'relation.column'` → relation path: access `column` on the related `relation` table.
+   *
+   * Omit to default to using the column `id` as the DB column name.
+   * This is purely declarative metadata — it has no runtime effect in the core package.
+   * Server-side adapters read this to generate queries.
+   *
+   * @example
+   * ```typescript
+   * cb.date().id('createdAt').field('created_at')       // rename
+   * cb.option().id('status').field('status.name')       // belongs-to
+   * cb.multiOption().id('labels').field('labels.name')  // many-to-many
+   * ```
+   */
+  field(value: string): ColumnBuilder<TData, TType, TVal, TId> {
+    const newInstance = this.clone()
+    newInstance.config.field = value
+    return newInstance
+  }
+
   private validateType(
     expectedTypes: ColumnDataType | ColumnDataType[],
     methodName: string,

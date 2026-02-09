@@ -94,6 +94,7 @@ export function OptionEditorContent<TData>({
   initialValues = [],
   showSeparator = false,
 }: OptionEditorContentProps<TData>) {
+  // Compute static nodes
   const nodes = useMemo(() => {
     let baseNodes: CheckboxItemDef[]
 

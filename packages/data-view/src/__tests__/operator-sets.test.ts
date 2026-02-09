@@ -24,7 +24,7 @@ describe('core/operator-sets', () => {
   describe('textOperators', () => {
     it('should have 2 operators', () => {
       expect(textOperators.size).toBe(2)
-      expect(textOperators.ids()).toEqual(['contains', 'does not contain'])
+      expect(textOperators.ids()).toEqual(['contains', 'does_not_contain'])
     })
 
     it('should have i18nKey on all operators', () => {
@@ -57,21 +57,21 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('does not contain', () => {
+    describe('does_not_contain', () => {
       it('should match when value does not contain query', () => {
-        expect(match(textOperators, 'does not contain', 'Hello', ['xyz'])).toBe(
+        expect(match(textOperators, 'does_not_contain', 'Hello', ['xyz'])).toBe(
           true,
         )
       })
 
       it('should not match when value contains query', () => {
         expect(
-          match(textOperators, 'does not contain', 'Hello World', ['world']),
+          match(textOperators, 'does_not_contain', 'Hello World', ['world']),
         ).toBe(false)
       })
 
       it('should pass with empty filter values', () => {
-        expect(match(textOperators, 'does not contain', 'Hello', [])).toBe(true)
+        expect(match(textOperators, 'does_not_contain', 'Hello', [])).toBe(true)
       })
     })
   })
@@ -84,15 +84,15 @@ describe('core/operator-sets', () => {
     })
 
     it('should have correct singular/plural relationships', () => {
-      expect(optionOperators.get('is').singular).toBe('is any of')
-      expect(optionOperators.get('is not').singular).toBe('is none of')
-      expect(optionOperators.get('is any of').plural).toBe('is')
-      expect(optionOperators.get('is none of').plural).toBe('is not')
+      expect(optionOperators.get('is').singular).toBe('is_any_of')
+      expect(optionOperators.get('is_not').singular).toBe('is_none_of')
+      expect(optionOperators.get('is_any_of').plural).toBe('is')
+      expect(optionOperators.get('is_none_of').plural).toBe('is_not')
     })
 
     it('should have correct defaults', () => {
       expect(optionOperators.getDefault('single').id).toBe('is')
-      expect(optionOperators.getDefault('multiple').id).toBe('is any of')
+      expect(optionOperators.getDefault('multiple').id).toBe('is_any_of')
     })
 
     describe('is', () => {
@@ -117,39 +117,39 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('is not', () => {
+    describe('is_not', () => {
       it('should match when cell differs', () => {
-        expect(match(optionOperators, 'is not', 'active', ['inactive'])).toBe(
+        expect(match(optionOperators, 'is_not', 'active', ['inactive'])).toBe(
           true,
         )
       })
 
       it('should not match when cell equals', () => {
-        expect(match(optionOperators, 'is not', 'active', ['active'])).toBe(
+        expect(match(optionOperators, 'is_not', 'active', ['active'])).toBe(
           false,
         )
       })
     })
 
-    describe('is any of', () => {
+    describe('is_any_of', () => {
       it('should match when cell is in filter values', () => {
-        expect(match(optionOperators, 'is any of', 'a', ['a', 'b', 'c'])).toBe(
+        expect(match(optionOperators, 'is_any_of', 'a', ['a', 'b', 'c'])).toBe(
           true,
         )
       })
 
       it('should not match when cell is not in filter values', () => {
-        expect(match(optionOperators, 'is any of', 'z', ['a', 'b'])).toBe(false)
+        expect(match(optionOperators, 'is_any_of', 'z', ['a', 'b'])).toBe(false)
       })
     })
 
-    describe('is none of', () => {
+    describe('is_none_of', () => {
       it('should match when cell is not in filter values', () => {
-        expect(match(optionOperators, 'is none of', 'z', ['a', 'b'])).toBe(true)
+        expect(match(optionOperators, 'is_none_of', 'z', ['a', 'b'])).toBe(true)
       })
 
       it('should not match when cell is in filter values', () => {
-        expect(match(optionOperators, 'is none of', 'a', ['a', 'b'])).toBe(
+        expect(match(optionOperators, 'is_none_of', 'a', ['a', 'b'])).toBe(
           false,
         )
       })
@@ -166,7 +166,7 @@ describe('core/operator-sets', () => {
     it('should have correct defaults', () => {
       expect(multiOptionOperators.getDefault('single').id).toBe('include')
       expect(multiOptionOperators.getDefault('multiple').id).toBe(
-        'include any of',
+        'include_any_of',
       )
     })
 
@@ -209,26 +209,26 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('include any of', () => {
+    describe('include_any_of', () => {
       it('should match when any filter value is in cell', () => {
         expect(
-          match(multiOptionOperators, 'include any of', ['a', 'b'], ['b', 'c']),
+          match(multiOptionOperators, 'include_any_of', ['a', 'b'], ['b', 'c']),
         ).toBe(true)
       })
 
       it('should not match when none overlap', () => {
         expect(
-          match(multiOptionOperators, 'include any of', ['a'], ['b', 'c']),
+          match(multiOptionOperators, 'include_any_of', ['a'], ['b', 'c']),
         ).toBe(false)
       })
     })
 
-    describe('include all of', () => {
+    describe('include_all_of', () => {
       it('should match when all filter values are in cell', () => {
         expect(
           match(
             multiOptionOperators,
-            'include all of',
+            'include_all_of',
             ['a', 'b', 'c'],
             ['a', 'b'],
           ),
@@ -237,29 +237,29 @@ describe('core/operator-sets', () => {
 
       it('should not match when not all filter values are in cell', () => {
         expect(
-          match(multiOptionOperators, 'include all of', ['a'], ['a', 'b']),
+          match(multiOptionOperators, 'include_all_of', ['a'], ['a', 'b']),
         ).toBe(false)
       })
     })
 
-    describe('exclude if any of', () => {
+    describe('exclude_if_any_of', () => {
       it('should match when no overlap', () => {
         expect(
-          match(multiOptionOperators, 'exclude if any of', ['a'], ['b', 'c']),
+          match(multiOptionOperators, 'exclude_if_any_of', ['a'], ['b', 'c']),
         ).toBe(true)
       })
 
       it('should not match when any overlap', () => {
         expect(
-          match(multiOptionOperators, 'exclude if any of', ['a', 'b'], ['b']),
+          match(multiOptionOperators, 'exclude_if_any_of', ['a', 'b'], ['b']),
         ).toBe(false)
       })
     })
 
-    describe('exclude if all', () => {
+    describe('exclude_if_all', () => {
       it('should match when not all filter values in cell', () => {
         expect(
-          match(multiOptionOperators, 'exclude if all', ['a'], ['a', 'b']),
+          match(multiOptionOperators, 'exclude_if_all', ['a'], ['a', 'b']),
         ).toBe(true)
       })
 
@@ -267,7 +267,7 @@ describe('core/operator-sets', () => {
         expect(
           match(
             multiOptionOperators,
-            'exclude if all',
+            'exclude_if_all',
             ['a', 'b', 'c'],
             ['a', 'b'],
           ),
@@ -285,7 +285,7 @@ describe('core/operator-sets', () => {
 
     it('should have correct defaults', () => {
       expect(numberOperators.getDefault('single').id).toBe('is')
-      expect(numberOperators.getDefault('multiple').id).toBe('is between')
+      expect(numberOperators.getDefault('multiple').id).toBe('is_between')
     })
 
     describe('is', () => {
@@ -306,143 +306,131 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('is not', () => {
+    describe('is_not', () => {
       it('should match unequal numbers', () => {
-        expect(match(numberOperators, 'is not', 42, [43])).toBe(true)
+        expect(match(numberOperators, 'is_not', 42, [43])).toBe(true)
       })
 
       it('should not match equal numbers', () => {
-        expect(match(numberOperators, 'is not', 42, [42])).toBe(false)
+        expect(match(numberOperators, 'is_not', 42, [42])).toBe(false)
       })
     })
 
-    describe('is greater than', () => {
+    describe('is_greater_than', () => {
       it('should match when cell > filter', () => {
-        expect(match(numberOperators, 'is greater than', 10, [5])).toBe(true)
+        expect(match(numberOperators, 'is_greater_than', 10, [5])).toBe(true)
       })
 
       it('should not match when cell <= filter', () => {
-        expect(match(numberOperators, 'is greater than', 5, [5])).toBe(false)
-        expect(match(numberOperators, 'is greater than', 3, [5])).toBe(false)
+        expect(match(numberOperators, 'is_greater_than', 5, [5])).toBe(false)
+        expect(match(numberOperators, 'is_greater_than', 3, [5])).toBe(false)
       })
 
       it('should handle Infinity', () => {
         expect(
           match(
             numberOperators,
-            'is greater than',
+            'is_greater_than',
             Number.POSITIVE_INFINITY,
             [100],
           ),
         ).toBe(true)
         expect(
-          match(numberOperators, 'is greater than', 100, [
+          match(numberOperators, 'is_greater_than', 100, [
             Number.POSITIVE_INFINITY,
           ]),
         ).toBe(false)
       })
     })
 
-    describe('is greater than or equal to', () => {
+    describe('is_gte', () => {
       it('should match when cell >= filter', () => {
-        expect(
-          match(numberOperators, 'is greater than or equal to', 5, [5]),
-        ).toBe(true)
-        expect(
-          match(numberOperators, 'is greater than or equal to', 10, [5]),
-        ).toBe(true)
+        expect(match(numberOperators, 'is_gte', 5, [5])).toBe(true)
+        expect(match(numberOperators, 'is_gte', 10, [5])).toBe(true)
       })
 
       it('should not match when cell < filter', () => {
-        expect(
-          match(numberOperators, 'is greater than or equal to', 3, [5]),
-        ).toBe(false)
+        expect(match(numberOperators, 'is_gte', 3, [5])).toBe(false)
       })
     })
 
-    describe('is less than', () => {
+    describe('is_less_than', () => {
       it('should match when cell < filter', () => {
-        expect(match(numberOperators, 'is less than', 3, [5])).toBe(true)
+        expect(match(numberOperators, 'is_less_than', 3, [5])).toBe(true)
       })
 
       it('should not match when cell >= filter', () => {
-        expect(match(numberOperators, 'is less than', 5, [5])).toBe(false)
+        expect(match(numberOperators, 'is_less_than', 5, [5])).toBe(false)
       })
 
       it('should handle -Infinity', () => {
         expect(
           match(
             numberOperators,
-            'is less than',
+            'is_less_than',
             Number.NEGATIVE_INFINITY,
             [100],
           ),
         ).toBe(true)
         expect(
-          match(numberOperators, 'is less than', 100, [
+          match(numberOperators, 'is_less_than', 100, [
             Number.NEGATIVE_INFINITY,
           ]),
         ).toBe(false)
       })
     })
 
-    describe('is less than or equal to', () => {
+    describe('is_lte', () => {
       it('should match when cell <= filter', () => {
-        expect(match(numberOperators, 'is less than or equal to', 5, [5])).toBe(
-          true,
-        )
-        expect(match(numberOperators, 'is less than or equal to', 3, [5])).toBe(
-          true,
-        )
+        expect(match(numberOperators, 'is_lte', 5, [5])).toBe(true)
+        expect(match(numberOperators, 'is_lte', 3, [5])).toBe(true)
       })
 
       it('should not match when cell > filter', () => {
-        expect(
-          match(numberOperators, 'is less than or equal to', 10, [5]),
-        ).toBe(false)
+        expect(match(numberOperators, 'is_lte', 10, [5])).toBe(false)
       })
     })
 
-    describe('is between', () => {
+    describe('is_between', () => {
       it('should match when cell is in range (inclusive)', () => {
-        expect(match(numberOperators, 'is between', 5, [1, 10])).toBe(true)
-        expect(match(numberOperators, 'is between', 1, [1, 10])).toBe(true)
-        expect(match(numberOperators, 'is between', 10, [1, 10])).toBe(true)
+        expect(match(numberOperators, 'is_between', 5, [1, 10])).toBe(true)
+        expect(match(numberOperators, 'is_between', 1, [1, 10])).toBe(true)
+        expect(match(numberOperators, 'is_between', 10, [1, 10])).toBe(true)
       })
 
       it('should not match when cell is outside range', () => {
-        expect(match(numberOperators, 'is between', 0, [1, 10])).toBe(false)
-        expect(match(numberOperators, 'is between', 11, [1, 10])).toBe(false)
+        expect(match(numberOperators, 'is_between', 0, [1, 10])).toBe(false)
+        expect(match(numberOperators, 'is_between', 11, [1, 10])).toBe(false)
       })
 
       it('should handle reversed range', () => {
-        expect(match(numberOperators, 'is between', 5, [10, 1])).toBe(true)
+        expect(match(numberOperators, 'is_between', 5, [10, 1])).toBe(true)
       })
 
       it('should pass with incomplete filter values', () => {
-        expect(match(numberOperators, 'is between', 5, [1])).toBe(true)
-        expect(match(numberOperators, 'is between', 5, [1, undefined])).toBe(
+        expect(match(numberOperators, 'is_between', 5, [1])).toBe(true)
+        expect(match(numberOperators, 'is_between', 5, [1, undefined])).toBe(
           true,
         )
       })
     })
 
-    describe('is not between', () => {
+    describe('is_not_between', () => {
       it('should match when cell is outside range', () => {
-        expect(match(numberOperators, 'is not between', 0, [1, 10])).toBe(true)
-        expect(match(numberOperators, 'is not between', 11, [1, 10])).toBe(true)
+        expect(match(numberOperators, 'is_not_between', 0, [1, 10])).toBe(true)
+        expect(match(numberOperators, 'is_not_between', 11, [1, 10])).toBe(true)
       })
 
       it('should not match when cell is in range', () => {
-        expect(match(numberOperators, 'is not between', 5, [1, 10])).toBe(false)
+        expect(match(numberOperators, 'is_not_between', 5, [1, 10])).toBe(false)
       })
     })
 
     it('should have correct singular/plural relationships', () => {
-      expect(numberOperators.get('is').singular).toBe('is between')
-      expect(numberOperators.get('is not').singular).toBe('is not between')
-      expect(numberOperators.get('is between').plural).toBe('is')
-      expect(numberOperators.get('is not between').plural).toBe('is not')
+      expect(numberOperators.get('is').singular).toBe('is_between')
+      expect(numberOperators.get('is_not').singular).toBe('is_not_between')
+      expect(numberOperators.get('is_between').plural).toBe('is')
+      expect(numberOperators.get('is_not_between').plural).toBe('is_not')
     })
   })
 
@@ -467,27 +455,27 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('is greater than', () => {
+    describe('is_greater_than', () => {
       it('should match when cell > filter', () => {
-        expect(match(bigIntOperators, 'is greater than', 10n, [5n])).toBe(true)
+        expect(match(bigIntOperators, 'is_greater_than', 10n, [5n])).toBe(true)
       })
 
       it('should not match when cell <= filter', () => {
-        expect(match(bigIntOperators, 'is greater than', 5n, [5n])).toBe(false)
+        expect(match(bigIntOperators, 'is_greater_than', 5n, [5n])).toBe(false)
       })
     })
 
-    describe('is between', () => {
+    describe('is_between', () => {
       it('should match when cell is in range', () => {
-        expect(match(bigIntOperators, 'is between', 5n, [1n, 10n])).toBe(true)
+        expect(match(bigIntOperators, 'is_between', 5n, [1n, 10n])).toBe(true)
       })
 
       it('should not match when cell is outside range', () => {
-        expect(match(bigIntOperators, 'is between', 0n, [1n, 10n])).toBe(false)
+        expect(match(bigIntOperators, 'is_between', 0n, [1n, 10n])).toBe(false)
       })
 
       it('should handle reversed range', () => {
-        expect(match(bigIntOperators, 'is between', 5n, [10n, 1n])).toBe(true)
+        expect(match(bigIntOperators, 'is_between', 5n, [10n, 1n])).toBe(true)
       })
     })
   })
@@ -501,7 +489,7 @@ describe('core/operator-sets', () => {
 
     it('should have correct defaults', () => {
       expect(dateOperators.getDefault('single').id).toBe('is')
-      expect(dateOperators.getDefault('multiple').id).toBe('is between')
+      expect(dateOperators.getDefault('multiple').id).toBe('is_between')
     })
 
     const jan1 = new Date(2025, 0, 1, 12, 0, 0)
@@ -527,123 +515,123 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('is not', () => {
+    describe('is_not', () => {
       it('should match different day', () => {
-        expect(match(dateOperators, 'is not', jan1, [jan2])).toBe(true)
+        expect(match(dateOperators, 'is_not', jan1, [jan2])).toBe(true)
       })
 
       it('should not match same day', () => {
-        expect(match(dateOperators, 'is not', jan1, [jan1Morning])).toBe(false)
+        expect(match(dateOperators, 'is_not', jan1, [jan1Morning])).toBe(false)
       })
     })
 
-    describe('is before', () => {
+    describe('is_before', () => {
       it('should match when cell is before filter date', () => {
-        expect(match(dateOperators, 'is before', jan1, [jan2])).toBe(true)
+        expect(match(dateOperators, 'is_before', jan1, [jan2])).toBe(true)
       })
 
       it('should not match same day', () => {
-        expect(match(dateOperators, 'is before', jan1, [jan1Morning])).toBe(
+        expect(match(dateOperators, 'is_before', jan1, [jan1Morning])).toBe(
           false,
         )
       })
 
       it('should not match when cell is after filter date', () => {
-        expect(match(dateOperators, 'is before', jan2, [jan1])).toBe(false)
+        expect(match(dateOperators, 'is_before', jan2, [jan1])).toBe(false)
       })
     })
 
-    describe('is after', () => {
+    describe('is_after', () => {
       it('should match when cell is after filter date (end of day)', () => {
-        expect(match(dateOperators, 'is after', jan3, [jan1])).toBe(true)
+        expect(match(dateOperators, 'is_after', jan3, [jan1])).toBe(true)
       })
 
       it('should not match same day', () => {
-        expect(match(dateOperators, 'is after', jan1, [jan1Morning])).toBe(
+        expect(match(dateOperators, 'is_after', jan1, [jan1Morning])).toBe(
           false,
         )
       })
     })
 
-    describe('is on or after', () => {
+    describe('is_on_or_after', () => {
       it('should match same day', () => {
         expect(
-          match(dateOperators, 'is on or after', jan1, [jan1Morning]),
+          match(dateOperators, 'is_on_or_after', jan1, [jan1Morning]),
         ).toBe(true)
       })
 
       it('should match after', () => {
-        expect(match(dateOperators, 'is on or after', jan2, [jan1])).toBe(true)
+        expect(match(dateOperators, 'is_on_or_after', jan2, [jan1])).toBe(true)
       })
 
       it('should not match before', () => {
-        expect(match(dateOperators, 'is on or after', jan1, [jan2])).toBe(false)
+        expect(match(dateOperators, 'is_on_or_after', jan1, [jan2])).toBe(false)
       })
     })
 
-    describe('is on or before', () => {
+    describe('is_on_or_before', () => {
       it('should match same day', () => {
         expect(
-          match(dateOperators, 'is on or before', jan1, [jan1Morning]),
+          match(dateOperators, 'is_on_or_before', jan1, [jan1Morning]),
         ).toBe(true)
       })
 
       it('should match before', () => {
-        expect(match(dateOperators, 'is on or before', jan1, [jan2])).toBe(true)
+        expect(match(dateOperators, 'is_on_or_before', jan1, [jan2])).toBe(true)
       })
 
       it('should not match after', () => {
-        expect(match(dateOperators, 'is on or before', jan3, [jan1])).toBe(
+        expect(match(dateOperators, 'is_on_or_before', jan3, [jan1])).toBe(
           false,
         )
       })
     })
 
-    describe('is between', () => {
+    describe('is_between', () => {
       it('should match when cell is in date range', () => {
-        expect(match(dateOperators, 'is between', jan2, [jan1, jan3])).toBe(
+        expect(match(dateOperators, 'is_between', jan2, [jan1, jan3])).toBe(
           true,
         )
       })
 
       it('should match boundary dates', () => {
-        expect(match(dateOperators, 'is between', jan1, [jan1, jan3])).toBe(
+        expect(match(dateOperators, 'is_between', jan1, [jan1, jan3])).toBe(
           true,
         )
-        expect(match(dateOperators, 'is between', jan3, [jan1, jan3])).toBe(
+        expect(match(dateOperators, 'is_between', jan3, [jan1, jan3])).toBe(
           true,
         )
       })
 
       it('should not match outside range', () => {
         const dec31 = new Date(2024, 11, 31)
-        expect(match(dateOperators, 'is between', dec31, [jan1, jan3])).toBe(
+        expect(match(dateOperators, 'is_between', dec31, [jan1, jan3])).toBe(
           false,
         )
       })
 
       it('should handle reversed range', () => {
-        expect(match(dateOperators, 'is between', jan2, [jan3, jan1])).toBe(
+        expect(match(dateOperators, 'is_between', jan2, [jan3, jan1])).toBe(
           true,
         )
       })
 
       it('should pass with fewer than 2 filter values', () => {
-        expect(match(dateOperators, 'is between', jan1, [jan1])).toBe(true)
-        expect(match(dateOperators, 'is between', jan1, [])).toBe(true)
+        expect(match(dateOperators, 'is_between', jan1, [jan1])).toBe(true)
+        expect(match(dateOperators, 'is_between', jan1, [])).toBe(true)
       })
     })
 
-    describe('is not between', () => {
+    describe('is_not_between', () => {
       it('should match when cell is outside range', () => {
         const dec31 = new Date(2024, 11, 31)
         expect(
-          match(dateOperators, 'is not between', dec31, [jan1, jan3]),
+          match(dateOperators, 'is_not_between', dec31, [jan1, jan3]),
         ).toBe(true)
       })
 
       it('should not match when cell is in range', () => {
-        expect(match(dateOperators, 'is not between', jan2, [jan1, jan3])).toBe(
+        expect(match(dateOperators, 'is_not_between', jan2, [jan1, jan3])).toBe(
           false,
         )
       })
@@ -675,13 +663,13 @@ describe('core/operator-sets', () => {
       })
     })
 
-    describe('is not', () => {
+    describe('is_not', () => {
       it('should match when different', () => {
-        expect(match(booleanOperators, 'is not', true, [false])).toBe(true)
+        expect(match(booleanOperators, 'is_not', true, [false])).toBe(true)
       })
 
       it('should not match when same', () => {
-        expect(match(booleanOperators, 'is not', true, [true])).toBe(false)
+        expect(match(booleanOperators, 'is_not', true, [true])).toBe(false)
       })
     })
   })

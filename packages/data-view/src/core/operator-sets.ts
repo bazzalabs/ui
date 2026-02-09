@@ -32,7 +32,7 @@ export const textOperators = defineOperators({
       return String(cellValue).toLowerCase().includes(query)
     },
   },
-  'does not contain': {
+  does_not_contain: {
     label: 'does not contain',
     target: 'single',
     i18nKey: 'filters.text.doesNotContain',
@@ -47,14 +47,14 @@ export const textOperators = defineOperators({
 // ── Option Operators ───────────────────────────────────────
 
 export const optionOperators = defineOperators<
-  'is' | 'is not' | 'is any of' | 'is none of'
+  'is' | 'is_not' | 'is_any_of' | 'is_none_of'
 >(
   {
     is: {
       label: 'is',
       target: 'single',
       i18nKey: 'filters.option.is',
-      singular: 'is any of',
+      singular: 'is_any_of',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         if (cellValue == null) return false
@@ -62,11 +62,11 @@ export const optionOperators = defineOperators<
         return filterValues.some((v) => String(v).toLowerCase() === input)
       },
     },
-    'is not': {
+    is_not: {
       label: 'is not',
       target: 'single',
       i18nKey: 'filters.option.isNot',
-      singular: 'is none of',
+      singular: 'is_none_of',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         if (cellValue == null) return false
@@ -74,7 +74,7 @@ export const optionOperators = defineOperators<
         return !filterValues.some((v) => String(v).toLowerCase() === input)
       },
     },
-    'is any of': {
+    is_any_of: {
       label: 'is any of',
       target: 'multiple',
       i18nKey: 'filters.option.isAnyOf',
@@ -86,11 +86,11 @@ export const optionOperators = defineOperators<
         return filterValues.some((v) => String(v).toLowerCase() === input)
       },
     },
-    'is none of': {
+    is_none_of: {
       label: 'is none of',
       target: 'multiple',
       i18nKey: 'filters.option.isNoneOf',
-      plural: 'is not',
+      plural: 'is_not',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         if (cellValue == null) return false
@@ -99,7 +99,7 @@ export const optionOperators = defineOperators<
       },
     },
   },
-  { defaultSingle: 'is', defaultMultiple: 'is any of' },
+  { defaultSingle: 'is', defaultMultiple: 'is_any_of' },
 )
 
 // ── Multi-Option Operators ─────────────────────────────────
@@ -107,17 +107,17 @@ export const optionOperators = defineOperators<
 export const multiOptionOperators = defineOperators<
   | 'include'
   | 'exclude'
-  | 'include any of'
-  | 'include all of'
-  | 'exclude if any of'
-  | 'exclude if all'
+  | 'include_any_of'
+  | 'include_all_of'
+  | 'exclude_if_any_of'
+  | 'exclude_if_all'
 >(
   {
     include: {
       label: 'include',
       target: 'single',
       i18nKey: 'filters.multiOption.include',
-      singular: 'include any of',
+      singular: 'include_any_of',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0 || filterValues[0] === '') return true
         if (!Array.isArray(cellValue)) return false
@@ -128,14 +128,14 @@ export const multiOptionOperators = defineOperators<
       label: 'exclude',
       target: 'single',
       i18nKey: 'filters.multiOption.exclude',
-      singular: 'exclude if any of',
+      singular: 'exclude_if_any_of',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0 || filterValues[0] === '') return true
         if (!Array.isArray(cellValue)) return false
         return intersection(cellValue, filterValues).length === 0
       },
     },
-    'include any of': {
+    include_any_of: {
       label: 'include any of',
       target: 'multiple',
       i18nKey: 'filters.multiOption.includeAnyOf',
@@ -146,7 +146,7 @@ export const multiOptionOperators = defineOperators<
         return intersection(cellValue, filterValues).length > 0
       },
     },
-    'include all of': {
+    include_all_of: {
       label: 'include all of',
       target: 'multiple',
       i18nKey: 'filters.multiOption.includeAllOf',
@@ -159,7 +159,7 @@ export const multiOptionOperators = defineOperators<
         )
       },
     },
-    'exclude if any of': {
+    exclude_if_any_of: {
       label: 'exclude if any of',
       target: 'multiple',
       i18nKey: 'filters.multiOption.excludeIfAnyOf',
@@ -170,7 +170,7 @@ export const multiOptionOperators = defineOperators<
         return !(intersection(cellValue, filterValues).length > 0)
       },
     },
-    'exclude if all': {
+    exclude_if_all: {
       label: 'exclude if all',
       target: 'multiple',
       i18nKey: 'filters.multiOption.excludeIfAll',
@@ -184,27 +184,27 @@ export const multiOptionOperators = defineOperators<
       },
     },
   },
-  { defaultSingle: 'include', defaultMultiple: 'include any of' },
+  { defaultSingle: 'include', defaultMultiple: 'include_any_of' },
 )
 
 // ── Number Operators ───────────────────────────────────────
 
 export const numberOperators = defineOperators<
   | 'is'
-  | 'is not'
-  | 'is greater than'
-  | 'is greater than or equal to'
-  | 'is less than'
-  | 'is less than or equal to'
-  | 'is between'
-  | 'is not between'
+  | 'is_not'
+  | 'is_greater_than'
+  | 'is_gte'
+  | 'is_less_than'
+  | 'is_lte'
+  | 'is_between'
+  | 'is_not_between'
 >(
   {
     is: {
       label: 'is',
       target: 'single',
       i18nKey: 'filters.number.is',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidNumber(filterValues[0])
         if (filterVal === undefined) return true
@@ -213,11 +213,11 @@ export const numberOperators = defineOperators<
         return value === filterVal
       },
     },
-    'is not': {
+    is_not: {
       label: 'is not',
       target: 'single',
       i18nKey: 'filters.number.isNot',
-      singular: 'is not between',
+      singular: 'is_not_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidNumber(filterValues[0])
         if (filterVal === undefined) return true
@@ -226,11 +226,11 @@ export const numberOperators = defineOperators<
         return value !== filterVal
       },
     },
-    'is greater than': {
+    is_greater_than: {
       label: 'is greater than',
       target: 'single',
       i18nKey: 'filters.number.greaterThan',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidNumber(filterValues[0])
         if (filterVal === undefined) return true
@@ -241,11 +241,11 @@ export const numberOperators = defineOperators<
         return value > filterVal
       },
     },
-    'is greater than or equal to': {
+    is_gte: {
       label: 'is greater than or equal to',
       target: 'single',
       i18nKey: 'filters.number.greaterThanOrEqual',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidNumber(filterValues[0])
         if (filterVal === undefined) return true
@@ -256,11 +256,11 @@ export const numberOperators = defineOperators<
         return value >= filterVal
       },
     },
-    'is less than': {
+    is_less_than: {
       label: 'is less than',
       target: 'single',
       i18nKey: 'filters.number.lessThan',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidNumber(filterValues[0])
         if (filterVal === undefined) return true
@@ -271,11 +271,11 @@ export const numberOperators = defineOperators<
         return value < filterVal
       },
     },
-    'is less than or equal to': {
+    is_lte: {
       label: 'is less than or equal to',
       target: 'single',
       i18nKey: 'filters.number.lessThanOrEqual',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidNumber(filterValues[0])
         if (filterVal === undefined) return true
@@ -286,7 +286,7 @@ export const numberOperators = defineOperators<
         return value <= filterVal
       },
     },
-    'is between': {
+    is_between: {
       label: 'is between',
       target: 'multiple',
       i18nKey: 'filters.number.isBetween',
@@ -302,11 +302,11 @@ export const numberOperators = defineOperators<
         return value >= min && value <= max
       },
     },
-    'is not between': {
+    is_not_between: {
       label: 'is not between',
       target: 'multiple',
       i18nKey: 'filters.number.isNotBetween',
-      plural: 'is not',
+      plural: 'is_not',
       match: (cellValue: any, filterValues: any[]) => {
         const a = getValidNumber(filterValues[0])
         const b = getValidNumber(filterValues[1])
@@ -319,27 +319,27 @@ export const numberOperators = defineOperators<
       },
     },
   },
-  { defaultSingle: 'is', defaultMultiple: 'is between' },
+  { defaultSingle: 'is', defaultMultiple: 'is_between' },
 )
 
 // ── BigInt Operators ───────────────────────────────────────
 
 export const bigIntOperators = defineOperators<
   | 'is'
-  | 'is not'
-  | 'is greater than'
-  | 'is greater than or equal to'
-  | 'is less than'
-  | 'is less than or equal to'
-  | 'is between'
-  | 'is not between'
+  | 'is_not'
+  | 'is_greater_than'
+  | 'is_gte'
+  | 'is_less_than'
+  | 'is_lte'
+  | 'is_between'
+  | 'is_not_between'
 >(
   {
     is: {
       label: 'is',
       target: 'single',
       i18nKey: 'filters.number.is',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidBigInt(filterValues[0])
         if (filterVal === undefined) return true
@@ -348,11 +348,11 @@ export const bigIntOperators = defineOperators<
         return value === filterVal
       },
     },
-    'is not': {
+    is_not: {
       label: 'is not',
       target: 'single',
       i18nKey: 'filters.number.isNot',
-      singular: 'is not between',
+      singular: 'is_not_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidBigInt(filterValues[0])
         if (filterVal === undefined) return true
@@ -361,11 +361,11 @@ export const bigIntOperators = defineOperators<
         return value !== filterVal
       },
     },
-    'is greater than': {
+    is_greater_than: {
       label: 'is greater than',
       target: 'single',
       i18nKey: 'filters.number.greaterThan',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidBigInt(filterValues[0])
         if (filterVal === undefined) return true
@@ -374,11 +374,11 @@ export const bigIntOperators = defineOperators<
         return value > filterVal
       },
     },
-    'is greater than or equal to': {
+    is_gte: {
       label: 'is greater than or equal to',
       target: 'single',
       i18nKey: 'filters.number.greaterThanOrEqual',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidBigInt(filterValues[0])
         if (filterVal === undefined) return true
@@ -387,11 +387,11 @@ export const bigIntOperators = defineOperators<
         return value >= filterVal
       },
     },
-    'is less than': {
+    is_less_than: {
       label: 'is less than',
       target: 'single',
       i18nKey: 'filters.number.lessThan',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidBigInt(filterValues[0])
         if (filterVal === undefined) return true
@@ -400,11 +400,11 @@ export const bigIntOperators = defineOperators<
         return value < filterVal
       },
     },
-    'is less than or equal to': {
+    is_lte: {
       label: 'is less than or equal to',
       target: 'single',
       i18nKey: 'filters.number.lessThanOrEqual',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         const filterVal = getValidBigInt(filterValues[0])
         if (filterVal === undefined) return true
@@ -413,7 +413,7 @@ export const bigIntOperators = defineOperators<
         return value <= filterVal
       },
     },
-    'is between': {
+    is_between: {
       label: 'is between',
       target: 'multiple',
       i18nKey: 'filters.number.isBetween',
@@ -429,11 +429,11 @@ export const bigIntOperators = defineOperators<
         return value >= min && value <= max
       },
     },
-    'is not between': {
+    is_not_between: {
       label: 'is not between',
       target: 'multiple',
       i18nKey: 'filters.number.isNotBetween',
-      plural: 'is not',
+      plural: 'is_not',
       match: (cellValue: any, filterValues: any[]) => {
         const a = getValidBigInt(filterValues[0])
         const b = getValidBigInt(filterValues[1])
@@ -446,27 +446,27 @@ export const bigIntOperators = defineOperators<
       },
     },
   },
-  { defaultSingle: 'is', defaultMultiple: 'is between' },
+  { defaultSingle: 'is', defaultMultiple: 'is_between' },
 )
 
 // ── Date Operators ─────────────────────────────────────────
 
 export const dateOperators = defineOperators<
   | 'is'
-  | 'is not'
-  | 'is before'
-  | 'is on or after'
-  | 'is after'
-  | 'is on or before'
-  | 'is between'
-  | 'is not between'
+  | 'is_not'
+  | 'is_before'
+  | 'is_on_or_after'
+  | 'is_after'
+  | 'is_on_or_before'
+  | 'is_between'
+  | 'is_not_between'
 >(
   {
     is: {
       label: 'is',
       target: 'single',
       i18nKey: 'filters.date.is',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         const d1 = filterValues[0]
@@ -475,11 +475,11 @@ export const dateOperators = defineOperators<
         return isSameDay(cellValue, d1)
       },
     },
-    'is not': {
+    is_not: {
       label: 'is not',
       target: 'single',
       i18nKey: 'filters.date.isNot',
-      singular: 'is not between',
+      singular: 'is_not_between',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         const d1 = filterValues[0]
@@ -488,11 +488,11 @@ export const dateOperators = defineOperators<
         return !isSameDay(cellValue, d1)
       },
     },
-    'is before': {
+    is_before: {
       label: 'is before',
       target: 'single',
       i18nKey: 'filters.date.isBefore',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         const d1 = filterValues[0]
@@ -501,11 +501,11 @@ export const dateOperators = defineOperators<
         return isBefore(cellValue, startOfDay(d1))
       },
     },
-    'is on or after': {
+    is_on_or_after: {
       label: 'is on or after',
       target: 'single',
       i18nKey: 'filters.date.isOnOrAfter',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         const d1 = filterValues[0]
@@ -514,11 +514,11 @@ export const dateOperators = defineOperators<
         return isSameDay(cellValue, d1) || isAfter(cellValue, d1)
       },
     },
-    'is after': {
+    is_after: {
       label: 'is after',
       target: 'single',
       i18nKey: 'filters.date.isAfter',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         const d1 = filterValues[0]
@@ -527,11 +527,11 @@ export const dateOperators = defineOperators<
         return isAfter(cellValue, endOfDay(d1))
       },
     },
-    'is on or before': {
+    is_on_or_before: {
       label: 'is on or before',
       target: 'single',
       i18nKey: 'filters.date.isOnOrBefore',
-      singular: 'is between',
+      singular: 'is_between',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length === 0) return true
         const d1 = filterValues[0]
@@ -540,7 +540,7 @@ export const dateOperators = defineOperators<
         return isSameDay(cellValue, d1) || isBefore(cellValue, d1)
       },
     },
-    'is between': {
+    is_between: {
       label: 'is between',
       target: 'multiple',
       i18nKey: 'filters.date.isBetween',
@@ -559,11 +559,11 @@ export const dateOperators = defineOperators<
         })
       },
     },
-    'is not between': {
+    is_not_between: {
       label: 'is not between',
       target: 'multiple',
       i18nKey: 'filters.date.isNotBetween',
-      plural: 'is not',
+      plural: 'is_not',
       match: (cellValue: any, filterValues: any[]) => {
         if (filterValues.length < 2) return true
         const d1 = filterValues[0]
@@ -579,12 +579,12 @@ export const dateOperators = defineOperators<
       },
     },
   },
-  { defaultSingle: 'is', defaultMultiple: 'is between' },
+  { defaultSingle: 'is', defaultMultiple: 'is_between' },
 )
 
 // ── Boolean Operators ──────────────────────────────────────
 
-export const booleanOperators = defineOperators<'is' | 'is not'>(
+export const booleanOperators = defineOperators<'is' | 'is_not'>(
   {
     is: {
       label: 'is',
@@ -596,7 +596,7 @@ export const booleanOperators = defineOperators<'is' | 'is not'>(
         return cellValue === filterVal
       },
     },
-    'is not': {
+    is_not: {
       label: 'is not',
       target: 'single',
       i18nKey: 'filters.boolean.isNot',

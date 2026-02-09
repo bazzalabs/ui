@@ -317,7 +317,7 @@ describe('useDataView', () => {
         result.current.overrides.addFilterValue(statusCol, ['pending'])
       })
 
-      expect(result.current.overrides.filters[0].operator).toBe('is any of')
+      expect(result.current.overrides.filters[0].operator).toBe('is_any_of')
       expect(result.current.overrides.filters[0].values).toEqual([
         'active',
         'pending',
@@ -377,10 +377,10 @@ describe('useDataView', () => {
         result.current.overrides.addFilterValue(statusCol, ['active'])
       })
       act(() => {
-        result.current.overrides.setFilterOperator('status', 'is not')
+        result.current.overrides.setFilterOperator('status', 'is_not')
       })
 
-      expect(result.current.overrides.filters[0].operator).toBe('is not')
+      expect(result.current.overrides.filters[0].operator).toBe('is_not')
     })
 
     it('removeFilter: should remove a specific column filter', () => {

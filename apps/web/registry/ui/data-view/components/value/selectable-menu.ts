@@ -1,5 +1,6 @@
 import type {
   Column,
+  ColumnOption,
   ColumnOptionExtended,
   FilterModel,
   FilterStrategy,
@@ -23,26 +24,32 @@ interface CreateSelectableMenuInternalParams<TData> {
   strategy?: FilterStrategy
 }
 
-/**
- * Internal implementation for creating selectable menu nodes.
- * Used by both createOptionMenu and createMultiOptionMenu.
- */
-function createSelectableMenuInternal<TData>({
-  column,
-  layer,
-  filter,
-}: CreateSelectableMenuInternalParams<TData>): CreateSelectableMenuResult {
-  const counts = column.getFacetedUniqueValues()
-  const options = column.getOptions()
+// ============================================================================
+// Shared helper: ColumnOption[] → CheckboxItemDef[]
+// ============================================================================
 
-  const nodes: CheckboxItemDef[] = options.map((option) => {
+/**
+ * Converts an array of ColumnOption objects into CheckboxItemDef nodes
+ * for use with the dropdown-menu Data-First API.
+ *
+ * This is the shared conversion logic used by both the synchronous path
+ * (createSelectableMenuInternal) and the async path (AsyncOptionsNodeLoader).
+ */
+export function optionsToCheckboxItemDefs<TData>(
+  options: ColumnOption[],
+  column: Column<TData, 'option'> | Column<TData, 'multiOption'>,
+  layer: ViewLayer<TData>,
+  filter?: FilterModel<'option'> | FilterModel<'multiOption'>,
+  counts?: Map<string, number>,
+): CheckboxItemDef[] {
+  return options.map((option) => {
     const isCurrentlySelected =
       filter?.values.includes(option.value as string) ?? false
     const optionData: ColumnOptionExtended = {
       value: option.value as string,
       label: option.label,
       icon: option.icon,
-      count: counts?.get(option.value as string) ?? 0,
+      count: option.count ?? counts?.get(option.value as string) ?? 0,
     }
 
     return {
@@ -66,7 +73,30 @@ function createSelectableMenuInternal<TData>({
       render: createOptionItemRenderer(optionData),
     } satisfies CheckboxItemDef
   })
+}
 
+// ============================================================================
+// Internal: sync implementation using optionsToCheckboxItemDefs
+// ============================================================================
+
+/**
+ * Internal implementation for creating selectable menu nodes.
+ * Used by both createOptionMenu and createMultiOptionMenu.
+ */
+function createSelectableMenuInternal<TData>({
+  column,
+  layer,
+  filter,
+}: CreateSelectableMenuInternalParams<TData>): CreateSelectableMenuResult {
+  const counts = column.getFacetedUniqueValues()
+  const options = column.getOptions()
+  const nodes = optionsToCheckboxItemDefs(
+    options,
+    column,
+    layer,
+    filter,
+    counts,
+  )
   return { nodes }
 }
 

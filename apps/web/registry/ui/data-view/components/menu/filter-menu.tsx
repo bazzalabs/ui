@@ -100,9 +100,7 @@ function createSubmenuRenderer(
             <DropdownMenu.Popup>
               <DropdownMenu.DataSurface content={nodes}>
                 <DropdownMenu.DataInput placeholder={inputPlaceholder} />
-                <DropdownMenu.DataList virtualized>
-                  <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
-                </DropdownMenu.DataList>
+                <DropdownMenu.DataList virtualized />
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>

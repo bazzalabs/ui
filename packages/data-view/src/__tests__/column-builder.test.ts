@@ -125,7 +125,7 @@ describe('core/columns/column-builder', () => {
 
   describe('.operators()', () => {
     it('should set a custom OperatorSet on the column', () => {
-      const customOps = optionOperators.only('is', 'is not')
+      const customOps = optionOperators.only('is', 'is_not')
       const col = c
         .option()
         .id('status')
@@ -139,7 +139,7 @@ describe('core/columns/column-builder', () => {
     })
 
     it('should be immutable (returns new instance)', () => {
-      const customOps = optionOperators.only('is', 'is not')
+      const customOps = optionOperators.only('is', 'is_not')
       const base = c
         .option()
         .id('status')
@@ -159,7 +159,7 @@ describe('core/columns/column-builder', () => {
         id: 'currency',
         operators: numberOperators,
       })
-      const limitedOps = numberOperators.only('is', 'is not')
+      const limitedOps = numberOperators.only('is', 'is_not')
 
       const col = c
         .custom(currencyType)
@@ -201,7 +201,7 @@ describe('core/columns/column-builder', () => {
         id: 'currency',
         operators: numberOperators,
       })
-      const customOps = numberOperators.only('is', 'is between')
+      const customOps = numberOperators.only('is', 'is_between')
 
       const col = c
         .custom(currencyType)
@@ -265,6 +265,47 @@ describe('core/columns/column-builder', () => {
 
       // numberType.normalizeValues sorts range values
       expect(col.normalizeValues!([10, 5])).toEqual([5, 10])
+    })
+  })
+
+  describe('.field()', () => {
+    it('should set field on the config', () => {
+      const col = c
+        .date()
+        .id('createdAt')
+        .accessor((r) => r.createdAt)
+        .displayName('Created')
+        .field('created_at')
+        .build()
+
+      expect(col.field).toBe('created_at')
+    })
+
+    it('should be immutable (returns new instance)', () => {
+      const base = c
+        .text()
+        .id('name')
+        .accessor((r) => r.name)
+        .displayName('Name')
+
+      const withField = base.field('full_name')
+      const baseCfg = base.build()
+      const withFieldCfg = withField.build()
+
+      expect(baseCfg.field).toBeUndefined()
+      expect(withFieldCfg.field).toBe('full_name')
+    })
+
+    it('should work with dot notation for relations', () => {
+      const col = c
+        .option()
+        .id('status')
+        .accessor((r) => r.status)
+        .displayName('Status')
+        .field('status.name')
+        .build()
+
+      expect(col.field).toBe('status.name')
     })
   })
 })

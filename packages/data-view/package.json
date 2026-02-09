@@ -19,6 +19,16 @@
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js",
       "require": "./dist/react/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs"
+    },
+    "./drizzle/pg": {
+      "types": "./dist/drizzle/pg.d.ts",
+      "import": "./dist/drizzle/pg.js",
+      "require": "./dist/drizzle/pg.cjs"
     }
   },
   "files": [
@@ -34,10 +44,14 @@
     "bench:watch": "vitest bench --watch"
   },
   "peerDependencies": {
-    "react": ">=18.0.0"
+    "react": ">=18.0.0",
+    "drizzle-orm": ">=0.30.0"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "drizzle-orm": {
       "optional": true
     }
   },
@@ -49,6 +63,7 @@
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^5.1.2",
     "date-fns": "^4.1.0",
+    "drizzle-orm": "^0.45.1",
     "jsdom": "^27.4.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

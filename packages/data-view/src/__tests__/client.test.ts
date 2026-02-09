@@ -170,7 +170,7 @@ describe('core/client', () => {
         {
           columnId: 'status',
           type: 'option',
-          operator: 'is any of',
+          operator: 'is_any_of',
           values: ['open', 'pending'],
         },
       ]

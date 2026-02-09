@@ -60,7 +60,7 @@ export type FilterValues<T extends ColumnDataType> =
 // ── Operator Types ──────────────────────────────────────────
 
 export interface OperatorDefinition {
-  /** Unique identifier for this operator (e.g. 'contains', 'is any of'). */
+  /** Unique identifier for this operator (e.g. 'contains', 'is_any_of'). */
   id: string
   /** Human-readable label for the operator. */
   label: string
@@ -237,6 +237,31 @@ export type ColumnConfig<
   columnType?: ColumnType<any>
   /** Normalizes filter values before storing (e.g. sorting range bounds). */
   normalizeValues?: (values: unknown[]) => unknown[]
+
+  /**
+   * Server field path for query generation.
+   *
+   * Convention:
+   * - Omit or set to column `id` value → adapter uses column ID as the DB column name.
+   * - `'db_column_name'` → rename: the DB column has a different name than the column ID.
+   * - `'relation.column'` → relation path: access `column` on the related `relation` table.
+   *
+   * This is purely declarative metadata — it has no runtime effect
+   * in the core package. Server-side adapters read this to generate queries.
+   *
+   * @example
+   * ```typescript
+   * // Direct field (rename)
+   * cb.date().id('createdAt').field('created_at')
+   *
+   * // Belongs-to relation
+   * cb.option().id('status').field('status.name')
+   *
+   * // Many-to-many relation
+   * cb.multiOption().id('labels').field('labels.name')
+   * ```
+   */
+  field?: string
 }
 
 // ── Column ID Extraction Utilities ─────────────────────────

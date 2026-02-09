@@ -268,12 +268,12 @@ describe('core/view', () => {
       const overrideStatus: FilterModel = {
         columnId: 'status',
         type: 'option',
-        operator: 'is not',
+        operator: 'is_not',
         values: ['closed'],
       }
       const result = mergeFilters([baseFilter], [overrideStatus])
       expect(result).toHaveLength(1)
-      expect(result[0].operator).toBe('is not')
+      expect(result[0].operator).toBe('is_not')
       expect(result[0].values).toEqual(['closed'])
     })
 
@@ -287,7 +287,7 @@ describe('core/view', () => {
       const overrideStatus: FilterModel = {
         columnId: 'status',
         type: 'option',
-        operator: 'is not',
+        operator: 'is_not',
         values: ['closed'],
       }
       const result = mergeFilters([baseFilter, anotherBase], [overrideStatus])
@@ -295,7 +295,7 @@ describe('core/view', () => {
       expect(result).toHaveLength(2)
       expect(result[0].columnId).toBe('age')
       expect(result[1].columnId).toBe('status')
-      expect(result[1].operator).toBe('is not')
+      expect(result[1].operator).toBe('is_not')
     })
 
     it('should handle both empty arrays', () => {

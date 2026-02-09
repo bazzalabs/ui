@@ -47,7 +47,7 @@ describe('core/filters', () => {
         'active',
         'pending',
       ])
-      expect(result[0]!.operator).toBe('is any of')
+      expect(result[0]!.operator).toBe('is_any_of')
       expect(result[0]!.values).toEqual(['active', 'pending'])
     })
 
@@ -79,8 +79,8 @@ describe('core/filters', () => {
       const result = filterOperations.addFilterValue(filters, optionCol, [
         'pending',
       ])
-      // 'is' has singular: 'is any of', so transitioning 1→2 should switch to 'is any of'
-      expect(result[0]!.operator).toBe('is any of')
+      // 'is' has singular: 'is_any_of', so transitioning 1→2 should switch to 'is_any_of'
+      expect(result[0]!.operator).toBe('is_any_of')
     })
 
     it('should work with multiOption columns', () => {
@@ -106,7 +106,7 @@ describe('core/filters', () => {
         {
           columnId: 'status',
           type: 'option',
-          operator: 'is any of',
+          operator: 'is_any_of',
           values: ['active', 'pending'],
         },
       ]
@@ -122,14 +122,14 @@ describe('core/filters', () => {
         {
           columnId: 'status',
           type: 'option',
-          operator: 'is any of',
+          operator: 'is_any_of',
           values: ['active', 'pending'],
         },
       ]
       const result = filterOperations.removeFilterValue(filters, optionCol, [
         'pending',
       ])
-      // 'is any of' has plural: 'is', so transitioning 2→1 should switch to 'is'
+      // 'is_any_of' has plural: 'is', so transitioning 2→1 should switch to 'is'
       expect(result[0]!.operator).toBe('is')
     })
 
@@ -199,7 +199,7 @@ describe('core/filters', () => {
       )
       // Should normalize to [5, 10]
       expect(result[0]!.values).toEqual([5, 10])
-      expect(result[0]!.operator).toBe('is between')
+      expect(result[0]!.operator).toBe('is_between')
     })
 
     it('should update existing filter', () => {
@@ -253,9 +253,9 @@ describe('core/filters', () => {
       const result = filterOperations.setFilterOperator(
         filters,
         'status',
-        'is not',
+        'is_not',
       )
-      expect(result[0]!.operator).toBe('is not')
+      expect(result[0]!.operator).toBe('is_not')
       expect(result[0]!.values).toEqual(['active'])
     })
 
@@ -272,7 +272,7 @@ describe('core/filters', () => {
       const result = filterOperations.setFilterOperator(
         filters,
         'status',
-        'is not',
+        'is_not',
       )
       expect(result[1]!.operator).toBe('contains')
     })
@@ -317,9 +317,9 @@ describe('core/operators', () => {
         optionOperators,
         ['a', 'b'],
         ['a', 'b', 'c'],
-        'is any of',
+        'is_any_of',
       )
-      expect(result).toBe('is any of')
+      expect(result).toBe('is_any_of')
     })
 
     it('should transition from single to multiple (singular pointer)', () => {
@@ -329,8 +329,8 @@ describe('core/operators', () => {
         ['a', 'b'],
         'is',
       )
-      // 'is' has singular: 'is any of'
-      expect(result).toBe('is any of')
+      // 'is' has singular: 'is_any_of'
+      expect(result).toBe('is_any_of')
     })
 
     it('should transition from multiple to single (plural pointer)', () => {
@@ -338,9 +338,9 @@ describe('core/operators', () => {
         optionOperators,
         ['a', 'b'],
         ['a'],
-        'is any of',
+        'is_any_of',
       )
-      // 'is any of' has plural: 'is'
+      // 'is_any_of' has plural: 'is'
       expect(result).toBe('is')
     })
 
@@ -367,7 +367,7 @@ describe('core/operators', () => {
 
     it('should transition 0→2 (empty to multiple)', () => {
       const result = determineNewOperator(optionOperators, [], ['a', 'b'], 'is')
-      expect(result).toBe('is any of')
+      expect(result).toBe('is_any_of')
     })
 
     it('should transition 2→0 (multiple to empty)', () => {
@@ -375,7 +375,7 @@ describe('core/operators', () => {
         optionOperators,
         ['a', 'b'],
         [],
-        'is any of',
+        'is_any_of',
       )
       expect(result).toBe('is')
     })
@@ -389,7 +389,7 @@ describe('core/operators', () => {
     })
 
     it('should return custom operators when provided on column', () => {
-      const customSet = optionOperators.only('is', 'is not')
+      const customSet = optionOperators.only('is', 'is_not')
       const col = { ...makeColumn('status', 'option'), operators: customSet }
       const set = getOperatorSet(col)
       expect(set).toBe(customSet)
@@ -450,7 +450,7 @@ describe('lib/helpers — filterRow & filterData', () => {
         {
           columnId: 'age',
           type: 'number',
-          operator: 'is greater than',
+          operator: 'is_greater_than',
           values: [28],
         },
       ]
@@ -469,7 +469,7 @@ describe('lib/helpers — filterRow & filterData', () => {
         {
           columnId: 'age',
           type: 'number',
-          operator: 'is greater than',
+          operator: 'is_greater_than',
           values: [31],
         },
       ]
