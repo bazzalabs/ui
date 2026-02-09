@@ -1,8 +1,9 @@
-'use client'
-
-import { Suspense, useMemo } from 'react'
-import { getRegistryComponent } from '@/lib/registry'
+import { Suspense } from 'react'
 import { cn } from '@/lib/utils'
+
+const componentPreviewLoaders = {
+  'filter-variants': () => import('@/registry/examples/filter-variants'),
+} as const
 
 export interface ComponentPreviewProps {
   /**
@@ -33,14 +34,16 @@ export interface ComponentPreviewProps {
  * ComponentPreview renders a registry component with lazy loading and Suspense.
  * Used in documentation pages to show live component examples.
  */
-export function ComponentPreview({
+export async function ComponentPreview({
   name,
   description,
   className,
   align = 'center',
   bordered = true,
 }: ComponentPreviewProps) {
-  const Component = useMemo(() => getRegistryComponent(name), [name])
+  const load =
+    componentPreviewLoaders[name as keyof typeof componentPreviewLoaders]
+  const Component = load ? (await load()).default : null
 
   if (!Component) {
     return (
