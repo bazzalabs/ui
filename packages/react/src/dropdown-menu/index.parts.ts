@@ -26,6 +26,7 @@ export {
   // Items
   PopupMenuItem as Item,
   PopupMenuList as List,
+  PopupMenuLoading as Loading,
   PopupMenuPopup as Popup,
   // Positioning & Container
   PopupMenuPortal as Portal,

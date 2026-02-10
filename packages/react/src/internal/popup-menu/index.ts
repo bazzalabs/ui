@@ -157,6 +157,11 @@ export {
   PopupMenuListCssVars,
   PopupMenuListDataAttributes,
 } from './components/list/list.js'
+export type {
+  PopupMenuLoadingProps,
+  PopupMenuLoadingState,
+} from './components/loading/loading.js'
+export { PopupMenuLoading } from './components/loading/loading.js'
 export { PopupMenuScrollArrowDataAttributes } from './components/scroll-arrow/scroll-arrow.data-attrs.js'
 export type {
   PopupMenuScrollArrowProps,
