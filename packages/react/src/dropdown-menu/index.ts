@@ -65,6 +65,9 @@ export type {
   PopupMenuListChildrenState as DropdownMenuListChildrenState,
   PopupMenuListProps as DropdownMenuListProps,
   PopupMenuListState as DropdownMenuListState,
+  PopupMenuLoading as DropdownMenuLoading,
+  PopupMenuLoadingProps as DropdownMenuLoadingProps,
+  PopupMenuLoadingState as DropdownMenuLoadingState,
   PopupMenuPopup as DropdownMenuPopup,
   PopupMenuPopupProps as DropdownMenuPopupProps,
   PopupMenuPortal as DropdownMenuPortal,
@@ -123,6 +126,7 @@ export { DropdownMenuIconDataAttributes } from './icon/icon.data-attrs.js'
 export { DropdownMenuInputDataAttributes } from './input/input.data-attrs.js'
 export { DropdownMenuItemDataAttributes } from './item/item.data-attrs.js'
 export { DropdownMenuListDataAttributes } from './list/list.data-attrs.js'
+export { DropdownMenuLoadingDataAttributes } from './loading/loading.data-attrs.js'
 export { DropdownMenuPopupDataAttributes } from './popup/popup.data-attrs.js'
 export { DropdownMenuPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
 export { DropdownMenuRadioGroupDataAttributes } from './radio-group/radio-group.data-attrs.js'

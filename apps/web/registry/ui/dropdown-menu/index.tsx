@@ -895,6 +895,25 @@ const Empty = forwardRef<
 ))
 Empty.displayName = 'DropdownMenu.Empty'
 
+const Loading = forwardRef<
+  HTMLDivElement,
+  Omit<React.ComponentProps<typeof Primitive.Loading>, 'children'> & {
+    children?: React.ReactNode
+  }
+>(({ className, children, ...props }, ref) => (
+  <Primitive.Loading
+    ref={ref}
+    className={cn(
+      'flex items-center justify-center h-8 text-muted-foreground text-sm',
+      className,
+    )}
+    {...props}
+  >
+    {children ?? <DiamondSpinner className="size-5" />}
+  </Primitive.Loading>
+))
+Loading.displayName = 'DropdownMenu.Loading'
+
 const Arrow = Primitive.Arrow
 
 const Backdrop = Primitive.Backdrop
@@ -961,6 +980,7 @@ export const DropdownMenu = {
   SubmenuTrigger,
   SubmenuTriggerIndicator,
   Empty,
+  Loading,
   Arrow,
   Backdrop,
   Shortcut,

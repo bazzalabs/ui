@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
+  reactCompiler: false,
   distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   images: {

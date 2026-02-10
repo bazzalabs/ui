@@ -170,6 +170,14 @@ export const examples: RegistryIndex = {
     ),
     files: ['registry/examples/dropdown-menu/virtualized-advanced/index.tsx'],
   },
+  'dropdown-menu-async': {
+    name: 'dropdown-menu-async',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/async'),
+    ),
+    files: ['registry/examples/dropdown-menu/async/index.tsx'],
+  },
 
   'guides/dropdown-menu/your-first-menu/surface-hidden-input': {
     name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
