@@ -1,7 +1,7 @@
 'use client'
 
 import type { ColumnOptionExtended } from '@bazza-ui/filters'
-import type { CheckboxItemRenderParams } from '@bazza-ui/react'
+import type { CheckboxItemRenderParams } from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { isValidElement } from 'react'
 import { toast } from 'sonner'

@@ -6,14 +6,31 @@
     "access": "public"
   },
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+    "./dropdown-menu": {
+      "types": "./dist/dropdown-menu/index.d.ts",
+      "import": "./dist/dropdown-menu/index.js",
+      "require": "./dist/dropdown-menu/index.cjs"
+    },
+    "./select": {
+      "types": "./dist/select/index.d.ts",
+      "import": "./dist/select/index.js",
+      "require": "./dist/select/index.cjs"
+    },
+    "./combobox": {
+      "types": "./dist/combobox/index.d.ts",
+      "import": "./dist/combobox/index.js",
+      "require": "./dist/combobox/index.cjs"
+    },
+    "./context-menu": {
+      "types": "./dist/context-menu/index.d.ts",
+      "import": "./dist/context-menu/index.js",
+      "require": "./dist/context-menu/index.cjs"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js",
+      "require": "./dist/adapters/index.cjs"
     },
     "./internal/listbox": {
       "types": "./dist/internal/listbox/index.d.ts",

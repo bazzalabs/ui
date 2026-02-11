@@ -22,7 +22,7 @@ import type {
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
-} from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { isValidElement, memo, useMemo } from 'react'
 import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'

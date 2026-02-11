@@ -1,13 +1,13 @@
 'use client'
 
+import { createVanillaStaticLoader } from '@bazza-ui/react/adapters'
 import type {
   ItemDef,
   ItemRenderParams,
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
-} from '@bazza-ui/react'
-import { createVanillaStaticLoader } from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

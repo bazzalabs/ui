@@ -1,6 +1,6 @@
 'use client'
 
-import type { ItemRenderParams } from '@bazza-ui/react'
+import type { ItemRenderParams } from '@bazza-ui/react/dropdown-menu'
 import type * as React from 'react'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import type { TextFilterItemData } from './text-menu'

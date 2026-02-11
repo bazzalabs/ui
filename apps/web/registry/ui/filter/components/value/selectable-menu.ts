@@ -6,7 +6,7 @@ import type {
   FilterStrategy,
   Locale,
 } from '@bazza-ui/filters'
-import type { CheckboxItemDef } from '@bazza-ui/react'
+import type { CheckboxItemDef } from '@bazza-ui/react/dropdown-menu'
 import { createOptionItemRenderer } from './option-item'
 
 export type SelectableColumnType = 'option' | 'multiOption'

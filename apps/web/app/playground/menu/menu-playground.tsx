@@ -2,7 +2,7 @@
 
 import { Collapsible } from '@base-ui/react/collapsible'
 import { ScrollArea } from '@base-ui/react/scroll-area'
-import { useComboboxItemContext } from '@bazza-ui/react'
+import { useComboboxItemContext } from '@bazza-ui/react/combobox'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { AnimatePresence, motion } from 'motion/react'
 import * as React from 'react'
@@ -1010,12 +1010,10 @@ function MainPlayground() {
 // Demo Components (stubs - we'll add real implementations)
 // ============================================================================
 
-import {
-  Combobox,
-  ContextMenu,
-  DropdownMenu,
-  Select as SelectPrimitive,
-} from '@bazza-ui/react'
+import { Combobox } from '@bazza-ui/react/combobox'
+import { ContextMenu } from '@bazza-ui/react/context-menu'
+import { DropdownMenu } from '@bazza-ui/react/dropdown-menu'
+import { Select as SelectPrimitive } from '@bazza-ui/react/select'
 
 // --- Basic Dropdown Demo ---
 
@@ -1631,7 +1629,7 @@ function SubmenusDemo() {
 // When searching, it shows results from nested submenus with breadcrumbs.
 // For the real data-first deep search API, see DeepSearchRealDemo below.
 
-import { commandScore } from '@bazza-ui/react'
+import { commandScore } from '@bazza-ui/react/dropdown-menu'
 import {
   ArrowLeftIcon,
   ArrowUpDownIcon,
@@ -2064,7 +2062,7 @@ import type {
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
-} from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   AssigneeIcon as LinearAssigneeIcon,
@@ -3849,8 +3847,8 @@ import type {
   RadioGroupRenderParams,
   RadioItemDef,
   RadioItemRenderParams,
-} from '@bazza-ui/react'
-import { defineRadioGroup } from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
+import { defineRadioGroup } from '@bazza-ui/react/dropdown-menu'
 
 function DeepSearchStatefulDemo() {
   const handleOpenChange = React.useCallback(

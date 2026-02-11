@@ -1,7 +1,7 @@
 'use client'
 
 import { ScrollArea } from '@base-ui/react/scroll-area'
-import { Select as Primitive } from '@bazza-ui/react'
+import { Select as Primitive } from '@bazza-ui/react/select'
 import { cva } from 'class-variance-authority'
 import { CheckIcon } from 'lucide-react'
 import type * as React from 'react'
