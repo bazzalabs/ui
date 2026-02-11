@@ -13,7 +13,7 @@ import type {
   NodeDef,
   SeparatorDef,
   SeparatorRenderParams,
-} from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import { useMemo } from 'react'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import { createMultiOptionMenu, createOptionMenu } from '../selectable-menu'

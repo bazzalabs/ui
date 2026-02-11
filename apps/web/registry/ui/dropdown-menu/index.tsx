@@ -12,7 +12,7 @@ import {
   DropdownMenu as Primitive,
   useMaybeSubmenuContext,
   useSurfaceContext,
-} from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { cva } from 'class-variance-authority'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'

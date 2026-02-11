@@ -3,7 +3,7 @@ import type {
   DataTableFilterActions,
   TextFilterOperator,
 } from '@bazza-ui/filters'
-import type { ItemDef } from '@bazza-ui/react'
+import type { ItemDef } from '@bazza-ui/react/dropdown-menu'
 import { createTextItemRenderer } from './text-item'
 
 /**

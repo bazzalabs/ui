@@ -1,13 +1,13 @@
 'use client'
 
+import { createQueryLoader } from '@bazza-ui/react/adapters'
 import type {
   ItemDef,
   ItemRenderParams,
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
-} from '@bazza-ui/react'
-import { createQueryLoader } from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { toast } from 'sonner'

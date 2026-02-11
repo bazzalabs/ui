@@ -7,7 +7,7 @@ import type {
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
-} from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import { ChevronRightIcon } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'

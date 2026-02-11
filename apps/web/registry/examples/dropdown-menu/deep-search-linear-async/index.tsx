@@ -1,7 +1,7 @@
 'use client'
 
-import type { NodeDef } from '@bazza-ui/react'
-import { createVanillaStaticLoader } from '@bazza-ui/react'
+import { createVanillaStaticLoader } from '@bazza-ui/react/adapters'
+import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { DiamondSpinner, DropdownMenu } from '@/registry/ui/dropdown-menu'

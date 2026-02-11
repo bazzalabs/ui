@@ -1,6 +1,6 @@
 'use client'
 
-import type { NodeDef } from '@bazza-ui/react'
+import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'

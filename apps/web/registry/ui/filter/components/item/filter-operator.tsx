@@ -27,7 +27,7 @@ import type {
   RadioGroupRenderParams,
   RadioItemDef,
   RadioItemRenderParams,
-} from '@bazza-ui/react'
+} from '@bazza-ui/react/dropdown-menu'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
