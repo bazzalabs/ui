@@ -4,7 +4,6 @@ import type { FiltersState } from '@bazza-ui/filters'
 import { parseAsJson, useQueryState } from 'nuqs'
 import { z } from 'zod'
 import { IssuesTable } from './issues-table'
-import QueryClientProvider from './query-client-provider'
 
 const filtersSchema = z.custom<FiltersState>()
 
@@ -14,9 +13,5 @@ export function IssuesTableWrapper() {
     parseAsJson(filtersSchema.parse).withDefault([]),
   )
 
-  return (
-    <QueryClientProvider>
-      <IssuesTable state={{ filters, setFilters }} />
-    </QueryClientProvider>
-  )
+  return <IssuesTable state={{ filters, setFilters }} />
 }
