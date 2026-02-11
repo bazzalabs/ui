@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { META_THEME_COLORS } from '@/lib/config'
 import { env } from '@/lib/env'
 import { berkeleyMono, inter } from '@/lib/fonts'
+import { QueryClientProvider } from '@/providers/query-client-provider'
 import { ThemeProvider } from '@/providers/theme-provider'
 
 const title = 'bazza/ui — Hand-crafted, modern React components'
@@ -102,14 +103,16 @@ export default function RootLayout({
           disableTransitionOnChange
           enableColorScheme
         >
-          <NuqsAdapter>
-            <div data-vaul-drawer-wrapper="">
-              <div className="relative flex min-h-svh flex-col bg-site-background">
-                <ThemeColorUpdater />
-                {children}
+          <QueryClientProvider>
+            <NuqsAdapter>
+              <div data-vaul-drawer-wrapper="">
+                <div className="relative flex min-h-svh flex-col bg-site-background">
+                  <ThemeColorUpdater />
+                  {children}
+                </div>
               </div>
-            </div>
-          </NuqsAdapter>
+            </NuqsAdapter>
+          </QueryClientProvider>
           <Toaster />
         </ThemeProvider>
       </body>
