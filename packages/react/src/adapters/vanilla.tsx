@@ -59,6 +59,90 @@ function useAsyncState<T>(
 }
 
 /**
+ * Internal hook for managing query-dependent async state with plain promises.
+ * Unlike `useAsyncState`, this hook re-fetches whenever the query changes.
+ * Aborts in-flight requests when a new query is issued or the component unmounts.
+ */
+function useAsyncQueryState(
+  fetcher: (
+    query: string,
+    options?: { signal?: AbortSignal },
+  ) => Promise<NodeDef[]>,
+  query: string,
+  options?: { enabled?: boolean },
+): AsyncLoaderResult<NodeDef[]> {
+  const { enabled = true } = options ?? {}
+  const [state, setState] = React.useState<AsyncLoaderResult<NodeDef[]>>({
+    data: undefined,
+    error: null,
+    isLoading: enabled,
+    isError: false,
+  })
+
+  const fetcherRef = React.useRef(fetcher)
+  fetcherRef.current = fetcher
+
+  React.useEffect(() => {
+    if (!enabled) {
+      setState({
+        data: undefined,
+        error: null,
+        isLoading: false,
+        isError: false,
+      })
+      return
+    }
+
+    const controller = new AbortController()
+
+    setState({ data: undefined, isLoading: true, error: null, isError: false })
+
+    fetcherRef
+      .current(query, { signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setState({ data, error: null, isLoading: false, isError: false })
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setState({
+            data: undefined,
+            error: error instanceof Error ? error : new Error(String(error)),
+            isLoading: false,
+            isError: true,
+          })
+        }
+      })
+
+    return () => {
+      controller.abort()
+    }
+  }, [enabled, query])
+
+  const refetch = React.useCallback(() => {
+    // Trigger re-run by toggling a state-based effect isn't ideal here,
+    // so we do a manual fetch that respects the current query/enabled state.
+    setState({ data: undefined, isLoading: true, error: null, isError: false })
+    fetcherRef
+      .current(query)
+      .then((data) => {
+        setState({ data, error: null, isLoading: false, isError: false })
+      })
+      .catch((error) => {
+        setState({
+          data: undefined,
+          error: error instanceof Error ? error : new Error(String(error)),
+          isLoading: false,
+          isError: true,
+        })
+      })
+  }, [query])
+
+  return React.useMemo(() => ({ ...state, refetch }), [state, refetch])
+}
+
+/**
  * Props for creating a static loader with vanilla fetch.
  */
 export interface CreateVanillaStaticLoaderProps {
@@ -109,8 +193,13 @@ export function createVanillaStaticLoader(
 export interface CreateVanillaQueryLoaderProps {
   /**
    * Async function that fetches menu items based on the search query.
+   * Receives an optional `signal` that is aborted when a newer query is issued,
+   * allowing you to cancel in-flight requests (e.g. pass it to `fetch()`).
    */
-  fetcher: (query: string) => Promise<NodeDef[]>
+  fetcher: (
+    query: string,
+    options?: { signal?: AbortSignal },
+  ) => Promise<NodeDef[]>
   /**
    * Minimum query length before fetching.
    * @default 1
@@ -138,8 +227,10 @@ export interface CreateVanillaQueryLoaderProps {
  * @example
  * ```tsx
  * const searchLoader = createVanillaQueryLoader({
- *   fetcher: async (query) => {
- *     const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+ *   fetcher: async (query, options) => {
+ *     const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+ *       signal: options?.signal, // aborts when a newer query is issued
+ *     })
  *     const data = await res.json()
  *     return data.map(item => ({
  *       kind: 'item',
@@ -164,7 +255,7 @@ export function createVanillaQueryLoader(
 
   const Loader: React.FC<LoaderComponentProps> = ({ query, children }) => {
     const enabled = query.length >= minQueryLength
-    const result = useAsyncState(() => fetcher(query), { enabled })
+    const result = useAsyncQueryState(fetcher, query, { enabled })
     return <>{children(result)}</>
   }
 
