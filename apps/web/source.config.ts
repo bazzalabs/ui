@@ -15,6 +15,7 @@ import rehypeCallouts from 'rehype-callouts'
 import z from 'zod/v4'
 import { env } from './lib/env'
 import { oscuraMidnight } from './lib/oscura/oscura-midnight'
+import { rehypeCollapsibleHeadings } from './lib/rehype-collapsible-headings'
 import { remarkCodeInject } from './lib/remark-code-inject'
 
 export const docs = defineDocs({
@@ -87,6 +88,7 @@ export default defineConfig({
   mdxOptions: {
     rehypePlugins: (v) => [
       ...v,
+      rehypeCollapsibleHeadings,
       rehypeCallouts,
       [rehypeCode, rehypeCodeOptions],
     ],
