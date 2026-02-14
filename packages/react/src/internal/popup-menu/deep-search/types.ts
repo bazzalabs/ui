@@ -915,6 +915,13 @@ export type GroupBehavior = 'flatten' | 'preserve'
 export type RadioGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
 
 /**
+ * Defines how deep-search async results are revealed.
+ * - 'stream': show available results immediately and append new async batches as they resolve.
+ * - 'block': hide all deep-search rows until every participating async loader resolves.
+ */
+export type AsyncResultBehavior = 'stream' | 'block'
+
+/**
  * Configuration for deep search behavior.
  */
 export interface DeepSearchConfig {
@@ -943,6 +950,13 @@ export interface DeepSearchConfig {
    * @default true
    */
   sortGroups?: boolean
+  /**
+   * How async deep-search results are revealed.
+   * - 'stream': emit available results immediately, append later async batches (default)
+   * - 'block': show loading state only until all loaders resolve, then render once
+   * @default 'stream'
+   */
+  asyncResultBehavior?: AsyncResultBehavior
 }
 
 // ============================================================================
