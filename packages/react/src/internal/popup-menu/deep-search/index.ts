@@ -40,6 +40,8 @@ export type {
   GroupDef,
   GroupRenderContext,
   GroupRenderParams,
+  IncludeInDeepSearch,
+  InitialQueryBehavior,
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
@@ -86,5 +88,8 @@ export {
   isSubmenuDef,
   partitionByKind,
   scoreNodes,
+  shouldIncludeInDeepSearch,
+  shouldIncludeSubmenuRowsInDeepSearch,
+  shouldLoadEagerly,
   sortByScore,
 } from './utils.js'

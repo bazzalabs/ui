@@ -3,6 +3,7 @@
 import type * as React from 'react'
 import type {
   AsyncLoaderResult,
+  InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
   QueryDependentLoaderConfig,
@@ -114,16 +115,22 @@ export interface CreateQueryLoaderProps {
    * Hook that returns a TanStack Query result based on the search query.
    * This hook will be called inside the loader component with the current query.
    */
-  useQuery: (query: string) => TanStackQueryResult<NodeDef[]>
+  useQuery: (
+    query: string,
+    options?: { enabled: boolean },
+  ) => TanStackQueryResult<NodeDef[]>
   /**
    * Minimum query length before fetching.
    * @default 1
    */
   minQueryLength?: number
   /**
-   * Initial query to use when the loader becomes active.
-   * Set to '' to fetch all items immediately when the submenu opens.
-   * If undefined, waits for user to type before fetching.
+   * Initial query behavior before user input reaches minQueryLength.
+   * Defaults to fetching with an empty query.
+   */
+  initialQueryBehavior?: InitialQueryBehavior | false
+  /**
+   * @deprecated Use `initialQueryBehavior` instead.
    */
   initialQuery?: string
   /**
@@ -151,10 +158,10 @@ export interface CreateQueryLoaderProps {
  * @example
  * ```tsx
  * const searchLoader = createQueryLoader({
- *   useQuery: (query) => useQuery({
+ *   useQuery: (query, options) => useQuery({
  *     queryKey: ['search', query],
  *     queryFn: () => searchItems(query),
- *     enabled: query.length >= 2,
+ *     enabled: options?.enabled,
  *   }),
  *   minQueryLength: 2,
  * })
@@ -163,10 +170,8 @@ export interface CreateQueryLoaderProps {
  * {
  *   kind: 'submenu',
  *   value: 'Search',
- *   asyncNodes: {
- *     ...searchLoader,
- *     includeInDeepSearch: true,
- *   },
+ *   includeInDeepSearch: true,
+ *   asyncNodes: searchLoader,
  *   render: ...
  * }
  * ```
@@ -177,14 +182,29 @@ export function createQueryLoader(
   const {
     useQuery,
     minQueryLength = 1,
+    initialQueryBehavior,
     initialQuery,
     loadStrategy,
     belowMinBehavior = 'empty',
     placeholderNodes,
   } = props
 
-  const Loader: React.FC<LoaderComponentProps> = ({ query, children }) => {
-    const result = useQuery(query)
+  const resolvedInitialQueryBehavior: InitialQueryBehavior | false =
+    initialQueryBehavior !== undefined
+      ? initialQueryBehavior
+      : initialQuery !== undefined
+        ? { value: initialQuery, loadWhen: 'needed' }
+        : { value: '', loadWhen: 'needed' }
+
+  const Loader: React.FC<LoaderComponentProps> = ({
+    query,
+    enabled,
+    children,
+  }) => {
+    const isEnabled =
+      enabled ??
+      (query.length >= minQueryLength || resolvedInitialQueryBehavior !== false)
+    const result = useQuery(query, { enabled: isEnabled })
     return <>{children(toAsyncLoaderResult(result))}</>
   }
 
@@ -192,6 +212,7 @@ export function createQueryLoader(
     type: 'query',
     Loader,
     minQueryLength,
+    initialQueryBehavior: resolvedInitialQueryBehavior,
     initialQuery,
     loadStrategy,
     belowMinBehavior,

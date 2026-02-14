@@ -236,13 +236,19 @@ describe('createVanillaQueryLoader', () => {
       const config = createVanillaQueryLoader({
         fetcher: async () => MOCK_NODES,
         minQueryLength: 3,
-        initialQuery: 'init',
+        initialQueryBehavior: {
+          value: 'init',
+          loadWhen: 'parent-open',
+        },
         belowMinBehavior: 'placeholder',
         placeholderNodes: placeholders,
       })
 
       expect(config.minQueryLength).toBe(3)
-      expect(config.initialQuery).toBe('init')
+      expect(config.initialQueryBehavior).toEqual({
+        value: 'init',
+        loadWhen: 'parent-open',
+      })
       expect(config.belowMinBehavior).toBe('placeholder')
       expect(config.placeholderNodes).toBe(placeholders)
     })
@@ -254,6 +260,10 @@ describe('createVanillaQueryLoader', () => {
 
       expect(config.minQueryLength).toBe(1)
       expect(config.belowMinBehavior).toBe('empty')
+      expect(config.initialQueryBehavior).toEqual({
+        value: '',
+        loadWhen: 'needed',
+      })
     })
   })
 
@@ -276,9 +286,13 @@ describe('createVanillaQueryLoader', () => {
       expect(fetcher).toHaveBeenCalledWith('ab', expect.any(Object))
     })
 
-    it('does not fetch when query is below minQueryLength', async () => {
+    it('does not fetch when query is below minQueryLength and initial query is disabled', async () => {
       const fetcher = vi.fn(async () => MOCK_NODES)
-      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 3 })
+      const config = createVanillaQueryLoader({
+        fetcher,
+        minQueryLength: 3,
+        initialQueryBehavior: false,
+      })
 
       const { capture } = renderLoader(config.Loader, 'ab')
 
@@ -289,6 +303,20 @@ describe('createVanillaQueryLoader', () => {
       expect(capture.latest.isLoading).toBe(false)
       expect(capture.latest.data).toBeUndefined()
       expect(fetcher).not.toHaveBeenCalled()
+    })
+
+    it('fetches with empty query by default when no user query is provided', async () => {
+      const fetcher = vi.fn(async () => MOCK_NODES)
+      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 3 })
+
+      const { capture } = renderLoader(config.Loader, '')
+
+      await waitFor(() => {
+        expect(capture.latest.isLoading).toBe(false)
+        expect(capture.latest.data).toEqual(MOCK_NODES)
+      })
+
+      expect(fetcher).toHaveBeenCalledWith('', expect.any(Object))
     })
 
     it('re-fetches when query changes', async () => {
@@ -656,7 +684,11 @@ describe('createVanillaQueryLoader', () => {
   describe('enabled transitions', () => {
     it('resets state when query drops below minQueryLength', async () => {
       const fetcher = vi.fn(async () => MOCK_NODES)
-      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 2 })
+      const config = createVanillaQueryLoader({
+        fetcher,
+        minQueryLength: 2,
+        initialQueryBehavior: false,
+      })
 
       const { capture, rerender } = renderLoader(config.Loader, 'ab')
 
@@ -677,7 +709,11 @@ describe('createVanillaQueryLoader', () => {
 
     it('starts fetching again when query exceeds minQueryLength after being below', async () => {
       const fetcher = vi.fn(async () => MOCK_NODES)
-      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 2 })
+      const config = createVanillaQueryLoader({
+        fetcher,
+        minQueryLength: 2,
+        initialQueryBehavior: false,
+      })
 
       const { capture, rerender } = renderLoader(config.Loader, 'a')
 

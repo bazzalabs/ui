@@ -205,6 +205,8 @@ export type {
   // Async types
   AsyncLoaderConfig,
   AsyncLoaderResult,
+  // Async coordinator
+  AsyncMenuCoordinatorValue,
   AsyncNodesConfig,
   AsyncRenderState,
   AsyncState,
@@ -228,6 +230,8 @@ export type {
   GroupDef,
   GroupRenderContext,
   GroupRenderParams,
+  IncludeInDeepSearch,
+  InitialQueryBehavior,
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
@@ -269,6 +273,8 @@ export {
   PopupMenuDataList as DropdownMenuDataList,
   PopupMenuDataSurface as DropdownMenuDataSurface,
   PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
+  useAsyncMenuCoordinator,
   useDataSurfaceContext,
+  useMaybeAsyncMenuCoordinator,
   useMaybeDataSurfaceContext,
 } from '../internal/popup-menu/index.js'

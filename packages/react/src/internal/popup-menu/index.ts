@@ -351,6 +351,8 @@ export type {
   GroupDef,
   GroupRenderContext,
   GroupRenderParams,
+  IncludeInDeepSearch,
+  InitialQueryBehavior,
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
@@ -411,6 +413,7 @@ export {
   partitionByKind,
   scoreNodes,
   shouldIncludeInDeepSearch,
+  shouldIncludeSubmenuRowsInDeepSearch,
   shouldLoadEagerly,
   sortByScore,
 } from './deep-search/utils.js'

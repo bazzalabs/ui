@@ -12,6 +12,7 @@ import type {
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
+  IncludeInDeepSearch,
   ItemDef,
   NodeDef,
   RadioGroupBehavior,
@@ -118,6 +119,10 @@ export function isSeparatorDef(
 interface FlattenOptions {
   /** Whether to include children of submenus (deep search) */
   deep?: boolean
+  /** Default include mode for descendant submenus */
+  includeInDeepSearch?: IncludeInDeepSearch
+  /** Whether ancestors allow this subtree to participate in deep search */
+  descendantsIncluded?: boolean
   /** Parent breadcrumb nodes (submenu nodes from root to parent) */
   breadcrumbs?: BreadcrumbNode[]
   /** Current group context (nested groups not supported) */
@@ -155,6 +160,8 @@ export function flattenNodes(
 ): FlattenedNode[] {
   const {
     deep = false,
+    includeInDeepSearch = true,
+    descendantsIncluded = true,
     breadcrumbs = [],
     group = null,
     radioGroup = null,
@@ -174,6 +181,8 @@ export function flattenNodes(
       result.push(
         ...flattenNodes(node.nodes, {
           deep,
+          includeInDeepSearch,
+          descendantsIncluded,
           breadcrumbs,
           group: groupInfo,
           radioGroup: null, // Reset radio group when entering a regular group
@@ -194,6 +203,8 @@ export function flattenNodes(
       result.push(
         ...flattenNodes(node.nodes, {
           deep,
+          includeInDeepSearch,
+          descendantsIncluded,
           breadcrumbs,
           group: null, // Reset regular group when entering a radio group
           radioGroup: radioGroupInfo,
@@ -221,16 +232,30 @@ export function flattenNodes(
     }
 
     if (node.kind === 'submenu') {
-      // Always include the submenu trigger itself
-      result.push({
-        node,
-        breadcrumbs,
-        group,
-        radioGroup,
-      })
+      const submenuIncludeMode = node.includeInDeepSearch ?? includeInDeepSearch
 
-      // If deep search enabled and submenu allows it, include children
-      if (deep && node.deepSearch !== false && node.nodes) {
+      // includeInDeepSearch only affects deep search results.
+      // In shallow mode, submenu triggers remain searchable as normal rows.
+      const shouldIncludeSubmenuTrigger =
+        !deep || (descendantsIncluded && submenuIncludeMode !== false)
+
+      if (shouldIncludeSubmenuTrigger) {
+        result.push({
+          node,
+          breadcrumbs,
+          group,
+          radioGroup,
+        })
+      }
+
+      // If deep search enabled and submenu allows descendants, include children.
+      const shouldIncludeSubmenuDescendants =
+        deep &&
+        descendantsIncluded &&
+        submenuIncludeMode === true &&
+        node.deepSearch !== false
+
+      if (shouldIncludeSubmenuDescendants && node.nodes) {
         // Create breadcrumb node for this submenu
         const submenuBreadcrumb: BreadcrumbNode = {
           node,
@@ -245,6 +270,8 @@ export function flattenNodes(
         result.push(
           ...flattenNodes(node.nodes, {
             deep,
+            includeInDeepSearch,
+            descendantsIncluded: true,
             breadcrumbs: childBreadcrumbs,
             // Reset group and radio group context when entering a submenu
             group: null,
@@ -634,6 +661,8 @@ export interface FilterNodesOptions {
   highlightedId: string | null
   /** Whether deep search is enabled */
   deepSearch?: boolean
+  /** Default include mode for descendant submenus during deep search */
+  includeInDeepSearch?: IncludeInDeepSearch
   /** Minimum query length for deep search */
   minLength?: number
   /** How groups behave during search (only applies when searching, not browse mode) */
@@ -658,6 +687,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     nodes,
     highlightedId,
     deepSearch = true,
+    includeInDeepSearch = true,
     minLength = 0,
     radioGroupSearchBehavior = 'preserve',
   } = options
@@ -666,7 +696,10 @@ function filterNodesFlatten(options: FilterNodesOptions): {
   const shouldDeepSearch = deepSearch && query.length >= minLength
 
   // Flatten nodes
-  const flattened = flattenNodes(nodes, { deep: shouldDeepSearch })
+  const flattened = flattenNodes(nodes, {
+    deep: shouldDeepSearch,
+    includeInDeepSearch,
+  })
 
   // For preserve-show-all, we need to track ALL radio group items before scoring
   // Maps radio group ID -> all flattened nodes for that group
@@ -846,6 +879,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     nodes,
     highlightedId,
     deepSearch = true,
+    includeInDeepSearch = true,
     minLength = 0,
     sortGroups = true,
     radioGroupSearchBehavior = 'preserve',
@@ -855,7 +889,10 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   const shouldDeepSearch = deepSearch && query.length >= minLength
 
   // Flatten nodes (tracking group and radio group membership)
-  const flattened = flattenNodes(nodes, { deep: shouldDeepSearch })
+  const flattened = flattenNodes(nodes, {
+    deep: shouldDeepSearch,
+    includeInDeepSearch,
+  })
 
   // For preserve-show-all, we need to track ALL radio group items before scoring
   const allRadioGroupItems = new Map<
@@ -1167,6 +1204,8 @@ export interface AsyncSubmenuInfo {
 export function collectAsyncSubmenus(
   nodes: NodeDef[],
   breadcrumbs: string[] = [],
+  includeInDeepSearch: IncludeInDeepSearch = true,
+  descendantsIncluded = true,
 ): AsyncSubmenuInfo[] {
   const result: AsyncSubmenuInfo[] = []
 
@@ -1177,22 +1216,42 @@ export function collectAsyncSubmenus(
 
     if (node.kind === 'group') {
       // Recurse into groups
-      result.push(...collectAsyncSubmenus(node.nodes, breadcrumbs))
+      result.push(
+        ...collectAsyncSubmenus(
+          node.nodes,
+          breadcrumbs,
+          includeInDeepSearch,
+          descendantsIncluded,
+        ),
+      )
       continue
     }
 
     if (node.kind === 'radio-group') {
       if (node.hidden) continue
       // Recurse into radio groups
-      result.push(...collectAsyncSubmenus(node.nodes, breadcrumbs))
+      result.push(
+        ...collectAsyncSubmenus(
+          node.nodes,
+          breadcrumbs,
+          includeInDeepSearch,
+          descendantsIncluded,
+        ),
+      )
       continue
     }
 
     if (node.kind === 'submenu') {
       if (node.hidden) continue
 
+      const submenuIncludeMode = node.includeInDeepSearch ?? includeInDeepSearch
+      const shouldIncludeDescendants =
+        descendantsIncluded &&
+        submenuIncludeMode === true &&
+        node.deepSearch !== false
+
       // If this submenu has async nodes, add it to the result
-      if (node.asyncNodes) {
+      if (node.asyncNodes && shouldIncludeDescendants) {
         const id = [...breadcrumbs, normalizeValue(node.value)].join('.')
         result.push({
           id,
@@ -1203,9 +1262,16 @@ export function collectAsyncSubmenus(
       }
 
       // Recurse into submenu's static nodes
-      if (node.nodes) {
+      if (node.nodes && shouldIncludeDescendants) {
         const childBreadcrumbs = [...breadcrumbs, normalizeValue(node.value)]
-        result.push(...collectAsyncSubmenus(node.nodes, childBreadcrumbs))
+        result.push(
+          ...collectAsyncSubmenus(
+            node.nodes,
+            childBreadcrumbs,
+            includeInDeepSearch,
+            true,
+          ),
+        )
       }
     }
   }
@@ -1312,16 +1378,23 @@ export function mergeAsyncNodesIntoTree(
 }
 
 /**
- * Checks if deep search should include this async config.
+ * Checks if a submenu should appear in deep search results.
+ * `trigger-only` still includes the submenu trigger row.
  */
-export function shouldIncludeInDeepSearch(config: AsyncNodesConfig): boolean {
-  // Default behavior:
-  // - Static loaders: include by default
-  // - Query loaders: include by default
-  if (config.includeInDeepSearch !== undefined) {
-    return config.includeInDeepSearch
-  }
-  return true
+export function shouldIncludeInDeepSearch(
+  includeInDeepSearch: IncludeInDeepSearch | undefined,
+): boolean {
+  return includeInDeepSearch !== false
+}
+
+/**
+ * Checks if submenu descendants (rows inside submenu) should be included.
+ * `trigger-only` excludes descendants.
+ */
+export function shouldIncludeSubmenuRowsInDeepSearch(
+  includeInDeepSearch: IncludeInDeepSearch | undefined,
+): boolean {
+  return includeInDeepSearch === true
 }
 
 /**
@@ -1329,6 +1402,17 @@ export function shouldIncludeInDeepSearch(config: AsyncNodesConfig): boolean {
  * Eager loaders mount when the root menu opens (before their submenu is opened).
  */
 export function shouldLoadEagerly(config: AsyncNodesConfig): boolean {
-  // Both static and query loaders use explicit loadStrategy
+  if (config.type === 'query') {
+    const initialLoadWhen =
+      config.initialQueryBehavior === false
+        ? 'needed'
+        : (config.initialQueryBehavior?.loadWhen ?? 'needed')
+
+    if (initialLoadWhen === 'parent-open') {
+      return true
+    }
+  }
+
+  // Both static and query loaders can still opt into legacy eager strategy.
   return config.loadStrategy === 'eager'
 }

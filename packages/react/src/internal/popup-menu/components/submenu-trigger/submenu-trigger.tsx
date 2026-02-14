@@ -486,9 +486,6 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         tRect,
       )
 
-      // DEBUG: Uncomment to debug aim guard issues
-      // console.log('[AimGuard]', { clientX, clientY, contentRect, anchor, heading, hit, trail: [...mouseTrailRef.current] })
-
       if (hit) {
         // User is aiming at submenu - activate aim guard for 600ms
         // Guard is activated at parentDepth to block highlighting in the parent menu only

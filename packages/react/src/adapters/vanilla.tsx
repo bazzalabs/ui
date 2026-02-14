@@ -3,6 +3,7 @@
 import * as React from 'react'
 import type {
   AsyncLoaderResult,
+  InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
   QueryDependentLoaderConfig,
@@ -206,7 +207,12 @@ export interface CreateVanillaQueryLoaderProps {
    */
   minQueryLength?: number
   /**
-   * Initial query to pre-fetch on menu open.
+   * Initial query behavior before user input reaches minQueryLength.
+   * Defaults to fetching with an empty query.
+   */
+  initialQueryBehavior?: InitialQueryBehavior | false
+  /**
+   * @deprecated Use `initialQueryBehavior` instead.
    */
   initialQuery?: string
   /**
@@ -248,14 +254,28 @@ export function createVanillaQueryLoader(
   const {
     fetcher,
     minQueryLength = 1,
+    initialQueryBehavior,
     initialQuery,
     belowMinBehavior = 'empty',
     placeholderNodes,
   } = props
 
-  const Loader: React.FC<LoaderComponentProps> = ({ query, children }) => {
-    const enabled = query.length >= minQueryLength
-    const result = useAsyncQueryState(fetcher, query, { enabled })
+  const resolvedInitialQueryBehavior: InitialQueryBehavior | false =
+    initialQueryBehavior !== undefined
+      ? initialQueryBehavior
+      : initialQuery !== undefined
+        ? { value: initialQuery, loadWhen: 'needed' }
+        : { value: '', loadWhen: 'needed' }
+
+  const Loader: React.FC<LoaderComponentProps> = ({
+    query,
+    enabled,
+    children,
+  }) => {
+    const isEnabled =
+      enabled ??
+      (query.length >= minQueryLength || resolvedInitialQueryBehavior !== false)
+    const result = useAsyncQueryState(fetcher, query, { enabled: isEnabled })
     return <>{children(result)}</>
   }
 
@@ -263,6 +283,7 @@ export function createVanillaQueryLoader(
     type: 'query',
     Loader,
     minQueryLength,
+    initialQueryBehavior: resolvedInitialQueryBehavior,
     initialQuery,
     belowMinBehavior,
     placeholderNodes,

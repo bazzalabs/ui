@@ -131,10 +131,8 @@ function createAsyncSubmenu(
     id,
     value: title,
     deepSearch: true,
-    asyncNodes: {
-      ...loader,
-      includeInDeepSearch: true,
-    },
+    includeInDeepSearch: true,
+    asyncNodes: loader,
     render: ({ props, context, asyncContent }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>

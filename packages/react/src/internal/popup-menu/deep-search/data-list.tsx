@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useSurfaceContext } from '../../listbox/index.js'
 import { PopupMenuList } from '../components/list/list.js'
 import {
-  AsyncMenuCoordinatorProvider,
   type AsyncMenuState,
   useAsyncMenuCoordinator,
 } from './async-coordinator.js'
@@ -22,6 +21,7 @@ import type {
   GroupRenderContext,
   ItemDef,
   NodeDef,
+  QueryDependentLoaderConfig,
   RadioGroupDef,
   RowRenderContext,
   SubmenuDef,
@@ -36,7 +36,6 @@ import {
   collectAsyncSubmenus,
   filterNodes,
   mergeAsyncNodesIntoTree,
-  shouldIncludeInDeepSearch,
   shouldLoadEagerly,
 } from './utils.js'
 
@@ -152,6 +151,65 @@ interface AsyncLoaderRendererProps {
   enabled: boolean
 }
 
+interface QueryExecutionState {
+  effectiveQuery: string
+  enabled: boolean
+  isBelowMinLength: boolean
+}
+
+function resolveInitialQueryBehavior(config: QueryDependentLoaderConfig):
+  | {
+      value: string
+      loadWhen: 'needed' | 'parent-open'
+    }
+  | false {
+  if (config.initialQueryBehavior !== undefined) {
+    if (config.initialQueryBehavior === false) {
+      return false
+    }
+    return {
+      value: config.initialQueryBehavior.value ?? '',
+      loadWhen: config.initialQueryBehavior.loadWhen ?? 'needed',
+    }
+  }
+
+  if (config.initialQuery !== undefined) {
+    return { value: config.initialQuery, loadWhen: 'needed' }
+  }
+
+  return { value: '', loadWhen: 'needed' }
+}
+
+function resolveQueryExecutionState(
+  config: QueryDependentLoaderConfig,
+  query: string,
+): QueryExecutionState {
+  const minLength = config.minQueryLength ?? 1
+  const initialQueryBehavior = resolveInitialQueryBehavior(config)
+
+  if (query.length >= minLength) {
+    return {
+      effectiveQuery: query,
+      enabled: true,
+      isBelowMinLength: false,
+    }
+  }
+
+  if (initialQueryBehavior !== false) {
+    return {
+      effectiveQuery: initialQueryBehavior.value,
+      enabled: true,
+      isBelowMinLength: false,
+    }
+  }
+
+  return {
+    effectiveQuery: '',
+    enabled: false,
+    isBelowMinLength: true,
+  }
+}
+
 /**
  * Renders an async loader component and registers its state with the coordinator.
  * This component exists solely to call the Loader component (which contains hooks).
@@ -165,16 +223,16 @@ function AsyncLoaderRenderer({
   const { config, id, breadcrumbs, node } = info
   const Loader = config.Loader
 
-  // For query-dependent loaders, determine effective query
-  const effectiveQuery = React.useMemo(() => {
-    if (config.type === 'query') {
-      const minLength = config.minQueryLength ?? 1
-      if (query.length < minLength) {
-        return ''
-      }
+  const queryExecution = React.useMemo(() => {
+    if (config.type !== 'query') {
+      return null
     }
-    return query
+
+    return resolveQueryExecutionState(config, query)
   }, [config, query])
+
+  const effectiveQuery = queryExecution?.effectiveQuery ?? query
+  const shouldFetch = queryExecution?.enabled ?? true
 
   // Track if this loader should be active
   const isActive = enabled || shouldLoadEagerly(config)
@@ -184,7 +242,7 @@ function AsyncLoaderRenderer({
   }
 
   return (
-    <Loader query={effectiveQuery}>
+    <Loader query={effectiveQuery} enabled={shouldFetch}>
       {(result) => (
         <AsyncLoaderResultHandler
           id={id}
@@ -308,17 +366,16 @@ function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
   const coordinator = useAsyncMenuCoordinator()
   const { asyncContent } = dataSurfaceCtx
 
-  // For query-dependent loaders, determine effective query
-  const effectiveQuery = React.useMemo(() => {
-    if (!asyncContent) return ''
-    if (asyncContent.type === 'query') {
-      const minLength = asyncContent.minQueryLength ?? 1
-      if (query.length < minLength) {
-        return ''
-      }
+  const queryExecution = React.useMemo(() => {
+    if (!asyncContent || asyncContent.type !== 'query') {
+      return null
     }
-    return query
+
+    return resolveQueryExecutionState(asyncContent, query)
   }, [asyncContent, query])
+
+  const effectiveQuery = queryExecution?.effectiveQuery ?? query
+  const shouldFetch = queryExecution?.enabled ?? true
 
   if (!asyncContent) {
     return null
@@ -327,7 +384,7 @@ function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
   const Loader = asyncContent.Loader
 
   return (
-    <Loader query={effectiveQuery}>
+    <Loader query={effectiveQuery} enabled={shouldFetch}>
       {(result) => (
         <AsyncLoaderResultHandler
           id="__root__"
@@ -373,27 +430,30 @@ export const PopupMenuDataList = React.forwardRef<
 
   // Get data surface context for content and deep search config
   const dataSurfaceCtx = useDataSurfaceContext()
-  const { content, asyncContent, deepSearchConfig, getQualifiedRowId } =
-    dataSurfaceCtx
+  const {
+    content,
+    asyncContent,
+    deepSearchConfig,
+    includeInDeepSearch,
+    getQualifiedRowId,
+  } = dataSurfaceCtx
 
   // Get store from surface context for search state
   const { store } = useSurfaceContext()
   const search = store.useState('search')
 
-  // Wrap with coordinator provider
   return (
-    <AsyncMenuCoordinatorProvider searchQuery={search}>
-      <DataListInner
-        ref={forwardedRef}
-        {...props}
-        content={content}
-        asyncContent={asyncContent}
-        deepSearchConfig={deepSearchConfig}
-        getQualifiedRowId={getQualifiedRowId}
-        search={search}
-        store={store}
-      />
-    </AsyncMenuCoordinatorProvider>
+    <DataListInner
+      ref={forwardedRef}
+      {...props}
+      content={content}
+      asyncContent={asyncContent}
+      deepSearchConfig={deepSearchConfig}
+      includeInDeepSearch={includeInDeepSearch}
+      getQualifiedRowId={getQualifiedRowId}
+      search={search}
+      store={store}
+    />
   )
 })
 
@@ -405,6 +465,9 @@ interface DataListInnerProps extends PopupMenuDataListProps {
   content: NodeDef[]
   asyncContent: ReturnType<typeof useDataSurfaceContext>['asyncContent']
   deepSearchConfig: ReturnType<typeof useDataSurfaceContext>['deepSearchConfig']
+  includeInDeepSearch: ReturnType<
+    typeof useDataSurfaceContext
+  >['includeInDeepSearch']
   getQualifiedRowId: GetQualifiedRowIdFn
   search: string
   store: ReturnType<typeof useSurfaceContext>['store']
@@ -423,6 +486,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       content,
       asyncContent,
       deepSearchConfig,
+      includeInDeepSearch,
       getQualifiedRowId,
       search,
       store,
@@ -433,8 +497,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
 
     // Collect async submenus from content
     const asyncSubmenus = React.useMemo(
-      () => collectAsyncSubmenus(content),
-      [content],
+      () => collectAsyncSubmenus(content, [], includeInDeepSearch),
+      [content, includeInDeepSearch],
     )
 
     // Determine if deep search is active
@@ -481,6 +545,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         nodes: contentWithRootAsync,
         highlightedId: null, // Primitives handle highlighting via store
         deepSearch: deepSearchConfig.enabled,
+        includeInDeepSearch,
         minLength: deepSearchConfig.minLength,
         groupSearchBehavior: deepSearchConfig.groupSearchBehavior,
         radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
@@ -623,8 +688,10 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
             const asyncResult = coordinator.loaders.get(compositeId)
             if (asyncResult) {
               const isBelowMinLength =
-                node.asyncNodes.type === 'query' &&
-                search.length < (node.asyncNodes.minQueryLength ?? 1)
+                node.asyncNodes.type === 'query'
+                  ? resolveQueryExecutionState(node.asyncNodes, search)
+                      .isBelowMinLength
+                  : false
               submenuAsyncState = {
                 isLoading: asyncResult.result.isLoading,
                 isError: asyncResult.result.isError,
@@ -994,9 +1061,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                 key={info.id}
                 info={info}
                 query={search}
-                enabled={
-                  isDeepSearchActive && shouldIncludeInDeepSearch(info.config)
-                }
+                enabled={isDeepSearchActive}
               />
             ))}
           </>

@@ -199,6 +199,8 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 // ============================================================================
 
 export type {
+  // Async coordinator
+  AsyncMenuCoordinatorValue,
   CheckboxItemDef,
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,
@@ -215,6 +217,8 @@ export type {
   GroupDef,
   GroupRenderContext,
   GroupRenderParams,
+  IncludeInDeepSearch,
+  InitialQueryBehavior,
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
@@ -245,6 +249,8 @@ export {
   PopupMenuDataList as ContextMenuDataList,
   PopupMenuDataSurface as ContextMenuDataSurface,
   PopupMenuRadioGroupValue as ContextMenuRadioGroupValue,
+  useAsyncMenuCoordinator,
   useDataSurfaceContext,
+  useMaybeAsyncMenuCoordinator,
   useMaybeDataSurfaceContext,
 } from '../internal/popup-menu/index.js'

@@ -49,6 +49,8 @@ export interface AsyncMenuCoordinatorValue {
   // ---- Computed State ----
   /** Any loader is currently loading */
   isAnyLoading: boolean
+  /** The root (__root__) loader is currently loading — i.e. the DataSurface's own asyncContent */
+  isRootLoading: boolean
   /** Static loaders are loading */
   isStaticLoading: boolean
   /** Query loaders are loading */
@@ -195,6 +197,13 @@ export function AsyncMenuCoordinatorProvider(
 
   const isAnyLoading = isStaticLoading || isQueryLoading
 
+  // Only the root loader (__root__) — i.e. the DataSurface's own asyncContent.
+  // Child submenu loaders are not included; they show loading on their own triggers.
+  const isRootLoading = React.useMemo(() => {
+    const rootLoader = loaders.get('__root__')
+    return rootLoader?.result.isLoading ?? false
+  }, [loaders])
+
   const allResolved = React.useMemo(() => {
     for (const [, state] of loaders) {
       if (state.result.isLoading) {
@@ -256,6 +265,7 @@ export function AsyncMenuCoordinatorProvider(
       searchQuery,
       loaders,
       isAnyLoading,
+      isRootLoading,
       isStaticLoading,
       isQueryLoading,
       allResolved,
@@ -270,6 +280,7 @@ export function AsyncMenuCoordinatorProvider(
       searchQuery,
       loaders,
       isAnyLoading,
+      isRootLoading,
       isStaticLoading,
       isQueryLoading,
       allResolved,

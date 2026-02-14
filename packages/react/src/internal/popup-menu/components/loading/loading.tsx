@@ -60,9 +60,19 @@ export const PopupMenuLoading = React.forwardRef<
     defaultTagName: 'div',
   })
 
-  // Check async loading state
+  // Check async loading state.
+  // Two cases where we show the loading indicator:
+  // 1. The __root__ loader (DataSurface's own asyncContent) is loading
+  // 2. ANY loader is loading AND the user has typed a search query (deep search in progress)
+  //
+  // Case 2 distinguishes between:
+  // - Root menu deep search ("se") → user is waiting for results → show spinner
+  // - Submenu opened with minLength=0 → just preloading child loaders → no spinner (Bug #6)
   const asyncCoordinator = useMaybeAsyncMenuCoordinator()
-  const isLoading = asyncCoordinator?.isAnyLoading ?? false
+  const isLoading = asyncCoordinator
+    ? asyncCoordinator.isRootLoading ||
+      (asyncCoordinator.isAnyLoading && asyncCoordinator.searchQuery.length > 0)
+    : false
   const shouldRender = forceMount || isLoading
 
   if (!shouldRender) {

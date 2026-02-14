@@ -46,6 +46,9 @@ export {
   PopupMenuSubmenuTriggerIndicator as SubmenuTriggerIndicator,
   // Content
   PopupMenuSurface as Surface,
+  // Async coordinator hooks
+  useAsyncMenuCoordinator,
+  useMaybeAsyncMenuCoordinator,
 } from '../internal/popup-menu/index.js'
 // Context-menu specific components
 export { ContextMenuRoot as Root } from './root/root.js'
