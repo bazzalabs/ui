@@ -652,7 +652,9 @@ const DataInput = forwardRef<
         <div className="flex items-center justify-between pr-4">
           <input {...props} />
           <div className="size-4 shrink-0">
-            {x?.isAnyLoading && <DiamondSpinner className="size-4" />}
+            {x?.isAnyLoading && x?.searchQuery?.length > 0 && (
+              <DiamondSpinner className="size-4" />
+            )}
           </div>
         </div>
       )}
