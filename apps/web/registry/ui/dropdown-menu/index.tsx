@@ -10,6 +10,7 @@ import {
   isDisplayRadioGroupNode,
   isDisplaySeparatorNode,
   DropdownMenu as Primitive,
+  useMaybeAsyncMenuCoordinator,
   useMaybeSubmenuContext,
   useSurfaceContext,
 } from '@bazza-ui/react/dropdown-menu'
@@ -99,7 +100,7 @@ const inputVariants = cva([
   'w-full bg-transparent text-sm outline-none',
   'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
   'disabled:cursor-not-allowed disabled:opacity-50',
-  'min-h-9 max-h-9 px-4',
+  'min-h-9.5 max-h-9.5 px-4',
   'caret-blue-500',
 ])
 
@@ -381,7 +382,17 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
             render={<ScrollArea.Content />}
             {...props}
           >
-            {children as (state: DataListChildrenState) => React.ReactNode}
+            {(state) => {
+              const content =
+                typeof children === 'function' ? children(state) : children
+
+              return (
+                <>
+                  {content}
+                  <Loading />
+                </>
+              )
+            }}
           </Primitive.DataList>
         </ScrollArea.Viewport>
         <ScrollArea.Scrollbar
@@ -556,6 +567,7 @@ function VirtualizedDataListContent({
           position: 'relative',
         }}
       >
+        <Loading />
         <Empty />
         {virtualItems.map((virtualItem) => {
           const node = nodes[virtualItem.index]
@@ -628,14 +640,26 @@ Input.displayName = 'DropdownMenu.Input'
 const DataInput = forwardRef<
   HTMLInputElement,
   React.ComponentProps<typeof Primitive.DataInput>
->(({ className, placeholder = 'Search...', ...props }, ref) => (
-  <Primitive.DataInput
-    ref={ref}
-    className={cn(inputVariants(), className)}
-    placeholder={placeholder}
-    {...props}
-  />
-))
+>(({ className, placeholder = 'Search...', ...props }, ref) => {
+  const x = useMaybeAsyncMenuCoordinator()
+
+  return (
+    <Primitive.DataInput
+      ref={ref}
+      className={cn(inputVariants(), className)}
+      placeholder={placeholder}
+      render={(props) => (
+        <div className="flex items-center justify-between pr-4">
+          <input {...props} />
+          <div className="size-4 shrink-0">
+            {x?.isAnyLoading && <DiamondSpinner className="size-4" />}
+          </div>
+        </div>
+      )}
+      {...props}
+    />
+  )
+})
 DataInput.displayName = 'DropdownMenu.DataInput'
 
 const Item = forwardRef<
@@ -885,7 +909,7 @@ const Empty = forwardRef<
   <Primitive.Empty
     ref={ref}
     className={cn(
-      'flex items-center justify-center h-10 text-muted-foreground text-sm',
+      'flex items-center justify-center h-8 text-muted-foreground text-sm',
       className,
     )}
     {...props}

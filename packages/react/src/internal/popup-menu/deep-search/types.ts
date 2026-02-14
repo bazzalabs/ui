@@ -37,8 +37,29 @@ export interface AsyncLoaderResult<T> {
 export interface LoaderComponentProps {
   /** Search query (for query-dependent loaders) */
   query: string
+  /** Whether the loader should execute its fetch/query hook */
+  enabled?: boolean
   /** Render function receiving loader state */
   children: (state: AsyncLoaderResult<NodeDef[]>) => React.ReactNode
+}
+
+/**
+ * Controls query-loader behavior before users type an active query.
+ */
+export interface InitialQueryBehavior {
+  /**
+   * Query value used before user input reaches minQueryLength.
+   * Defaults to '' (top/default results).
+   * @default ''
+   */
+  value?: string
+  /**
+   * When the initial query should load.
+   * - 'needed': when submenu is explicitly opened or needed for deep-search execution
+   * - 'parent-open': eagerly when direct parent opens
+   * @default 'needed'
+   */
+  loadWhen?: 'needed' | 'parent-open'
 }
 
 /**
@@ -78,9 +99,14 @@ export interface QueryDependentLoaderConfig {
    */
   minQueryLength?: number
   /**
-   * Initial query to use when the loader becomes active.
-   * Set to '' to fetch all items immediately when the submenu opens.
-   * If undefined, waits for user to type before fetching.
+   * Defines behavior before user query reaches minQueryLength.
+   * - object: executes query loader with the configured initial value (default behavior)
+   * - false: disables initial fetch until query reaches minQueryLength
+   * @default { value: '', loadWhen: 'needed' }
+   */
+  initialQueryBehavior?: InitialQueryBehavior | false
+  /**
+   * @deprecated Use `initialQueryBehavior` instead.
    */
   initialQuery?: string
   /**
@@ -104,36 +130,31 @@ export interface QueryDependentLoaderConfig {
 }
 
 /**
+ * Controls how submenu content participates in ancestor deep search results.
+ * - `true`: include submenu trigger and descendants
+ * - `'trigger-only'`: include submenu trigger only
+ * - `false`: exclude submenu trigger and descendants
+ */
+export type IncludeInDeepSearch = true | 'trigger-only' | false
+
+/**
  * Union of all async loader configurations.
  */
 export type AsyncLoaderConfig = StaticLoaderConfig | QueryDependentLoaderConfig
 
 /**
- * Base options for async nodes that apply to both loader types.
- */
-interface AsyncNodesBaseOptions {
-  /**
-   * Include this menu's async content in parent's deep search.
-   * - Static loaders: default true (data loaded, filter client-side)
-   * - Query loaders: default true (pass query to server)
-   */
-  includeInDeepSearch?: boolean
-}
-
-/**
  * Static async nodes configuration for submenus.
  */
-export type StaticAsyncNodesConfig = StaticLoaderConfig & AsyncNodesBaseOptions
+export type StaticAsyncNodesConfig = StaticLoaderConfig
 
 /**
  * Query-dependent async nodes configuration for submenus.
  */
-export type QueryAsyncNodesConfig = QueryDependentLoaderConfig &
-  AsyncNodesBaseOptions
+export type QueryAsyncNodesConfig = QueryDependentLoaderConfig
 
 /**
  * Async nodes configuration for submenus.
- * Union of static and query-dependent loader configs with deep search options.
+ * Union of static and query-dependent loader configs.
  */
 export type AsyncNodesConfig = StaticAsyncNodesConfig | QueryAsyncNodesConfig
 
@@ -634,10 +655,19 @@ export interface SubmenuDef
   asyncNodes?: AsyncNodesConfig
 
   /**
-   * Whether to include this submenu's children in deep search.
+   * Whether to include this submenu's descendants in deep search.
    * @default true
    */
   deepSearch?: boolean
+
+  /**
+   * Whether this submenu is included in ancestor deep search results.
+   * - `true`: include submenu trigger and descendants
+   * - `'trigger-only'`: include submenu trigger only
+   * - `false`: exclude submenu trigger and descendants
+   * @default true
+   */
+  includeInDeepSearch?: IncludeInDeepSearch
 
   /**
    * Render function for the entire submenu structure.
@@ -935,6 +965,13 @@ export interface DataSurfaceProps {
 
   /** Deep search configuration */
   deepSearch?: DeepSearchConfig | boolean
+
+  /**
+   * Default inclusion mode for descendant submenus in deep search results.
+   * Submenus can override this via `SubmenuDef.includeInDeepSearch`.
+   * @default true
+   */
+  includeInDeepSearch?: IncludeInDeepSearch
 
   /** Filter function or false to disable filtering */
   filter?:

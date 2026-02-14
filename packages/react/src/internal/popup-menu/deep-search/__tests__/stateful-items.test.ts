@@ -14,6 +14,7 @@ import {
   isDisplayRowNode,
 } from '../types.js'
 import {
+  collectAsyncSubmenus,
   filterNodes,
   flattenNodes,
   getBrowseNodesPreserve,
@@ -1077,6 +1078,156 @@ describe('Value Normalization', () => {
         '  Level 1  ',
         '  Level 2  ',
       ])
+    })
+
+    it('supports includeInDeepSearch="trigger-only" on submenus', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef(
+          'settings',
+          'Settings',
+          [createItemDef('dark-mode', 'Dark Mode')],
+          { includeInDeepSearch: 'trigger-only' },
+        ),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      expect(flattened.map((f) => f.node.id)).toEqual(['settings'])
+    })
+
+    it('supports includeInDeepSearch=false on submenus', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef(
+          'settings',
+          'Settings',
+          [createItemDef('dark-mode', 'Dark Mode')],
+          { includeInDeepSearch: false },
+        ),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      expect(flattened).toHaveLength(0)
+    })
+
+    it('allows submenu override of DataSurface includeInDeepSearch default', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef('overridden', 'Overridden', [
+          createItemDef('item-1', 'Item 1'),
+        ]),
+        createSubmenuDef('defaulted', 'Defaulted', [
+          createItemDef('item-2', 'Item 2'),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes, {
+        deep: true,
+        includeInDeepSearch: 'trigger-only',
+      })
+
+      expect(flattened.map((f) => f.node.id)).toEqual([
+        'overridden',
+        'defaulted',
+      ])
+
+      const withOverride = flattenNodes(
+        [
+          createSubmenuDef(
+            'overridden',
+            'Overridden',
+            [createItemDef('item-1', 'Item 1')],
+            { includeInDeepSearch: true },
+          ),
+          createSubmenuDef('defaulted', 'Defaulted', [
+            createItemDef('item-2', 'Item 2'),
+          ]),
+        ],
+        {
+          deep: true,
+          includeInDeepSearch: 'trigger-only',
+        },
+      )
+
+      expect(withOverride.map((f) => f.node.id)).toEqual([
+        'overridden',
+        'item-1',
+        'defaulted',
+      ])
+    })
+
+    it('hard-stops descendants when ancestor is trigger-only', () => {
+      const nodes: NodeDef[] = [
+        createSubmenuDef(
+          'parent',
+          'Parent',
+          [
+            createSubmenuDef(
+              'child',
+              'Child',
+              [createItemDef('leaf', 'Leaf')],
+              { includeInDeepSearch: true },
+            ),
+          ],
+          { includeInDeepSearch: 'trigger-only' },
+        ),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      expect(flattened.map((f) => f.node.id)).toEqual(['parent'])
+    })
+
+    it('collectAsyncSubmenus only collects submenus with row inclusion', () => {
+      const asyncConfig = {
+        type: 'static' as const,
+        Loader: () => null,
+      }
+
+      const nodes: NodeDef[] = [
+        createSubmenuDef('included', 'Included', [], {
+          asyncNodes: asyncConfig,
+          includeInDeepSearch: true,
+        }),
+        createSubmenuDef('trigger-only', 'Trigger Only', [], {
+          asyncNodes: asyncConfig,
+          includeInDeepSearch: 'trigger-only',
+        }),
+        createSubmenuDef('excluded', 'Excluded', [], {
+          asyncNodes: asyncConfig,
+          includeInDeepSearch: false,
+        }),
+      ]
+
+      const collected = collectAsyncSubmenus(nodes)
+
+      expect(collected.map((entry) => entry.id)).toEqual(['Included'])
+    })
+
+    it('collectAsyncSubmenus respects ancestor trigger-only hard stop', () => {
+      const asyncConfig = {
+        type: 'static' as const,
+        Loader: () => null,
+      }
+
+      const nodes: NodeDef[] = [
+        createSubmenuDef(
+          'parent',
+          'Parent',
+          [
+            createSubmenuDef('child', 'Child', [], {
+              asyncNodes: asyncConfig,
+              includeInDeepSearch: true,
+            }),
+          ],
+          {
+            includeInDeepSearch: 'trigger-only',
+          },
+        ),
+      ]
+
+      const collected = collectAsyncSubmenus(nodes)
+
+      expect(collected).toHaveLength(0)
     })
   })
 })

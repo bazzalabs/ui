@@ -6,6 +6,7 @@ import type {
   DeepSearchConfig,
   DisplayNode,
   GetQualifiedRowIdFn,
+  IncludeInDeepSearch,
   NodeDef,
 } from './types.js'
 
@@ -22,6 +23,9 @@ export interface DataSurfaceContextValue {
 
   /** Deep search configuration */
   deepSearchConfig: DeepSearchConfig
+
+  /** Default submenu inclusion mode for deep search */
+  includeInDeepSearch: IncludeInDeepSearch
 
   /** List element ID for aria-activedescendant */
   listId: string

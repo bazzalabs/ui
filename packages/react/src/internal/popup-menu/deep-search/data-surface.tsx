@@ -1,11 +1,28 @@
 'use client'
 
 import * as React from 'react'
+import { useSurfaceContext } from '../../listbox/index.js'
 import { PopupMenuSurface } from '../components/surface/surface.js'
 import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
+import { AsyncMenuCoordinatorProvider } from './async-coordinator.js'
 import { DataSurfaceContext, type DataSurfaceContextValue } from './context.js'
 import type { DataSurfaceProps, DeepSearchConfig } from './types.js'
 import { defaultGetQualifiedRowId } from './utils.js'
+
+function DataSurfaceAsyncCoordinatorScope({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const { store } = useSurfaceContext()
+  const searchQuery = store.useState('search')
+
+  return (
+    <AsyncMenuCoordinatorProvider searchQuery={searchQuery}>
+      {children}
+    </AsyncMenuCoordinatorProvider>
+  )
+}
 
 // ============================================================================
 // DataSurface Component
@@ -35,6 +52,7 @@ export const PopupMenuDataSurface = React.forwardRef<
     content,
     asyncContent,
     deepSearch = true,
+    includeInDeepSearch = true,
     filter,
     search: searchProp,
     onSearchChange,
@@ -87,10 +105,18 @@ export const PopupMenuDataSurface = React.forwardRef<
       content: content ?? [],
       asyncContent,
       deepSearchConfig,
+      includeInDeepSearch,
       listId,
       getQualifiedRowId,
     }),
-    [content, asyncContent, deepSearchConfig, listId, getQualifiedRowId],
+    [
+      content,
+      asyncContent,
+      deepSearchConfig,
+      includeInDeepSearch,
+      listId,
+      getQualifiedRowId,
+    ],
   )
 
   return (
@@ -109,7 +135,9 @@ export const PopupMenuDataSurface = React.forwardRef<
         style={style}
         render={render}
       >
-        {children}
+        <DataSurfaceAsyncCoordinatorScope>
+          {children}
+        </DataSurfaceAsyncCoordinatorScope>
       </PopupMenuSurface>
     </DataSurfaceContext.Provider>
   )

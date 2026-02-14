@@ -8,6 +8,7 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMaybeAsyncMenuCoordinator } from '../../deep-search/async-coordinator.js'
 
 // Empty doesn't have any state - using an empty object type
 export interface PopupMenuEmptyState extends Record<string, unknown> {}
@@ -48,8 +49,18 @@ export const PopupMenuEmpty = React.forwardRef<
     defaultTagName: 'div',
   })
 
+  // Don't show empty state while async loaders are still fetching.
+  // Same logic as Loading: suppress when __root__ is loading OR when any loader
+  // is loading during an active search (deep search in progress).
+  const asyncCoordinator = useMaybeAsyncMenuCoordinator()
+  const isLoading = asyncCoordinator
+    ? asyncCoordinator.isRootLoading ||
+      (asyncCoordinator.isAnyLoading && asyncCoordinator.searchQuery.length > 0)
+    : false
+
   // Use dedicated selector for this check
-  const shouldRender = store.useState('hasSearchWithNoResults')
+  const hasNoResults = store.useState('hasSearchWithNoResults')
+  const shouldRender = !isLoading && hasNoResults
 
   if (!shouldRender) {
     return null

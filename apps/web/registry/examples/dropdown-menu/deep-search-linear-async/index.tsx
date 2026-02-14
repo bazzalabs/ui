@@ -1,10 +1,13 @@
 'use client'
 
-import { createVanillaStaticLoader } from '@bazza-ui/react/adapters'
+import {
+  createVanillaQueryLoader,
+  createVanillaStaticLoader,
+} from '@bazza-ui/react/adapters'
 import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { DiamondSpinner, DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import {
   createAssigneeItemNode,
   createAsyncSubmenuNode,
@@ -33,8 +36,10 @@ import {
 // =============================================================================
 
 /** Simulates fetching labels from an API */
-async function fetchLabels(): Promise<NodeDef[]> {
-  console.log('fetching labels!')
+async function fetchLabels(query?: string): Promise<NodeDef[]> {
+  const normalizedQuery = query?.trim().toLowerCase()
+
+  console.log('fetching labels', query ? `for query "${query}"` : '', '...')
   await new Promise((resolve) => setTimeout(resolve, 800))
 
   console.log('labels fetched!')
@@ -72,14 +77,26 @@ async function fetchLabels(): Promise<NodeDef[]> {
     { id: 'real-time', name: 'Real-Time', color: 'lime' },
   ]
 
-  return labelData.map((label) =>
+  const filtered = normalizedQuery
+    ? labelData.filter((label) =>
+        label.name.toLowerCase().includes(normalizedQuery),
+      )
+    : labelData
+
+  return filtered.map((label) =>
     createLabelItemNode(label.id, label.name, label.color),
   )
 }
 
 /** Simulates fetching assignees from an API */
-async function fetchAssignees(): Promise<NodeDef[]> {
+async function fetchAssignees(query?: string): Promise<NodeDef[]> {
+  const normalizedQuery = query?.trim().toLowerCase()
+
+  console.log('fetching assignees...')
+
   await new Promise((resolve) => setTimeout(resolve, 600))
+
+  console.log('fetched assignees!')
 
   const assigneeData = [
     { id: '@kianbazza', name: 'Kian Bazza', username: 'kianbazza' },
@@ -92,14 +109,29 @@ async function fetchAssignees(): Promise<NodeDef[]> {
     { id: '@jaredpalmer', name: 'Jared Palmer', username: 'jaredpalmer' },
   ]
 
-  return assigneeData.map((assignee) =>
+  const filtered = normalizedQuery
+    ? assigneeData.filter((assignee) =>
+        [assignee.name, assignee.username]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+    : assigneeData
+
+  return filtered.map((assignee) =>
     createAssigneeItemNode(assignee.id, assignee.name, assignee.username),
   )
 }
 
 /** Simulates fetching project labels from an API */
-async function fetchProjectLabels(): Promise<NodeDef[]> {
+async function fetchProjectLabels(query?: string): Promise<NodeDef[]> {
+  const normalizedQuery = query?.trim().toLowerCase()
+
+  console.log('fetching project labels...')
+
   await new Promise((resolve) => setTimeout(resolve, 500))
+
+  console.log('fetched project labels!')
 
   const projectLabelData = [
     { id: 'pl-1', name: 'Strategic Initiative', color: 'purple' },
@@ -119,14 +151,26 @@ async function fetchProjectLabels(): Promise<NodeDef[]> {
     { id: 'pl-15', name: 'Deprecation', color: 'rose' },
   ]
 
-  return projectLabelData.map((label) =>
+  const filtered = normalizedQuery
+    ? projectLabelData.filter((label) =>
+        label.name.toLowerCase().includes(normalizedQuery),
+      )
+    : projectLabelData
+
+  return filtered.map((label) =>
     createLabelItemNode(label.id, label.name, label.color),
   )
 }
 
 /** Simulates fetching project leads from an API */
-async function fetchProjectLeads(): Promise<NodeDef[]> {
+async function fetchProjectLeads(query?: string): Promise<NodeDef[]> {
+  const normalizedQuery = query?.trim().toLowerCase()
+
+  console.log('fetching project leads...')
+
   await new Promise((resolve) => setTimeout(resolve, 700))
+
+  console.log('fetched project leads!')
 
   const projectLeadData = [
     { id: '@kianbazza', name: 'Kian Bazza', username: 'kianbazza' },
@@ -135,7 +179,16 @@ async function fetchProjectLeads(): Promise<NodeDef[]> {
     { id: '@t3dotgg', name: 'Theo Browne', username: 't3dotgg' },
   ]
 
-  return projectLeadData.map((lead) =>
+  const filtered = normalizedQuery
+    ? projectLeadData.filter((user) =>
+        [user.name, user.username]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+    : projectLeadData
+
+  return filtered.map((lead) =>
     createAssigneeItemNode(lead.id, lead.name, lead.username),
   )
 }
@@ -144,16 +197,16 @@ async function fetchProjectLeads(): Promise<NodeDef[]> {
 // Async Loaders (using vanilla adapter - no TanStack Query needed for demo)
 // =============================================================================
 
-const labelsLoader = createVanillaStaticLoader({
-  fetcher: fetchLabels,
+const labelsLoader = createVanillaQueryLoader({
+  fetcher: (query) => fetchLabels(query),
 })
 
 const assigneesLoader = createVanillaStaticLoader({
   fetcher: fetchAssignees,
 })
 
-const projectLabelsLoader = createVanillaStaticLoader({
-  fetcher: fetchProjectLabels,
+const projectLabelsLoader = createVanillaQueryLoader({
+  fetcher: (query) => fetchProjectLabels(query),
 })
 
 const projectLeadsLoader = createVanillaStaticLoader({
@@ -185,12 +238,8 @@ function buildMenuContent(): NodeDef[] {
     'assignee',
     'Assignee',
     <AssigneeIcon />,
-    {
-      ...assigneesLoader,
-      loadStrategy: 'lazy', // Pre-load for deep search
-      includeInDeepSearch: true,
-    },
-    { inputPlaceholder: 'Assignee...' },
+    assigneesLoader,
+    { inputPlaceholder: 'Assignee...', includeInDeepSearch: true },
   )
 
   // Priority submenu (SYNC - fast static data)
@@ -217,12 +266,8 @@ function buildMenuContent(): NodeDef[] {
     'labels',
     'Labels',
     <LabelsIcon />,
-    {
-      ...labelsLoader,
-      loadStrategy: 'lazy', // Pre-load for deep search
-      includeInDeepSearch: true,
-    },
-    { inputPlaceholder: 'Labels...' },
+    labelsLoader,
+    { inputPlaceholder: 'Labels...', includeInDeepSearch: true },
   )
 
   // Project Properties > Project Status submenu (SYNC)
@@ -288,12 +333,8 @@ function buildMenuContent(): NodeDef[] {
     'project-labels',
     'Project labels',
     <LabelsIcon />,
-    {
-      ...projectLabelsLoader,
-      loadStrategy: 'lazy',
-      includeInDeepSearch: true,
-    },
-    { inputPlaceholder: 'Project labels...' },
+    projectLabelsLoader,
+    { inputPlaceholder: 'Project labels...', includeInDeepSearch: true },
   )
 
   // Project Properties > Project Lead submenu (ASYNC)
@@ -301,12 +342,8 @@ function buildMenuContent(): NodeDef[] {
     'project-lead',
     'Project lead',
     <ProjectLeadIcon />,
-    {
-      ...projectLeadsLoader,
-      loadStrategy: 'lazy',
-      includeInDeepSearch: true,
-    },
-    { inputPlaceholder: 'Project lead...' },
+    projectLeadsLoader,
+    { inputPlaceholder: 'Project lead...', includeInDeepSearch: true },
   )
 
   // Project Properties submenu (nested - contains mix of sync and async)
@@ -354,25 +391,9 @@ export default function DropdownMenuDeepSearchLinearAsync() {
               deepSearch={{ enabled: true, minLength: 2 }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
-              <DropdownMenu.DataList>
-                {({ nodes, renderNode, isDeepSearching, count, async }) => (
-                  <>
-                    <DropdownMenu.Empty />
-                    {isDeepSearching && (
-                      <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
-                        {async.isLoading
-                          ? 'Searching all menus...'
-                          : `Found ${count} results`}
-                      </div>
-                    )}
-                    {/* Show DiamondSpinner while loading during deep search, Empty when no results */}
-                    {isDeepSearching && async.isLoading && (
-                      <div className="flex items-center justify-center py-6 text-muted-foreground">
-                        <DiamondSpinner className="size-5" />
-                      </div>
-                    )}
-                    {nodes.map((node) => renderNode(node))}
-                  </>
+              <DropdownMenu.DataList virtualized>
+                {({ nodes, renderNode }) => (
+                  <>{nodes.map((node) => renderNode(node))}</>
                 )}
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>

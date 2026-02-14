@@ -212,12 +212,10 @@ function createAsyncFoodSubmenu(
     id,
     value: title,
     deepSearch: true,
-    asyncNodes: {
-      ...loader,
-      // Lazy loading: fetches when submenu opens or during deep search
-      // Use loadStrategy: 'eager' to fetch when root menu opens instead
-      includeInDeepSearch: true,
-    },
+    includeInDeepSearch: true,
+    // Lazy loading: fetches when submenu opens or during deep search
+    // Use loadStrategy: 'eager' to fetch when root menu opens instead
+    asyncNodes: loader,
     render: ({ props, context, asyncContent }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>

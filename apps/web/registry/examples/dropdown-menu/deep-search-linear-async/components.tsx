@@ -96,13 +96,11 @@ export function createItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    id,
     value: label,
     keywords,
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() =>
           toast(
             `Changed ${context.breadcrumbs?.[0]?.value?.toLowerCase() ?? 'value'} to ${label}.`,
@@ -131,13 +129,11 @@ export function createLabelItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    id,
     value: name,
     keywords: [name],
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() => toast(`Added label: ${name}`)}
       >
         <DropdownMenu.Icon>
@@ -164,13 +160,11 @@ export function createAssigneeItemNode(
 ): ItemDef {
   return {
     kind: 'item',
-    id,
     value: name,
     keywords: [name, username],
     render: ({ props, context }: ItemRenderParams) => (
       <DropdownMenu.Item
         {...props}
-        value={id}
         onSelect={() => toast(`Assigned to ${name}`)}
       >
         <DropdownMenu.Icon>
@@ -212,16 +206,21 @@ export function createSubmenuNode(
   options?: {
     inputPlaceholder?: string
     hideInputUntilActive?: boolean
+    includeInDeepSearch?: SubmenuDef['includeInDeepSearch']
   },
 ): SubmenuDef {
-  const { inputPlaceholder = `${title}...`, hideInputUntilActive = false } =
-    options ?? {}
+  const {
+    inputPlaceholder = `${title}...`,
+    hideInputUntilActive = false,
+    includeInDeepSearch = true,
+  } = options ?? {}
 
   return {
     kind: 'submenu',
     id,
     value: title,
     deepSearch: true,
+    includeInDeepSearch,
     nodes: childNodes,
     render: ({ props, context, nodes }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
@@ -276,6 +275,7 @@ export function createAsyncSubmenuNode(
   options?: {
     inputPlaceholder?: string
     hideInputUntilActive?: boolean
+    includeInDeepSearch?: SubmenuDef['includeInDeepSearch']
     /** Static nodes to show alongside async content */
     staticNodes?: NodeDef[]
   },
@@ -283,6 +283,7 @@ export function createAsyncSubmenuNode(
   const {
     inputPlaceholder = `${title}...`,
     hideInputUntilActive = false,
+    includeInDeepSearch = true,
     staticNodes = [],
   } = options ?? {}
 
@@ -291,9 +292,10 @@ export function createAsyncSubmenuNode(
     id,
     value: title,
     deepSearch: true,
+    includeInDeepSearch,
     nodes: staticNodes,
     asyncNodes,
-    render: ({ props, context, nodes, asyncContent }: SubmenuRenderParams) => (
+    render: ({ props, context, asyncContent }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>
           <div className="flex items-center gap-2 flex-1">
@@ -319,19 +321,9 @@ export function createAsyncSubmenuNode(
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList>
-                  {({ nodes: filteredNodes, renderNode, async, count }) => (
-                    <>
-                      {/* Show DiamondSpinner while loading, Empty when no results */}
-                      {async.isLoading ? (
-                        <div className="flex items-center justify-center py-6 text-muted-foreground">
-                          <DiamondSpinner className="size-5" />
-                        </div>
-                      ) : (
-                        count === 0 && <DropdownMenu.Empty />
-                      )}
-                      {filteredNodes.map((node) => renderNode(node))}
-                    </>
+                <DropdownMenu.DataList virtualized>
+                  {({ nodes, renderNode }) => (
+                    <>{nodes.map((node) => renderNode(node))}</>
                   )}
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
