@@ -670,6 +670,11 @@ Configuration options for deep search behavior.
 
 <TypeTableAuto type="DeepSearchConfig" pkg="@bazza-ui/react" />
 
+`deepSearch.asyncResultBehavior` controls how async deep-search rows are revealed:
+
+- `stream` (default): show available rows immediately and append later async batches without reordering earlier rows.
+- `block`: show loading-only state until all participating async loaders resolve, then render the full sorted result set.
+
 #### GetQualifiedRowIdFn
 
 Function type for custom ID generation. Passed to `Root` or `DataSurface` via the `getQualifiedRowId` prop.

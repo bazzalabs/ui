@@ -201,6 +201,7 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 export type {
   // Async coordinator
   AsyncMenuCoordinatorValue,
+  AsyncResultBehavior,
   CheckboxItemDef,
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,

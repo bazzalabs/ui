@@ -141,6 +141,54 @@ function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
   return ids
 }
 
+function getBreadcrumbStreamKey(breadcrumbs: BreadcrumbNode[]): string {
+  return breadcrumbs
+    .map((breadcrumb) => breadcrumb.id ?? breadcrumb.value)
+    .join('>')
+}
+
+function getDisplayNodeStreamKey(displayNode: DisplayNode): string {
+  if (isDisplayGroupNode(displayNode)) {
+    return `group:${displayNode.group.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+  }
+
+  if (isDisplayRadioGroupNode(displayNode)) {
+    return `radio-group:${displayNode.radioGroup.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+  }
+
+  if (isDisplaySeparatorNode(displayNode)) {
+    return `separator:${displayNode.separator.id ?? 'separator'}`
+  }
+
+  return `row:${displayNode.node.kind}:${displayNode.node.id ?? ''}:${displayNode.node.value}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+}
+
+function orderDisplayNodesForStreaming(
+  displayNodes: DisplayNode[],
+  previousOrder: string[],
+): {
+  orderedNodes: DisplayNode[]
+  nextOrder: string[]
+} {
+  const currentEntries = displayNodes.map(
+    (node) => [getDisplayNodeStreamKey(node), node] as const,
+  )
+
+  const currentByKey = new Map(currentEntries)
+  const currentOrder = currentEntries.map(([key]) => key)
+
+  const preservedOrder = previousOrder.filter((key) => currentByKey.has(key))
+  const preservedKeysSet = new Set(preservedOrder)
+  const appendedOrder = currentOrder.filter((key) => !preservedKeysSet.has(key))
+  const nextOrder = [...preservedOrder, ...appendedOrder]
+
+  const orderedNodes = nextOrder
+    .map((key) => currentByKey.get(key))
+    .filter((node): node is DisplayNode => node !== undefined)
+
+  return { orderedNodes, nextOrder }
+}
+
 // ============================================================================
 // Async Loader Component
 // ============================================================================
@@ -538,6 +586,11 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       return [...mergedContent, ...rootAsyncData.nodes]
     }, [mergedContent, asyncNodes, asyncContent])
 
+    const streamOrderRef = React.useRef<{
+      query: string
+      order: string[]
+    } | null>(null)
+
     // Compute filtered display nodes and set composite IDs
     const { displayNodes, isDeepSearching } = React.useMemo(() => {
       const result = filterNodes({
@@ -551,14 +604,73 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
         sortGroups: deepSearchConfig.sortGroups,
       })
+
+      const asyncResultBehavior =
+        deepSearchConfig.asyncResultBehavior ?? 'stream'
+      const expectedAsyncLoaderCount =
+        asyncSubmenus.length + (asyncContent ? 1 : 0)
+      const hasAsyncSources = expectedAsyncLoaderCount > 0
+
+      const shouldBlockAsyncResults =
+        asyncResultBehavior === 'block' &&
+        result.isDeepSearching &&
+        hasAsyncSources &&
+        coordinator !== null &&
+        (coordinator.loaders.size < expectedAsyncLoaderCount ||
+          !coordinator.allResolved)
+
+      let displayNodesToRender = result.displayNodes
+
+      if (shouldBlockAsyncResults) {
+        streamOrderRef.current = null
+        displayNodesToRender = []
+      } else if (asyncResultBehavior === 'stream' && result.isDeepSearching) {
+        const previousStreamState = streamOrderRef.current
+
+        if (!previousStreamState || previousStreamState.query !== search) {
+          streamOrderRef.current = {
+            query: search,
+            order: displayNodesToRender.map(getDisplayNodeStreamKey),
+          }
+        } else {
+          const { orderedNodes, nextOrder } = orderDisplayNodesForStreaming(
+            displayNodesToRender,
+            previousStreamState.order,
+          )
+
+          displayNodesToRender = orderedNodes
+          streamOrderRef.current = {
+            query: search,
+            order: nextOrder,
+          }
+        }
+      } else {
+        streamOrderRef.current = null
+      }
+
       // Set composite IDs directly on the freshly created display nodes
       computeItemIds(
-        result.displayNodes,
+        displayNodesToRender,
         getQualifiedRowId,
         result.isDeepSearching,
       )
-      return result
-    }, [search, contentWithRootAsync, deepSearchConfig, getQualifiedRowId])
+
+      return {
+        displayNodes: displayNodesToRender,
+        isDeepSearching: result.isDeepSearching,
+      }
+    }, [
+      search,
+      contentWithRootAsync,
+      deepSearchConfig,
+      includeInDeepSearch,
+      getQualifiedRowId,
+      asyncSubmenus.length,
+      asyncContent,
+      coordinator,
+      coordinator?.allResolved,
+      coordinator?.loaders,
+    ])
 
     // Sync orderedItems with the store when display nodes change
     // This is needed because DataSurface sets filter={false} on the underlying Surface

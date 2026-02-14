@@ -326,11 +326,12 @@ export type { PopupMenuDataSurfaceProps } from './deep-search/data-surface.js'
 export { PopupMenuDataSurface } from './deep-search/data-surface.js'
 // Types
 export type {
-  // Async types
   AsyncLoaderConfig,
   AsyncLoaderResult,
   AsyncNodesConfig,
   AsyncRenderState,
+  // Async types
+  AsyncResultBehavior,
   AsyncState,
   // ID generation types
   BreadcrumbNode,

@@ -7,7 +7,12 @@ import {
   createVanillaStaticLoader,
 } from '../../../../adapters/vanilla.js'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
-import type { ItemDef, NodeDef, SubmenuDef } from '../../deep-search/types.js'
+import type {
+  AsyncNodesConfig,
+  ItemDef,
+  NodeDef,
+  SubmenuDef,
+} from '../../deep-search/types.js'
 
 // ============================================================================
 // Test Helpers
@@ -30,13 +35,21 @@ function createSubmenuDef(
   id: string,
   value: string,
   nodes: NodeDef[],
+  options?: {
+    asyncNodes?: AsyncNodesConfig
+    includeInDeepSearch?: SubmenuDef['includeInDeepSearch']
+  },
 ): SubmenuDef {
+  const { asyncNodes, includeInDeepSearch = true } = options ?? {}
+
   return {
     kind: 'submenu',
     id,
     value,
     nodes,
+    asyncNodes,
     deepSearch: true,
+    includeInDeepSearch,
     render: ({ props, nodes: childNodes, renderNode }) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>
@@ -396,6 +409,78 @@ describe('Empty and Loading visibility', () => {
       )
     }
 
+    function AsyncDeepSearchMultiLoaderMenu({
+      firstFetcher,
+      secondFetcher,
+      asyncResultBehavior,
+    }: {
+      firstFetcher: () => Promise<NodeDef[]>
+      secondFetcher: () => Promise<NodeDef[]>
+      asyncResultBehavior?: 'stream' | 'block'
+    }) {
+      const firstLoader = React.useMemo(
+        () => createVanillaStaticLoader({ fetcher: firstFetcher }),
+        [firstFetcher],
+      )
+      const secondLoader = React.useMemo(
+        () => createVanillaStaticLoader({ fetcher: secondFetcher }),
+        [secondFetcher],
+      )
+
+      const content: NodeDef[] = React.useMemo(
+        () => [
+          createSubmenuDef('first', 'First', [], {
+            asyncNodes: firstLoader,
+            includeInDeepSearch: true,
+          }),
+          createSubmenuDef('second', 'Second', [], {
+            asyncNodes: secondLoader,
+            includeInDeepSearch: true,
+          }),
+        ],
+        [firstLoader, secondLoader],
+      )
+
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.DataSurface
+                  data-testid="surface"
+                  content={content}
+                  deepSearch={{
+                    enabled: true,
+                    minLength: 1,
+                    asyncResultBehavior,
+                  }}
+                >
+                  <DropdownMenu.DataInput
+                    data-testid="search-input"
+                    placeholder="Search..."
+                  />
+                  <DropdownMenu.DataList>
+                    {({ nodes, renderNode }) => (
+                      <>
+                        <DropdownMenu.Loading data-testid="loading">
+                          Loading...
+                        </DropdownMenu.Loading>
+                        <DropdownMenu.Empty data-testid="empty">
+                          No results
+                        </DropdownMenu.Empty>
+                        {nodes.map((node) => renderNode(node))}
+                      </>
+                    )}
+                  </DropdownMenu.DataList>
+                </DropdownMenu.DataSurface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
     it('shows Loading while query-dependent fetcher is in-flight', async () => {
       const user = userEvent.setup()
       const deferred = createDeferred<NodeDef[]>()
@@ -515,6 +600,101 @@ describe('Empty and Loading visibility', () => {
       })
 
       expect(screen.queryByTestId('empty')).not.toBeInTheDocument()
+    })
+
+    it('streams async batches in append-only order by default', async () => {
+      const user = userEvent.setup()
+      const firstDeferred = createDeferred<NodeDef[]>()
+      const secondDeferred = createDeferred<NodeDef[]>()
+
+      render(
+        <AsyncDeepSearchMultiLoaderMenu
+          firstFetcher={() => firstDeferred.promise}
+          secondFetcher={() => secondDeferred.promise}
+        />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('search-input')).toBeInTheDocument()
+      })
+
+      await user.type(screen.getByTestId('search-input'), 'apple')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toBeInTheDocument()
+      })
+
+      firstDeferred.resolve([createItemDef('Pineapple')])
+
+      await waitFor(() => {
+        expect(screen.getByTestId('item-pineapple')).toBeInTheDocument()
+      })
+
+      secondDeferred.resolve([createItemDef('Apple')])
+
+      await waitFor(() => {
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      })
+
+      const pineapple = screen.getByTestId('item-pineapple')
+      const apple = screen.getByTestId('item-apple')
+
+      expect(
+        pineapple.compareDocumentPosition(apple) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+    })
+
+    it('blocks deep-search rows until all async loaders resolve when configured', async () => {
+      const user = userEvent.setup()
+      const firstDeferred = createDeferred<NodeDef[]>()
+      const secondDeferred = createDeferred<NodeDef[]>()
+
+      render(
+        <AsyncDeepSearchMultiLoaderMenu
+          firstFetcher={() => firstDeferred.promise}
+          secondFetcher={() => secondDeferred.promise}
+          asyncResultBehavior="block"
+        />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('search-input')).toBeInTheDocument()
+      })
+
+      await user.type(screen.getByTestId('search-input'), 'apple')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByTestId('item-pineapple')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+
+      firstDeferred.resolve([createItemDef('Pineapple')])
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByTestId('item-pineapple')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+
+      secondDeferred.resolve([createItemDef('Apple')])
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
+        expect(screen.getByTestId('item-pineapple')).toBeInTheDocument()
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      })
+
+      const apple = screen.getByTestId('item-apple')
+      const pineapple = screen.getByTestId('item-pineapple')
+
+      expect(
+        apple.compareDocumentPosition(pineapple) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
     })
   })
 })

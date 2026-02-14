@@ -21,6 +21,7 @@ export type { PopupMenuDataSurfaceProps } from './data-surface.js'
 export { PopupMenuDataSurface } from './data-surface.js'
 // Types
 export type {
+  AsyncResultBehavior,
   BreadcrumbNode,
   CheckboxItemDef,
   CheckboxItemRenderParams,
