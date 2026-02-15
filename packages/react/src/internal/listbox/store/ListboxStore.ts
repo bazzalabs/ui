@@ -55,6 +55,18 @@ export interface VirtualItem {
 export type HighlightSource = 'keyboard' | 'pointer' | 'auto' | null
 
 /**
+ * Describes why the consumer updated ordered items when filter={false}.
+ * - `replace`: list was re-ordered/replaced (default)
+ * - `append`: new items were appended to the end while preserving existing order
+ */
+export type OrderedItemsUpdateReason = 'replace' | 'append'
+
+export interface SetOrderedItemsOptions {
+  /** Why ordered items were updated. @default 'replace' */
+  reason?: OrderedItemsUpdateReason
+}
+
+/**
  * Refs for DOM elements used for scroll behavior.
  * These are stored outside of reactive state to avoid unnecessary re-renders.
  */
@@ -560,7 +572,8 @@ export class ListboxStore extends ReactStore<
    *
    * @param items - Array of item IDs in display order
    */
-  setOrderedItems(items: string[]) {
+  setOrderedItems(items: string[], options?: SetOrderedItemsOptions) {
+    const reason = options?.reason ?? 'replace'
     const prevItems = this.context.orderedItems
     this.context.orderedItems = items
 
@@ -572,6 +585,20 @@ export class ListboxStore extends ReactStore<
     // Skip highlight update if not open
     if (!this.state.open) {
       return
+    }
+
+    // For append-only updates, preserve current highlight when it remains valid.
+    if (reason === 'append' && this.state.highlightedId !== null) {
+      const highlightedId = this.state.highlightedId
+      const highlightedRegistration = this.context.items.get(highlightedId)
+      const isStillInOrderedItems = items.includes(highlightedId)
+      const isStillEnabled = highlightedRegistration
+        ? !highlightedRegistration.disabled
+        : false
+
+      if (isStillInOrderedItems && isStillEnabled) {
+        return
+      }
     }
 
     // When ordered items change, highlight the first registered item

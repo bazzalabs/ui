@@ -388,7 +388,11 @@ export default function DropdownMenuDeepSearchLinearAsync() {
           <DropdownMenu.Popup>
             <DropdownMenu.DataSurface
               content={content}
-              deepSearch={{ enabled: true, minLength: 2 }}
+              deepSearch={{
+                enabled: true,
+                minLength: 2,
+                asyncResultBehavior: 'block',
+              }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
               <DropdownMenu.DataList virtualized>

@@ -238,7 +238,14 @@ export function createSubmenuNode(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner>
             <DropdownMenu.Popup>
-              <DropdownMenu.DataSurface content={nodes}>
+              <DropdownMenu.DataSurface
+                content={nodes}
+                deepSearch={{
+                  enabled: true,
+                  minLength: 2,
+                  asyncResultBehavior: 'block',
+                }}
+              >
                 <DropdownMenu.DataInput
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
@@ -316,7 +323,10 @@ export function createAsyncSubmenuNode(
                 The submenu uses asyncContent as its sole data source.
                 This runs its OWN loader with its OWN search query.
               */}
-              <DropdownMenu.DataSurface asyncContent={asyncContent}>
+              <DropdownMenu.DataSurface
+                asyncContent={asyncContent}
+                deepSearch={{ enabled: true, asyncResultBehavior: 'block' }}
+              >
                 <DropdownMenu.DataInput
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
