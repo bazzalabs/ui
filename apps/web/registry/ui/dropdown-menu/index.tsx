@@ -390,6 +390,7 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
                 <>
                   {content}
                   <Loading />
+                  <Empty />
                 </>
               )
             }}
@@ -469,6 +470,21 @@ interface VirtualizedDataListContentProps {
   withScrollFade: boolean
 }
 
+type VirtualizedContentRow =
+  | {
+      kind: 'node'
+      key: string
+      node: DisplayNode
+    }
+  | {
+      kind: 'loading'
+      key: '__loading__'
+    }
+  | {
+      kind: 'empty'
+      key: '__empty__'
+    }
+
 function VirtualizedDataListContent({
   state,
   maxHeight,
@@ -476,28 +492,53 @@ function VirtualizedDataListContent({
   overscan,
   withScrollFade,
 }: VirtualizedDataListContentProps) {
-  const { nodes, renderNode } = state
+  const { nodes, renderNode, count, async: asyncState } = state
   const { store } = useSurfaceContext()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const shouldShowLoadingRow = asyncState.isLoading
+  const shouldShowEmptyRow = !asyncState.isLoading && count === 0
+  const statusRowCount = shouldShowLoadingRow || shouldShowEmptyRow ? 1 : 0
+
+  const virtualizedRows = useMemo<VirtualizedContentRow[]>(() => {
+    const nodeRows = nodes.map((node) => ({
+      kind: 'node' as const,
+      key: getNodeKey(node),
+      node,
+    }))
+
+    if (shouldShowLoadingRow) {
+      return [...nodeRows, { kind: 'loading', key: '__loading__' }]
+    }
+
+    if (shouldShowEmptyRow) {
+      return [...nodeRows, { kind: 'empty', key: '__empty__' }]
+    }
+
+    return nodeRows
+  }, [nodes, shouldShowLoadingRow, shouldShowEmptyRow])
 
   // Create stable key function
   const getItemKey = useCallback(
     (index: number) => {
-      const node = nodes[index]
-      if (!node) return index
-      return getNodeKey(node)
+      const row = virtualizedRows[index]
+      if (!row) return index
+      return row.key
     },
-    [nodes],
+    [virtualizedRows],
   )
 
-  const virtualizerEnabled = useMemo(() => nodes.length > 0, [nodes.length])
+  const virtualizerEnabled = useMemo(
+    () => virtualizedRows.length > 0,
+    [virtualizedRows.length],
+  )
 
   // Create virtualizer
   // Disable flushSync to avoid "flushSync was called from inside a lifecycle method" warning
   // when the list re-renders during search/filtering. This is recommended for React 19+ compatibility.
   const virtualizer = useVirtualizer({
     enabled: virtualizerEnabled,
-    count: nodes.length,
+    count: virtualizedRows.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => estimateSize,
     getItemKey,
@@ -535,11 +576,11 @@ function VirtualizedDataListContent({
       if (id !== null && index >= 0 && details.reason === 'keyboard') {
         // Use queueMicrotask to avoid "flushSync" warnings from virtualizer
         queueMicrotask(() => {
-          virtualizer.scrollToIndex(index, { align: 'auto' })
+          virtualizer.scrollToIndex(index + statusRowCount, { align: 'auto' })
         })
       }
     },
-    [virtualizer],
+    [virtualizer, statusRowCount],
   )
 
   // Wire up onHighlightChange callback for scroll sync
@@ -552,7 +593,7 @@ function VirtualizedDataListContent({
   // Register list ref with store for scroll behavior
   useEffect(() => {
     store.setListRef(scrollContainerRef as React.RefObject<HTMLElement | null>)
-  }, [store, scrollContainerRef])
+  }, [store])
 
   return (
     <ScrollArea.Viewport
@@ -567,11 +608,19 @@ function VirtualizedDataListContent({
           position: 'relative',
         }}
       >
-        <Loading />
-        <Empty />
         {virtualItems.map((virtualItem) => {
-          const node = nodes[virtualItem.index]
-          if (!node) return null
+          const row = virtualizedRows[virtualItem.index]
+          if (!row) return null
+
+          let content: React.ReactNode
+
+          if (row.kind === 'node') {
+            content = renderNode(row.node)
+          } else if (row.kind === 'loading') {
+            content = <Loading />
+          } else {
+            content = <Empty />
+          }
 
           return (
             <div
@@ -586,7 +635,7 @@ function VirtualizedDataListContent({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              {renderNode(node)}
+              {content}
             </div>
           )
         })}
