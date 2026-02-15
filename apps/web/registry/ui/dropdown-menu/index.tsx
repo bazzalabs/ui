@@ -17,7 +17,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { cva } from 'class-variance-authority'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
-import type * as React from 'react'
+import * as React from 'react'
 import {
   Fragment,
   forwardRef,
@@ -496,8 +496,8 @@ function VirtualizedDataListContent({
   const { store } = useSurfaceContext()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  const shouldShowLoadingRow = asyncState.isLoading
-  const shouldShowEmptyRow = !asyncState.isLoading && count === 0
+  const shouldShowLoadingRow = asyncState.isInitialLoading
+  const shouldShowEmptyRow = !asyncState.isInitialLoading && count === 0
   const statusRowCount = shouldShowLoadingRow || shouldShowEmptyRow ? 1 : 0
 
   const virtualizedRows = useMemo<VirtualizedContentRow[]>(() => {
@@ -690,7 +690,12 @@ const DataInput = forwardRef<
   HTMLInputElement,
   React.ComponentProps<typeof Primitive.DataInput>
 >(({ className, placeholder = 'Search...', ...props }, ref) => {
-  const x = useMaybeAsyncMenuCoordinator()
+  const ac = useMaybeAsyncMenuCoordinator()
+
+  const showInlineLoading = React.useMemo(
+    () => ac && !ac.isAnyInitialLoading && ac.isAnyRefetching,
+    [ac, ac?.isAnyInitialLoading, ac?.isAnyRefetching],
+  )
 
   return (
     <Primitive.DataInput
@@ -701,9 +706,7 @@ const DataInput = forwardRef<
         <div className="flex items-center justify-between pr-4">
           <input {...props} />
           <div className="size-4 shrink-0">
-            {x?.isAnyLoading && x?.searchQuery?.length > 0 && (
-              <DiamondSpinner className="size-4" />
-            )}
+            {showInlineLoading && <DiamondSpinner className="size-4" />}
           </div>
         </div>
       )}

@@ -47,15 +47,35 @@ export interface AsyncMenuCoordinatorValue {
   loaders: Map<string, AsyncMenuState>
 
   // ---- Computed State ----
-  /** Any loader is currently loading */
+  /** Any loader is currently in initial loading phase */
   isAnyLoading: boolean
-  /** The root (__root__) loader is currently loading — i.e. the DataSurface's own asyncContent */
+  /** Any loader is currently fetching (initial or background) */
+  isAnyFetching: boolean
+  /** Any loader is currently in first-load phase */
+  isAnyInitialLoading: boolean
+  /** Any loader is currently in background refetch phase */
+  isAnyRefetching: boolean
+  /** All registered loaders are currently in background refetch phase */
+  isAllRefetching: boolean
+  /** The root (__root__) loader is currently in initial loading phase */
   isRootLoading: boolean
-  /** Static loaders are loading */
+  /** Static loaders are currently in initial loading phase */
   isStaticLoading: boolean
-  /** Query loaders are loading */
+  /** Static loaders are currently fetching */
+  isStaticFetching: boolean
+  /** Static loaders in first-load phase */
+  isStaticInitialLoading: boolean
+  /** Static loaders in background refetch phase */
+  isStaticRefetching: boolean
+  /** Query loaders are currently in initial loading phase */
   isQueryLoading: boolean
-  /** All loaders have resolved (not loading, no pending) */
+  /** Query loaders are currently fetching */
+  isQueryFetching: boolean
+  /** Query loaders in first-load phase */
+  isQueryInitialLoading: boolean
+  /** Query loaders in background refetch phase */
+  isQueryRefetching: boolean
+  /** All loaders have resolved (not fetching) */
   allResolved: boolean
 
   // ---- Async Nodes ----
@@ -177,9 +197,45 @@ export function AsyncMenuCoordinatorProvider(
   )
 
   // Computed loading states
+  const isStaticFetching = React.useMemo(() => {
+    for (const [, state] of loaders) {
+      if (state.config.type === 'static' && state.result.isFetching) {
+        return true
+      }
+    }
+    return false
+  }, [loaders])
+
   const isStaticLoading = React.useMemo(() => {
     for (const [, state] of loaders) {
       if (state.config.type === 'static' && state.result.isLoading) {
+        return true
+      }
+    }
+    return false
+  }, [loaders])
+
+  const isStaticInitialLoading = React.useMemo(() => {
+    for (const [, state] of loaders) {
+      if (state.config.type === 'static' && state.result.isInitialLoading) {
+        return true
+      }
+    }
+    return false
+  }, [loaders])
+
+  const isStaticRefetching = React.useMemo(() => {
+    for (const [, state] of loaders) {
+      if (state.config.type === 'static' && state.result.isRefetching) {
+        return true
+      }
+    }
+    return false
+  }, [loaders])
+
+  const isQueryFetching = React.useMemo(() => {
+    for (const [, state] of loaders) {
+      if (state.config.type === 'query' && state.result.isFetching) {
         return true
       }
     }
@@ -195,7 +251,41 @@ export function AsyncMenuCoordinatorProvider(
     return false
   }, [loaders])
 
+  const isQueryInitialLoading = React.useMemo(() => {
+    for (const [, state] of loaders) {
+      if (state.config.type === 'query' && state.result.isInitialLoading) {
+        return true
+      }
+    }
+    return false
+  }, [loaders])
+
+  const isQueryRefetching = React.useMemo(() => {
+    for (const [, state] of loaders) {
+      if (state.config.type === 'query' && state.result.isRefetching) {
+        return true
+      }
+    }
+    return false
+  }, [loaders])
+
+  const isAnyFetching = isStaticFetching || isQueryFetching
   const isAnyLoading = isStaticLoading || isQueryLoading
+  const isAnyInitialLoading = isStaticInitialLoading || isQueryInitialLoading
+  const isAnyRefetching = isStaticRefetching || isQueryRefetching
+  const isAllRefetching = React.useMemo(() => {
+    if (loaders.size === 0) {
+      return false
+    }
+
+    for (const [, state] of loaders) {
+      if (!state.result.isRefetching) {
+        return false
+      }
+    }
+
+    return true
+  }, [loaders])
 
   // Only the root loader (__root__) — i.e. the DataSurface's own asyncContent.
   // Child submenu loaders are not included; they show loading on their own triggers.
@@ -206,7 +296,7 @@ export function AsyncMenuCoordinatorProvider(
 
   const allResolved = React.useMemo(() => {
     for (const [, state] of loaders) {
-      if (state.result.isLoading) {
+      if (state.result.isFetching) {
         return false
       }
     }
@@ -250,11 +340,32 @@ export function AsyncMenuCoordinatorProvider(
 
     return {
       isLoading: isAnyLoading,
+      isFetching: isAnyFetching,
+      isInitialLoading: isAnyInitialLoading,
+      isRefetching: isAnyRefetching,
+      isAllRefetching,
       isStaticLoading,
+      isStaticInitialLoading,
+      isStaticRefetching,
       isQueryLoading,
+      isQueryInitialLoading,
+      isQueryRefetching,
       skippedMenus,
     }
-  }, [isAnyLoading, isStaticLoading, isQueryLoading, erroredLoaders])
+  }, [
+    isAnyFetching,
+    isAnyLoading,
+    isAnyInitialLoading,
+    isAnyRefetching,
+    isAllRefetching,
+    isStaticLoading,
+    isStaticInitialLoading,
+    isStaticRefetching,
+    isQueryLoading,
+    isQueryInitialLoading,
+    isQueryRefetching,
+    erroredLoaders,
+  ])
 
   // Context value
   const contextValue: AsyncMenuCoordinatorValue = React.useMemo(
@@ -265,9 +376,19 @@ export function AsyncMenuCoordinatorProvider(
       searchQuery,
       loaders,
       isAnyLoading,
+      isAnyFetching,
+      isAnyInitialLoading,
+      isAnyRefetching,
+      isAllRefetching,
       isRootLoading,
       isStaticLoading,
+      isStaticFetching,
+      isStaticInitialLoading,
+      isStaticRefetching,
       isQueryLoading,
+      isQueryFetching,
+      isQueryInitialLoading,
+      isQueryRefetching,
       allResolved,
       getAsyncNodes,
       erroredLoaders,
@@ -280,9 +401,19 @@ export function AsyncMenuCoordinatorProvider(
       searchQuery,
       loaders,
       isAnyLoading,
+      isAnyFetching,
+      isAnyInitialLoading,
+      isAnyRefetching,
+      isAllRefetching,
       isRootLoading,
       isStaticLoading,
+      isStaticFetching,
+      isStaticInitialLoading,
+      isStaticRefetching,
       isQueryLoading,
+      isQueryFetching,
+      isQueryInitialLoading,
+      isQueryRefetching,
       allResolved,
       getAsyncNodes,
       erroredLoaders,

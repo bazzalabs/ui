@@ -146,6 +146,21 @@ export const examples: RegistryIndex = {
       'registry/examples/dropdown-menu/deep-search-linear-async/icons.tsx',
     ],
   },
+  'dropdown-menu-deep-search-linear-async-tanstack': {
+    name: 'dropdown-menu-deep-search-linear-async-tanstack',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/deep-search-linear-async-tanstack'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/index.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/components.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/icons.tsx',
+    ],
+  },
   'dropdown-menu-async-deep-search': {
     name: 'dropdown-menu-async-deep-search',
     type: 'registry:example',

@@ -203,7 +203,11 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 
 export type {
   AsyncLoaderConfig,
+  AsyncLoaderFetchStatus,
+  AsyncLoaderLoadingPhase,
   AsyncLoaderResult,
+  AsyncLoaderSource,
+  AsyncLoaderStatus,
   // Async coordinator
   AsyncMenuCoordinatorValue,
   AsyncNodesConfig,

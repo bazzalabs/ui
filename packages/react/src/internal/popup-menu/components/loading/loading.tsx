@@ -25,8 +25,8 @@ export interface PopupMenuLoadingProps
 }
 
 /**
- * Renders when async content is loading.
- * Only visible when async loaders are actively fetching data (unless `forceMount` is true).
+ * Renders when async content is in initial loading.
+ * Only visible during first-load phases (unless `forceMount` is true).
  * Renders a `<div>` element.
  */
 export const PopupMenuLoading = React.forwardRef<
@@ -63,7 +63,7 @@ export const PopupMenuLoading = React.forwardRef<
   // Check async loading state.
   // Two cases where we show the loading indicator:
   // 1. The __root__ loader (DataSurface's own asyncContent) is loading
-  // 2. ANY loader is loading AND the user has typed a search query (deep search in progress)
+  // 2. ANY loader is in initial loading AND the user has typed a search query
   //
   // Case 2 distinguishes between:
   // - Root menu deep search ("se") → user is waiting for results → show spinner

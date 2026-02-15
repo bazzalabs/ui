@@ -2,7 +2,10 @@
 
 import type * as React from 'react'
 import type {
+  AsyncLoaderFetchStatus,
+  AsyncLoaderLoadingPhase,
   AsyncLoaderResult,
+  AsyncLoaderStatus,
   InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
@@ -19,12 +22,52 @@ import type {
  * This allows the adapter to work without requiring @tanstack/react-query as a dependency.
  */
 export interface TanStackQueryResult<TData, TError = Error> {
+  /** TanStack status (`pending` | `error` | `success`) */
+  status?: 'pending' | 'error' | 'success'
+
+  /** TanStack fetch status (`fetching` | `paused` | `idle`) */
+  fetchStatus?: 'fetching' | 'paused' | 'idle'
+
   data: TData | undefined
-  error: TError | null
-  isLoading: boolean
-  isError: boolean
+  error: TError | null | undefined
+
+  /** v5: true when first fetch is in-flight */
+  isLoading?: boolean
+
+  /** v5: true when status is pending */
+  isPending?: boolean
+
+  /** true when status is success */
+  isSuccess?: boolean
+
+  /** true when status is error */
+  isError?: boolean
+
+  /** true while any fetch is in-flight */
   isFetching?: boolean
-  refetch: () => void
+
+  /** true while background refetch is in-flight */
+  isRefetching?: boolean
+
+  /** true when fetch is paused */
+  isPaused?: boolean
+
+  /** true once query has fetched at least once */
+  isFetched?: boolean
+
+  refetch: () => unknown
+}
+
+function toError(error: unknown): Error | null {
+  if (error == null) {
+    return null
+  }
+
+  if (error instanceof Error) {
+    return error
+  }
+
+  return new Error(String(error))
 }
 
 /**
@@ -42,14 +85,65 @@ export interface TanStackQueryResult<TData, TError = Error> {
  * }
  * ```
  */
-export function toAsyncLoaderResult<T>(
-  result: TanStackQueryResult<T>,
-): AsyncLoaderResult<T> {
+export function toAsyncLoaderResult<TData, TError = Error>(
+  result: TanStackQueryResult<TData, TError>,
+): AsyncLoaderResult<TData, TanStackQueryResult<TData, TError>> {
+  const hasData = result.data !== undefined
+
+  const fetchStatus: AsyncLoaderFetchStatus = result.fetchStatus
+    ? result.fetchStatus
+    : result.isPaused
+      ? 'paused'
+      : result.isFetching || result.isLoading
+        ? 'fetching'
+        : 'idle'
+
+  const isFetching = fetchStatus === 'fetching'
+
+  const status: AsyncLoaderStatus = result.status
+    ? result.status
+    : result.isError
+      ? 'error'
+      : result.isSuccess || hasData
+        ? 'success'
+        : result.isPending || result.isLoading || isFetching
+          ? 'pending'
+          : 'idle'
+
+  const isPending = result.isPending ?? status === 'pending'
+  const isSuccess = result.isSuccess ?? status === 'success'
+  const isError = result.isError ?? status === 'error'
+  const isInitialLoading = result.isLoading ?? (isPending && isFetching)
+  const isRefetching = result.isRefetching ?? (isFetching && !isInitialLoading)
+  const isPaused = result.isPaused ?? fetchStatus === 'paused'
+  const hasFetched =
+    result.isFetched ??
+    (isSuccess || isError || isInitialLoading || isRefetching)
+
+  const loadingPhase: AsyncLoaderLoadingPhase = isInitialLoading
+    ? 'initial'
+    : isRefetching
+      ? 'background'
+      : 'none'
+
   return {
     data: result.data,
-    error: result.error,
-    isLoading: result.isLoading || (result.isFetching ?? false),
-    isError: result.isError,
+    raw: result,
+    source: 'tanstack-query',
+    error: toError(result.error),
+    status,
+    fetchStatus,
+    loadingPhase,
+    isLoading: isInitialLoading,
+    isFetching,
+    isInitialLoading,
+    isRefetching,
+    isPending,
+    isSuccess,
+    isError,
+    isPaused,
+    hasData,
+    hasFetched,
     refetch: result.refetch,
   }
 }
@@ -63,6 +157,13 @@ export interface CreateStaticLoaderProps {
    * This hook will be called inside the loader component.
    */
   useQuery: () => TanStackQueryResult<NodeDef[]>
+
+  /**
+   * When to trigger the loader:
+   * - 'eager': Load when root menu opens
+   * - 'lazy': Load when submenu opens (default)
+   */
+  loadStrategy?: 'eager' | 'lazy'
 }
 
 /**
@@ -94,7 +195,7 @@ export interface CreateStaticLoaderProps {
 export function createStaticLoader(
   props: CreateStaticLoaderProps,
 ): StaticLoaderConfig {
-  const { useQuery } = props
+  const { useQuery, loadStrategy } = props
 
   const Loader: React.FC<LoaderComponentProps> = ({ children }) => {
     const result = useQuery()
@@ -104,6 +205,7 @@ export function createStaticLoader(
   return {
     type: 'static',
     Loader,
+    loadStrategy,
   }
 }
 
