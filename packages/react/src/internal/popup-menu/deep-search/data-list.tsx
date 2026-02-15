@@ -141,6 +141,23 @@ function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
   return ids
 }
 
+function isAppendOnlyOrderedItemsUpdate(
+  previousIds: string[],
+  nextIds: string[],
+): boolean {
+  if (previousIds.length === 0 || nextIds.length <= previousIds.length) {
+    return false
+  }
+
+  for (let i = 0; i < previousIds.length; i++) {
+    if (previousIds[i] !== nextIds[i]) {
+      return false
+    }
+  }
+
+  return true
+}
+
 function getBreadcrumbStreamKey(breadcrumbs: BreadcrumbNode[]): string {
   return breadcrumbs
     .map((breadcrumb) => breadcrumb.id ?? breadcrumb.value)
@@ -678,6 +695,10 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
     // We use a ref to track the previous IDs and do a deep comparison to avoid
     // triggering highlight resets when the content hasn't actually changed.
     const prevOrderedItemIdsRef = React.useRef<string[]>([])
+    const prevOrderedItemsSearchRef = React.useRef<string | null>(null)
+    const orderedItemsUpdateReasonRef = React.useRef<'replace' | 'append'>(
+      'replace',
+    )
 
     // Compute new ordered IDs using composite IDs
     const newOrderedItemIds = React.useMemo(
@@ -696,15 +717,34 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         prev.some((id, i) => id !== current[i])
 
       if (changed) {
+        const asyncResultBehavior =
+          deepSearchConfig.asyncResultBehavior ?? 'stream'
+        const shouldUseAppendReason =
+          asyncResultBehavior === 'stream' &&
+          isDeepSearching &&
+          prevOrderedItemsSearchRef.current === search &&
+          isAppendOnlyOrderedItemsUpdate(prev, current)
+
+        orderedItemsUpdateReasonRef.current = shouldUseAppendReason
+          ? 'append'
+          : 'replace'
         prevOrderedItemIdsRef.current = current
+        prevOrderedItemsSearchRef.current = search
         return current
       }
 
       return prev
-    }, [newOrderedItemIds])
+    }, [
+      newOrderedItemIds,
+      deepSearchConfig.asyncResultBehavior,
+      isDeepSearching,
+      search,
+    ])
 
     React.useEffect(() => {
-      store.setOrderedItems(orderedItemIds)
+      store.setOrderedItems(orderedItemIds, {
+        reason: orderedItemsUpdateReasonRef.current,
+      })
     }, [store, orderedItemIds])
 
     // Helper to render a single row node (item, checkbox item, or submenu)

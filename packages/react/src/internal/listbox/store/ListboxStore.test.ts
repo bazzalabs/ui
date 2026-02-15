@@ -940,6 +940,42 @@ describe('ListboxStore', () => {
       expect(store.state.highlightedId).toBe('banana')
     })
 
+    it('preserves highlight for append-only ordered item updates', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setHighlightedId('banana', 'keyboard')
+
+      store.setOrderedItems(['apple', 'banana', 'cherry'], {
+        reason: 'append',
+      })
+
+      expect(store.state.highlightedId).toBe('banana')
+    })
+
+    it('falls back to first item on append updates when highlight is no longer valid', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setHighlightedId('banana', 'keyboard')
+
+      store.setOrderedItems(['apple', 'cherry'], {
+        reason: 'append',
+      })
+
+      expect(store.state.highlightedId).toBe('apple')
+    })
+
     it('clears highlight when ordered items is empty', () => {
       const store = createStore({ open: true }, { filter: false })
       registerItems(store, [
