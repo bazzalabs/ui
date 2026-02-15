@@ -2,6 +2,7 @@
 
 import DropdownMenuDeepSearchLinear from '@/registry/examples/dropdown-menu/deep-search-linear'
 import DropdownMenuDeepSearchLinearAsync from '@/registry/examples/dropdown-menu/deep-search-linear-async'
+import DropdownMenuDeepSearchLinearAsyncTanstack from '@/registry/examples/dropdown-menu/deep-search-linear-async-tanstack'
 
 export function Playground() {
   return (
@@ -10,6 +11,7 @@ export function Playground() {
         {/*<InputEmbeddedComboboxDemo withoutConfig />*/}
         <DropdownMenuDeepSearchLinear />
         <DropdownMenuDeepSearchLinearAsync />
+        <DropdownMenuDeepSearchLinearAsyncTanstack />
       </div>
     </div>
   )

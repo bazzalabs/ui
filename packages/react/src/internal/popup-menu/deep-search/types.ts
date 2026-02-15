@@ -17,17 +17,81 @@ import type {
  * Library-agnostic result from an async loader.
  * Compatible with TanStack Query, SWR, and custom loaders.
  */
-export interface AsyncLoaderResult<T> {
+export type AsyncLoaderSource = 'tanstack-query' | 'swr' | 'vanilla' | 'custom'
+
+/**
+ * Canonical async loader status.
+ * - 'idle': no request has been executed yet
+ * - 'pending': request in progress and no successful data yet
+ * - 'success': last resolved state has data
+ * - 'error': last resolved state errored
+ */
+export type AsyncLoaderStatus = 'idle' | 'pending' | 'success' | 'error'
+
+/**
+ * Canonical fetch status.
+ */
+export type AsyncLoaderFetchStatus = 'idle' | 'fetching' | 'paused'
+
+/**
+ * Loading phase for distinguishing first-load from background revalidation.
+ */
+export type AsyncLoaderLoadingPhase = 'none' | 'initial' | 'background'
+
+export interface AsyncLoaderResult<TData, TRaw = unknown> {
   /** The loaded data, undefined while loading or on error */
-  data: T | undefined
+  data: TData | undefined
+
+  /** Raw result object returned by the underlying data library */
+  raw?: TRaw
+
+  /** Source data library backing this result */
+  source?: AsyncLoaderSource
+
   /** Error if the load failed, null otherwise */
   error: Error | null
-  /** Whether the loader is currently loading */
+
+  /** Canonical status state */
+  status: AsyncLoaderStatus
+
+  /** Canonical fetch state */
+  fetchStatus: AsyncLoaderFetchStatus
+
+  /** Distinguishes initial load vs background fetch */
+  loadingPhase: AsyncLoaderLoadingPhase
+
+  /** True during the initial loading phase (TanStack-aligned semantics) */
   isLoading: boolean
+
+  /** Whether any fetch is currently in-flight */
+  isFetching: boolean
+
+  /** Alias of `isLoading` for explicit phase naming */
+  isInitialLoading: boolean
+
+  /** True when background re-fetch is in-flight */
+  isRefetching: boolean
+
+  /** Whether query state is pending */
+  isPending: boolean
+
+  /** Whether query state is successful */
+  isSuccess: boolean
+
   /** Whether the loader encountered an error */
   isError: boolean
+
+  /** Whether fetching is paused */
+  isPaused: boolean
+
+  /** Whether data is currently available */
+  hasData: boolean
+
+  /** Whether any fetch has completed at least once */
+  hasFetched: boolean
+
   /** Optional function to refetch the data */
-  refetch?: () => void
+  refetch?: () => unknown
 }
 
 /**
@@ -162,8 +226,20 @@ export type AsyncNodesConfig = StaticAsyncNodesConfig | QueryAsyncNodesConfig
  * Async state exposed to submenu render functions.
  */
 export interface AsyncRenderState {
-  /** Whether the loader is currently loading */
+  /** Canonical status state */
+  status: AsyncLoaderStatus
+  /** Canonical fetch state */
+  fetchStatus: AsyncLoaderFetchStatus
+  /** Distinguishes initial load vs background fetch */
+  loadingPhase: AsyncLoaderLoadingPhase
+  /** True during the initial loading phase */
   isLoading: boolean
+  /** Whether any fetch is currently in-flight */
+  isFetching: boolean
+  /** Alias of `isLoading` for explicit phase naming */
+  isInitialLoading: boolean
+  /** True when background re-fetch is in-flight */
+  isRefetching: boolean
   /** Whether the loader encountered an error */
   isError: boolean
   /** The error if any */
@@ -176,12 +252,39 @@ export interface AsyncRenderState {
  * Aggregate async state exposed to DataList children.
  */
 export interface AsyncState {
-  /** Any loader is currently loading */
+  /** Any loader is currently in initial loading phase */
   isLoading: boolean
+
+  /** Any loader is currently fetching */
+  isFetching: boolean
+
+  /** Any loader is in first-load phase */
+  isInitialLoading: boolean
+
+  /** Any loader is in background refetch phase */
+  isRefetching: boolean
+
+  /** All registered loaders are in background refetch phase */
+  isAllRefetching: boolean
+
   /** Static loaders specifically are loading */
   isStaticLoading: boolean
+
+  /** Static loaders in first-load phase */
+  isStaticInitialLoading: boolean
+
+  /** Static loaders in background refetch phase */
+  isStaticRefetching: boolean
+
   /** Query loaders specifically are loading */
   isQueryLoading: boolean
+
+  /** Query loaders in first-load phase */
+  isQueryInitialLoading: boolean
+
+  /** Query loaders in background refetch phase */
+  isQueryRefetching: boolean
+
   /** Menus that failed (skipped from results) */
   skippedMenus: Array<{ id: string; reason: 'error' }>
 }

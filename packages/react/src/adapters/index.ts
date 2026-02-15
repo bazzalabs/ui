@@ -3,6 +3,16 @@
 // ============================================================================
 // Adapters for integrating async data libraries with async menus.
 
+// SWR Adapter
+export {
+  type CreateSWRQueryLoaderProps,
+  type CreateSWRStaticLoaderProps,
+  createSWRLoaderComponent,
+  createSWRQueryLoader,
+  createSWRStaticLoader,
+  type SWRResult,
+  toAsyncLoaderResultFromSWR,
+} from './swr.js'
 // TanStack Query Adapter
 export {
   type CreateQueryLoaderProps,
@@ -13,7 +23,6 @@ export {
   type TanStackQueryResult,
   toAsyncLoaderResult,
 } from './tanstack-query.js'
-
 // Vanilla Adapter (no external dependencies)
 export {
   type CreateVanillaQueryLoaderProps,

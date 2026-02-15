@@ -2,7 +2,10 @@
 
 import * as React from 'react'
 import type {
+  AsyncLoaderFetchStatus,
+  AsyncLoaderLoadingPhase,
   AsyncLoaderResult,
+  AsyncLoaderStatus,
   InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
@@ -14,6 +17,82 @@ import type {
 // Vanilla Async Adapter (no external dependencies)
 // ============================================================================
 
+interface VanillaAsyncInternalState<TData> {
+  data: TData | undefined
+  error: Error | null
+  isFetching: boolean
+  hasFetched: boolean
+}
+
+function normalizeError(error: unknown): Error | null {
+  if (error == null) {
+    return null
+  }
+
+  if (error instanceof Error) {
+    return error
+  }
+
+  return new Error(String(error))
+}
+
+function getVanillaStatus<TData>(
+  state: VanillaAsyncInternalState<TData>,
+): AsyncLoaderStatus {
+  if (state.error) {
+    return 'error'
+  }
+
+  if (state.data !== undefined) {
+    return 'success'
+  }
+
+  if (state.isFetching) {
+    return 'pending'
+  }
+
+  return 'idle'
+}
+
+function toVanillaAsyncLoaderResult<TData>(
+  state: VanillaAsyncInternalState<TData>,
+  refetch: () => unknown,
+): AsyncLoaderResult<TData> {
+  const status = getVanillaStatus(state)
+  const fetchStatus: AsyncLoaderFetchStatus = state.isFetching
+    ? 'fetching'
+    : 'idle'
+
+  const isInitialLoading = state.isFetching && !state.hasFetched
+  const isRefetching = state.isFetching && state.hasFetched
+
+  const loadingPhase: AsyncLoaderLoadingPhase = isInitialLoading
+    ? 'initial'
+    : isRefetching
+      ? 'background'
+      : 'none'
+
+  return {
+    data: state.data,
+    source: 'vanilla',
+    error: state.error,
+    status,
+    fetchStatus,
+    loadingPhase,
+    isLoading: isInitialLoading,
+    isFetching: state.isFetching,
+    isInitialLoading,
+    isRefetching,
+    isPending: status === 'pending',
+    isSuccess: status === 'success',
+    isError: status === 'error',
+    isPaused: false,
+    hasData: state.data !== undefined,
+    hasFetched: state.hasFetched,
+    refetch,
+  }
+}
+
 /**
  * Internal hook for managing async state with plain promises.
  * Use this when you don't have TanStack Query or SWR.
@@ -23,29 +102,36 @@ function useAsyncState<T>(
   options?: { enabled?: boolean },
 ): AsyncLoaderResult<T> {
   const { enabled = true } = options ?? {}
-  const [state, setState] = React.useState<AsyncLoaderResult<T>>({
-    data: undefined,
-    error: null,
-    isLoading: enabled,
-    isError: false,
-  })
+  const [state, setState] = React.useState<VanillaAsyncInternalState<T>>(
+    () => ({
+      data: undefined,
+      error: null,
+      isFetching: enabled,
+      hasFetched: false,
+    }),
+  )
 
   const fetcherRef = React.useRef(fetcher)
   fetcherRef.current = fetcher
 
   const refetch = React.useCallback(() => {
-    setState((s) => ({ ...s, isLoading: true, error: null, isError: false }))
+    setState((s) => ({ ...s, isFetching: true, error: null }))
     fetcherRef
       .current()
       .then((data) => {
-        setState({ data, error: null, isLoading: false, isError: false })
+        setState({
+          data,
+          error: null,
+          isFetching: false,
+          hasFetched: true,
+        })
       })
       .catch((error) => {
         setState((s) => ({
           ...s,
-          error: error instanceof Error ? error : new Error(String(error)),
-          isLoading: false,
-          isError: true,
+          error: normalizeError(error),
+          isFetching: false,
+          hasFetched: true,
         }))
       })
   }, [])
@@ -53,10 +139,19 @@ function useAsyncState<T>(
   React.useEffect(() => {
     if (enabled) {
       refetch()
+      return
     }
+
+    setState((s) => ({
+      ...s,
+      isFetching: false,
+    }))
   }, [enabled, refetch])
 
-  return React.useMemo(() => ({ ...state, refetch }), [state, refetch])
+  return React.useMemo(
+    () => toVanillaAsyncLoaderResult(state, refetch),
+    [state, refetch],
+  )
 }
 
 /**
@@ -73,12 +168,14 @@ function useAsyncQueryState(
   options?: { enabled?: boolean },
 ): AsyncLoaderResult<NodeDef[]> {
   const { enabled = true } = options ?? {}
-  const [state, setState] = React.useState<AsyncLoaderResult<NodeDef[]>>({
+  const [state, setState] = React.useState<
+    VanillaAsyncInternalState<NodeDef[]>
+  >(() => ({
     data: undefined,
     error: null,
-    isLoading: enabled,
-    isError: false,
-  })
+    isFetching: enabled,
+    hasFetched: false,
+  }))
 
   const fetcherRef = React.useRef(fetcher)
   fetcherRef.current = fetcher
@@ -88,30 +185,40 @@ function useAsyncQueryState(
       setState({
         data: undefined,
         error: null,
-        isLoading: false,
-        isError: false,
+        isFetching: false,
+        hasFetched: false,
       })
       return
     }
 
     const controller = new AbortController()
 
-    setState({ data: undefined, isLoading: true, error: null, isError: false })
+    setState({
+      data: undefined,
+      error: null,
+      isFetching: true,
+      hasFetched: false,
+    })
 
     fetcherRef
       .current(query, { signal: controller.signal })
       .then((data) => {
         if (!controller.signal.aborted) {
-          setState({ data, error: null, isLoading: false, isError: false })
+          setState({
+            data,
+            error: null,
+            isFetching: false,
+            hasFetched: true,
+          })
         }
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
           setState({
             data: undefined,
-            error: error instanceof Error ? error : new Error(String(error)),
-            isLoading: false,
-            isError: true,
+            error: normalizeError(error),
+            isFetching: false,
+            hasFetched: true,
           })
         }
       })
@@ -124,23 +231,35 @@ function useAsyncQueryState(
   const refetch = React.useCallback(() => {
     // Trigger re-run by toggling a state-based effect isn't ideal here,
     // so we do a manual fetch that respects the current query/enabled state.
-    setState({ data: undefined, isLoading: true, error: null, isError: false })
+    setState((s) => ({
+      ...s,
+      isFetching: true,
+      error: null,
+    }))
     fetcherRef
       .current(query)
       .then((data) => {
-        setState({ data, error: null, isLoading: false, isError: false })
+        setState({
+          data,
+          error: null,
+          isFetching: false,
+          hasFetched: true,
+        })
       })
       .catch((error) => {
-        setState({
-          data: undefined,
-          error: error instanceof Error ? error : new Error(String(error)),
-          isLoading: false,
-          isError: true,
-        })
+        setState((s) => ({
+          ...s,
+          error: normalizeError(error),
+          isFetching: false,
+          hasFetched: true,
+        }))
       })
   }, [query])
 
-  return React.useMemo(() => ({ ...state, refetch }), [state, refetch])
+  return React.useMemo(
+    () => toVanillaAsyncLoaderResult(state, refetch),
+    [state, refetch],
+  )
 }
 
 /**
@@ -151,6 +270,13 @@ export interface CreateVanillaStaticLoaderProps {
    * Async function that fetches the menu items.
    */
   fetcher: () => Promise<NodeDef[]>
+
+  /**
+   * When to trigger the loader:
+   * - 'eager': Load when root menu opens
+   * - 'lazy': Load when submenu opens (default)
+   */
+  loadStrategy?: 'eager' | 'lazy'
 }
 
 /**
@@ -175,7 +301,7 @@ export interface CreateVanillaStaticLoaderProps {
 export function createVanillaStaticLoader(
   props: CreateVanillaStaticLoaderProps,
 ): StaticLoaderConfig {
-  const { fetcher } = props
+  const { fetcher, loadStrategy } = props
 
   const Loader: React.FC<LoaderComponentProps> = ({ children }) => {
     const result = useAsyncState(fetcher)
@@ -185,6 +311,7 @@ export function createVanillaStaticLoader(
   return {
     type: 'static',
     Loader,
+    loadStrategy,
   }
 }
 
@@ -215,6 +342,13 @@ export interface CreateVanillaQueryLoaderProps {
    * @deprecated Use `initialQueryBehavior` instead.
    */
   initialQuery?: string
+  /**
+   * When to trigger the loader:
+   * - 'eager': Load when root menu opens (good for deep search)
+   * - 'lazy': Load when submenu opens (default)
+   * @default 'lazy'
+   */
+  loadStrategy?: 'eager' | 'lazy'
   /**
    * What to show when query is below minQueryLength.
    * @default 'empty'
@@ -256,6 +390,7 @@ export function createVanillaQueryLoader(
     minQueryLength = 1,
     initialQueryBehavior,
     initialQuery,
+    loadStrategy,
     belowMinBehavior = 'empty',
     placeholderNodes,
   } = props
@@ -285,6 +420,7 @@ export function createVanillaQueryLoader(
     minQueryLength,
     initialQueryBehavior: resolvedInitialQueryBehavior,
     initialQuery,
+    loadStrategy,
     belowMinBehavior,
     placeholderNodes,
   }

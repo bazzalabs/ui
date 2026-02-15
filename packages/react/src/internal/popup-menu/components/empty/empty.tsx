@@ -49,9 +49,9 @@ export const PopupMenuEmpty = React.forwardRef<
     defaultTagName: 'div',
   })
 
-  // Don't show empty state while async loaders are still fetching.
-  // Same logic as Loading: suppress when __root__ is loading OR when any loader
-  // is loading during an active search (deep search in progress).
+  // Don't show empty state while async loaders are still in initial loading.
+  // Same logic as Loading: suppress when __root__ is initially loading OR when
+  // any loader is initially loading during an active search.
   const asyncCoordinator = useMaybeAsyncMenuCoordinator()
   const isLoading = asyncCoordinator
     ? asyncCoordinator.isRootLoading ||

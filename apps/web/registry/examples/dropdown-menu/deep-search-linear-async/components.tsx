@@ -252,10 +252,7 @@ export function createSubmenuNode(
                 />
                 <DropdownMenu.DataList>
                   {({ nodes: filteredNodes, renderNode }) => (
-                    <>
-                      <DropdownMenu.Empty />
-                      {filteredNodes.map((node) => renderNode(node))}
-                    </>
+                    <>{filteredNodes.map((node) => renderNode(node))}</>
                   )}
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>

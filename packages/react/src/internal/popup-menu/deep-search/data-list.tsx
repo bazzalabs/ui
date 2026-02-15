@@ -351,8 +351,19 @@ function AsyncLoaderResultHandler({
   // TanStack Query returns new object references on every render
   const prevResultRef = React.useRef<{
     data: unknown
+    status: string
+    fetchStatus: string
+    loadingPhase: string
     isLoading: boolean
+    isFetching: boolean
+    isInitialLoading: boolean
+    isRefetching: boolean
+    isPending: boolean
+    isSuccess: boolean
     isError: boolean
+    isPaused: boolean
+    hasData: boolean
+    hasFetched: boolean
     error: Error | null
   } | null>(null)
 
@@ -397,20 +408,59 @@ function AsyncLoaderResultHandler({
     const hasChanged =
       prev === null ||
       prev.data !== result.data ||
+      prev.status !== result.status ||
+      prev.fetchStatus !== result.fetchStatus ||
+      prev.loadingPhase !== result.loadingPhase ||
       prev.isLoading !== result.isLoading ||
+      prev.isFetching !== result.isFetching ||
+      prev.isInitialLoading !== result.isInitialLoading ||
+      prev.isRefetching !== result.isRefetching ||
+      prev.isPending !== result.isPending ||
+      prev.isSuccess !== result.isSuccess ||
       prev.isError !== result.isError ||
+      prev.isPaused !== result.isPaused ||
+      prev.hasData !== result.hasData ||
+      prev.hasFetched !== result.hasFetched ||
       prev.error !== result.error
 
     if (hasChanged) {
       prevResultRef.current = {
         data: result.data,
+        status: result.status,
+        fetchStatus: result.fetchStatus,
+        loadingPhase: result.loadingPhase,
         isLoading: result.isLoading,
+        isFetching: result.isFetching,
+        isInitialLoading: result.isInitialLoading,
+        isRefetching: result.isRefetching,
+        isPending: result.isPending,
+        isSuccess: result.isSuccess,
         isError: result.isError,
+        isPaused: result.isPaused,
+        hasData: result.hasData,
+        hasFetched: result.hasFetched,
         error: result.error,
       }
       coord.updateLoaderResult(id, result)
     }
-  }, [id, result.data, result.isLoading, result.isError, result.error]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    id,
+    result.data,
+    result.status,
+    result.fetchStatus,
+    result.loadingPhase,
+    result.isLoading,
+    result.isFetching,
+    result.isInitialLoading,
+    result.isRefetching,
+    result.isPending,
+    result.isSuccess,
+    result.isError,
+    result.isPaused,
+    result.hasData,
+    result.hasFetched,
+    result.error,
+  ]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null
 }
@@ -634,7 +684,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         hasAsyncSources &&
         coordinator !== null &&
         (coordinator.loaders.size < expectedAsyncLoaderCount ||
-          !coordinator.allResolved)
+          coordinator.isAnyLoading)
 
       let displayNodesToRender = result.displayNodes
 
@@ -685,7 +735,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       asyncSubmenus.length,
       asyncContent,
       coordinator,
-      coordinator?.allResolved,
+      coordinator?.isAnyLoading,
       coordinator?.loaders,
     ])
 
@@ -830,7 +880,13 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
           // Get async state for this submenu if it has asyncNodes
           let submenuAsyncState:
             | {
+                status: 'idle' | 'pending' | 'success' | 'error'
+                fetchStatus: 'idle' | 'fetching' | 'paused'
+                loadingPhase: 'none' | 'initial' | 'background'
                 isLoading: boolean
+                isFetching: boolean
+                isInitialLoading: boolean
+                isRefetching: boolean
                 isError: boolean
                 error: Error | null
                 isBelowMinLength?: boolean
@@ -845,7 +901,13 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                       .isBelowMinLength
                   : false
               submenuAsyncState = {
+                status: asyncResult.result.status,
+                fetchStatus: asyncResult.result.fetchStatus,
+                loadingPhase: asyncResult.result.loadingPhase,
                 isLoading: asyncResult.result.isLoading,
+                isFetching: asyncResult.result.isFetching,
+                isInitialLoading: asyncResult.result.isInitialLoading,
+                isRefetching: asyncResult.result.isRefetching,
                 isError: asyncResult.result.isError,
                 error: asyncResult.result.error,
                 isBelowMinLength,
@@ -1172,8 +1234,16 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       if (!coordinator) {
         return {
           isLoading: false,
+          isFetching: false,
+          isInitialLoading: false,
+          isRefetching: false,
+          isAllRefetching: false,
           isStaticLoading: false,
+          isStaticInitialLoading: false,
+          isStaticRefetching: false,
           isQueryLoading: false,
+          isQueryInitialLoading: false,
+          isQueryRefetching: false,
           skippedMenus: [] as Array<{
             id: string
             reason: 'error'
