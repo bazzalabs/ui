@@ -116,6 +116,18 @@ export interface PopupMenuSubmenuTriggerProps
    * @default 0
    */
   closeDelay?: number
+
+  /**
+   * Forces this row's relative order during score-based sorting.
+   * Lower values appear earlier.
+   * @default 0
+   */
+  forceOrder?: number
+
+  /**
+   * Overrides this row's computed fuzzy-match score.
+   */
+  forceScore?: number
 }
 
 /**
@@ -136,6 +148,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     openOnHighlight = true,
     delay: delayProp,
     closeDelay = 0,
+    forceOrder,
+    forceScore,
     render,
     className,
     style,
@@ -210,6 +224,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     keywords,
     disabled,
     forceMount,
+    forceOrder,
+    forceScore,
     isSubmenuTrigger: true,
     closeOnClick: false, // Submenu triggers don't close the menu
     children,

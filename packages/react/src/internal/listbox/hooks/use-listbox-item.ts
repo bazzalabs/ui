@@ -63,6 +63,19 @@ export interface UseListboxItemParams {
   shortcut?: string
 
   /**
+   * Forces this row's relative order during score-based sorting.
+   * Lower values appear earlier.
+   * @default 0
+   */
+  forceOrder?: number
+
+  /**
+   * Overrides this row's computed fuzzy-match score.
+   * Useful for pinning or manually ranking rows in score-based views.
+   */
+  forceScore?: number
+
+  /**
    * Whether this item is a submenu trigger (for store registration).
    * @default false
    */
@@ -191,6 +204,8 @@ export function useListboxItem(
     disabled = false,
     forceMount = false,
     shortcut,
+    forceOrder,
+    forceScore,
     isSubmenuTrigger = false,
     onSelect,
     closeOnClick = true,
@@ -247,6 +262,8 @@ export function useListboxItem(
       disabled,
       isSubmenuTrigger,
       shortcut,
+      forceOrder,
+      forceScore,
       closeOnClick,
     })
 
@@ -259,6 +276,8 @@ export function useListboxItem(
     disabled,
     isSubmenuTrigger,
     shortcut,
+    forceOrder,
+    forceScore,
     closeOnClick,
     store,
     forceMount,

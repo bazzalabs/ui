@@ -49,6 +49,7 @@ function createTestSubmenuDef(
   id: string,
   value: string,
   nodes: NodeDef[],
+  options: Partial<SubmenuDef> = {},
 ): SubmenuDef {
   return {
     kind: 'submenu',
@@ -75,6 +76,7 @@ function createTestSubmenuDef(
         </DropdownMenu.Portal>
       </DropdownMenu.Submenu>
     ),
+    ...options,
   }
 }
 
@@ -237,6 +239,53 @@ function MenuWithCustomGetQualifiedRowId({
                 data-testid="search-input"
                 placeholder="Search..."
               />
+              <DropdownMenu.DataList>
+                {({ nodes, renderNode }) => nodes.map(renderNode)}
+              </DropdownMenu.DataList>
+            </DropdownMenu.DataSurface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function MenuWithForcedSorting() {
+  const content: NodeDef[] = React.useMemo(
+    () => [
+      createTestSubmenuDef('settings', 'Settings', [], {
+        forceOrder: -10,
+        forceScore: 100,
+      }),
+      createTestItemDef('early', 'Early', {
+        forceOrder: -10,
+        forceScore: 1,
+      }),
+      createTestItemDef('late', 'Late', {
+        forceOrder: 10,
+        forceScore: 999,
+      }),
+    ],
+    [],
+  )
+
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.DataSurface
+              data-testid="surface"
+              content={content}
+              deepSearch={{
+                enabled: true,
+                minLength: 0,
+                groupSearchBehavior: 'flatten',
+              }}
+              defaultSearch="x"
+            >
+              <DropdownMenu.DataInput data-testid="search-input" />
               <DropdownMenu.DataList>
                 {({ nodes, renderNode }) => nodes.map(renderNode)}
               </DropdownMenu.DataList>
@@ -671,6 +720,31 @@ describe('DataList getQualifiedRowId', () => {
 
       expect(underscoreItem).toBeInTheDocument()
       expect(dashItem).toBeInTheDocument()
+    })
+  })
+
+  describe('forced sorting', () => {
+    it('orders rendered rows by forceOrder before score', async () => {
+      render(<MenuWithForcedSorting />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('item-early')).toBeInTheDocument()
+        expect(
+          screen.getByTestId('submenu-trigger-settings'),
+        ).toBeInTheDocument()
+        expect(screen.getByTestId('item-late')).toBeInTheDocument()
+      })
+
+      const listbox = screen.getByRole('listbox')
+      const renderedOrder = Array.from(
+        listbox.querySelectorAll('[role="option"], [role="menuitem"]'),
+      ).map((element) => element.getAttribute('data-testid'))
+
+      expect(renderedOrder).toEqual([
+        'item-early',
+        'submenu-trigger-settings',
+        'item-late',
+      ])
     })
   })
 })
