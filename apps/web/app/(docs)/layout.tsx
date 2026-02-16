@@ -13,7 +13,7 @@ export default function RootLayout({
   return (
     <SidebarProvider className="h-svh min-h-0">
       <AppSidebar />
-      <SidebarInset className="group lg:border-[0.5px] lg:border-border/75 overflow-y-auto scroll-py-6 sidebar-inset-scroll min-h-0">
+      <SidebarInset className="group lg:border-[0.5px] lg:border-border/75 overflow-y-auto scroll-py-6 sidebar-inset-scroll min-h-0 overscroll-none">
         <div className="min-h-7 h-7 sticky left-4 top-4 ml-4">
           <SidebarTrigger className="hidden group-data-[state=closed]/sidebar-wrapper:flex" />
         </div>
