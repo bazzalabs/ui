@@ -8,9 +8,11 @@ import type {
   SubpageDef,
   SubpageTriggerRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
+import { PlusIcon } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
 import {
   createAssigneeItemNode,
@@ -127,17 +129,19 @@ function createCreateLabelSubpage(
     value: `Create new label: ${labelName}`,
     renderTrigger: ({ props }: SubpageTriggerRenderParams) => (
       <DropdownMenu.SubpageTrigger {...props}>
-        <DropdownMenu.Icon>
-          <span className="text-muted-foreground text-sm leading-none">+</span>
-        </DropdownMenu.Icon>
-        <span className="whitspace-nowrap">Create new label: {labelName}</span>
+        <DropdownMenu.Icon render={<PlusIcon />}></DropdownMenu.Icon>
+        <span className="whitspace-nowrap truncate">
+          Create new label:{' '}
+          <span className="text-muted-foreground">"{labelName}"</span>
+        </span>
       </DropdownMenu.SubpageTrigger>
     ),
     renderContent: ({ pageId }: SubpageContentRenderParams) => (
       <DropdownMenu.Subpage pageId={pageId}>
         <DropdownMenu.Surface>
-          <DropdownMenu.DataInput />
+          <DropdownMenu.DataInput placeholder="Pick color for label" />
           <DropdownMenu.List>
+            <DropdownMenu.Empty />
             {CREATABLE_LABEL_COLORS.map((color) => (
               <DropdownMenu.SubpageBackItem
                 key={color.id}
@@ -160,12 +164,20 @@ function createCreateLabelSubpage(
 
 function createLabelsSubmenu(params: {
   labels: LabelRecord[]
+  selectedLabelIds: Set<string>
   labelSearchQuery: string
   onLabelSearchQueryChange: (value: string) => void
+  onLabelCheckedChange: (labelId: string, checked: boolean) => void
   onCreateLabel: (name: string, color: string) => void
 }): SubmenuDef {
-  const { labels, labelSearchQuery, onLabelSearchQueryChange, onCreateLabel } =
-    params
+  const {
+    labels,
+    selectedLabelIds,
+    labelSearchQuery,
+    onLabelSearchQueryChange,
+    onLabelCheckedChange,
+    onCreateLabel,
+  } = params
 
   const trimmedQuery = labelSearchQuery.trim()
   const normalizedQuery = normalizeLabelName(trimmedQuery)
@@ -174,9 +186,29 @@ function createLabelsSubmenu(params: {
     normalizedQuery.length > 0 &&
     labels.some((label) => normalizeLabelName(label.name) === normalizedQuery)
 
-  const nodes: NodeDef[] = labels.map((label) =>
-    createLabelItemNode(label.id, label.name, label.color),
-  )
+  const nodes: NodeDef[] = labels.map((label) => ({
+    kind: 'checkbox-item',
+    id: label.id,
+    value: label.name,
+    keywords: [label.name],
+    checked: selectedLabelIds.has(label.id),
+    onCheckedChange: (checked) =>
+      onLabelCheckedChange(label.id, checked === true),
+    render: ({ props, context }) => (
+      <DropdownMenu.CheckboxItem {...props}>
+        <DropdownMenu.CheckboxItemIndicator className="opacity-0 data-checked:opacity-100 data-unchecked:group-data-highlighted/row:opacity-100" />
+        <DropdownMenu.Icon>
+          <LabelDot color={label.color} />
+        </DropdownMenu.Icon>
+        <LabelWithBreadcrumbs
+          label={label.name}
+          breadcrumbs={
+            context.isDeepSearchResult ? context.breadcrumbs : undefined
+          }
+        />
+      </DropdownMenu.CheckboxItem>
+    ),
+  }))
 
   if (normalizedQuery.length > 0 && !hasExactMatch) {
     nodes.push(createCreateLabelSubpage(trimmedQuery, onCreateLabel))
@@ -204,10 +236,16 @@ function createLabelsSubmenu(params: {
           </div>
         </DropdownMenu.SubmenuTrigger>
         <DropdownMenu.Portal>
-          <DropdownMenu.Positioner>
+          <DropdownMenu.Positioner align="list-start">
             <DropdownMenu.Popup
-              render={(props, state) => (
-                <div className="bg-muted rounded-t-2xl rounded-b-lg flex flex-col">
+              render={({ className, children, ...props }, state) => (
+                <div
+                  {...props}
+                  className={cn(
+                    'rounded-t-2xl rounded-b-lg flex flex-col',
+                    state.hasOpenSubpage && 'border bg-muted',
+                  )}
+                >
                   {state.hasOpenSubpage && (
                     <div className="px-4.5 py-2 text-xs flex items-center gap-2">
                       <LabelsIcon />
@@ -219,7 +257,14 @@ function createLabelsSubmenu(params: {
                       </div>
                     </div>
                   )}
-                  <div {...props} />
+                  <div
+                    className={cn(
+                      state.hasOpenSubpage && '-mx-px -mb-px',
+                      className,
+                    )}
+                  >
+                    {children}
+                  </div>
                 </div>
               )}
             >
@@ -251,12 +296,20 @@ function createLabelsSubmenu(params: {
 
 function buildMenuContent(params: {
   labels: LabelRecord[]
+  selectedLabelIds: Set<string>
   labelSearchQuery: string
   onLabelSearchQueryChange: (value: string) => void
+  onLabelCheckedChange: (labelId: string, checked: boolean) => void
   onCreateLabel: (name: string, color: string) => void
 }): NodeDef[] {
-  const { labels, labelSearchQuery, onLabelSearchQueryChange, onCreateLabel } =
-    params
+  const {
+    labels,
+    selectedLabelIds,
+    labelSearchQuery,
+    onLabelSearchQueryChange,
+    onLabelCheckedChange,
+    onCreateLabel,
+  } = params
 
   const statusMenu = createSubmenuNode(
     'status',
@@ -305,8 +358,10 @@ function buildMenuContent(params: {
 
   const labelsMenu = createLabelsSubmenu({
     labels,
+    selectedLabelIds,
     labelSearchQuery,
     onLabelSearchQueryChange,
+    onLabelCheckedChange,
     onCreateLabel,
   })
 
@@ -439,6 +494,9 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
   const [labels, setLabels] = React.useState<LabelRecord[]>(() => [
     ...labelData,
   ])
+  const [selectedLabelIds, setSelectedLabelIds] = React.useState<Set<string>>(
+    () => new Set(),
+  )
   const [labelSearchQuery, setLabelSearchQuery] = React.useState('')
 
   const createdLabelIndex = React.useRef(0)
@@ -446,6 +504,21 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
   const handleLabelSearchQueryChange = React.useCallback((value: string) => {
     setLabelSearchQuery(value)
   }, [])
+
+  const handleLabelCheckedChange = React.useCallback(
+    (labelId: string, checked: boolean) => {
+      setSelectedLabelIds((prev) => {
+        const next = new Set(prev)
+        if (checked) {
+          next.add(labelId)
+        } else {
+          next.delete(labelId)
+        }
+        return next
+      })
+    },
+    [],
+  )
 
   const handleCreateLabel = React.useCallback(
     (name: string, color: string) => {
@@ -465,15 +538,22 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       }
 
       createdLabelIndex.current += 1
+      const createdLabelId = `${toLabelId(trimmedName)}-${createdLabelIndex.current}`
 
       setLabels((prevLabels) => [
         ...prevLabels,
         {
-          id: `${toLabelId(trimmedName)}-${createdLabelIndex.current}`,
+          id: createdLabelId,
           name: trimmedName,
           color,
         },
       ])
+
+      setSelectedLabelIds((prev) => {
+        const next = new Set(prev)
+        next.add(createdLabelId)
+        return next
+      })
 
       setLabelSearchQuery(trimmedName)
       toast(`Created label "${trimmedName}".`)
@@ -485,11 +565,20 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
     () =>
       buildMenuContent({
         labels,
+        selectedLabelIds,
         labelSearchQuery,
         onLabelSearchQueryChange: handleLabelSearchQueryChange,
+        onLabelCheckedChange: handleLabelCheckedChange,
         onCreateLabel: handleCreateLabel,
       }),
-    [labels, labelSearchQuery, handleLabelSearchQueryChange, handleCreateLabel],
+    [
+      labels,
+      selectedLabelIds,
+      labelSearchQuery,
+      handleLabelSearchQueryChange,
+      handleLabelCheckedChange,
+      handleCreateLabel,
+    ],
   )
 
   return (

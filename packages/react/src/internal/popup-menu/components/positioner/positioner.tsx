@@ -2,6 +2,7 @@
 
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
+import { flushSync } from 'react-dom'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -14,6 +15,8 @@ import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 // ============================================================================
 
 type Side = 'top' | 'bottom' | 'left' | 'right' | 'inline-end' | 'inline-start'
+
+const LIST_START_OFFSET_EPSILON = 0.5
 
 /**
  * Extended align options for popup menus.
@@ -116,6 +119,7 @@ export const PopupMenuPositioner = React.forwardRef<
   } = props
 
   const {
+    store,
     depth,
     virtualAnchor: contextVirtualAnchor,
     menuType,
@@ -128,11 +132,63 @@ export const PopupMenuPositioner = React.forwardRef<
   // Using a ref instead of state to avoid re-renders that cause visual flash
   const listStartOffsetRef = React.useRef(0)
 
-  // Track if we've measured (only measure once per open)
+  // Track if the initial measurement has completed for this open cycle
   const hasMeasuredRef = React.useRef(false)
 
   // Counter to force re-render after measurement
   const [, forceUpdate] = React.useReducer((x) => x + 1, 0)
+
+  // Suppress resize-driven re-measurements during hideUntilActive activation.
+  // We intentionally avoid repositioning when the input appears.
+  const suppressResizeMeasurementRef = React.useRef(false)
+  const suppressionRafIdsRef = React.useRef<{
+    first: number | null
+    second: number | null
+  }>({
+    first: null,
+    second: null,
+  })
+
+  const clearSuppressionRafs = React.useCallback(() => {
+    if (typeof window === 'undefined') {
+      suppressionRafIdsRef.current.first = null
+      suppressionRafIdsRef.current.second = null
+      return
+    }
+
+    if (suppressionRafIdsRef.current.first !== null) {
+      window.cancelAnimationFrame(suppressionRafIdsRef.current.first)
+      suppressionRafIdsRef.current.first = null
+    }
+
+    if (suppressionRafIdsRef.current.second !== null) {
+      window.cancelAnimationFrame(suppressionRafIdsRef.current.second)
+      suppressionRafIdsRef.current.second = null
+    }
+  }, [])
+
+  const clearInputActivationSuppression = React.useCallback(() => {
+    clearSuppressionRafs()
+    suppressResizeMeasurementRef.current = false
+  }, [clearSuppressionRafs])
+
+  const suppressResizeForInputActivation = React.useCallback(() => {
+    clearSuppressionRafs()
+    suppressResizeMeasurementRef.current = true
+
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    suppressionRafIdsRef.current.first = window.requestAnimationFrame(() => {
+      suppressionRafIdsRef.current.first = null
+
+      suppressionRafIdsRef.current.second = window.requestAnimationFrame(() => {
+        suppressionRafIdsRef.current.second = null
+        suppressResizeMeasurementRef.current = false
+      })
+    })
+  }, [clearSuppressionRafs])
 
   // For submenus (depth > 0), we should NOT use the context's virtualAnchor
   // because the submenu should anchor to its trigger element, not the cursor position.
@@ -166,21 +222,27 @@ export const PopupMenuPositioner = React.forwardRef<
   // Get open state from submenu context
   const isOpen = submenuContext?.open ?? false
 
-  // Measurement function for list-start offset
-  // Updates the ref and forces a synchronous re-render
+  // Track hideUntilActive activation to suppress its size-change repositioning.
+  const inputActive = store.useState('inputActive')
+  const hideUntilActive = store.context.hideUntilActive
+  const prevInputActiveRef = React.useRef(inputActive)
+
+  // Measurement function for list-start offset.
+  // Returns true when the offset changed enough to require repositioning.
   const measureListStartOffset = React.useCallback(() => {
-    if (!useListStartAlign) return
+    if (!useListStartAlign) return false
 
     const contentEl = submenuContext?.contentRef.current
-    if (!contentEl) return
+    if (!contentEl) return false
 
     const contentRect = contentEl.getBoundingClientRect()
 
     // Find the List component by role="listbox"
     const listEl = contentEl.querySelector<HTMLElement>('[role="listbox"]')
     if (!listEl) {
+      const previousOffset = listStartOffsetRef.current
       listStartOffsetRef.current = 0
-      return
+      return Math.abs(previousOffset) > LIST_START_OFFSET_EPSILON
     }
 
     const listRect = listEl.getBoundingClientRect()
@@ -190,12 +252,15 @@ export const PopupMenuPositioner = React.forwardRef<
     const listPaddingTop = Number.parseFloat(listStyles.paddingTop) || 0
 
     // Calculate offset: negative distance from popup top to list content top
-    const offset = -(listRect.top + listPaddingTop - contentRect.top)
-    listStartOffsetRef.current = offset
+    const nextOffset = -(listRect.top + listPaddingTop - contentRect.top)
+    const previousOffset = listStartOffsetRef.current
+
+    listStartOffsetRef.current = nextOffset
+
+    return Math.abs(nextOffset - previousOffset) > LIST_START_OFFSET_EPSILON
   }, [useListStartAlign, submenuContext])
 
-  // Measure once when submenu opens
-  // Using useLayoutEffect to measure synchronously before paint
+  // Measure on open before paint.
   React.useLayoutEffect(() => {
     if (!useListStartAlign || !isOpen) {
       return
@@ -213,13 +278,77 @@ export const PopupMenuPositioner = React.forwardRef<
     forceUpdate()
   }, [useListStartAlign, isOpen, measureListStartOffset])
 
-  // Reset measurement flag when menu closes
+  // Re-measure when popup content size changes while open.
+  React.useLayoutEffect(() => {
+    if (!useListStartAlign || !isOpen) {
+      return
+    }
+
+    const contentEl = submenuContext?.contentRef.current
+    if (!contentEl || typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (suppressResizeMeasurementRef.current) {
+        return
+      }
+
+      if (!measureListStartOffset()) {
+        return
+      }
+
+      // Keep list-start alignment visually stable in the same frame as size changes.
+      // Using flushSync here prevents a one-frame jump when content updates.
+      flushSync(() => {
+        forceUpdate()
+      })
+    })
+
+    resizeObserver.observe(contentEl)
+
+    const listEl = contentEl.querySelector<HTMLElement>('[role="listbox"]')
+    if (listEl) {
+      resizeObserver.observe(listEl)
+    }
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [useListStartAlign, isOpen, submenuContext, measureListStartOffset])
+
+  // Suppress repositioning for hideUntilActive input activation only.
+  React.useLayoutEffect(() => {
+    const wasInputActive = prevInputActiveRef.current
+    prevInputActiveRef.current = inputActive
+
+    if (!useListStartAlign || !isOpen) {
+      return
+    }
+
+    if (hideUntilActive && !wasInputActive && inputActive) {
+      suppressResizeForInputActivation()
+    }
+  }, [
+    useListStartAlign,
+    isOpen,
+    hideUntilActive,
+    inputActive,
+    suppressResizeForInputActivation,
+  ])
+
+  // Reset measurement state when menu closes.
   React.useEffect(() => {
     if (!isOpen) {
       hasMeasuredRef.current = false
       listStartOffsetRef.current = 0
+      clearInputActivationSuppression()
     }
-  }, [isOpen])
+  }, [isOpen, clearInputActivationSuppression])
+
+  React.useEffect(() => {
+    return clearInputActivationSuppression
+  }, [clearInputActivationSuppression])
 
   // Calculate effective alignOffset
   // User's alignOffset is additive to the calculated offset (only if it's a number)
