@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextMenu } from '../index.js'
 
 // ============================================================================
@@ -125,6 +125,55 @@ function ControlledContextMenu({
         </ContextMenu.Positioner>
       </ContextMenu.Portal>
     </ContextMenu.Root>
+  )
+}
+
+function ContextMenuWithImperativeActions() {
+  const actionsRef = React.useRef<ContextMenu.Root.Actions | null>(null)
+
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="disable-menu"
+        onClick={() => actionsRef.current?.setDisabled(true)}
+      >
+        Disable Menu
+      </button>
+      <button
+        type="button"
+        data-testid="enable-menu"
+        onClick={() => actionsRef.current?.setDisabled(false)}
+      >
+        Enable Menu
+      </button>
+      <button
+        type="button"
+        data-testid="close-menu"
+        onClick={() => actionsRef.current?.close()}
+      >
+        Close Menu
+      </button>
+
+      <ContextMenu.Root actionsRef={actionsRef}>
+        <ContextMenu.Trigger data-testid="trigger">
+          Right-click here
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner>
+            <ContextMenu.Popup>
+              <ContextMenu.Surface data-testid="surface">
+                <ContextMenu.List>
+                  <ContextMenu.Item data-testid="item-1">
+                    Item 1
+                  </ContextMenu.Item>
+                </ContextMenu.List>
+              </ContextMenu.Surface>
+            </ContextMenu.Popup>
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
+    </div>
   )
 }
 
@@ -744,6 +793,43 @@ describe('<ContextMenu.Root />', () => {
 
       const trigger = screen.getByTestId('trigger')
       expect(trigger).toHaveAttribute('data-disabled')
+    })
+  })
+
+  describe('imperative actions', () => {
+    it('blocks opening when disabled imperatively and reopens when re-enabled', async () => {
+      const user = userEvent.setup()
+      render(<ContextMenuWithImperativeActions />)
+
+      await user.click(screen.getByTestId('disable-menu'))
+      await rightClick(screen.getByTestId('trigger'))
+
+      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+
+      await user.click(screen.getByTestId('enable-menu'))
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+    })
+
+    it('can close imperatively even while disabled', async () => {
+      const user = userEvent.setup()
+      render(<ContextMenuWithImperativeActions />)
+
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('disable-menu'))
+      await user.click(screen.getByTestId('close-menu'))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
     })
   })
 

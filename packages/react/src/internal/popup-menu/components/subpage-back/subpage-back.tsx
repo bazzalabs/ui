@@ -8,6 +8,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useSubpageContext } from '../../contexts/subpage-context.js'
 import { useSubpageStack } from '../../contexts/subpage-stack-context.js'
 import { PopupMenuSubpageBackDataAttributes } from './subpage-back.data-attrs.js'
@@ -44,7 +45,7 @@ export const PopupMenuSubpageBack = React.forwardRef<
   PopupMenuSubpageBack.Props
 >(function PopupMenuSubpageBack(props, forwardedRef) {
   const {
-    disabled = false,
+    disabled: disabledProp = false,
     render,
     className,
     style,
@@ -56,6 +57,9 @@ export const PopupMenuSubpageBack = React.forwardRef<
   const subpageContext = useSubpageContext()
   const subpageStack = useSubpageStack()
   const focusOwnerStore = useFocusOwner()
+  const popupMenuContext = usePopupMenuContext()
+
+  const disabled = disabledProp || popupMenuContext.disabled
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {

@@ -85,7 +85,8 @@ export const ComboboxInput = React.forwardRef<
   const focusOwnerStore = useFocusOwner()
   const isInsideInputWrapper = useIsInsideInputWrapper()
 
-  const disabled = disabledProp ?? comboboxContext.disabled
+  const disabled =
+    (disabledProp ?? comboboxContext.disabled) || popupMenuContext.disabled
   const placeholder = placeholderProp ?? comboboxContext.placeholder
 
   // Get open state

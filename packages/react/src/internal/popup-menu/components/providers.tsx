@@ -32,6 +32,8 @@ export interface PopupMenuProvidersProps {
   focusOwnerStore: FocusOwnerStore
   /** The OpenChain store instance */
   openChainStore: OpenChainStore
+  /** Whether this menu tree currently ignores user interaction */
+  disabled: boolean
   /** Nesting depth: 0 = root menu */
   depth: number
   /** Close the entire menu tree */
@@ -89,6 +91,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     store,
     focusOwnerStore,
     openChainStore,
+    disabled,
     depth,
     closeAll,
     registerSurface,
@@ -105,6 +108,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   const popupMenuContextValue: PopupMenuContextValue = React.useMemo(
     () => ({
       store,
+      disabled,
       depth,
       closeAll,
       registerSurface,
@@ -116,6 +120,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     }),
     [
       store,
+      disabled,
       depth,
       closeAll,
       registerSurface,

@@ -143,7 +143,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     id: idProp,
     value,
     keywords,
-    disabled = false,
+    disabled: disabledProp = false,
     forceMount = false,
     openOnHighlight = true,
     delay: delayProp,
@@ -222,7 +222,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     id: idProp,
     value,
     keywords,
-    disabled,
+    disabled: disabledProp,
     forceMount,
     forceOrder,
     forceScore,
@@ -230,6 +230,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     closeOnClick: false, // Submenu triggers don't close the menu
     children,
   })
+
+  const disabled = item.disabled
 
   // Register submenu open callback with parent store
   // When submenu is opened via keyboard (ArrowRight/Ctrl+L), transfer focus ownership

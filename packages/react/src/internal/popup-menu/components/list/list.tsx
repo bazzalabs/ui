@@ -15,6 +15,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -93,6 +94,7 @@ export const PopupMenuList = React.forwardRef<
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
   const subpageContext = useMaybeSubpageContext()
+  const { disabled: popupMenuDisabled } = usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
   const comboboxContext = useMaybeComboboxContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
@@ -148,7 +150,7 @@ export const PopupMenuList = React.forwardRef<
 
   // When there's no Input, the List should receive focus and handle keyboard nav
   // Note: Auto-focus is handled by Surface when it becomes the focus owner
-  const shouldHandleKeyboard = !hasInput
+  const shouldHandleKeyboard = !hasInput && !popupMenuDisabled
 
   // Use centralized keyboard navigation hook
   const { handleKeyDown } = usePopupMenuKeyboard({
@@ -159,6 +161,7 @@ export const PopupMenuList = React.forwardRef<
     submenuContext,
     subpageContext,
     enabled: shouldHandleKeyboard,
+    disabled: popupMenuDisabled,
     enableTypeToSearch: true,
     onKeyDown,
     closeAll,

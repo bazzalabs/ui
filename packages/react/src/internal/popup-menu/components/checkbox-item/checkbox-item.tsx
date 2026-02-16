@@ -138,7 +138,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     defaultChecked = false,
     onCheckedChange,
     keywords,
-    disabled = false,
+    disabled: disabledProp = false,
     onSelect,
     forceMount = false,
     closeOnClick = false,
@@ -182,7 +182,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const item = usePopupMenuItem({
     id,
     keywords,
-    disabled,
+    disabled: disabledProp,
     forceMount,
     shortcut,
     forceOrder,
@@ -190,6 +190,8 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     closeOnClick,
     children,
   })
+
+  const disabled = item.disabled
 
   // Register the select handler that toggles checked state
   // Note: closeOnClick is handled by usePopupMenuItem's onAfterSelect

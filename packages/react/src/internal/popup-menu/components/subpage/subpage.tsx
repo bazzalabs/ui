@@ -134,6 +134,7 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
       virtualization: parentPopupMenuContext.virtualization,
       virtualAnchor: parentPopupMenuContext.virtualAnchor,
       menuType: parentPopupMenuContext.menuType,
+      disabled: parentPopupMenuContext.disabled,
       closeOnOutsidePress: parentPopupMenuContext.closeOnOutsidePress,
       getQualifiedRowId: parentPopupMenuContext.getQualifiedRowId,
     }),

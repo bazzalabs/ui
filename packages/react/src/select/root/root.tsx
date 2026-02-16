@@ -5,6 +5,7 @@ import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   PopupMenuProviders,
+  type PopupMenuRootActions,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
@@ -34,7 +35,10 @@ type SelectValue<
 export interface SelectRootProps<
   Value = unknown,
   Multiple extends boolean | undefined = false,
-> extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
+> extends Omit<
+    PopoverRootProps,
+    'open' | 'onOpenChange' | 'defaultOpen' | 'actionsRef'
+  > {
   // ===== Open State =====
   /**
    * Whether the select is open.
@@ -56,6 +60,14 @@ export interface SelectRootProps<
    * Useful for resetting state after exit animations finish.
    */
   onOpenChangeComplete?: (open: boolean) => void
+
+  /**
+   * A ref to imperative actions.
+   * - `close`: closes the menu imperatively.
+   * - `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).
+   * - `setDisabled`: enables/disables the menu imperatively.
+   */
+  actionsRef?: React.RefObject<SelectRoot.Actions | null>
 
   /**
    * Whether the select is initially open.
@@ -247,6 +259,7 @@ export function SelectRoot<
     open: openProp,
     onOpenChange,
     onOpenChangeComplete,
+    actionsRef,
     defaultOpen = false,
     // Single selection
     value: valueProp,
@@ -265,7 +278,7 @@ export function SelectRoot<
     name,
     form,
     required,
-    disabled = false,
+    disabled: disabledProp = false,
     placeholder = 'Select...',
     items,
     // Behavior
@@ -320,6 +333,8 @@ export function SelectRoot<
     closeAll,
     virtualization,
     handleOpenChange,
+    disabled: menuDisabled,
+    setDisabled,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -329,7 +344,24 @@ export function SelectRoot<
     items: virtualItems,
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
+    disabled: disabledProp,
   })
+
+  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    actionsRef,
+    () => ({
+      close: () => {
+        popoverActionsRef.current?.close()
+      },
+      unmount: () => {
+        popoverActionsRef.current?.unmount()
+      },
+      setDisabled,
+    }),
+    [setDisabled],
+  )
 
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
@@ -399,7 +431,7 @@ export function SelectRoot<
       name,
       form,
       required,
-      disabled,
+      disabled: menuDisabled,
       placeholder,
       items,
       itemTextRegistry: itemTextRegistryRef.current,
@@ -425,7 +457,7 @@ export function SelectRoot<
       name,
       form,
       required,
-      disabled,
+      menuDisabled,
       placeholder,
       items,
       registerItemText,
@@ -518,6 +550,7 @@ export function SelectRoot<
         store={store}
         focusOwnerStore={focusOwnerStore}
         openChainStore={openChainStore}
+        disabled={menuDisabled}
         depth={0}
         closeAll={closeAll}
         registerSurface={registerSurface}
@@ -532,6 +565,7 @@ export function SelectRoot<
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
+          actionsRef={actionsRef ? popoverActionsRef : undefined}
         >
           {children}
         </Popover.Root>
@@ -547,5 +581,5 @@ export namespace SelectRoot {
   > extends SelectRootProps<Value, Multiple> {}
   export type OpenChangeEventDetails = SelectOpenChangeEventDetails
   export type HighlightChangeEventDetails = SelectHighlightChangeEventDetails
-  export type Actions = Popover.Root.Actions
+  export type Actions = PopupMenuRootActions
 }
