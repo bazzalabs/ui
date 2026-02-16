@@ -16,13 +16,9 @@
         "checkbox",
         "command",
         "input",
-        "label",
         "popover",
-        "separator",
         "slider",
-        "table",
-        "tabs",
-        "use-mobile"
+        "tabs"
       ],
       "files": [
         {
@@ -34,6 +30,156 @@
           "path": "registry/ui/filter/index.parts.ts",
           "type": "registry:file",
           "target": "components/ui/filter/index.parts.ts"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/index.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/index.ts"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/index.parts.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/index.parts.ts"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/components/menu/filter-menu.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/components/menu/filter-menu.tsx"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/components/item/filter-operator.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/components/item/filter-operator.tsx"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/components/item/filter-value.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/components/item/filter-value.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/root/filter-root.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/root/filter-root.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/provider/filter-provider.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/provider/filter-provider.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/root/filter-context.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/root/filter-context.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/trigger/filter-trigger.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/trigger/filter-trigger.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/list/filter-list.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/list/filter-list.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/list/filter-list-mobile-container.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/list/filter-list-mobile-container.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/item/filter-item.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/item/filter-item.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/item/filter-subject.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/item/filter-subject.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/item/filter-remove.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/item/filter-remove.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/actions/filter-actions.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/actions/filter-actions.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/value/types.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/types.ts"
+        },
+        {
+          "path": "registry/ui/filter/components/value/filter-value-date-controller.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/filter-value-date-controller.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/value/filter-value-number-controller.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/filter-value-number-controller.tsx"
+        },
+        {
+          "path": "registry/ui/filter/hooks/use-debounce-callback.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/hooks/use-debounce-callback.tsx"
+        },
+        {
+          "path": "registry/ui/filter/hooks/use-unmount.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/hooks/use-unmount.tsx"
+        },
+        {
+          "path": "registry/ui/filter/lib/debounce.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/lib/debounce.ts"
+        },
+        {
+          "path": "registry/ui/filter/ui/debounced-input.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/ui/debounced-input.tsx"
+        }
+      ]
+    },
+    {
+      "name": "filters-dropdown-menu",
+      "title": "Filters (Dropdown Menu)",
+      "description": "Filter components powered by @bazza-ui/react dropdown-menu.",
+      "author": "Kian Bazarjani <kian@bazza.dev>",
+      "type": "registry:block",
+      "dependencies": [
+        "@base-ui/react",
+        "@bazza-ui/filters",
+        "@bazza-ui/react",
+        "@tanstack/react-virtual",
+        "date-fns"
+      ],
+      "registryDependencies": [
+        "button",
+        "calendar",
+        "checkbox",
+        "command",
+        "input",
+        "slider",
+        "tabs"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/filter/dropdown-menu/index.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/dropdown-menu/index.ts"
+        },
+        {
+          "path": "registry/ui/filter/dropdown-menu/index.parts.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/dropdown-menu/index.parts.ts"
+        },
+        {
+          "path": "registry/ui/dropdown-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/dropdown-menu/index.tsx"
         },
         {
           "path": "registry/ui/filter/components/root/filter-root.tsx",
@@ -156,19 +302,9 @@
           "target": "components/ui/filter/components/value/filter-value-number-controller.tsx"
         },
         {
-          "path": "registry/ui/filter/hooks/index.ts",
-          "type": "registry:file",
-          "target": "components/ui/filter/hooks/index.ts"
-        },
-        {
           "path": "registry/ui/filter/hooks/use-debounce-callback.tsx",
           "type": "registry:file",
           "target": "components/ui/filter/hooks/use-debounce-callback.tsx"
-        },
-        {
-          "path": "registry/ui/filter/hooks/use-resolved-filter-props.ts",
-          "type": "registry:file",
-          "target": "components/ui/filter/hooks/use-resolved-filter-props.ts"
         },
         {
           "path": "registry/ui/filter/hooks/use-unmount.tsx",
