@@ -5,7 +5,11 @@ import { useSurfaceContext } from '../../listbox/index.js'
 import { PopupMenuSurface } from '../components/surface/surface.js'
 import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import { AsyncMenuCoordinatorProvider } from './async-coordinator.js'
-import { DataSurfaceContext, type DataSurfaceContextValue } from './context.js'
+import {
+  DataSurfaceContext,
+  type DataSurfaceContextValue,
+  useMaybeDataPopupContext,
+} from './context.js'
 import type { DataSurfaceProps, DeepSearchConfig } from './types.js'
 import { defaultGetQualifiedRowId } from './utils.js'
 
@@ -53,7 +57,7 @@ export const PopupMenuDataSurface = React.forwardRef<
     asyncContent,
     deepSearch = true,
     includeInDeepSearch = true,
-    filter,
+    filter: _filter,
     search: searchProp,
     onSearchChange,
     defaultSearch = '',
@@ -120,6 +124,23 @@ export const PopupMenuDataSurface = React.forwardRef<
       getQualifiedRowId,
     ],
   )
+
+  const dataPopupContext = useMaybeDataPopupContext()
+  const setDataSurfaceContext = dataPopupContext?.setDataSurfaceContext
+
+  React.useEffect(() => {
+    if (!setDataSurfaceContext) {
+      return
+    }
+
+    setDataSurfaceContext(contextValue)
+
+    return () => {
+      setDataSurfaceContext((current) =>
+        current === contextValue ? null : current,
+      )
+    }
+  }, [setDataSurfaceContext, contextValue])
 
   return (
     <DataSurfaceContext.Provider value={contextValue}>

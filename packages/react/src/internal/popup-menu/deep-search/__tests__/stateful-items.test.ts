@@ -7,6 +7,7 @@ import type {
   RadioGroupDef,
   RadioItemDef,
   SubmenuDef,
+  SubpageDef,
 } from '../types.js'
 import {
   isDisplayGroupNode,
@@ -20,6 +21,8 @@ import {
   getBrowseNodesPreserve,
   isCheckboxItemDef,
   isRadioGroupDef,
+  isSubpageDef,
+  mergeAsyncNodesIntoTree,
   scoreNodes,
 } from '../utils.js'
 
@@ -69,6 +72,23 @@ function createSubmenuDef(
     value,
     nodes,
     render: () => null,
+    ...options,
+  }
+}
+
+function createSubpageDef(
+  id: string,
+  value: string,
+  nodes: NodeDef[],
+  options: Partial<SubpageDef> = {},
+): SubpageDef {
+  return {
+    kind: 'subpage',
+    id,
+    value,
+    nodes,
+    renderTrigger: () => null,
+    renderContent: () => null,
     ...options,
   }
 }
@@ -152,6 +172,18 @@ describe('Type Guards', () => {
     it('should return false for items', () => {
       const node = createItemDef('item1', 'Item')
       expect(isRadioGroupDef(node)).toBe(false)
+    })
+  })
+
+  describe('isSubpageDef', () => {
+    it('should return true for subpages', () => {
+      const node = createSubpageDef('subpage1', 'AI Filter', [])
+      expect(isSubpageDef(node)).toBe(true)
+    })
+
+    it('should return false for submenus', () => {
+      const node = createSubmenuDef('sub1', 'Submenu', [])
+      expect(isSubpageDef(node)).toBe(false)
     })
   })
 })
@@ -1110,6 +1142,48 @@ describe('Value Normalization', () => {
       expect(flattened).toHaveLength(0)
     })
 
+    it('supports deep flattening for subpages', () => {
+      const nodes: NodeDef[] = [
+        createSubpageDef('ai-filter', 'AI Filter', [
+          createItemDef('assigned', 'assigned to me'),
+        ]),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      expect(flattened.map((f) => f.node.id)).toEqual(['ai-filter', 'assigned'])
+    })
+
+    it('supports includeInDeepSearch="trigger-only" on subpages', () => {
+      const nodes: NodeDef[] = [
+        createSubpageDef(
+          'ai-filter',
+          'AI Filter',
+          [createItemDef('assigned', 'assigned to me')],
+          { includeInDeepSearch: 'trigger-only' },
+        ),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      expect(flattened.map((f) => f.node.id)).toEqual(['ai-filter'])
+    })
+
+    it('supports includeInDeepSearch=false on subpages', () => {
+      const nodes: NodeDef[] = [
+        createSubpageDef(
+          'ai-filter',
+          'AI Filter',
+          [createItemDef('assigned', 'assigned to me')],
+          { includeInDeepSearch: false },
+        ),
+      ]
+
+      const flattened = flattenNodes(nodes, { deep: true })
+
+      expect(flattened).toHaveLength(0)
+    })
+
     it('allows submenu override of DataSurface includeInDeepSearch default', () => {
       const nodes: NodeDef[] = [
         createSubmenuDef('overridden', 'Overridden', [
@@ -1201,6 +1275,51 @@ describe('Value Normalization', () => {
       const collected = collectAsyncSubmenus(nodes)
 
       expect(collected.map((entry) => entry.id)).toEqual(['Included'])
+    })
+
+    it('collectAsyncSubmenus also collects async subpages', () => {
+      const asyncConfig = {
+        type: 'static' as const,
+        Loader: () => null,
+      }
+
+      const nodes: NodeDef[] = [
+        createSubpageDef('ai-filter', 'AI Filter', [], {
+          asyncNodes: asyncConfig,
+          includeInDeepSearch: true,
+        }),
+      ]
+
+      const collected = collectAsyncSubmenus(nodes)
+
+      expect(collected.map((entry) => entry.id)).toEqual(['AI Filter'])
+    })
+
+    it('mergeAsyncNodesIntoTree merges async nodes into subpages', () => {
+      const nodes: NodeDef[] = [
+        createSubpageDef('ai-filter', 'AI Filter', [
+          createItemDef('static-item', 'Static item'),
+        ]),
+      ]
+
+      const merged = mergeAsyncNodesIntoTree(nodes, [
+        {
+          id: 'AI Filter',
+          breadcrumbs: [],
+          nodes: [createItemDef('async-item', 'Async item')],
+        },
+      ])
+
+      const subpage = merged[0]
+      expect(subpage?.kind).toBe('subpage')
+      if (subpage?.kind !== 'subpage') {
+        throw new Error('expected merged node to be subpage')
+      }
+
+      expect(subpage.nodes?.map((node) => node.id)).toEqual([
+        'static-item',
+        'async-item',
+      ])
     })
 
     it('collectAsyncSubmenus respects ancestor trigger-only hard stop', () => {

@@ -3,6 +3,7 @@
 import { Popover, type PopoverPopupProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
+import type { ComponentRenderFn } from '../../../../utils/types.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
 import {
   getSlotAttribute,
@@ -17,6 +18,10 @@ import {
   ROOT_SUBPAGE_ID,
   SubpageStackContext,
 } from '../../contexts/subpage-stack-context.js'
+import {
+  DataPopupContext,
+  type DataSurfaceContextValue,
+} from '../../deep-search/context.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
 
@@ -31,15 +36,39 @@ export interface PopupMenuPopupState extends Popover.Popup.State {
    * Whether this popup is a submenu (not the root menu).
    */
   isSubmenu: boolean
+
+  /**
+   * Whether any non-root subpage is currently open.
+   */
+  hasOpenSubpage: boolean
+
+  /**
+   * Active subpage ID, or null when only the root page is open.
+   */
+  subpageId: string | null
+
+  /**
+   * Ordered stack of open non-root subpage IDs.
+   * For nested subpages this includes each page in open order.
+   */
+  openSubpageIds: string[]
 }
 
 export interface PopupMenuPopupProps
-  extends Omit<PopoverPopupProps, 'className'> {
+  extends Omit<PopoverPopupProps, 'className' | 'render'> {
   /**
    * CSS class applied to the element, or a function that
    * returns a class based on the component's state.
    */
   className?: string | ((state: PopupMenuPopupState) => string)
+
+  /**
+   * Allows replacing the popup element with a custom element.
+   * The render state includes popup + subpage navigation state.
+   */
+  render?:
+    | React.ReactElement
+    | ComponentRenderFn<React.HTMLAttributes<HTMLElement>, PopupMenuPopupState>
 }
 
 // ============================================================================
@@ -59,7 +88,12 @@ export const PopupMenuPopup = React.forwardRef<
   HTMLDivElement,
   PopupMenuPopup.Props
 >(function PopupMenuPopup(props, forwardedRef) {
-  const { children, className: classNameProp, ...rest } = props
+  const {
+    children,
+    className: classNameProp,
+    render: renderProp,
+    ...rest
+  } = props
 
   // Get submenu context to set contentRef for aim guard and get childSurfaceId for focus transfer
   const submenuContext = useMaybeSubmenuContext()
@@ -89,6 +123,8 @@ export const PopupMenuPopup = React.forwardRef<
   const [subpageStack, setSubpageStack] = React.useState<string[]>([
     ROOT_SUBPAGE_ID,
   ])
+  const [dataSurfaceContext, setDataSurfaceContext] =
+    React.useState<DataSurfaceContextValue | null>(null)
   const subpageStackRef = React.useRef(subpageStack)
   React.useEffect(() => {
     subpageStackRef.current = subpageStack
@@ -236,6 +272,12 @@ export const PopupMenuPopup = React.forwardRef<
   const activeSurfaceId = activePageRegistration?.surfaceId ?? surfaceId
   const shouldCloseRootOnEsc = activePageRegistration?.closeRootOnEsc ?? true
   const canGoBack = subpageStack.length > 1
+  const openSubpageIds = React.useMemo(
+    () => subpageStack.filter((pageId) => pageId !== ROOT_SUBPAGE_ID),
+    [subpageStack],
+  )
+  const subpageId = openSubpageIds[openSubpageIds.length - 1] ?? null
+  const hasOpenSubpage = subpageId !== null
 
   // Track when popup opened to ignore initial pointer events
   // This prevents focus transfer when the popup appears under a stationary cursor
@@ -363,16 +405,37 @@ export const PopupMenuPopup = React.forwardRef<
   // Determine if this popup is a submenu (not the root menu)
   const isSubmenu = !!submenuContext
 
+  const toPopupState = React.useCallback(
+    (baseState: Popover.Popup.State): PopupMenuPopupState => ({
+      ...baseState,
+      isSubmenu,
+      hasOpenSubpage,
+      subpageId,
+      openSubpageIds,
+    }),
+    [hasOpenSubpage, isSubmenu, openSubpageIds, subpageId],
+  )
+
   // Wrap className to include isSubmenu in the state
   const className = React.useMemo(() => {
     if (typeof classNameProp === 'function') {
       return (baseState: Popover.Popup.State) => {
-        const extendedState: PopupMenuPopupState = { ...baseState, isSubmenu }
-        return classNameProp(extendedState)
+        return classNameProp(toPopupState(baseState))
       }
     }
     return classNameProp
-  }, [classNameProp, isSubmenu])
+  }, [classNameProp, toPopupState])
+
+  const render = React.useMemo(() => {
+    if (typeof renderProp === 'function') {
+      return (
+        popupProps: React.HTMLAttributes<HTMLElement>,
+        baseState: Popover.Popup.State,
+      ) => renderProp(popupProps, toPopupState(baseState))
+    }
+
+    return renderProp
+  }, [renderProp, toPopupState])
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
@@ -403,35 +466,50 @@ export const PopupMenuPopup = React.forwardRef<
     ],
   )
 
+  const dataPopupContextValue = React.useMemo(
+    () => ({
+      dataSurfaceContext,
+      setDataSurfaceContext,
+    }),
+    [dataSurfaceContext],
+  )
+
   return (
     <PopupSurfaceIdContext.Provider value={surfaceId}>
       <SubpageStackContext.Provider value={subpageStackContextValue}>
-        <Popover.Popup
-          ref={combinedRef}
-          initialFocus={initialFocus}
-          finalFocus={finalFocus}
-          className={className}
-          data-input-embedded={isInputEmbedded ? '' : undefined}
-          {...(slotAttr ? { [slotAttr]: '' } : {})}
-          {...{
-            [PopupMenuPopupDataAttributes.focused]: isFocused ? '' : undefined,
-            [PopupMenuPopupDataAttributes.hasOpenSubmenu]: hasOpenSubmenu
-              ? ''
-              : undefined,
-            [PopupMenuPopupDataAttributes.submenu]: isSubmenu ? '' : undefined,
-            [PopupMenuPopupDataAttributes.navigating]: isSubpageNavigating
-              ? ''
-              : undefined,
-          }}
-          onPointerMove={(event) => {
-            handlePointerMove()
-            handleFocusTransferOnMove(event)
-            rest.onPointerMove?.(event)
-          }}
-          {...rest}
-        >
-          {children}
-        </Popover.Popup>
+        <DataPopupContext.Provider value={dataPopupContextValue}>
+          <Popover.Popup
+            ref={combinedRef}
+            initialFocus={initialFocus}
+            finalFocus={finalFocus}
+            className={className}
+            render={render}
+            data-input-embedded={isInputEmbedded ? '' : undefined}
+            {...(slotAttr ? { [slotAttr]: '' } : {})}
+            {...{
+              [PopupMenuPopupDataAttributes.focused]: isFocused
+                ? ''
+                : undefined,
+              [PopupMenuPopupDataAttributes.hasOpenSubmenu]: hasOpenSubmenu
+                ? ''
+                : undefined,
+              [PopupMenuPopupDataAttributes.submenu]: isSubmenu
+                ? ''
+                : undefined,
+              [PopupMenuPopupDataAttributes.navigating]: isSubpageNavigating
+                ? ''
+                : undefined,
+            }}
+            onPointerMove={(event) => {
+              handlePointerMove()
+              handleFocusTransferOnMove(event)
+              rest.onPointerMove?.(event)
+            }}
+            {...rest}
+          >
+            {children}
+          </Popover.Popup>
+        </DataPopupContext.Provider>
       </SubpageStackContext.Provider>
     </PopupSurfaceIdContext.Provider>
   )

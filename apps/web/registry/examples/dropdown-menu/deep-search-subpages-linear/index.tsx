@@ -1,12 +1,13 @@
 'use client'
 
 import type {
-  DisplayNode,
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
+  SubpageContentRenderParams,
+  SubpageDef,
+  SubpageTriggerRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
-import { PlusIcon } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -16,12 +17,13 @@ import {
   createItemNode,
   createLabelItemNode,
   createSubmenuNode,
+  createSubpageNode,
   FilterIcon,
   LabelDot,
-  type TW_COLOR,
 } from './components'
 import {
   AssigneeIcon,
+  DurationIcon,
   LabelsIcon,
   ProjectLeadIcon,
   ProjectPriority,
@@ -35,25 +37,13 @@ import {
   StatusIcon,
 } from './icons'
 
-interface LabelData {
+type LabelRecord = {
   id: string
   name: string
-  color: TW_COLOR
+  color: string
 }
 
-const CREATE_LABEL_SUBPAGE_ID = 'labels-create-color'
-const CREATE_LABEL_TRIGGER_ID = 'labels-create-new'
-
-const CREATE_LABEL_COLOR_OPTIONS: Array<{ label: string; value: TW_COLOR }> = [
-  { label: 'Red', value: 'red' },
-  { label: 'Orange', value: 'orange' },
-  { label: 'Green', value: 'green' },
-  { label: 'Blue', value: 'blue' },
-  { label: 'Violet', value: 'violet' },
-  { label: 'Pink', value: 'pink' },
-]
-
-const INITIAL_LABELS: LabelData[] = [
+const labelData: LabelRecord[] = [
   { id: 'bug', name: 'Bug', color: 'red' },
   { id: 'enhancement', name: 'Enhancement', color: 'green' },
   { id: 'task', name: 'Task', color: 'blue' },
@@ -86,7 +76,7 @@ const INITIAL_LABELS: LabelData[] = [
   { id: 'real-time', name: 'Real-Time', color: 'lime' },
 ]
 
-const PROJECT_LABELS: LabelData[] = [
+const projectLabelData = [
   { id: 'pl-1', name: 'Strategic Initiative', color: 'purple' },
   { id: 'pl-2', name: 'Customer Facing', color: 'blue' },
   { id: 'pl-3', name: 'Internal Tooling', color: 'teal' },
@@ -104,179 +94,170 @@ const PROJECT_LABELS: LabelData[] = [
   { id: 'pl-15', name: 'Deprecation', color: 'rose' },
 ]
 
-const ASSIGNEES = [
-  { id: '@kianbazza', name: 'Kian Bazza', username: 'kianbazza' },
-  { id: '@shadcn', name: 'shadcn', username: 'shadcn' },
-  { id: '@rauchg', name: 'Guillermo Rauch', username: 'rauchg' },
-  { id: '@t3dotgg', name: 'Theo Browne', username: 't3dotgg' },
-]
+const CREATABLE_LABEL_COLORS = [
+  { id: 'red', label: 'Red' },
+  { id: 'orange', label: 'Orange' },
+  { id: 'green', label: 'Green' },
+  { id: 'blue', label: 'Blue' },
+  { id: 'violet', label: 'Violet' },
+  { id: 'pink', label: 'Pink' },
+] as const
 
-function normalizeLabelName(value: string | undefined): string {
-  return value?.trim().toLowerCase() ?? ''
+function normalizeLabelName(value: string) {
+  return value.trim().toLowerCase()
 }
 
-function getUniqueLabelId(name: string, existingLabels: LabelData[]): string {
-  const baseId =
-    normalizeLabelName(name)
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'label'
+function toLabelId(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
 
-  const usedIds = new Set(existingLabels.map((label) => label.id))
-  if (!usedIds.has(baseId)) {
-    return baseId
-  }
-
-  let index = 2
-  let candidate = `${baseId}-${index}`
-
-  while (usedIds.has(candidate)) {
-    index += 1
-    candidate = `${baseId}-${index}`
-  }
-
-  return candidate
+  return slug || 'label'
 }
 
-function hasExactLabelMatch(nodes: DisplayNode[], query: string): boolean {
-  const normalizedQuery = normalizeLabelName(query)
-  if (!normalizedQuery) {
-    return false
+function createCreateLabelSubpage(
+  labelName: string,
+  onCreateLabel: (name: string, color: string) => void,
+): SubpageDef {
+  return {
+    kind: 'subpage',
+    id: `create-new-label-${labelName}`,
+    value: `Create new label: ${labelName}`,
+    renderTrigger: ({ props }: SubpageTriggerRenderParams) => (
+      <DropdownMenu.SubpageTrigger {...props}>
+        <DropdownMenu.Icon>
+          <span className="text-muted-foreground text-sm leading-none">+</span>
+        </DropdownMenu.Icon>
+        <span className="whitspace-nowrap">Create new label: {labelName}</span>
+      </DropdownMenu.SubpageTrigger>
+    ),
+    renderContent: ({ pageId }: SubpageContentRenderParams) => (
+      <DropdownMenu.Subpage pageId={pageId}>
+        <DropdownMenu.Surface>
+          <DropdownMenu.DataInput />
+          <DropdownMenu.List>
+            {CREATABLE_LABEL_COLORS.map((color) => (
+              <DropdownMenu.SubpageBackItem
+                key={color.id}
+                value={`${labelName}:${color.id}`}
+                keywords={[labelName, color.label, 'create', 'label']}
+                onSelect={() => onCreateLabel(labelName, color.id)}
+              >
+                <DropdownMenu.Icon>
+                  <LabelDot color={color.id} />
+                </DropdownMenu.Icon>
+                {color.label}
+              </DropdownMenu.SubpageBackItem>
+            ))}
+          </DropdownMenu.List>
+        </DropdownMenu.Surface>
+      </DropdownMenu.Subpage>
+    ),
   }
-
-  return nodes.some((node) => {
-    if (!('node' in node)) {
-      return false
-    }
-
-    return normalizeLabelName(node.node.value) === normalizedQuery
-  })
 }
 
-function createCreatableLabelsSubmenuNode({
-  labelNodes,
-  pendingLabelName,
-  onCreateLabelIntent,
-  onChooseLabelColor,
-}: {
-  labelNodes: NodeDef[]
-  pendingLabelName: string
-  onCreateLabelIntent: (query: string) => void
-  onChooseLabelColor: (color: TW_COLOR) => void
+function createLabelsSubmenu(params: {
+  labels: LabelRecord[]
+  labelSearchQuery: string
+  onLabelSearchQueryChange: (value: string) => void
+  onCreateLabel: (name: string, color: string) => void
 }): SubmenuDef {
+  const { labels, labelSearchQuery, onLabelSearchQueryChange, onCreateLabel } =
+    params
+
+  const trimmedQuery = labelSearchQuery.trim()
+  const normalizedQuery = normalizeLabelName(trimmedQuery)
+
+  const hasExactMatch =
+    normalizedQuery.length > 0 &&
+    labels.some((label) => normalizeLabelName(label.name) === normalizedQuery)
+
+  const nodes: NodeDef[] = labels.map((label) =>
+    createLabelItemNode(label.id, label.name, label.color),
+  )
+
+  if (normalizedQuery.length > 0 && !hasExactMatch) {
+    nodes.push(createCreateLabelSubpage(trimmedQuery, onCreateLabel))
+  }
+
   return {
     kind: 'submenu',
     id: 'labels',
     value: 'Labels',
     deepSearch: true,
-    includeInDeepSearch: true,
-    nodes: labelNodes,
-    render: ({ props, context, nodes }: SubmenuRenderParams) => {
-      const trimmedPendingLabelName = pendingLabelName.trim()
-      const hasPendingLabelName = trimmedPendingLabelName.length > 0
-
-      return (
-        <DropdownMenu.Submenu>
-          <DropdownMenu.SubmenuTrigger {...props}>
-            <div className="flex items-center gap-2">
-              <DropdownMenu.Icon>
-                <LabelsIcon />
-              </DropdownMenu.Icon>
-              <LabelWithBreadcrumbs
-                label="Labels"
-                breadcrumbs={
-                  context.isDeepSearchResult ? context.breadcrumbs : undefined
-                }
-              />
-            </div>
-          </DropdownMenu.SubmenuTrigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner>
-              <DropdownMenu.Popup>
-                <DropdownMenu.Subpage pageId={CREATE_LABEL_SUBPAGE_ID}>
-                  <DropdownMenu.Surface>
-                    <div className="px-4 pt-2 pb-1 text-xs text-muted-foreground">
-                      {hasPendingLabelName
-                        ? `Pick a color for "${trimmedPendingLabelName}".`
-                        : 'Pick a color for your new label.'}
+    nodes,
+    render: ({ props, context, nodes }: SubmenuRenderParams) => (
+      <DropdownMenu.Submenu>
+        <DropdownMenu.SubmenuTrigger {...props}>
+          <div className="flex items-center gap-2">
+            <DropdownMenu.Icon>
+              <LabelsIcon />
+            </DropdownMenu.Icon>
+            <LabelWithBreadcrumbs
+              label="Labels"
+              breadcrumbs={
+                context.isDeepSearchResult ? context.breadcrumbs : undefined
+              }
+            />
+          </div>
+        </DropdownMenu.SubmenuTrigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup
+              render={(props, state) => (
+                <div className="bg-muted rounded-t-2xl rounded-b-lg flex flex-col">
+                  {state.hasOpenSubpage && (
+                    <div className="px-4.5 py-2 text-xs flex items-center gap-2">
+                      <LabelsIcon />
+                      <div className="inline-flex items-center gap-1">
+                        <span className="text-muted-foreground">
+                          New label:
+                        </span>{' '}
+                        {trimmedQuery}
+                      </div>
                     </div>
-                    <DropdownMenu.List>
-                      <DropdownMenu.SubpageBackItem value="Back to labels">
-                        Back to labels
-                      </DropdownMenu.SubpageBackItem>
-                      <DropdownMenu.Separator />
-                      {CREATE_LABEL_COLOR_OPTIONS.map((option) => (
-                        <DropdownMenu.SubpageBackItem
-                          key={option.value}
-                          value={`${option.label} label color`}
-                          keywords={[option.label, trimmedPendingLabelName]}
-                          disabled={!hasPendingLabelName}
-                          onSelect={() => onChooseLabelColor(option.value)}
-                        >
-                          <DropdownMenu.Icon>
-                            <LabelDot color={option.value} />
-                          </DropdownMenu.Icon>
-                          {option.label}
-                        </DropdownMenu.SubpageBackItem>
-                      ))}
-                    </DropdownMenu.List>
-                  </DropdownMenu.Surface>
-                </DropdownMenu.Subpage>
-
-                <DropdownMenu.DataSurface
-                  content={nodes}
-                  deepSearch={{ enabled: true, minLength: 0 }}
-                >
-                  <DropdownMenu.DataInput placeholder="Labels..." />
-                  <DropdownMenu.DataList>
-                    {({ search, nodes: filteredNodes, renderNode }) => {
-                      const trimmedQuery = search.trim()
-                      const shouldShowCreateRow =
-                        trimmedQuery.length > 0 &&
-                        !hasExactLabelMatch(filteredNodes, trimmedQuery)
-
-                      return (
-                        <>
-                          {shouldShowCreateRow ? (
-                            <DropdownMenu.SubpageTrigger
-                              id={CREATE_LABEL_TRIGGER_ID}
-                              value={`Create new label: ${trimmedQuery}`}
-                              keywords={[trimmedQuery, 'create label']}
-                              targetPageId={CREATE_LABEL_SUBPAGE_ID}
-                              onClick={() => onCreateLabelIntent(trimmedQuery)}
-                            >
-                              <DropdownMenu.Icon>
-                                <PlusIcon className="size-4" />
-                              </DropdownMenu.Icon>
-                              Create new label: "{trimmedQuery}"
-                            </DropdownMenu.SubpageTrigger>
-                          ) : null}
-
-                          {filteredNodes.map((node) => renderNode(node))}
-                        </>
-                      )
-                    }}
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Submenu>
-      )
-    },
+                  )}
+                  <div {...props} />
+                </div>
+              )}
+            >
+              <DropdownMenu.DataSurface
+                content={nodes}
+                deepSearch={{ enabled: true, minLength: 0 }}
+              >
+                <DropdownMenu.DataInput
+                  placeholder="Labels..."
+                  onValueChange={onLabelSearchQueryChange}
+                />
+                <DropdownMenu.DataList virtualized>
+                  {({
+                    nodes: filteredNodes,
+                    renderNode: renderFilteredNode,
+                  }) => (
+                    <>{filteredNodes.map((node) => renderFilteredNode(node))}</>
+                  )}
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
+              <DropdownMenu.DataSubpages />
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Submenu>
+    ),
   }
 }
 
-function buildMenuContent({
-  labels,
-  pendingLabelName,
-  onCreateLabelIntent,
-  onChooseLabelColor,
-}: {
-  labels: LabelData[]
-  pendingLabelName: string
-  onCreateLabelIntent: (query: string) => void
-  onChooseLabelColor: (color: TW_COLOR) => void
+function buildMenuContent(params: {
+  labels: LabelRecord[]
+  labelSearchQuery: string
+  onLabelSearchQueryChange: (value: string) => void
+  onCreateLabel: (name: string, color: string) => void
 }): NodeDef[] {
+  const { labels, labelSearchQuery, onLabelSearchQueryChange, onCreateLabel } =
+    params
+
   const statusMenu = createSubmenuNode(
     'status',
     'Status',
@@ -295,9 +276,12 @@ function buildMenuContent({
     'assignee',
     'Assignee',
     <AssigneeIcon />,
-    ASSIGNEES.map((assignee) =>
-      createAssigneeItemNode(assignee.id, assignee.name, assignee.username),
-    ),
+    [
+      createAssigneeItemNode('@kianbazza', 'Kian Bazza', 'kianbazza'),
+      createAssigneeItemNode('@shadcn', 'shadcn', 'shadcn'),
+      createAssigneeItemNode('@rauchg', 'Guillermo Rauch', 'rauchg'),
+      createAssigneeItemNode('@t3dotgg', 'Theo Browne', 't3dotgg'),
+    ],
     { inputPlaceholder: 'Assignee...' },
   )
 
@@ -319,14 +303,35 @@ function buildMenuContent({
     { inputPlaceholder: 'Priority...' },
   )
 
-  const labelsMenu = createCreatableLabelsSubmenuNode({
-    labelNodes: labels.map((label) =>
-      createLabelItemNode(label.id, label.name, label.color),
-    ),
-    pendingLabelName,
-    onCreateLabelIntent,
-    onChooseLabelColor,
+  const labelsMenu = createLabelsSubmenu({
+    labels,
+    labelSearchQuery,
+    onLabelSearchQueryChange,
+    onCreateLabel,
   })
+
+  const aiFilterSubpage = createSubpageNode(
+    'ai-filter',
+    'AI Filter',
+    <DurationIcon />,
+    [
+      createItemNode('ai-triage', 'Smart triage'),
+      createItemNode('ai-risk', 'Risk prediction'),
+      createItemNode('ai-duplicates', 'Duplicate detection'),
+      createSubmenuNode(
+        'ai-confidence',
+        'Confidence',
+        <ProjectPriorityIcon />,
+        [
+          createItemNode('high-confidence', 'High confidence'),
+          createItemNode('medium-confidence', 'Medium confidence'),
+          createItemNode('low-confidence', 'Low confidence'),
+        ],
+        { inputPlaceholder: 'AI confidence...' },
+      ),
+    ],
+    { inputPlaceholder: 'AI filters...' },
+  )
 
   const projectStatusMenu = createSubmenuNode(
     'project-status',
@@ -387,7 +392,7 @@ function buildMenuContent({
     'project-labels',
     'Project labels',
     <LabelsIcon />,
-    PROJECT_LABELS.map((label) =>
+    projectLabelData.map((label) =>
       createLabelItemNode(label.id, label.name, label.color),
     ),
     { inputPlaceholder: 'Project labels...' },
@@ -397,9 +402,12 @@ function buildMenuContent({
     'project-lead',
     'Project lead',
     <ProjectLeadIcon />,
-    ASSIGNEES.map((assignee) =>
-      createAssigneeItemNode(assignee.id, assignee.name, assignee.username),
-    ),
+    [
+      createAssigneeItemNode('@kianbazza', 'Kian Bazza', 'kianbazza'),
+      createAssigneeItemNode('@shadcn', 'shadcn', 'shadcn'),
+      createAssigneeItemNode('@rauchg', 'Guillermo Rauch', 'rauchg'),
+      createAssigneeItemNode('@t3dotgg', 'Theo Browne', 't3dotgg'),
+    ],
     { inputPlaceholder: 'Project lead...' },
   )
 
@@ -422,63 +430,76 @@ function buildMenuContent({
     assigneeMenu,
     priorityMenu,
     labelsMenu,
+    aiFilterSubpage,
     projectPropertiesMenu,
   ]
 }
 
 export default function DropdownMenuDeepSearchSubpagesLinear() {
-  const [labels, setLabels] = React.useState<LabelData[]>(() => INITIAL_LABELS)
-  const [pendingLabelName, setPendingLabelName] = React.useState('')
+  const [labels, setLabels] = React.useState<LabelRecord[]>(() => [
+    ...labelData,
+  ])
+  const [labelSearchQuery, setLabelSearchQuery] = React.useState('')
 
-  const handleCreateLabelIntent = React.useCallback((query: string) => {
-    setPendingLabelName(query.trim())
+  const createdLabelIndex = React.useRef(0)
+
+  const handleLabelSearchQueryChange = React.useCallback((value: string) => {
+    setLabelSearchQuery(value)
   }, [])
 
-  const handleChooseLabelColor = React.useCallback(
-    (color: TW_COLOR) => {
-      const trimmedName = pendingLabelName.trim()
+  const handleCreateLabel = React.useCallback(
+    (name: string, color: string) => {
+      const trimmedName = name.trim()
       if (!trimmedName) {
         return
       }
 
-      const alreadyExists = labels.some(
-        (label) =>
-          normalizeLabelName(label.name) === normalizeLabelName(trimmedName),
+      const normalizedName = normalizeLabelName(trimmedName)
+      const exists = labels.some(
+        (label) => normalizeLabelName(label.name) === normalizedName,
       )
 
-      if (alreadyExists) {
+      if (exists) {
         toast(`Label "${trimmedName}" already exists.`)
-        setPendingLabelName('')
         return
       }
 
-      setLabels((previous) => [
-        ...previous,
+      createdLabelIndex.current += 1
+
+      setLabels((prevLabels) => [
+        ...prevLabels,
         {
-          id: getUniqueLabelId(trimmedName, previous),
+          id: `${toLabelId(trimmedName)}-${createdLabelIndex.current}`,
           name: trimmedName,
           color,
         },
       ])
+
+      setLabelSearchQuery(trimmedName)
       toast(`Created label "${trimmedName}".`)
-      setPendingLabelName('')
     },
-    [labels, pendingLabelName],
+    [labels],
   )
 
   const content = React.useMemo(
     () =>
       buildMenuContent({
         labels,
-        pendingLabelName,
-        onCreateLabelIntent: handleCreateLabelIntent,
-        onChooseLabelColor: handleChooseLabelColor,
+        labelSearchQuery,
+        onLabelSearchQueryChange: handleLabelSearchQueryChange,
+        onCreateLabel: handleCreateLabel,
       }),
-    [labels, pendingLabelName, handleCreateLabelIntent, handleChooseLabelColor],
+    [labels, labelSearchQuery, handleLabelSearchQueryChange, handleCreateLabel],
   )
 
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root
+      onOpenChange={(open) => {
+        if (!open) {
+          setLabelSearchQuery('')
+        }
+      }}
+    >
       <DropdownMenu.Trigger render={<Button variant="ghost" size="sm" />}>
         <FilterIcon />
         Filter
@@ -497,6 +518,7 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
                 )}
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
+            <DropdownMenu.DataSubpages />
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>

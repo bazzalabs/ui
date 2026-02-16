@@ -346,18 +346,24 @@ export {
 } from './deep-search/async-coordinator.js'
 // Context
 export type {
+  DataPopupContextValue,
   DataSurfaceContextValue,
   RenderNodeFn,
 } from './deep-search/context.js'
 export {
+  DataPopupContext,
   DataSurfaceContext,
+  useDataPopupContext,
   useDataSurfaceContext,
+  useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './deep-search/context.js'
 export type { PopupMenuDataInputProps } from './deep-search/data-input.js'
 export { PopupMenuDataInput } from './deep-search/data-input.js'
 export type { PopupMenuDataListProps } from './deep-search/data-list.js'
 export { PopupMenuDataList } from './deep-search/data-list.js'
+export type { PopupMenuDataSubpagesProps } from './deep-search/data-subpages.js'
+export { PopupMenuDataSubpages } from './deep-search/data-subpages.js'
 // Components
 export type { PopupMenuDataSurfaceProps } from './deep-search/data-surface.js'
 export { PopupMenuDataSurface } from './deep-search/data-surface.js'
@@ -382,6 +388,8 @@ export type {
   CheckboxItemRenderProps,
   DataListChildrenState,
   DataListProps,
+  DataSubpagesChildrenState,
+  DataSubpagesProps,
   DataSurfaceProps,
   DeepSearchConfig,
   DisplayGroupNode,
@@ -389,6 +397,7 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySeparatorNode,
+  DisplaySubpageNode,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -418,6 +427,10 @@ export type {
   SubmenuDef,
   SubmenuRenderParams,
   SubmenuRenderProps,
+  SubpageContentRenderParams,
+  SubpageDef,
+  SubpageTriggerRenderParams,
+  SubpageTriggerRenderProps,
 } from './deep-search/types.js'
 export {
   defineRadioGroup,
@@ -443,6 +456,7 @@ export {
   getBrowseNodesPreserve,
   getFirstNavigableId,
   getNavigableIds,
+  getSubpagePageId,
   isCheckboxItemDef,
   isGroupDef,
   isItemDef,
@@ -450,6 +464,7 @@ export {
   isRadioItemDef,
   isSeparatorDef,
   isSubmenuDef,
+  isSubpageDef,
   mergeAsyncNodesIntoTree,
   mergeSubmenuNodes,
   partitionByKind,

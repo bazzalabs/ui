@@ -14,6 +14,7 @@ export {
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuDataInput as DataInput,
   PopupMenuDataList as DataList,
+  PopupMenuDataSubpages as DataSubpages,
   // Deep Search (Data-First API)
   PopupMenuDataSurface as DataSurface,
   PopupMenuEmpty as Empty,

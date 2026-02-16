@@ -6,6 +6,9 @@ import type {
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
+  SubpageContentRenderParams,
+  SubpageDef,
+  SubpageTriggerRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
 import type * as React from 'react'
 import { toast } from 'sonner'
@@ -248,6 +251,67 @@ export function createSubmenuNode(
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
       </DropdownMenu.Submenu>
+    ),
+  }
+}
+
+/**
+ * Creates a subpage node with deep search enabled.
+ * Subpage content is rendered by DataSubpages as a Popup sibling to DataSurface.
+ */
+export function createSubpageNode(
+  id: string,
+  title: string,
+  icon: React.ReactNode,
+  childNodes: NodeDef[],
+  options?: {
+    inputPlaceholder?: string
+    hideInputUntilActive?: boolean
+  },
+): SubpageDef {
+  const { inputPlaceholder = `${title}...`, hideInputUntilActive = false } =
+    options ?? {}
+
+  return {
+    kind: 'subpage',
+    id,
+    value: title,
+    deepSearch: true,
+    nodes: childNodes,
+    renderTrigger: ({ props, context }: SubpageTriggerRenderParams) => (
+      <DropdownMenu.SubpageTrigger {...props}>
+        <div className="flex items-center gap-2">
+          <DropdownMenu.Icon>{icon}</DropdownMenu.Icon>
+          <LabelWithBreadcrumbs
+            label={title}
+            breadcrumbs={
+              context.isDeepSearchResult ? context.breadcrumbs : undefined
+            }
+          />
+        </div>
+      </DropdownMenu.SubpageTrigger>
+    ),
+    renderContent: ({ pageId, context }: SubpageContentRenderParams) => (
+      <DropdownMenu.Subpage pageId={pageId}>
+        <DropdownMenu.Surface>
+          <DropdownMenu.DataInput
+            placeholder={inputPlaceholder}
+            hideUntilActive={hideInputUntilActive}
+          />
+          <DropdownMenu.DataList virtualized>
+            {({ nodes: filteredNodes, renderNode: renderFilteredNode }) => (
+              <>
+                {!context.isDeepSearchResult ? (
+                  <DropdownMenu.SubpageBackItem>
+                    Back
+                  </DropdownMenu.SubpageBackItem>
+                ) : null}
+                {filteredNodes.map((node) => renderFilteredNode(node))}
+              </>
+            )}
+          </DropdownMenu.DataList>
+        </DropdownMenu.Surface>
+      </DropdownMenu.Subpage>
     ),
   }
 }

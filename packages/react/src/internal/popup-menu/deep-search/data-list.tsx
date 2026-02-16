@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useSurfaceContext } from '../../listbox/index.js'
+import { normalizeValue } from '../../listbox/utils/normalize.js'
 import { PopupMenuList } from '../components/list/list.js'
 import {
   type AsyncMenuState,
@@ -25,6 +26,7 @@ import type {
   RadioGroupDef,
   RowRenderContext,
   SubmenuDef,
+  SubpageDef,
 } from './types.js'
 import {
   isDisplayGroupNode,
@@ -35,6 +37,7 @@ import {
   type AsyncSubmenuInfo,
   collectAsyncSubmenus,
   filterNodes,
+  getSubpagePageId,
   mergeAsyncNodesIntoTree,
   shouldLoadEagerly,
 } from './utils.js'
@@ -275,6 +278,16 @@ function resolveQueryExecutionState(
   }
 }
 
+function getAsyncLoaderIdForBranch(
+  node: SubmenuDef | SubpageDef,
+  breadcrumbs: BreadcrumbNode[],
+): string {
+  return [
+    ...breadcrumbs.map((breadcrumb) => normalizeValue(breadcrumb.value)),
+    normalizeValue(node.value),
+  ].join('.')
+}
+
 /**
  * Renders an async loader component and registers its state with the coordinator.
  * This component exists solely to call the Loader component (which contains hooks).
@@ -285,7 +298,7 @@ function AsyncLoaderRenderer({
   enabled,
 }: AsyncLoaderRendererProps) {
   const coordinator = useAsyncMenuCoordinator()
-  const { config, id, breadcrumbs, node } = info
+  const { config, id, breadcrumbs } = info
   const Loader = config.Loader
 
   const queryExecution = React.useMemo(() => {
@@ -533,16 +546,6 @@ export const PopupMenuDataList = React.forwardRef<
   HTMLDivElement,
   PopupMenuDataList.Props
 >(function PopupMenuDataList(props, forwardedRef) {
-  const {
-    children,
-    label = 'Menu',
-    className,
-    style,
-    render,
-    measureRowWidth,
-    maxRowWidth,
-  } = props
-
   // Get data surface context for content and deep search config
   const dataSurfaceCtx = useDataSurfaceContext()
   const {
@@ -797,13 +800,49 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       })
     }, [store, orderedItemIds])
 
-    // Helper to render a single row node (item, checkbox item, or submenu)
+    // Helper to render a single row node (item, checkbox item, submenu, or subpage)
+    // biome-ignore lint/correctness/useExhaustiveDependencies: renderRowNode and renderRadioGroup are intentionally recursive.
     const renderRowNode = React.useCallback(
       (displayNode: DisplayRowNode): React.ReactNode => {
         const { node, context } = displayNode
 
-        // Use composite ID from display node, fallback to node.id/value for submenu children
+        // Use composite ID from display node, fallback to node.id/value for nested children
         const compositeId = displayNode.compositeId ?? node.id ?? node.value
+
+        const getBranchAsyncState = (branchNode: SubmenuDef | SubpageDef) => {
+          if (!branchNode.asyncNodes || !coordinator) {
+            return undefined
+          }
+
+          const asyncLoaderId = getAsyncLoaderIdForBranch(
+            branchNode,
+            context.breadcrumbs,
+          )
+          const asyncResult = coordinator.loaders.get(asyncLoaderId)
+
+          if (!asyncResult) {
+            return undefined
+          }
+
+          const isBelowMinLength =
+            branchNode.asyncNodes.type === 'query'
+              ? resolveQueryExecutionState(branchNode.asyncNodes, search)
+                  .isBelowMinLength
+              : false
+
+          return {
+            status: asyncResult.result.status,
+            fetchStatus: asyncResult.result.fetchStatus,
+            loadingPhase: asyncResult.result.loadingPhase,
+            isLoading: asyncResult.result.isLoading,
+            isFetching: asyncResult.result.isFetching,
+            isInitialLoading: asyncResult.result.isInitialLoading,
+            isRefetching: asyncResult.result.isRefetching,
+            isError: asyncResult.result.isError,
+            error: asyncResult.result.error,
+            isBelowMinLength,
+          }
+        }
 
         if (node.kind === 'item') {
           return (
@@ -882,44 +921,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
           // For submenus, provide the nodes and a recursive renderNode function
           // Note: We pass the compositeId to the submenu trigger so it registers with the
           // correct ID for keyboard navigation during deep search
-
-          // Get async state for this submenu if it has asyncNodes
-          let submenuAsyncState:
-            | {
-                status: 'idle' | 'pending' | 'success' | 'error'
-                fetchStatus: 'idle' | 'fetching' | 'paused'
-                loadingPhase: 'none' | 'initial' | 'background'
-                isLoading: boolean
-                isFetching: boolean
-                isInitialLoading: boolean
-                isRefetching: boolean
-                isError: boolean
-                error: Error | null
-                isBelowMinLength?: boolean
-              }
-            | undefined
-          if (node.asyncNodes && coordinator) {
-            const asyncResult = coordinator.loaders.get(compositeId)
-            if (asyncResult) {
-              const isBelowMinLength =
-                node.asyncNodes.type === 'query'
-                  ? resolveQueryExecutionState(node.asyncNodes, search)
-                      .isBelowMinLength
-                  : false
-              submenuAsyncState = {
-                status: asyncResult.result.status,
-                fetchStatus: asyncResult.result.fetchStatus,
-                loadingPhase: asyncResult.result.loadingPhase,
-                isLoading: asyncResult.result.isLoading,
-                isFetching: asyncResult.result.isFetching,
-                isInitialLoading: asyncResult.result.isInitialLoading,
-                isRefetching: asyncResult.result.isRefetching,
-                isError: asyncResult.result.isError,
-                error: asyncResult.result.error,
-                isBelowMinLength,
-              }
-            }
-          }
+          const submenuAsyncState = getBranchAsyncState(node)
 
           // Static nodes only - async content is handled by the submenu's own DataSurface
           const staticNodes = node.nodes ?? []
@@ -940,10 +942,11 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
             // Handle groups - render the group with its children
             if (childNode.kind === 'group') {
               const groupItems = childNode.nodes.filter(
-                (n): n is ItemDef | CheckboxItemDef | SubmenuDef =>
+                (n): n is ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef =>
                   (n.kind === 'item' ||
                     n.kind === 'checkbox-item' ||
-                    n.kind === 'submenu') &&
+                    n.kind === 'submenu' ||
+                    n.kind === 'subpage') &&
                   !n.hidden,
               )
 
@@ -1008,11 +1011,12 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
               ])
             }
 
-            // Handle items, checkbox items, and submenus
+            // Handle items, checkbox items, submenus, and subpages
             if (
               childNode.kind !== 'item' &&
               childNode.kind !== 'checkbox-item' &&
-              childNode.kind !== 'submenu'
+              childNode.kind !== 'submenu' &&
+              childNode.kind !== 'subpage'
             ) {
               return null
             }
@@ -1053,6 +1057,30 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                 nodes: staticNodes,
                 asyncContent: node.asyncNodes,
                 renderNode: submenuRenderNode,
+              })}
+            </React.Fragment>
+          )
+        }
+
+        if (node.kind === 'subpage') {
+          const subpageAsyncState = getBranchAsyncState(node)
+          const pageId = getSubpagePageId(node, context.breadcrumbs)
+
+          return (
+            <React.Fragment key={compositeId}>
+              {node.renderTrigger({
+                props: {
+                  id: compositeId,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
+                  targetPageId: pageId,
+                },
+                context: {
+                  ...context,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
+                  async: subpageAsyncState,
+                },
               })}
             </React.Fragment>
           )
@@ -1230,7 +1258,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
           return <div key={separator.id ?? 'separator'} role="none" />
         }
 
-        // Handle row display nodes (items/checkbox items/submenus)
+        // Handle row display nodes (items/checkbox items/submenus/subpages)
         // renderRowNode already wraps in keyed Fragment
         return renderRowNode(displayNode)
       },

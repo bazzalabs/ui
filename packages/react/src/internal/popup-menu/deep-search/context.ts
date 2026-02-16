@@ -37,6 +37,22 @@ export interface DataSurfaceContextValue {
 export const DataSurfaceContext =
   React.createContext<DataSurfaceContextValue | null>(null)
 
+// ============================================================================
+// Popup-level Data Context (shared across sibling DataSurface/DataSubpages)
+// ============================================================================
+
+export interface DataPopupContextValue {
+  /** Latest DataSurface context registered within this popup. */
+  dataSurfaceContext: DataSurfaceContextValue | null
+  /** Registers/clears DataSurface context for sibling consumers. */
+  setDataSurfaceContext: React.Dispatch<
+    React.SetStateAction<DataSurfaceContextValue | null>
+  >
+}
+
+export const DataPopupContext =
+  React.createContext<DataPopupContextValue | null>(null)
+
 export function useDataSurfaceContext(): DataSurfaceContextValue {
   const context = React.useContext(DataSurfaceContext)
   if (!context) {
@@ -49,6 +65,18 @@ export function useDataSurfaceContext(): DataSurfaceContextValue {
 
 export function useMaybeDataSurfaceContext(): DataSurfaceContextValue | null {
   return React.useContext(DataSurfaceContext)
+}
+
+export function useDataPopupContext(): DataPopupContextValue {
+  const context = React.useContext(DataPopupContext)
+  if (!context) {
+    throw new Error('Data components must be used within PopupMenu.Popup')
+  }
+  return context
+}
+
+export function useMaybeDataPopupContext(): DataPopupContextValue | null {
+  return React.useContext(DataPopupContext)
 }
 
 // ============================================================================
