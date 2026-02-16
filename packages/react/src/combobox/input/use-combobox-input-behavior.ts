@@ -398,6 +398,7 @@ export function useComboboxInputBehavior(
     focusOwnerStore,
     depth: 0,
     submenuContext: null,
+    subpageContext: null,
     enabled: open, // Only enabled when popup is open
     enableTypeToSearch: false,
     onKeyDown: handleKeyDownWhenClosed, // Chain with our closed-state handler

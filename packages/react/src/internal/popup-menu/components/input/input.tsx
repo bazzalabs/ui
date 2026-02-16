@@ -10,6 +10,7 @@ import {
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
+import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
 
 export interface PopupMenuInputState extends Record<string, unknown> {
@@ -68,6 +69,7 @@ export const PopupMenuInput = React.forwardRef<
   const { store, surfaceId } = useSurfaceContext()
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
+  const subpageContext = useMaybeSubpageContext()
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)
 
@@ -135,6 +137,7 @@ export const PopupMenuInput = React.forwardRef<
     focusOwnerStore,
     depth,
     submenuContext,
+    subpageContext,
     enabled: true,
     enableTypeToSearch: false,
     onKeyDown,

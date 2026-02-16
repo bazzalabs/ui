@@ -16,6 +16,7 @@ import {
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
+import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
 import { PopupMenuListCssVars } from './list.css-vars.js'
 import { PopupMenuListDataAttributes } from './list.data-attrs.js'
@@ -91,6 +92,7 @@ export const PopupMenuList = React.forwardRef<
   const { store, surfaceId } = useSurfaceContext()
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
+  const subpageContext = useMaybeSubpageContext()
   const focusOwnerStore = useFocusOwner()
   const comboboxContext = useMaybeComboboxContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
@@ -155,6 +157,7 @@ export const PopupMenuList = React.forwardRef<
     focusOwnerStore,
     depth,
     submenuContext,
+    subpageContext,
     enabled: shouldHandleKeyboard,
     enableTypeToSearch: true,
     onKeyDown,

@@ -44,6 +44,22 @@ export {
   useMaybeSubmenuContext,
   useSubmenuContext,
 } from './contexts/submenu-context.js'
+export type { SubpageContextValue } from './contexts/subpage-context.js'
+export {
+  SubpageContext,
+  useMaybeSubpageContext,
+  useSubpageContext,
+} from './contexts/subpage-context.js'
+export type {
+  SubpageRegistration,
+  SubpageStackContextValue,
+} from './contexts/subpage-stack-context.js'
+export {
+  ROOT_SUBPAGE_ID,
+  SubpageStackContext,
+  useMaybeSubpageStack,
+  useSubpageStack,
+} from './contexts/subpage-stack-context.js'
 export type {
   AimGuardContextValue,
   AimGuardProviderProps,
@@ -291,6 +307,26 @@ export {
   PopupMenuSubmenuTriggerDataAttributes,
   PopupMenuSubmenuTriggerIndicator,
 } from './components/submenu-trigger/submenu-trigger-indicator.js'
+export type { PopupMenuSubpageProps } from './components/subpage/subpage.js'
+export { PopupMenuSubpage } from './components/subpage/subpage.js'
+export { PopupMenuSubpageBackDataAttributes } from './components/subpage-back/subpage-back.data-attrs.js'
+export type {
+  PopupMenuSubpageBackProps,
+  PopupMenuSubpageBackState,
+} from './components/subpage-back/subpage-back.js'
+export { PopupMenuSubpageBack } from './components/subpage-back/subpage-back.js'
+export { PopupMenuSubpageBackItemDataAttributes } from './components/subpage-back-item/subpage-back-item.data-attrs.js'
+export type {
+  PopupMenuSubpageBackItemProps,
+  PopupMenuSubpageBackItemState,
+} from './components/subpage-back-item/subpage-back-item.js'
+export { PopupMenuSubpageBackItem } from './components/subpage-back-item/subpage-back-item.js'
+export { PopupMenuSubpageTriggerDataAttributes } from './components/subpage-trigger/subpage-trigger.data-attrs.js'
+export type {
+  PopupMenuSubpageTriggerProps,
+  PopupMenuSubpageTriggerState,
+} from './components/subpage-trigger/subpage-trigger.js'
+export { PopupMenuSubpageTrigger } from './components/subpage-trigger/subpage-trigger.js'
 
 // ============================================================================
 // Deep Search (Data-First API)

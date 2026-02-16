@@ -9,7 +9,6 @@ import {
   type FilterFn,
   SurfaceContext,
   useListboxContext,
-  useSurfaceContext as useParentSurfaceContext,
 } from '../../../listbox/index.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
 import {
@@ -19,6 +18,11 @@ import {
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
+import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
+import {
+  ROOT_SUBPAGE_ID,
+  useMaybeSubpageStack,
+} from '../../contexts/subpage-stack-context.js'
 
 // Surface doesn't expose data attributes - using empty state
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
@@ -124,6 +128,10 @@ export const PopupMenuSurface = React.forwardRef<
   // Get submenu context (if inside a submenu)
   const submenuContext = useMaybeSubmenuContext()
 
+  // Get subpage context/stack (if inside a popup with subpage navigation)
+  const subpageContext = useMaybeSubpageContext()
+  const subpageStack = useMaybeSubpageStack()
+
   // Get focus owner store
   const focusOwnerStore = useFocusOwner()
 
@@ -143,6 +151,26 @@ export const PopupMenuSurface = React.forwardRef<
   // This ensures Popup and Surface share the same ID for data attribute tracking
   const surfaceId =
     popupSurfaceId ?? submenuContext?.childSurfaceId ?? generatedSurfaceId
+
+  // Only render/activate the surface for the currently active page.
+  const isSurfaceActive = React.useMemo(() => {
+    if (!subpageStack) {
+      return true
+    }
+
+    if (subpageContext) {
+      // If this page is registered in the current popup stack, use it.
+      // Otherwise (e.g., nested submenu popup), treat this surface as root page.
+      const registeredSurfaceId = subpageStack.getSurfaceId(
+        subpageContext.pageId,
+      )
+      if (registeredSurfaceId) {
+        return subpageStack.activePageId === subpageContext.pageId
+      }
+    }
+
+    return subpageStack.activePageId === ROOT_SUBPAGE_ID
+  }, [subpageStack, subpageContext])
 
   // Subscribe to focus ownership
   const isOwner = focusOwnerStore.useState('isOwner', surfaceId)
@@ -217,15 +245,19 @@ export const PopupMenuSurface = React.forwardRef<
 
   // Claim focus ownership when root menu opens
   React.useEffect(() => {
+    if (!isSurfaceActive) {
+      return
+    }
+
     if (depth === 0 && open) {
       focusOwnerStore.setOwnerId(surfaceId)
     }
-  }, [depth, open, surfaceId, focusOwnerStore])
+  }, [depth, open, surfaceId, focusOwnerStore, isSurfaceActive])
 
   // Auto-focus when becoming owner
   // Skip for Combobox where the input is outside the popup and should retain focus
   React.useEffect(() => {
-    if (!isOwner || skipAutoFocus) {
+    if (!isSurfaceActive || !isOwner || skipAutoFocus) {
       return
     }
 
@@ -249,7 +281,7 @@ export const PopupMenuSurface = React.forwardRef<
     }, 0)
 
     return () => clearTimeout(timeoutId)
-  }, [isOwner, skipAutoFocus])
+  }, [isSurfaceActive, isOwner, skipAutoFocus])
 
   const contextValue = React.useMemo(
     () => ({
@@ -314,6 +346,7 @@ export const PopupMenuSurface = React.forwardRef<
       onPointerMove: handlePointerMove,
       children,
     },
+    enabled: isSurfaceActive,
     defaultTagName: 'div',
   })
 

@@ -102,6 +102,17 @@ export type {
   PopupMenuSubmenuTriggerIndicatorState as DropdownMenuSubmenuTriggerIndicatorState,
   PopupMenuSubmenuTriggerProps as DropdownMenuSubmenuTriggerProps,
   PopupMenuSubmenuTriggerState as DropdownMenuSubmenuTriggerState,
+  PopupMenuSubpage as DropdownMenuSubpage,
+  PopupMenuSubpageBack as DropdownMenuSubpageBack,
+  PopupMenuSubpageBackItem as DropdownMenuSubpageBackItem,
+  PopupMenuSubpageBackItemProps as DropdownMenuSubpageBackItemProps,
+  PopupMenuSubpageBackItemState as DropdownMenuSubpageBackItemState,
+  PopupMenuSubpageBackProps as DropdownMenuSubpageBackProps,
+  PopupMenuSubpageBackState as DropdownMenuSubpageBackState,
+  PopupMenuSubpageProps as DropdownMenuSubpageProps,
+  PopupMenuSubpageTrigger as DropdownMenuSubpageTrigger,
+  PopupMenuSubpageTriggerProps as DropdownMenuSubpageTriggerProps,
+  PopupMenuSubpageTriggerState as DropdownMenuSubpageTriggerState,
   PopupMenuSurface as DropdownMenuSurface,
   PopupMenuSurfaceProps as DropdownMenuSurfaceProps,
   PopupMenuSurfaceState as DropdownMenuSurfaceState,
@@ -141,6 +152,9 @@ export {
   DropdownMenuSubmenuTriggerDataAttributes,
   DropdownMenuSubmenuTriggerIndicatorDataAttributes,
 } from './submenu-trigger/submenu-trigger.data-attrs.js'
+export { DropdownMenuSubpageBackDataAttributes } from './subpage-back/subpage-back.data-attrs.js'
+export { DropdownMenuSubpageBackItemDataAttributes } from './subpage-back-item/subpage-back-item.data-attrs.js'
+export { DropdownMenuSubpageTriggerDataAttributes } from './subpage-trigger/subpage-trigger.data-attrs.js'
 export { DropdownMenuSurfaceDataAttributes } from './surface/surface.data-attrs.js'
 
 // ============================================================================
@@ -160,12 +174,18 @@ export {
 export type {
   PopupMenuContextValue as RootContextValue,
   SubmenuContextValue,
+  SubpageContextValue,
+  SubpageStackContextValue,
 } from '../internal/popup-menu/index.js'
 export {
   useMaybePopupMenuContext as useMaybeRootContext,
   useMaybeSubmenuContext,
+  useMaybeSubpageContext,
+  useMaybeSubpageStack,
   usePopupMenuContext as useRootContext,
   useSubmenuContext,
+  useSubpageContext,
+  useSubpageStack,
 } from '../internal/popup-menu/index.js'
 
 // ============================================================================
