@@ -384,7 +384,7 @@ export interface RowRenderContext {
   search: {
     /** Current search query */
     query: string
-    /** Match score for this row (0-1, higher = better match) */
+    /** Match score for this row (higher = better match). */
     score: number
   } | null
 
@@ -435,7 +435,10 @@ export type ItemRenderProps = {
    */
   value: string
 } & Required<Pick<PopupMenuItemProps, 'disabled'>> &
-  Pick<PopupMenuItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>
+  Pick<
+    PopupMenuItemProps,
+    'closeOnClick' | 'onSelect' | 'shortcut' | 'forceOrder' | 'forceScore'
+  >
 
 /**
  * Parameters passed to item render functions.
@@ -466,7 +469,10 @@ export type RadioItemRenderProps = {
    */
   id: string
 } & Required<Pick<PopupMenuRadioItemProps, 'value' | 'disabled'>> &
-  Pick<PopupMenuRadioItemProps, 'closeOnClick' | 'onSelect' | 'shortcut'>
+  Pick<
+    PopupMenuRadioItemProps,
+    'closeOnClick' | 'onSelect' | 'shortcut' | 'forceOrder' | 'forceScore'
+  >
 
 /**
  * Parameters passed to radio item render functions.
@@ -500,7 +506,8 @@ export type SubmenuRenderProps = {
    * The original value from the node definition.
    */
   value: string
-} & Required<Pick<PopupMenuSubmenuTriggerProps, 'disabled'>>
+} & Required<Pick<PopupMenuSubmenuTriggerProps, 'disabled'>> &
+  Pick<PopupMenuSubmenuTriggerProps, 'forceOrder' | 'forceScore'>
 
 /**
  * Parameters passed to submenu render functions.
@@ -551,7 +558,7 @@ export interface GroupRenderContext {
   search: {
     /** Current search query */
     query: string
-    /** Best match score among items in this group (0-1) */
+    /** Best match score among items in this group (higher = better match). */
     bestScore: number
   } | null
 
@@ -604,7 +611,7 @@ export type CheckboxItemRenderProps = {
 } & Required<Pick<PopupMenuCheckboxItemProps, 'disabled'>> &
   Pick<
     PopupMenuCheckboxItemProps,
-    'checked' | 'onCheckedChange' | 'closeOnClick'
+    'checked' | 'onCheckedChange' | 'closeOnClick' | 'forceOrder' | 'forceScore'
   >
 
 /**
@@ -682,7 +689,13 @@ export interface ItemDef
     Required<Pick<PopupMenuItemProps, 'value'>>,
     Pick<
       PopupMenuItemProps,
-      'keywords' | 'disabled' | 'onSelect' | 'closeOnClick' | 'shortcut'
+      | 'keywords'
+      | 'disabled'
+      | 'onSelect'
+      | 'closeOnClick'
+      | 'shortcut'
+      | 'forceOrder'
+      | 'forceScore'
     > {
   kind: 'item'
   /**
@@ -702,7 +715,13 @@ export interface RadioItemDef
     Required<Pick<PopupMenuRadioItemProps, 'value'>>,
     Pick<
       PopupMenuRadioItemProps,
-      'keywords' | 'disabled' | 'onSelect' | 'closeOnClick' | 'shortcut'
+      | 'keywords'
+      | 'disabled'
+      | 'onSelect'
+      | 'closeOnClick'
+      | 'shortcut'
+      | 'forceOrder'
+      | 'forceScore'
     > {
   kind: 'radio-item'
   /**
@@ -721,7 +740,13 @@ export interface CheckboxItemDef
   extends BaseNodeDef,
     Pick<
       PopupMenuCheckboxItemProps,
-      'keywords' | 'disabled' | 'checked' | 'onCheckedChange' | 'closeOnClick'
+      | 'keywords'
+      | 'disabled'
+      | 'checked'
+      | 'onCheckedChange'
+      | 'closeOnClick'
+      | 'forceOrder'
+      | 'forceScore'
     > {
   kind: 'checkbox-item'
   /**
@@ -744,7 +769,10 @@ export interface CheckboxItemDef
 export interface SubmenuDef
   extends BaseNodeDef,
     Required<Pick<PopupMenuSubmenuTriggerProps, 'value'>>,
-    Pick<PopupMenuSubmenuTriggerProps, 'keywords' | 'disabled'> {
+    Pick<
+      PopupMenuSubmenuTriggerProps,
+      'keywords' | 'disabled' | 'forceOrder' | 'forceScore'
+    > {
   kind: 'submenu'
 
   /** Static child nodes */
@@ -871,7 +899,7 @@ export type NodeDef =
 export interface ScoredNode {
   /** The original node definition */
   node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
-  /** Search match score (0-1) */
+  /** Search match score (higher = better match). */
   score: number
   /**
    * Breadcrumb nodes leading to this node.

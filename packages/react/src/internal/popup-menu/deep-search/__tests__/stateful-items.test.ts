@@ -1231,3 +1231,89 @@ describe('Value Normalization', () => {
     })
   })
 })
+
+// ============================================================================
+// Forced Sorting Tests
+// ============================================================================
+
+describe('Forced sorting overrides', () => {
+  it('scoreNodes uses forceScore to include non-matching rows', () => {
+    const nodes: NodeDef[] = [
+      createItemDef('pinned', 'Pinned row', { forceScore: 5 }),
+      createItemDef('regular', 'Regular row'),
+    ]
+
+    const flattened = flattenNodes(nodes)
+    const scored = scoreNodes(flattened, 'zzzz')
+
+    expect(scored).toHaveLength(1)
+    expect(scored[0].node.id).toBe('pinned')
+    expect(scored[0].score).toBe(5)
+  })
+
+  it('filterNodes orders rows by forceOrder before score', () => {
+    const nodes: NodeDef[] = [
+      createItemDef('late', 'Late row', {
+        forceOrder: 20,
+        forceScore: 100,
+      }),
+      createItemDef('early', 'Early row', {
+        forceOrder: -5,
+        forceScore: 1,
+      }),
+    ]
+
+    const { displayNodes } = filterNodes({
+      query: 'x',
+      nodes,
+      highlightedId: null,
+      groupSearchBehavior: 'flatten',
+    })
+
+    expect(displayNodes).toHaveLength(2)
+    expect(isDisplayRowNode(displayNodes[0])).toBe(true)
+    expect(isDisplayRowNode(displayNodes[1])).toBe(true)
+
+    if (
+      isDisplayRowNode(displayNodes[0]) &&
+      isDisplayRowNode(displayNodes[1])
+    ) {
+      expect(displayNodes[0].node.id).toBe('early')
+      expect(displayNodes[1].node.id).toBe('late')
+    }
+  })
+
+  it('keeps items ahead of submenus within the same forceOrder bucket', () => {
+    const nodes: NodeDef[] = [
+      createSubmenuDef('submenu', 'Settings', [], {
+        forceOrder: -10,
+        forceScore: 100,
+      }),
+      createItemDef('item', 'Preferences', {
+        forceOrder: -10,
+        forceScore: 1,
+      }),
+    ]
+
+    const { displayNodes } = filterNodes({
+      query: 'x',
+      nodes,
+      highlightedId: null,
+      groupSearchBehavior: 'flatten',
+    })
+
+    expect(displayNodes).toHaveLength(2)
+    expect(isDisplayRowNode(displayNodes[0])).toBe(true)
+    expect(isDisplayRowNode(displayNodes[1])).toBe(true)
+
+    if (
+      isDisplayRowNode(displayNodes[0]) &&
+      isDisplayRowNode(displayNodes[1])
+    ) {
+      expect(displayNodes[0].node.kind).toBe('item')
+      expect(displayNodes[1].node.kind).toBe('submenu')
+      expect(displayNodes[0].node.id).toBe('item')
+      expect(displayNodes[1].node.id).toBe('submenu')
+    }
+  })
+})

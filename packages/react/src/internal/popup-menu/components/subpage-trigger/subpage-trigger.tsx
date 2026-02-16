@@ -55,6 +55,16 @@ export interface PopupMenuSubpageTriggerProps
   disabled?: boolean
   /** Whether to force render this item regardless of filter results. */
   forceMount?: boolean
+  /**
+   * Forces this row's relative order during score-based sorting.
+   * Lower values appear earlier.
+   * @default 0
+   */
+  forceOrder?: number
+  /**
+   * Overrides this row's computed fuzzy-match score.
+   */
+  forceScore?: number
   /** Target page ID to open when this trigger is selected. */
   targetPageId: string
 }
@@ -73,6 +83,8 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     keywords,
     disabled = false,
     forceMount = false,
+    forceOrder,
+    forceScore,
     targetPageId,
     render,
     className,
@@ -108,6 +120,8 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     keywords,
     disabled,
     forceMount,
+    forceOrder,
+    forceScore,
     isSubmenuTrigger: false,
     closeOnClick: false,
     onSelect: openTargetPage,

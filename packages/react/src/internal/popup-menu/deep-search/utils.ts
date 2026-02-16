@@ -319,7 +319,8 @@ export function scoreNodes(
       ?.map((k) => normalizeValue(k))
       .filter(Boolean)
 
-    const score = commandScore(normalizedValue, query, normalizedKeywords)
+    const fuzzyScore = commandScore(normalizedValue, query, normalizedKeywords)
+    const score = node.forceScore ?? fuzzyScore
 
     if (score > 0) {
       results.push({
@@ -339,26 +340,116 @@ export function scoreNodes(
 // Sort Nodes
 // ============================================================================
 
-/**
- * Sorts scored nodes by score (descending).
- */
-export function sortByScore(nodes: ScoredNode[]): ScoredNode[] {
-  return [...nodes].sort((a, b) => b.score - a.score)
+function getNodeForceOrder(node: { forceOrder?: number }): number {
+  return node.forceOrder ?? 0
+}
+
+function compareScoredNodesByForceOrderAndScore(
+  a: ScoredNode,
+  b: ScoredNode,
+): number {
+  const orderDiff = getNodeForceOrder(a.node) - getNodeForceOrder(b.node)
+  if (orderDiff !== 0) {
+    return orderDiff
+  }
+
+  return b.score - a.score
+}
+
+function getRowKindSortRank(
+  kind: 'item' | 'radio-item' | 'checkbox-item' | 'submenu',
+): number {
+  return kind === 'submenu' ? 1 : 0
+}
+
+function sortByForceOrderThenKindThenScore(
+  a: { forceOrder: number; kindRank: number; score: number },
+  b: { forceOrder: number; kindRank: number; score: number },
+): number {
+  const orderDiff = a.forceOrder - b.forceOrder
+  if (orderDiff !== 0) {
+    return orderDiff
+  }
+
+  const kindDiff = a.kindRank - b.kindRank
+  if (kindDiff !== 0) {
+    return kindDiff
+  }
+
+  return b.score - a.score
+}
+
+function getMinForceOrderFromDisplayRows(nodes: DisplayRowNode[]): number {
+  if (nodes.length === 0) {
+    return 0
+  }
+
+  let minForceOrder = Number.POSITIVE_INFINITY
+
+  for (const item of nodes) {
+    const forceOrder = getNodeForceOrder(item.node)
+    if (forceOrder < minForceOrder) {
+      minForceOrder = forceOrder
+    }
+  }
+
+  return minForceOrder === Number.POSITIVE_INFINITY ? 0 : minForceOrder
 }
 
 /**
- * Partitions nodes: items first, then submenu triggers.
- * This ensures items appear before submenu triggers in search results.
+ * Sorts scored nodes by forced order, then score (descending).
+ */
+export function sortByScore(nodes: ScoredNode[]): ScoredNode[] {
+  return [...nodes].sort(compareScoredNodesByForceOrderAndScore)
+}
+
+/**
+ * Partitions nodes by forced order bucket, then kind.
+ * Within each forceOrder bucket, items are shown before submenu triggers.
  */
 export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
-  const items = nodes.filter(
-    (n) =>
-      n.node.kind === 'item' ||
-      n.node.kind === 'radio-item' ||
-      n.node.kind === 'checkbox-item',
-  )
-  const submenus = nodes.filter((n) => n.node.kind === 'submenu')
-  return [...items, ...submenus]
+  const byForceOrder = new Map<
+    number,
+    {
+      items: ScoredNode[]
+      branches: ScoredNode[]
+    }
+  >()
+
+  for (const node of nodes) {
+    const forceOrder = getNodeForceOrder(node.node)
+    const bucket = byForceOrder.get(forceOrder) ?? {
+      items: [],
+      branches: [],
+    }
+
+    if (
+      node.node.kind === 'item' ||
+      node.node.kind === 'radio-item' ||
+      node.node.kind === 'checkbox-item'
+    ) {
+      bucket.items.push(node)
+    } else {
+      bucket.branches.push(node)
+    }
+
+    byForceOrder.set(forceOrder, bucket)
+  }
+
+  const sortedForceOrders = [...byForceOrder.keys()].sort((a, b) => a - b)
+
+  const result: ScoredNode[] = []
+
+  for (const forceOrder of sortedForceOrders) {
+    const bucket = byForceOrder.get(forceOrder)
+    if (!bucket) {
+      continue
+    }
+
+    result.push(...bucket.items, ...bucket.branches)
+  }
+
+  return result
 }
 
 /**
@@ -817,8 +908,8 @@ function filterNodesFlatten(options: FilterNodesOptions): {
         itemsToDisplay = matchingItems
       }
 
-      // Sort items: matching items first (by score), then non-matching
-      itemsToDisplay.sort((a, b) => b.score - a.score)
+      // Sort items by forced order, then score.
+      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
 
       const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
       const isDeepSearchResult = breadcrumbs.length > 0
@@ -842,21 +933,30 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     }
   }
 
-  // Merge regular items and radio groups, sorted by score
-  type SortableNode = { node: DisplayNode; score: number }
+  // Merge regular items and radio groups, sorted by forced order then score.
+  type SortableNode = {
+    node: DisplayNode
+    score: number
+    forceOrder: number
+    kindRank: number
+  }
 
   const allNodes: SortableNode[] = [
     ...regularDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.context.search?.score ?? 0,
+      forceOrder: getNodeForceOrder(r.node),
+      kindRank: getRowKindSortRank(r.node.kind),
     })),
     ...radioGroupDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.bestScore,
+      forceOrder: getMinForceOrderFromDisplayRows(r.items),
+      kindRank: 0,
     })),
   ]
 
-  allNodes.sort((a, b) => b.score - a.score)
+  allNodes.sort(sortByForceOrderThenKindThenScore)
 
   return {
     displayNodes: allNodes.map((n) => n.node),
@@ -975,10 +1075,10 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   // Build display nodes for groups (with items sorted by score)
   const groupDisplayNodes: DisplayGroupNode[] = []
   for (const [_groupId, { groupDef, items, breadcrumbs }] of groupedItems) {
-    // Sort items within group by score
-    items.sort((a, b) => b.score - a.score)
+    // Sort items within group by forced order, then score.
+    items.sort(compareScoredNodesByForceOrderAndScore)
 
-    const bestScore = items[0]?.score ?? 0
+    const bestScore = Math.max(...items.map((item) => item.score), 0)
     const isDeepSearchResult = breadcrumbs.length > 0
 
     const groupContext: GroupRenderContext = {
@@ -1033,8 +1133,8 @@ function filterNodesPreserve(options: FilterNodesOptions): {
         itemsToDisplay = matchingItems
       }
 
-      // Sort items: matching items first (by score), then non-matching
-      itemsToDisplay.sort((a, b) => b.score - a.score)
+      // Sort items by forced order, then score.
+      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
 
       const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
       const isDeepSearchResult = breadcrumbs.length > 0
@@ -1060,29 +1160,40 @@ function filterNodesPreserve(options: FilterNodesOptions): {
 
   // Build display nodes for ungrouped items
   const ungroupedDisplayNodes: DisplayRowNode[] = ungroupedItems
-    .sort((a, b) => b.score - a.score)
+    .sort(compareScoredNodesByForceOrderAndScore)
     .map((item) => buildDisplayRowNode(item, query, highlightedId))
 
-  // Merge groups, radio groups, and ungrouped items, sorted by best score
-  type SortableNode = { node: DisplayNode; score: number }
+  // Merge groups, radio groups, and ungrouped items, sorted by forced order then score.
+  type SortableNode = {
+    node: DisplayNode
+    score: number
+    forceOrder: number
+    kindRank: number
+  }
 
   const allNodes: SortableNode[] = [
     ...groupDisplayNodes.map((g) => ({
       node: g as DisplayNode,
       score: g.bestScore,
+      forceOrder: getMinForceOrderFromDisplayRows(g.items),
+      kindRank: 0,
     })),
     ...radioGroupDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.bestScore,
+      forceOrder: getMinForceOrderFromDisplayRows(r.items),
+      kindRank: 0,
     })),
     ...ungroupedDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.context.search?.score ?? 0,
+      forceOrder: getNodeForceOrder(r.node),
+      kindRank: getRowKindSortRank(r.node.kind),
     })),
   ]
 
   if (sortGroups) {
-    allNodes.sort((a, b) => b.score - a.score)
+    allNodes.sort(sortByForceOrderThenKindThenScore)
   }
 
   return {

@@ -77,6 +77,18 @@ export interface PopupMenuRadioItemProps
    * Should be a single character (e.g., "1", "a", etc.).
    */
   shortcut?: string
+
+  /**
+   * Forces this row's relative order during score-based sorting.
+   * Lower values appear earlier.
+   * @default 0
+   */
+  forceOrder?: number
+
+  /**
+   * Overrides this row's computed fuzzy-match score.
+   */
+  forceScore?: number
 }
 
 const stateAttributesMapping = {
@@ -108,6 +120,8 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     forceMount = false,
     closeOnClick = false,
     shortcut,
+    forceOrder,
+    forceScore,
     render,
     className,
     style,
@@ -132,6 +146,8 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     disabled,
     forceMount,
     shortcut,
+    forceOrder,
+    forceScore,
     closeOnClick,
     children,
   })
