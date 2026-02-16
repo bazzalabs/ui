@@ -145,6 +145,19 @@ export const examples: RegistryIndex = {
       'registry/examples/dropdown-menu/deep-search-linear/icons.tsx',
     ],
   },
+  'dropdown-menu-deep-search-subpages-linear': {
+    name: 'dropdown-menu-deep-search-subpages-linear',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import('@/registry/examples/dropdown-menu/deep-search-subpages-linear'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/deep-search-subpages-linear/index.tsx',
+      'registry/examples/dropdown-menu/deep-search-subpages-linear/components.tsx',
+      'registry/examples/dropdown-menu/deep-search-subpages-linear/icons.tsx',
+    ],
+  },
   'dropdown-menu-deep-search-linear-async': {
     name: 'dropdown-menu-deep-search-linear-async',
     type: 'registry:example',
