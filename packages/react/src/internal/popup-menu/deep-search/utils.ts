@@ -20,8 +20,8 @@ import type {
   RadioItemDef,
   RowRenderContext,
   ScoredNode,
-  SeparatorDef,
   SubmenuDef,
+  SubpageDef,
 } from './types.js'
 import {
   isDisplayGroupNode,
@@ -78,6 +78,30 @@ export function defaultGetQualifiedRowId(
   return slugValue
 }
 
+/**
+ * Computes a deterministic page ID for a subpage node.
+ *
+ * Priority:
+ * - explicit `node.pageId`
+ * - derived from breadcrumb ids/values + node id/value (slugified)
+ */
+export function getSubpagePageId(
+  node: SubpageDef,
+  breadcrumbs: BreadcrumbNode[],
+): string {
+  if (node.pageId) {
+    return node.pageId
+  }
+
+  const breadcrumbSegments = breadcrumbs
+    .map((breadcrumb) => slugify(breadcrumb.id ?? breadcrumb.value))
+    .filter(Boolean)
+  const leafSegment = slugify(node.id ?? node.value)
+  const path = [...breadcrumbSegments, leafSegment].filter(Boolean).join('.')
+
+  return path ? `subpage.${path}` : 'subpage'
+}
+
 // ============================================================================
 // Type Guards
 // ============================================================================
@@ -96,6 +120,10 @@ export function isCheckboxItemDef(node: NodeDef): node is CheckboxItemDef {
 
 export function isSubmenuDef(node: NodeDef): node is SubmenuDef {
   return node.kind === 'submenu'
+}
+
+export function isSubpageDef(node: NodeDef): node is SubpageDef {
+  return node.kind === 'subpage'
 }
 
 export function isGroupDef(node: NodeDef): node is GroupDef {
@@ -117,13 +145,13 @@ export function isSeparatorDef(
 // ============================================================================
 
 interface FlattenOptions {
-  /** Whether to include children of submenus (deep search) */
+  /** Whether to include children of branch nodes (submenu/subpage) */
   deep?: boolean
-  /** Default include mode for descendant submenus */
+  /** Default include mode for descendant branch nodes */
   includeInDeepSearch?: IncludeInDeepSearch
   /** Whether ancestors allow this subtree to participate in deep search */
   descendantsIncluded?: boolean
-  /** Parent breadcrumb nodes (submenu nodes from root to parent) */
+  /** Parent breadcrumb nodes (branch nodes from root to parent) */
   breadcrumbs?: BreadcrumbNode[]
   /** Current group context (nested groups not supported) */
   group?: { id: string; label?: string; groupDef: GroupDef } | null
@@ -136,8 +164,8 @@ interface FlattenOptions {
 }
 
 interface FlattenedNode {
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
-  /** Breadcrumb nodes (submenu nodes from root to parent) */
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+  /** Breadcrumb nodes (branch nodes from root to parent) */
   breadcrumbs: BreadcrumbNode[]
   /** The group this node belongs to, if any */
   group: { id: string; label?: string; groupDef: GroupDef } | null
@@ -151,7 +179,7 @@ interface FlattenedNode {
 
 /**
  * Flattens a tree of node definitions into a flat array.
- * When deep=true, includes children of submenus with their breadcrumb paths.
+ * When deep=true, includes children of branch nodes with their breadcrumb paths.
  * Tracks group and radio group membership for each node.
  */
 export function flattenNodes(
@@ -231,15 +259,15 @@ export function flattenNodes(
       continue
     }
 
-    if (node.kind === 'submenu') {
-      const submenuIncludeMode = node.includeInDeepSearch ?? includeInDeepSearch
+    if (node.kind === 'submenu' || node.kind === 'subpage') {
+      const branchIncludeMode = node.includeInDeepSearch ?? includeInDeepSearch
 
       // includeInDeepSearch only affects deep search results.
-      // In shallow mode, submenu triggers remain searchable as normal rows.
-      const shouldIncludeSubmenuTrigger =
-        !deep || (descendantsIncluded && submenuIncludeMode !== false)
+      // In shallow mode, branch triggers remain searchable as normal rows.
+      const shouldIncludeBranchTrigger =
+        !deep || (descendantsIncluded && branchIncludeMode !== false)
 
-      if (shouldIncludeSubmenuTrigger) {
+      if (shouldIncludeBranchTrigger) {
         result.push({
           node,
           breadcrumbs,
@@ -248,23 +276,22 @@ export function flattenNodes(
         })
       }
 
-      // If deep search enabled and submenu allows descendants, include children.
-      const shouldIncludeSubmenuDescendants =
+      // If deep search enabled and branch allows descendants, include children.
+      const shouldIncludeBranchDescendants =
         deep &&
         descendantsIncluded &&
-        submenuIncludeMode === true &&
+        branchIncludeMode === true &&
         node.deepSearch !== false
 
-      if (shouldIncludeSubmenuDescendants && node.nodes) {
-        // Create breadcrumb node for this submenu
-        const submenuBreadcrumb: BreadcrumbNode = {
+      if (shouldIncludeBranchDescendants && node.nodes) {
+        const branchBreadcrumb: BreadcrumbNode = {
           node,
           value: node.value,
           id: node.id,
         }
         const childBreadcrumbs: BreadcrumbNode[] = [
           ...breadcrumbs,
-          submenuBreadcrumb,
+          branchBreadcrumb,
         ]
 
         result.push(
@@ -273,7 +300,7 @@ export function flattenNodes(
             includeInDeepSearch,
             descendantsIncluded: true,
             breadcrumbs: childBreadcrumbs,
-            // Reset group and radio group context when entering a submenu
+            // Reset group and radio group context when entering a branch node
             group: null,
             radioGroup: null,
           }),
@@ -357,9 +384,9 @@ function compareScoredNodesByForceOrderAndScore(
 }
 
 function getRowKindSortRank(
-  kind: 'item' | 'radio-item' | 'checkbox-item' | 'submenu',
+  kind: 'item' | 'radio-item' | 'checkbox-item' | 'submenu' | 'subpage',
 ): number {
-  return kind === 'submenu' ? 1 : 0
+  return kind === 'submenu' || kind === 'subpage' ? 1 : 0
 }
 
 function sortByForceOrderThenKindThenScore(
@@ -405,7 +432,7 @@ export function sortByScore(nodes: ScoredNode[]): ScoredNode[] {
 
 /**
  * Partitions nodes by forced order bucket, then kind.
- * Within each forceOrder bucket, items are shown before submenu triggers.
+ * Within each forceOrder bucket, items are shown before submenu/subpage triggers.
  */
 export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
   const byForceOrder = new Map<
@@ -723,7 +750,7 @@ export function getBrowseNodesPreserve(
       continue
     }
 
-    // Ungrouped item/submenu
+    // Ungrouped item/submenu/subpage
     const context: RowRenderContext = {
       search: null,
       breadcrumbs: [],
@@ -888,7 +915,6 @@ function filterNodesFlatten(options: FilterNodesOptions): {
         const allItems = allRadioGroupItems.get(radioGroupId)
         if (allItems) {
           // Create scored nodes for all items, using 0 for non-matching
-          const matchingIds = new Set(matchingItems.map((item) => item.node.id))
           const matchingScores = new Map(
             matchingItems.map((item) => [item.node.id, item.score]),
           )
@@ -1270,7 +1296,7 @@ export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
     } else if (isDisplaySeparatorNode(node)) {
       // Separators are not navigable
     } else {
-      // Row node (item, checkbox item, or submenu)
+      // Row node (item, checkbox item, submenu, or subpage)
       if (!node.node.disabled) {
         ids.push(node.node.id ?? node.node.value)
       }
@@ -1295,22 +1321,22 @@ export function getFirstNavigableId(
 // ============================================================================
 
 /**
- * Info about an async submenu for registration with coordinator.
+ * Info about an async branch node (submenu/subpage) for registration.
  */
 export interface AsyncSubmenuInfo {
   /** Unique identifier (uses node value and breadcrumbs) */
   id: string
-  /** Breadcrumbs path to this submenu */
+  /** Breadcrumbs path to this branch node */
   breadcrumbs: string[]
-  /** The submenu node definition */
-  node: SubmenuDef
+  /** The branch node definition */
+  node: SubmenuDef | SubpageDef
   /** The async configuration */
   config: AsyncNodesConfig
 }
 
 /**
- * Collects all async submenus from a node tree.
- * Recursively traverses groups and submenus to find all async configurations.
+ * Collects all async branch nodes from a node tree.
+ * Recursively traverses groups and branches to find all async configurations.
  */
 export function collectAsyncSubmenus(
   nodes: NodeDef[],
@@ -1352,17 +1378,17 @@ export function collectAsyncSubmenus(
       continue
     }
 
-    if (node.kind === 'submenu') {
+    if (node.kind === 'submenu' || node.kind === 'subpage') {
       if (node.hidden) continue
 
-      const submenuIncludeMode = node.includeInDeepSearch ?? includeInDeepSearch
-      const shouldIncludeDescendants =
+      const branchIncludeMode = node.includeInDeepSearch ?? includeInDeepSearch
+      const shouldIncludeBranchDescendants =
         descendantsIncluded &&
-        submenuIncludeMode === true &&
+        branchIncludeMode === true &&
         node.deepSearch !== false
 
-      // If this submenu has async nodes, add it to the result
-      if (node.asyncNodes && shouldIncludeDescendants) {
+      // If this branch has async nodes, add it to the result
+      if (node.asyncNodes && shouldIncludeBranchDescendants) {
         const id = [...breadcrumbs, normalizeValue(node.value)].join('.')
         result.push({
           id,
@@ -1372,8 +1398,8 @@ export function collectAsyncSubmenus(
         })
       }
 
-      // Recurse into submenu's static nodes
-      if (node.nodes && shouldIncludeDescendants) {
+      // Recurse into branch node's static nodes
+      if (node.nodes && shouldIncludeBranchDescendants) {
         const childBreadcrumbs = [...breadcrumbs, normalizeValue(node.value)]
         result.push(
           ...collectAsyncSubmenus(
@@ -1439,12 +1465,12 @@ export function mergeAsyncNodesIntoTree(
     currentBreadcrumbs: string[],
   ): NodeDef[] {
     return nodes.map((node) => {
-      if (node.kind === 'submenu') {
-        const submenuPath = [
+      if (node.kind === 'submenu' || node.kind === 'subpage') {
+        const branchPath = [
           ...currentBreadcrumbs,
           normalizeValue(node.value),
         ].join('.')
-        const asyncNodes = asyncMap.get(submenuPath)
+        const asyncNodes = asyncMap.get(branchPath)
 
         // Get merged child nodes
         const mergedStaticChildren = node.nodes

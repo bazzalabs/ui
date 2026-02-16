@@ -1,3 +1,3 @@
 'use client'
 
-export * from '../deep-search-linear-async/components'
+export * from '../deep-search-linear/components'

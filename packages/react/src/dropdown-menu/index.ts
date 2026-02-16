@@ -243,6 +243,8 @@ export type {
   CheckboxItemRenderProps,
   DataListChildrenState,
   DataListProps,
+  DataSubpagesChildrenState,
+  DataSubpagesProps,
   DataSurfaceContextValue,
   DataSurfaceProps,
   DeepSearchConfig,
@@ -251,6 +253,7 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySeparatorNode,
+  DisplaySubpageNode,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -264,6 +267,7 @@ export type {
   NodeDef,
   PopupMenuDataInputProps as DropdownMenuDataInputProps,
   PopupMenuDataListProps as DropdownMenuDataListProps,
+  PopupMenuDataSubpagesProps as DropdownMenuDataSubpagesProps,
   PopupMenuDataSurfaceProps as DropdownMenuDataSurfaceProps,
   PopupMenuRadioGroupValueProps as DropdownMenuRadioGroupValueProps,
   QueryAsyncNodesConfig,
@@ -285,6 +289,10 @@ export type {
   SubmenuDef,
   SubmenuRenderParams,
   SubmenuRenderProps,
+  SubpageContentRenderParams,
+  SubpageDef,
+  SubpageTriggerRenderParams,
+  SubpageTriggerRenderProps,
 } from '../internal/popup-menu/index.js'
 
 export {
@@ -296,6 +304,7 @@ export {
   isDisplaySeparatorNode,
   PopupMenuDataInput as DropdownMenuDataInput,
   PopupMenuDataList as DropdownMenuDataList,
+  PopupMenuDataSubpages as DropdownMenuDataSubpages,
   PopupMenuDataSurface as DropdownMenuDataSurface,
   PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
   useAsyncMenuCoordinator,

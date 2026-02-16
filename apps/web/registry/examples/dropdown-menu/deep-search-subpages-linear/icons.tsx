@@ -1,1 +1,1 @@
-export * from '../deep-search-linear-async/icons'
+export * from '../deep-search-linear/icons'

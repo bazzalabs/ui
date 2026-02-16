@@ -426,6 +426,8 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
 )
 DataList.displayName = 'DropdownMenu.DataList'
 
+const DataSubpages = Primitive.DataSubpages
+
 // ============================================================================
 // Virtualized DataList Content (internal)
 // ============================================================================
@@ -1107,6 +1109,7 @@ export const DropdownMenu = {
   DataSurface,
   List,
   DataList,
+  DataSubpages,
   Input,
   DataInput,
   Item,

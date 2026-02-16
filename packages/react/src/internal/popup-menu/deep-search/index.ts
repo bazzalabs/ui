@@ -3,19 +3,27 @@
 // ============================================================================
 // Data-first API for popup menus with deep search support.
 
-export type { DataSurfaceContextValue, RenderNodeFn } from './context.js'
+export type {
+  DataPopupContextValue,
+  DataSurfaceContextValue,
+  RenderNodeFn,
+} from './context.js'
 
 // Context
 export {
+  DataPopupContext,
   DataSurfaceContext,
+  useDataPopupContext,
   useDataSurfaceContext,
+  useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './context.js'
 export type { PopupMenuDataInputProps } from './data-input.js'
 export { PopupMenuDataInput } from './data-input.js'
 export type { PopupMenuDataListProps } from './data-list.js'
-
 export { PopupMenuDataList } from './data-list.js'
+export type { PopupMenuDataSubpagesProps } from './data-subpages.js'
+export { PopupMenuDataSubpages } from './data-subpages.js'
 export type { PopupMenuDataSurfaceProps } from './data-surface.js'
 // Components
 export { PopupMenuDataSurface } from './data-surface.js'
@@ -28,6 +36,8 @@ export type {
   CheckboxItemRenderProps,
   DataListChildrenState,
   DataListProps,
+  DataSubpagesChildrenState,
+  DataSubpagesProps,
   DataSurfaceProps,
   DeepSearchConfig,
   DisplayGroupNode,
@@ -35,6 +45,7 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySeparatorNode,
+  DisplaySubpageNode,
   GetQualifiedRowIdContext,
   GetQualifiedRowIdFn,
   GroupBehavior,
@@ -60,6 +71,10 @@ export type {
   SubmenuDef,
   SubmenuRenderParams,
   SubmenuRenderProps,
+  SubpageContentRenderParams,
+  SubpageDef,
+  SubpageTriggerRenderParams,
+  SubpageTriggerRenderProps,
 } from './types.js'
 export {
   defineRadioGroup,
@@ -80,6 +95,7 @@ export {
   getBrowseNodesPreserve,
   getFirstNavigableId,
   getNavigableIds,
+  getSubpagePageId,
   isCheckboxItemDef,
   isGroupDef,
   isItemDef,
@@ -87,6 +103,7 @@ export {
   isRadioItemDef,
   isSeparatorDef,
   isSubmenuDef,
+  isSubpageDef,
   partitionByKind,
   scoreNodes,
   shouldIncludeInDeepSearch,
