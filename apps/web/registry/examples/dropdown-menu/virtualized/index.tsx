@@ -1,5 +1,6 @@
 'use client'
 
+import type { DropdownMenuRoot } from '@bazza-ui/react/dropdown-menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -55,8 +56,12 @@ export default function DropdownMenuVirtualized() {
 
   // Sync virtualizer scroll when highlight changes via keyboard
   const handleHighlightChange = React.useCallback(
-    (_id: string | null, index: number) => {
-      if (index >= 0) {
+    (
+      id: string | null,
+      index: number,
+      details: DropdownMenuRoot.HighlightChangeEventDetails,
+    ) => {
+      if (id !== null && index >= 0 && details.reason === 'keyboard') {
         queueMicrotask(() => {
           virtualizer.scrollToIndex(index, { align: 'auto' })
         })
