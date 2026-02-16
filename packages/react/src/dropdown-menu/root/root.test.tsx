@@ -608,6 +608,57 @@ function DropdownMenuWithImperativeActions() {
   )
 }
 
+interface DropdownMenuDisableHandle {
+  setDisabled: (disabled: boolean) => void
+}
+
+const DropdownMenuWithInputAndImperativeActions = React.forwardRef<
+  DropdownMenuDisableHandle,
+  {
+    dataInput?: boolean
+  }
+>(function DropdownMenuWithInputAndImperativeActions(
+  { dataInput = false },
+  forwardedRef,
+) {
+  const actionsRef = React.useRef<DropdownMenu.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    forwardedRef,
+    () => ({
+      setDisabled: (disabled) => actionsRef.current?.setDisabled(disabled),
+    }),
+    [],
+  )
+
+  return (
+    <DropdownMenu.Root actionsRef={actionsRef}>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="surface">
+              {dataInput ? (
+                <DropdownMenu.DataInput data-testid="menu-data-input" />
+              ) : (
+                <DropdownMenu.Input data-testid="menu-input" />
+              )}
+
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="item-1">
+                  Item 1
+                </DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+})
+
 function DropdownMenuWithNestedSubpages() {
   return (
     <DropdownMenu.Root>
@@ -915,6 +966,64 @@ describe('<DropdownMenu.Root />', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
       })
+    })
+
+    it('disables Input when setDisabled(true) is called', async () => {
+      const user = userEvent.setup()
+      const actions = React.createRef<DropdownMenuDisableHandle>()
+
+      render(<DropdownMenuWithInputAndImperativeActions ref={actions} />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('menu-input')
+      expect(input).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(input).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(input).not.toBeDisabled()
+    })
+
+    it('disables DataInput when setDisabled(true) is called', async () => {
+      const user = userEvent.setup()
+      const actions = React.createRef<DropdownMenuDisableHandle>()
+
+      render(
+        <DropdownMenuWithInputAndImperativeActions ref={actions} dataInput />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const dataInput = screen.getByTestId('menu-data-input')
+      expect(dataInput).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(dataInput).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(dataInput).not.toBeDisabled()
     })
   })
 

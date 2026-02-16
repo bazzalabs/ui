@@ -177,6 +177,55 @@ function ContextMenuWithImperativeActions() {
   )
 }
 
+interface ContextMenuDisableHandle {
+  setDisabled: (disabled: boolean) => void
+}
+
+const ContextMenuWithInputAndImperativeActions = React.forwardRef<
+  ContextMenuDisableHandle,
+  {
+    dataInput?: boolean
+  }
+>(function ContextMenuWithInputAndImperativeActions(
+  { dataInput = false },
+  forwardedRef,
+) {
+  const actionsRef = React.useRef<ContextMenu.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    forwardedRef,
+    () => ({
+      setDisabled: (disabled) => actionsRef.current?.setDisabled(disabled),
+    }),
+    [],
+  )
+
+  return (
+    <ContextMenu.Root actionsRef={actionsRef}>
+      <ContextMenu.Trigger data-testid="trigger">
+        Right-click here
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner>
+          <ContextMenu.Popup>
+            <ContextMenu.Surface data-testid="surface">
+              {dataInput ? (
+                <ContextMenu.DataInput data-testid="menu-data-input" />
+              ) : (
+                <ContextMenu.Input data-testid="menu-input" />
+              )}
+
+              <ContextMenu.List>
+                <ContextMenu.Item data-testid="item-1">Item 1</ContextMenu.Item>
+              </ContextMenu.List>
+            </ContextMenu.Surface>
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  )
+})
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -830,6 +879,62 @@ describe('<ContextMenu.Root />', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
       })
+    })
+
+    it('disables Input when setDisabled(true) is called', async () => {
+      const actions = React.createRef<ContextMenuDisableHandle>()
+
+      render(<ContextMenuWithInputAndImperativeActions ref={actions} />)
+
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('menu-input')
+      expect(input).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(input).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(input).not.toBeDisabled()
+    })
+
+    it('disables DataInput when setDisabled(true) is called', async () => {
+      const actions = React.createRef<ContextMenuDisableHandle>()
+
+      render(
+        <ContextMenuWithInputAndImperativeActions ref={actions} dataInput />,
+      )
+
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const dataInput = screen.getByTestId('menu-data-input')
+      expect(dataInput).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(dataInput).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(dataInput).not.toBeDisabled()
     })
   })
 
