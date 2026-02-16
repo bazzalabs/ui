@@ -60,6 +60,7 @@ export const PopupMenuInput = React.forwardRef<
     value: controlledValue,
     onValueChange,
     hideUntilActive = false,
+    disabled: disabledProp = false,
     render,
     className,
     style,
@@ -72,6 +73,7 @@ export const PopupMenuInput = React.forwardRef<
   const submenuContext = useMaybeSubmenuContext()
   const subpageContext = useMaybeSubpageContext()
   const { disabled: popupMenuDisabled } = usePopupMenuContext()
+  const disabled = popupMenuDisabled || disabledProp
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)
 
@@ -141,7 +143,7 @@ export const PopupMenuInput = React.forwardRef<
     submenuContext,
     subpageContext,
     enabled: true,
-    disabled: popupMenuDisabled,
+    disabled,
     enableTypeToSearch: false,
     onKeyDown,
     closeAll,
@@ -175,7 +177,7 @@ export const PopupMenuInput = React.forwardRef<
       autoComplete: 'off',
       autoCorrect: 'off',
       spellCheck: false,
-      disabled: popupMenuDisabled,
+      disabled,
       className,
       style,
       value: displayValue,
