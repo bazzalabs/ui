@@ -1231,7 +1231,7 @@ export const DiamondSpinner = ({
         />
       ))}
       {/* Animated squares */}
-      <g style={{ animation: 'diamond-spin 1.4s steps(2, end) infinite' }}>
+      <g style={{ animation: 'diamond-spin 0.75s steps(2, end) infinite' }}>
         {diamondCoords.slice(0, 5).map((c) => (
           <rect key={`fg-${c.x}-${c.y}`} {...getRectProps(9, c)} />
         ))}
