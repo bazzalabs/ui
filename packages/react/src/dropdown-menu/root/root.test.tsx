@@ -717,6 +717,65 @@ function DropdownMenuWithNestedSubpages() {
   )
 }
 
+function DropdownMenuWithAsyncSubpageBackItem({
+  onSelectAsync,
+}: {
+  onSelectAsync: DropdownMenu.SubpageBackItem.Props['onSelectAsync']
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="root-surface">
+              <DropdownMenu.List data-testid="root-list">
+                <DropdownMenu.SubpageTrigger
+                  data-testid="subpage-trigger-1"
+                  targetPageId="page-1"
+                >
+                  Page 1
+                </DropdownMenu.SubpageTrigger>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+
+            <DropdownMenu.Subpage pageId="page-1">
+              <DropdownMenu.Surface data-testid="subpage-surface-1">
+                <DropdownMenu.List data-testid="subpage-list-1">
+                  <DropdownMenu.SubpageTrigger
+                    data-testid="subpage-trigger-2"
+                    targetPageId="page-2"
+                  >
+                    Page 2
+                  </DropdownMenu.SubpageTrigger>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+
+            <DropdownMenu.Subpage pageId="page-2">
+              <DropdownMenu.Surface data-testid="subpage-surface-2">
+                <DropdownMenu.List data-testid="subpage-list-2">
+                  <DropdownMenu.SubpageBackItem
+                    data-testid="async-subpage-back-item"
+                    onSelectAsync={onSelectAsync}
+                  >
+                    Async back
+                  </DropdownMenu.SubpageBackItem>
+                  <DropdownMenu.Item data-testid="subpage-item-2">
+                    Page 2 Item
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function DropdownMenuWithSubpageRenderSpy({
   onSubpageRender,
 }: {
@@ -2461,6 +2520,96 @@ describe('<DropdownMenu.Root />', () => {
           screen.queryByTestId('subpage-surface-2'),
         ).not.toBeInTheDocument()
       })
+    })
+
+    it('SubpageBackItem waits for onSelectAsync before navigating back', async () => {
+      const user = userEvent.setup()
+      let resolveSelection: (() => void) | undefined
+
+      const onSelectAsync = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSelection = resolve
+          }),
+      )
+
+      render(
+        <DropdownMenuWithAsyncSubpageBackItem onSelectAsync={onSelectAsync} />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('subpage-trigger-1'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('subpage-trigger-2'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-2')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('async-subpage-back-item'))
+
+      expect(onSelectAsync).toHaveBeenCalledTimes(1)
+      expect(screen.getByTestId('subpage-surface-2')).toBeInTheDocument()
+      expect(screen.getByTestId('async-subpage-back-item')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      )
+
+      await act(async () => {
+        resolveSelection?.()
+      })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
+        expect(
+          screen.queryByTestId('subpage-surface-2'),
+        ).not.toBeInTheDocument()
+      })
+    })
+
+    it('SubpageBackItem stays on current subpage when onSelectAsync returns false', async () => {
+      const user = userEvent.setup()
+      const onSelectAsync = vi.fn(async () => false)
+
+      render(
+        <DropdownMenuWithAsyncSubpageBackItem onSelectAsync={onSelectAsync} />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('subpage-trigger-1'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('subpage-trigger-2'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-2')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('async-subpage-back-item'))
+
+      await waitFor(() => {
+        expect(onSelectAsync).toHaveBeenCalledTimes(1)
+      })
+
+      expect(screen.getByTestId('subpage-surface-2')).toBeInTheDocument()
+      expect(screen.queryByTestId('subpage-surface-1')).not.toBeInTheDocument()
     })
   })
 })

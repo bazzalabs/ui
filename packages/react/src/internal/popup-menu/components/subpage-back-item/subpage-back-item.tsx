@@ -49,6 +49,16 @@ export interface PopupMenuSubpageBackItemProps
   forceMount?: boolean
   /** Callback when this item is selected. */
   onSelect?: () => void
+  /**
+   * Async callback when this item is selected.
+   *
+   * When provided, this takes precedence over `onSelect`.
+   * If provided, this callback is awaited before navigating back.
+   * Return `false` to prevent automatic navigation.
+   */
+  onSelectAsync?: (
+    context: PopupMenuSubpageBackItem.OnSelectAsyncContext,
+  ) => Promise<void | boolean>
 }
 
 /**
@@ -66,6 +76,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     disabled: disabledProp = false,
     forceMount = false,
     onSelect,
+    onSelectAsync,
     render,
     className,
     style,
@@ -78,21 +89,82 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
 
   const subpageContext = useSubpageContext()
   const focusOwnerStore = useFocusOwner()
+  const [isPending, setIsPending] = React.useState(false)
+  const abortControllerRef = React.useRef<AbortController | null>(null)
 
-  const handleBack = React.useCallback(() => {
-    onSelect?.()
+  React.useEffect(
+    () => () => {
+      abortControllerRef.current?.abort()
+    },
+    [],
+  )
 
+  const goBack = React.useCallback(() => {
     const didGoBack = subpageContext.goBack()
     if (didGoBack && subpageContext.parentSurfaceId) {
       focusOwnerStore.setOwnerId(subpageContext.parentSurfaceId)
     }
-  }, [onSelect, subpageContext, focusOwnerStore])
+
+    return didGoBack
+  }, [subpageContext, focusOwnerStore])
+
+  const handleBack = React.useCallback(() => {
+    if (onSelectAsync) {
+      if (isPending) {
+        return
+      }
+
+      abortControllerRef.current?.abort()
+
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+      setIsPending(true)
+
+      let didNavigate = false
+      const context: PopupMenuSubpageBackItem.OnSelectAsyncContext = {
+        goBack: () => {
+          const didGoBack = goBack()
+          if (didGoBack) {
+            didNavigate = true
+          }
+
+          return didGoBack
+        },
+        signal: controller.signal,
+      }
+
+      void onSelectAsync(context)
+        .then((result) => {
+          if (controller.signal.aborted) {
+            return
+          }
+
+          if (result !== false && !didNavigate) {
+            context.goBack()
+          }
+        })
+        .catch(() => {
+          // ignore async selection errors and keep current subpage open
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setIsPending(false)
+          }
+        })
+
+      return
+    }
+
+    onSelect?.()
+
+    goBack()
+  }, [onSelect, onSelectAsync, goBack, isPending])
 
   const item = usePopupMenuItem({
     id,
     value,
     keywords,
-    disabled: disabledProp,
+    disabled: disabledProp || isPending,
     forceMount,
     closeOnClick: false,
     onSelect: handleBack,
@@ -174,5 +246,11 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
 
 export namespace PopupMenuSubpageBackItem {
   export type State = PopupMenuSubpageBackItemState
+  export interface OnSelectAsyncContext {
+    /** Navigate back one page manually. */
+    goBack: () => boolean
+    /** Aborts when a pending async selection is canceled or unmounted. */
+    signal: AbortSignal
+  }
   export interface Props extends PopupMenuSubpageBackItemProps {}
 }
