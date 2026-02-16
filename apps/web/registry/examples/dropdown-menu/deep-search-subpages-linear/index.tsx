@@ -259,9 +259,9 @@ function createLabelsSubmenu(params: {
                 <div
                   {...props}
                   className={cn(
-                    'rounded-t-2xl rounded-b-lg flex flex-col',
+                    'rounded-t-2xl rounded-b-lg flex flex-col outline-none',
                     (state.hasOpenSubpage || isCreatingLabel) &&
-                      'border bg-muted',
+                      'border border-border bg-muted',
                   )}
                 >
                   {(state.hasOpenSubpage || isCreatingLabel) && (
@@ -590,7 +590,7 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       setIsCreatingLabel(true)
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800))
+        await new Promise((resolve) => setTimeout(resolve, 1750))
 
         createdLabelIndex.current += 1
         const createdLabelId = `${toLabelId(trimmedName)}-${createdLabelIndex.current}`
