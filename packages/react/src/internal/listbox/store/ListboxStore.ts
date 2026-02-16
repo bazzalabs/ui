@@ -188,6 +188,11 @@ export interface ListboxContext {
    */
   onCloseComplete?: () => void
   /**
+   * Callback when popup close transition completes.
+   * Used by popup-layer features that should reset only after exit animations.
+   */
+  onPopupCloseComplete?: () => void
+  /**
    * Last known pointer position for detecting actual pointer movement.
    * Used to prevent "phantom" highlights when content shifts under a stationary pointer.
    */
@@ -313,6 +318,7 @@ export class ListboxStore extends ReactStore<
         itemRefs: new Map(),
       },
       onCloseComplete: undefined,
+      onPopupCloseComplete: undefined,
       lastPointerPosition: null,
     }
 

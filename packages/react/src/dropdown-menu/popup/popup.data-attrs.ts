@@ -50,4 +50,9 @@ export enum DropdownMenuPopupDataAttributes {
    * Useful for applying different styles to submenus vs root menus.
    */
   submenu = 'data-submenu',
+  /**
+   * Present while navigating between subpages in this popup.
+   * Useful for temporary transition adjustments during subpage focus handoff.
+   */
+  navigating = 'data-navigating',
 }

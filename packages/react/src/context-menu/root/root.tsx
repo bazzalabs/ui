@@ -245,6 +245,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
       // Reset row width measurements after close animation completes
       if (!nextOpen) {
         store.context.onCloseComplete?.()
+        store.context.onPopupCloseComplete?.()
       }
       // Call user's callback
       onOpenChangeCompleteProp?.(nextOpen)

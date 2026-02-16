@@ -3,7 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
-import { ItemContext, useSurfaceContext } from '../../../listbox/index.js'
+import { ItemContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -57,18 +57,6 @@ export interface PopupMenuSubpageTriggerProps
   forceMount?: boolean
   /** Target page ID to open when this trigger is selected. */
   targetPageId: string
-  /**
-   * Whether the target page opens when this trigger is highlighted.
-   * @default true
-   */
-  openOnHighlight?: boolean
-  /**
-   * Delay before opening the page (in milliseconds).
-   * Can be a number (applies to both pointer and keyboard) or an object
-   * with separate `pointer` and `keyboard` values.
-   * @default { pointer: 0, keyboard: 150 }
-   */
-  delay?: number | { pointer?: number; keyboard?: number }
 }
 
 /**
@@ -86,30 +74,16 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     disabled = false,
     forceMount = false,
     targetPageId,
-    openOnHighlight = true,
-    delay: delayProp,
     render,
     className,
     style,
+    onClick,
     onPointerDown,
     onPointerMove,
-    onPointerEnter,
     children,
     ...rest
   } = props
 
-  const delay = React.useMemo(() => {
-    if (typeof delayProp === 'number') {
-      return { pointer: delayProp, keyboard: delayProp }
-    }
-
-    return {
-      pointer: delayProp?.pointer ?? 0,
-      keyboard: delayProp?.keyboard ?? 150,
-    }
-  }, [delayProp])
-
-  const { store: parentStore } = useSurfaceContext()
   const focusOwnerStore = useFocusOwner()
   const subpageStack = useSubpageStack()
   const activePageId = subpageStack.activePageId
@@ -134,26 +108,11 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     keywords,
     disabled,
     forceMount,
-    isSubmenuTrigger: true,
+    isSubmenuTrigger: false,
     closeOnClick: false,
     onSelect: openTargetPage,
     children,
   })
-
-  React.useEffect(() => {
-    return parentStore.registerSubmenuOpen(item.storeId, openTargetPage)
-  }, [parentStore, item.storeId, openTargetPage])
-
-  const openTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const clearOpenTimer = React.useCallback(() => {
-    if (openTimerRef.current !== null) {
-      clearTimeout(openTimerRef.current)
-      openTimerRef.current = null
-    }
-  }, [])
-
-  React.useEffect(() => clearOpenTimer, [clearOpenTimer])
 
   const isTargetOpen = activePageId === targetPageId
   const targetSurfaceId = getSurfaceId(targetPageId)
@@ -162,68 +121,22 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     targetSurfaceId ?? '',
   )
 
-  // Suppress immediate keyboard auto-open after explicit back navigation.
-  const suppressAutoOpenRef = React.useRef(false)
-  const prevIsTargetOpenRef = React.useRef(isTargetOpen)
-
-  React.useEffect(() => {
-    if (prevIsTargetOpenRef.current && !isTargetOpen && item.isHighlighted) {
-      suppressAutoOpenRef.current = true
-    }
-    prevIsTargetOpenRef.current = isTargetOpen
-  }, [isTargetOpen, item.isHighlighted])
-
-  React.useEffect(() => {
-    if (!item.isHighlighted) {
-      suppressAutoOpenRef.current = false
-    }
-  }, [item.isHighlighted])
-
-  React.useEffect(() => {
-    if (!openOnHighlight) {
-      return
-    }
-
-    if (
-      !item.isHighlighted ||
-      parentStore.state.highlightSource !== 'keyboard' ||
-      suppressAutoOpenRef.current
-    ) {
-      clearOpenTimer()
-      return
-    }
-
-    if (isTargetOpen) {
-      return
-    }
-
-    const keyboardDelay = delay.keyboard
-    if (keyboardDelay <= 0) {
-      openTargetPage()
-    } else {
-      openTimerRef.current = setTimeout(() => {
-        openTimerRef.current = null
-        openTargetPage()
-      }, keyboardDelay)
-    }
-
-    return clearOpenTimer
-  }, [
-    openOnHighlight,
-    item.isHighlighted,
-    parentStore,
-    clearOpenTimer,
-    isTargetOpen,
-    delay.keyboard,
-    openTargetPage,
-  ])
-
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       item.handlers.onPointerDown(event)
       onPointerDown?.(event)
     },
     [item.handlers, onPointerDown],
+  )
+
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      onClick?.(event)
+      if (!event.defaultPrevented) {
+        item.handlers.onClick(event)
+      }
+    },
+    [item.handlers, onClick],
   )
 
   const handlePointerMove = React.useCallback(
@@ -234,45 +147,6 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
       }
     },
     [onPointerMove, item.handlers],
-  )
-
-  const handlePointerEnter = React.useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerEnter?.(event)
-
-      if (event.defaultPrevented || disabled) {
-        return
-      }
-
-      parentStore.setHighlightedId(item.storeId)
-
-      if (!openOnHighlight || isTargetOpen) {
-        return
-      }
-
-      clearOpenTimer()
-
-      const pointerDelay = delay.pointer
-      if (pointerDelay <= 0) {
-        openTargetPage()
-      } else {
-        openTimerRef.current = setTimeout(() => {
-          openTimerRef.current = null
-          openTargetPage()
-        }, pointerDelay)
-      }
-    },
-    [
-      onPointerEnter,
-      disabled,
-      parentStore,
-      item.storeId,
-      openOnHighlight,
-      isTargetOpen,
-      clearOpenTimer,
-      delay.pointer,
-      openTargetPage,
-    ],
   )
 
   const state: PopupMenuSubpageTrigger.State = React.useMemo(
@@ -312,8 +186,8 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
       className,
       style,
       onPointerDown: handlePointerDown,
+      onClick: handleClick,
       onPointerMove: handlePointerMove,
-      onPointerEnter: handlePointerEnter,
       children: wrappedChildren,
     },
     enabled: item.isVisible,

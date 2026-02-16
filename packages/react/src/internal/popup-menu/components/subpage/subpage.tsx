@@ -140,12 +140,14 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
     [store, parentPopupMenuContext],
   )
 
+  const shouldRenderChildren = isActive
+
   return (
     <SubpageContext.Provider value={subpageContextValue}>
       <PopupSurfaceIdContext.Provider value={surfaceId}>
         <PopupMenuContext.Provider value={popupMenuContextValue}>
           <ListboxContextProvider.Provider value={listboxContextValue}>
-            {children}
+            {shouldRenderChildren ? children : null}
           </ListboxContextProvider.Provider>
         </PopupMenuContext.Provider>
       </PopupSurfaceIdContext.Provider>
