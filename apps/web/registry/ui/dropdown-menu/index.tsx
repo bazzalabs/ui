@@ -29,7 +29,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
-const scrollAreaViewportVariants = cva('scroll-py-1', {
+const scrollAreaViewportVariants = cva('scroll-py-1 overscroll-none', {
   variants: {
     withScrollFade: {
       true: [
