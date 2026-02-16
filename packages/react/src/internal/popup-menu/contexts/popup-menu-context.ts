@@ -51,6 +51,8 @@ export interface VirtualizationConfig {
 export interface PopupMenuContextValue {
   /** The Listbox store instance */
   store: ListboxStore
+  /** Whether this menu tree currently ignores user interaction. */
+  disabled: boolean
   /** Nesting depth: 0 = root menu, 1+ = submenu */
   depth: number
   /** Close the entire menu tree (deepest submenu to root, sequentially) */

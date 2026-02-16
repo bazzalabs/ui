@@ -90,6 +90,7 @@ export { useMouseTrail } from './utils/use-mouse-trail.js'
 // ============================================================================
 
 export type {
+  PopupMenuRootActions,
   UsePopupMenuRootParams,
   UsePopupMenuRootReturn,
 } from './hooks/use-popup-menu-root.js'

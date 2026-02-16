@@ -12,6 +12,7 @@ import {
   useListboxContext,
   useListboxItem,
 } from '../../listbox/index.js'
+import { useMaybePopupMenuContext } from '../contexts/popup-menu-context.js'
 import { useAimGuard } from './use-aim-guard.js'
 
 export interface UsePopupMenuItemParams
@@ -23,7 +24,10 @@ export interface UsePopupMenuItemParams
   closeOnClick?: boolean
 }
 
-export type UsePopupMenuItemReturn = UseListboxItemReturn
+export interface UsePopupMenuItemReturn extends UseListboxItemReturn {
+  /** Whether this item is effectively disabled (item disabled OR menu disabled). */
+  disabled: boolean
+}
 
 /**
  * Hook that provides all shared logic for navigatable/highlightable popup menu items.
@@ -35,9 +39,13 @@ export type UsePopupMenuItemReturn = UseListboxItemReturn
 export function usePopupMenuItem(
   params: UsePopupMenuItemParams,
 ): UsePopupMenuItemReturn {
-  const { closeOnClick = true, ...rest } = params
+  const { closeOnClick = true, disabled = false, ...rest } = params
   const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
   const { closeAll } = useListboxContext()
+  const popupMenuContext = useMaybePopupMenuContext()
+
+  const menuDisabled = popupMenuContext?.disabled ?? false
+  const effectiveDisabled = disabled || menuDisabled
 
   // Create aim guard refs object for the listbox hook
   const aimGuard = React.useMemo(
@@ -58,10 +66,19 @@ export function usePopupMenuItem(
     [closeOnClick, closeAll],
   )
 
-  return useListboxItem({
+  const item = useListboxItem({
     ...rest,
+    disabled: effectiveDisabled,
     aimGuard,
     closeOnClick,
     onAfterSelect: handleAfterSelect,
   })
+
+  return React.useMemo(
+    () => ({
+      ...item,
+      disabled: effectiveDisabled,
+    }),
+    [item, effectiveDisabled],
+  )
 }

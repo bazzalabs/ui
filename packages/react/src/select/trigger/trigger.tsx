@@ -121,7 +121,9 @@ export const SelectTrigger = React.forwardRef<
 >(function SelectTrigger(props, forwardedRef) {
   const { disabled: disabledProp, ...rest } = props
   const selectContext = useSelectContext()
-  const disabled = disabledProp ?? selectContext.disabled
+  const popupMenuContext = usePopupMenuContext()
+  const disabled =
+    (disabledProp ?? selectContext.disabled) || popupMenuContext.disabled
 
   return (
     <Popover.Trigger

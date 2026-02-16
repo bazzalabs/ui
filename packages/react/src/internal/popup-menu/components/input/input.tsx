@@ -9,6 +9,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -70,6 +71,7 @@ export const PopupMenuInput = React.forwardRef<
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
   const subpageContext = useMaybeSubpageContext()
+  const { disabled: popupMenuDisabled } = usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)
 
@@ -139,6 +141,7 @@ export const PopupMenuInput = React.forwardRef<
     submenuContext,
     subpageContext,
     enabled: true,
+    disabled: popupMenuDisabled,
     enableTypeToSearch: false,
     onKeyDown,
     closeAll,
@@ -172,6 +175,7 @@ export const PopupMenuInput = React.forwardRef<
       autoComplete: 'off',
       autoCorrect: 'off',
       spellCheck: false,
+      disabled: popupMenuDisabled,
       className,
       style,
       value: displayValue,

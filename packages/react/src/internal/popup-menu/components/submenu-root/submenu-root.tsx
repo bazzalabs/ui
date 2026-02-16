@@ -16,9 +16,13 @@ import {
   useMaybePopupMenuContext,
 } from '../../contexts/popup-menu-context.js'
 import { SubmenuContext } from '../../contexts/submenu-context.js'
+import type { PopupMenuRootActions } from '../../hooks/use-popup-menu-root.js'
 
 export interface PopupMenuSubmenuRootProps
-  extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
+  extends Omit<
+    PopoverRootProps,
+    'open' | 'onOpenChange' | 'defaultOpen' | 'actionsRef'
+  > {
   /**
    * Whether the submenu is open.
    * Use for controlled mode.
@@ -78,6 +82,21 @@ export interface PopupMenuSubmenuRootProps
    */
   onOpenChangeComplete?: (open: boolean) => void
 
+  /**
+   * Whether this submenu should ignore user interaction.
+   * Also inherits disabled state from its parent menu.
+   * @default false
+   */
+  disabled?: boolean
+
+  /**
+   * A ref to imperative actions.
+   * - `close`: closes the submenu imperatively.
+   * - `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).
+   * - `setDisabled`: enables/disables the submenu imperatively.
+   */
+  actionsRef?: React.RefObject<PopupMenuSubmenuRoot.Actions | null>
+
   children: React.ReactNode
 }
 
@@ -97,6 +116,8 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     items: itemsProp,
     onHighlightChange,
     onOpenChangeComplete: onOpenChangeCompleteProp,
+    disabled: disabledProp = false,
+    actionsRef,
     children,
     ...rest
   } = props
@@ -120,6 +141,26 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
 
   // Create the store instance for this submenu
   const store = ListboxStore.useStore(undefined, { open: defaultOpen })
+
+  const [imperativeDisabled, setImperativeDisabled] = React.useState(false)
+  const disabled =
+    (parentPopupMenuContext?.disabled ?? false) ||
+    disabledProp ||
+    imperativeDisabled
+
+  const setDisabled = React.useCallback((nextDisabled: boolean) => {
+    setImperativeDisabled(nextDisabled)
+  }, [])
+
+  const setOpen = React.useCallback(
+    (newOpen: boolean) => {
+      if (newOpen && disabled) {
+        return
+      }
+      store.setOpen(newOpen)
+    },
+    [store, disabled],
+  )
 
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
@@ -150,9 +191,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
         return
       }
 
-      store.setOpen(newOpen)
+      setOpen(newOpen)
     },
-    [store, onOpenChange],
+    [setOpen, onOpenChange],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
@@ -200,29 +241,45 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
 
   React.useEffect(() => {
     if (!parentOpen) {
-      store.setOpen(false)
+      setOpen(false)
     }
-  }, [parentOpen, store])
+  }, [parentOpen, setOpen])
 
   // Register this submenu with the root for closeAll tracking
   const depth = parentDepth + 1
   React.useEffect(() => {
     if (!parentRegisterSurface) return
-    return parentRegisterSurface(depth, (newOpen) => store.setOpen(newOpen))
-  }, [parentRegisterSurface, depth, store])
+    return parentRegisterSurface(depth, (newOpen) => setOpen(newOpen))
+  }, [parentRegisterSurface, depth, setOpen])
+
+  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    actionsRef,
+    () => ({
+      close: () => {
+        popoverActionsRef.current?.close()
+      },
+      unmount: () => {
+        popoverActionsRef.current?.unmount()
+      },
+      setDisabled,
+    }),
+    [setDisabled],
+  )
 
   // Submenu context value
   const submenuContextValue = React.useMemo(
     () => ({
       open,
-      setOpen: (newOpen: boolean) => store.setOpen(newOpen),
+      setOpen,
       triggerRef,
       contentRef,
       parentSurfaceId,
       childSurfaceId,
       closeRootOnEsc,
     }),
-    [open, store, parentSurfaceId, childSurfaceId, closeRootOnEsc],
+    [open, setOpen, parentSurfaceId, childSurfaceId, closeRootOnEsc],
   )
 
   // Fallback registerSurface for edge cases (submenu without parent root)
@@ -263,25 +320,30 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   const popupMenuContextValue = React.useMemo(
     () => ({
       store,
+      disabled,
       depth,
-      closeAll: parentCloseAll ?? (() => store.setOpen(false)),
+      closeAll: parentCloseAll ?? (() => setOpen(false)),
       registerSurface: parentRegisterSurface ?? fallbackRegisterSurface,
       virtualization,
       virtualAnchor: parentPopupMenuContext?.virtualAnchor,
       menuType: parentPopupMenuContext?.menuType ?? ('dropdown' as const),
       closeOnOutsidePress:
         parentPopupMenuContext?.closeOnOutsidePress ?? 'pointerdown',
+      getQualifiedRowId: parentPopupMenuContext?.getQualifiedRowId,
     }),
     [
       store,
+      disabled,
       depth,
       parentCloseAll,
       parentRegisterSurface,
+      setOpen,
       fallbackRegisterSurface,
       virtualization,
       parentPopupMenuContext?.virtualAnchor,
       parentPopupMenuContext?.menuType,
       parentPopupMenuContext?.closeOnOutsidePress,
+      parentPopupMenuContext?.getQualifiedRowId,
     ],
   )
 
@@ -294,6 +356,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
             open={open}
             onOpenChange={handlePopoverOpenChange}
             onOpenChangeComplete={handleOpenChangeComplete}
+            actionsRef={actionsRef ? popoverActionsRef : undefined}
           >
             {children}
           </Popover.Root>
@@ -306,5 +369,5 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
 export namespace PopupMenuSubmenuRoot {
   export interface Props extends PopupMenuSubmenuRootProps {}
   export type ChangeEventDetails = Popover.Root.ChangeEventDetails
-  export type Actions = Popover.Root.Actions
+  export type Actions = PopupMenuRootActions
 }

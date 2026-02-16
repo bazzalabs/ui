@@ -1,11 +1,12 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
-import { useCallback, useRef } from 'react'
+import { useCallback, useImperativeHandle, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
 import {
   PopupMenuProviders,
+  type PopupMenuRootActions,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
@@ -15,7 +16,10 @@ import type {
 } from '../events.js'
 
 export interface DropdownMenuRootProps
-  extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
+  extends Omit<
+    PopoverRootProps,
+    'open' | 'onOpenChange' | 'defaultOpen' | 'actionsRef'
+  > {
   /**
    * Whether the dropdown menu is open.
    * Use for controlled mode.
@@ -50,6 +54,12 @@ export interface DropdownMenuRootProps
    * @default true
    */
   modal?: boolean | 'trap-focus'
+
+  /**
+   * Whether the component should ignore user interaction.
+   * @default false
+   */
+  disabled?: boolean
 
   /**
    * Whether virtualization mode is enabled.
@@ -94,6 +104,14 @@ export interface DropdownMenuRootProps
   onOpenChangeComplete?: (open: boolean) => void
 
   /**
+   * A ref to imperative actions.
+   * - `close`: closes the menu imperatively.
+   * - `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).
+   * - `setDisabled`: enables/disables the menu imperatively.
+   */
+  actionsRef?: React.RefObject<DropdownMenuRoot.Actions | null>
+
+  /**
    * Function to generate qualified unique IDs for rows.
    * Defined once at the root level and applied to all surfaces (root and submenus).
    *
@@ -128,11 +146,13 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     onOpenChange,
     defaultOpen = false,
     modal = true,
+    disabled = false,
     virtualized = false,
     items: itemsProp,
     onHighlightChange,
     closeOnOutsidePress = 'pointerdown',
     onOpenChangeComplete: onOpenChangeCompleteProp,
+    actionsRef,
     getQualifiedRowId,
     children,
     ...rest
@@ -147,6 +167,8 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     closeAll,
     virtualization,
     handleOpenChange,
+    disabled: menuDisabled,
+    setDisabled,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -157,7 +179,24 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
     closeOnOutsidePress,
+    disabled,
   })
+
+  const popoverActionsRef = useRef<Popover.Root.Actions | null>(null)
+
+  useImperativeHandle(
+    actionsRef,
+    () => ({
+      close: () => {
+        popoverActionsRef.current?.close()
+      },
+      unmount: () => {
+        popoverActionsRef.current?.unmount()
+      },
+      setDisabled,
+    }),
+    [setDisabled],
+  )
 
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
@@ -202,6 +241,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       store={store}
       focusOwnerStore={focusOwnerStore}
       openChainStore={openChainStore}
+      disabled={menuDisabled}
       depth={0}
       closeAll={closeAll}
       registerSurface={registerSurface}
@@ -217,6 +257,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
         onOpenChange={handlePopoverOpenChange}
         onOpenChangeComplete={handleOpenChangeComplete}
         modal={modal}
+        actionsRef={actionsRef ? popoverActionsRef : undefined}
       >
         {children}
       </Popover.Root>
@@ -229,5 +270,5 @@ export namespace DropdownMenuRoot {
   export type OpenChangeEventDetails = DropdownMenuOpenChangeEventDetails
   export type HighlightChangeEventDetails =
     DropdownMenuHighlightChangeEventDetails
-  export type Actions = Popover.Root.Actions
+  export type Actions = PopupMenuRootActions
 }

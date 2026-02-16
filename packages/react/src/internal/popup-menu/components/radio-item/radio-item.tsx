@@ -135,7 +135,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
   const radioGroupContext = useRadioGroupContext()
 
   // Combine disabled from props and RadioGroup
-  const disabled = disabledProp || radioGroupContext.disabled
+  const localDisabled = disabledProp || radioGroupContext.disabled
 
   // Check if this item is selected
   const checked = radioGroupContext.value === value
@@ -143,7 +143,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
   const item = usePopupMenuItem({
     id,
     keywords,
-    disabled,
+    disabled: localDisabled,
     forceMount,
     shortcut,
     forceOrder,
@@ -151,6 +151,8 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     closeOnClick,
     children,
   })
+
+  const disabled = item.disabled
 
   // Register the select handler that sets the radio value
   // Note: closeOnClick is handled by usePopupMenuItem's onAfterSelect

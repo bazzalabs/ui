@@ -118,8 +118,14 @@ export const DropdownMenuTrigger = React.forwardRef<
 >(function DropdownMenuTrigger(props, forwardedRef) {
   const { disabled, openOnHover, delay, closeDelay, ...rest } = props
 
-  const { store, closeAll, closeOnOutsidePress } = usePopupMenuContext()
+  const {
+    store,
+    closeAll,
+    closeOnOutsidePress,
+    disabled: rootDisabled,
+  } = usePopupMenuContext()
   const isOpen = store.useState('open')
+  const isDisabled = disabled || rootDisabled
 
   // We need to intercept pointerdown before it reaches Popover.Trigger
   // This ref tracks the element so we can add a one-time click blocker
@@ -171,14 +177,14 @@ export const DropdownMenuTrigger = React.forwardRef<
   return (
     <Popover.Trigger
       ref={setRef}
-      disabled={disabled}
+      disabled={isDisabled}
       openOnHover={openOnHover}
       delay={delay}
       closeDelay={closeDelay}
       render={(triggerProps, triggerState) => (
         <DropdownMenuTriggerInner
           {...rest}
-          disabled={disabled}
+          disabled={isDisabled}
           triggerProps={triggerProps}
           triggerState={triggerState}
           ref={triggerProps.ref as React.Ref<HTMLButtonElement>}

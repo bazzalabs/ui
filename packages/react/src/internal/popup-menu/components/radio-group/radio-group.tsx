@@ -12,6 +12,7 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import type {
   RadioValueChangeEventDetails,
   RadioValueChangeReason,
@@ -86,7 +87,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
       value: valueProp,
       defaultValue,
       onValueChange,
-      disabled = false,
+      disabled: disabledProp = false,
       forceMount = false,
       render,
       className,
@@ -96,7 +97,10 @@ export const PopupMenuRadioGroup = React.forwardRef(
     } = props
 
     const { store } = useSurfaceContext()
+    const popupMenuContext = usePopupMenuContext()
     const groupId = React.useId()
+
+    const disabled = disabledProp || popupMenuContext.disabled
 
     // Controlled/uncontrolled state management
     const [internalValue, setInternalValue] = React.useState<
