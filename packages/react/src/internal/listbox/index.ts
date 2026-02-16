@@ -48,6 +48,7 @@ export { useListboxItem } from './hooks/use-listbox-item.js'
 export type {
   FocusOwnerInterface,
   SubmenuInterface,
+  SubpageInterface,
   UseListboxKeyboardParams,
   UseListboxKeyboardReturn,
 } from './hooks/use-listbox-keyboard.js'

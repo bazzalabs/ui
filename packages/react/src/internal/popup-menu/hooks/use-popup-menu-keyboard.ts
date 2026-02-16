@@ -8,6 +8,7 @@
 import * as React from 'react'
 import { type ListboxStore, useListboxKeyboard } from '../../listbox/index.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
+import type { SubpageContextValue } from '../contexts/subpage-context.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 
 export interface UsePopupMenuKeyboardParams {
@@ -21,6 +22,8 @@ export interface UsePopupMenuKeyboardParams {
   depth: number
   /** Submenu context for ArrowLeft navigation back to parent */
   submenuContext: SubmenuContextValue | null
+  /** Subpage context for back-stack navigation */
+  subpageContext?: SubpageContextValue | null
   /** Whether keyboard handling is enabled */
   enabled: boolean
   /**
@@ -65,6 +68,7 @@ export function usePopupMenuKeyboard(
     focusOwnerStore,
     depth,
     submenuContext,
+    subpageContext = null,
     enabled,
     enableTypeToSearch = false,
     onKeyDown,
@@ -81,6 +85,15 @@ export function usePopupMenuKeyboard(
       closeRootOnEsc: submenuContext.closeRootOnEsc,
     }
   }, [submenuContext])
+
+  const subpageInterface = React.useMemo(() => {
+    if (!subpageContext) return null
+    return {
+      goBack: subpageContext.goBack,
+      parentSurfaceId: subpageContext.parentSurfaceId,
+      closeRootOnEsc: subpageContext.closeRootOnEsc,
+    }
+  }, [subpageContext])
 
   // Handle selection via keyboard (Enter or shortcut)
   const handleSelect = React.useCallback(
@@ -102,6 +115,7 @@ export function usePopupMenuKeyboard(
     focusOwner: focusOwnerStore,
     depth,
     submenuContext: submenuInterface,
+    subpageContext: subpageInterface,
     enableTypeToSearch,
     skipFocusOwnerCheck,
   })

@@ -27,6 +27,19 @@ export interface SubmenuInterface {
   closeRootOnEsc?: boolean
 }
 
+/**
+ * Subpage context interface for keyboard handling.
+ * Optional - only needed for popup menus with in-popup subpage navigation.
+ */
+export interface SubpageInterface {
+  /** Pop one page from the current stack. */
+  goBack: () => boolean
+  /** Parent surface ID for focus transfer after back navigation. */
+  parentSurfaceId: string | null
+  /** Whether Escape closes the root menu instead of navigating back. */
+  closeRootOnEsc?: boolean
+}
+
 export interface UseListboxKeyboardParams {
   /** The Listbox store instance */
   store: ListboxStore
@@ -56,6 +69,8 @@ export interface UseListboxKeyboardParams {
   depth?: number
   /** Submenu context for ArrowLeft navigation back to parent (optional) */
   submenuContext?: SubmenuInterface | null
+  /** Subpage context for ArrowLeft/Ctrl+H navigation back (optional) */
+  subpageContext?: SubpageInterface | null
   /**
    * Whether to enable type-to-search behavior.
    * When true, printable characters will activate the input and set pending search.
@@ -98,6 +113,7 @@ export function useListboxKeyboard(
     focusOwner,
     depth = 0,
     submenuContext,
+    subpageContext,
     enableTypeToSearch = false,
     skipFocusOwnerCheck = false,
   } = params
@@ -204,6 +220,15 @@ export function useListboxKeyboard(
           break
         }
         case 'ArrowLeft': {
+          // Back one subpage when in subpage navigation context.
+          if (subpageContext?.goBack()) {
+            event.preventDefault()
+            if (focusOwner && subpageContext.parentSurfaceId) {
+              focusOwner.setOwnerId(subpageContext.parentSurfaceId)
+            }
+            break
+          }
+
           // Close submenu and return to parent (only if in a submenu)
           if (depth > 0 && submenuContext && focusOwner) {
             event.preventDefault()
@@ -214,7 +239,16 @@ export function useListboxKeyboard(
           break
         }
         case 'h': {
-          // Ctrl+H - close submenu (vim binding)
+          // Ctrl+H - back one subpage (vim binding)
+          if (event.ctrlKey && subpageContext?.goBack()) {
+            event.preventDefault()
+            if (focusOwner && subpageContext.parentSurfaceId) {
+              focusOwner.setOwnerId(subpageContext.parentSurfaceId)
+            }
+            break
+          }
+
+          // Ctrl+H - close submenu (vim binding fallback)
           if (event.ctrlKey && depth > 0 && submenuContext && focusOwner) {
             event.preventDefault()
             submenuContext.setOpen(false)
@@ -249,6 +283,27 @@ export function useListboxKeyboard(
           break
         }
         case 'Escape': {
+          // In a subpage: close root (optional) or navigate back one page.
+          if (subpageContext) {
+            event.preventDefault()
+            event.stopPropagation()
+
+            if (subpageContext.closeRootOnEsc) {
+              closeAll()
+            } else {
+              const didGoBack = subpageContext.goBack()
+              if (didGoBack && focusOwner && subpageContext.parentSurfaceId) {
+                focusOwner.setOwnerId(subpageContext.parentSurfaceId)
+              } else if (depth > 0 && submenuContext) {
+                submenuContext.setOpen(false)
+                if (focusOwner) {
+                  focusOwner.setOwnerId(submenuContext.parentSurfaceId)
+                }
+              }
+            }
+            break
+          }
+
           // Handle Escape based on depth and closeRootOnEsc setting
           if (depth === 0) {
             // Root menu: let parent component handle it normally
@@ -306,6 +361,7 @@ export function useListboxKeyboard(
       store,
       depth,
       submenuContext,
+      subpageContext,
       focusOwner,
       onSelect,
       closeAll,

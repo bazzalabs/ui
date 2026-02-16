@@ -45,6 +45,10 @@ export {
   PopupMenuSubmenuRoot as Submenu,
   PopupMenuSubmenuTrigger as SubmenuTrigger,
   PopupMenuSubmenuTriggerIndicator as SubmenuTriggerIndicator,
+  PopupMenuSubpage as Subpage,
+  PopupMenuSubpageBack as SubpageBack,
+  PopupMenuSubpageBackItem as SubpageBackItem,
+  PopupMenuSubpageTrigger as SubpageTrigger,
   // Content
   PopupMenuSurface as Surface,
   // Async coordinator hooks

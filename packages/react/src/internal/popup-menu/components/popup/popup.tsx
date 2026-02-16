@@ -13,6 +13,10 @@ import { useOpenChain } from '../../contexts/open-chain-context.js'
 import { useMaybePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
+import {
+  ROOT_SUBPAGE_ID,
+  SubpageStackContext,
+} from '../../contexts/subpage-stack-context.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
 
@@ -71,6 +75,7 @@ export const PopupMenuPopup = React.forwardRef<
   // Get popup menu context for depth
   const popupMenuContext = useMaybePopupMenuContext()
   const depth = popupMenuContext?.depth ?? 0
+  const popupOpen = popupMenuContext?.store.useState('open') ?? false
 
   // Get combobox context to detect if we're inside a combobox and for layout
   const comboboxContext = useMaybeComboboxContext()
@@ -78,6 +83,102 @@ export const PopupMenuPopup = React.forwardRef<
   // Generate surfaceId for root menus, use submenu context for submenus
   const generatedSurfaceId = React.useId()
   const surfaceId = submenuContext?.childSurfaceId ?? generatedSurfaceId
+
+  // Subpage stack state (per popup instance)
+  const [subpageStack, setSubpageStack] = React.useState<string[]>([
+    ROOT_SUBPAGE_ID,
+  ])
+  const subpageStackRef = React.useRef(subpageStack)
+  React.useEffect(() => {
+    subpageStackRef.current = subpageStack
+  }, [subpageStack])
+
+  const subpagesRef = React.useRef<
+    Map<string, { surfaceId: string; closeRootOnEsc: boolean }>
+  >(new Map())
+  const [, setSubpageRegistryVersion] = React.useState(0)
+
+  React.useEffect(() => {
+    subpagesRef.current.set(ROOT_SUBPAGE_ID, {
+      surfaceId,
+      closeRootOnEsc: true,
+    })
+    setSubpageRegistryVersion((v) => v + 1)
+    return () => {
+      subpagesRef.current.delete(ROOT_SUBPAGE_ID)
+      setSubpageRegistryVersion((v) => v + 1)
+    }
+  }, [surfaceId])
+
+  const registerPage = React.useCallback(
+    (registration: {
+      pageId: string
+      surfaceId: string
+      closeRootOnEsc: boolean
+    }) => {
+      subpagesRef.current.set(registration.pageId, {
+        surfaceId: registration.surfaceId,
+        closeRootOnEsc: registration.closeRootOnEsc,
+      })
+      setSubpageRegistryVersion((v) => v + 1)
+
+      return () => {
+        subpagesRef.current.delete(registration.pageId)
+        setSubpageRegistryVersion((v) => v + 1)
+
+        setSubpageStack((prev) => {
+          if (!prev.includes(registration.pageId)) {
+            return prev
+          }
+          const next = prev.filter((id) => id !== registration.pageId)
+          return next.length > 0 ? next : [ROOT_SUBPAGE_ID]
+        })
+      }
+    },
+    [],
+  )
+
+  const openPage = React.useCallback((pageId: string) => {
+    if (!subpagesRef.current.has(pageId)) {
+      return false
+    }
+
+    const currentStack = subpageStackRef.current
+    const currentPageId = currentStack[currentStack.length - 1]
+    if (currentPageId === pageId) {
+      return false
+    }
+
+    setSubpageStack((prev) => [...prev, pageId])
+    return true
+  }, [])
+
+  const goBack = React.useCallback(() => {
+    const currentStack = subpageStackRef.current
+    if (currentStack.length <= 1) {
+      return false
+    }
+
+    setSubpageStack((prev) => prev.slice(0, -1))
+    return true
+  }, [])
+
+  const getSurfaceId = React.useCallback(
+    (pageId: string) => subpagesRef.current.get(pageId)?.surfaceId ?? null,
+    [],
+  )
+
+  React.useEffect(() => {
+    if (!popupOpen) {
+      setSubpageStack([ROOT_SUBPAGE_ID])
+    }
+  }, [popupOpen])
+
+  const activePageId = subpageStack[subpageStack.length - 1] ?? ROOT_SUBPAGE_ID
+  const activePageRegistration = subpagesRef.current.get(activePageId)
+  const activeSurfaceId = activePageRegistration?.surfaceId ?? surfaceId
+  const shouldCloseRootOnEsc = activePageRegistration?.closeRootOnEsc ?? true
+  const canGoBack = subpageStack.length > 1
 
   // Track when popup opened to ignore initial pointer events
   // This prevents focus transfer when the popup appears under a stationary cursor
@@ -91,7 +192,7 @@ export const PopupMenuPopup = React.forwardRef<
   }, [submenuContext?.open])
 
   // Subscribe to focus ownership for data-focused attribute
-  const isFocused = focusOwnerStore.useState('isOwner', surfaceId)
+  const isFocused = focusOwnerStore.useState('isOwner', activeSurfaceId)
 
   // Subscribe to open chain for data-has-open-submenu attribute
   const hasOpenSubmenu = openChainStore.useState('hasOpenSubmenu', depth)
@@ -220,31 +321,58 @@ export const PopupMenuPopup = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'popup')
 
+  const subpageStackContextValue = React.useMemo(
+    () => ({
+      activePageId,
+      activeSurfaceId,
+      canGoBack,
+      shouldCloseRootOnEsc,
+      stack: subpageStack,
+      registerPage,
+      openPage,
+      goBack,
+      getSurfaceId,
+    }),
+    [
+      activePageId,
+      activeSurfaceId,
+      canGoBack,
+      shouldCloseRootOnEsc,
+      subpageStack,
+      registerPage,
+      openPage,
+      goBack,
+      getSurfaceId,
+    ],
+  )
+
   return (
     <PopupSurfaceIdContext.Provider value={surfaceId}>
-      <Popover.Popup
-        ref={combinedRef}
-        initialFocus={initialFocus}
-        finalFocus={finalFocus}
-        className={className}
-        data-input-embedded={isInputEmbedded ? '' : undefined}
-        {...(slotAttr ? { [slotAttr]: '' } : {})}
-        {...{
-          [PopupMenuPopupDataAttributes.focused]: isFocused ? '' : undefined,
-          [PopupMenuPopupDataAttributes.hasOpenSubmenu]: hasOpenSubmenu
-            ? ''
-            : undefined,
-          [PopupMenuPopupDataAttributes.submenu]: isSubmenu ? '' : undefined,
-        }}
-        onPointerMove={(event) => {
-          handlePointerMove()
-          handleFocusTransferOnMove(event)
-          rest.onPointerMove?.(event)
-        }}
-        {...rest}
-      >
-        {children}
-      </Popover.Popup>
+      <SubpageStackContext.Provider value={subpageStackContextValue}>
+        <Popover.Popup
+          ref={combinedRef}
+          initialFocus={initialFocus}
+          finalFocus={finalFocus}
+          className={className}
+          data-input-embedded={isInputEmbedded ? '' : undefined}
+          {...(slotAttr ? { [slotAttr]: '' } : {})}
+          {...{
+            [PopupMenuPopupDataAttributes.focused]: isFocused ? '' : undefined,
+            [PopupMenuPopupDataAttributes.hasOpenSubmenu]: hasOpenSubmenu
+              ? ''
+              : undefined,
+            [PopupMenuPopupDataAttributes.submenu]: isSubmenu ? '' : undefined,
+          }}
+          onPointerMove={(event) => {
+            handlePointerMove()
+            handleFocusTransferOnMove(event)
+            rest.onPointerMove?.(event)
+          }}
+          {...rest}
+        >
+          {children}
+        </Popover.Popup>
+      </SubpageStackContext.Provider>
     </PopupSurfaceIdContext.Provider>
   )
 })

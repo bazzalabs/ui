@@ -16,7 +16,7 @@ import {
 } from '@bazza-ui/react/dropdown-menu'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { cva } from 'class-variance-authority'
-import { CheckIcon, ChevronRightIcon } from 'lucide-react'
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import * as React from 'react'
 import {
   Fragment,
@@ -88,6 +88,14 @@ const menuItemVariants = cva(
           'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
           'overflow-x-hidden',
         ],
+        subpageTrigger: [
+          'justify-between gap-4 cursor-default',
+          'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+          'overflow-x-hidden',
+          'data-[popup-open]:before:bg-accent',
+          'data-[popup-open]:text-accent-foreground',
+        ],
+        subpageBackItem: 'gap-2 aria-disabled:opacity-50',
       },
     },
     defaultVariants: {
@@ -110,6 +118,15 @@ const listVariants = cva([
 ])
 
 const surfaceVariants = cva('divide-y')
+
+const subpageBackVariants = cva([
+  'inline-flex items-center gap-1.5',
+  'rounded-md px-2 py-1 text-xs font-medium',
+  'text-muted-foreground transition-colors duration-100 ease-out',
+  'hover:bg-accent hover:text-accent-foreground',
+  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+  'disabled:pointer-events-none disabled:opacity-50',
+])
 
 function Root({
   onOpenChange,
@@ -954,6 +971,63 @@ const SubmenuTriggerIndicator = forwardRef<
 ))
 SubmenuTriggerIndicator.displayName = 'DropdownMenu.SubmenuTriggerIndicator'
 
+const Subpage = Primitive.Subpage
+
+const SubpageTrigger = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.SubpageTrigger>
+>(({ className, children, ...props }, ref) => (
+  <Primitive.SubpageTrigger
+    ref={ref}
+    className={cn(menuItemVariants({ variant: 'subpageTrigger' }), className)}
+    {...props}
+  >
+    {children}
+
+    {/*<TriangleRightIcon
+      className={cn(
+        'size-4 shrink-0 text-muted-foreground/50',
+        'group-data-[popup-open]/row:text-muted-foreground',
+        'group-data-[highlighted]/row:text-foreground',
+        'group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground',
+        'transition-colors duration-50 ease-out',
+      )}
+    />*/}
+  </Primitive.SubpageTrigger>
+))
+SubpageTrigger.displayName = 'DropdownMenu.SubpageTrigger'
+
+const SubpageBackItem = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.SubpageBackItem>
+>(({ className, ...props }, ref) => (
+  <Primitive.SubpageBackItem
+    ref={ref}
+    className={cn(menuItemVariants({ variant: 'subpageBackItem' }), className)}
+    {...props}
+  />
+))
+SubpageBackItem.displayName = 'DropdownMenu.SubpageBackItem'
+
+const SubpageBack = forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<typeof Primitive.SubpageBack>
+>(({ className, children, ...props }, ref) => (
+  <Primitive.SubpageBack
+    ref={ref}
+    className={cn(subpageBackVariants(), className)}
+    {...props}
+  >
+    {children ?? (
+      <>
+        <ChevronLeftIcon className="size-3.5 shrink-0" />
+        Back
+      </>
+    )}
+  </Primitive.SubpageBack>
+))
+SubpageBack.displayName = 'DropdownMenu.SubpageBack'
+
 const Empty = forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof Primitive.Empty>, 'children'> & {
@@ -1057,6 +1131,10 @@ export const DropdownMenu = {
   Submenu,
   SubmenuTrigger,
   SubmenuTriggerIndicator,
+  Subpage,
+  SubpageTrigger,
+  SubpageBackItem,
+  SubpageBack,
   Empty,
   Loading,
   Arrow,
