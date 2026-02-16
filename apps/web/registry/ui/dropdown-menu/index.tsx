@@ -106,7 +106,7 @@ const menuItemVariants = cva(
 
 const inputVariants = cva([
   'w-full bg-transparent text-sm outline-none',
-  'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out',
+  'placeholder-muted-foreground/70 focus-visible:placeholder-muted-foreground placeholder:transition-[color] placeholder:duration-50 placeholder:ease-in-out group-data-navigating/dropdown-menu-popup:placeholder:transition-none',
   'disabled:cursor-not-allowed disabled:opacity-50',
   'min-h-9.5 max-h-9.5 px-4',
   'caret-blue-500',
@@ -212,6 +212,7 @@ const Popup = forwardRef<
         'border bg-popover z-50 rounded-lg text-sm',
         'drop-shadow-xl',
         'overflow-hidden',
+        'group/dropdown-menu-popup',
         !state.isSubmenu && [
           'opacity-100 scale-100',
           'origin-(--transform-origin)',
@@ -979,20 +980,10 @@ const SubpageTrigger = forwardRef<
 >(({ className, children, ...props }, ref) => (
   <Primitive.SubpageTrigger
     ref={ref}
-    className={cn(menuItemVariants({ variant: 'subpageTrigger' }), className)}
+    className={cn(menuItemVariants({ variant: 'item' }), className)}
     {...props}
   >
     {children}
-
-    {/*<TriangleRightIcon
-      className={cn(
-        'size-4 shrink-0 text-muted-foreground/50',
-        'group-data-[popup-open]/row:text-muted-foreground',
-        'group-data-[highlighted]/row:text-foreground',
-        'group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground',
-        'transition-colors duration-50 ease-out',
-      )}
-    />*/}
   </Primitive.SubpageTrigger>
 ))
 SubpageTrigger.displayName = 'DropdownMenu.SubpageTrigger'

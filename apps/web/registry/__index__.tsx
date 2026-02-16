@@ -102,6 +102,18 @@ export const examples: RegistryIndex = {
     ),
     files: ['registry/examples/dropdown-menu/submenu/index.tsx'],
   },
+  'dropdown-menu-subpage-linear': {
+    name: 'dropdown-menu-subpage-linear',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/subpage-linear'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/subpage-linear/index.tsx',
+      'registry/examples/dropdown-menu/subpage-linear/components.tsx',
+      'registry/examples/dropdown-menu/subpage-linear/icons.tsx',
+    ],
+  },
   'dropdown-menu-search': {
     name: 'dropdown-menu-search',
     type: 'registry:example',

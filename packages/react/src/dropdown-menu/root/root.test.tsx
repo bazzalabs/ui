@@ -550,6 +550,45 @@ function DropdownMenuWithNestedSubpages() {
   )
 }
 
+function DropdownMenuWithSubpageRenderSpy({
+  onSubpageRender,
+}: {
+  onSubpageRender: () => void
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="root-surface">
+              <DropdownMenu.List>
+                <DropdownMenu.SubpageTrigger
+                  data-testid="subpage-trigger-1"
+                  targetPageId="page-1"
+                >
+                  Page 1
+                </DropdownMenu.SubpageTrigger>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+
+            <DropdownMenu.Subpage pageId="page-1">
+              <SubpageRenderSpy onRender={onSubpageRender} />
+            </DropdownMenu.Subpage>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function SubpageRenderSpy({ onRender }: { onRender: () => void }) {
+  onRender()
+  return <div data-testid="subpage-content">Subpage content</div>
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -1888,6 +1927,91 @@ describe('<DropdownMenu.Root />', () => {
   })
 
   describe('Subpage', () => {
+    it('does not render inactive subpage children before navigation', async () => {
+      const user = userEvent.setup()
+      const onSubpageRender = vi.fn()
+
+      render(
+        <DropdownMenuWithSubpageRenderSpy onSubpageRender={onSubpageRender} />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+
+      expect(onSubpageRender).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('subpage-content')).not.toBeInTheDocument()
+
+      await user.click(screen.getByTestId('subpage-trigger-1'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-content')).toBeInTheDocument()
+      })
+
+      expect(onSubpageRender).toHaveBeenCalled()
+    })
+
+    it('does not open subpage on hover', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithNestedSubpages />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+
+      await user.hover(screen.getByTestId('subpage-trigger-1'))
+
+      expect(screen.queryByTestId('subpage-surface-1')).not.toBeInTheDocument()
+    })
+
+    it('opens subpage only on selection, not on highlight', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithNestedSubpages />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+
+      screen.getByTestId('root-list').focus()
+      await user.keyboard('{ArrowDown}')
+
+      expect(screen.queryByTestId('subpage-surface-1')).not.toBeInTheDocument()
+
+      await user.keyboard('{Enter}')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
+      })
+    })
+
+    it('sets data-navigating on popup during subpage navigation', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithNestedSubpages />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+
+      const popup = screen.getByRole('dialog')
+      expect(popup).not.toHaveAttribute('data-navigating')
+
+      await user.click(screen.getByTestId('subpage-trigger-1'))
+
+      expect(popup).toHaveAttribute('data-navigating')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
+      })
+    })
+
     it('goes back one page with ArrowLeft', async () => {
       const user = userEvent.setup()
       render(<DropdownMenuWithNestedSubpages />)
