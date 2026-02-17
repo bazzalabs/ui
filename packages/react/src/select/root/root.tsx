@@ -229,8 +229,7 @@ export interface SelectRootProps<
 
   /**
    * Callback when the highlighted item changes.
-   * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
-   * Only called when `virtualized={true}`.
+   * Useful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.
    * The third parameter contains event details including the reason for the change.
    */
   onHighlightChange?: (

@@ -15,7 +15,6 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
-  BrailleSpinner,
   DiamondSpinner,
   DropdownMenu,
   LabelWithBreadcrumbs,
@@ -185,7 +184,7 @@ function createLabelsSubmenu(params: {
   onCreateLabel: (name: string, color: string) => Promise<void | boolean>
   isCreatingLabel: boolean
   creatingLabelName: string | null
-  creatingLabelColor: string | null
+  creatingLabelColor: string
   onHighlightChange: (id: string | null, index: number) => void
 }): SubmenuDef {
   const {
@@ -297,9 +296,7 @@ function createLabelsSubmenu(params: {
                           ) : (
                             <LabelsIcon />
                           )}
-                          {isCreatingLabel &&
-                          creatingLabelName &&
-                          creatingLabelColor ? (
+                          {isCreatingLabel && creatingLabelName ? (
                             <div className="inline-flex items-center gap-1">
                               <span className="text-muted-foreground">
                                 Creating
@@ -381,7 +378,7 @@ function buildMenuContent(params: {
   onCreateLabel: (name: string, color: string) => Promise<void | boolean>
   isCreatingLabel: boolean
   creatingLabelName: string | null
-  creatingLabelColor: string | null
+  creatingLabelColor: string
   onLabelHighlightChange: (id: string | null, index: number) => void
 }): NodeDef[] {
   const {
@@ -597,9 +594,9 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
   const [creatingLabelName, setCreatingLabelName] = React.useState<
     string | null
   >(null)
-  const [creatingLabelColor, setCreatingLabelColor] = React.useState<
-    string | null
-  >(CREATABLE_LABEL_COLORS[0].id)
+  const [creatingLabelColor, setCreatingLabelColor] = React.useState<string>(
+    CREATABLE_LABEL_COLORS[0].id,
+  )
 
   const createdLabelIndex = React.useRef(0)
 
@@ -680,7 +677,6 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
 
   const handleLabelHighlightChange = React.useCallback(
     (id: string | null, _index: number) => {
-      console.log('id:', id)
       if (!id) return
       // Color items have values like "labelName:colorId"
       const colonIndex = id.lastIndexOf(':')

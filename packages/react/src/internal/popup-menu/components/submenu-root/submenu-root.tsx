@@ -71,7 +71,6 @@ export interface PopupMenuSubmenuRootProps
   /**
    * Callback when the highlighted item changes.
    * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
-   * Only called when `virtualized={true}`.
    */
   onHighlightChange?: (id: string | null, index: number) => void
 
@@ -285,11 +284,14 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // Fallback registerSurface for edge cases (submenu without parent root)
   const fallbackRegisterSurface = React.useCallback(() => () => {}, [])
 
-  // Memoize virtualization config for this submenu
+  // Memoize listbox wiring config for this submenu
   const virtualization = React.useMemo(() => {
-    if (!virtualized) return undefined
+    if (!virtualized && !onHighlightChange) {
+      return undefined
+    }
+
     return {
-      virtualized: true as const,
+      virtualized,
       items: itemsProp ?? [],
       onHighlightChange,
     }

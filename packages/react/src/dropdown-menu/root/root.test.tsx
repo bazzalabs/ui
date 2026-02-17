@@ -861,6 +861,113 @@ function SubpageRenderSpy({ onRender }: { onRender: () => void }) {
   return <div data-testid="subpage-content">Subpage content</div>
 }
 
+function DropdownMenuWithHighlightCallbacks({
+  onRootHighlightChange,
+  onSubmenuHighlightChange,
+}: {
+  onRootHighlightChange?: DropdownMenu.Root.Props['onHighlightChange']
+  onSubmenuHighlightChange?: DropdownMenu.Submenu.Props['onHighlightChange']
+}) {
+  return (
+    <DropdownMenu.Root onHighlightChange={onRootHighlightChange}>
+      <DropdownMenu.Trigger data-testid="highlight-trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="highlight-root-surface">
+              <DropdownMenu.List data-testid="highlight-root-list">
+                <DropdownMenu.Item
+                  data-testid="highlight-root-item"
+                  value="highlight-root-item"
+                >
+                  Root Item
+                </DropdownMenu.Item>
+                <DropdownMenu.SubpageTrigger
+                  data-testid="highlight-root-subpage-trigger"
+                  targetPageId="highlight-root-page"
+                  value="highlight-root-subpage-trigger"
+                >
+                  Root Subpage
+                </DropdownMenu.SubpageTrigger>
+                <DropdownMenu.Submenu
+                  onHighlightChange={onSubmenuHighlightChange}
+                >
+                  <DropdownMenu.SubmenuTrigger data-testid="highlight-submenu-trigger">
+                    Submenu
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup>
+                        <DropdownMenu.Surface data-testid="highlight-submenu-surface">
+                          <DropdownMenu.List data-testid="highlight-submenu-list">
+                            <DropdownMenu.Item
+                              data-testid="highlight-submenu-item"
+                              value="highlight-submenu-item"
+                            >
+                              Submenu Item
+                            </DropdownMenu.Item>
+                            <DropdownMenu.SubpageTrigger
+                              data-testid="highlight-submenu-subpage-trigger"
+                              targetPageId="highlight-submenu-page"
+                              value="highlight-submenu-subpage-trigger"
+                            >
+                              Submenu Subpage
+                            </DropdownMenu.SubpageTrigger>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+
+                        <DropdownMenu.Subpage pageId="highlight-submenu-page">
+                          <DropdownMenu.Surface data-testid="highlight-submenu-subpage-surface">
+                            <DropdownMenu.List data-testid="highlight-submenu-subpage-list">
+                              <DropdownMenu.SubpageBackItem
+                                data-testid="highlight-submenu-subpage-back-item"
+                                value="highlight-submenu-subpage-back-item"
+                              >
+                                Back
+                              </DropdownMenu.SubpageBackItem>
+                              <DropdownMenu.Item
+                                data-testid="highlight-submenu-subpage-item"
+                                value="highlight-submenu-subpage-item"
+                              >
+                                Submenu Subpage Item
+                              </DropdownMenu.Item>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                        </DropdownMenu.Subpage>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+
+            <DropdownMenu.Subpage pageId="highlight-root-page">
+              <DropdownMenu.Surface data-testid="highlight-root-subpage-surface">
+                <DropdownMenu.List data-testid="highlight-root-subpage-list">
+                  <DropdownMenu.SubpageBackItem
+                    data-testid="highlight-root-subpage-back-item"
+                    value="highlight-root-subpage-back-item"
+                  >
+                    Back
+                  </DropdownMenu.SubpageBackItem>
+                  <DropdownMenu.Item
+                    data-testid="highlight-root-subpage-item"
+                    value="highlight-root-subpage-item"
+                  >
+                    Root Subpage Item
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -2351,6 +2458,166 @@ describe('<DropdownMenu.Root />', () => {
 
         expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
           'data-popup-open',
+        )
+      })
+    })
+  })
+
+  describe('onHighlightChange', () => {
+    it('fires for root non-subpage items without virtualization', async () => {
+      const user = userEvent.setup()
+      const onRootHighlightChange = vi.fn()
+
+      render(
+        <DropdownMenuWithHighlightCallbacks
+          onRootHighlightChange={onRootHighlightChange}
+        />,
+      )
+
+      await user.click(screen.getByTestId('highlight-trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('highlight-root-surface')).toBeInTheDocument()
+      })
+
+      const rootList = screen.getByTestId('highlight-root-list')
+      rootList.focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowUp}')
+
+      await waitFor(() => {
+        expect(onRootHighlightChange).toHaveBeenCalledWith(
+          'highlight-root-item',
+          0,
+          expect.objectContaining({ reason: expect.any(String) }),
+        )
+      })
+    })
+
+    it('fires for root subpage items without virtualization', async () => {
+      const user = userEvent.setup()
+      const onRootHighlightChange = vi.fn()
+
+      render(
+        <DropdownMenuWithHighlightCallbacks
+          onRootHighlightChange={onRootHighlightChange}
+        />,
+      )
+
+      await user.click(screen.getByTestId('highlight-trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('highlight-root-surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('highlight-root-subpage-trigger'))
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('highlight-root-subpage-surface'),
+        ).toBeInTheDocument()
+      })
+
+      screen.getByTestId('highlight-root-subpage-list').focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowDown}')
+
+      await waitFor(() => {
+        expect(onRootHighlightChange).toHaveBeenCalledWith(
+          'highlight-root-subpage-item',
+          expect.any(Number),
+          expect.objectContaining({ reason: 'keyboard' }),
+        )
+      })
+    })
+
+    it('fires for submenu non-subpage items without virtualization', async () => {
+      const user = userEvent.setup()
+      const onSubmenuHighlightChange = vi.fn()
+
+      render(
+        <DropdownMenuWithHighlightCallbacks
+          onSubmenuHighlightChange={onSubmenuHighlightChange}
+        />,
+      )
+
+      await user.click(screen.getByTestId('highlight-trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('highlight-root-surface')).toBeInTheDocument()
+      })
+
+      const rootList = screen.getByTestId('highlight-root-list')
+      rootList.focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowRight}')
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('highlight-submenu-surface'),
+        ).toBeInTheDocument()
+      })
+
+      const submenuList = screen.getByTestId('highlight-submenu-list')
+      submenuList.focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowUp}')
+
+      await waitFor(() => {
+        expect(onSubmenuHighlightChange).toHaveBeenCalledWith(
+          'highlight-submenu-item',
+          expect.any(Number),
+          expect.objectContaining({ reason: expect.any(String) }),
+        )
+      })
+    })
+
+    it('fires for submenu subpage items without virtualization', async () => {
+      const user = userEvent.setup()
+      const onSubmenuHighlightChange = vi.fn()
+
+      render(
+        <DropdownMenuWithHighlightCallbacks
+          onSubmenuHighlightChange={onSubmenuHighlightChange}
+        />,
+      )
+
+      await user.click(screen.getByTestId('highlight-trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('highlight-root-surface')).toBeInTheDocument()
+      })
+
+      const rootList = screen.getByTestId('highlight-root-list')
+      rootList.focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowRight}')
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('highlight-submenu-surface'),
+        ).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('highlight-submenu-subpage-trigger'))
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('highlight-submenu-subpage-surface'),
+        ).toBeInTheDocument()
+      })
+
+      screen.getByTestId('highlight-submenu-subpage-list').focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowDown}')
+
+      await waitFor(() => {
+        expect(onSubmenuHighlightChange).toHaveBeenCalledWith(
+          'highlight-submenu-subpage-item',
+          expect.any(Number),
+          expect.objectContaining({ reason: expect.any(String) }),
         )
       })
     })
