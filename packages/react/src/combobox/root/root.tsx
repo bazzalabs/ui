@@ -5,6 +5,7 @@ import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
+  type PopupMenuDebugOptions,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
@@ -289,6 +290,11 @@ export interface ComboboxRootProps<
    */
   onOpenChangeComplete?: (open: boolean) => void
 
+  /**
+   * Debug visualization options for submenu interaction heuristics.
+   */
+  debug?: PopupMenuDebugOptions
+
   children: React.ReactNode
 }
 
@@ -346,6 +352,7 @@ export function ComboboxRoot<
     layout = 'floating',
     // Animation callback
     onOpenChangeComplete: onOpenChangeCompleteProp,
+    debug,
     children,
     ...rest
   } = props
@@ -755,6 +762,7 @@ export function ComboboxRoot<
         virtualization={virtualization}
         menuType="dropdown"
         componentName="combobox"
+        debug={debug}
       >
         {hiddenInputs}
         <Popover.Root
