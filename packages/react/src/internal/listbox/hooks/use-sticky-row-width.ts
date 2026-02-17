@@ -19,6 +19,11 @@ function px(n: number) {
   return `${Math.ceil(n)}px`
 }
 
+function parseCssPixelValue(value: string): number | null {
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 interface MeasurementEntry {
   element: HTMLElement
   id: string
@@ -71,7 +76,7 @@ export interface UseStickyRowWidthReturn {
  * The hook:
  * 1. Measures each row's natural width (using `max-content`)
  * 2. Tracks the maximum width seen across all rows
- * 3. Applies `--row-width` CSS variable to the list element
+ * 3. Applies `--row-width` CSS variable to the target element
  * 4. Only grows the width, never shrinks (until reset)
  *
  * @example
@@ -108,6 +113,28 @@ export function useStickyRowWidth(
 
   // Track the maximum width seen so far
   const maxSeenRef = React.useRef(0)
+
+  // Hydrate max width from an existing popup-level CSS variable.
+  // This keeps row width sticky when List remounts during subpage navigation.
+  React.useLayoutEffect(() => {
+    if (!enabled) return
+
+    const el = getTargetElement()
+    if (!el) return
+
+    const existingWidth = parseCssPixelValue(
+      el.style.getPropertyValue('--row-width').trim(),
+    )
+
+    if (!existingWidth || existingWidth <= maxSeenRef.current) {
+      return
+    }
+
+    maxSeenRef.current = existingWidth
+    debugLog('Hydrated max width from existing --row-width:', {
+      hydratedWidth: existingWidth,
+    })
+  }, [enabled, getTargetElement])
 
   // RAF scheduler state
   const readQueue = React.useRef<MeasurementEntry[]>([])
