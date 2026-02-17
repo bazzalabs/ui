@@ -5,7 +5,7 @@
   "scripts": {
     "generate-fonts": "tsx scripts/generate-fonts.ts",
     "predev": "bun run generate-fonts",
-    "dev": "next dev --turbopack",
+    "dev": "portless bazza-ui next dev --turbopack",
     "prebuild": "bun run generate-fonts",
     "build": "next build --turbopack",
     "type-check": "tsc --noEmit",
