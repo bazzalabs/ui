@@ -336,7 +336,22 @@ function NestedMenuForDataAttrs({
   debug,
 }: {
   debug?: {
-    showSubmenuSafeTriangleArea?: boolean
+    showSafeTriangleArea?:
+      | boolean
+      | {
+          enabled?: boolean
+          idleColor?: string
+          successColor?: string
+          triangleFillOpacity?: number
+          overlayOpacity?: number
+          showStroke?: boolean
+          strokeWidth?: number
+          strokeDasharray?: string
+          showDots?: boolean
+          dotRadius?: number
+          freezeOnPointerLeave?: boolean
+          persistOnSuccess?: boolean
+        }
   }
 } = {}) {
   return (
@@ -632,11 +647,7 @@ describe('PopupMenu', () => {
 
     it('renders the safe triangle in blue while hovering a submenu trigger', async () => {
       const user = userEvent.setup()
-      render(
-        <NestedMenuForDataAttrs
-          debug={{ showSubmenuSafeTriangleArea: true }}
-        />,
-      )
+      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
 
       await user.click(screen.getByTestId('trigger'))
 
@@ -675,13 +686,72 @@ describe('PopupMenu', () => {
       popupRectSpy.mockRestore()
     })
 
-    it('renders the safe triangle in green when aim guard is activated on leave', async () => {
+    it('supports object config for safe triangle look customization', async () => {
       const user = userEvent.setup()
       render(
         <NestedMenuForDataAttrs
-          debug={{ showSubmenuSafeTriangleArea: true }}
+          debug={{
+            showSafeTriangleArea: {
+              enabled: true,
+              idleColor: '#ff0088',
+              triangleFillOpacity: 0.35,
+              overlayOpacity: 0.7,
+              showStroke: false,
+              showDots: false,
+            },
+          }}
         />,
       )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 90 })
+
+      let hoverTriangle: Element | null = null
+
+      await waitFor(() => {
+        hoverTriangle = getSafeTriangle('hover')
+        expect(hoverTriangle).toBeInTheDocument()
+      })
+
+      const polygon = hoverTriangle?.querySelector('polygon')
+      expect(polygon?.getAttribute('fill')).toBe('#ff0088')
+      expect(polygon?.getAttribute('fill-opacity')).toBe('0.35')
+      expect(polygon?.getAttribute('stroke')).toBe('none')
+      expect(hoverTriangle?.querySelectorAll('circle')).toHaveLength(0)
+      expect((hoverTriangle as SVGSVGElement | null)?.style.opacity).toBe('0.7')
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
+    })
+
+    it('renders the safe triangle in green when aim guard is activated on leave', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
 
       await user.click(screen.getByTestId('trigger'))
 
@@ -726,11 +796,7 @@ describe('PopupMenu', () => {
 
     it('keeps the activated safe triangle after moving into submenu popup', async () => {
       const user = userEvent.setup()
-      render(
-        <NestedMenuForDataAttrs
-          debug={{ showSubmenuSafeTriangleArea: true }}
-        />,
-      )
+      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
 
       await user.click(screen.getByTestId('trigger'))
 
@@ -793,11 +859,7 @@ describe('PopupMenu', () => {
 
     it('immediately hides the safe triangle when aim guard is not activated', async () => {
       const user = userEvent.setup()
-      render(
-        <NestedMenuForDataAttrs
-          debug={{ showSubmenuSafeTriangleArea: true }}
-        />,
-      )
+      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
 
       await user.click(screen.getByTestId('trigger'))
 

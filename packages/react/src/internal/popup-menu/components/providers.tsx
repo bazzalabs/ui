@@ -20,6 +20,7 @@ import {
   PopupMenuDebugContext,
   type PopupMenuDebugContextValue,
   type PopupMenuDebugOptions,
+  resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
 import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
@@ -155,9 +156,12 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
 
   const popupMenuDebugContextValue: PopupMenuDebugContextValue = React.useMemo(
     () => ({
-      showSubmenuSafeTriangleArea: !!debug?.showSubmenuSafeTriangleArea,
+      showSafeTriangleArea: resolvePopupMenuSafeTriangleAreaDebugConfig(
+        debug?.showSafeTriangleArea,
+        debug?.showSubmenuSafeTriangleArea,
+      ),
     }),
-    [debug?.showSubmenuSafeTriangleArea],
+    [debug?.showSafeTriangleArea, debug?.showSubmenuSafeTriangleArea],
   )
 
   return (
