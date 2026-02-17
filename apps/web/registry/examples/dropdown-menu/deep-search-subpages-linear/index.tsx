@@ -9,15 +9,18 @@ import type {
   SubpageTriggerRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
 import { PlusIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
+  BrailleSpinner,
   DiamondSpinner,
   DropdownMenu,
   LabelWithBreadcrumbs,
 } from '@/registry/ui/dropdown-menu'
+import { AIFilterIcon } from '../subpage-linear/icons'
 import {
   createAssigneeItemNode,
   createItemNode,
@@ -182,6 +185,8 @@ function createLabelsSubmenu(params: {
   onCreateLabel: (name: string, color: string) => Promise<void | boolean>
   isCreatingLabel: boolean
   creatingLabelName: string | null
+  creatingLabelColor: string | null
+  onHighlightChange: (id: string | null, index: number) => void
 }): SubmenuDef {
   const {
     labels,
@@ -192,6 +197,8 @@ function createLabelsSubmenu(params: {
     onCreateLabel,
     isCreatingLabel,
     creatingLabelName,
+    creatingLabelColor,
+    onHighlightChange,
   } = params
 
   const trimmedQuery = labelSearchQuery.trim()
@@ -238,7 +245,7 @@ function createLabelsSubmenu(params: {
     deepSearch: true,
     nodes,
     render: ({ props, context, nodes }: SubmenuRenderParams) => (
-      <DropdownMenu.Submenu>
+      <DropdownMenu.Submenu onHighlightChange={onHighlightChange}>
         <DropdownMenu.SubmenuTrigger {...props}>
           <div className="flex items-center gap-2">
             <DropdownMenu.Icon>
@@ -253,53 +260,89 @@ function createLabelsSubmenu(params: {
           </div>
         </DropdownMenu.SubmenuTrigger>
         <DropdownMenu.Portal>
-          <DropdownMenu.Positioner align="list-start">
+          <DropdownMenu.Positioner align="list-start" className="relative">
             <DropdownMenu.Popup
               render={({ className, children, ...props }, state) => (
-                <div
-                  {...props}
-                  className={cn(
-                    'rounded-t-2xl rounded-b-lg flex flex-col outline-none',
-                    (state.hasOpenSubpage || isCreatingLabel) &&
-                      'border border-border bg-muted',
-                  )}
-                >
-                  {(state.hasOpenSubpage || isCreatingLabel) && (
-                    <div className="px-4.5 py-2 text-xs flex items-center gap-2">
-                      {isCreatingLabel ? (
-                        <DiamondSpinner className="size-3" />
-                      ) : (
-                        <LabelsIcon />
-                      )}
-                      {isCreatingLabel ? (
-                        <div className="inline-flex items-center gap-1">
-                          <span className="text-muted-foreground">
-                            Creating label...
-                          </span>
-                          {creatingLabelName ? (
-                            <span>"{creatingLabelName}"</span>
-                          ) : null}
+                <>
+                  <AnimatePresence>
+                    {(state.hasOpenSubpage || isCreatingLabel) && (
+                      <motion.div
+                        className="absolute -z-10 -top-8 pb-4 left-0 right-0 rounded-t-2xl bg-muted border"
+                        initial={{
+                          y: 50,
+                          filter: 'blur(4px)',
+                          opacity: 0,
+                          scale: 0.95,
+                        }}
+                        animate={{
+                          y: 0,
+                          filter: 'blur(0px)',
+                          opacity: 1,
+                          scale: 1,
+                        }}
+                        exit={{
+                          y: 50,
+                          filter: 'blur(4px)',
+                          opacity: 0,
+                          scale: 0.95,
+                        }}
+                        transition={{
+                          duration: 0.2,
+                          ease: 'easeOut',
+                        }}
+                      >
+                        <div className="px-4.5 py-2 text-xs flex items-center gap-2">
+                          {isCreatingLabel ? (
+                            <DiamondSpinner className="size-4" />
+                          ) : (
+                            <LabelsIcon />
+                          )}
+                          {isCreatingLabel &&
+                          creatingLabelName &&
+                          creatingLabelColor ? (
+                            <div className="inline-flex items-center gap-1">
+                              <span className="text-muted-foreground">
+                                Creating
+                              </span>
+                              <LabelDot
+                                color={creatingLabelColor}
+                                className="size-2"
+                              />
+                              <span>{creatingLabelName}</span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1">
+                              <span className="text-muted-foreground">
+                                New label:
+                              </span>{' '}
+                              <LabelDot
+                                color={creatingLabelColor}
+                                className="size-2"
+                              />
+                              <span>{trimmedQuery}</span>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1">
-                          <span className="text-muted-foreground">
-                            New label:
-                          </span>{' '}
-                          {trimmedQuery}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      (state.hasOpenSubpage || isCreatingLabel) &&
-                        '-mx-px -mb-px',
-                      className,
+                      </motion.div>
                     )}
+                  </AnimatePresence>
+                  <div
+                    {...props}
+                    className={cn(
+                      // (state.hasOpenSubpage || isCreatingLabel) &&
+                      // '-mx-px -mb-px',
+                      className,
+                      '!outline-none',
+                    )}
+                    // className={cn(
+                    //   'rounded-t-2xl rounded-b-lg flex flex-col outline-none',
+                    //   (state.hasOpenSubpage || isCreatingLabel) &&
+                    //     'border border-border bg-muted',
+                    // )}
                   >
                     {children}
                   </div>
-                </div>
+                </>
               )}
             >
               <DropdownMenu.DataSurface
@@ -338,6 +381,8 @@ function buildMenuContent(params: {
   onCreateLabel: (name: string, color: string) => Promise<void | boolean>
   isCreatingLabel: boolean
   creatingLabelName: string | null
+  creatingLabelColor: string | null
+  onLabelHighlightChange: (id: string | null, index: number) => void
 }): NodeDef[] {
   const {
     labels,
@@ -348,6 +393,8 @@ function buildMenuContent(params: {
     onCreateLabel,
     isCreatingLabel,
     creatingLabelName,
+    creatingLabelColor,
+    onLabelHighlightChange,
   } = params
 
   const statusMenu = createSubmenuNode(
@@ -404,12 +451,14 @@ function buildMenuContent(params: {
     onCreateLabel,
     isCreatingLabel,
     creatingLabelName,
+    creatingLabelColor,
+    onHighlightChange: onLabelHighlightChange,
   })
 
   const aiFilterSubpage = createSubpageNode(
     'ai-filter',
     'AI Filter',
-    <DurationIcon />,
+    <AIFilterIcon />,
     [
       createItemNode('ai-triage', 'Smart triage'),
       createItemNode('ai-risk', 'Risk prediction'),
@@ -522,11 +571,16 @@ function buildMenuContent(params: {
   )
 
   return [
+    // aiFilterSubpage,
+    // {
+    //   kind: 'separator',
+    //   id: 'ai-filter-separator',
+    //   render: ({ props }) => <DropdownMenu.Separator {...props} />,
+    // },
     statusMenu,
     assigneeMenu,
     priorityMenu,
     labelsMenu,
-    aiFilterSubpage,
     projectPropertiesMenu,
   ]
 }
@@ -543,6 +597,9 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
   const [creatingLabelName, setCreatingLabelName] = React.useState<
     string | null
   >(null)
+  const [creatingLabelColor, setCreatingLabelColor] = React.useState<
+    string | null
+  >(CREATABLE_LABEL_COLORS[0].id)
 
   const createdLabelIndex = React.useRef(0)
 
@@ -587,10 +644,11 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       }
 
       setCreatingLabelName(trimmedName)
+      setCreatingLabelColor(color)
       setIsCreatingLabel(true)
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1750))
+        await new Promise((resolve) => setTimeout(resolve, 4000))
 
         createdLabelIndex.current += 1
         const createdLabelId = `${toLabelId(trimmedName)}-${createdLabelIndex.current}`
@@ -620,6 +678,21 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
     [isCreatingLabel, labels],
   )
 
+  const handleLabelHighlightChange = React.useCallback(
+    (id: string | null, _index: number) => {
+      console.log('id:', id)
+      if (!id) return
+      // Color items have values like "labelName:colorId"
+      const colonIndex = id.lastIndexOf(':')
+      if (colonIndex === -1) return
+      const colorId = id.slice(colonIndex + 1)
+      if (CREATABLE_LABEL_COLORS.some((c) => c.id === colorId)) {
+        setCreatingLabelColor(colorId)
+      }
+    },
+    [],
+  )
+
   const content = React.useMemo(
     () =>
       buildMenuContent({
@@ -631,6 +704,8 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
         onCreateLabel: handleCreateLabel,
         isCreatingLabel,
         creatingLabelName,
+        creatingLabelColor,
+        onLabelHighlightChange: handleLabelHighlightChange,
       }),
     [
       labels,
@@ -638,9 +713,11 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       labelSearchQuery,
       isCreatingLabel,
       creatingLabelName,
+      creatingLabelColor,
       handleLabelSearchQueryChange,
       handleLabelCheckedChange,
       handleCreateLabel,
+      handleLabelHighlightChange,
     ],
   )
 

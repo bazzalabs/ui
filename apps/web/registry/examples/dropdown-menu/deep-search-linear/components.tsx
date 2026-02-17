@@ -47,12 +47,19 @@ export type TW_COLOR = keyof typeof LABEL_STYLES_BG
 // Label Dot Component
 // =============================================================================
 
-export function LabelDot({ color }: { color: string }) {
+export function LabelDot({
+  color,
+  className,
+}: {
+  color: string
+  className?: string
+}) {
   return (
     <div
       className={cn(
         'rounded-full size-2.5',
         LABEL_STYLES_BG[color as TW_COLOR] ?? 'bg-neutral-500',
+        className,
       )}
     />
   )
