@@ -220,6 +220,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   // Get aim guard for safe polygon navigation
   const {
+    aimGuardActive,
+    guardedTriggerId,
+    guardedDepth,
     aimGuardActiveRef,
     guardedTriggerIdRef,
     guardedDepthRef,
@@ -230,7 +233,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Track mouse positions for aim guard trajectory calculation
   const mouseTrailRef = useMouseTrail(4)
 
-  const { showSubmenuSafeTriangleArea } = usePopupMenuDebug()
+  const { showSafeTriangleArea } = usePopupMenuDebug()
+  const showSafeTriangleAreaEnabled = showSafeTriangleArea.enabled
   const [submenuSafeTriangleDebugState, setSubmenuSafeTriangleDebugState] =
     React.useState<SubmenuSafeTriangleDebugState>('hidden')
   const [
@@ -255,14 +259,60 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   const disabled = item.disabled
 
+  const showActivatedSafeTriangle = React.useCallback(
+    (snapshot: SubmenuSafeTriangleDebugSnapshot) => {
+      if (!showSafeTriangleAreaEnabled) {
+        return
+      }
+
+      if (showSafeTriangleArea.freezeOnPointerLeave) {
+        setSubmenuSafeTriangleDebugSnapshot(snapshot)
+      } else {
+        setSubmenuSafeTriangleDebugSnapshot(null)
+      }
+
+      setSubmenuSafeTriangleDebugState('activated')
+    },
+    [showSafeTriangleAreaEnabled, showSafeTriangleArea.freezeOnPointerLeave],
+  )
+
   React.useEffect(() => {
-    if (showSubmenuSafeTriangleArea) {
+    if (showSafeTriangleAreaEnabled) {
       return
     }
 
     setSubmenuSafeTriangleDebugState('hidden')
     setSubmenuSafeTriangleDebugSnapshot(null)
-  }, [showSubmenuSafeTriangleArea])
+  }, [showSafeTriangleAreaEnabled])
+
+  React.useEffect(() => {
+    if (
+      !showSafeTriangleAreaEnabled ||
+      showSafeTriangleArea.persistOnSuccess ||
+      submenuSafeTriangleDebugState !== 'activated'
+    ) {
+      return
+    }
+
+    const isGuardActiveForThisTrigger =
+      aimGuardActive &&
+      guardedTriggerId === item.id &&
+      guardedDepth === parentDepth
+
+    if (!isGuardActiveForThisTrigger) {
+      setSubmenuSafeTriangleDebugState('hidden')
+      setSubmenuSafeTriangleDebugSnapshot(null)
+    }
+  }, [
+    showSafeTriangleAreaEnabled,
+    showSafeTriangleArea.persistOnSuccess,
+    submenuSafeTriangleDebugState,
+    aimGuardActive,
+    guardedTriggerId,
+    guardedDepth,
+    item.id,
+    parentDepth,
+  ])
 
   React.useEffect(() => {
     if (submenuSafeTriangleDebugState !== 'activated' || open) {
@@ -450,7 +500,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         return
       }
 
-      if (showSubmenuSafeTriangleArea) {
+      if (showSafeTriangleAreaEnabled) {
         setSubmenuSafeTriangleDebugSnapshot(null)
         setSubmenuSafeTriangleDebugState('hover')
       }
@@ -486,7 +536,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       openOnHighlight,
       clearAimGuard,
       clearOpenTimer,
-      showSubmenuSafeTriangleArea,
+      showSafeTriangleAreaEnabled,
       delay.pointer,
       setOpen,
     ],
@@ -536,10 +586,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       if (isInsidePopup) {
         // Pointer is already in the popup, clear guard and keep open
-        if (showSubmenuSafeTriangleArea) {
-          setSubmenuSafeTriangleDebugSnapshot(debugSnapshot)
-          setSubmenuSafeTriangleDebugState('activated')
-        }
+        showActivatedSafeTriangle(debugSnapshot)
         clearAimGuard()
         return
       }
@@ -566,10 +613,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (hit) {
         // User is aiming at submenu - activate aim guard for 600ms
         // Guard is activated at parentDepth to block highlighting in the parent menu only
-        if (showSubmenuSafeTriangleArea) {
-          setSubmenuSafeTriangleDebugSnapshot(debugSnapshot)
-          setSubmenuSafeTriangleDebugState('activated')
-        }
+        showActivatedSafeTriangle(debugSnapshot)
         activateAimGuard(item.id, parentDepth, childSurfaceId, 600)
         parentStore.setHighlightedId(item.storeId)
         setOpen(true)
@@ -585,13 +629,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       onPointerLeave,
       disabled,
       clearOpenTimer,
-      showSubmenuSafeTriangleArea,
       aimGuardActiveRef,
       guardedTriggerIdRef,
       item.id,
       item.storeId,
       contentRef,
       clearAimGuard,
+      showActivatedSafeTriangle,
       setOpen,
       triggerRef,
       mouseTrailRef,
@@ -668,7 +712,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Don't render if not visible
   if (!item.isVisible) return null
 
-  if (!showSubmenuSafeTriangleArea || safeTriangleTone === null) {
+  if (!showSafeTriangleAreaEnabled || safeTriangleTone === null) {
     return trigger
   }
 
@@ -676,6 +720,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     <>
       {trigger}
       <PopupMenuSubmenuSafeTriangleArea
+        config={showSafeTriangleArea}
         contentRef={contentRef}
         triggerRef={triggerRef}
         tone={safeTriangleTone}

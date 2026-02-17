@@ -2,22 +2,14 @@
 
 import * as React from 'react'
 import { createPortal } from 'react-dom'
+import type { PopupMenuSafeTriangleAreaDebugSettings } from '../../contexts/popup-menu-debug-context.js'
 import { resolveAnchorSide } from '../../utils/aim-guard.js'
 import { useMousePosition } from '../../utils/use-mouse-position.js'
 
 export type PopupMenuSubmenuSafeTriangleTone = 'hover' | 'activated'
 
-const TONE_TO_BG_COLOR: Record<PopupMenuSubmenuSafeTriangleTone, string> = {
-  hover: 'rgba(0, 136, 255, 0.18)',
-  activated: 'rgba(0, 170, 102, 0.2)',
-}
-
-const TONE_TO_BORDER_COLOR: Record<PopupMenuSubmenuSafeTriangleTone, string> = {
-  hover: 'rgba(0, 136, 255, 0.9)',
-  activated: 'rgba(0, 170, 102, 0.9)',
-}
-
 export interface PopupMenuSubmenuSafeTriangleAreaProps {
+  config: PopupMenuSafeTriangleAreaDebugSettings
   contentRef: React.RefObject<HTMLElement | null>
   triggerRef: React.RefObject<HTMLElement | null>
   tone: PopupMenuSubmenuSafeTriangleTone
@@ -33,6 +25,7 @@ export function PopupMenuSubmenuSafeTriangleArea(
   props: PopupMenuSubmenuSafeTriangleAreaProps,
 ) {
   const {
+    config,
     contentRef,
     triggerRef,
     tone,
@@ -83,22 +76,46 @@ export function PopupMenuSubmenuSafeTriangleArea(
   }
 
   const inset = 2
-  const borderStrokeWidth = 1.5
-  const cornerDotRadius = 4
-  // Keep border + corner dots fully inside the SVG viewport to avoid clipping.
-  const borderInset = cornerDotRadius + borderStrokeWidth / 2 + 0.5
   const yPct = Math.max(0, Math.min(100, ((mouseY - y) / height) * 100))
-  const apexY = Math.max(
-    borderInset,
-    Math.min(height - borderInset, (yPct / 100) * height),
-  )
 
   const triangleWidth =
     anchor === 'left'
       ? Math.max(x - mouseX, 10) + inset
       : Math.max(mouseX - (x + width), 10) + inset
 
+  const overlayOpacity = Math.max(0, Math.min(1, config.overlayOpacity))
+  const triangleFillOpacity = Math.max(
+    0,
+    Math.min(1, config.triangleFillOpacity),
+  )
+
+  const borderStrokeWidth = config.showStroke
+    ? Math.max(0, config.strokeWidth)
+    : 0
+  const requestedDotRadius = config.showDots ? Math.max(0, config.dotRadius) : 0
+  const maxAllowedInset = Math.max(1, Math.min(triangleWidth, height) / 2)
+
+  // Keep stroke + dots inside the SVG viewport to avoid clipping.
+  const borderInset = Math.min(
+    Math.max(requestedDotRadius, borderStrokeWidth / 2) + 0.5,
+    maxAllowedInset,
+  )
+
+  const cornerDotRadius = config.showDots
+    ? Math.max(
+        0,
+        Math.min(requestedDotRadius, borderInset - borderStrokeWidth / 2 - 0.5),
+      )
+    : 0
+
+  const apexY = Math.max(
+    borderInset,
+    Math.min(height - borderInset, (yPct / 100) * height),
+  )
+
   const left = anchor === 'left' ? x - triangleWidth : x + width
+
+  const toneColor = tone === 'hover' ? config.idleColor : config.successColor
 
   const trianglePoints: [[number, number], [number, number], [number, number]] =
     anchor === 'left'
@@ -117,8 +134,6 @@ export function PopupMenuSubmenuSafeTriangleArea(
     .map(([px, py]) => `${px},${py}`)
     .join(' ')
 
-  const borderColor = TONE_TO_BORDER_COLOR[tone]
-
   const triangle = (
     <svg
       data-bazzaui-submenu-safe-triangle-area=""
@@ -134,27 +149,31 @@ export function PopupMenuSubmenuSafeTriangleArea(
         pointerEvents: 'none',
         zIndex: Number.MAX_SAFE_INTEGER,
         transform: 'translateZ(0)',
+        opacity: overlayOpacity,
       }}
     >
       <polygon
         points={polygonPoints}
-        fill={TONE_TO_BG_COLOR[tone]}
-        stroke={borderColor}
+        fill={toneColor}
+        fillOpacity={triangleFillOpacity}
+        stroke={config.showStroke ? toneColor : 'none'}
         strokeWidth={borderStrokeWidth}
-        strokeDasharray="6 4"
+        strokeDasharray={config.showStroke ? config.strokeDasharray : undefined}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
 
-      {trianglePoints.map(([cx, cy]) => (
-        <circle
-          key={`${cx}-${cy}`}
-          cx={cx}
-          cy={cy}
-          r={cornerDotRadius}
-          fill={borderColor}
-        />
-      ))}
+      {config.showDots
+        ? trianglePoints.map(([cx, cy]) => (
+            <circle
+              key={`${cx}-${cy}`}
+              cx={cx}
+              cy={cy}
+              r={cornerDotRadius}
+              fill={toneColor}
+            />
+          ))
+        : null}
     </svg>
   )
 
