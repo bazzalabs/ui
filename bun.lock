@@ -95,6 +95,7 @@
         "tailwind-merge": "^3.4.0",
         "tailwindcss-animate": "^1.0.7",
         "tailwindcss-corner-shape": "^1.4.6",
+        "torph": "^0.0.5",
         "unist-util-visit": "^5.0.0",
         "uuid": "^13.0.0",
         "vaul": "^1.1.2",
@@ -2015,6 +2016,8 @@
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
 
     "toidentifier": ["toidentifier@1.0.1", "", {}, "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="],
+
+    "torph": ["torph@0.0.5", "", { "peerDependencies": { "react": ">=18", "react-dom": ">=18", "svelte": ">=4", "vue": ">=3" }, "optionalPeers": ["react", "react-dom", "svelte", "vue"] }, "sha512-A9mwvWouyRIIZ8Y9McJioZ4O5itSjgtfPQMGxU+qvA5MYaF31EY1Cq3OpOLT34wXLhsfOC7tto5Gzg0d6I3NQg=="],
 
     "totalist": ["totalist@3.0.1", "", {}, "sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ=="],
 
