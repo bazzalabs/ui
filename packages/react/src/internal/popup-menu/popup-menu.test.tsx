@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -332,9 +332,15 @@ function MenuWithHideUntilActive() {
 /**
  * A nested menu for testing data attributes on Popup components.
  */
-function NestedMenuForDataAttrs() {
+function NestedMenuForDataAttrs({
+  debug,
+}: {
+  debug?: {
+    showSubmenuSafeTriangleArea?: boolean
+  }
+} = {}) {
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root debug={debug}>
       <DropdownMenu.Trigger data-testid="trigger">
         Open Menu
       </DropdownMenu.Trigger>
@@ -395,6 +401,30 @@ function NestedMenuForDataAttrs() {
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   )
+}
+
+function createRect({
+  top,
+  left,
+  width,
+  height,
+}: {
+  top: number
+  left: number
+  width: number
+  height: number
+}): DOMRect {
+  return {
+    x: left,
+    y: top,
+    top,
+    left,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  } as DOMRect
 }
 
 // ============================================================================
@@ -569,6 +599,250 @@ describe('PopupMenu', () => {
 
       // Root should no longer have data-has-open-submenu
       expect(rootPopup).not.toHaveAttribute('data-has-open-submenu')
+    })
+  })
+
+  describe('submenu safe triangle debug visualization', () => {
+    const getSafeTriangle = (tone?: string) => {
+      const selector = tone
+        ? `[data-bazzaui-submenu-safe-triangle-area][data-safe-triangle-tone="${tone}"]`
+        : '[data-bazzaui-submenu-safe-triangle-area]'
+
+      return document.querySelector(selector)
+    }
+
+    it('does not render the safe triangle when debug mode is disabled', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      await user.hover(screen.getByTestId('submenu-trigger-1'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      expect(getSafeTriangle()).toBeNull()
+    })
+
+    it('renders the safe triangle in blue while hovering a submenu trigger', async () => {
+      const user = userEvent.setup()
+      render(
+        <NestedMenuForDataAttrs
+          debug={{ showSubmenuSafeTriangleArea: true }}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 90 })
+
+      await waitFor(() => {
+        expect(getSafeTriangle('hover')).toBeInTheDocument()
+      })
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
+    })
+
+    it('renders the safe triangle in green when aim guard is activated on leave', async () => {
+      const user = userEvent.setup()
+      render(
+        <NestedMenuForDataAttrs
+          debug={{ showSubmenuSafeTriangleArea: true }}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
+      fireEvent.pointerMove(window, { clientX: 190, clientY: 94 })
+
+      await waitFor(() => {
+        expect(getSafeTriangle('activated')).toBeInTheDocument()
+      })
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
+    })
+
+    it('keeps the activated safe triangle after moving into submenu popup', async () => {
+      const user = userEvent.setup()
+      render(
+        <NestedMenuForDataAttrs
+          debug={{ showSubmenuSafeTriangleArea: true }}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
+      fireEvent.pointerMove(window, { clientX: 190, clientY: 94 })
+
+      let frozenStyle = ''
+
+      await waitFor(() => {
+        const activatedTriangle = getSafeTriangle(
+          'activated',
+        ) as HTMLElement | null
+
+        expect(activatedTriangle).toBeInTheDocument()
+        frozenStyle = activatedTriangle?.style.cssText ?? ''
+      })
+
+      fireEvent.pointerMove(submenuPopup, { clientX: 300, clientY: 120 })
+
+      await waitFor(() => {
+        const activatedTriangleAfterMove = getSafeTriangle(
+          'activated',
+        ) as HTMLElement | null
+
+        expect(activatedTriangleAfterMove).toBeInTheDocument()
+        expect(activatedTriangleAfterMove?.style.cssText).toBe(frozenStyle)
+      })
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
+    })
+
+    it('immediately hides the safe triangle when aim guard is not activated', async () => {
+      const user = userEvent.setup()
+      render(
+        <NestedMenuForDataAttrs
+          debug={{ showSubmenuSafeTriangleArea: true }}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 160, clientY: 230 })
+      fireEvent.pointerMove(window, { clientX: 140, clientY: 240 })
+
+      await waitFor(() => {
+        expect(getSafeTriangle('hover')).toBeInTheDocument()
+      })
+
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 130, clientY: 260 })
+      fireEvent.pointerMove(window, { clientX: 130, clientY: 260 })
+
+      await waitFor(() => {
+        expect(getSafeTriangle()).toBeNull()
+      })
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
     })
   })
 

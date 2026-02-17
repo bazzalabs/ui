@@ -5,6 +5,7 @@ import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
 import {
+  type PopupMenuDebugOptions,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
@@ -115,6 +116,11 @@ export interface ContextMenuRootProps {
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
 
+  /**
+   * Debug visualization options for submenu interaction heuristics.
+   */
+  debug?: PopupMenuDebugOptions
+
   children: React.ReactNode
 }
 
@@ -189,6 +195,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
     getQualifiedRowId,
+    debug,
     children,
   } = props
 
@@ -322,6 +329,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         closeOnOutsidePress={closeOnOutsidePress}
         componentName="context-menu"
         getQualifiedRowId={getQualifiedRowId}
+        debug={debug}
       >
         <Popover.Root
           open={open}

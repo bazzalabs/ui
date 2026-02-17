@@ -807,6 +807,9 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
           setCreatingLabelName(null)
         }
       }}
+      debug={{
+        showSubmenuSafeTriangleArea: true,
+      }}
     >
       <DropdownMenu.Trigger render={<Button variant="ghost" size="sm" />}>
         <FilterIcon />
