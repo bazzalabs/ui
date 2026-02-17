@@ -717,6 +717,52 @@ function DropdownMenuWithNestedSubpages() {
   )
 }
 
+function DropdownMenuWithMeasuredNestedSubpages() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="root-surface">
+              <DropdownMenu.List data-testid="root-list">
+                <DropdownMenu.SubpageTrigger
+                  data-testid="subpage-trigger-1"
+                  targetPageId="page-1"
+                  data-measure-width="420"
+                >
+                  Root Wide Item
+                </DropdownMenu.SubpageTrigger>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+
+            <DropdownMenu.Subpage pageId="page-1">
+              <DropdownMenu.Surface data-testid="subpage-surface-1">
+                <DropdownMenu.List data-testid="subpage-list-1">
+                  <DropdownMenu.SubpageBackItem
+                    data-testid="subpage-back-item-1"
+                    data-measure-width="180"
+                  >
+                    Back
+                  </DropdownMenu.SubpageBackItem>
+                  <DropdownMenu.Item
+                    data-testid="subpage-item-1"
+                    data-measure-width="200"
+                  >
+                    Narrow Item
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function DropdownMenuWithAsyncSubpageBackItem({
   onSelectAsync,
 }: {
@@ -2394,6 +2440,69 @@ describe('<DropdownMenu.Root />', () => {
       await waitFor(() => {
         expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
       })
+    })
+
+    it('keeps sticky row width between subpage navigations in the same popup', async () => {
+      const user = userEvent.setup()
+
+      const getMockWidth = (element: HTMLElement) => {
+        const rawWidth = element.getAttribute('data-measure-width')
+        if (!rawWidth) {
+          return 0
+        }
+
+        const parsedWidth = Number.parseFloat(rawWidth)
+        return Number.isFinite(parsedWidth) ? parsedWidth : 0
+      }
+
+      const requestAnimationFrameSpy = vi
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation((callback: FrameRequestCallback) => {
+          callback(0)
+          return 1
+        })
+      const cancelAnimationFrameSpy = vi
+        .spyOn(window, 'cancelAnimationFrame')
+        .mockImplementation(() => {})
+      const scrollWidthSpy = vi
+        .spyOn(HTMLElement.prototype, 'scrollWidth', 'get')
+        .mockImplementation(function (this: HTMLElement) {
+          return getMockWidth(this)
+        })
+      const offsetWidthSpy = vi
+        .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+        .mockImplementation(function (this: HTMLElement) {
+          return getMockWidth(this)
+        })
+
+      try {
+        render(<DropdownMenuWithMeasuredNestedSubpages />)
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+        })
+
+        const popup = screen.getByRole('dialog')
+
+        await waitFor(() => {
+          expect(popup.style.getPropertyValue('--row-width')).toBe('421px')
+        })
+
+        await user.click(screen.getByTestId('subpage-trigger-1'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('subpage-surface-1')).toBeInTheDocument()
+        })
+
+        expect(popup.style.getPropertyValue('--row-width')).toBe('421px')
+      } finally {
+        requestAnimationFrameSpy.mockRestore()
+        cancelAnimationFrameSpy.mockRestore()
+        scrollWidthSpy.mockRestore()
+        offsetWidthSpy.mockRestore()
+      }
     })
 
     it('goes back one page with ArrowLeft', async () => {
