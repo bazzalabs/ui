@@ -6,7 +6,7 @@ import type { PopupMenuSafeTriangleAreaDebugSettings } from '../../contexts/popu
 import { resolveAnchorSide } from '../../utils/aim-guard.js'
 import { useMousePosition } from '../../utils/use-mouse-position.js'
 
-export type PopupMenuSubmenuSafeTriangleTone = 'hover' | 'activated'
+export type PopupMenuSubmenuSafeTriangleTone = 'hover' | 'activated' | 'missed'
 
 export interface PopupMenuSubmenuSafeTriangleAreaProps {
   config: PopupMenuSafeTriangleAreaDebugSettings
@@ -115,7 +115,12 @@ export function PopupMenuSubmenuSafeTriangleArea(
 
   const left = anchor === 'left' ? x - triangleWidth : x + width
 
-  const toneColor = tone === 'hover' ? config.idleColor : config.successColor
+  let toneColor = config.idleColor
+  if (tone === 'activated') {
+    toneColor = config.successColor
+  } else if (tone === 'missed') {
+    toneColor = config.missColor
+  }
 
   const trianglePoints: [[number, number], [number, number], [number, number]] =
     anchor === 'left'

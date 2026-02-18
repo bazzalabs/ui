@@ -17,6 +17,7 @@ export interface PopupMenuSafeTriangleAreaDebugSettings {
   enabled: boolean
   idleColor: string
   successColor: string
+  missColor: string
   triangleFillOpacity: number
   overlayOpacity: number
   showStroke: boolean
@@ -26,12 +27,15 @@ export interface PopupMenuSafeTriangleAreaDebugSettings {
   dotRadius: number
   freezeOnPointerLeave: boolean
   persistOnSuccess: boolean
+  showMissState: boolean
+  missFreezeDuration: number
 }
 
 export interface PopupMenuSafeTriangleAreaDebugOptions {
   enabled?: boolean
   idleColor?: string
   successColor?: string
+  missColor?: string
   triangleFillOpacity?: number
   overlayOpacity?: number
   showStroke?: boolean
@@ -41,6 +45,8 @@ export interface PopupMenuSafeTriangleAreaDebugOptions {
   dotRadius?: number
   freezeOnPointerLeave?: boolean
   persistOnSuccess?: boolean
+  showMissState?: boolean
+  missFreezeDuration?: number
 }
 
 export type PopupMenuSafeTriangleAreaDebugConfig =
@@ -52,6 +58,7 @@ export const defaultPopupMenuSafeTriangleAreaDebugSettings: PopupMenuSafeTriangl
     enabled: false,
     idleColor: '#0088ff',
     successColor: '#00aa66',
+    missColor: '#ff3b30',
     triangleFillOpacity: 0.2,
     overlayOpacity: 1,
     showStroke: true,
@@ -61,6 +68,8 @@ export const defaultPopupMenuSafeTriangleAreaDebugSettings: PopupMenuSafeTriangl
     dotRadius: 4,
     freezeOnPointerLeave: true,
     persistOnSuccess: true,
+    showMissState: false,
+    missFreezeDuration: 220,
   }
 
 export function resolvePopupMenuSafeTriangleAreaDebugConfig(
@@ -105,12 +114,18 @@ export function resolvePopupMenuSafeTriangleAreaDebugConfig(
     toNumberOrDefault(config.dotRadius, defaults.dotRadius),
   )
 
+  const missFreezeDuration = Math.max(
+    0,
+    toNumberOrDefault(config.missFreezeDuration, defaults.missFreezeDuration),
+  )
+
   return {
     ...defaults,
     ...config,
     enabled: config.enabled ?? true,
     idleColor: config.idleColor ?? defaults.idleColor,
     successColor: config.successColor ?? defaults.successColor,
+    missColor: config.missColor ?? defaults.missColor,
     triangleFillOpacity,
     overlayOpacity,
     showStroke: config.showStroke ?? defaults.showStroke,
@@ -121,6 +136,8 @@ export function resolvePopupMenuSafeTriangleAreaDebugConfig(
     freezeOnPointerLeave:
       config.freezeOnPointerLeave ?? defaults.freezeOnPointerLeave,
     persistOnSuccess: config.persistOnSuccess ?? defaults.persistOnSuccess,
+    showMissState: config.showMissState ?? defaults.showMissState,
+    missFreezeDuration,
   }
 }
 
