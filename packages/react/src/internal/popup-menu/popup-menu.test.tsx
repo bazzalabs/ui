@@ -351,6 +351,9 @@ function NestedMenuForDataAttrs({
           dotRadius?: number
           freezeOnPointerLeave?: boolean
           persistOnSuccess?: boolean
+          showMissState?: boolean
+          missColor?: string
+          missFreezeDuration?: number
         }
   }
 } = {}) {
@@ -902,6 +905,76 @@ describe('PopupMenu', () => {
       await waitFor(() => {
         expect(getSafeTriangle()).toBeNull()
       })
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
+    })
+
+    it('shows red missed triangle and hides it after configured miss freeze duration', async () => {
+      const user = userEvent.setup()
+      render(
+        <NestedMenuForDataAttrs
+          debug={{
+            showSafeTriangleArea: {
+              enabled: true,
+              showMissState: true,
+              missColor: '#ff4d4f',
+              missFreezeDuration: 140,
+            },
+          }}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 160, clientY: 230 })
+      fireEvent.pointerMove(window, { clientX: 140, clientY: 240 })
+
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 130, clientY: 260 })
+      fireEvent.pointerMove(window, { clientX: 130, clientY: 260 })
+
+      let missedTriangle: Element | null = null
+
+      await waitFor(() => {
+        missedTriangle = getSafeTriangle('missed')
+        expect(missedTriangle).toBeInTheDocument()
+      })
+
+      const polygon = missedTriangle?.querySelector('polygon')
+      expect(polygon?.getAttribute('fill')).toBe('#ff4d4f')
+
+      await waitFor(
+        () => {
+          expect(getSafeTriangle('missed')).toBeNull()
+        },
+        { timeout: 700 },
+      )
 
       triggerRectSpy.mockRestore()
       popupRectSpy.mockRestore()
