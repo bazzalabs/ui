@@ -1,111 +1,87 @@
-import { ArrowRightIcon } from 'lucide-react'
-import Link from 'next/link'
-import { Suspense } from 'react'
-import { BazzaUIIcon, UserJotIcon } from '@/components/icons'
+import { ContextMenuShowcase } from '@/components/landing/context-menu-showcase'
 import { NavBar } from '@/components/nav-bar'
-import { Button } from '@/components/ui/button'
-import { IssuesTableFallback } from './demos/server/tst-query/_/issues-table-fallback'
-import { IssuesTableWrapper } from './demos/server/tst-query/_/issues-table-wrapper'
+import { cn } from '@/lib/utils'
+import DropdownMenuDeepSearchSubpagesLinear from '@/registry/examples/dropdown-menu/deep-search-subpages-linear'
+import DropdownMenuLinearSubpageLabelCreation from '@/registry/examples/dropdown-menu/linear-subpage-label-creation'
+import { Filters } from '@/registry/examples/filter-variants'
+import SelectSearch from '@/registry/examples/select/search'
+import { InputEmbeddedComboboxDemo } from './playground/menu/menu-playground'
 
 export default function Page() {
   return (
     <div className="flex flex-col min-h-svh select-none">
-      <div className="border-b border-border border-dashed sticky top-0 bg-site-background backdrop-blur-md z-50 h-12">
-        <div className="px-4 py-2 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x">
+      <div className="sticky top-0 backdrop-blur-md z-50">
+        <div className="px-8 py-2 max-w-screen-xl w-full mx-auto rounded-b-4xl bg-popover border-b border-x border-border/50 shadow-xs">
           <NavBar />
         </div>
       </div>
-      <div className="border-y border-border border-dashed">
-        <div className="px-4 py-16 sm:py-32 max-w-screen-xl w-full mx-auto border-border border-y-0 border-dashed xl:border-x flex flex-col-reverse lg:flex-row items-center gap-x-12 gap-y-12 lg:justify-between border">
-          <div className="flex lg:flex-row flex-col gap-8 max-w-4xl">
-            <div className="flex flex-col gap-8 w-full">
-              <div className="flex justify-between items-center gap-4">
-                <div className="space-y-8">
-                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-[538] tracking-[-0.03em] drop-shadow-xs text-center lg:text-left">
-                    A React component library with{' '}
-                    <span className="inline whitespace-nowrap">
-                      hand-crafted
-                    </span>
-                    , modern
-                    <span className="lg:inline hidden">, and powerful</span>{' '}
-                    components.
-                  </h1>
-                  <div className="*:text-base sm:*:text-lg leading-none *:lg:text-xl *:tracking-[-0.01em] *:font-[410] text-neutral-800 dark:text-neutral-300 flex flex-col gap-1 text-center lg:text-left">
-                    <span>Powerful components for your next project.</span>
-                    <span className="!font-[538] dark:text-primary">
-                      Open source. Open code. Free to use.
-                    </span>
-                  </div>
+      <div className="px-8 py-16 sm:py-32 max-w-screen-xl w-full mx-auto flex flex-col-reverse lg:flex-row items-center gap-x-12 gap-y-12 lg:justify-between">
+        <div className="flex lg:flex-row flex-col gap-8">
+          <div className="flex flex-col gap-8 w-full">
+            <div className="flex justify-between items-center gap-4">
+              <div className="space-y-8">
+                <h1 className="-ml-1 text-3xl sm:text-5xl lg:text-6xl font-[538] leading-16 tracking-[-0.03em] text-center lg:text-left">
+                  Opinionated tools
+                  <br />
+                  for building interfaces.
+                </h1>
+                <div className="space-y-2">
+                  <p className="*:text-base sm:*:text-lg leading-none *:lg:text-xl *:tracking-[-0.01em] *:font-[410] text-neutral-500 dark:text-neutral-400 flex flex-col gap-1 text-center lg:text-left">
+                    Unstyled UI components for building web interfaces.
+                  </p>
+                  <p className="*:text-base sm:*:text-lg leading-none *:lg:text-xl *:tracking-[-0.01em] *:font-[410] text-neutral-500 dark:text-neutral-400 flex flex-col gap-1 text-center lg:text-left">
+                    Primitives for filtering, sorting, and managing data views.
+                  </p>
                 </div>
               </div>
-              <div className="flex justify-center lg:block">
-                <Button
-                  size="lg"
-                  className="shadow-md hover:shadow-lg transition-[box-shadow,background-color]"
-                  asChild
-                >
-                  <Link href="/docs/intro">
-                    Get started <ArrowRightIcon className="translate-x-0.5" />
-                  </Link>
-                </Button>
-              </div>
             </div>
           </div>
-          <BazzaUIIcon className="drop-shadow-2xl dark:drop-shadow-muted h-auto w-[150px] sm:w-[300px] lg:w-[900px]" />
         </div>
+        {/*<BazzaUIIcon className="drop-shadow-2xl dark:drop-shadow-muted h-auto w-[150px] sm:w-[300px] lg:w-[900px]" />*/}
       </div>
-      <div className="border-b border-border border-dashed">
-        <div className="px-4 py-12 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x flex flex-col items-center gap-12 sm:gap-16">
-          <div className="space-y-6 sm:space-y-8 text-center">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-[538] tracking-[-0.03em] drop-shadow-xs">
-              Playground
-            </h2>
-            <div className="text-base sm:text-lg lg:text-lg tracking-[-0.01em] font-[510] text-neutral-600 dark:text-neutral-300 space-y-1 sm:space-y-0">
-              <p>Our first component is a data table filter.</p>
-              <p>
-                It's library-agnostic and supports client and server-side
-                filtering.
-              </p>
-              <p>Take it for a spin in the playground below.</p>
-            </div>
+      <div
+        className={cn(
+          'h-fit max-w-screen-xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3',
+          'border rounded-lg overflow-hidden',
+          '[&>div]:px-8 [&>div]:py-10 [&>div]:flex [&>div]:flex-col [&>div]:items-center [&>div]:justify-center [&>div]:gap-4',
+          '[&>div:not(:last-child)]:border-b',
+          'lg:[&>div:not(:last-child)]:border-b-0',
+          'lg:[&>div:not(:nth-child(3n))]:border-r',
+          'lg:[&>div:nth-child(n+4)]:border-t',
+        )}
+      >
+        <div>
+          <div className="w-[225px] h-[calc(209px+8px+32px)]">
+            <DropdownMenuDeepSearchSubpagesLinear />
           </div>
-          <Suspense fallback={<IssuesTableFallback />}>
-            <IssuesTableWrapper />
-          </Suspense>
         </div>
-      </div>
-      <div className="border-b border-border border-dashed">
-        <div className="px-4 py-12 max-w-screen-xl w-full mx-auto border-border border-dashed xl:border-x text-center flex flex-col items-center gap-12 sm:gap-16">
-          <div className="space-y-4 sm:space-y-8">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-[538] tracking-[-0.03em] drop-shadow-xs">
-              Sponsors
-            </h2>
-            <p className="text-base sm:text-lg lg:text-lg tracking-[-0.01em] font-[510] text-neutral-600 dark:text-neutral-300">
-              We wouldn't be able to build this without the support of our
-              amazing sponsors.
-            </p>
+
+        <div>
+          <div className="w-[288px] h-[310px]">
+            <InputEmbeddedComboboxDemo />
           </div>
-          <div className="flex items-center justify-center gap-12">
-            <Link
-              className="flex justify-center items-end gap-3 dark:text-neutral-200 dark:hover:text-white text-neutral-700 hover:text-black transition-all hover:scale-105"
-              href="https://userjot.com"
-            >
-              <UserJotIcon className="size-6 sm:size-8" />
-              <span className="text-base sm:text-xl font-[538] tracking-[-0.01em]">
-                UserJot
-              </span>
-            </Link>
+        </div>
+
+        <div>
+          <div className="w-[240px] min-h-[220px] flex items-center justify-center">
+            <SelectSearch />
           </div>
-          <p className="text-base tracking-[-0.01em] font-[510] text-muted-foreground leading-none">
-            Want to support bazza/ui?{' '}
-            <Link
-              href="mailto:kian@bazza.dev?subject=bazza%2Fui%20-%20I%20want%20to%20sponsor%20you&body=Hey%20Kian%2C"
-              className="relative text-neutral-800 dark:text-neutral-200 group/sponsor-link hover:underline underline-offset-2"
-            >
-              Become a sponsor.
-              <ArrowRightIcon className="absolute ml-1 group-hover/sponsor-link:inline hidden size-4 translate-y-[-0.5px] stroke-[2.5] animate-in slide-in-from-left-1" />
-            </Link>
-          </p>
+        </div>
+
+        <div>
+          <ContextMenuShowcase />
+        </div>
+
+        <div className="lg:items-start">
+          <div className="w-full max-w-[340px]">
+            <Filters variant="default" />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-[calc(225px+8px+28px)] h-[calc(241px+40px+32px)] translate-y-22 -translate-x-4">
+            <DropdownMenuLinearSubpageLabelCreation />
+          </div>
         </div>
       </div>
     </div>

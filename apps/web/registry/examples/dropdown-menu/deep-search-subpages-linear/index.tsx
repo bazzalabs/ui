@@ -799,6 +799,8 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
 
   return (
     <DropdownMenu.Root
+      // open={true}
+      // modal={false}
       onOpenChange={(open) => {
         if (!open) {
           clearHideCreationHeaderTimeout()
@@ -806,14 +808,6 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
           setLabelCreationStatus('idle')
           setCreatingLabelName(null)
         }
-      }}
-      debug={{
-        showSafeTriangleArea: {
-          enabled: true,
-          showMissState: false,
-          missColor: '#ff4d4f',
-          missFreezeDuration: 2000,
-        },
       }}
     >
       <DropdownMenu.Trigger render={<Button variant="ghost" size="sm" />}>
