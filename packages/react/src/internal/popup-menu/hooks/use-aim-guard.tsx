@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { usePopupMenuDebug } from '../contexts/popup-menu-debug-context.js'
 
 export interface AimGuardContextValue {
   aimGuardActive: boolean
@@ -46,6 +47,7 @@ export interface AimGuardProviderProps {
  * Prevents accidental submenu closures when users move diagonally toward an open submenu.
  */
 export function AimGuardProvider({ children }: AimGuardProviderProps) {
+  const { logAimGuardEvents } = usePopupMenuDebug()
   const [aimGuardActive, setAimGuardActive] = React.useState(false)
   const [guardedTriggerId, setGuardedTriggerId] = React.useState<string | null>(
     null,
@@ -79,7 +81,7 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
 
   const logAimGuard = React.useCallback(
     (eventName: string, details?: Record<string, unknown>) => {
-      if (typeof window === 'undefined') {
+      if (!logAimGuardEvents || typeof window === 'undefined') {
         return
       }
 
@@ -92,6 +94,7 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       })
     },
     [
+      logAimGuardEvents,
       aimGuardActiveRef,
       guardedTriggerIdRef,
       guardedDepthRef,

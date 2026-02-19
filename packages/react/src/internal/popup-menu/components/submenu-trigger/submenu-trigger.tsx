@@ -280,7 +280,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Track mouse positions for aim guard trajectory calculation
   const mouseTrailRef = useMouseTrail(4)
 
-  const { showSafeTriangleArea } = usePopupMenuDebug()
+  const { showSafeTriangleArea, logAimGuardEvents } = usePopupMenuDebug()
   const showSafeTriangleAreaEnabled = showSafeTriangleArea.enabled
   const [submenuSafeTriangleDebugState, setSubmenuSafeTriangleDebugState] =
     React.useState<SubmenuSafeTriangleDebugState>('hidden')
@@ -311,7 +311,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   const logAimTrace = React.useCallback(
     (eventName: string, details?: Record<string, unknown>) => {
-      if (!showSafeTriangleAreaEnabled) {
+      if (!logAimGuardEvents) {
         return
       }
 
@@ -326,7 +326,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       })
     },
     [
-      showSafeTriangleAreaEnabled,
+      logAimGuardEvents,
       item.id,
       item.storeId,
       parentDepth,
