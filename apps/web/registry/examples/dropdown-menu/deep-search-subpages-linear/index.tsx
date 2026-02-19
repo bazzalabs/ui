@@ -808,7 +808,12 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
         }
       }}
       debug={{
-        showSubmenuSafeTriangleArea: true,
+        showSafeTriangleArea: {
+          enabled: true,
+          showMissState: true,
+          missColor: '#ff4d4f',
+          missFreezeDuration: 180,
+        },
       }}
     >
       <DropdownMenu.Trigger render={<Button variant="ghost" size="sm" />}>
