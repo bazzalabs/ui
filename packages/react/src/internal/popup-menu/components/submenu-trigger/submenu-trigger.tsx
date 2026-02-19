@@ -883,9 +883,18 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     (event: React.PointerEvent<HTMLDivElement>) => {
       // Prevent focus from leaving the input
       event.preventDefault()
+
+      if (open) {
+        suppressAutoOpenRef.current = true
+        logAimTrace('pointerdown-suppress-auto-open', {
+          clientX: event.clientX,
+          clientY: event.clientY,
+        })
+      }
+
       onPointerDown?.(event)
     },
-    [onPointerDown],
+    [open, logAimTrace, onPointerDown],
   )
 
   // Custom pointer move handler for submenu triggers
@@ -928,6 +937,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         return
       }
 
+      if (suppressAutoOpenRef.current) {
+        logAimTrace('pointermove-open-suppressed-after-explicit-close', {
+          clientX: event.clientX,
+          clientY: event.clientY,
+        })
+        return
+      }
+
       clearLeaveMonitor()
       clearCloseTimer()
 
@@ -957,6 +974,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       item.storeId,
       openOnHighlight,
       open,
+      suppressAutoOpenRef,
       clearLeaveMonitor,
       clearCloseTimer,
       delay.pointer,
@@ -1004,6 +1022,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       // Skip submenu opening if openOnHighlight is disabled
       if (!openOnHighlight) return
 
+      if (suppressAutoOpenRef.current) {
+        logAimTrace('pointerenter-open-suppressed-after-explicit-close', {
+          clientX: event.clientX,
+          clientY: event.clientY,
+        })
+        return
+      }
+
       // Clear any existing aim guard and schedule open with delay
       clearLeaveMonitor()
       clearAimGuard()
@@ -1029,6 +1055,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       item.storeId,
       parentStore,
       openOnHighlight,
+      suppressAutoOpenRef,
       clearLeaveMonitor,
       clearAimGuard,
       clearOpenTimer,
