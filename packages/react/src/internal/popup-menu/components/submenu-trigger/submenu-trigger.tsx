@@ -384,6 +384,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       triggerRect: DOMRect | null,
       initialHit: boolean,
       timeoutMs: number,
+      initialPointerX: number,
+      initialPointerY: number,
     ) => {
       clearLeaveMonitor()
 
@@ -392,6 +394,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       }
 
       let lastHit = initialHit
+      let previousPointerX = initialPointerX
+      let previousPointerY = initialPointerY
 
       const onWindowPointerMove = (pointerEvent: PointerEvent) => {
         if (!isMouseLikePointerType(pointerEvent.pointerType)) {
@@ -411,9 +415,43 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
           clientY >= contentRect.top &&
           clientY <= contentRect.bottom
 
+        const axisDelta =
+          anchor === 'left' || anchor === 'right'
+            ? clientX - previousPointerX
+            : clientY - previousPointerY
+
+        previousPointerX = clientX
+        previousPointerY = clientY
+
         if (isInsidePopup) {
           clearCloseTimer()
           clearLeaveMonitor()
+          return
+        }
+
+        const movedAwayFromSubmenu =
+          (anchor === 'left' && axisDelta <= -2) ||
+          (anchor === 'right' && axisDelta >= 2) ||
+          (anchor === 'top' && axisDelta <= -2) ||
+          (anchor === 'bottom' && axisDelta >= 2)
+
+        if (lastHit && movedAwayFromSubmenu) {
+          const debugSnapshot: SubmenuSafeTriangleDebugSnapshot = {
+            contentRect,
+            triggerRect,
+            pointerX: clientX,
+            pointerY: clientY,
+          }
+
+          lastHit = false
+          showMissedSafeTriangle(debugSnapshot)
+          clearAimGuard()
+          scheduleClose()
+
+          if (closeDelay <= 0) {
+            clearLeaveMonitor()
+          }
+
           return
         }
 
@@ -956,14 +994,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         activateAimGuard(item.id, parentDepth, childSurfaceId, 600)
         parentStore.setHighlightedId(item.storeId)
         setOpen(true)
-        startLeaveMonitor(anchor, tRect, true, 600)
+        startLeaveMonitor(anchor, tRect, true, 600, clientX, clientY)
       } else {
         // User is not aiming at submenu - close it
         showMissedSafeTriangle(debugSnapshot)
         clearAimGuard()
         scheduleClose()
         if (closeDelay > 0) {
-          startLeaveMonitor(anchor, tRect, false, closeDelay)
+          startLeaveMonitor(anchor, tRect, false, closeDelay, clientX, clientY)
         } else {
           clearLeaveMonitor()
         }
