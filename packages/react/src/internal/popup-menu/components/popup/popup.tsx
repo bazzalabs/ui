@@ -342,6 +342,35 @@ export const PopupMenuPopup = React.forwardRef<
     clearAimGuard,
   ])
 
+  React.useEffect(() => {
+    if (
+      submenuContext?.open !== false ||
+      !aimGuardActiveRef.current ||
+      guardedSubmenuSurfaceIdRef.current !== surfaceId
+    ) {
+      return
+    }
+
+    clearAimGuard()
+  }, [
+    submenuContext?.open,
+    aimGuardActiveRef,
+    guardedSubmenuSurfaceIdRef,
+    surfaceId,
+    clearAimGuard,
+  ])
+
+  React.useEffect(() => {
+    return () => {
+      if (
+        aimGuardActiveRef.current &&
+        guardedSubmenuSurfaceIdRef.current === surfaceId
+      ) {
+        clearAimGuard()
+      }
+    }
+  }, [aimGuardActiveRef, guardedSubmenuSurfaceIdRef, surfaceId, clearAimGuard])
+
   // Transfer focus ownership when pointer moves inside this submenu popup
   // We ignore events shortly after open to prevent focus transfer when
   // the popup appears under a stationary cursor

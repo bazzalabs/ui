@@ -417,6 +417,67 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   }, [open, clearCloseTimer])
 
   React.useEffect(() => {
+    if (
+      open ||
+      !aimGuardActiveRef.current ||
+      guardedTriggerIdRef.current !== item.id ||
+      guardedDepthRef.current !== parentDepth
+    ) {
+      return
+    }
+
+    clearAimGuard()
+  }, [
+    open,
+    item.id,
+    parentDepth,
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+    guardedDepthRef,
+    clearAimGuard,
+  ])
+
+  React.useEffect(() => {
+    if (
+      item.isVisible ||
+      !aimGuardActiveRef.current ||
+      guardedTriggerIdRef.current !== item.id ||
+      guardedDepthRef.current !== parentDepth
+    ) {
+      return
+    }
+
+    clearAimGuard()
+  }, [
+    item.isVisible,
+    item.id,
+    parentDepth,
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+    guardedDepthRef,
+    clearAimGuard,
+  ])
+
+  React.useEffect(() => {
+    return () => {
+      if (
+        aimGuardActiveRef.current &&
+        guardedTriggerIdRef.current === item.id &&
+        guardedDepthRef.current === parentDepth
+      ) {
+        clearAimGuard()
+      }
+    }
+  }, [
+    item.id,
+    parentDepth,
+    aimGuardActiveRef,
+    guardedTriggerIdRef,
+    guardedDepthRef,
+    clearAimGuard,
+  ])
+
+  React.useEffect(() => {
     if (!open) {
       return
     }
