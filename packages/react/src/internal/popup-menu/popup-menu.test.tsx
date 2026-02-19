@@ -1448,6 +1448,46 @@ describe('PopupMenu', () => {
         scenario.cleanup()
       }
     })
+
+    it('does not reopen submenu on pointermove after explicit click close until pointer leaves', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      await user.click(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
+      })
+
+      fireEvent.pointerMove(submenuTrigger, { clientX: 182, clientY: 92 })
+      fireEvent.pointerMove(submenuTrigger, { clientX: 186, clientY: 94 })
+
+      await sleep(120)
+
+      expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
+
+      const rootItem = screen.getByTestId('root-item-1')
+      await user.hover(rootItem)
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+    })
   })
 
   describe('search and filtering', () => {
