@@ -921,6 +921,30 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       // Highlight on hover (use storeId for store operations)
       parentStore.setHighlightedId(item.storeId)
+
+      // Pointer move can be the first allowed event after aim-guard unblocks
+      // this row (e.g. pointerenter was blocked earlier), so allow it to open.
+      if (!openOnHighlight || open) {
+        return
+      }
+
+      clearLeaveMonitor()
+      clearCloseTimer()
+
+      const pointerDelay = delay.pointer
+      if (pointerDelay <= 0) {
+        setOpen(true)
+        return
+      }
+
+      if (openTimerRef.current !== null) {
+        return
+      }
+
+      openTimerRef.current = setTimeout(() => {
+        openTimerRef.current = null
+        setOpen(true)
+      }, pointerDelay)
     },
     [
       onPointerMove,
@@ -931,6 +955,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       guardedTriggerIdRef,
       item.id,
       item.storeId,
+      openOnHighlight,
+      open,
+      clearLeaveMonitor,
+      clearCloseTimer,
+      delay.pointer,
+      setOpen,
       logAimTrace,
       parentStore,
     ],
