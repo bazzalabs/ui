@@ -19,6 +19,7 @@ import { useSubmenuContext } from '../../contexts/submenu-context.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import {
+  type AnchorSide,
   getSmoothedHeading,
   resolveAnchorSide,
   willHitSubmenu,
@@ -203,6 +204,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   const openTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   // Timer for delayed close on pointer leave misses
   const closeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const leaveMonitorCleanupRef = React.useRef<(() => void) | null>(null)
+  const leaveMonitorTimerRef = React.useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null)
 
   const clearOpenTimer = React.useCallback(() => {
     if (openTimerRef.current !== null) {
@@ -232,13 +237,26 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     }, closeDelay)
   }, [clearCloseTimer, closeDelay, setOpen])
 
+  const clearLeaveMonitor = React.useCallback(() => {
+    if (leaveMonitorCleanupRef.current) {
+      leaveMonitorCleanupRef.current()
+      leaveMonitorCleanupRef.current = null
+    }
+
+    if (leaveMonitorTimerRef.current !== null) {
+      clearTimeout(leaveMonitorTimerRef.current)
+      leaveMonitorTimerRef.current = null
+    }
+  }, [])
+
   // Cleanup timer on unmount
   React.useEffect(() => {
     return () => {
       clearOpenTimer()
       clearCloseTimer()
+      clearLeaveMonitor()
     }
-  }, [clearOpenTimer, clearCloseTimer])
+  }, [clearOpenTimer, clearCloseTimer, clearLeaveMonitor])
 
   // Track if submenu was just closed while highlighted (e.g. ArrowLeft back)
   // to suppress the keyboard auto-open until highlight leaves and returns
@@ -360,6 +378,127 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     ],
   )
 
+  const startLeaveMonitor = React.useCallback(
+    (
+      anchor: AnchorSide,
+      triggerRect: DOMRect | null,
+      initialHit: boolean,
+      timeoutMs: number,
+    ) => {
+      clearLeaveMonitor()
+
+      if (timeoutMs <= 0) {
+        return
+      }
+
+      let lastHit = initialHit
+
+      const onWindowPointerMove = (pointerEvent: PointerEvent) => {
+        if (!isMouseLikePointerType(pointerEvent.pointerType)) {
+          return
+        }
+
+        const contentRect = contentRef.current?.getBoundingClientRect()
+        if (!contentRect) {
+          clearLeaveMonitor()
+          return
+        }
+
+        const { clientX, clientY } = pointerEvent
+        const isInsidePopup =
+          clientX >= contentRect.left &&
+          clientX <= contentRect.right &&
+          clientY >= contentRect.top &&
+          clientY <= contentRect.bottom
+
+        if (isInsidePopup) {
+          clearCloseTimer()
+          clearLeaveMonitor()
+          return
+        }
+
+        const heading = getSmoothedHeading(
+          mouseTrailRef.current,
+          clientX,
+          clientY,
+          anchor,
+          triggerRect,
+          contentRect,
+        )
+
+        const hit = willHitSubmenu(
+          clientX,
+          clientY,
+          heading,
+          contentRect,
+          anchor,
+          triggerRect,
+        )
+
+        if (hit === lastHit) {
+          return
+        }
+
+        const debugSnapshot: SubmenuSafeTriangleDebugSnapshot = {
+          contentRect,
+          triggerRect,
+          pointerX: clientX,
+          pointerY: clientY,
+        }
+
+        lastHit = hit
+
+        if (hit) {
+          showActivatedSafeTriangle(debugSnapshot)
+          clearCloseTimer()
+          activateAimGuard(item.id, parentDepth, childSurfaceId, 600)
+          parentStore.setHighlightedId(item.storeId)
+          setOpen(true)
+          return
+        }
+
+        showMissedSafeTriangle(debugSnapshot)
+        clearAimGuard()
+        scheduleClose()
+
+        if (closeDelay <= 0) {
+          clearLeaveMonitor()
+        }
+      }
+
+      window.addEventListener('pointermove', onWindowPointerMove, {
+        passive: true,
+      })
+
+      leaveMonitorCleanupRef.current = () => {
+        window.removeEventListener('pointermove', onWindowPointerMove)
+      }
+
+      leaveMonitorTimerRef.current = setTimeout(() => {
+        leaveMonitorTimerRef.current = null
+        clearLeaveMonitor()
+      }, timeoutMs)
+    },
+    [
+      clearLeaveMonitor,
+      contentRef,
+      clearCloseTimer,
+      mouseTrailRef,
+      showActivatedSafeTriangle,
+      activateAimGuard,
+      item.id,
+      parentDepth,
+      childSurfaceId,
+      parentStore,
+      item.storeId,
+      setOpen,
+      showMissedSafeTriangle,
+      clearAimGuard,
+      scheduleClose,
+      closeDelay,
+    ],
+  )
+
   React.useEffect(() => {
     if (showSafeTriangleAreaEnabled) {
       return
@@ -414,8 +553,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   React.useEffect(() => {
     if (!open) {
       clearCloseTimer()
+      clearLeaveMonitor()
     }
-  }, [open, clearCloseTimer])
+  }, [open, clearCloseTimer, clearLeaveMonitor])
 
   React.useEffect(() => {
     if (
@@ -490,10 +630,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
     const handlePointerEnterContent = () => {
       clearCloseTimer()
+      clearLeaveMonitor()
     }
 
     const handlePointerMoveContent = () => {
       clearCloseTimer()
+      clearLeaveMonitor()
     }
 
     contentEl.addEventListener('pointerenter', handlePointerEnterContent)
@@ -505,7 +647,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       contentEl.removeEventListener('pointerenter', handlePointerEnterContent)
       contentEl.removeEventListener('pointermove', handlePointerMoveContent)
     }
-  }, [open, contentRef, clearCloseTimer])
+  }, [open, contentRef, clearCloseTimer, clearLeaveMonitor])
 
   // Register submenu open callback with parent store
   // When submenu is opened via keyboard (ArrowRight/Ctrl+L), transfer focus ownership
@@ -699,6 +841,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (!openOnHighlight) return
 
       // Clear any existing aim guard and schedule open with delay
+      clearLeaveMonitor()
       clearAimGuard()
       clearOpenTimer()
       clearCloseTimer()
@@ -722,8 +865,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       item.storeId,
       parentStore,
       openOnHighlight,
+      clearLeaveMonitor,
       clearAimGuard,
       clearOpenTimer,
+      clearCloseTimer,
       clearMissSafeTriangleTimer,
       showSafeTriangleAreaEnabled,
       delay.pointer,
@@ -749,6 +894,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       // Get the submenu content rect for safe polygon calculation
       const contentRect = contentRef.current?.getBoundingClientRect()
       if (!contentRect) {
+        clearLeaveMonitor()
         clearMissSafeTriangleTimer()
         setSubmenuSafeTriangleDebugState('hidden')
         setSubmenuSafeTriangleDebugSnapshot(null)
@@ -779,6 +925,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         // Pointer is already in the popup, clear guard and keep open
         showActivatedSafeTriangle(debugSnapshot)
         clearCloseTimer()
+        clearLeaveMonitor()
         clearAimGuard()
         return
       }
@@ -809,11 +956,17 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         activateAimGuard(item.id, parentDepth, childSurfaceId, 600)
         parentStore.setHighlightedId(item.storeId)
         setOpen(true)
+        startLeaveMonitor(anchor, tRect, true, 600)
       } else {
         // User is not aiming at submenu - close it
         showMissedSafeTriangle(debugSnapshot)
         clearAimGuard()
         scheduleClose()
+        if (closeDelay > 0) {
+          startLeaveMonitor(anchor, tRect, false, closeDelay)
+        } else {
+          clearLeaveMonitor()
+        }
       }
     },
     [
@@ -824,7 +977,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       guardedTriggerIdRef,
       item.id,
       item.storeId,
+      closeDelay,
       contentRef,
+      clearLeaveMonitor,
       clearMissSafeTriangleTimer,
       clearAimGuard,
       showActivatedSafeTriangle,
@@ -832,6 +987,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       setOpen,
       clearCloseTimer,
       scheduleClose,
+      startLeaveMonitor,
       triggerRef,
       mouseTrailRef,
       activateAimGuard,
