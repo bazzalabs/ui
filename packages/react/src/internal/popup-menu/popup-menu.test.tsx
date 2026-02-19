@@ -417,6 +417,27 @@ function NestedMenuForDataAttrs({
                     </DropdownMenu.Positioner>
                   </DropdownMenu.Portal>
                 </DropdownMenu.Submenu>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-sibling">
+                    Submenu sibling
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup data-testid="popup-submenu-sibling">
+                        <DropdownMenu.Surface>
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item
+                              data-testid="submenu-sibling-item-1"
+                              value="submenu-sibling-item-1"
+                            >
+                              Sibling submenu item
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
               </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
@@ -1378,6 +1399,51 @@ describe('PopupMenu', () => {
           },
           { timeout: 250 },
         )
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('opens sibling submenu on pointermove after guard timeout', async () => {
+      const scenario = await setupAimMonitoringScenario(0)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 190,
+          clientY: 94,
+        })
+
+        const siblingTrigger = screen.getByTestId('submenu-trigger-sibling')
+
+        fireEvent.pointerEnter(siblingTrigger, {
+          clientX: 182,
+          clientY: 136,
+        })
+        fireEvent.pointerMove(siblingTrigger, {
+          clientX: 182,
+          clientY: 136,
+        })
+
+        expect(
+          screen.queryByTestId('popup-submenu-sibling'),
+        ).not.toBeInTheDocument()
+
+        await sleep(650)
+
+        fireEvent.pointerMove(siblingTrigger, {
+          clientX: 186,
+          clientY: 140,
+        })
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('popup-submenu-sibling'),
+          ).toBeInTheDocument()
+        })
       } finally {
         scenario.cleanup()
       }
