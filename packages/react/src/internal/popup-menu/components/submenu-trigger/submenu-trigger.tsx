@@ -200,6 +200,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   // Timer for delayed opening (pointer / keyboard navigation)
   const openTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Timer for delayed close on pointer leave misses
+  const closeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clearOpenTimer = React.useCallback(() => {
     if (openTimerRef.current !== null) {
@@ -208,8 +210,34 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     }
   }, [])
 
+  const clearCloseTimer = React.useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleClose = React.useCallback(() => {
+    clearCloseTimer()
+
+    if (closeDelay <= 0) {
+      setOpen(false)
+      return
+    }
+
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null
+      setOpen(false)
+    }, closeDelay)
+  }, [clearCloseTimer, closeDelay, setOpen])
+
   // Cleanup timer on unmount
-  React.useEffect(() => clearOpenTimer, [clearOpenTimer])
+  React.useEffect(() => {
+    return () => {
+      clearOpenTimer()
+      clearCloseTimer()
+    }
+  }, [clearOpenTimer, clearCloseTimer])
 
   // Track if submenu was just closed while highlighted (e.g. ArrowLeft back)
   // to suppress the keyboard auto-open until highlight leaves and returns
@@ -381,6 +409,41 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     setSubmenuSafeTriangleDebugState('hidden')
     setSubmenuSafeTriangleDebugSnapshot(null)
   }, [submenuSafeTriangleDebugState, open, clearMissSafeTriangleTimer])
+
+  React.useEffect(() => {
+    if (!open) {
+      clearCloseTimer()
+    }
+  }, [open, clearCloseTimer])
+
+  React.useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const contentEl = contentRef.current
+    if (!contentEl) {
+      return
+    }
+
+    const handlePointerEnterContent = () => {
+      clearCloseTimer()
+    }
+
+    const handlePointerMoveContent = () => {
+      clearCloseTimer()
+    }
+
+    contentEl.addEventListener('pointerenter', handlePointerEnterContent)
+    contentEl.addEventListener('pointermove', handlePointerMoveContent, {
+      passive: true,
+    })
+
+    return () => {
+      contentEl.removeEventListener('pointerenter', handlePointerEnterContent)
+      contentEl.removeEventListener('pointermove', handlePointerMoveContent)
+    }
+  }, [open, contentRef, clearCloseTimer])
 
   // Register submenu open callback with parent store
   // When submenu is opened via keyboard (ArrowRight/Ctrl+L), transfer focus ownership
@@ -574,6 +637,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       // Clear any existing aim guard and schedule open with delay
       clearAimGuard()
       clearOpenTimer()
+      clearCloseTimer()
 
       const pointerDelay = delay.pointer
       if (pointerDelay <= 0) {
@@ -624,7 +688,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         setSubmenuSafeTriangleDebugState('hidden')
         setSubmenuSafeTriangleDebugSnapshot(null)
         clearAimGuard()
-        setOpen(false)
+        scheduleClose()
         return
       }
 
@@ -649,6 +713,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (isInsidePopup) {
         // Pointer is already in the popup, clear guard and keep open
         showActivatedSafeTriangle(debugSnapshot)
+        clearCloseTimer()
         clearAimGuard()
         return
       }
@@ -683,7 +748,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         // User is not aiming at submenu - close it
         showMissedSafeTriangle(debugSnapshot)
         clearAimGuard()
-        setOpen(false)
+        scheduleClose()
       }
     },
     [
@@ -700,6 +765,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       showActivatedSafeTriangle,
       showMissedSafeTriangle,
       setOpen,
+      clearCloseTimer,
+      scheduleClose,
       triggerRef,
       mouseTrailRef,
       activateAimGuard,

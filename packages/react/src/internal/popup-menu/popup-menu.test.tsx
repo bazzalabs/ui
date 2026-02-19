@@ -334,6 +334,7 @@ function MenuWithHideUntilActive() {
  */
 function NestedMenuForDataAttrs({
   debug,
+  submenuCloseDelay,
 }: {
   debug?: {
     showSafeTriangleArea?:
@@ -356,6 +357,7 @@ function NestedMenuForDataAttrs({
           missFreezeDuration?: number
         }
   }
+  submenuCloseDelay?: number
 } = {}) {
   return (
     <DropdownMenu.Root debug={debug}>
@@ -371,7 +373,10 @@ function NestedMenuForDataAttrs({
                   Item 1
                 </DropdownMenu.Item>
                 <DropdownMenu.Submenu>
-                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-1">
+                  <DropdownMenu.SubmenuTrigger
+                    data-testid="submenu-trigger-1"
+                    closeDelay={submenuCloseDelay}
+                  >
                     Submenu 1
                   </DropdownMenu.SubmenuTrigger>
                   <DropdownMenu.Portal>
@@ -978,6 +983,142 @@ describe('PopupMenu', () => {
 
       triggerRectSpy.mockRestore()
       popupRectSpy.mockRestore()
+    })
+  })
+
+  describe('submenu closeDelay', () => {
+    const setupCloseDelayScenario = async (closeDelay: number) => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs submenuCloseDelay={closeDelay} />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      return {
+        user,
+        submenuTrigger,
+        submenuPopup,
+        cleanup: () => {
+          triggerRectSpy.mockRestore()
+          popupRectSpy.mockRestore()
+        },
+      }
+    }
+
+    const fireMissTrajectory = (submenuTrigger: HTMLElement) => {
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 160, clientY: 230 })
+      fireEvent.pointerMove(window, { clientX: 140, clientY: 240 })
+
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 130, clientY: 260 })
+    }
+
+    it('closes immediately on miss when closeDelay is 0', async () => {
+      const scenario = await setupCloseDelayScenario(0)
+
+      try {
+        fireMissTrajectory(scenario.submenuTrigger)
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('popup-submenu-1'),
+          ).not.toBeInTheDocument()
+        })
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('delays close on miss when closeDelay is greater than 0', async () => {
+      const scenario = await setupCloseDelayScenario(160)
+
+      try {
+        fireMissTrajectory(scenario.submenuTrigger)
+
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+
+        await waitFor(
+          () => {
+            expect(
+              screen.queryByTestId('popup-submenu-1'),
+            ).not.toBeInTheDocument()
+          },
+          { timeout: 700 },
+        )
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('cancels delayed close when pointer re-enters the trigger', async () => {
+      const scenario = await setupCloseDelayScenario(220)
+
+      try {
+        fireMissTrajectory(scenario.submenuTrigger)
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+
+        await scenario.user.hover(scenario.submenuTrigger)
+
+        await waitFor(
+          () => {
+            expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+          },
+          { timeout: 700 },
+        )
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('cancels delayed close when pointer enters the submenu popup', async () => {
+      const scenario = await setupCloseDelayScenario(220)
+
+      try {
+        fireMissTrajectory(scenario.submenuTrigger)
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+
+        fireEvent.pointerEnter(scenario.submenuPopup, {
+          clientX: 300,
+          clientY: 120,
+        })
+        fireEvent.pointerMove(scenario.submenuPopup, {
+          clientX: 300,
+          clientY: 120,
+        })
+
+        await waitFor(
+          () => {
+            expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+          },
+          { timeout: 700 },
+        )
+      } finally {
+        scenario.cleanup()
+      }
     })
   })
 
