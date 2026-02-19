@@ -1351,6 +1351,37 @@ describe('PopupMenu', () => {
         scenario.cleanup()
       }
     })
+
+    it('drops aim guard immediately when pointer reverses direction after a hit', async () => {
+      const scenario = await setupAimMonitoringScenario(0)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 190,
+          clientY: 94,
+        })
+
+        fireEvent.pointerMove(window, { clientX: 178, clientY: 94 })
+        fireEvent.pointerMove(window, { clientX: 164, clientY: 94 })
+
+        const rootItem = screen.getByTestId('root-item-1')
+        fireEvent.pointerMove(rootItem, { clientX: 96, clientY: 74 })
+        fireEvent.pointerMove(rootItem, { clientX: 100, clientY: 78 })
+
+        await waitFor(
+          () => {
+            expect(rootItem).toHaveAttribute('data-highlighted', '')
+          },
+          { timeout: 250 },
+        )
+      } finally {
+        scenario.cleanup()
+      }
+    })
   })
 
   describe('search and filtering', () => {
