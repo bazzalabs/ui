@@ -23,6 +23,7 @@ import {
   resolveAnchorSide,
   willHitSubmenu,
 } from '../../utils/aim-guard.js'
+import { isMouseLikePointerType } from '../../utils/is-mouse-like-pointer.js'
 import { useMouseTrail } from '../../utils/use-mouse-trail.js'
 import {
   PopupMenuSubmenuSafeTriangleArea,
@@ -635,6 +636,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       if (event.defaultPrevented) return
       if (disabled) return
+      if (!isMouseLikePointerType(event.pointerType)) return
 
       // Check if pointer has actually moved (prevents phantom highlights)
       if (
@@ -674,6 +676,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       if (event.defaultPrevented) return
       if (disabled) return
+      if (!isMouseLikePointerType(event.pointerType)) return
 
       // Check if aim guard is blocking this trigger
       if (
@@ -734,6 +737,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       if (event.defaultPrevented) return
       if (disabled) return
+      if (!isMouseLikePointerType(event.pointerType)) return
 
       // Cancel any pending open timer
       clearOpenTimer()
