@@ -160,8 +160,13 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
         debug?.showSafeTriangleArea,
         debug?.showSubmenuSafeTriangleArea,
       ),
+      logAimGuardEvents: debug?.logAimGuardEvents ?? false,
     }),
-    [debug?.showSafeTriangleArea, debug?.showSubmenuSafeTriangleArea],
+    [
+      debug?.showSafeTriangleArea,
+      debug?.showSubmenuSafeTriangleArea,
+      debug?.logAimGuardEvents,
+    ],
   )
 
   return (
