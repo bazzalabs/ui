@@ -75,6 +75,31 @@ describe('aim-guard', () => {
 
       expect(result).toBe('left')
     })
+
+    it('returns "top" when trigger is above submenu', () => {
+      const rect = createDOMRect(200, 200, 200, 160)
+      const triggerRect = createDOMRect(230, 100, 80, 40)
+
+      const result = resolveAnchorSide(rect, triggerRect, 0)
+
+      expect(result).toBe('top')
+    })
+
+    it('returns "bottom" when trigger is below submenu', () => {
+      const rect = createDOMRect(200, 120, 200, 160)
+      const triggerRect = createDOMRect(230, 320, 80, 40)
+
+      const result = resolveAnchorSide(rect, triggerRect, 0)
+
+      expect(result).toBe('bottom')
+    })
+
+    it('uses both x and y mouse fallback when no trigger rect is provided', () => {
+      const rect = createDOMRect(200, 120, 200, 160)
+
+      expect(resolveAnchorSide(rect, null, 260, 80)).toBe('top')
+      expect(resolveAnchorSide(rect, null, 260, 340)).toBe('bottom')
+    })
   })
 
   describe('getSmoothedHeading', () => {
@@ -136,6 +161,26 @@ describe('aim-guard', () => {
 
       expect(result).toHaveProperty('dx')
       expect(result).toHaveProperty('dy')
+    })
+
+    it('infers vertical heading for top anchored submenu when movement is slow', () => {
+      const trail: [number, number][] = [
+        [220, 120],
+        [220.05, 120.05],
+      ]
+      const rect = createDOMRect(160, 200, 180, 140)
+      const triggerRect = createDOMRect(210, 120, 40, 40)
+
+      const result = getSmoothedHeading(
+        trail,
+        220,
+        120,
+        'top',
+        triggerRect,
+        rect,
+      )
+
+      expect(result.dy).toBeGreaterThan(0)
     })
   })
 
@@ -236,6 +281,66 @@ describe('aim-guard', () => {
           { dx: 10, dy: 0 }, // heading right (away from submenu)
           leftSubmenuRect,
           'right',
+          null,
+        )
+
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('with anchor="top" (trigger above, submenu below)', () => {
+      const belowSubmenuRect = createDOMRect(120, 200, 220, 160)
+
+      it('returns true when heading down toward submenu', () => {
+        const result = willHitSubmenu(
+          220,
+          120,
+          { dx: 0, dy: 12 },
+          belowSubmenuRect,
+          'top',
+          null,
+        )
+
+        expect(result).toBe(true)
+      })
+
+      it('returns false when heading away from submenu', () => {
+        const result = willHitSubmenu(
+          220,
+          120,
+          { dx: 0, dy: -12 },
+          belowSubmenuRect,
+          'top',
+          null,
+        )
+
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('with anchor="bottom" (trigger below, submenu above)', () => {
+      const aboveSubmenuRect = createDOMRect(120, 60, 220, 160)
+
+      it('returns true when heading up toward submenu', () => {
+        const result = willHitSubmenu(
+          220,
+          280,
+          { dx: 0, dy: -10 },
+          aboveSubmenuRect,
+          'bottom',
+          null,
+        )
+
+        expect(result).toBe(true)
+      })
+
+      it('returns false when heading away from submenu', () => {
+        const result = willHitSubmenu(
+          220,
+          280,
+          { dx: 0, dy: 10 },
+          aboveSubmenuRect,
+          'bottom',
           null,
         )
 

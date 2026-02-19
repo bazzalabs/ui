@@ -784,7 +784,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       }
 
       // Calculate safe polygon and check if user is aiming toward submenu
-      const anchor = resolveAnchorSide(contentRect, tRect, clientX)
+      const anchor = resolveAnchorSide(contentRect, tRect, clientX, clientY)
       const heading = getSmoothedHeading(
         mouseTrailRef.current,
         clientX,

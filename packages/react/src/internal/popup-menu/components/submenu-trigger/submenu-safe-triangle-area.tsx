@@ -65,7 +65,11 @@ export function PopupMenuSubmenuSafeTriangleArea(
     return null
   }
 
-  const anchor = resolveAnchorSide(rect, triggerRect, mouseX)
+  const anchor = resolveAnchorSide(rect, triggerRect, mouseX, mouseY)
+
+  if (anchor === 'top' || anchor === 'bottom') {
+    return null
+  }
 
   if (anchor === 'left' && mouseX >= x) {
     return null
