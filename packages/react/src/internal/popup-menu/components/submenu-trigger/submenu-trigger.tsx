@@ -995,12 +995,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       // Check if aim guard is blocking this trigger
       if (
         aimGuardActiveRef.current &&
+        guardedDepthRef.current === parentDepth &&
         guardedTriggerIdRef.current !== item.id
       ) {
         logAimTrace('pointerenter-blocked-by-guard', {
           clientX: event.clientX,
           clientY: event.clientY,
           blockedByTriggerId: guardedTriggerIdRef.current,
+          blockedByDepth: guardedDepthRef.current,
         })
         return
       }
@@ -1050,6 +1052,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       onPointerEnter,
       disabled,
       aimGuardActiveRef,
+      guardedDepthRef,
       guardedTriggerIdRef,
       item.id,
       item.storeId,
@@ -1087,12 +1090,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       // Check if aim guard is blocking this trigger
       if (
         aimGuardActiveRef.current &&
+        guardedDepthRef.current === parentDepth &&
         guardedTriggerIdRef.current !== item.id
       ) {
         logAimTrace('pointerleave-blocked-by-guard', {
           clientX: event.clientX,
           clientY: event.clientY,
           blockedByTriggerId: guardedTriggerIdRef.current,
+          blockedByDepth: guardedDepthRef.current,
         })
         return
       }
@@ -1203,6 +1208,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       disabled,
       clearOpenTimer,
       aimGuardActiveRef,
+      guardedDepthRef,
       guardedTriggerIdRef,
       item.id,
       item.storeId,
