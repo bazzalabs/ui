@@ -114,6 +114,19 @@ export const examples: RegistryIndex = {
       'registry/examples/dropdown-menu/subpage-linear/icons.tsx',
     ],
   },
+  'dropdown-menu-linear-subpage-label-creation': {
+    name: 'dropdown-menu-linear-subpage-label-creation',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/linear-subpage-label-creation'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/linear-subpage-label-creation/index.tsx',
+    ],
+  },
   'dropdown-menu-search': {
     name: 'dropdown-menu-search',
     type: 'registry:example',

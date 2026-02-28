@@ -160,15 +160,7 @@ function Root({
     [onOpenChange],
   )
 
-  return (
-    <Primitive.Root
-      onOpenChange={handleOpenChange}
-      onHighlightChange={(id, index) => {
-        console.log('highlight changed to', id, 'at index', index)
-      }}
-      {...props}
-    />
-  )
+  return <Primitive.Root onOpenChange={handleOpenChange} {...props} />
 }
 
 const Trigger = Primitive.Trigger
@@ -892,13 +884,6 @@ function Submenu({
         >
       >[1],
     ) => {
-      console.log('[DropdownMenu.Submenu] onOpenChange:', {
-        open,
-        reason: eventDetails.reason,
-        hasEvent: !!eventDetails.event,
-        hasCancel: typeof eventDetails.cancel === 'function',
-      })
-
       // Prevent closing when clicking on feedback toolbar elements
       if (
         !open &&
@@ -910,13 +895,7 @@ function Submenu({
         const feedbackToolbar = target?.closest(
           '[data-feedback-toolbar="true"]',
         )
-        console.log('[DropdownMenu.Submenu] outside-press check:', {
-          target: target?.tagName,
-          targetClasses: target?.className,
-          feedbackToolbar: !!feedbackToolbar,
-        })
         if (feedbackToolbar) {
-          console.log('[DropdownMenu.Submenu] Cancelling close!')
           eventDetails.cancel()
           return
         }

@@ -221,7 +221,7 @@ function SubmenuSurface({
 export default function DropdownMenuSubpageLinear() {
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger render={<Button variant="ghost" size="sm" />}>
+      <DropdownMenu.Trigger render={<Button variant="outline" size="sm" />}>
         <FilterIcon />
         Filter
       </DropdownMenu.Trigger>
@@ -241,13 +241,6 @@ export default function DropdownMenuSubpageLinear() {
               <DropdownMenu.Input placeholder="Search filters..." />
               <DropdownMenu.List>
                 <DropdownMenu.Empty />
-
-                <DropdownMenu.SubpageTrigger targetPageId="ai-filter">
-                  <AIFilterIcon />
-                  AI Filter
-                </DropdownMenu.SubpageTrigger>
-
-                <DropdownMenu.Separator />
 
                 <DropdownMenu.Submenu>
                   <DropdownMenu.SubmenuTrigger>
@@ -326,10 +319,7 @@ export default function DropdownMenuSubpageLinear() {
                       label="Project properties"
                     />
                   </DropdownMenu.SubmenuTrigger>
-                  <SubmenuSurface
-                    placeholder="Project properties..."
-                    hideUntilActive
-                  >
+                  <SubmenuSurface placeholder="Project properties...">
                     <DropdownMenu.Submenu>
                       <DropdownMenu.SubmenuTrigger>
                         <MenuLabel

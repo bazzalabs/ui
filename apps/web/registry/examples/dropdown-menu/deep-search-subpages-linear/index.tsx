@@ -277,7 +277,7 @@ function createLabelsSubmenu(params: {
           </div>
         </DropdownMenu.SubmenuTrigger>
         <DropdownMenu.Portal>
-          <DropdownMenu.Positioner align="list-start" className="relative">
+          <DropdownMenu.Positioner className="relative" sideOffset={12}>
             <DropdownMenu.Popup
               render={({ className, children, ...props }, state) => (
                 <>
@@ -810,9 +810,9 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       debug={{
         showSafeTriangleArea: {
           enabled: true,
-          showMissState: true,
+          showMissState: false,
           missColor: '#ff4d4f',
-          missFreezeDuration: 180,
+          missFreezeDuration: 2000,
         },
       }}
     >
