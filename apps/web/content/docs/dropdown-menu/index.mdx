@@ -205,11 +205,17 @@ Then, compose with the same parts for the root menu to render the popup.
   </Example.PreviewCode>
 </Example>
 
-### Subpage navigation
+### Subpage
 
-Use subpages to model deeper menu flows without relying on deep-search/data-first APIs.
+Use subpages as a natural replacement to modals, great for workflows such as item creation.
 
-<Example name="dropdown-menu-linear-subpage-label-creation" />
+Use the `<DropdownMenu.Subpage>` part, give it a `pageId`, and wrap it around a new `<DropdownMenu.Surface>` with the subpage content.
+
+Render a `<DropdownMenu.SubpageTrigger>` and wire it up using the `targetPageId` prop.
+
+
+
+<Example name="dropdown-menu-subpage" />
 
 ### Virtualized
 
