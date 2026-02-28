@@ -19,7 +19,7 @@ function DataSurfaceAsyncCoordinatorScope({
   children: React.ReactNode
 }) {
   const { store } = useSurfaceContext()
-  const searchQuery = store.useState('search')
+  const searchQuery = store.useState('normalizedSearch')
 
   return (
     <AsyncMenuCoordinatorProvider searchQuery={searchQuery}>
@@ -59,6 +59,7 @@ export const PopupMenuDataSurface = React.forwardRef<
     includeInDeepSearch = true,
     filter: _filter,
     search: searchProp,
+    normalizeSearch,
     onSearchChange,
     defaultSearch = '',
     loop = true,
@@ -149,6 +150,7 @@ export const PopupMenuDataSurface = React.forwardRef<
         // Disable Surface's built-in filtering - DataList handles filtering via filterNodes()
         filter={false}
         search={searchProp}
+        normalizeSearch={normalizeSearch}
         onSearchChange={onSearchChange}
         defaultSearch={defaultSearch}
         loop={loop}

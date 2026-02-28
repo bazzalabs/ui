@@ -331,7 +331,7 @@ export function useListboxKeyboard(
         default: {
           // Handle single-character shortcuts (only when not typing in search input)
           // Shortcuts are disabled when there's an active search to avoid conflicts
-          const hasActiveSearch = store.state.search.length > 0
+          const hasActiveSearch = store.state.normalizedSearch.length > 0
           const isPrintable =
             event.key.length === 1 &&
             !event.ctrlKey &&

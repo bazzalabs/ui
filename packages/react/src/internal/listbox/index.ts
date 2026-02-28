@@ -66,6 +66,7 @@ export type {
   ItemRegistration,
   ListboxContext,
   ListboxState,
+  SearchNormalizer,
   State,
   VirtualItem,
 } from './store/ListboxStore.js'

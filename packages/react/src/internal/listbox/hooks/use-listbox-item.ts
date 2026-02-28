@@ -305,7 +305,7 @@ export function useListboxItem(
   }, [registrationId, onSelect, store])
 
   // Use selectors to get derived state (using registrationId as identifier)
-  const search = store.useState('search')
+  const normalizedSearch = store.useState('normalizedSearch')
   const isHighlighted = store.useState('isHighlighted', registrationId)
   const score = store.useState('getItemScore', registrationId)
 
@@ -314,7 +314,7 @@ export function useListboxItem(
 
   // Determine visibility based on filter score
   // When filterDisabled, consumer handles filtering so all items are visible
-  const hasSearch = search.length > 0
+  const hasSearch = normalizedSearch.length > 0
   const isVisible = forceMount || filterDisabled || !hasSearch || score > 0
 
   // Note: Scroll behavior is now handled by the store's setHighlightedId method.
