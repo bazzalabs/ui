@@ -252,6 +252,20 @@ describe('CheckboxItemDef', () => {
       expect(scored).toHaveLength(1)
       expect(scored[0].score).toBeGreaterThan(0)
     })
+
+    it('should ignore trailing whitespace in the query', () => {
+      const nodes: NodeDef[] = [
+        createCheckboxItemDef('cb1', 'Dark Mode', true),
+        createCheckboxItemDef('cb2', 'Light Theme', false),
+      ]
+
+      const flattened = flattenNodes(nodes)
+      const scored = scoreNodes(flattened, 'dark ')
+
+      expect(scored).toHaveLength(1)
+      expect(scored[0].node.id).toBe('cb1')
+      expect(scored[0].score).toBeGreaterThan(0)
+    })
   })
 
   describe('filterNodes', () => {
@@ -274,6 +288,24 @@ describe('CheckboxItemDef', () => {
         expect(displayNodes[0].node.id).toBe('cb1')
         expect(displayNodes[0].node.kind).toBe('checkbox-item')
       }
+    })
+
+    it('should treat whitespace-only query as browse mode', () => {
+      const nodes: NodeDef[] = [
+        createItemDef('item1', 'Regular Item'),
+        createCheckboxItemDef('cb1', 'Dark Mode', true),
+      ]
+
+      const { displayNodes, isDeepSearching } = filterNodes({
+        query: '   ',
+        nodes,
+        highlightedId: null,
+      })
+
+      expect(isDeepSearching).toBe(false)
+      expect(displayNodes).toHaveLength(2)
+      expect(isDisplayRowNode(displayNodes[0])).toBe(true)
+      expect(isDisplayRowNode(displayNodes[1])).toBe(true)
     })
   })
 })

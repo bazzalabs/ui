@@ -367,6 +367,15 @@ describe('ListboxStore', () => {
       expect(ids).not.toContain('cherry')
     })
 
+    it('ignores trailing whitespace in search query', () => {
+      store.setSearch('app ')
+
+      const ids = store.getVisibleItemIds()
+      expect(ids).toContain('apple')
+      expect(ids).not.toContain('banana')
+      expect(ids).not.toContain('cherry')
+    })
+
     it('shows all items when search is empty', () => {
       store.setSearch('app')
       store.setSearch('')
@@ -381,6 +390,14 @@ describe('ListboxStore', () => {
       store.setSearch('app')
 
       expect(store.state.filteredCount).toBe(1)
+    })
+
+    it('treats whitespace-only search as empty', () => {
+      store.setSearch('   ')
+
+      const ids = store.getVisibleItemIds()
+      expect(ids).toEqual(['apple', 'banana', 'cherry'])
+      expect(store.state.filteredCount).toBe(3)
     })
 
     it('filters with keywords', () => {
