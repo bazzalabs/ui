@@ -14,6 +14,7 @@ import type {
   PopupMenuOpenChangeReason,
 } from '../../popup-menu/events.js'
 import { commandScore } from '../utils/command-score.js'
+import { normalizeValue } from '../utils/normalize.js'
 
 // ============================================================================
 // Types
@@ -253,11 +254,12 @@ const selectors = {
 
   isGroupVisible: createSelector(
     (state: ListboxState, groupId: string) =>
-      state.search.length === 0 || state.visibleGroups.has(groupId),
+      normalizeValue(state.search).length === 0 ||
+      state.visibleGroups.has(groupId),
   ),
 
   getItemScore: createSelector((state: ListboxState, itemId: string) => {
-    if (state.search.length === 0) {
+    if (normalizeValue(state.search).length === 0) {
       return 1 // All items visible when no search
     }
     return state.filteredItems.get(itemId) ?? 0
@@ -265,7 +267,7 @@ const selectors = {
 
   hasSearchWithNoResults: createSelector((state: ListboxState) => {
     // Must have an active search
-    if (state.search.length === 0) return false
+    if (normalizeValue(state.search).length === 0) return false
 
     // In virtualized mode with items prop, check virtualItemsCount
     // (filteredCount won't be accurate since items aren't registered in DOM)
@@ -276,6 +278,10 @@ const selectors = {
     // Non-virtualized mode: check filteredCount from registered items
     return state.filteredCount === 0
   }),
+}
+
+const defaultFilter: FilterFn = (value, search, keywords) => {
+  return commandScore(value, normalizeValue(search), keywords)
 }
 
 // ============================================================================
@@ -298,7 +304,7 @@ export class ListboxStore extends ReactStore<
     context?: Partial<ListboxContext>,
   ) {
     const defaultContext: ListboxContext = {
-      filter: commandScore,
+      filter: defaultFilter,
       loop: true,
       autoHighlightFirst: true,
       clearSearchOnClose: true,
@@ -508,7 +514,7 @@ export class ListboxStore extends ReactStore<
   setHideUntilActive(enabled: boolean) {
     this.context.hideUntilActive = enabled
     // If enabling and there's already search content, activate immediately
-    if (enabled && this.state.search.length > 0) {
+    if (enabled && normalizeValue(this.state.search).length > 0) {
       this.setInputActive(true)
     }
   }
@@ -976,7 +982,8 @@ export class ListboxStore extends ReactStore<
 
     // Check if item is visible (passes filter)
     const score = this.state.filteredItems.get(itemId) ?? 0
-    const isVisible = this.state.search.length === 0 || score > 0
+    const isVisible =
+      normalizeValue(this.state.search).length === 0 || score > 0
     if (!isVisible) return false
 
     const onSelect = this.context.itemSelects.get(itemId)
@@ -1081,7 +1088,7 @@ export class ListboxStore extends ReactStore<
 
   getVisibleItemIds(): string[] {
     const result: string[] = []
-    const search = this.state.search
+    const search = normalizeValue(this.state.search)
     const filteredItems = this.state.filteredItems
     const virtualItems = this.context.virtualItems
     const orderedItems = this.context.orderedItems
@@ -1186,10 +1193,16 @@ export class ListboxStore extends ReactStore<
 
     // Determine if search changed (requires reset to first item)
     // Use prevSearch from options if provided (from observer), otherwise fall back to state
-    const prevSearch =
-      optionsPrevSearch !== undefined ? optionsPrevSearch : this.state.search
-    const effectiveSearch = newSearch !== undefined ? newSearch : prevSearch
-    const searchChanged = newSearch !== undefined && newSearch !== prevSearch
+    const prevSearch = normalizeValue(
+      optionsPrevSearch !== undefined ? optionsPrevSearch : this.state.search,
+    )
+    const effectiveSearch = normalizeValue(
+      newSearch !== undefined ? newSearch : prevSearch,
+    )
+    const normalizedNewSearch =
+      newSearch !== undefined ? normalizeValue(newSearch) : undefined
+    const searchChanged =
+      normalizedNewSearch !== undefined && normalizedNewSearch !== prevSearch
 
     // If not open or autoHighlightFirst disabled, don't change anything
     if (!this.state.open || !this.context.autoHighlightFirst) {
@@ -1286,6 +1299,7 @@ export class ListboxStore extends ReactStore<
   private recomputeFilteredItems(prevSearch?: string) {
     const { filter } = this.context
     const search = this.state.search
+    const normalizedSearch = normalizeValue(search)
     const items = this.context.items
     const groups = this.context.groups
 
@@ -1294,7 +1308,7 @@ export class ListboxStore extends ReactStore<
     let filteredCount = 0
 
     // If no search or filtering disabled, all items are visible
-    if (!search || filter === false) {
+    if (!normalizedSearch || filter === false) {
       // When virtualized with consumer-side filtering (filter === false),
       // use virtualItems as the source of truth for what's visible.
       // This ensures the scores match the consumer's filtered array,
@@ -1319,7 +1333,7 @@ export class ListboxStore extends ReactStore<
       items.forEach((registration, id) => {
         const fuzzyScore = filterFn(
           registration.value,
-          search,
+          normalizedSearch,
           registration.keywords,
         )
         const score = registration.forceScore ?? fuzzyScore
@@ -1351,8 +1365,9 @@ export class ListboxStore extends ReactStore<
     // We pass filteredItems, newSearch, and prevSearch here because we need to detect search cleared
     const highlightedId = this.validateHighlight({
       filteredItems,
-      newSearch: search,
-      prevSearch,
+      newSearch: normalizedSearch,
+      prevSearch:
+        prevSearch !== undefined ? normalizeValue(prevSearch) : undefined,
     })
 
     this.update({
