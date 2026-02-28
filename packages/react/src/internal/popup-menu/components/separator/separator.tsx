@@ -36,7 +36,7 @@ export const PopupMenuSeparator = React.forwardRef<
   const { store } = useSurfaceContext()
 
   // Get search state from store
-  const search = store.useState('search')
+  const search = store.useState('normalizedSearch')
 
   // Hide separator when there's an active search (unless alwaysRender)
   const hasSearch = search.length > 0

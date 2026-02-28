@@ -7,6 +7,8 @@ import type { ComponentProps } from '../../../../utils/types.js'
 import {
   defaultFilter,
   type FilterFn,
+  normalizeValue,
+  type SearchNormalizer,
   SurfaceContext,
   useListboxContext,
 } from '../../../listbox/index.js'
@@ -36,6 +38,12 @@ export interface PopupMenuSurfaceProps
    * @default commandScore (fuzzy matching)
    */
   filter?: FilterFn | false
+
+  /**
+   * Transforms search input before filtering and visibility logic.
+   * @default trim whitespace (`search.trim()`)
+   */
+  normalizeSearch?: SearchNormalizer
 
   /**
    * Controlled search value.
@@ -105,6 +113,7 @@ export const PopupMenuSurface = React.forwardRef<
 >(function PopupMenuSurface(props, forwardedRef) {
   const {
     filter = defaultFilter,
+    normalizeSearch = normalizeValue,
     search: searchProp,
     onSearchChange,
     defaultSearch = '',
@@ -183,6 +192,7 @@ export const PopupMenuSurface = React.forwardRef<
   // Update store context with surface configuration
   React.useEffect(() => {
     store.context.filter = filter
+    store.setSearchNormalizer(normalizeSearch)
     store.context.loop = loop
     store.context.autoHighlightFirst = autoHighlightFirst
     store.context.clearSearchOnClose = clearSearchOnClose
@@ -210,6 +220,7 @@ export const PopupMenuSurface = React.forwardRef<
   }, [
     store,
     filter,
+    normalizeSearch,
     loop,
     autoHighlightFirst,
     clearSearchOnClose,

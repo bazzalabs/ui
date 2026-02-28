@@ -400,6 +400,18 @@ describe('ListboxStore', () => {
       expect(store.state.filteredCount).toBe(3)
     })
 
+    it('supports custom search normalization', () => {
+      store.setSearch('app ')
+      expect(store.getVisibleItemIds()).toContain('apple')
+
+      store.setSearchNormalizer((query) => query)
+
+      const ids = store.getVisibleItemIds()
+      expect(ids).not.toContain('apple')
+      expect(ids).not.toContain('banana')
+      expect(ids).not.toContain('cherry')
+    })
+
     it('filters with keywords', () => {
       store.context.items.clear()
       store.registerItem('item-1', {

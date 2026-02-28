@@ -1266,6 +1266,12 @@ export interface DataSurfaceProps {
     | ((value: string, search: string, keywords?: string[]) => number)
     | false
 
+  /**
+   * Transforms search input before filtering and visibility logic.
+   * @default trim whitespace (`search.trim()`)
+   */
+  normalizeSearch?: (search: string) => string
+
   /** Controlled search value */
   search?: string
 
