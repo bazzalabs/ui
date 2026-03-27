@@ -4821,12 +4821,15 @@ function BasicComboboxDemo() {
 // --- Input Embedded Combobox Demo with Motion ---
 
 export function InputEmbeddedComboboxDemo({
-  withoutConfig = false,
+  withoutConfig,
 }: {
   withoutConfig?: boolean
 }) {
-  const [value, setValue] = React.useState('')
-  const [open, setOpen] = React.useState(false)
+  const hasPlaygroundContext = React.useContext(PlaygroundContext) !== null
+  const shouldRenderWithoutConfig = withoutConfig ?? !hasPlaygroundContext
+
+  const [value, setValue] = React.useState('pineapple')
+  const [open, setOpen] = React.useState(true)
   const [shouldAnimateItems, setShouldAnimateItems] = React.useState(false)
 
   // Positioner config
@@ -4930,9 +4933,12 @@ export function InputEmbeddedComboboxDemo({
       onValueChange={setValue}
       items={fruitItems}
       layout="input-embedded"
-      open={open}
-      onOpenChange={handleOpenChange}
-      modal
+      defaultOpen={true}
+      defaultValue={'apple'}
+      defaultInputValue=""
+      // open={open}
+      // onOpenChange={handleOpenChange}
+      modal={false}
     >
       <Combobox.InputWrapper className="flex h-10 w-[280px] items-center gap-2 rounded-xl bg-white px-4 shadow-xs border">
         <Combobox.Input
@@ -5094,7 +5100,7 @@ export function InputEmbeddedComboboxDemo({
     </Combobox.Root>
   )
 
-  if (withoutConfig) return component
+  if (shouldRenderWithoutConfig) return component
 
   return (
     <DemoSection

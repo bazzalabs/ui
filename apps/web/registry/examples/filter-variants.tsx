@@ -13,7 +13,7 @@ import {
   Heading1Icon,
   type LucideIcon,
 } from 'lucide-react'
-import { Filter } from '@/registry/ui/filter'
+import { Filter } from '@/registry/ui/filter/dropdown-menu'
 
 export default function FilterVariants() {
   return (
@@ -66,6 +66,7 @@ export const Filters = ({
     >
       <Filter.Root>
         <div className="flex md:flex-wrap gap-2 w-full flex-1">
+          <Filter.Menu />
           <Filter.List>
             {({ filter, column }) => (
               <Filter.Item filter={filter} column={column}>

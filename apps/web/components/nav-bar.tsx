@@ -26,7 +26,7 @@ const navItems = [
 export function NavBar() {
   return (
     <>
-      <div className="sm:hidden h-8 flex items-center justify-between">
+      <div className="sm:hidden flex items-center justify-between">
         <MobileNavbar />
         <ThemeToggle />
       </div>
@@ -101,19 +101,17 @@ function MobileNavbar() {
 
 function DesktopNavbar() {
   return (
-    <div className="grid grid-cols-3 items-center gap-4 h-8">
+    <div className="grid grid-cols-3 items-center gap-4">
       <div className="flex items-center gap-16">
         <Link
           href="/"
           className="inline-flex items-center gap-1 font-medium font-mono tracking-tight text-sm"
         >
-          <Image
-            className="size-6 mr-1 translate-y-[-0.75px]"
-            src={logoSrc}
-            alt="bazza/ui"
-          />
+          <Image className="size-6 mr-2" src={logoSrc} alt="bazza/ui" />
           <span>bazza</span>
-          <span className="text-xl text-border">/</span>
+          <span className="text-xl text-border dark:text-neutral-600 leading-none">
+            /
+          </span>
           <span>ui</span>
         </Link>
       </div>
