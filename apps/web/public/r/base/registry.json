@@ -4,6 +4,20 @@
   "homepage": "https://ui.bazza.dev",
   "items": [
     {
+      "name": "action-menu",
+      "title": "Action menu",
+      "description": "A menu primitive with deep search, async node loading, and submenus.",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/action-menu", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/ui/action-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/action-menu.tsx"
+        }
+      ]
+    },
+    {
       "name": "filters",
       "title": "Filters",
       "description": "A powerful data table filter component inspired by Linear.",

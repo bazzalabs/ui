@@ -104,7 +104,7 @@ const ExperimentalWarning = () => {
   )
 }
 
-const DeprecationWarning = () => {
+const ArchivedWarning = () => {
   return (
     <div className="border border-orange-400 dark:border-orange-600 rounded-lg p-4 bg-orange-50 dark:bg-orange-950/20 flex items-center gap-4 mb-8">
       <div className="translate-y-[-1px]">
@@ -112,14 +112,14 @@ const DeprecationWarning = () => {
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-orange-500 text-sm font-[450] leading-none">
-          This component is deprecated.
+          This component is archived.
         </span>
         <p className="text-sm text-primary">
-          Prepare to migrate to its successor,{' '}
-          <Link href="/docs/components/dropdown-menu" className="underline">
+          These docs are kept for reference. For new work, prefer the current{' '}
+          <Link href="/docs/dropdown-menu" className="underline">
             Dropdown Menu
-          </Link>
-          .
+          </Link>{' '}
+          and related menu primitives in `@bazza-ui/react`.
         </p>
       </div>
     </div>
@@ -150,8 +150,10 @@ export default async function Page({
         <SidebarTrigger className="md:hidden fixed top-6 left-6 z-50 bg-secondary drop-shadow-md" />
 
         <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
-          {slug.includes('menu') && <ExperimentalWarning />}
-          {slug.includes('action-menu') && <DeprecationWarning />}
+          {slug.includes('menu') && !slug.includes('action-menu') && (
+            <ExperimentalWarning />
+          )}
+          {slug.includes('action-menu') && <ArchivedWarning />}
           <div className="flex items-end justify-between gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}

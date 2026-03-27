@@ -1,0 +1,263 @@
+---
+title: Deep Search
+section: Components
+summary: Search across nested submenus with parallel loading
+---
+
+# Deep Search
+
+Deep search allows users to search across all nested submenus simultaneously, with intelligent parallel loading and breadcrumb tracking.
+
+## Overview
+
+When deep search is enabled:
+
+1. User types a search query
+2. All submenu loaders execute in parallel
+3. Results from all levels are collected
+4. Breadcrumbs show the path to nested items
+5. Selecting an item navigates the full path
+
+## Enabling Deep Search
+
+Deep search is enabled by default for submenus with async loaders:
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    nodes: [
+      {
+        variant: 'submenu',
+        label: 'Users',
+        deepSearch: true, // Default: true
+        loader: async () => {
+          const res = await fetch('/api/users')
+          return res.json()
+        }
+      }
+    ]
+  }}
+/>
+```
+
+## Disabling Deep Search
+
+For performance or UX reasons, disable deep search on specific submenus:
+
+```tsx
+{
+  variant: 'submenu',
+  label: 'Large Dataset',
+  deepSearch: false, // Won't be searched
+  loader: async () => {
+    // This loader won't run during deep search
+  }
+}
+```
+
+## Search Configuration
+
+Control deep search behavior:
+
+```tsx
+<ActionMenu.Surface
+  menu={{
+    search: {
+      mode: 'hybrid', // Search both current and nested menus
+      debounce: 300,
+      minLength: {
+        local: 0,    // Start searching locally immediately
+        deep: 2      // Wait for 2 characters before deep search
+      }
+    }
+  }}
+/>
+```
+
+## Breadcrumb Navigation
+
+Deep search results include breadcrumbs showing the path:
+
+```tsx
+// Automatically rendered for deep search results
+Users > John Doe
+Settings > Appearance > Theme
+```
+
+Customize breadcrumb rendering:
+
+```tsx
+<ActionMenu.Surface
+  menu={menu}
+  render={(props) => (
+    <ActionMenu.Content {...props}>
+      {/* Custom breadcrumb styling */}
+      <ActionMenu.List
+        itemRender={(item) => (
+          <div>
+            {item.context?.breadcrumbs && (
+              <div className="breadcrumbs">
+                {item.context.breadcrumbs.join(' > ')}
+              </div>
+            )}
+            <div>{item.label}</div>
+          </div>
+        )}
+      />
+    </ActionMenu.Content>
+  )}
+/>
+```
+
+## Loading Progress
+
+Track progress of parallel loaders:
+
+```tsx
+import { useLoaderProgress } from '@bazza-ui/action-menu'
+
+function SearchProgress() {
+  const progress = useLoaderProgress()
+
+  if (!progress) return null
+
+  return (
+    <div>
+      Loading {progress.completed} of {progress.total} sources...
+    </div>
+  )
+}
+```
+
+## Parallel Execution
+
+Deep search executes all submenu loaders in parallel:
+
+```tsx
+// All three loaders run simultaneously
+{
+  nodes: [
+    {
+      variant: 'submenu',
+      label: 'Users',
+      loader: async () => {
+        // Executes in parallel
+      }
+    },
+    {
+      variant: 'submenu',
+      label: 'Teams',
+      loader: async () => {
+        // Executes in parallel
+      }
+    },
+    {
+      variant: 'submenu',
+      label: 'Projects',
+      loader: async () => {
+        // Executes in parallel
+      }
+    }
+  ]
+}
+```
+
+## Performance Considerations
+
+### Minimize Loaders
+
+Only enable deep search on submenus users need to search:
+
+```tsx
+{
+  variant: 'submenu',
+  label: 'Archive', // Historical data
+  deepSearch: false, // Skip this in searches
+}
+```
+
+### Optimize Queries
+
+Use efficient server-side filtering:
+
+```tsx
+loader: async (context) => {
+  // Server filters before returning data
+  const res = await fetch(
+    `/api/items?q=${context.query}&limit=50`
+  )
+  return res.json()
+}
+```
+
+### Use React Query
+
+Leverage caching with React Query adapter:
+
+```tsx
+import { ReactQueryLoaderAdapter } from '@bazza-ui/action-menu/react-query'
+
+<ActionMenu.Root loaderAdapter={ReactQueryLoaderAdapter}>
+  <ActionMenu.Surface
+    menu={{
+      nodes: [
+        {
+          variant: 'submenu',
+          loader: {
+            queryKey: ['users'],
+            queryFn: async () => {
+              // Cached by React Query
+            },
+            staleTime: 60000
+          }
+        }
+      ]
+    }}
+  />
+</ActionMenu.Root>
+```
+
+## Search Result Scoring
+
+Deep search results are scored and sorted:
+
+1. Exact matches rank highest
+2. Prefix matches rank high
+3. Word boundary matches rank medium
+4. Substring matches rank lower
+5. Results sorted by score descending
+
+## Error Handling
+
+If a submenu loader fails:
+
+- Other loaders continue executing
+- Error is tracked in progress state
+- Failed submenu shows error state
+- User can still see successful results
+
+```tsx
+// Individual submenu errors don't block other results
+{
+  variant: 'submenu',
+  loader: async () => {
+    throw new Error('API unavailable')
+    // Other submenus still load
+  }
+}
+```
+
+## Best Practices
+
+- Set appropriate `minLength.deep` to avoid excessive requests
+- Use debouncing to reduce API calls
+- Implement server-side filtering for large datasets
+- Cache results with React Query
+- Disable deep search on rarely-searched submenus
+- Show loading progress for better UX
+
+## Next Steps
+
+- Learn about [Loader Adapters](/docs/action-menu/loader-adapters)
+- Explore [Search & Filtering](/docs/action-menu/search)
+- See [Performance Optimization](/docs/action-menu/performance)

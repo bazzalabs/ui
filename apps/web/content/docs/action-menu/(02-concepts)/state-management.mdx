@@ -1,0 +1,79 @@
+---
+title: State Management
+section: Components
+summary: Understanding how ActionMenu manages state internally and how to control it externally
+---
+
+# State Management
+
+ActionMenu uses a sophisticated state management system that combines Zustand stores, React context, and controllable state patterns.
+
+## Overview
+
+The library manages several types of state:
+
+- **Open/Close state** - Whether the menu is visible
+- **Search input** - The current search query
+- **Active item** - Which item has keyboard focus
+- **Surface state** - State for each menu/submenu surface
+
+## Controllable State
+
+### Open State
+
+Control whether the menu is open or closed:
+
+```tsx
+const [open, setOpen] = useState(false)
+
+<ActionMenu.Root open={open} onOpenChange={setOpen}>
+  {/* ... */}
+</ActionMenu.Root>
+```
+
+### Search Input State
+
+Control the search input value:
+
+```tsx
+const [search, setSearch] = useState('')
+
+<ActionMenu.Surface
+  menu={{
+    // ...
+    input: search,
+    onInputChange: setSearch
+  }}
+/>
+```
+
+## Internal State
+
+### Surface Store
+
+Each menu surface maintains a Zustand store with:
+
+- `activeId` - Currently focused item
+- `hasInput` - Whether search input is present
+- `nodes` - Current visible nodes
+- Navigation methods: `first()`, `last()`, `next()`, `prev()`
+
+### Context Providers
+
+ActionMenu uses multiple context providers for state sharing:
+
+- **RootContext** - Global menu configuration
+- **SurfaceContext** - Current surface store
+- **FocusOwnerContext** - Focus ownership tracking
+- **SubmenuContext** - Submenu open/close state
+
+## Best Practices
+
+- Use controllable state when you need to sync with external state
+- Let the component manage state internally for simpler use cases
+- Access internal state via context when building custom components
+
+## Next Steps
+
+- Learn about [Responsive Behavior](/docs/action-menu/responsive-behavior)
+- Explore [Focus Management](/docs/action-menu/focus)
