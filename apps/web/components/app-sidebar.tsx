@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, TriangleDashedIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -263,6 +263,219 @@ const componentItems: ComponentItem[] = [
   },
 ]
 
+const archivedComponentItems: ComponentItem[] = [
+  {
+    type: 'collapsible',
+    title: 'Action Menu',
+    urlPrefix: '/docs/action-menu',
+    badge: (
+      <TriangleDashedIcon className="size-3.5 !text-yellow-400 stroke-3" />
+    ),
+    groups: [
+      {
+        groupName: 'Getting Started',
+        items: [
+          {
+            type: 'link',
+            title: 'Introduction',
+            url: '/docs/action-menu/introduction',
+          },
+          {
+            type: 'link',
+            title: 'Installation',
+            url: '/docs/action-menu/installation',
+          },
+          {
+            type: 'link',
+            title: 'Quick Start',
+            url: '/docs/action-menu/quick-start',
+          },
+          {
+            type: 'link',
+            title: 'Examples',
+            url: '/docs/action-menu/examples',
+          },
+        ],
+      },
+      {
+        groupName: 'Concepts',
+        items: [
+          {
+            type: 'link',
+            title: 'Data-First API',
+            url: '/docs/action-menu/data-first-api',
+          },
+          {
+            type: 'link',
+            title: 'Menu Structure',
+            url: '/docs/action-menu/menu-structure',
+          },
+          {
+            type: 'link',
+            title: 'Node Types',
+            url: '/docs/action-menu/node-types',
+          },
+          {
+            type: 'link',
+            title: 'State Management',
+            url: '/docs/action-menu/state-management',
+          },
+          {
+            type: 'link',
+            title: 'Responsive Behavior',
+            url: '/docs/action-menu/responsive-behavior',
+          },
+        ],
+      },
+      {
+        groupName: 'Features',
+        items: [
+          {
+            type: 'link',
+            title: 'Node Configuration',
+            url: '/docs/action-menu/nodes',
+          },
+          {
+            type: 'link',
+            title: 'Async Loading',
+            url: '/docs/action-menu/async',
+          },
+          {
+            type: 'link',
+            title: 'Search & Filtering',
+            url: '/docs/action-menu/search',
+          },
+          {
+            type: 'link',
+            title: 'Keyboard Navigation',
+            url: '/docs/action-menu/keyboard',
+          },
+          {
+            type: 'link',
+            title: 'Focus Management',
+            url: '/docs/action-menu/focus',
+          },
+          {
+            type: 'link',
+            title: 'Positioning',
+            url: '/docs/action-menu/positioning',
+          },
+          {
+            type: 'link',
+            title: 'Theming',
+            url: '/docs/action-menu/theming',
+          },
+          {
+            type: 'link',
+            title: 'Virtualization',
+            url: '/docs/action-menu/virtualization',
+          },
+          {
+            type: 'link',
+            title: 'Middleware',
+            url: '/docs/action-menu/middleware',
+          },
+          {
+            type: 'link',
+            title: 'Extended Properties',
+            url: '/docs/action-menu/extended-properties',
+          },
+          {
+            type: 'link',
+            title: 'Defaults',
+            url: '/docs/action-menu/defaults',
+          },
+        ],
+      },
+      {
+        groupName: 'Advanced',
+        items: [
+          {
+            type: 'link',
+            title: 'Loader Adapters',
+            url: '/docs/action-menu/loader-adapters',
+          },
+          {
+            type: 'link',
+            title: 'Deep Search',
+            url: '/docs/action-menu/deep-search',
+          },
+          {
+            type: 'link',
+            title: 'Intent Zone',
+            url: '/docs/action-menu/intent-zone',
+          },
+          {
+            type: 'link',
+            title: 'Custom Rendering',
+            url: '/docs/action-menu/custom-rendering',
+          },
+          {
+            type: 'link',
+            title: 'Performance Optimization',
+            url: '/docs/action-menu/performance',
+          },
+          {
+            type: 'link',
+            title: 'Accessibility',
+            url: '/docs/action-menu/accessibility',
+          },
+          {
+            type: 'link',
+            title: 'RTL Support',
+            url: '/docs/action-menu/rtl',
+          },
+        ],
+      },
+      {
+        groupName: 'Components',
+        items: [
+          {
+            type: 'link',
+            title: 'Select',
+            url: '/docs/action-menu/select',
+          },
+          {
+            type: 'link',
+            title: 'MultiSelect',
+            url: '/docs/action-menu/multiselect',
+          },
+          {
+            type: 'link',
+            title: 'Dropdown Menu',
+            url: '/docs/action-menu/dropdown-menu',
+          },
+          {
+            type: 'link',
+            title: 'Context Menu',
+            url: '/docs/action-menu/context-menu',
+          },
+          {
+            type: 'link',
+            title: 'Command Palette',
+            url: '/docs/action-menu/command-palette',
+          },
+        ],
+      },
+      {
+        groupName: 'Reference',
+        items: [
+          {
+            type: 'link',
+            title: 'API Reference',
+            url: '/docs/action-menu/api-reference',
+          },
+          {
+            type: 'link',
+            title: 'TypeScript Types',
+            url: '/docs/action-menu/typescript',
+          },
+        ],
+      },
+    ],
+  },
+]
+
 // Helper function to check if a menu item or any of its descendants contain the active URL
 function containsActiveUrl(item: MenuItem, pathname: string): boolean {
   if (item.type === 'link') {
@@ -316,6 +529,83 @@ function MenuItemRenderer({
           ))}
         </SidebarMenuSub>
       </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+function ComponentItemRenderer({
+  component,
+  pathname,
+}: {
+  component: ComponentItem
+  pathname: string
+}) {
+  if (component.type === 'single') {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          asChild
+          isActive={component.url === pathname}
+          className="font-medium text-muted-foreground hover-expand-[2px]"
+        >
+          <a href={component.url}>
+            <span>{component.title}</span>
+            {component.badge}
+          </a>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
+
+  return (
+    <Collapsible
+      asChild
+      defaultOpen={pathname.startsWith(component.urlPrefix)}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            className="font-medium text-muted-foreground hover-expand-[2px] group-data-[state=open]/menu-item:bg-sidebar-accent group-data-[state=open]/menu-item:text-primary"
+            isActive={pathname.startsWith(component.urlPrefix)}
+          >
+            <div className="flex items-center gap-2">
+              <span>{component.title}</span>
+              {component.badge}
+            </div>
+            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub className="last:mb-4">
+            {component.groups.map((group, index) => (
+              <div key={group.groupName} className="flex flex-col">
+                <span
+                  className={cn(
+                    'text-xs font-medium text-muted-foreground py-1 mb-1',
+                    index === 0 ? 'mt-1' : 'mt-2',
+                  )}
+                >
+                  {group.groupName}
+                </span>
+                <div className="flex flex-col gap-y-px -translate-x-1.5">
+                  {group.items.map((item, itemIndex) => (
+                    <MenuItemRenderer
+                      key={
+                        item.type === 'link'
+                          ? item.url
+                          : `collapsible-${item.title}-${itemIndex}`
+                      }
+                      item={item}
+                      pathname={pathname}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
     </Collapsible>
   )
 }
@@ -384,80 +674,33 @@ export function AppSidebar({
             <SidebarGroupLabel>Components</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {componentItems.map((component) => {
-                  if (component.type === 'single') {
-                    return (
-                      <SidebarMenuItem key={component.url}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={component.url === pathname}
-                          className="font-medium text-muted-foreground hover-expand-[2px]"
-                        >
-                          <a href={component.url}>
-                            <span>{component.title}</span>
-                            {component.badge}
-                          </a>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )
-                  }
-
-                  return (
-                    <Collapsible
-                      key={component.urlPrefix}
-                      asChild
-                      defaultOpen={pathname.startsWith(component.urlPrefix)}
-                      className="group/collapsible"
-                    >
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            className="font-medium text-muted-foreground hover-expand-[2px] group-data-[state=open]/menu-item:bg-sidebar-accent group-data-[state=open]/menu-item:text-primary"
-                            isActive={pathname.startsWith(component.urlPrefix)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{component.title}</span>
-                              {component.badge}
-                            </div>
-                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenuSub className="last:mb-4">
-                            {component.groups.map((group, index) => (
-                              <div
-                                key={group.groupName}
-                                className="flex flex-col"
-                              >
-                                <span
-                                  className={cn(
-                                    'text-xs font-medium text-muted-foreground py-1 mb-1',
-                                    index === 0 ? 'mt-1' : 'mt-2',
-                                  )}
-                                >
-                                  {group.groupName}
-                                </span>
-                                <div className="flex flex-col gap-y-px -translate-x-1.5">
-                                  {group.items.map((item, itemIndex) => (
-                                    <MenuItemRenderer
-                                      key={
-                                        item.type === 'link'
-                                          ? item.url
-                                          : `collapsible-${item.title}-${itemIndex}`
-                                      }
-                                      item={item}
-                                      pathname={pathname}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  )
-                })}
+                {componentItems.map((component) => (
+                  <ComponentItemRenderer
+                    key={
+                      component.type === 'single'
+                        ? component.url
+                        : component.urlPrefix
+                    }
+                    component={component}
+                    pathname={pathname}
+                  />
+                ))}
+                {archivedComponentItems.length > 0 && (
+                  <SidebarMenuItem className="px-2 pt-4 pb-1 text-xs font-medium text-muted-foreground">
+                    Archived
+                  </SidebarMenuItem>
+                )}
+                {archivedComponentItems.map((component) => (
+                  <ComponentItemRenderer
+                    key={
+                      component.type === 'single'
+                        ? component.url
+                        : component.urlPrefix
+                    }
+                    component={component}
+                    pathname={pathname}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
