@@ -30,6 +30,10 @@ export interface ItemRegistration {
   keywords?: string[]
   groupId?: string
   disabled?: boolean
+  /** Lower values are sorted earlier in score-based lists. */
+  forceOrder?: number
+  /** Overrides computed fuzzy score in score-based lists. */
+  forceScore?: number
   /** Whether this item is a submenu trigger */
   isSubmenuTrigger?: boolean
   /** Single character keyboard shortcut to trigger this item */
@@ -779,6 +783,8 @@ export class ListboxStore extends ReactStore<
       existing &&
       existing.value === registration.value &&
       existing.disabled === registration.disabled &&
+      existing.forceOrder === registration.forceOrder &&
+      existing.forceScore === registration.forceScore &&
       existing.groupId === registration.groupId &&
       existing.shortcut === registration.shortcut
 
@@ -1312,11 +1318,12 @@ export class ListboxStore extends ReactStore<
       // Apply filter function
       const filterFn = filter || commandScore
       items.forEach((registration, id) => {
-        const score = filterFn(
+        const fuzzyScore = filterFn(
           registration.value,
           search,
           registration.keywords,
         )
+        const score = registration.forceScore ?? fuzzyScore
         filteredItems.set(id, score)
         if (score > 0) {
           filteredCount++

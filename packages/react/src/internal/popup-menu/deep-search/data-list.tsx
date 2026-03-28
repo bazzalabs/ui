@@ -816,6 +816,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                   closeOnClick: node.closeOnClick,
                   onSelect: node.onSelect,
                   shortcut: node.shortcut,
+                  forceOrder: node.forceOrder,
+                  forceScore: node.forceScore,
                 },
                 context: {
                   ...context,
@@ -838,6 +840,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                   closeOnClick: node.closeOnClick,
                   onSelect: node.onSelect,
                   shortcut: node.shortcut,
+                  forceOrder: node.forceOrder,
+                  forceScore: node.forceScore,
                 },
                 context: {
                   ...context,
@@ -860,6 +864,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                   onCheckedChange: node.onCheckedChange,
                   disabled: node.disabled ?? false,
                   closeOnClick: node.closeOnClick,
+                  forceOrder: node.forceOrder,
+                  forceScore: node.forceScore,
                 },
                 context: {
                   ...context,
@@ -1035,6 +1041,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
                   id: compositeId,
                   value: node.value,
                   disabled: node.disabled ?? false,
+                  forceOrder: node.forceOrder,
+                  forceScore: node.forceScore,
                 },
                 context: {
                   ...context,
