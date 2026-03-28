@@ -155,14 +155,22 @@ export interface PopupMenuDebugOptions {
    * @deprecated Use `showSafeTriangleArea` instead.
    */
   showSubmenuSafeTriangleArea?: boolean
+
+  /**
+   * Enables console logging for aim-guard diagnostics.
+   * @default false
+   */
+  logAimGuardEvents?: boolean
 }
 
 export interface PopupMenuDebugContextValue {
   showSafeTriangleArea: PopupMenuSafeTriangleAreaDebugSettings
+  logAimGuardEvents: boolean
 }
 
 const defaultPopupMenuDebugContextValue: PopupMenuDebugContextValue = {
   showSafeTriangleArea: defaultPopupMenuSafeTriangleAreaDebugSettings,
+  logAimGuardEvents: false,
 }
 
 export const PopupMenuDebugContext =

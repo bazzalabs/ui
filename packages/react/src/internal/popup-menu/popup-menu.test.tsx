@@ -356,6 +356,7 @@ function NestedMenuForDataAttrs({
           missColor?: string
           missFreezeDuration?: number
         }
+    logAimGuardEvents?: boolean
   }
   submenuCloseDelay?: number
 } = {}) {
@@ -1211,6 +1212,80 @@ describe('PopupMenu', () => {
       } finally {
         triggerRectSpy.mockRestore()
         popupRectSpy.mockRestore()
+      }
+    })
+  })
+
+  describe('aim guard debug logging', () => {
+    const getAimGuardLogMessages = (logSpy: ReturnType<typeof vi.spyOn>) =>
+      logSpy.mock.calls
+        .map(([firstArg]) => (typeof firstArg === 'string' ? firstArg : ''))
+        .filter((message) => message.startsWith('[PopupMenu][AimGuard'))
+
+    it('does not log aim guard events by default', async () => {
+      const user = userEvent.setup()
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      let unmount: (() => void) | null = null
+
+      try {
+        unmount = render(<NestedMenuForDataAttrs />).unmount
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+        })
+
+        await user.hover(screen.getByTestId('submenu-trigger-1'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+        })
+
+        expect(getAimGuardLogMessages(logSpy)).toHaveLength(0)
+      } finally {
+        unmount?.()
+        logSpy.mockRestore()
+      }
+    })
+
+    it('logs aim guard events when logAimGuardEvents is enabled', async () => {
+      const user = userEvent.setup()
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      let unmount: (() => void) | null = null
+
+      try {
+        unmount = render(
+          <NestedMenuForDataAttrs debug={{ logAimGuardEvents: true }} />,
+        ).unmount
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+        })
+
+        await user.hover(screen.getByTestId('submenu-trigger-1'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+        })
+
+        const messages = getAimGuardLogMessages(logSpy)
+
+        expect(
+          messages.some((message) =>
+            message.startsWith('[PopupMenu][AimGuardProvider]'),
+          ),
+        ).toBe(true)
+        expect(
+          messages.some((message) =>
+            message.startsWith('[PopupMenu][AimGuard]'),
+          ),
+        ).toBe(true)
+      } finally {
+        unmount?.()
+        logSpy.mockRestore()
       }
     })
   })
