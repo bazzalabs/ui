@@ -275,12 +275,12 @@ function buildMenuContent(): NodeDef[] {
   )
 
   return [
-    aiFilterSubpage,
-    {
-      kind: 'separator',
-      id: 'ai-filter-separator',
-      render: ({ props }) => <DropdownMenu.Separator {...props} />,
-    },
+    // aiFilterSubpage,
+    // {
+    //   kind: 'separator',
+    //   id: 'ai-filter-separator',
+    //   render: ({ props }) => <DropdownMenu.Separator {...props} />,
+    // },
     statusMenu,
     assigneeMenu,
     priorityMenu,
