@@ -210,86 +210,31 @@
       @apply bg-red-500/10 **:!text-red-700 !border-l-red-700 dark:!border-l-red-500 dark:**:!text-red-500;
     }
   }
+}
 
-  @layer base {
-    html.light .shiki,
-    html.light .shiki span {
-      color: var(--shiki-light) !important;
-      /* background-color: var(--shiki-dark-bg) !important; */
-      /* Optional, if you also want font styles */
-      font-style: var(--shiki-light-font-style) !important;
-      font-weight: var(--shiki-light-font-weight) !important;
-      text-decoration: var(--shiki-light-text-decoration) !important;
-    }
-
-    html.dark .shiki,
-    html.dark .shiki span {
-      color: var(--shiki-dark) !important;
-      /* background-color: var(--shiki-dark-bg) !important; */
-      /* Optional, if you also want font styles */
-      font-style: var(--shiki-dark-font-style) !important;
-      font-weight: var(--shiki-dark-font-weight) !important;
-      text-decoration: var(--shiki-dark-text-decoration) !important;
-    }
+@layer base {
+  html.light .shiki,
+  html.light .shiki span,
+  html.light .shiki-inline span {
+    color: var(--shiki-light) !important;
+    /* background-color: var(--shiki-dark-bg) !important; */
+    /* Optional, if you also want font styles */
+    font-style: var(--shiki-light-font-style) !important;
+    font-weight: var(--shiki-light-font-weight) !important;
+    text-decoration: var(--shiki-light-text-decoration) !important;
   }
 
-  /*.shiki {
-    overflow: auto;
-    position: relative;
-    padding: theme(spacing.4);
-
-    code {
-      display: block;
-      width: max-content;
-      min-width: 100%;
-    }
-
-    .line {
-      width: 100%;
-      line-height: 1.5;
-
-      @apply border-l-4 border-transparent;
-
-      &.highlighted,
-      &.diff {
-        @apply -ml-4 -mr-4 inline-block w-[calc(100%+(theme(spacing.4)+theme(spacing.4)))] pl-4 pr-4;
-      }
-
-      &.highlighted {
-        @apply border-neutral-500 bg-neutral-800;
-      }
-
-      &.diff {
-        &.add,
-        &.remove {
-          span:first-child::before {
-            @apply -ml-4 inline-flex w-4;
-          }
-        }
-
-        & > span {
-          background: transparent !important;
-        }
-
-        &.add {
-          @apply border-green-500 !bg-green-500/10;
-
-          span:first-child::before {
-            @apply text-green-500 translate-x-0.5 content-["+"];
-          }
-        }
-
-        &.remove {
-          @apply border-red-500 !bg-red-500/10;
-
-          span:first-child::before {
-            @apply text-red-500 translate-x-0.5 content-["-"];
-          }
-        }
-      }
-    }
-  }*/
+  html.dark .shiki,
+  html.dark .shiki span {
+    color: var(--shiki-dark) !important;
+    /* background-color: var(--shiki-dark-bg) !important; */
+    /* Optional, if you also want font styles */
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
 }
+
 
 @layer base {
   html.light {
@@ -307,139 +252,6 @@
       background-color: var(--shiki-dark-bg);
     }
   }
-
-  /*figure[data-rehype-pretty-code-figure] {
-    contain: layout style;
-    content-visibility: auto;
-    @apply my-6 relative;
-
-    figcaption[data-rehype-pretty-code-title] {
-      @apply relative text-xs text-muted-foreground font-mono w-fit border-x border-t border-border rounded-t-md px-4 py-1.5 translate-y-[1px] select-none;
-      @apply bg-white dark:bg-neutral-900;
-
-      & + pre {
-        @apply rounded-tl-none;
-      }
-    }
-
-    figcaption[data-rehype-pretty-code-caption] {
-      @apply text-sm text-muted-foreground text-center mt-3;
-    }
-
-    & > pre {
-      @apply bg-white dark:bg-neutral-900;
-      @apply max-h-[650px] overflow-x-auto rounded-xl border border-border;
-      @apply py-4;
-
-      [data-line] {
-        @apply px-6 py-0.5;
-      }
-
-      & > code {
-        @apply grid min-w-full break-words rounded-none border-0 bg-transparent !p-0;
-        @apply !bg-white dark:!bg-neutral-900 text-sm;
-      }
-
-      [data-highlighted-line] {
-        @apply !bg-neutral-100 dark:!bg-neutral-900;
-
-        &::before {
-          @apply border-l-3 border-neutral-400 dark:border-neutral-500;
-          position: absolute;
-          margin-left: calc(var(--spacing) * -6);
-          margin-top: calc(var(--spacing) * -0.5);
-          height: calc(var(--spacing) * 6);
-          content: "";
-        }
-      }
-
-      [data-line].diff ~ [data-highlighted-line]::before,
-      [data-highlighted-line]
-        ~ [data-line].diff
-        + [data-highlighted-line]::before {
-        margin-left: calc(var(--spacing) * -8);
-      }
-
-      :has([data-line].diff) [data-line] {
-        padding-left: calc(var(--spacing) * 8);
-      }
-
-      [data-line].diff.add {
-        @apply bg-green-500/15;
-
-        &::before {
-          @apply border-l-3 border-green-500;
-          position: absolute;
-          margin-left: calc(var(--spacing) * -8);
-          margin-top: calc(var(--spacing) * -0.5);
-          height: calc(var(--spacing) * 6);
-          content: "";
-        }
-
-        &:after {
-          position: absolute;
-          left: calc(var(--spacing) * 2.5);
-          color: var(--color-green-500);
-          font-size: var(--text-base);
-          line-height: 1.3;
-          content: "+";
-        }
-      }
-
-      [data-line].diff.remove {
-        @apply bg-red-500/15;
-
-        span {
-          @apply opacity-60;
-        }
-
-        &::before {
-          @apply border-l-3 border-red-500;
-          position: absolute;
-          margin-left: calc(var(--spacing) * -8);
-          margin-top: calc(var(--spacing) * -0.5);
-          height: calc(var(--spacing) * 6);
-          content: "";
-        }
-
-        &:after {
-          position: absolute;
-          left: calc(var(--spacing) * 2.5);
-          color: var(--color-red-500);
-          font-size: var(--text-base);
-          line-height: 1.3;
-          content: "-";
-        }
-      }
-
-      code[data-line-numbers] {
-        counter-reset: line;
-      }
-
-      code[data-line-numbers] > [data-line]::before {
-        counter-increment: line;
-        content: counter(line);
-
-        display: inline-block;
-        width: 0.75rem;
-        margin-right: 2rem;
-        text-align: right;
-        @apply text-xs text-muted-foreground/50 tracking-tight;
-      }
-
-      code[data-line-numbers-max-digits="2"] > [data-line]::before {
-        width: calc(var(--spacing) * 4);
-      }
-
-      code[data-line-numbers-max-digits="3"] > [data-line]::before {
-        width: 1.25rem;
-      }
-
-      code[data-line-numbers-max-digits="4"] > [data-line]::before {
-        width: 1.75rem;
-      }
-    }
-  }*/
 }
 
 @layer utilities {

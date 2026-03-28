@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  ChevronRight,
-  FlaskConicalIcon,
-  TriangleDashedIcon,
-} from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -46,10 +42,6 @@ const items = [
     url: '/docs/getting-started',
   },
   {
-    title: 'Components',
-    url: '/docs/components',
-  },
-  {
     title: 'Feedback',
     url: '/docs/feedback',
   },
@@ -86,6 +78,26 @@ type ComponentItem =
     }
 
 const componentItems: ComponentItem[] = [
+  {
+    type: 'single',
+    title: 'Dropdown Menu',
+    url: '/docs/dropdown-menu',
+  },
+  {
+    type: 'single',
+    title: 'Context Menu',
+    url: '/docs/context-menu',
+  },
+  {
+    type: 'single',
+    title: 'Select',
+    url: '/docs/select',
+  },
+  {
+    type: 'single',
+    title: 'Combobox',
+    url: '/docs/combobox',
+  },
   {
     type: 'collapsible',
     title: 'Filters',
@@ -244,377 +256,6 @@ const componentItems: ComponentItem[] = [
             type: 'link',
             title: 'nuqs',
             url: '/docs/filters/integrations/nuqs',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'collapsible',
-    title: 'Menu',
-    urlPrefix: '/docs/menu',
-    badge: <FlaskConicalIcon className="size-3.5 text-purple-400" />,
-    groups: [
-      {
-        groupName: 'Getting Started',
-        items: [
-          {
-            type: 'link',
-            title: 'Introduction',
-            url: '/docs/menu/introduction',
-          },
-          {
-            type: 'link',
-            title: 'Installation',
-            url: '/docs/menu/installation',
-          },
-          { type: 'link', title: 'Quick Start', url: '/docs/menu/quick-start' },
-        ],
-      },
-      {
-        groupName: 'Core',
-        items: [
-          { type: 'link', title: 'Overview', url: '/docs/menu/core/overview' },
-          { type: 'link', title: 'Anatomy', url: '/docs/menu/core/anatomy' },
-          {
-            type: 'collapsible',
-            title: 'Model',
-            items: [
-              {
-                type: 'link',
-                title: 'Nodes',
-                url: '/docs/menu/core/model/nodes',
-              },
-              {
-                type: 'link',
-                title: 'Item',
-                url: '/docs/menu/core/model/item',
-              },
-              {
-                type: 'link',
-                title: 'Group',
-                url: '/docs/menu/core/model/group',
-              },
-              {
-                type: 'link',
-                title: 'Menu',
-                url: '/docs/menu/core/model/menu',
-              },
-              {
-                type: 'link',
-                title: 'Submenu',
-                url: '/docs/menu/core/model/submenu',
-              },
-              {
-                type: 'link',
-                title: 'Separator',
-                url: '/docs/menu/core/model/separator',
-              },
-            ],
-          },
-        ],
-      },
-      {
-        groupName: 'Features',
-        items: [
-          {
-            type: 'link',
-            title: 'Keyboard Shortcuts',
-            url: '/docs/menu/keyboard-shortcuts',
-          },
-          {
-            type: 'link',
-            title: 'Focus Management',
-            url: '/docs/menu/focus-management',
-          },
-          {
-            type: 'collapsible',
-            title: 'Theming',
-            items: [
-              {
-                type: 'link',
-                title: 'Concepts',
-                url: '/docs/menu/theming/concepts',
-              },
-              {
-                type: 'link',
-                title: 'Slots',
-                url: '/docs/menu/theming/slots',
-              },
-              {
-                type: 'link',
-                title: 'Slot Props',
-                url: '/docs/menu/theming/slot-props',
-              },
-              {
-                type: 'link',
-                title: 'Class names',
-                url: '/docs/menu/theming/classnames',
-              },
-              {
-                type: 'link',
-                title: 'Custom Rendering',
-                url: '/docs/menu/theming/custom-rendering',
-              },
-            ],
-          },
-          {
-            type: 'link',
-            title: (
-              <div>
-                Loaders{' '}
-                <span className="text-muted-foreground">(Async Nodes)</span>
-              </div>
-            ),
-            url: '/docs/menu/loaders',
-          },
-          {
-            type: 'link',
-            title: 'Virtualization',
-            url: '/docs/menu/virtualization',
-          },
-          {
-            type: 'link',
-            title: 'Programmatic Control',
-            url: '/docs/menu/control',
-          },
-          {
-            type: 'link',
-            title: 'Middleware',
-            url: '/docs/menu/middleware',
-          },
-        ],
-      },
-      {
-        groupName: 'Components',
-        items: [
-          {
-            type: 'link',
-            title: 'Popup Menus',
-            url: '/docs/menu/components/popup-menus',
-          },
-          {
-            type: 'link',
-            title: 'Command Menu',
-            url: '/docs/menu/components/command-menu',
-          },
-          {
-            type: 'link',
-            title: 'Dropdown Menu',
-            url: '/docs/menu/components/dropdown-menu',
-          },
-          {
-            type: 'link',
-            title: 'Context Menu',
-            url: '/docs/menu/components/context-menu',
-          },
-          {
-            type: 'link',
-            title: 'Select',
-            url: '/docs/menu/components/select',
-          },
-          {
-            type: 'link',
-            title: 'Multiselect',
-            url: '/docs/menu/components/multi-select',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    type: 'collapsible',
-    title: 'Action Menu',
-    urlPrefix: '/docs/action-menu',
-    badge: (
-      <TriangleDashedIcon className="size-3.5 !text-yellow-400 stroke-3" />
-    ),
-    groups: [
-      {
-        groupName: 'Getting Started',
-        items: [
-          {
-            type: 'link',
-            title: 'Introduction',
-            url: '/docs/action-menu/introduction',
-          },
-          {
-            type: 'link',
-            title: 'Installation',
-            url: '/docs/action-menu/installation',
-          },
-          {
-            type: 'link',
-            title: 'Quick Start',
-            url: '/docs/action-menu/quick-start',
-          },
-          {
-            type: 'link',
-            title: 'Examples',
-            url: '/docs/action-menu/examples',
-          },
-        ],
-      },
-      {
-        groupName: 'Concepts',
-        items: [
-          {
-            type: 'link',
-            title: 'Data-First API',
-            url: '/docs/action-menu/data-first-api',
-          },
-          {
-            type: 'link',
-            title: 'Menu Structure',
-            url: '/docs/action-menu/menu-structure',
-          },
-          {
-            type: 'link',
-            title: 'Node Types',
-            url: '/docs/action-menu/node-types',
-          },
-          {
-            type: 'link',
-            title: 'State Management',
-            url: '/docs/action-menu/state-management',
-          },
-          {
-            type: 'link',
-            title: 'Responsive Behavior',
-            url: '/docs/action-menu/responsive-behavior',
-          },
-        ],
-      },
-      {
-        groupName: 'Features',
-        items: [
-          {
-            type: 'link',
-            title: 'Node Configuration',
-            url: '/docs/action-menu/nodes',
-          },
-          {
-            type: 'link',
-            title: 'Async Loading',
-            url: '/docs/action-menu/async',
-          },
-          {
-            type: 'link',
-            title: 'Search & Filtering',
-            url: '/docs/action-menu/search',
-          },
-          {
-            type: 'link',
-            title: 'Keyboard Navigation',
-            url: '/docs/action-menu/keyboard',
-          },
-          {
-            type: 'link',
-            title: 'Focus Management',
-            url: '/docs/action-menu/focus',
-          },
-          {
-            type: 'link',
-            title: 'Positioning',
-            url: '/docs/action-menu/positioning',
-          },
-          { type: 'link', title: 'Theming', url: '/docs/action-menu/theming' },
-          {
-            type: 'link',
-            title: 'Virtualization',
-            url: '/docs/action-menu/virtualization',
-          },
-          {
-            type: 'link',
-            title: 'Middleware',
-            url: '/docs/action-menu/middleware',
-          },
-          {
-            type: 'link',
-            title: 'Extended Properties',
-            url: '/docs/action-menu/extended-properties',
-          },
-          {
-            type: 'link',
-            title: 'Defaults',
-            url: '/docs/action-menu/defaults',
-          },
-        ],
-      },
-      {
-        groupName: 'Advanced',
-        items: [
-          {
-            type: 'link',
-            title: 'Loader Adapters',
-            url: '/docs/action-menu/loader-adapters',
-          },
-          {
-            type: 'link',
-            title: 'Deep Search',
-            url: '/docs/action-menu/deep-search',
-          },
-          {
-            type: 'link',
-            title: 'Intent Zone',
-            url: '/docs/action-menu/intent-zone',
-          },
-          {
-            type: 'link',
-            title: 'Custom Rendering',
-            url: '/docs/action-menu/custom-rendering',
-          },
-          {
-            type: 'link',
-            title: 'Performance Optimization',
-            url: '/docs/action-menu/performance',
-          },
-          {
-            type: 'link',
-            title: 'Accessibility',
-            url: '/docs/action-menu/accessibility',
-          },
-          { type: 'link', title: 'RTL Support', url: '/docs/action-menu/rtl' },
-        ],
-      },
-      {
-        groupName: 'Components',
-        items: [
-          { type: 'link', title: 'Select', url: '/docs/action-menu/select' },
-          {
-            type: 'link',
-            title: 'MultiSelect',
-            url: '/docs/action-menu/multiselect',
-          },
-          {
-            type: 'link',
-            title: 'Dropdown Menu',
-            url: '/docs/action-menu/dropdown-menu',
-          },
-          {
-            type: 'link',
-            title: 'Context Menu',
-            url: '/docs/action-menu/context-menu',
-          },
-          {
-            type: 'link',
-            title: 'Command Palette',
-            url: '/docs/action-menu/command-palette',
-          },
-        ],
-      },
-      {
-        groupName: 'Reference',
-        items: [
-          {
-            type: 'link',
-            title: 'API Reference',
-            url: '/docs/action-menu/api-reference',
-          },
-          {
-            type: 'link',
-            title: 'TypeScript Types',
-            url: '/docs/action-menu/typescript',
           },
         ],
       },

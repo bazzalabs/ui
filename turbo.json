@@ -2,6 +2,10 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "tasks": {
+    "//#sgrep:watch": {
+      "cache": false,
+      "persistent": true
+    },
     "vercel:install": {
       "cache": false
     },
@@ -15,12 +19,10 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*", "registry.json"],
       "outputs": ["public/r/base/**"]
     },
-    "types:meta": {
-      "outputs": ["apps/web/.types/**"]
-    },
-    "types:meta:watch": {
-      "cache": false,
-      "persistent": true
+    "type-gen": {
+      "cache": true,
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".types/**"]
     },
     "type-check": {
       "dependsOn": ["^build"],

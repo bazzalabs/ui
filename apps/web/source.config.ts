@@ -15,6 +15,7 @@ import rehypeCallouts from 'rehype-callouts'
 import z from 'zod/v4'
 import { env } from './lib/env'
 import { oscuraMidnight } from './lib/oscura/oscura-midnight'
+import { rehypeCollapsibleHeadings } from './lib/rehype-collapsible-headings'
 import { remarkCodeInject } from './lib/remark-code-inject'
 
 export const docs = defineDocs({
@@ -42,13 +43,33 @@ export const changelog = defineDocs({
   },
 })
 
+/**
+ * Shiki transformer that parses `fullHeight` from the meta string
+ * and adds it as a `data-full-height` attribute on the pre element.
+ *
+ * @example
+ * ```tsx fullHeight
+ * // This code block will render without a max-height scroll container
+ * ```
+ */
+const transformerFullHeight = {
+  name: 'fullHeight',
+  pre(pre: { properties: Record<string, unknown> }) {
+    const meta = this.options.meta?.__raw as string | undefined
+    if (meta?.includes('fullHeight')) {
+      pre.properties['data-full-height'] = true
+    }
+    return pre
+  },
+}
+
 const rehypeCodeOptions: RehypeCodeOptions = {
   themes: {
     light: 'github-light',
     dark: oscuraMidnight,
     // dark: 'github-dark',
   },
-  transformers: [transformerNotationHighlight()],
+  transformers: [transformerNotationHighlight(), transformerFullHeight],
 }
 
 const remarkNpmOptions: RemarkNpmOptions = {
@@ -67,6 +88,7 @@ export default defineConfig({
   mdxOptions: {
     rehypePlugins: (v) => [
       ...v,
+      rehypeCollapsibleHeadings,
       rehypeCallouts,
       [rehypeCode, rehypeCodeOptions],
     ],

@@ -1,50 +1,49 @@
 'use client'
 
-import { Moon, Sun } from 'lucide-react'
+import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { Select } from '@/registry/ui/select'
 
 export function ThemeToggle() {
-  const { setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
-    <DropdownMenu
-      menu={{
-        id: 'theme-menu',
-        defaults: {
-          item: {
-            closeOnSelect: true,
-          },
-        },
-        hideSearchUntilActive: true,
-        nodes: [
-          {
-            kind: 'item',
-            label: 'Light',
-            onSelect: () => setTheme('light'),
-          },
-          {
-            kind: 'item',
-            label: 'Dark',
-            onSelect: () => setTheme('dark'),
-          },
-          {
-            kind: 'item',
-            label: 'System',
-            onSelect: () => setTheme('system'),
-          },
-        ],
-      }}
-    >
-      <DropdownMenu.Trigger asChild>
-        <Button variant="ghost" size="icon">
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenu.Trigger>
-    </DropdownMenu>
+    <Select.Root value={mounted ? theme : undefined} onValueChange={setTheme}>
+      <Select.Trigger render={<Button variant="ghost" size="icon" />}>
+        <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+        <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <span className="sr-only">Toggle theme</span>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner align="end">
+          <Select.Popup className="min-w-0 w-[150px]">
+            <Select.Surface autoHighlightFirst="selected">
+              <Select.List>
+                <Select.Item value="light">
+                  Light
+                  <Select.ItemIndicator />
+                </Select.Item>
+                <Select.Item value="dark">
+                  Dark
+                  <Select.ItemIndicator />
+                </Select.Item>
+                <Select.Item value="system">
+                  System
+                  <Select.ItemIndicator />
+                </Select.Item>
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
   )
 }

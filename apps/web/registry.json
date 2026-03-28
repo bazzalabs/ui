@@ -4,91 +4,6 @@
   "homepage": "https://ui.bazza.dev",
   "items": [
     {
-      "name": "action-menu",
-      "title": "Action menu",
-      "description": "A menu primitive with deep search, async node loading, and submenus.",
-      "type": "registry:component",
-      "dependencies": ["@bazza-ui/action-menu", "lucide-react"],
-      "files": [
-        {
-          "path": "registry/ui/action-menu/index.tsx",
-          "type": "registry:file",
-          "target": "components/ui/action-menu.tsx"
-        }
-      ]
-    },
-    {
-      "name": "command-menu",
-      "title": "Command Menu",
-      "description": "A command palette component with deep search, keyboard navigation, and async loading.",
-      "type": "registry:component",
-      "dependencies": ["@bazza-ui/command-menu", "lucide-react"],
-      "files": [
-        {
-          "path": "registry/ui/command-menu/index.tsx",
-          "type": "registry:file",
-          "target": "components/ui/command-menu.tsx"
-        }
-      ]
-    },
-    {
-      "name": "context-menu",
-      "title": "Context Menu",
-      "description": "A right-click context menu with deep search, submenus, and async loading.",
-      "type": "registry:component",
-      "dependencies": ["@bazza-ui/context-menu", "lucide-react"],
-      "files": [
-        {
-          "path": "registry/ui/context-menu/index.tsx",
-          "type": "registry:file",
-          "target": "components/ui/context-menu.tsx"
-        }
-      ]
-    },
-    {
-      "name": "dropdown-menu",
-      "title": "Dropdown Menu",
-      "description": "A dropdown menu with deep search, submenus, and async loading.",
-      "type": "registry:ui",
-      "dependencies": ["@bazza-ui/dropdown-menu", "lucide-react"],
-      "registryDependencies": ["separator", "checkbox"],
-      "files": [
-        {
-          "path": "registry/ui/dropdown-menu/index.tsx",
-          "type": "registry:file",
-          "target": "components/ui/dropdown-menu.tsx"
-        }
-      ]
-    },
-    {
-      "name": "select",
-      "title": "Select",
-      "description": "A form-compatible select component with search, virtualization, and proper accessibility.",
-      "type": "registry:component",
-      "dependencies": ["@bazza-ui/select", "lucide-react"],
-      "files": [
-        {
-          "path": "registry/ui/select/index.tsx",
-          "type": "registry:file",
-          "target": "components/ui/select.tsx"
-        }
-      ]
-    },
-    {
-      "name": "multi-select",
-      "title": "Multi-Select",
-      "description": "A form-compatible multi-select component with checkboxes and value constraints.",
-      "type": "registry:component",
-      "dependencies": ["@bazza-ui/select", "lucide-react"],
-      "files": [
-        {
-          "path": "registry/ui/multi-select/index.tsx",
-          "type": "registry:file",
-          "target": "components/ui/multi-select.tsx"
-        }
-      ]
-    },
-    {
       "name": "filters",
       "title": "Filters",
       "description": "A powerful data table filter component inspired by Linear.",
@@ -96,19 +11,14 @@
       "type": "registry:block",
       "dependencies": ["@bazza-ui/filters", "date-fns"],
       "registryDependencies": [
-        "dropdown-menu",
         "button",
         "calendar",
         "checkbox",
         "command",
         "input",
-        "label",
         "popover",
-        "separator",
         "slider",
-        "table",
-        "tabs",
-        "use-mobile"
+        "tabs"
       ],
       "files": [
         {
@@ -120,6 +30,156 @@
           "path": "registry/ui/filter/index.parts.ts",
           "type": "registry:file",
           "target": "components/ui/filter/index.parts.ts"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/index.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/index.ts"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/index.parts.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/index.parts.ts"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/components/menu/filter-menu.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/components/menu/filter-menu.tsx"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/components/item/filter-operator.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/components/item/filter-operator.tsx"
+        },
+        {
+          "path": "registry/ui/filter/cmdk/components/item/filter-value.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/cmdk/components/item/filter-value.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/root/filter-root.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/root/filter-root.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/provider/filter-provider.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/provider/filter-provider.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/root/filter-context.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/root/filter-context.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/trigger/filter-trigger.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/trigger/filter-trigger.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/list/filter-list.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/list/filter-list.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/list/filter-list-mobile-container.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/list/filter-list-mobile-container.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/item/filter-item.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/item/filter-item.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/item/filter-subject.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/item/filter-subject.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/item/filter-remove.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/item/filter-remove.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/actions/filter-actions.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/actions/filter-actions.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/value/types.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/types.ts"
+        },
+        {
+          "path": "registry/ui/filter/components/value/filter-value-date-controller.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/filter-value-date-controller.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/value/filter-value-number-controller.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/filter-value-number-controller.tsx"
+        },
+        {
+          "path": "registry/ui/filter/hooks/use-debounce-callback.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/hooks/use-debounce-callback.tsx"
+        },
+        {
+          "path": "registry/ui/filter/hooks/use-unmount.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/hooks/use-unmount.tsx"
+        },
+        {
+          "path": "registry/ui/filter/lib/debounce.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/lib/debounce.ts"
+        },
+        {
+          "path": "registry/ui/filter/ui/debounced-input.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/ui/debounced-input.tsx"
+        }
+      ]
+    },
+    {
+      "name": "filters-dropdown-menu",
+      "title": "Filters (Dropdown Menu)",
+      "description": "Filter components powered by @bazza-ui/react dropdown-menu.",
+      "author": "Kian Bazarjani <kian@bazza.dev>",
+      "type": "registry:block",
+      "dependencies": [
+        "@base-ui/react",
+        "@bazza-ui/filters",
+        "@bazza-ui/react",
+        "@tanstack/react-virtual",
+        "date-fns"
+      ],
+      "registryDependencies": [
+        "button",
+        "calendar",
+        "checkbox",
+        "command",
+        "input",
+        "slider",
+        "tabs"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/filter/dropdown-menu/index.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/dropdown-menu/index.ts"
+        },
+        {
+          "path": "registry/ui/filter/dropdown-menu/index.parts.ts",
+          "type": "registry:file",
+          "target": "components/ui/filter/dropdown-menu/index.parts.ts"
+        },
+        {
+          "path": "registry/ui/dropdown-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/dropdown-menu/index.tsx"
         },
         {
           "path": "registry/ui/filter/components/root/filter-root.tsx",
@@ -207,19 +267,29 @@
           "target": "components/ui/filter/components/value/text-item.tsx"
         },
         {
-          "path": "registry/ui/filter/components/value/option-menu.ts",
+          "path": "registry/ui/filter/components/value/selectable-menu.ts",
           "type": "registry:file",
-          "target": "components/ui/filter/components/value/option-menu.ts"
+          "target": "components/ui/filter/components/value/selectable-menu.ts"
         },
         {
-          "path": "registry/ui/filter/components/value/multi-option-menu.ts",
+          "path": "registry/ui/filter/components/value/text-menu.tsx",
           "type": "registry:file",
-          "target": "components/ui/filter/components/value/multi-option-menu.ts"
+          "target": "components/ui/filter/components/value/text-menu.tsx"
         },
         {
-          "path": "registry/ui/filter/components/value/text-menu.ts",
+          "path": "registry/ui/filter/components/value/editors/index.ts",
           "type": "registry:file",
-          "target": "components/ui/filter/components/value/text-menu.ts"
+          "target": "components/ui/filter/components/value/editors/index.ts"
+        },
+        {
+          "path": "registry/ui/filter/components/value/editors/option-editor.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/editors/option-editor.tsx"
+        },
+        {
+          "path": "registry/ui/filter/components/value/editors/text-editor.tsx",
+          "type": "registry:file",
+          "target": "components/ui/filter/components/value/editors/text-editor.tsx"
         },
         {
           "path": "registry/ui/filter/components/value/filter-value-date-controller.tsx",

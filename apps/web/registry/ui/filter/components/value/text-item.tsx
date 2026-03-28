@@ -1,21 +1,34 @@
 'use client'
 
-import type { ItemNode, ItemSlotProps } from '@bazza-ui/dropdown-menu'
+import type { ItemRenderParams } from '@bazza-ui/react/dropdown-menu'
+import type * as React from 'react'
+import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import type { TextFilterItemData } from './text-menu'
 
-export function TextItem({ node: nodeProp, bind }: ItemSlotProps) {
-  const props = bind.getRowProps({
-    className: 'group/row gap-1',
-  })
-
-  const node = nodeProp as ItemNode<TextFilterItemData>
+/**
+ * Renders a text filter item showing the operator and value.
+ * Used as a render function in ItemDef.
+ */
+export function renderTextItem(
+  data: TextFilterItemData,
+  params: ItemRenderParams,
+): React.ReactNode {
+  const { props } = params
 
   return (
-    <li {...props}>
-      <span className="text-muted-foreground shrink-0">
-        {node.data?.operator}
-      </span>
-      <span className="truncate">{node.data?.values[0]}</span>
-    </li>
+    <DropdownMenu.Item {...props} className={'group/row gap-1'}>
+      <span className="text-muted-foreground shrink-0">{data.operator}</span>
+      <span className="truncate">{data.values[0]}</span>
+    </DropdownMenu.Item>
   )
+}
+
+/**
+ * Creates a render function for a text filter item.
+ * This is used when building ItemDef nodes for text filters.
+ */
+export function createTextItemRenderer(data: TextFilterItemData) {
+  return (params: ItemRenderParams): React.ReactNode => {
+    return renderTextItem(data, params)
+  }
 }

@@ -9,6 +9,11 @@ import {
 
 export const runtime = 'nodejs'
 
+const REGISTRY_ROUTE_ALIASES: Record<string, string> = {
+  'filters/cmdk': 'filters',
+  'filters/dropdown-menu': 'filters-dropdown-menu',
+}
+
 /**
  * GET handler for registry items
  * Supports:
@@ -18,6 +23,8 @@ export const runtime = 'nodejs'
  *   - /r/action-menu@canary.json
  *   - /r/action-menu@rc
  *   - /r/action-menu@stable
+ *   - /r/filters/cmdk
+ *   - /r/filters/dropdown-menu
  */
 export async function GET(
   _request: NextRequest,
@@ -78,7 +85,9 @@ export async function GET(
     }
 
     // Read the base registry item
-    const item = readRegistryItem(parsed.name)
+    const resolvedRegistryName =
+      REGISTRY_ROUTE_ALIASES[parsed.name] ?? parsed.name
+    const item = readRegistryItem(resolvedRegistryName)
 
     if (!item) {
       return NextResponse.json(

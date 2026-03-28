@@ -1,0 +1,772 @@
+---
+title: Select
+section: Getting Started
+summary: A form control for selecting a single value from a list of options. Supports search, groups, and custom rendering.
+---
+
+A select component displays a trigger that opens a dropdown with selectable options. It's designed for single-value selection in forms, with support for search filtering, option groups, custom rendering, and native form integration.
+
+## Installation
+
+```bash
+bun add @bazza-ui/react
+```
+
+## Anatomy
+
+```tsx
+<Select.Root>
+  <Select.Trigger>
+    <Select.Value />
+    <Select.Icon />
+  </Select.Trigger>
+  <Select.Portal>
+    <Select.Backdrop />
+    <Select.Positioner>
+      <Select.Popup>
+        <Select.Arrow />
+        <Select.Surface>
+          <Select.Input />
+          <Select.List>
+            <Select.Group>
+              <Select.GroupLabel />
+              <Select.Item>
+                <Select.ItemLabel />
+                <Select.ItemIndicator />
+              </Select.Item>
+            </Select.Group>
+            <Select.Separator />
+            <Select.Empty />
+          </Select.List>
+        </Select.Surface>
+        <Select.ScrollUpArrow />
+        <Select.ScrollDownArrow />
+      </Select.Popup>
+    </Select.Positioner>
+  </Select.Portal>
+</Select.Root>
+```
+
+## Features
+
+- **Single selection** - Designed for selecting one value from a list
+- **Form integration** - Works with native forms and `FormData`
+- **Search filtering** - Built-in typeahead with fuzzy matching
+- **Groups** - Organize options into labeled groups
+- **Align to trigger** - Option to align selected item with trigger (like native select)
+- **Virtualized** - Support for virtualized lists with thousands of items
+- **Controlled & Uncontrolled** - Works in both modes with `value` and `onValueChange`
+
+## Examples
+
+### Basic
+
+A simple single-select dropdown with a list of options.
+
+<Example name="select-basic">
+<Example.PreviewCode>
+
+```tsx
+<Select.Root value={value} onValueChange={setValue}>
+  <Select.Trigger>
+    <Select.Value placeholder="Select a fruit..." />
+  </Select.Trigger>
+  <Select.Portal>
+    <Select.Positioner>
+      <Select.Popup>
+        <Select.Surface>
+          <Select.List>
+            <Select.Item value="apple">
+              <Select.ItemLabel>Apple</Select.ItemLabel>
+              <Select.ItemIndicator />
+            </Select.Item>
+            ...
+          </Select.List>
+        </Select.Surface>
+      </Select.Popup>
+    </Select.Positioner>
+  </Select.Portal>
+</Select.Root>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### With Groups
+
+Organize options into labeled groups with separators.
+
+<Example name="select-groups">
+<Example.PreviewCode>
+
+```tsx
+<Select.Group>
+  <Select.GroupLabel>Fruits</Select.GroupLabel>
+  <Select.Item value="apple">Apple</Select.Item>
+  <Select.Item value="banana">Banana</Select.Item>
+</Select.Group>
+<Select.Separator />
+<Select.Group>
+  <Select.GroupLabel>Vegetables</Select.GroupLabel>
+  <Select.Item value="carrot">Carrot</Select.Item>
+</Select.Group>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### With Search
+
+Add a search input to filter options. Use `value` and `keywords` props for better filtering.
+
+<Example name="select-search">
+<Example.PreviewCode>
+
+```tsx
+<Select.Surface>
+  <Select.Input placeholder="Search..." />
+  <Select.List>
+    <Select.Item value="us" keywords={['america', 'usa']}>
+      United States
+    </Select.Item>
+    ...
+  </Select.List>
+  <Select.Empty>No countries found</Select.Empty>
+</Select.Surface>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### With Form
+
+Select integrates with native HTML forms. Use `name` and `required` props for form submission.
+
+<Example name="select-form">
+<Example.PreviewCode>
+
+```tsx
+<form onSubmit={handleSubmit}>
+  <Select.Root name="priority" required>
+    <Select.Trigger>
+      <Select.Value placeholder="Select priority..." />
+    </Select.Trigger>
+    ...
+  </Select.Root>
+  <button type="submit">Submit</button>
+</form>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### With Object Values
+
+Use objects as values for complex data structures. Provide custom equality and label functions.
+
+<Example name="select-object-values">
+<Example.PreviewCode>
+
+```tsx
+<Select.Root
+  value={selected}
+  onValueChange={setSelected}
+  isItemEqualToValue={(a, b) => a.id === b.id}
+  itemToStringLabel={(u) => u.name}
+  itemToStringValue={(u) => String(u.id)}
+>
+  ...
+  {users.map((user) => (
+    <Select.Item key={user.id} value={user}>
+      <Select.ItemLabel />
+      <Select.ItemIndicator />
+    </Select.Item>
+  ))}
+</Select.Root>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### Align Item With Trigger
+
+Enable native-select-like behavior where the selected item aligns with the trigger:
+
+```tsx
+<Select.Positioner alignItemWithTrigger>
+  <Select.Popup>
+    <Select.Item value="1">Option 1</Select.Item>
+    <Select.Item value="2">Option 2</Select.Item>
+    <Select.Item value="3">Option 3</Select.Item>
+  </Select.Popup>
+</Select.Positioner>
+```
+
+## Guides
+
+### Basics
+
+Select provides a form control for selecting a single value from a list of options.
+
+#### Controlled vs Uncontrolled
+
+```tsx
+// Uncontrolled - Select manages its own value
+<Select.Root defaultValue="apple">
+  ...
+</Select.Root>
+
+// Controlled - You manage the value
+const [value, setValue] = React.useState('')
+
+<Select.Root value={value} onValueChange={setValue}>
+  ...
+</Select.Root>
+```
+
+#### Multi-Select Mode
+
+Enable multi-select with the `multiple` prop:
+
+```tsx
+const [values, setValues] = React.useState<string[]>([])
+
+<Select.Root multiple values={values} onValuesChange={setValues}>
+  ...
+</Select.Root>
+```
+
+---
+
+### Form Integration
+
+Select integrates seamlessly with native HTML forms:
+
+```tsx
+<form onSubmit={handleSubmit}>
+  <Select.Root name="priority" required>
+    <Select.Trigger>
+      <Select.Value placeholder="Select priority..." />
+    </Select.Trigger>
+    ...
+  </Select.Root>
+  <button type="submit">Submit</button>
+</form>
+```
+
+**Form props:**
+- `name` - Field name for FormData submission
+- `form` - Associate with a form by ID
+- `required` - Mark field as required
+
+Hidden inputs are automatically rendered for form submission.
+
+---
+
+### Search & Filtering
+
+Add a search input to filter options. Works the same as Dropdown Menu:
+
+```tsx
+<Select.Surface>
+  <Select.Input placeholder="Search..." />
+  <Select.List>
+    <Select.Item value="apple">Apple</Select.Item>
+    <Select.Item value="banana">Banana</Select.Item>
+    ...
+  </Select.List>
+  <Select.Empty>No results found</Select.Empty>
+</Select.Surface>
+```
+
+#### Value and Keywords
+
+Use `value` and `keywords` for better filtering:
+
+```tsx
+<Select.Item value="us" keywords={['united states', 'america', 'usa']}>
+  United States
+</Select.Item>
+```
+
+---
+
+### Groups
+
+Organize options into labeled groups:
+
+```tsx
+<Select.List>
+  <Select.Group>
+    <Select.GroupLabel>Fruits</Select.GroupLabel>
+    <Select.Item value="apple">Apple</Select.Item>
+    <Select.Item value="banana">Banana</Select.Item>
+  </Select.Group>
+  <Select.Separator />
+  <Select.Group>
+    <Select.GroupLabel>Vegetables</Select.GroupLabel>
+    <Select.Item value="carrot">Carrot</Select.Item>
+    <Select.Item value="broccoli">Broccoli</Select.Item>
+  </Select.Group>
+</Select.List>
+```
+
+---
+
+### Displaying Values
+
+The `<Select.Value>` component displays the selected value or a placeholder:
+
+```tsx
+<Select.Trigger>
+  <Select.Value placeholder="Select an option..." />
+  <Select.Icon />
+</Select.Trigger>
+```
+
+#### Using the Items Prop
+
+For automatic label resolution, pass an `items` prop to Root:
+
+```tsx
+<Select.Root
+  value={value}
+  onValueChange={setValue}
+  items={{
+    us: 'United States',
+    uk: 'United Kingdom',
+    ca: 'Canada',
+  }}
+>
+  <Select.Trigger>
+    {/* Displays "United States" when value is "us" */}
+    <Select.Value placeholder="Select country..." />
+  </Select.Trigger>
+  ...
+</Select.Root>
+```
+
+The `items` prop accepts either a record or an array:
+
+```tsx
+// Record format
+items={{ us: 'United States', uk: 'United Kingdom' }}
+
+// Array format
+items={[
+  { value: 'us', label: 'United States' },
+  { value: 'uk', label: 'United Kingdom' },
+]}
+```
+
+---
+
+### Align Item With Trigger
+
+Enable native-select-like behavior where the selected item aligns with the trigger:
+
+```tsx
+<Select.Positioner alignItemWithTrigger>
+  <Select.Popup>
+    ...
+  </Select.Popup>
+</Select.Positioner>
+```
+
+This creates a visual connection between the trigger and the selected option, similar to native `<select>` elements.
+
+---
+
+### Virtualization
+
+For selects with many options (100+), use virtualization:
+
+```tsx
+import { useVirtualizer } from '@tanstack/react-virtual'
+
+const items = Array.from({ length: 1000 }, (_, i) => ({
+  value: `item-${i}`,
+  label: `Item ${i}`,
+}))
+
+function VirtualizedSelect() {
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 36,
+  })
+
+  return (
+    <Select.Root
+      virtualized
+      virtualItems={items}
+      onHighlightChange={(id, index) => {
+        virtualizer.scrollToIndex(index, { align: 'auto' })
+      }}
+    >
+      <Select.Trigger>
+        <Select.Value placeholder="Select item..." />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner>
+          <Select.Popup>
+            <Select.Surface filter={false}>
+              <Select.List viewportRef={scrollRef}>
+                <div style={{ height: virtualizer.getTotalSize() }}>
+                  {virtualizer.getVirtualItems().map((row) => (
+                    <div
+                      key={row.key}
+                      style={{
+                        position: 'absolute',
+                        top: row.start,
+                        height: row.size,
+                        width: '100%',
+                      }}
+                    >
+                      <Select.Item value={items[row.index].value}>
+                        <Select.ItemIndicator />
+                        <Select.ItemLabel>{items[row.index].label}</Select.ItemLabel>
+                      </Select.Item>
+                    </div>
+                  ))}
+                </div>
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  )
+}
+```
+
+---
+
+### Object Values
+
+Select supports using objects as values instead of just strings. This is useful when working with complex data structures like database records or API responses.
+
+#### Auto-detected `{ value, label }` Objects
+
+If your objects have a `value` and `label` property, Select will automatically use them:
+
+```tsx
+interface Fruit {
+  value: string
+  label: string
+}
+
+const fruits: Fruit[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+]
+
+function ObjectSelect() {
+  const [selected, setSelected] = React.useState<Fruit | null>(null)
+
+  return (
+    <Select.Root value={selected} onValueChange={setSelected}>
+      <Select.Trigger>
+        <Select.Value placeholder="Select a fruit..." />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner>
+          <Select.Popup>
+            <Select.Surface>
+              <Select.List>
+                {fruits.map((fruit) => (
+                  <Select.Item key={fruit.value} value={fruit}>
+                    <Select.ItemIndicator />
+                    <Select.ItemLabel />
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  )
+}
+```
+
+- **Display**: Uses `label` property for `<Select.Value>` and `<Select.ItemLabel>`
+- **Form submission**: Uses `value` property for hidden form inputs
+- **Equality**: Uses reference equality by default
+
+#### Custom Object Shapes
+
+For objects with different shapes, use `isItemEqualToValue`, `itemToStringLabel`, and `itemToStringValue`:
+
+```tsx
+interface User {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+}
+
+const users: User[] = [
+  { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
+  { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' },
+]
+
+function UserSelect() {
+  const [selected, setSelected] = React.useState<User | null>(null)
+
+  return (
+    <Select.Root
+      value={selected}
+      onValueChange={setSelected}
+      // Compare by ID instead of reference
+      isItemEqualToValue={(item, value) => item.id === value.id}
+      // Display full name
+      itemToStringLabel={(user) => `${user.firstName} ${user.lastName}`}
+      // Submit ID to form
+      itemToStringValue={(user) => String(user.id)}
+    >
+      <Select.Trigger>
+        <Select.Value placeholder="Select a user..." />
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner>
+          <Select.Popup>
+            <Select.Surface>
+              <Select.List>
+                {users.map((user) => (
+                  <Select.Item key={user.id} value={user}>
+                    <Select.ItemIndicator />
+                    <Select.ItemLabel />
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Surface>
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  )
+}
+```
+
+**Props explained:**
+
+| Prop | Purpose | Example |
+|------|---------|---------|
+| `isItemEqualToValue` | Compare item to selected value | `(a, b) => a.id === b.id` |
+| `itemToStringLabel` | Convert object to display string | `(u) => u.name` |
+| `itemToStringValue` | Convert object for form submission | `(u) => String(u.id)` |
+
+#### Multi-Select with Objects
+
+Object values work with multi-select too:
+
+```tsx
+const [selected, setSelected] = React.useState<Fruit[]>([])
+
+<Select.Root
+  multiple
+  values={selected}
+  onValuesChange={setSelected}
+>
+  ...
+</Select.Root>
+```
+
+---
+
+### Styling with Data Attributes
+
+All Select components expose data attributes for styling:
+
+```css
+/* Style the trigger based on open state */
+[data-bazzaui-select-trigger][data-open] {
+  border-color: blue;
+}
+
+/* Style items based on state */
+[data-bazzaui-select-item][data-highlighted] {
+  background: var(--highlight-bg);
+}
+
+[data-bazzaui-select-item][data-selected] {
+  font-weight: bold;
+}
+
+[data-bazzaui-select-item][data-disabled] {
+  opacity: 0.5;
+}
+```
+
+---
+
+## API Reference
+
+### Root
+
+Groups all parts of the select. Manages value state and provides context to children. Doesn't render its own HTML element.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="SelectRootProps" pkg="@bazza-ui/react" />
+
+### Trigger
+
+A button that opens the select dropdown. Renders a `<button>` element.
+
+<BaseUIReference component="popover" part="trigger" wrapper />
+
+<TypeTableAuto type="SelectTriggerProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectTriggerState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectTriggerDataAttributes" pkg="@bazza-ui/react" />
+
+### Value
+
+Displays the selected value or placeholder. Renders a `<span>` element.
+
+<TypeTableAuto type="SelectValueProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectValueState" pkg="@bazza-ui/react" />
+
+### Icon
+
+A decorative icon (typically a chevron) in the trigger. Renders a `<span>` element.
+
+<TypeTableAuto type="SelectIconProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectIconState" pkg="@bazza-ui/react" />
+
+### Portal
+
+Renders children outside the DOM hierarchy using a React Portal.
+
+<BaseUIReference component="popover" part="portal" />
+
+<TypeTableAuto type="SelectPortalProps" pkg="@bazza-ui/react" />
+
+### Backdrop
+
+An optional overlay behind the select. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="backdrop" wrapper />
+
+<TypeTableAuto type="SelectBackdropProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectBackdropDataAttributes" pkg="@bazza-ui/react" />
+
+### Positioner
+
+Positions the popup relative to the trigger. Supports `alignItemWithTrigger` for native-select-like behavior. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="positioner" wrapper />
+
+<TypeTableAuto type="SelectPositionerProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectPositionerDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="SelectPositionerCssVars" pkg="@bazza-ui/react" />
+
+### Popup
+
+Container for the select content with animation support. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="popup" wrapper />
+
+<TypeTableAuto type="SelectPopupProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectPopupDataAttributes" pkg="@bazza-ui/react" />
+
+### Arrow
+
+An optional arrow pointing to the trigger. Renders an `<svg>` element.
+
+<BaseUIReference component="popover" part="arrow" />
+
+<TypeTableAuto type="SelectArrowProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectArrowDataAttributes" pkg="@bazza-ui/react" />
+
+### Surface
+
+Wraps the list and manages the search state. Renders a `<div>` element.
+
+<TypeTableAuto type="SelectSurfaceProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectSurfaceState" pkg="@bazza-ui/react" />
+
+### Input
+
+A text input for filtering options. Renders an `<input>` element.
+
+<TypeTableAuto type="SelectInputProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectInputState" pkg="@bazza-ui/react" />
+
+### List
+
+Container for select items. Manages keyboard navigation. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="SelectListProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectListState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectListDataAttributes" pkg="@bazza-ui/react" />
+<CssVarsTable type="SelectListCssVars" pkg="@bazza-ui/react" />
+
+### Item
+
+A selectable option in the list. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="SelectItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectItemDataAttributes" pkg="@bazza-ui/react" />
+
+### ItemIndicator
+
+Displays a check mark when the item is selected. Renders a `<span>` element.
+
+<TypeTableAuto type="SelectItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectItemIndicatorState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="SelectItemIndicatorDataAttributes" pkg="@bazza-ui/react" />
+
+### ItemLabel
+
+The text label for an item. Used for display and filtering. Renders a `<span>` element.
+
+<TypeTableAuto type="SelectItemLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectItemLabelState" pkg="@bazza-ui/react" />
+
+### Group
+
+Groups related options together. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="SelectGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectGroupState" pkg="@bazza-ui/react" />
+
+### GroupLabel
+
+A label for a group of options. Renders a `<div>` element.
+
+<TypeTableAuto type="SelectGroupLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectGroupLabelState" pkg="@bazza-ui/react" />
+
+### Separator
+
+A visual separator between options. Renders a `<div>` element with `role="separator"`.
+
+<TypeTableAuto type="SelectSeparatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectSeparatorState" pkg="@bazza-ui/react" />
+
+### Empty
+
+Displayed when no items match the current search filter. Renders a `<div>` element.
+
+<TypeTableAuto type="SelectEmptyProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectEmptyState" pkg="@bazza-ui/react" />
+
+### ScrollUpArrow
+
+Shows when content is scrollable upward. Renders a `<div>` element.
+
+<TypeTableAuto type="SelectScrollUpArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectScrollArrowState" pkg="@bazza-ui/react" />
+
+### ScrollDownArrow
+
+Shows when content is scrollable downward. Renders a `<div>` element.
+
+<TypeTableAuto type="SelectScrollDownArrowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="SelectScrollArrowState" pkg="@bazza-ui/react" />

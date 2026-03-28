@@ -1,0 +1,230 @@
+---
+title: Dropdown Menu
+section: Getting Started
+summary: Displays a menu to the user—such as a set of actions or functions—triggered by a button. Supports items, checkboxes, radio groups, submenus, and deep search.
+---
+
+## Installation
+
+```npm
+npx shadcn@latest add https://bazza-ui.com/r/dropdown-menu
+```
+
+```tsx
+import { DropdownMenu } from '@/components/ui/dropdown-menu';
+```
+
+If you want to install the unstyled, primitive component:
+
+```npm
+npm install @bazza-ui/react
+```
+
+```tsx
+import { DropdownMenu } from '@bazza-ui/react';
+```
+
+## Anatomy
+
+```tsx
+<DropdownMenu.Root>
+  <DropdownMenu.Trigger />
+  <DropdownMenu.Portal>
+    <DropdownMenu.Backdrop />
+    <DropdownMenu.Positioner>
+      <DropdownMenu.Popup>
+        <DropdownMenu.Arrow />
+        <DropdownMenu.Surface>
+          <DropdownMenu.Input />
+          <DropdownMenu.List>
+            {/* Scroll up/down arrows */}
+            <DropdownMenu.ScrollUpArrow />
+            <DropdownMenu.ScrollDownArrow />
+            {/* Items */}
+            <DropdownMenu.Item>
+              <DropdownMenu.Icon />
+              <DropdownMenu.Shortcut />
+            </DropdownMenu.Item>
+            {/* Groups */}
+            <DropdownMenu.Group>
+              <DropdownMenu.GroupLabel />
+            </DropdownMenu.Group>
+            {/* Checkbox items */}
+            <DropdownMenu.CheckboxItem>
+              <DropdownMenu.CheckboxItemIndicator />
+            </DropdownMenu.CheckboxItem>
+            {/* Radio group + radio items */}
+            <DropdownMenu.RadioGroup>
+              <DropdownMenu.RadioItem>
+                <DropdownMenu.RadioItemIndicator />
+              </DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+            {/* Separator */}
+            <DropdownMenu.Separator />
+            {/* Submenus */}
+            <DropdownMenu.Submenu>
+              {/* Submenu Trigger */}
+              <DropdownMenu.SubmenuTrigger>
+                <DropdownMenu.SubmenuTriggerIndicator />
+              </DropdownMenu.SubmenuTrigger>
+            </DropdownMenu.Submenu>
+            <DropdownMenu.Empty />
+          </DropdownMenu.List>
+        </DropdownMenu.Surface>
+      </DropdownMenu.Popup>
+    </DropdownMenu.Positioner>
+  </DropdownMenu.Portal>
+</DropdownMenu.Root>
+```
+
+## Examples
+
+> These examples use the styled primitive from our shadcn/ui registry.
+
+### Basic
+
+Each item accepts an `onSelect` callback that fires when the item is selected via click or keyboard.
+
+<Example name="dropdown-menu-basic">
+  <Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Item onSelect={() => toast('Copied!')} />
+  ```
+
+  </Example.PreviewCode>
+</Example>
+
+### Close on click
+
+Use the `closeOnClick` prop to close the menu when an item is selected.
+
+<Example name="dropdown-menu-close-on-click">
+<Example.PreviewCode>
+
+```tsx
+// Override the default behaviour for each item
+<DropdownMenu.Item closeOnClick={false} />
+<DropdownMenu.CheckboxItem closeOnClick />
+<DropdownMenu.RadioItem closeOnClick />
+```
+
+</Example.PreviewCode>
+
+</Example>
+
+### Search
+
+Search works out-of-the-box and fully customizable; use the `<DropdownMenu.Input>` part.
+
+The `value` and `keywords` props are used to filter the items.
+
+<Example name="dropdown-menu-search">
+
+<Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Item value="bug" keywords={['issue', 'fix']} />
+  ```
+
+</Example.PreviewCode>
+
+</Example>
+
+### Hidden input
+
+We recommend **always** rendering the `<DropdownMenu.Input>` part.
+
+If you want a cleaner look, the `hideUntilActive` prop can be used to hide the input until the user starts typing.
+
+
+<Example name="dropdown-menu-hidden-input">
+
+<Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Input hideUntilActive />
+  ```
+
+</Example.PreviewCode>
+
+</Example>
+
+### Checkbox items
+
+Use the `<DropdownMenu.CheckboxItem>` part to create a menu item that can toggle a setting on or off.
+
+It can be used uncontrolled, or controlled via `checked` and `onCheckedChange` props.
+
+<Example name="dropdown-menu-checkbox" />
+
+### Radio group
+
+Use the `<DropdownMenu.RadioGroup>` and `<DropdownMenu.RadioItem>` parts to create menu items that work like radio buttons.
+
+Optionally, add a label using the `<DropdownMenu.GroupLabel>` part.
+
+<Example name="dropdown-menu-radio">
+<Example.PreviewCode>
+
+```tsx
+const [sortBy, setSortBy] = React.useState('name')
+
+<DropdownMenu.RadioGroup
+  value={sortBy}
+  onValueChange={(value) => setSortBy(value)}
+>
+  <DropdownMenu.GroupLabel>Sort by</DropdownMenu.GroupLabel>
+  <DropdownMenu.RadioItem value="name">Name</DropdownMenu.RadioItem>
+<DropdownMenu.RadioGroup />
+```
+
+</Example.PreviewCode>
+
+</Example>
+
+### Submenu
+
+Create nested menus by starting with the `<DropdownMenu.Submenu>` part.
+
+Use the `<DropdownMenu.SubmenuTrigger>` part to create a menu item that opens the submenu when highlighted.
+
+Then, compose with the same parts for the root menu to render the popup.
+
+<Example name="dropdown-menu-submenu">
+  <Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Submenu>
+    <DropdownMenu.SubmenuTrigger>
+      More details
+    </DropdownMenu.SubmenuTrigger>
+  </DropdownMenu.Submenu>
+  ```
+
+  </Example.PreviewCode>
+</Example>
+
+### Subpage navigation
+
+Use subpages to model deeper menu flows without relying on deep-search/data-first APIs.
+
+<Example name="dropdown-menu-subpage-linear" />
+
+### Virtualized
+
+Use virtualization to efficiently render large lists with thousands of items. This example uses TanStack Virtual to only render visible items.
+
+<Example name="dropdown-menu-virtualized" />
+
+### Deep search
+
+<Example name="dropdown-menu-deep-search-linear" />
+
+### Async + Deep Search
+
+<Example name="dropdown-menu-deep-search-linear-async" />
+
+## API Reference
+
+For the full API docs, see [Dropdown Menu API Reference](/docs/dropdown-menu/api-reference).

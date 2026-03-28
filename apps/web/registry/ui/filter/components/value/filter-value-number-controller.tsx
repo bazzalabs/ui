@@ -110,79 +110,67 @@ export function FilterValueNumberController<TData>({
   )
 
   return (
-    <Command>
-      <CommandList className="w-[300px] px-2 py-2">
-        <CommandGroup>
-          <div className="flex flex-col w-full">
-            <Tabs
-              value={isNumberRange ? 'range' : 'single'}
-              onValueChange={(v) => changeType(v as 'single' | 'range')}
-            >
-              <TabsList className="w-full *:text-xs">
-                <TabsTrigger value="single">{t('single', locale)}</TabsTrigger>
-                <TabsTrigger value="range">{t('range', locale)}</TabsTrigger>
-              </TabsList>
-              <TabsContent value="single" className="flex flex-col gap-4 mt-4">
-                {minMax && (
-                  <Slider
-                    value={[values[0]!]}
-                    onValueChange={(value) => changeNumber(value)}
-                    min={sliderMin}
-                    max={sliderMax}
-                    step={1}
-                    aria-orientation="horizontal"
-                  />
-                )}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">
-                    {t('value', locale)}
-                  </span>
-                  <DebouncedInput
-                    id="single"
-                    type="number"
-                    value={values[0]!.toString()}
-                    onChange={(v) => changeNumber([Number(v)])}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="range" className="flex flex-col gap-4 mt-4">
-                {minMax && (
-                  <Slider
-                    value={values}
-                    onValueChange={changeNumber}
-                    min={sliderMin}
-                    max={sliderMax}
-                    step={1}
-                    aria-orientation="horizontal"
-                  />
-                )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">
-                      {t('min', locale)}
-                    </span>
-                    <DebouncedInput
-                      type="number"
-                      value={values[0]!}
-                      onChange={(v) => changeMinNumber(Number(v))}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">
-                      {t('max', locale)}
-                    </span>
-                    <DebouncedInput
-                      type="number"
-                      value={values[1]!}
-                      onChange={(v) => changeMaxNumber(Number(v))}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+    <div className="flex flex-col w-[315px] p-4">
+      <Tabs
+        value={isNumberRange ? 'range' : 'single'}
+        onValueChange={(v) => changeType(v as 'single' | 'range')}
+      >
+        <TabsList className="w-full *:text-xs">
+          <TabsTrigger value="single">{t('single', locale)}</TabsTrigger>
+          <TabsTrigger value="range">{t('range', locale)}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="single" className="flex flex-col gap-4 mt-4">
+          {minMax && (
+            <Slider
+              value={[values[0]!]}
+              onValueChange={(value) => changeNumber(value)}
+              min={sliderMin}
+              max={sliderMax}
+              step={1}
+              aria-orientation="horizontal"
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium">{t('value', locale)}</span>
+            <DebouncedInput
+              id="single"
+              type="number"
+              value={values[0]!.toString()}
+              onChange={(v) => changeNumber([Number(v)])}
+            />
           </div>
-        </CommandGroup>
-      </CommandList>
-    </Command>
+        </TabsContent>
+        <TabsContent value="range" className="flex flex-col gap-4 mt-4">
+          {minMax && (
+            <Slider
+              value={values}
+              onValueChange={changeNumber}
+              min={sliderMin}
+              max={sliderMax}
+              step={1}
+              aria-orientation="horizontal"
+            />
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">{t('min', locale)}</span>
+              <DebouncedInput
+                type="number"
+                value={values[0]!}
+                onChange={(v) => changeMinNumber(Number(v))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">{t('max', locale)}</span>
+              <DebouncedInput
+                type="number"
+                value={values[1]!}
+                onChange={(v) => changeMaxNumber(Number(v))}
+              />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

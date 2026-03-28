@@ -1,6 +1,5 @@
 'use client'
 
-import type { MenuDef } from '@bazza-ui/dropdown-menu'
 import {
   booleanFilterOperators,
   type Column,
@@ -22,11 +21,18 @@ import {
   t,
   textFilterOperators,
 } from '@bazza-ui/filters'
+import type {
+  NodeDef,
+  RadioGroupDef,
+  RadioGroupRenderParams,
+  RadioItemDef,
+  RadioItemRenderParams,
+} from '@bazza-ui/react/dropdown-menu'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { type ComponentPropsWithoutRef, forwardRef } from 'react'
+import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
 import {
   useFilterActions,
   useFilterLocale,
@@ -64,19 +70,19 @@ export interface FilterOperatorProps<
   locale?: Locale
 }
 
-interface CreateOperatorMenuParams<TData, TType extends ColumnDataType> {
+interface CreateOperatorNodesParams<TData, TType extends ColumnDataType> {
   filter: FilterModel<TType>
   column: Column<TData, TType>
   actions: DataTableFilterActions
   locale: Locale
 }
 
-function createOperatorMenu<TData, TType extends ColumnDataType>({
+function createOperatorNodes<TData, TType extends ColumnDataType>({
   filter,
   column,
   actions,
   locale,
-}: CreateOperatorMenuParams<TData, TType>): MenuDef {
+}: CreateOperatorNodesParams<TData, TType>): NodeDef[] {
   const getOperators = () => {
     if (isTextColumn(column)) return textFilterOperators
     if (isOptionColumn(column)) return optionFilterOperators
@@ -93,32 +99,55 @@ function createOperatorMenu<TData, TType extends ColumnDataType>({
     (o: any) => currentOperator && o.target === currentOperator.target,
   )
 
-  return {
-    id: `filter-operator-${column.id}`,
-    hideSearchUntilActive: true,
-    defaults: {
-      item: {
-        closeOnSelect: true,
-      },
+  const radioGroup: RadioGroupDef = {
+    kind: 'radio-group',
+    id: 'operators',
+    value: filter.operator,
+    onValueChange: (value) => {
+      actions.setFilterOperator(column.id, value as any)
     },
-    nodes: [
-      {
-        kind: 'group' as const,
-        variant: 'radio' as const,
-        id: 'operators',
-        value: filter.operator,
-        onValueChange: (value) => {
-          actions.setFilterOperator(column.id, value as any)
+    // Wrap children in RadioGroup to provide context for RadioItem
+    render: ({ props, children }: RadioGroupRenderParams) => (
+      <DropdownMenu.RadioGroup
+        value={props.value}
+        onValueChange={props.onValueChange}
+      >
+        {children}
+      </DropdownMenu.RadioGroup>
+    ),
+    nodes: relatedOperators.map((op: any, index: number): RadioItemDef => {
+      const operatorLabel = t(op.key, locale)
+      // Only assign shortcuts 1-9 to first 9 operators
+      const shortcut = index < 9 ? String(index + 1) : undefined
+      return {
+        kind: 'radio-item',
+        value: op.value,
+        keywords: [operatorLabel],
+        shortcut,
+        closeOnClick: true,
+        render: ({ props }: RadioItemRenderParams) => {
+          return (
+            <DropdownMenu.RadioItem
+              {...props}
+              className="justify-between gap-4"
+              data-keywords={operatorLabel}
+            >
+              <LabelWithBreadcrumbs label={operatorLabel} />
+              <div className="flex items-center gap-4">
+                <DropdownMenu.RadioItemIndicator
+                  keepMounted
+                  className="invisible group-aria-checked/row:visible"
+                />
+                <DropdownMenu.Shortcut />
+              </div>
+            </DropdownMenu.RadioItem>
+          )
         },
-        nodes: relatedOperators.map((op: any) => ({
-          kind: 'item' as const,
-          variant: 'radio' as const,
-          id: op.value,
-          label: t(op.key, locale),
-        })),
-      },
-    ],
+      }
+    }),
   }
+
+  return [radioGroup]
 }
 
 /**
@@ -157,7 +186,11 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
       )
     }
 
-    const menu = createOperatorMenu({ filter, column, actions, locale })
+    // Memoize nodes to avoid recreating on every render
+    const nodes = useMemo(
+      () => createOperatorNodes({ filter, column, actions, locale }),
+      [filter.operator, column.id, actions, locale],
+    )
 
     const operatorDetails = filterTypeOperatorDetails[column.type] as Record<
       string,
@@ -167,23 +200,44 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
     const label = operator ? t(operator.key, locale) : filter.operator
 
     return (
-      <DropdownMenu menu={menu} trackAnchor={false}>
-        <Button
-          ref={ref}
-          data-slot="filter-operator"
-          data-column-type={column.type}
-          data-operator={filter.operator}
-          variant="ghost"
-          className={cn(
-            filterOperatorVariants({ variant }),
-            variant === 'default' ? 'text-muted-foreground' : '',
-            className,
-          )}
-          {...props}
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger
+          render={
+            <Button
+              ref={ref}
+              data-slot="filter-operator"
+              data-column-type={column.type}
+              data-operator={filter.operator}
+              variant="ghost"
+              className={cn(
+                filterOperatorVariants({ variant }),
+                variant === 'default' ? 'text-muted-foreground' : '',
+                className,
+              )}
+              {...props}
+            />
+          }
         >
           <span>{label}</span>
-        </Button>
-      </DropdownMenu>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner align="start">
+            <DropdownMenu.Popup className="w-full min-w-[150px]">
+              <DropdownMenu.DataSurface content={nodes}>
+                <DropdownMenu.DataInput hideUntilActive />
+                <DropdownMenu.DataList>
+                  {({ nodes: displayNodes, renderNode }) => (
+                    <>
+                      {displayNodes.map(renderNode)}
+                      <DropdownMenu.Empty />
+                    </>
+                  )}
+                </DropdownMenu.DataList>
+              </DropdownMenu.DataSurface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     )
   },
 )

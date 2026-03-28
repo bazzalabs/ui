@@ -36,7 +36,9 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+tmp/
 
 
 # Repomix
 repomix-output.txt
+.osgrep

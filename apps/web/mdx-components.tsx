@@ -1,13 +1,19 @@
 import { ConstructionIcon, LinkIcon } from 'lucide-react'
 import type { MDXComponents } from 'mdx/types'
 import Image from 'next/image'
+import type { ReactNode } from 'react'
+import { Children, isValidElement } from 'react'
 import { IssuesTableWrapper } from '@/app/demos/client/tst-static/_/issues-table-wrapper'
+import { BaseUIReference } from '@/components/base-ui-reference'
+import { CssSelector } from '@/components/css-selector'
+import { CssVarsTable } from '@/components/css-vars-table'
+import { DataAttrsTable } from '@/components/data-attrs-table'
 import { TypeDebug } from '@/components/type-debug'
 import { TypeDiff } from '@/components/type-diff'
 import { TypeReference } from '@/components/type-reference'
 import { TypeSignature } from '@/components/type-signature'
 import { TypeTable } from '@/components/type-table'
-import { TypeTableAuto } from '@/components/type-table-auto'
+import { StateTableAuto, TypeTableAuto } from '@/components/type-table-auto'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
 import {
@@ -23,11 +29,50 @@ import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
 import { ComponentPreview } from './components/component-preview'
 import { ComponentsList } from './components/components-list'
+import { Example } from './components/example'
 import { Examples } from './components/examples'
 import { Media } from './components/media'
 import PropRow from './components/prop-row'
 import { PropsTable } from './components/props-table'
 import { ResponsiveImage } from './components/responsive-image'
+
+const COLLAPSIBLE_PREFIX = '> '
+
+/**
+ * Strips the `> ` collapsible prefix from heading children.
+ * Acts as a defensive layer in case the rehype plugin doesn't
+ * catch the prefix (e.g., when children are React elements).
+ */
+function stripCollapsiblePrefix(children: ReactNode): ReactNode {
+  const childArray = Children.toArray(children)
+  if (childArray.length === 0) return children
+
+  const first = childArray[0]
+
+  if (typeof first === 'string' && first.startsWith(COLLAPSIBLE_PREFIX)) {
+    const stripped = first.slice(COLLAPSIBLE_PREFIX.length)
+    return [stripped, ...childArray.slice(1)]
+  }
+
+  if (isValidElement<{ children?: ReactNode }>(first) && first.props.children) {
+    const innerText = first.props.children
+    if (
+      typeof innerText === 'string' &&
+      innerText.startsWith(COLLAPSIBLE_PREFIX)
+    ) {
+      const strippedChild = {
+        ...first,
+        props: {
+          ...(first.props as Record<string, unknown>),
+          children: innerText.slice(COLLAPSIBLE_PREFIX.length),
+        },
+      }
+      return [strippedChild, ...childArray.slice(1)]
+    }
+  }
+
+  return children
+}
 
 const HeadingAnchor = ({
   id,
@@ -53,7 +98,8 @@ const components = {
   h1: (props) => (
     <h2 className={cn('text-2xl mt-4', props.className)} {...props} />
   ),
-  h2: ({ children, className, ...props }) => {
+  h2: ({ children: rawChildren, className, ...props }) => {
+    const children = stripCollapsiblePrefix(rawChildren)
     return (
       <h2
         className={cn(
@@ -71,60 +117,69 @@ const components = {
       </h2>
     )
   },
-  h3: ({ children, className, ...props }) => (
-    <h3
-      className={cn(
-        'group/heading text-2xl font-semibold tracking-[-0.02em] mt-18 mb-6 [&>a]:no-underline flex items-center gap-2',
-        '[&>code]:text-xl',
-        className,
-      )}
-      {...props}
-    >
-      {props.id ? (
-        <HeadingAnchor id={props.id} iconClassName="size-3.5">
-          {children}
-        </HeadingAnchor>
-      ) : (
-        children
-      )}
-    </h3>
-  ),
-  h4: ({ children, className, ...props }) => (
-    <h4
-      className={cn(
-        'text-xl font-semibold tracking-[-0.02em] mt-16 mb-6 [&>a]:no-underline flex items-center gap-2',
-        '[&>code]:text-lg',
-        className,
-      )}
-      {...props}
-    >
-      {props.id ? (
-        <HeadingAnchor id={props.id} iconClassName="size-3">
-          {children}
-        </HeadingAnchor>
-      ) : (
-        children
-      )}
-    </h4>
-  ),
-  h5: ({ children, className, ...props }) => (
-    <h5
-      className={cn(
-        'text-lg font-semibold tracking-[-0.01em] mt-14 mb-4',
-        '[&>code]:text-base',
-        className,
-      )}
-      {...props}
-    >
-      {props.id ? (
-        <HeadingAnchor id={props.id} iconClassName="size-3">
-          {children}
-        </HeadingAnchor>
-      ) : (
-        children
-      )}
-    </h5>
-  ),
+  h3: ({ children: rawChildren, className, ...props }) => {
+    const children = stripCollapsiblePrefix(rawChildren)
+    return (
+      <h3
+        className={cn(
+          'group/heading text-2xl font-semibold tracking-[-0.02em] mt-18 mb-6 [&>a]:no-underline flex items-center gap-2',
+          '[&>code]:text-xl',
+          className,
+        )}
+        {...props}
+      >
+        {props.id ? (
+          <HeadingAnchor id={props.id} iconClassName="size-3.5">
+            {children}
+          </HeadingAnchor>
+        ) : (
+          children
+        )}
+      </h3>
+    )
+  },
+  h4: ({ children: rawChildren, className, ...props }) => {
+    const children = stripCollapsiblePrefix(rawChildren)
+    return (
+      <h4
+        className={cn(
+          'text-xl font-semibold tracking-[-0.02em] mt-16 mb-6 [&>a]:no-underline flex items-center gap-2',
+          '[&>code]:text-lg',
+          className,
+        )}
+        {...props}
+      >
+        {props.id ? (
+          <HeadingAnchor id={props.id} iconClassName="size-3">
+            {children}
+          </HeadingAnchor>
+        ) : (
+          children
+        )}
+      </h4>
+    )
+  },
+  h5: ({ children: rawChildren, className, ...props }) => {
+    const children = stripCollapsiblePrefix(rawChildren)
+    return (
+      <h5
+        className={cn(
+          'text-lg font-semibold tracking-[-0.01em] mt-14 mb-4',
+          '[&>code]:text-base',
+          className,
+        )}
+        {...props}
+      >
+        {props.id ? (
+          <HeadingAnchor id={props.id} iconClassName="size-3">
+            {children}
+          </HeadingAnchor>
+        ) : (
+          children
+        )}
+      </h5>
+    )
+  },
   h6: (props) => <h6 {...props} />,
   p: (props) => (
     <p className="mb-4 last:mb-0 leading-7 text-primary/80" {...props} />
@@ -268,12 +323,18 @@ const components = {
   TypeTable,
   TypeReference,
   TypeTableAuto,
+  StateTableAuto,
   TypeSignature,
+  BaseUIReference,
   TypeDebug,
   TypeDiff,
+  DataAttrsTable,
+  CssVarsTable,
+  CssSelector,
   IssuesTableWrapper,
   // @ts-expect-error
   Examples,
+  Example,
   ComponentPreview: ({ className, ...props }) => (
     <ComponentPreview className={cn('my-6', className)} {...props} />
   ),

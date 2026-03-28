@@ -1,0 +1,79 @@
+{
+  "name": "@bazza-ui/react",
+  "version": "0.1.0-canary.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "exports": {
+    "./dropdown-menu": {
+      "types": "./dist/dropdown-menu/index.d.ts",
+      "import": "./dist/dropdown-menu/index.js",
+      "require": "./dist/dropdown-menu/index.cjs"
+    },
+    "./select": {
+      "types": "./dist/select/index.d.ts",
+      "import": "./dist/select/index.js",
+      "require": "./dist/select/index.cjs"
+    },
+    "./combobox": {
+      "types": "./dist/combobox/index.d.ts",
+      "import": "./dist/combobox/index.js",
+      "require": "./dist/combobox/index.cjs"
+    },
+    "./context-menu": {
+      "types": "./dist/context-menu/index.d.ts",
+      "import": "./dist/context-menu/index.js",
+      "require": "./dist/context-menu/index.cjs"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js",
+      "require": "./dist/adapters/index.cjs"
+    },
+    "./internal/listbox": {
+      "types": "./dist/internal/listbox/index.d.ts",
+      "import": "./dist/internal/listbox/index.js",
+      "require": "./dist/internal/listbox/index.cjs"
+    },
+    "./internal/popup-menu": {
+      "types": "./dist/internal/popup-menu/index.d.ts",
+      "import": "./dist/internal/popup-menu/index.js",
+      "require": "./dist/internal/popup-menu/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.0.0",
+    "@base-ui/utils": "^0.2.3"
+  },
+  "devDependencies": {
+    "@bazza-ui/typescript-config": "workspace:*",
+    "@tanstack/react-form": "^1.27.7",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^5.1.2",
+    "jsdom": "^27.4.0",
+    "react-hook-form": "^7.71.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  }
+}

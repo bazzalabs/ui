@@ -1,6 +1,0 @@
-{
-  "name": "@bazza-ui/registry-context-menu",
-  "version": "0.1.0-canary.1",
-  "private": true,
-  "description": "Registry component: Context menu styled for shadcn/ui"
-}

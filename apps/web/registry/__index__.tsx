@@ -29,6 +29,23 @@ export type RegistryIndex = Record<string, RegistryEntry>
 // =============================================================================
 // Examples
 // =============================================================================
+//
+// Examples can be structured in two ways:
+//
+// 1. Single file (flat):
+//    registry/examples/dropdown-menu-basic.tsx
+//    files: ['registry/examples/dropdown-menu-basic.tsx']
+//
+// 2. Multi-file (folder):
+//    registry/examples/dropdown-menu-complex/index.tsx
+//    registry/examples/dropdown-menu-complex/data.ts
+//    files: [
+//      'registry/examples/dropdown-menu-complex/index.tsx',
+//      'registry/examples/dropdown-menu-complex/data.ts',
+//    ]
+//
+// The first file in the `files` array is used as the main component to render.
+// All files are shown as tabs in the code viewer.
 
 export const examples: RegistryIndex = {
   'filter-variants': {
@@ -36,6 +53,231 @@ export const examples: RegistryIndex = {
     type: 'registry:example',
     component: React.lazy(() => import('@/registry/examples/filter-variants')),
     files: ['registry/examples/filter-variants.tsx'],
+  },
+  'dropdown-menu-basic': {
+    name: 'dropdown-menu-basic',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/basic'),
+    ),
+    files: ['registry/examples/dropdown-menu/basic/index.tsx'],
+  },
+  'dropdown-menu-close-on-click': {
+    name: 'dropdown-menu-close-on-click',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/close-on-click'),
+    ),
+    files: ['registry/examples/dropdown-menu/close-on-click/index.tsx'],
+  },
+  'dropdown-menu-hidden-input': {
+    name: 'dropdown-menu-hidden-input',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/hidden-input'),
+    ),
+    files: ['registry/examples/dropdown-menu/hidden-input/index.tsx'],
+  },
+  'dropdown-menu-checkbox': {
+    name: 'dropdown-menu-checkbox',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/checkbox'),
+    ),
+    files: ['registry/examples/dropdown-menu/checkbox/index.tsx'],
+  },
+  'dropdown-menu-radio': {
+    name: 'dropdown-menu-radio',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/radio'),
+    ),
+    files: ['registry/examples/dropdown-menu/radio/index.tsx'],
+  },
+  'dropdown-menu-submenu': {
+    name: 'dropdown-menu-submenu',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/submenu'),
+    ),
+    files: ['registry/examples/dropdown-menu/submenu/index.tsx'],
+  },
+  'dropdown-menu-subpage-linear': {
+    name: 'dropdown-menu-subpage-linear',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/subpage-linear'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/subpage-linear/index.tsx',
+      'registry/examples/dropdown-menu/subpage-linear/components.tsx',
+      'registry/examples/dropdown-menu/subpage-linear/icons.tsx',
+    ],
+  },
+  'dropdown-menu-search': {
+    name: 'dropdown-menu-search',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/search'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/search/index.tsx',
+      'registry/examples/dropdown-menu/search/data.ts',
+    ],
+  },
+  'dropdown-menu-deep-search': {
+    name: 'dropdown-menu-deep-search',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/deep-search'),
+    ),
+    files: ['registry/examples/dropdown-menu/deep-search/index.tsx'],
+  },
+  'dropdown-menu-deep-search-linear': {
+    name: 'dropdown-menu-deep-search-linear',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/deep-search-linear'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/deep-search-linear/index.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear/components.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear/icons.tsx',
+    ],
+  },
+  'dropdown-menu-deep-search-linear-async': {
+    name: 'dropdown-menu-deep-search-linear-async',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import('@/registry/examples/dropdown-menu/deep-search-linear-async'),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/deep-search-linear-async/index.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear-async/components.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear-async/icons.tsx',
+    ],
+  },
+  'dropdown-menu-deep-search-linear-async-tanstack': {
+    name: 'dropdown-menu-deep-search-linear-async-tanstack',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/deep-search-linear-async-tanstack'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/index.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/components.tsx',
+      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/icons.tsx',
+    ],
+  },
+  'dropdown-menu-async-deep-search': {
+    name: 'dropdown-menu-async-deep-search',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/async-deep-search'),
+    ),
+    files: ['registry/examples/dropdown-menu/async-deep-search/index.tsx'],
+  },
+  'dropdown-menu-virtualized': {
+    name: 'dropdown-menu-virtualized',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/virtualized'),
+    ),
+    files: ['registry/examples/dropdown-menu/virtualized/index.tsx'],
+  },
+  'dropdown-menu-virtualized-advanced': {
+    name: 'dropdown-menu-virtualized-advanced',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/virtualized-advanced'),
+    ),
+    files: ['registry/examples/dropdown-menu/virtualized-advanced/index.tsx'],
+  },
+  'dropdown-menu-async': {
+    name: 'dropdown-menu-async',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/async'),
+    ),
+    files: ['registry/examples/dropdown-menu/async/index.tsx'],
+  },
+
+  'guides/dropdown-menu/your-first-menu/surface-hidden-input': {
+    name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/guides/your-first-menu/surface-hidden-input'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/guides/your-first-menu/surface-hidden-input.tsx',
+    ],
+  },
+  'guides/dropdown-menu/your-first-menu/01-initial': {
+    name: 'guides/dropdown-menu/your-first-menu/01-initial',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/guides/your-first-menu/items-01'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/guides/your-first-menu/items-01.tsx',
+    ],
+  },
+  'guides/dropdown-menu/your-first-menu/items-02': {
+    name: 'guides/dropdown-menu/your-first-menu/items-02',
+    type: 'registry:example',
+    component: React.lazy(
+      () =>
+        import(
+          '@/registry/examples/dropdown-menu/guides/your-first-menu/items-02'
+        ),
+    ),
+    files: [
+      'registry/examples/dropdown-menu/guides/your-first-menu/items-02.tsx',
+    ],
+  },
+
+  // Select examples
+  'select-basic': {
+    name: 'select-basic',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/basic')),
+    files: ['registry/examples/select/basic/index.tsx'],
+  },
+  'select-groups': {
+    name: 'select-groups',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/groups')),
+    files: ['registry/examples/select/groups/index.tsx'],
+  },
+  'select-search': {
+    name: 'select-search',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/search')),
+    files: ['registry/examples/select/search/index.tsx'],
+  },
+  'select-form': {
+    name: 'select-form',
+    type: 'registry:example',
+    component: React.lazy(() => import('@/registry/examples/select/form')),
+    files: ['registry/examples/select/form/index.tsx'],
+  },
+  'select-object-values': {
+    name: 'select-object-values',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/select/object-values'),
+    ),
+    files: ['registry/examples/select/object-values/index.tsx'],
   },
 }
 
@@ -111,6 +353,66 @@ export const ui: RegistryIndex = {
     files: [
       'registry/ui/filter/index.ts',
       'registry/ui/filter/index.parts.ts',
+      'registry/ui/filter/cmdk/index.ts',
+      'registry/ui/filter/cmdk/index.parts.ts',
+      'registry/ui/filter/cmdk/components/menu/filter-menu.tsx',
+      'registry/ui/filter/cmdk/components/item/filter-operator.tsx',
+      'registry/ui/filter/cmdk/components/item/filter-value.tsx',
+      'registry/ui/filter/components/root/filter-root.tsx',
+      'registry/ui/filter/components/provider/filter-provider.tsx',
+      'registry/ui/filter/components/root/filter-context.tsx',
+      'registry/ui/filter/components/trigger/filter-trigger.tsx',
+      'registry/ui/filter/components/list/filter-list.tsx',
+      'registry/ui/filter/components/list/filter-list-mobile-container.tsx',
+      'registry/ui/filter/components/item/filter-item.tsx',
+      'registry/ui/filter/components/item/filter-subject.tsx',
+      'registry/ui/filter/components/item/filter-remove.tsx',
+      'registry/ui/filter/components/actions/filter-actions.tsx',
+      'registry/ui/filter/components/value/types.ts',
+      'registry/ui/filter/components/value/filter-value-date-controller.tsx',
+      'registry/ui/filter/components/value/filter-value-number-controller.tsx',
+      'registry/ui/filter/hooks/use-debounce-callback.tsx',
+      'registry/ui/filter/hooks/use-unmount.tsx',
+      'registry/ui/filter/lib/debounce.ts',
+      'registry/ui/filter/ui/debounced-input.tsx',
+    ],
+  },
+  'filter/cmdk': {
+    name: 'filter/cmdk',
+    type: 'registry:ui',
+    component: createNullComponent(),
+    files: [
+      'registry/ui/filter/cmdk/index.ts',
+      'registry/ui/filter/cmdk/index.parts.ts',
+      'registry/ui/filter/cmdk/components/menu/filter-menu.tsx',
+      'registry/ui/filter/cmdk/components/item/filter-operator.tsx',
+      'registry/ui/filter/cmdk/components/item/filter-value.tsx',
+      'registry/ui/filter/components/root/filter-root.tsx',
+      'registry/ui/filter/components/provider/filter-provider.tsx',
+      'registry/ui/filter/components/root/filter-context.tsx',
+      'registry/ui/filter/components/trigger/filter-trigger.tsx',
+      'registry/ui/filter/components/list/filter-list.tsx',
+      'registry/ui/filter/components/list/filter-list-mobile-container.tsx',
+      'registry/ui/filter/components/item/filter-item.tsx',
+      'registry/ui/filter/components/item/filter-subject.tsx',
+      'registry/ui/filter/components/item/filter-remove.tsx',
+      'registry/ui/filter/components/actions/filter-actions.tsx',
+      'registry/ui/filter/components/value/types.ts',
+      'registry/ui/filter/components/value/filter-value-date-controller.tsx',
+      'registry/ui/filter/components/value/filter-value-number-controller.tsx',
+      'registry/ui/filter/hooks/use-debounce-callback.tsx',
+      'registry/ui/filter/hooks/use-unmount.tsx',
+      'registry/ui/filter/lib/debounce.ts',
+      'registry/ui/filter/ui/debounced-input.tsx',
+    ],
+  },
+  'filter/dropdown-menu': {
+    name: 'filter/dropdown-menu',
+    type: 'registry:ui',
+    component: createNullComponent(),
+    files: [
+      'registry/ui/filter/dropdown-menu/index.ts',
+      'registry/ui/filter/dropdown-menu/index.parts.ts',
       'registry/ui/filter/components/root/filter-root.tsx',
       'registry/ui/filter/components/provider/filter-provider.tsx',
       'registry/ui/filter/components/root/filter-context.tsx',
@@ -128,9 +430,11 @@ export const ui: RegistryIndex = {
       'registry/ui/filter/components/value/types.ts',
       'registry/ui/filter/components/value/option-item.tsx',
       'registry/ui/filter/components/value/text-item.tsx',
-      'registry/ui/filter/components/value/option-menu.ts',
-      'registry/ui/filter/components/value/multi-option-menu.ts',
-      'registry/ui/filter/components/value/text-menu.ts',
+      'registry/ui/filter/components/value/selectable-menu.ts',
+      'registry/ui/filter/components/value/text-menu.tsx',
+      'registry/ui/filter/components/value/editors/index.ts',
+      'registry/ui/filter/components/value/editors/option-editor.tsx',
+      'registry/ui/filter/components/value/editors/text-editor.tsx',
       'registry/ui/filter/components/value/filter-value-date-controller.tsx',
       'registry/ui/filter/components/value/filter-value-number-controller.tsx',
       'registry/ui/filter/hooks/use-debounce-callback.tsx',

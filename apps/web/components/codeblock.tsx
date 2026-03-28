@@ -56,6 +56,13 @@ export interface CodeBlockProps extends ComponentProps<'figure'> {
    */
   'data-line-numbers-start'?: number
 
+  /**
+   * Show full height code block without scroll container
+   *
+   * @defaultValue false
+   */
+  'data-full-height'?: boolean
+
   Actions?: (props: { className?: string; children?: ReactNode }) => ReactNode
 }
 
@@ -142,7 +149,8 @@ export function CodeBlock({
         // biome-ignore lint/a11y/noNoninteractiveTabindex: needed
         tabIndex={0}
         className={cn(
-          'text-[0.8125rem] bg-background py-4 overflow-auto max-h-[600px] fd-scroll-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-fd-ring',
+          'text-[0.8125rem] bg-background py-4 overflow-auto fd-scroll-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-fd-ring',
+          !props['data-full-height'] && 'max-h-[600px]',
           viewportProps.className,
         )}
         style={

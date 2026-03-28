@@ -1,28 +1,18 @@
-import { Examples } from '@/components/examples'
+'use client'
+
+import DropdownMenuDeepSearchLinear from '@/registry/examples/dropdown-menu/deep-search-linear'
+import DropdownMenuDeepSearchLinearAsync from '@/registry/examples/dropdown-menu/deep-search-linear-async'
+import DropdownMenuDeepSearchLinearAsyncTanstack from '@/registry/examples/dropdown-menu/deep-search-linear-async-tanstack'
 
 export function Playground() {
   return (
-    <div className="flex flex-col gap-8 [&_[data-slot=action-menu-trigger]]:!w-fit mx-32">
-      {/*<Examples.ContextMenu.ContextMenu_Linear />*/}
-      {/*<Examples.ContextMenu.ContextMenu_AsyncSubmenusStreaming />*/}
-      {/*<Examples.ActionMenu.PokemonNative />
-      <Examples.ActionMenu.PokemonReactQuery />
-      <Examples.ActionMenu.AsyncBasic />
-      <Examples.ActionMenu.AsyncSubmenusStreaming />
-      <Examples.ActionMenu.AsyncDeepSearch />
-      <Examples.ActionMenu.ItemDescriptions />
-      <Examples.ActionMenu.AIModelSwitcher />
-      <Examples.ActionMenu.Basic />
-      <Examples.ActionMenu.Submenus />
-      <Examples.ActionMenu.Linear />*/}
-      {/*<Examples.ActionMenu.LinearAsync />*/}
-      {/*<Examples.ActionMenu.Notion />
-      <Examples.ActionMenu.HeaderFooter />
-      <Examples.ActionMenu.CheckboxItems />
-      <Examples.ActionMenu.Massive numItems={10_000} />
-      <Examples.ActionMenu.SubmenusDeep />*/}
-      {/*<Examples.ActionMenu.RadioGroups />*/}
-      <Examples.ActionMenu.Groups />
+    <div className="space-y-4 p-8 h-[2000px]">
+      <div className="p-32 flex flex-col gap-32 w-fit">
+        {/*<InputEmbeddedComboboxDemo withoutConfig />*/}
+        <DropdownMenuDeepSearchLinear />
+        <DropdownMenuDeepSearchLinearAsync />
+        <DropdownMenuDeepSearchLinearAsyncTanstack />
+      </div>
     </div>
   )
 }

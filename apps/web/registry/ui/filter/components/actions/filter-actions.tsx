@@ -1,7 +1,7 @@
 'use client'
 
 import { type DataTableFilterActions, type Locale, t } from '@bazza-ui/filters'
-import { FilterXIcon, XIcon } from 'lucide-react'
+
 import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
