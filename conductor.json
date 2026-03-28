@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "setup": "ln -sf ~/repos/bazzalabs/ui/apps/web/.env.local apps/web/.env.local && bun install",
+    "run": "bun run dev --filter web"
+  }
+}
