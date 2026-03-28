@@ -16,6 +16,12 @@ import {
   type VirtualAnchor,
   type VirtualizationConfig,
 } from '../contexts/popup-menu-context.js'
+import {
+  PopupMenuDebugContext,
+  type PopupMenuDebugContextValue,
+  type PopupMenuDebugOptions,
+  resolvePopupMenuSafeTriangleAreaDebugConfig,
+} from '../contexts/popup-menu-debug-context.js'
 import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
@@ -45,6 +51,8 @@ export interface PopupMenuProvidersProps {
   ) => () => void
   /** Virtualization configuration */
   virtualization?: VirtualizationConfig
+  /** Debug visualization flags. */
+  debug?: PopupMenuDebugOptions
   /**
    * Virtual anchor for positioning (used by ContextMenu).
    * DropdownMenu uses Popover's anchor (trigger button) instead.
@@ -80,6 +88,7 @@ export interface PopupMenuProvidersProps {
 /**
  * Provides all shared context providers for popup menus.
  * Wraps children with:
+ * - PopupMenuDebugContext (debug visualization flags)
  * - PopupMenuContext (menu-specific state)
  * - ListboxContextProvider (for compatibility with listbox components)
  * - AimGuardProvider (for submenu aim detection)
@@ -96,6 +105,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     closeAll,
     registerSurface,
     virtualization,
+    debug,
     virtualAnchor,
     menuType = 'dropdown',
     closeOnOutsidePress = 'pointerdown',
@@ -144,19 +154,31 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     [store, depth, closeAll, registerSurface, virtualization],
   )
 
+  const popupMenuDebugContextValue: PopupMenuDebugContextValue = React.useMemo(
+    () => ({
+      showSafeTriangleArea: resolvePopupMenuSafeTriangleAreaDebugConfig(
+        debug?.showSafeTriangleArea,
+        debug?.showSubmenuSafeTriangleArea,
+      ),
+    }),
+    [debug?.showSafeTriangleArea, debug?.showSubmenuSafeTriangleArea],
+  )
+
   return (
     <ComponentNameContext.Provider value={componentName}>
-      <PopupMenuContext.Provider value={popupMenuContextValue}>
-        <ListboxContextProvider.Provider value={listboxContextValue}>
-          <AimGuardProvider>
-            <FocusOwnerContext.Provider value={focusOwnerStore}>
-              <OpenChainContext.Provider value={openChainStore}>
-                {children}
-              </OpenChainContext.Provider>
-            </FocusOwnerContext.Provider>
-          </AimGuardProvider>
-        </ListboxContextProvider.Provider>
-      </PopupMenuContext.Provider>
+      <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
+        <PopupMenuContext.Provider value={popupMenuContextValue}>
+          <ListboxContextProvider.Provider value={listboxContextValue}>
+            <AimGuardProvider>
+              <FocusOwnerContext.Provider value={focusOwnerStore}>
+                <OpenChainContext.Provider value={openChainStore}>
+                  {children}
+                </OpenChainContext.Provider>
+              </FocusOwnerContext.Provider>
+            </AimGuardProvider>
+          </ListboxContextProvider.Provider>
+        </PopupMenuContext.Provider>
+      </PopupMenuDebugContext.Provider>
     </ComponentNameContext.Provider>
   )
 }

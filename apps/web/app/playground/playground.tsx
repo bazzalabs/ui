@@ -11,12 +11,11 @@ export function Playground() {
   return (
     <div className="space-y-4 p-8 h-[2000px]">
       <div className="p-32 flex flex-col gap-32 w-fit">
-        {/*<InputEmbeddedComboboxDemo withoutConfig />*/}
-        {/*<DiamondSpinner className="size-12" />
+        <DiamondSpinner className="size-12" />
         <DropdownMenuDeepSearchLinear />
         <DropdownMenuDeepSearchLinearAsync />
         <DropdownMenuDeepSearchLinearAsyncTanstack />
-        <DropdownMenuDeepSearchSubpagesLinear />*/}
+        <DropdownMenuDeepSearchSubpagesLinear />
         <DropdownMenuLinearSubpageLabelCreation />
       </div>
     </div>

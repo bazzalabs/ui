@@ -4,6 +4,7 @@ import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
+  type PopupMenuDebugOptions,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
@@ -238,6 +239,11 @@ export interface SelectRootProps<
     eventDetails: SelectHighlightChangeEventDetails,
   ) => void
 
+  /**
+   * Debug visualization options for submenu interaction heuristics.
+   */
+  debug?: PopupMenuDebugOptions
+
   children: React.ReactNode
 }
 
@@ -286,6 +292,7 @@ export function SelectRoot<
     virtualized = false,
     virtualItems,
     onHighlightChange,
+    debug,
     children,
     ...rest
   } = props
@@ -556,6 +563,7 @@ export function SelectRoot<
         virtualization={virtualization}
         menuType="dropdown"
         componentName="select"
+        debug={debug}
       >
         {hiddenInputs}
         <Popover.Root

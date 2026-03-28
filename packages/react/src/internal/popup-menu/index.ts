@@ -34,6 +34,18 @@ export {
   useMaybePopupMenuContext,
   usePopupMenuContext,
 } from './contexts/popup-menu-context.js'
+export type {
+  PopupMenuDebugContextValue,
+  PopupMenuDebugOptions,
+  PopupMenuSafeTriangleAreaDebugConfig,
+  PopupMenuSafeTriangleAreaDebugOptions,
+  PopupMenuSafeTriangleAreaDebugSettings,
+} from './contexts/popup-menu-debug-context.js'
+export {
+  PopupMenuDebugContext,
+  resolvePopupMenuSafeTriangleAreaDebugConfig,
+  usePopupMenuDebug,
+} from './contexts/popup-menu-debug-context.js'
 export {
   PopupSurfaceIdContext,
   usePopupSurfaceId,

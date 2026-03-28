@@ -5,6 +5,7 @@ import { useCallback, useImperativeHandle, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
 import {
+  type PopupMenuDebugOptions,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
@@ -131,6 +132,11 @@ export interface DropdownMenuRootProps
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
 
+  /**
+   * Debug visualization options for submenu interaction heuristics.
+   */
+  debug?: PopupMenuDebugOptions
+
   children: React.ReactNode
 }
 
@@ -153,6 +159,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
     getQualifiedRowId,
+    debug,
     children,
     ...rest
   } = props
@@ -248,6 +255,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       menuType="dropdown"
       closeOnOutsidePress={closeOnOutsidePress}
       getQualifiedRowId={getQualifiedRowId}
+      debug={debug}
       componentName="dropdown-menu"
     >
       <Popover.Root
