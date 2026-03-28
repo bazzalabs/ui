@@ -6,9 +6,11 @@ import type { VirtualItem } from '../../internal/listbox/index.js'
 import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
   PopupMenuProviders,
+  type PopupMenuRootActions,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import { REASONS } from '../../utils/events/index.js'
 import {
   defaultItemEquality,
   type ItemEqualityComparer,
@@ -37,7 +39,10 @@ type ComboboxValueType<
 export interface ComboboxRootProps<
   Value = unknown,
   Multiple extends boolean | undefined = false,
-> extends Omit<PopoverRootProps, 'open' | 'onOpenChange' | 'defaultOpen'> {
+> extends Omit<
+    PopoverRootProps,
+    'open' | 'onOpenChange' | 'defaultOpen' | 'actionsRef'
+  > {
   // ===== Open State =====
   /**
    * Whether the combobox is open.
@@ -60,6 +65,14 @@ export interface ComboboxRootProps<
    * @default false
    */
   defaultOpen?: boolean
+
+  /**
+   * A ref to imperative actions.
+   * - `close`: closes the menu imperatively.
+   * - `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).
+   * - `setDisabled`: enables/disables the menu imperatively.
+   */
+  actionsRef?: React.RefObject<ComboboxRoot.Actions | null>
 
   // ===== Single Selection =====
   /**
@@ -296,6 +309,7 @@ export function ComboboxRoot<
     // Open state
     open: openProp,
     onOpenChange,
+    actionsRef,
     defaultOpen = false,
     // Single selection
     value: valueProp,
@@ -318,7 +332,7 @@ export function ComboboxRoot<
     name,
     form,
     required,
-    disabled = false,
+    disabled: disabledProp = false,
     placeholder = 'Search...',
     items,
     // Behavior
@@ -382,6 +396,8 @@ export function ComboboxRoot<
     closeAll,
     virtualization,
     handleOpenChange: baseHandleOpenChange,
+    disabled: menuDisabled,
+    setDisabled,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -391,7 +407,24 @@ export function ComboboxRoot<
     items: virtualItems,
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
+    disabled: disabledProp,
   })
+
+  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    actionsRef,
+    () => ({
+      close: () => {
+        popoverActionsRef.current?.close()
+      },
+      unmount: () => {
+        popoverActionsRef.current?.unmount()
+      },
+      setDisabled,
+    }),
+    [setDisabled],
+  )
 
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
@@ -407,6 +440,10 @@ export function ComboboxRoot<
       reason?: ComboboxOpenChangeEventDetails['reason'],
       event?: Event,
     ) => {
+      if (menuDisabled && reason !== REASONS.imperativeAction) {
+        return
+      }
+
       // When trying to close, check if input has focus
       if (!newOpen && inputRef.current) {
         const activeElement = document.activeElement
@@ -422,7 +459,7 @@ export function ComboboxRoot<
         event,
       )
     },
-    [baseHandleOpenChange],
+    [baseHandleOpenChange, menuDisabled],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
@@ -549,7 +586,7 @@ export function ComboboxRoot<
 
   // ===== Open/Close Helpers =====
   const openCombobox = React.useCallback(() => {
-    if (!disabled) {
+    if (!menuDisabled) {
       // If opening with a selected value (single-select), show all items initially.
       // Otherwise, use active filtering.
       if (!multiple && value != null) {
@@ -559,7 +596,7 @@ export function ComboboxRoot<
       }
       store.setOpen(true)
     }
-  }, [disabled, store, multiple, value, setFilterMode])
+  }, [menuDisabled, store, multiple, value, setFilterMode])
 
   const closeCombobox = React.useCallback(
     (reason?: ComboboxOpenChangeEventDetails['reason'], event?: Event) => {
@@ -606,7 +643,7 @@ export function ComboboxRoot<
       name,
       form,
       required,
-      disabled,
+      disabled: menuDisabled,
       placeholder,
       items,
       itemTextRegistry: itemTextRegistryRef.current,
@@ -640,7 +677,7 @@ export function ComboboxRoot<
       name,
       form,
       required,
-      disabled,
+      menuDisabled,
       placeholder,
       items,
       registerItemText,
@@ -712,6 +749,7 @@ export function ComboboxRoot<
         store={store}
         focusOwnerStore={focusOwnerStore}
         openChainStore={openChainStore}
+        disabled={menuDisabled}
         depth={0}
         closeAll={closeAll}
         registerSurface={registerSurface}
@@ -726,6 +764,7 @@ export function ComboboxRoot<
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
+          actionsRef={actionsRef ? popoverActionsRef : undefined}
         >
           {children}
         </Popover.Root>
@@ -741,5 +780,5 @@ export namespace ComboboxRoot {
   > extends ComboboxRootProps<Value, Multiple> {}
   export type OpenChangeEventDetails = ComboboxOpenChangeEventDetails
   export type HighlightChangeEventDetails = ComboboxHighlightChangeEventDetails
-  export type Actions = Popover.Root.Actions
+  export type Actions = PopupMenuRootActions
 }

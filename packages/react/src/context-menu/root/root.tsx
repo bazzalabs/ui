@@ -6,6 +6,7 @@ import type { VirtualItem } from '../../internal/listbox/index.js'
 import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
 import {
   PopupMenuProviders,
+  type PopupMenuRootActions,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
   type VirtualAnchor,
@@ -98,6 +99,14 @@ export interface ContextMenuRootProps {
   onOpenChangeComplete?: (open: boolean) => void
 
   /**
+   * A ref to imperative actions.
+   * - `close`: closes the menu imperatively.
+   * - `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).
+   * - `setDisabled`: enables/disables the menu imperatively.
+   */
+  actionsRef?: React.RefObject<ContextMenuRoot.Actions | null>
+
+  /**
    * Function to generate qualified unique IDs for rows.
    * Defined once at the root level and applied to all surfaces (root and submenus).
    *
@@ -175,10 +184,11 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     virtualized = false,
     items: itemsProp,
     onHighlightChange,
-    disabled = false,
+    disabled: disabledProp = false,
     modal = true,
     closeOnOutsidePress = 'pointerdown',
     onOpenChangeComplete: onOpenChangeCompleteProp,
+    actionsRef,
     getQualifiedRowId,
     children,
   } = props
@@ -192,6 +202,8 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     closeAll,
     virtualization,
     handleOpenChange,
+    disabled: menuDisabled,
+    setDisabled,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -202,7 +214,24 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
     closeOnOutsidePress,
+    disabled: disabledProp,
   })
+
+  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    actionsRef,
+    () => ({
+      close: () => {
+        popoverActionsRef.current?.close()
+      },
+      unmount: () => {
+        popoverActionsRef.current?.unmount()
+      },
+      setDisabled,
+    }),
+    [setDisabled],
+  )
 
   // Sync controlled open prop to store
   store.useControlledProp('open', openProp, defaultOpen)
@@ -225,9 +254,9 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
 
   // Open the menu
   const openMenu = React.useCallback(() => {
-    if (disabled) return
+    if (menuDisabled) return
     store.setOpen(true)
-  }, [store, disabled])
+  }, [store, menuDisabled])
 
   // Close the menu
   const closeMenu = React.useCallback(() => {
@@ -272,10 +301,10 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
       setAnchorPosition,
       openMenu,
       closeMenu,
-      disabled,
+      disabled: menuDisabled,
       open,
     }),
-    [setAnchorPosition, openMenu, closeMenu, disabled, open],
+    [setAnchorPosition, openMenu, closeMenu, menuDisabled, open],
   )
 
   return (
@@ -284,6 +313,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         store={store}
         focusOwnerStore={focusOwnerStore}
         openChainStore={openChainStore}
+        disabled={menuDisabled}
         depth={0}
         closeAll={closeAll}
         registerSurface={registerSurface}
@@ -299,6 +329,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
+          actionsRef={actionsRef ? popoverActionsRef : undefined}
         >
           {children}
         </Popover.Root>
@@ -312,4 +343,5 @@ export namespace ContextMenuRoot {
   export type OpenChangeEventDetails = ContextMenuOpenChangeEventDetails
   export type HighlightChangeEventDetails =
     ContextMenuHighlightChangeEventDetails
+  export type Actions = PopupMenuRootActions
 }

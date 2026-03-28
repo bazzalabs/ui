@@ -66,6 +66,29 @@ export interface UsePopupMenuRootParams {
    * @default 'pointerdown'
    */
   closeOnOutsidePress?: 'click' | 'pointerdown'
+
+  /**
+   * Whether the menu should ignore user interaction.
+   * Can be controlled declaratively via this prop, or imperatively via actionsRef.setDisabled().
+   * @default false
+   */
+  disabled?: boolean
+
+  /**
+   * Initial disabled state for imperative usage.
+   * Ignored when `disabled` prop is true.
+   * @default false
+   */
+  defaultDisabled?: boolean
+}
+
+export interface PopupMenuRootActions {
+  /** Close the menu tree imperatively. */
+  close: () => void
+  /** Unmount the popup imperatively (when keep-mounted mode is enabled). */
+  unmount: () => void
+  /** Enable/disable the menu tree imperatively. */
+  setDisabled: (disabled: boolean) => void
 }
 
 export interface UsePopupMenuRootReturn {
@@ -90,6 +113,10 @@ export interface UsePopupMenuRootReturn {
     reason?: PopupMenuOpenChangeReason,
     event?: Event,
   ) => void
+  /** Whether the menu currently ignores user interaction. */
+  disabled: boolean
+  /** Update imperative disabled state. */
+  setDisabled: (disabled: boolean) => void
 }
 
 // ============================================================================
@@ -116,7 +143,17 @@ export function usePopupMenuRoot(
     items: itemsProp,
     onHighlightChange,
     closeOnOutsidePress = 'pointerdown',
+    disabled: disabledProp = false,
+    defaultDisabled = false,
   } = params
+
+  const [imperativeDisabled, setImperativeDisabled] =
+    React.useState(defaultDisabled)
+  const disabled = disabledProp || imperativeDisabled
+
+  const setDisabled = React.useCallback((nextDisabled: boolean) => {
+    setImperativeDisabled(nextDisabled)
+  }, [])
 
   // Track outside pointer events to distinguish outside-press from focus-out
   // When a pointerdown happens outside the menu, we store it so that if a
@@ -235,7 +272,7 @@ export function usePopupMenuRoot(
   // - 'pointerdown': Close immediately when pointer is pressed outside
   // - 'click': Store event and convert focus-out to outside-press reason
   React.useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || disabled) {
       outsidePointerEventRef.current = null
       return
     }
@@ -265,7 +302,7 @@ export function usePopupMenuRoot(
       document.removeEventListener('pointerdown', handlePointerDown, true)
       outsidePointerEventRef.current = null
     }
-  }, [isOpen, closeOnOutsidePress])
+  }, [isOpen, closeOnOutsidePress, disabled])
 
   // Handle open state change
   const handleOpenChange = React.useCallback(
@@ -274,6 +311,13 @@ export function usePopupMenuRoot(
       reason: PopupMenuOpenChangeReason = REASONS.none,
       event?: Event,
     ) => {
+      const isImperativeAction = reason === REASONS.imperativeAction
+
+      // Ignore user-driven open/close interactions while disabled.
+      if (disabled && !isImperativeAction) {
+        return
+      }
+
       store.setOpen(newOpen, reason, event)
       // Clear focus ownership and open chain when menu closes
       if (!newOpen) {
@@ -281,7 +325,7 @@ export function usePopupMenuRoot(
         openChainStore.clear()
       }
     },
-    [store, focusOwnerStore, openChainStore],
+    [store, focusOwnerStore, openChainStore, disabled],
   )
 
   // Memoize virtualization config
@@ -302,5 +346,7 @@ export function usePopupMenuRoot(
     closeAll,
     virtualization,
     handleOpenChange,
+    disabled,
+    setDisabled,
   }
 }

@@ -26,6 +26,8 @@ export interface UsePopupMenuKeyboardParams {
   subpageContext?: SubpageContextValue | null
   /** Whether keyboard handling is enabled */
   enabled: boolean
+  /** Whether the menu currently ignores user interaction. */
+  disabled?: boolean
   /**
    * Whether to enable type-to-search behavior.
    * When true, printable characters will activate the input and set pending search.
@@ -70,6 +72,7 @@ export function usePopupMenuKeyboard(
     submenuContext,
     subpageContext = null,
     enabled,
+    disabled = false,
     enableTypeToSearch = false,
     onKeyDown,
     closeAll,
@@ -108,7 +111,7 @@ export function usePopupMenuKeyboard(
   return useListboxKeyboard({
     store,
     surfaceId,
-    enabled,
+    enabled: enabled && !disabled,
     onKeyDown,
     onSelect: handleSelect,
     closeAll,

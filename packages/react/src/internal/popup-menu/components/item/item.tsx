@@ -100,7 +100,7 @@ export const PopupMenuItem = React.forwardRef<
     id,
     value,
     keywords,
-    disabled = false,
+    disabled: disabledProp = false,
     onSelect,
     forceMount = false,
     closeOnClick = true,
@@ -121,7 +121,7 @@ export const PopupMenuItem = React.forwardRef<
     id,
     value,
     keywords,
-    disabled,
+    disabled: disabledProp,
     forceMount,
     shortcut,
     forceOrder,
@@ -130,6 +130,8 @@ export const PopupMenuItem = React.forwardRef<
     closeOnClick,
     children,
   })
+
+  const disabled = item.disabled
 
   const state: PopupMenuItem.State = React.useMemo(
     () => ({

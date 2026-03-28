@@ -63,7 +63,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     id,
     value,
     keywords,
-    disabled = false,
+    disabled: disabledProp = false,
     forceMount = false,
     onSelect,
     render,
@@ -92,12 +92,14 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     id,
     value,
     keywords,
-    disabled,
+    disabled: disabledProp,
     forceMount,
     closeOnClick: false,
     onSelect: handleBack,
     children,
   })
+
+  const disabled = item.disabled
 
   const state: PopupMenuSubpageBackItem.State = React.useMemo(
     () => ({

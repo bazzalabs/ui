@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -338,6 +338,73 @@ function DropdownMenuWithSubmenu() {
   )
 }
 
+interface SubmenuActionsTestHandle {
+  disableSubmenu: () => void
+  enableSubmenu: () => void
+}
+
+type DropdownMenuWithSubmenuImperativeActionsProps = {}
+
+const DropdownMenuWithSubmenuImperativeActions = React.forwardRef<
+  SubmenuActionsTestHandle,
+  DropdownMenuWithSubmenuImperativeActionsProps
+>(function DropdownMenuWithSubmenuImperativeActions(_, forwardedRef) {
+  const submenuActionsRef = React.useRef<DropdownMenu.Submenu.Actions | null>(
+    null,
+  )
+
+  React.useImperativeHandle(
+    forwardedRef,
+    () => ({
+      disableSubmenu: () => submenuActionsRef.current?.setDisabled(true),
+      enableSubmenu: () => submenuActionsRef.current?.setDisabled(false),
+    }),
+    [],
+  )
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="surface">
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="item-1">
+                  Item 1
+                </DropdownMenu.Item>
+                <DropdownMenu.Submenu actionsRef={submenuActionsRef}>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                    More Options
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup>
+                        <DropdownMenu.Surface data-testid="submenu-surface">
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item data-testid="submenu-item-1">
+                              Sub Item 1
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+                <DropdownMenu.Item data-testid="item-2">
+                  Item 2
+                </DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+})
+
 function DropdownMenuWithNestedSubmenus() {
   return (
     <DropdownMenu.Root>
@@ -491,6 +558,106 @@ function ControlledDropdownMenu({
     </DropdownMenu.Root>
   )
 }
+
+function DropdownMenuWithImperativeActions() {
+  const actionsRef = React.useRef<DropdownMenu.Root.Actions | null>(null)
+
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="disable-menu"
+        onClick={() => actionsRef.current?.setDisabled(true)}
+      >
+        Disable Menu
+      </button>
+      <button
+        type="button"
+        data-testid="enable-menu"
+        onClick={() => actionsRef.current?.setDisabled(false)}
+      >
+        Enable Menu
+      </button>
+      <button
+        type="button"
+        data-testid="close-menu"
+        onClick={() => actionsRef.current?.close()}
+      >
+        Close Menu
+      </button>
+
+      <DropdownMenu.Root actionsRef={actionsRef}>
+        <DropdownMenu.Trigger data-testid="trigger">
+          Open Menu
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface data-testid="surface">
+                <DropdownMenu.List>
+                  <DropdownMenu.Item data-testid="item-1">
+                    Item 1
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
+  )
+}
+
+interface DropdownMenuDisableHandle {
+  setDisabled: (disabled: boolean) => void
+}
+
+const DropdownMenuWithInputAndImperativeActions = React.forwardRef<
+  DropdownMenuDisableHandle,
+  {
+    dataInput?: boolean
+  }
+>(function DropdownMenuWithInputAndImperativeActions(
+  { dataInput = false },
+  forwardedRef,
+) {
+  const actionsRef = React.useRef<DropdownMenu.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    forwardedRef,
+    () => ({
+      setDisabled: (disabled) => actionsRef.current?.setDisabled(disabled),
+    }),
+    [],
+  )
+
+  return (
+    <DropdownMenu.Root actionsRef={actionsRef}>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="surface">
+              {dataInput ? (
+                <DropdownMenu.DataInput data-testid="menu-data-input" />
+              ) : (
+                <DropdownMenu.Input data-testid="menu-input" />
+              )}
+
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="item-1">
+                  Item 1
+                </DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+})
 
 function DropdownMenuWithNestedSubpages() {
   return (
@@ -762,6 +929,101 @@ describe('<DropdownMenu.Root />', () => {
     it('starts closed by default', () => {
       render(<BasicDropdownMenu />)
       expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('imperative actions', () => {
+    it('blocks opening when disabled imperatively and reopens when re-enabled', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithImperativeActions />)
+
+      await user.click(screen.getByTestId('disable-menu'))
+      await user.click(screen.getByTestId('trigger'))
+
+      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+
+      await user.click(screen.getByTestId('enable-menu'))
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+    })
+
+    it('can close imperatively even while disabled', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithImperativeActions />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('disable-menu'))
+      await user.click(screen.getByTestId('close-menu'))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+    })
+
+    it('disables Input when setDisabled(true) is called', async () => {
+      const user = userEvent.setup()
+      const actions = React.createRef<DropdownMenuDisableHandle>()
+
+      render(<DropdownMenuWithInputAndImperativeActions ref={actions} />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('menu-input')
+      expect(input).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(input).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(input).not.toBeDisabled()
+    })
+
+    it('disables DataInput when setDisabled(true) is called', async () => {
+      const user = userEvent.setup()
+      const actions = React.createRef<DropdownMenuDisableHandle>()
+
+      render(
+        <DropdownMenuWithInputAndImperativeActions ref={actions} dataInput />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const dataInput = screen.getByTestId('menu-data-input')
+      expect(dataInput).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(dataInput).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(dataInput).not.toBeDisabled()
     })
   })
 
@@ -1877,6 +2139,69 @@ describe('<DropdownMenu.Root />', () => {
           expect(
             screen.queryByTestId('submenu-surface-2'),
           ).not.toBeInTheDocument()
+        })
+      })
+    })
+
+    describe('imperative actions', () => {
+      it('setDisabled only affects submenu and not root menu interactions', async () => {
+        const user = userEvent.setup()
+        const actions = React.createRef<SubmenuActionsTestHandle>()
+        render(<DropdownMenuWithSubmenuImperativeActions ref={actions} />)
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        act(() => {
+          actions.current?.disableSubmenu()
+        })
+
+        expect(screen.getByTestId('trigger')).not.toHaveAttribute(
+          'data-disabled',
+        )
+
+        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        )
+
+        await user.click(screen.getByTestId('submenu-trigger'))
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+
+        await user.click(screen.getByTestId('item-1'))
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+        })
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        act(() => {
+          actions.current?.enableSubmenu()
+        })
+
+        expect(screen.getByTestId('submenu-trigger')).not.toHaveAttribute(
+          'aria-disabled',
+        )
+
+        const reopenedList = screen.getByRole('listbox')
+        reopenedList.focus()
+        await user.keyboard('{ArrowDown}')
+
+        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
+          'data-highlighted',
+        )
+
+        await user.keyboard('{ArrowRight}')
+
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
         })
       })
     })

@@ -81,7 +81,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     id: idProp,
     value,
     keywords,
-    disabled = false,
+    disabled: disabledProp = false,
     forceMount = false,
     forceOrder,
     forceScore,
@@ -118,7 +118,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     id: idProp,
     value,
     keywords,
-    disabled,
+    disabled: disabledProp,
     forceMount,
     forceOrder,
     forceScore,
@@ -127,6 +127,8 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     onSelect: openTargetPage,
     children,
   })
+
+  const disabled = item.disabled
 
   const isTargetOpen = activePageId === targetPageId
   const targetSurfaceId = getSurfaceId(targetPageId)

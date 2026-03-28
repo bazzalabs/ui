@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextMenu } from '../index.js'
 
 // ============================================================================
@@ -127,6 +127,104 @@ function ControlledContextMenu({
     </ContextMenu.Root>
   )
 }
+
+function ContextMenuWithImperativeActions() {
+  const actionsRef = React.useRef<ContextMenu.Root.Actions | null>(null)
+
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="disable-menu"
+        onClick={() => actionsRef.current?.setDisabled(true)}
+      >
+        Disable Menu
+      </button>
+      <button
+        type="button"
+        data-testid="enable-menu"
+        onClick={() => actionsRef.current?.setDisabled(false)}
+      >
+        Enable Menu
+      </button>
+      <button
+        type="button"
+        data-testid="close-menu"
+        onClick={() => actionsRef.current?.close()}
+      >
+        Close Menu
+      </button>
+
+      <ContextMenu.Root actionsRef={actionsRef}>
+        <ContextMenu.Trigger data-testid="trigger">
+          Right-click here
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner>
+            <ContextMenu.Popup>
+              <ContextMenu.Surface data-testid="surface">
+                <ContextMenu.List>
+                  <ContextMenu.Item data-testid="item-1">
+                    Item 1
+                  </ContextMenu.Item>
+                </ContextMenu.List>
+              </ContextMenu.Surface>
+            </ContextMenu.Popup>
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
+    </div>
+  )
+}
+
+interface ContextMenuDisableHandle {
+  setDisabled: (disabled: boolean) => void
+}
+
+const ContextMenuWithInputAndImperativeActions = React.forwardRef<
+  ContextMenuDisableHandle,
+  {
+    dataInput?: boolean
+  }
+>(function ContextMenuWithInputAndImperativeActions(
+  { dataInput = false },
+  forwardedRef,
+) {
+  const actionsRef = React.useRef<ContextMenu.Root.Actions | null>(null)
+
+  React.useImperativeHandle(
+    forwardedRef,
+    () => ({
+      setDisabled: (disabled) => actionsRef.current?.setDisabled(disabled),
+    }),
+    [],
+  )
+
+  return (
+    <ContextMenu.Root actionsRef={actionsRef}>
+      <ContextMenu.Trigger data-testid="trigger">
+        Right-click here
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner>
+          <ContextMenu.Popup>
+            <ContextMenu.Surface data-testid="surface">
+              {dataInput ? (
+                <ContextMenu.DataInput data-testid="menu-data-input" />
+              ) : (
+                <ContextMenu.Input data-testid="menu-input" />
+              )}
+
+              <ContextMenu.List>
+                <ContextMenu.Item data-testid="item-1">Item 1</ContextMenu.Item>
+              </ContextMenu.List>
+            </ContextMenu.Surface>
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  )
+})
 
 // ============================================================================
 // Helper Functions
@@ -744,6 +842,99 @@ describe('<ContextMenu.Root />', () => {
 
       const trigger = screen.getByTestId('trigger')
       expect(trigger).toHaveAttribute('data-disabled')
+    })
+  })
+
+  describe('imperative actions', () => {
+    it('blocks opening when disabled imperatively and reopens when re-enabled', async () => {
+      const user = userEvent.setup()
+      render(<ContextMenuWithImperativeActions />)
+
+      await user.click(screen.getByTestId('disable-menu'))
+      await rightClick(screen.getByTestId('trigger'))
+
+      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+
+      await user.click(screen.getByTestId('enable-menu'))
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+    })
+
+    it('can close imperatively even while disabled', async () => {
+      const user = userEvent.setup()
+      render(<ContextMenuWithImperativeActions />)
+
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('disable-menu'))
+      await user.click(screen.getByTestId('close-menu'))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+    })
+
+    it('disables Input when setDisabled(true) is called', async () => {
+      const actions = React.createRef<ContextMenuDisableHandle>()
+
+      render(<ContextMenuWithInputAndImperativeActions ref={actions} />)
+
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('menu-input')
+      expect(input).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(input).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(input).not.toBeDisabled()
+    })
+
+    it('disables DataInput when setDisabled(true) is called', async () => {
+      const actions = React.createRef<ContextMenuDisableHandle>()
+
+      render(
+        <ContextMenuWithInputAndImperativeActions ref={actions} dataInput />,
+      )
+
+      await rightClick(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const dataInput = screen.getByTestId('menu-data-input')
+      expect(dataInput).not.toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(true)
+      })
+
+      expect(dataInput).toBeDisabled()
+
+      act(() => {
+        actions.current?.setDisabled(false)
+      })
+
+      expect(dataInput).not.toBeDisabled()
     })
   })
 
