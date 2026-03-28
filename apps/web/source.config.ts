@@ -22,6 +22,7 @@ export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
     schema: frontmatterSchema.extend({
+      audience: z.enum(['public', 'preview', 'private']).default('public'),
       component: z.string().optional(),
       summary: z.string(),
       section: z.string().optional(),

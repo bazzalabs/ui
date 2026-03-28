@@ -12,6 +12,7 @@
     "type-check": "tsc --noEmit",
     "vercel:install": "./vercel-submodule.sh && bun install",
     "start": "next start",
+    "start:portless": "portless bazza-ui next start",
     "lint": "next lint",
     "prepare": "husky",
     "check": "biome check",

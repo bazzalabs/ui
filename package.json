@@ -20,6 +20,7 @@
     "registry:build": "turbo run registry:build",
     "docs:type-gen": "turbo run type-gen --filter web",
     "start": "turbo run start",
+    "start:portless": "turbo run start:portless",
     "prepare": "husky",
     "changeset": "changeset add",
     "ci:version": "changeset version && bun install",
