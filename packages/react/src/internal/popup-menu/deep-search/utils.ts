@@ -29,6 +29,8 @@ import {
   isDisplaySeparatorNode,
 } from './types.js'
 
+const identityQuery = (query: string) => query
+
 // ============================================================================
 // Default getQualifiedRowId Implementation
 // ============================================================================
@@ -323,8 +325,9 @@ export function flattenNodes(
 export function scoreNodes(
   flattenedNodes: FlattenedNode[],
   query: string,
+  normalizeQuery: (query: string) => string = normalizeValue,
 ): ScoredNode[] {
-  const normalizedQuery = normalizeValue(query)
+  const normalizedQuery = normalizeQuery(query)
 
   if (!normalizedQuery) {
     // No query - return all nodes with score 1
@@ -779,6 +782,8 @@ export function getBrowseNodesPreserve(
 export interface FilterNodesOptions {
   /** The search query */
   query: string
+  /** Optional query normalizer. Defaults to trimming whitespace. */
+  normalizeQuery?: (query: string) => string
   /** The node definitions to filter */
   nodes: NodeDef[]
   /** Currently highlighted node ID */
@@ -808,6 +813,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
 } {
   const {
     query,
+    normalizeQuery,
     nodes,
     highlightedId,
     deepSearch = true,
@@ -854,7 +860,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
   }
 
   // Score nodes
-  const scored = scoreNodes(flattened, query)
+  const scored = scoreNodes(flattened, query, normalizeQuery)
 
   // Separate radio group items from regular items
   const radioGroupItems = new Map<
@@ -1008,6 +1014,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
 } {
   const {
     query,
+    normalizeQuery,
     nodes,
     highlightedId,
     deepSearch = true,
@@ -1054,7 +1061,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   }
 
   // Score nodes
-  const scored = scoreNodes(flattened, query)
+  const scored = scoreNodes(flattened, query, normalizeQuery)
 
   // Partition into groups, radio groups, and ungrouped
   const groupedItems = new Map<
@@ -1250,9 +1257,16 @@ export function filterNodes(options: FilterNodesOptions): {
     highlightedId,
     groupSearchBehavior = 'preserve',
   } = options
-  const normalizedQuery = normalizeValue(query)
+  const normalizeQuery = options.normalizeQuery ?? normalizeValue
+  const normalizedQuery = normalizeQuery(query)
   const normalizedOptions =
-    normalizedQuery === query ? options : { ...options, query: normalizedQuery }
+    normalizedQuery === query
+      ? { ...options, normalizeQuery: identityQuery }
+      : {
+          ...options,
+          query: normalizedQuery,
+          normalizeQuery: identityQuery,
+        }
 
   // Browse mode - no query
   // Always preserve groups in browse mode (groupSearchBehavior only affects search)

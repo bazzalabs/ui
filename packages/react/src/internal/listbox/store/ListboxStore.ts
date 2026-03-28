@@ -26,6 +26,8 @@ export type FilterFn = (
   keywords?: string[],
 ) => number
 
+export type SearchNormalizer = (search: string) => string
+
 export interface ItemRegistration {
   value: string
   keywords?: string[]
@@ -87,6 +89,8 @@ export interface ListboxState {
   open: boolean
   /** Current search query */
   search: string
+  /** Normalized search query used for filtering and visibility checks */
+  normalizedSearch: string
   /** Currently highlighted item ID */
   highlightedId: string | null
   /** Source of the current highlight (keyboard or pointer) */
@@ -114,6 +118,8 @@ export interface ListboxState {
 export interface ListboxContext {
   /** Filter function or false to disable filtering */
   filter: FilterFn | false
+  /** Function used to normalize search before filtering. */
+  normalizeSearch: SearchNormalizer
   /** Whether to loop navigation */
   loop: boolean
   /**
@@ -236,6 +242,9 @@ interface ValidateHighlightOptions {
 const selectors = {
   open: createSelector((state: ListboxState) => state.open),
   search: createSelector((state: ListboxState) => state.search),
+  normalizedSearch: createSelector(
+    (state: ListboxState) => state.normalizedSearch,
+  ),
   highlightedId: createSelector((state: ListboxState) => state.highlightedId),
   highlightSource: createSelector(
     (state: ListboxState) => state.highlightSource,
@@ -254,12 +263,11 @@ const selectors = {
 
   isGroupVisible: createSelector(
     (state: ListboxState, groupId: string) =>
-      normalizeValue(state.search).length === 0 ||
-      state.visibleGroups.has(groupId),
+      state.normalizedSearch.length === 0 || state.visibleGroups.has(groupId),
   ),
 
   getItemScore: createSelector((state: ListboxState, itemId: string) => {
-    if (normalizeValue(state.search).length === 0) {
+    if (state.normalizedSearch.length === 0) {
       return 1 // All items visible when no search
     }
     return state.filteredItems.get(itemId) ?? 0
@@ -267,7 +275,7 @@ const selectors = {
 
   hasSearchWithNoResults: createSelector((state: ListboxState) => {
     // Must have an active search
-    if (normalizeValue(state.search).length === 0) return false
+    if (state.normalizedSearch.length === 0) return false
 
     // In virtualized mode with items prop, check virtualItemsCount
     // (filteredCount won't be accurate since items aren't registered in DOM)
@@ -280,8 +288,8 @@ const selectors = {
   }),
 }
 
-const defaultFilter: FilterFn = (value, search, keywords) => {
-  return commandScore(value, normalizeValue(search), keywords)
+const defaultSearchNormalizer: SearchNormalizer = (search) => {
+  return normalizeValue(search)
 }
 
 // ============================================================================
@@ -304,7 +312,8 @@ export class ListboxStore extends ReactStore<
     context?: Partial<ListboxContext>,
   ) {
     const defaultContext: ListboxContext = {
-      filter: defaultFilter,
+      filter: commandScore,
+      normalizeSearch: defaultSearchNormalizer,
       loop: true,
       autoHighlightFirst: true,
       clearSearchOnClose: true,
@@ -331,11 +340,13 @@ export class ListboxStore extends ReactStore<
       lastPointerPosition: null,
     }
 
-    super(
-      { ...createInitialState(), ...initialState },
-      { ...defaultContext, ...context },
-      selectors,
+    const mergedContext = { ...defaultContext, ...context }
+    const mergedState = { ...createInitialState(), ...initialState }
+    mergedState.normalizedSearch = mergedContext.normalizeSearch(
+      mergedState.search,
     )
+
+    super(mergedState, mergedContext, selectors)
 
     // Handle open/close
     this.observe('open', (open) => {
@@ -373,8 +384,20 @@ export class ListboxStore extends ReactStore<
       }
     })
 
-    // Recompute filtered items when search changes (handles controlled search via useControlledProp)
+    // Keep normalizedSearch in sync when search changes (including controlled props).
     this.observe('search', (search, prevSearch) => {
+      if (search === prevSearch) {
+        return
+      }
+
+      const normalizedSearch = this.context.normalizeSearch(search)
+      if (normalizedSearch !== this.state.normalizedSearch) {
+        this.set('normalizedSearch', normalizedSearch)
+      }
+    })
+
+    // Recompute filtered items when normalized search changes.
+    this.observe('normalizedSearch', (search, prevSearch) => {
       if (search !== prevSearch) {
         // Reset pointer position when search changes - content is about to shift
         // and we don't want stationary pointers to trigger phantom highlights
@@ -414,9 +437,21 @@ export class ListboxStore extends ReactStore<
   }
 
   setSearch(search: string) {
-    this.set('search', search)
+    this.update({
+      search,
+      normalizedSearch: this.context.normalizeSearch(search),
+    })
     this.context.onSearchChange?.(search)
-    // Note: recomputeFilteredItems is called by the 'search' observer
+    // Note: recomputeFilteredItems is called by the 'normalizedSearch' observer
+  }
+
+  setSearchNormalizer(normalizeSearch: SearchNormalizer) {
+    this.context.normalizeSearch = normalizeSearch
+
+    const normalizedSearch = normalizeSearch(this.state.search)
+    if (normalizedSearch !== this.state.normalizedSearch) {
+      this.set('normalizedSearch', normalizedSearch)
+    }
   }
 
   setHighlightedId(id: string | null, cause: HighlightSource = 'pointer') {
@@ -514,7 +549,7 @@ export class ListboxStore extends ReactStore<
   setHideUntilActive(enabled: boolean) {
     this.context.hideUntilActive = enabled
     // If enabling and there's already search content, activate immediately
-    if (enabled && normalizeValue(this.state.search).length > 0) {
+    if (enabled && this.state.normalizedSearch.length > 0) {
       this.setInputActive(true)
     }
   }
@@ -982,8 +1017,7 @@ export class ListboxStore extends ReactStore<
 
     // Check if item is visible (passes filter)
     const score = this.state.filteredItems.get(itemId) ?? 0
-    const isVisible =
-      normalizeValue(this.state.search).length === 0 || score > 0
+    const isVisible = this.state.normalizedSearch.length === 0 || score > 0
     if (!isVisible) return false
 
     const onSelect = this.context.itemSelects.get(itemId)
@@ -1088,7 +1122,7 @@ export class ListboxStore extends ReactStore<
 
   getVisibleItemIds(): string[] {
     const result: string[] = []
-    const search = normalizeValue(this.state.search)
+    const search = this.state.normalizedSearch
     const filteredItems = this.state.filteredItems
     const virtualItems = this.context.virtualItems
     const orderedItems = this.context.orderedItems
@@ -1193,16 +1227,12 @@ export class ListboxStore extends ReactStore<
 
     // Determine if search changed (requires reset to first item)
     // Use prevSearch from options if provided (from observer), otherwise fall back to state
-    const prevSearch = normalizeValue(
-      optionsPrevSearch !== undefined ? optionsPrevSearch : this.state.search,
-    )
-    const effectiveSearch = normalizeValue(
-      newSearch !== undefined ? newSearch : prevSearch,
-    )
-    const normalizedNewSearch =
-      newSearch !== undefined ? normalizeValue(newSearch) : undefined
-    const searchChanged =
-      normalizedNewSearch !== undefined && normalizedNewSearch !== prevSearch
+    const prevSearch =
+      optionsPrevSearch !== undefined
+        ? optionsPrevSearch
+        : this.state.normalizedSearch
+    const effectiveSearch = newSearch !== undefined ? newSearch : prevSearch
+    const searchChanged = newSearch !== undefined && newSearch !== prevSearch
 
     // If not open or autoHighlightFirst disabled, don't change anything
     if (!this.state.open || !this.context.autoHighlightFirst) {
@@ -1298,8 +1328,7 @@ export class ListboxStore extends ReactStore<
 
   private recomputeFilteredItems(prevSearch?: string) {
     const { filter } = this.context
-    const search = this.state.search
-    const normalizedSearch = normalizeValue(search)
+    const normalizedSearch = this.state.normalizedSearch
     const items = this.context.items
     const groups = this.context.groups
 
@@ -1366,8 +1395,7 @@ export class ListboxStore extends ReactStore<
     const highlightedId = this.validateHighlight({
       filteredItems,
       newSearch: normalizedSearch,
-      prevSearch:
-        prevSearch !== undefined ? normalizeValue(prevSearch) : undefined,
+      prevSearch,
     })
 
     this.update({
@@ -1406,6 +1434,7 @@ function createInitialState(): ListboxState {
   return {
     open: false,
     search: '',
+    normalizedSearch: '',
     highlightedId: null,
     highlightSource: null,
     hasInput: false,

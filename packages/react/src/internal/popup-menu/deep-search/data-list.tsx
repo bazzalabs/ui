@@ -183,6 +183,8 @@ function getDisplayNodeStreamKey(displayNode: DisplayNode): string {
   return `row:${displayNode.node.kind}:${displayNode.node.id ?? ''}:${displayNode.node.value}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
 }
 
+const identityQuery = (query: string) => query
+
 function orderDisplayNodesForStreaming(
   displayNodes: DisplayNode[],
   previousOrder: string[],
@@ -559,6 +561,7 @@ export const PopupMenuDataList = React.forwardRef<
   // Get store from surface context for search state
   const { store } = useSurfaceContext()
   const search = store.useState('search')
+  const normalizedSearch = store.useState('normalizedSearch')
 
   return (
     <DataListInner
@@ -570,6 +573,7 @@ export const PopupMenuDataList = React.forwardRef<
       includeInDeepSearch={includeInDeepSearch}
       getQualifiedRowId={getQualifiedRowId}
       search={search}
+      normalizedSearch={normalizedSearch}
       store={store}
     />
   )
@@ -588,6 +592,7 @@ interface DataListInnerProps extends PopupMenuDataListProps {
   >['includeInDeepSearch']
   getQualifiedRowId: GetQualifiedRowIdFn
   search: string
+  normalizedSearch: string
   store: ReturnType<typeof useSurfaceContext>['store']
 }
 
@@ -607,6 +612,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       includeInDeepSearch,
       getQualifiedRowId,
       search,
+      normalizedSearch,
       store,
     } = props
 
@@ -622,7 +628,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
     // Determine if deep search is active
     const minLength = deepSearchConfig.minLength ?? 0
     const isDeepSearchActive =
-      deepSearchConfig.enabled !== false && search.length >= minLength
+      deepSearchConfig.enabled !== false && normalizedSearch.length >= minLength
 
     // Determine which async loaders should be rendered
     const shouldRenderAsyncLoaders =
@@ -664,7 +670,8 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
     // Compute filtered display nodes and set composite IDs
     const { displayNodes, isDeepSearching } = React.useMemo(() => {
       const result = filterNodes({
-        query: search,
+        query: normalizedSearch,
+        normalizeQuery: identityQuery,
         nodes: contentWithRootAsync,
         highlightedId: null, // Primitives handle highlighting via store
         deepSearch: deepSearchConfig.enabled,
@@ -697,9 +704,12 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       } else if (asyncResultBehavior === 'stream' && result.isDeepSearching) {
         const previousStreamState = streamOrderRef.current
 
-        if (!previousStreamState || previousStreamState.query !== search) {
+        if (
+          !previousStreamState ||
+          previousStreamState.query !== normalizedSearch
+        ) {
           streamOrderRef.current = {
-            query: search,
+            query: normalizedSearch,
             order: displayNodesToRender.map(getDisplayNodeStreamKey),
           }
         } else {
@@ -710,7 +720,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
 
           displayNodesToRender = orderedNodes
           streamOrderRef.current = {
-            query: search,
+            query: normalizedSearch,
             order: nextOrder,
           }
         }
@@ -730,7 +740,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         isDeepSearching: result.isDeepSearching,
       }
     }, [
-      search,
+      normalizedSearch,
       contentWithRootAsync,
       deepSearchConfig,
       includeInDeepSearch,
@@ -775,14 +785,14 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         const shouldUseAppendReason =
           asyncResultBehavior === 'stream' &&
           isDeepSearching &&
-          prevOrderedItemsSearchRef.current === search &&
+          prevOrderedItemsSearchRef.current === normalizedSearch &&
           isAppendOnlyOrderedItemsUpdate(prev, current)
 
         orderedItemsUpdateReasonRef.current = shouldUseAppendReason
           ? 'append'
           : 'replace'
         prevOrderedItemIdsRef.current = current
-        prevOrderedItemsSearchRef.current = search
+        prevOrderedItemsSearchRef.current = normalizedSearch
         return current
       }
 
@@ -791,7 +801,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       newOrderedItemIds,
       deepSearchConfig.asyncResultBehavior,
       isDeepSearching,
-      search,
+      normalizedSearch,
     ])
 
     React.useEffect(() => {
@@ -826,8 +836,10 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
 
           const isBelowMinLength =
             branchNode.asyncNodes.type === 'query'
-              ? resolveQueryExecutionState(branchNode.asyncNodes, search)
-                  .isBelowMinLength
+              ? resolveQueryExecutionState(
+                  branchNode.asyncNodes,
+                  normalizedSearch,
+                ).isBelowMinLength
               : false
 
           return {
@@ -1088,7 +1100,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
 
         return null
       },
-      [coordinator, search],
+      [coordinator, normalizedSearch],
     )
 
     // Helper to render a radio group
@@ -1311,14 +1323,14 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
         {shouldRenderAsyncLoaders && (
           <>
             {/* Root async content loader */}
-            <RootAsyncLoader query={search} />
+            <RootAsyncLoader query={normalizedSearch} />
 
             {/* Submenu async loaders */}
             {asyncSubmenus.map((info) => (
               <AsyncLoaderRenderer
                 key={info.id}
                 info={info}
-                query={search}
+                query={normalizedSearch}
                 enabled={isDeepSearchActive}
               />
             ))}

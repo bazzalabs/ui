@@ -90,7 +90,11 @@ function createDeferred<T>() {
 
 describe('Empty and Loading visibility', () => {
   describe('basic (non-async)', () => {
-    function BasicMenu() {
+    function BasicMenu({
+      normalizeSearch,
+    }: {
+      normalizeSearch?: (search: string) => string
+    } = {}) {
       const content: NodeDef[] = React.useMemo(
         () => [
           createItemDef('Apple'),
@@ -110,6 +114,7 @@ describe('Empty and Loading visibility', () => {
                   data-testid="surface"
                   content={content}
                   deepSearch={{ enabled: true, minLength: 0 }}
+                  normalizeSearch={normalizeSearch}
                 >
                   <DropdownMenu.DataInput
                     data-testid="search-input"
@@ -210,6 +215,22 @@ describe('Empty and Loading visibility', () => {
       })
 
       expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+    })
+
+    it('respects custom normalizeSearch behavior', async () => {
+      const user = userEvent.setup()
+      render(<BasicMenu normalizeSearch={(query) => query} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('search-input')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('search-input')
+      await user.type(input, 'Apple ')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('empty')).toBeInTheDocument()
+      })
     })
   })
 
