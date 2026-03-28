@@ -12,11 +12,11 @@ import { PlusIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import * as React from 'react'
 import { toast } from 'sonner'
+import { TextMorph } from 'torph/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
-  BrailleSpinner,
-  DiamondSpinner,
+  BrailleMorphSpinner,
   DropdownMenu,
   LabelWithBreadcrumbs,
 } from '@/registry/ui/dropdown-menu'
@@ -32,7 +32,6 @@ import {
 } from './components'
 import {
   AssigneeIcon,
-  DurationIcon,
   LabelsIcon,
   ProjectLeadIcon,
   ProjectPriority,
@@ -51,6 +50,8 @@ type LabelRecord = {
   name: string
   color: string
 }
+
+type LabelCreationStatus = 'idle' | 'creating' | 'created'
 
 const labelData: LabelRecord[] = [
   { id: 'bug', name: 'Bug', color: 'red' },
@@ -159,9 +160,13 @@ function createCreateLabelSubpage(
                 value={`${labelName}:${color.id}`}
                 keywords={[labelName, color.label, 'create', 'label']}
                 disabled={isCreatingLabel}
-                onSelectAsync={async () =>
+                onSelectAsync={async () => {
+                  console.log('creating')
                   await onCreateLabel(labelName, color.id)
-                }
+                  console.log('created -- waiting')
+                  await new Promise((resolve) => setTimeout(resolve, 2000))
+                  console.log('created -- done')
+                }}
               >
                 <DropdownMenu.Icon>
                   <LabelDot color={color.id} />
@@ -184,8 +189,9 @@ function createLabelsSubmenu(params: {
   onLabelCheckedChange: (labelId: string, checked: boolean) => void
   onCreateLabel: (name: string, color: string) => Promise<void | boolean>
   isCreatingLabel: boolean
+  labelCreationStatus: LabelCreationStatus
   creatingLabelName: string | null
-  creatingLabelColor: string | null
+  creatingLabelColor: string
   onHighlightChange: (id: string | null, index: number) => void
 }): SubmenuDef {
   const {
@@ -196,6 +202,7 @@ function createLabelsSubmenu(params: {
     onLabelCheckedChange,
     onCreateLabel,
     isCreatingLabel,
+    labelCreationStatus,
     creatingLabelName,
     creatingLabelColor,
     onHighlightChange,
@@ -203,6 +210,9 @@ function createLabelsSubmenu(params: {
 
   const trimmedQuery = labelSearchQuery.trim()
   const normalizedQuery = normalizeLabelName(trimmedQuery)
+  const normalizedCreatingLabelName = creatingLabelName
+    ? normalizeLabelName(creatingLabelName)
+    : ''
 
   const hasExactMatch =
     normalizedQuery.length > 0 &&
@@ -232,7 +242,14 @@ function createLabelsSubmenu(params: {
     ),
   }))
 
-  if (normalizedQuery.length > 0 && !hasExactMatch) {
+  const shouldKeepCreateSubpageMounted =
+    labelCreationStatus !== 'idle' &&
+    normalizedCreatingLabelName === normalizedQuery
+
+  if (
+    normalizedQuery.length > 0 &&
+    (!hasExactMatch || shouldKeepCreateSubpageMounted)
+  ) {
     nodes.push(
       createCreateLabelSubpage(trimmedQuery, onCreateLabel, isCreatingLabel),
     )
@@ -265,7 +282,8 @@ function createLabelsSubmenu(params: {
               render={({ className, children, ...props }, state) => (
                 <>
                   <AnimatePresence>
-                    {(state.hasOpenSubpage || isCreatingLabel) && (
+                    {(state.hasOpenSubpage ||
+                      labelCreationStatus !== 'idle') && (
                       <motion.div
                         className="absolute -z-10 -top-8 pb-4 left-0 right-0 rounded-t-2xl bg-muted border"
                         initial={{
@@ -292,36 +310,56 @@ function createLabelsSubmenu(params: {
                         }}
                       >
                         <div className="px-4.5 py-2 text-xs flex items-center gap-2">
-                          {isCreatingLabel ? (
-                            <DiamondSpinner className="size-4" />
-                          ) : (
-                            <LabelsIcon />
-                          )}
-                          {isCreatingLabel &&
-                          creatingLabelName &&
-                          creatingLabelColor ? (
-                            <div className="inline-flex items-center gap-1">
-                              <span className="text-muted-foreground">
-                                Creating
+                          <AnimatePresence mode="wait" initial={false}>
+                            {labelCreationStatus === 'idle' ? (
+                              <motion.div
+                                key="idle"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                              >
+                                <LabelsIcon />
+                              </motion.div>
+                            ) : (
+                              <motion.div
+                                key="braille"
+                                initial={{ opacity: 0, scale: 0.75 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.75 }}
+                                transition={{ duration: 0.2, ease: 'easeOut' }}
+                              >
+                                <BrailleMorphSpinner
+                                  className="size-4"
+                                  mode={
+                                    labelCreationStatus === 'creating'
+                                      ? 'loading'
+                                      : 'success'
+                                  }
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                          <div className="inline-flex items-center gap-1.5">
+                            <TextMorph className="text-muted-foreground">
+                              {labelCreationStatus === 'creating'
+                                ? 'Creating'
+                                : labelCreationStatus === 'created'
+                                  ? 'Created'
+                                  : 'Create'}
+                            </TextMorph>
+                            <div className="flex items-center gap-1">
+                              <LabelDot
+                                color={creatingLabelColor}
+                                className="size-2"
+                              />
+                              <span>
+                                {labelCreationStatus === 'idle'
+                                  ? trimmedQuery
+                                  : (creatingLabelName ?? trimmedQuery)}
                               </span>
-                              <LabelDot
-                                color={creatingLabelColor}
-                                className="size-2"
-                              />
-                              <span>{creatingLabelName}</span>
                             </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1">
-                              <span className="text-muted-foreground">
-                                New label:
-                              </span>{' '}
-                              <LabelDot
-                                color={creatingLabelColor}
-                                className="size-2"
-                              />
-                              <span>{trimmedQuery}</span>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -380,8 +418,9 @@ function buildMenuContent(params: {
   onLabelCheckedChange: (labelId: string, checked: boolean) => void
   onCreateLabel: (name: string, color: string) => Promise<void | boolean>
   isCreatingLabel: boolean
+  labelCreationStatus: LabelCreationStatus
   creatingLabelName: string | null
-  creatingLabelColor: string | null
+  creatingLabelColor: string
   onLabelHighlightChange: (id: string | null, index: number) => void
 }): NodeDef[] {
   const {
@@ -392,6 +431,7 @@ function buildMenuContent(params: {
     onLabelCheckedChange,
     onCreateLabel,
     isCreatingLabel,
+    labelCreationStatus,
     creatingLabelName,
     creatingLabelColor,
     onLabelHighlightChange,
@@ -450,6 +490,7 @@ function buildMenuContent(params: {
     onLabelCheckedChange,
     onCreateLabel,
     isCreatingLabel,
+    labelCreationStatus,
     creatingLabelName,
     creatingLabelColor,
     onHighlightChange: onLabelHighlightChange,
@@ -594,14 +635,32 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
   )
   const [labelSearchQuery, setLabelSearchQuery] = React.useState('')
   const [isCreatingLabel, setIsCreatingLabel] = React.useState(false)
+  const [labelCreationStatus, setLabelCreationStatus] =
+    React.useState<LabelCreationStatus>('idle')
   const [creatingLabelName, setCreatingLabelName] = React.useState<
     string | null
   >(null)
-  const [creatingLabelColor, setCreatingLabelColor] = React.useState<
-    string | null
-  >(CREATABLE_LABEL_COLORS[0].id)
+  const [creatingLabelColor, setCreatingLabelColor] = React.useState<string>(
+    CREATABLE_LABEL_COLORS[0].id,
+  )
 
   const createdLabelIndex = React.useRef(0)
+  const hideCreationHeaderTimeoutRef = React.useRef<number | null>(null)
+
+  const clearHideCreationHeaderTimeout = React.useCallback(() => {
+    if (hideCreationHeaderTimeoutRef.current === null) {
+      return
+    }
+
+    window.clearTimeout(hideCreationHeaderTimeoutRef.current)
+    hideCreationHeaderTimeoutRef.current = null
+  }, [])
+
+  React.useEffect(() => {
+    return () => {
+      clearHideCreationHeaderTimeout()
+    }
+  }, [clearHideCreationHeaderTimeout])
 
   const handleLabelSearchQueryChange = React.useCallback((value: string) => {
     setLabelSearchQuery(value)
@@ -643,9 +702,13 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
         return false
       }
 
+      clearHideCreationHeaderTimeout()
       setCreatingLabelName(trimmedName)
       setCreatingLabelColor(color)
       setIsCreatingLabel(true)
+      setLabelCreationStatus('creating')
+
+      let didCreate = false
 
       try {
         await new Promise((resolve) => setTimeout(resolve, 4000))
@@ -669,18 +732,29 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
         })
 
         setLabelSearchQuery(trimmedName)
+        didCreate = true
+        setLabelCreationStatus('created')
+
+        hideCreationHeaderTimeoutRef.current = window.setTimeout(() => {
+          setLabelCreationStatus('idle')
+          setCreatingLabelName(null)
+          hideCreationHeaderTimeoutRef.current = null
+        }, 2000)
+
         toast(`Created label "${trimmedName}".`)
       } finally {
-        setCreatingLabelName(null)
         setIsCreatingLabel(false)
+        if (!didCreate) {
+          setCreatingLabelName(null)
+          setLabelCreationStatus('idle')
+        }
       }
     },
-    [isCreatingLabel, labels],
+    [isCreatingLabel, labels, clearHideCreationHeaderTimeout],
   )
 
   const handleLabelHighlightChange = React.useCallback(
     (id: string | null, _index: number) => {
-      console.log('id:', id)
       if (!id) return
       // Color items have values like "labelName:colorId"
       const colonIndex = id.lastIndexOf(':')
@@ -703,6 +777,7 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
         onLabelCheckedChange: handleLabelCheckedChange,
         onCreateLabel: handleCreateLabel,
         isCreatingLabel,
+        labelCreationStatus,
         creatingLabelName,
         creatingLabelColor,
         onLabelHighlightChange: handleLabelHighlightChange,
@@ -712,6 +787,7 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       selectedLabelIds,
       labelSearchQuery,
       isCreatingLabel,
+      labelCreationStatus,
       creatingLabelName,
       creatingLabelColor,
       handleLabelSearchQueryChange,
@@ -725,7 +801,10 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
     <DropdownMenu.Root
       onOpenChange={(open) => {
         if (!open) {
+          clearHideCreationHeaderTimeout()
           setLabelSearchQuery('')
+          setLabelCreationStatus('idle')
+          setCreatingLabelName(null)
         }
       }}
     >

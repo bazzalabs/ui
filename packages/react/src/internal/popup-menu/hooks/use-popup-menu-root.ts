@@ -328,11 +328,14 @@ export function usePopupMenuRoot(
     [store, focusOwnerStore, openChainStore, disabled],
   )
 
-  // Memoize virtualization config
+  // Memoize listbox wiring config
   const virtualization = React.useMemo(() => {
-    if (!virtualized) return undefined
+    if (!virtualized && !onHighlightChange) {
+      return undefined
+    }
+
     return {
-      virtualized: true as const,
+      virtualized,
       items: itemsProp ?? [],
       onHighlightChange,
     }

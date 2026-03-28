@@ -169,9 +169,8 @@ export interface ListboxContext {
    */
   orderedItems: string[]
   /**
-   * Callback when highlighted item changes and needs scroll sync.
-   * Called only when the item is not in the DOM (virtualized out of view).
-   * Useful for synchronizing with virtualizers (scrollToIndex).
+   * Callback when highlighted item changes.
+   * Useful for synchronizing with virtualizers (scrollToIndex) and other UI state.
    * The third parameter contains event details including the reason for the change.
    */
   onHighlightChange:
