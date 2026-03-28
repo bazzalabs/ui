@@ -426,6 +426,8 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
 )
 DataList.displayName = 'DropdownMenu.DataList'
 
+const DataSubpages = Primitive.DataSubpages
+
 // ============================================================================
 // Virtualized DataList Content (internal)
 // ============================================================================
@@ -1107,6 +1109,7 @@ export const DropdownMenu = {
   DataSurface,
   List,
   DataList,
+  DataSubpages,
   Input,
   DataInput,
   Item,
@@ -1228,7 +1231,7 @@ export const DiamondSpinner = ({
         />
       ))}
       {/* Animated squares */}
-      <g style={{ animation: 'diamond-spin 1.4s steps(2, end) infinite' }}>
+      <g style={{ animation: 'diamond-spin 0.75s steps(2, end) infinite' }}>
         {diamondCoords.slice(0, 5).map((c) => (
           <rect key={`fg-${c.x}-${c.y}`} {...getRectProps(9, c)} />
         ))}

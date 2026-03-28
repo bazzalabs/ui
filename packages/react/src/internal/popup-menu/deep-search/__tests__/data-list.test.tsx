@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -9,6 +9,7 @@ import type {
   ItemDef,
   NodeDef,
   SubmenuDef,
+  SubpageDef,
 } from '../types.js'
 
 // ============================================================================
@@ -77,6 +78,40 @@ function createTestSubmenuDef(
       </DropdownMenu.Submenu>
     ),
     ...options,
+  }
+}
+
+function createTestSubpageDef(
+  id: string,
+  value: string,
+  nodes: NodeDef[],
+): SubpageDef {
+  return {
+    kind: 'subpage',
+    id,
+    value,
+    nodes,
+    renderTrigger: ({ props, context }) => (
+      <DropdownMenu.SubpageTrigger
+        {...props}
+        data-testid={`subpage-trigger-${id}`}
+        data-value={context.value}
+      >
+        {value}
+      </DropdownMenu.SubpageTrigger>
+    ),
+    renderContent: ({ pageId, nodes: childNodes, renderNode }) => (
+      <DropdownMenu.Subpage pageId={pageId}>
+        <DropdownMenu.Surface data-testid={`subpage-surface-${id}`}>
+          <DropdownMenu.List>
+            <DropdownMenu.SubpageBackItem data-testid={`subpage-back-${id}`}>
+              Back
+            </DropdownMenu.SubpageBackItem>
+            {childNodes.map(renderNode)}
+          </DropdownMenu.List>
+        </DropdownMenu.Surface>
+      </DropdownMenu.Subpage>
+    ),
   }
 }
 
@@ -745,6 +780,145 @@ describe('DataList getQualifiedRowId', () => {
         'submenu-trigger-settings',
         'item-late',
       ])
+    })
+  })
+
+  describe('DataSubpages', () => {
+    function MenuWithSubpages() {
+      const content: NodeDef[] = React.useMemo(
+        () => [
+          createTestSubpageDef('ai-filter', 'AI Filter', [
+            createTestItemDef('assigned-to-me', 'assigned to me'),
+            createTestItemDef(
+              'completed-last-month',
+              'completed in the last month',
+            ),
+          ]),
+        ],
+        [],
+      )
+
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.DataSurface
+                  content={content}
+                  deepSearch={{ enabled: true, minLength: 0 }}
+                >
+                  <DropdownMenu.DataInput
+                    data-testid="search-input"
+                    placeholder="Search..."
+                  />
+                  <DropdownMenu.DataList>
+                    {({ nodes, renderNode }) => nodes.map(renderNode)}
+                  </DropdownMenu.DataList>
+                </DropdownMenu.DataSurface>
+                <DropdownMenu.DataSubpages />
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    function MenuWithNestedSubpage() {
+      const content: NodeDef[] = React.useMemo(
+        () => [
+          createTestSubmenuDef('filters', 'Filters', [
+            createTestSubpageDef('ai-filter-nested', 'AI Filter', [
+              createTestItemDef(
+                'due-next-two-weeks',
+                'due in the next 2 weeks',
+              ),
+            ]),
+          ]),
+        ],
+        [],
+      )
+
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.DataSurface
+                  content={content}
+                  deepSearch={{ enabled: true, minLength: 0 }}
+                >
+                  <DropdownMenu.DataInput
+                    data-testid="search-input"
+                    placeholder="Search..."
+                  />
+                  <DropdownMenu.DataList>
+                    {({ nodes, renderNode }) => nodes.map(renderNode)}
+                  </DropdownMenu.DataList>
+                </DropdownMenu.DataSurface>
+                <DropdownMenu.DataSubpages />
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    it('renders subpage content via DataSubpages and navigates back', async () => {
+      const user = userEvent.setup()
+      render(<MenuWithSubpages />)
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('subpage-trigger-ai-filter'),
+        ).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('assigned to me')).not.toBeInTheDocument()
+
+      await user.click(screen.getByTestId('subpage-trigger-ai-filter'))
+
+      await waitFor(() => {
+        expect(screen.getByText('assigned to me')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('subpage-back-ai-filter'))
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('subpage-trigger-ai-filter'),
+        ).toBeInTheDocument()
+      })
+      expect(screen.queryByText('assigned to me')).not.toBeInTheDocument()
+    })
+
+    it('supports nested subpages surfaced by deep search', async () => {
+      const user = userEvent.setup()
+      render(<MenuWithNestedSubpage />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('search-input')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('search-input')
+      await user.type(input, 'AI Filter')
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('subpage-trigger-ai-filter-nested'),
+        ).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('subpage-trigger-ai-filter-nested'))
+
+      await waitFor(() => {
+        expect(screen.getByText('due in the next 2 weeks')).toBeInTheDocument()
+      })
     })
   })
 })

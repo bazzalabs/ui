@@ -4,15 +4,18 @@ import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+import { AIFilterIcon } from '../subpage-linear/icons'
 import {
   createAssigneeItemNode,
   createItemNode,
   createLabelItemNode,
   createSubmenuNode,
+  createSubpageNode,
   FilterIcon,
 } from './components'
 import {
   AssigneeIcon,
+  DurationIcon,
   LabelsIcon,
   ProjectLeadIcon,
   ProjectPriority,
@@ -150,6 +153,29 @@ function buildMenuContent(): NodeDef[] {
     { inputPlaceholder: 'Labels...' },
   )
 
+  const aiFilterSubpage = createSubpageNode(
+    'ai-filter',
+    'AI Filter',
+    <AIFilterIcon />,
+    [
+      createItemNode('ai-triage', 'Smart triage'),
+      createItemNode('ai-risk', 'Risk prediction'),
+      createItemNode('ai-duplicates', 'Duplicate detection'),
+      createSubmenuNode(
+        'ai-confidence',
+        'Confidence',
+        <ProjectPriorityIcon />,
+        [
+          createItemNode('high-confidence', 'High confidence'),
+          createItemNode('medium-confidence', 'Medium confidence'),
+          createItemNode('low-confidence', 'Low confidence'),
+        ],
+        { inputPlaceholder: 'AI confidence...' },
+      ),
+    ],
+    { inputPlaceholder: 'AI filters...' },
+  )
+
   // Project Properties > Project Status submenu
   const projectStatusMenu = createSubmenuNode(
     'project-status',
@@ -253,6 +279,7 @@ function buildMenuContent(): NodeDef[] {
     assigneeMenu,
     priorityMenu,
     labelsMenu,
+    aiFilterSubpage,
     projectPropertiesMenu,
   ]
 }
@@ -284,6 +311,7 @@ export default function DropdownMenuDeepSearchLinear() {
                 )}
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
+            <DropdownMenu.DataSubpages />
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>

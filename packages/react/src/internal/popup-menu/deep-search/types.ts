@@ -4,10 +4,7 @@ import type { PopupMenuItemProps } from '../components/item/item.js'
 import type { PopupMenuRadioGroupProps } from '../components/radio-group/radio-group.js'
 import type { PopupMenuRadioItemProps } from '../components/radio-item/radio-item.js'
 import type { PopupMenuSubmenuTriggerProps } from '../components/submenu-trigger/submenu-trigger.js'
-import type {
-  CheckedChangeEventDetails,
-  RadioValueChangeEventDetails,
-} from '../events.js'
+import type { PopupMenuSubpageTriggerProps } from '../components/subpage-trigger/subpage-trigger.js'
 
 // ============================================================================
 // Async Loader Types
@@ -294,15 +291,15 @@ export interface AsyncState {
 // ============================================================================
 
 /**
- * Submenu node info passed in breadcrumbs context.
- * Contains the full submenu definition for maximum flexibility.
+ * Branch node info passed in breadcrumbs context.
+ * Contains the full submenu/subpage definition for maximum flexibility.
  */
 export interface BreadcrumbNode {
-  /** The submenu node definition */
-  node: SubmenuDef
-  /** The submenu's value */
+  /** The branch node definition */
+  node: SubmenuDef | SubpageDef
+  /** The branch node's value */
   value: string
-  /** The submenu's explicit id (if provided) */
+  /** The branch node's explicit id (if provided) */
   id?: string
 }
 
@@ -312,7 +309,7 @@ export interface BreadcrumbNode {
  */
 export interface GetQualifiedRowIdContext {
   /** The node definition */
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
 
   /** The node's value (node.value) - used for search/filtering and as fallback identifier */
   value: string
@@ -325,7 +322,7 @@ export interface GetQualifiedRowIdContext {
 
   /**
    * Breadcrumb nodes from root to parent.
-   * Contains full submenu node definitions for maximum flexibility.
+   * Contains full submenu/subpage node definitions for maximum flexibility.
    */
   breadcrumbs: BreadcrumbNode[]
 
@@ -373,7 +370,7 @@ export type GetQualifiedRowIdFn = (context: GetQualifiedRowIdContext) => string
 // ============================================================================
 
 /**
- * Context passed to item and submenu render functions.
+ * Context passed to item, submenu, and subpage render functions.
  * Provides information about the current rendering context (search, breadcrumbs, state).
  */
 export interface RowRenderContext {
@@ -389,8 +386,8 @@ export interface RowRenderContext {
   } | null
 
   /**
-   * Full path of submenu nodes from root to this row's parent.
-   * Contains the full submenu node definitions for maximum flexibility.
+   * Full path of branch nodes from root to this row's parent.
+   * Contains the full submenu/subpage node definitions for maximum flexibility.
    * Empty array [] for items directly in root menu.
    */
   breadcrumbs: BreadcrumbNode[]
@@ -538,6 +535,80 @@ export interface SubmenuRenderParams {
   /**
    * Function to render a child node.
    * Call this for each node in the submenu's list.
+   */
+  renderNode: (node: NodeDef) => React.ReactNode
+}
+
+// ============================================================================
+// Subpage Render Types
+// ============================================================================
+
+/**
+ * Props to spread onto the SubpageTrigger component.
+ * Derived from PopupMenuSubpageTriggerProps.
+ */
+export type SubpageTriggerRenderProps = {
+  /**
+   * Qualified unique ID for the subpage trigger.
+   * Must be passed to the rendered component for navigation to work.
+   */
+  id: string
+  /**
+   * The original value from the node definition.
+   */
+  value: string
+  /**
+   * Computed page ID for the associated Subpage content.
+   * Must be passed to `targetPageId` on SubpageTrigger.
+   */
+  targetPageId: string
+} & Required<Pick<PopupMenuSubpageTriggerProps, 'disabled'>>
+
+/**
+ * Parameters passed to subpage trigger render functions.
+ */
+export interface SubpageTriggerRenderParams {
+  /** Props to spread onto the SubpageTrigger */
+  props: SubpageTriggerRenderProps
+  /** Context for conditional rendering (includes props values for convenience) */
+  context: RowRenderContext & {
+    /** The node's value (SubpageDef.value) */
+    value: string
+    disabled: boolean
+    /** Async loading state (if asyncNodes configured) */
+    async?: AsyncRenderState
+  }
+}
+
+/**
+ * Parameters passed to subpage content render functions.
+ * The returned JSX should include a `<PopupMenu.Subpage pageId={pageId}>` wrapper.
+ */
+export interface SubpageContentRenderParams {
+  /** Computed page ID for this subpage */
+  pageId: string
+  /** Context for conditional rendering */
+  context: RowRenderContext & {
+    /** The node's value (SubpageDef.value) */
+    value: string
+    disabled: boolean
+    /** Async loading state (if asyncNodes configured) */
+    async?: AsyncRenderState
+  }
+  /**
+   * The subpage's static child node definitions.
+   * Does NOT include async results - use `asyncContent` for that.
+   */
+  nodes: NodeDef[]
+  /**
+   * Async content configuration for this subpage.
+   * Pass this to the subpage's DataSurface to enable async loading
+   * with the subpage's own search query (independent of parent search).
+   */
+  asyncContent?: AsyncNodesConfig
+  /**
+   * Function to render a child node.
+   * Call this for each node in the subpage's list.
    */
   renderNode: (node: NodeDef) => React.ReactNode
 }
@@ -808,6 +879,64 @@ export interface SubmenuDef
 }
 
 /**
+ * Subpage node definition.
+ * Represents a trigger row that opens a page in the same popup.
+ * Props derived from PopupMenuSubpageTriggerProps.
+ */
+export interface SubpageDef
+  extends BaseNodeDef,
+    Required<Pick<PopupMenuSubpageTriggerProps, 'value'>>,
+    Pick<
+      PopupMenuSubpageTriggerProps,
+      'keywords' | 'disabled' | 'forceOrder' | 'forceScore'
+    > {
+  kind: 'subpage'
+
+  /**
+   * Optional explicit page ID for this subpage.
+   * If omitted, a deterministic page ID is generated from id/value + breadcrumbs.
+   */
+  pageId?: string
+
+  /** Static child nodes */
+  nodes?: NodeDef[]
+
+  /**
+   * Async child nodes configuration.
+   * When provided, the Loader component will be rendered to fetch async data.
+   * Async nodes are merged with static nodes.
+   */
+  asyncNodes?: AsyncNodesConfig
+
+  /**
+   * Whether to include this subpage's descendants in deep search.
+   * @default true
+   */
+  deepSearch?: boolean
+
+  /**
+   * Whether this subpage is included in ancestor deep search results.
+   * - `true`: include subpage trigger and descendants
+   * - `'trigger-only'`: include subpage trigger only
+   * - `false`: exclude subpage trigger and descendants
+   * @default true
+   */
+  includeInDeepSearch?: IncludeInDeepSearch
+
+  /**
+   * Render function for the trigger row.
+   * Should return a `SubpageTrigger`.
+   */
+  renderTrigger: (params: SubpageTriggerRenderParams) => React.ReactNode
+
+  /**
+   * Render function for the subpage content.
+   * Should return a `Subpage` rendered alongside the root Surface in Popup.
+   */
+  renderContent: (params: SubpageContentRenderParams) => React.ReactNode
+}
+
+/**
  * Render params for separator nodes.
  */
 export interface SeparatorRenderParams {
@@ -884,6 +1013,7 @@ export type NodeDef =
   | RadioItemDef
   | CheckboxItemDef
   | SubmenuDef
+  | SubpageDef
   | SeparatorDef
   | GroupDef
   | RadioGroupDef
@@ -898,7 +1028,7 @@ export type NodeDef =
  */
 export interface ScoredNode {
   /** The original node definition */
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
   /** Search match score (higher = better match). */
   score: number
   /**
@@ -926,7 +1056,7 @@ export interface ScoredNode {
  */
 export interface DisplayRowNode {
   /** The original node definition */
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef
+  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
   /** Pre-computed render context for this node */
   context: RowRenderContext
   /** Radio group this node belongs to, if rendering inside one */
@@ -937,6 +1067,19 @@ export interface DisplayRowNode {
    * Set after filtering via `computeItemIds`.
    */
   compositeId?: string
+}
+
+/**
+ * A subpage content node ready for display with its render context.
+ * Used by DataSubpages to render subpage content alongside the root Surface.
+ */
+export interface DisplaySubpageNode {
+  /** The original subpage definition */
+  node: SubpageDef
+  /** Pre-computed render context for this subpage trigger/content */
+  context: RowRenderContext
+  /** Computed page ID for this subpage */
+  pageId: string
 }
 
 /**
@@ -982,7 +1125,7 @@ export interface DisplaySeparatorNode {
 
 /**
  * Union of all display node types.
- * Can be a row node (item/submenu), group node, radio group node, or separator.
+ * Can be a row node (item/submenu/subpage), group node, radio group node, or separator.
  */
 export type DisplayNode =
   | DisplayRowNode
@@ -1018,7 +1161,7 @@ export function isDisplaySeparatorNode(
 }
 
 /**
- * Type guard for DisplayRowNode (items, checkbox items, submenus).
+ * Type guard for DisplayRowNode (items, checkbox items, submenus, subpages).
  */
 export function isDisplayRowNode(node: DisplayNode): node is DisplayRowNode {
   return !('kind' in node)
@@ -1112,8 +1255,8 @@ export interface DataSurfaceProps {
   deepSearch?: DeepSearchConfig | boolean
 
   /**
-   * Default inclusion mode for descendant submenus in deep search results.
-   * Submenus can override this via `SubmenuDef.includeInDeepSearch`.
+   * Default inclusion mode for descendant branch nodes in deep search results.
+   * Submenus/subpages can override via `includeInDeepSearch`.
    * @default true
    */
   includeInDeepSearch?: IncludeInDeepSearch
@@ -1227,4 +1370,33 @@ export interface DataListProps {
    * Only used when `measureRowWidth` is true.
    */
   maxRowWidth?: number
+}
+
+// ============================================================================
+// Data Subpages Props
+// ============================================================================
+
+/**
+ * State passed to the DataSubpages render function.
+ */
+export interface DataSubpagesChildrenState {
+  /** All subpage content nodes discovered in the current content tree. */
+  subpages: DisplaySubpageNode[]
+
+  /**
+   * Function to render a subpage content node.
+   * Calls the node's `renderContent` callback with page context and child renderer.
+   */
+  renderSubpageContent: (subpage: DisplaySubpageNode) => React.ReactNode
+}
+
+/**
+ * Props for the DataSubpages component.
+ */
+export interface DataSubpagesProps {
+  /**
+   * Optional render function.
+   * If omitted, all subpage contents are rendered by default.
+   */
+  children?: (state: DataSubpagesChildrenState) => React.ReactNode
 }
