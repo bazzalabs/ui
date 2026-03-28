@@ -783,6 +783,98 @@ describe('PopupMenu', () => {
       popupRectSpy.mockRestore()
     })
 
+    it('shows hover safe triangle for nested submenu trigger while parent guard is active', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger1 = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger1)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup1 = screen.getByTestId('popup-submenu-1')
+      const trigger1RectSpy = vi
+        .spyOn(submenuTrigger1, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popup1RectSpy = vi
+        .spyOn(submenuPopup1, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      try {
+        // Activate aim guard for the root submenu trigger.
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+        fireEvent.pointerLeave(submenuTrigger1, { clientX: 190, clientY: 94 })
+        fireEvent.pointerMove(window, { clientX: 190, clientY: 94 })
+
+        await waitFor(() => {
+          expect(getSafeTriangle('activated')).toBeInTheDocument()
+        })
+
+        const submenuTrigger2 = screen.getByTestId('submenu-trigger-2')
+
+        fireEvent.pointerEnter(submenuTrigger2, {
+          pointerType: 'mouse',
+          clientX: 270,
+          clientY: 95,
+        })
+        fireEvent.pointerMove(submenuTrigger2, {
+          pointerType: 'mouse',
+          clientX: 270,
+          clientY: 95,
+        })
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu-2')).toBeInTheDocument()
+        })
+
+        const submenuPopup2 = screen.getByTestId('popup-submenu-2')
+        const trigger2RectSpy = vi
+          .spyOn(submenuTrigger2, 'getBoundingClientRect')
+          .mockImplementation(() =>
+            createRect({ top: 90, left: 250, width: 120, height: 30 }),
+          )
+        const popup2RectSpy = vi
+          .spyOn(submenuPopup2, 'getBoundingClientRect')
+          .mockImplementation(() =>
+            createRect({ top: 70, left: 430, width: 180, height: 160 }),
+          )
+
+        try {
+          // Force a position update after geometry overrides are in place.
+          fireEvent.pointerMove(window, {
+            pointerType: 'mouse',
+            clientX: 270,
+            clientY: 95,
+          })
+
+          await waitFor(() => {
+            expect(getSafeTriangle('hover')).toBeInTheDocument()
+          })
+        } finally {
+          trigger2RectSpy.mockRestore()
+          popup2RectSpy.mockRestore()
+        }
+      } finally {
+        trigger1RectSpy.mockRestore()
+        popup1RectSpy.mockRestore()
+      }
+    })
+
     it('renders the safe triangle in green when aim guard is activated on leave', async () => {
       const user = userEvent.setup()
       render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
