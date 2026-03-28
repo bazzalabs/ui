@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { docsSource } from '@/lib/source'
+import {
+  type DocsAudience,
+  getVisibleDocsPage,
+  getVisibleDocsParams,
+} from '@/lib/source'
 import 'rehype-callouts/theme/github'
 import { FlaskConicalIcon, TriangleDashedIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -15,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ slug?: string[] }>
 }): Promise<Metadata> {
   const slug = (await params).slug || []
-  const page = docsSource.getPage(slug)
+  const page = getVisibleDocsPage(slug)
 
   if (!page) {
     return {}
@@ -26,6 +30,7 @@ export async function generateMetadata({
     summary: string
     section: string
     badge?: 'alpha' | 'beta'
+    audience: DocsAudience
     image?: string
     body: React.ComponentType
     toc: unknown
@@ -57,6 +62,16 @@ export async function generateMetadata({
   return {
     title: pageTitle,
     description: metadata.summary,
+    robots:
+      metadata.audience === 'private'
+        ? {
+            index: false,
+            follow: false,
+          }
+        : undefined,
+    other: {
+      audience: metadata.audience,
+    },
     openGraph: {
       title: `${pageTitle} — bazza/ui`,
       description: metadata.summary,
@@ -132,7 +147,7 @@ export default async function Page({
   params: Promise<{ slug?: string[] }>
 }) {
   const slug = (await params).slug || []
-  const page = docsSource.getPage(slug)
+  const page = getVisibleDocsPage(slug)
 
   if (!page) {
     notFound()
@@ -179,9 +194,7 @@ export default async function Page({
 }
 
 export async function generateStaticParams() {
-  return docsSource.getPages().map((page) => ({
-    slug: page.slugs,
-  }))
+  return getVisibleDocsParams()
 }
 
 export const dynamicParams = false

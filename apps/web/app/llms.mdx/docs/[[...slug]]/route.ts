@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { docsSource } from '@/lib/source'
+import { getVisibleDocsPage, getVisibleDocsParams } from '@/lib/source'
 
 export const revalidate = false
 
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ slug?: string[] }> },
 ) {
   const { slug } = await params
-  const page = docsSource.getPage(slug ?? [])
+  const page = getVisibleDocsPage(slug ?? [])
   if (!page) notFound()
 
   // Get the raw MDX content using fumadocs getText API
@@ -22,5 +22,5 @@ export async function GET(
 }
 
 export function generateStaticParams() {
-  return docsSource.generateParams()
+  return getVisibleDocsParams()
 }

@@ -61,6 +61,11 @@
       "dependsOn": ["build", "registry:build"],
       "cache": false,
       "persistent": true
+    },
+    "start:portless": {
+      "dependsOn": ["build", "registry:build"],
+      "cache": false,
+      "persistent": true
     }
   }
 }
