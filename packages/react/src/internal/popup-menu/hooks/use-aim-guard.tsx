@@ -77,6 +77,28 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
 
   const guardTimerRef = React.useRef<number | null>(null)
 
+  const logAimGuard = React.useCallback(
+    (eventName: string, details?: Record<string, unknown>) => {
+      if (typeof window === 'undefined') {
+        return
+      }
+
+      console.log(`[PopupMenu][AimGuardProvider] ${eventName}`, {
+        aimGuardActive: aimGuardActiveRef.current,
+        guardedTriggerId: guardedTriggerIdRef.current,
+        guardedDepth: guardedDepthRef.current,
+        guardedSubmenuSurfaceId: guardedSubmenuSurfaceIdRef.current,
+        ...details,
+      })
+    },
+    [
+      aimGuardActiveRef,
+      guardedTriggerIdRef,
+      guardedDepthRef,
+      guardedSubmenuSurfaceIdRef,
+    ],
+  )
+
   const resetAimGuardState = React.useCallback(() => {
     aimGuardActiveRef.current = false
     guardedTriggerIdRef.current = null
@@ -93,8 +115,9 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       window.clearTimeout(guardTimerRef.current)
       guardTimerRef.current = null
     }
+    logAimGuard('clear')
     resetAimGuardState()
-  }, [resetAimGuardState])
+  }, [resetAimGuardState, logAimGuard])
 
   const activateAimGuard = React.useCallback(
     (
@@ -103,6 +126,12 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       submenuSurfaceId: string,
       timeoutMs = 450,
     ) => {
+      logAimGuard('activate', {
+        triggerId,
+        depth,
+        submenuSurfaceId,
+        timeoutMs,
+      })
       aimGuardActiveRef.current = true
       guardedTriggerIdRef.current = triggerId
       guardedDepthRef.current = depth
@@ -115,11 +144,16 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
         window.clearTimeout(guardTimerRef.current)
       }
       guardTimerRef.current = window.setTimeout(() => {
+        logAimGuard('timeout-expired', {
+          triggerId,
+          depth,
+          submenuSurfaceId,
+        })
         resetAimGuardState()
         guardTimerRef.current = null
       }, timeoutMs) as unknown as number
     },
-    [resetAimGuardState],
+    [resetAimGuardState, logAimGuard],
   )
 
   React.useEffect(() => {
@@ -128,8 +162,10 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
         window.clearTimeout(guardTimerRef.current)
         guardTimerRef.current = null
       }
+
+      logAimGuard('provider-unmount-clear')
     }
-  }, [])
+  }, [logAimGuard])
 
   const isGuardBlocking = React.useCallback(
     (rowId: string) =>

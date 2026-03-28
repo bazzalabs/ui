@@ -450,6 +450,10 @@ function createRect({
   } as DOMRect
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -1250,6 +1254,133 @@ describe('PopupMenu', () => {
       await waitFor(() => {
         expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('continuous aim monitoring', () => {
+    const setupAimMonitoringScenario = async (closeDelay: number) => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs submenuCloseDelay={closeDelay} />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      return {
+        submenuTrigger,
+        cleanup: () => {
+          triggerRectSpy.mockRestore()
+          popupRectSpy.mockRestore()
+        },
+      }
+    }
+
+    it('closes when pointer intent changes away after an initial hit', async () => {
+      const scenario = await setupAimMonitoringScenario(0)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 190,
+          clientY: 94,
+        })
+
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+
+        fireEvent.pointerMove(window, { clientX: 140, clientY: 250 })
+        fireEvent.pointerMove(window, { clientX: 110, clientY: 275 })
+
+        await waitFor(
+          () => {
+            expect(
+              screen.queryByTestId('popup-submenu-1'),
+            ).not.toBeInTheDocument()
+          },
+          { timeout: 350 },
+        )
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('keeps submenu open when intent switches toward submenu before delayed close', async () => {
+      const scenario = await setupAimMonitoringScenario(240)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 220 })
+        fireEvent.pointerMove(window, { clientX: 160, clientY: 230 })
+        fireEvent.pointerMove(window, { clientX: 140, clientY: 240 })
+
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 130,
+          clientY: 260,
+        })
+
+        fireEvent.pointerMove(window, { clientX: 170, clientY: 200 })
+        fireEvent.pointerMove(window, { clientX: 210, clientY: 170 })
+        fireEvent.pointerMove(window, { clientX: 250, clientY: 140 })
+
+        await sleep(300)
+
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('drops aim guard immediately when pointer reverses direction after a hit', async () => {
+      const scenario = await setupAimMonitoringScenario(0)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 190,
+          clientY: 94,
+        })
+
+        fireEvent.pointerMove(window, { clientX: 178, clientY: 94 })
+        fireEvent.pointerMove(window, { clientX: 164, clientY: 94 })
+
+        const rootItem = screen.getByTestId('root-item-1')
+        fireEvent.pointerMove(rootItem, { clientX: 96, clientY: 74 })
+        fireEvent.pointerMove(rootItem, { clientX: 100, clientY: 78 })
+
+        await waitFor(
+          () => {
+            expect(rootItem).toHaveAttribute('data-highlighted', '')
+          },
+          { timeout: 250 },
+        )
+      } finally {
+        scenario.cleanup()
+      }
     })
   })
 
