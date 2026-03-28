@@ -1,4 +1,43 @@
-export type AnchorSide = 'left' | 'right'
+export type AnchorSide = 'left' | 'right' | 'top' | 'bottom'
+
+function resolveSideFromPoint(rect: DOMRect, x: number, y: number): AnchorSide {
+  const outsideCandidates: Array<{ side: AnchorSide; gap: number }> = []
+
+  const leftGap = rect.left - x
+  if (leftGap > 0) {
+    outsideCandidates.push({ side: 'left', gap: leftGap })
+  }
+
+  const rightGap = x - rect.right
+  if (rightGap > 0) {
+    outsideCandidates.push({ side: 'right', gap: rightGap })
+  }
+
+  const topGap = rect.top - y
+  if (topGap > 0) {
+    outsideCandidates.push({ side: 'top', gap: topGap })
+  }
+
+  const bottomGap = y - rect.bottom
+  if (bottomGap > 0) {
+    outsideCandidates.push({ side: 'bottom', gap: bottomGap })
+  }
+
+  if (outsideCandidates.length > 0) {
+    outsideCandidates.sort((a, b) => b.gap - a.gap)
+    return outsideCandidates[0]!.side
+  }
+
+  const insideDistances: Array<{ side: AnchorSide; value: number }> = [
+    { side: 'left', value: Math.abs(x - rect.left) },
+    { side: 'right', value: Math.abs(x - rect.right) },
+    { side: 'top', value: Math.abs(y - rect.top) },
+    { side: 'bottom', value: Math.abs(y - rect.bottom) },
+  ]
+
+  insideDistances.sort((a, b) => a.value - b.value)
+  return insideDistances[0]!.side
+}
 
 /**
  * Determines which side of the submenu the trigger is anchored to.
@@ -8,14 +47,28 @@ export function resolveAnchorSide(
   rect: DOMRect,
   tRect: DOMRect | null,
   mx: number,
+  my?: number,
 ): AnchorSide {
   if (tRect) {
     const tx = (tRect.left + tRect.right) / 2
-    const dL = Math.abs(tx - rect.left)
-    const dR = Math.abs(tx - rect.right)
-    return dL <= dR ? 'left' : 'right'
+    const ty = (tRect.top + tRect.bottom) / 2
+
+    return resolveSideFromPoint(rect, tx, ty)
   }
-  return mx < rect.left ? 'left' : 'right'
+
+  if (my === undefined) {
+    if (mx < rect.left) {
+      return 'left'
+    }
+    if (mx > rect.right) {
+      return 'right'
+    }
+
+    const centerX = (rect.left + rect.right) / 2
+    return mx <= centerX ? 'left' : 'right'
+  }
+
+  return resolveSideFromPoint(rect, mx, my)
 }
 
 /**
@@ -44,10 +97,18 @@ export function getSmoothedHeading(
   if (mag < 0.5) {
     const tx = tRect ? (tRect.left + tRect.right) / 2 : exitX
     const ty = tRect ? (tRect.top + tRect.bottom) / 2 : exitY
-    const edgeX = anchor === 'right' ? rect.left : rect.right
-    const edgeCy = (rect.top + rect.bottom) / 2
-    dx = edgeX - tx
-    dy = edgeCy - ty
+
+    if (anchor === 'left' || anchor === 'right') {
+      const edgeX = anchor === 'right' ? rect.right : rect.left
+      const edgeCy = (rect.top + rect.bottom) / 2
+      dx = edgeX - tx
+      dy = edgeCy - ty
+    } else {
+      const edgeY = anchor === 'top' ? rect.top : rect.bottom
+      const edgeCx = (rect.left + rect.right) / 2
+      dx = edgeCx - tx
+      dy = edgeY - ty
+    }
   }
   return { dx, dy }
 }
@@ -65,16 +126,46 @@ export function willHitSubmenu(
   triggerRect: DOMRect | null,
 ): boolean {
   const { dx, dy } = heading
-  if (Math.abs(dx) < 0.01) return false
-  if (anchor === 'left' && dx <= 0) return false
-  if (anchor === 'right' && dx >= 0) return false
-  const edgeX = anchor === 'left' ? rect.left : rect.right
-  const t = (edgeX - exitX) / dx
+
+  const isHorizontal = anchor === 'left' || anchor === 'right'
+  const primary = isHorizontal ? dx : dy
+  if (Math.abs(primary) < 0.01) {
+    return false
+  }
+
+  if (
+    (anchor === 'left' && dx <= 0) ||
+    (anchor === 'right' && dx >= 0) ||
+    (anchor === 'top' && dy <= 0) ||
+    (anchor === 'bottom' && dy >= 0)
+  ) {
+    return false
+  }
+
+  const edge =
+    anchor === 'left'
+      ? rect.left
+      : anchor === 'right'
+        ? rect.right
+        : anchor === 'top'
+          ? rect.top
+          : rect.bottom
+
+  const t = (edge - (isHorizontal ? exitX : exitY)) / primary
   if (t <= 0) return false
-  const yAtEdge = exitY + t * dy
-  const baseBand = triggerRect ? triggerRect.height * 0.75 : 28
+
+  const projected = isHorizontal ? exitY + t * dy : exitX + t * dx
+
+  const triggerCrossSize = triggerRect
+    ? isHorizontal
+      ? triggerRect.height
+      : triggerRect.width
+    : null
+  const baseBand = triggerCrossSize ? triggerCrossSize * 0.75 : 28
   const extra = Math.max(12, Math.min(36, baseBand))
-  const top = rect.top - extra * 0.25
-  const bottom = rect.bottom + extra * 0.25
-  return yAtEdge >= top && yAtEdge <= bottom
+
+  const min = (isHorizontal ? rect.top : rect.left) - extra * 0.25
+  const max = (isHorizontal ? rect.bottom : rect.right) + extra * 0.25
+
+  return projected >= min && projected <= max
 }
