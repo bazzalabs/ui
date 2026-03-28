@@ -15,7 +15,7 @@ jobs:
       NEXT_PUBLIC_APP_URL: "http://localhost:3000"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
