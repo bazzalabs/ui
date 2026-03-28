@@ -77,11 +77,7 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
 
   const guardTimerRef = React.useRef<number | null>(null)
 
-  const clearAimGuard = React.useCallback(() => {
-    if (guardTimerRef.current) {
-      window.clearTimeout(guardTimerRef.current)
-      guardTimerRef.current = null
-    }
+  const resetAimGuardState = React.useCallback(() => {
     aimGuardActiveRef.current = false
     guardedTriggerIdRef.current = null
     guardedDepthRef.current = null
@@ -91,6 +87,14 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
     setGuardedDepth(null)
     setGuardedSubmenuSurfaceId(null)
   }, [])
+
+  const clearAimGuard = React.useCallback(() => {
+    if (guardTimerRef.current !== null) {
+      window.clearTimeout(guardTimerRef.current)
+      guardTimerRef.current = null
+    }
+    resetAimGuardState()
+  }, [resetAimGuardState])
 
   const activateAimGuard = React.useCallback(
     (
@@ -107,21 +111,25 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       setGuardedDepth(depth)
       setGuardedSubmenuSurfaceId(submenuSurfaceId)
       setAimGuardActive(true)
-      if (guardTimerRef.current) window.clearTimeout(guardTimerRef.current)
+      if (guardTimerRef.current !== null) {
+        window.clearTimeout(guardTimerRef.current)
+      }
       guardTimerRef.current = window.setTimeout(() => {
-        aimGuardActiveRef.current = false
-        guardedTriggerIdRef.current = null
-        guardedDepthRef.current = null
-        guardedSubmenuSurfaceIdRef.current = null
-        setAimGuardActive(false)
-        setGuardedTriggerId(null)
-        setGuardedDepth(null)
-        setGuardedSubmenuSurfaceId(null)
+        resetAimGuardState()
         guardTimerRef.current = null
       }, timeoutMs) as unknown as number
     },
-    [],
+    [resetAimGuardState],
   )
+
+  React.useEffect(() => {
+    return () => {
+      if (guardTimerRef.current !== null) {
+        window.clearTimeout(guardTimerRef.current)
+        guardTimerRef.current = null
+      }
+    }
+  }, [])
 
   const isGuardBlocking = React.useCallback(
     (rowId: string) =>

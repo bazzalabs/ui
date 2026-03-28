@@ -1122,6 +1122,74 @@ describe('PopupMenu', () => {
     })
   })
 
+  describe('aim guard lifecycle', () => {
+    it('clears aim guard when the root menu closes', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+
+        fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
+        fireEvent.pointerMove(window, { clientX: 190, clientY: 94 })
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+        })
+
+        await user.click(screen.getByTestId('trigger'))
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+        })
+
+        const rootItem = screen.getByTestId('root-item-1')
+
+        fireEvent.pointerMove(rootItem, { clientX: 96, clientY: 74 })
+        fireEvent.pointerMove(rootItem, { clientX: 100, clientY: 78 })
+
+        await waitFor(
+          () => {
+            expect(rootItem).toHaveAttribute('data-highlighted', '')
+          },
+          { timeout: 250 },
+        )
+      } finally {
+        triggerRectSpy.mockRestore()
+        popupRectSpy.mockRestore()
+      }
+    })
+  })
+
   describe('search and filtering', () => {
     it('filters items by keyword search', async () => {
       const user = userEvent.setup()
