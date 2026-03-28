@@ -24,8 +24,8 @@
     "prepare": "husky",
     "changeset": "changeset add",
     "ci:version": "changeset version && bun install",
-    "ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish || true); done && changeset tag",
-    "ci:publish:canary": "for dir in packages/*; do (cd \"$dir\" && bun publish --tag canary || true); done && changeset tag"
+    "ci:publish": "(cd packages/react && bun publish || true) && (cd packages/filters && bun publish || true) && changeset tag",
+    "ci:publish:canary": "(cd packages/react && bun publish --tag canary || true) && (cd packages/filters && bun publish --tag canary || true) && changeset tag"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",
