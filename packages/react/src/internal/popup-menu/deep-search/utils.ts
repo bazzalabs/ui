@@ -324,7 +324,9 @@ export function scoreNodes(
   flattenedNodes: FlattenedNode[],
   query: string,
 ): ScoredNode[] {
-  if (!query) {
+  const normalizedQuery = normalizeValue(query)
+
+  if (!normalizedQuery) {
     // No query - return all nodes with score 1
     return flattenedNodes.map(
       ({ node, breadcrumbs, group, radioGroup }): ScoredNode => ({
@@ -346,7 +348,11 @@ export function scoreNodes(
       ?.map((k) => normalizeValue(k))
       .filter(Boolean)
 
-    const fuzzyScore = commandScore(normalizedValue, query, normalizedKeywords)
+    const fuzzyScore = commandScore(
+      normalizedValue,
+      normalizedQuery,
+      normalizedKeywords,
+    )
     const score = node.forceScore ?? fuzzyScore
 
     if (score > 0) {
@@ -1244,10 +1250,13 @@ export function filterNodes(options: FilterNodesOptions): {
     highlightedId,
     groupSearchBehavior = 'preserve',
   } = options
+  const normalizedQuery = normalizeValue(query)
+  const normalizedOptions =
+    normalizedQuery === query ? options : { ...options, query: normalizedQuery }
 
   // Browse mode - no query
   // Always preserve groups in browse mode (groupSearchBehavior only affects search)
-  if (!query) {
+  if (!normalizedQuery) {
     return {
       displayNodes: getBrowseNodesPreserve(nodes, highlightedId),
       isDeepSearching: false,
@@ -1256,10 +1265,10 @@ export function filterNodes(options: FilterNodesOptions): {
 
   // Search mode - dispatch based on group search behavior
   if (groupSearchBehavior === 'preserve') {
-    return filterNodesPreserve(options)
+    return filterNodesPreserve(normalizedOptions)
   }
 
-  return filterNodesFlatten(options)
+  return filterNodesFlatten(normalizedOptions)
 }
 
 // ============================================================================
