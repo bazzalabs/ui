@@ -1,0 +1,331 @@
+---
+title: Virtualization
+section: Components
+summary: "Optimize performance for large menus with virtual scrolling."
+---
+
+## Overview
+
+Virtualization (also called "windowing") improves performance for large menus by only rendering items that are visible in the viewport. This allows menus with thousands of items to remain smooth and responsive.
+
+The action menu uses [TanStack Virtual](https://tanstack.com/virtual) under the hood for efficient virtual scrolling.
+
+## When to Use Virtualization
+
+Virtualization is **always enabled** by default. However, you may want to customize it when:
+
+- Menu items have **variable heights**
+- You want to optimize **overscan** for slower devices
+- You need to fine-tune performance for very large datasets (1000+ items)
+
+For most use cases, the default configuration works perfectly.
+
+## Configuration
+
+### Type Definition
+
+```tsx
+type VirtualizationConfig = {
+  overscan?: number // Default: 12
+  estimateSize?: number // Default: 32
+}
+```
+
+### Basic Usage
+
+```tsx
+const menu = {
+  virtualization: {
+    estimateSize: 40, // Each item is ~40px tall
+    overscan: 10, // Render 10 extra items above/below viewport
+  },
+  nodes: [...], // Your menu items
+}
+```
+
+## Configuration Options
+
+### `estimateSize`
+
+The estimated height of each menu item in pixels.
+
+- **Type**: `number`
+- **Default**: `32`
+- **Description**: Used to calculate scroll positions before items are measured
+
+```tsx
+const menu = {
+  virtualization: {
+    estimateSize: 48, // Larger items
+  },
+  // ...
+}
+```
+
+**When to adjust:**
+- Items have custom heights (icons, descriptions, etc.)
+- Using larger padding or font sizes in your theme
+- Items with variable content (truncated vs. full text)
+
+**Tip**: Set this to the average height of your items. The virtualizer will measure actual heights as items render, but a good estimate reduces layout shift.
+
+### `overscan`
+
+The number of items to render outside the visible viewport.
+
+- **Type**: `number`
+- **Default**: `12`
+- **Description**: Prevents blank space when scrolling quickly
+
+```tsx
+const menu = {
+  virtualization: {
+    overscan: 20, // Render 20 extra items above and below
+  },
+  // ...
+}
+```
+
+**When to adjust:**
+- **Increase** (15-30): For fast scrolling or slow rendering
+- **Decrease** (5-10): For very large items or memory constraints
+- **Keep default** (12): For most use cases
+
+**Performance trade-off:**
+- **Higher overscan** = smoother scrolling, more DOM elements
+- **Lower overscan** = fewer DOM elements, potential blank space when scrolling fast
+
+## Per-Submenu Configuration
+
+Each submenu can have its own virtualization settings:
+
+```tsx
+const menu = {
+  virtualization: {
+    estimateSize: 32, // Root menu items
+  },
+  nodes: [
+    { kind: 'item', id: '1', label: 'Root Item' },
+    {
+      kind: 'submenu',
+      id: 'large-submenu',
+      label: 'Large Submenu',
+      virtualization: {
+        estimateSize: 50, // Submenu has larger items
+        overscan: 15,
+      },
+      nodes: [...], // Many items
+    },
+  ],
+}
+```
+
+## Variable Item Heights
+
+If your items have significantly different heights, the virtualizer automatically measures and adjusts:
+
+```tsx
+const menu = {
+  virtualization: {
+    estimateSize: 40, // Average height
+  },
+  nodes: [
+    { kind: 'item', id: '1', label: 'Short' }, // Might be 32px
+    { kind: 'item', id: '2', label: 'Tall item with description' }, // Might be 60px
+    { kind: 'item', id: '3', label: 'Medium' }, // Might be 40px
+  ],
+}
+```
+
+The virtualizer will:
+1. Initially render items at `estimateSize` height
+2. Measure actual heights as items render
+3. Adjust scroll positions dynamically
+4. Cache measurements for performance
+
+## Performance Optimization
+
+### Optimize Estimate Size
+
+Accurate estimates reduce layout shift:
+
+```tsx
+// Measure your actual item heights in the browser
+// Then set estimateSize to the average
+const menu = {
+  virtualization: {
+    estimateSize: 42, // Based on actual measurements
+  },
+  // ...
+}
+```
+
+### Dynamic Overscan
+
+Adjust overscan based on device performance:
+
+```tsx
+const menu = {
+  virtualization: {
+    overscan: isMobile ? 8 : 15,
+  },
+  // ...
+}
+```
+
+### Disable for Small Menus
+
+Virtualization has a tiny overhead. For very small menus (< 50 items), it doesn't matter, but if you want to disable it:
+
+**Note**: There's no built-in way to disable virtualization, as it's always beneficial. The overhead is negligible even for small lists.
+
+## Common Patterns
+
+### Large Dataset with Async Loading
+
+```tsx
+const menu = {
+  virtualization: {
+    estimateSize: 36,
+    overscan: 20, // Render more items for smooth scrolling
+  },
+  loader: async ({ query }) => {
+    // Load thousands of items
+    return await fetchLargeDataset(query)
+  },
+}
+```
+
+### Variable Heights with Descriptions
+
+```tsx
+const theme = {
+  slots: {
+    Item: ({ node, bind }) => (
+      <li {...bind.getRowProps()} className="py-2">
+        <div className="font-medium">{node.label}</div>
+        {node.data.description && (
+          <div className="text-sm text-muted">{node.data.description}</div>
+        )}
+      </li>
+    ),
+  },
+}
+
+const menu = {
+  virtualization: {
+    estimateSize: 52, // Taller to account for descriptions
+  },
+  nodes: [
+    {
+      kind: 'item',
+      id: '1',
+      label: 'Item with description',
+      data: { description: 'This is a longer description' },
+    },
+    // ...
+  ],
+}
+```
+
+### Mixed Content Heights
+
+```tsx
+const menu = {
+  virtualization: {
+    estimateSize: 40, // Average of small (32px) and large (60px) items
+  },
+  nodes: [
+    { kind: 'separator', id: 'sep-1' }, // ~20px
+    { kind: 'item', id: '1', label: 'Regular item' }, // ~32px
+    { kind: 'group', heading: 'Group', nodes: [...] }, // ~24px heading
+    { kind: 'item', id: '2', label: 'Item with icon', icon: '🎨' }, // ~40px
+  ],
+}
+```
+
+## Debugging
+
+### Measuring Actual Heights
+
+Use browser DevTools to measure your rendered items:
+
+```tsx
+// In your browser console after opening the menu
+const items = document.querySelectorAll('[data-index]')
+const heights = Array.from(items).map(el => el.getBoundingClientRect().height)
+const average = heights.reduce((a, b) => a + b, 0) / heights.length
+console.log('Average height:', average)
+console.log('All heights:', heights)
+```
+
+### Visualizing Overscan
+
+The virtualizer renders items based on scroll position. Items in the overscan area are rendered but not visible.
+
+```
+┌─────────────────────┐
+│   Overscan (top)    │ ← Rendered but above viewport
+├─────────────────────┤
+│                     │
+│   Visible Items     │ ← Currently visible
+│                     │
+├─────────────────────┤
+│  Overscan (bottom)  │ ← Rendered but below viewport
+└─────────────────────┘
+```
+
+## Best Practices
+
+1. **Set accurate `estimateSize`**
+   - Measure your actual item heights
+   - Use the average if heights vary
+   - Reduces layout shift and improves UX
+
+2. **Increase `overscan` for fast scrolling**
+   - More overscan = smoother experience
+   - Slight memory overhead is usually worth it
+
+3. **Decrease `overscan` for memory constraints**
+   - If targeting low-end devices
+   - If items are very large or complex
+   - Monitor memory usage in DevTools
+
+4. **Don't overthink it**
+   - Defaults work well for most cases
+   - Only customize if you notice issues
+   - Profile before optimizing
+
+## Technical Details
+
+### How Virtualization Works
+
+1. **Calculate visible range**
+   - Based on scroll position and container height
+   - Includes overscan items above and below
+
+2. **Render only visible items**
+   - DOM only contains items in the visible range
+   - Absolute positioning maintains scroll height
+
+3. **Measure and cache**
+   - Measures actual item heights as they render
+   - Caches measurements for smooth scrolling
+   - Updates scroll positions dynamically
+
+4. **Scroll container**
+   - Total height is calculated from all items
+   - Items are absolutely positioned
+   - Scroll events trigger re-renders of visible range
+
+### Performance Characteristics
+
+- **Memory**: O(overscan) instead of O(n)
+- **Render time**: Constant, regardless of total items
+- **Scroll performance**: Smooth even with 10,000+ items
+
+## Related
+
+- [Async Loading](/docs/action-menu/async) - Loading large datasets
+- [Search](/docs/action-menu/search) - Filtering large lists
+- [Theming](/docs/action-menu/theming) - Customizing item heights

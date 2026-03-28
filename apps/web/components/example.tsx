@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+import { cache, type ReactNode } from 'react'
+import { codeToHtml } from 'shiki'
+import { oscuraMidnight } from '@/lib/oscura/oscura-midnight'
 import { transformRegistryPaths } from '@/lib/registry'
 import { getRegistryEntrySources } from '@/lib/registry.server'
 import {
@@ -55,22 +57,24 @@ async function ExampleRoot({
   // Fetch and highlight all source files
   const sources = await getRegistryEntrySources(name)
 
-  const processedSources = sources.map((source) => {
-    const content = transformPaths
-      ? transformRegistryPaths(source.content)
-      : source.content
-    const fileName = getFileName(source.path)
-    return {
-      path: source.path,
-      fileName,
-      content,
-      highlighted: (
-        <pre>
-          <code>{content}</code>
-        </pre>
-      ),
-    }
-  })
+  const processedSources = await Promise.all(
+    sources.map(async (source) => {
+      const content = transformPaths
+        ? transformRegistryPaths(source.content)
+        : source.content
+      const fileName = getFileName(source.path)
+
+      return {
+        path: source.path,
+        fileName,
+        content,
+        highlighted: await getHighlightedCodeNode(
+          content,
+          getLanguageFromPath(fileName),
+        ),
+      }
+    }),
+  )
 
   const fileNames = processedSources.map((s) => s.fileName)
   const contents = processedSources.map((s) => s.content)
@@ -138,19 +142,17 @@ export interface ExamplePreviewCodeProps {
  * </Example>
  * ```
  */
-function ExamplePreviewCode({
+async function ExamplePreviewCode({
   children,
   lang = 'tsx',
 }: ExamplePreviewCodeProps) {
-  // If children is a string, render as plain code
+  // If children is a string, render as highlighted code
   if (typeof children === 'string') {
     const code = children.trim()
     return (
       <div data-example-slot="preview-code">
         <ExamplePreviewCodeContent>
-          <pre>
-            <code>{code}</code>
-          </pre>
+          {await getHighlightedCodeNode(code, getLanguageFromPreviewCode(lang))}
         </ExamplePreviewCodeContent>
       </div>
     )
@@ -191,6 +193,83 @@ function ExamplePreviewComponent({ className }: ExamplePreviewComponentProps) {
   return (
     <div data-example-slot="preview-component" data-class-name={className} />
   )
+}
+
+const highlightCode = cache(async (code: string, language: string) => {
+  try {
+    return await codeToHtml(code, {
+      lang: language,
+      themes: {
+        light: 'github-light',
+        dark: oscuraMidnight,
+      },
+      defaultColor: false,
+    })
+  } catch {
+    return `${escapeHtml(code)}`
+  }
+})
+
+async function getHighlightedCodeNode(code: string, language: string) {
+  const html = await highlightCode(code, language)
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: allowed
+  return <div dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+function getLanguageFromPath(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase()
+
+  switch (extension) {
+    case 'ts':
+      return 'ts'
+    case 'tsx':
+      return 'tsx'
+    case 'js':
+      return 'js'
+    case 'jsx':
+      return 'jsx'
+    case 'mdx':
+      return 'mdx'
+    case 'md':
+      return 'md'
+    case 'json':
+      return 'json'
+    case 'css':
+      return 'css'
+    case 'html':
+      return 'html'
+    case 'sh':
+      return 'bash'
+    case 'yml':
+    case 'yaml':
+      return 'yaml'
+    default:
+      return 'tsx'
+  }
+}
+
+function getLanguageFromPreviewCode(
+  lang: ExamplePreviewCodeProps['lang'],
+): string {
+  switch (lang) {
+    case 'typescript':
+      return 'ts'
+    case 'javascript':
+      return 'js'
+    case 'sh':
+      return 'bash'
+    default:
+      return lang ?? 'plain'
+  }
+}
+
+function escapeHtml(code: string) {
+  return code
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 // Compound component pattern
