@@ -17,7 +17,6 @@ export {
   useFilterEntityName,
   useFilterLocale,
   useFilterStrategy,
-  useFilterVariant,
 } from '../components/root/filter-context'
 export { FilterRoot as Root } from '../components/root/filter-root'
 export { FilterTrigger as Trigger } from '../components/trigger/filter-trigger'

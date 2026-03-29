@@ -48,12 +48,6 @@ export type RegistryIndex = Record<string, RegistryEntry>
 // All files are shown as tabs in the code viewer.
 
 export const examples: RegistryIndex = {
-  'filter-variants': {
-    name: 'filter-variants',
-    type: 'registry:example',
-    component: React.lazy(() => import('@/registry/examples/filter-variants')),
-    files: ['registry/examples/filter-variants.tsx'],
-  },
   'dropdown-menu-basic': {
     name: 'dropdown-menu-basic',
     type: 'registry:example',

@@ -14,10 +14,7 @@ export type { FilterListProps } from '../components/list/filter-list'
 export type { FilterListMobileContainerProps } from '../components/list/filter-list-mobile-container'
 export type { FilterMenuProps } from '../components/menu/filter-menu'
 export type { FilterProviderProps } from '../components/provider/filter-provider'
-export type {
-  FilterContextValue,
-  FilterVariant,
-} from '../components/root/filter-context'
+export type { FilterContextValue } from '../components/root/filter-context'
 export type { FilterRootProps } from '../components/root/filter-root'
 export type { FilterTriggerProps } from '../components/trigger/filter-trigger'
 export type { OptionEditorContentProps } from '../components/value/editors/option-editor'

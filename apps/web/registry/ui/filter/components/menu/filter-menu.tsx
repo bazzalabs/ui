@@ -26,11 +26,7 @@ import type {
 import * as React from 'react'
 import { isValidElement, memo, useMemo } from 'react'
 import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
-import {
-  type FilterVariant,
-  useFilterContext,
-  useFilterVariant,
-} from '../root/filter-context'
+import { useFilterContext } from '../root/filter-context'
 import { FilterTrigger } from '../trigger/filter-trigger'
 import {
   createMultiOptionMenu,
@@ -405,7 +401,6 @@ export interface FilterMenuProps<TData = unknown> {
   rootProps?: Partial<
     Omit<React.ComponentProps<typeof DropdownMenu.Root>, 'children'>
   >
-  variant?: FilterVariant
 }
 
 function __FilterMenu<TData>({
@@ -416,18 +411,15 @@ function __FilterMenu<TData>({
   locale: localeProp,
   children,
   rootProps,
-  variant: variantProp,
 }: FilterMenuProps<TData>) {
   // Get values from context if not provided as props
   const context = useFilterContext<TData>()
-  const contextVariant = useFilterVariant()
 
   const columns = columnsProp ?? context.columns
   const filters = filtersProp ?? context.filters
   const actions = actionsProp ?? context.actions
   const strategy = strategyProp ?? context.strategy
   const locale = localeProp ?? context.locale ?? 'en'
-  const variant = variantProp ?? contextVariant
 
   const visibleColumns = useMemo(
     () => columns.filter((c) => !c.hidden),
@@ -532,11 +524,7 @@ function __FilterMenu<TData>({
   )
 
   const triggerElement = children ?? (
-    <FilterTrigger
-      hasVisibleFilters={hasVisibleFilters}
-      locale={locale}
-      variant={variant}
-    />
+    <FilterTrigger hasVisibleFilters={hasVisibleFilters} locale={locale} />
   )
 
   return (

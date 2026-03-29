@@ -9,12 +9,10 @@ import type {
   Locale,
 } from '@bazza-ui/filters'
 import { useFilterItemContext } from '../components/item/filter-item'
-import type { FilterVariant } from '../components/root/filter-context'
 import {
   useFilterActions,
   useFilterLocale,
   useFilterStrategy,
-  useFilterVariant,
 } from '../components/root/filter-context'
 
 /**
@@ -31,7 +29,6 @@ export interface UseResolvedFilterPropsInput<
   strategy?: FilterStrategy
   locale?: Locale
   entityName?: string
-  variant?: FilterVariant
 }
 
 /**
@@ -40,7 +37,6 @@ export interface UseResolvedFilterPropsInput<
 export interface ResolvedFilterPropsBase {
   actions: DataTableFilterActions
   locale: Locale
-  variant: FilterVariant
 }
 
 /**
@@ -91,7 +87,6 @@ export function useResolvedFilterProps<
   const filterActions = useFilterActions()
   const filterStrategy = useFilterStrategy()
   const filterLocale = useFilterLocale()
-  const contextVariant = useFilterVariant()
 
   const column = props.column ?? itemContext?.column
   const filter = props.filter ?? itemContext?.filter
@@ -99,7 +94,6 @@ export function useResolvedFilterProps<
   const strategy = props.strategy ?? itemContext?.strategy ?? filterStrategy
   const locale = props.locale ?? itemContext?.locale ?? filterLocale ?? 'en'
   const entityName = props.entityName ?? itemContext?.entityName
-  const variant = props.variant ?? contextVariant ?? 'default'
 
   if (!column || !filter || !actions || !strategy) {
     return null
@@ -112,7 +106,6 @@ export function useResolvedFilterProps<
     strategy,
     locale,
     entityName,
-    variant,
   }
 }
 
@@ -126,17 +119,15 @@ export function useResolvedColumnProps<
 >(
   props: Pick<
     UseResolvedFilterPropsInput<TData, TType>,
-    'column' | 'entityName' | 'variant'
+    'column' | 'entityName'
   >,
 ): ResolvedFilterPropsWithColumn<TData, TType> | null {
   const itemContext = useFilterItemContext<TData, TType>()
   const filterLocale = useFilterLocale()
   const filterActions = useFilterActions()
-  const contextVariant = useFilterVariant()
 
   const column = props.column ?? itemContext?.column
   const entityName = props.entityName ?? itemContext?.entityName
-  const variant = props.variant ?? contextVariant ?? 'default'
   const locale = itemContext?.locale ?? filterLocale ?? 'en'
   const actions = itemContext?.actions ?? filterActions
 
@@ -149,7 +140,6 @@ export function useResolvedColumnProps<
     actions,
     locale,
     entityName,
-    variant,
   }
 }
 
@@ -158,16 +148,14 @@ export function useResolvedColumnProps<
  * Used by FilterRemove which doesn't need column.
  */
 export function useResolvedFilterActionsProps(
-  props: Pick<UseResolvedFilterPropsInput, 'filter' | 'actions' | 'variant'>,
+  props: Pick<UseResolvedFilterPropsInput, 'filter' | 'actions'>,
 ): ResolvedFilterPropsWithActions | null {
   const itemContext = useFilterItemContext()
   const filterActions = useFilterActions()
   const filterLocale = useFilterLocale()
-  const contextVariant = useFilterVariant()
 
   const filter = props.filter ?? itemContext?.filter
   const actions = props.actions ?? itemContext?.actions ?? filterActions
-  const variant = props.variant ?? contextVariant ?? 'default'
   const locale = itemContext?.locale ?? filterLocale ?? 'en'
 
   if (!filter || !actions) {
@@ -178,6 +166,5 @@ export function useResolvedFilterActionsProps(
     filter,
     actions,
     locale,
-    variant,
   }
 }

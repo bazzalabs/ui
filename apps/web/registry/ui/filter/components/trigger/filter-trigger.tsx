@@ -5,12 +5,10 @@ import { ListFilterIcon } from 'lucide-react'
 import { type ComponentPropsWithoutRef, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { FilterVariant } from '../root/filter-context'
 
 export interface FilterTriggerProps extends ComponentPropsWithoutRef<'button'> {
   hasVisibleFilters?: boolean
   locale?: Locale
-  variant?: FilterVariant
 }
 
 /**
@@ -23,14 +21,7 @@ export interface FilterTriggerProps extends ComponentPropsWithoutRef<'button'> {
  */
 const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
   (
-    {
-      className,
-      children,
-      hasVisibleFilters = false,
-      locale = 'en',
-      variant,
-      ...props
-    },
+    { className, children, hasVisibleFilters = false, locale = 'en', ...props },
     ref,
   ) => {
     return (

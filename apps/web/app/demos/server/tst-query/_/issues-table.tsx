@@ -148,7 +148,6 @@ export function IssuesTable({
             actions={actions}
             strategy={strategy}
             locale="en"
-            variant="clean"
           >
             <Filter.Root>
               <div className="flex md:flex-wrap gap-2 w-full flex-1">

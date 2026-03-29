@@ -23,7 +23,6 @@ export {
   useFilterEntityName,
   useFilterLocale,
   useFilterStrategy,
-  useFilterVariant,
 } from '../components/root/filter-context'
 
 export { FilterRoot as Root } from '../components/root/filter-root'

@@ -35,11 +35,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import {
-  type FilterVariant,
-  useFilterContext,
-  useFilterVariant,
-} from '../../../components/root/filter-context'
+import { useFilterContext } from '../../../components/root/filter-context'
 import { FilterTrigger } from '../../../components/trigger/filter-trigger'
 import { FilterValueController } from '../item/filter-value'
 
@@ -51,7 +47,6 @@ export interface FilterMenuProps<TData = unknown> {
   locale?: Locale
   children?: React.ReactElement
   rootProps?: Partial<Omit<React.ComponentProps<typeof Popover>, 'children'>>
-  variant?: FilterVariant
 }
 
 function __FilterMenu<TData>({
@@ -62,17 +57,14 @@ function __FilterMenu<TData>({
   locale: localeProp,
   children,
   rootProps,
-  variant: variantProp,
 }: FilterMenuProps<TData>) {
   const context = useFilterContext<TData>()
-  const contextVariant = useFilterVariant()
 
   const columns = columnsProp ?? context.columns
   const filters = filtersProp ?? context.filters
   const actions = actionsProp ?? context.actions
   const strategy = strategyProp ?? context.strategy
   const locale = localeProp ?? context.locale ?? 'en'
-  const variant = variantProp ?? contextVariant
 
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
@@ -206,11 +198,7 @@ function __FilterMenu<TData>({
   ])
 
   const triggerElement = children ?? (
-    <FilterTrigger
-      hasVisibleFilters={hasVisibleFilters}
-      locale={locale}
-      variant={variant}
-    />
+    <FilterTrigger hasVisibleFilters={hasVisibleFilters} locale={locale} />
   )
 
   return (
