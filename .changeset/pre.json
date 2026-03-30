@@ -9,5 +9,5 @@
     "@bazza-ui/react": "0.1.0-canary.0",
     "@bazza-ui/typescript-config": "0.0.0"
   },
-  "changesets": ["early-brooms-smile"]
+  "changesets": ["early-brooms-smile", "gold-rice-rule"]
 }
