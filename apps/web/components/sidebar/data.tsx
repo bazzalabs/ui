@@ -148,7 +148,7 @@ export const componentItems: ComponentItem[] = [
     type: 'single',
     title: 'Dropdown Menu',
     url: '/docs/dropdown-menu',
-    audience: 'preview',
+    audience: 'private',
   },
   {
     type: 'single',
