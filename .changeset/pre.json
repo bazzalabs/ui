@@ -9,23 +9,5 @@
     "@bazza-ui/react": "0.1.0-canary.0",
     "@bazza-ui/typescript-config": "0.0.0"
   },
-  "changesets": [
-    "blue-shoes-fry",
-    "blue-wings-share",
-    "bright-numbers-occur",
-    "eighty-jars-yell",
-    "filter-item-context-composability",
-    "fruity-drinks-exist",
-    "fruity-flowers-speak",
-    "fuzzy-banks-camp",
-    "lemon-insects-chew",
-    "quick-parents-beg",
-    "ripe-spies-watch",
-    "shy-snakes-shave",
-    "sixty-steaks-push",
-    "soft-feet-agree",
-    "strong-tigers-type",
-    "ten-sheep-call",
-    "yellow-chairs-grow"
-  ]
+  "changesets": ["early-brooms-smile"]
 }
