@@ -5,15 +5,27 @@ summary: Displays a menu to the user—such as a set of actions or functions—t
 audience: private
 ---
 
+<Example name="dropdown-menu-deep-search-linear" />
+
 ## Installation
 
+Install the `@bazza-ui/react` library and our styled component using our registry:
+
 ```npm
-npx shadcn@latest add {{REGISTRY_URL}}/r/dropdown-menu{{RELEASE_CHANNEL}}
+npx shadcn@latest add {{REGISTRY_URL}}/r/dropdown-menu
 ```
 
+Just like shadcn/ui wraps Radix/Base UI primitives, our styled component wraps the primitive with base styles and useful helpers, fitting in perfectly with your existing shadcn/ui components.
+
+The styled component is added to your components directory as `dropdown-menu-preview.tsx` to prevent conflicts with your existing dropdown menu component file.
+
 ```tsx
-import { DropdownMenu } from '@/components/ui/dropdown-menu';
+import { DropdownMenu } from '@/components/ui/dropdown-menu-preview';
 ```
+
+You can rename the file once you're done migrating.
+
+---
 
 If you want to install the unstyled, primitive component:
 
