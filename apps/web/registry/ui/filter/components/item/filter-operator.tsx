@@ -28,39 +28,17 @@ import type {
   RadioItemDef,
   RadioItemRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
-import { cva, type VariantProps } from 'class-variance-authority'
 import { type ComponentPropsWithoutRef, forwardRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
-import {
-  useFilterActions,
-  useFilterLocale,
-  useFilterVariant,
-} from '../root/filter-context'
+import { useFilterActions, useFilterLocale } from '../root/filter-context'
 import { useFilterItemContext } from './filter-item'
-
-const filterOperatorVariants = cva(
-  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs text-muted-foreground',
-  {
-    variants: {
-      variant: {
-        default: 'h-full rounded-none',
-        clean:
-          'border-none h-6 rounded-md shadow-xs bg-background hover:bg-background aria-expanded:bg-background aria-expanded:text-primary',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-    },
-  },
-)
 
 export interface FilterOperatorProps<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
-> extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'>,
-    VariantProps<typeof filterOperatorVariants> {
+> extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick' | 'variant'> {
   /** The column configuration. If omitted, will be read from FilterItem context. */
   column?: Column<TData, TType>
   /** The current filter state. If omitted, will be read from FilterItem context. */
@@ -164,7 +142,6 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
       actions: actionsProp,
       locale: localeProp,
       className,
-      variant: variantProp,
       ...props
     },
     ref,
@@ -172,13 +149,11 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
     const itemContext = useFilterItemContext()
     const filterActions = useFilterActions()
     const filterLocale = useFilterLocale()
-    const contextVariant = useFilterVariant()
 
     const column = columnProp ?? itemContext?.column
     const filter = filterProp ?? itemContext?.filter
     const actions = actionsProp ?? itemContext?.actions ?? filterActions
     const locale = localeProp ?? itemContext?.locale ?? filterLocale ?? 'en'
-    const variant = variantProp ?? contextVariant ?? 'default'
 
     if (!column || !filter || !actions) {
       throw new Error(
@@ -210,8 +185,7 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
               data-operator={filter.operator}
               variant="ghost"
               className={cn(
-                filterOperatorVariants({ variant }),
-                variant === 'default' ? 'text-muted-foreground' : '',
+                'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs text-muted-foreground h-full rounded-none',
                 className,
               )}
               {...props}
@@ -244,7 +218,7 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
 
 FilterOperator.displayName = 'FilterOperator'
 
-export { FilterOperator, filterOperatorVariants }
+export { FilterOperator }
 
 export namespace FilterOperator {
   export type Props<

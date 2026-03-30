@@ -25,7 +25,6 @@ import {
   t,
   take,
 } from '@bazza-ui/filters'
-import { cva } from 'class-variance-authority'
 import { format } from 'date-fns'
 import { Ellipsis } from 'lucide-react'
 import type * as React from 'react'
@@ -63,29 +62,12 @@ import {
   useFilterEntityName,
   useFilterLocale,
   useFilterStrategy,
-  useFilterVariant,
 } from '../../../components/root/filter-context'
 import { FilterValueDateController } from '../../../components/value/filter-value-date-controller'
 import { FilterValueNumberController } from '../../../components/value/filter-value-number-controller'
 import { DebouncedInput } from '../../../ui/debounced-input'
 
 type ScalarValue = string | number | bigint | boolean | Date
-
-const filterValueVariants = cva(
-  'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs',
-  {
-    variants: {
-      variant: {
-        default: 'h-full rounded-none',
-        clean:
-          'h-6 rounded-md text-primary/75 hover:text-primary hover:bg-background hover:shadow-xs aria-expanded:bg-background aria-expanded:text-primary',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-    },
-  },
-)
 
 export interface FilterValueProps<
   TData = unknown,
@@ -98,7 +80,6 @@ export interface FilterValueProps<
   locale?: Locale
   entityName?: string
   className?: string
-  variant?: 'default' | 'clean'
 }
 
 interface FilterValueControllerInput<TData, TType extends ColumnDataType> {
@@ -124,7 +105,6 @@ export const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
       locale: localeProp,
       entityName: entityNameProp,
       className,
-      variant: variantProp,
     },
     ref,
   ) => {
@@ -133,7 +113,6 @@ export const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
     const filterStrategy = useFilterStrategy()
     const filterLocale = useFilterLocale()
     const filterEntityName = useFilterEntityName()
-    const contextVariant = useFilterVariant()
 
     const filter = filterProp ?? itemContext?.filter
     const column = columnProp ?? itemContext?.column
@@ -142,7 +121,6 @@ export const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
     const locale = localeProp ?? itemContext?.locale ?? filterLocale ?? 'en'
     const entityName =
       entityNameProp ?? itemContext?.entityName ?? filterEntityName
-    const variant = variantProp ?? contextVariant ?? 'default'
 
     if (!filter || !column || !actions || !strategy) {
       throw new Error(
@@ -171,7 +149,7 @@ export const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
           data-column-type={resolvedColumn.type}
           className={cn(
             buttonVariants({ variant: 'ghost' }),
-            filterValueVariants({ variant }),
+            'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs h-full rounded-none',
             'text-primary/75 hover:bg-inherit hover:text-primary/75 hover:shadow-none',
             className,
           )}
@@ -203,7 +181,10 @@ export const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
             data-slot="filter-value"
             data-column-type={resolvedColumn.type}
             variant="ghost"
-            className={cn(filterValueVariants({ variant }), className)}
+            className={cn(
+              'm-0 w-fit whitespace-nowrap p-0 px-2 text-xs h-full rounded-none',
+              className,
+            )}
             onClick={handleClick}
           >
             <FilterValueDisplay

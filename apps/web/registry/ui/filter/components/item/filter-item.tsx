@@ -8,7 +8,6 @@ import type {
   FilterStrategy,
   Locale,
 } from '@bazza-ui/filters'
-import { cva, type VariantProps } from 'class-variance-authority'
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -16,20 +15,7 @@ import {
   useContext,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { useFilterContext, useFilterVariant } from '../root/filter-context'
-
-const filterItemVariants = cva('flex items-center text-xs font-medium', {
-  variants: {
-    variant: {
-      default:
-        'h-7 rounded-md border border-border bg-background shadow-xs divide-x',
-      clean: 'h-7.5 rounded-md bg-accent border-none shadow-none gap-x-1 px-1',
-    },
-  },
-  defaultVariants: {
-    variant: 'default',
-  },
-})
+import { useFilterContext } from '../root/filter-context'
 
 export interface FilterItemContextValue<
   TData = unknown,
@@ -65,8 +51,7 @@ export function useFilterItemContext<
 export interface FilterItemProps<
   TData = unknown,
   TType extends ColumnDataType = ColumnDataType,
-> extends Omit<ComponentPropsWithoutRef<'div'>, 'children'>,
-    VariantProps<typeof filterItemVariants> {
+> extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   filter: FilterModel<TType>
   column: Column<TData, TType>
   children?: React.ReactNode
@@ -79,13 +64,8 @@ export interface FilterItemProps<
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
 const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
-  (
-    { filter, column, children, className, variant: variantProp, ...props },
-    ref,
-  ) => {
+  ({ filter, column, children, className, ...props }, ref) => {
     const filterContext = useFilterContext()
-    const contextVariant = useFilterVariant()
-    const variant = variantProp ?? contextVariant ?? 'default'
 
     const itemContextValue: FilterItemContextValue = {
       filter,
@@ -103,7 +83,10 @@ const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
           data-slot="filter-item"
           data-column-id={column.id}
           data-column-type={column.type}
-          className={cn(filterItemVariants({ variant }), className)}
+          className={cn(
+            'flex items-center text-xs font-medium h-7 rounded-md border border-border bg-background shadow-xs divide-x',
+            className,
+          )}
           {...props}
         >
           {children}
@@ -115,7 +98,7 @@ const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
 
 FilterItem.displayName = 'FilterItem'
 
-export { FilterItem, filterItemVariants }
+export { FilterItem }
 
 export namespace FilterItem {
   export type Props<

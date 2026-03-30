@@ -64,7 +64,6 @@ export function IssuesTable() {
     <div className="w-full col-span-2">
       <div className="flex items-center pb-4 gap-2">
         <Filter.Provider
-          variant="clean"
           filters={filters}
           columns={columns}
           actions={actions}

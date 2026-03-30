@@ -71,18 +71,6 @@ import { Filter } from '@/components/ui/filter'
 </Filter.Provider>
 ```
 
-### Variants
-
-<ComponentPreview name="filter-variants" />
-
-```tsx
-<Filter.Provider variant="default">
-{/* ... */}
-</Filter.Provider>
-```
-
-We provide two styled variants for the `Filter` components: **default** and **clean**.
-
 ### Custom trigger for filter menu
 
 Use the `asChild` prop on `Filter.Trigger` to render a custom trigger element:
@@ -390,14 +378,6 @@ Returns the entity name (used for boolean filter display).
 const entityName = Filter.useFilterEntityName()
 ```
 
-### useFilterVariant
-
-Returns the current variant.
-
-```tsx
-const variant = Filter.useFilterVariant() // 'default' | 'clean'
-```
-
 ### useFilterItemContext
 
 Returns the FilterItem context (only available inside `Filter.Item`). Returns `null` if not inside a FilterItem.
@@ -547,7 +527,6 @@ FilterActionsProps
 // Context Types
 FilterContextValue<TData>
 FilterItemContextValue<TData, TType>
-FilterVariant // 'default' | 'clean'
 
 // Value Controller Props
 FilterValueControllerProps<TData, TType>

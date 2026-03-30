@@ -9,8 +9,6 @@ import type {
 } from '@bazza-ui/filters'
 import { createContext, useContext, useMemo } from 'react'
 
-export type FilterVariant = 'default' | 'clean'
-
 export interface FilterContextValue<TData = unknown> {
   columns: Column<TData>[]
   filters: FiltersState
@@ -18,7 +16,6 @@ export interface FilterContextValue<TData = unknown> {
   strategy: FilterStrategy
   locale: Locale
   entityName?: string
-  variant?: FilterVariant
 }
 
 export const FilterContext = createContext<FilterContextValue | null>(null)
@@ -59,11 +56,6 @@ export function useFilterLocale() {
 export function useFilterEntityName() {
   const { entityName } = useFilterContext()
   return entityName
-}
-
-export function useFilterVariant() {
-  const { variant } = useFilterContext()
-  return variant
 }
 
 export namespace FilterContext {

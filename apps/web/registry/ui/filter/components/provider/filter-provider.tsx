@@ -7,11 +7,7 @@ import type {
   FiltersState,
   Locale,
 } from '@bazza-ui/filters'
-import {
-  FilterContext,
-  type FilterContextValue,
-  type FilterVariant,
-} from '../root/filter-context'
+import { FilterContext, type FilterContextValue } from '../root/filter-context'
 
 export interface FilterProviderProps<TData = unknown> {
   columns: Column<TData>[]
@@ -20,7 +16,6 @@ export interface FilterProviderProps<TData = unknown> {
   strategy: FilterStrategy
   locale?: Locale
   entityName?: string
-  variant?: FilterVariant
   children: React.ReactNode
 }
 
@@ -31,7 +26,6 @@ export function FilterProvider<TData>({
   strategy,
   locale = 'en',
   entityName,
-  variant,
   children,
 }: FilterProviderProps<TData>) {
   const contextValue: FilterContextValue<TData> = {
@@ -41,7 +35,6 @@ export function FilterProvider<TData>({
     strategy,
     locale,
     entityName,
-    variant,
   }
 
   return (
