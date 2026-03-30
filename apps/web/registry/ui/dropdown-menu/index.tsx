@@ -70,7 +70,7 @@ const menuItemVariants = cva(
     'data-[highlighted]:text-accent-foreground',
     'h-8 px-4',
     'w-full',
-    // Clip overflow at row level (like Linear)
+    // Clip overflow at row level
     'overflow-hidden',
     'relative z-[1]',
     // Highlight background pseudo-element

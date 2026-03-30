@@ -1,19 +1,18 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "bazza/ui",
-  "homepage": "https://ui.bazza.dev",
+  "homepage": "https://bazza-ui.com",
   "items": [
     {
-      "name": "action-menu",
-      "title": "Action menu",
-      "description": "A menu primitive with deep search, async node loading, and submenus.",
+      "name": "dropdown-menu",
+      "title": "Dropdown menu",
       "type": "registry:component",
-      "dependencies": ["@bazza-ui/action-menu", "lucide-react"],
+      "dependencies": ["@bazza-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "registry/ui/action-menu/index.tsx",
+          "path": "registry/ui/dropdown-menu/index.tsx",
           "type": "registry:file",
-          "target": "components/ui/action-menu.tsx"
+          "target": "components/ui/dropdown-menu-preview.tsx"
         }
       ]
     },
