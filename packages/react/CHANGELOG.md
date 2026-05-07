@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.3
+
+### Minor Changes
+
+- [#289](https://github.com/bazzalabs/ui/pull/289) [`8120e94`](https://github.com/bazzalabs/ui/commit/8120e9414bca93c49d703a1133a5defa86843944) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `VideoPlayer` primitive component.
+
 ## 0.1.0-canary.2
 
 ### Patch Changes
