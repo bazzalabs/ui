@@ -17,6 +17,11 @@
       "import": "./dist/select/index.js",
       "require": "./dist/select/index.cjs"
     },
+    "./video-player": {
+      "types": "./dist/video-player/index.d.ts",
+      "import": "./dist/video-player/index.js",
+      "require": "./dist/video-player/index.cjs"
+    },
     "./combobox": {
       "types": "./dist/combobox/index.d.ts",
       "import": "./dist/combobox/index.js",
@@ -59,7 +64,8 @@
   },
   "dependencies": {
     "@base-ui/react": "1.0.0",
-    "@base-ui/utils": "0.2.3"
+    "@base-ui/utils": "0.2.3",
+    "@floating-ui/react": "^0.27.16"
   },
   "devDependencies": {
     "@bazza-ui/typescript-config": "workspace:*",

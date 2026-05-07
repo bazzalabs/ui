@@ -1,0 +1,57 @@
+---
+title: Video Player
+section: Components
+summary: Composable video players with control bar, captions, seek previews, fullscreen, and picture-in-picture.
+audience: private
+---
+
+import LinearPlayer from '@/registry/examples/video-player/linear'
+import ModernPlayer from '@/registry/examples/video-player/modern'
+import YouTubePlayer from '@/registry/examples/video-player/youtube'
+
+## Installation
+
+```npm
+npm install @bazza-ui/react{{RELEASE_CHANNEL}}
+```
+
+```tsx
+import { VideoPlayer } from '@bazza-ui/react/video-player'
+```
+
+## Anatomy
+
+```tsx
+<VideoPlayer.Root>
+  <VideoPlayer.Poster />
+  <VideoPlayer.Video src="/video.mp4">
+    <VideoPlayer.Track kind="captions" src="/captions.vtt" />
+  </VideoPlayer.Video>
+  <VideoPlayer.Overlay />
+  <VideoPlayer.Captions />
+  <VideoPlayer.Controls>
+    <VideoPlayer.PlayButton />
+    <VideoPlayer.MuteButton />
+    <VideoPlayer.VolumeSlider />
+    <VideoPlayer.TimeDisplay />
+    <VideoPlayer.SeekSlider />
+    <VideoPlayer.CaptionsButton />
+    <VideoPlayer.PictureInPictureButton />
+    <VideoPlayer.FullscreenButton />
+  </VideoPlayer.Controls>
+</VideoPlayer.Root>
+```
+
+## Examples
+
+### Linear
+
+<LinearPlayer />
+
+### Modern
+
+<ModernPlayer />
+
+### YouTube
+
+<YouTubePlayer />

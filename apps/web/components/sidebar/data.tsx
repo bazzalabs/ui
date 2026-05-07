@@ -168,6 +168,12 @@ export const componentItems: ComponentItem[] = [
     url: '/docs/combobox',
     audience: 'private',
   },
+  {
+    type: 'single',
+    title: 'Video Player',
+    url: '/docs/video-player',
+    audience: 'private',
+  },
 ]
 
 export const archivedComponentItems: ComponentItem[] = [
