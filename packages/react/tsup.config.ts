@@ -4,6 +4,7 @@ export default defineConfig((options: Options) => ({
   entry: {
     'dropdown-menu/index': './src/dropdown-menu/index.ts',
     'select/index': './src/select/index.ts',
+    'video-player/index': './src/video-player/index.ts',
     'combobox/index': './src/combobox/index.ts',
     'context-menu/index': './src/context-menu/index.ts',
     'adapters/index': './src/adapters/index.ts',

@@ -307,6 +307,41 @@ export const examples: RegistryIndex = {
     ),
     files: ['registry/examples/select/object-values/index.tsx'],
   },
+
+  // Video player examples
+  'video-player-linear': {
+    name: 'video-player-linear',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/video-player/linear'),
+    ),
+    files: [
+      'registry/examples/video-player/linear/index.tsx',
+      'registry/examples/video-player/linear/icons.tsx',
+    ],
+  },
+  'video-player-modern': {
+    name: 'video-player-modern',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/video-player/modern'),
+    ),
+    files: [
+      'registry/examples/video-player/modern/index.tsx',
+      'registry/examples/video-player/modern/icons.tsx',
+    ],
+  },
+  'video-player-youtube': {
+    name: 'video-player-youtube',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/video-player/youtube'),
+    ),
+    files: [
+      'registry/examples/video-player/youtube/index.tsx',
+      'registry/examples/video-player/youtube/icons.tsx',
+    ],
+  },
 }
 
 // =============================================================================
