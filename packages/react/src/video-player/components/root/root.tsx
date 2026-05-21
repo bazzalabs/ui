@@ -967,12 +967,27 @@ const VideoPlayerRootImpl = React.forwardRef<
     context.resetIdle()
   }, [context])
 
+  const handleFocus = React.useCallback(() => {
+    context.resetIdle()
+  }, [context])
+
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Tab') {
+        context.resetIdle()
+      }
+    },
+    [context],
+  )
+
   const rootProps = mergeProps<'div'>(
     {
       onMouseMove: handleMouseMove,
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
       onClick: handleClick,
+      onFocus: handleFocus,
+      onKeyDown: handleKeyDown,
     },
     divProps,
   )
