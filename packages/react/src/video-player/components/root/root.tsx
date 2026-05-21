@@ -1,5 +1,6 @@
 'use client'
 
+import { mergeProps } from '@base-ui/react/merge-props'
 import * as React from 'react'
 import { VideoPlayerContext } from '../../contexts/video-player-context.js'
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts.js'
@@ -966,6 +967,16 @@ const VideoPlayerRootImpl = React.forwardRef<
     context.resetIdle()
   }, [context])
 
+  const rootProps = mergeProps<'div'>(
+    {
+      onMouseMove: handleMouseMove,
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
+      onClick: handleClick,
+    },
+    divProps,
+  )
+
   // Data attributes for styling
   const dataAttributes = {
     [RootDataAttributes.playing]: context.playing || undefined,
@@ -992,17 +1003,13 @@ const VideoPlayerRootImpl = React.forwardRef<
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: allowed
     <div
+      {...rootProps}
       ref={composedRef}
       tabIndex={keyboardShortcuts === 'focused' ? 0 : undefined}
       className={className}
       style={style}
       data-video-player-scope={scopeId}
       {...dataAttributes}
-      {...divProps}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
     >
       {/* Inject scoped style to hide cursor - uses !important to override child styles */}
       {shouldHideCursor && (

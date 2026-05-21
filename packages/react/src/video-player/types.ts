@@ -1,5 +1,7 @@
 import type * as React from 'react'
 
+import type { WithPreventableBaseHandlers } from '../utils/types.js'
+
 // ============================================================================
 // Playback Status & Intent
 // ============================================================================
@@ -216,7 +218,7 @@ export interface VideoPlayerExternalActions {
 
 // Omit conflicting native event handlers
 type DivPropsWithoutConflicts = Omit<
-  React.ComponentPropsWithRef<'div'>,
+  WithPreventableBaseHandlers<React.ComponentPropsWithRef<'div'>>,
   'onVolumeChange' | 'onEnded' | 'onWaiting' | 'onSeeking' | 'onSeeked'
 >
 
