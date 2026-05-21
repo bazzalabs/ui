@@ -41,6 +41,10 @@ function useSeekSliderContext(componentName: string) {
   return context
 }
 
+function isKeyboardSeekKey(key: string) {
+  return key === 'ArrowRight' || key === 'ArrowLeft'
+}
+
 // ============================================================================
 // SeekSlider Props
 // ============================================================================
@@ -87,6 +91,7 @@ export const SeekSlider = React.forwardRef<
     onPointerMove,
     onPointerLeave,
     onPointerDown,
+    onKeyUp,
     onValueCommitted,
     ...sliderProps
   } = props
@@ -169,6 +174,16 @@ export const SeekSlider = React.forwardRef<
     [onPointerDown, context],
   )
 
+  const handleKeyUp = React.useCallback(
+    (event: React.KeyboardEvent) => {
+      onKeyUp?.(event as any)
+      if (isKeyboardSeekKey(event.key)) {
+        context.endSeekInteraction()
+      }
+    },
+    [onKeyUp, context],
+  )
+
   const handleValueCommitted = React.useCallback(
     (
       value: number | readonly number[],
@@ -180,6 +195,12 @@ export const SeekSlider = React.forwardRef<
       setPressing(false)
       setDragging(false)
       pressingRef.current = false
+      if (
+        eventDetails.reason === 'keyboard' &&
+        isKeyboardSeekKey(eventDetails.event.key)
+      ) {
+        return
+      }
       context.endSeekInteraction()
     },
     [onValueCommitted, context],
@@ -278,6 +299,7 @@ export const SeekSlider = React.forwardRef<
           onPointerMove={handlePointerMove}
           onPointerLeave={handlePointerLeave}
           onPointerDown={handlePointerDown}
+          onKeyUp={handleKeyUp}
           aria-label="Seek"
           render={(baseProps) =>
             render(
@@ -307,6 +329,7 @@ export const SeekSlider = React.forwardRef<
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
         onPointerDown={handlePointerDown}
+        onKeyUp={handleKeyUp}
         aria-label="Seek"
         {...renderProps}
         {...sliderProps}
