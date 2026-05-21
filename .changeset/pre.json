@@ -9,5 +9,10 @@
     "@bazza-ui/react": "0.1.0-canary.0",
     "@bazza-ui/typescript-config": "0.0.0"
   },
-  "changesets": ["gold-rice-rule", "salty-rabbits-serve"]
+  "changesets": [
+    "gold-rice-rule",
+    "salty-rabbits-serve",
+    "shaggy-carpets-run",
+    "thin-garlics-rush"
+  ]
 }

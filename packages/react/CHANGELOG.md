@@ -1,5 +1,13 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.4
+
+### Patch Changes
+
+- [#291](https://github.com/bazzalabs/ui/pull/291) [`7838848`](https://github.com/bazzalabs/ui/commit/783884895643a1675cdb4cecfe9715d82e556911) Thanks [@kianbazza](https://github.com/kianbazza)! - Improve seek interactions so playback pauses while scrubbing and resumes afterward when appropriate, including pointer and keyboard-driven seeking.
+
+- [#292](https://github.com/bazzalabs/ui/pull/292) [`51b3b02`](https://github.com/bazzalabs/ui/commit/51b3b0285b833387fa0e16791704506544f5e422) Thanks [@kianbazza](https://github.com/kianbazza)! - Fixes an issue where pressing the Space key does not toggle playback if the focused element is a range input, such as the seek slider
+
 ## 0.1.0-canary.3
 
 ### Minor Changes
