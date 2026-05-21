@@ -2,4 +2,4 @@
 "@bazza-ui/react": patch
 ---
 
-Fixes an issue where pressing the Space key does not toggle playback if the focused element is a range input
+Fixes an issue where pressing the Space key does not toggle playback if the focused element is a range input, such as the seek slider
