@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import type { RenderProp, VideoQuality } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {
   QualityMenuDataAttributes,
   QualityMenuItemDataAttributes,
@@ -73,7 +75,7 @@ export const QualityMenu = React.forwardRef<HTMLDivElement, QualityMenuProps>(
 // ============================================================================
 
 export interface QualityMenuItemProps
-  extends React.ComponentPropsWithRef<'button'> {
+  extends WithPreventableBaseHandlers<React.ComponentPropsWithRef<'button'>> {
   quality: VideoQuality
 }
 
@@ -81,34 +83,26 @@ export const QualityMenuItem = React.forwardRef<
   HTMLButtonElement,
   QualityMenuItemProps
 >(function QualityMenuItem(props, forwardedRef) {
-  const { quality, onClick, children, ...buttonProps } = props
+  const { quality, children, ...buttonProps } = props
   const context = useVideoPlayerContext('QualityMenuItem')
 
   const isActive = context.activeQuality?.label === quality.label
 
-  const handleClick = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event)
-      if (!event.defaultPrevented) {
+  const elementProps = mergeElementProps(
+    {
+      ref: forwardedRef,
+      type: 'button',
+      role: 'menuitemradio',
+      'aria-checked': isActive,
+      [QualityMenuItemDataAttributes.active]: isActive || undefined,
+      onClick() {
         context.setQuality(quality)
-      }
+      },
     },
-    [onClick, context, quality],
+    buttonProps,
   )
 
-  return (
-    <button
-      ref={forwardedRef}
-      type="button"
-      role="menuitemradio"
-      aria-checked={isActive}
-      {...{ [QualityMenuItemDataAttributes.active]: isActive || undefined }}
-      {...buttonProps}
-      onClick={handleClick}
-    >
-      {children}
-    </button>
-  )
+  return <button {...elementProps}>{children}</button>
 })
 
 // ============================================================================

@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import type { RenderProp, TrackInfo } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {
   CaptionsMenuDataAttributes,
   CaptionsMenuItemDataAttributes,
@@ -77,7 +79,7 @@ export const CaptionsMenu = React.forwardRef<HTMLDivElement, CaptionsMenuProps>(
 // ============================================================================
 
 export interface CaptionsMenuItemProps
-  extends React.ComponentPropsWithRef<'button'> {
+  extends WithPreventableBaseHandlers<React.ComponentPropsWithRef<'button'>> {
   track: TextTrack | null
 }
 
@@ -85,34 +87,26 @@ export const CaptionsMenuItem = React.forwardRef<
   HTMLButtonElement,
   CaptionsMenuItemProps
 >(function CaptionsMenuItem(props, forwardedRef) {
-  const { track, onClick, children, ...buttonProps } = props
+  const { track, children, ...buttonProps } = props
   const context = useVideoPlayerContext('CaptionsMenuItem')
 
   const isActive = context.activeTextTrack === track
 
-  const handleClick = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event)
-      if (!event.defaultPrevented) {
+  const elementProps = mergeElementProps(
+    {
+      ref: forwardedRef,
+      type: 'button',
+      role: 'menuitemradio',
+      'aria-checked': isActive,
+      [CaptionsMenuItemDataAttributes.active]: isActive || undefined,
+      onClick() {
         context.setTextTrack(track)
-      }
+      },
     },
-    [onClick, context, track],
+    buttonProps,
   )
 
-  return (
-    <button
-      ref={forwardedRef}
-      type="button"
-      role="menuitemradio"
-      aria-checked={isActive}
-      {...{ [CaptionsMenuItemDataAttributes.active]: isActive || undefined }}
-      {...buttonProps}
-      onClick={handleClick}
-    >
-      {children}
-    </button>
-  )
+  return <button {...elementProps}>{children}</button>
 })
 
 // ============================================================================

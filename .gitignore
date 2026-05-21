@@ -42,3 +42,5 @@ tmp/
 # Repomix
 repomix-output.txt
 .osgrep
+
+base-ui/

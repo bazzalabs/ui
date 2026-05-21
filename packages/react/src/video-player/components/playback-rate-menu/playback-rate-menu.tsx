@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import type { RenderProp } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {
   PlaybackRateMenuDataAttributes,
   PlaybackRateMenuItemDataAttributes,
@@ -85,7 +87,7 @@ export const PlaybackRateMenu = React.forwardRef<
 // ============================================================================
 
 export interface PlaybackRateMenuItemProps
-  extends React.ComponentPropsWithRef<'button'> {
+  extends WithPreventableBaseHandlers<React.ComponentPropsWithRef<'button'>> {
   rate: number
 }
 
@@ -93,36 +95,26 @@ export const PlaybackRateMenuItem = React.forwardRef<
   HTMLButtonElement,
   PlaybackRateMenuItemProps
 >(function PlaybackRateMenuItem(props, forwardedRef) {
-  const { rate, onClick, children, ...buttonProps } = props
+  const { rate, children, ...buttonProps } = props
   const context = useVideoPlayerContext('PlaybackRateMenuItem')
 
   const isActive = context.playbackRate === rate
 
-  const handleClick = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event)
-      if (!event.defaultPrevented) {
+  const elementProps = mergeElementProps(
+    {
+      ref: forwardedRef,
+      type: 'button',
+      role: 'menuitemradio',
+      'aria-checked': isActive,
+      [PlaybackRateMenuItemDataAttributes.active]: isActive || undefined,
+      onClick() {
         context.setPlaybackRate(rate)
-      }
+      },
     },
-    [onClick, context, rate],
+    buttonProps,
   )
 
-  return (
-    <button
-      ref={forwardedRef}
-      type="button"
-      role="menuitemradio"
-      aria-checked={isActive}
-      {...{
-        [PlaybackRateMenuItemDataAttributes.active]: isActive || undefined,
-      }}
-      {...buttonProps}
-      onClick={handleClick}
-    >
-      {children ?? `${rate}x`}
-    </button>
-  )
+  return <button {...elementProps}>{children ?? `${rate}x`}</button>
 })
 
 // ============================================================================
