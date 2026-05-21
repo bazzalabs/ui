@@ -123,6 +123,8 @@ function VideoPlayerProvider({
 }: VideoPlayerProviderProps) {
   // Refs
   const previousVolumeRef = React.useRef(1)
+  const isSeekInteractionRef = React.useRef(false)
+  const shouldResumeAfterSeekRef = React.useRef(false)
 
   // Controllable state
   // Note: We use playbackStatus internally but still support the controlled `playing` prop
@@ -314,6 +316,49 @@ function VideoPlayerProvider({
     },
     [onCurrentTimeChange, videoRef],
   )
+
+  const beginSeekInteraction = React.useCallback(() => {
+    const video = videoRef.current
+    if (!video || isSeekInteractionRef.current) {
+      return
+    }
+
+    isSeekInteractionRef.current = true
+    shouldResumeAfterSeekRef.current = playbackIntent === 'play'
+    setSeeking(true)
+
+    if (shouldResumeAfterSeekRef.current && !video.paused) {
+      video.pause()
+    }
+  }, [playbackIntent, videoRef])
+
+  const endSeekInteraction = React.useCallback(() => {
+    const video = videoRef.current
+    if (!video || !isSeekInteractionRef.current) {
+      return
+    }
+
+    const shouldResume =
+      shouldResumeAfterSeekRef.current && playbackIntent === 'play'
+    isSeekInteractionRef.current = false
+    shouldResumeAfterSeekRef.current = false
+
+    if (!shouldResume) {
+      setSeeking(false)
+      return
+    }
+
+    void video
+      .play()
+      .then(() => {
+        setPlaybackStatus('playing')
+        setSeeking(false)
+      })
+      .catch(() => {
+        setPlaybackStatus('waiting')
+        setSeeking(false)
+      })
+  }, [playbackIntent, videoRef])
 
   const handleSetVolume = React.useCallback(
     (vol: number) => {
@@ -525,6 +570,10 @@ function VideoPlayerProvider({
   }, [onPlayingChange])
 
   const handlePause = React.useCallback(() => {
+    if (isSeekInteractionRef.current) {
+      return
+    }
+
     // Only set to paused if not ended (ended takes precedence)
     if (playbackStatus !== 'ended') {
       setPlaybackStatus('paused')
@@ -540,11 +589,20 @@ function VideoPlayerProvider({
   }, [onPlayingChange, onEnded])
 
   const handleWaiting = React.useCallback(() => {
+    if (isSeekInteractionRef.current) {
+      return
+    }
+
     setPlaybackStatus('waiting')
     onWaiting?.()
   }, [onWaiting])
 
   const handleCanPlay = React.useCallback(() => {
+    if (isSeekInteractionRef.current) {
+      setCanPlay(true)
+      return
+    }
+
     // Resume based on intent when exiting waiting state
     if (playbackStatus === 'waiting') {
       const resumeStatus = playbackIntent === 'play' ? 'playing' : 'paused'
@@ -651,6 +709,8 @@ function VideoPlayerProvider({
       updateTrackRef,
       resetIdle,
       setHoverTime,
+      beginSeekInteraction,
+      endSeekInteraction,
 
       // Internal event handlers
       _handlers: {
@@ -714,6 +774,8 @@ function VideoPlayerProvider({
       unregisterTrack,
       updateTrackRef,
       resetIdle,
+      beginSeekInteraction,
+      endSeekInteraction,
       handleTimeUpdate,
       handleDurationChange,
       handleProgress,

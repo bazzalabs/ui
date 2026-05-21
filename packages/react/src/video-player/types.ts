@@ -157,6 +157,10 @@ export interface VideoPlayerActions {
   resetIdle: () => void
   /** Set hover time for seek preview (null to clear) */
   setHoverTime: (time: number | null) => void
+  /** Temporarily pause playback during a seek interaction */
+  beginSeekInteraction: () => void
+  /** Resume playback after a seek interaction if playback was previously intended */
+  endSeekInteraction: () => void
 }
 
 // ============================================================================
