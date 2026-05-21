@@ -5,8 +5,17 @@ import { useVideoPlayer } from './use-video-player.js'
 
 type KeyboardShortcutsScope = 'focused' | 'global' | 'none'
 
-function isTextEditingTarget(target: EventTarget | null) {
+function isTextEditingTarget(target: EventTarget | null, key: string) {
   if (!(target instanceof HTMLElement)) return false
+
+  // Sliders use range inputs for focus; Space should still toggle playback.
+  if (
+    target instanceof HTMLInputElement &&
+    target.type === 'range' &&
+    key === ' '
+  ) {
+    return false
+  }
 
   return (
     target.tagName === 'INPUT' ||
@@ -34,7 +43,7 @@ export function useKeyboardShortcuts(
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input
-      if (isTextEditingTarget(e.target)) {
+      if (isTextEditingTarget(e.target, e.key)) {
         return
       }
 
