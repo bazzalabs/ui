@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import type { RenderProp } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { PlayButtonDataAttributes } from './play-button.data-attributes.js'
 
 // ============================================================================
@@ -10,14 +12,17 @@ import { PlayButtonDataAttributes } from './play-button.data-attributes.js'
 // ============================================================================
 
 export interface PlayButtonProps
-  extends Omit<React.ComponentPropsWithRef<'button'>, 'children'> {
+  extends Omit<
+    WithPreventableBaseHandlers<React.ComponentPropsWithRef<'button'>>,
+    'children'
+  > {
   render?: RenderProp<PlayButtonRenderProps, PlayButtonState>
   children?: React.ReactNode
 }
 
 export interface PlayButtonRenderProps {
   ref: React.Ref<HTMLButtonElement>
-  type: 'button'
+  type: React.ButtonHTMLAttributes<HTMLButtonElement>['type']
   'aria-label': string
   [PlayButtonDataAttributes.playing]?: boolean
   [PlayButtonDataAttributes.paused]?: boolean
@@ -39,18 +44,8 @@ export interface PlayButtonState {
 
 export const PlayButton = React.forwardRef<HTMLButtonElement, PlayButtonProps>(
   function PlayButton(props, forwardedRef) {
-    const { render, onClick, children, ...buttonProps } = props
+    const { render, children, ...buttonProps } = props
     const context = useVideoPlayerContext('PlayButton')
-
-    const handleClick = React.useCallback(
-      (event: React.MouseEvent<HTMLButtonElement>) => {
-        onClick?.(event)
-        if (!event.defaultPrevented) {
-          context.toggle()
-        }
-      },
-      [onClick, context],
-    )
 
     const state: PlayButtonState = {
       playing: context.playing,
@@ -59,16 +54,21 @@ export const PlayButton = React.forwardRef<HTMLButtonElement, PlayButtonProps>(
       waiting: context.waiting,
     }
 
-    const renderProps: PlayButtonRenderProps = {
-      ref: forwardedRef,
-      type: 'button',
-      'aria-label': context.playing ? 'Pause' : 'Play',
-      [PlayButtonDataAttributes.playing]: context.playing || undefined,
-      [PlayButtonDataAttributes.paused]: context.paused || undefined,
-      [PlayButtonDataAttributes.ended]: context.ended || undefined,
-      [PlayButtonDataAttributes.waiting]: context.waiting || undefined,
-      onClick: handleClick,
-    }
+    const renderProps = mergeElementProps(
+      {
+        ref: forwardedRef,
+        type: 'button',
+        'aria-label': context.playing ? 'Pause' : 'Play',
+        [PlayButtonDataAttributes.playing]: context.playing || undefined,
+        [PlayButtonDataAttributes.paused]: context.paused || undefined,
+        [PlayButtonDataAttributes.ended]: context.ended || undefined,
+        [PlayButtonDataAttributes.waiting]: context.waiting || undefined,
+        onClick() {
+          context.toggle()
+        },
+      },
+      buttonProps,
+    )
 
     if (render) {
       return render(renderProps, state)

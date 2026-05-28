@@ -1,6 +1,5 @@
 'use client'
 
-import { mergeProps } from '@base-ui/react/merge-props'
 import * as React from 'react'
 import { VideoPlayerContext } from '../../contexts/video-player-context.js'
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts.js'
@@ -13,6 +12,7 @@ import type {
   VideoPlayerRootProps,
   VideoQuality,
 } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { RootDataAttributes } from './root.data-attributes.js'
 
 // ============================================================================
@@ -980,7 +980,7 @@ const VideoPlayerRootImpl = React.forwardRef<
     [context],
   )
 
-  const rootProps = mergeProps<'div'>(
+  const rootProps = mergeElementProps(
     {
       onMouseMove: handleMouseMove,
       onMouseEnter: handleMouseEnter,

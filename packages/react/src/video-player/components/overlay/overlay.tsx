@@ -1,9 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import { useTransitionStatus } from '../../hooks/use-transition-status.js'
 import type { RenderProp } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { OverlayDataAttributes } from './overlay.data-attributes.js'
 
 // ============================================================================
@@ -11,7 +13,10 @@ import { OverlayDataAttributes } from './overlay.data-attributes.js'
 // ============================================================================
 
 export interface OverlayProps
-  extends Omit<React.ComponentPropsWithRef<'div'>, 'children'> {
+  extends Omit<
+    WithPreventableBaseHandlers<React.ComponentPropsWithRef<'div'>>,
+    'children'
+  > {
   /**
    * Delay before hiding after player becomes idle (ms).
    * Defaults to Root's idleTimeout. Set to 0 to disable auto-hide.
@@ -68,7 +73,6 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(
       idleTimeout: idleTimeoutProp,
       keepMounted = false,
       render,
-      onClick,
       children,
       ...divProps
     } = props
@@ -100,16 +104,6 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(
       [forwardedRef, elementRef],
     )
 
-    const handleClick = React.useCallback(
-      (event: React.MouseEvent<HTMLDivElement>) => {
-        onClick?.(event)
-        if (!event.defaultPrevented) {
-          context.toggle()
-        }
-      },
-      [onClick, context],
-    )
-
     const state: OverlayState = {
       playing: context.playing,
       paused: context.paused,
@@ -121,23 +115,28 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(
       open,
     }
 
-    const renderProps: OverlayRenderProps = {
-      ref: composedRef,
-      onClick: handleClick,
-      [OverlayDataAttributes.playing]: context.playing || undefined,
-      [OverlayDataAttributes.paused]: context.paused || undefined,
-      [OverlayDataAttributes.ended]: context.ended || undefined,
-      [OverlayDataAttributes.waiting]: context.waiting || undefined,
-      [OverlayDataAttributes.seeking]: context.seeking || undefined,
-      [OverlayDataAttributes.fullscreen]: context.fullscreen || undefined,
-      [OverlayDataAttributes.pip]: context.pictureInPicture || undefined,
-      [OverlayDataAttributes.open]: open || undefined,
-      [OverlayDataAttributes.closed]: !open || undefined,
-      [OverlayDataAttributes.startingStyle]:
-        transitionStatus === 'starting' || undefined,
-      [OverlayDataAttributes.endingStyle]:
-        transitionStatus === 'ending' || undefined,
-    }
+    const renderProps = mergeElementProps(
+      {
+        ref: composedRef,
+        onClick() {
+          context.toggle()
+        },
+        [OverlayDataAttributes.playing]: context.playing || undefined,
+        [OverlayDataAttributes.paused]: context.paused || undefined,
+        [OverlayDataAttributes.ended]: context.ended || undefined,
+        [OverlayDataAttributes.waiting]: context.waiting || undefined,
+        [OverlayDataAttributes.seeking]: context.seeking || undefined,
+        [OverlayDataAttributes.fullscreen]: context.fullscreen || undefined,
+        [OverlayDataAttributes.pip]: context.pictureInPicture || undefined,
+        [OverlayDataAttributes.open]: open || undefined,
+        [OverlayDataAttributes.closed]: !open || undefined,
+        [OverlayDataAttributes.startingStyle]:
+          transitionStatus === 'starting' || undefined,
+        [OverlayDataAttributes.endingStyle]:
+          transitionStatus === 'ending' || undefined,
+      },
+      divProps,
+    )
 
     if (!mounted) {
       return null

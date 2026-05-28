@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import type { RenderProp } from '../../types.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { CaptionsButtonDataAttributes } from './captions-button.data-attributes.js'
 
 // ============================================================================
@@ -10,13 +12,13 @@ import { CaptionsButtonDataAttributes } from './captions-button.data-attributes.
 // ============================================================================
 
 export interface CaptionsButtonProps
-  extends React.ComponentPropsWithRef<'button'> {
+  extends WithPreventableBaseHandlers<React.ComponentPropsWithRef<'button'>> {
   render?: RenderProp<CaptionsButtonRenderProps, CaptionsButtonState>
 }
 
 export interface CaptionsButtonRenderProps {
   ref: React.Ref<HTMLButtonElement>
-  type: 'button'
+  type: React.ButtonHTMLAttributes<HTMLButtonElement>['type']
   'aria-label': string
   'aria-pressed': boolean
   disabled: boolean
@@ -39,7 +41,7 @@ export const CaptionsButton = React.forwardRef<
   HTMLButtonElement,
   CaptionsButtonProps
 >(function CaptionsButton(props, forwardedRef) {
-  const { render, onClick, ...buttonProps } = props
+  const { render, ...buttonProps } = props
   const context = useVideoPlayerContext('CaptionsButton')
 
   const available = context.registeredTracks.length > 0
@@ -51,10 +53,16 @@ export const CaptionsButton = React.forwardRef<
     trackCount: context.registeredTracks.length,
   }
 
-  const handleClick = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event)
-      if (!event.defaultPrevented) {
+  const renderProps = mergeElementProps(
+    {
+      ref: forwardedRef,
+      type: 'button',
+      'aria-label': active ? 'Disable captions' : 'Enable captions',
+      'aria-pressed': active,
+      disabled: !available,
+      [CaptionsButtonDataAttributes.active]: active || undefined,
+      [CaptionsButtonDataAttributes.available]: available || undefined,
+      onClick() {
         if (active) {
           // Turn off captions
           context.setTextTrack(null)
@@ -65,21 +73,10 @@ export const CaptionsButton = React.forwardRef<
             context.setTextTrack(firstTrack.textTrack)
           }
         }
-      }
+      },
     },
-    [onClick, context, active],
+    buttonProps,
   )
-
-  const renderProps: CaptionsButtonRenderProps = {
-    ref: forwardedRef,
-    type: 'button',
-    'aria-label': active ? 'Disable captions' : 'Enable captions',
-    'aria-pressed': active,
-    disabled: !available,
-    [CaptionsButtonDataAttributes.active]: active || undefined,
-    [CaptionsButtonDataAttributes.available]: available || undefined,
-    onClick: handleClick,
-  }
 
   if (render) {
     return render(renderProps, state)

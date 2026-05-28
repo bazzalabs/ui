@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import type { WithPreventableBaseHandlers } from '../../../utils/types.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { VideoDataAttributes } from './video.data-attributes.js'
 
 // ============================================================================
@@ -10,7 +12,7 @@ import { VideoDataAttributes } from './video.data-attributes.js'
 
 export interface VideoProps
   extends Omit<
-    React.ComponentPropsWithRef<'video'>,
+    WithPreventableBaseHandlers<React.ComponentPropsWithRef<'video'>>,
     | 'onTimeUpdate'
     | 'onDurationChange'
     | 'onProgress'
@@ -45,7 +47,7 @@ export interface VideoState {
 
 export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
   function Video(props, forwardedRef) {
-    const { toggleOnClick = true, onClick, ...videoProps } = props
+    const { toggleOnClick = true, ...videoProps } = props
     const context = useVideoPlayerContext('Video')
 
     const hasCheckedMetadata = React.useRef(false)
@@ -82,17 +84,6 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       [forwardedRef, context.videoRef, context._handlers],
     )
 
-    const handleClick = React.useCallback(
-      (event: React.MouseEvent<HTMLVideoElement>) => {
-        onClick?.(event)
-        if (!event.defaultPrevented && toggleOnClick) {
-          context.toggle()
-        }
-      },
-      [onClick, toggleOnClick, context],
-    )
-
-    // Data attributes
     const dataAttributes = {
       [VideoDataAttributes.playing]: context.playing || undefined,
       [VideoDataAttributes.paused]: context.paused || undefined,
@@ -101,27 +92,32 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       [VideoDataAttributes.seeking]: context.seeking || undefined,
     }
 
-    return (
-      <video
-        ref={composedRef}
-        preload="metadata"
-        {...dataAttributes}
-        {...videoProps}
-        onClick={handleClick}
-        onTimeUpdate={context._handlers.onTimeUpdate}
-        onDurationChange={context._handlers.onDurationChange}
-        onProgress={context._handlers.onProgress}
-        onPlay={context._handlers.onPlay}
-        onPause={context._handlers.onPause}
-        onEnded={context._handlers.onEnded}
-        onWaiting={context._handlers.onWaiting}
-        onCanPlay={context._handlers.onCanPlay}
-        onSeeking={context._handlers.onSeeking}
-        onSeeked={context._handlers.onSeeked}
-        onVolumeChange={context._handlers.onVolumeChange}
-        onLoadedMetadata={context._handlers.onLoadedMetadata}
-      />
+    const elementProps = mergeElementProps(
+      {
+        ref: composedRef,
+        preload: 'metadata',
+        ...dataAttributes,
+        onClick() {
+          if (!toggleOnClick) return
+          context.toggle()
+        },
+        onTimeUpdate: context._handlers.onTimeUpdate,
+        onDurationChange: context._handlers.onDurationChange,
+        onProgress: context._handlers.onProgress,
+        onPlay: context._handlers.onPlay,
+        onPause: context._handlers.onPause,
+        onEnded: context._handlers.onEnded,
+        onWaiting: context._handlers.onWaiting,
+        onCanPlay: context._handlers.onCanPlay,
+        onSeeking: context._handlers.onSeeking,
+        onSeeked: context._handlers.onSeeked,
+        onVolumeChange: context._handlers.onVolumeChange,
+        onLoadedMetadata: context._handlers.onLoadedMetadata,
+      },
+      videoProps,
     )
+
+    return <video {...elementProps} />
   },
 )
 
