@@ -16,6 +16,29 @@ export type HTMLProps<T = any> = React.HTMLAttributes<T> & {
 }
 
 /**
+ * React synthetic event augmented by Base UI's mergeProps utility.
+ */
+export type PreventableBaseHandlerEvent<
+  E extends React.SyntheticEvent<Element, Event>,
+> = E & {
+  preventBaseUIHandler: () => void
+  readonly baseUIHandlerPrevented?: boolean
+}
+
+type WithPreventableBaseHandler<T> = T extends (event: infer E) => infer R
+  ? E extends React.SyntheticEvent<Element, Event>
+    ? (event: PreventableBaseHandlerEvent<E>) => R
+    : T
+  : T
+
+/**
+ * Adds Base UI's preventBaseUIHandler event typing to React event handlers.
+ */
+export type WithPreventableBaseHandlers<T> = {
+  [K in keyof T]: WithPreventableBaseHandler<T[K]>
+}
+
+/**
  * Props shared by all Bazza UI components.
  * Includes className (string or state-based function), render prop, and style (object or state-based function).
  */
