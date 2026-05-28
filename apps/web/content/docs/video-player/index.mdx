@@ -42,6 +42,34 @@ import { VideoPlayer } from '@bazza-ui/react/video-player'
 </VideoPlayer.Root>
 ```
 
+## Autoplay
+
+Use `autoPlay` to let the primitive start playback when the video mounts. By
+default, autoplay does not change audio state and fails gracefully if the browser
+blocks playback.
+
+```tsx
+<VideoPlayer.Root autoPlay>
+  <VideoPlayer.Video src="/video.mp4" />
+</VideoPlayer.Root>
+```
+
+Use `defaultMuted` for browser-friendly muted autoplay.
+
+```tsx
+<VideoPlayer.Root autoPlay defaultMuted>
+  <VideoPlayer.Video src="/video.mp4" />
+</VideoPlayer.Root>
+```
+
+Use `muted` when audio state is controlled externally.
+
+```tsx
+<VideoPlayer.Root autoPlay muted={muted} onMutedChange={setMuted}>
+  <VideoPlayer.Video src="/video.mp4" />
+</VideoPlayer.Root>
+```
+
 ## Examples
 
 ### Linear

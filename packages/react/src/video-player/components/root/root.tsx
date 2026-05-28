@@ -89,6 +89,7 @@ function VideoPlayerProvider({
 
   // Uncontrolled defaults
   defaultPlaying = false,
+  autoPlay = false,
   defaultVolume = 1,
   defaultMuted = false,
   defaultPlaybackRate = 1,
@@ -126,6 +127,7 @@ function VideoPlayerProvider({
   const previousVolumeRef = React.useRef(1)
   const isSeekInteractionRef = React.useRef(false)
   const shouldResumeAfterSeekRef = React.useRef(false)
+  const hasAutoPlayAttemptedRef = React.useRef(false)
 
   // Controllable state
   // Note: We use playbackStatus internally but still support the controlled `playing` prop
@@ -218,6 +220,37 @@ function VideoPlayerProvider({
   const effectiveIdle =
     preventIdleWhenPaused && playbackStatus !== 'playing' ? false : idle
 
+  const attemptAutoPlay = React.useCallback(async () => {
+    const video = videoRef.current
+    if (!autoPlay || !video || hasAutoPlayAttemptedRef.current) {
+      return
+    }
+
+    hasAutoPlayAttemptedRef.current = true
+    setPlaybackIntent('play')
+
+    video.muted = muted
+    video.volume = volume
+
+    try {
+      await video.play()
+      setPlaybackStatus('playing')
+      onPlayingChange?.(true)
+    } catch {
+      setPlaybackIntent('pause')
+      setPlaybackStatus('paused')
+    }
+  }, [autoPlay, muted, onPlayingChange, videoRef, volume])
+
+  React.useEffect(() => {
+    if (!autoPlay) {
+      hasAutoPlayAttemptedRef.current = false
+      return
+    }
+
+    void attemptAutoPlay()
+  }, [autoPlay, attemptAutoPlay])
+
   // Internal state (not controllable)
   const [currentTime, setCurrentTime] = React.useState(0)
   const [duration, setDuration] = React.useState(0)
@@ -244,6 +277,15 @@ function VideoPlayerProvider({
       videoRef.current.currentTime = controlledCurrentTime
     }
   }, [controlledCurrentTime, videoRef])
+
+  // Keep native audio state aligned with controlled/uncontrolled primitive state.
+  React.useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.muted = muted
+    video.volume = volume
+  }, [muted, videoRef, volume])
 
   // Fullscreen change listener
   React.useEffect(() => {
@@ -649,6 +691,10 @@ function VideoPlayerProvider({
     }
   }, [videoRef])
 
+  const handleVideoMount = React.useCallback(() => {
+    void attemptAutoPlay()
+  }, [attemptAutoPlay])
+
   // Context value
   const contextValue = React.useMemo<VideoPlayerContextValue>(
     () => ({
@@ -728,6 +774,7 @@ function VideoPlayerProvider({
         onSeeked: handleSeeked,
         onVolumeChange: handleVolumeChange,
         onLoadedMetadata: handleLoadedMetadata,
+        onVideoMount: handleVideoMount,
         // Root element handlers
         onRootMouseLeave: handleRootMouseLeave,
       },
@@ -789,6 +836,7 @@ function VideoPlayerProvider({
       handleSeeked,
       handleVolumeChange,
       handleLoadedMetadata,
+      handleVideoMount,
       handleRootMouseLeave,
     ],
   )
@@ -815,6 +863,7 @@ export const VideoPlayerRoot = React.forwardRef<
 
     // Uncontrolled defaults
     defaultPlaying,
+    autoPlay,
     defaultVolume,
     defaultMuted,
     defaultPlaybackRate,
@@ -859,6 +908,7 @@ export const VideoPlayerRoot = React.forwardRef<
     <VideoPlayerProvider
       actionsRef={actionsRef}
       defaultPlaying={defaultPlaying}
+      autoPlay={autoPlay}
       defaultVolume={defaultVolume}
       defaultMuted={defaultMuted}
       defaultPlaybackRate={defaultPlaybackRate}
@@ -1016,7 +1066,6 @@ const VideoPlayerRootImpl = React.forwardRef<
   const scopeId = React.useId()
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: allowed
     <div
       {...rootProps}
       ref={composedRef}
