@@ -2,4 +2,4 @@
 "@bazza-ui/react": patch
 ---
 
-Add `autoPlay` support
+Add `autoPlay` support to the video player
