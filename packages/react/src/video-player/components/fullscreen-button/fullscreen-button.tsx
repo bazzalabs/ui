@@ -79,11 +79,7 @@ export const FullscreenButton = React.forwardRef<
     return render(renderProps, state)
   }
 
-  return (
-    <button {...renderProps} {...buttonProps}>
-      {children}
-    </button>
-  )
+  return <button {...renderProps}>{children}</button>
 })
 
 // ============================================================================

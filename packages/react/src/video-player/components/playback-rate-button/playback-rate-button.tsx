@@ -83,9 +83,7 @@ export const PlaybackRateButton = React.forwardRef<
   }
 
   return (
-    <button {...renderProps} {...buttonProps}>
-      {children ?? `${context.playbackRate}x`}
-    </button>
+    <button {...renderProps}>{children ?? `${context.playbackRate}x`}</button>
   )
 })
 

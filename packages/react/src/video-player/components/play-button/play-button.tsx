@@ -74,11 +74,7 @@ export const PlayButton = React.forwardRef<HTMLButtonElement, PlayButtonProps>(
       return render(renderProps, state)
     }
 
-    return (
-      <button {...renderProps} {...buttonProps}>
-        {children}
-      </button>
-    )
+    return <button {...renderProps}>{children}</button>
   },
 )
 
