@@ -128,7 +128,7 @@ export function ModernPlayer({ src, captions }: VideoPlayerProps) {
                 onClick={(e) => {
                   e.preventBaseUIHandler()
                 }}
-                render={(props) => (
+                render={({ onClick: _onClick, ...props }) => (
                   <VideoPlayer.MuteButton
                     {...props}
                     className={cn(buttonClassName, 'group text-white')}

@@ -82,7 +82,7 @@ export const CaptionsButton = React.forwardRef<
     return render(renderProps, state)
   }
 
-  return <button {...renderProps} {...buttonProps} />
+  return <button {...renderProps} />
 })
 
 // ============================================================================

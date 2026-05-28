@@ -77,7 +77,7 @@ export const MuteButton = React.forwardRef<HTMLButtonElement, MuteButtonProps>(
       return render(renderProps, state)
     }
 
-    return <button {...renderProps} {...buttonProps} />
+    return <button {...renderProps} />
   },
 )
 

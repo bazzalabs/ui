@@ -220,6 +220,18 @@ function VideoPlayerProvider({
   const effectiveIdle =
     preventIdleWhenPaused && playbackStatus !== 'playing' ? false : idle
 
+  const syncNativeAudioState = React.useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    if (video.muted !== muted) {
+      video.muted = muted
+    }
+    if (video.volume !== volume) {
+      video.volume = volume
+    }
+  }, [muted, videoRef, volume])
+
   const attemptAutoPlay = React.useCallback(async () => {
     const video = videoRef.current
     if (!autoPlay || !video || hasAutoPlayAttemptedRef.current) {
@@ -229,8 +241,7 @@ function VideoPlayerProvider({
     hasAutoPlayAttemptedRef.current = true
     setPlaybackIntent('play')
 
-    video.muted = muted
-    video.volume = volume
+    syncNativeAudioState()
 
     try {
       await video.play()
@@ -240,7 +251,7 @@ function VideoPlayerProvider({
       setPlaybackIntent('pause')
       setPlaybackStatus('paused')
     }
-  }, [autoPlay, muted, onPlayingChange, videoRef, volume])
+  }, [autoPlay, onPlayingChange, syncNativeAudioState, videoRef])
 
   React.useEffect(() => {
     if (!autoPlay) {
@@ -278,14 +289,13 @@ function VideoPlayerProvider({
     }
   }, [controlledCurrentTime, videoRef])
 
-  // Keep native audio state aligned with controlled/uncontrolled primitive state.
+  // Controlled audio props should drive the native element. Uncontrolled actions
+  // update the element directly to avoid fighting native volumechange events.
   React.useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
+    if (controlledMuted === undefined && controlledVolume === undefined) return
 
-    video.muted = muted
-    video.volume = volume
-  }, [muted, videoRef, volume])
+    syncNativeAudioState()
+  }, [controlledMuted, controlledVolume, syncNativeAudioState])
 
   // Fullscreen change listener
   React.useEffect(() => {
@@ -692,8 +702,9 @@ function VideoPlayerProvider({
   }, [videoRef])
 
   const handleVideoMount = React.useCallback(() => {
+    syncNativeAudioState()
     void attemptAutoPlay()
-  }, [attemptAutoPlay])
+  }, [attemptAutoPlay, syncNativeAudioState])
 
   // Context value
   const contextValue = React.useMemo<VideoPlayerContextValue>(
