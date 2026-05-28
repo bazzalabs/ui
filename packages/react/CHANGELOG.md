@@ -1,5 +1,17 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.5
+
+### Patch Changes
+
+- [#296](https://github.com/bazzalabs/ui/pull/296) [`be5a86f`](https://github.com/bazzalabs/ui/commit/be5a86f670fd50373f7491bc28a3ff99489b58d8) Thanks [@kianbazza](https://github.com/kianbazza)! - Compose video player component part event handlers so consumers can opt out of internal behavior with preventBaseUIHandler.
+
+- [#294](https://github.com/bazzalabs/ui/pull/294) [`e969522`](https://github.com/bazzalabs/ui/commit/e9695221417b4dcabc1ffb09aa98a231df9d64ed) Thanks [@kianbazza](https://github.com/kianbazza)! - Compose video player root event handlers so consumer handlers run before internal behavior and can opt out with preventBaseUIHandler.
+
+- [#295](https://github.com/bazzalabs/ui/pull/295) [`4a3c314`](https://github.com/bazzalabs/ui/commit/4a3c314ecba1df594baf2b5a6d1a889a3a724be9) Thanks [@kianbazza](https://github.com/kianbazza)! - Reset the video player idle timeout when focus enters the player or Tab navigation occurs inside it.
+
+- [#297](https://github.com/bazzalabs/ui/pull/297) [`0e6afd8`](https://github.com/bazzalabs/ui/commit/0e6afd84ee4032a741fa727fb43d544dcd85ec35) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `autoPlay` support to the video player
+
 ## 0.1.0-canary.4
 
 ### Patch Changes
