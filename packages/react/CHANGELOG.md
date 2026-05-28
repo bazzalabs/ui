@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.6
+
+### Patch Changes
+
+- [#301](https://github.com/bazzalabs/ui/pull/301) [`f09158a`](https://github.com/bazzalabs/ui/commit/f09158a894304be01956230b4384f972f8b34b70) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix video player buttons so composed button props no longer override internal button actions.
+
 ## 0.1.0-canary.5
 
 ### Patch Changes
