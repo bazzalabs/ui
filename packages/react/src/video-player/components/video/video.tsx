@@ -68,6 +68,7 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
         // Only check once to avoid infinite loops
         if (node && !hasCheckedMetadata.current) {
           hasCheckedMetadata.current = true
+          context._handlers.onVideoMount()
 
           if (node.readyState >= 1 && node.duration) {
             context._handlers.onLoadedMetadata()

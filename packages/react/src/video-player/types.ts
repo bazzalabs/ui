@@ -183,6 +183,7 @@ export interface VideoPlayerInternalHandlers {
   onSeeked: () => void
   onVolumeChange: () => void
   onLoadedMetadata: () => void
+  onVideoMount: () => void
   // Root element handlers
   onRootMouseLeave: () => void
 }
@@ -240,6 +241,11 @@ export interface VideoPlayerRootProps extends DivPropsWithoutConflicts {
 
   // Uncontrolled defaults
   defaultPlaying?: boolean
+  /**
+   * Attempts to start playback automatically when the video element mounts.
+   * @default false
+   */
+  autoPlay?: boolean
   defaultVolume?: number
   defaultMuted?: boolean
   defaultPlaybackRate?: number
