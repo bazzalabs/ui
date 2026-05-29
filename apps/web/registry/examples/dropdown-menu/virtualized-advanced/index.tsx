@@ -242,6 +242,7 @@ export default function DropdownMenuVirtualizedAdvanced() {
   const [search, setSearch] = React.useState('')
   const [virtualizerEnabled, setVirtualizerEnabled] = React.useState(false)
   const scrollElementRef = React.useRef<HTMLDivElement | null>(null)
+  const previousSearchRef = React.useRef(search)
 
   // Initialize toggle state from items with defaultEnabled
   const [enabledToggles, setEnabledToggles] = React.useState<Set<string>>(
@@ -329,6 +330,15 @@ export default function DropdownMenuVirtualizedAdvanced() {
     },
     overscan: 5,
   })
+
+  React.useLayoutEffect(() => {
+    if (previousSearchRef.current === search) {
+      return
+    }
+
+    previousSearchRef.current = search
+    virtualizer.scrollToOffset(0)
+  }, [search, virtualizer])
 
   const handleScrollElementRef = React.useCallback(
     (element: HTMLDivElement | null) => {

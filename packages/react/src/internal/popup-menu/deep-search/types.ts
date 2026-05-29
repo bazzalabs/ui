@@ -1296,6 +1296,12 @@ export interface DataSurfaceProps {
   clearSearchOnClose?: boolean | 'after-exit'
 
   /**
+   * Whether to reset the list scroll position when the search query changes.
+   * @default true
+   */
+  resetScrollOnSearch?: boolean
+
+  /**
    * Function to generate qualified IDs for row items.
    * Called for each item when rendering to produce IDs for:
    * - React keys
@@ -1376,6 +1382,12 @@ export interface DataListProps {
    * Only used when `measureRowWidth` is true.
    */
   maxRowWidth?: number
+
+  /**
+   * Ref to the element that owns the list's scroll position.
+   * Use when the semantic list is rendered inside another scroll container.
+   */
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
 // ============================================================================
