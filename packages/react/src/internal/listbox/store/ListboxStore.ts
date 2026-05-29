@@ -78,8 +78,10 @@ export interface SetOrderedItemsOptions {
  * These are stored outside of reactive state to avoid unnecessary re-renders.
  */
 export interface DOMRefs {
-  /** Ref to the list/scroll container element */
+  /** Ref to the semantic listbox element */
   listRef: React.RefObject<HTMLElement | null>
+  /** Ref to the element that owns the list's scroll position */
+  listScrollContainerRef: React.RefObject<HTMLElement | null>
   /** Map of item ID to ref for the item's DOM element */
   itemRefs: Map<string, React.RefObject<HTMLElement | null>>
 }
@@ -136,6 +138,8 @@ export interface ListboxContext {
    * - `'after-exit'`: clear after exit animation completes (requires Surface to call clearSearch)
    */
   clearSearchOnClose: boolean | 'after-exit'
+  /** Whether to reset list scroll position when search changes. */
+  resetScrollOnSearch: boolean
   /** Whether hideUntilActive mode is enabled */
   hideUntilActive: boolean
   /** ID for the list element (for aria-activedescendant) */
@@ -317,6 +321,7 @@ export class ListboxStore extends ReactStore<
       loop: true,
       autoHighlightFirst: true,
       clearSearchOnClose: true,
+      resetScrollOnSearch: true,
       hideUntilActive: false,
       listId: '',
       inputId: '',
@@ -333,6 +338,7 @@ export class ListboxStore extends ReactStore<
       onHighlightChange: undefined,
       refs: {
         listRef: { current: null },
+        listScrollContainerRef: { current: null },
         itemRefs: new Map(),
       },
       onCloseComplete: undefined,
@@ -403,6 +409,10 @@ export class ListboxStore extends ReactStore<
         // and we don't want stationary pointers to trigger phantom highlights
         this.resetPointerPosition()
         this.recomputeFilteredItems(prevSearch)
+
+        if (this.context.resetScrollOnSearch && !this.state.virtualized) {
+          this.scrollListToTop()
+        }
       }
     })
   }
@@ -532,6 +542,49 @@ export class ListboxStore extends ReactStore<
     }
     // For virtualized lists where the item is not in the DOM,
     // the onHighlightChange callback handles scroll via virtualizer
+  }
+
+  private scrollListToTop() {
+    const listEl = this.context.refs.listRef.current
+    const scrollEl =
+      this.context.refs.listScrollContainerRef.current ??
+      (listEl ? this.getScrollResetElement(listEl) : null)
+    if (!scrollEl) return
+
+    if (typeof scrollEl.scrollTo === 'function') {
+      scrollEl.scrollTo({ top: 0 })
+      return
+    }
+
+    // jsdom and older DOM environments may not implement Element.scrollTo.
+    // Assigning scrollTop keeps the behavior testable and preserves the reset.
+    scrollEl.scrollTop = 0
+  }
+
+  private getScrollResetElement(listEl: HTMLElement): HTMLElement {
+    let element: HTMLElement | null = listEl
+
+    while (element) {
+      if (this.isScrollableElement(element)) {
+        return element
+      }
+
+      element = element.parentElement
+    }
+
+    return listEl
+  }
+
+  private isScrollableElement(element: HTMLElement): boolean {
+    const win = element.ownerDocument?.defaultView
+    const overflowY = win?.getComputedStyle(element).overflowY
+    const canScrollY =
+      overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay'
+
+    return (
+      element.scrollTop > 0 ||
+      (canScrollY && element.scrollHeight > element.clientHeight)
+    )
   }
 
   setHasInput(hasInput: boolean) {
@@ -728,6 +781,15 @@ export class ListboxStore extends ReactStore<
    */
   setListRef(ref: React.RefObject<HTMLElement | null>) {
     this.context.refs.listRef = ref
+  }
+
+  /**
+   * Set the list scroll container ref for scroll position management.
+   * Use this when the semantic list element is rendered inside another
+   * scrollable container, such as a custom ScrollArea viewport.
+   */
+  setListScrollContainerRef(ref: React.RefObject<HTMLElement | null>) {
+    this.context.refs.listScrollContainerRef = ref
   }
 
   /**
