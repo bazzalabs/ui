@@ -20,6 +20,7 @@ export default function DropdownMenuVirtualized() {
   // Track when animations complete to enable/disable virtualizer
   const [virtualizerEnabled, setVirtualizerEnabled] = React.useState(false)
   const scrollElementRef = React.useRef<HTMLDivElement | null>(null)
+  const previousSearchRef = React.useRef(search)
 
   // Filter items based on search
   const filteredItems = React.useMemo(() => {
@@ -42,6 +43,15 @@ export default function DropdownMenuVirtualized() {
   React.useLayoutEffect(() => {
     virtualizer.measure()
   }, [virtualizer])
+
+  React.useLayoutEffect(() => {
+    if (previousSearchRef.current === search) {
+      return
+    }
+
+    previousSearchRef.current = search
+    virtualizer.scrollToOffset(0)
+  }, [search, virtualizer])
 
   // Callback ref to set scroll element and trigger virtualizer measure
   const handleScrollElementRef = React.useCallback(

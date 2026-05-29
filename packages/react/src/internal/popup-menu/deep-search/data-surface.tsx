@@ -65,6 +65,7 @@ export const PopupMenuDataSurface = React.forwardRef<
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
+    resetScrollOnSearch = true,
     getQualifiedRowId: getQualifiedRowIdProp,
     className,
     style,
@@ -156,6 +157,7 @@ export const PopupMenuDataSurface = React.forwardRef<
         loop={loop}
         autoHighlightFirst={autoHighlightFirst}
         clearSearchOnClose={clearSearchOnClose}
+        resetScrollOnSearch={resetScrollOnSearch}
         className={className}
         style={style}
         render={render}

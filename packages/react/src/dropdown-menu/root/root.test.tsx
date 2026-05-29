@@ -71,6 +71,37 @@ function DropdownMenuWithAutoHighlight(
   )
 }
 
+function DropdownMenuWithSearch({
+  resetScrollOnSearch,
+}: {
+  resetScrollOnSearch?: boolean
+} = {}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface
+              data-testid="surface"
+              resetScrollOnSearch={resetScrollOnSearch}
+            >
+              <DropdownMenu.Input data-testid="search-input" />
+              <DropdownMenu.List data-testid="list">
+                <DropdownMenu.Item value="Apple">Apple</DropdownMenu.Item>
+                <DropdownMenu.Item value="Banana">Banana</DropdownMenu.Item>
+                <DropdownMenu.Item value="Cherry">Cherry</DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function DropdownMenuWithCheckboxItems({
   checkedState,
   onCheckedChange,
@@ -973,6 +1004,36 @@ function DropdownMenuWithHighlightCallbacks({
 // ============================================================================
 
 describe('<DropdownMenu.Root />', () => {
+  describe('search scroll reset', () => {
+    it('resets list scroll position when search changes by default', async () => {
+      const user = userEvent.setup()
+      const scrollTo = vi.fn()
+      render(<DropdownMenuWithSearch />)
+
+      await user.click(screen.getByTestId('trigger'))
+      const list = await screen.findByTestId('list')
+      list.scrollTo = scrollTo
+
+      await user.type(screen.getByTestId('search-input'), 'a')
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    })
+
+    it('preserves list scroll position when resetScrollOnSearch is false', async () => {
+      const user = userEvent.setup()
+      const scrollTo = vi.fn()
+      render(<DropdownMenuWithSearch resetScrollOnSearch={false} />)
+
+      await user.click(screen.getByTestId('trigger'))
+      const list = await screen.findByTestId('list')
+      list.scrollTo = scrollTo
+
+      await user.type(screen.getByTestId('search-input'), 'a')
+
+      expect(scrollTo).not.toHaveBeenCalled()
+    })
+  })
+
   describe('open/close behavior', () => {
     it('opens when trigger is clicked', async () => {
       const user = userEvent.setup()

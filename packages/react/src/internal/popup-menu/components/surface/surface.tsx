@@ -86,6 +86,12 @@ export interface PopupMenuSurfaceProps
   clearSearchOnClose?: boolean | 'after-exit'
 
   /**
+   * Whether to reset the list scroll position when the search query changes.
+   * @default true
+   */
+  resetScrollOnSearch?: boolean
+
+  /**
    * Whether to skip auto-focusing the input/list when this surface becomes the focus owner.
    * Useful for Combobox where the input is outside the popup and should retain focus.
    * @default false
@@ -120,6 +126,7 @@ export const PopupMenuSurface = React.forwardRef<
     loop = true,
     autoHighlightFirst = true,
     clearSearchOnClose = true,
+    resetScrollOnSearch = true,
     skipAutoFocus = false,
     orderedItems,
     render,
@@ -196,6 +203,7 @@ export const PopupMenuSurface = React.forwardRef<
     store.context.loop = loop
     store.context.autoHighlightFirst = autoHighlightFirst
     store.context.clearSearchOnClose = clearSearchOnClose
+    store.context.resetScrollOnSearch = resetScrollOnSearch
     store.context.listId = listId
     store.context.inputId = inputId
     store.context.onSearchChange = handleSearchChange
@@ -224,6 +232,7 @@ export const PopupMenuSurface = React.forwardRef<
     loop,
     autoHighlightFirst,
     clearSearchOnClose,
+    resetScrollOnSearch,
     listId,
     inputId,
     handleSearchChange,
