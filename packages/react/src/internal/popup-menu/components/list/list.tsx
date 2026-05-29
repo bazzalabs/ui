@@ -66,6 +66,12 @@ export interface PopupMenuListProps
    * Only used when `measureRowWidth` is true.
    */
   maxRowWidth?: number
+
+  /**
+   * Ref to the element that owns the list's scroll position.
+   * Use when the semantic list is rendered inside another scroll container.
+   */
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
 /**
@@ -82,6 +88,7 @@ export const PopupMenuList = React.forwardRef<
     label = 'Suggestions',
     measureRowWidth = true,
     maxRowWidth,
+    scrollContainerRef,
     render,
     className,
     style,
@@ -106,6 +113,15 @@ export const PopupMenuList = React.forwardRef<
   React.useEffect(() => {
     store.setListRef(internalRef)
   }, [store])
+
+  React.useEffect(() => {
+    if (!scrollContainerRef) return
+
+    store.setListScrollContainerRef(scrollContainerRef)
+    return () => {
+      store.setListScrollContainerRef({ current: null })
+    }
+  }, [store, scrollContainerRef])
 
   // Find popup element on mount for row width measurement target
   React.useLayoutEffect(() => {

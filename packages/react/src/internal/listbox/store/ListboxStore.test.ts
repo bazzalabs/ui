@@ -367,6 +367,113 @@ describe('ListboxStore', () => {
       expect(ids).not.toContain('cherry')
     })
 
+    it('resets list scroll position when search changes', () => {
+      const scrollTo = vi.fn()
+      store.setListRef({
+        current: { scrollTo } as unknown as HTMLElement,
+      })
+
+      store.setSearch('app')
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    })
+
+    it('resets the nearest scrollable ancestor when the list is rendered inside a scroll viewport', () => {
+      const viewport = document.createElement('div')
+      const list = document.createElement('div')
+      const viewportScrollTo = vi.fn()
+      const listScrollTo = vi.fn()
+
+      viewport.style.overflowY = 'auto'
+      Object.defineProperty(viewport, 'scrollHeight', {
+        value: 500,
+        configurable: true,
+      })
+      Object.defineProperty(viewport, 'clientHeight', {
+        value: 100,
+        configurable: true,
+      })
+      viewport.scrollTo = viewportScrollTo
+      list.scrollTo = listScrollTo
+      viewport.appendChild(list)
+      store.setListRef({ current: list })
+
+      store.setSearch('app')
+
+      expect(viewportScrollTo).toHaveBeenCalledWith({ top: 0 })
+      expect(listScrollTo).not.toHaveBeenCalled()
+    })
+
+    it('uses explicit list scroll container ref before looking for a scrollable ancestor', () => {
+      const list = document.createElement('div')
+      const scrollContainer = document.createElement('div')
+      const listScrollTo = vi.fn()
+      const scrollContainerScrollTo = vi.fn()
+
+      list.scrollTo = listScrollTo
+      scrollContainer.scrollTo = scrollContainerScrollTo
+      store.setListRef({ current: list })
+      store.setListScrollContainerRef({ current: scrollContainer })
+
+      store.setSearch('app')
+
+      expect(scrollContainerScrollTo).toHaveBeenCalledWith({ top: 0 })
+      expect(listScrollTo).not.toHaveBeenCalled()
+    })
+
+    it('preserves list scroll position when resetScrollOnSearch is false', () => {
+      const scrollTo = vi.fn()
+      store.context.resetScrollOnSearch = false
+      store.setListRef({
+        current: { scrollTo } as unknown as HTMLElement,
+      })
+
+      store.setSearch('app')
+
+      expect(scrollTo).not.toHaveBeenCalled()
+    })
+
+    it('resets list scroll position when autoHighlightFirst is false', () => {
+      const scrollTo = vi.fn()
+      const store = createStore({ open: true }, { autoHighlightFirst: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+      store.setListRef({
+        current: { scrollTo } as unknown as HTMLElement,
+      })
+
+      store.setSearch('app')
+
+      expect(store.state.highlightedId).toBe(null)
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    })
+
+    it('resets list scroll position when search has no results', () => {
+      const scrollTo = vi.fn()
+      store.setListRef({
+        current: { scrollTo } as unknown as HTMLElement,
+      })
+
+      store.setSearch('xyz')
+
+      expect(store.getVisibleItemIds()).toEqual([])
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    })
+
+    it('skips generic list scroll reset when virtualized', () => {
+      const scrollTo = vi.fn()
+      store.setVirtualized(true)
+      store.setListRef({
+        current: { scrollTo } as unknown as HTMLElement,
+      })
+
+      store.setSearch('app')
+
+      expect(scrollTo).not.toHaveBeenCalled()
+    })
+
     it('ignores trailing whitespace in search query', () => {
       store.setSearch('app ')
 
