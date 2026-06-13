@@ -2,7 +2,7 @@
 
 The advisor's job doesn't end at the plan. This file covers the three follow-through flows: dispatching an executor and reviewing its work (`execute`), keeping the plan backlog alive (`reconcile`), and publishing plans where work gets picked up (`--issues`).
 
-The founding rule survives unchanged: **the advisor never edits source code.** In `execute`, a *separate executor subagent* edits code in an isolated git worktree; the advisor dispatches, reviews, and renders a verdict — like a tech lead who doesn't push commits to your branch.
+The founding rule survives unchanged: **the advisor never edits source code.** In `execute`, a *separate executor subagent* edits code. Prefer an isolated git worktree when the host supports it; otherwise, with explicit user confirmation, the executor may work in the current workspace. The advisor dispatches, reviews, and renders a verdict — like a tech lead who doesn't push commits to your branch.
 
 ---
 
@@ -10,25 +10,28 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
 
 ### Preconditions (check all before dispatching)
 
-- The repo is a git repository (worktree isolation requires it). If not: stop and say so.
 - The plan file exists and its dependencies show DONE in `plans/README.md`. If not: stop, name the missing dependency.
 - Run the plan's drift check yourself. If in-scope files changed since `Planned at`, reconcile the plan first (see below) — don't hand a stale plan to an executor.
+- Decide the implementation workspace:
+  - Use an isolated git worktree if the host can spawn one.
+  - If no isolated worktree is available, warn the user that the executor will modify the current workspace and ask for explicit confirmation before dispatch.
 
 ### Dispatch
 
-Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: default `sonnet`; use what the user named if they named one (`execute 003 haiku`).
+Spawn **one** executor subagent. Executor model: default `sonnet`; use what the user named if they named one (`execute 003 haiku`). If the host supports isolated worktrees, use one. Otherwise, dispatch in the current workspace only after the precondition confirmation above.
 
 The subagent prompt must contain:
 
-1. **The full plan file text, inlined.** The worktree contains only committed files — if `plans/` is uncommitted, the executor can't read it. Never assume; always inline.
+1. **The full plan file text, inlined.** Never assume the executor can read the plan file from disk — if it runs in a fresh worktree or different context, uncommitted `plans/` changes may be missing.
 2. The executor preamble:
 
 > You are the executor for the implementation plan below. Follow it step by
 > step. Run every verification command and confirm the expected result before
 > moving on. Touch only the files listed as in scope. If any STOP condition
 > occurs, stop immediately and report. Do not improvise around obstacles.
-> Commit your work in the worktree following the plan's git workflow section.
-> One override: SKIP the plan's instruction to update `plans/README.md` —
+> Do not commit, merge, push, or update the user's branch; leave the final
+> result as a reviewable working-tree diff. One override: SKIP the plan's
+> instruction to update `plans/README.md` —
 > your reviewer maintains the index. Before reporting, audit every claim in
 > your report against an actual tool result from this session — only report
 > what you can point to evidence for; if a verification failed or was
@@ -47,12 +50,12 @@ NOTES: anything the reviewer should know (deviations, surprises, judgment calls)
 
 ### Review (the advisor's real job here)
 
-Note on fresh worktrees: they share git history but not `node_modules` or build artifacts — the executor must install dependencies first, and check tooling that resolves from `dist/` may need one build even though the plan's command table (recon'd in the main tree) didn't mention it. Expect this; it isn't a deviation.
+Note on fresh worktrees: they share git history but not `node_modules` or build artifacts — the executor may need to install dependencies first, and check tooling that resolves from `dist/` may need one build even though the plan's command table (recon'd in the main tree) didn't mention it. Expect this; it isn't a deviation. In current-workspace execution, do not assume artifacts are disposable; call out any generated files or dependency changes in the verdict.
 
 Review like a tech lead reviewing a PR against the spec — never fix anything yourself:
 
-1. **Re-run every done criterion** in the worktree. Don't trust the executor's report — verify.
-2. **Scope compliance**: `git -C <worktree> diff --stat` against the plan's in-scope list. Any file outside scope fails review, full stop.
+1. **Re-run every done criterion** in the implementation workspace. Don't trust the executor's report — verify.
+2. **Scope compliance**: inspect the workspace diff against the plan's in-scope list. Any file outside scope fails review, full stop.
 3. **Read the full diff.** Judge it against "Why this matters" (does it solve the actual problem?) and the repo conventions named in the plan (does it look like the rest of the codebase?).
 4. **Audit the new tests.** Executors game criteria — a test that asserts nothing meaningful passes `pnpm test` and proves nothing. Read what the tests assert.
 
@@ -62,11 +65,11 @@ Review like a tech lead reviewing a PR against the spec — never fix anything y
 
 | Verdict | When | Action |
 |---|---|---|
-| **APPROVE** | Criteria pass, scope clean, quality holds | Update index status to DONE. Present to the user: diff summary, worktree path and branch, anything from NOTES. **Merging is the user's decision — never merge, push, or commit to their branch.** |
+| **APPROVE** | Criteria pass, scope clean, quality holds | Update index status to DONE. Present to the user: diff summary, implementation workspace, anything from NOTES. **Merging is the user's decision — never merge, push, or commit to their branch.** |
 | **REVISE** | Fixable gaps | SendMessage to the same executor with specific, actionable feedback ("criterion 3 fails: X; the error handling in `api.ts:90` swallows the error — use the Result pattern per the plan"). **Max 2 revision rounds**, then BLOCK. |
 | **BLOCK** | STOP condition hit, scope violated unrecoverably, or revisions exhausted | Mark BLOCKED in the index with the reason. Refine or rewrite the plan with what was learned. Tell the user what happened and what changed in the plan. |
 
-Running verification commands inside the executor's worktree is fine — it's isolated and disposable. The no-mutating-commands rule protects the user's working tree, not the worktree.
+Running verification commands inside an isolated executor worktree is fine — it's isolated and disposable. In current-workspace execution, keep verification to the plan's stated gates, call out any artifacts produced, and never clean up or revert executor changes yourself.
 
 ---
 
@@ -76,7 +79,7 @@ Process what happened since the last session. Read `plans/README.md` and every p
 
 - **DONE** — spot-check that the done criteria still hold on the current HEAD (cheap ones only). Mark verified in the index. Don't delete plan files — they're the record.
 - **BLOCKED** — read the reason. Investigate the underlying obstacle in the codebase. Either rewrite the plan around it (new number if the approach changed fundamentally, in-place refresh otherwise) or mark REJECTED with one line of rationale.
-- **IN PROGRESS** (stale) — flag it to the user; an executor probably died mid-run. Check the worktree if one exists.
+- **IN PROGRESS** (stale) — flag it to the user; an executor probably died mid-run. Check the implementation workspace if one exists.
 - **TODO** — run the drift check. If drifted: re-verify the finding still exists (it may have been fixed in passing), then refresh the "Current state" excerpts and `Planned at` SHA. If the finding is gone, mark REJECTED ("fixed independently").
 
 Finish with a short report: what's verified done, what was refreshed, what's rejected, and what's executable right now.
