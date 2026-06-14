@@ -417,11 +417,7 @@ export default function DropdownMenuDeepSearchLinearAsyncTanstack() {
               }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
-              <DropdownMenu.DataList virtualized>
-                {({ nodes, renderNode }) => (
-                  <>{nodes.map((node) => renderNode(node))}</>
-                )}
-              </DropdownMenu.DataList>
+              <DropdownMenu.DataList virtualized />
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>

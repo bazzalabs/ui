@@ -11,10 +11,13 @@ export type {
 
 // Context
 export {
+  DataListContext,
   DataPopupContext,
   DataSurfaceContext,
+  useDataList,
   useDataPopupContext,
   useDataSurfaceContext,
+  useMaybeDataList,
   useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './context.js'

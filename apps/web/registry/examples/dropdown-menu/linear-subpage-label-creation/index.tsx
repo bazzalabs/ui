@@ -587,11 +587,7 @@ export default function DropdownMenuLinearSubpageLabelCreation() {
                 placeholder="Change labels..."
                 disabled={isCreatingLabel}
               />
-              <DropdownMenu.DataList virtualized>
-                {({ nodes, renderNode }) => (
-                  <>{nodes.map((node) => renderNode(node))}</>
-                )}
-              </DropdownMenu.DataList>
+              <DropdownMenu.DataList virtualized />
             </DropdownMenu.DataSurface>
             <DropdownMenu.DataSubpages />
           </DropdownMenu.Popup>

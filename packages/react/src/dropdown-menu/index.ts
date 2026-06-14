@@ -296,6 +296,7 @@ export type {
 } from '../internal/popup-menu/index.js'
 
 export {
+  DataListContext,
   DataSurfaceContext,
   defineRadioGroup,
   isDisplayGroupNode,
@@ -308,7 +309,9 @@ export {
   PopupMenuDataSurface as DropdownMenuDataSurface,
   PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
   useAsyncMenuCoordinator,
+  useDataList,
   useDataSurfaceContext,
   useMaybeAsyncMenuCoordinator,
+  useMaybeDataList,
   useMaybeDataSurfaceContext,
 } from '../internal/popup-menu/index.js'

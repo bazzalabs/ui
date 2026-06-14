@@ -71,6 +71,20 @@ function createSubmenuDef(
   }
 }
 
+function LoadingEmptyDataListItems() {
+  const { nodes, renderNode } = DropdownMenu.useDataList()
+
+  return (
+    <>
+      <DropdownMenu.Loading data-testid="loading">
+        Loading...
+      </DropdownMenu.Loading>
+      <DropdownMenu.Empty data-testid="empty">No results</DropdownMenu.Empty>
+      {nodes.map((node) => renderNode(node))}
+    </>
+  )
+}
+
 /**
  * Deferred promise helper for controlling async resolution in tests.
  */
@@ -121,17 +135,7 @@ describe('Empty and Loading visibility', () => {
                     placeholder="Search..."
                   />
                   <DropdownMenu.DataList>
-                    {({ nodes, renderNode }) => (
-                      <>
-                        <DropdownMenu.Loading data-testid="loading">
-                          Loading...
-                        </DropdownMenu.Loading>
-                        <DropdownMenu.Empty data-testid="empty">
-                          No results
-                        </DropdownMenu.Empty>
-                        {nodes.map((node) => renderNode(node))}
-                      </>
-                    )}
+                    <LoadingEmptyDataListItems />
                   </DropdownMenu.DataList>
                 </DropdownMenu.DataSurface>
               </DropdownMenu.Popup>
@@ -261,17 +265,7 @@ describe('Empty and Loading visibility', () => {
                     placeholder="Search..."
                   />
                   <DropdownMenu.DataList>
-                    {({ nodes, renderNode }) => (
-                      <>
-                        <DropdownMenu.Loading data-testid="loading">
-                          Loading...
-                        </DropdownMenu.Loading>
-                        <DropdownMenu.Empty data-testid="empty">
-                          No results
-                        </DropdownMenu.Empty>
-                        {nodes.map((node) => renderNode(node))}
-                      </>
-                    )}
+                    <LoadingEmptyDataListItems />
                   </DropdownMenu.DataList>
                 </DropdownMenu.DataSurface>
               </DropdownMenu.Popup>
@@ -410,17 +404,7 @@ describe('Empty and Loading visibility', () => {
                     placeholder="Search..."
                   />
                   <DropdownMenu.DataList>
-                    {({ nodes, renderNode }) => (
-                      <>
-                        <DropdownMenu.Loading data-testid="loading">
-                          Loading...
-                        </DropdownMenu.Loading>
-                        <DropdownMenu.Empty data-testid="empty">
-                          No results
-                        </DropdownMenu.Empty>
-                        {nodes.map((node) => renderNode(node))}
-                      </>
-                    )}
+                    <LoadingEmptyDataListItems />
                   </DropdownMenu.DataList>
                 </DropdownMenu.DataSurface>
               </DropdownMenu.Popup>
@@ -482,17 +466,7 @@ describe('Empty and Loading visibility', () => {
                     placeholder="Search..."
                   />
                   <DropdownMenu.DataList>
-                    {({ nodes, renderNode }) => (
-                      <>
-                        <DropdownMenu.Loading data-testid="loading">
-                          Loading...
-                        </DropdownMenu.Loading>
-                        <DropdownMenu.Empty data-testid="empty">
-                          No results
-                        </DropdownMenu.Empty>
-                        {nodes.map((node) => renderNode(node))}
-                      </>
-                    )}
+                    <LoadingEmptyDataListItems />
                   </DropdownMenu.DataList>
                 </DropdownMenu.DataSurface>
               </DropdownMenu.Popup>

@@ -8,7 +8,11 @@ import {
   type AsyncMenuState,
   useAsyncMenuCoordinator,
 } from './async-coordinator.js'
-import { type RenderNodeFn, useDataSurfaceContext } from './context.js'
+import {
+  DataListContext,
+  type RenderNodeFn,
+  useDataSurfaceContext,
+} from './context.js'
 import type {
   AsyncLoaderResult,
   AsyncNodesConfig,
@@ -1315,8 +1319,6 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       [search, displayNodes, renderNode, isDeepSearching, asyncState],
     )
 
-    const renderedChildren = children(childrenState)
-
     // Use PopupMenuList which handles keyboard navigation
     return (
       <>
@@ -1348,7 +1350,9 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
           maxRowWidth={maxRowWidth}
           scrollContainerRef={scrollContainerRef}
         >
-          {renderedChildren}
+          <DataListContext.Provider value={childrenState}>
+            {children}
+          </DataListContext.Provider>
         </PopupMenuList>
       </>
     )

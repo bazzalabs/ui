@@ -275,28 +275,35 @@ export default function DropdownMenuDeepSearch() {
               </div>
 
               <DropdownMenu.DataList className="max-h-[280px] overflow-y-auto py-1">
-                {({ nodes, renderNode, isDeepSearching, count, search }) => (
-                  <>
-                    {isDeepSearching && count > 0 && (
-                      <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
-                        Searching all menus...
-                      </div>
-                    )}
-
-                    {count === 0 && search.length >= 2 ? (
-                      <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-                        No matching options
-                      </div>
-                    ) : (
-                      nodes.map((node) => renderNode(node))
-                    )}
-                  </>
-                )}
+                <DeepSearchDataListContent />
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+function DeepSearchDataListContent() {
+  const { nodes, renderNode, isDeepSearching, count, search } =
+    DropdownMenu.useDataList()
+
+  return (
+    <>
+      {isDeepSearching && count > 0 && (
+        <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
+          Searching all menus...
+        </div>
+      )}
+
+      {count === 0 && search.length >= 2 ? (
+        <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+          No matching options
+        </div>
+      ) : (
+        nodes.map((node) => renderNode(node))
+      )}
+    </>
   )
 }

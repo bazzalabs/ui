@@ -54,7 +54,9 @@ export {
   PopupMenuSurface as Surface,
   // Async coordinator hooks
   useAsyncMenuCoordinator,
+  useDataList,
   useMaybeAsyncMenuCoordinator,
+  useMaybeDataList,
 } from '../internal/popup-menu/index.js'
 // Dropdown-menu specific components
 export { DropdownMenuRoot as Root } from './root/root.js'

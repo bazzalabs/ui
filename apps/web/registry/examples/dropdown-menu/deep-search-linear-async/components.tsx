@@ -251,9 +251,7 @@ export function createSubmenuNode(
                   hideUntilActive={hideInputUntilActive}
                 />
                 <DropdownMenu.DataList>
-                  {({ nodes: filteredNodes, renderNode }) => (
-                    <>{filteredNodes.map((node) => renderNode(node))}</>
-                  )}
+                  <AsyncComponentsDataListItems />
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
@@ -328,11 +326,7 @@ export function createAsyncSubmenuNode(
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList virtualized>
-                  {({ nodes, renderNode }) => (
-                    <>{nodes.map((node) => renderNode(node))}</>
-                  )}
-                </DropdownMenu.DataList>
+                <DropdownMenu.DataList virtualized />
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
@@ -340,4 +334,10 @@ export function createAsyncSubmenuNode(
       </DropdownMenu.Submenu>
     ),
   }
+}
+
+function AsyncComponentsDataListItems() {
+  const { nodes: filteredNodes, renderNode } = DropdownMenu.useDataList()
+
+  return <>{filteredNodes.map((node) => renderNode(node))}</>
 }

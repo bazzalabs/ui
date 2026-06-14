@@ -34,16 +34,26 @@ export function TextEditorContent<TData>({
         onValueChange={setQuery}
       />
       <DropdownMenu.DataList className={cn(!query && 'hidden')}>
-        {({ nodes: displayNodes, renderNode }) =>
-          displayNodes.length > 0 ? (
-            displayNodes.map(renderNode)
-          ) : query.trim() ? (
-            <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-              Press enter to filter by "{query}"
-            </div>
-          ) : null
-        }
+        <TextEditorItems query={query} />
       </DropdownMenu.DataList>
     </DropdownMenu.DataSurface>
   )
+}
+
+function TextEditorItems({ query }: { query: string }) {
+  const { nodes: displayNodes, renderNode } = DropdownMenu.useDataList()
+
+  if (displayNodes.length > 0) {
+    return <>{displayNodes.map(renderNode)}</>
+  }
+
+  if (query.trim()) {
+    return (
+      <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
+        Press enter to filter by "{query}"
+      </div>
+    )
+  }
+
+  return null
 }

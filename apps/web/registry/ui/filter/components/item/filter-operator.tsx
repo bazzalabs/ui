@@ -200,12 +200,7 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
               <DropdownMenu.DataSurface content={nodes}>
                 <DropdownMenu.DataInput hideUntilActive />
                 <DropdownMenu.DataList>
-                  {({ nodes: displayNodes, renderNode }) => (
-                    <>
-                      {displayNodes.map(renderNode)}
-                      <DropdownMenu.Empty />
-                    </>
-                  )}
+                  <FilterOperatorItems />
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
@@ -217,6 +212,17 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
 )
 
 FilterOperator.displayName = 'FilterOperator'
+
+function FilterOperatorItems() {
+  const { nodes: displayNodes, renderNode } = DropdownMenu.useDataList()
+
+  return (
+    <>
+      {displayNodes.map(renderNode)}
+      <DropdownMenu.Empty />
+    </>
+  )
+}
 
 export { FilterOperator }
 

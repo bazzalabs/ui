@@ -3312,27 +3312,9 @@ function DeepSearchDemo() {
                   />
                 </div>
 
-                {/* Data List with render prop */}
+                {/* Data List */}
                 <DropdownMenu.DataList className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
-                  {({ nodes, renderNode, isDeepSearching, count, search }) => (
-                    <>
-                      {/* Deep search indicator */}
-                      {isDeepSearching && count > 0 && (
-                        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
-                          Searching all menus...
-                        </div>
-                      )}
-
-                      {/* Render nodes */}
-                      {count === 0 && search.length >= 2 ? (
-                        <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-                          No matching options.
-                        </div>
-                      ) : (
-                        nodes.map((displayNode) => renderNode(displayNode))
-                      )}
-                    </>
-                  )}
+                  <PlaygroundDeepSearchItems />
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
@@ -3341,6 +3323,43 @@ function DeepSearchDemo() {
       </DropdownMenu.Root>
     </DemoSection>
   )
+}
+
+function PlaygroundDeepSearchItems() {
+  const { nodes, renderNode, isDeepSearching, count, search } =
+    DropdownMenu.useDataList()
+
+  return (
+    <>
+      {isDeepSearching && count > 0 && (
+        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
+          Searching all menus...
+        </div>
+      )}
+
+      {count === 0 && search.length >= 2 ? (
+        <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
+          No matching options.
+        </div>
+      ) : (
+        nodes.map((displayNode) => renderNode(displayNode))
+      )}
+    </>
+  )
+}
+
+function PlaygroundActionItems() {
+  const { nodes, renderNode } = DropdownMenu.useDataList()
+
+  if (nodes.length === 0) {
+    return (
+      <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+        No results found
+      </div>
+    )
+  }
+
+  return <>{nodes.map(renderNode)}</>
 }
 
 // --- Deep Search Groups Demo ---
@@ -3806,17 +3825,7 @@ function DeepSearchGroupsDemo() {
                       className="focus:outline-none py-1"
                       render={<ScrollArea.Content />}
                     >
-                      {({ nodes, renderNode }) => (
-                        <>
-                          {nodes.length === 0 ? (
-                            <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                              No results found
-                            </div>
-                          ) : (
-                            nodes.map(renderNode)
-                          )}
-                        </>
-                      )}
+                      <PlaygroundActionItems />
                     </DropdownMenu.DataList>
                   </ScrollArea.Viewport>
                   <ScrollArea.Scrollbar
@@ -4304,27 +4313,9 @@ function DeepSearchStatefulDemo() {
                   />
                 </div>
 
-                {/* Data List with render prop */}
+                {/* Data List */}
                 <DropdownMenu.DataList className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
-                  {({ nodes, renderNode, isDeepSearching, count, search }) => (
-                    <>
-                      {/* Deep search indicator */}
-                      {isDeepSearching && count > 0 && (
-                        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
-                          Searching all menus...
-                        </div>
-                      )}
-
-                      {/* Render nodes */}
-                      {count === 0 && search.length >= 2 ? (
-                        <div className="flex items-center justify-center h-10 text-muted-foreground text-sm">
-                          No matching options.
-                        </div>
-                      ) : (
-                        nodes.map((displayNode) => renderNode(displayNode))
-                      )}
-                    </>
-                  )}
+                  <PlaygroundDeepSearchItems />
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
