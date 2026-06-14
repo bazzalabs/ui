@@ -101,12 +101,20 @@ executor's environment. Skip the section otherwise.)
 
 (Filled from recon — match the repo's observed conventions.)
 
-- Branch: `advisor/NNN-<slug>` (or the repo's branch-naming convention if one is evident)
+- Branch/worktree: use worktrunk for isolation and Graphite for branch/commit
+  state. Create the execution worktree with `wt switch -c ui-<ticket>-<slug>`
+  from `canary` (the worktrunk default), or add `-b @` if this plan explicitly
+  depends on the current HEAD. Work only inside the created worktree.
+- Graphite: adopt the worktrunk-created branch with `gt track --parent canary`
+  when needed, then create commits/stack branches with `gt create` using the
+  Commit / PR title. For dependent plans, keep the whole stack in one worktree,
+  or use `gt create --onto <branch>` to stack on a branch checked out elsewhere.
 - PR title / first commit subject: use the **Commit / PR title** from the Status
   block verbatim. Any additional commits (per step or logical unit) follow the
   same convention — match the repo's observed style (include an example from
   `git log`).
-- Do NOT push or open a PR unless the operator instructed it.
+- Do NOT run `wt merge`, `git commit`, `git push`, `gt submit`, or open a PR
+  unless the operator instructed it.
 
 ## Steps
 
