@@ -146,15 +146,15 @@ function createAsyncSubmenu(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner>
             <DropdownMenu.Popup>
-              <DropdownMenu.DataSurface asyncContent={asyncContent}>
-                <DropdownMenu.DataInput
+              <DropdownMenu.Surface asyncContent={asyncContent}>
+                <DropdownMenu.Input
                   placeholder={`Search ${title.toLowerCase()}...`}
                   hideUntilActive
                 />
-                <DropdownMenu.DataList>
-                  <AsyncDataListContent />
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                <DropdownMenu.List>
+                  <AsyncListContent />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -209,15 +209,15 @@ export default function DropdownMenuAsync() {
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               content={content}
               deepSearch={{ enabled: true, minLength: 1 }}
             >
-              <DropdownMenu.DataInput placeholder="Search..." />
-              <DropdownMenu.DataList>
-                <AsyncDataListContent />
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+              <DropdownMenu.Input placeholder="Search..." />
+              <DropdownMenu.List>
+                <AsyncListContent />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -225,7 +225,7 @@ export default function DropdownMenuAsync() {
   )
 }
 
-function AsyncDataListContent() {
+function AsyncListContent() {
   const { nodes, renderNode, count, async } = DropdownMenu.useDataList()
 
   return (

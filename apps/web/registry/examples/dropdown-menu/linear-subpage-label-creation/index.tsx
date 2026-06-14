@@ -90,7 +90,7 @@ function createCreateLabelSubpage(params: {
     renderContent: ({ pageId }: SubpageContentRenderParams) => (
       <DropdownMenu.Subpage pageId={pageId}>
         <DropdownMenu.Surface>
-          <DropdownMenu.DataInput
+          <DropdownMenu.Input
             placeholder="Pick color for label"
             disabled={isCreatingLabel}
           />
@@ -576,20 +576,19 @@ export default function DropdownMenuLinearSubpageLabelCreation() {
               </>
             )}
           >
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
               search={labelSearchQuery}
               onSearchChange={setLabelSearchQuery}
               autoHighlightFirst={autoHighlightFirst}
             >
-              <DropdownMenu.DataInput
+              <DropdownMenu.Input
                 placeholder="Change labels..."
                 disabled={isCreatingLabel}
               />
-              <DropdownMenu.DataList virtualized />
-            </DropdownMenu.DataSurface>
-            <DropdownMenu.DataSubpages />
+              <DropdownMenu.List virtualized />
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>

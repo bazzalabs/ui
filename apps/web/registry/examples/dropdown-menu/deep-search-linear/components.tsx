@@ -200,7 +200,7 @@ export function createAssigneeItemNode(
 
 /**
  * Creates a submenu node with deep search enabled.
- * Uses the Data-First API components (DataSurface, DataInput, DataList)
+ * Uses the Data-First API components (Surface, Input, List)
  * to properly integrate with the parent's deep search functionality.
  */
 export function createSubmenuNode(
@@ -237,16 +237,16 @@ export function createSubmenuNode(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner>
             <DropdownMenu.Popup>
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 content={nodes}
                 deepSearch={{ enabled: true, minLength: 0 }}
               >
-                <DropdownMenu.DataInput
+                <DropdownMenu.Input
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList virtualized />
-              </DropdownMenu.DataSurface>
+                <DropdownMenu.List virtualized />
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -257,7 +257,7 @@ export function createSubmenuNode(
 
 /**
  * Creates a subpage node with deep search enabled.
- * Subpage content is rendered by DataSubpages as a Popup sibling to DataSurface.
+ * Subpage content is rendered automatically by Popup for a data Surface.
  */
 export function createSubpageNode(
   id: string,
@@ -294,15 +294,15 @@ export function createSubpageNode(
     renderContent: ({ pageId, context }: SubpageContentRenderParams) => (
       <DropdownMenu.Subpage pageId={pageId}>
         <DropdownMenu.Surface>
-          <DropdownMenu.DataInput
+          <DropdownMenu.Input
             placeholder={inputPlaceholder}
             hideUntilActive={hideInputUntilActive}
           />
-          <DropdownMenu.DataList virtualized>
+          <DropdownMenu.List virtualized>
             {!context.isDeepSearchResult ? (
               <DropdownMenu.SubpageBackItem>Back</DropdownMenu.SubpageBackItem>
             ) : null}
-          </DropdownMenu.DataList>
+          </DropdownMenu.List>
         </DropdownMenu.Surface>
       </DropdownMenu.Subpage>
     ),

@@ -71,7 +71,7 @@ function createSubmenuDef(
   }
 }
 
-function LoadingEmptyDataListItems() {
+function LoadingEmptyListItems() {
   const { nodes, renderNode } = DropdownMenu.useDataList()
 
   return (
@@ -124,20 +124,20 @@ describe('Empty and Loading visibility', () => {
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
-                <DropdownMenu.DataSurface
+                <DropdownMenu.Surface
                   data-testid="surface"
                   content={content}
                   deepSearch={{ enabled: true, minLength: 0 }}
                   normalizeSearch={normalizeSearch}
                 >
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     data-testid="search-input"
                     placeholder="Search..."
                   />
-                  <DropdownMenu.DataList>
-                    <LoadingEmptyDataListItems />
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
+                  <DropdownMenu.List>
+                    <LoadingEmptyListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
               </DropdownMenu.Popup>
             </DropdownMenu.Positioner>
           </DropdownMenu.Portal>
@@ -255,19 +255,19 @@ describe('Empty and Loading visibility', () => {
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
-                <DropdownMenu.DataSurface
+                <DropdownMenu.Surface
                   data-testid="surface"
                   asyncContent={loader}
                   deepSearch={{ enabled: true, minLength: 0 }}
                 >
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     data-testid="search-input"
                     placeholder="Search..."
                   />
-                  <DropdownMenu.DataList>
-                    <LoadingEmptyDataListItems />
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
+                  <DropdownMenu.List>
+                    <LoadingEmptyListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
               </DropdownMenu.Popup>
             </DropdownMenu.Positioner>
           </DropdownMenu.Portal>
@@ -393,20 +393,20 @@ describe('Empty and Loading visibility', () => {
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
-                <DropdownMenu.DataSurface
+                <DropdownMenu.Surface
                   data-testid="surface"
                   content={content}
                   asyncContent={loader}
                   deepSearch={{ enabled: true, minLength: 0 }}
                 >
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     data-testid="search-input"
                     placeholder="Search..."
                   />
-                  <DropdownMenu.DataList>
-                    <LoadingEmptyDataListItems />
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
+                  <DropdownMenu.List>
+                    <LoadingEmptyListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
               </DropdownMenu.Popup>
             </DropdownMenu.Positioner>
           </DropdownMenu.Portal>
@@ -452,7 +452,7 @@ describe('Empty and Loading visibility', () => {
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
-                <DropdownMenu.DataSurface
+                <DropdownMenu.Surface
                   data-testid="surface"
                   content={content}
                   deepSearch={{
@@ -461,14 +461,14 @@ describe('Empty and Loading visibility', () => {
                     asyncResultBehavior,
                   }}
                 >
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     data-testid="search-input"
                     placeholder="Search..."
                   />
-                  <DropdownMenu.DataList>
-                    <LoadingEmptyDataListItems />
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
+                  <DropdownMenu.List>
+                    <LoadingEmptyListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
               </DropdownMenu.Popup>
             </DropdownMenu.Positioner>
           </DropdownMenu.Portal>

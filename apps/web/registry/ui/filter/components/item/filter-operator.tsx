@@ -197,12 +197,12 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner align="start">
             <DropdownMenu.Popup className="w-full min-w-[150px]">
-              <DropdownMenu.DataSurface content={nodes}>
-                <DropdownMenu.DataInput hideUntilActive />
-                <DropdownMenu.DataList>
+              <DropdownMenu.Surface content={nodes}>
+                <DropdownMenu.Input hideUntilActive />
+                <DropdownMenu.List>
                   <FilterOperatorItems />
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>

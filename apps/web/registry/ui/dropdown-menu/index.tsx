@@ -233,80 +233,12 @@ const Surface = forwardRef<
 ))
 Surface.displayName = 'DropdownMenu.Surface'
 
-const DataSurface = forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<typeof Primitive.DataSurface>
->(({ className, clearSearchOnClose = 'after-exit', ...props }, ref) => (
-  <Primitive.DataSurface
-    ref={ref}
-    className={cn(surfaceVariants(), className)}
-    clearSearchOnClose={clearSearchOnClose}
-    {...props}
-  />
-))
-DataSurface.displayName = 'DropdownMenu.DataSurface'
-
-const List = forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<typeof Primitive.List> & {
-    viewportRef?: React.Ref<HTMLDivElement>
-    /** Maximum height of the scrollable area. */
-    maxHeight?: string | number
-    /** Whether to show gradient fade at scroll edges. */
-    withScrollFade?: boolean
-  }
->(
-  (
-    {
-      className,
-      viewportRef,
-      maxHeight = 342,
-      withScrollFade = true,
-      ...props
-    },
-    ref,
-  ) => {
-    const listScrollContainerRef = useRef<HTMLDivElement | null>(null)
-    const mergedViewportRef = useMemo(
-      () => mergeRefs(listScrollContainerRef, viewportRef),
-      [viewportRef],
-    )
-
-    return (
-      <ScrollArea.Root>
-        <ScrollArea.Viewport
-          ref={mergedViewportRef}
-          className={scrollAreaViewportVariants({ withScrollFade })}
-          style={{
-            maxHeight:
-              typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
-          }}
-        >
-          <Primitive.List
-            ref={ref}
-            className={cn(listVariants(), className)}
-            render={<ScrollArea.Content />}
-            scrollContainerRef={listScrollContainerRef}
-            {...props}
-          />
-        </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar
-          orientation="vertical"
-          className={scrollAreaScrollbarVariants()}
-        >
-          <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
-        </ScrollArea.Scrollbar>
-      </ScrollArea.Root>
-    )
-  },
-)
-List.displayName = 'DropdownMenu.List'
-
-export interface DataListProps
+export interface ListProps
   extends Omit<
-    React.ComponentProps<typeof Primitive.DataList>,
+    React.ComponentProps<typeof Primitive.List>,
     'render' | 'children'
   > {
+  viewportRef?: React.Ref<HTMLDivElement>
   /** Maximum height of the scrollable area. */
   maxHeight?: string | number
   /** Whether to show gradient fade at scroll edges. */
@@ -332,10 +264,11 @@ export interface DataListProps
   children?: React.ReactNode
 }
 
-const DataList = forwardRef<HTMLDivElement, DataListProps>(
+const List = forwardRef<HTMLDivElement, ListProps>(
   (
     {
       className,
+      viewportRef,
       maxHeight = 342,
       withScrollFade = true,
       virtualized = false,
@@ -347,6 +280,10 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
     ref,
   ) => {
     const listScrollContainerRef = useRef<HTMLDivElement | null>(null)
+    const mergedViewportRef = useMemo(
+      () => mergeRefs(listScrollContainerRef, viewportRef),
+      [viewportRef],
+    )
     const maxHeightPx =
       typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight
     const maxHeightNum =
@@ -355,19 +292,19 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
     if (virtualized) {
       return (
         <ScrollArea.Root>
-          <Primitive.DataList
+          <Primitive.List
             ref={ref}
             className={cn(listVariants(), className)}
             {...props}
           >
             {children}
-            <VirtualizedDataListContent
+            <VirtualizedListContent
               maxHeight={maxHeightNum}
               estimateSize={estimateSize}
               overscan={overscan}
               withScrollFade={withScrollFade}
             />
-          </Primitive.DataList>
+          </Primitive.List>
           <ScrollArea.Scrollbar
             orientation="vertical"
             className={scrollAreaScrollbarVariants()}
@@ -381,11 +318,11 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
     return (
       <ScrollArea.Root>
         <ScrollArea.Viewport
-          ref={listScrollContainerRef}
+          ref={mergedViewportRef}
           className={scrollAreaViewportVariants({ withScrollFade })}
           style={{ maxHeight: maxHeightPx }}
         >
-          <Primitive.DataList
+          <Primitive.List
             ref={ref}
             className={cn(listVariants(), className)}
             render={<ScrollArea.Content />}
@@ -395,7 +332,7 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
             {children}
             <Loading />
             <Empty />
-          </Primitive.DataList>
+          </Primitive.List>
         </ScrollArea.Viewport>
         <ScrollArea.Scrollbar
           orientation="vertical"
@@ -407,13 +344,12 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
     )
   },
 )
-DataList.displayName = 'DropdownMenu.DataList'
+List.displayName = 'DropdownMenu.List'
 
-const DataSubpages = Primitive.DataSubpages
 const useDataList = Primitive.useDataList
 
 // ============================================================================
-// Virtualized DataList Content (internal)
+// Virtualized List Content (internal)
 // ============================================================================
 
 /**
@@ -466,7 +402,7 @@ function displayNodesToVirtualItems(
   return items
 }
 
-interface VirtualizedDataListContentProps {
+interface VirtualizedListContentProps {
   maxHeight: number
   estimateSize: number
   overscan: number
@@ -488,12 +424,12 @@ type VirtualizedContentRow =
       key: '__empty__'
     }
 
-function VirtualizedDataListContent({
+function VirtualizedListContent({
   maxHeight,
   estimateSize,
   overscan,
   withScrollFade,
-}: VirtualizedDataListContentProps) {
+}: VirtualizedListContentProps) {
   const state = Primitive.useDataList()
   const { nodes, renderNode, count, async: asyncState } = state
   const { store } = useSurfaceContext()
@@ -691,19 +627,6 @@ function getNodeKey(node: DisplayNode): string {
 const Input = forwardRef<
   HTMLInputElement,
   React.ComponentProps<typeof Primitive.Input>
->(({ className, placeholder = 'Search...', ...props }, ref) => (
-  <Primitive.Input
-    ref={ref}
-    className={cn(inputVariants(), className)}
-    placeholder={placeholder}
-    {...props}
-  />
-))
-Input.displayName = 'DropdownMenu.Input'
-
-const DataInput = forwardRef<
-  HTMLInputElement,
-  React.ComponentProps<typeof Primitive.DataInput>
 >(({ className, placeholder = 'Search...', ...props }, ref) => {
   const ac = useMaybeAsyncMenuCoordinator()
 
@@ -713,7 +636,7 @@ const DataInput = forwardRef<
   )
 
   return (
-    <Primitive.DataInput
+    <Primitive.Input
       ref={ref}
       className={cn(inputVariants(), className)}
       placeholder={placeholder}
@@ -729,7 +652,7 @@ const DataInput = forwardRef<
     />
   )
 })
-DataInput.displayName = 'DropdownMenu.DataInput'
+Input.displayName = 'DropdownMenu.Input'
 
 const Item = forwardRef<
   HTMLDivElement,
@@ -1088,13 +1011,9 @@ export const DropdownMenu = {
   Positioner,
   Popup,
   Surface,
-  DataSurface,
   List,
-  DataList,
-  DataSubpages,
   useDataList,
   Input,
-  DataInput,
   Item,
   CheckboxItem,
   CheckboxItemIndicator,

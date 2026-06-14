@@ -32,17 +32,10 @@
 - **Effort**: L
 - **Risk**: HIGH (removes 4 public components; reworks 3 primitives' internals)
 - **Depends on**: `plans/001-replace-datalist-render-prop-with-usedatalist-hook.md`
-- **Execution status**: RECONCILED 2026-06-13 (was BLOCKED at Step 3). The Step 3
-  type-boundary blocker is now fully specified below with exact types and
-  excerpts. Root cause: a prior attempt passed the primitive's `PopupMenuListProps`
-  into `DataListInner`, whose props extended the NARROW data-list types
-  (`className: string`, `style: CSSProperties`, `render: React.ReactElement`,
-  `children: ReactNode`), while the primitive's `ComponentProps<'div', State>`
-  types `className`/`style`/`render`/`children` as the wider "value-or-state-
-  function" union. Fix (Step 3.2): base `DataListInnerProps` on the primitive
-  `PopupMenuListProps` and forward those props by spread — `DataListInner` only
-  ever passes `className`/`style`/`render` through to the inner list, so widening
-  is safe. Ready to re-run from Step 1.
+- **Execution status**: DONE 2026-06-13. Implemented the reconciled Step 3
+  type-boundary fix, moved data-first behavior into `Surface`/`List`/`Popup`,
+  removed the public `Data*` components/exports, migrated consumers/docs, and
+  added a changeset.
 - **Category**: tech-debt / migration (public API unification)
 - **Commit / PR title**: `refactor(popup-menu)!: unify data-first API into Surface/List/Popup`
   (Conventional Commits; `!` flags the removal of `DataSurface`/`DataList`/

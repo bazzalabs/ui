@@ -148,7 +148,7 @@ function createCreateLabelSubpage(
     renderContent: ({ pageId }: SubpageContentRenderParams) => (
       <DropdownMenu.Subpage pageId={pageId}>
         <DropdownMenu.Surface>
-          <DropdownMenu.DataInput
+          <DropdownMenu.Input
             placeholder="Pick color for label"
             disabled={isCreatingLabel}
           />
@@ -383,18 +383,17 @@ function createLabelsSubmenu(params: {
                 </>
               )}
             >
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 content={nodes}
                 deepSearch={{ enabled: true, minLength: 0 }}
               >
-                <DropdownMenu.DataInput
+                <DropdownMenu.Input
                   placeholder="Labels..."
                   disabled={isCreatingLabel}
                   onValueChange={onLabelSearchQueryChange}
                 />
-                <DropdownMenu.DataList virtualized />
-              </DropdownMenu.DataSurface>
-              <DropdownMenu.DataSubpages />
+                <DropdownMenu.List virtualized />
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -816,14 +815,13 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
             >
-              <DropdownMenu.DataInput placeholder="Search all..." />
-              <DropdownMenu.DataList virtualized />
-            </DropdownMenu.DataSurface>
-            <DropdownMenu.DataSubpages />
+              <DropdownMenu.Input placeholder="Search all..." />
+              <DropdownMenu.List virtualized />
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>

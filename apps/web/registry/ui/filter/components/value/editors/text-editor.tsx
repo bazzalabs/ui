@@ -27,16 +27,16 @@ export function TextEditorContent<TData>({
   )
 
   return (
-    <DropdownMenu.DataSurface content={nodes}>
-      <DropdownMenu.DataInput
+    <DropdownMenu.Surface content={nodes}>
+      <DropdownMenu.Input
         placeholder="Type to filter..."
         value={query}
         onValueChange={setQuery}
       />
-      <DropdownMenu.DataList className={cn(!query && 'hidden')}>
+      <DropdownMenu.List className={cn(!query && 'hidden')}>
         <TextEditorItems query={query} />
-      </DropdownMenu.DataList>
-    </DropdownMenu.DataSurface>
+      </DropdownMenu.List>
+    </DropdownMenu.Surface>
   )
 }
 

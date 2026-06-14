@@ -236,15 +236,15 @@ function createAsyncFoodSubmenu(
                 The submenu uses asyncContent as its sole data source.
                 This runs its OWN loader with its OWN search query.
               */}
-              <DropdownMenu.DataSurface asyncContent={asyncContent}>
-                <DropdownMenu.DataInput
+              <DropdownMenu.Surface asyncContent={asyncContent}>
+                <DropdownMenu.Input
                   placeholder={`Search ${title.toLowerCase()}...`}
                   hideUntilActive
                 />
-                <DropdownMenu.DataList>
-                  <AsyncSubmenuDataListContent />
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                <DropdownMenu.List>
+                  <AsyncSubmenuListContent />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -280,15 +280,15 @@ export default function DropdownMenuAsyncDeepSearch() {
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               content={content}
               deepSearch={{ enabled: true, minLength: 1 }}
             >
-              <DropdownMenu.DataInput placeholder="Search all foods..." />
-              <DropdownMenu.DataList>
-                <AsyncDeepSearchDataListContent />
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+              <DropdownMenu.Input placeholder="Search all foods..." />
+              <DropdownMenu.List>
+                <AsyncDeepSearchListContent />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -296,7 +296,7 @@ export default function DropdownMenuAsyncDeepSearch() {
   )
 }
 
-function AsyncSubmenuDataListContent() {
+function AsyncSubmenuListContent() {
   const {
     nodes: filteredNodes,
     renderNode,
@@ -320,7 +320,7 @@ function AsyncSubmenuDataListContent() {
   )
 }
 
-function AsyncDeepSearchDataListContent() {
+function AsyncDeepSearchListContent() {
   const { nodes, renderNode, isDeepSearching, count, async } =
     DropdownMenu.useDataList()
 

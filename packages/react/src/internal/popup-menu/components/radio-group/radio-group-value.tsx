@@ -51,9 +51,9 @@ export interface PopupMenuRadioGroupValueProps {
  * const [theme, setTheme] = useState('light')
  *
  * <DropdownMenu.RadioGroupValue value={theme} onValueChange={setTheme}>
- *   <DropdownMenu.DataSurface content={content}>
+ *   <DropdownMenu.Surface content={content}>
  *     ...
- *   </DropdownMenu.DataSurface>
+ *   </DropdownMenu.Surface>
  * </DropdownMenu.RadioGroupValue>
  * ```
  */

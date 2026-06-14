@@ -2049,7 +2049,7 @@ function DeepSearchSimulatedDemo() {
 }
 
 // --- Deep Search Demo (Real Data-First API) ---
-// This demo uses the real DataSurface/DataList/DataInput components
+// This demo uses the real Surface/List/Input components
 // which provide automatic deep search across nested submenus.
 // It mirrors the Linear example exactly.
 
@@ -3300,23 +3300,23 @@ function DeepSearchDemo() {
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner sideOffset={8} align="start">
             <DropdownMenu.Popup className="min-w-[260px] max-w-[500px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 content={content}
                 deepSearch={{ enabled: true, minLength: 2 }}
               >
                 {/* Search Input */}
                 <div className="border-b border-border">
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     placeholder="Filter..."
                     className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
                   />
                 </div>
 
                 {/* Data List */}
-                <DropdownMenu.DataList className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
+                <DropdownMenu.List className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
                   <PlaygroundDeepSearchItems />
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -3793,7 +3793,7 @@ function DeepSearchGroupsDemo() {
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner sideOffset={8}>
             <DropdownMenu.Popup className="min-w-[280px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 content={content}
                 deepSearch={{
                   enabled: true,
@@ -3801,7 +3801,7 @@ function DeepSearchGroupsDemo() {
                   sortGroups,
                 }}
               >
-                <DropdownMenu.DataInput
+                <DropdownMenu.Input
                   placeholder="Search actions..."
                   className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-10 px-3 border-b border-border caret-blue-500"
                 />
@@ -3821,12 +3821,12 @@ function DeepSearchGroupsDemo() {
                       'before:h-[min(24px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(24px,var(--scroll-area-overflow-y-end,24px))]',
                     )}
                   >
-                    <DropdownMenu.DataList
+                    <DropdownMenu.List
                       className="focus:outline-none py-1"
                       render={<ScrollArea.Content />}
                     >
                       <PlaygroundActionItems />
-                    </DropdownMenu.DataList>
+                    </DropdownMenu.List>
                   </ScrollArea.Viewport>
                   <ScrollArea.Scrollbar
                     orientation="vertical"
@@ -3835,7 +3835,7 @@ function DeepSearchGroupsDemo() {
                     <ScrollArea.Thumb className="relative flex-1 rounded-full bg-border" />
                   </ScrollArea.Scrollbar>
                 </ScrollArea.Root>
-              </DropdownMenu.DataSurface>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -4297,7 +4297,7 @@ function DeepSearchStatefulDemo() {
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner sideOffset={8} align="start">
             <DropdownMenu.Popup className="min-w-[260px] max-w-[500px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden">
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 content={content}
                 deepSearch={{
                   enabled: true,
@@ -4307,17 +4307,17 @@ function DeepSearchStatefulDemo() {
               >
                 {/* Search Input */}
                 <div className="border-b border-border">
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     placeholder="Filter..."
                     className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-9 px-4 caret-blue-500"
                   />
                 </div>
 
                 {/* Data List */}
-                <DropdownMenu.DataList className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
+                <DropdownMenu.List className="max-h-[300px] overflow-y-auto py-1 scroll-py-1">
                   <PlaygroundDeepSearchItems />
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
