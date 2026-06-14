@@ -1,0 +1,56 @@
+# Worktrunk project config for @bazza-ui.
+# Docs: https://worktrunk.dev/config/ and https://worktrunk.dev/hook/
+
+# Run once when a new worktree is created. These block until complete so any
+# editor or agent launched with `wt switch -x` sees local env files and deps.
+[pre-start]
+env = """
+src={{ primary_worktree_path }}
+dst={{ worktree_path }}
+
+[ -f "$src/.env.local" ] && cp "$src/.env.local" "$dst/.env.local" || true
+[ -f "$src/apps/web/.env.local" ] && cp "$src/apps/web/.env.local" "$dst/apps/web/.env.local" || true
+"""
+install = "bun install"
+
+[aliases]
+# Per-worktree replacement for the old `bun run wt new --release <type>` flag.
+# Usage: `wt release stable`, `wt release canary`, or `wt release rc`.
+release = """
+set -- {{ args }}
+release_type=${1:-}
+env_file={{ worktree_path }}/apps/web/.env.local
+
+case "$release_type" in
+  stable|canary|rc) ;;
+  *)
+    echo 'usage: wt release stable|canary|rc' >&2
+    exit 1
+    ;;
+esac
+
+touch "$env_file"
+tmp_file=$(mktemp)
+awk -v release_type="$release_type" '
+  BEGIN { quote = sprintf("%c", 34); replaced = 0 }
+  /^NEXT_PUBLIC_RELEASE_TYPE=/ {
+    print "NEXT_PUBLIC_RELEASE_TYPE=" quote release_type quote
+    replaced = 1
+    next
+  }
+  { print }
+  END {
+    if (!replaced) {
+      print "NEXT_PUBLIC_RELEASE_TYPE=" quote release_type quote
+    }
+  }
+' "$env_file" >"$tmp_file"
+mv "$tmp_file" "$env_file"
+
+echo "Set NEXT_PUBLIC_RELEASE_TYPE=$release_type in $env_file"
+"""
+
+[list]
+# Portless serves worktrees as https://<worktree-dir>.<project>.localhost.
+# With worktrunk's default path, the worktree dir is `ui.<branch>`.
+url = "https://{{ repo }}.{{ branch | sanitize }}.bazza-ui.localhost"
