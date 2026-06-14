@@ -152,15 +152,7 @@ function createAsyncSubmenu(
                   hideUntilActive
                 />
                 <DropdownMenu.DataList>
-                  {({ nodes, renderNode, count, async }) => (
-                    <>
-                      {nodes.map((node) => renderNode(node))}
-                      <DropdownMenu.Loading />
-                      {!async.isLoading && count === 0 && (
-                        <DropdownMenu.Empty />
-                      )}
-                    </>
-                  )}
+                  <AsyncDataListContent />
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
@@ -223,18 +215,24 @@ export default function DropdownMenuAsync() {
             >
               <DropdownMenu.DataInput placeholder="Search..." />
               <DropdownMenu.DataList>
-                {({ nodes, renderNode, count, async }) => (
-                  <>
-                    {nodes.map((node) => renderNode(node))}
-                    <DropdownMenu.Loading />
-                    {!async.isLoading && count === 0 && <DropdownMenu.Empty />}
-                  </>
-                )}
+                <AsyncDataListContent />
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+function AsyncDataListContent() {
+  const { nodes, renderNode, count, async } = DropdownMenu.useDataList()
+
+  return (
+    <>
+      {nodes.map((node) => renderNode(node))}
+      <DropdownMenu.Loading />
+      {!async.isLoading && count === 0 && <DropdownMenu.Empty />}
+    </>
   )
 }

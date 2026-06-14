@@ -363,10 +363,13 @@ export type {
   RenderNodeFn,
 } from './deep-search/context.js'
 export {
+  DataListContext,
   DataPopupContext,
   DataSurfaceContext,
+  useDataList,
   useDataPopupContext,
   useDataSurfaceContext,
+  useMaybeDataList,
   useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './deep-search/context.js'

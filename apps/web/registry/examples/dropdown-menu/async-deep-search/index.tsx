@@ -242,21 +242,7 @@ function createAsyncFoodSubmenu(
                   hideUntilActive
                 />
                 <DropdownMenu.DataList>
-                  {({ nodes: filteredNodes, renderNode, async, count }) => (
-                    <>
-                      {filteredNodes.map((node) => renderNode(node))}
-                      {/* Show DiamondSpinner while loading, Empty when no results */}
-                      {async.isLoading ? (
-                        <div className="flex items-center h-8 w-[min(500px,max(var(--row-width,200px),200px))]">
-                          <div className="flex items-center justify-center text-muted-foreground w-full">
-                            <DiamondSpinner className="size-5" />
-                          </div>
-                        </div>
-                      ) : (
-                        count === 0 && <DropdownMenu.Empty />
-                      )}
-                    </>
-                  )}
+                  <AsyncSubmenuDataListContent />
                 </DropdownMenu.DataList>
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
@@ -300,34 +286,62 @@ export default function DropdownMenuAsyncDeepSearch() {
             >
               <DropdownMenu.DataInput placeholder="Search all foods..." />
               <DropdownMenu.DataList>
-                {({ nodes, renderNode, isDeepSearching, count, async }) => (
-                  <>
-                    {isDeepSearching && (
-                      <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
-                        {async.isLoading
-                          ? 'Searching server...'
-                          : `Found ${count} results`}
-                      </div>
-                    )}
-                    {nodes.map((node) => renderNode(node))}
-                    {/* Show DiamondSpinner while loading during deep search, Empty when no results */}
-                    {isDeepSearching && async.isLoading ? (
-                      <div className="flex items-center w-full h-8">
-                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                          <DiamondSpinner className="size-5" />
-                          <span>Loading...</span>
-                        </div>
-                      </div>
-                    ) : (
-                      count === 0 && <DropdownMenu.Empty />
-                    )}
-                  </>
-                )}
+                <AsyncDeepSearchDataListContent />
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+function AsyncSubmenuDataListContent() {
+  const {
+    nodes: filteredNodes,
+    renderNode,
+    async,
+    count,
+  } = DropdownMenu.useDataList()
+
+  return (
+    <>
+      {filteredNodes.map((node) => renderNode(node))}
+      {async.isLoading ? (
+        <div className="flex items-center h-8 w-[min(500px,max(var(--row-width,200px),200px))]">
+          <div className="flex items-center justify-center text-muted-foreground w-full">
+            <DiamondSpinner className="size-5" />
+          </div>
+        </div>
+      ) : (
+        count === 0 && <DropdownMenu.Empty />
+      )}
+    </>
+  )
+}
+
+function AsyncDeepSearchDataListContent() {
+  const { nodes, renderNode, isDeepSearching, count, async } =
+    DropdownMenu.useDataList()
+
+  return (
+    <>
+      {isDeepSearching && (
+        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/30 -mt-1 mb-1">
+          {async.isLoading ? 'Searching server...' : `Found ${count} results`}
+        </div>
+      )}
+      {nodes.map((node) => renderNode(node))}
+      {isDeepSearching && async.isLoading ? (
+        <div className="flex items-center w-full h-8">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <DiamondSpinner className="size-5" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      ) : (
+        count === 0 && <DropdownMenu.Empty />
+      )}
+    </>
   )
 }

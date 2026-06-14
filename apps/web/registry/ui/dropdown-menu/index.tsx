@@ -3,7 +3,6 @@
 import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
   type BreadcrumbNode,
-  type DataListChildrenState,
   type DisplayNode,
   type DropdownMenuVirtualItem,
   isDisplayGroupNode,
@@ -329,14 +328,8 @@ export interface DataListProps
    * @default 5
    */
   overscan?: number
-  /**
-   * Content to render inside the list.
-   * When virtualized, this can include static elements like Empty.
-   * When not virtualized, this should be a render function receiving DataListChildrenState.
-   */
-  children?:
-    | React.ReactNode
-    | ((state: DataListChildrenState) => React.ReactNode)
+  /** Content to render inside the list. */
+  children?: React.ReactNode
 }
 
 const DataList = forwardRef<HTMLDivElement, DataListProps>(
@@ -367,19 +360,13 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
             className={cn(listVariants(), className)}
             {...props}
           >
-            {(state: DataListChildrenState) => (
-              <>
-                {/* Render static children like Empty */}
-                {typeof children !== 'function' && children}
-                <VirtualizedDataListContent
-                  state={state}
-                  maxHeight={maxHeightNum}
-                  estimateSize={estimateSize}
-                  overscan={overscan}
-                  withScrollFade={withScrollFade}
-                />
-              </>
-            )}
+            {children}
+            <VirtualizedDataListContent
+              maxHeight={maxHeightNum}
+              estimateSize={estimateSize}
+              overscan={overscan}
+              withScrollFade={withScrollFade}
+            />
           </Primitive.DataList>
           <ScrollArea.Scrollbar
             orientation="vertical"
@@ -405,18 +392,9 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
             scrollContainerRef={listScrollContainerRef}
             {...props}
           >
-            {(state) => {
-              const content =
-                typeof children === 'function' ? children(state) : children
-
-              return (
-                <>
-                  {content}
-                  <Loading />
-                  <Empty />
-                </>
-              )
-            }}
+            {children}
+            <Loading />
+            <Empty />
           </Primitive.DataList>
         </ScrollArea.Viewport>
         <ScrollArea.Scrollbar
@@ -432,6 +410,7 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
 DataList.displayName = 'DropdownMenu.DataList'
 
 const DataSubpages = Primitive.DataSubpages
+const useDataList = Primitive.useDataList
 
 // ============================================================================
 // Virtualized DataList Content (internal)
@@ -488,7 +467,6 @@ function displayNodesToVirtualItems(
 }
 
 interface VirtualizedDataListContentProps {
-  state: DataListChildrenState
   maxHeight: number
   estimateSize: number
   overscan: number
@@ -511,12 +489,12 @@ type VirtualizedContentRow =
     }
 
 function VirtualizedDataListContent({
-  state,
   maxHeight,
   estimateSize,
   overscan,
   withScrollFade,
 }: VirtualizedDataListContentProps) {
+  const state = Primitive.useDataList()
   const { nodes, renderNode, count, async: asyncState } = state
   const { store } = useSurfaceContext()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -1114,6 +1092,7 @@ export const DropdownMenu = {
   List,
   DataList,
   DataSubpages,
+  useDataList,
   Input,
   DataInput,
   Item,

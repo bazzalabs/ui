@@ -95,6 +95,7 @@ Before writing anything: record `git rev-parse --short HEAD` — every plan stam
 Write each plan **for the weakest plausible executor**. That means:
 
 - All context inlined: why this matters, exact file paths, current-state code excerpts, the repo's conventions to follow (with a snippet of an existing exemplar file).
+- A canonical **commit / PR title** in the Status block, in the repo's commit convention (Conventional Commits where the repo uses it — `type(scope): summary`, with `!` for breaking changes). It is used verbatim as the PR title and the first commit's subject, so neither the executor nor the `--issues`/PR flow has to invent one. Match the scope vocabulary and casing you observed in `git log` during recon.
 - Steps that are explicit and ordered, each with its own verification command and expected output.
 - Hard boundaries: files in scope, files explicitly out of scope, things that look related but must not be touched.
 - Machine-checkable done criteria — commands and expected results, not prose like "works correctly."

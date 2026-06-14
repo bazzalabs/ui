@@ -245,14 +245,7 @@ export function createSubmenuNode(
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList virtualized>
-                  {({
-                    nodes: filteredNodes,
-                    renderNode: renderFilteredNode,
-                  }) => (
-                    <>{filteredNodes.map((node) => renderFilteredNode(node))}</>
-                  )}
-                </DropdownMenu.DataList>
+                <DropdownMenu.DataList virtualized />
               </DropdownMenu.DataSurface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
@@ -306,16 +299,9 @@ export function createSubpageNode(
             hideUntilActive={hideInputUntilActive}
           />
           <DropdownMenu.DataList virtualized>
-            {({ nodes: filteredNodes, renderNode: renderFilteredNode }) => (
-              <>
-                {!context.isDeepSearchResult ? (
-                  <DropdownMenu.SubpageBackItem>
-                    Back
-                  </DropdownMenu.SubpageBackItem>
-                ) : null}
-                {filteredNodes.map((node) => renderFilteredNode(node))}
-              </>
-            )}
+            {!context.isDeepSearchResult ? (
+              <DropdownMenu.SubpageBackItem>Back</DropdownMenu.SubpageBackItem>
+            ) : null}
           </DropdownMenu.DataList>
         </DropdownMenu.Surface>
       </DropdownMenu.Subpage>

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import type {
   AsyncLoaderConfig,
+  DataListChildrenState,
   DeepSearchConfig,
   DisplayNode,
   GetQualifiedRowIdFn,
@@ -77,6 +78,25 @@ export function useDataPopupContext(): DataPopupContextValue {
 
 export function useMaybeDataPopupContext(): DataPopupContextValue | null {
   return React.useContext(DataPopupContext)
+}
+
+// ============================================================================
+// Data List Context
+// ============================================================================
+
+export const DataListContext =
+  React.createContext<DataListChildrenState | null>(null)
+
+export function useDataList(): DataListChildrenState {
+  const context = React.useContext(DataListContext)
+  if (!context) {
+    throw new Error('useDataList must be used within a DataList component')
+  }
+  return context
+}
+
+export function useMaybeDataList(): DataListChildrenState | null {
+  return React.useContext(DataListContext)
 }
 
 // ============================================================================

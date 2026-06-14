@@ -310,11 +310,7 @@ export default function DropdownMenuDeepSearchLinear() {
               deepSearch={{ enabled: true, minLength: 0 }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
-              <DropdownMenu.DataList virtualized>
-                {({ nodes, renderNode }) => (
-                  <>{nodes.map((node) => renderNode(node))}</>
-                )}
-              </DropdownMenu.DataList>
+              <DropdownMenu.DataList virtualized />
             </DropdownMenu.DataSurface>
             <DropdownMenu.DataSubpages />
           </DropdownMenu.Popup>

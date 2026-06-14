@@ -536,9 +536,7 @@ function __FilterMenu<TData>({
             <DropdownMenu.DataSurface content={nodes}>
               <DropdownMenu.DataInput placeholder="Search filters..." />
               <DropdownMenu.DataList>
-                {({ nodes: displayNodes, renderNode }) =>
-                  displayNodes.map(renderNode)
-                }
+                <FilterMenuItems />
               </DropdownMenu.DataList>
               <DropdownMenu.Empty>No matching filters.</DropdownMenu.Empty>
             </DropdownMenu.DataSurface>
@@ -550,6 +548,12 @@ function __FilterMenu<TData>({
 }
 
 export const FilterMenu = memo(__FilterMenu) as typeof __FilterMenu
+
+function FilterMenuItems() {
+  const { nodes: displayNodes, renderNode } = DropdownMenu.useDataList()
+
+  return <>{displayNodes.map(renderNode)}</>
+}
 
 export namespace FilterMenu {
   export type Props<TData = unknown> = FilterMenuProps<TData>

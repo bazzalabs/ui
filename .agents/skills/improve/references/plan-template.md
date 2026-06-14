@@ -36,6 +36,10 @@ File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
 - **Risk**: LOW | MED | HIGH
 - **Depends on**: plans/NNN-*.md (or "none")
 - **Category**: bug | security | perf | tests | tech-debt | migration | dx | docs | direction
+- **Commit / PR title**: `type(scope): imperative summary` — the repo's commit
+  convention (Conventional Commits where used; add `!` after type/scope for a
+  breaking change). Used verbatim as the PR title and the first commit's subject.
+  Keep the subject ≤72 chars. Match the scope vocabulary/casing seen in `git log`.
 - **Planned at**: commit `<short SHA>`, <YYYY-MM-DD>
 - **Issue**: <GitHub issue URL — only when published via `--issues`; omit otherwise>
 
@@ -98,7 +102,10 @@ executor's environment. Skip the section otherwise.)
 (Filled from recon — match the repo's observed conventions.)
 
 - Branch: `advisor/NNN-<slug>` (or the repo's branch-naming convention if one is evident)
-- Commit per step or per logical unit; message style: <match repo, e.g. conventional commits — include an example from `git log`>
+- PR title / first commit subject: use the **Commit / PR title** from the Status
+  block verbatim. Any additional commits (per step or logical unit) follow the
+  same convention — match the repo's observed style (include an example from
+  `git log`).
 - Do NOT push or open a PR unless the operator instructed it.
 
 ## Steps
@@ -190,6 +197,7 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 
 - Could a model that has never seen this repo execute this with only the plan file and the repo? If any step requires knowledge from the advisor session, inline that knowledge.
 - Is every verification a command with an expected result, not a judgment ("make sure it works")?
+- Is the **Commit / PR title** filled in, in the repo's commit convention, matching the plan's actual scope (with `!` if it breaks a public API)?
 - Does every step name exact files and symbols, not "the relevant module"?
 - Are the STOP conditions specific to this plan's actual risks, not boilerplate?
 - Would a reviewer reading only "Why this matters" + "Done criteria" understand what they're approving?

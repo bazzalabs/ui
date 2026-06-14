@@ -53,7 +53,9 @@ export {
   PopupMenuSurface as Surface,
   // Async coordinator hooks
   useAsyncMenuCoordinator,
+  useDataList,
   useMaybeAsyncMenuCoordinator,
+  useMaybeDataList,
 } from '../internal/popup-menu/index.js'
 // Context-menu specific components
 export { ContextMenuRoot as Root } from './root/root.js'

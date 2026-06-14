@@ -1354,11 +1354,8 @@ export interface DataListChildrenState {
  * Props for the DataList component.
  */
 export interface DataListProps {
-  /**
-   * Render function for the list content.
-   * Receives the current state and returns JSX.
-   */
-  children: (state: DataListChildrenState) => React.ReactNode
+  /** List content. Descendants read node state via `useDataList()`. */
+  children: React.ReactNode
 
   /** Accessible label for the listbox */
   label?: string

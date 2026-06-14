@@ -392,14 +392,7 @@ function createLabelsSubmenu(params: {
                   disabled={isCreatingLabel}
                   onValueChange={onLabelSearchQueryChange}
                 />
-                <DropdownMenu.DataList virtualized>
-                  {({
-                    nodes: filteredNodes,
-                    renderNode: renderFilteredNode,
-                  }) => (
-                    <>{filteredNodes.map((node) => renderFilteredNode(node))}</>
-                  )}
-                </DropdownMenu.DataList>
+                <DropdownMenu.DataList virtualized />
               </DropdownMenu.DataSurface>
               <DropdownMenu.DataSubpages />
             </DropdownMenu.Popup>
@@ -828,11 +821,7 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
               deepSearch={{ enabled: true, minLength: 0 }}
             >
               <DropdownMenu.DataInput placeholder="Search all..." />
-              <DropdownMenu.DataList virtualized>
-                {({ nodes, renderNode }) => (
-                  <>{nodes.map((node) => renderNode(node))}</>
-                )}
-              </DropdownMenu.DataList>
+              <DropdownMenu.DataList virtualized />
             </DropdownMenu.DataSurface>
             <DropdownMenu.DataSubpages />
           </DropdownMenu.Popup>

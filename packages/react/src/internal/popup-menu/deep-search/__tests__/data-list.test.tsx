@@ -115,6 +115,23 @@ function createTestSubpageDef(
   }
 }
 
+function DataListItems() {
+  const { nodes, renderNode } = DropdownMenu.useDataList()
+
+  return <>{nodes.map(renderNode)}</>
+}
+
+function DataListItemsWithCount() {
+  const { nodes, renderNode, count } = DropdownMenu.useDataList()
+
+  return (
+    <>
+      <div data-testid="count">{count}</div>
+      {nodes.map(renderNode)}
+    </>
+  )
+}
+
 // ============================================================================
 // Test Fixtures
 // ============================================================================
@@ -171,12 +188,7 @@ function MenuWithDuplicateIds({
                 placeholder="Search..."
               />
               <DropdownMenu.DataList>
-                {({ nodes, renderNode, count }) => (
-                  <>
-                    <div data-testid="count">{count}</div>
-                    {nodes.map(renderNode)}
-                  </>
-                )}
+                <DataListItemsWithCount />
               </DropdownMenu.DataList>
               <DropdownMenu.Empty data-testid="empty">
                 No results
@@ -219,7 +231,7 @@ function MenuWithFlatItems({
               getQualifiedRowId={getQualifiedRowId}
             >
               <DropdownMenu.DataList>
-                {({ nodes, renderNode }) => nodes.map(renderNode)}
+                <DataListItems />
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
@@ -275,7 +287,7 @@ function MenuWithCustomGetQualifiedRowId({
                 placeholder="Search..."
               />
               <DropdownMenu.DataList>
-                {({ nodes, renderNode }) => nodes.map(renderNode)}
+                <DataListItems />
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
@@ -322,7 +334,7 @@ function MenuWithForcedSorting() {
             >
               <DropdownMenu.DataInput data-testid="search-input" />
               <DropdownMenu.DataList>
-                {({ nodes, renderNode }) => nodes.map(renderNode)}
+                <DataListItems />
               </DropdownMenu.DataList>
             </DropdownMenu.DataSurface>
           </DropdownMenu.Popup>
@@ -335,6 +347,51 @@ function MenuWithForcedSorting() {
 // ============================================================================
 // Tests
 // ============================================================================
+
+describe('useDataList', () => {
+  it('lets a child component read and render nodes', async () => {
+    render(<MenuWithDuplicateIds />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('count')).toHaveTextContent('2')
+      expect(screen.getByTestId('submenu-trigger-status')).toBeInTheDocument()
+      expect(
+        screen.getByTestId('submenu-trigger-project-status'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('updates nodes seen by a child component when search changes', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithDuplicateIds />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByTestId('search-input'), 'backlog')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('count')).toHaveTextContent('2')
+      expect(screen.getAllByTestId('item-backlog')).toHaveLength(2)
+    })
+  })
+
+  it('throws outside a DataList', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    function ReadDataListOutsideProvider() {
+      DropdownMenu.useDataList()
+      return null
+    }
+
+    expect(() => render(<ReadDataListOutsideProvider />)).toThrow(
+      'useDataList must be used within a DataList component',
+    )
+
+    consoleError.mockRestore()
+  })
+})
 
 describe('DataList getQualifiedRowId', () => {
   describe('DOM ID verification', () => {
@@ -721,7 +778,7 @@ describe('DataList getQualifiedRowId', () => {
                       placeholder="Search..."
                     />
                     <DropdownMenu.DataList>
-                      {({ nodes, renderNode }) => nodes.map(renderNode)}
+                      <DataListItems />
                     </DropdownMenu.DataList>
                   </DropdownMenu.DataSurface>
                 </DropdownMenu.Popup>
@@ -815,7 +872,7 @@ describe('DataList getQualifiedRowId', () => {
                     placeholder="Search..."
                   />
                   <DropdownMenu.DataList>
-                    {({ nodes, renderNode }) => nodes.map(renderNode)}
+                    <DataListItems />
                   </DropdownMenu.DataList>
                 </DropdownMenu.DataSurface>
                 <DropdownMenu.DataSubpages />
@@ -858,7 +915,7 @@ describe('DataList getQualifiedRowId', () => {
                     placeholder="Search..."
                   />
                   <DropdownMenu.DataList>
-                    {({ nodes, renderNode }) => nodes.map(renderNode)}
+                    <DataListItems />
                   </DropdownMenu.DataList>
                 </DropdownMenu.DataSurface>
                 <DropdownMenu.DataSubpages />
