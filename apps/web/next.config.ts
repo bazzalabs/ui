@@ -1,7 +1,12 @@
 import { createMDX } from 'fumadocs-mdx/next'
 import type { NextConfig } from 'next'
 
+const portlessHost = process.env.PORTLESS_URL
+  ? new URL(process.env.PORTLESS_URL).host
+  : undefined
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: portlessHost ? [portlessHost, '*.bazza-ui.localhost'] : [],
   devIndicators: {
     position: 'bottom-right',
   },
