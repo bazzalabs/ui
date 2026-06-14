@@ -606,6 +606,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
       render,
       measureRowWidth,
       maxRowWidth,
+      scrollContainerRef,
       content,
       asyncContent,
       deepSearchConfig,
@@ -1345,6 +1346,7 @@ const DataListInner = React.forwardRef<HTMLDivElement, DataListInnerProps>(
           render={render}
           measureRowWidth={measureRowWidth}
           maxRowWidth={maxRowWidth}
+          scrollContainerRef={scrollContainerRef}
         >
           {renderedChildren}
         </PopupMenuList>

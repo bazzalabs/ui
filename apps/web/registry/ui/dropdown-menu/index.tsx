@@ -27,6 +27,7 @@ import {
   useRef,
 } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { mergeRefs } from '@/lib/merge-refs'
 import { cn } from '@/lib/utils'
 
 const scrollAreaViewportVariants = cva('scroll-py-1 overscroll-none', {
@@ -265,31 +266,40 @@ const List = forwardRef<
       ...props
     },
     ref,
-  ) => (
-    <ScrollArea.Root>
-      <ScrollArea.Viewport
-        ref={viewportRef}
-        className={scrollAreaViewportVariants({ withScrollFade })}
-        style={{
-          maxHeight:
-            typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
-        }}
-      >
-        <Primitive.List
-          ref={ref}
-          className={cn(listVariants(), className)}
-          render={<ScrollArea.Content />}
-          {...props}
-        />
-      </ScrollArea.Viewport>
-      <ScrollArea.Scrollbar
-        orientation="vertical"
-        className={scrollAreaScrollbarVariants()}
-      >
-        <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
-      </ScrollArea.Scrollbar>
-    </ScrollArea.Root>
-  ),
+  ) => {
+    const listScrollContainerRef = useRef<HTMLDivElement | null>(null)
+    const mergedViewportRef = useMemo(
+      () => mergeRefs(listScrollContainerRef, viewportRef),
+      [viewportRef],
+    )
+
+    return (
+      <ScrollArea.Root>
+        <ScrollArea.Viewport
+          ref={mergedViewportRef}
+          className={scrollAreaViewportVariants({ withScrollFade })}
+          style={{
+            maxHeight:
+              typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+          }}
+        >
+          <Primitive.List
+            ref={ref}
+            className={cn(listVariants(), className)}
+            render={<ScrollArea.Content />}
+            scrollContainerRef={listScrollContainerRef}
+            {...props}
+          />
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar
+          orientation="vertical"
+          className={scrollAreaScrollbarVariants()}
+        >
+          <ScrollArea.Thumb className={scrollAreaThumbVariants()} />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
+    )
+  },
 )
 List.displayName = 'DropdownMenu.List'
 
@@ -343,6 +353,7 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
     },
     ref,
   ) => {
+    const listScrollContainerRef = useRef<HTMLDivElement | null>(null)
     const maxHeightPx =
       typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight
     const maxHeightNum =
@@ -383,6 +394,7 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
     return (
       <ScrollArea.Root>
         <ScrollArea.Viewport
+          ref={listScrollContainerRef}
           className={scrollAreaViewportVariants({ withScrollFade })}
           style={{ maxHeight: maxHeightPx }}
         >
@@ -390,6 +402,7 @@ const DataList = forwardRef<HTMLDivElement, DataListProps>(
             ref={ref}
             className={cn(listVariants(), className)}
             render={<ScrollArea.Content />}
+            scrollContainerRef={listScrollContainerRef}
             {...props}
           >
             {(state) => {
@@ -560,6 +573,18 @@ function VirtualizedDataListContent({
 
   const virtualItems = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
+  const previousSearchRef = useRef(state.search)
+
+  React.useLayoutEffect(() => {
+    if (previousSearchRef.current === state.search) {
+      return
+    }
+
+    previousSearchRef.current = state.search
+
+    if (!store.context.resetScrollOnSearch) return
+    virtualizer.scrollToOffset(0)
+  }, [store, state.search, virtualizer])
 
   // Convert display nodes to VirtualItem[] for store pre-registration
   const storeVirtualItems = useMemo(
