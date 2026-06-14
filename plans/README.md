@@ -6,14 +6,18 @@ the authoring session needs only the single plan file + the repo. Read a plan
 fully before starting, honor its STOP conditions, and update your row in the
 status table below when done.
 
-The work ships as a Graphite stack (PR 1 → PR 2). Execute 001 fully — including
-its verification gates — before starting 002.
+The data-first work ships as a Graphite stack (PR 1 → PR 2). Execute 001 fully —
+including its verification gates — before starting 002. Plan 003 is an
+**independent chore** (a Base UI version bump) that stacks on top of the same
+in-flight work; it has no dependency on 001/002 beyond needing the
+`packages/react` package to exist on the branch.
 
 ## Graphite stack
 
 - Base branch: `ui-299-support-reset-scroll-on-search`
 - PR 1 branch: `ui-300-replace-datalist-children-as-function-with-usedatalist-hook` → `001-*`
 - PR 2 branch: `ui-301-unify-data-first-menu-api` → `002-*`
+- PR 3 branch: `ui-303-bump-base-uireact-to-150` → `003-*` (stacks on the tip; `packages/react` is not on `main` yet)
 
 Use `gt` for branch/commit/submit. Do **not** use `git commit` / `git push`.
 
@@ -23,6 +27,8 @@ Use `gt` for branch/commit/submit. Do **not** use `git commit` / `git push`.
 |------|-------|----------|--------|------------|--------|
 | [001](./001-replace-datalist-render-prop-with-usedatalist-hook.md) | Replace `DataList` render-prop with `DataListContext` + `useDataList()` | P1 | M | — | DONE |
 | [002](./002-unify-data-first-menu-api.md) | Fold data-first behavior into `Surface`/`List`/`Popup`; remove `Data*` exports | P1 | L | 001 | DONE |
+| [003](./003-bump-base-ui-react-to-1.5.0.md) | Bump `@base-ui/react` to `1.5.0` (+ `@base-ui/utils` to `0.2.9`, align `apps/web`) | P2 | S | — (independent chore; UI-303) | DONE |
+| [004](./004-align-listbox-controlled-state-with-base-ui-store-refactor.md) | Align `ListboxStore` controlled state with Base UI's `useControlledProp` refactor | P2 | M | 003 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -32,6 +38,13 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED 
   the `DataListContext` + `useDataList()` hook introduced in 001 being the only
   way list children read node state. If 002 runs first, every consumer still
   uses the render-prop and must be migrated twice.
+- 003 has **no logical dependency** on 001/002. It only needs `packages/react` to
+  exist on the working branch (it does not exist on `main`), so in practice it
+  stacks on the current tip. It can be executed before or after 001/002 land;
+  if executed standalone after the stack merges to `main`, branch 003 from `main`.
+- 004 depends on 003 because it assumes `@base-ui/utils@0.2.9` and the interim
+  two-argument `useControlledProp` migration. It replaces 003's temporary
+  `defaultSearch` compatibility shim with a store-owned controlled-state pattern.
 
 ## Shared facts (orientation — each plan re-inlines what its executor needs)
 

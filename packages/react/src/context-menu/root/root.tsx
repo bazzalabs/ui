@@ -240,7 +240,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
   )
 
   // Sync controlled open prop to store
-  store.useControlledProp('open', openProp, defaultOpen)
+  store.useControlledProp('open', openProp)
 
   // Get open state from store
   const open = store.useState('open')

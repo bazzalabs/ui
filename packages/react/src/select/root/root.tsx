@@ -370,7 +370,7 @@ export function SelectRoot<
   )
 
   // Sync controlled open prop to store
-  store.useControlledProp('open', openProp, defaultOpen)
+  store.useControlledProp('open', openProp)
 
   // Get open state from store for Popover
   const open = store.useState('open')

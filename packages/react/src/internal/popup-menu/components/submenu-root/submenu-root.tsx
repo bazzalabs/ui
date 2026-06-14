@@ -162,7 +162,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   )
 
   // Sync controlled open prop to store
-  store.useControlledProp('open', openProp, defaultOpen)
+  store.useControlledProp('open', openProp)
 
   // Get open chain store
   const openChainStore = useOpenChain()
