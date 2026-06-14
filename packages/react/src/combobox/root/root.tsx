@@ -433,7 +433,7 @@ export function ComboboxRoot<
   )
 
   // Sync controlled open prop to store
-  store.useControlledProp('open', openProp)
+  store.useControlledProp('openProp', openProp)
 
   // Get open state from store for Popover
   const open = store.useState('open')

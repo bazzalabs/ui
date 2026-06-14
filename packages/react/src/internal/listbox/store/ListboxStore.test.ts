@@ -1475,4 +1475,83 @@ describe('ListboxStore', () => {
       expect(store.isFilterDisabled()).toBe(false)
     })
   })
+
+  describe('controlled prop separation', () => {
+    it('effective open resolves openProp over internal open', () => {
+      const store = createStore({ open: false })
+      store.update({ openProp: true })
+
+      expect(store.state.open).toBe(false)
+      expect(store.state.openProp).toBe(true)
+      expect(store.select('open')).toBe(true)
+    })
+
+    it('setOpen updates internal open but effective open stays controlled', () => {
+      const store = createStore({ open: false, openProp: true })
+      store.setOpen(false)
+
+      expect(store.state.open).toBe(false)
+      expect(store.select('open')).toBe(true)
+    })
+
+    it('effective search resolves searchProp over internal search', () => {
+      const store = createStore({ search: 'banana' })
+      store.update({ searchProp: 'apple' })
+
+      expect(store.state.search).toBe('banana')
+      expect(store.state.searchProp).toBe('apple')
+      expect(store.select('search')).toBe('apple')
+    })
+
+    it('setSearch updates internal search but effective search stays controlled', () => {
+      const store = createStore({ search: 'banana', searchProp: 'apple' })
+      store.setSearch('cherry')
+
+      expect(store.state.search).toBe('cherry')
+      expect(store.select('search')).toBe('apple')
+    })
+
+    it('normalizedSearch syncs with effective search when searchProp changes', () => {
+      const store = createStore({ search: '' })
+      store.update({ searchProp: 'APPLE' })
+
+      expect(store.state.normalizedSearch).toBe('APPLE')
+    })
+  })
+
+  describe('initializeDefaultSearch', () => {
+    it('initializes search and normalizedSearch once when uncontrolled', () => {
+      const store = createStore({ search: '' })
+      store.initializeDefaultSearch('x')
+
+      expect(store.state.search).toBe('x')
+      expect(store.state.normalizedSearch).toBe('x')
+    })
+
+    it('does nothing when searchProp is controlled', () => {
+      const store = createStore({ search: '' })
+      store.update({ searchProp: 'controlled' })
+      store.initializeDefaultSearch('x')
+
+      expect(store.state.search).toBe('')
+      expect(store.state.searchProp).toBe('controlled')
+    })
+
+    it('runs only once per store', () => {
+      const store = createStore({ search: '' })
+      store.initializeDefaultSearch('first')
+      store.initializeDefaultSearch('second')
+
+      expect(store.state.search).toBe('first')
+    })
+
+    it('does not reset search after it has been changed', () => {
+      const store = createStore({ search: '' })
+      store.initializeDefaultSearch('x')
+      store.setSearch('y')
+      store.initializeDefaultSearch('x')
+
+      expect(store.state.search).toBe('y')
+    })
+  })
 })

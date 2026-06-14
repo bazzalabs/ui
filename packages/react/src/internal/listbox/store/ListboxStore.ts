@@ -87,10 +87,16 @@ export interface DOMRefs {
 }
 
 export interface ListboxState {
-  /** Whether the listbox is open */
+  /** Whether the listbox is open internally when uncontrolled */
   open: boolean
-  /** Current search query */
+  /** Controlled open prop. When defined, selectors resolve this over `open`. */
+  openProp: boolean | undefined
+
+  /** Current internal search query when uncontrolled */
   search: string
+  /** Controlled search prop. When defined, selectors resolve this over `search`. */
+  searchProp: string | undefined
+
   /** Normalized search query used for filtering and visibility checks */
   normalizedSearch: string
   /** Currently highlighted item ID */
@@ -244,8 +250,10 @@ interface ValidateHighlightOptions {
 // ============================================================================
 
 const selectors = {
-  open: createSelector((state: ListboxState) => state.open),
-  search: createSelector((state: ListboxState) => state.search),
+  open: createSelector((state: ListboxState) => state.openProp ?? state.open),
+  search: createSelector(
+    (state: ListboxState) => state.searchProp ?? state.search,
+  ),
   normalizedSearch: createSelector(
     (state: ListboxState) => state.normalizedSearch,
   ),
@@ -355,7 +363,11 @@ export class ListboxStore extends ReactStore<
     super(mergedState, mergedContext, selectors)
 
     // Handle open/close
-    this.observe('open', (open) => {
+    this.observe('open', (open, prevOpen) => {
+      if (open === prevOpen) {
+        return
+      }
+
       if (open) {
         // Reset pointer position tracking on open to prevent phantom highlights
         this.resetPointerPosition()
@@ -392,15 +404,19 @@ export class ListboxStore extends ReactStore<
 
     // Keep normalizedSearch in sync when search changes (including controlled props).
     this.observe('search', (search, prevSearch) => {
-      if (search === prevSearch) {
-        return
-      }
-
-      const normalizedSearch = this.context.normalizeSearch(search)
-      if (normalizedSearch !== this.state.normalizedSearch) {
-        this.set('normalizedSearch', normalizedSearch)
+      if (search !== prevSearch) {
+        this.syncNormalizedSearch()
       }
     })
+
+    this.observe(
+      (state: ListboxState) => state.searchProp,
+      (searchProp, prevSearchProp) => {
+        if (searchProp !== prevSearchProp) {
+          this.syncNormalizedSearch()
+        }
+      },
+    )
 
     // Recompute filtered items when normalized search changes.
     this.observe('normalizedSearch', (search, prevSearch) => {
@@ -447,9 +463,10 @@ export class ListboxStore extends ReactStore<
   }
 
   setSearch(search: string) {
+    const effectiveSearch = this.state.searchProp ?? search
     this.update({
       search,
-      normalizedSearch: this.context.normalizeSearch(search),
+      normalizedSearch: this.context.normalizeSearch(effectiveSearch),
     })
     this.context.onSearchChange?.(search)
     // Note: recomputeFilteredItems is called by the 'normalizedSearch' observer
@@ -458,9 +475,32 @@ export class ListboxStore extends ReactStore<
   setSearchNormalizer(normalizeSearch: SearchNormalizer) {
     this.context.normalizeSearch = normalizeSearch
 
-    const normalizedSearch = normalizeSearch(this.state.search)
+    const effectiveSearch = this.state.searchProp ?? this.state.search
+    const normalizedSearch = normalizeSearch(effectiveSearch)
     if (normalizedSearch !== this.state.normalizedSearch) {
       this.set('normalizedSearch', normalizedSearch)
+    }
+  }
+
+  private syncNormalizedSearch() {
+    const search = this.state.searchProp ?? this.state.search
+    const normalizedSearch = this.context.normalizeSearch(search)
+    if (normalizedSearch !== this.state.normalizedSearch) {
+      this.set('normalizedSearch', normalizedSearch)
+    }
+  }
+
+  private defaultSearchInitialized = false
+
+  initializeDefaultSearch(defaultSearch: string) {
+    if (this.defaultSearchInitialized) return
+    this.defaultSearchInitialized = true
+
+    if (
+      this.state.searchProp === undefined &&
+      defaultSearch !== this.state.search
+    ) {
+      this.setSearch(defaultSearch)
     }
   }
 
@@ -1495,7 +1535,9 @@ export class ListboxStore extends ReactStore<
 function createInitialState(): ListboxState {
   return {
     open: false,
+    openProp: undefined,
     search: '',
+    searchProp: undefined,
     normalizedSearch: '',
     highlightedId: null,
     highlightSource: null,
