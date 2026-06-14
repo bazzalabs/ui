@@ -489,10 +489,11 @@ export const SeekSliderProgress = React.forwardRef<
 export interface SeekSliderThumbProps
   extends Omit<
     React.ComponentPropsWithRef<typeof Slider.Thumb>,
-    'render' | 'children'
+    'render' | 'children' | 'style'
   > {
   render?: RenderProp<SeekSliderThumbRenderProps, SeekSliderThumbState>
   children?: React.ReactNode
+  style?: React.CSSProperties
 }
 
 export interface SeekSliderThumbRenderProps {

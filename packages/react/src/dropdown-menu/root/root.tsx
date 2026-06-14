@@ -205,7 +205,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
   )
 
   // Sync controlled open prop to store
-  store.useControlledProp('open', openProp, defaultOpen)
+  store.useControlledProp('open', openProp)
 
   // Get open state from store for Popover
   const open = store.useState('open')
