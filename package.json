@@ -5,6 +5,7 @@
     "dev": "turbo run dev",
     "dev:up": "turbo run dev test:watch",
     "test": "turbo run test",
+    "wt": "bash scripts/wt.sh",
     "test:watch": "turbo run test:watch",
     "bench": "turbo run bench",
     "bench:watch": "turbo run bench:watch",
