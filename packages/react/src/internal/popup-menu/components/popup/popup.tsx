@@ -22,6 +22,7 @@ import {
   DataPopupContext,
   type DataSurfaceContextValue,
 } from '../../deep-search/context.js'
+import { DataSubpagesContent } from '../../deep-search/data-subpages.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
 
@@ -537,6 +538,7 @@ export const PopupMenuPopup = React.forwardRef<
             {...rest}
           >
             {children}
+            <DataSubpagesContent />
           </Popover.Popup>
         </DataPopupContext.Provider>
       </SubpageStackContext.Provider>

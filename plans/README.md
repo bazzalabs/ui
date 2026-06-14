@@ -22,7 +22,7 @@ Use `gt` for branch/commit/submit. Do **not** use `git commit` / `git push`.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | [001](./001-replace-datalist-render-prop-with-usedatalist-hook.md) | Replace `DataList` render-prop with `DataListContext` + `useDataList()` | P1 | M | — | DONE |
-| [002](./002-unify-data-first-menu-api.md) | Fold data-first behavior into `Surface`/`List`/`Popup`; remove `Data*` exports | P1 | L | 001 | TODO (reconciled 2026-06-13: Step 3 type-boundary blocker resolved in-plan with exact types/excerpts; rebaselined to `d2a3a03e`; ready to re-run) |
+| [002](./002-unify-data-first-menu-api.md) | Fold data-first behavior into `Surface`/`List`/`Popup`; remove `Data*` exports | P1 | L | 001 | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 

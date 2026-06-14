@@ -11,6 +11,7 @@ import {
   type SearchNormalizer,
   SurfaceContext,
   useListboxContext,
+  useSurfaceContext,
 } from '../../../listbox/index.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
 import {
@@ -18,6 +19,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
@@ -25,12 +27,24 @@ import {
   ROOT_SUBPAGE_ID,
   useMaybeSubpageStack,
 } from '../../contexts/subpage-stack-context.js'
+import { AsyncMenuCoordinatorProvider } from '../../deep-search/async-coordinator.js'
+import {
+  DataSurfaceContext,
+  type DataSurfaceContextValue,
+  useMaybeDataPopupContext,
+} from '../../deep-search/context.js'
+import type {
+  DataSurfaceProps,
+  DeepSearchConfig,
+} from '../../deep-search/types.js'
+import { defaultGetQualifiedRowId } from '../../deep-search/utils.js'
 
 // Surface doesn't expose data attributes - using empty state
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
 
 export interface PopupMenuSurfaceProps
-  extends ComponentProps<'div', PopupMenuSurface.State> {
+  extends Omit<ComponentProps<'div', PopupMenuSurface.State>, 'content'>,
+    DataSurfaceProps {
   /**
    * Filter function for matching items against search query.
    * Returns a score between 0 and 1 (0 = no match, > 0 = match).
@@ -108,6 +122,21 @@ export interface PopupMenuSurfaceProps
   children: React.ReactNode
 }
 
+function DataSurfaceAsyncCoordinatorScope({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const { store } = useSurfaceContext()
+  const searchQuery = store.useState('normalizedSearch')
+
+  return (
+    <AsyncMenuCoordinatorProvider searchQuery={searchQuery}>
+      {children}
+    </AsyncMenuCoordinatorProvider>
+  )
+}
+
 /**
  * Provides search context and manages item registration for popup menu.
  * Place inside PopupMenu.Popup to enable search functionality.
@@ -129,6 +158,11 @@ export const PopupMenuSurface = React.forwardRef<
     resetScrollOnSearch = true,
     skipAutoFocus = false,
     orderedItems,
+    content,
+    asyncContent,
+    deepSearch,
+    includeInDeepSearch = true,
+    getQualifiedRowId: getQualifiedRowIdProp,
     render,
     className,
     style,
@@ -137,6 +171,13 @@ export const PopupMenuSurface = React.forwardRef<
     children,
     ...rest
   } = props
+
+  const isDataMode =
+    content !== undefined ||
+    asyncContent !== undefined ||
+    deepSearch !== undefined ||
+    props.includeInDeepSearch !== undefined ||
+    getQualifiedRowIdProp !== undefined
 
   // Get store and depth from Listbox context
   const { store, depth, virtualization } = useListboxContext()
@@ -198,7 +239,7 @@ export const PopupMenuSurface = React.forwardRef<
 
   // Update store context with surface configuration
   React.useEffect(() => {
-    store.context.filter = filter
+    store.context.filter = isDataMode ? false : filter
     store.setSearchNormalizer(normalizeSearch)
     store.context.loop = loop
     store.context.autoHighlightFirst = autoHighlightFirst
@@ -237,7 +278,73 @@ export const PopupMenuSurface = React.forwardRef<
     inputId,
     handleSearchChange,
     virtualization,
+    isDataMode,
   ])
+
+  const popupMenuContext = usePopupMenuContext()
+  const getQualifiedRowId =
+    getQualifiedRowIdProp ??
+    popupMenuContext.getQualifiedRowId ??
+    defaultGetQualifiedRowId
+
+  const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
+    if (typeof deepSearch === 'boolean' || deepSearch === undefined) {
+      return {
+        enabled: deepSearch ?? true,
+        minLength: 0,
+        groupSearchBehavior: 'preserve',
+        radioGroupSearchBehavior: 'preserve',
+        sortGroups: true,
+        asyncResultBehavior: 'stream',
+      }
+    }
+    return {
+      enabled: deepSearch.enabled ?? true,
+      minLength: deepSearch.minLength ?? 0,
+      groupSearchBehavior: deepSearch.groupSearchBehavior ?? 'preserve',
+      radioGroupSearchBehavior:
+        deepSearch.radioGroupSearchBehavior ?? 'preserve',
+      sortGroups: deepSearch.sortGroups ?? true,
+      asyncResultBehavior: deepSearch.asyncResultBehavior ?? 'stream',
+    }
+  }, [deepSearch])
+
+  const dataListId = React.useId()
+  const dataSurfaceContextValue: DataSurfaceContextValue = React.useMemo(
+    () => ({
+      content: content ?? [],
+      asyncContent,
+      deepSearchConfig,
+      includeInDeepSearch,
+      listId: dataListId,
+      getQualifiedRowId,
+    }),
+    [
+      content,
+      asyncContent,
+      deepSearchConfig,
+      includeInDeepSearch,
+      dataListId,
+      getQualifiedRowId,
+    ],
+  )
+
+  const dataPopupContext = useMaybeDataPopupContext()
+  const setDataSurfaceContext = dataPopupContext?.setDataSurfaceContext
+
+  React.useEffect(() => {
+    if (!isDataMode || !setDataSurfaceContext) {
+      return
+    }
+
+    setDataSurfaceContext(dataSurfaceContextValue)
+
+    return () => {
+      setDataSurfaceContext((current) =>
+        current === dataSurfaceContextValue ? null : current,
+      )
+    }
+  }, [isDataMode, setDataSurfaceContext, dataSurfaceContextValue])
 
   // Sync consumer-provided ordered items to store
   // This is separate from the config effect since orderedItems changes on each search
@@ -354,6 +461,16 @@ export const PopupMenuSurface = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'surface')
 
+  const renderedChildren = isDataMode ? (
+    <DataSurfaceContext.Provider value={dataSurfaceContextValue}>
+      <DataSurfaceAsyncCoordinatorScope>
+        {children}
+      </DataSurfaceAsyncCoordinatorScope>
+    </DataSurfaceContext.Provider>
+  ) : (
+    children
+  )
+
   const element = useRender({
     render,
     ref: [surfaceRef, forwardedRef],
@@ -364,7 +481,7 @@ export const PopupMenuSurface = React.forwardRef<
       style,
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
-      children,
+      children: renderedChildren,
     },
     enabled: isSurfaceActive,
     defaultTagName: 'div',

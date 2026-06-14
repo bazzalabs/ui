@@ -233,7 +233,7 @@ Context Menu shares almost all functionality with [Dropdown Menu](/docs/dropdown
 - [Checkbox & Radio Items](/docs/dropdown-menu#checkbox--radio-items) - Toggle and mutually exclusive options
 - [Submenus](/docs/dropdown-menu#submenus) - Nested menus with aim guard
 - [Keyboard Shortcuts](/docs/dropdown-menu#keyboard-shortcuts) - The `shortcut` prop
-- [Deep Search & Data-First API](/docs/dropdown-menu#deep-search--data-first-api) - `DataSurface`, `NodeDef`, and render patterns
+- [Deep Search & Data-First API](/docs/dropdown-menu#deep-search--data-first-api) - data `Surface`, `NodeDef`, and render patterns
 - [Virtualization](/docs/dropdown-menu#virtualization) - Large lists with TanStack Virtual
 
 ### Trigger Behavior
@@ -495,23 +495,29 @@ Shows when content is scrollable downward. Renders a `<div>` element.
 
 The Data-First API provides a declarative way to define menu content using data structures instead of JSX. It enables deep search functionality that can search through nested submenus and supports dynamic filtering.
 
-#### DataSurface
+#### Surface
 
-Wraps the list and provides deep search functionality. Use instead of `Surface` when using the data-first approach. Renders a `<div>` element.
+Pass `content` or `asyncContent` to `Surface` to enable data-first mode. In data-first mode, `Surface` provides deep search functionality and disables built-in item filtering so `List` can render data nodes.
 
-<TypeTableAuto type="ContextMenuDataSurfaceProps" pkg="@bazza-ui/react" />
+<TypeTableAuto type="ContextMenuSurfaceProps" pkg="@bazza-ui/react" />
 
-#### DataList
+#### List
 
-Renders menu items from a data structure using a render prop pattern. Handles filtering, keyboard navigation, and dynamic rendering. Place inside `DataSurface`. Renders a `<div>` element with `role="listbox"`.
+When placed inside a data `Surface`, `List` computes the visible data nodes and provides them through `useDataList()`. Renders a `<div>` element with `role="listbox"`.
 
-<TypeTableAuto type="ContextMenuDataListProps" pkg="@bazza-ui/react" />
+<TypeTableAuto type="ContextMenuListProps" pkg="@bazza-ui/react" />
 
-#### DataInput
+#### Input
 
-A text input for filtering menu items in the data-first API. Functionally identical to the standard `Input` component. Renders an `<input>` element.
+A text input for filtering menu items. In data-first mode, it controls the `Surface` search state used by `List` and `useDataList()`.
 
-<TypeTableAuto type="ContextMenuDataInputProps" pkg="@bazza-ui/react" />
+<TypeTableAuto type="ContextMenuInputProps" pkg="@bazza-ui/react" />
+
+#### useDataList
+
+Reads the computed data-list state from a `List` inside a data `Surface`, including visible nodes, the node renderer, result count, and async state.
+
+<TypeTableAuto type="DataListChildrenState" pkg="@bazza-ui/react" />
 
 ---
 

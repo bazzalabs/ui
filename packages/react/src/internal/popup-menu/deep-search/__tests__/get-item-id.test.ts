@@ -264,7 +264,7 @@ describe('defaultGetQualifiedRowId', () => {
 // ============================================================================
 
 // Note: computeItemIds is not exported, so we test its behavior through
-// the DataList component in the integration tests. However, we can test
+// the List component in the integration tests. However, we can test
 // the logic by creating display nodes and verifying the expected behavior.
 
 describe('computeItemIds behavior', () => {

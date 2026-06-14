@@ -672,7 +672,7 @@ const DropdownMenuWithInputAndImperativeActions = React.forwardRef<
           <DropdownMenu.Popup>
             <DropdownMenu.Surface data-testid="surface">
               {dataInput ? (
-                <DropdownMenu.DataInput data-testid="menu-data-input" />
+                <DropdownMenu.Input data-testid="menu-data-input" />
               ) : (
                 <DropdownMenu.Input data-testid="menu-input" />
               )}
@@ -1269,7 +1269,7 @@ describe('<DropdownMenu.Root />', () => {
       expect(input).not.toBeDisabled()
     })
 
-    it('disables DataInput when setDisabled(true) is called', async () => {
+    it('disables Input when setDisabled(true) is called', async () => {
       const user = userEvent.setup()
       const actions = React.createRef<DropdownMenuDisableHandle>()
 

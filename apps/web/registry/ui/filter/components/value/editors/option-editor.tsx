@@ -127,13 +127,13 @@ export function OptionEditorContent<TData>({
   }, [column, actions, filter, locale, strategy, initialValues, showSeparator])
 
   return (
-    <DropdownMenu.DataSurface content={nodes}>
-      <DropdownMenu.DataInput
+    <DropdownMenu.Surface content={nodes}>
+      <DropdownMenu.Input
         placeholder={`Search ${column.displayName.toLowerCase()}...`}
       />
-      <DropdownMenu.DataList virtualized maxHeight={300}>
+      <DropdownMenu.List virtualized maxHeight={300}>
         <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
-      </DropdownMenu.DataList>
-    </DropdownMenu.DataSurface>
+      </DropdownMenu.List>
+    </DropdownMenu.Surface>
   )
 }

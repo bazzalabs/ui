@@ -373,15 +373,6 @@ export {
   useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './deep-search/context.js'
-export type { PopupMenuDataInputProps } from './deep-search/data-input.js'
-export { PopupMenuDataInput } from './deep-search/data-input.js'
-export type { PopupMenuDataListProps } from './deep-search/data-list.js'
-export { PopupMenuDataList } from './deep-search/data-list.js'
-export type { PopupMenuDataSubpagesProps } from './deep-search/data-subpages.js'
-export { PopupMenuDataSubpages } from './deep-search/data-subpages.js'
-// Components
-export type { PopupMenuDataSurfaceProps } from './deep-search/data-surface.js'
-export { PopupMenuDataSurface } from './deep-search/data-surface.js'
 // Types
 export type {
   AsyncLoaderConfig,
@@ -402,10 +393,6 @@ export type {
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,
   DataListChildrenState,
-  DataListProps,
-  DataSubpagesChildrenState,
-  DataSubpagesProps,
-  DataSurfaceProps,
   DeepSearchConfig,
   DisplayGroupNode,
   DisplayNode,

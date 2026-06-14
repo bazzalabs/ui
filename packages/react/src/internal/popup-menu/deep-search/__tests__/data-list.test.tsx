@@ -115,13 +115,13 @@ function createTestSubpageDef(
   }
 }
 
-function DataListItems() {
+function ListItems() {
   const { nodes, renderNode } = DropdownMenu.useDataList()
 
   return <>{nodes.map(renderNode)}</>
 }
 
-function DataListItemsWithCount() {
+function ListItemsWithCount() {
   const { nodes, renderNode, count } = DropdownMenu.useDataList()
 
   return (
@@ -137,7 +137,7 @@ function DataListItemsWithCount() {
 // ============================================================================
 
 /**
- * Menu with DataSurface that has items with duplicate IDs across submenus.
+ * Menu with Surface that has items with duplicate IDs across submenus.
  * This is the core problem that getQualifiedRowId() solves.
  */
 function MenuWithDuplicateIds({
@@ -177,23 +177,23 @@ function MenuWithDuplicateIds({
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
               getQualifiedRowId={getQualifiedRowId}
             >
-              <DropdownMenu.DataInput
+              <DropdownMenu.Input
                 data-testid="search-input"
                 placeholder="Search..."
               />
-              <DropdownMenu.DataList>
-                <DataListItemsWithCount />
-              </DropdownMenu.DataList>
+              <DropdownMenu.List>
+                <ListItemsWithCount />
+              </DropdownMenu.List>
               <DropdownMenu.Empty data-testid="empty">
                 No results
               </DropdownMenu.Empty>
-            </DropdownMenu.DataSurface>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -224,16 +224,16 @@ function MenuWithFlatItems({
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true }}
               getQualifiedRowId={getQualifiedRowId}
             >
-              <DropdownMenu.DataList>
-                <DataListItems />
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+              <DropdownMenu.List>
+                <ListItems />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -276,20 +276,20 @@ function MenuWithCustomGetQualifiedRowId({
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
               getQualifiedRowId={wrappedGetQualifiedRowId}
             >
-              <DropdownMenu.DataInput
+              <DropdownMenu.Input
                 data-testid="search-input"
                 placeholder="Search..."
               />
-              <DropdownMenu.DataList>
-                <DataListItems />
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+              <DropdownMenu.List>
+                <ListItems />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -322,7 +322,7 @@ function MenuWithForcedSorting() {
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               data-testid="surface"
               content={content}
               deepSearch={{
@@ -332,11 +332,11 @@ function MenuWithForcedSorting() {
               }}
               defaultSearch="x"
             >
-              <DropdownMenu.DataInput data-testid="search-input" />
-              <DropdownMenu.DataList>
-                <DataListItems />
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+              <DropdownMenu.Input data-testid="search-input" />
+              <DropdownMenu.List>
+                <ListItems />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -377,23 +377,23 @@ describe('useDataList', () => {
     })
   })
 
-  it('throws outside a DataList', () => {
+  it('throws outside a List', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    function ReadDataListOutsideProvider() {
+    function ReadListOutsideProvider() {
       DropdownMenu.useDataList()
       return null
     }
 
-    expect(() => render(<ReadDataListOutsideProvider />)).toThrow(
-      'useDataList must be used within a DataList component',
+    expect(() => render(<ReadListOutsideProvider />)).toThrow(
+      'useDataList must be used within a List component',
     )
 
     consoleError.mockRestore()
   })
 })
 
-describe('DataList getQualifiedRowId', () => {
+describe('List getQualifiedRowId', () => {
   describe('DOM ID verification', () => {
     it('renders items with their node.value as DOM id at root level', async () => {
       render(<MenuWithFlatItems />)
@@ -769,18 +769,18 @@ describe('DataList getQualifiedRowId', () => {
             <DropdownMenu.Portal>
               <DropdownMenu.Positioner>
                 <DropdownMenu.Popup>
-                  <DropdownMenu.DataSurface
+                  <DropdownMenu.Surface
                     content={contentWithSpecialChars}
                     deepSearch={{ enabled: true, minLength: 0 }}
                   >
-                    <DropdownMenu.DataInput
+                    <DropdownMenu.Input
                       data-testid="search-input"
                       placeholder="Search..."
                     />
-                    <DropdownMenu.DataList>
-                      <DataListItems />
-                    </DropdownMenu.DataList>
-                  </DropdownMenu.DataSurface>
+                    <DropdownMenu.List>
+                      <ListItems />
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
                 </DropdownMenu.Popup>
               </DropdownMenu.Positioner>
             </DropdownMenu.Portal>
@@ -840,7 +840,7 @@ describe('DataList getQualifiedRowId', () => {
     })
   })
 
-  describe('DataSubpages', () => {
+  describe('Subpages', () => {
     function MenuWithSubpages() {
       const content: NodeDef[] = React.useMemo(
         () => [
@@ -863,19 +863,18 @@ describe('DataList getQualifiedRowId', () => {
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
-                <DropdownMenu.DataSurface
+                <DropdownMenu.Surface
                   content={content}
                   deepSearch={{ enabled: true, minLength: 0 }}
                 >
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     data-testid="search-input"
                     placeholder="Search..."
                   />
-                  <DropdownMenu.DataList>
-                    <DataListItems />
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
-                <DropdownMenu.DataSubpages />
+                  <DropdownMenu.List>
+                    <ListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
               </DropdownMenu.Popup>
             </DropdownMenu.Positioner>
           </DropdownMenu.Portal>
@@ -906,19 +905,18 @@ describe('DataList getQualifiedRowId', () => {
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
-                <DropdownMenu.DataSurface
+                <DropdownMenu.Surface
                   content={content}
                   deepSearch={{ enabled: true, minLength: 0 }}
                 >
-                  <DropdownMenu.DataInput
+                  <DropdownMenu.Input
                     data-testid="search-input"
                     placeholder="Search..."
                   />
-                  <DropdownMenu.DataList>
-                    <DataListItems />
-                  </DropdownMenu.DataList>
-                </DropdownMenu.DataSurface>
-                <DropdownMenu.DataSubpages />
+                  <DropdownMenu.List>
+                    <ListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
               </DropdownMenu.Popup>
             </DropdownMenu.Positioner>
           </DropdownMenu.Portal>
@@ -926,7 +924,7 @@ describe('DataList getQualifiedRowId', () => {
       )
     }
 
-    it('renders subpage content via DataSubpages and navigates back', async () => {
+    it('renders subpage content via Subpages and navigates back', async () => {
       const user = userEvent.setup()
       render(<MenuWithSubpages />)
 

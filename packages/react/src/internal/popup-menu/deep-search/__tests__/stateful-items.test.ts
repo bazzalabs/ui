@@ -1216,7 +1216,7 @@ describe('Value Normalization', () => {
       expect(flattened).toHaveLength(0)
     })
 
-    it('allows submenu override of DataSurface includeInDeepSearch default', () => {
+    it('allows submenu override of Surface includeInDeepSearch default', () => {
       const nodes: NodeDef[] = [
         createSubmenuDef('overridden', 'Overridden', [
           createItemDef('item-1', 'Item 1'),

@@ -21,15 +21,6 @@ export {
   useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './context.js'
-export type { PopupMenuDataInputProps } from './data-input.js'
-export { PopupMenuDataInput } from './data-input.js'
-export type { PopupMenuDataListProps } from './data-list.js'
-export { PopupMenuDataList } from './data-list.js'
-export type { PopupMenuDataSubpagesProps } from './data-subpages.js'
-export { PopupMenuDataSubpages } from './data-subpages.js'
-export type { PopupMenuDataSurfaceProps } from './data-surface.js'
-// Components
-export { PopupMenuDataSurface } from './data-surface.js'
 // Types
 export type {
   AsyncResultBehavior,
@@ -38,10 +29,6 @@ export type {
   CheckboxItemRenderParams,
   CheckboxItemRenderProps,
   DataListChildrenState,
-  DataListProps,
-  DataSubpagesChildrenState,
-  DataSubpagesProps,
-  DataSurfaceProps,
   DeepSearchConfig,
   DisplayGroupNode,
   DisplayNode,

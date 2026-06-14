@@ -18,6 +18,8 @@ import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
+import { useMaybeDataSurfaceContext } from '../../deep-search/context.js'
+import { DataListInner } from '../../deep-search/data-list.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
 import { PopupMenuListCssVars } from './list.css-vars.js'
 import { PopupMenuListDataAttributes } from './list.data-attrs.js'
@@ -38,7 +40,10 @@ export interface PopupMenuListChildrenState {
 export interface PopupMenuListState extends Record<string, unknown> {}
 
 export interface PopupMenuListProps
-  extends Omit<ComponentProps<'div', PopupMenuList.State>, 'children'> {
+  extends Omit<
+    ComponentProps<'div', PopupMenuList.State>,
+    'children' | 'content'
+  > {
   /**
    * Content to render inside the list.
    * Can be a render function that receives the current search state.
@@ -79,10 +84,10 @@ export interface PopupMenuListProps
  * Supports render props for accessing search state.
  * Renders a `<div>` element with role="listbox".
  */
-export const PopupMenuList = React.forwardRef<
+export const PopupMenuListPrimitive = React.forwardRef<
   HTMLDivElement,
   PopupMenuList.Props
->(function PopupMenuList(props, forwardedRef) {
+>(function PopupMenuListPrimitive(props, forwardedRef) {
   const {
     children,
     label = 'Suggestions',
@@ -242,6 +247,35 @@ export const PopupMenuList = React.forwardRef<
     },
     defaultTagName: 'div',
   })
+})
+
+export const PopupMenuList = React.forwardRef<
+  HTMLDivElement,
+  PopupMenuList.Props
+>(function PopupMenuList(props, forwardedRef) {
+  const dataSurfaceCtx = useMaybeDataSurfaceContext()
+  const { store } = useSurfaceContext()
+  const search = store.useState('search')
+  const normalizedSearch = store.useState('normalizedSearch')
+
+  if (dataSurfaceCtx) {
+    return (
+      <DataListInner
+        ref={forwardedRef}
+        {...props}
+        content={dataSurfaceCtx.content}
+        asyncContent={dataSurfaceCtx.asyncContent}
+        deepSearchConfig={dataSurfaceCtx.deepSearchConfig}
+        includeInDeepSearch={dataSurfaceCtx.includeInDeepSearch}
+        getQualifiedRowId={dataSurfaceCtx.getQualifiedRowId}
+        search={search}
+        normalizedSearch={normalizedSearch}
+        store={store}
+      />
+    )
+  }
+
+  return <PopupMenuListPrimitive ref={forwardedRef} {...props} />
 })
 
 export namespace PopupMenuList {

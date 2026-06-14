@@ -210,7 +210,7 @@ const ContextMenuWithInputAndImperativeActions = React.forwardRef<
           <ContextMenu.Popup>
             <ContextMenu.Surface data-testid="surface">
               {dataInput ? (
-                <ContextMenu.DataInput data-testid="menu-data-input" />
+                <ContextMenu.Input data-testid="menu-data-input" />
               ) : (
                 <ContextMenu.Input data-testid="menu-input" />
               )}
@@ -908,7 +908,7 @@ describe('<ContextMenu.Root />', () => {
       expect(input).not.toBeDisabled()
     })
 
-    it('disables DataInput when setDisabled(true) is called', async () => {
+    it('disables Input when setDisabled(true) is called', async () => {
       const actions = React.createRef<ContextMenuDisableHandle>()
 
       render(

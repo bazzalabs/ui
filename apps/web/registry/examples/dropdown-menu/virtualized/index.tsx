@@ -13,7 +13,7 @@ const allItems = Array.from({ length: 1000 }, (_, i) => ({
   label: `Item #${i + 1}`,
 }))
 
-const ITEM_HEIGHT = 36
+const ITEM_HEIGHT = 32
 
 export default function DropdownMenuVirtualized() {
   const [search, setSearch] = React.useState('')

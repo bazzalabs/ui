@@ -68,7 +68,7 @@ function renderColumnIcon(
 }
 
 /**
- * Creates a render function for a submenu with nodes (DataSurface).
+ * Creates a render function for a submenu with nodes (Surface).
  */
 function createSubmenuRenderer(
   id: string,
@@ -94,12 +94,12 @@ function createSubmenuRenderer(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner sideOffset={-2}>
             <DropdownMenu.Popup>
-              <DropdownMenu.DataSurface content={nodes}>
-                <DropdownMenu.DataInput placeholder={inputPlaceholder} />
-                <DropdownMenu.DataList virtualized>
+              <DropdownMenu.Surface content={nodes}>
+                <DropdownMenu.Input placeholder={inputPlaceholder} />
+                <DropdownMenu.List virtualized>
                   <DropdownMenu.Empty>No matching options.</DropdownMenu.Empty>
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -533,13 +533,13 @@ function __FilterMenu<TData>({
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner align="start">
           <DropdownMenu.Popup>
-            <DropdownMenu.DataSurface content={nodes}>
-              <DropdownMenu.DataInput placeholder="Search filters..." />
-              <DropdownMenu.DataList>
+            <DropdownMenu.Surface content={nodes}>
+              <DropdownMenu.Input placeholder="Search filters..." />
+              <DropdownMenu.List>
                 <FilterMenuItems />
-              </DropdownMenu.DataList>
+              </DropdownMenu.List>
               <DropdownMenu.Empty>No matching filters.</DropdownMenu.Empty>
-            </DropdownMenu.DataSurface>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>

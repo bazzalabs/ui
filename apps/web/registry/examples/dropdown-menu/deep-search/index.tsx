@@ -263,21 +263,21 @@ export default function DropdownMenuDeepSearch() {
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner sideOffset={8}>
           <DropdownMenu.Popup className="w-[240px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
-            <DropdownMenu.DataSurface
+            <DropdownMenu.Surface
               content={content}
               deepSearch={{ enabled: true, minLength: 2 }}
             >
               <div className="border-b border-border">
-                <DropdownMenu.DataInput
+                <DropdownMenu.Input
                   placeholder="Search all..."
                   className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground min-h-9 px-3"
                 />
               </div>
 
-              <DropdownMenu.DataList className="max-h-[280px] overflow-y-auto py-1">
-                <DeepSearchDataListContent />
-              </DropdownMenu.DataList>
-            </DropdownMenu.DataSurface>
+              <DropdownMenu.List className="max-h-[280px] overflow-y-auto py-1">
+                <DeepSearchListContent />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
@@ -285,7 +285,7 @@ export default function DropdownMenuDeepSearch() {
   )
 }
 
-function DeepSearchDataListContent() {
+function DeepSearchListContent() {
   const { nodes, renderNode, isDeepSearching, count, search } =
     DropdownMenu.useDataList()
 

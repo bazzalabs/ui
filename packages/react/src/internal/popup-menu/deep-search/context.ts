@@ -90,7 +90,7 @@ export const DataListContext =
 export function useDataList(): DataListChildrenState {
   const context = React.useContext(DataListContext)
   if (!context) {
-    throw new Error('useDataList must be used within a DataList component')
+    throw new Error('useDataList must be used within a List component')
   }
   return context
 }

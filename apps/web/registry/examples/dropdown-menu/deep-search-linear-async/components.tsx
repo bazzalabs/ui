@@ -195,7 +195,7 @@ export function createAssigneeItemNode(
 
 /**
  * Creates a submenu node with deep search enabled.
- * Uses the Data-First API components (DataSurface, DataInput, DataList)
+ * Uses the Data-First API components (Surface, Input, List)
  * to properly integrate with the parent's deep search functionality.
  */
 export function createSubmenuNode(
@@ -238,7 +238,7 @@ export function createSubmenuNode(
         <DropdownMenu.Portal>
           <DropdownMenu.Positioner>
             <DropdownMenu.Popup>
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 content={nodes}
                 deepSearch={{
                   enabled: true,
@@ -246,14 +246,14 @@ export function createSubmenuNode(
                   asyncResultBehavior: 'block',
                 }}
               >
-                <DropdownMenu.DataInput
+                <DropdownMenu.Input
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList>
-                  <AsyncComponentsDataListItems />
-                </DropdownMenu.DataList>
-              </DropdownMenu.DataSurface>
+                <DropdownMenu.List>
+                  <AsyncComponentsListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -266,7 +266,7 @@ export function createSubmenuNode(
  * Creates an async submenu node with deep search enabled.
  * Shows a loading spinner in the trigger when async content is loading.
  *
- * The submenu passes `asyncContent` to its DataSurface so it can run its own
+ * The submenu passes `asyncContent` to its Surface so it can run its own
  * loader with its own search query, independent of the parent's deep search.
  */
 export function createAsyncSubmenuNode(
@@ -318,16 +318,16 @@ export function createAsyncSubmenuNode(
                 The submenu uses asyncContent as its sole data source.
                 This runs its OWN loader with its OWN search query.
               */}
-              <DropdownMenu.DataSurface
+              <DropdownMenu.Surface
                 asyncContent={asyncContent}
                 deepSearch={{ enabled: true, asyncResultBehavior: 'block' }}
               >
-                <DropdownMenu.DataInput
+                <DropdownMenu.Input
                   placeholder={inputPlaceholder}
                   hideUntilActive={hideInputUntilActive}
                 />
-                <DropdownMenu.DataList virtualized />
-              </DropdownMenu.DataSurface>
+                <DropdownMenu.List virtualized />
+              </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
         </DropdownMenu.Portal>
@@ -336,7 +336,7 @@ export function createAsyncSubmenuNode(
   }
 }
 
-function AsyncComponentsDataListItems() {
+function AsyncComponentsListItems() {
   const { nodes: filteredNodes, renderNode } = DropdownMenu.useDataList()
 
   return <>{filteredNodes.map((node) => renderNode(node))}</>

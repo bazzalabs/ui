@@ -198,7 +198,7 @@ function collectDisplaySubpages(
   return result
 }
 
-export interface PopupMenuDataSubpagesProps extends DataSubpagesProps {}
+export interface DataSubpagesContentProps extends DataSubpagesProps {}
 
 /**
  * DataSubpages renders subpage content alongside the root Surface inside Popup.
@@ -214,7 +214,7 @@ export interface PopupMenuDataSubpagesProps extends DataSubpagesProps {}
  * </Popup>
  * ```
  */
-export function PopupMenuDataSubpages(props: PopupMenuDataSubpagesProps) {
+export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const { children } = props
 
   const coordinator = useAsyncMenuCoordinator()
@@ -687,9 +687,4 @@ export function PopupMenuDataSubpages(props: PopupMenuDataSubpagesProps) {
   }
 
   return <>{subpages.map(renderSubpageContent)}</>
-}
-
-export namespace PopupMenuDataSubpages {
-  export interface Props extends PopupMenuDataSubpagesProps {}
-  export type ChildrenState = DataSubpagesChildrenState
 }
