@@ -42,8 +42,6 @@ import { defaultGetQualifiedRowId } from '../../deep-search/utils.js'
 // Surface doesn't expose data attributes - using empty state
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
 
-const defaultSearchInitializedStores = new WeakSet<object>()
-
 export interface PopupMenuSurfaceProps
   extends Omit<ComponentProps<'div', PopupMenuSurface.State>, 'content'>,
     DataSurfaceProps {
@@ -184,12 +182,7 @@ export const PopupMenuSurface = React.forwardRef<
   // Get store and depth from Listbox context
   const { store, depth, virtualization } = useListboxContext()
 
-  if (!defaultSearchInitializedStores.has(store)) {
-    defaultSearchInitializedStores.add(store)
-    if (searchProp === undefined && defaultSearch !== store.state.search) {
-      store.setSearch(defaultSearch)
-    }
-  }
+  store.initializeDefaultSearch(defaultSearch)
 
   // Get submenu context (if inside a submenu)
   const submenuContext = useMaybeSubmenuContext()
@@ -364,7 +357,7 @@ export const PopupMenuSurface = React.forwardRef<
   }, [store, orderedItems])
 
   // Sync controlled search prop to store
-  store.useControlledProp('search', searchProp)
+  store.useControlledProp('searchProp', searchProp)
 
   // Track the open state
   const open = store.useState('open')
