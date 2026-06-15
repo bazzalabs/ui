@@ -538,6 +538,7 @@ export function SelectRoot<
       // Reset positioning state after close animation completes
       // This preserves the aligned position during the exit animation
       if (!nextOpen) {
+        store.clearHighlight()
         resetPositioningCallbackRef.current?.()
         // Clear first item text ref so it can be set fresh on next open
         firstItemTextRef.current = null
@@ -545,7 +546,7 @@ export function SelectRoot<
       // Call user's callback
       onOpenChangeComplete?.(nextOpen)
     },
-    [onOpenChangeComplete],
+    [onOpenChangeComplete, store],
   )
 
   return (

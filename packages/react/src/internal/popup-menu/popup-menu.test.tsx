@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
+import { type ListboxStore, useListboxContext } from '../listbox/index.js'
 
 // ============================================================================
 // Test Fixtures
@@ -11,7 +12,7 @@ import { DropdownMenu } from '../../dropdown-menu/index.js'
 /**
  * A searchable menu with keywords on items.
  */
-function NestedSearchableMenu() {
+function _NestedSearchableMenu() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger data-testid="trigger">
@@ -283,6 +284,47 @@ function MenuWithClearSearchOnClose({
               <DropdownMenu.Empty data-testid="empty-state">
                 No results found
               </DropdownMenu.Empty>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function StoreCapture({ onStore }: { onStore: (store: ListboxStore) => void }) {
+  const { store } = useListboxContext()
+
+  React.useEffect(() => {
+    onStore(store)
+  }, [onStore, store])
+
+  return null
+}
+
+function MenuWithStoreCapture({
+  onOpenChangeComplete,
+  onStore,
+}: {
+  onOpenChangeComplete?: (open: boolean) => void
+  onStore: (store: ListboxStore) => void
+}) {
+  return (
+    <DropdownMenu.Root onOpenChangeComplete={onOpenChangeComplete}>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="surface">
+              <StoreCapture onStore={onStore} />
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="item-apple" value="apple">
+                  Apple
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="item-banana" value="banana">
+                  Banana
+                </DropdownMenu.Item>
+              </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
@@ -1998,6 +2040,45 @@ describe('PopupMenu', () => {
 
       // Should have been called twice total (open and close)
       expect(onOpenChangeComplete).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('highlight on close', () => {
+    it('configures row highlight to clear after the close animation completes', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+      let store: ListboxStore | null = null
+
+      render(
+        <MenuWithStoreCapture
+          onOpenChangeComplete={onOpenChangeComplete}
+          onStore={(nextStore) => {
+            store = nextStore
+          }}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-highlighted',
+          '',
+        )
+      })
+
+      expect(store?.state.highlightedId).toBe('apple')
+      expect(store?.context.clearHighlightOnClose).toBe('after-exit')
+
+      fireEvent.keyDown(document.activeElement ?? document.body, {
+        key: 'Escape',
+      })
+
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+      })
+
+      expect(store?.state.highlightedId).toBe(null)
     })
   })
 

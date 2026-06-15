@@ -1,10 +1,8 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import {
-  type ChangeEventDetails,
   createChangeEventDetails,
   createGenericEventDetails,
-  type GenericEventDetails,
   REASONS,
 } from '../../../utils/events/index.js'
 import type {
@@ -144,6 +142,13 @@ export interface ListboxContext {
    * - `'after-exit'`: clear after exit animation completes (requires Surface to call clearSearch)
    */
   clearSearchOnClose: boolean | 'after-exit'
+  /**
+   * Whether to clear highlight on close.
+   * - `true`: clear immediately when menu closes
+   * - `false`: preserve highlight when menu closes
+   * - `'after-exit'`: clear after exit animation completes
+   */
+  clearHighlightOnClose: boolean | 'after-exit'
   /** Whether to reset list scroll position when search changes. */
   resetScrollOnSearch: boolean
   /** Whether hideUntilActive mode is enabled */
@@ -329,6 +334,7 @@ export class ListboxStore extends ReactStore<
       loop: true,
       autoHighlightFirst: true,
       clearSearchOnClose: true,
+      clearHighlightOnClose: true,
       resetScrollOnSearch: true,
       hideUntilActive: false,
       listId: '',
@@ -392,10 +398,14 @@ export class ListboxStore extends ReactStore<
         // When 'after-exit', also defer hiding the input until animation completes
         // This prevents the input from disappearing before the popup animates out
         const deferInputHide = this.context.clearSearchOnClose === 'after-exit'
+        const deferHighlightClear =
+          this.context.clearHighlightOnClose === 'after-exit'
 
         this.update({
-          highlightedId: null,
-          highlightSource: null,
+          highlightedId: deferHighlightClear ? this.state.highlightedId : null,
+          highlightSource: deferHighlightClear
+            ? this.state.highlightSource
+            : null,
           inputActive: deferInputHide ? this.state.inputActive : false,
           pendingSearch: '',
         })
@@ -1153,6 +1163,10 @@ export class ListboxStore extends ReactStore<
 
   clearSearch() {
     this.setSearch('')
+  }
+
+  clearHighlight() {
+    this.setHighlightedId(null, null)
   }
 
   highlightFirstItem() {

@@ -246,6 +246,7 @@ export const PopupMenuSurface = React.forwardRef<
     store.context.loop = loop
     store.context.autoHighlightFirst = autoHighlightFirst
     store.context.clearSearchOnClose = clearSearchOnClose
+    store.context.clearHighlightOnClose = 'after-exit'
     store.context.resetScrollOnSearch = resetScrollOnSearch
     store.context.listId = listId
     store.context.inputId = inputId

@@ -69,6 +69,7 @@ describe('ListboxStore', () => {
       expect(store.context.loop).toBe(true)
       expect(store.context.autoHighlightFirst).toBe(true)
       expect(store.context.clearSearchOnClose).toBe(true)
+      expect(store.context.clearHighlightOnClose).toBe(true)
       expect(store.context.filter).toBeDefined()
     })
 
@@ -640,6 +641,23 @@ describe('ListboxStore', () => {
       store.setHighlightedId('item-1')
 
       store.setOpen(false)
+
+      expect(store.state.highlightedId).toBe(null)
+    })
+
+    it('preserves highlight until clearHighlight() when clearHighlightOnClose="after-exit"', () => {
+      const store = createStore(
+        { open: true },
+        { clearHighlightOnClose: 'after-exit' },
+      )
+      registerItems(store, [{ id: 'item-1', value: 'Item 1' }])
+      store.setHighlightedId('item-1')
+
+      store.setOpen(false)
+
+      expect(store.state.highlightedId).toBe('item-1')
+
+      store.clearHighlight()
 
       expect(store.state.highlightedId).toBe(null)
     })
