@@ -7,7 +7,7 @@ import ThemeColorUpdater from '@/components/theme-color-updater'
 import { Toaster } from '@/components/ui/sonner'
 import { META_THEME_COLORS } from '@/lib/config'
 import { env } from '@/lib/env'
-import { berkeleyMono, inter } from '@/lib/fonts'
+
 import { QueryClientProvider } from '@/providers/query-client-provider'
 import { ThemeProvider } from '@/providers/theme-provider'
 
@@ -91,9 +91,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${inter.variable} ${berkeleyMono.variable} font-sans antialiased bg-site-background min-h-svh isolate relative`}
-      >
+      <body className="font-sans antialiased bg-site-background min-h-svh isolate relative">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

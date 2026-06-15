@@ -14,7 +14,6 @@
     "check:fix": "biome check --fix .",
     "format": "biome format .",
     "format:fix": "biome format --write .",
-    "vercel:install": "turbo run vercel:install",
     "sgrep:watch": "sgrep watch .",
     "build": "turbo run build",
     "registry:build": "turbo run registry:build",

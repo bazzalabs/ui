@@ -1,3 +1,0 @@
-[submodule "apps/web/assets"]
-	path = apps/web/assets
-	url = https://github.com/bazzalabs/static.git
