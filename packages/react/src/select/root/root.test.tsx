@@ -52,6 +52,25 @@ function BasicSelect({
   )
 }
 
+function createRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): DOMRect {
+  return {
+    x,
+    y,
+    width,
+    height,
+    top: y,
+    left: x,
+    right: x + width,
+    bottom: y + height,
+    toJSON: () => ({}),
+  } as DOMRect
+}
+
 function MultiSelect({
   defaultValues,
   onValuesChange,
@@ -758,6 +777,71 @@ describe('<Select.Root />', () => {
 
       const banana = screen.getByTestId('item-banana')
       expect(banana).toHaveAttribute('aria-disabled', 'true')
+    })
+  })
+
+  describe('positioning', () => {
+    it('clears transform styles when aligning an item with the trigger', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const positioner = await screen.findByTestId('positioner')
+
+        await waitFor(() => {
+          expect(positioner).toHaveStyle({
+            position: 'fixed',
+            transform: 'none',
+          })
+        })
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
     })
   })
 
