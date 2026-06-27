@@ -93,6 +93,7 @@ const Positioner = forwardRef<
     <Primitive.Positioner
       ref={ref}
       sideOffset={sideOffset}
+      alignItemWithTrigger={alignItemWithTrigger}
       className={cn('z-50 group/positioner', className)}
       {...(alignItemWithTrigger ? { 'data-align-with-trigger': '' } : {})}
       // data-align-with-trigger={alignItemWithTrigger ? '' : undefined}

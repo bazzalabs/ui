@@ -293,6 +293,7 @@ export const SelectPositioner = React.forwardRef<
           position: 'fixed',
           left: positionState.left,
           top: positionState.top,
+          transform: 'none',
           ...(positionState.maxHeight
             ? { maxHeight: positionState.maxHeight }
             : {}),
