@@ -634,12 +634,23 @@ describe('ListboxStore', () => {
       expect(store.state.search).toBe('')
     })
 
-    it('clears highlight when closing', () => {
+    it('preserves highlight when closing', () => {
       const store = createStore({ open: true })
       registerItems(store, [{ id: 'item-1', value: 'Item 1' }])
       store.setHighlightedId('item-1')
 
       store.setOpen(false)
+
+      expect(store.state.highlightedId).toBe('item-1')
+    })
+
+    it('clears deferred highlight via clearHighlight()', () => {
+      const store = createStore({ open: true })
+      registerItems(store, [{ id: 'item-1', value: 'Item 1' }])
+      store.setHighlightedId('item-1')
+
+      store.setOpen(false)
+      store.clearHighlight()
 
       expect(store.state.highlightedId).toBe(null)
     })
@@ -1245,8 +1256,11 @@ describe('ListboxStore', () => {
       ])
       expect(store.state.highlightedId).toBe('apple')
 
-      // Close - clears highlight
+      // Close preserves highlight until close-complete cleanup runs
       store.setOpen(false)
+      expect(store.state.highlightedId).toBe('apple')
+
+      store.clearHighlight()
       expect(store.state.highlightedId).toBe(null)
 
       // Re-open with SAME orderedItems reference

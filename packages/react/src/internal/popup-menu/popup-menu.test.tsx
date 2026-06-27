@@ -292,6 +292,43 @@ function MenuWithClearSearchOnClose({
 }
 
 /**
+ * Menu with a mockable exit animation for highlight lifecycle behavior.
+ */
+function MenuWithHighlightLifecycle({
+  onOpenChangeComplete,
+}: {
+  onOpenChangeComplete?: (open: boolean) => void
+}) {
+  return (
+    <DropdownMenu.Root onOpenChangeComplete={onOpenChangeComplete}>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup
+            data-testid="popup"
+            className="popup-menu-highlight-lifecycle-test"
+          >
+            <DropdownMenu.Surface data-testid="surface">
+              <DropdownMenu.List data-testid="list">
+                <DropdownMenu.Item data-testid="item-apple" value="apple">
+                  Apple
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="item-banana" value="banana">
+                  Banana
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="item-cherry" value="cherry">
+                  Cherry
+                </DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+/**
  * Menu with hideUntilActive input.
  */
 function MenuWithHideUntilActive() {
@@ -1818,6 +1855,103 @@ describe('PopupMenu', () => {
 
       // onSearchChange should have been called
       expect(onSearchChange).toHaveBeenCalledWith('b')
+    })
+  })
+
+  describe('highlight close lifecycle', () => {
+    it('preserves highlight during exit and resets to auto-highlight when reopening during exit', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+      const originalGetAnimations = Element.prototype.getAnimations
+      const pendingExitAnimation = new Promise<Animation>(() => {})
+
+      Object.defineProperty(Element.prototype, 'getAnimations', {
+        configurable: true,
+        value(this: Element) {
+          if (
+            this.classList.contains('popup-menu-highlight-lifecycle-test') &&
+            this.hasAttribute('data-ending-style')
+          ) {
+            return [
+              {
+                finished: pendingExitAnimation,
+                pending: true,
+                playState: 'running',
+              },
+            ]
+          }
+
+          return []
+        },
+      })
+
+      try {
+        render(
+          <>
+            <style>{`
+              @keyframes popup-menu-highlight-lifecycle-test {
+                from { opacity: 1; }
+                to { opacity: 0; }
+              }
+
+              .popup-menu-highlight-lifecycle-test[data-ending-style] {
+                animation: popup-menu-highlight-lifecycle-test 10s linear;
+              }
+            `}</style>
+            <MenuWithHighlightLifecycle
+              onOpenChangeComplete={onOpenChangeComplete}
+            />
+          </>,
+        )
+
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-highlighted',
+        )
+
+        const list = screen.getByTestId('list')
+        list.focus()
+        await user.keyboard('{ArrowDown}')
+        await user.keyboard('{ArrowDown}')
+
+        expect(screen.getByTestId('item-cherry')).toHaveAttribute(
+          'data-highlighted',
+        )
+
+        await user.keyboard('{Escape}')
+
+        expect(screen.getByTestId('popup')).toHaveAttribute('data-ending-style')
+        expect(screen.getByTestId('item-cherry')).toHaveAttribute(
+          'data-highlighted',
+        )
+        expect(onOpenChangeComplete).not.toHaveBeenCalledWith(false)
+
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('item-apple')).toHaveAttribute(
+            'data-highlighted',
+          )
+        })
+        expect(screen.getByTestId('item-cherry')).not.toHaveAttribute(
+          'data-highlighted',
+        )
+      } finally {
+        if (originalGetAnimations) {
+          Object.defineProperty(Element.prototype, 'getAnimations', {
+            configurable: true,
+            value: originalGetAnimations,
+          })
+        } else {
+          delete Element.prototype.getAnimations
+        }
+      }
     })
   })
 

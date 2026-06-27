@@ -394,8 +394,6 @@ export class ListboxStore extends ReactStore<
         const deferInputHide = this.context.clearSearchOnClose === 'after-exit'
 
         this.update({
-          highlightedId: null,
-          highlightSource: null,
           inputActive: deferInputHide ? this.state.inputActive : false,
           pendingSearch: '',
         })
@@ -1153,6 +1151,10 @@ export class ListboxStore extends ReactStore<
 
   clearSearch() {
     this.setSearch('')
+  }
+
+  clearHighlight() {
+    this.update({ highlightedId: null, highlightSource: null })
   }
 
   highlightFirstItem() {
