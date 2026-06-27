@@ -476,6 +476,9 @@ export function ComboboxRoot<
         store.clearSearch()
         store.setInputActive(false)
       }
+      if (!nextOpen) {
+        store.clearHighlight()
+      }
       // Call user's callback
       onOpenChangeCompleteProp?.(nextOpen)
     },

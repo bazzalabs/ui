@@ -220,6 +220,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       }
       // Reset row width measurements after close animation completes
       if (!nextOpen) {
+        store.clearHighlight()
         store.context.onCloseComplete?.()
         store.context.onPopupCloseComplete?.()
       }
