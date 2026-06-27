@@ -1182,17 +1182,25 @@ describe('ListboxStore', () => {
     })
 
     it('getVisibleItemIds excludes unregistered items', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const store = createStore({ open: true }, { filter: false })
       registerItems(store, [
         { id: 'apple', value: 'Apple' },
         { id: 'cherry', value: 'Cherry' },
       ])
 
-      // 'banana' is not registered
-      store.setOrderedItems(['cherry', 'banana', 'apple'])
+      try {
+        // 'banana' is not registered
+        store.setOrderedItems(['cherry', 'banana', 'apple'])
 
-      const visibleIds = store.getVisibleItemIds()
-      expect(visibleIds).toEqual(['cherry', 'apple'])
+        const visibleIds = store.getVisibleItemIds()
+        expect(visibleIds).toEqual(['cherry', 'apple'])
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining('Item "banana" is in orderedItems'),
+        )
+      } finally {
+        warn.mockRestore()
+      }
     })
 
     it('highlights first item when items register after menu opens', () => {
