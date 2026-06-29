@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -1035,6 +1035,73 @@ describe('<Select.Root />', () => {
 
         await waitFor(() => {
           expect(popup).toHaveAttribute('data-side-state', 'none')
+        })
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
+    it('closes an aligned select on viewport resize', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const positioner = await screen.findByTestId('positioner')
+        await waitFor(() => {
+          expect(positioner).toHaveAttribute('data-side', 'none')
+        })
+
+        act(() => {
+          window.dispatchEvent(new Event('resize'))
+        })
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
         })
       } finally {
         rectSpy.mockRestore()

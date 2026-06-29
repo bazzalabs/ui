@@ -5,6 +5,7 @@ import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
 import { clamp } from '../../utils/clamp.js'
+import { REASONS } from '../../utils/events/index.js'
 import { getScale, normalizeRect, normalizeSize } from '../../utils/scale.js'
 import {
   getMaxScrollOffset,
@@ -110,6 +111,9 @@ export const SelectPositioner = React.forwardRef<
   const scrollDownArrowRef = React.useRef<HTMLDivElement | null>(null)
   const reachedMaxHeightRef = React.useRef(false)
   const initialPlacedRef = React.useRef(false)
+  // The visible item count the current placement was computed against; used to
+  // recompute alignment when a searchable select is filtered.
+  const lastAlignedFilteredCountRef = React.useRef<number | null>(null)
 
   // Remove the imperative styles we apply during alignment so the element can
   // return to standard positioning (on fallback or after close).
@@ -125,6 +129,7 @@ export const SelectPositioner = React.forwardRef<
     }
     reachedMaxHeightRef.current = false
     initialPlacedRef.current = false
+    lastAlignedFilteredCountRef.current = null
   }, [store])
 
   // Reset after the close animation completes so positioning is preserved
@@ -143,15 +148,9 @@ export const SelectPositioner = React.forwardRef<
     return cleanup
   }, [selectContext, resetPositioningState])
 
-  // Compute alignment once the popup is open. We use a passive effect (not
-  // layout) because the popup/list elements register with the store in their
-  // own effects, which run before this parent effect; `visibility: hidden`
-  // keeps the measuring pass from flashing.
-  React.useEffect(() => {
-    if (!open || !alignItemWithTriggerActive || positioned) {
-      return
-    }
-
+  // Measure, compute, and apply the aligned placement. Reusable so the initial
+  // pass and content-change recomputes share one implementation.
+  const runAlignment = React.useCallback(() => {
     const positioner = positionerRef.current
     const trigger = selectContext.triggerRef.current
     const popup = store.context.refs.popupRef.current
@@ -160,6 +159,15 @@ export const SelectPositioner = React.forwardRef<
     if (!positioner || !trigger || !popup || !scroller) {
       return
     }
+
+    // Track the content size this placement is computed against (for recompute).
+    lastAlignedFilteredCountRef.current = store.state.filteredCount
+
+    // Clear prior imperative sizing so natural geometry is re-measured. This
+    // makes the function idempotent and correct when called to recompute.
+    positioner.style.height = ''
+    popup.style.height = ''
+    reachedMaxHeightRef.current = false
 
     // Prefer the selected item's text; fall back to the first item when there
     // is no selection. Re-validate connectedness (items may have remounted).
@@ -241,14 +249,54 @@ export const SelectPositioner = React.forwardRef<
       marginBottom: result.marginBottom,
     })
     setPositioned(true)
+  }, [store, selectContext, direction])
+
+  // Initial alignment once the popup is open. We use a passive effect (not
+  // layout) because the popup/list elements register with the store in their
+  // own effects, which run before this parent effect; `visibility: hidden`
+  // keeps the measuring pass from flashing.
+  React.useEffect(() => {
+    if (!open || !alignItemWithTriggerActive || positioned) {
+      return
+    }
+    runAlignment()
+  }, [open, alignItemWithTriggerActive, positioned, runAlignment])
+
+  // Recompute when the visible item count changes while placed (e.g. filtering
+  // a searchable select), so the selected item stays aligned with the trigger.
+  const filteredCount = store.useState('filteredCount')
+  React.useEffect(() => {
+    if (!open || !alignItemWithTriggerActive || !positioned) {
+      return
+    }
+    if (lastAlignedFilteredCountRef.current === filteredCount) {
+      return
+    }
+    runAlignment()
   }, [
+    filteredCount,
     open,
     alignItemWithTriggerActive,
     positioned,
-    store,
-    selectContext,
-    direction,
+    runAlignment,
   ])
+
+  // Aligned, fixed-position popups don't track the anchor; a viewport resize
+  // would leave them stale, so close instead (Base UI parity).
+  React.useEffect(() => {
+    if (!open || !alignItemWithTriggerActive) {
+      return
+    }
+    const positioner = positionerRef.current
+    const win = positioner ? ownerWindow(positioner) : window
+    const handleResize = (event: UIEvent) => {
+      store.setOpen(false, REASONS.none, event)
+    }
+    win.addEventListener('resize', handleResize)
+    return () => {
+      win.removeEventListener('resize', handleResize)
+    }
+  }, [open, alignItemWithTriggerActive, store])
 
   // Grow the popup toward the viewport edge as the user scrolls (native-select
   // feel): scroll input first expands the popup until it reaches the maximum
