@@ -843,6 +843,205 @@ describe('<Select.Root />', () => {
         clientWidthSpy.mockRestore()
       }
     })
+
+    it('renders data-side="none" on the positioner when aligned', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner
+                data-testid="positioner"
+                alignItemWithTrigger
+                align="start"
+              >
+                <Select.Popup>
+                  <Select.Surface>
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const positioner = await screen.findByTestId('positioner')
+
+        await waitFor(() => {
+          expect(positioner).toHaveAttribute('data-side', 'none')
+        })
+        expect(positioner).toHaveAttribute('data-align', 'start')
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
+    it('exposes side "none" to the Select.Popup className and DOM when aligned', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup
+                  data-testid="popup"
+                  className={(state) =>
+                    state.side === 'none' ? 'is-aligned' : 'not-aligned'
+                  }
+                >
+                  <Select.Surface>
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const popup = await screen.findByTestId('popup')
+
+        await waitFor(() => {
+          expect(popup).toHaveClass('is-aligned')
+        })
+        expect(popup).toHaveAttribute('data-side', 'none')
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
+    it('passes side "none" to a Select.Popup render function when aligned', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup
+                  render={(popupProps, state) => (
+                    <div
+                      {...popupProps}
+                      data-testid="popup"
+                      data-side-state={state.side}
+                    />
+                  )}
+                >
+                  <Select.Surface>
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const popup = await screen.findByTestId('popup')
+
+        await waitFor(() => {
+          expect(popup).toHaveAttribute('data-side-state', 'none')
+        })
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
   })
 
   describe('animation', () => {
