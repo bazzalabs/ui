@@ -81,8 +81,18 @@ export const PopupMenuScrollArrow = React.forwardRef<
   const scrollingRef = React.useRef(false)
   const rafRef = React.useRef<number | null>(null)
 
+  // Scroll arrows are a hover-only affordance, so they're disabled for touch
+  // opens (matches Base UI). Tracked via the shared store's openMethod.
+  const openMethod = store.useState('openMethod')
+  const isTouch = openMethod === 'touch'
+
   // Check if there's content to scroll in this direction
   const checkVisibility = React.useCallback(() => {
+    if (isTouch) {
+      setVisible(false)
+      return
+    }
+
     const listRef = store.context.refs.listRef
     const list = listRef?.current
     if (!list) {
@@ -99,7 +109,7 @@ export const PopupMenuScrollArrow = React.forwardRef<
         list.scrollTop + list.clientHeight >= list.scrollHeight - 1
       setVisible(!atBottom)
     }
-  }, [store, direction])
+  }, [store, direction, isTouch])
 
   // Set up scroll listener on the list
   React.useEffect(() => {
