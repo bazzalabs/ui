@@ -4,7 +4,12 @@ import { useDirection } from '@base-ui/react/internals/direction-context'
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
-import { getScale, normalizeRect } from '../../utils/scale.js'
+import { clamp } from '../../utils/clamp.js'
+import { getScale, normalizeRect, normalizeSize } from '../../utils/scale.js'
+import {
+  getMaxScrollOffset,
+  SCROLL_EDGE_TOLERANCE_PX,
+} from '../../utils/scroll-edges.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import {
   type Align,
@@ -15,6 +20,7 @@ import {
 import {
   type AlignmentResult,
   computeAlignment,
+  computeScrollGrowth,
   DEFAULT_MARGIN,
   DEFAULT_MIN_HEIGHT,
 } from './alignment.js'
@@ -103,6 +109,7 @@ export const SelectPositioner = React.forwardRef<
   const scrollUpArrowRef = React.useRef<HTMLDivElement | null>(null)
   const scrollDownArrowRef = React.useRef<HTMLDivElement | null>(null)
   const reachedMaxHeightRef = React.useRef(false)
+  const initialPlacedRef = React.useRef(false)
 
   // Remove the imperative styles we apply during alignment so the element can
   // return to standard positioning (on fallback or after close).
@@ -117,6 +124,7 @@ export const SelectPositioner = React.forwardRef<
       popup.style.removeProperty('--transform-origin')
     }
     reachedMaxHeightRef.current = false
+    initialPlacedRef.current = false
   }, [store])
 
   // Reset after the close animation completes so positioning is preserved
@@ -220,6 +228,7 @@ export const SelectPositioner = React.forwardRef<
       }
       scroller.scrollTop = result.scrollTop
       reachedMaxHeightRef.current = result.reachedMaxHeight
+      initialPlacedRef.current = true
     } finally {
       restoreTransforms()
     }
@@ -240,6 +249,117 @@ export const SelectPositioner = React.forwardRef<
     selectContext,
     direction,
   ])
+
+  // Grow the popup toward the viewport edge as the user scrolls (native-select
+  // feel): scroll input first expands the popup until it reaches the maximum
+  // available height, after which it scrolls normally. Mutates height/scrollTop
+  // imperatively so there's no re-render per scroll frame.
+  const handleScroll = React.useCallback(
+    (scroller: HTMLElement) => {
+      const positioner = positionerRef.current
+      const popup = store.context.refs.popupRef.current
+      if (!positioner || !popup || !initialPlacedRef.current) {
+        return
+      }
+      // Once fully grown (or no longer aligned), the list scrolls normally.
+      if (reachedMaxHeightRef.current || !alignItemWithTriggerActive) {
+        return
+      }
+
+      const isTopPositioned = positioner.style.top === '0px'
+      const isBottomPositioned = positioner.style.bottom === '0px'
+      if (!isTopPositioned && !isBottomPositioned) {
+        return
+      }
+
+      const win = ownerWindow(positioner)
+      const doc = positioner.ownerDocument
+      const scale = getScale(positioner)
+      const currentHeight = normalizeSize(
+        positioner.getBoundingClientRect().height,
+        'y',
+        scale,
+      )
+      const positionerStyles = win.getComputedStyle(positioner)
+      const marginTop = Number.parseFloat(positionerStyles.marginTop) || 0
+      const marginBottom = Number.parseFloat(positionerStyles.marginBottom) || 0
+      const maxPopupHeight = getMaxPopupHeight(win.getComputedStyle(popup))
+      const maxAvailableHeight = Math.min(
+        doc.documentElement.clientHeight - marginTop - marginBottom,
+        maxPopupHeight,
+      )
+
+      const result = computeScrollGrowth({
+        isTopPositioned,
+        currentHeight,
+        scrollTop: scroller.scrollTop,
+        maxScrollTop: getMaxScrollOffset(
+          scroller.scrollHeight,
+          scroller.clientHeight,
+        ),
+        maxAvailableHeight,
+      })
+
+      if (result.height != null) {
+        positioner.style.height = `${result.height}px`
+      }
+
+      switch (result.scroll.kind) {
+        case 'set':
+          scroller.scrollTop = result.scroll.value
+          break
+        case 'max': {
+          const nextMax = getMaxScrollOffset(
+            scroller.scrollHeight,
+            scroller.clientHeight,
+          )
+          if (
+            Math.abs(scroller.scrollTop - nextMax) > SCROLL_EDGE_TOLERANCE_PX
+          ) {
+            scroller.scrollTop = nextMax
+          }
+          break
+        }
+        case 'clamp': {
+          const nextMax = getMaxScrollOffset(
+            scroller.scrollHeight,
+            scroller.clientHeight,
+          )
+          const target = clamp(result.scroll.value, 0, nextMax)
+          if (
+            Math.abs(scroller.scrollTop - target) > SCROLL_EDGE_TOLERANCE_PX
+          ) {
+            scroller.scrollTop = target
+          }
+          break
+        }
+        default:
+          break
+      }
+
+      if (result.reachedMaxHeight) {
+        reachedMaxHeightRef.current = true
+      }
+    },
+    [store, alignItemWithTriggerActive],
+  )
+
+  // Drive the grow-on-scroll handler from the scroller's scroll events. The
+  // existing scroll arrows nudge `scrollTop`, so they feed growth for free.
+  React.useEffect(() => {
+    if (!open || !alignItemWithTriggerActive || !positioned) {
+      return
+    }
+    const scroller = store.context.refs.listRef.current
+    if (!scroller) {
+      return
+    }
+    const onScroll = () => handleScroll(scroller)
+    scroller.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      scroller.removeEventListener('scroll', onScroll)
+    }
+  }, [open, alignItemWithTriggerActive, positioned, handleScroll, store])
 
   const renderedSide: Side | 'none' = alignItemWithTriggerActive
     ? 'none'

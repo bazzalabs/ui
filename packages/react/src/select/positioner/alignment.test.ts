@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { NormalizedRect } from '../../utils/scale.js'
-import { type AlignmentInput, computeAlignment } from './alignment.js'
+import {
+  type AlignmentInput,
+  computeAlignment,
+  computeScrollGrowth,
+} from './alignment.js'
 
 function rect(
   x: number,
@@ -138,5 +142,77 @@ describe('computeAlignment', () => {
     expect(withBorder.isTopPositioned).toBe(false)
     expect(noBorder.scrollTop).toBe(10)
     expect(withBorder.scrollTop).toBe(noBorder.scrollTop)
+  })
+})
+
+describe('computeScrollGrowth', () => {
+  it('grows a bottom-pinned popup and keeps content anchored while there is room', () => {
+    const result = computeScrollGrowth({
+      isTopPositioned: false,
+      currentHeight: 200,
+      scrollTop: 50,
+      maxScrollTop: 500,
+      maxAvailableHeight: 600,
+    })
+
+    expect(result.height).toBe(250)
+    expect(result.scroll).toEqual({ kind: 'clamp', value: 0 })
+    expect(result.reachedMaxHeight).toBe(false)
+  })
+
+  it('latches at max height and consumes overshoot as real scrolling (bottom)', () => {
+    const result = computeScrollGrowth({
+      isTopPositioned: false,
+      currentHeight: 580,
+      scrollTop: 50,
+      maxScrollTop: 500,
+      maxAvailableHeight: 600,
+    })
+
+    expect(result.height).toBe(600)
+    // overshoot = 580 + 50 - 600 = 30; target = 50 - (50 - 30) = 30
+    expect(result.scroll).toEqual({ kind: 'clamp', value: 30 })
+    expect(result.reachedMaxHeight).toBe(true)
+  })
+
+  it('grows a top-pinned popup toward the max scroll position', () => {
+    const result = computeScrollGrowth({
+      isTopPositioned: true,
+      currentHeight: 200,
+      scrollTop: 100,
+      maxScrollTop: 300,
+      maxAvailableHeight: 600,
+    })
+
+    expect(result.height).toBe(400)
+    expect(result.scroll).toEqual({ kind: 'max' })
+    expect(result.reachedMaxHeight).toBe(false)
+  })
+
+  it('consumes a tiny remaining gap as a final bit of growth', () => {
+    const result = computeScrollGrowth({
+      isTopPositioned: false,
+      currentHeight: 595,
+      scrollTop: 1,
+      maxScrollTop: 500,
+      maxAvailableHeight: 600,
+    })
+
+    expect(result.height).toBe(596)
+    expect(result.scroll).toEqual({ kind: 'set', value: 0 })
+    expect(result.reachedMaxHeight).toBe(false)
+  })
+
+  it('latches reachedMaxHeight once fully grown with no further height change', () => {
+    const result = computeScrollGrowth({
+      isTopPositioned: false,
+      currentHeight: 600,
+      scrollTop: 0,
+      maxScrollTop: 500,
+      maxAvailableHeight: 600,
+    })
+
+    expect(result.height).toBeNull()
+    expect(result.reachedMaxHeight).toBe(true)
   })
 })
