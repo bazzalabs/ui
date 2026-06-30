@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -1103,6 +1103,152 @@ describe('<Select.Root />', () => {
         await waitFor(() => {
           expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
         })
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
+    it('bails to anchored positioning when a hideUntilActive search activates', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.Input data-testid="search-input" hideUntilActive />
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                      <Select.Item value="banana">
+                        <Select.ItemLabel>Banana</Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const positioner = await screen.findByTestId('positioner')
+
+        // While browsing (input hidden), aligned mode engages: data-side="none"
+        // with an imperative fixed height.
+        await waitFor(() => {
+          expect(positioner).toHaveAttribute('data-side', 'none')
+          expect(positioner.style.height).not.toBe('')
+        })
+        expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
+
+        // Typing a printable key while the list is focused activates the input.
+        const list = screen.getByRole('listbox')
+        list.focus()
+        fireEvent.keyDown(list, { key: 'a', code: 'KeyA' })
+
+        await waitFor(() => {
+          expect(screen.getByTestId('search-input')).toBeInTheDocument()
+        })
+
+        // Alignment bails to standard anchored positioning: data-side is no
+        // longer "none" and the imperative aligned height is cleared.
+        await waitFor(() => {
+          expect(positioner).not.toHaveAttribute('data-side', 'none')
+          expect(positioner.style.height).toBe('')
+        })
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
+    it('does not align when an always-visible search input is present', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      try {
+        render(
+          <Select.Root defaultOpen>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup>
+                  <Select.Surface data-testid="surface">
+                    <Select.Input data-testid="search-input" />
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel>Apple</Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>,
+        )
+
+        const positioner = await screen.findByTestId('positioner')
+        expect(screen.getByTestId('search-input')).toBeInTheDocument()
+
+        // The input is present from the start, so alignment never engages: the
+        // popup uses standard anchored positioning (data-side is never "none")
+        // and no imperative aligned height is applied.
+        await waitFor(() => {
+          expect(positioner).not.toHaveAttribute('data-side', 'none')
+        })
+        expect(positioner.style.height).toBe('')
       } finally {
         rectSpy.mockRestore()
         clientHeightSpy.mockRestore()

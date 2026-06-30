@@ -38,7 +38,12 @@ export interface SelectPositionerProps extends PopoverPositionerProps {
    * Whether the positioner overlaps the trigger so the selected item's text is
    * aligned with the trigger's value text (a native-select feel).
    *
-   * Only applies to mouse/pen/keyboard input. It is automatically disabled when:
+   * Only applies to mouse/pen/keyboard input. When disabled, the popup falls
+   * back to standard anchored positioning on the configured `side`. It is
+   * automatically disabled when:
+   * - the select is searchable — a `Select.Input` is present (a `hideUntilActive`
+   *   input counts once it activates), so the filtered list anchors to the
+   *   trigger like a combobox;
    * - the select was opened by touch (the full list is shown instead);
    * - the trigger is too close to a viewport edge; or
    * - there isn't enough room for a reasonably sized popup.
@@ -93,13 +98,20 @@ export const SelectPositioner = React.forwardRef<
   const store = popupMenuContext.store
   const open = store.useState('open')
   const openMethod = store.useState('openMethod')
+  // True whenever a search input is actually rendered in the Surface (an
+  // always-visible input, or a `hideUntilActive` input once it activates).
+  const hasInput = store.useState('hasInput')
 
   // `controlled*` reflects the prop plus any runtime fallback to standard
-  // positioning. Alignment additionally requires a non-touch open.
+  // positioning. Alignment additionally requires a non-touch open and no search
+  // input present: once the list is searchable, the "align selected item with
+  // the trigger" premise breaks down (the selection can be filtered out), so we
+  // defer to standard anchored positioning (Base UI parity: Select aligns,
+  // Combobox anchors).
   const [controlledAlignItemWithTrigger, setControlledAlignItemWithTrigger] =
     React.useState(alignItemWithTrigger)
   const alignItemWithTriggerActive =
-    controlledAlignItemWithTrigger && openMethod !== 'touch'
+    controlledAlignItemWithTrigger && openMethod !== 'touch' && !hasInput
 
   const [positioned, setPositioned] = React.useState(false)
   const [placement, setPlacement] = React.useState<AlignmentPlacement | null>(
@@ -111,9 +123,6 @@ export const SelectPositioner = React.forwardRef<
   const scrollDownArrowRef = React.useRef<HTMLDivElement | null>(null)
   const reachedMaxHeightRef = React.useRef(false)
   const initialPlacedRef = React.useRef(false)
-  // The visible item count the current placement was computed against; used to
-  // recompute alignment when a searchable select is filtered.
-  const lastAlignedFilteredCountRef = React.useRef<number | null>(null)
 
   // Remove the imperative styles we apply during alignment so the element can
   // return to standard positioning (on fallback or after close).
@@ -129,7 +138,6 @@ export const SelectPositioner = React.forwardRef<
     }
     reachedMaxHeightRef.current = false
     initialPlacedRef.current = false
-    lastAlignedFilteredCountRef.current = null
   }, [store])
 
   // Reset after the close animation completes so positioning is preserved
@@ -148,9 +156,15 @@ export const SelectPositioner = React.forwardRef<
     return cleanup
   }, [selectContext, resetPositioningState])
 
-  // Measure, compute, and apply the aligned placement. Reusable so the initial
-  // pass and content-change recomputes share one implementation.
+  // Measure, compute, and apply the aligned placement.
   const runAlignment = React.useCallback(() => {
+    // A search input registered after this pass was scheduled (e.g. an
+    // always-visible input mounting on open): skip aligning and let the bail
+    // effect hand off to anchored positioning.
+    if (store.state.hasInput) {
+      return
+    }
+
     const positioner = positionerRef.current
     const trigger = selectContext.triggerRef.current
     const popup = store.context.refs.popupRef.current
@@ -159,15 +173,6 @@ export const SelectPositioner = React.forwardRef<
     if (!positioner || !trigger || !popup || !scroller) {
       return
     }
-
-    // Track the content size this placement is computed against (for recompute).
-    lastAlignedFilteredCountRef.current = store.state.filteredCount
-
-    // Clear prior imperative sizing so natural geometry is re-measured. This
-    // makes the function idempotent and correct when called to recompute.
-    positioner.style.height = ''
-    popup.style.height = ''
-    reachedMaxHeightRef.current = false
 
     // Prefer the selected item's text; fall back to the first item when there
     // is no selection. Re-validate connectedness (items may have remounted).
@@ -262,24 +267,15 @@ export const SelectPositioner = React.forwardRef<
     runAlignment()
   }, [open, alignItemWithTriggerActive, positioned, runAlignment])
 
-  // Recompute when the visible item count changes while placed (e.g. filtering
-  // a searchable select), so the selected item stays aligned with the trigger.
-  const filteredCount = store.useState('filteredCount')
+  // When a search input appears while open (always-visible on open, or a
+  // `hideUntilActive` input activating), alignment switches off. Clear the
+  // imperative styles from any aligned pass so the handoff to standard anchored
+  // positioning is clean.
   React.useEffect(() => {
-    if (!open || !alignItemWithTriggerActive || !positioned) {
-      return
+    if (open && !alignItemWithTriggerActive) {
+      clearImperativeStyles()
     }
-    if (lastAlignedFilteredCountRef.current === filteredCount) {
-      return
-    }
-    runAlignment()
-  }, [
-    filteredCount,
-    open,
-    alignItemWithTriggerActive,
-    positioned,
-    runAlignment,
-  ])
+  }, [open, alignItemWithTriggerActive, clearImperativeStyles])
 
   // Aligned, fixed-position popups don't track the anchor; a viewport resize
   // would leave them stale, so close instead (Base UI parity).
