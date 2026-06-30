@@ -85,7 +85,7 @@ const Positioner = forwardRef<
   const {
     className,
     sideOffset = 8,
-    alignItemWithTrigger = true,
+    alignItemWithTrigger = false,
     ...rest
   } = props
 
@@ -95,8 +95,6 @@ const Positioner = forwardRef<
       sideOffset={sideOffset}
       alignItemWithTrigger={alignItemWithTrigger}
       className={cn('z-50 group/positioner', className)}
-      {...(alignItemWithTrigger ? { 'data-align-with-trigger': '' } : {})}
-      // data-align-with-trigger={alignItemWithTrigger ? '' : undefined}
       {...rest}
     />
   )
@@ -115,13 +113,13 @@ const Popup = forwardRef<
         'min-w-[200px] max-w-[500px] w-full',
         'drop-shadow-xl',
         'overflow-hidden',
-        // !state.alignItemWithTriggerActive && [
-        //   'origin-(--transform-origin)',
-        //   'opacity-100 scale-100',
-        //   'transition-[opacity,scale] duration-150 ease-out',
-        //   'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
-        //   'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
-        // ],
+        state.side !== 'none' && [
+          'origin-(--transform-origin)',
+          'opacity-100 scale-100',
+          'transition-[opacity,scale] duration-150 ease-out',
+          'data-[starting-style]:opacity-0 data-[starting-style]:scale-95',
+          'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
+        ],
         className,
       )
     }
