@@ -9,6 +9,7 @@ import {
   createChangeEventDetails,
   REASONS,
 } from '../../../utils/events/index.js'
+import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
 import { ListboxStore, type VirtualItem } from '../../listbox/index.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
 import type {
@@ -153,6 +154,12 @@ export function usePopupMenuRoot(
 
   const setDisabled = React.useCallback((nextDisabled: boolean) => {
     setImperativeDisabled(nextDisabled)
+  }, [])
+
+  // Begin tracking global input modality so the store can attribute opens to
+  // mouse/touch/pen/keyboard. Idempotent; installed once for the whole app.
+  React.useEffect(() => {
+    ensureInputModalityTracking()
   }, [])
 
   // Track outside pointer events to distinguish outside-press from focus-out

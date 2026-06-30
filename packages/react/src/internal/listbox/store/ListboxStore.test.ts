@@ -679,6 +679,55 @@ describe('ListboxStore', () => {
     })
   })
 
+  describe('open method tracking', () => {
+    it('records the open method from the triggering pointer event', () => {
+      const store = createStore()
+
+      store.setOpen(true, 'trigger-press', {
+        pointerType: 'touch',
+      } as PointerEvent)
+
+      expect(store.state.openMethod).toBe('touch')
+    })
+
+    it('records keyboard opens', () => {
+      const store = createStore()
+
+      store.setOpen(true, 'trigger-press', new KeyboardEvent('keydown'))
+
+      expect(store.state.openMethod).toBe('keyboard')
+    })
+
+    it('does not update the open method on close', () => {
+      const store = createStore()
+
+      store.setOpen(true, 'trigger-press', {
+        pointerType: 'touch',
+      } as PointerEvent)
+      store.setOpen(false)
+
+      // Retained from the last open so exit affordances stay consistent.
+      expect(store.state.openMethod).toBe('touch')
+    })
+
+    it('does not record the open method when the open is canceled', () => {
+      const store = createStore(
+        {},
+        {
+          onOpenChange: (_, details) => {
+            details.cancel()
+          },
+        },
+      )
+
+      store.setOpen(true, 'trigger-press', {
+        pointerType: 'touch',
+      } as PointerEvent)
+
+      expect(store.state.openMethod).toBe(null)
+    })
+  })
+
   describe('selection', () => {
     it('selectHighlighted calls the item onSelect callback', () => {
       const onSelect = vi.fn()

@@ -7,6 +7,10 @@ import {
   type GenericEventDetails,
   REASONS,
 } from '../../../utils/events/index.js'
+import {
+  deriveOpenMethod,
+  type OpenMethod,
+} from '../../../utils/input-modality.js'
 import type {
   HighlightChangeEventDetails,
   HighlightChangeReason,
@@ -15,6 +19,8 @@ import type {
 } from '../../popup-menu/events.js'
 import { commandScore } from '../utils/command-score.js'
 import { normalizeValue } from '../utils/normalize.js'
+
+export type { OpenMethod }
 
 // ============================================================================
 // Types
@@ -82,6 +88,8 @@ export interface DOMRefs {
   listRef: React.RefObject<HTMLElement | null>
   /** Ref to the element that owns the list's scroll position */
   listScrollContainerRef: React.RefObject<HTMLElement | null>
+  /** Ref to the popup (visual container) element */
+  popupRef: React.RefObject<HTMLElement | null>
   /** Map of item ID to ref for the item's DOM element */
   itemRefs: Map<string, React.RefObject<HTMLElement | null>>
 }
@@ -91,6 +99,12 @@ export interface ListboxState {
   open: boolean
   /** Controlled open prop. When defined, selectors resolve this over `open`. */
   openProp: boolean | undefined
+
+  /**
+   * How the listbox was most recently opened (`mouse`/`touch`/`pen`/`keyboard`).
+   * `null` until first opened. Retained after close (only updated on open).
+   */
+  openMethod: OpenMethod | null
 
   /** Current internal search query when uncontrolled */
   search: string
@@ -251,6 +265,7 @@ interface ValidateHighlightOptions {
 
 const selectors = {
   open: createSelector((state: ListboxState) => state.openProp ?? state.open),
+  openMethod: createSelector((state: ListboxState) => state.openMethod),
   search: createSelector(
     (state: ListboxState) => state.searchProp ?? state.search,
   ),
@@ -347,6 +362,7 @@ export class ListboxStore extends ReactStore<
       refs: {
         listRef: { current: null },
         listScrollContainerRef: { current: null },
+        popupRef: { current: null },
         itemRefs: new Map(),
       },
       onCloseComplete: undefined,
@@ -455,6 +471,13 @@ export class ListboxStore extends ReactStore<
     // If the user canceled, don't update internal state
     if (eventDetails.isCanceled) {
       return
+    }
+
+    // Record how the popup was opened so hover-only affordances (scroll arrows,
+    // Select's align-item-with-trigger) can disable themselves for touch input.
+    // Set before `open` so observers of `open` see the current method.
+    if (open) {
+      this.set('openMethod', deriveOpenMethod(event))
     }
 
     this.set('open', open)
@@ -828,6 +851,14 @@ export class ListboxStore extends ReactStore<
    */
   setListScrollContainerRef(ref: React.RefObject<HTMLElement | null>) {
     this.context.refs.listScrollContainerRef = ref
+  }
+
+  /**
+   * Set the popup (visual container) ref. Used by popup-layer features such as
+   * Select's align-item-with-trigger positioning.
+   */
+  setPopupRef(ref: React.RefObject<HTMLElement | null>) {
+    this.context.refs.popupRef = ref
   }
 
   /**
@@ -1538,6 +1569,7 @@ function createInitialState(): ListboxState {
   return {
     open: false,
     openProp: undefined,
+    openMethod: null,
     search: '',
     searchProp: undefined,
     normalizedSearch: '',

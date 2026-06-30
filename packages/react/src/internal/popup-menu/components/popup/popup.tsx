@@ -323,6 +323,16 @@ export const PopupMenuPopup = React.forwardRef<
     [forwardedRef, submenuContext],
   )
 
+  // Register the root popup element with the store so popup-layer features
+  // (e.g. Select's align-item-with-trigger) can measure it. Only the root popup
+  // (depth 0) registers; submenu popups must not clobber it.
+  React.useEffect(() => {
+    if (depth !== 0) {
+      return
+    }
+    popupMenuContext?.store.setPopupRef(popupRef)
+  }, [depth, popupMenuContext])
+
   // Clear aim guard when pointer moves inside this submenu popup
   // Only clear if aim guard is actually active AND this is the target submenu
   const handlePointerMove = React.useCallback(() => {
