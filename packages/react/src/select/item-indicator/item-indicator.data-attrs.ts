@@ -8,4 +8,8 @@ export const SelectItemIndicatorDataAttributes = {
    * Present when the parent item is selected.
    */
   selected: 'data-selected',
+  /**
+   * Present when the parent item is highlighted via keyboard or pointer.
+   */
+  highlighted: 'data-highlighted',
 } as const
