@@ -231,3 +231,99 @@ export function computeAlignment(input: AlignmentInput): AlignmentResult {
     transformOrigin,
   }
 }
+
+// ============================================================================
+// Grow-on-scroll (pure)
+// ============================================================================
+
+export interface ScrollGrowthInput {
+  /** Whether the popup is pinned to the top edge (`top: 0`). */
+  isTopPositioned: boolean
+  /** Current popup height in px. */
+  currentHeight: number
+  /** Current scroller scroll offset. */
+  scrollTop: number
+  /** Current maximum scroll offset of the scroller. */
+  maxScrollTop: number
+  /** Maximum height the popup may grow to (viewport- and max-height-bound). */
+  maxAvailableHeight: number
+}
+
+/** How the caller should adjust the scroller after resizing. */
+export type ScrollGrowthIntent =
+  | { kind: 'none' }
+  /** Set `scrollTop` directly to `value`. */
+  | { kind: 'set'; value: number }
+  /** Set `scrollTop` to the scroller's (recomputed) maximum. */
+  | { kind: 'max' }
+  /** Set `scrollTop` to `clamp(value, 0, recomputedMax)`. */
+  | { kind: 'clamp'; value: number }
+
+export interface ScrollGrowthResult {
+  /** New popup height in px, or `null` to leave it unchanged. */
+  height: number | null
+  /** Scroller adjustment to apply after resizing. */
+  scroll: ScrollGrowthIntent
+  /** Whether the popup has now reached its maximum height (latches scrolling). */
+  reachedMaxHeight: boolean
+}
+
+/**
+ * Decide how a scroll gesture should be split between *growing* the popup and
+ * actually *scrolling* its content, while the popup is pinned to a viewport
+ * edge and hasn't yet reached its maximum height. Ported from Base UI's
+ * `SelectPopup` scroll handler.
+ *
+ * The caller must ensure the popup is edge-pinned (top or bottom) and that
+ * {@link ScrollGrowthResult.reachedMaxHeight} hasn't already latched.
+ */
+export function computeScrollGrowth(
+  input: ScrollGrowthInput,
+): ScrollGrowthResult {
+  const {
+    isTopPositioned,
+    currentHeight,
+    scrollTop,
+    maxScrollTop,
+    maxAvailableHeight,
+  } = input
+
+  const diff = isTopPositioned ? maxScrollTop - scrollTop : scrollTop
+
+  // Tiny remaining gap: consume it as a final bit of growth and snap to the edge.
+  if (diff <= SCROLL_EDGE_TOLERANCE_PX) {
+    const heightDelta = clamp(diff, 0, maxAvailableHeight - currentHeight)
+    const newHeight = currentHeight + heightDelta
+    return {
+      height: heightDelta > 0 ? newHeight : null,
+      scroll: { kind: 'set', value: isTopPositioned ? maxScrollTop : 0 },
+      reachedMaxHeight:
+        maxAvailableHeight - newHeight <= SCROLL_EDGE_TOLERANCE_PX,
+    }
+  }
+
+  const nextHeight = Math.min(currentHeight + diff, maxAvailableHeight)
+  let scroll: ScrollGrowthIntent = { kind: 'none' }
+  let reachedMax = false
+
+  if (maxAvailableHeight - nextHeight > SCROLL_EDGE_TOLERANCE_PX) {
+    // Still room to grow: keep the content anchored to the pinned edge.
+    scroll = isTopPositioned ? { kind: 'max' } : { kind: 'clamp', value: 0 }
+  } else {
+    reachedMax = true
+    if (!isTopPositioned && scrollTop < maxScrollTop) {
+      // Consume the overshoot beyond max as real scrolling.
+      const overshoot = currentHeight + diff - maxAvailableHeight
+      scroll = { kind: 'clamp', value: scrollTop - (diff - overshoot) }
+    }
+  }
+
+  const height = Math.ceil(nextHeight)
+
+  return {
+    height,
+    scroll,
+    reachedMaxHeight:
+      reachedMax || height >= maxAvailableHeight - SCROLL_EDGE_TOLERANCE_PX,
+  }
+}
