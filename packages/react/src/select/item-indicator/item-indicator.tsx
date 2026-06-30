@@ -13,6 +13,10 @@ export interface SelectItemIndicatorState extends Record<string, unknown> {
    * Whether the item is selected.
    */
   selected: boolean
+  /**
+   * Whether the item is highlighted (via keyboard or pointer).
+   */
+  highlighted: boolean
 }
 
 export interface SelectItemIndicatorProps
@@ -42,6 +46,8 @@ export interface SelectItemIndicatorProps
 const stateAttributesMapping = {
   selected: (value: unknown): Record<string, string> | null =>
     value ? { [SelectItemIndicatorDataAttributes.selected]: '' } : null,
+  highlighted: (value: unknown): Record<string, string> | null =>
+    value ? { [SelectItemIndicatorDataAttributes.highlighted]: '' } : null,
 }
 
 /**
@@ -66,10 +72,11 @@ export const SelectItemIndicator = React.forwardRef<
 
   const itemContext = useSelectItemContext()
   const selected = itemContext.selected
+  const highlighted = itemContext.highlighted
 
   const state: SelectItemIndicator.State = React.useMemo(
-    () => ({ selected }),
-    [selected],
+    () => ({ selected, highlighted }),
+    [selected, highlighted],
   )
 
   // Determine if we should render
