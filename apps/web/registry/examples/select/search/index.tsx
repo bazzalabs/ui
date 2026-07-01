@@ -34,7 +34,7 @@ export default function SelectSearch() {
                   <Select.Item
                     key={country.value}
                     value={country.value}
-                    keywords={country.keywords}
+                    keywords={[country.label, ...country.keywords]}
                   >
                     <Select.ItemLabel>{country.label}</Select.ItemLabel>
                     <Select.ItemIndicator />

@@ -85,7 +85,7 @@ const Positioner = forwardRef<
   const {
     className,
     sideOffset = 8,
-    alignItemWithTrigger = false,
+    alignItemWithTrigger = true,
     ...rest
   } = props
 
@@ -135,6 +135,7 @@ const Surface = forwardRef<
   <Primitive.Surface
     ref={ref}
     className={cn(surfaceVariants(), className)}
+    clearSearchOnClose="after-exit"
     autoHighlightFirst="selected"
     {...props}
   />
