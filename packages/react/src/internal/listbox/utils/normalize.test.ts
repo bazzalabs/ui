@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeValue, slugify } from './normalize.js'
+import { deburr, normalizeValue, slugify } from './normalize.js'
+
+describe('deburr', () => {
+  it('strips accents from Latin characters', () => {
+    expect(deburr('café')).toBe('cafe')
+    expect(deburr('niño')).toBe('nino')
+    expect(deburr('munição')).toBe('municao')
+    expect(deburr('Málaga')).toBe('Malaga')
+  })
+
+  it('handles combining marks across a whole word', () => {
+    expect(deburr('résumé')).toBe('resume')
+    expect(deburr('naïve')).toBe('naive')
+  })
+
+  it('leaves non-decomposable characters unchanged', () => {
+    // ø and ł do not decompose into base letter + combining mark
+    expect(deburr('smørrebrød')).toBe('smørrebrød')
+    expect(deburr('Łódź')).toBe('Łodz')
+  })
+
+  it('leaves plain ASCII untouched', () => {
+    expect(deburr('hello world')).toBe('hello world')
+  })
+
+  it('handles empty string', () => {
+    expect(deburr('')).toBe('')
+  })
+})
 
 describe('normalizeValue', () => {
   it('trims leading whitespace', () => {
