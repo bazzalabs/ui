@@ -535,6 +535,14 @@ export function SelectRoot<
   // Handle animation complete - reset positioning state after close animation
   const handleOpenChangeComplete = React.useCallback(
     (nextOpen: boolean) => {
+      // Clear search and deactivate the input after the exit animation
+      // completes, matching the other menu roots. `clearSearchOnClose="after-exit"`
+      // defers this cleanup from the store's close handler to here; without it a
+      // `hideUntilActive` input stays activated (visible) on reopen.
+      if (!nextOpen && store.context.clearSearchOnClose === 'after-exit') {
+        store.clearSearch()
+        store.setInputActive(false)
+      }
       // Reset positioning state after close animation completes
       // This preserves the aligned position during the exit animation
       if (!nextOpen) {

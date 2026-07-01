@@ -596,6 +596,74 @@ describe('<Select.Root />', () => {
       expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
       expect(screen.getByTestId('empty')).toBeInTheDocument()
     })
+
+    it('clears search and re-hides a hideUntilActive input after exit when clearSearchOnClose is "after-exit"', async () => {
+      const user = userEvent.setup()
+      const onOpenChangeComplete = vi.fn()
+
+      render(
+        <Select.Root onOpenChangeComplete={onOpenChangeComplete}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface
+                  data-testid="surface"
+                  clearSearchOnClose="after-exit"
+                >
+                  <Select.Input data-testid="search-input" hideUntilActive />
+                  <Select.List>
+                    <Select.Item data-testid="item-apple" value="apple">
+                      <Select.ItemLabel>Apple</Select.ItemLabel>
+                    </Select.Item>
+                    <Select.Item data-testid="item-banana" value="banana">
+                      <Select.ItemLabel>Banana</Select.ItemLabel>
+                    </Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      // Open the select.
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // The input is hidden until activated.
+      expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
+
+      // Typing a printable key while the list is focused activates the input
+      // and seeds the search.
+      const list = screen.getByRole('listbox')
+      list.focus()
+      fireEvent.keyDown(list, { key: 'a', code: 'KeyA' })
+      await waitFor(() => {
+        expect(screen.getByTestId('search-input')).toBeInTheDocument()
+      })
+
+      // Close and wait for the exit-complete callback.
+      await user.keyboard('{Escape}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+      })
+
+      // Reopen: search + inputActive were cleared after exit, so the input is
+      // hidden again (regression: it used to stay visible).
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
+    })
   })
 
   describe('controlled mode', () => {
