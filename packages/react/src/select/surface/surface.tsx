@@ -5,7 +5,10 @@ import {
   PopupMenuSurface,
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
-import { stringifyAsValue } from '../../utils/resolve-value-label.js'
+import {
+  isValueEmpty,
+  stringifyAsValue,
+} from '../../utils/resolve-value-label.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { useSelectPositionerContext } from '../contexts/select-positioner-context.js'
 import { SelectSurfaceDataAttributes } from './surface.data-attrs.js'
@@ -55,7 +58,7 @@ export const SelectSurface = React.forwardRef<
     // Helper to serialize a value to a string for highlighting
     // Returns true (highlight first) when there's no meaningful value
     const serializeValue = (value: unknown): string | true => {
-      if (value == null || value === '') return true
+      if (isValueEmpty(value)) return true
       return stringifyAsValue(value, selectContext.itemToStringValue)
     }
 

@@ -1,4 +1,19 @@
 /**
+ * Determine whether a select/combobox value should be treated as "empty"
+ * (i.e. no meaningful selection is made).
+ *
+ * Matches Base UI semantics: `null`, `undefined`, and the empty string count
+ * as empty, while other falsy values such as `0` and `false` are valid
+ * selections and are NOT considered empty.
+ *
+ * @param value - The value to test
+ * @returns `true` when the value represents "no selection"
+ */
+export function isValueEmpty(value: unknown): boolean {
+  return value == null || value === ''
+}
+
+/**
  * Resolve a display label from an object value.
  * Auto-detects { label } shape if no custom function is provided.
  *

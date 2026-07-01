@@ -4,6 +4,7 @@ import { Popover, type PopoverTriggerProps } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { isValueEmpty } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { SelectTriggerDataAttributes } from './trigger.data-attrs.js'
@@ -71,7 +72,7 @@ const SelectTriggerInner = React.forwardRef<
   // Match Base UI: null, undefined, or empty string = no selection
   const hasValue = selectContext.multiple
     ? selectContext.values.length > 0
-    : selectContext.value != null && selectContext.value !== ''
+    : !isValueEmpty(selectContext.value)
 
   const state: SelectTrigger.State = React.useMemo(
     () => ({

@@ -3,6 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import {
+  isValueEmpty,
   resolveLabel,
   stringifyAsValue,
 } from '../../utils/resolve-value-label.js'
@@ -94,7 +95,7 @@ function SelectValueImpl<Value = unknown>(
 
   const hasValue = selectContext.multiple
     ? selectContext.values.length > 0
-    : Boolean(selectContext.value)
+    : !isValueEmpty(selectContext.value)
 
   // Helper to get text for a value
   // First check the item text registry (populated when items mount),

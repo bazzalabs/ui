@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import {
+  isValueEmpty,
   resolveLabel,
   stringifyAsValue,
 } from '../../utils/resolve-value-label.js'
@@ -61,7 +62,7 @@ export function useComboboxDisplayValue<Value = unknown>(
   // Determine if showing placeholder (no value selected)
   const hasValue = comboboxContext.multiple
     ? comboboxContext.values.length > 0
-    : comboboxContext.value != null
+    : !isValueEmpty(comboboxContext.value)
 
   // Get the display text for selected value
   const getValueText = React.useCallback(
@@ -130,7 +131,9 @@ export function useComboboxDisplayValue<Value = unknown>(
       }
       return `${texts.length} selected`
     }
-    // Single-select: show the value's text
+    // Single-select: show the value's text.
+    // Empty-string values are already handled by the `!hasValue` guard above;
+    // this null check also narrows `Value | null` down to `Value`.
     const value = comboboxContext.value
     if (value == null) return ''
 
