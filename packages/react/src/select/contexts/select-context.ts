@@ -30,8 +30,8 @@ export interface SelectContextValue<Value = unknown> {
   value: Value | null
   /** Current selected values (multi-select mode) */
   values: Value[]
-  /** Callback when value changes (single-select mode) */
-  onValueChange: (value: Value) => void
+  /** Callback when value changes (single-select mode; `null` clears it) */
+  onValueChange: (value: Value | null) => void
   /** Callback when values change (multi-select mode) */
   onValuesChange: (values: Value[]) => void
 

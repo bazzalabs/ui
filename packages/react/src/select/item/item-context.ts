@@ -10,8 +10,8 @@ import * as React from 'react'
 export interface SelectItemContextValue<Value = unknown> {
   /** Unique ID for this item (for DOM id attribute) */
   id: string
-  /** The value of this item */
-  value: Value
+  /** The value of this item (`null` for a clearable item) */
+  value: Value | null
   /** The text value/label for this item */
   textValue: string | undefined
   /** Whether the item is highlighted */

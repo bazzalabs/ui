@@ -94,6 +94,9 @@ export interface SelectRootProps<
 
   /**
    * Callback when the selected value changes (single-select mode).
+   *
+   * Note: when a clearable (`null`) item is selected, this is called with
+   * `null` at runtime. If you use `null` items, handle that case.
    */
   onValueChange?: (value: Value) => void
 
@@ -385,11 +388,14 @@ export function SelectRoot<
     valueProp !== undefined ? (valueProp as Value | null) : internalValue
 
   const handleValueChange = React.useCallback(
-    (newValue: Value) => {
+    (newValue: Value | null) => {
       if (valueProp === undefined) {
         setInternalValue(newValue)
       }
-      onValueChange?.(newValue)
+      // `null` is only produced by a clearable item; the public onValueChange
+      // type stays `(value: Value) => void` to keep `onValueChange={setState}`
+      // ergonomic, so the null is forwarded through a cast at this boundary.
+      onValueChange?.(newValue as Value)
     },
     [valueProp, onValueChange],
   )

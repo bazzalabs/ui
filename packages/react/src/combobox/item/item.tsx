@@ -43,8 +43,11 @@ export interface ComboboxItemProps<Value = unknown>
   /**
    * The value of this item. Required and must be unique within the Combobox.
    * Can be a primitive or an object.
+   *
+   * Pass `null` to render a clearable item: selecting it clears the selection
+   * and its label is used as the input placeholder (Base UI parity).
    */
-  value: Value
+  value: Value | null
 
   /**
    * Text value to use for display in the input when this item is selected.
@@ -121,6 +124,13 @@ function ComboboxItemImpl<Value = unknown>(
     [value, comboboxContext.itemToStringValue],
   )
 
+  // A null value serializes to '' which the listbox treats as "no id" and skips
+  // registration. Give a clearable (null) item an explicit id so it still
+  // registers and is selectable; its label still feeds filtering via keywords.
+  const generatedItemId = React.useId()
+  const listboxId =
+    value === null ? `combobox-clear-${generatedItemId}` : undefined
+
   // Resolve the item entry (label + keywords) from the items prop, for
   // auto-populating textValue and filter keywords.
   const itemFromItems = React.useMemo(
@@ -168,14 +178,16 @@ function ComboboxItemImpl<Value = unknown>(
 
   const textRef = React.useRef<string | undefined>(textValue)
 
-  // Track if this item is selected using custom equality
+  // Track if this item is selected using custom equality.
+  // A `null` item is selected when there is no selection; an empty string is
+  // still treated as "no selection" and never matches an item.
   const selected = comboboxContext.multiple
     ? itemIncludes(
         comboboxContext.values,
         value,
         comboboxContext.isItemEqualToValue,
       )
-    : comboboxContext.value != null &&
+    : comboboxContext.value !== '' &&
       compareItemEquality(
         comboboxContext.value,
         value,
@@ -186,6 +198,7 @@ function ComboboxItemImpl<Value = unknown>(
   const closeOnClick = comboboxContext.closeOnSelect
 
   const item = usePopupMenuItem({
+    id: listboxId,
     value: serializedValue,
     keywords,
     disabled,
@@ -200,17 +213,22 @@ function ComboboxItemImpl<Value = unknown>(
       if (disabled) return
 
       if (comboboxContext.multiple) {
-        // Toggle value in array using custom equality
-        const newValues = selected
-          ? removeItem(
-              comboboxContext.values,
-              value,
-              comboboxContext.isItemEqualToValue,
-            )
-          : [...comboboxContext.values, value]
-        comboboxContext.onValuesChange(newValues)
+        // A null item clears all selections in multi-select mode.
+        if (value == null) {
+          comboboxContext.onValuesChange([])
+        } else {
+          // Toggle value in array using custom equality
+          const newValues = selected
+            ? removeItem(
+                comboboxContext.values,
+                value,
+                comboboxContext.isItemEqualToValue,
+              )
+            : [...comboboxContext.values, value]
+          comboboxContext.onValuesChange(newValues)
+        }
       } else {
-        // Set single value
+        // Set single value (null clears the selection)
         comboboxContext.onValueChange(value)
       }
 

@@ -19,8 +19,8 @@ export const defaultItemEquality: ItemEqualityComparer = (item, value) =>
  * Handles null/undefined values separately using Object.is.
  */
 export function compareItemEquality<Value>(
-  item: Value,
-  value: Value,
+  item: Value | null | undefined,
+  value: Value | null | undefined,
   comparer: ItemEqualityComparer<Value>,
 ): boolean {
   // Handle null/undefined with Object.is for consistent behavior
@@ -35,7 +35,7 @@ export function compareItemEquality<Value>(
  */
 export function itemIncludes<Value>(
   collection: readonly Value[] | undefined | null,
-  value: Value,
+  value: Value | null | undefined,
   comparer: ItemEqualityComparer<Value>,
 ): boolean {
   if (!collection || collection.length === 0) {

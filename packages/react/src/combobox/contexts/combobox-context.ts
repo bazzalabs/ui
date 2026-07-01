@@ -47,7 +47,7 @@ export interface ComboboxContextValue<Value = unknown> {
   /** Current selected values (multi-select mode) */
   values: Value[]
   /** Callback when value changes (single-select mode) */
-  onValueChange: (value: Value) => void
+  onValueChange: (value: Value | null) => void
   /** Callback when values change (multi-select mode) */
   onValuesChange: (values: Value[]) => void
 
