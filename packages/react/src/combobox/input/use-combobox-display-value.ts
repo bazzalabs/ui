@@ -1,34 +1,13 @@
 'use client'
 
 import * as React from 'react'
+import { resolveLabelFromItems } from '../../utils/items.js'
 import {
   isValueEmpty,
   resolveLabel,
   stringifyAsValue,
 } from '../../utils/resolve-value-label.js'
 import type { ComboboxContextValue } from '../contexts/combobox-context.js'
-
-/**
- * Helper to resolve label from items prop
- */
-function resolveLabelFromItems(
-  items:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
-    | undefined,
-  value: string,
-): string | undefined {
-  if (!items) return undefined
-
-  if (Array.isArray(items)) {
-    const item = items.find((i) => i.value === value)
-    const label = item?.label
-    return typeof label === 'string' ? label : undefined
-  }
-
-  const label = items[value]
-  return typeof label === 'string' ? label : undefined
-}
 
 export interface UseComboboxDisplayValueParams<Value = unknown> {
   comboboxContext: ComboboxContextValue<Value>
@@ -79,12 +58,13 @@ export function useComboboxDisplayValue<Value = unknown>(
         return registryText
       }
 
-      // Fall back to the items prop (for initial render before popup opens)
+      // Fall back to the items prop (for initial render before popup opens).
+      // The input can only display strings, so ignore non-string labels here.
       const itemsLabel = resolveLabelFromItems(
         comboboxContext.items,
         serializedValue,
       )
-      if (itemsLabel !== undefined) {
+      if (typeof itemsLabel === 'string') {
         return itemsLabel
       }
 

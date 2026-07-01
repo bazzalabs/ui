@@ -2,6 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { resolveLabelFromItems } from '../../utils/items.js'
 import {
   isValueEmpty,
   resolveLabel,
@@ -116,21 +117,12 @@ function SelectValueImpl<Value = unknown>(
       }
 
       // Fall back to the items prop (for initial render before popup opens)
-      const items = selectContext.items
-      if (items) {
-        // Handle record format: { value: label }
-        if (!Array.isArray(items)) {
-          const label = items[serializedValue]
-          if (label !== undefined) {
-            return label
-          }
-        } else {
-          // Handle array format: [{ value, label }]
-          const item = items.find((item) => item.value === serializedValue)
-          if (item?.label !== undefined) {
-            return item.label
-          }
-        }
+      const labelFromItems = resolveLabelFromItems(
+        selectContext.items,
+        serializedValue,
+      )
+      if (labelFromItems !== undefined) {
+        return labelFromItems
       }
 
       // Fall back to itemToStringLabel for object values

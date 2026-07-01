@@ -8,6 +8,7 @@ import {
   itemIncludes,
   removeItem,
 } from '../../utils/item-equality.js'
+import { mergeKeywords, resolveItemFromItems } from '../../utils/items.js'
 import {
   resolveLabel,
   stringifyAsValue,
@@ -86,26 +87,6 @@ const stateAttributesMapping = {
 }
 
 /**
- * Helper to resolve label from items prop (for legacy string-keyed items)
- */
-function resolveLabelFromItems(
-  items:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
-    | undefined,
-  value: string,
-): React.ReactNode | undefined {
-  if (!items) return undefined
-
-  if (Array.isArray(items)) {
-    const item = items.find((i) => i.value === value)
-    return item?.label
-  }
-
-  return items[value]
-}
-
-/**
  * A selectable item in the combobox dropdown.
  * Renders a `<div>` element with role="option".
  *
@@ -140,12 +121,13 @@ function ComboboxItemImpl<Value = unknown>(
     [value, comboboxContext.itemToStringValue],
   )
 
-  // Resolve label from items prop (for auto-populating textValue and keywords)
-  // This works for legacy string-keyed items
-  const labelFromItems = React.useMemo(
-    () => resolveLabelFromItems(comboboxContext.items, serializedValue),
+  // Resolve the item entry (label + keywords) from the items prop, for
+  // auto-populating textValue and filter keywords.
+  const itemFromItems = React.useMemo(
+    () => resolveItemFromItems(comboboxContext.items, serializedValue),
     [comboboxContext.items, serializedValue],
   )
+  const labelFromItems = itemFromItems?.label
 
   // Auto-resolve label from object value shape { label }
   const labelFromObjectValue = React.useMemo(
@@ -164,7 +146,7 @@ function ComboboxItemImpl<Value = unknown>(
     return undefined
   }, [textValueProp, labelFromItems, labelFromObjectValue, serializedValue])
 
-  // Auto-add label to keywords for search/filter
+  // Auto-add the label plus any items[].keywords to the filter keywords.
   const keywords = React.useMemo(() => {
     const labelStr =
       typeof labelFromItems === 'string'
@@ -172,12 +154,17 @@ function ComboboxItemImpl<Value = unknown>(
         : labelFromObjectValue && labelFromObjectValue !== serializedValue
           ? labelFromObjectValue
           : undefined
-    if (!labelStr) return keywordsProp
-    if (!keywordsProp) return [labelStr]
-    // Only add if not already included
-    if (keywordsProp.includes(labelStr)) return keywordsProp
-    return [...keywordsProp, labelStr]
-  }, [keywordsProp, labelFromItems, labelFromObjectValue, serializedValue])
+    return mergeKeywords(keywordsProp, [
+      labelStr,
+      ...(itemFromItems?.keywords ?? []),
+    ])
+  }, [
+    keywordsProp,
+    labelFromItems,
+    labelFromObjectValue,
+    serializedValue,
+    itemFromItems,
+  ])
 
   const textRef = React.useRef<string | undefined>(textValue)
 

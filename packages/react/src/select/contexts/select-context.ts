@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import type { ItemEqualityComparer } from '../../utils/item-equality.js'
+import type { Items } from '../../utils/items.js'
 
 // ============================================================================
 // Select Context
@@ -77,11 +78,10 @@ export interface SelectContextValue<Value = unknown> {
   /**
    * Data structure of the items for label resolution.
    * Used to display labels before items mount (e.g., on initial render with defaultValue).
-   * Can be a record mapping values to labels, or an array of { value, label } objects.
+   * Can be a record mapping values to labels, or an array of
+   * `{ value, label, keywords? }` objects.
    */
-  items?:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
+  items?: Items
 
   // ===== List ID for ARIA =====
   /** ID for the listbox element */

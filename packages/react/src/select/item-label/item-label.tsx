@@ -2,6 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { resolveLabelFromItems } from '../../utils/items.js'
 import { stringifyAsValue } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
@@ -32,26 +33,6 @@ export interface SelectItemLabelState extends Record<string, unknown> {
 
 export interface SelectItemLabelProps
   extends ComponentProps<'span', SelectItemLabel.State> {}
-
-/**
- * Helper to resolve label from items prop
- */
-function resolveLabelFromItems(
-  items:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
-    | undefined,
-  valueKey: string,
-): React.ReactNode | undefined {
-  if (!items) return undefined
-
-  if (Array.isArray(items)) {
-    const item = items.find((i) => i.value === valueKey)
-    return item?.label
-  }
-
-  return items[valueKey]
-}
 
 /**
  * The label/text content of a Select.Item.
