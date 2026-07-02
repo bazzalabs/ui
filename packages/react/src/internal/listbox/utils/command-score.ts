@@ -6,6 +6,8 @@
  * result in a total score of 1.
  */
 
+import { deburr } from './normalize.js'
+
 // The best case: this character is a match, and either this is the start
 // of the string, or the previous character was also a match.
 const SCORE_CONTINUE_MATCH = 1
@@ -164,8 +166,9 @@ function commandScoreInner(
 }
 
 function formatInput(string: string): string {
-  // Convert all valid space characters to space so they match each other
-  return string.toLowerCase().replace(COUNT_SPACE_REGEXP, ' ')
+  // Lowercase, fold diacritics, and convert all valid space characters to a
+  // single space so they match each other.
+  return deburr(string.toLowerCase()).replace(COUNT_SPACE_REGEXP, ' ')
 }
 
 /**

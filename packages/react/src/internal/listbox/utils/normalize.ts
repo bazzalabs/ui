@@ -10,6 +10,21 @@ export function normalizeValue(value: string | undefined | null): string {
 }
 
 /**
+ * Remove diacritics/accents from a string so unaccented queries match accented
+ * content (e.g. "cafe" matches "café", "municao" matches "munição").
+ *
+ * Uses Unicode NFD decomposition and strips combining marks. Characters that
+ * do not decompose into a base letter plus a combining mark (e.g. "ø", "ł")
+ * are intentionally left unchanged.
+ *
+ * @param value - The value to fold
+ * @returns The value with combining diacritical marks removed
+ */
+export function deburr(value: string): string {
+  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '')
+}
+
+/**
  * Converts a value string to a URL-safe slug for use in IDs.
  * - Trims whitespace
  * - Converts to lowercase
