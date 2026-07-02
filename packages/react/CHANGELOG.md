@@ -1,5 +1,41 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.7
+
+### Patch Changes
+
+- [#308](https://github.com/bazzalabs/ui/pull/308) [`2cb28b7`](https://github.com/bazzalabs/ui/commit/2cb28b7cdd03a073f6af6092977de39c223ffb96) Thanks [@kianbazza](https://github.com/kianbazza)! - Bump `@base-ui/react` to `1.5.0` and `@base-ui/utils` to `0.2.9`.
+
+- [#317](https://github.com/bazzalabs/ui/pull/317) [`1bc682c`](https://github.com/bazzalabs/ui/commit/1bc682c621202e0568271673191705fc8da44185) Thanks [@kianbazza](https://github.com/kianbazza)! - Assert expected ListboxStore warnings in tests to keep test output clean.
+
+- [#320](https://github.com/bazzalabs/ui/pull/320) [`10cb2e3`](https://github.com/bazzalabs/ui/commit/10cb2e384fd658c8c2a8f03d1d4c9d7b65485655) Thanks [@kianbazza](https://github.com/kianbazza)! - Preserve dropdown menu row highlights until exit animations finish.
+
+- [#329](https://github.com/bazzalabs/ui/pull/329) [`967a2cf`](https://github.com/bazzalabs/ui/commit/967a2cf1984b9ee4b985edf17c89dcea160417b0) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix `Select.Value` treating falsy-but-valid values (`0`, `false`, `''`) as empty and showing the placeholder. Select now uses a shared `isValueEmpty` helper so `Select.Value`, `Select.Trigger`, and `Select.Surface` agree on what counts as an empty selection, matching `Combobox`.
+
+- [#319](https://github.com/bazzalabs/ui/pull/319) [`6f81c20`](https://github.com/bazzalabs/ui/commit/6f81c20bb2fbafef1ae67203204b51faa285a3d6) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix select popup positioning when aligning items with the trigger after the Base UI v1.5 positioning change.
+
+- [#332](https://github.com/bazzalabs/ui/pull/332) [`a7fd8ae`](https://github.com/bazzalabs/ui/commit/a7fd8aeacab87124c398c2dd447a9ec13406d29e) Thanks [@kianbazza](https://github.com/kianbazza)! - Filtering is now diacritics-insensitive by default across all listbox-based components (Select, Combobox, menus). Unaccented queries match accented content and vice versa (e.g. `cafe` matches `café`, `sao` matches `São Paulo`). To opt out, pass a custom `filter`/`normalizeSearch` on `Select.Surface`.
+
+- [#306](https://github.com/bazzalabs/ui/pull/306) [`8bf663d`](https://github.com/bazzalabs/ui/commit/8bf663db9b4d0542e21ab2ebf97bb776678d8eb0) Thanks [@kianbazza](https://github.com/kianbazza)! - Replace `DataList` children-as-function render prop with normal children and a
+  `useDataList()` hook. List content now lives in child components that call
+  `useDataList()`. This is a breaking change to the `DataList` API.
+
+- [#304](https://github.com/bazzalabs/ui/pull/304) [`ba94100`](https://github.com/bazzalabs/ui/commit/ba94100ba468d7fe263ab9d9be1ed44dba7b7ca6) Thanks [@kianbazza](https://github.com/kianbazza)! - Add popup menu `resetScrollOnSearch` support and allow lists to provide a custom scroll container ref.
+
+- [#303](https://github.com/bazzalabs/ui/pull/303) [`dab197d`](https://github.com/bazzalabs/ui/commit/dab197df8c390eee866d981723cf087578d0979c) Thanks [@kianbazza](https://github.com/kianbazza)! - Reset non-virtualized popup menu list scroll positions when the search query changes.
+
+- [#326](https://github.com/bazzalabs/ui/pull/326) [`b962820`](https://github.com/bazzalabs/ui/commit/b96282045168424cf6fd76d9efd1f5590b4c71fa) Thanks [@kianbazza](https://github.com/kianbazza)! - `Select`: use standard anchored positioning for searchable popups. `alignItemWithTrigger` now applies only while no search input is present — a `Select.Input` (always-visible, or a `hideUntilActive` input once it activates) makes the popup fall back to anchored positioning, matching Base UI (Select aligns, Combobox anchors). Also stop recomputing the aligned placement when the visible item count changes while open.
+
+- [#327](https://github.com/bazzalabs/ui/pull/327) [`5df1835`](https://github.com/bazzalabs/ui/commit/5df1835b63cece491ed4d35e9215fd85275f090e) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix `Select` with `clearSearchOnClose="after-exit"` not clearing the search or deactivating a `hideUntilActive` input after the close animation, which left the search input visible on reopen.
+
+- [#331](https://github.com/bazzalabs/ui/pull/331) [`31a5f0e`](https://github.com/bazzalabs/ui/commit/31a5f0e60c67f6e147e7eb0c4bb4a61368aafef1) Thanks [@kianbazza](https://github.com/kianbazza)! - Support a clearable `null` item in `Select` and `Combobox` (Base UI parity). Rendering `<Select.Item value={null}>` (or describing it via `items` as `{ value: null, label }`) adds an option that clears the selection when chosen; its label is used as the trigger/input placeholder, and it shows as selected while there is no value. `Select.Item`/`Combobox.Item` now accept `value={null}`, and `onValueChange` may receive `null` when the selection is cleared.
+
+- [#325](https://github.com/bazzalabs/ui/pull/325) [`6fe6994`](https://github.com/bazzalabs/ui/commit/6fe6994adcb2a07ab1ce061a1b54b69431fc3359) Thanks [@kianbazza](https://github.com/kianbazza)! - Forward the `data-highlighted` attribute to `Select.ItemIndicator` so it reflects its parent item's highlighted state, matching `Select.Item`.
+
+- [#330](https://github.com/bazzalabs/ui/pull/330) [`7975ad0`](https://github.com/bazzalabs/ui/commit/7975ad0ec1399ac515a0e48004a1dc60a996bc59) Thanks [@kianbazza](https://github.com/kianbazza)! - Extend the `items` prop on `Select.Root` and `Combobox.Root`. The array form now accepts `keywords` (extra filter terms merged into an item's search keywords) and a `null` value, e.g. `{ value: null, label: 'Select…' }`. Item keyword auto-population reads `items[].keywords`, so you no longer need a separate per-`Item` `keywords` prop when you already describe items via `items`.
+
+- [#307](https://github.com/bazzalabs/ui/pull/307) [`1ae5d57`](https://github.com/bazzalabs/ui/commit/1ae5d579b14f7c2b89e4cbfec2f5d5b2528f0dd6) Thanks [@kianbazza](https://github.com/kianbazza)! - Unify the data-first popup menu API: `Surface`/`List`/`Input` now accept the data-first props directly and `Popup` auto-renders data subpages. Removes `DataSurface`, `DataList`, `DataInput`, and `DataSubpages`. This is a breaking change.
+
 ## 0.1.0-canary.6
 
 ### Patch Changes
