@@ -365,6 +365,33 @@ describe('<Select.Root />', () => {
       expect(value).toHaveTextContent('Banana')
     })
 
+    it('displays label for falsy-but-valid values (0)', () => {
+      render(
+        <Select.Root defaultValue={0} items={{ 0: 'Zero', 1: 'One' }}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface>
+                  <Select.List>
+                    <Select.Item value={0}>Zero</Select.Item>
+                    <Select.Item value={1}>One</Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      const value = screen.getByTestId('value')
+      // Regression: Boolean(0) is false, which previously showed the placeholder
+      expect(value).toHaveTextContent('Zero')
+      expect(value).not.toHaveTextContent('Select...')
+    })
+
     it('shows placeholder when no value selected', () => {
       render(<BasicSelect />)
 
