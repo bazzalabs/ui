@@ -2,6 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { resolveLabelFromItems } from '../../utils/items.js'
 import { stringifyAsValue } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
@@ -32,26 +33,6 @@ export interface ComboboxItemLabelState extends Record<string, unknown> {
 
 export interface ComboboxItemLabelProps
   extends ComponentProps<'span', ComboboxItemLabel.State> {}
-
-/**
- * Helper to resolve label from items prop
- */
-function resolveLabelFromItems(
-  items:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
-    | undefined,
-  valueKey: string,
-): React.ReactNode | undefined {
-  if (!items) return undefined
-
-  if (Array.isArray(items)) {
-    const item = items.find((i) => i.value === valueKey)
-    return item?.label
-  }
-
-  return items[valueKey]
-}
 
 /**
  * Renders the text label for a combobox item.

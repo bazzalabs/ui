@@ -16,6 +16,7 @@ import {
   defaultItemEquality,
   type ItemEqualityComparer,
 } from '../../utils/item-equality.js'
+import type { Items } from '../../utils/items.js'
 import { stringifyAsValue } from '../../utils/resolve-value-label.js'
 import {
   ComboboxContext,
@@ -197,22 +198,23 @@ export interface ComboboxRootProps<
    * When specified, the input shows the label of the selected item
    * instead of the raw value.
    *
-   * Can be a record mapping values to labels, or an array of { value, label } objects.
+   * Can be a record mapping values to labels, or an array of
+   * `{ value, label, keywords? }` objects. Only the array form can express
+   * `keywords` (extra filter terms) or a `null` (clearable) value.
    * @example
    * ```tsx
    * // Record format
    * <Combobox.Root items={{ us: 'United States', uk: 'United Kingdom' }}>
    *
-   * // Array format
+   * // Array format (supports keywords and a null clearable item)
    * <Combobox.Root items={[
-   *   { value: 'us', label: 'United States' },
+   *   { value: null, label: 'Select a country' },
+   *   { value: 'us', label: 'United States', keywords: ['america', 'usa'] },
    *   { value: 'uk', label: 'United Kingdom' },
    * ]}>
    * ```
    */
-  items?:
-    | Record<string, React.ReactNode>
-    | Array<{ value: string; label: React.ReactNode }>
+  items?: Items
 
   // ===== Behavior =====
   /**

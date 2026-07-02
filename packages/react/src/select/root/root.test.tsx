@@ -691,6 +691,56 @@ describe('<Select.Root />', () => {
       })
       expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
     })
+
+    it('filters by keywords declared in the items prop', async () => {
+      const user = userEvent.setup()
+      render(
+        <Select.Root
+          defaultOpen
+          items={[
+            { value: 'us', label: 'United States', keywords: ['america'] },
+            { value: 'uk', label: 'United Kingdom' },
+          ]}
+        >
+          <Select.Trigger data-testid="trigger">
+            <Select.Value placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.Input
+                    data-testid="search-input"
+                    placeholder="Search..."
+                  />
+                  <Select.List>
+                    {/* ItemLabel auto-resolves its text from the items prop */}
+                    <Select.Item data-testid="item-us" value="us">
+                      <Select.ItemLabel />
+                    </Select.Item>
+                    <Select.Item data-testid="item-uk" value="uk">
+                      <Select.ItemLabel />
+                    </Select.Item>
+                  </Select.List>
+                  <Select.Empty data-testid="empty">No results</Select.Empty>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // "america" matches only via the keyword declared on the US item
+      const input = screen.getByTestId('search-input')
+      await user.type(input, 'america')
+
+      expect(screen.getByTestId('item-us')).toBeInTheDocument()
+      expect(screen.queryByTestId('item-uk')).not.toBeInTheDocument()
+    })
   })
 
   describe('controlled mode', () => {
