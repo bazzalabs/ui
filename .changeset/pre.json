@@ -11,13 +11,28 @@
   },
   "changesets": [
     "bright-parts-compose",
+    "bump-base-ui-react-150",
+    "clean-listbox-warning",
     "clean-owls-merge",
+    "defer-menu-highlight-cleanup",
+    "fix-select-empty-value-checks",
+    "fix-select-popup-position",
     "gold-rice-rule",
     "huge-plants-kick",
+    "listbox-diacritics-search",
     "lucky-tabs-focus",
     "petite-weeks-kneel",
+    "replace-datalist-render-prop",
+    "reset-scroll-on-search-api",
+    "reset-scroll-on-search-internal",
     "salty-rabbits-serve",
+    "select-anchor-searchable-popups",
+    "select-clear-search-after-exit",
+    "select-clearable-null-item",
+    "select-indicator-data-highlighted",
+    "select-items-keywords-nullable",
     "shaggy-carpets-run",
-    "thin-garlics-rush"
+    "thin-garlics-rush",
+    "unify-data-first-menu-api"
   ]
 }
