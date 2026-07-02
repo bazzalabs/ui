@@ -22,7 +22,7 @@ export function isValueEmpty(value: unknown): boolean {
  * @returns The string label for display
  */
 export function resolveLabel<Value>(
-  value: Value,
+  value: Value | null | undefined,
   itemToStringLabel?: (value: Value) => string,
 ): string {
   if (value == null) return ''
@@ -46,7 +46,7 @@ export function resolveLabel<Value>(
  * @returns The string value for form submission
  */
 export function stringifyAsValue<Value>(
-  value: Value,
+  value: Value | null | undefined,
   itemToStringValue?: (value: Value) => string,
 ): string {
   if (value == null) return ''

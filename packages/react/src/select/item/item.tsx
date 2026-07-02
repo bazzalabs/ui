@@ -43,8 +43,11 @@ export interface SelectItemProps<Value = unknown>
   /**
    * The value of this item. Required and must be unique within the Select.
    * Can be a primitive or an object.
+   *
+   * Pass `null` to render a clearable item: selecting it clears the selection
+   * and its label is used as the trigger placeholder (Base UI parity).
    */
-  value: Value
+  value: Value | null
 
   /**
    * Text value to use for display in Select.Value when this item is selected.
@@ -121,6 +124,13 @@ function SelectItemImpl<Value = unknown>(
     [value, selectContext.itemToStringValue],
   )
 
+  // A null value serializes to '' which the listbox treats as "no id" and skips
+  // registration. Give a clearable (null) item an explicit id so it still
+  // registers and is selectable; its label still feeds filtering via keywords.
+  const generatedItemId = React.useId()
+  const listboxId =
+    value === null ? `select-clear-${generatedItemId}` : undefined
+
   // Resolve the item entry (label + keywords) from the items prop, for
   // auto-populating textValue and filter keywords.
   const itemFromItems = React.useMemo(
@@ -168,15 +178,16 @@ function SelectItemImpl<Value = unknown>(
 
   const textRef = React.useRef<string | undefined>(textValue)
 
-  // Track if this item is selected using custom equality
+  // Track if this item is selected using custom equality.
+  // A `null` item is selected when there is no selection; an empty string is
+  // still treated as "no selection" and never matches an item.
   const selected = selectContext.multiple
     ? itemIncludes(
         selectContext.values,
         value,
         selectContext.isItemEqualToValue,
       )
-    : selectContext.value != null &&
-      selectContext.value !== '' &&
+    : selectContext.value !== '' &&
       compareItemEquality(
         selectContext.value,
         value,
@@ -187,6 +198,7 @@ function SelectItemImpl<Value = unknown>(
   const closeOnClick = !selectContext.multiple
 
   const item = usePopupMenuItem({
+    id: listboxId,
     value: serializedValue,
     keywords,
     disabled,
@@ -201,17 +213,22 @@ function SelectItemImpl<Value = unknown>(
       if (disabled) return
 
       if (selectContext.multiple) {
-        // Toggle value in array using custom equality
-        const newValues = selected
-          ? removeItem(
-              selectContext.values,
-              value,
-              selectContext.isItemEqualToValue,
-            )
-          : [...selectContext.values, value]
-        selectContext.onValuesChange(newValues)
+        // A null item clears all selections in multi-select mode.
+        if (value == null) {
+          selectContext.onValuesChange([])
+        } else {
+          // Toggle value in array using custom equality
+          const newValues = selected
+            ? removeItem(
+                selectContext.values,
+                value,
+                selectContext.isItemEqualToValue,
+              )
+            : [...selectContext.values, value]
+          selectContext.onValuesChange(newValues)
+        }
       } else {
-        // Set single value
+        // Set single value (null clears the selection)
         selectContext.onValueChange(value)
       }
 

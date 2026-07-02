@@ -94,6 +94,15 @@ function SelectValueImpl<Value = unknown>(
 
   const placeholder = placeholderProp ?? selectContext.placeholder
 
+  // A `null` item's label (looked up under the empty-string key) acts as the
+  // placeholder, taking precedence over the Root placeholder but not an
+  // explicit `placeholder` prop on Select.Value (Base UI parity).
+  const nullItemLabel = React.useMemo(
+    () => resolveLabelFromItems(selectContext.items, ''),
+    [selectContext.items],
+  )
+  const placeholderContent = placeholderProp ?? nullItemLabel ?? placeholder
+
   const hasValue = selectContext.multiple
     ? selectContext.values.length > 0
     : !isValueEmpty(selectContext.value)
@@ -171,8 +180,8 @@ function SelectValueImpl<Value = unknown>(
     // Static children
     content = children
   } else if (!hasValue) {
-    // Show placeholder when no value
-    content = placeholder
+    // Show placeholder when no value (a null item's label, if present)
+    content = placeholderContent
   } else if (selectContext.multiple) {
     // Multi-select: show count or comma-separated values
     const texts = selectContext.values

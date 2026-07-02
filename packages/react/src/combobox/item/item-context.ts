@@ -12,7 +12,7 @@ export interface ComboboxItemContextValue<Value = unknown> {
   /** Unique ID for the item element */
   id: string
   /** The item's value */
-  value: Value
+  value: Value | null
   /** The text value/label for this item */
   textValue: string | undefined
   /** Whether the item is highlighted (via keyboard or pointer) */

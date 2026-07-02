@@ -4,6 +4,7 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useFocusOwner } from '../../internal/popup-menu/contexts/focus-owner-context.js'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { resolveLabelFromItems } from '../../utils/items.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { useIsInsideInputWrapper } from '../input-wrapper/input-wrapper-context.js'
@@ -87,7 +88,15 @@ export const ComboboxInput = React.forwardRef<
 
   const disabled =
     (disabledProp ?? comboboxContext.disabled) || popupMenuContext.disabled
-  const placeholder = placeholderProp ?? comboboxContext.placeholder
+
+  // A `null` item's label (looked up under the empty-string key) acts as the
+  // placeholder, taking precedence over the Root placeholder but not an
+  // explicit `placeholder` prop on the input.
+  const nullItemLabel = resolveLabelFromItems(comboboxContext.items, '')
+  const placeholder =
+    placeholderProp ??
+    (typeof nullItemLabel === 'string' ? nullItemLabel : undefined) ??
+    comboboxContext.placeholder
 
   // Get open state
   const open = popupMenuContext.store.useState('open')

@@ -392,6 +392,103 @@ describe('<Select.Root />', () => {
       expect(value).not.toHaveTextContent('Select...')
     })
 
+    it('clears the selection when a null item is selected', async () => {
+      const user = userEvent.setup()
+      const onValueChange = vi.fn()
+      render(
+        <Select.Root
+          defaultValue="apple"
+          onValueChange={onValueChange}
+          items={[
+            { value: null, label: 'Clear selection' },
+            { value: 'apple', label: 'Apple' },
+            { value: 'banana', label: 'Banana' },
+          ]}
+        >
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    <Select.Item data-testid="item-clear" value={null}>
+                      <Select.ItemLabel />
+                    </Select.Item>
+                    <Select.Item data-testid="item-apple" value="apple">
+                      <Select.ItemLabel />
+                    </Select.Item>
+                    <Select.Item data-testid="item-banana" value="banana">
+                      <Select.ItemLabel />
+                    </Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      // Initially shows the selected label
+      expect(screen.getByTestId('value')).toHaveTextContent('Apple')
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+      await user.click(screen.getByTestId('item-clear'))
+
+      // Cleared: callback receives null and the null item's label becomes the placeholder
+      expect(onValueChange).toHaveBeenCalledWith(null)
+      expect(screen.getByTestId('value')).toHaveTextContent('Clear selection')
+    })
+
+    it('marks the null item as selected when there is no value', async () => {
+      const user = userEvent.setup()
+      render(
+        <Select.Root
+          items={[
+            { value: null, label: 'None' },
+            { value: 'apple', label: 'Apple' },
+          ]}
+        >
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    <Select.Item data-testid="item-clear" value={null}>
+                      <Select.ItemLabel />
+                    </Select.Item>
+                    <Select.Item data-testid="item-apple" value="apple">
+                      <Select.ItemLabel />
+                    </Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>,
+      )
+
+      // With no value, the null item's label acts as the placeholder
+      expect(screen.getByTestId('value')).toHaveTextContent('None')
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      expect(screen.getByTestId('item-clear')).toHaveAttribute('data-selected')
+      expect(screen.getByTestId('item-apple')).not.toHaveAttribute(
+        'data-selected',
+      )
+    })
+
     it('shows placeholder when no value selected', () => {
       render(<BasicSelect />)
 
