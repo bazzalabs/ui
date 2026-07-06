@@ -13,6 +13,10 @@ export * from './core/filter-tree.js'
 
 export * from './core/sort.js'
 
+// ── View Operations ────────────────────────────────────────
+
+export * from './core/view.js'
+
 // ── Client Processing ──────────────────────────────────────
 
 export * from './core/client.js'

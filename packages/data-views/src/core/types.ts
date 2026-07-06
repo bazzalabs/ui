@@ -160,3 +160,17 @@ export type CustomSort = {
 export type SortRule = ColumnSort | CustomSort
 
 export type SortState = SortRule[]
+
+// ── Data View State ─────────────────────────────────────────
+
+// biome-ignore lint/suspicious/noEmptyInterface: consumers augment this
+export interface DataViewStateMeta {}
+
+export type DataViewState = {
+  id?: string
+  name?: string
+  filters: import('./filter-tree.js').FiltersState
+  sort: SortState
+  search?: string
+  meta?: DataViewStateMeta
+}
