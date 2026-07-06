@@ -9,6 +9,14 @@ export type * from './core/types.js'
 
 export * from './core/filter-tree.js'
 
+// ── Sort Operations ────────────────────────────────────────
+
+export * from './core/sort.js'
+
+// ── Client Processing ──────────────────────────────────────
+
+export * from './core/client.js'
+
 // ── Array Utilities ────────────────────────────────────────
 
 export * from './lib/array.js'

@@ -140,3 +140,23 @@ export type TBuiltInOrderFn = (
 export type TOrderFnArg = [TBuiltInOrderFnName, OrderDirection] | TCustomOrderFn
 
 export type TBuiltInOrderFnName = 'count' | 'label'
+
+// ── Sort State ─────────────────────────────────────────────
+
+export type SortDirection = 'asc' | 'desc'
+
+export type ColumnSort = {
+  type: 'column'
+  columnId: string
+  direction: SortDirection
+}
+
+export type CustomSort = {
+  type: 'custom'
+  id: string
+  enabled: boolean
+}
+
+export type SortRule = ColumnSort | CustomSort
+
+export type SortState = SortRule[]
