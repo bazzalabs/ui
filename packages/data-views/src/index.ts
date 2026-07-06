@@ -5,6 +5,10 @@
 
 export type * from './core/types.js'
 
+// ── Filter Tree ────────────────────────────────────────────
+
+export * from './core/filter-tree.js'
+
 // ── Array Utilities ────────────────────────────────────────
 
 export * from './lib/array.js'
