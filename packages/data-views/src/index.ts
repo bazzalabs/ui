@@ -17,6 +17,11 @@ export * from './core/sort.js'
 
 export * from './core/view.js'
 
+// ── Typed DX Helpers ───────────────────────────────────────
+
+export * from './core/define-view.js'
+export * from './core/typed.js'
+
 // ── Client Processing ──────────────────────────────────────
 
 export * from './core/client.js'
