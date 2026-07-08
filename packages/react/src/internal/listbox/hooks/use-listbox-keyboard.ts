@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { FocusZoneStore } from '../store/FocusZoneStore.js'
 import type { ListboxStore } from '../store/ListboxStore.js'
 
 /**
@@ -65,6 +66,13 @@ export interface UseListboxKeyboardParams {
 
   /** The FocusOwner store for managing focus ownership (optional) */
   focusOwner?: FocusOwnerInterface
+  /**
+   * Focus zone store for Tab navigation between the primary zone
+   * (input/list) and registered header/footer zones.
+   * When absent or no zones are registered for this surface, Tab is
+   * not handled (falls through to the browser/focus trap).
+   */
+  zones?: FocusZoneStore | null
   /** Menu depth (0 for root, >0 for submenus) - defaults to 0 */
   depth?: number
   /** Submenu context for ArrowLeft navigation back to parent (optional) */
@@ -111,6 +119,7 @@ export function useListboxKeyboard(
     onSelect,
     closeAll,
     focusOwner,
+    zones = null,
     depth = 0,
     submenuContext,
     subpageContext,
@@ -175,6 +184,23 @@ export function useListboxKeyboard(
       }
 
       switch (event.key) {
+        case 'Tab': {
+          // Move focus between the primary zone and registered header/footer
+          // zones (headers → primary → footers, wrapping). Highlight state is
+          // intentionally NOT cleared: aria-activedescendant keeps pointing at
+          // the re-entry target per the APG activedescendant pattern.
+          if (!zones || !zones.hasZones(surfaceId)) break
+          const target = zones.getAdjacentTarget(
+            surfaceId,
+            'primary',
+            event.shiftKey ? -1 : 1,
+          )
+          if (target && target.type === 'zone') {
+            event.preventDefault()
+            zones.focusTarget(surfaceId, target)
+          }
+          break
+        }
         case 'ArrowDown': {
           event.preventDefault()
           store.highlightNext()
@@ -359,6 +385,8 @@ export function useListboxKeyboard(
       isOwner,
       enableTypeToSearch,
       store,
+      zones,
+      surfaceId,
       depth,
       submenuContext,
       subpageContext,

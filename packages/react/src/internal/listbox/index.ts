@@ -4,6 +4,11 @@
 // Core primitives for building listbox-like components.
 // Used by: DropdownMenu, ContextMenu, Select, CommandMenu
 
+export {
+  FocusZonesContext,
+  useFocusZones,
+  useMaybeFocusZones,
+} from './contexts/focus-zones-context.js'
 export type { GroupContextValue } from './contexts/group-context.js'
 export {
   GroupContext,
@@ -58,6 +63,13 @@ export type {
   UseStickyRowWidthReturn,
 } from './hooks/use-sticky-row-width.js'
 export { useStickyRowWidth } from './hooks/use-sticky-row-width.js'
+export type {
+  FocusZonePlacement,
+  FocusZoneRegistration,
+  FocusZoneState,
+  FocusZoneTarget,
+} from './store/FocusZoneStore.js'
+export { FocusZoneStore } from './store/FocusZoneStore.js'
 export type {
   Context,
   DOMRefs,
