@@ -38,6 +38,7 @@ import type {
   DeepSearchConfig,
 } from '../../deep-search/types.js'
 import { defaultGetQualifiedRowId } from '../../deep-search/utils.js'
+import { PopupMenuInputDataAttributes } from '../input/input.data-attrs.js'
 
 // Surface doesn't expose data attributes - using empty state
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
@@ -398,8 +399,11 @@ export const PopupMenuSurface = React.forwardRef<
           return
         }
 
-        // Find input or list within this surface
-        const input = surfaceRef.current.querySelector('input')
+        // Find the library's own input part or list within this surface
+        // data-popup-menu-input is applied only to PopupMenuInput.
+        const input = surfaceRef.current.querySelector(
+          `[${PopupMenuInputDataAttributes.input}]`,
+        )
         const list = surfaceRef.current.querySelector('[role="listbox"]')
         const focusTarget = input ?? list
 

@@ -26,6 +26,7 @@ import {
 } from '../../utils/aim-guard.js'
 import { isMouseLikePointerType } from '../../utils/is-mouse-like-pointer.js'
 import { useMouseTrail } from '../../utils/use-mouse-trail.js'
+import { PopupMenuInputDataAttributes } from '../input/input.data-attrs.js'
 import {
   PopupMenuSubmenuSafeTriangleArea,
   type PopupMenuSubmenuSafeTriangleTone,
@@ -776,7 +777,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       focusOwnerStore.setOwnerId(childSurfaceId)
       // Auto-focus after DOM is ready
       requestAnimationFrame(() => {
-        const input = contentRef.current?.querySelector('input')
+        // data-popup-menu-input is applied only to PopupMenuInput.
+        const input = contentRef.current?.querySelector(
+          `[${PopupMenuInputDataAttributes.input}]`,
+        )
         const list = contentRef.current?.querySelector('[role="listbox"]')
         const focusTarget = input ?? list
         if (focusTarget && focusTarget instanceof HTMLElement) {

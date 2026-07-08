@@ -13,6 +13,9 @@ import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
+import { PopupMenuInputDataAttributes } from './input.data-attrs.js'
+
+export { PopupMenuInputDataAttributes }
 
 export interface PopupMenuInputState extends Record<string, unknown> {
   /**
@@ -184,6 +187,7 @@ export const PopupMenuInput = React.forwardRef<
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
+      [PopupMenuInputDataAttributes.input]: '',
       id: inputId,
       type: 'text',
       role: 'combobox',
