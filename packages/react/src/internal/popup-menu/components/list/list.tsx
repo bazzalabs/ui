@@ -7,6 +7,7 @@ import type { ComponentProps } from '../../../../utils/types.js'
 import {
   RowWidthContext,
   useListboxContext,
+  useMaybeFocusZones,
   useStickyRowWidth,
   useSurfaceContext,
 } from '../../../listbox/index.js'
@@ -108,6 +109,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
   const subpageContext = useMaybeSubpageContext()
   const { disabled: popupMenuDisabled } = usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
+  const focusZoneStore = useMaybeFocusZones()
   const comboboxContext = useMaybeComboboxContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
@@ -118,6 +120,15 @@ export const PopupMenuListPrimitive = React.forwardRef<
   React.useEffect(() => {
     store.setListRef(internalRef)
   }, [store])
+
+  React.useEffect(() => {
+    if (!focusZoneStore) return
+    return focusZoneStore.registerPrimaryTarget(
+      surfaceId,
+      'list',
+      () => internalRef.current,
+    )
+  }, [focusZoneStore, surfaceId])
 
   React.useEffect(() => {
     if (!scrollContainerRef) return
@@ -167,6 +178,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
   const filteredCount = store.useState('filteredCount')
   const hasInput = store.useState('hasInput')
   const highlightedId = store.useState('highlightedId')
+  const hasActiveZone = focusZoneStore?.useState('hasActiveZone') ?? false
   const listId = store.context.listId
 
   // When there's no Input, the List should receive focus and handle keyboard nav
@@ -181,6 +193,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
     depth,
     submenuContext,
     subpageContext,
+    zones: focusZoneStore,
     enabled: shouldHandleKeyboard,
     disabled: popupMenuDisabled,
     enableTypeToSearch: true,
@@ -242,6 +255,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
         : undefined,
       tabIndex: shouldHandleKeyboard ? 0 : -1,
       [PopupMenuListDataAttributes.list]: '',
+      [PopupMenuListDataAttributes.zoneFocused]: hasActiveZone ? '' : undefined,
       'data-input-embedded': isInputEmbedded ? '' : undefined,
       className,
       style,

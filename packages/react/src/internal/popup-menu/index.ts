@@ -208,6 +208,17 @@ export type {
   PopupMenuSurfaceState,
 } from './components/surface/surface.js'
 export { PopupMenuSurface } from './components/surface/surface.js'
+export type {
+  PopupMenuFooterProps,
+  PopupMenuHeaderProps,
+  PopupMenuZoneProps,
+  PopupMenuZoneState,
+} from './components/zone/zone.js'
+export {
+  PopupMenuFooter,
+  PopupMenuHeader,
+  PopupMenuZoneDataAttributes,
+} from './components/zone/zone.js'
 
 // ============================================================================
 // Item Components

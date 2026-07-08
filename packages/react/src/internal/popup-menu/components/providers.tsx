@@ -3,7 +3,11 @@
 import * as React from 'react'
 import type { ListboxContextValue } from '../../listbox/contexts/listbox-context.js'
 import { ListboxContext as ListboxContextProvider } from '../../listbox/contexts/listbox-context.js'
-import type { ListboxStore, VirtualItem } from '../../listbox/index.js'
+import {
+  FocusZoneStore,
+  FocusZonesContext,
+  type ListboxStore,
+} from '../../listbox/index.js'
 import {
   type ComponentName,
   ComponentNameContext,
@@ -169,6 +173,15 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     ],
   )
 
+  // Focus zone store: single instance per menu tree.
+  // Nested PopupMenuProviders (if any) reuse the root's instance.
+  const inheritedFocusZones = React.useContext(FocusZonesContext)
+  const focusZoneStoreRef = React.useRef<FocusZoneStore | null>(null)
+  if (!inheritedFocusZones && !focusZoneStoreRef.current) {
+    focusZoneStoreRef.current = new FocusZoneStore()
+  }
+  const focusZoneStore = inheritedFocusZones ?? focusZoneStoreRef.current
+
   return (
     <ComponentNameContext.Provider value={componentName}>
       <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
@@ -176,9 +189,11 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
           <ListboxContextProvider.Provider value={listboxContextValue}>
             <AimGuardProvider>
               <FocusOwnerContext.Provider value={focusOwnerStore}>
-                <OpenChainContext.Provider value={openChainStore}>
-                  {children}
-                </OpenChainContext.Provider>
+                <FocusZonesContext.Provider value={focusZoneStore}>
+                  <OpenChainContext.Provider value={openChainStore}>
+                    {children}
+                  </OpenChainContext.Provider>
+                </FocusZonesContext.Provider>
               </FocusOwnerContext.Provider>
             </AimGuardProvider>
           </ListboxContextProvider.Provider>

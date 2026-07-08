@@ -13,9 +13,11 @@ export {
   PopupMenuCheckboxItem as CheckboxItem,
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuEmpty as Empty,
+  PopupMenuFooter as Footer,
   // Structure
   PopupMenuGroup as Group,
   PopupMenuGroupLabel as GroupLabel,
+  PopupMenuHeader as Header,
   // Trigger components
   PopupMenuIcon as Icon,
   PopupMenuInput as Input,

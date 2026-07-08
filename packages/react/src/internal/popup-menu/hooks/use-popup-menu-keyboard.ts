@@ -6,7 +6,11 @@
 // This wrapper integrates the focus owner and submenu contexts from popup-menu
 
 import * as React from 'react'
-import { type ListboxStore, useListboxKeyboard } from '../../listbox/index.js'
+import {
+  type FocusZoneStore,
+  type ListboxStore,
+  useListboxKeyboard,
+} from '../../listbox/index.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
 import type { SubpageContextValue } from '../contexts/subpage-context.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
@@ -18,6 +22,8 @@ export interface UsePopupMenuKeyboardParams {
   surfaceId: string
   /** The FocusOwner store for managing focus ownership */
   focusOwnerStore: FocusOwnerStore
+  /** Focus zone store for Tab navigation between primary zone and header/footer zones */
+  zones?: FocusZoneStore | null
   /** Menu depth (0 for root, >0 for submenus) */
   depth: number
   /** Submenu context for ArrowLeft navigation back to parent */
@@ -68,6 +74,7 @@ export function usePopupMenuKeyboard(
     store,
     surfaceId,
     focusOwnerStore,
+    zones = null,
     depth,
     submenuContext,
     subpageContext = null,
@@ -116,6 +123,7 @@ export function usePopupMenuKeyboard(
     onSelect: handleSelect,
     closeAll,
     focusOwner: focusOwnerStore,
+    zones,
     depth,
     submenuContext: submenuInterface,
     subpageContext: subpageInterface,

@@ -3,7 +3,11 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
-import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
+import {
+  useListboxContext,
+  useMaybeFocusZones,
+  useSurfaceContext,
+} from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -79,6 +83,7 @@ export const PopupMenuInput = React.forwardRef<
   const { disabled: popupMenuDisabled } = usePopupMenuContext()
   const disabled = popupMenuDisabled || disabledProp
   const focusOwnerStore = useFocusOwner()
+  const focusZoneStore = useMaybeFocusZones()
   const internalRef = React.useRef<HTMLInputElement>(null)
 
   // Get values from store
@@ -109,6 +114,15 @@ export const PopupMenuInput = React.forwardRef<
     store.setHasInput(true)
     return () => store.setHasInput(false)
   }, [store, shouldRender])
+
+  React.useEffect(() => {
+    if (!focusZoneStore || !shouldRender) return
+    return focusZoneStore.registerPrimaryTarget(
+      surfaceId,
+      'input',
+      () => internalRef.current,
+    )
+  }, [focusZoneStore, surfaceId, shouldRender])
 
   // Determine the actual value (controlled input prop > controlled surface > uncontrolled)
   const isInputControlled = controlledValue !== undefined
@@ -162,6 +176,7 @@ export const PopupMenuInput = React.forwardRef<
     depth,
     submenuContext,
     subpageContext,
+    zones: focusZoneStore,
     enabled: true,
     disabled,
     enableTypeToSearch: false,
