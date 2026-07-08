@@ -13,6 +13,24 @@ dst={{ worktree_path }}
 """
 install = "bun install"
 
+# Don't seed new worktrees with machine/path-specific build caches. A copied
+# Turbopack dev cache (apps/web/.next-dev) references the source worktree's
+# absolute paths and sends `next dev` into an invalidation storm (tens of GB
+# of memory, server never ready). node_modules/dist still copy — that's the
+# intended cold-start win, reconciled by the `bun install` pre-start hook.
+[step.copy-ignored]
+exclude = [
+  ".next/",
+  ".next-dev/",
+  ".turbo/",
+  "base-ui/",
+  ".osgrep/",
+  ".claude/",
+  ".claude/settings.local.json",
+  ".DS_Store",
+  "tsconfig.tsbuildinfo",
+]
+
 [aliases]
 # Per-worktree replacement for the old `bun run wt new --release <type>` flag.
 # Usage: `wt release stable`, `wt release canary`, or `wt release rc`.
