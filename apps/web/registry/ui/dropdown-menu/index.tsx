@@ -945,6 +945,36 @@ const Empty = forwardRef<
 ))
 Empty.displayName = 'DropdownMenu.Empty'
 
+const Header = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Header>
+>(({ className, ...props }, ref) => (
+  <Primitive.Header
+    ref={ref}
+    className={cn(
+      'border-b border-border p-1 flex items-center gap-1',
+      className,
+    )}
+    {...props}
+  />
+))
+Header.displayName = 'DropdownMenu.Header'
+
+const Footer = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Footer>
+>(({ className, ...props }, ref) => (
+  <Primitive.Footer
+    ref={ref}
+    className={cn(
+      'border-t border-border p-1 flex items-center gap-1',
+      className,
+    )}
+    {...props}
+  />
+))
+Footer.displayName = 'DropdownMenu.Footer'
+
 const Loading = forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof Primitive.Loading>, 'children'> & {
@@ -1011,6 +1041,7 @@ export const DropdownMenu = {
   Positioner,
   Popup,
   Surface,
+  Header,
   List,
   useDataList,
   Input,
@@ -1032,6 +1063,7 @@ export const DropdownMenu = {
   SubpageBackItem,
   SubpageBack,
   Empty,
+  Footer,
   Loading,
   Arrow,
   Backdrop,

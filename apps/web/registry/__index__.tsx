@@ -116,6 +116,14 @@ export const examples: RegistryIndex = {
     ),
     files: ['registry/examples/dropdown-menu/subpage/index.tsx'],
   },
+  'dropdown-menu-footer': {
+    name: 'dropdown-menu-footer',
+    type: 'registry:example',
+    component: React.lazy(
+      () => import('@/registry/examples/dropdown-menu/footer'),
+    ),
+    files: ['registry/examples/dropdown-menu/footer/index.tsx'],
+  },
   'dropdown-menu-linear-subpage-label-creation': {
     name: 'dropdown-menu-linear-subpage-label-creation',
     type: 'registry:example',
