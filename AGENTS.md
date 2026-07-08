@@ -29,8 +29,10 @@ wt release stable|canary|rc                # Set NEXT_PUBLIC_RELEASE_TYPE for th
 ```
 
 New worktrees use worktrunk's default sibling layout (`../ui.<branch>`). Portless
-detects the worktree and serves the web app at
-`https://ui.<branch>.bazza-ui.localhost`.
+serves the web app at `https://<last-branch-segment>.bazza-ui.localhost` (the
+trunk worktree serves at `https://bazza-ui.localhost`). The URL follows the
+checked-out branch, so it changes when Graphite switches branches in a
+worktree — run `portless list` for live routes or `wt list` for expected URLs.
 
 Project hooks in `.config/wt.toml` copy `.env.local` files from the primary
 worktree and run `bun install` when a worktree is created. On first use, approve

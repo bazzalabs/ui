@@ -69,6 +69,8 @@ echo "Set NEXT_PUBLIC_RELEASE_TYPE=$release_type in $env_file"
 """
 
 [list]
-# Portless serves worktrees as https://<worktree-dir>.<project>.localhost.
-# With worktrunk's default path, the worktree dir is `ui.<branch>`.
-url = "https://{{ repo }}.{{ branch | sanitize }}.bazza-ui.localhost"
+# Portless registers https://<last-branch-segment>.bazza-ui.localhost for
+# worktrees and bare https://bazza-ui.localhost for the trunk worktree.
+# Best-effort: portless truncates labels >63 chars with a hash suffix, which
+# this template can't reproduce — `portless list` is the source of truth.
+url = "https://{% if branch != 'main' and branch != 'canary' %}{{ branch | split('/') | last }}.{% endif %}bazza-ui.localhost"
