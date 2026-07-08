@@ -65,6 +65,7 @@ export const PopupMenuInput = React.forwardRef<
     className,
     style,
     onKeyDown,
+    onPointerDown,
     ...rest
   } = props
 
@@ -134,6 +135,22 @@ export const PopupMenuInput = React.forwardRef<
     [onValueChange, store],
   )
 
+  // A direct press on the input is an explicit "enter" action: make its
+  // surface the focus owner synchronously — the move-based reclaim in Surface
+  // is not guaranteed to have fired (e.g. a stationary click).
+  const handlePointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLInputElement>) => {
+      onPointerDown?.(event)
+      if (disabled) {
+        return
+      }
+      if (focusOwnerStore.state.ownerId !== surfaceId) {
+        focusOwnerStore.setOwnerId(surfaceId)
+      }
+    },
+    [onPointerDown, disabled, focusOwnerStore, surfaceId],
+  )
+
   // Use centralized keyboard navigation hook
   const { handleKeyDown } = usePopupMenuKeyboard({
     store,
@@ -183,6 +200,7 @@ export const PopupMenuInput = React.forwardRef<
       value: displayValue,
       onChange: handleChange,
       onKeyDown: handleKeyDown,
+      onPointerDown: handlePointerDown,
     },
     defaultTagName: 'input',
   })
