@@ -4,6 +4,7 @@ import { Popover, type PopoverTriggerProps } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { isValueEmpty } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useSelectContext } from '../contexts/select-context.js'
@@ -97,16 +98,17 @@ const SelectTriggerInner = React.forwardRef<
     state,
     stateAttributesMapping,
     props: {
-      ...triggerProps,
-      ...rest,
+      ...mergeElementProps<'button'>(triggerProps, {
+        ...rest,
+        className,
+        style,
+        children,
+      } as Partial<React.ComponentPropsWithRef<'button'>>),
       [SelectTriggerDataAttributes.slot]: '',
       ref: internalRef,
       role: 'combobox' as const,
       'aria-haspopup': 'listbox' as const,
       'aria-controls': selectContext.listId,
-      className,
-      style,
-      children,
     },
     defaultTagName: 'button',
   })
