@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -153,6 +153,70 @@ function MenuWithKeywords() {
               <DropdownMenu.Empty data-testid="empty-state">
                 No results found
               </DropdownMenu.Empty>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+/**
+ * A root menu without input and a submenu with a searchable input.
+ */
+function MenuWithSubmenuInput() {
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="root-surface">
+              <DropdownMenu.List data-testid="root-list">
+                <DropdownMenu.Item data-testid="root-apple" value="apple">
+                  Apple
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="root-banana" value="banana">
+                  Banana
+                </DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                    Fruits
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup>
+                        <DropdownMenu.Surface data-testid="submenu-surface">
+                          <DropdownMenu.Input
+                            data-testid="submenu-input"
+                            placeholder="Search submenu..."
+                          />
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item
+                              data-testid="submenu-apple"
+                              value="apple"
+                            >
+                              Apple
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Item
+                              data-testid="submenu-apricot"
+                              value="apricot"
+                            >
+                              Apricot
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Item
+                              data-testid="submenu-banana"
+                              value="banana"
+                            >
+                              Banana
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
@@ -567,6 +631,113 @@ describe('PopupMenu', () => {
       // Root should no longer have data-focused
       const rootPopup = screen.getByTestId('popup-root')
       expect(rootPopup).not.toHaveAttribute('data-focused')
+    })
+  })
+
+  describe('search input pointer focus', () => {
+    const getRootList = () => {
+      const rootList = screen
+        .getByTestId('root-surface')
+        .querySelector('[role="listbox"]')
+
+      if (!(rootList instanceof HTMLElement)) {
+        throw new Error('Expected root surface to contain a listbox')
+      }
+
+      return rootList
+    }
+
+    const hoverOpenSubmenu = async () => {
+      fireEvent.pointerEnter(screen.getByTestId('submenu-trigger'), {
+        clientX: 10,
+        clientY: 10,
+      })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+      })
+    }
+
+    it('does not prevent default on input pointerdown but still prevents list pointerdown', () => {
+      render(<MenuWithKeywords />)
+
+      expect(fireEvent.pointerDown(screen.getByTestId('search-input'))).toBe(
+        true,
+      )
+      expect(fireEvent.pointerDown(screen.getByRole('listbox'))).toBe(false)
+    })
+
+    it('does not transfer focus when hover-opening a submenu', async () => {
+      render(<MenuWithSubmenuInput />)
+
+      const rootList = getRootList()
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(rootList)
+      })
+
+      await hoverOpenSubmenu()
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(rootList)
+      })
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 150))
+      })
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(rootList)
+      })
+    })
+
+    it('transfers focus when moving the pointer into a submenu surface', async () => {
+      render(<MenuWithSubmenuInput />)
+
+      const rootList = getRootList()
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(rootList)
+      })
+
+      await hoverOpenSubmenu()
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 120))
+      })
+
+      fireEvent.pointerMove(screen.getByTestId('submenu-input'), {
+        clientX: 200,
+        clientY: 20,
+      })
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(screen.getByTestId('submenu-input'))
+      })
+    })
+
+    it('focuses and types into a non-owner submenu input on pointerdown', async () => {
+      render(<MenuWithSubmenuInput />)
+
+      const rootList = getRootList()
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(rootList)
+      })
+      await hoverOpenSubmenu()
+      await waitFor(() => {
+        expect(document.activeElement).toBe(rootList)
+      })
+
+      fireEvent.pointerDown(screen.getByTestId('submenu-input'))
+
+      await waitFor(() => {
+        expect(document.activeElement).toBe(screen.getByTestId('submenu-input'))
+      })
+
+      await userEvent.keyboard('ap')
+
+      expect(screen.getByTestId('submenu-input')).toHaveValue('ap')
     })
   })
 

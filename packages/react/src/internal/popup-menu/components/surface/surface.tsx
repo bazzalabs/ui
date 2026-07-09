@@ -420,10 +420,14 @@ export const PopupMenuSurface = React.forwardRef<
     [store, surfaceId],
   )
 
-  // Prevent pointer down from stealing focus from Input
+  // Prevent pointer down from stealing focus from Input.
+  // A press on an input itself must keep the browser's native
+  // focus-on-pointerdown behavior, so don't cancel it there.
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault()
+      if (!(event.target instanceof HTMLInputElement)) {
+        event.preventDefault()
+      }
       onPointerDown?.(event)
     },
     [onPointerDown],
