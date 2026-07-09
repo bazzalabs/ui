@@ -83,7 +83,14 @@ export function usePopupMenuKeyboard(
   const submenuInterface = React.useMemo(() => {
     if (!submenuContext) return null
     return {
-      setOpen: submenuContext.setOpen,
+      setOpen: (open: boolean) => {
+        if (!open) {
+          // Explicit keyboard close (ArrowLeft/Ctrl+H/Escape): suppress
+          // auto-reopen while the trigger stays highlighted.
+          submenuContext.suppressAutoOpenRef.current = true
+        }
+        submenuContext.setOpen(open)
+      },
       parentSurfaceId: submenuContext.parentSurfaceId,
       closeRootOnEsc: submenuContext.closeRootOnEsc,
     }

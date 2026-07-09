@@ -7,6 +7,12 @@ export interface SubmenuContextValue {
   open: boolean
   /** Set the submenu open state */
   setOpen: (open: boolean) => void
+  /**
+   * Latch set by explicit close actions (keyboard ArrowLeft/Ctrl+H/Escape-in-submenu,
+   * or clicking the open trigger). While set and the trigger remains highlighted,
+   * pointer/keyboard auto-open is suppressed. Reset when highlight leaves the trigger.
+   */
+  suppressAutoOpenRef: React.MutableRefObject<boolean>
   /** Reference to the trigger element */
   triggerRef: React.RefObject<HTMLElement | null>
   /** Reference to the submenu content element (for aim guard rect calculations) */

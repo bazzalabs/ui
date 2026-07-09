@@ -137,6 +137,8 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   const triggerRef = React.useRef<HTMLElement | null>(null)
   // Ref for submenu content element (used for aim guard rect calculations)
   const contentRef = React.useRef<HTMLElement | null>(null)
+  // Latch for suppressing auto-open after an explicit close (see SubmenuContextValue)
+  const suppressAutoOpenRef = React.useRef(false)
 
   // Create the store instance for this submenu
   const store = ListboxStore.useStore(undefined, { open: defaultOpen })
@@ -273,6 +275,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     () => ({
       open,
       setOpen,
+      suppressAutoOpenRef,
       triggerRef,
       contentRef,
       parentSurfaceId,

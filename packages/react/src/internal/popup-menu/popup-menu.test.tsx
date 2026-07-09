@@ -1378,6 +1378,36 @@ describe('PopupMenu', () => {
       }
     })
 
+    it('reopens the submenu when the pointer re-enters the trigger after a miss close', async () => {
+      const scenario = await setupCloseDelayScenario(0)
+
+      try {
+        fireMissTrajectory(scenario.submenuTrigger)
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('popup-submenu-1'),
+          ).not.toBeInTheDocument()
+        })
+
+        // Re-enter the same trigger (coordinates inside the mocked trigger rect)
+        fireEvent.pointerEnter(scenario.submenuTrigger, {
+          clientX: 100,
+          clientY: 75,
+        })
+        fireEvent.pointerMove(scenario.submenuTrigger, {
+          clientX: 102,
+          clientY: 76,
+        })
+
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+        })
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
     it('delays close on miss when closeDelay is greater than 0', async () => {
       const scenario = await setupCloseDelayScenario(160)
 
@@ -1445,6 +1475,61 @@ describe('PopupMenu', () => {
       } finally {
         scenario.cleanup()
       }
+    })
+  })
+
+  describe('submenu explicit close suppression', () => {
+    it('does not reopen on pointer enter after ArrowLeft closes the submenu', async () => {
+      const user = userEvent.setup()
+      render(<NestedMenuForDataAttrs />)
+
+      await user.click(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      })
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+      const rootList = screen.getByRole('listbox')
+      rootList.focus()
+
+      // Navigate to the submenu trigger (fixture order: root-item-1, then submenu-trigger-1)
+      await user.keyboard('{ArrowDown}')
+      if (!submenuTrigger.hasAttribute('data-highlighted')) {
+        await user.keyboard('{ArrowDown}')
+      }
+      await waitFor(() => {
+        expect(submenuTrigger).toHaveAttribute('data-highlighted')
+      })
+
+      // Keyboard highlight auto-opens the submenu after the keyboard delay
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      })
+
+      await user.keyboard('{ArrowRight}')
+
+      // Explicit keyboard open transfers focus into the submenu so ArrowLeft closes it.
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu-1')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      await user.keyboard('{ArrowLeft}')
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
+      })
+      expect(submenuTrigger).toHaveAttribute('data-highlighted')
+
+      // Pointer re-enter while the trigger is still highlighted must NOT reopen
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 100, clientY: 75 })
+      fireEvent.pointerMove(submenuTrigger, { clientX: 102, clientY: 76 })
+
+      await sleep(200)
+      expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
     })
   })
 
