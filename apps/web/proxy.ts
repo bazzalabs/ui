@@ -6,7 +6,7 @@ const { rewrite: rewriteLLM } = rewritePath(
   'llms.mdx/docs{/*path}',
 )
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = rewriteLLM(request.nextUrl.pathname)
 
   if (path) {
