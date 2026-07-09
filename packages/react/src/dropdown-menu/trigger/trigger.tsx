@@ -5,6 +5,7 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
 import { REASONS } from '../../utils/events/index.js'
+import { mergeElementProps } from '../../utils/merge-element-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { DropdownMenuTriggerDataAttributes } from './trigger.data-attrs.js'
 
@@ -91,12 +92,13 @@ const DropdownMenuTriggerInner = React.forwardRef<
     state,
     stateAttributesMapping,
     props: {
-      ...triggerProps,
-      ...rest,
+      ...mergeElementProps<'button'>(triggerProps, {
+        ...rest,
+        className,
+        style,
+        children,
+      } as Partial<React.ComponentPropsWithRef<'button'>>),
       [DropdownMenuTriggerDataAttributes.slot]: '',
-      className,
-      style,
-      children,
     },
     defaultTagName: 'button',
   })
