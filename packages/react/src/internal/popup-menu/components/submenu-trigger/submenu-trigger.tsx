@@ -197,8 +197,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   // Get submenu context for open state and refs
   const submenuContext = useSubmenuContext()
-  const { open, setOpen, triggerRef, contentRef, childSurfaceId } =
-    submenuContext
+  const {
+    open,
+    setOpen,
+    suppressAutoOpenRef,
+    triggerRef,
+    contentRef,
+    childSurfaceId,
+  } = submenuContext
 
   // Timer for delayed opening (pointer / keyboard navigation)
   const openTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -257,10 +263,6 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       clearLeaveMonitor()
     }
   }, [clearOpenTimer, clearCloseTimer, clearLeaveMonitor])
-
-  // Track if submenu was just closed while highlighted (e.g. ArrowLeft back)
-  // to suppress the keyboard auto-open until highlight leaves and returns
-  const suppressAutoOpenRef = React.useRef(false)
 
   // Get focus owner store for keyboard focus transfer
   const focusOwnerStore = useFocusOwner()
@@ -809,15 +811,6 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       setOpen(false)
     }
   }, [item.isVisible, open, setOpen])
-
-  // When submenu closes while this trigger is highlighted, suppress auto-open
-  const prevOpenRef = React.useRef(open)
-  React.useEffect(() => {
-    if (prevOpenRef.current && !open && item.isHighlighted) {
-      suppressAutoOpenRef.current = true
-    }
-    prevOpenRef.current = open
-  }, [open, item.isHighlighted])
 
   // Reset suppression when highlight leaves this trigger
   React.useEffect(() => {
