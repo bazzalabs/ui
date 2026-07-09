@@ -1,5 +1,17 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.8
+
+### Patch Changes
+
+- [#341](https://github.com/bazzalabs/ui/pull/341) [`e6dc2f0`](https://github.com/bazzalabs/ui/commit/e6dc2f0b9904e36d1994f8bccacc655f5476eff2) Thanks [@kianbazza](https://github.com/kianbazza)! - `Combobox.Clear` now forwards a consumer-provided `onPointerDown` handler instead of silently dropping it, while still preventing the button from stealing focus from the input.
+
+- [#342](https://github.com/bazzalabs/ui/pull/342) [`856f7c6`](https://github.com/bazzalabs/ui/commit/856f7c634f24546478ac785ef086e99ab006e2ac) Thanks [@kianbazza](https://github.com/kianbazza)! - Pressing the popup-menu search input now always focuses it: surfaces no longer cancel pointerdown on inputs, and the input claims focus ownership for its surface on pointerdown.
+
+- [#354](https://github.com/bazzalabs/ui/pull/354) [`9aff1da`](https://github.com/bazzalabs/ui/commit/9aff1daf160637fe0850bf48d8d61efc4a4a4629) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix submenus not reopening when the pointer re-enters the trigger after a hover-off close
+
+- [#339](https://github.com/bazzalabs/ui/pull/339) [`d44a0e3`](https://github.com/bazzalabs/ui/commit/d44a0e3997c0d06081b379156fac19827046d43b) Thanks [@kianbazza](https://github.com/kianbazza)! - Consumer event handlers on `DropdownMenu.Trigger` and `Select.Trigger` now chain with internal handlers instead of replacing them. Opt out of the internal behavior with `event.preventBaseUIHandler()`.
+
 ## 0.1.0-canary.7
 
 ### Patch Changes
