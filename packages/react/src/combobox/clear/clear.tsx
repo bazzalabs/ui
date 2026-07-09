@@ -43,6 +43,7 @@ export const ComboboxClear = React.forwardRef<
     className,
     style,
     onClick,
+    onPointerDown,
     ...rest
   } = props
 
@@ -75,8 +76,9 @@ export const ComboboxClear = React.forwardRef<
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
       event.preventDefault()
+      onPointerDown?.(event)
     },
-    [],
+    [onPointerDown],
   )
 
   const state: ComboboxClear.State = React.useMemo(
