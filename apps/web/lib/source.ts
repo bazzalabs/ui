@@ -16,6 +16,13 @@ export const changelogSource = loader({
 
 export type DocsAudience = 'public' | 'preview' | 'private'
 
+export const DOCS_TIERS = ['components', 'primitives'] as const
+export type DocsTier = (typeof DOCS_TIERS)[number]
+
+function getDocsTiers(page): DocsTier[] | undefined {
+  return page.data?.tiers
+}
+
 function getDocsAudience(page: { data?: { audience?: DocsAudience } }) {
   return page.data?.audience ?? 'public'
 }
@@ -52,12 +59,54 @@ export function getVisibleDocsParams() {
   }))
 }
 
+/**
+ * Resolves a docs *page route* slug.
+ * - `/docs/<tier>/<rest...>` (rest non-empty) → the page at `<rest...>`,
+ *   only if that page declares that tier in frontmatter `tiers`.
+ * - Any other slug → the page at that slug, only if it does NOT declare
+ *   `tiers` (tiered pages are served exclusively at tier-prefixed URLs).
+ * The llms.mdx route intentionally does NOT use this — it serves raw slugs.
+ */
+export function resolveDocsRequest(slug: string[]) {
+  const [first, ...rest] = slug
+  if (first && rest.length > 0 && DOCS_TIERS.includes(first)) {
+    const page = getVisibleDocsPage(rest)
+    if (page && getDocsTiers(page)?.includes(first)) {
+      return { page, tier: first as DocsTier }
+    }
+    return undefined
+  }
+  const page = getVisibleDocsPage(slug)
+  if (!page || getDocsTiers(page)) return undefined
+  return { page, tier: undefined as DocsTier | undefined }
+}
+
+/** Params for the docs *page* route: tiered pages expand to one param per tier, no raw entry. */
+export function getTieredDocsParams() {
+  return getVisibleDocsPages().flatMap((page) => {
+    const tiers = getDocsTiers(page)
+    if (tiers?.length)
+      return tiers.map((tier) => ({ slug: [tier, ...page.slugs] }))
+    return [{ slug: page.slugs }]
+  })
+}
+
 export function getVisibleDocsUrls() {
-  return getVisibleDocsPages().map((page) => page.url)
+  return getVisibleDocsPages().flatMap((page) => {
+    const tiers = getDocsTiers(page)
+    if (tiers?.length)
+      return tiers.map((tier) => `/docs/${tier}/${page.slugs.join('/')}`)
+    return [page.url]
+  })
 }
 
 export function getVisiblePrivateDocsUrls() {
   return getVisibleDocsPages()
     .filter((page) => getDocsAudience(page) === 'private')
-    .map((page) => page.url)
+    .flatMap((page) => {
+      const tiers = getDocsTiers(page)
+      if (tiers?.length)
+        return tiers.map((tier) => `/docs/${tier}/${page.slugs.join('/')}`)
+      return [page.url]
+    })
 }
