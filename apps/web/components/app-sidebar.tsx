@@ -6,11 +6,7 @@ import { cn } from '@/lib/utils'
 import { FadeContainer } from './fade-container'
 import { SidebarBasicsGroup } from './sidebar/basics-group'
 import { SidebarComponentsGroup } from './sidebar/components-group'
-import {
-  archivedComponentItems,
-  basicItems,
-  componentItems,
-} from './sidebar/data'
+import { basicItems, componentItems } from './sidebar/data'
 import { AppSidebarFooter } from './sidebar/footer'
 import { AppSidebarHeader } from './sidebar/header'
 import type { ComponentItem } from './sidebar/types'
@@ -37,10 +33,6 @@ export function AppSidebar({
   const visibleComponentItems = componentItems
     .map((component) => filterComponentItem(component, visibleDocUrlSet))
     .filter((component): component is ComponentItem => component !== null)
-  const visibleArchivedComponentItems = archivedComponentItems
-    .map((component) => filterComponentItem(component, visibleDocUrlSet))
-    .filter((component): component is ComponentItem => component !== null)
-
   return (
     <Sidebar
       variant={variant}
@@ -61,7 +53,6 @@ export function AppSidebar({
           />
           <SidebarComponentsGroup
             items={visibleComponentItems}
-            archivedItems={visibleArchivedComponentItems}
             pathname={pathname}
             privateDocUrls={privateDocUrlSet}
           />

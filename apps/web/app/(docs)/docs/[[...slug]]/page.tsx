@@ -6,8 +6,7 @@ import {
   getVisibleDocsParams,
 } from '@/lib/source'
 import 'rehype-callouts/theme/github'
-import { FlaskConicalIcon, TriangleDashedIcon } from 'lucide-react'
-import Link from 'next/link'
+import { FlaskConicalIcon } from 'lucide-react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ViewMarkdown } from '@/components/view-markdown'
 import { useMDXComponents } from '@/mdx-components'
@@ -37,7 +36,7 @@ export async function generateMetadata({
   }
 
   // Extract component name from slug
-  const componentSlug = slug[0] // 'action-menu' or 'command-menu'
+  const componentSlug = slug[0] // e.g. 'dropdown-menu'
   const componentName = componentSlug
     ? componentSlug
         .split('-')
@@ -119,28 +118,6 @@ const ExperimentalWarning = () => {
   )
 }
 
-const ArchivedWarning = () => {
-  return (
-    <div className="border border-orange-400 dark:border-orange-600 rounded-lg p-4 bg-orange-50 dark:bg-orange-950/20 flex items-center gap-4 mb-8">
-      <div className="translate-y-[-1px]">
-        <TriangleDashedIcon className="text-orange-400 dark:text-orange-600 size-5 stroke-3" />
-      </div>
-      <div className="flex flex-col gap-2">
-        <span className="text-orange-500 text-sm font-[450] leading-none">
-          This component is archived.
-        </span>
-        <p className="text-sm text-primary">
-          These docs are kept for reference. For new work, prefer the current{' '}
-          <Link href="/docs/dropdown-menu" className="underline">
-            Dropdown Menu
-          </Link>{' '}
-          and related menu primitives in `@bazza-ui/react`.
-        </p>
-      </div>
-    </div>
-  )
-}
-
 export default async function Page({
   params,
 }: {
@@ -165,10 +142,7 @@ export default async function Page({
         <SidebarTrigger className="md:hidden fixed top-6 left-6 z-50 bg-secondary drop-shadow-md" />
 
         <div className="flex flex-col gap-4 mb-8 mt-8 w-full">
-          {slug.includes('menu') && !slug.includes('action-menu') && (
-            <ExperimentalWarning />
-          )}
-          {slug.includes('action-menu') && <ArchivedWarning />}
+          {slug.includes('menu') && <ExperimentalWarning />}
           <div className="flex items-end justify-between gap-2">
             <span className="text-5xl font-[550] tracking-[-0.025em]">
               {metadata.title}

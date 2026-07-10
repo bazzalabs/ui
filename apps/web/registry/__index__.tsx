@@ -373,12 +373,6 @@ const createNullComponent = () =>
   React.lazy(() => Promise.resolve({ default: () => null }))
 
 export const ui: RegistryIndex = {
-  'action-menu': {
-    name: 'action-menu',
-    type: 'registry:ui',
-    component: createNullComponent(),
-    files: ['registry/ui/action-menu/index.tsx'],
-  },
   'command-menu': {
     name: 'command-menu',
     type: 'registry:ui',

@@ -11,7 +11,6 @@
       "**",
       "!**/node_modules",
       "!apps/web/app/globals.css",
-      "!packages/action-menu/__e2e_broken",
       "!apps/web/public/r/base"
     ]
   },

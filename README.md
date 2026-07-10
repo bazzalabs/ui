@@ -55,7 +55,7 @@ git push origin canary
 # Use GitHub Actions → "Publish Experimental"
 # Type: canary
 # Packages: select package(s)
-# Install: npm install @bazza-ui/action-menu@canary
+# Install: npm install @bazza-ui/react@canary
 ```
 
 **Snapshot releases** (quick testing):
@@ -63,7 +63,7 @@ git push origin canary
 # Use GitHub Actions → "Publish Experimental"
 # Type: snapshot
 # Packages: select package(s)
-# Install: npm install @bazza-ui/action-menu@snapshot
+# Install: npm install @bazza-ui/react@snapshot
 ```
 
 ### Stable Releases
