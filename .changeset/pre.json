@@ -33,6 +33,7 @@
     "select-anchor-searchable-popups",
     "select-clear-search-after-exit",
     "select-clearable-null-item",
+    "select-close-on-trigger-press",
     "select-indicator-data-highlighted",
     "select-items-keywords-nullable",
     "shaggy-carpets-run",

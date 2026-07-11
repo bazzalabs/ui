@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.9
+
+### Patch Changes
+
+- [#358](https://github.com/bazzalabs/ui/pull/358) [`17040ad`](https://github.com/bazzalabs/ui/commit/17040adffb543fbf0b7f0fe85fa69093d646a051) Thanks [@kianbazza](https://github.com/kianbazza)! - `Select` now closes on trigger press-down (`pointerdown`) instead of waiting for a full click, matching `DropdownMenu`. `Select.Root` also accepts a `closeOnOutsidePress` prop (`'pointerdown'` default, or `'click'`) for parity with the other menu roots.
+
 ## 0.1.0-canary.8
 
 ### Patch Changes
