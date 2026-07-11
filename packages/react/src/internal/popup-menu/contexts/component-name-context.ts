@@ -4,13 +4,14 @@ import * as React from 'react'
 
 /**
  * Component name used for generating bazzaui-* slot attributes.
- * E.g., 'dropdown-menu', 'context-menu', 'select', 'combobox'
+ * E.g., 'dropdown-menu', 'context-menu', 'select', 'combobox', 'command-menu'
  */
 export type ComponentName =
   | 'dropdown-menu'
   | 'context-menu'
   | 'select'
   | 'combobox'
+  | 'command-menu'
 
 export const ComponentNameContext = React.createContext<ComponentName | null>(
   null,
