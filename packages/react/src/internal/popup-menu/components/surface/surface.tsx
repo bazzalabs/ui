@@ -341,8 +341,20 @@ export const PopupMenuSurface = React.forwardRef<
   const dataPopupContext = useMaybeDataPopupContext()
   const setDataSurfaceContext = dataPopupContext?.setDataSurfaceContext
 
+  // Only the popup's root data surface registers into DataPopupContext —
+  // DataSubpagesContent reads this slot to render the root content tree's
+  // subpages. A data-mode Surface nested inside a Subpage of THIS popup
+  // (e.g. an async page passing `asyncContent` per SubpageContentRenderParams)
+  // must not clobber the root registration; it manages its own
+  // DataSurfaceContext. A subpage context inherited across a submenu boundary
+  // (not registered in this popup's stack) still counts as this popup's root
+  // surface — mirrors the isSurfaceActive resolution above.
+  const isSubpageSurfaceInThisPopup = Boolean(
+    subpageContext && subpageStack?.getSurfaceId(subpageContext.pageId),
+  )
+
   React.useEffect(() => {
-    if (!isDataMode || !setDataSurfaceContext) {
+    if (!isDataMode || !setDataSurfaceContext || isSubpageSurfaceInThisPopup) {
       return
     }
 
@@ -353,7 +365,12 @@ export const PopupMenuSurface = React.forwardRef<
         current === dataSurfaceContextValue ? null : current,
       )
     }
-  }, [isDataMode, setDataSurfaceContext, dataSurfaceContextValue])
+  }, [
+    isDataMode,
+    setDataSurfaceContext,
+    dataSurfaceContextValue,
+    isSubpageSurfaceInThisPopup,
+  ])
 
   // Sync consumer-provided ordered items to store
   // This is separate from the config effect since orderedItems changes on each search
