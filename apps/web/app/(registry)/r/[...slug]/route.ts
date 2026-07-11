@@ -17,12 +17,12 @@ const REGISTRY_ROUTE_ALIASES: Record<string, string> = {
 /**
  * GET handler for registry items
  * Supports:
- *   - /r/action-menu
- *   - /r/action-menu.json
- *   - /r/action-menu@canary
- *   - /r/action-menu@canary.json
- *   - /r/action-menu@rc
- *   - /r/action-menu@stable
+ *   - /r/dropdown-menu
+ *   - /r/dropdown-menu.json
+ *   - /r/dropdown-menu@canary
+ *   - /r/dropdown-menu@canary.json
+ *   - /r/dropdown-menu@rc
+ *   - /r/dropdown-menu@stable
  *   - /r/filters/cmdk
  *   - /r/filters/dropdown-menu
  */

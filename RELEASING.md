@@ -57,7 +57,7 @@ This repository uses a dual-branch strategy with [Changesets](https://github.com
 **Installing canary releases:**
 ```bash
 npm install @bazza-ui/filters@canary
-npm install @bazza-ui/action-menu@canary
+npm install @bazza-ui/react@canary
 ```
 
 ### Snapshot Releases (any branch)
@@ -78,7 +78,7 @@ Snapshot releases are temporary testing versions that don't create git commits. 
 **Installing snapshot releases:**
 ```bash
 npm install @bazza-ui/filters@snapshot
-npm install @bazza-ui/action-menu@snapshot
+npm install @bazza-ui/react@snapshot
 ```
 
 ## Important Notes

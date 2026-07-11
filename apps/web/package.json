@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
-    "@bazza-ui/action-menu": "0.1.0-canary.2",
     "@bazza-ui/filters": "workspace:*",
     "@bazza-ui/react": "workspace:*",
     "@hookform/resolvers": "^5.2.2",

@@ -9,9 +9,7 @@ on:
         type: choice
         options:
           - filters
-          - action-menu
-          - both
-        default: "both"
+        default: "filters"
       branch:
         description: "Branch to publish from"
         required: false
@@ -57,32 +55,13 @@ jobs:
           # Only create temporary changeset if none exist
           if [ ! "$(ls -A .changeset/*.md 2>/dev/null | grep -v README)" ]; then
             # Create changeset for selected packages only
-            if [ "${{ inputs.packages }}" = "filters" ]; then
-              cat <<EOF > .changeset/snapshot-release.md
+            cat <<EOF > .changeset/snapshot-release.md
           ---
           "@bazza-ui/filters": patch
           ---
 
           Snapshot release for testing
           EOF
-            elif [ "${{ inputs.packages }}" = "action-menu" ]; then
-              cat <<EOF > .changeset/snapshot-release.md
-          ---
-          "@bazza-ui/action-menu": patch
-          ---
-
-          Snapshot release for testing
-          EOF
-            else
-              cat <<EOF > .changeset/snapshot-release.md
-          ---
-          "@bazza-ui/action-menu": patch
-          "@bazza-ui/filters": patch
-          ---
-
-          Snapshot release for testing
-          EOF
-            fi
           fi
 
       - name: Create snapshot versions
@@ -92,15 +71,7 @@ jobs:
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
 
       - name: Publish snapshot to npm
-        run: |
-          if [ "${{ inputs.packages }}" = "filters" ]; then
-            cd packages/filters && bun publish --tag snapshot
-          elif [ "${{ inputs.packages }}" = "action-menu" ]; then
-            cd packages/action-menu && bun publish --tag snapshot
-          else
-            cd packages/filters && bun publish --tag snapshot
-            cd ../action-menu && bun publish --tag snapshot
-          fi
+        run: cd packages/filters && bun publish --tag snapshot
 
       - name: Summary
         run: |

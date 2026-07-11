@@ -30,10 +30,10 @@ export interface RegistryItem {
 /**
  * Parses a registry slug to extract component name and optional tag
  * Examples:
- *   - "action-menu" → { name: "action-menu", tag: null, hasJsonExtension: false }
- *   - "action-menu.json" → { name: "action-menu", tag: null, hasJsonExtension: true }
- *   - "action-menu@canary" → { name: "action-menu", tag: "canary", hasJsonExtension: false }
- *   - "action-menu@canary.json" → { name: "action-menu", tag: "canary", hasJsonExtension: true }
+ *   - "dropdown-menu" → { name: "dropdown-menu", tag: null, hasJsonExtension: false }
+ *   - "dropdown-menu.json" → { name: "dropdown-menu", tag: null, hasJsonExtension: true }
+ *   - "dropdown-menu@canary" → { name: "dropdown-menu", tag: "canary", hasJsonExtension: false }
+ *   - "dropdown-menu@canary.json" → { name: "dropdown-menu", tag: "canary", hasJsonExtension: true }
  */
 export function parseRegistrySlug(slug: string[]): ParsedRegistrySlug {
   const fullSlug = slug.join('/')
@@ -132,7 +132,7 @@ export function isCustomRegistryItem(name: string): boolean {
  *
  * Example:
  *   - "button" → "button" (standard shadcn component)
- *   - "action-menu" → "https://bazza-ui.com/r/action-menu" (custom component)
+ *   - "dropdown-menu" → "https://bazza-ui.com/r/dropdown-menu" (custom component)
  */
 export function transformRegistryDependencies(
   registryDependencies: string[] | undefined,

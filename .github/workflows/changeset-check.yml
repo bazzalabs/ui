@@ -57,7 +57,7 @@ jobs:
             Or run this in a package directory:
 
             \`\`\`bash
-            cd packages/action-menu
+            cd packages/filters
             bun changeset
             \`\`\`
 
