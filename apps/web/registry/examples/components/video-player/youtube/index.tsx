@@ -12,7 +12,6 @@ import {
   PlayIcon,
   RestartIcon,
   SettingsIcon,
-  SpinnerIcon,
   VolumeHighIcon,
   VolumeMutedIcon,
 } from './icons'

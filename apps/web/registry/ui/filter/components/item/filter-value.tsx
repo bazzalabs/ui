@@ -75,7 +75,7 @@ export interface FilterValueProps<
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
+export const FilterValue = forwardRef<HTMLButtonElement, FilterValueProps>(
   (
     {
       filter: filterProp,
@@ -453,8 +453,6 @@ function FilterValueBooleanDisplay({
   if (!filter || filter.values.length === 0) return null
   return <span>{column.toggledStateName}</span>
 }
-
-export { FilterValue }
 
 export namespace FilterValue {
   export type Props<

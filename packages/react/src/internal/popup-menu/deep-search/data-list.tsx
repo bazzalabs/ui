@@ -420,6 +420,7 @@ function AsyncLoaderResultHandler({
   // TanStack Query creates new object references on every render, but we only want
   // to trigger updates when actual values change.
   // Using coordinatorRef prevents re-running when coordinator context changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally field-granular — the result object has a new identity every render (see comment above)
   React.useEffect(() => {
     const coord = coordinatorRef.current
     if (!coord) return
@@ -481,7 +482,7 @@ function AsyncLoaderResultHandler({
     result.hasData,
     result.hasFetched,
     result.error,
-  ]) // eslint-disable-line react-hooks/exhaustive-deps
+  ])
 
   return null
 }

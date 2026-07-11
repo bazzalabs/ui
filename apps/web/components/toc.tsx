@@ -24,7 +24,7 @@ export function DashboardTableOfContents({ toc }: TocProps) {
     [toc],
   )
   const activeHeading = useActiveItem(itemIds)
-  const mounted = useMounted()
+  useMounted()
 
   if (!toc?.items?.length) {
     return null
@@ -48,7 +48,6 @@ function useActiveItem(itemIds: string[]) {
   React.useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        // biome-ignore lint/complexity/noForEach: <explanation>
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setActiveId(entry.target.id)
@@ -58,7 +57,6 @@ function useActiveItem(itemIds: string[]) {
       { rootMargin: '0% 0% -80% 0%' },
     )
 
-    // biome-ignore lint/complexity/noForEach: <explanation>
     itemIds?.forEach((id) => {
       const element = document.getElementById(id)
       if (element) {
@@ -67,7 +65,6 @@ function useActiveItem(itemIds: string[]) {
     })
 
     return () => {
-      // biome-ignore lint/complexity/noForEach: <explanation>
       itemIds?.forEach((id) => {
         const element = document.getElementById(id)
         if (element) {
@@ -91,7 +88,7 @@ function Tree({ tree, level = 1, activeItem }: TreeProps) {
     <ul className={cn('m-0 list-none text-sm', { 'pl-4': level !== 1 })}>
       {tree.items.map((item, index) => {
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          // biome-ignore lint/suspicious/noArrayIndexKey: table-of-contents entries do not have stable IDs
           <li key={index} className={cn('mt-0 pt-2')}>
             <a
               href={item.url}

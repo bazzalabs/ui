@@ -275,12 +275,12 @@ const CustomCaretInput = React.forwardRef<
       document.removeEventListener('selectionchange', handleSelectionChange)
   }, [updateCaretPositions])
 
-  const valueFromProps = inputProps.value
+  const _valueFromProps = inputProps.value
   React.useEffect(() => {
     requestAnimationFrame(() => {
       updateCaretPositions()
     })
-  }, [valueFromProps, updateCaretPositions])
+  }, [updateCaretPositions])
 
   const handleFocus = React.useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
@@ -625,7 +625,7 @@ function usePlayground() {
 // ============================================================================
 
 function TOCSidebar() {
-  const { activeDemo, setActiveDemo, setConfigContent } = usePlayground()
+  const { activeDemo } = usePlayground()
 
   const scrollToDemo = (demoId: string) => {
     const element = document.getElementById(demoId)
@@ -1439,7 +1439,7 @@ function CheckboxItemsDemo() {
                     {useStyledCheckbox && (
                       <DropdownMenu.CheckboxItemIndicator
                         keepMounted
-                        render={(props, state) => (
+                        render={(_props, state) => (
                           <Checkbox
                             checked={state.checked}
                             tabIndex={-1}
@@ -1466,7 +1466,7 @@ function CheckboxItemsDemo() {
                     {useStyledCheckbox && (
                       <DropdownMenu.CheckboxItemIndicator
                         keepMounted
-                        render={(props, state) => (
+                        render={(_props, state) => (
                           <Checkbox
                             checked={state.checked}
                             tabIndex={-1}
@@ -1493,7 +1493,7 @@ function CheckboxItemsDemo() {
                     {useStyledCheckbox && (
                       <DropdownMenu.CheckboxItemIndicator
                         keepMounted
-                        render={(props, state) => (
+                        render={(_props, state) => (
                           <Checkbox
                             checked={state.checked}
                             tabIndex={-1}
@@ -1631,7 +1631,6 @@ function SubmenusDemo() {
 
 import { commandScore } from '@bazza-ui/react/dropdown-menu'
 import {
-  ArrowLeftIcon,
   ArrowUpDownIcon,
   BellIcon,
   BugIcon,
@@ -2819,7 +2818,7 @@ function DeepSearchDemo() {
             >
               <DropdownMenu.CheckboxItemIndicator
                 keepMounted
-                render={(props, state) => (
+                render={(_props, state) => (
                   <Checkbox
                     checked={state.checked}
                     tabIndex={-1}
@@ -2861,7 +2860,7 @@ function DeepSearchDemo() {
             >
               <DropdownMenu.CheckboxItemIndicator
                 keepMounted
-                render={(props, state) => (
+                render={(_props, state) => (
                   <Checkbox
                     checked={state.checked}
                     tabIndex={-1}
@@ -2903,7 +2902,7 @@ function DeepSearchDemo() {
             >
               <DropdownMenu.CheckboxItemIndicator
                 keepMounted
-                render={(props, state) => (
+                render={(_props, state) => (
                   <Checkbox
                     checked={state.checked}
                     tabIndex={-1}
@@ -2945,7 +2944,7 @@ function DeepSearchDemo() {
             >
               <DropdownMenu.CheckboxItemIndicator
                 keepMounted
-                render={(props, state) => (
+                render={(_props, state) => (
                   <Checkbox
                     checked={state.checked}
                     tabIndex={-1}
@@ -2987,7 +2986,7 @@ function DeepSearchDemo() {
             >
               <DropdownMenu.CheckboxItemIndicator
                 keepMounted
-                render={(props, state) => (
+                render={(_props, state) => (
                   <Checkbox
                     checked={state.checked}
                     tabIndex={-1}
@@ -3378,183 +3377,193 @@ function DeepSearchGroupsDemo() {
   const [sortGroups, setSortGroups] = React.useState(true)
 
   // Helper to create an item node with consistent styling
-  const createItem = ({
-    id,
-    label,
-    icon,
-    keywords,
-  }: {
-    id: string
-    label: string
-    icon?: React.ReactNode
-    keywords?: string[]
-  }): ItemDef => ({
-    kind: 'item',
-    id,
-    value: label,
-    keywords,
-    onSelect: () => toast(`Selected: ${label}`),
-    render: ({ props, context }: ItemRenderParams) => (
-      <DropdownMenu.Item
-        {...props}
-        key={id}
-        value={id}
-        className={cn(
-          'group/row flex items-center gap-2 text-sm select-none w-full',
-          'py-1.5 px-3 relative z-[1]',
-          'data-[highlighted]:text-accent-foreground',
-          'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
-          'data-[highlighted]:before:bg-accent',
-        )}
-      >
-        {icon && (
-          <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
-            {icon}
-          </span>
-        )}
-        <span className="flex-1">{label}</span>
-        {context.isDeepSearchResult && context.breadcrumbs.length > 0 && (
-          <span className="text-xs text-muted-foreground ml-2">
-            {context.breadcrumbs.join(' > ')}
-          </span>
-        )}
-      </DropdownMenu.Item>
-    ),
-  })
-
-  // Helper to create a group with custom rendering
-  const createGroup = ({
-    id,
-    label,
-    nodes,
-  }: {
-    id: string
-    label: string
-    nodes: NodeDef[]
-  }): GroupDef => ({
-    kind: 'group',
-    id,
-    label,
-    nodes,
-    render: ({ context, children }: GroupRenderParams) => (
-      <div key={id} className="py-1">
-        <div className="px-3 py-1 flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {label}
-          </span>
-          {context.search && (
-            <span className="text-[10px] text-muted-foreground/60">
-              ({context.matchCount} match{context.matchCount !== 1 ? 'es' : ''})
-            </span>
+  const createItem = React.useCallback(
+    ({
+      id,
+      label,
+      icon,
+      keywords,
+    }: {
+      id: string
+      label: string
+      icon?: React.ReactNode
+      keywords?: string[]
+    }): ItemDef => ({
+      kind: 'item',
+      id,
+      value: label,
+      keywords,
+      onSelect: () => toast(`Selected: ${label}`),
+      render: ({ props, context }: ItemRenderParams) => (
+        <DropdownMenu.Item
+          {...props}
+          key={id}
+          value={id}
+          className={cn(
+            'group/row flex items-center gap-2 text-sm select-none w-full',
+            'py-1.5 px-3 relative z-[1]',
+            'data-[highlighted]:text-accent-foreground',
+            'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
+            'data-[highlighted]:before:bg-accent',
           )}
-          {context.isDeepSearchResult && context.breadcrumbs.length > 0 && (
-            <span className="text-[10px] text-muted-foreground/60 ml-auto">
-              in {context.breadcrumbs.join(' > ')}
-            </span>
-          )}
-        </div>
-        {children}
-      </div>
-    ),
-  })
-
-  // Helper to create a submenu
-  const createSubmenu = ({
-    id,
-    title,
-    icon,
-    nodes,
-    inputPlaceholder,
-  }: {
-    id: string
-    title: string
-    icon: React.ReactNode
-    nodes: NodeDef[]
-    inputPlaceholder?: string
-  }): SubmenuDef => ({
-    kind: 'submenu',
-    id,
-    value: title,
-    nodes,
-    render: ({
-      context,
-      nodes: childNodes,
-      renderNode,
-    }: SubmenuRenderParams) => {
-      if (context.isDeepSearchResult) {
-        return null // Don't render submenu triggers when surfaced
-      }
-      return (
-        <DropdownMenu.Submenu key={id}>
-          <DropdownMenu.SubmenuTrigger
-            value={id}
-            className={cn(
-              'group/row flex items-center gap-2 text-sm select-none w-full',
-              'py-1.5 px-3 relative z-[1]',
-              'data-[highlighted]:text-accent-foreground',
-              'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
-              'data-[highlighted]:before:bg-accent',
-            )}
-          >
+        >
+          {icon && (
             <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
               {icon}
             </span>
-            <span className="flex-1">{title}</span>
-            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground transition-colors duration-50 ease-out" />
-          </DropdownMenu.SubmenuTrigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner
-              side="right"
-              sideOffset={-2}
-              align="list-start"
+          )}
+          <span className="flex-1">{label}</span>
+          {context.isDeepSearchResult && context.breadcrumbs.length > 0 && (
+            <span className="text-xs text-muted-foreground ml-2">
+              {context.breadcrumbs.join(' > ')}
+            </span>
+          )}
+        </DropdownMenu.Item>
+      ),
+    }),
+    [],
+  )
+
+  // Helper to create a group with custom rendering
+  const createGroup = React.useCallback(
+    ({
+      id,
+      label,
+      nodes,
+    }: {
+      id: string
+      label: string
+      nodes: NodeDef[]
+    }): GroupDef => ({
+      kind: 'group',
+      id,
+      label,
+      nodes,
+      render: ({ context, children }: GroupRenderParams) => (
+        <div key={id} className="py-1">
+          <div className="px-3 py-1 flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {label}
+            </span>
+            {context.search && (
+              <span className="text-[10px] text-muted-foreground/60">
+                ({context.matchCount} match
+                {context.matchCount !== 1 ? 'es' : ''})
+              </span>
+            )}
+            {context.isDeepSearchResult && context.breadcrumbs.length > 0 && (
+              <span className="text-[10px] text-muted-foreground/60 ml-auto">
+                in {context.breadcrumbs.join(' > ')}
+              </span>
+            )}
+          </div>
+          {children}
+        </div>
+      ),
+    }),
+    [],
+  )
+
+  // Helper to create a submenu
+  const createSubmenu = React.useCallback(
+    ({
+      id,
+      title,
+      icon,
+      nodes,
+      inputPlaceholder,
+    }: {
+      id: string
+      title: string
+      icon: React.ReactNode
+      nodes: NodeDef[]
+      inputPlaceholder?: string
+    }): SubmenuDef => ({
+      kind: 'submenu',
+      id,
+      value: title,
+      nodes,
+      render: ({
+        context,
+        nodes: childNodes,
+        renderNode,
+      }: SubmenuRenderParams) => {
+        if (context.isDeepSearchResult) {
+          return null // Don't render submenu triggers when surfaced
+        }
+        return (
+          <DropdownMenu.Submenu key={id}>
+            <DropdownMenu.SubmenuTrigger
+              value={id}
+              className={cn(
+                'group/row flex items-center gap-2 text-sm select-none w-full',
+                'py-1.5 px-3 relative z-[1]',
+                'data-[highlighted]:text-accent-foreground',
+                'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
+                'data-[highlighted]:before:bg-accent',
+              )}
             >
-              <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden *:transition-[opacity] *:ease-out *:duration-150 *:opacity-100 data-[open]:not-data-[focused]:not-data-[has-open-submenu]:*:opacity-65">
-                <DropdownMenu.Surface>
-                  <DropdownMenu.Input
-                    hideUntilActive
-                    placeholder={
-                      inputPlaceholder ?? `Search ${title.toLowerCase()}...`
-                    }
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-10 px-3 border-b border-border caret-blue-500"
-                  />
-                  <ScrollArea.Root>
-                    <ScrollArea.Viewport
-                      className={cn(
-                        'max-h-[300px] scroll-py-1',
-                        // Gradient fade effect
-                        'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
-                        'before:block after:block',
-                        'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
-                        'before:w-full after:w-full before:z-10 after:z-10',
-                        'before:overscroll-contain after:overscroll-contain',
-                        'before:pointer-events-none after:pointer-events-none',
-                        'before:bg-gradient-to-b before:from-popover before:to-transparent',
-                        'after:bg-gradient-to-t after:from-popover after:to-transparent',
-                        'before:h-[min(24px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(24px,var(--scroll-area-overflow-y-end,24px))]',
-                      )}
-                    >
-                      <DropdownMenu.List
-                        className="py-1 focus:outline-none"
-                        render={<ScrollArea.Content />}
+              <span className="min-h-4 min-w-4 flex items-center justify-center shrink-0">
+                {icon}
+              </span>
+              <span className="flex-1">{title}</span>
+              <CaretRightIcon className="size-4 shrink-0 text-muted-foreground/50 group-data-[popup-open]/row:text-muted-foreground group-data-[popup-open]/row:group-data-[popup-focused]/row:text-foreground transition-colors duration-50 ease-out" />
+            </DropdownMenu.SubmenuTrigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner
+                side="right"
+                sideOffset={-2}
+                align="list-start"
+              >
+                <DropdownMenu.Popup className="min-w-[200px] rounded-lg border border-border bg-popover shadow-lg overflow-hidden *:transition-[opacity] *:ease-out *:duration-150 *:opacity-100 data-[open]:not-data-[focused]:not-data-[has-open-submenu]:*:opacity-65">
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.Input
+                      hideUntilActive
+                      placeholder={
+                        inputPlaceholder ?? `Search ${title.toLowerCase()}...`
+                      }
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 focus:placeholder:text-muted-foreground min-h-10 px-3 border-b border-border caret-blue-500"
+                    />
+                    <ScrollArea.Root>
+                      <ScrollArea.Viewport
+                        className={cn(
+                          'max-h-[300px] scroll-py-1',
+                          // Gradient fade effect
+                          'before:[--scroll-area-overflow-y-start:inherit] after:[--scroll-area-overflow-y-end:inherit]',
+                          'before:block after:block',
+                          'before:absolute after:absolute before:left-0 after:left-0 before:top-0 after:bottom-0',
+                          'before:w-full after:w-full before:z-10 after:z-10',
+                          'before:overscroll-contain after:overscroll-contain',
+                          'before:pointer-events-none after:pointer-events-none',
+                          'before:bg-gradient-to-b before:from-popover before:to-transparent',
+                          'after:bg-gradient-to-t after:from-popover after:to-transparent',
+                          'before:h-[min(24px,var(--scroll-area-overflow-y-start,0px))] after:h-[min(24px,var(--scroll-area-overflow-y-end,24px))]',
+                        )}
                       >
-                        {childNodes.map(renderNode)}
-                      </DropdownMenu.List>
-                    </ScrollArea.Viewport>
-                    <ScrollArea.Scrollbar
-                      orientation="vertical"
-                      className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
-                    >
-                      <ScrollArea.Thumb className="relative flex-1 rounded-full bg-border" />
-                    </ScrollArea.Scrollbar>
-                  </ScrollArea.Root>
-                </DropdownMenu.Surface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Submenu>
-      )
-    },
-  })
+                        <DropdownMenu.List
+                          className="py-1 focus:outline-none"
+                          render={<ScrollArea.Content />}
+                        >
+                          {childNodes.map(renderNode)}
+                        </DropdownMenu.List>
+                      </ScrollArea.Viewport>
+                      <ScrollArea.Scrollbar
+                        orientation="vertical"
+                        className="flex w-2 touch-none select-none p-0.5 transition-opacity duration-150 data-[hovering]:opacity-100 data-[scrolling]:opacity-100 opacity-0"
+                      >
+                        <ScrollArea.Thumb className="relative flex-1 rounded-full bg-border" />
+                      </ScrollArea.Scrollbar>
+                    </ScrollArea.Root>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Submenu>
+        )
+      },
+    }),
+    [],
+  )
 
   // Build menu content with groups at multiple depths
   const content: NodeDef[] = React.useMemo(() => {
@@ -3737,7 +3746,11 @@ function DeepSearchGroupsDemo() {
       { kind: 'separator' as const, id: 'separator-2' },
       helpItem,
     ]
-  }, [])
+  }, [
+    createGroup,
+    createItem, // Level 3: Advanced settings submenu with groups
+    createSubmenu,
+  ])
 
   const config = (
     <>
@@ -4114,7 +4127,7 @@ function DeepSearchStatefulDemo() {
         >
           <DropdownMenu.CheckboxItemIndicator
             keepMounted
-            render={(indicatorProps, state) => (
+            render={(_indicatorProps, state) => (
               <Checkbox
                 checked={state.checked}
                 tabIndex={-1}

@@ -25,7 +25,7 @@ export interface FilterListProps<TData = unknown>
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
+export const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
   ({ className, children, ...props }, ref) => {
     const { filters, columns } = useFilterContext()
 
@@ -84,8 +84,6 @@ const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
 )
 
 FilterList.displayName = 'FilterList'
-
-export { FilterList }
 
 export namespace FilterList {
   export type Props<TData = unknown> = FilterListProps<TData>

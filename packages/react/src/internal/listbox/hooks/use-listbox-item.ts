@@ -223,6 +223,7 @@ export function useListboxItem(
   // Infer value from textContent if not provided
   const [inferredValue, setInferredValue] = React.useState<string>('')
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(children): children is an intentional trigger dep — re-infer the value from textContent when content changes
   React.useLayoutEffect(() => {
     if (idProp === undefined && valueProp === undefined && ref.current) {
       const textContent = ref.current.textContent?.trim() ?? ''
@@ -252,6 +253,7 @@ export function useListboxItem(
     : undefined
 
   // Register item with store (using registrationId as the unique identifier)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsKey is a stable by-value stand-in for normalizedKeywords — depending on the array itself (new identity every render) causes an infinite register/recompute loop
   React.useEffect(() => {
     if (!registrationId && !forceMount) return
 
@@ -268,7 +270,6 @@ export function useListboxItem(
     })
 
     return unregister
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keywordsKey is a stable representation of keywords
   }, [
     registrationId,
     keywordsKey,

@@ -90,7 +90,7 @@ const scenarios = Object.entries({
 }) as [string, FiltersState][]
 
 describe.each(datasets)('Dataset size: %s', (sizeKey, dataset) => {
-  const humanCount = BENCHMARK_SIZES[sizeKey].toLocaleString()
+  const _humanCount = BENCHMARK_SIZES[sizeKey].toLocaleString()
 
   describe.each(scenarios)('%s', (scenarioName, filters) => {
     bench(`${scenarioName}`, () => {

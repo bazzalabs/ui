@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
 import { AssigneeAvatar, FilterIcon, LabelDot, MenuLabel } from './components'
 import {
-  AIFilterIcon,
   AssigneeIcon,
   LabelsIcon,
   ProjectLeadIcon,

@@ -1,10 +1,8 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import {
-  type ChangeEventDetails,
   createChangeEventDetails,
   createGenericEventDetails,
-  type GenericEventDetails,
   REASONS,
 } from '../../../utils/events/index.js'
 import {

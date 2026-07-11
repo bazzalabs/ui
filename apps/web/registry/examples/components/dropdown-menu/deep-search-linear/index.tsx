@@ -15,7 +15,6 @@ import {
 } from './components'
 import {
   AssigneeIcon,
-  DurationIcon,
   LabelsIcon,
   ProjectLeadIcon,
   ProjectPriority,
@@ -153,7 +152,7 @@ function buildMenuContent(): NodeDef[] {
     { inputPlaceholder: 'Labels...' },
   )
 
-  const aiFilterSubpage = createSubpageNode(
+  const _aiFilterSubpage = createSubpageNode(
     'ai-filter',
     'AI Filter',
     <AIFilterIcon />,

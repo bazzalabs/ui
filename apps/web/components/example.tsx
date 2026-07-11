@@ -1,7 +1,7 @@
 import { cache, type ReactNode } from 'react'
 import { codeToHtml } from 'shiki'
 import { oscuraMidnight } from '@/lib/oscura/oscura-midnight'
-import { transformRegistryPaths } from '@/lib/registry'
+import { type RegistryTier, transformRegistryPaths } from '@/lib/registry'
 import { getRegistryEntrySources } from '@/lib/registry.server'
 import {
   ExampleClient,
@@ -14,6 +14,12 @@ export interface ExampleProps {
    * The name of the registry item to preview
    */
   name: string
+  /**
+   * Docs tier to resolve the example against. Tiered docs pages bind this
+   * automatically via `useMDXComponents(tier)`; the other tier is used as a
+   * fallback when no tier-specific variant exists.
+   */
+  tier?: RegistryTier
   /**
    * Additional class names for the container
    */
@@ -49,13 +55,14 @@ export interface ExampleProps {
  */
 async function ExampleRoot({
   name,
+  tier,
   className,
   align = 'center',
   transformPaths = true,
   children,
 }: ExampleProps) {
   // Fetch and highlight all source files
-  const sources = await getRegistryEntrySources(name)
+  const sources = await getRegistryEntrySources(name, tier)
 
   const processedSources = await Promise.all(
     sources.map(async (source) => {
@@ -82,6 +89,7 @@ async function ExampleRoot({
   return (
     <ExampleClient
       name={name}
+      tier={tier}
       className={className}
       align={align}
       fileNames={fileNames}

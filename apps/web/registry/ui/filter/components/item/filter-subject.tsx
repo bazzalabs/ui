@@ -26,7 +26,7 @@ export interface FilterSubjectProps<
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterSubject = forwardRef<HTMLSpanElement, FilterSubjectProps>(
+export const FilterSubject = forwardRef<HTMLSpanElement, FilterSubjectProps>(
   (
     { column: columnProp, entityName: entityNameProp, className, ...props },
     ref,
@@ -74,8 +74,6 @@ const FilterSubject = forwardRef<HTMLSpanElement, FilterSubjectProps>(
 )
 
 FilterSubject.displayName = 'FilterSubject'
-
-export { FilterSubject }
 
 export namespace FilterSubject {
   export type Props<

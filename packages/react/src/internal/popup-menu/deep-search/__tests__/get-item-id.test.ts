@@ -2,16 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import type {
   BreadcrumbNode,
   CheckboxItemDef,
-  DisplayGroupNode,
-  DisplayNode,
-  DisplayRadioGroupNode,
   DisplayRowNode,
-  DisplaySeparatorNode,
   GetQualifiedRowIdContext,
   GetQualifiedRowIdFn,
-  GroupDef,
   ItemDef,
-  RadioGroupDef,
   RowRenderContext,
   SubmenuDef,
 } from '../types.js'
@@ -79,7 +73,7 @@ function createRowRenderContext(
   }
 }
 
-function createDisplayRowNode(
+function _createDisplayRowNode(
   node: ItemDef | CheckboxItemDef | SubmenuDef,
   contextOverrides: Partial<RowRenderContext> = {},
   radioGroup?: { id: string; label?: string },

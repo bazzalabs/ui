@@ -1,9 +1,6 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { NavBar } from '@/components/nav-bar'
-import logoSrc from '@/public/bazzaui-v3-color.png'
 import { MenuPlayground } from './menu-playground'
 
 export default function Page() {

@@ -14,6 +14,7 @@ import { TypeReference } from '@/components/type-reference'
 import { TypeSignature } from '@/components/type-signature'
 import { TypeTable } from '@/components/type-table'
 import { StateTableAuto, TypeTableAuto } from '@/components/type-table-auto'
+import type { RegistryTier } from '@/lib/registry'
 import { cn } from '@/lib/utils'
 import CodeInline from './components/code-inline'
 import {
@@ -29,7 +30,7 @@ import ComponentCode from './components/component-code'
 import { ComponentFrame } from './components/component-frame'
 import { ComponentPreview } from './components/component-preview'
 import { ComponentsList } from './components/components-list'
-import { Example } from './components/example'
+import { Example, type ExampleProps } from './components/example'
 import { Media } from './components/media'
 import PropRow from './components/prop-row'
 import { PropsTable } from './components/props-table'
@@ -373,14 +374,28 @@ const components = {
   CodeBlockTab,
 } satisfies MDXComponents
 
-export function useMDXComponents(
-  tier?: 'components' | 'primitives',
-): MDXComponents {
+/**
+ * Binds the page's docs tier into `<Example>` so tiered pages resolve
+ * tier-specific example variants automatically (with cross-tier fallback),
+ * while preserving the compound statics (`Example.PreviewCode`, etc.).
+ */
+function createTierExample(tier: RegistryTier) {
+  return Object.assign(
+    (props: ExampleProps) => <Example tier={tier} {...props} />,
+    {
+      PreviewCode: Example.PreviewCode,
+      PreviewComponent: Example.PreviewComponent,
+    },
+  )
+}
+
+export function useMDXComponents(tier?: RegistryTier): MDXComponents {
   return {
     ...components,
-    ComponentsOnly: ({ children }: { children?: React.ReactNode }) =>
-      tier === undefined || tier === 'components' ? <>{children}</> : null,
-    PrimitivesOnly: ({ children }: { children?: React.ReactNode }) =>
-      tier === undefined || tier === 'primitives' ? <>{children}</> : null,
+    ...(tier ? { Example: createTierExample(tier) } : null),
+    ComponentOnly: ({ children }: { children?: React.ReactNode }) =>
+      tier === undefined || tier === 'components' ? children : null,
+    PrimitiveOnly: ({ children }: { children?: React.ReactNode }) =>
+      tier === undefined || tier === 'primitives' ? children : null,
   } as any
 }

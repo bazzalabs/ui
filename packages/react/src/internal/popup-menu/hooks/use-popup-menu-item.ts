@@ -58,7 +58,7 @@ export function usePopupMenuItem(
 
   // Handle after-select behavior (close menu if closeOnClick is true)
   const handleAfterSelect = React.useCallback(
-    (itemId: string) => {
+    (_itemId: string) => {
       if (closeOnClick) {
         closeAll()
       }

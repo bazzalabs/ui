@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { getRegistryComponent } from '@/lib/registry'
+import { getRegistryComponent, type RegistryTier } from '@/lib/registry'
 import { cn } from '@/lib/utils'
 import {
   Collapsible,
@@ -26,6 +26,10 @@ export interface ExampleClientProps {
    * The name of the registry item to preview
    */
   name: string
+  /**
+   * Docs tier to resolve the example against (falls back to the other tier)
+   */
+  tier?: RegistryTier
   /**
    * Additional class names for the container
    */
@@ -121,6 +125,7 @@ export const ExamplePreviewComponentContent =
 
 export function ExampleClient({
   name,
+  tier,
   className,
   align = 'center',
   fileNames,
@@ -131,7 +136,10 @@ export function ExampleClient({
   const [isOpen, setIsOpen] = useState(false)
   const [isStuck, setIsStuck] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const Component = useMemo(() => getRegistryComponent(name), [name])
+  const Component = useMemo(
+    () => getRegistryComponent(name, tier),
+    [name, tier],
+  )
 
   // Parse compound children to extract previewCode and previewComponent
   const { previewCode, previewComponent } = useMemo(() => {

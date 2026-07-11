@@ -1,7 +1,6 @@
 import { useForm as useTanStackForm } from '@tanstack/react-form'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import * as React from 'react'
 import { Controller, useForm as useReactHookForm } from 'react-hook-form'
 import { describe, expect, it, vi } from 'vitest'
 import { Select } from '../index.js'
@@ -280,7 +279,7 @@ describe('Select + React Hook Form', () => {
     })
 
     it('renders multiple hidden inputs for multi-select', async () => {
-      const user = userEvent.setup()
+      const _user = userEvent.setup()
       const onSubmit = vi.fn()
       render(
         <ReactHookFormMultiSelect

@@ -12,10 +12,7 @@ import {
 import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
 import { ListboxStore, type VirtualItem } from '../../listbox/index.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
-import type {
-  HighlightChangeReason,
-  PopupMenuOpenChangeReason,
-} from '../events.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { OpenChainStore } from '../store/OpenChainStore.js'
 

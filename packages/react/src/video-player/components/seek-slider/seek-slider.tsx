@@ -378,7 +378,7 @@ export interface SeekSliderTrackRenderProps {
   style: React.CSSProperties
 }
 
-export type SeekSliderTrackState = {}
+export type SeekSliderTrackState = Record<string, never>
 
 export const SeekSliderTrack = React.forwardRef<
   React.ComponentRef<typeof Slider.Track>,
@@ -501,7 +501,7 @@ export interface SeekSliderThumbRenderProps {
   style: React.CSSProperties
 }
 
-export type SeekSliderThumbState = {}
+export type SeekSliderThumbState = Record<string, never>
 
 export const SeekSliderThumb = React.forwardRef<
   React.ComponentRef<typeof Slider.Thumb>,

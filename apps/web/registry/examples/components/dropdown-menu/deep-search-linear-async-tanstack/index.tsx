@@ -1,6 +1,6 @@
 'use client'
 
-import { createQueryLoader, createStaticLoader } from '@bazza-ui/react/adapters'
+import { createQueryLoader } from '@bazza-ui/react/adapters'
 import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'

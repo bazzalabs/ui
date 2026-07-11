@@ -570,7 +570,7 @@ describe('PopupMenuPositioner', () => {
 
         // The style should NOT have transition: none after measurement
         // (transition: none is only applied during the measurement phase)
-        const style = window.getComputedStyle(positioner)
+        const _style = window.getComputedStyle(positioner)
         // Note: We can't directly test for the absence of inline transition:none
         // since it's removed after measurement, but we can verify the element is rendered correctly
         expect(positioner).toBeInTheDocument()

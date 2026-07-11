@@ -1,7 +1,7 @@
 /**
  * Registry Index
  *
- * Auto-generated file that exports all registry components with React.lazy()
+ * Hand-maintained index that exports all registry components with React.lazy()
  * for code-splitting. This enables preview components to dynamically load
  * examples without bundling them all upfront.
  *
@@ -9,6 +9,18 @@
  * - registry:example - Example components demonstrating usage
  * - registry:block - Full-page block demos
  * - registry:ui - UI component wrappers (not rendered directly)
+ *
+ * Examples are organized by tier, mirroring the filesystem:
+ *
+ *   examples.components['dropdown-menu'].basic
+ *   → registry/examples/components/dropdown-menu/basic/index.tsx
+ *
+ *   examples.primitives['dropdown-menu'].basic   (future)
+ *   → registry/examples/primitives/dropdown-menu/basic/index.tsx
+ *
+ * The public name (used by `<Example name="..." />` in MDX) is derived as
+ * `{group}-{key}` (e.g. `dropdown-menu-basic`) unless overridden, so the same
+ * name can resolve to a different variant per docs tier.
  */
 
 import * as React from 'react'
@@ -17,9 +29,13 @@ import * as React from 'react'
 // Types
 // =============================================================================
 
+export type RegistryTier = 'components' | 'primitives'
+
 export interface RegistryEntry {
   name: string
   type: 'registry:example' | 'registry:block' | 'registry:ui'
+  /** Docs tier this entry belongs to (examples only) */
+  tier?: RegistryTier
   component: React.LazyExoticComponent<React.ComponentType<unknown>>
   files: string[]
 }
@@ -27,321 +43,291 @@ export interface RegistryEntry {
 export type RegistryIndex = Record<string, RegistryEntry>
 
 // =============================================================================
-// Examples
+// Example authoring helpers
 // =============================================================================
 //
-// Examples can be structured in two ways:
+// Standard example (folder with index.tsx), 1 line:
 //
-// 1. Single file (flat):
-//    registry/examples/dropdown-menu-basic.tsx
-//    files: ['registry/examples/dropdown-menu-basic.tsx']
+//   basic: ex(() => import('@/registry/examples/components/dropdown-menu/basic')),
 //
-// 2. Multi-file (folder):
-//    registry/examples/dropdown-menu-complex/index.tsx
-//    registry/examples/dropdown-menu-complex/data.ts
-//    files: [
-//      'registry/examples/dropdown-menu-complex/index.tsx',
-//      'registry/examples/dropdown-menu-complex/data.ts',
-//    ]
+// Multi-file example — extra files are relative to the example directory and
+// shown as tabs in the code viewer, after index.tsx:
 //
-// The first file in the `files` array is used as the main component to render.
-// All files are shown as tabs in the code viewer.
+//   search: ex(
+//     () => import('@/registry/examples/components/dropdown-menu/search'),
+//     { extraFiles: ['data.ts'] },
+//   ),
+//
+// Irregular entries (flat files, custom public names) can override `name` and
+// `files` (paths relative to `registry/examples/{tier}/`).
+//
+// The `import()` specifier must stay a static string literal so the bundler
+// can code-split each example into its own chunk.
 
-export const examples: RegistryIndex = {
-  'dropdown-menu-basic': {
-    name: 'dropdown-menu-basic',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/basic'),
-    ),
-    files: ['registry/examples/dropdown-menu/basic/index.tsx'],
-  },
-  'dropdown-menu-close-on-click': {
-    name: 'dropdown-menu-close-on-click',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/close-on-click'),
-    ),
-    files: ['registry/examples/dropdown-menu/close-on-click/index.tsx'],
-  },
-  'dropdown-menu-hidden-input': {
-    name: 'dropdown-menu-hidden-input',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/hidden-input'),
-    ),
-    files: ['registry/examples/dropdown-menu/hidden-input/index.tsx'],
-  },
-  'dropdown-menu-checkbox': {
-    name: 'dropdown-menu-checkbox',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/checkbox'),
-    ),
-    files: ['registry/examples/dropdown-menu/checkbox/index.tsx'],
-  },
-  'dropdown-menu-radio': {
-    name: 'dropdown-menu-radio',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/radio'),
-    ),
-    files: ['registry/examples/dropdown-menu/radio/index.tsx'],
-  },
-  'dropdown-menu-submenu': {
-    name: 'dropdown-menu-submenu',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/submenu'),
-    ),
-    files: ['registry/examples/dropdown-menu/submenu/index.tsx'],
-  },
-  'dropdown-menu-subpage-linear': {
-    name: 'dropdown-menu-subpage-linear',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/subpage-linear'),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/subpage-linear/index.tsx',
-      'registry/examples/dropdown-menu/subpage-linear/components.tsx',
-      'registry/examples/dropdown-menu/subpage-linear/icons.tsx',
-    ],
-  },
-  'dropdown-menu-subpage': {
-    name: 'dropdown-menu-subpage',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/subpage'),
-    ),
-    files: ['registry/examples/dropdown-menu/subpage/index.tsx'],
-  },
-  'dropdown-menu-linear-subpage-label-creation': {
-    name: 'dropdown-menu-linear-subpage-label-creation',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import(
-          '@/registry/examples/dropdown-menu/linear-subpage-label-creation'
-        ),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/linear-subpage-label-creation/index.tsx',
-    ],
-  },
-  'dropdown-menu-search': {
-    name: 'dropdown-menu-search',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/search'),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/search/index.tsx',
-      'registry/examples/dropdown-menu/search/data.ts',
-    ],
-  },
-  'dropdown-menu-deep-search': {
-    name: 'dropdown-menu-deep-search',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/deep-search'),
-    ),
-    files: ['registry/examples/dropdown-menu/deep-search/index.tsx'],
-  },
-  'dropdown-menu-deep-search-linear': {
-    name: 'dropdown-menu-deep-search-linear',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/deep-search-linear'),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/deep-search-linear/index.tsx',
-      'registry/examples/dropdown-menu/deep-search-linear/components.tsx',
-      'registry/examples/dropdown-menu/deep-search-linear/icons.tsx',
-    ],
-  },
-  'dropdown-menu-deep-search-subpages-linear': {
-    name: 'dropdown-menu-deep-search-subpages-linear',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import('@/registry/examples/dropdown-menu/deep-search-subpages-linear'),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/deep-search-subpages-linear/index.tsx',
-      'registry/examples/dropdown-menu/deep-search-subpages-linear/components.tsx',
-      'registry/examples/dropdown-menu/deep-search-subpages-linear/icons.tsx',
-    ],
-  },
-  'dropdown-menu-deep-search-linear-async': {
-    name: 'dropdown-menu-deep-search-linear-async',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import('@/registry/examples/dropdown-menu/deep-search-linear-async'),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/deep-search-linear-async/index.tsx',
-      'registry/examples/dropdown-menu/deep-search-linear-async/components.tsx',
-      'registry/examples/dropdown-menu/deep-search-linear-async/icons.tsx',
-    ],
-  },
-  'dropdown-menu-deep-search-linear-async-tanstack': {
-    name: 'dropdown-menu-deep-search-linear-async-tanstack',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import(
-          '@/registry/examples/dropdown-menu/deep-search-linear-async-tanstack'
-        ),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/index.tsx',
-      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/components.tsx',
-      'registry/examples/dropdown-menu/deep-search-linear-async-tanstack/icons.tsx',
-    ],
-  },
-  'dropdown-menu-async-deep-search': {
-    name: 'dropdown-menu-async-deep-search',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/async-deep-search'),
-    ),
-    files: ['registry/examples/dropdown-menu/async-deep-search/index.tsx'],
-  },
-  'dropdown-menu-virtualized': {
-    name: 'dropdown-menu-virtualized',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/virtualized'),
-    ),
-    files: ['registry/examples/dropdown-menu/virtualized/index.tsx'],
-  },
-  'dropdown-menu-virtualized-advanced': {
-    name: 'dropdown-menu-virtualized-advanced',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/virtualized-advanced'),
-    ),
-    files: ['registry/examples/dropdown-menu/virtualized-advanced/index.tsx'],
-  },
-  'dropdown-menu-async': {
-    name: 'dropdown-menu-async',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/dropdown-menu/async'),
-    ),
-    files: ['registry/examples/dropdown-menu/async/index.tsx'],
-  },
+type ExampleLoader = () => Promise<{ default: React.ComponentType<unknown> }>
 
-  'guides/dropdown-menu/your-first-menu/surface-hidden-input': {
-    name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import(
-          '@/registry/examples/dropdown-menu/guides/your-first-menu/surface-hidden-input'
-        ),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/guides/your-first-menu/surface-hidden-input.tsx',
-    ],
-  },
-  'guides/dropdown-menu/your-first-menu/01-initial': {
-    name: 'guides/dropdown-menu/your-first-menu/01-initial',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import(
-          '@/registry/examples/dropdown-menu/guides/your-first-menu/items-01'
-        ),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/guides/your-first-menu/items-01.tsx',
-    ],
-  },
-  'guides/dropdown-menu/your-first-menu/items-02': {
-    name: 'guides/dropdown-menu/your-first-menu/items-02',
-    type: 'registry:example',
-    component: React.lazy(
-      () =>
-        import(
-          '@/registry/examples/dropdown-menu/guides/your-first-menu/items-02'
-        ),
-    ),
-    files: [
-      'registry/examples/dropdown-menu/guides/your-first-menu/items-02.tsx',
-    ],
-  },
+interface ExampleOptions {
+  /**
+   * Extra files inside the example directory (after index.tsx),
+   * shown as tabs in the code viewer.
+   */
+  extraFiles?: string[]
+  /** Override the public registry name (defaults to `{group}-{key}`) */
+  name?: string
+  /**
+   * Override the full file list.
+   * Paths are relative to `registry/examples/{tier}/`.
+   */
+  files?: string[]
+}
 
-  // Select examples
-  'select-basic': {
-    name: 'select-basic',
-    type: 'registry:example',
-    component: React.lazy(() => import('@/registry/examples/select/basic')),
-    files: ['registry/examples/select/basic/index.tsx'],
-  },
-  'select-groups': {
-    name: 'select-groups',
-    type: 'registry:example',
-    component: React.lazy(() => import('@/registry/examples/select/groups')),
-    files: ['registry/examples/select/groups/index.tsx'],
-  },
-  'select-search': {
-    name: 'select-search',
-    type: 'registry:example',
-    component: React.lazy(() => import('@/registry/examples/select/search')),
-    files: ['registry/examples/select/search/index.tsx'],
-  },
-  'select-form': {
-    name: 'select-form',
-    type: 'registry:example',
-    component: React.lazy(() => import('@/registry/examples/select/form')),
-    files: ['registry/examples/select/form/index.tsx'],
-  },
-  'select-object-values': {
-    name: 'select-object-values',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/select/object-values'),
-    ),
-    files: ['registry/examples/select/object-values/index.tsx'],
-  },
+interface ExampleDef extends ExampleOptions {
+  load: ExampleLoader
+}
 
-  // Video player examples
-  'video-player-linear': {
-    name: 'video-player-linear',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/video-player/linear'),
-    ),
-    files: [
-      'registry/examples/video-player/linear/index.tsx',
-      'registry/examples/video-player/linear/icons.tsx',
-    ],
-  },
-  'video-player-modern': {
-    name: 'video-player-modern',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/video-player/modern'),
-    ),
-    files: [
-      'registry/examples/video-player/modern/index.tsx',
-      'registry/examples/video-player/modern/icons.tsx',
-    ],
-  },
-  'video-player-youtube': {
-    name: 'video-player-youtube',
-    type: 'registry:example',
-    component: React.lazy(
-      () => import('@/registry/examples/video-player/youtube'),
-    ),
-    files: [
-      'registry/examples/video-player/youtube/index.tsx',
-      'registry/examples/video-player/youtube/icons.tsx',
-    ],
-  },
+function ex(load: ExampleLoader, options: ExampleOptions = {}): ExampleDef {
+  return { load, ...options }
+}
+
+type ExampleGroupDefs = Record<string, Record<string, ExampleDef>>
+
+type BuiltExamples<T extends ExampleGroupDefs> = {
+  [G in keyof T]: { [K in keyof T[G]]: RegistryEntry }
+}
+
+/**
+ * Builds full registry entries from terse example definitions, deriving the
+ * public name, tier, and file paths from the entry's position in the tree.
+ */
+function defineExamples<T extends ExampleGroupDefs>(
+  tier: RegistryTier,
+  groups: T,
+): BuiltExamples<T> {
+  const built: Record<string, Record<string, RegistryEntry>> = {}
+
+  for (const [group, defs] of Object.entries(groups)) {
+    const builtGroup: Record<string, RegistryEntry> = {}
+
+    for (const [key, def] of Object.entries(defs)) {
+      const tierRoot = `registry/examples/${tier}`
+      const dir = `${tierRoot}/${group}/${key}`
+
+      const files = def.files
+        ? def.files.map((file) => `${tierRoot}/${file}`)
+        : [
+            `${dir}/index.tsx`,
+            ...(def.extraFiles ?? []).map((file) => `${dir}/${file}`),
+          ]
+
+      builtGroup[key] = {
+        name: def.name ?? `${group}-${key}`,
+        type: 'registry:example',
+        tier,
+        component: React.lazy(def.load),
+        files,
+      }
+    }
+
+    built[group] = builtGroup
+  }
+
+  return built as BuiltExamples<T>
+}
+
+/** Flattens a tier's groups into a public-name → entry lookup map. */
+function flattenExamples(
+  groups: Record<string, Record<string, RegistryEntry>>,
+): RegistryIndex {
+  const flat: RegistryIndex = {}
+
+  for (const group of Object.values(groups)) {
+    for (const entry of Object.values(group)) {
+      if (flat[entry.name]) {
+        throw new Error(
+          `Duplicate example name "${entry.name}" in registry tier "${entry.tier}"`,
+        )
+      }
+      flat[entry.name] = entry
+    }
+  }
+
+  return flat
+}
+
+// =============================================================================
+// Examples
+// =============================================================================
+
+export const examples = {
+  components: defineExamples('components', {
+    'dropdown-menu': {
+      basic: ex(
+        () => import('@/registry/examples/components/dropdown-menu/basic'),
+      ),
+      'close-on-click': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/close-on-click'),
+      ),
+      'hidden-input': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/hidden-input'),
+      ),
+      checkbox: ex(
+        () => import('@/registry/examples/components/dropdown-menu/checkbox'),
+      ),
+      radio: ex(
+        () => import('@/registry/examples/components/dropdown-menu/radio'),
+      ),
+      submenu: ex(
+        () => import('@/registry/examples/components/dropdown-menu/submenu'),
+      ),
+      'subpage-linear': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/subpage-linear'),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
+      subpage: ex(
+        () => import('@/registry/examples/components/dropdown-menu/subpage'),
+      ),
+      'linear-subpage-label-creation': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/linear-subpage-label-creation'
+          ),
+      ),
+      search: ex(
+        () => import('@/registry/examples/components/dropdown-menu/search'),
+        { extraFiles: ['data.ts'] },
+      ),
+      'deep-search': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/deep-search'),
+      ),
+      'deep-search-linear': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/deep-search-linear'
+          ),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
+      'deep-search-subpages-linear': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/deep-search-subpages-linear'
+          ),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
+      'deep-search-linear-async': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/deep-search-linear-async'
+          ),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
+      'deep-search-linear-async-tanstack': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/deep-search-linear-async-tanstack'
+          ),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
+      'async-deep-search': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/async-deep-search'
+          ),
+      ),
+      virtualized: ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/virtualized'),
+      ),
+      'virtualized-advanced': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/virtualized-advanced'
+          ),
+      ),
+      async: ex(
+        () => import('@/registry/examples/components/dropdown-menu/async'),
+      ),
+
+      // Guide snippets: flat files with stable slash-namespaced public names
+      'guides/your-first-menu/surface-hidden-input': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/guides/your-first-menu/surface-hidden-input'
+          ),
+        {
+          name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
+          files: [
+            'dropdown-menu/guides/your-first-menu/surface-hidden-input.tsx',
+          ],
+        },
+      ),
+      'guides/your-first-menu/01-initial': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/guides/your-first-menu/items-01'
+          ),
+        {
+          name: 'guides/dropdown-menu/your-first-menu/01-initial',
+          files: ['dropdown-menu/guides/your-first-menu/items-01.tsx'],
+        },
+      ),
+      'guides/your-first-menu/items-02': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/guides/your-first-menu/items-02'
+          ),
+        {
+          name: 'guides/dropdown-menu/your-first-menu/items-02',
+          files: ['dropdown-menu/guides/your-first-menu/items-02.tsx'],
+        },
+      ),
+    },
+
+    select: {
+      basic: ex(() => import('@/registry/examples/components/select/basic')),
+      groups: ex(() => import('@/registry/examples/components/select/groups')),
+      search: ex(() => import('@/registry/examples/components/select/search')),
+      form: ex(() => import('@/registry/examples/components/select/form')),
+      'object-values': ex(
+        () => import('@/registry/examples/components/select/object-values'),
+      ),
+    },
+
+    'video-player': {
+      linear: ex(
+        () => import('@/registry/examples/components/video-player/linear'),
+        { extraFiles: ['icons.tsx'] },
+      ),
+      modern: ex(
+        () => import('@/registry/examples/components/video-player/modern'),
+        { extraFiles: ['icons.tsx'] },
+      ),
+      youtube: ex(
+        () => import('@/registry/examples/components/video-player/youtube'),
+        { extraFiles: ['icons.tsx'] },
+      ),
+    },
+  }),
+
+  // Unstyled example variants live here as primitives docs pages adopt them.
+  // A primitives example with the same `{group}-{key}` as a components example
+  // is resolved automatically on `/docs/primitives/*` pages.
+  primitives: defineExamples('primitives', {
+    'dropdown-menu': {
+      basic: ex(
+        () => import('@/registry/examples/primitives/dropdown-menu/basic'),
+      ),
+    },
+  }),
+}
+
+/** Flat public-name → entry lookup maps, one per tier. */
+export const examplesByTier: Record<RegistryTier, RegistryIndex> = {
+  components: flattenExamples(examples.components),
+  primitives: flattenExamples(examples.primitives),
 }
 
 // =============================================================================
@@ -506,17 +492,46 @@ export const ui: RegistryIndex = {
 // Combined Registry
 // =============================================================================
 
+/**
+ * Flat lookup across all entry types.
+ * For tier-less example lookups, components-tier entries take precedence.
+ */
 export const registry: RegistryIndex = {
-  ...examples,
+  ...examplesByTier.primitives,
+  ...examplesByTier.components,
   ...blocks,
   ...ui,
 }
 
 /**
- * Get a registry entry by name
+ * Get an example entry by public name.
+ *
+ * When `tier` is provided, that tier is preferred and the other tier is used
+ * as a fallback — so tiered docs pages automatically pick up a tier-specific
+ * variant when one exists, without changing MDX.
  */
-export function getRegistryEntry(name: string): RegistryEntry | undefined {
-  return registry[name]
+export function getExampleEntry(
+  name: string,
+  tier?: RegistryTier,
+): RegistryEntry | undefined {
+  if (tier) {
+    const fallback: RegistryTier =
+      tier === 'components' ? 'primitives' : 'components'
+    return examplesByTier[tier][name] ?? examplesByTier[fallback][name]
+  }
+
+  return examplesByTier.components[name] ?? examplesByTier.primitives[name]
+}
+
+/**
+ * Get a registry entry by name.
+ * Examples are resolved tier-aware; blocks and ui entries ignore `tier`.
+ */
+export function getRegistryEntry(
+  name: string,
+  tier?: RegistryTier,
+): RegistryEntry | undefined {
+  return getExampleEntry(name, tier) ?? blocks[name] ?? ui[name]
 }
 
 /**
