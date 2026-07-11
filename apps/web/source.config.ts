@@ -28,6 +28,10 @@ export const docs = defineDocs({
       section: z.string().optional(),
       badge: z.enum(['alpha', 'beta']).optional(),
       image: z.string().optional(),
+      tiers: z
+        .array(z.enum(['components', 'primitives']))
+        .nonempty()
+        .optional(),
     }),
   },
 })

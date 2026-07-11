@@ -373,6 +373,14 @@ const components = {
   CodeBlockTab,
 } satisfies MDXComponents
 
-export function useMDXComponents(): MDXComponents {
-  return components as any
+export function useMDXComponents(
+  tier?: 'components' | 'primitives',
+): MDXComponents {
+  return {
+    ...components,
+    ComponentsOnly: ({ children }: { children?: React.ReactNode }) =>
+      tier === undefined || tier === 'components' ? <>{children}</> : null,
+    PrimitivesOnly: ({ children }: { children?: React.ReactNode }) =>
+      tier === undefined || tier === 'primitives' ? <>{children}</> : null,
+  } as any
 }

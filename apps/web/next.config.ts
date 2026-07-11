@@ -32,6 +32,11 @@ const nextConfig: NextConfig = {
       permanent: false,
     },
     {
+      source: '/docs/primitives',
+      destination: '/docs/components',
+      permanent: false,
+    },
+    {
       source: '/feedback',
       destination: 'https://bazzaui.userjot.com',
       permanent: false,
@@ -50,12 +55,6 @@ const nextConfig: NextConfig = {
       source: '/changelog/latest',
       destination: '/changelog/2025-05-05-v0.2',
       permanent: false,
-    },
-  ],
-  rewrites: async () => [
-    {
-      destination: '/docs/menu/components/:path*',
-      source: '/docs/components/:path*',
     },
   ],
 }
