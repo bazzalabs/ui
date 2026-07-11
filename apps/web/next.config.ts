@@ -56,6 +56,16 @@ const nextConfig: NextConfig = {
       destination: '/changelog/2025-05-05-v0.2',
       permanent: false,
     },
+    {
+      source: '/docs/dropdown-menu',
+      destination: '/docs/components/dropdown-menu',
+      permanent: false,
+    },
+    {
+      source: '/docs/dropdown-menu/api-reference',
+      destination: '/docs/primitives/dropdown-menu/api-reference',
+      permanent: false,
+    },
   ],
 }
 

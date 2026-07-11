@@ -3,19 +3,24 @@ title: Dropdown Menu
 section: Getting Started
 summary: Displays a menu to the user—such as a set of actions or functions—triggered by a button. Supports items, checkboxes, radio groups, submenus, and deep search.
 audience: private
+tiers:
+  - components
+  - primitives
 ---
 
 <Example name="dropdown-menu-deep-search-linear" />
 
 ## Installation
 
-Install the `@bazza-ui/react` library and our styled component using our registry:
+<ComponentsOnly>
+
+Install the styled component from our registry:
 
 ```npm
 npx shadcn@latest add {{REGISTRY_URL}}/r/dropdown-menu
 ```
 
-Just like shadcn/ui wraps Radix/Base UI primitives, our styled component wraps the primitive with base styles and useful helpers, fitting in perfectly with your existing shadcn/ui components.
+Just like shadcn/ui wraps Radix/Base UI primitives, our styled component wraps the `@bazza-ui/react` primitive with base styles and useful helpers, fitting in perfectly with your existing shadcn/ui components.
 
 The styled component is added to your components directory as `dropdown-menu-preview.tsx` to prevent conflicts with your existing dropdown menu component file.
 
@@ -25,9 +30,11 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu-preview';
 
 You can rename the file once you're done migrating.
 
----
+</ComponentsOnly>
 
-If you want to install the unstyled, primitive component:
+<PrimitivesOnly>
+
+Install the unstyled primitive from npm:
 
 ```npm
 npm install @bazza-ui/react{{RELEASE_CHANNEL}}
@@ -36,6 +43,8 @@ npm install @bazza-ui/react{{RELEASE_CHANNEL}}
 ```tsx
 import { DropdownMenu } from '@bazza-ui/react';
 ```
+
+</PrimitivesOnly>
 
 ## Anatomy
 
@@ -92,7 +101,7 @@ import { DropdownMenu } from '@bazza-ui/react';
 
 ## Examples
 
-> These examples use the styled primitive from our shadcn/ui registry.
+> These examples use the styled component from our shadcn/ui registry.
 
 ### Basic
 
@@ -242,4 +251,4 @@ Use virtualization to efficiently render large lists with thousands of items. Th
 
 ## API Reference
 
-For the full API docs, see [Dropdown Menu API Reference](/docs/dropdown-menu/api-reference).
+For the full API docs, see [Dropdown Menu API Reference](/docs/primitives/dropdown-menu/api-reference).
