@@ -107,6 +107,11 @@ export type {
   UsePopupMenuRootReturn,
 } from './hooks/use-popup-menu-root.js'
 export { usePopupMenuRoot } from './hooks/use-popup-menu-root.js'
+export type {
+  UseSubpageStackStateParams,
+  UseSubpageStackStateReturn,
+} from './hooks/use-subpage-stack-state.js'
+export { useSubpageStackState } from './hooks/use-subpage-stack-state.js'
 
 // ============================================================================
 // Shared Components
