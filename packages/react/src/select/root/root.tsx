@@ -217,6 +217,14 @@ export interface SelectRootProps<
    */
   modal?: boolean | 'trap-focus'
 
+  /**
+   * When to close the select on outside interactions.
+   * - 'pointerdown': Close immediately when pointer is pressed outside (default)
+   * - 'click': Close when a full click (pointerdown + pointerup) occurs outside
+   * @default 'pointerdown'
+   */
+  closeOnOutsidePress?: 'click' | 'pointerdown'
+
   // ===== Virtualization =====
   /**
    * Whether virtualization mode is enabled.
@@ -293,6 +301,7 @@ export function SelectRoot<
     items,
     // Behavior
     modal = true,
+    closeOnOutsidePress = 'pointerdown',
     // Virtualization
     virtualized = false,
     virtualItems,
@@ -355,6 +364,7 @@ export function SelectRoot<
     items: virtualItems,
     onHighlightChange:
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
+    closeOnOutsidePress,
     disabled: disabledProp,
   })
 
@@ -579,6 +589,7 @@ export function SelectRoot<
         registerSurface={registerSurface}
         virtualization={virtualization}
         menuType="dropdown"
+        closeOnOutsidePress={closeOnOutsidePress}
         componentName="select"
         debug={debug}
       >

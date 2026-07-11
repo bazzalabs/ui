@@ -4,6 +4,7 @@ import { Popover, type PopoverTriggerProps } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { REASONS } from '../../utils/events/index.js'
 import { mergeElementProps } from '../../utils/merge-element-props.js'
 import { isValueEmpty } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
@@ -125,12 +126,61 @@ export const SelectTrigger = React.forwardRef<
   const { disabled: disabledProp, ...rest } = props
   const selectContext = useSelectContext()
   const popupMenuContext = usePopupMenuContext()
+  const { store, closeAll, closeOnOutsidePress } = popupMenuContext
   const disabled =
     (disabledProp ?? selectContext.disabled) || popupMenuContext.disabled
+  const isOpen = store.useState('open')
+
+  // We need to intercept pointerdown before it reaches Popover.Trigger.
+  // This ref tracks the element so we can add a one-time click blocker.
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null)
+
+  // Combine refs
+  const setRef = React.useCallback(
+    (element: HTMLButtonElement | null) => {
+      triggerRef.current = element
+      if (typeof forwardedRef === 'function') {
+        forwardedRef(element)
+      } else if (forwardedRef) {
+        forwardedRef.current = element
+      }
+    },
+    [forwardedRef],
+  )
+
+  // Handle pointerdown to close on press when open
+  React.useEffect(() => {
+    const trigger = triggerRef.current
+    if (!trigger || closeOnOutsidePress !== 'pointerdown') return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      // If the select is open, close it immediately and block the click
+      if (isOpen) {
+        closeAll(REASONS.triggerPress, event)
+
+        // Block the upcoming click from reaching Popover.Trigger
+        // This prevents the toggle behavior from reopening the popup
+        trigger.addEventListener(
+          'click',
+          (clickEvent) => {
+            clickEvent.stopPropagation()
+            clickEvent.preventDefault()
+          },
+          { once: true, capture: true },
+        )
+      }
+    }
+
+    // Use capture phase to see the event before Popover.Trigger
+    trigger.addEventListener('pointerdown', handlePointerDown, true)
+    return () => {
+      trigger.removeEventListener('pointerdown', handlePointerDown, true)
+    }
+  }, [isOpen, closeAll, closeOnOutsidePress])
 
   return (
     <Popover.Trigger
-      ref={forwardedRef}
+      ref={setRef}
       disabled={disabled}
       render={(triggerProps, triggerState) => (
         <SelectTriggerInner
