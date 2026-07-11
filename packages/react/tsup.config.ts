@@ -3,6 +3,7 @@ import { defineConfig, type Options } from 'tsup'
 export default defineConfig((options: Options) => ({
   entry: {
     'dropdown-menu/index': './src/dropdown-menu/index.ts',
+    'kbd/index': './src/kbd/index.ts',
     'select/index': './src/select/index.ts',
     'video-player/index': './src/video-player/index.ts',
     'combobox/index': './src/combobox/index.ts',
