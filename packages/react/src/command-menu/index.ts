@@ -2,6 +2,11 @@
 // Command Menu Exports
 // ============================================================================
 
+export type { SurfaceContextValue } from '../internal/listbox/index.js'
+export {
+  useMaybeSurfaceContext,
+  useSurfaceContext,
+} from '../internal/listbox/index.js'
 export type {
   PopupMenuCheckboxItemIndicatorProps as CommandMenuCheckboxItemIndicatorProps,
   PopupMenuCheckboxItemIndicatorState as CommandMenuCheckboxItemIndicatorState,
@@ -34,6 +39,89 @@ export type {
   PopupMenuSubpageTriggerState as CommandMenuSubpageTriggerState,
   PopupMenuSurfaceProps as CommandMenuSurfaceProps,
   PopupMenuSurfaceState as CommandMenuSurfaceState,
+} from '../internal/popup-menu/index.js'
+
+// ============================================================================
+// Deep Search (Data-First API)
+// ============================================================================
+
+export type {
+  AsyncLoaderConfig,
+  AsyncLoaderFetchStatus,
+  AsyncLoaderLoadingPhase,
+  AsyncLoaderResult,
+  AsyncLoaderSource,
+  AsyncLoaderStatus,
+  AsyncMenuCoordinatorValue,
+  AsyncNodesConfig,
+  AsyncRenderState,
+  AsyncResultBehavior,
+  AsyncState,
+  BreadcrumbNode,
+  CheckboxItemDef,
+  CheckboxItemRenderParams,
+  CheckboxItemRenderProps,
+  DataListChildrenState,
+  DataSurfaceContextValue,
+  DeepSearchConfig,
+  DisplayGroupNode,
+  DisplayNode,
+  DisplayRadioGroupNode,
+  DisplayRowNode,
+  DisplaySeparatorNode,
+  DisplaySubpageNode,
+  GroupBehavior,
+  GroupDef,
+  GroupRenderContext,
+  GroupRenderParams,
+  IncludeInDeepSearch,
+  InitialQueryBehavior,
+  ItemDef,
+  ItemRenderParams,
+  ItemRenderProps,
+  LoaderComponentProps,
+  NodeDef,
+  PopupMenuRadioGroupValueProps as CommandMenuRadioGroupValueProps,
+  QueryAsyncNodesConfig,
+  QueryDependentLoaderConfig,
+  RadioGroupBehavior,
+  RadioGroupDef,
+  RadioGroupRenderParams,
+  RadioGroupRenderProps,
+  RadioItemDef,
+  RadioItemRenderParams,
+  RadioItemRenderProps,
+  RenderNodeFn,
+  RowRenderContext,
+  ScoredNode,
+  SeparatorDef,
+  SeparatorRenderParams,
+  StaticAsyncNodesConfig,
+  StaticLoaderConfig,
+  SubmenuDef,
+  SubmenuRenderParams,
+  SubmenuRenderProps,
+  SubpageContentRenderParams,
+  SubpageDef,
+  SubpageTriggerRenderParams,
+  SubpageTriggerRenderProps,
+} from '../internal/popup-menu/index.js'
+
+export {
+  DataListContext,
+  DataSurfaceContext,
+  defineRadioGroup,
+  isDisplayGroupNode,
+  isDisplayRadioGroupNode,
+  isDisplayRowNode,
+  isDisplaySeparatorNode,
+  PopupMenuRadioGroupValue as CommandMenuRadioGroupValue,
+  useAsyncMenuCoordinator,
+  useDataList,
+  useDataSurfaceContext,
+  useMaybeAsyncMenuCoordinator,
+  useMaybeDataList,
+  useMaybeDataSurfaceContext,
 } from '../internal/popup-menu/index.js'
 
 export type {
