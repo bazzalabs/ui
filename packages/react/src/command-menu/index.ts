@@ -15,8 +15,6 @@ export type {
   PopupMenuGroupState as CommandMenuGroupState,
   PopupMenuIconProps as CommandMenuIconProps,
   PopupMenuIconState as CommandMenuIconState,
-  PopupMenuInputProps as CommandMenuInputProps,
-  PopupMenuInputState as CommandMenuInputState,
   PopupMenuItemProps as CommandMenuItemProps,
   PopupMenuItemState as CommandMenuItemState,
   PopupMenuListChildrenState as CommandMenuListChildrenState,
@@ -32,7 +30,6 @@ export type {
   PopupMenuSubpageBackItemState as CommandMenuSubpageBackItemState,
   PopupMenuSubpageBackProps as CommandMenuSubpageBackProps,
   PopupMenuSubpageBackState as CommandMenuSubpageBackState,
-  PopupMenuSubpageProps as CommandMenuSubpageProps,
   PopupMenuSubpageTriggerProps as CommandMenuSubpageTriggerProps,
   PopupMenuSubpageTriggerState as CommandMenuSubpageTriggerState,
   PopupMenuSurfaceProps as CommandMenuSurfaceProps,
@@ -43,7 +40,15 @@ export type {
   CommandMenuBackdropProps,
   CommandMenuBackdropState,
 } from './backdrop/backdrop.js'
+export type {
+  CommandMenuHeaderProps,
+  CommandMenuHeaderState,
+} from './header/header.js'
 export * as CommandMenu from './index.parts.js'
+export type {
+  CommandMenuInputProps,
+  CommandMenuInputState,
+} from './input/input.js'
 export type {
   CommandMenuPopupProps,
   CommandMenuPopupState,
@@ -53,6 +58,7 @@ export type {
   CommandMenuPortalState,
 } from './portal/portal.js'
 export type { CommandMenuRootProps } from './root/root.js'
+export type { CommandMenuSubpageProps } from './subpage/subpage.js'
 export type {
   CommandMenuTriggerProps,
   CommandMenuTriggerState,
