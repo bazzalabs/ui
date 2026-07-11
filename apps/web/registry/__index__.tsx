@@ -337,6 +337,10 @@ export const examples = {
       basic: ex(
         () => import('@/registry/examples/components/command-menu/basic'),
       ),
+      linear: ex(
+        () => import('@/registry/examples/components/command-menu/linear'),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
     },
   }),
 
