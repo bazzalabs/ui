@@ -62,4 +62,27 @@ describe('Select.Trigger', () => {
 
     expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
   })
+
+  it('closes on trigger press-down and does not reopen on release', async () => {
+    const user = userEvent.setup()
+
+    render(<SelectFixture />)
+    const trigger = screen.getByTestId('trigger')
+
+    // Open the select
+    await user.click(trigger)
+    await waitFor(() => {
+      expect(screen.getByTestId('surface')).toBeInTheDocument()
+    })
+
+    // Press down on the trigger without releasing — the popup must close
+    await user.pointer({ keys: '[MouseLeft>]', target: trigger })
+    await waitFor(() => {
+      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+    })
+
+    // Release the pointer — the resulting click must not reopen the popup
+    await user.pointer('[/MouseLeft]')
+    expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+  })
 })
