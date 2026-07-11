@@ -1,0 +1,279 @@
+---
+title: Command Menu
+section: Getting Started
+summary: Displays a dialog-shelled command palette for quick actions, nested workflows, deep search, and async data.
+audience: private
+tiers:
+  - components
+  - primitives
+---
+
+<ComponentOnly>
+
+<Example name="command-menu-linear" />
+
+</ComponentOnly>
+
+## Overview
+
+`CommandMenu` is a command palette built on the same shared listbox architecture as the menu primitives, then wrapped in a Base UI `Dialog` shell for modal focus management.
+
+Use it for global actions, contextual shortcuts, app switchers, and nested workflows where users should be able to search, select, and keep moving without leaving the keyboard.
+
+The primitive supports both composition-first markup and data-first `NodeDef[]` definitions through `CommandMenu.Surface`.
+
+## Installation
+
+<ComponentOnly>
+
+Install the styled component from our registry:
+
+```npm
+npx shadcn@latest add {{REGISTRY_URL}}/r/command-menu
+```
+
+Just like shadcn/ui wraps Radix/Base UI primitives, our styled component wraps the `@bazza-ui/react` primitive with base styles and useful helpers, fitting in perfectly with your existing shadcn/ui components.
+
+The styled component is added to your components directory as `command-menu-preview.tsx` to prevent conflicts with an existing command menu component file.
+
+```tsx
+import { CommandMenu } from '@/components/ui/command-menu-preview'
+```
+
+</ComponentOnly>
+
+<PrimitiveOnly>
+
+Install the unstyled primitive from npm:
+
+```npm
+npm install @bazza-ui/react{{RELEASE_CHANNEL}}
+```
+
+```tsx
+import { CommandMenu } from '@bazza-ui/react/command-menu'
+```
+
+</PrimitiveOnly>
+
+## Anatomy
+
+```tsx
+<CommandMenu.Root hotkey="mod+k">
+  <CommandMenu.Trigger />
+  <CommandMenu.Portal>
+    <CommandMenu.Backdrop />
+    <CommandMenu.Popup>
+      <CommandMenu.Surface content={nodes} deepSearch>
+        <CommandMenu.Header>
+          <CommandMenu.SubpageBack />
+        </CommandMenu.Header>
+        <CommandMenu.Input />
+        <CommandMenu.List>
+          <CommandMenu.Loading />
+          <CommandMenu.Empty />
+          <CommandMenu.Group>
+            <CommandMenu.GroupLabel />
+            <CommandMenu.Item>
+              <CommandMenu.Icon />
+              <CommandMenu.Shortcut />
+            </CommandMenu.Item>
+            <CommandMenu.CheckboxItem>
+              <CommandMenu.CheckboxItemIndicator />
+            </CommandMenu.CheckboxItem>
+          </CommandMenu.Group>
+          <CommandMenu.Separator />
+          <CommandMenu.SubpageTrigger />
+          <CommandMenu.SubpageBackItem />
+        </CommandMenu.List>
+      </CommandMenu.Surface>
+    </CommandMenu.Popup>
+    <CommandMenu.Subpage pageId="settings" />
+  </CommandMenu.Portal>
+</CommandMenu.Root>
+```
+
+## Examples
+
+<ComponentOnly>
+
+> These examples use the styled component from our shadcn/ui registry.
+
+</ComponentOnly>
+
+### Basic
+
+Start with `CommandMenu.Root`, add a trigger, and place the dialog parts in `CommandMenu.Portal`.
+
+Use the `hotkey` prop to register a global toggle. It parses strings such as `mod+k` with the same parser used by `Kbd`, maps `mod` to Command on Apple platforms and Control elsewhere, and keeps working while focus is inside `CommandMenu.Input` so the same shortcut can close the menu.
+
+<Example name="command-menu-basic">
+  <Example.PreviewCode>
+
+  ```tsx
+  <CommandMenu.Item onSelect={() => toast('Created a new file')}>
+    New file
+  </CommandMenu.Item>
+  ```
+
+  </Example.PreviewCode>
+</Example>
+
+### Items and shortcuts
+
+Each item accepts an `onSelect` callback that fires when the row is selected via pointer, `Enter`, or a matching single-key accelerator.
+
+Use `shortcut` for accelerators and `CommandMenu.Shortcut` for visible shortcut hints. `Enter` closes the command menu after selection unless the row sets `closeOnClick={false}`. `CommandMenu.CheckboxItem` toggles its checked state and keeps the menu open by default.
+
+```tsx
+<CommandMenu.Item shortcut="c" onSelect={() => toast('Copied issue link')}>
+  Copy issue link
+  <CommandMenu.Shortcut>C</CommandMenu.Shortcut>
+</CommandMenu.Item>
+
+<CommandMenu.CheckboxItem checked={watching} onCheckedChange={setWatching}>
+  Watch issue
+</CommandMenu.CheckboxItem>
+```
+
+### Subpages
+
+Use `CommandMenu.Subpage` for multi-step command flows such as assigning an owner, adding labels, or configuring a setting without closing the palette.
+
+Open a page with `CommandMenu.SubpageTrigger`, return with `CommandMenu.SubpageBack` or `CommandMenu.SubpageBackItem`, and give both sides the same `pageId` through the trigger's `targetPageId`.
+
+`Escape` closes the command menu from root and subpages. Subpages default `closeRootOnEsc` to `true`. `CommandMenu.Input` defaults `backspaceGoesBack` to `true`, so pressing `Backspace` on an empty subpage input goes back one page.
+
+```tsx
+<CommandMenu.SubpageTrigger targetPageId="assign-to">
+  Assign to…
+</CommandMenu.SubpageTrigger>
+
+<CommandMenu.Subpage pageId="assign-to">
+  <CommandMenu.Surface>
+    <CommandMenu.Header><CommandMenu.SubpageBack /></CommandMenu.Header>
+    <CommandMenu.Input placeholder="Search teammates…" />
+    <CommandMenu.List>{assignees.map(renderAssignee)}</CommandMenu.List>
+  </CommandMenu.Surface>
+</CommandMenu.Subpage>
+```
+
+### Kbd shortcut hints
+
+Import `Kbd` from `@bazza-ui/react/kbd` to render keyboard shortcut hints. It is purely presentational: it parses a keybinding string and renders one `<kbd>` per key with platform-appropriate labels (⌘ on Apple platforms, Ctrl elsewhere).
+
+`Kbd.Root` accepts `keys`, optional `platform`, and optional `separator` (rendered between sequence chords).
+
+```tsx
+import { Kbd } from '@bazza-ui/react/kbd'
+
+function ShortcutHint() {
+  return <Kbd.Root keys="g i" platform="apple" separator="/" />
+}
+```
+
+The global open/close shortcut is handled by the `hotkey` prop on `CommandMenu.Root` (for example `hotkey="mod+k"`) — there is no separate hotkey hook to wire up. For a custom trigger outside the menu, control `open`/`onOpenChange` from your own event handler.
+
+The styled registry component also exposes `CommandMenu.Kbd` for shortcut hints inside command rows.
+
+### Data-first content
+
+Pass `NodeDef[]` to `CommandMenu.Surface` with the `content` prop when the menu should be generated from data instead of hand-written JSX.
+
+Inside a data surface, use `useDataList()` to access the filtered nodes and `renderNode` helper. Node definitions can render items, groups, separators, checkbox items, and subpage triggers while keeping search, highlight, and selection behavior wired up by the surface.
+
+```tsx
+import { CommandMenu, type NodeDef, useDataList } from '@bazza-ui/react/command-menu'
+
+const nodes: NodeDef[] = [
+  {
+    kind: 'item',
+    value: 'Create issue',
+    keywords: ['new', 'ticket'],
+    render: ({ props }) => <CommandMenu.Item {...props}>Create issue</CommandMenu.Item>,
+  },
+]
+
+function Rows() {
+  const { nodes, renderNode } = useDataList()
+  return <>{nodes.map(renderNode)}</>
+}
+
+<CommandMenu.Surface content={nodes}>
+  <CommandMenu.Input />
+  <CommandMenu.List>
+    <Rows />
+  </CommandMenu.List>
+  <CommandMenu.Empty />
+</CommandMenu.Surface>
+```
+
+### Deep search and async pages
+
+Enable `deepSearch` on `CommandMenu.Surface` to search through nested `NodeDef[]` branches from the root input. Matching descendants render as flattened breadcrumb rows so users can jump directly into a nested action without first opening each subpage.
+
+Subpage definitions can provide `asyncNodes` for pages that load on demand. Use `type: 'static'` loaders when the page fetches once and filters client-side, or `type: 'query'` loaders when the current search query should be sent to the server. Deep search can reveal async results as they resolve with `asyncResultBehavior: 'stream'`, or wait until all participating loaders finish with `asyncResultBehavior: 'block'`.
+
+```tsx
+const nodes: NodeDef[] = [
+  {
+    kind: 'subpage',
+    id: 'assignees',
+    value: 'Assign to…',
+    asyncNodes: {
+      type: 'query',
+      Loader: AssigneeLoader,
+      minQueryLength: 1,
+      initialQueryBehavior: false,
+    },
+    renderTrigger: ({ props }) => (
+      <CommandMenu.SubpageTrigger {...props}>Assign to…</CommandMenu.SubpageTrigger>
+    ),
+    renderContent: ({ pageId, nodes, asyncContent, renderNode }) => (
+      <CommandMenu.Subpage pageId={pageId}>
+        <CommandMenu.Surface content={nodes} asyncContent={asyncContent}>
+          <CommandMenu.Input placeholder="Search teammates…" />
+          <CommandMenu.List>{nodes.map(renderNode)}</CommandMenu.List>
+          <CommandMenu.Loading>Searching…</CommandMenu.Loading>
+          <CommandMenu.Empty>No teammates found.</CommandMenu.Empty>
+        </CommandMenu.Surface>
+      </CommandMenu.Subpage>
+    ),
+  },
+]
+
+<CommandMenu.Surface
+  content={nodes}
+  deepSearch={{ enabled: true, minLength: 1, asyncResultBehavior: 'stream' }}
+/>
+```
+
+## Keyboard interactions
+
+| Key | Behavior |
+| --- | --- |
+| `ArrowDown` / `ArrowUp` | Moves highlight to the next or previous enabled row. |
+| `Home` / `End` | Moves highlight to the first or last enabled row. |
+| `Enter` | Selects the highlighted row. Items close the menu unless `closeOnClick={false}`; checkbox items stay open. |
+| `Escape` | Closes the command menu from the root page or a subpage. |
+| `Backspace` | From an empty input on a subpage, goes back one page when `backspaceGoesBack` is enabled. |
+| Single-key `shortcut` | Selects the matching item accelerator while the command menu is active. |
+| Root `hotkey` | Toggles the dialog globally, including while focus is inside `CommandMenu.Input`. |
+
+## API overview
+
+| Part | Purpose |
+| --- | --- |
+| `CommandMenu.Root` | Owns open state, Base UI `Dialog` integration, and optional `hotkey` toggle. |
+| `CommandMenu.Trigger` | Opens the command menu from a button or custom rendered trigger. |
+| `CommandMenu.Portal`, `CommandMenu.Backdrop`, `CommandMenu.Popup` | Render the modal shell. |
+| `CommandMenu.Surface` | Provides search, highlight, selection, data-first content, and deep search context. |
+| `CommandMenu.Header`, `CommandMenu.Input`, `CommandMenu.List` | Compose the visible palette layout. |
+| `CommandMenu.Item`, `CommandMenu.CheckboxItem` | Render selectable rows and persistent toggle rows. |
+| `CommandMenu.Group`, `CommandMenu.GroupLabel`, `CommandMenu.Separator` | Organize rows. |
+| `CommandMenu.Empty`, `CommandMenu.Loading` | Render search and async states. |
+| `CommandMenu.Shortcut`, `CommandMenu.Icon` | Add row affordances. |
+| `CommandMenu.Kbd` (styled registry component only) | Renders keybinding glyphs via `Kbd` from `@bazza-ui/react/kbd`; not exported by the primitive. |
+| `CommandMenu.Subpage`, `CommandMenu.SubpageTrigger`, `CommandMenu.SubpageBack`, `CommandMenu.SubpageBackItem` | Build nested command flows. |
+
+For data-first APIs, import `NodeDef`, `SubpageDef`, `DeepSearchConfig`, and `useDataList` from `@bazza-ui/react/command-menu`.
