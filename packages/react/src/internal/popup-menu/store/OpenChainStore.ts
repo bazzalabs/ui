@@ -49,7 +49,7 @@ const selectors = {
  */
 export class OpenChainStore extends ReactStore<
   OpenChainState,
-  {},
+  Record<string, never>,
   typeof selectors
 > {
   constructor() {

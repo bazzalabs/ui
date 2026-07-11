@@ -9,7 +9,7 @@ import 'server-only'
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { getRegistryEntry } from '@/registry/__index__'
+import { getRegistryEntry, type RegistryTier } from '@/registry/__index__'
 import type { RegistryItem } from './registry'
 
 // =============================================================================
@@ -53,8 +53,9 @@ export async function getRegistryFileSource(
  */
 export async function getRegistryEntrySources(
   name: string,
+  tier?: RegistryTier,
 ): Promise<Array<{ path: string; content: string }>> {
-  const entry = getRegistryEntry(name)
+  const entry = getRegistryEntry(name, tier)
   if (!entry) {
     return []
   }
@@ -78,8 +79,9 @@ export async function getRegistryEntrySources(
  */
 export async function getRegistryEntryPrimarySource(
   name: string,
+  tier?: RegistryTier,
 ): Promise<{ path: string; content: string } | null> {
-  const entry = getRegistryEntry(name)
+  const entry = getRegistryEntry(name, tier)
   if (!entry || entry.files.length === 0) {
     return null
   }

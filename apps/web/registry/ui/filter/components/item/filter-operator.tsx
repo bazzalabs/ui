@@ -134,7 +134,10 @@ function createOperatorNodes<TData, TType extends ColumnDataType>({
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
+export const FilterOperator = forwardRef<
+  HTMLButtonElement,
+  FilterOperatorProps
+>(
   (
     {
       column: columnProp,
@@ -162,6 +165,7 @@ const FilterOperator = forwardRef<HTMLButtonElement, FilterOperatorProps>(
     }
 
     // Memoize nodes to avoid recreating on every render
+    // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally granular — filter/column get new identities every render; only operator and column id affect the nodes
     const nodes = useMemo(
       () => createOperatorNodes({ filter, column, actions, locale }),
       [filter.operator, column.id, actions, locale],
@@ -223,8 +227,6 @@ function FilterOperatorItems() {
     </>
   )
 }
-
-export { FilterOperator }
 
 export namespace FilterOperator {
   export type Props<

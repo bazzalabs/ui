@@ -79,7 +79,7 @@ export default function RootLayout({
       <OneDollarStatsScript />
       <head>
         <script
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: inline theme script prevents a dark-mode flash before hydration
           dangerouslySetInnerHTML={{
             __html: `
               try {

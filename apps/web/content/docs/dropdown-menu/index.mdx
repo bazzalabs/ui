@@ -8,11 +8,15 @@ tiers:
   - primitives
 ---
 
+<ComponentOnly>
+
 <Example name="dropdown-menu-deep-search-linear" />
+
+</ComponentOnly>
 
 ## Installation
 
-<ComponentsOnly>
+<ComponentOnly>
 
 Install the styled component from our registry:
 
@@ -30,9 +34,9 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu-preview';
 
 You can rename the file once you're done migrating.
 
-</ComponentsOnly>
+</ComponentOnly>
 
-<PrimitivesOnly>
+<PrimitiveOnly>
 
 Install the unstyled primitive from npm:
 
@@ -44,7 +48,7 @@ npm install @bazza-ui/react{{RELEASE_CHANNEL}}
 import { DropdownMenu } from '@bazza-ui/react';
 ```
 
-</PrimitivesOnly>
+</PrimitiveOnly>
 
 ## Anatomy
 
@@ -101,7 +105,11 @@ import { DropdownMenu } from '@bazza-ui/react';
 
 ## Examples
 
+<ComponentOnly>
+
 > These examples use the styled component from our shadcn/ui registry.
+
+</ComponentOnly>
 
 ### Basic
 
@@ -121,6 +129,8 @@ Each item accepts an `onSelect` callback that fires when the item is selected vi
 
 Use the `closeOnClick` prop to close the menu when an item is selected.
 
+<ComponentOnly>
+
 <Example name="dropdown-menu-close-on-click">
 <Example.PreviewCode>
 
@@ -135,11 +145,15 @@ Use the `closeOnClick` prop to close the menu when an item is selected.
 
 </Example>
 
+</ComponentOnly>
+
 ### Search
 
 Search works out-of-the-box and fully customizable; use the `<DropdownMenu.Input>` part.
 
 The `value` and `keywords` props are used to filter the items.
+
+<ComponentOnly>
 
 <Example name="dropdown-menu-search">
 
@@ -153,12 +167,16 @@ The `value` and `keywords` props are used to filter the items.
 
 </Example>
 
+</ComponentOnly>
+
 ### Hidden input
 
 We recommend **always** rendering the `<DropdownMenu.Input>` part.
 
 If you want a cleaner look, the `hideUntilActive` prop can be used to hide the input until the user starts typing.
 
+
+<ComponentOnly>
 
 <Example name="dropdown-menu-hidden-input">
 
@@ -172,19 +190,27 @@ If you want a cleaner look, the `hideUntilActive` prop can be used to hide the i
 
 </Example>
 
+</ComponentOnly>
+
 ### Checkbox items
 
 Use the `<DropdownMenu.CheckboxItem>` part to create a menu item that can toggle a setting on or off.
 
 It can be used uncontrolled, or controlled via `checked` and `onCheckedChange` props.
 
+<ComponentOnly>
+
 <Example name="dropdown-menu-checkbox" />
+
+</ComponentOnly>
 
 ### Radio group
 
 Use the `<DropdownMenu.RadioGroup>` and `<DropdownMenu.RadioItem>` parts to create menu items that work like radio buttons.
 
 Optionally, add a label using the `<DropdownMenu.GroupLabel>` part.
+
+<ComponentOnly>
 
 <Example name="dropdown-menu-radio">
 <Example.PreviewCode>
@@ -205,6 +231,8 @@ const [sortBy, setSortBy] = React.useState('name')
 
 </Example>
 
+</ComponentOnly>
+
 ### Submenu
 
 Create nested menus by starting with the `<DropdownMenu.Submenu>` part.
@@ -212,6 +240,8 @@ Create nested menus by starting with the `<DropdownMenu.Submenu>` part.
 Use the `<DropdownMenu.SubmenuTrigger>` part to create a menu item that opens the submenu when highlighted.
 
 Then, compose with the same parts for the root menu to render the popup.
+
+<ComponentOnly>
 
 <Example name="dropdown-menu-submenu">
   <Example.PreviewCode>
@@ -227,6 +257,8 @@ Then, compose with the same parts for the root menu to render the popup.
   </Example.PreviewCode>
 </Example>
 
+</ComponentOnly>
+
 ### Subpage
 
 Use subpages as a natural replacement to modals, great for workflows such as item creation.
@@ -237,17 +269,29 @@ Render a `<DropdownMenu.SubpageTrigger>` and wire it up using the `targetPageId`
 
 
 
+<ComponentOnly>
+
 <Example name="dropdown-menu-subpage" />
+
+</ComponentOnly>
 
 ### Virtualized
 
 Use virtualization to efficiently render large lists with thousands of items. This example uses TanStack Virtual to only render visible items.
 
+<ComponentOnly>
+
 <Example name="dropdown-menu-virtualized" />
+
+</ComponentOnly>
 
 ### Deep search
 
+<ComponentOnly>
+
 <Example name="dropdown-menu-deep-search-linear" />
+
+</ComponentOnly>
 
 ## API Reference
 

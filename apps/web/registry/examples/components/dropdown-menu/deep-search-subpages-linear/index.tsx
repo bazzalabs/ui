@@ -129,7 +129,7 @@ function toLabelId(value: string) {
 
 function createCreateLabelSubpage(
   labelName: string,
-  onCreateLabel: (name: string, color: string) => Promise<void | boolean>,
+  onCreateLabel: (name: string, color: string) => Promise<undefined | boolean>,
   isCreatingLabel: boolean,
 ): SubpageDef {
   return {
@@ -187,7 +187,7 @@ function createLabelsSubmenu(params: {
   labelSearchQuery: string
   onLabelSearchQueryChange: (value: string) => void
   onLabelCheckedChange: (labelId: string, checked: boolean) => void
-  onCreateLabel: (name: string, color: string) => Promise<void | boolean>
+  onCreateLabel: (name: string, color: string) => Promise<undefined | boolean>
   isCreatingLabel: boolean
   labelCreationStatus: LabelCreationStatus
   creatingLabelName: string | null
@@ -408,7 +408,7 @@ function buildMenuContent(params: {
   labelSearchQuery: string
   onLabelSearchQueryChange: (value: string) => void
   onLabelCheckedChange: (labelId: string, checked: boolean) => void
-  onCreateLabel: (name: string, color: string) => Promise<void | boolean>
+  onCreateLabel: (name: string, color: string) => Promise<undefined | boolean>
   isCreatingLabel: boolean
   labelCreationStatus: LabelCreationStatus
   creatingLabelName: string | null
@@ -488,7 +488,7 @@ function buildMenuContent(params: {
     onHighlightChange: onLabelHighlightChange,
   })
 
-  const aiFilterSubpage = createSubpageNode(
+  const _aiFilterSubpage = createSubpageNode(
     'ai-filter',
     'AI Filter',
     <AIFilterIcon />,

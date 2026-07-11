@@ -1,6 +1,5 @@
 'use client'
 
-import { Popover } from '@base-ui/react/popover'
 import * as React from 'react'
 import {
   PopupMenuPopup,

@@ -135,6 +135,7 @@ export const PopupMenuScrollArrow = React.forwardRef<
 
   // Also recheck when items change (filteredCount changes)
   const filteredCount = store.useState('filteredCount')
+  // biome-ignore lint/correctness/useExhaustiveDependencies(filteredCount): filteredCount is an intentional trigger dep — visibility must be rechecked whenever the item count changes
   React.useEffect(() => {
     // Delay to allow DOM to update
     requestAnimationFrame(checkVisibility)

@@ -63,7 +63,7 @@ export interface FilterItemProps<
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
+export const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
   ({ filter, column, children, className, ...props }, ref) => {
     const filterContext = useFilterContext()
 
@@ -97,8 +97,6 @@ const FilterItem = forwardRef<HTMLDivElement, FilterItemProps>(
 )
 
 FilterItem.displayName = 'FilterItem'
-
-export { FilterItem }
 
 export namespace FilterItem {
   export type Props<

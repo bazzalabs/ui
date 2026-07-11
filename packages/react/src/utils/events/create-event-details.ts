@@ -66,7 +66,7 @@ export type ReasonToEvent<Reason extends string> =
  */
 export interface ChangeEventDetails<
   Reason extends string,
-  CustomProperties extends object = {},
+  _CustomProperties extends object = Record<string, never>,
 > {
   /**
    * The reason why this state change occurred.
@@ -137,7 +137,7 @@ export interface ChangeEventDetails<
  */
 export function createChangeEventDetails<
   Reason extends string,
-  CustomProperties extends object = {},
+  CustomProperties extends object = Record<string, never>,
 >(
   reason: Reason,
   event?: ReasonToEvent<Reason> | Event,
@@ -182,7 +182,7 @@ export function createChangeEventDetails<
  */
 export interface GenericEventDetails<
   Reason extends string,
-  CustomProperties extends object = {},
+  _CustomProperties extends object = Record<string, never>,
 > {
   /**
    * The reason why this event occurred.
@@ -200,7 +200,7 @@ export interface GenericEventDetails<
  */
 export function createGenericEventDetails<
   Reason extends string,
-  CustomProperties extends object = {},
+  CustomProperties extends object = Record<string, never>,
 >(
   reason: Reason,
   event?: ReasonToEvent<Reason> | Event,

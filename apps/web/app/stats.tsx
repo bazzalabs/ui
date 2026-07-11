@@ -1,7 +1,6 @@
 import Script from 'next/script'
 export default function OneDollarStatsScript() {
   return (
-    // biome-ignore lint/correctness/useUniqueElementIds: allowed
     <Script
       defer
       src="https://assets.onedollarstats.com/stonks.js"

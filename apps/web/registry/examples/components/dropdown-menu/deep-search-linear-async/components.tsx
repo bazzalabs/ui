@@ -1,20 +1,22 @@
 'use client'
 
 import type {
+  AsyncNodesConfig,
   ItemDef,
   ItemRenderParams,
   NodeDef,
   SubmenuDef,
   SubmenuRenderParams,
-  SubpageContentRenderParams,
-  SubpageDef,
-  SubpageTriggerRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
 import type * as React from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
+import {
+  DiamondSpinner,
+  DropdownMenu,
+  LabelWithBreadcrumbs,
+} from '@/registry/ui/dropdown-menu'
 
 // =============================================================================
 // Label Color Mapping
@@ -47,19 +49,12 @@ export type TW_COLOR = keyof typeof LABEL_STYLES_BG
 // Label Dot Component
 // =============================================================================
 
-export function LabelDot({
-  color,
-  className,
-}: {
-  color: string
-  className?: string
-}) {
+export function LabelDot({ color }: { color: string }) {
   return (
     <div
       className={cn(
         'rounded-full size-2.5',
         LABEL_STYLES_BG[color as TW_COLOR] ?? 'bg-neutral-500',
-        className,
       )}
     />
   )
@@ -94,7 +89,7 @@ export const FilterIcon = () => (
  * Creates an item node with standard styling
  */
 export function createItemNode(
-  id: string,
+  _id: string,
   label: string,
   icon?: React.ReactNode,
   keywords?: string[],
@@ -128,7 +123,7 @@ export function createItemNode(
  * Creates a label item node with a colored dot
  */
 export function createLabelItemNode(
-  id: string,
+  _id: string,
   name: string,
   color: string,
 ): ItemDef {
@@ -159,7 +154,7 @@ export function createLabelItemNode(
  * Creates an assignee item node with an avatar
  */
 export function createAssigneeItemNode(
-  id: string,
+  _id: string,
   name: string,
   username: string,
 ): ItemDef {
@@ -211,15 +206,21 @@ export function createSubmenuNode(
   options?: {
     inputPlaceholder?: string
     hideInputUntilActive?: boolean
+    includeInDeepSearch?: SubmenuDef['includeInDeepSearch']
   },
 ): SubmenuDef {
-  const { inputPlaceholder = `${title}...`, hideInputUntilActive = false } =
-    options ?? {}
+  const {
+    inputPlaceholder = `${title}...`,
+    hideInputUntilActive = false,
+    includeInDeepSearch = true,
+  } = options ?? {}
 
   return {
     kind: 'submenu',
+    id,
     value: title,
     deepSearch: true,
+    includeInDeepSearch,
     nodes: childNodes,
     render: ({ props, context, nodes }: SubmenuRenderParams) => (
       <DropdownMenu.Submenu>
@@ -239,7 +240,87 @@ export function createSubmenuNode(
             <DropdownMenu.Popup>
               <DropdownMenu.Surface
                 content={nodes}
-                deepSearch={{ enabled: true, minLength: 0 }}
+                deepSearch={{
+                  enabled: true,
+                  minLength: 2,
+                  asyncResultBehavior: 'block',
+                }}
+              >
+                <DropdownMenu.Input
+                  placeholder={inputPlaceholder}
+                  hideUntilActive={hideInputUntilActive}
+                />
+                <DropdownMenu.List>
+                  <AsyncComponentsListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Submenu>
+    ),
+  }
+}
+
+/**
+ * Creates an async submenu node with deep search enabled.
+ * Shows a loading spinner in the trigger when async content is loading.
+ *
+ * The submenu passes `asyncContent` to its Surface so it can run its own
+ * loader with its own search query, independent of the parent's deep search.
+ */
+export function createAsyncSubmenuNode(
+  id: string,
+  title: string,
+  icon: React.ReactNode,
+  asyncNodes: AsyncNodesConfig,
+  options?: {
+    inputPlaceholder?: string
+    hideInputUntilActive?: boolean
+    includeInDeepSearch?: SubmenuDef['includeInDeepSearch']
+    /** Static nodes to show alongside async content */
+    staticNodes?: NodeDef[]
+  },
+): SubmenuDef {
+  const {
+    inputPlaceholder = `${title}...`,
+    hideInputUntilActive = false,
+    includeInDeepSearch = true,
+    staticNodes = [],
+  } = options ?? {}
+
+  return {
+    kind: 'submenu',
+    id,
+    value: title,
+    deepSearch: true,
+    includeInDeepSearch,
+    nodes: staticNodes,
+    asyncNodes,
+    render: ({ props, context, asyncContent }: SubmenuRenderParams) => (
+      <DropdownMenu.Submenu>
+        <DropdownMenu.SubmenuTrigger {...props}>
+          <div className="flex items-center gap-2 flex-1">
+            <DropdownMenu.Icon>{icon}</DropdownMenu.Icon>
+            <LabelWithBreadcrumbs
+              label={title}
+              breadcrumbs={
+                context.isDeepSearchResult ? context.breadcrumbs : undefined
+              }
+            />
+          </div>
+          {context.async?.isLoading && <DiamondSpinner className="size-3.5" />}
+        </DropdownMenu.SubmenuTrigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              {/*
+                The submenu uses asyncContent as its sole data source.
+                This runs its OWN loader with its OWN search query.
+              */}
+              <DropdownMenu.Surface
+                asyncContent={asyncContent}
+                deepSearch={{ enabled: true, asyncResultBehavior: 'block' }}
               >
                 <DropdownMenu.Input
                   placeholder={inputPlaceholder}
@@ -255,56 +336,8 @@ export function createSubmenuNode(
   }
 }
 
-/**
- * Creates a subpage node with deep search enabled.
- * Subpage content is rendered automatically by Popup for a data Surface.
- */
-export function createSubpageNode(
-  id: string,
-  title: string,
-  icon: React.ReactNode,
-  childNodes: NodeDef[],
-  options?: {
-    inputPlaceholder?: string
-    hideInputUntilActive?: boolean
-  },
-): SubpageDef {
-  const { inputPlaceholder = `${title}...`, hideInputUntilActive = false } =
-    options ?? {}
+function AsyncComponentsListItems() {
+  const { nodes: filteredNodes, renderNode } = DropdownMenu.useDataList()
 
-  return {
-    kind: 'subpage',
-    id,
-    value: title,
-    deepSearch: true,
-    nodes: childNodes,
-    renderTrigger: ({ props, context }: SubpageTriggerRenderParams) => (
-      <DropdownMenu.SubpageTrigger {...props}>
-        <div className="flex items-center gap-2">
-          <DropdownMenu.Icon>{icon}</DropdownMenu.Icon>
-          <LabelWithBreadcrumbs
-            label={title}
-            breadcrumbs={
-              context.isDeepSearchResult ? context.breadcrumbs : undefined
-            }
-          />
-        </div>
-      </DropdownMenu.SubpageTrigger>
-    ),
-    renderContent: ({ pageId, context }: SubpageContentRenderParams) => (
-      <DropdownMenu.Subpage pageId={pageId}>
-        <DropdownMenu.Surface>
-          <DropdownMenu.Input
-            placeholder={inputPlaceholder}
-            hideUntilActive={hideInputUntilActive}
-          />
-          <DropdownMenu.List virtualized>
-            {!context.isDeepSearchResult ? (
-              <DropdownMenu.SubpageBackItem>Back</DropdownMenu.SubpageBackItem>
-            ) : null}
-          </DropdownMenu.List>
-        </DropdownMenu.Surface>
-      </DropdownMenu.Subpage>
-    ),
-  }
+  return <>{filteredNodes.map((node) => renderNode(node))}</>
 }

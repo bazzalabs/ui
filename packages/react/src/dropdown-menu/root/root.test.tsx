@@ -374,7 +374,7 @@ interface SubmenuActionsTestHandle {
   enableSubmenu: () => void
 }
 
-type DropdownMenuWithSubmenuImperativeActionsProps = {}
+type DropdownMenuWithSubmenuImperativeActionsProps = Record<string, never>
 
 const DropdownMenuWithSubmenuImperativeActions = React.forwardRef<
   SubmenuActionsTestHandle,

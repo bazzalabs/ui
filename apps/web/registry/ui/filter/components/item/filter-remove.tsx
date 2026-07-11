@@ -22,7 +22,7 @@ export interface FilterRemoveProps
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterRemove = forwardRef<HTMLButtonElement, FilterRemoveProps>(
+export const FilterRemove = forwardRef<HTMLButtonElement, FilterRemoveProps>(
   ({ filter: filterProp, actions: actionsProp, className, ...props }, ref) => {
     const itemContext = useFilterItemContext()
     const filterActions = useFilterActions()
@@ -55,8 +55,6 @@ const FilterRemove = forwardRef<HTMLButtonElement, FilterRemoveProps>(
 )
 
 FilterRemove.displayName = 'FilterRemove'
-
-export { FilterRemove }
 
 export namespace FilterRemove {
   export type Props = FilterRemoveProps

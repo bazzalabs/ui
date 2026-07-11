@@ -26,7 +26,7 @@ export function TableSkeleton({ numRows, numCols }: TableSkeletonProps) {
           <TableHeader>
             <TableRow>
               {cols.map((_, index) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                // biome-ignore lint/suspicious/noArrayIndexKey: skeleton columns are static placeholders
                 <TableHead key={index}>
                   <Skeleton className="h-[20px] w-[75px]" />
                 </TableHead>
@@ -35,10 +35,10 @@ export function TableSkeleton({ numRows, numCols }: TableSkeletonProps) {
           </TableHeader>
           <TableBody>
             {rows.map((_, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static placeholders
               <TableRow key={index} className="h-12">
                 {cols.map((_, index2) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                  // biome-ignore lint/suspicious/noArrayIndexKey: skeleton cells are static placeholders
                   <TableCell key={index2}>
                     <Skeleton className="h-[30px] w-[140px]" />
                   </TableCell>

@@ -8,7 +8,6 @@ import {
   t,
 } from '@bazza-ui/filters'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Command, CommandGroup, CommandList } from '@/components/ui/command'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDebounceCallback } from '../../hooks/use-debounce-callback'
@@ -106,7 +105,14 @@ export function FilterValueNumberController<TData>({
       actions.setFilterOperator(column.id, newOperator)
       actions.setFilterValue(column, newValues)
     },
-    [values, column, actions, minMax],
+    [
+      values,
+      column,
+      actions,
+      minMax,
+      setFilterOperatorDebounced,
+      setFilterValueDebounced,
+    ],
   )
 
   return (

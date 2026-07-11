@@ -93,13 +93,7 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
         ...details,
       })
     },
-    [
-      logAimGuardEvents,
-      aimGuardActiveRef,
-      guardedTriggerIdRef,
-      guardedDepthRef,
-      guardedSubmenuSurfaceIdRef,
-    ],
+    [logAimGuardEvents],
   )
 
   const resetAimGuardState = React.useCallback(() => {

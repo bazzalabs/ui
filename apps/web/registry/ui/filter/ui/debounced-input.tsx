@@ -22,6 +22,7 @@ export function DebouncedInput({
   }, [initialValue])
 
   // Define the debounced function with useCallback
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the debounce() wrapper hides the deps from static analysis — recreate when onChange or debounceMs change
   const debouncedOnChange = useCallback(
     debounce((newValue: string | number) => {
       onChange(newValue)

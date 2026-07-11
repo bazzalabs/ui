@@ -1,6 +1,5 @@
 export default function CollapsibleCodeBlock({
   children,
-  className,
 }: {
   children: React.ReactNode
   className?: string

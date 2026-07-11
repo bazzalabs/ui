@@ -19,7 +19,7 @@ export interface FilterTriggerProps extends ComponentPropsWithoutRef<'button'> {
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
+export const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
   (
     { className, children, hasVisibleFilters = false, locale = 'en', ...props },
     ref,
@@ -45,8 +45,6 @@ const FilterTrigger = forwardRef<HTMLButtonElement, FilterTriggerProps>(
 )
 
 FilterTrigger.displayName = 'FilterTrigger'
-
-export { FilterTrigger }
 
 export namespace FilterTrigger {
   export type Props = FilterTriggerProps

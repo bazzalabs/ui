@@ -21,7 +21,7 @@ export interface FilterListMobileContainerProps
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterListMobileContainer = forwardRef<
+export const FilterListMobileContainer = forwardRef<
   HTMLDivElement,
   FilterListMobileContainerProps
 >(({ children, className, ...props }, ref) => {
@@ -97,8 +97,6 @@ const FilterListMobileContainer = forwardRef<
 })
 
 FilterListMobileContainer.displayName = 'FilterListMobileContainer'
-
-export { FilterListMobileContainer }
 
 export namespace FilterListMobileContainer {
   export type Props = FilterListMobileContainerProps

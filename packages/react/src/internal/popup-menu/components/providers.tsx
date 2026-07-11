@@ -3,7 +3,7 @@
 import * as React from 'react'
 import type { ListboxContextValue } from '../../listbox/contexts/listbox-context.js'
 import { ListboxContext as ListboxContextProvider } from '../../listbox/contexts/listbox-context.js'
-import type { ListboxStore, VirtualItem } from '../../listbox/index.js'
+import type { ListboxStore } from '../../listbox/index.js'
 import {
   type ComponentName,
   ComponentNameContext,

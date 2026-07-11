@@ -43,7 +43,7 @@ export function Media({
   inset = '0',
   caption,
 }: MediaProps) {
-  const { resolvedTheme, systemTheme, theme: __theme } = useTheme()
+  const { resolvedTheme } = useTheme()
 
   const resolvedSrc = useMemo(
     () =>
@@ -52,7 +52,7 @@ export function Media({
         : resolvedTheme === 'dark'
           ? src.dark
           : src.light,
-    [src, resolvedTheme, systemTheme],
+    [src, resolvedTheme],
   )
   const [loaded, setLoaded] = useState(false)
   const ref = useRef<HTMLVideoElement | HTMLImageElement | null>(null)
@@ -84,7 +84,7 @@ export function Media({
       const img = node as HTMLImageElement
       if (img.complete && img.naturalWidth) setLoaded(true)
     }
-  }, [type, imageSrc])
+  }, [type])
 
   useEffect(() => {
     if (type !== 'video') return

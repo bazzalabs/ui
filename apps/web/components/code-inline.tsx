@@ -7,7 +7,7 @@ type Props = {
   className?: string
 }
 
-export default function CodeInline({ code, lang = 'ts', className }: Props) {
+export default function CodeInline({ code, className }: Props) {
   // If empty, render nothing-ish to keep tables tidy
   if (!code) return <code className={className} />
   return <code className={cn('font-mono', className)}>{code}</code>

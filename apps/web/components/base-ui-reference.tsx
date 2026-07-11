@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon, ExternalLinkIcon } from 'lucide-react'
+import { ArrowUpRightIcon } from 'lucide-react'
 
 interface BaseUIReferenceProps {
   /**

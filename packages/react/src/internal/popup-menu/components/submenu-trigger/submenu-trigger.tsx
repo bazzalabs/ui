@@ -817,11 +817,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     if (!item.isHighlighted) {
       suppressAutoOpenRef.current = false
     }
-  }, [item.isHighlighted])
+  }, [item.isHighlighted, suppressAutoOpenRef])
 
   // When highlighted via keyboard, schedule open after keyboard delay
   // This effect only handles *navigation* highlight (ArrowUp/Down).
   // Explicit open actions (ArrowRight, Ctrl+L) bypass this by calling registerSubmenuOpen directly.
+  // biome-ignore lint/correctness/useExhaustiveDependencies(suppressAutoOpenRef.current): read via ref on purpose — suppression must not (re)schedule this effect, it is only consulted when the highlight changes
   React.useEffect(() => {
     // Skip if openOnHighlight is disabled
     if (!openOnHighlight) {
@@ -887,7 +888,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       onPointerDown?.(event)
     },
-    [open, logAimTrace, onPointerDown],
+    [open, logAimTrace, onPointerDown, suppressAutoOpenRef],
   )
 
   // Custom pointer move handler for submenu triggers
@@ -1061,6 +1062,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       delay.pointer,
       setOpen,
       logAimTrace,
+      parentDepth,
     ],
   )
 

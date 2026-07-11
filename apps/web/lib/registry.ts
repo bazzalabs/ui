@@ -5,10 +5,16 @@
  * For server-side functions that read from the filesystem, use `registry.server.ts`.
  */
 
-import type { RegistryEntry, RegistryIndex } from '@/registry/__index__'
+import type {
+  RegistryEntry,
+  RegistryIndex,
+  RegistryTier,
+} from '@/registry/__index__'
 import {
   blocks,
   examples,
+  examplesByTier,
+  getExampleEntry,
   getRegistryEntry,
   registry,
   ui,
@@ -39,8 +45,16 @@ export interface RegistryItem {
 // Re-exports from __index__
 // =============================================================================
 
-export type { RegistryEntry, RegistryIndex }
-export { blocks, examples, getRegistryEntry, registry, ui }
+export type { RegistryEntry, RegistryIndex, RegistryTier }
+export {
+  blocks,
+  examples,
+  examplesByTier,
+  getExampleEntry,
+  getRegistryEntry,
+  registry,
+  ui,
+}
 
 // =============================================================================
 // Client-safe Registry Functions
@@ -49,9 +63,12 @@ export { blocks, examples, getRegistryEntry, registry, ui }
 /**
  * Get the lazy-loaded component for a registry entry
  * Returns the React.lazy component that can be rendered with Suspense
+ *
+ * When `tier` is provided, examples resolve tier-first with cross-tier
+ * fallback (see `getExampleEntry`).
  */
-export function getRegistryComponent(name: string) {
-  const entry = getRegistryEntry(name)
+export function getRegistryComponent(name: string, tier?: RegistryTier) {
+  const entry = getRegistryEntry(name, tier)
   if (!entry) {
     return null
   }

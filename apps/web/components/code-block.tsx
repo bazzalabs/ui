@@ -31,7 +31,6 @@ export const CodeBlockWrapper = ({
 
 export function CodeBlock({
   code,
-  lang,
   className,
 }: {
   code: string

@@ -67,14 +67,14 @@ const DropdownMenuTriggerInner = React.forwardRef<
   const {
     render,
     children,
-    disabled,
+    disabled: _disabled,
     className,
     style,
     triggerProps,
     triggerState,
-    openOnHover,
-    delay,
-    closeDelay,
+    openOnHover: _openOnHover,
+    delay: _delay,
+    closeDelay: _closeDelay,
     ...rest
   } = props
 

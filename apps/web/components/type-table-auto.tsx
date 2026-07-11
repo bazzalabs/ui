@@ -41,7 +41,7 @@ function cleanTypeString(typeStr: string, required: boolean): string {
 function getShortPropType(
   name: string,
   type: string | undefined,
-  formattedType?: string,
+  _formattedType?: string,
   shortType?: string,
 ): { type: string; hasDetailedType: boolean } {
   // If we have a pre-computed short type (e.g., "Align"), use it

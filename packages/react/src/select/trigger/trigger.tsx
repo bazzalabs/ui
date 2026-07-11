@@ -1,6 +1,6 @@
 'use client'
 
-import { Popover, type PopoverTriggerProps } from '@base-ui/react/popover'
+import { Popover } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'

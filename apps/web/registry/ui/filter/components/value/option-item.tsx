@@ -4,7 +4,6 @@ import type { ColumnOptionExtended } from '@bazza-ui/filters'
 import type { CheckboxItemRenderParams } from '@bazza-ui/react/dropdown-menu'
 import * as React from 'react'
 import { isValidElement } from 'react'
-import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
@@ -37,7 +36,7 @@ export function renderOptionItem(
       <div className="flex items-center gap-2 group-data-measuring/row:w-max w-full min-w-0">
         <DropdownMenu.CheckboxItemIndicator
           keepMounted
-          render={(indicatorProps, state) => (
+          render={(_indicatorProps, state) => (
             <Checkbox
               checked={state.checked}
               tabIndex={-1}

@@ -1,7 +1,6 @@
 'use client'
 
 import { useCopyButton } from 'fumadocs-ui/utils/use-copy-button'
-import { CheckIcon, ClipboardIcon, FileTextIcon } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
@@ -16,8 +15,11 @@ export interface ViewMarkdownProps {
  * Displays buttons to view raw markdown and copy content.
  * Useful for AI agents and LLM integrations.
  */
-export function ViewMarkdown({ markdownUrl, githubUrl }: ViewMarkdownProps) {
-  const [copied, onCopy] = useCopyButton(async () => {
+export function ViewMarkdown({
+  markdownUrl,
+  githubUrl: _githubUrl,
+}: ViewMarkdownProps) {
+  const [_copied, _onCopy] = useCopyButton(async () => {
     const res = await fetch(markdownUrl)
     const text = await res.text()
     await navigator.clipboard.writeText(text)

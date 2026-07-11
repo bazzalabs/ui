@@ -43,9 +43,7 @@ FilterRootImpl.displayName = 'FilterRoot'
  *
  * Documentation: [Bazza UI Filter](https://bazza-ui.com/docs/components/filter)
  */
-const FilterRoot = forwardRef(FilterRootImpl)
-
-export { FilterRoot }
+export const FilterRoot = forwardRef(FilterRootImpl)
 
 export namespace FilterRoot {
   export type Props = FilterRootProps

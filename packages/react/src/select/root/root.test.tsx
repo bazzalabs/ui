@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Select } from '../index.js'
 
@@ -929,7 +928,7 @@ describe('<Select.Root />', () => {
     })
 
     it('renders multiple hidden inputs for multi-select', async () => {
-      const user = userEvent.setup()
+      const _user = userEvent.setup()
       render(
         <form data-testid="form">
           <Select.Root

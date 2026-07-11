@@ -1,7 +1,6 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
-import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import {
   ListboxContextProvider,

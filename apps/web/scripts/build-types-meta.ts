@@ -522,7 +522,7 @@ function isDataAttribute(name: string): boolean {
  * Check if a prop should be included in documentation.
  * Excludes inherited HTML/React props.
  */
-function shouldIncludeProp(sym: ts.Symbol, checker: ts.TypeChecker): boolean {
+function shouldIncludeProp(sym: ts.Symbol, _checker: ts.TypeChecker): boolean {
   // Always skip props marked with @ignore
   if (hasIgnoreTag(sym)) {
     return false
@@ -1165,7 +1165,7 @@ async function main(): Promise<void> {
       'Program files:\n' +
         program
           .getSourceFiles()
-          .map((sf) => ' - ' + sf.fileName)
+          .map((sf) => ` - ${sf.fileName}`)
           .join('\n'),
     )
   }

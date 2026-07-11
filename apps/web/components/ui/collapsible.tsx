@@ -27,6 +27,7 @@ function Collapsible({
   const [isOpen, setIsOpen] = React.useState(
     props?.open ?? props?.defaultOpen ?? false,
   )
+  const onOpenChange = props.onOpenChange
 
   React.useEffect(() => {
     if (props?.open !== undefined) setIsOpen(props.open)
@@ -35,9 +36,9 @@ function Collapsible({
   const handleOpenChange = React.useCallback(
     (open: boolean) => {
       setIsOpen(open)
-      props.onOpenChange?.(open)
+      onOpenChange?.(open)
     },
-    [props],
+    [onOpenChange],
   )
   return (
     <CollapsibleContext.Provider value={{ isOpen }}>

@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
 
@@ -11,7 +10,7 @@ import { DropdownMenu } from '../../dropdown-menu/index.js'
 /**
  * A searchable menu with keywords on items.
  */
-function NestedSearchableMenu() {
+function _NestedSearchableMenu() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger data-testid="trigger">

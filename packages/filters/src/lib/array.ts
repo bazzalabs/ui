@@ -182,7 +182,7 @@ export function max(
 
   // Check if we're dealing with numbers or bigints by looking at the first valid value
   let isNumberArray = false
-  let isBigIntArray = false
+  let _isBigIntArray = false
 
   for (let i = 0; i < values.length; i++) {
     const value = values[i]
@@ -191,7 +191,7 @@ export function max(
       break
     }
     if (getValidBigInt(value) !== undefined) {
-      isBigIntArray = true
+      _isBigIntArray = true
       break
     }
   }
@@ -255,7 +255,7 @@ export function min(
 
   // Check if we're dealing with numbers or bigints by looking at the first valid value
   let isNumberArray = false
-  let isBigIntArray = false
+  let _isBigIntArray = false
 
   for (let i = 0; i < values.length; i++) {
     const value = values[i]
@@ -264,7 +264,7 @@ export function min(
       break
     }
     if (getValidBigInt(value) !== undefined) {
-      isBigIntArray = true
+      _isBigIntArray = true
       break
     }
   }
@@ -328,7 +328,7 @@ export function minMax(
 
   // Check if we're dealing with numbers or bigints by looking at the first valid value
   let isNumberArray = false
-  let isBigIntArray = false
+  let _isBigIntArray = false
 
   for (let i = 0; i < values.length; i++) {
     const value = values[i]
@@ -337,7 +337,7 @@ export function minMax(
       break
     }
     if (getValidBigInt(value) !== undefined) {
-      isBigIntArray = true
+      _isBigIntArray = true
       break
     }
   }

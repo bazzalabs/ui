@@ -58,6 +58,7 @@ export interface PopupMenuSubpageBackItemProps
    */
   onSelectAsync?: (
     context: PopupMenuSubpageBackItem.OnSelectAsyncContext,
+    // biome-ignore lint/suspicious/noConfusingVoidType: `void` keeps non-returning async callbacks assignable — `Promise<undefined | boolean>` would reject `async () => { ... }`
   ) => Promise<void | boolean>
 }
 
@@ -108,6 +109,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     return didGoBack
   }, [subpageContext, focusOwnerStore])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(PopupMenuSubpageBackItem): only the type-level namespace (`PopupMenuSubpageBackItem.OnSelectAsyncContext`) is referenced — erased at runtime, not a real dependency
   const handleBack = React.useCallback(() => {
     if (onSelectAsync) {
       if (isPending) {

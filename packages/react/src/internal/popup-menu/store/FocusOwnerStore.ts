@@ -33,7 +33,7 @@ const selectors = {
  */
 export class FocusOwnerStore extends ReactStore<
   FocusOwnerState,
-  {},
+  Record<string, never>,
   typeof selectors
 > {
   constructor() {
