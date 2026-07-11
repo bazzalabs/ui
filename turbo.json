@@ -12,6 +12,7 @@
     "build": {
       "dependsOn": ["^build", "registry:build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["SHOW_PRIVATE_PAGES"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "registry:build": {
