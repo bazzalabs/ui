@@ -186,6 +186,149 @@ describe('ListboxStore', () => {
     })
   })
 
+  describe('group top reveal on keyboard highlight', () => {
+    /**
+     * Builds a list DOM (list > group > item1, item2; list > other) and
+     * registers everything with a fresh store. jsdom has no layout, so
+     * scrollIntoView is mocked per element, getBoundingClientRect is
+     * stubbed per test, and scrollTop is backed by a defined property.
+     */
+    function setupGroupedListbox() {
+      const store = createStore()
+
+      const list = document.createElement('div')
+      const group = document.createElement('div')
+      const item1 = document.createElement('div')
+      const item2 = document.createElement('div')
+      const other = document.createElement('div')
+
+      group.appendChild(item1)
+      group.appendChild(item2)
+      list.appendChild(group)
+      list.appendChild(other)
+
+      for (const el of [item1, item2, other]) {
+        el.scrollIntoView = vi.fn()
+      }
+
+      store.setListRef({ current: list })
+      store.registerGroup('group-1', { current: group })
+      store.registerItem('item-1', { value: 'Apple', groupId: 'group-1' })
+      store.registerItem('item-2', { value: 'Banana', groupId: 'group-1' })
+      store.registerItem('other', { value: 'Other' })
+      store.registerItemRef('item-1', { current: item1 })
+      store.registerItemRef('item-2', { current: item2 })
+      store.registerItemRef('other', { current: other })
+
+      return { store, list, group, item1, item2, other }
+    }
+
+    /** Backs scrollTop with a plain variable so reads/writes round-trip in jsdom. */
+    function defineScrollTop(el: HTMLElement, initial: number) {
+      let value = initial
+      Object.defineProperty(el, 'scrollTop', {
+        configurable: true,
+        get: () => value,
+        set: (next: number) => {
+          value = next
+        },
+      })
+    }
+
+    function stubTop(el: HTMLElement, top: number) {
+      el.getBoundingClientRect = () => ({ top }) as DOMRect
+    }
+
+    it('scrolls up to reveal a clipped group top when highlighting the first item in the group', () => {
+      const { store, list, group, item1 } = setupGroupedListbox()
+      defineScrollTop(list, 200)
+      stubTop(list, 100)
+      stubTop(group, 60)
+
+      store.clearHighlight()
+      store.setHighlightedId('item-1', 'keyboard')
+
+      expect(item1.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+      expect(list.scrollTop).toBe(160)
+    })
+
+    it('does not adjust scroll when the group top is already visible', () => {
+      const { store, list, group } = setupGroupedListbox()
+      defineScrollTop(list, 200)
+      stubTop(list, 100)
+      stubTop(group, 150)
+
+      store.clearHighlight()
+      store.setHighlightedId('item-1', 'keyboard')
+
+      expect(list.scrollTop).toBe(200)
+    })
+
+    it('does not adjust scroll for a non-first item in the group', () => {
+      const { store, list, group, item2 } = setupGroupedListbox()
+      defineScrollTop(list, 200)
+      stubTop(list, 100)
+      stubTop(group, 60)
+
+      store.clearHighlight()
+      store.setHighlightedId('item-2', 'keyboard')
+
+      expect(item2.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+      expect(list.scrollTop).toBe(200)
+    })
+
+    it('does not adjust scroll for an ungrouped item', () => {
+      const { store, list, group, other } = setupGroupedListbox()
+      defineScrollTop(list, 200)
+      stubTop(list, 100)
+      stubTop(group, 60)
+
+      store.clearHighlight()
+      store.setHighlightedId('other', 'keyboard')
+
+      expect(other.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+      expect(list.scrollTop).toBe(200)
+    })
+
+    it('treats the first visible (filtered) item of the group as the anchor', () => {
+      const { store, list, group, item2 } = setupGroupedListbox()
+      defineScrollTop(list, 200)
+      stubTop(list, 100)
+      stubTop(group, 60)
+
+      // 'Banana' matches; 'Apple' is filtered out, so item-2 becomes the
+      // group's first visible item. Note: setSearch resets scroll to top
+      // via scrollTop = 0 (list has no scrollTo in this setup).
+      store.setSearch('ban')
+      expect(store.getVisibleItemIds()).toEqual(['item-2'])
+
+      list.scrollTop = 200
+      store.clearHighlight()
+      store.setHighlightedId('item-2', 'keyboard')
+
+      expect(item2.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+      expect(list.scrollTop).toBe(160)
+    })
+
+    it('adjusts the explicit scroll container when one is registered', () => {
+      const { store, list, group } = setupGroupedListbox()
+      const viewport = document.createElement('div')
+      viewport.appendChild(list)
+      defineScrollTop(viewport, 300)
+      defineScrollTop(list, 0)
+      stubTop(viewport, 50)
+      stubTop(group, 20)
+
+      store.setListScrollContainerRef({ current: viewport })
+
+      store.clearHighlight()
+      store.setHighlightedId('item-1', 'keyboard')
+
+      expect(viewport.scrollTop).toBe(270)
+      expect(list.scrollTop).toBe(0)
+    })
+  })
+
   describe('navigation', () => {
     let store: ListboxStore
 
