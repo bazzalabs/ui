@@ -107,6 +107,8 @@ export interface DOMRefs {
   popupRef: React.RefObject<HTMLElement | null>
   /** Map of item ID to ref for the item's DOM element */
   itemRefs: Map<string, React.RefObject<HTMLElement | null>>
+  /** Map of group ID to ref for the group's DOM element */
+  groupRefs: Map<string, React.RefObject<HTMLElement | null>>
 }
 
 export interface ListboxState {
@@ -428,6 +430,7 @@ export class ListboxStore extends ReactStore<
         listScrollContainerRef: { current: null },
         popupRef: { current: null },
         itemRefs: new Map(),
+        groupRefs: new Map(),
       },
       onCloseComplete: undefined,
       onPopupCloseComplete: undefined,
@@ -1086,11 +1089,23 @@ export class ListboxStore extends ReactStore<
     }
   }
 
-  registerGroup(id: string): () => void {
+  /**
+   * Register a group. Optionally registers the group's DOM element ref,
+   * used for scroll positioning (e.g. revealing the group's label).
+   * Returns a cleanup function.
+   */
+  registerGroup(
+    id: string,
+    ref?: React.RefObject<HTMLElement | null>,
+  ): () => void {
     this.context.groups.set(id, new Set())
+    if (ref) {
+      this.context.refs.groupRefs.set(id, ref)
+    }
 
     return () => {
       this.context.groups.delete(id)
+      this.context.refs.groupRefs.delete(id)
     }
   }
 
