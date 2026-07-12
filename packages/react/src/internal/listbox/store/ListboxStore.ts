@@ -49,6 +49,23 @@ export interface ItemRegistration {
   closeOnClick?: boolean
 }
 
+/** Kinds of rows that participate in positional attributes. */
+export type ListboxRowKind =
+  | 'item'
+  | 'group'
+  | 'separator'
+  | 'empty'
+  | 'loading'
+
+/** A mounted row tracked for positional attributes, in DOM order. */
+export interface ListboxOrderedRow {
+  /** Unique row id (stable per component instance). */
+  id: string
+  kind: ListboxRowKind
+  /** Set for option-like rows rendered inside a Group/RadioGroup. */
+  groupId?: string
+}
+
 /**
  * Pre-registered item for virtualization.
  * This allows the store to know about all items even when they're not mounted.
@@ -133,6 +150,12 @@ export interface ListboxState {
   virtualized: boolean
   /** Count of virtual items (from items prop) */
   virtualItemsCount: number
+  /**
+   * Rows currently mounted in the DOM, sorted by document position.
+   * Mounted ⇔ visible, so this is the list of visible rows.
+   * Immutable: replaced wholesale on every registry change so selectors recompute.
+   */
+  orderedRows: readonly ListboxOrderedRow[]
 }
 
 export interface ListboxContext {
@@ -176,6 +199,8 @@ export interface ListboxContext {
   readonly submenuCloses: Map<string, () => void>
   /** Map of shortcut key to item ID */
   readonly shortcuts: Map<string, string>
+  /** Map of row ID to its mounted DOM element (positional registry). */
+  readonly rowElements: Map<string, HTMLElement>
   /**
    * Callback when open state changes.
    * The second parameter contains event details including the reason for the change.
@@ -291,6 +316,46 @@ const selectors = {
       state.normalizedSearch.length === 0 || state.visibleGroups.has(groupId),
   ),
 
+  isFirstRow: createSelector((state: ListboxState, rowId: string) => {
+    if (state.virtualized) return false
+    const rows = state.orderedRows.filter((r) => r.groupId === undefined)
+    return rows[0]?.id === rowId
+  }),
+
+  isLastRow: createSelector((state: ListboxState, rowId: string) => {
+    if (state.virtualized) return false
+    const rows = state.orderedRows.filter((r) => r.groupId === undefined)
+    return rows.at(-1)?.id === rowId
+  }),
+
+  isFirstGroup: createSelector((state: ListboxState, rowId: string) => {
+    if (state.virtualized) return false
+    const groups = state.orderedRows.filter((r) => r.kind === 'group')
+    return groups[0]?.id === rowId
+  }),
+
+  isLastGroup: createSelector((state: ListboxState, rowId: string) => {
+    if (state.virtualized) return false
+    const groups = state.orderedRows.filter((r) => r.kind === 'group')
+    return groups.at(-1)?.id === rowId
+  }),
+
+  isFirstInGroup: createSelector((state: ListboxState, rowId: string) => {
+    if (state.virtualized) return false
+    const row = state.orderedRows.find((r) => r.id === rowId)
+    if (!row?.groupId) return false
+    const siblings = state.orderedRows.filter((r) => r.groupId === row.groupId)
+    return siblings[0]?.id === rowId
+  }),
+
+  isLastInGroup: createSelector((state: ListboxState, rowId: string) => {
+    if (state.virtualized) return false
+    const row = state.orderedRows.find((r) => r.id === rowId)
+    if (!row?.groupId) return false
+    const siblings = state.orderedRows.filter((r) => r.groupId === row.groupId)
+    return siblings.at(-1)?.id === rowId
+  }),
+
   getItemScore: createSelector((state: ListboxState, itemId: string) => {
     if (state.normalizedSearch.length === 0) {
       return 1 // All items visible when no search
@@ -352,6 +417,7 @@ export class ListboxStore extends ReactStore<
       submenuOpens: new Map(),
       submenuCloses: new Map(),
       shortcuts: new Map(),
+      rowElements: new Map(),
       onOpenChange: () => {},
       onSearchChange: undefined,
       virtualItems: [],
@@ -1028,6 +1094,58 @@ export class ListboxStore extends ReactStore<
     }
   }
 
+  /**
+   * Register a mounted row element for positional tracking.
+   * Rows are kept in `state.orderedRows` sorted by DOM document position.
+   * Call from a layout effect once the element is mounted; the returned
+   * cleanup removes the row (call it when the element unmounts).
+   */
+  registerRow(
+    id: string,
+    element: HTMLElement,
+    row: { kind: ListboxRowKind; groupId?: string },
+  ): () => void {
+    this.context.rowElements.set(id, element)
+
+    const withoutRow = this.state.orderedRows.filter((r) => r.id !== id)
+    const next = [...withoutRow, { id, kind: row.kind, groupId: row.groupId }]
+    next.sort((a, b) => this.compareRowOrder(a, b))
+    this.set('orderedRows', next)
+
+    return () => {
+      // Only remove if this registration still owns the id (a re-registration
+      // for the same id may have replaced the element already).
+      if (this.context.rowElements.get(id) === element) {
+        this.context.rowElements.delete(id)
+        this.set(
+          'orderedRows',
+          this.state.orderedRows.filter((r) => r.id !== id),
+        )
+      }
+    }
+  }
+
+  /**
+   * Compare two rows by DOM document position.
+   * Falls back to preserving current relative order when either element
+   * is missing or disconnected (Array.prototype.sort is stable).
+   */
+  private compareRowOrder(a: ListboxOrderedRow, b: ListboxOrderedRow): number {
+    const elA = this.context.rowElements.get(a.id)
+    const elB = this.context.rowElements.get(b.id)
+    if (!elA || !elB || !elA.isConnected || !elB.isConnected) {
+      return 0
+    }
+    const position = elA.compareDocumentPosition(elB)
+    if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+      return -1
+    }
+    if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+      return 1
+    }
+    return 0
+  }
+
   registerItemSelect(
     id: string,
     onSelect: (() => void) | undefined,
@@ -1582,6 +1700,7 @@ function createInitialState(): ListboxState {
     filterTrigger: 0,
     virtualized: false,
     virtualItemsCount: 0,
+    orderedRows: [],
   }
 }
 

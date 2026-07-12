@@ -1625,4 +1625,133 @@ describe('ListboxStore', () => {
       expect(store.state.search).toBe('y')
     })
   })
+
+  describe('positional row registry', () => {
+    function createRowElements(count: number): HTMLElement[] {
+      const container = document.createElement('div')
+      document.body.appendChild(container)
+      const elements: HTMLElement[] = []
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div')
+        container.appendChild(el)
+        elements.push(el)
+      }
+      return elements
+    }
+
+    it('sorts registered rows by DOM order', () => {
+      const store = createStore()
+      const elements = createRowElements(2)
+
+      store.registerRow('b', elements[1]!, { kind: 'item' })
+      store.registerRow('a', elements[0]!, { kind: 'item' })
+
+      expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a', 'b'])
+    })
+
+    it('removes rows during cleanup', () => {
+      const store = createStore()
+      const elements = createRowElements(2)
+
+      const unregisterA = store.registerRow('a', elements[0]!, { kind: 'item' })
+      store.registerRow('b', elements[1]!, { kind: 'item' })
+
+      unregisterA()
+
+      expect(store.state.orderedRows.map((row) => row.id)).toEqual(['b'])
+      expect(store.context.rowElements.has('a')).toBe(false)
+    })
+
+    it('re-registers the same id with a new element without duplicates', () => {
+      const store = createStore()
+      const elements = createRowElements(2)
+
+      const unregisterOld = store.registerRow('a', elements[0]!, {
+        kind: 'item',
+      })
+      store.registerRow('a', elements[1]!, { kind: 'item' })
+
+      expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a'])
+      expect(store.context.rowElements.get('a')).toBe(elements[1])
+
+      unregisterOld()
+
+      expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a'])
+      expect(store.context.rowElements.get('a')).toBe(elements[1])
+    })
+
+    it('selects first and last list-level rows', () => {
+      const store = createStore()
+      const elements = createRowElements(3)
+
+      store.registerRow('x', elements[0]!, { kind: 'item' })
+      store.registerRow('g', elements[1]!, { kind: 'group' })
+      store.registerRow('i', elements[2]!, { kind: 'item', groupId: 'g' })
+
+      expect(store.select('isFirstRow', 'x')).toBe(true)
+      expect(store.select('isLastRow', 'g')).toBe(true)
+      expect(store.select('isFirstRow', 'i')).toBe(false)
+      expect(store.select('isLastRow', 'i')).toBe(false)
+    })
+
+    it('selects first and last group rows', () => {
+      const store = createStore()
+      const elements = createRowElements(4)
+
+      store.registerRow('g1', elements[0]!, { kind: 'group' })
+      store.registerRow('x', elements[1]!, { kind: 'item' })
+      store.registerRow('g2', elements[2]!, { kind: 'group' })
+      store.registerRow('separator', elements[3]!, { kind: 'separator' })
+
+      expect(store.select('isFirstGroup', 'g1')).toBe(true)
+      expect(store.select('isLastGroup', 'g2')).toBe(true)
+      expect(store.select('isFirstGroup', 'x')).toBe(false)
+      expect(store.select('isLastGroup', 'separator')).toBe(false)
+
+      const loneStore = createStore()
+      const loneElements = createRowElements(1)
+
+      loneStore.registerRow('only-group', loneElements[0]!, { kind: 'group' })
+
+      expect(loneStore.select('isFirstGroup', 'only-group')).toBe(true)
+      expect(loneStore.select('isLastGroup', 'only-group')).toBe(true)
+    })
+
+    it('selects first and last rows within a group', () => {
+      const store = createStore()
+      const elements = createRowElements(4)
+
+      store.registerRow('loose', elements[0]!, { kind: 'item' })
+      store.registerRow('i1', elements[1]!, { kind: 'item', groupId: 'g' })
+      store.registerRow('i2', elements[2]!, { kind: 'item', groupId: 'g' })
+      store.registerRow('single', elements[3]!, { kind: 'item', groupId: 'h' })
+
+      expect(store.select('isFirstInGroup', 'i1')).toBe(true)
+      expect(store.select('isLastInGroup', 'i1')).toBe(false)
+      expect(store.select('isFirstInGroup', 'i2')).toBe(false)
+      expect(store.select('isLastInGroup', 'i2')).toBe(true)
+      expect(store.select('isFirstInGroup', 'loose')).toBe(false)
+      expect(store.select('isLastInGroup', 'loose')).toBe(false)
+      expect(store.select('isFirstInGroup', 'single')).toBe(true)
+      expect(store.select('isLastInGroup', 'single')).toBe(true)
+    })
+
+    it('returns false for positional selectors when virtualized', () => {
+      const store = createStore()
+      const elements = createRowElements(3)
+
+      store.registerRow('x', elements[0]!, { kind: 'item' })
+      store.registerRow('g', elements[1]!, { kind: 'group' })
+      store.registerRow('i', elements[2]!, { kind: 'item', groupId: 'g' })
+
+      store.update({ virtualized: true })
+
+      expect(store.select('isFirstRow', 'x')).toBe(false)
+      expect(store.select('isLastRow', 'g')).toBe(false)
+      expect(store.select('isFirstGroup', 'g')).toBe(false)
+      expect(store.select('isLastGroup', 'g')).toBe(false)
+      expect(store.select('isFirstInGroup', 'i')).toBe(false)
+      expect(store.select('isLastInGroup', 'i')).toBe(false)
+    })
+  })
 })
