@@ -22,6 +22,10 @@ export interface PopupMenuSubpageBackItemState extends Record<string, unknown> {
   highlighted: boolean
   /** Whether the item is disabled. */
   disabled: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 const stateAttributesMapping = {
@@ -33,6 +37,16 @@ const stateAttributesMapping = {
     value ? { [PopupMenuSubpageBackItemDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown) =>
     value ? { [PopupMenuSubpageBackItemDataAttributes.disabled]: '' } : null,
+  first: (value: unknown) =>
+    value ? { [PopupMenuSubpageBackItemDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuSubpageBackItemDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value
+      ? { [PopupMenuSubpageBackItemDataAttributes.firstInGroup]: '' }
+      : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [PopupMenuSubpageBackItemDataAttributes.lastInGroup]: '' } : null,
 }
 
 export interface PopupMenuSubpageBackItemProps
@@ -180,8 +194,12 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
       subpageBackItem: true,
       highlighted: item.isHighlighted,
       disabled,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
     }),
-    [item.isHighlighted, disabled],
+    [item.isHighlighted, disabled, item.positional],
   )
 
   const handleClick = React.useCallback(
@@ -223,7 +241,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
 
   return useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {

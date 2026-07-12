@@ -38,6 +38,10 @@ export interface PopupMenuCheckboxItemState extends Record<string, unknown> {
    * Whether the item is currently checked.
    */
   checked: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 export interface PopupMenuCheckboxItemProps
@@ -121,6 +125,14 @@ const stateAttributesMapping = {
     value ? { [PopupMenuCheckboxItemDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuCheckboxItemDataAttributes.disabled]: '' } : null,
+  first: (value: unknown) =>
+    value ? { [PopupMenuCheckboxItemDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuCheckboxItemDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value ? { [PopupMenuCheckboxItemDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [PopupMenuCheckboxItemDataAttributes.lastInGroup]: '' } : null,
 }
 
 /**
@@ -205,8 +217,16 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   }, [disabled, toggleChecked, onSelect, item])
 
   const state: PopupMenuCheckboxItem.State = React.useMemo(
-    () => ({ highlighted: item.isHighlighted, disabled, checked }),
-    [item.isHighlighted, disabled, checked],
+    () => ({
+      highlighted: item.isHighlighted,
+      disabled,
+      checked,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
+    }),
+    [item.isHighlighted, disabled, checked, item.positional],
   )
 
   const checkboxItemContextValue: CheckboxItemContextValue = React.useMemo(
@@ -253,7 +273,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const element = useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {

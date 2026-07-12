@@ -26,6 +26,10 @@ export interface PopupMenuSubpageTriggerState extends Record<string, unknown> {
   highlighted: boolean
   /** Whether the item is disabled. */
   disabled: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 const stateAttributesMapping = {
@@ -41,6 +45,14 @@ const stateAttributesMapping = {
     value ? { [PopupMenuSubpageTriggerDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown) =>
     value ? { [PopupMenuSubpageTriggerDataAttributes.disabled]: '' } : null,
+  first: (value: unknown) =>
+    value ? { [PopupMenuSubpageTriggerDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuSubpageTriggerDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value ? { [PopupMenuSubpageTriggerDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [PopupMenuSubpageTriggerDataAttributes.lastInGroup]: '' } : null,
 }
 
 export interface PopupMenuSubpageTriggerProps
@@ -172,8 +184,18 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
       popupFocused: isPopupFocused,
       highlighted: item.isHighlighted,
       disabled,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
     }),
-    [isTargetOpen, isPopupFocused, item.isHighlighted, disabled],
+    [
+      isTargetOpen,
+      isPopupFocused,
+      item.isHighlighted,
+      disabled,
+      item.positional,
+    ],
   )
 
   const wrappedChildren = (
@@ -187,7 +209,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
 
   return useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {

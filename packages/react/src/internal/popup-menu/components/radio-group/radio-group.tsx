@@ -38,6 +38,8 @@ export interface PopupMenuRadioGroupState extends Record<string, unknown> {
    * Present when this is the last visible group in the list.
    */
   lastGroup: boolean
+  first: boolean
+  last: boolean
 }
 
 export interface PopupMenuRadioGroupProps
@@ -83,6 +85,10 @@ const stateAttributesMapping = {
     value ? { [PopupMenuRadioGroupDataAttributes.firstGroup]: '' } : null,
   lastGroup: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuRadioGroupDataAttributes.lastGroup]: '' } : null,
+  first: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuRadioGroupDataAttributes.first]: '' } : null,
+  last: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuRadioGroupDataAttributes.last]: '' } : null,
 }
 
 /**
@@ -159,6 +165,8 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const isVisible = forceMount || isGroupVisible
     const isFirstGroup = store.useState('isFirstGroup', groupId)
     const isLastGroup = store.useState('isLastGroup', groupId)
+    const isFirstRow = store.useState('isFirstRow', groupId)
+    const isLastRow = store.useState('isLastRow', groupId)
 
     // Context values
     const radioGroupContextValue: RadioGroupContextValue = React.useMemo(
@@ -173,8 +181,10 @@ export const PopupMenuRadioGroup = React.forwardRef(
         disabled,
         firstGroup: isFirstGroup,
         lastGroup: isLastGroup,
+        first: isFirstRow,
+        last: isLastRow,
       }),
-      [disabled, isFirstGroup, isLastGroup],
+      [disabled, isFirstGroup, isLastGroup, isFirstRow, isLastRow],
     )
 
     // Get component name for slot attribute

@@ -3,14 +3,26 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useMaybeAsyncMenuCoordinator } from '../../deep-search/async-coordinator.js'
+import { PopupMenuLoadingDataAttributes } from './loading.data-attrs.js'
 
 // Loading doesn't have any state - using an empty object type
-export interface PopupMenuLoadingState extends Record<string, unknown> {}
+export interface PopupMenuLoadingState extends Record<string, unknown> {
+  first: boolean
+  last: boolean
+}
+
+const stateAttributesMapping = {
+  first: (value: unknown) =>
+    value ? { [PopupMenuLoadingDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuLoadingDataAttributes.last]: '' } : null,
+}
 
 export interface PopupMenuLoadingProps
   extends ComponentProps<'div', PopupMenuLoading.State> {
@@ -42,13 +54,37 @@ export const PopupMenuLoading = React.forwardRef<
     ...rest
   } = props
 
+  const { store } = useSurfaceContext()
+  const rowId = React.useId()
+  const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
+
+  React.useLayoutEffect(() => {
+    if (!rowElement) return undefined
+    return store.registerRow(rowId, rowElement, { kind: 'loading' })
+  }, [rowElement, rowId, store])
+
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'loading')
 
+  const asyncCoordinator = useMaybeAsyncMenuCoordinator()
+  const isLoading = asyncCoordinator
+    ? asyncCoordinator.isRootLoading ||
+      (asyncCoordinator.isAnyLoading && asyncCoordinator.searchQuery.length > 0)
+    : false
+  const shouldRender = forceMount || isLoading
+  const isFirstRow = store.useState('isFirstRow', rowId)
+  const isLastRow = store.useState('isLastRow', rowId)
+  const state = React.useMemo(
+    () => ({ first: isFirstRow, last: isLastRow }),
+    [isFirstRow, isLastRow],
+  )
+
   const element = useRender({
     render,
-    ref: forwardedRef,
+    ref: [setRowElement, forwardedRef],
+    state,
+    stateAttributesMapping,
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
@@ -68,13 +104,6 @@ export const PopupMenuLoading = React.forwardRef<
   // Case 2 distinguishes between:
   // - Root menu deep search ("se") → user is waiting for results → show spinner
   // - Submenu opened with minLength=0 → just preloading child loaders → no spinner (Bug #6)
-  const asyncCoordinator = useMaybeAsyncMenuCoordinator()
-  const isLoading = asyncCoordinator
-    ? asyncCoordinator.isRootLoading ||
-      (asyncCoordinator.isAnyLoading && asyncCoordinator.searchQuery.length > 0)
-    : false
-  const shouldRender = forceMount || isLoading
-
   if (!shouldRender) {
     return null
   }

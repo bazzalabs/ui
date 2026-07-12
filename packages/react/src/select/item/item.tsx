@@ -36,6 +36,10 @@ export interface SelectItemState extends Record<string, unknown> {
    * Whether the item is currently selected.
    */
   selected: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 export interface SelectItemProps<Value = unknown>
@@ -87,6 +91,14 @@ const stateAttributesMapping = {
     value ? { [SelectItemDataAttributes.disabled]: '' } : null,
   selected: (value: unknown): Record<string, string> | null =>
     value ? { [SelectItemDataAttributes.selected]: '' } : null,
+  first: (value: unknown) =>
+    value ? { [SelectItemDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [SelectItemDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value ? { [SelectItemDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [SelectItemDataAttributes.lastInGroup]: '' } : null,
 }
 
 /**
@@ -259,8 +271,12 @@ function SelectItemImpl<Value = unknown>(
       highlighted: item.isHighlighted,
       disabled,
       selected,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
     }),
-    [item.isHighlighted, disabled, selected],
+    [item.isHighlighted, disabled, selected, item.positional],
   )
 
   const itemContextValue: SelectItemContextValue<Value> = React.useMemo(
@@ -306,7 +322,7 @@ function SelectItemImpl<Value = unknown>(
 
   const element = useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {

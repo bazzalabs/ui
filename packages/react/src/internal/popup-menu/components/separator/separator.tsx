@@ -8,9 +8,20 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { PopupMenuSeparatorDataAttributes } from './separator.data-attrs.js'
 
 // Separator doesn't have any state - using an empty object type
-export interface PopupMenuSeparatorState extends Record<string, unknown> {}
+export interface PopupMenuSeparatorState extends Record<string, unknown> {
+  first: boolean
+  last: boolean
+}
+
+const stateAttributesMapping = {
+  first: (value: unknown) =>
+    value ? { [PopupMenuSeparatorDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuSeparatorDataAttributes.last]: '' } : null,
+}
 
 export interface PopupMenuSeparatorProps
   extends ComponentProps<'div', PopupMenuSeparator.State> {
@@ -34,6 +45,13 @@ export const PopupMenuSeparator = React.forwardRef<
   const { alwaysRender = false, render, className, style, ...rest } = props
 
   const { store } = useSurfaceContext()
+  const rowId = React.useId()
+  const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
+
+  React.useLayoutEffect(() => {
+    if (!rowElement) return undefined
+    return store.registerRow(rowId, rowElement, { kind: 'separator' })
+  }, [rowElement, rowId, store])
 
   // Get search state from store
   const search = store.useState('normalizedSearch')
@@ -41,6 +59,12 @@ export const PopupMenuSeparator = React.forwardRef<
   // Hide separator when there's an active search (unless alwaysRender)
   const hasSearch = search.length > 0
   const isHidden = hasSearch && !alwaysRender
+  const isFirstRow = store.useState('isFirstRow', rowId)
+  const isLastRow = store.useState('isLastRow', rowId)
+  const state = React.useMemo(
+    () => ({ first: isFirstRow, last: isLastRow }),
+    [isFirstRow, isLastRow],
+  )
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
@@ -48,7 +72,9 @@ export const PopupMenuSeparator = React.forwardRef<
 
   const element = useRender({
     render,
-    ref: forwardedRef,
+    ref: [setRowElement, forwardedRef],
+    state,
+    stateAttributesMapping,
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),

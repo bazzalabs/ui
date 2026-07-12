@@ -130,6 +130,17 @@ export interface UseListboxItemReturn {
   /** Ref to attach to the item element */
   ref: React.RefObject<HTMLDivElement | null>
 
+  /** Callback ref that tracks the mounted row element for positional attributes. Merge into the rendered element's ref. */
+  rowRef: (element: HTMLElement | null) => void
+
+  /** Positional state among visible rows (all false in virtualized mode). */
+  positional: {
+    first: boolean
+    last: boolean
+    firstInGroup: boolean
+    lastInGroup: boolean
+  }
+
   /** Whether item is currently highlighted */
   isHighlighted: boolean
 
@@ -220,6 +231,18 @@ export function useListboxItem(
 
   const ref = React.useRef<HTMLDivElement>(null)
 
+  // Positional row registry: stable per-instance row id + mounted element
+  const rowId = React.useId()
+  const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
+
+  React.useLayoutEffect(() => {
+    if (!rowElement) return undefined
+    return store.registerRow(rowId, rowElement, {
+      kind: 'item',
+      groupId: groupContext?.groupId,
+    })
+  }, [rowElement, rowId, groupContext?.groupId, store])
+
   // Infer value from textContent if not provided
   const [inferredValue, setInferredValue] = React.useState<string>('')
 
@@ -308,6 +331,10 @@ export function useListboxItem(
   // Use selectors to get derived state (using registrationId as identifier)
   const normalizedSearch = store.useState('normalizedSearch')
   const isHighlighted = store.useState('isHighlighted', registrationId)
+  const isFirstRow = store.useState('isFirstRow', rowId)
+  const isLastRow = store.useState('isLastRow', rowId)
+  const isFirstInGroup = store.useState('isFirstInGroup', rowId)
+  const isLastInGroup = store.useState('isLastInGroup', rowId)
   const score = store.useState('getItemScore', registrationId)
 
   // Check if filtering is disabled (consumer handles filtering externally)
@@ -403,10 +430,22 @@ export function useListboxItem(
     [handleClick, handlePointerMove, handlePointerDown],
   )
 
+  const positional = React.useMemo(
+    () => ({
+      first: isFirstRow,
+      last: isLastRow,
+      firstInGroup: isFirstInGroup,
+      lastInGroup: isLastInGroup,
+    }),
+    [isFirstRow, isLastRow, isFirstInGroup, isLastInGroup],
+  )
+
   return {
     id: domId,
     storeId: registrationId,
     ref,
+    rowRef: setRowElement,
+    positional,
     isHighlighted,
     isVisible,
     contextValue,

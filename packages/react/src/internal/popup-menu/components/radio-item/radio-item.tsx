@@ -31,6 +31,10 @@ export interface PopupMenuRadioItemState extends Record<string, unknown> {
    * Whether the item is currently selected/checked.
    */
   checked: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 export interface PopupMenuRadioItemProps
@@ -100,6 +104,14 @@ const stateAttributesMapping = {
     value ? { [PopupMenuRadioItemDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuRadioItemDataAttributes.disabled]: '' } : null,
+  first: (value: unknown) =>
+    value ? { [PopupMenuRadioItemDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuRadioItemDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value ? { [PopupMenuRadioItemDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [PopupMenuRadioItemDataAttributes.lastInGroup]: '' } : null,
 }
 
 /**
@@ -166,8 +178,16 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
   }, [disabled, radioGroupContext, value, onSelect, item])
 
   const state: PopupMenuRadioItem.State = React.useMemo(
-    () => ({ highlighted: item.isHighlighted, disabled, checked }),
-    [item.isHighlighted, disabled, checked],
+    () => ({
+      highlighted: item.isHighlighted,
+      disabled,
+      checked,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
+    }),
+    [item.isHighlighted, disabled, checked, item.positional],
   )
 
   const radioItemContextValue: RadioItemContextValue = React.useMemo(
@@ -213,7 +233,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
 
   const element = useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {
