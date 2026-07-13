@@ -30,6 +30,14 @@ export interface PopupMenuRadioGroupState extends Record<string, unknown> {
    * Whether the radio group is disabled.
    */
   disabled: boolean
+  /**
+   * Present when this is the first visible group in the list.
+   */
+  firstGroup: boolean
+  /**
+   * Present when this is the last visible group in the list.
+   */
+  lastGroup: boolean
 }
 
 export interface PopupMenuRadioGroupProps
@@ -71,6 +79,10 @@ export interface PopupMenuRadioGroupProps
 const stateAttributesMapping = {
   disabled: (value: unknown) =>
     value ? { [PopupMenuRadioGroupDataAttributes.disabled]: '' } : null,
+  firstGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuRadioGroupDataAttributes.firstGroup]: '' } : null,
+  lastGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuRadioGroupDataAttributes.lastGroup]: '' } : null,
 }
 
 /**
@@ -99,6 +111,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const { store } = useSurfaceContext()
     const popupMenuContext = usePopupMenuContext()
     const groupId = React.useId()
+    const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
     const disabled = disabledProp || popupMenuContext.disabled
 
@@ -136,9 +149,16 @@ export const PopupMenuRadioGroup = React.forwardRef(
       return unregister
     }, [groupId, store])
 
+    React.useLayoutEffect(() => {
+      if (!rowElement) return undefined
+      return store.registerRow(groupId, rowElement, { kind: 'group' })
+    }, [rowElement, groupId, store])
+
     // Check visibility using selector
     const isGroupVisible = store.useState('isGroupVisible', groupId)
     const isVisible = forceMount || isGroupVisible
+    const isFirstGroup = store.useState('isFirstGroup', groupId)
+    const isLastGroup = store.useState('isLastGroup', groupId)
 
     // Context values
     const radioGroupContextValue: RadioGroupContextValue = React.useMemo(
@@ -149,8 +169,12 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
 
     const state: PopupMenuRadioGroup.State = React.useMemo(
-      () => ({ disabled }),
-      [disabled],
+      () => ({
+        disabled,
+        firstGroup: isFirstGroup,
+        lastGroup: isLastGroup,
+      }),
+      [disabled, isFirstGroup, isLastGroup],
     )
 
     // Get component name for slot attribute
@@ -159,7 +183,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
 
     const element = useRender({
       render,
-      ref: forwardedRef,
+      ref: [setRowElement, forwardedRef],
       state,
       stateAttributesMapping,
       props: {

@@ -1,13 +1,9 @@
-export enum PopupMenuRadioGroupDataAttributes {
+export enum PopupMenuGroupDataAttributes {
   /**
    * Identifies the component part.
-   * @type {'bazzaui-dropdown-menu-radio-group' | 'bazzaui-context-menu-radio-group'}
+   * @type {'bazzaui-dropdown-menu-group' | 'bazzaui-context-menu-group' | 'bazzaui-select-group' | 'bazzaui-combobox-group'}
    */
-  slot = 'bazzaui-[component]-radio-group',
-  /**
-   * Present when the radio group is disabled.
-   */
-  disabled = 'data-disabled',
+  slot = 'bazzaui-[component]-group',
   /**
    * Present when this is the first visible group in the list.
    */

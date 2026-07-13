@@ -8,12 +8,21 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { PopupMenuGroupDataAttributes } from './group.data-attrs.js'
 
 export interface PopupMenuGroupState extends Record<string, unknown> {
   /**
    * Whether the group is hidden due to no matching items.
    */
   hidden: boolean
+  /**
+   * Present when this is the first visible group in the list.
+   */
+  firstGroup: boolean
+  /**
+   * Present when this is the last visible group in the list.
+   */
+  lastGroup: boolean
 }
 
 export interface PopupMenuGroupProps
@@ -25,6 +34,13 @@ export interface PopupMenuGroupProps
   forceMount?: boolean
 
   children: React.ReactNode
+}
+
+const stateAttributesMapping = {
+  firstGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupDataAttributes.firstGroup]: '' } : null,
+  lastGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupDataAttributes.lastGroup]: '' } : null,
 }
 
 /**
@@ -47,6 +63,7 @@ export const PopupMenuGroup = React.forwardRef<
 
   const { store } = useSurfaceContext()
   const groupId = React.useId()
+  const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
   // Register group with store
   React.useEffect(() => {
@@ -54,9 +71,16 @@ export const PopupMenuGroup = React.forwardRef<
     return unregister
   }, [groupId, store])
 
+  React.useLayoutEffect(() => {
+    if (!rowElement) return undefined
+    return store.registerRow(groupId, rowElement, { kind: 'group' })
+  }, [rowElement, groupId, store])
+
   // Check if group has visible items using selector
   const isGroupVisible = store.useState('isGroupVisible', groupId)
   const isVisible = forceMount || isGroupVisible
+  const isFirstGroup = store.useState('isFirstGroup', groupId)
+  const isLastGroup = store.useState('isLastGroup', groupId)
 
   // Provide group context to children
   const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
@@ -64,8 +88,10 @@ export const PopupMenuGroup = React.forwardRef<
   const state: PopupMenuGroup.State = React.useMemo(
     () => ({
       hidden: !isVisible,
+      firstGroup: isFirstGroup,
+      lastGroup: isLastGroup,
     }),
-    [isVisible],
+    [isVisible, isFirstGroup, isLastGroup],
   )
 
   // Get component name for slot attribute
@@ -74,8 +100,9 @@ export const PopupMenuGroup = React.forwardRef<
 
   const element = useRender({
     render,
-    ref: forwardedRef,
+    ref: [setRowElement, forwardedRef],
     state,
+    stateAttributesMapping,
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),

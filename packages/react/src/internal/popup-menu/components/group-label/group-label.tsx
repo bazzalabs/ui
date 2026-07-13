@@ -3,17 +3,34 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { PopupMenuGroupLabelDataAttributes } from './group-label.data-attrs.js'
 
-// GroupLabel doesn't have any state - using an empty object type
-export interface PopupMenuGroupLabelState extends Record<string, unknown> {}
+export interface PopupMenuGroupLabelState extends Record<string, unknown> {
+  /**
+   * Present when this label's parent group is the first visible group in the list.
+   */
+  firstGroup: boolean
+  /**
+   * Present when this label's parent group is the last visible group in the list.
+   */
+  lastGroup: boolean
+}
 
 export interface PopupMenuGroupLabelProps
   extends ComponentProps<'div', PopupMenuGroupLabel.State> {
   children: React.ReactNode
+}
+
+const stateAttributesMapping = {
+  firstGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupLabelDataAttributes.firstGroup]: '' } : null,
+  lastGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupLabelDataAttributes.lastGroup]: '' } : null,
 }
 
 /**
@@ -25,6 +42,20 @@ export const PopupMenuGroupLabel = React.forwardRef<
   PopupMenuGroupLabel.Props
 >(function PopupMenuGroupLabel(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
+  const { store } = useSurfaceContext()
+  const groupContext = useGroupContext()
+  const groupId = groupContext?.groupId ?? ''
+
+  const isFirstGroup = store.useState('isFirstGroup', groupId)
+  const isLastGroup = store.useState('isLastGroup', groupId)
+
+  const state: PopupMenuGroupLabel.State = React.useMemo(
+    () => ({
+      firstGroup: isFirstGroup,
+      lastGroup: isLastGroup,
+    }),
+    [isFirstGroup, isLastGroup],
+  )
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
@@ -33,6 +64,8 @@ export const PopupMenuGroupLabel = React.forwardRef<
   return useRender({
     render,
     ref: forwardedRef,
+    state,
+    stateAttributesMapping,
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
