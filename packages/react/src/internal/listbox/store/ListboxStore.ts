@@ -663,6 +663,7 @@ export class ListboxStore extends ReactStore<
         const isInList = listEl.contains(itemEl)
         if (isInList) {
           itemEl.scrollIntoView({ block: 'nearest' })
+          this.maybeRevealGroupTop(id, listEl)
         }
       } catch {
         // Ignore errors from scrollIntoView
@@ -670,6 +671,43 @@ export class ListboxStore extends ReactStore<
     }
     // For virtualized lists where the item is not in the DOM,
     // the onHighlightChange callback handles scroll via virtualizer
+  }
+
+  /**
+   * Reveal the top of an item's group after the item has been scrolled into
+   * view. When keyboard navigation lands on the first visible item of a
+   * group, aligning the viewport to the item alone leaves the group's label
+   * clipped just above the viewport (e.g. when navigating upward or wrapping
+   * around). Scrolling up by the clipped amount aligns the viewport top with
+   * the group's top edge so the label is visible.
+   *
+   * No-ops when the item is not the first visible item of its group, when the
+   * group element is unknown or outside the list, or when the group's top is
+   * already visible (e.g. when navigating downward).
+   */
+  private maybeRevealGroupTop(id: string, listEl: HTMLElement) {
+    const groupId = this.context.items.get(id)?.groupId
+    if (!groupId) return
+
+    // Only the group's first visible item anchors to the group top
+    const visibleIds = this.getVisibleItemIds()
+    const firstInGroup = visibleIds.find(
+      (visibleId) => this.context.items.get(visibleId)?.groupId === groupId,
+    )
+    if (firstInGroup !== id) return
+
+    const groupEl = this.context.refs.groupRefs.get(groupId)?.current
+    if (!groupEl || !listEl.contains(groupEl)) return
+
+    const scrollEl =
+      this.context.refs.listScrollContainerRef.current ??
+      this.getScrollResetElement(listEl)
+
+    const clippedAbove =
+      scrollEl.getBoundingClientRect().top - groupEl.getBoundingClientRect().top
+    if (clippedAbove > 0) {
+      scrollEl.scrollTop -= clippedAbove
+    }
   }
 
   private scrollListToTop() {
