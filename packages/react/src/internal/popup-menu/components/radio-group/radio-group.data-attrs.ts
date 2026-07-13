@@ -16,4 +16,8 @@ export enum PopupMenuRadioGroupDataAttributes {
    * Present when this is the last visible group in the list.
    */
   lastGroup = 'data-last-group',
+  /** Present when this is the first visible list-level row. */
+  first = 'data-first',
+  /** Present when this is the last visible list-level row. */
+  last = 'data-last',
 }

@@ -22,6 +22,10 @@ export interface PopupMenuItemState extends Record<string, unknown> {
    * Whether the item is disabled.
    */
   disabled: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 export interface PopupMenuItemProps
@@ -86,6 +90,14 @@ const stateAttributesMapping = {
     value ? { [PopupMenuItemDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuItemDataAttributes.disabled]: '' } : null,
+  first: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuItemDataAttributes.first]: '' } : null,
+  last: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuItemDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuItemDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuItemDataAttributes.lastInGroup]: '' } : null,
 }
 
 /**
@@ -137,8 +149,12 @@ export const PopupMenuItem = React.forwardRef<
     () => ({
       highlighted: item.isHighlighted,
       disabled,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
     }),
-    [item.isHighlighted, disabled],
+    [item.isHighlighted, disabled, item.positional],
   )
 
   // Merge user-provided handlers with item handlers
@@ -183,7 +199,7 @@ export const PopupMenuItem = React.forwardRef<
 
   return useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {

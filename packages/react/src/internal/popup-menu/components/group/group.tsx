@@ -23,6 +23,8 @@ export interface PopupMenuGroupState extends Record<string, unknown> {
    * Present when this is the last visible group in the list.
    */
   lastGroup: boolean
+  first: boolean
+  last: boolean
 }
 
 export interface PopupMenuGroupProps
@@ -37,6 +39,10 @@ export interface PopupMenuGroupProps
 }
 
 const stateAttributesMapping = {
+  first: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupDataAttributes.first]: '' } : null,
+  last: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupDataAttributes.last]: '' } : null,
   firstGroup: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuGroupDataAttributes.firstGroup]: '' } : null,
   lastGroup: (value: unknown): Record<string, string> | null =>
@@ -81,6 +87,8 @@ export const PopupMenuGroup = React.forwardRef<
   const isVisible = forceMount || isGroupVisible
   const isFirstGroup = store.useState('isFirstGroup', groupId)
   const isLastGroup = store.useState('isLastGroup', groupId)
+  const isFirstRow = store.useState('isFirstRow', groupId)
+  const isLastRow = store.useState('isLastRow', groupId)
 
   // Provide group context to children
   const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
@@ -90,8 +98,10 @@ export const PopupMenuGroup = React.forwardRef<
       hidden: !isVisible,
       firstGroup: isFirstGroup,
       lastGroup: isLastGroup,
+      first: isFirstRow,
+      last: isLastRow,
     }),
-    [isVisible, isFirstGroup, isLastGroup],
+    [isVisible, isFirstGroup, isLastGroup, isFirstRow, isLastRow],
   )
 
   // Get component name for slot attribute

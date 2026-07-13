@@ -73,6 +73,77 @@ function SingleGroupMenu() {
   )
 }
 
+function MixedRowMenu() {
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="search-input" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="loose-home" value="home">
+                  Home
+                </DropdownMenu.Item>
+                <DropdownMenu.Group data-testid="group-fruits">
+                  <DropdownMenu.GroupLabel>Fruits</DropdownMenu.GroupLabel>
+                  <DropdownMenu.Item data-testid="item-apple" value="apple">
+                    Apple
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item data-testid="item-banana" value="banana">
+                    Banana
+                  </DropdownMenu.Item>
+                </DropdownMenu.Group>
+                <DropdownMenu.Separator data-testid="sep" />
+                <DropdownMenu.Group data-testid="group-vegetables">
+                  <DropdownMenu.GroupLabel>Vegetables</DropdownMenu.GroupLabel>
+                  <DropdownMenu.Item data-testid="item-carrot" value="carrot">
+                    Carrot
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item data-testid="item-potato" value="potato">
+                    Potato
+                  </DropdownMenu.Item>
+                </DropdownMenu.Group>
+              </DropdownMenu.List>
+              <DropdownMenu.Empty data-testid="empty-state">
+                No results
+              </DropdownMenu.Empty>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function LooseOnlyMenu() {
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="loose-first" value="first">
+                  First
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="loose-middle" value="middle">
+                  Middle
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="loose-last" value="last">
+                  Last
+                </DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 describe('popup menu positional group attributes', () => {
   it('marks first and last visible groups and updates when filtering changes visibility', async () => {
     const user = userEvent.setup()
@@ -186,6 +257,104 @@ describe('popup menu positional group attributes', () => {
         'data-last-group',
         '',
       )
+    })
+  })
+})
+
+describe('list-level and in-group attributes', () => {
+  it('tracks mixed rows, group rows, filtering, and empty state', async () => {
+    const user = userEvent.setup()
+    render(<MixedRowMenu />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loose-home')).toHaveAttribute('data-first', '')
+      expect(screen.getByTestId('loose-home')).not.toHaveAttribute('data-last')
+      expect(screen.getByTestId('group-vegetables')).toHaveAttribute(
+        'data-last',
+        '',
+      )
+      for (const id of [
+        'item-apple',
+        'item-banana',
+        'item-carrot',
+        'item-potato',
+      ]) {
+        expect(screen.getByTestId(id)).not.toHaveAttribute('data-first')
+        expect(screen.getByTestId(id)).not.toHaveAttribute('data-last')
+      }
+      expect(screen.getByTestId('item-apple')).toHaveAttribute(
+        'data-first-in-group',
+        '',
+      )
+      expect(screen.getByTestId('item-apple')).not.toHaveAttribute(
+        'data-last-in-group',
+      )
+      expect(screen.getByTestId('item-banana')).toHaveAttribute(
+        'data-last-in-group',
+        '',
+      )
+      expect(screen.getByTestId('item-potato')).toHaveAttribute(
+        'data-last-in-group',
+        '',
+      )
+      expect(screen.getByTestId('sep')).not.toHaveAttribute('data-first')
+      expect(screen.getByTestId('sep')).not.toHaveAttribute('data-last')
+    })
+
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'banana')
+    await waitFor(() => {
+      expect(screen.getByTestId('group-fruits')).toHaveAttribute(
+        'data-first',
+        '',
+      )
+      expect(screen.getByTestId('group-fruits')).toHaveAttribute(
+        'data-last',
+        '',
+      )
+      expect(screen.getByTestId('item-banana')).toHaveAttribute(
+        'data-first-in-group',
+        '',
+      )
+      expect(screen.getByTestId('item-banana')).toHaveAttribute(
+        'data-last-in-group',
+        '',
+      )
+      expect(screen.queryByTestId('loose-home')).toBeNull()
+      expect(screen.queryByTestId('sep')).toBeNull()
+    })
+
+    await user.clear(input)
+    await user.type(input, 'zzz')
+    await waitFor(() => {
+      expect(screen.getByTestId('empty-state')).toHaveAttribute(
+        'data-first',
+        '',
+      )
+      expect(screen.getByTestId('empty-state')).toHaveAttribute('data-last', '')
+    })
+  })
+
+  it('tracks first and last among loose items without group attributes', async () => {
+    render(<LooseOnlyMenu />)
+    await waitFor(() => {
+      expect(screen.getByTestId('loose-first')).toHaveAttribute(
+        'data-first',
+        '',
+      )
+      expect(screen.getByTestId('loose-last')).toHaveAttribute('data-last', '')
+      expect(screen.getByTestId('loose-middle')).not.toHaveAttribute(
+        'data-first',
+      )
+      expect(screen.getByTestId('loose-middle')).not.toHaveAttribute(
+        'data-last',
+      )
+      for (const id of ['loose-first', 'loose-middle', 'loose-last']) {
+        expect(screen.getByTestId(id)).not.toHaveAttribute(
+          'data-first-in-group',
+        )
+        expect(screen.getByTestId(id)).not.toHaveAttribute('data-last-in-group')
+      }
     })
   })
 })

@@ -53,6 +53,10 @@ export interface PopupMenuSubmenuTriggerState extends Record<string, unknown> {
    * Whether the item is disabled.
    */
   disabled: boolean
+  first: boolean
+  last: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 // Custom mapping to convert state to kebab-case data attributes
@@ -69,6 +73,14 @@ const stateAttributesMapping = {
     value ? { [PopupMenuSubmenuTriggerDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown) =>
     value ? { [PopupMenuSubmenuTriggerDataAttributes.disabled]: '' } : null,
+  first: (value: unknown) =>
+    value ? { [PopupMenuSubmenuTriggerDataAttributes.first]: '' } : null,
+  last: (value: unknown) =>
+    value ? { [PopupMenuSubmenuTriggerDataAttributes.last]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value ? { [PopupMenuSubmenuTriggerDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [PopupMenuSubmenuTriggerDataAttributes.lastInGroup]: '' } : null,
 }
 
 export interface PopupMenuSubmenuTriggerProps
@@ -1235,8 +1247,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       popupFocused: isPopupFocused,
       highlighted: item.isHighlighted,
       disabled,
+      first: item.positional.first,
+      last: item.positional.last,
+      firstInGroup: item.positional.firstInGroup,
+      lastInGroup: item.positional.lastInGroup,
     }),
-    [open, isPopupFocused, item.isHighlighted, disabled],
+    [open, isPopupFocused, item.isHighlighted, disabled, item.positional],
   )
 
   // Wrap children with ItemContext.Provider so child components can access item state
@@ -1253,7 +1269,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Use useRender to create the element with state-based data attributes
   const element = useRender({
     render,
-    ref: [item.ref, forwardedRef],
+    ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {
