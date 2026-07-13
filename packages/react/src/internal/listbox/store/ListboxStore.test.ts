@@ -138,6 +138,33 @@ describe('ListboxStore', () => {
       expect(store.context.groups.get('group-1')?.has('item-1')).toBe(false)
     })
 
+    it('registers a group element ref when provided', () => {
+      const store = createStore()
+      const groupEl = document.createElement('div')
+
+      const cleanup = store.registerGroup('group-1', { current: groupEl })
+
+      expect(store.context.refs.groupRefs.get('group-1')?.current).toBe(groupEl)
+
+      cleanup()
+
+      expect(store.context.refs.groupRefs.has('group-1')).toBe(false)
+      expect(store.context.groups.has('group-1')).toBe(false)
+    })
+
+    it('registers a group without an element ref', () => {
+      const store = createStore()
+
+      const cleanup = store.registerGroup('group-1')
+
+      expect(store.context.groups.has('group-1')).toBe(true)
+      expect(store.context.refs.groupRefs.has('group-1')).toBe(false)
+
+      cleanup()
+
+      expect(store.context.groups.has('group-1')).toBe(false)
+    })
+
     it('registers item select callbacks', () => {
       const store = createStore()
       const onSelect = vi.fn()

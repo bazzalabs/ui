@@ -117,6 +117,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
     const { store } = useSurfaceContext()
     const popupMenuContext = usePopupMenuContext()
     const groupId = React.useId()
+    const internalRef = React.useRef<HTMLDivElement>(null)
     const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
     const disabled = disabledProp || popupMenuContext.disabled
@@ -151,7 +152,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
 
     // Register group with store for filtering visibility
     React.useEffect(() => {
-      const unregister = store.registerGroup(groupId)
+      const unregister = store.registerGroup(groupId, internalRef)
       return unregister
     }, [groupId, store])
 
@@ -193,7 +194,7 @@ export const PopupMenuRadioGroup = React.forwardRef(
 
     const element = useRender({
       render,
-      ref: [setRowElement, forwardedRef],
+      ref: [internalRef, setRowElement, forwardedRef],
       state,
       stateAttributesMapping,
       props: {
