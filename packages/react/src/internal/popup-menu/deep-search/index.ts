@@ -65,6 +65,9 @@ export type {
   SubpageDef,
   SubpageTriggerRenderParams,
   SubpageTriggerRenderProps,
+  TreeItemDef,
+  TreeItemRenderParams,
+  TreeItemRenderProps,
 } from './types.js'
 export {
   defineRadioGroup,
@@ -94,6 +97,7 @@ export {
   isSeparatorDef,
   isSubmenuDef,
   isSubpageDef,
+  isTreeItemDef,
   partitionByKind,
   scoreNodes,
   shouldIncludeInDeepSearch,

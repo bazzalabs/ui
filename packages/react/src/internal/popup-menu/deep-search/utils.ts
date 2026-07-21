@@ -22,6 +22,7 @@ import type {
   ScoredNode,
   SubmenuDef,
   SubpageDef,
+  TreeItemDef,
 } from './types.js'
 import {
   isDisplayGroupNode,
@@ -67,8 +68,14 @@ export function defaultGetQualifiedRowId(
   // Otherwise, compute from breadcrumbs + value
   const slugValue = slugify(ctx.value)
 
-  // Only qualify with breadcrumbs when deep searching
-  if (ctx.isDeepSearching && ctx.breadcrumbs.length > 0) {
+  // Tree browse rows need their breadcrumb path to avoid branch collisions.
+  const hasTreeBreadcrumb = ctx.breadcrumbs.some(
+    (breadcrumb) => breadcrumb.node.kind === 'tree-item',
+  )
+  if (
+    (ctx.isDeepSearching || hasTreeBreadcrumb) &&
+    ctx.breadcrumbs.length > 0
+  ) {
     const slugBreadcrumbs = ctx.breadcrumbs
       .map((b) => b.id ?? slugify(b.value))
       .filter(Boolean)
@@ -120,6 +127,10 @@ export function isCheckboxItemDef(node: NodeDef): node is CheckboxItemDef {
   return node.kind === 'checkbox-item'
 }
 
+export function isTreeItemDef(node: NodeDef): node is TreeItemDef {
+  return node.kind === 'tree-item'
+}
+
 export function isSubmenuDef(node: NodeDef): node is SubmenuDef {
   return node.kind === 'submenu'
 }
@@ -163,10 +174,18 @@ interface FlattenOptions {
     label?: string
     radioGroupDef: RadioGroupDef
   } | null
+  /** Keywords inherited from tree ancestors. */
+  inheritedKeywords?: string[]
 }
 
 interface FlattenedNode {
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+  node:
+    | ItemDef
+    | RadioItemDef
+    | CheckboxItemDef
+    | SubmenuDef
+    | SubpageDef
+    | TreeItemDef
   /** Breadcrumb nodes (branch nodes from root to parent) */
   breadcrumbs: BreadcrumbNode[]
   /** The group this node belongs to, if any */
@@ -177,6 +196,27 @@ interface FlattenedNode {
     label?: string
     radioGroupDef: RadioGroupDef
   } | null
+  /** Keywords inherited from tree ancestors. */
+  inheritedKeywords: string[]
+}
+
+/** Returns the child kinds supported by v1 inline trees. */
+export function getSupportedTreeChildren(
+  nodes: NodeDef[],
+): Array<TreeItemDef | ItemDef | SubmenuDef> {
+  const supported: Array<TreeItemDef | ItemDef | SubmenuDef> = []
+  for (const node of nodes) {
+    if (
+      node.kind === 'tree-item' ||
+      node.kind === 'item' ||
+      node.kind === 'submenu'
+    ) {
+      supported.push(node)
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.warn(`Unsupported ${node.kind} child skipped inside tree-item.`)
+    }
+  }
+  return supported
 }
 
 /**
@@ -195,6 +235,7 @@ export function flattenNodes(
     breadcrumbs = [],
     group = null,
     radioGroup = null,
+    inheritedKeywords = [],
   } = options
   const result: FlattenedNode[] = []
 
@@ -216,6 +257,7 @@ export function flattenNodes(
           breadcrumbs,
           group: groupInfo,
           radioGroup: null, // Reset radio group when entering a regular group
+          inheritedKeywords,
         }),
       )
       continue
@@ -238,6 +280,7 @@ export function flattenNodes(
           breadcrumbs,
           group: null, // Reset regular group when entering a radio group
           radioGroup: radioGroupInfo,
+          inheritedKeywords,
         }),
       )
       continue
@@ -257,7 +300,34 @@ export function flattenNodes(
         breadcrumbs,
         group,
         radioGroup,
+        inheritedKeywords,
       })
+      continue
+    }
+
+    if (node.kind === 'tree-item') {
+      if (node.selectable !== false) {
+        result.push({ node, breadcrumbs, group, radioGroup, inheritedKeywords })
+      }
+
+      if (node.nodes?.length && node.deepSearch !== false) {
+        const treeBreadcrumb: BreadcrumbNode = {
+          node,
+          value: node.value,
+          id: node.id,
+        }
+        result.push(
+          ...flattenNodes(getSupportedTreeChildren(node.nodes), {
+            deep,
+            includeInDeepSearch,
+            descendantsIncluded,
+            breadcrumbs: [...breadcrumbs, treeBreadcrumb],
+            group,
+            radioGroup,
+            inheritedKeywords: [...inheritedKeywords, node.value],
+          }),
+        )
+      }
       continue
     }
 
@@ -275,6 +345,7 @@ export function flattenNodes(
           breadcrumbs,
           group,
           radioGroup,
+          inheritedKeywords,
         })
       }
 
@@ -297,15 +368,29 @@ export function flattenNodes(
         ]
 
         result.push(
-          ...flattenNodes(node.nodes, {
-            deep,
-            includeInDeepSearch,
-            descendantsIncluded: true,
-            breadcrumbs: childBreadcrumbs,
-            // Reset group and radio group context when entering a branch node
-            group: null,
-            radioGroup: null,
-          }),
+          ...flattenNodes(
+            node.nodes.filter((child) => {
+              if (child.kind === 'tree-item') {
+                if (process.env.NODE_ENV !== 'production') {
+                  console.warn(
+                    'Unsupported tree-item child skipped inside submenu/subpage.',
+                  )
+                }
+                return false
+              }
+              return true
+            }),
+            {
+              deep,
+              includeInDeepSearch,
+              descendantsIncluded: true,
+              breadcrumbs: childBreadcrumbs,
+              // Reset group and radio group context when entering a branch node
+              group: null,
+              radioGroup: null,
+              inheritedKeywords,
+            },
+          ),
         )
       }
     }
@@ -344,17 +429,23 @@ export function scoreNodes(
 
   const results: ScoredNode[] = []
 
-  for (const { node, breadcrumbs, group, radioGroup } of flattenedNodes) {
+  for (const {
+    node,
+    breadcrumbs,
+    group,
+    radioGroup,
+    inheritedKeywords,
+  } of flattenedNodes) {
     // Normalize value and keywords to match cmdk's behavior
     const normalizedValue = normalizeValue(node.value)
-    const normalizedKeywords = node.keywords
-      ?.map((k) => normalizeValue(k))
+    const normalizedKeywords = [...(node.keywords ?? []), ...inheritedKeywords]
+      .map((k) => normalizeValue(k))
       .filter(Boolean)
 
     const fuzzyScore = commandScore(
       normalizedValue,
       normalizedQuery,
-      normalizedKeywords,
+      normalizedKeywords.length > 0 ? normalizedKeywords : undefined,
     )
     const score = node.forceScore ?? fuzzyScore
 
@@ -393,7 +484,13 @@ function compareScoredNodesByForceOrderAndScore(
 }
 
 function getRowKindSortRank(
-  kind: 'item' | 'radio-item' | 'checkbox-item' | 'submenu' | 'subpage',
+  kind:
+    | 'item'
+    | 'radio-item'
+    | 'checkbox-item'
+    | 'tree-item'
+    | 'submenu'
+    | 'subpage',
 ): number {
   return kind === 'submenu' || kind === 'subpage' ? 1 : 0
 }
@@ -462,7 +559,8 @@ export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
     if (
       node.node.kind === 'item' ||
       node.node.kind === 'radio-item' ||
-      node.node.kind === 'checkbox-item'
+      node.node.kind === 'checkbox-item' ||
+      node.node.kind === 'tree-item'
     ) {
       bucket.items.push(node)
     } else {
@@ -489,7 +587,7 @@ export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
 }
 
 /**
- * Deduplicates nodes by their composite ID (breadcrumbs + node.value).
+ * Deduplicates nodes by their composite ID (breadcrumb segments + node ID/value).
  * This handles the case where the same node appears multiple times in the tree.
  * Values are normalized (trimmed) for consistent deduplication.
  */
@@ -498,11 +596,11 @@ export function deduplicateNodes(nodes: ScoredNode[]): ScoredNode[] {
   const result: ScoredNode[] = []
 
   for (const scoredNode of nodes) {
-    // Normalize value for consistent deduplication
-    // Note: breadcrumbs are already normalized in flattenNodes
     const compositeId = [
-      ...scoredNode.breadcrumbs,
-      normalizeValue(scoredNode.node.value),
+      ...scoredNode.breadcrumbs.map(
+        (breadcrumb) => breadcrumb.id ?? normalizeValue(breadcrumb.value),
+      ),
+      scoredNode.node.id ?? normalizeValue(scoredNode.node.value),
     ].join('.')
     if (!seen.has(compositeId)) {
       seen.add(compositeId)
@@ -544,6 +642,7 @@ export function buildDisplayRowNodes(
       group: scoredNode.group
         ? { id: scoredNode.group.id, label: scoredNode.group.label }
         : null,
+      tree: null,
     }
 
     return {
@@ -581,6 +680,7 @@ function buildDisplayRowNode(
     group: scoredNode.group
       ? { id: scoredNode.group.id, label: scoredNode.group.label }
       : null,
+    tree: null,
   }
 
   return {
@@ -606,6 +706,13 @@ export function getBrowseNodesFlatten(
   group: { id: string; label?: string } | null = null,
 ): DisplayRowNode[] {
   const result: DisplayRowNode[] = []
+  const visibleRowNodes = nodes.filter(
+    (node) =>
+      node.kind !== 'separator' &&
+      node.kind !== 'group' &&
+      node.kind !== 'radio-group' &&
+      !node.hidden,
+  )
 
   for (const node of nodes) {
     if (node.kind === 'separator') {
@@ -632,6 +739,21 @@ export function getBrowseNodesFlatten(
       continue
     }
 
+    if (node.kind === 'tree-item') {
+      result.push(
+        ...expandTreeNode(
+          node,
+          highlightedId,
+          group,
+          0,
+          [],
+          [],
+          node === visibleRowNodes.at(-1),
+        ),
+      )
+      continue
+    }
+
     const context: RowRenderContext = {
       search: null,
       breadcrumbs: [],
@@ -639,12 +761,93 @@ export function getBrowseNodesFlatten(
       highlighted: node.id === highlightedId,
       disabled: node.disabled ?? false,
       group,
+      tree: null,
     }
 
     result.push({ node, context })
   }
 
   return result
+}
+
+function expandTreeNode(
+  node: TreeItemDef,
+  highlightedId: string | null,
+  group: { id: string; label?: string } | null,
+  depth: number,
+  ancestorsLast: boolean[],
+  breadcrumbs: BreadcrumbNode[],
+  isLastChild: boolean,
+): DisplayRowNode[] {
+  const supportedChildren = getSupportedTreeChildren(node.nodes ?? []).filter(
+    (child) => !child.hidden,
+  )
+  const tree = {
+    depth,
+    hasChildren: supportedChildren.length > 0,
+    isLastChild,
+    ancestorsLast,
+    header: node.selectable === false,
+  }
+  const rows: DisplayRowNode[] = [
+    {
+      node,
+      context: {
+        search: null,
+        breadcrumbs,
+        isDeepSearchResult: false,
+        highlighted: node.id === highlightedId,
+        disabled: node.disabled ?? false,
+        group,
+        tree,
+      },
+    },
+  ]
+
+  const childBreadcrumb: BreadcrumbNode = {
+    node,
+    value: node.value,
+    id: node.id,
+  }
+  const childBreadcrumbs = [...breadcrumbs, childBreadcrumb]
+  supportedChildren.forEach((child, index) => {
+    const childIsLast = index === supportedChildren.length - 1
+    if (child.kind === 'tree-item') {
+      rows.push(
+        ...expandTreeNode(
+          child,
+          highlightedId,
+          group,
+          depth + 1,
+          [...ancestorsLast, isLastChild],
+          childBreadcrumbs,
+          childIsLast,
+        ),
+      )
+      return
+    }
+
+    rows.push({
+      node: child,
+      context: {
+        search: null,
+        breadcrumbs: childBreadcrumbs,
+        isDeepSearchResult: false,
+        highlighted: child.id === highlightedId,
+        disabled: child.disabled ?? false,
+        group,
+        tree: {
+          depth: depth + 1,
+          hasChildren:
+            child.kind === 'submenu' && (child.nodes?.length ?? 0) > 0,
+          isLastChild: childIsLast,
+          ancestorsLast: [...ancestorsLast, isLastChild],
+          header: false,
+        },
+      },
+    })
+  })
+  return rows
 }
 
 /**
@@ -667,6 +870,13 @@ export function getBrowseNodesPreserve(
     if (node.kind === 'group') {
       // Build group items
       const groupItems: DisplayRowNode[] = []
+      const visibleGroupChildren = node.nodes.filter(
+        (child) =>
+          child.kind !== 'separator' &&
+          child.kind !== 'group' &&
+          child.kind !== 'radio-group' &&
+          !child.hidden,
+      )
       for (const child of node.nodes) {
         // Skip non-row nodes
         if (
@@ -678,6 +888,21 @@ export function getBrowseNodesPreserve(
         }
         if (child.hidden) continue
 
+        if (child.kind === 'tree-item') {
+          groupItems.push(
+            ...expandTreeNode(
+              child,
+              highlightedId,
+              { id: node.id, label: node.label },
+              0,
+              [],
+              [],
+              child === visibleGroupChildren.at(-1),
+            ),
+          )
+          continue
+        }
+
         const itemContext: RowRenderContext = {
           search: null,
           breadcrumbs: [],
@@ -685,6 +910,7 @@ export function getBrowseNodesPreserve(
           highlighted: child.id === highlightedId,
           disabled: child.disabled ?? false,
           group: { id: node.id, label: node.label },
+          tree: null,
         }
 
         groupItems.push({ node: child, context: itemContext })
@@ -726,6 +952,7 @@ export function getBrowseNodesPreserve(
           highlighted: child.id === highlightedId,
           disabled: child.disabled ?? false,
           group: null, // Radio items don't belong to a regular group
+          tree: null,
         }
 
         radioItems.push({
@@ -760,6 +987,28 @@ export function getBrowseNodesPreserve(
     }
 
     // Ungrouped item/submenu/subpage
+    if (node.kind === 'tree-item') {
+      const visibleRowNodes = nodes.filter(
+        (sibling) =>
+          sibling.kind !== 'separator' &&
+          sibling.kind !== 'group' &&
+          sibling.kind !== 'radio-group' &&
+          !sibling.hidden,
+      )
+      result.push(
+        ...expandTreeNode(
+          node,
+          highlightedId,
+          null,
+          0,
+          [],
+          [],
+          node === visibleRowNodes.at(-1),
+        ),
+      )
+      continue
+    }
+
     const context: RowRenderContext = {
       search: null,
       breadcrumbs: [],
@@ -767,8 +1016,8 @@ export function getBrowseNodesPreserve(
       highlighted: node.id === highlightedId,
       disabled: node.disabled ?? false,
       group: null,
+      tree: null,
     }
-
     result.push({ node, context })
   }
 

@@ -433,6 +433,9 @@ export type {
   SubpageDef,
   SubpageTriggerRenderParams,
   SubpageTriggerRenderProps,
+  TreeItemDef,
+  TreeItemRenderParams,
+  TreeItemRenderProps,
 } from './deep-search/types.js'
 export {
   defineRadioGroup,
@@ -467,6 +470,7 @@ export {
   isSeparatorDef,
   isSubmenuDef,
   isSubpageDef,
+  isTreeItemDef,
   mergeAsyncNodesIntoTree,
   mergeSubmenuNodes,
   partitionByKind,
