@@ -77,6 +77,17 @@ export interface PopupMenuListProps
    * Use when the semantic list is rendered inside another scroll container.
    */
   scrollContainerRef?: React.RefObject<HTMLElement | null>
+
+  /**
+   * When any value in this array changes, previously-measured row IDs are
+   * cleared so rows re-measure (the sticky max width is kept — it only ever
+   * grows until the menu closes). Use for state that changes row content for
+   * the same IDs, e.g. tree rows that re-render as breadcrumb rows when deep
+   * search toggles. Values are compared with `Object.is`, so pass stable
+   * primitives — an inline object recreated each render would re-trigger
+   * every render.
+   */
+  remeasureDependencies?: React.DependencyList
 }
 
 /**
@@ -94,6 +105,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
     measureRowWidth = true,
     maxRowWidth,
     scrollContainerRef,
+    remeasureDependencies,
     render,
     className,
     style,
@@ -139,11 +151,45 @@ export const PopupMenuListPrimitive = React.forwardRef<
   }, [measureRowWidth])
 
   // Row width measurement - apply CSS var to popup instead of list
-  const { queueMeasurement, resetMeasurements } = useStickyRowWidth({
-    listRef: internalRef,
-    targetRef: popupRef,
-    maxWidth: maxRowWidth,
-    enabled: measureRowWidth,
+  const { queueMeasurement, resetMeasurements, clearMeasuredIds } =
+    useStickyRowWidth({
+      listRef: internalRef,
+      targetRef: popupRef,
+      maxWidth: maxRowWidth,
+      enabled: measureRowWidth,
+    })
+
+  // When any remeasure dependency changes (e.g. deep search toggles), row
+  // content can change for the same registration IDs (browse label ↔
+  // breadcrumb row). Clear measured IDs and re-queue every currently
+  // registered row. Items alone won't re-queue: their measurement effect is
+  // keyed on [rowWidthContext, registrationId], which doesn't change here.
+  // Deps are compared manually (runs every render) so callers can pass an
+  // array of any length without violating the rules of hooks.
+  const prevRemeasureDepsRef = React.useRef<React.DependencyList | null>(null)
+  const hasRemeasureBaselineRef = React.useRef(false)
+  React.useEffect(() => {
+    const prevDeps = prevRemeasureDepsRef.current ?? []
+    const hadBaseline = hasRemeasureBaselineRef.current
+    prevRemeasureDepsRef.current = remeasureDependencies ?? null
+    hasRemeasureBaselineRef.current = true
+
+    if (!measureRowWidth) return
+    // First render: record the baseline, nothing to re-measure yet
+    if (!hadBaseline) return
+
+    const currDeps = remeasureDependencies ?? []
+    const changed =
+      prevDeps.length !== currDeps.length ||
+      currDeps.some((dep, i) => !Object.is(dep, prevDeps[i]))
+    if (!changed) return
+
+    clearMeasuredIds()
+    for (const [id, ref] of store.context.refs.itemRefs) {
+      if (ref.current) {
+        queueMeasurement(ref.current, id)
+      }
+    }
   })
 
   // Register resetMeasurements callback with store for close completion
