@@ -65,6 +65,13 @@ export interface UseStickyRowWidthReturn {
    * Call this when the menu closes to start fresh on next open.
    */
   resetMeasurements: () => void
+  /**
+   * Clear the set of measured IDs without resetting the sticky max width.
+   * Call this when row content changes for the same IDs (e.g. browse rows
+   * re-render as breadcrumb rows when deep search toggles) so rows are
+   * re-measured. The width still only grows, never shrinks.
+   */
+  clearMeasuredIds: () => void
 }
 
 /**
@@ -339,6 +346,20 @@ export function useStickyRowWidth(
     })
   }, [getTargetElement])
 
+  /**
+   * Clear measured IDs so rows re-measure on next queue, without resetting
+   * the sticky max width or the CSS variable.
+   */
+  const clearMeasuredIds = React.useCallback(() => {
+    const prevCount = measuredIds.current.size
+    measuredIds.current.clear()
+
+    debugLog('Measured IDs cleared (sticky width kept):', {
+      previousMeasuredCount: prevCount,
+      currentMaxWidth: maxSeenRef.current,
+    })
+  }, [])
+
   // Re-apply the CSS variable when the target element resizes (e.g., viewport changes)
   // Use useEffect (not useLayoutEffect) to avoid conflicts with React's commit phase
   React.useEffect(() => {
@@ -379,5 +400,5 @@ export function useStickyRowWidth(
     }
   }, [getTargetElement, enabled, applyVar])
 
-  return { queueMeasurement, resetMeasurements }
+  return { queueMeasurement, resetMeasurements, clearMeasuredIds }
 }

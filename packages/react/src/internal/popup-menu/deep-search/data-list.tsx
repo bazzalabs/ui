@@ -569,6 +569,7 @@ export const DataListInner = React.forwardRef<
     normalizedSearch,
     store,
     label = 'Menu',
+    remeasureDependencies,
     ...listProps
   } = props
 
@@ -1313,7 +1314,18 @@ export const DataListInner = React.forwardRef<
       )}
 
       <DataListContext.Provider value={childrenState}>
-        <PopupMenuListPrimitive ref={forwardedRef} label={label} {...listProps}>
+        <PopupMenuListPrimitive
+          ref={forwardedRef}
+          label={label}
+          {...listProps}
+          // Re-measure rows when deep-search mode toggles — the same row IDs
+          // render different content (label vs breadcrumb row). Consumer deps
+          // are merged in rather than replaced.
+          remeasureDependencies={[
+            isDeepSearching,
+            ...(remeasureDependencies ?? []),
+          ]}
+        >
           {children}
         </PopupMenuListPrimitive>
       </DataListContext.Provider>
