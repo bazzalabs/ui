@@ -69,7 +69,7 @@ const menuItemVariants = cva(
     'group group/row flex items-center text-sm select-none',
     'data-[highlighted]:text-accent-foreground',
     'h-8 px-4',
-    'w-full',
+    'data-measuring:w-fit not-data-measuring:w-full',
     // Clip overflow at row level
     'overflow-hidden',
     'relative z-[1]',
@@ -666,6 +666,96 @@ const Item = forwardRef<
 ))
 Item.displayName = 'DropdownMenu.Item'
 
+const Tree = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Tree>
+>(({ className, ...props }, ref) => (
+  <Primitive.Tree ref={ref} className={cn(className)} {...props} />
+))
+Tree.displayName = 'DropdownMenu.Tree'
+
+const TreeItem = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.TreeItem>
+>(({ className, ...props }, ref) => (
+  <Primitive.TreeItem
+    ref={ref}
+    className={cn(menuItemVariants({ variant: 'item' }), className)}
+    {...props}
+  />
+))
+TreeItem.displayName = 'DropdownMenu.TreeItem'
+
+/**
+ * Inline tree connector, matching Linear's team picker. Rendered as the first
+ * in-flow child of a `TreeItem`: its width provides the indentation (one level
+ * per unit) and it draws the rails/hook in its own box — no absolute overlay
+ * across the row. The vertical rail is full-height for a middle child (so
+ * siblings connect) or stops at center for the last child; the elbow into the
+ * row is a filled curved path rather than a square `border` corner.
+ */
+export function TreeConnector({
+  tree,
+  className,
+}: {
+  tree: {
+    depth: number
+    hasChildren: boolean
+    isLastChild: boolean
+    ancestorsLast: boolean[]
+    header: boolean
+  }
+  className?: string
+}) {
+  // x-position of the rail for a given depth level, within this connector box.
+  const railX = (level: number) => `calc(${level - 1} * 1rem + 0.5rem)`
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn('relative shrink-0 self-stretch text-border', className)}
+      style={{ width: `calc(${tree.depth} * 1rem)` }}
+    >
+      {/* Pass-through rails for ancestors that still have siblings below. */}
+      {tree.ancestorsLast.map((isLast, level) =>
+        level > 0 && !isLast ? (
+          <span
+            key={`rail-${tree.ancestorsLast.slice(0, level + 1).join('-')}`}
+            className="absolute top-0 bottom-0 w-px bg-current"
+            style={{ left: railX(level) }}
+          />
+        ) : null,
+      )}
+
+      {/* This row's own vertical rail. Middle children run full height so
+          siblings connect; the last child stops where the hook's curve begins
+          (hook is 9px tall, bottom at center) so the straight line doesn't
+          overshoot past the corner. */}
+      <span
+        className="absolute top-0 w-px bg-current"
+        style={{
+          left: railX(tree.depth),
+          bottom: tree.isLastChild ? 'calc(50% + 9px)' : 0,
+        }}
+      />
+
+      {/* Curved elbow from the rail into the row (Linear's hook path). */}
+      <svg
+        width="10"
+        height="9"
+        viewBox="0 0 10 9"
+        fill="currentColor"
+        aria-hidden="true"
+        focusable="false"
+        className="absolute bottom-1/2"
+        style={{ left: railX(tree.depth) }}
+      >
+        <path d="M0 0h1v1c0 2.5 2.212 3.546 2.212 3.546L9.737 8.06c.568.306.094 1.186-.474.88l-6.48-3.488S0 4 0 1V0Z" />
+      </svg>
+    </span>
+  )
+}
+
 const CheckboxItem = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.CheckboxItem>
@@ -1015,6 +1105,9 @@ export const DropdownMenu = {
   useDataList,
   Input,
   Item,
+  Tree,
+  TreeItem,
+  TreeConnector,
   CheckboxItem,
   CheckboxItemIndicator,
   RadioGroup,
@@ -1526,12 +1619,14 @@ export const LabelWithBreadcrumbs = ({
     separator?: string
   }
 }) => (
-  <div className="flex items-center gap-1 truncate">
+  // data-measuring:w-max not-data-measuring:w-[min(500px,max(var(--row-width),200px))]
+
+  <div className="flex items-center gap-1 truncate ">
     {breadcrumbs?.map((crumb, idx) => (
       <Fragment key={`${idx}-${crumb.id ?? crumb.value}`}>
         <span
           className={cn(
-            'text-muted-foreground truncate',
+            'text-muted-foreground not-data-measuring:truncate data-measuring:w-max',
             classNames?.breadcrumb,
           )}
         >
@@ -1547,7 +1642,7 @@ export const LabelWithBreadcrumbs = ({
     ))}
     <span
       className={cn(
-        'truncate',
+        'not-data-measuring:truncate data-measuring:w-max',
         'text-primary/90 group-data-[highlighted]/row:text-primary',
         classNames?.label,
       )}

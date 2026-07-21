@@ -210,6 +210,11 @@ export const examples = {
           ),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
+      'tree-linear': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/tree-linear'),
+        { extraFiles: ['components.tsx', 'icons.tsx'] },
+      ),
       'deep-search-subpages-linear': ex(
         () =>
           import(
