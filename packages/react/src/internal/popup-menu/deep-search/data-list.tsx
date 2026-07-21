@@ -128,12 +128,14 @@ function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
   for (const displayNode of displayNodes) {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
+        // Header tree rows are intentionally included: they are highlightable even when non-activatable.
         if (!item.node.disabled && item.compositeId) {
           ids.push(item.compositeId)
         }
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
+        // Header tree rows are intentionally included: they are highlightable even when non-activatable.
         if (!item.node.disabled && item.compositeId) {
           ids.push(item.compositeId)
         }
@@ -819,6 +821,30 @@ export const DataListInner = React.forwardRef<
                 closeOnClick: node.closeOnClick,
                 onSelect: node.onSelect,
                 shortcut: node.shortcut,
+                forceOrder: node.forceOrder,
+                forceScore: node.forceScore,
+              },
+              context: {
+                ...context,
+                value: node.value,
+                disabled: node.disabled ?? false,
+              },
+            })}
+          </React.Fragment>
+        )
+      }
+
+      if (node.kind === 'tree-item') {
+        return (
+          <React.Fragment key={compositeId}>
+            {node.render({
+              props: {
+                id: compositeId,
+                value: node.value,
+                disabled: node.disabled ?? false,
+                selectable: node.selectable !== false,
+                closeOnClick: node.closeOnClick,
+                onSelect: node.onSelect,
                 forceOrder: node.forceOrder,
                 forceScore: node.forceScore,
               },
