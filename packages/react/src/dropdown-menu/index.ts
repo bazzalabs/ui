@@ -285,6 +285,9 @@ export type {
   SubpageDef,
   SubpageTriggerRenderParams,
   SubpageTriggerRenderProps,
+  TreeItemDef,
+  TreeItemRenderParams,
+  TreeItemRenderProps,
 } from '../internal/popup-menu/index.js'
 
 export {
@@ -295,6 +298,7 @@ export {
   isDisplayRadioGroupNode,
   isDisplayRowNode,
   isDisplaySeparatorNode,
+  isTreeItemDef,
   PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
   useAsyncMenuCoordinator,
   useDataList,

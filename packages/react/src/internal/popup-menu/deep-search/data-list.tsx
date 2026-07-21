@@ -927,6 +927,7 @@ export const DataListInner = React.forwardRef<
                 highlighted: false,
                 disabled: item.disabled ?? false,
                 group: { id: childNode.id, label: childNode.label },
+                tree: null,
               }
 
               return renderRowNode({ node: item, context: itemContext })
@@ -989,6 +990,7 @@ export const DataListInner = React.forwardRef<
             highlighted: false,
             disabled: childNode.disabled ?? false,
             group: null,
+            tree: null,
           }
 
           // renderRowNode already wraps in a keyed Fragment
@@ -1078,6 +1080,7 @@ export const DataListInner = React.forwardRef<
           highlighted: false,
           disabled: item.disabled ?? false,
           group: null,
+          tree: null,
         }
 
         return renderRowNode({

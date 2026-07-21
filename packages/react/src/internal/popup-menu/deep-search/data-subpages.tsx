@@ -173,6 +173,7 @@ function collectDisplaySubpages(
             highlighted: false,
             disabled: node.disabled ?? false,
             group,
+            tree: null,
           },
         })
       }
@@ -362,6 +363,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                   highlighted: false,
                   disabled: item.disabled ?? false,
                   group: { id: childNode.id, label: childNode.label },
+                  tree: null,
                 }),
               )
 
@@ -422,6 +424,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
               highlighted: false,
               disabled: childNode.disabled ?? false,
               group: null,
+              tree: null,
             })
           }
 
@@ -498,6 +501,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
             highlighted: false,
             disabled: item.disabled ?? false,
             group: null,
+            tree: null,
           })
         })
 
@@ -586,6 +590,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                     highlighted: false,
                     disabled: item.disabled ?? false,
                     group: { id: childNode.id, label: childNode.label },
+                    tree: null,
                   }),
                 )
 
@@ -664,6 +669,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                 highlighted: false,
                 disabled: childNode.disabled ?? false,
                 group: null,
+                tree: null,
               })
             },
           })}

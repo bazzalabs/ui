@@ -296,7 +296,7 @@ export interface AsyncState {
  */
 export interface BreadcrumbNode {
   /** The branch node definition */
-  node: SubmenuDef | SubpageDef
+  node: SubmenuDef | SubpageDef | TreeItemDef
   /** The branch node's value */
   value: string
   /** The branch node's explicit id (if provided) */
@@ -309,7 +309,13 @@ export interface BreadcrumbNode {
  */
 export interface GetQualifiedRowIdContext {
   /** The node definition */
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+  node:
+    | ItemDef
+    | RadioItemDef
+    | CheckboxItemDef
+    | SubmenuDef
+    | SubpageDef
+    | TreeItemDef
 
   /** The node's value (node.value) - used for search/filtering and as fallback identifier */
   value: string
@@ -409,6 +415,15 @@ export interface RowRenderContext {
    * `null` if the item is not inside a group.
    */
   group: { id: string; label?: string } | null
+
+  /** Tree rendering context, or null for non-tree and search rows. */
+  tree: {
+    depth: number
+    hasChildren: boolean
+    isLastChild: boolean
+    ancestorsLast: boolean[]
+    header: boolean
+  } | null
 }
 
 // ============================================================================
@@ -446,6 +461,21 @@ export interface ItemRenderParams {
   /** Context for conditional rendering (includes props values for convenience) */
   context: RowRenderContext & {
     /** The node's value (ItemDef.value) */
+    value: string
+    disabled: boolean
+  }
+}
+
+/** Props to spread onto a TreeItem component. */
+export type TreeItemRenderProps = Omit<ItemRenderProps, 'shortcut'> & {
+  /** Whether this row can be selected. */
+  selectable: boolean
+}
+
+/** Parameters passed to tree item render functions. */
+export interface TreeItemRenderParams {
+  props: TreeItemRenderProps
+  context: RowRenderContext & {
     value: string
     disabled: boolean
   }
@@ -776,6 +806,30 @@ export interface ItemDef
   render: (params: ItemRenderParams) => React.ReactNode
 }
 
+/** Tree item node definition. */
+export interface TreeItemDef
+  extends BaseNodeDef,
+    Required<Pick<PopupMenuItemProps, 'value'>>,
+    Pick<
+      PopupMenuItemProps,
+      | 'keywords'
+      | 'disabled'
+      | 'onSelect'
+      | 'closeOnClick'
+      | 'forceOrder'
+      | 'forceScore'
+    > {
+  kind: 'tree-item'
+  /** Whether this row itself can be selected. */
+  selectable?: boolean
+  /** Inline children rendered in the same list. */
+  nodes?: NodeDef[]
+  /** Whether descendants surface in deep search results. */
+  deepSearch?: boolean
+  /** Render function for this row. */
+  render: (params: TreeItemRenderParams) => React.ReactNode
+}
+
 /**
  * Radio item node definition.
  * Represents a selectable radio menu item for use within RadioGroupDef.
@@ -1010,6 +1064,7 @@ export function defineRadioGroup(def: RadioGroupDef): RadioGroupDef {
  */
 export type NodeDef =
   | ItemDef
+  | TreeItemDef
   | RadioItemDef
   | CheckboxItemDef
   | SubmenuDef
@@ -1028,7 +1083,13 @@ export type NodeDef =
  */
 export interface ScoredNode {
   /** The original node definition */
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+  node:
+    | ItemDef
+    | RadioItemDef
+    | CheckboxItemDef
+    | SubmenuDef
+    | SubpageDef
+    | TreeItemDef
   /** Search match score (higher = better match). */
   score: number
   /**
@@ -1056,7 +1117,13 @@ export interface ScoredNode {
  */
 export interface DisplayRowNode {
   /** The original node definition */
-  node: ItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+  node:
+    | ItemDef
+    | RadioItemDef
+    | CheckboxItemDef
+    | SubmenuDef
+    | SubpageDef
+    | TreeItemDef
   /** Pre-computed render context for this node */
   context: RowRenderContext
   /** Radio group this node belongs to, if rendering inside one */
