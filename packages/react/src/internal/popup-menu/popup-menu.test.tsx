@@ -2633,4 +2633,139 @@ describe('PopupMenu', () => {
       })
     })
   })
+
+  describe('tree parts', () => {
+    function TreeMenu({ includeInput = false }: { includeInput?: boolean }) {
+      return (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open Menu
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface data-testid="surface">
+                  {includeInput ? (
+                    <DropdownMenu.Input data-testid="input" />
+                  ) : null}
+                  <DropdownMenu.List data-testid="list">
+                    <DropdownMenu.TreeItem data-testid="parent">
+                      Parent
+                    </DropdownMenu.TreeItem>
+                    <DropdownMenu.Tree>
+                      <DropdownMenu.TreeItem
+                        data-testid="child-a"
+                        value="child a"
+                      >
+                        Child A
+                      </DropdownMenu.TreeItem>
+                      <DropdownMenu.TreeItem
+                        data-testid="child-b"
+                        value="child b"
+                      >
+                        Child B
+                      </DropdownMenu.TreeItem>
+                      <DropdownMenu.Tree>
+                        <DropdownMenu.TreeItem
+                          data-testid="grandchild"
+                          value="grandchild"
+                        >
+                          Grandchild
+                        </DropdownMenu.TreeItem>
+                      </DropdownMenu.Tree>
+                    </DropdownMenu.Tree>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    it('sets tree depths and CSS variables from nested Tree context', async () => {
+      const user = userEvent.setup()
+      render(<TreeMenu />)
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('surface')).toBeInTheDocument(),
+      )
+
+      for (const [testId, depth] of [
+        ['parent', '0'],
+        ['child-a', '1'],
+        ['child-b', '1'],
+        ['grandchild', '2'],
+      ]) {
+        const item = screen.getByTestId(testId)
+        expect(item).toHaveAttribute('data-depth', depth)
+        expect(item).toHaveStyle(`--tree-depth: ${depth}`)
+      }
+    })
+
+    it('supports non-selectable header rows', async () => {
+      const user = userEvent.setup()
+      const onHeaderSelect = vi.fn()
+      render(
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open Menu
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface data-testid="surface">
+                  <DropdownMenu.List data-testid="list">
+                    <DropdownMenu.TreeItem data-testid="item">
+                      Item
+                    </DropdownMenu.TreeItem>
+                    <DropdownMenu.TreeItem
+                      data-testid="header"
+                      selectable={false}
+                      onSelect={onHeaderSelect}
+                    >
+                      Header
+                    </DropdownMenu.TreeItem>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('surface')).toBeInTheDocument(),
+      )
+      expect(screen.getByTestId('header')).toHaveAttribute('data-header', '')
+
+      screen.getByTestId('list').focus()
+      await user.keyboard('{ArrowDown}')
+      expect(screen.getByTestId('header')).toHaveAttribute(
+        'data-highlighted',
+        '',
+      )
+      await user.keyboard('{Enter}')
+      expect(onHeaderSelect).not.toHaveBeenCalled()
+      expect(screen.getByTestId('surface')).toBeInTheDocument()
+
+      await user.click(screen.getByTestId('header'))
+      expect(onHeaderSelect).not.toHaveBeenCalled()
+      expect(screen.getByTestId('surface')).toBeInTheDocument()
+    })
+
+    it('filters tree items through Input', async () => {
+      const user = userEvent.setup()
+      render(<TreeMenu includeInput />)
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('surface')).toBeInTheDocument(),
+      )
+
+      await user.type(screen.getByTestId('input'), 'child b')
+      expect(screen.queryByTestId('child-a')).not.toBeInTheDocument()
+      expect(screen.getByTestId('child-b')).toBeInTheDocument()
+    })
+  })
 })

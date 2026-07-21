@@ -46,6 +46,9 @@ export {
   PopupMenuSubpageTrigger as SubpageTrigger,
   // Content
   PopupMenuSurface as Surface,
+  PopupMenuTree as Tree,
+  PopupMenuTreeConnector as TreeConnector,
+  PopupMenuTreeItem as TreeItem,
   // Async coordinator hooks
   useAsyncMenuCoordinator,
   useDataList,
