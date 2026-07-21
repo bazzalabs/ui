@@ -49,6 +49,13 @@ export interface PopupMenuItemProps
   disabled?: boolean
 
   /**
+   * Whether this item can be activated via Enter or click.
+   * Non-activatable items are still highlightable via keyboard/pointer.
+   * @default true
+   */
+  activatable?: boolean
+
+  /**
    * Callback when this item is selected (via click or Enter key).
    */
   onSelect?: () => void
@@ -113,6 +120,7 @@ export const PopupMenuItem = React.forwardRef<
     value,
     keywords,
     disabled: disabledProp = false,
+    activatable = true,
     onSelect,
     forceMount = false,
     closeOnClick = true,
@@ -134,6 +142,7 @@ export const PopupMenuItem = React.forwardRef<
     value,
     keywords,
     disabled: disabledProp,
+    activatable,
     forceMount,
     shortcut,
     forceOrder,

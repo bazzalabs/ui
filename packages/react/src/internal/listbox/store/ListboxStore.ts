@@ -47,6 +47,8 @@ export interface ItemRegistration {
   shortcut?: string
   /** Whether selecting this item should close the menu (default: true) */
   closeOnClick?: boolean
+  /** Whether this item can be activated via Enter/click (default: true). Non-activatable items remain highlightable. */
+  activatable?: boolean
 }
 
 /** Kinds of rows that participate in positional attributes. */
@@ -1062,7 +1064,8 @@ export class ListboxStore extends ReactStore<
       existing.forceOrder === registration.forceOrder &&
       existing.forceScore === registration.forceScore &&
       existing.groupId === registration.groupId &&
-      existing.shortcut === registration.shortcut
+      existing.shortcut === registration.shortcut &&
+      existing.activatable === registration.activatable
 
     if (isSameRegistration) {
       // Item already registered with same properties, skip recompute
@@ -1299,6 +1302,9 @@ export class ListboxStore extends ReactStore<
 
   selectHighlighted() {
     if (this.state.highlightedId) {
+      const item = this.context.items.get(this.state.highlightedId)
+      if (item?.activatable === false) return
+
       const onSelect = this.context.itemSelects.get(this.state.highlightedId)
       onSelect?.()
     }

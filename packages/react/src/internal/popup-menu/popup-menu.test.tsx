@@ -2497,4 +2497,140 @@ describe('PopupMenu', () => {
       expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
     })
   })
+
+  describe('non-activatable items', () => {
+    function TestMenu({
+      onHeaderSelect,
+      onItemSelect,
+      headerFirst = true,
+    }: {
+      onHeaderSelect?: () => void
+      onItemSelect?: () => void
+      headerFirst?: boolean
+    }) {
+      const header = (
+        <DropdownMenu.Item
+          key="header"
+          data-testid="header"
+          value="header"
+          activatable={false}
+          onSelect={onHeaderSelect}
+        >
+          Header
+        </DropdownMenu.Item>
+      )
+      const item = (
+        <DropdownMenu.Item
+          key="item"
+          data-testid="item"
+          value="item"
+          onSelect={onItemSelect}
+        >
+          Item
+        </DropdownMenu.Item>
+      )
+
+      return (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open Menu
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface data-testid="surface">
+                  <DropdownMenu.List data-testid="list">
+                    {headerFirst ? [header, item] : [item, header]}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    it('keeps non-activatable items in keyboard navigation', async () => {
+      const user = userEvent.setup()
+      render(<TestMenu headerFirst={false} />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      screen.getByTestId('list').focus()
+      await user.keyboard('{ArrowDown}')
+
+      expect(screen.getByTestId('header')).toHaveAttribute(
+        'data-highlighted',
+        '',
+      )
+    })
+
+    it('does not activate or close when Enter is pressed on a non-activatable item', async () => {
+      const user = userEvent.setup()
+      const onHeaderSelect = vi.fn()
+      render(<TestMenu onHeaderSelect={onHeaderSelect} />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      screen.getByTestId('list').focus()
+      await user.keyboard('{Enter}')
+
+      expect(onHeaderSelect).not.toHaveBeenCalled()
+      expect(screen.getByTestId('surface')).toBeInTheDocument()
+    })
+
+    it('does not activate or close when a non-activatable item is clicked', async () => {
+      const user = userEvent.setup()
+      const onHeaderSelect = vi.fn()
+      render(<TestMenu onHeaderSelect={onHeaderSelect} />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('header'))
+
+      expect(onHeaderSelect).not.toHaveBeenCalled()
+      expect(screen.getByTestId('surface')).toBeInTheDocument()
+    })
+
+    it('still activates normal items via Enter and click', async () => {
+      const user = userEvent.setup()
+      const onItemSelect = vi.fn()
+      render(<TestMenu onItemSelect={onItemSelect} />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      screen.getByTestId('list').focus()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{Enter}')
+
+      expect(onItemSelect).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('item'))
+
+      expect(onItemSelect).toHaveBeenCalledTimes(2)
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+    })
+  })
 })

@@ -261,6 +261,8 @@ export function useListboxKeyboard(
           event.preventDefault()
           const selectedId = store.state.highlightedId
           const item = store.getHighlightedItem()
+          if (item?.activatable === false) break
+
           store.selectHighlighted()
           onSelect?.({
             itemId: selectedId,
