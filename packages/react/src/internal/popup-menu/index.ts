@@ -300,6 +300,27 @@ export {
   PopupMenuShortcut,
   PopupMenuShortcutDataAttributes,
 } from './components/shortcut/shortcut.js'
+export { PopupMenuTreeDataAttributes } from './components/tree/tree.data-attrs.js'
+export type {
+  PopupMenuTreeProps,
+  PopupMenuTreeState,
+} from './components/tree/tree.js'
+export { PopupMenuTree } from './components/tree/tree.js'
+export { PopupMenuTreeConnectorDataAttributes } from './components/tree/tree-connector.data-attrs.js'
+export type {
+  PopupMenuTreeConnectorProps,
+  PopupMenuTreeConnectorState,
+} from './components/tree/tree-connector.js'
+export { PopupMenuTreeConnector } from './components/tree/tree-connector.js'
+export type { PopupMenuTreeContextValue } from './components/tree/tree-context.js'
+export {
+  TreeContext,
+  useMaybeTreeContext,
+} from './components/tree/tree-context.js'
+export { PopupMenuTreeItemCssVars } from './components/tree/tree-item.css-vars.js'
+export { PopupMenuTreeItemDataAttributes } from './components/tree/tree-item.data-attrs.js'
+export type { PopupMenuTreeItemProps } from './components/tree/tree-item.js'
+export { PopupMenuTreeItem } from './components/tree/tree-item.js'
 
 // ============================================================================
 // Submenu Components
