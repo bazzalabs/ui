@@ -50,6 +50,13 @@ export interface UseListboxItemParams {
   disabled?: boolean
 
   /**
+   * Whether this item can be activated via Enter or click.
+   * Non-activatable items remain highlightable.
+   * @default true
+   */
+  activatable?: boolean
+
+  /**
    * Whether to force render this item regardless of filter results.
    * @default false
    */
@@ -213,6 +220,7 @@ export function useListboxItem(
     value: valueProp,
     keywords,
     disabled = false,
+    activatable = true,
     forceMount = false,
     shortcut,
     forceOrder,
@@ -285,6 +293,7 @@ export function useListboxItem(
       keywords: normalizedKeywords,
       groupId: groupContext?.groupId,
       disabled,
+      activatable,
       isSubmenuTrigger,
       shortcut,
       forceOrder,
@@ -298,6 +307,7 @@ export function useListboxItem(
     keywordsKey,
     groupContext?.groupId,
     disabled,
+    activatable,
     isSubmenuTrigger,
     shortcut,
     forceOrder,
@@ -354,6 +364,7 @@ export function useListboxItem(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.defaultPrevented) return
       if (disabled) return
+      if (activatable === false) return
       if (!registrationId) return
 
       event.preventDefault()
@@ -365,7 +376,7 @@ export function useListboxItem(
       // Notify consumer that selection occurred (for closing menus, etc.)
       onAfterSelect?.(registrationId)
     },
-    [disabled, store, registrationId, onAfterSelect],
+    [disabled, activatable, store, registrationId, onAfterSelect],
   )
 
   const handlePointerDown = React.useCallback(

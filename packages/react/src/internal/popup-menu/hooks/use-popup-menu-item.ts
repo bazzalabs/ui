@@ -39,7 +39,12 @@ export interface UsePopupMenuItemReturn extends UseListboxItemReturn {
 export function usePopupMenuItem(
   params: UsePopupMenuItemParams,
 ): UsePopupMenuItemReturn {
-  const { closeOnClick = true, disabled = false, ...rest } = params
+  const {
+    closeOnClick = true,
+    disabled = false,
+    activatable = true,
+    ...rest
+  } = params
   const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
   const { closeAll } = useListboxContext()
   const popupMenuContext = useMaybePopupMenuContext()
@@ -69,6 +74,7 @@ export function usePopupMenuItem(
   const item = useListboxItem({
     ...rest,
     disabled: effectiveDisabled,
+    activatable,
     aimGuard,
     closeOnClick,
     onAfterSelect: handleAfterSelect,
