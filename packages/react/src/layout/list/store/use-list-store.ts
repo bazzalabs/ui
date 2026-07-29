@@ -1,5 +1,6 @@
 'use client'
 
+import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import * as React from 'react'
 import { ListboxStore } from '../../../internal/listbox/store/ListboxStore.js'
@@ -19,6 +20,10 @@ export interface UseListStoreOptions<T> {
   items: readonly T[]
   getKey: (item: T) => Key
   isDisabled?: (item: T) => boolean
+  getGroupId?: (item: T) => string | undefined
+  defaultCollapsedGroups?: Iterable<string>
+  collapsedGroups?: Iterable<string>
+  onCollapsedGroupsChange?: (groups: ReadonlySet<string>) => void
   selectionMode?: SelectionMode
   defaultSelectedKeys?: Iterable<Key>
   selectedKeys?: Iterable<Key>
@@ -36,7 +41,15 @@ export interface ListStore<_T> {
   readonly selection: SelectionStore
   readonly selectedKeys: ReadonlySet<Key>
   readonly keyboardActiveKey: Key | null
-  readonly meta: { keys: readonly Key[]; disabledKeys: ReadonlySet<Key> }
+  readonly meta: {
+    keys: readonly Key[]
+    disabledKeys: ReadonlySet<Key>
+    visibleKeys: readonly Key[]
+    getGroupId?: (item: unknown) => string | undefined
+    groupOf: ReadonlyMap<Key, string>
+    collapsedGroups: ReadonlySet<string>
+  }
+  readonly collapsedGroups: ReadonlySet<string>
   /** Render-time snapshot of hook options for the component layer. Do not read from event handlers; use `selection.context.mode`. */
   readonly props: {
     selectionMode: SelectionMode
@@ -54,6 +67,12 @@ export interface ListStore<_T> {
   setMultiSelectActive(active: boolean): void
   readonly multiSelectActive: boolean
   scrollToKey(key: Key): void
+  toggleGroup(id: string): void
+  setGroupCollapsed(id: string, collapsed: boolean): void
+  /** Internal render subscription for grouped list parts. */
+  readonly collapseStore: {
+    useState(key: 'collapsedGroups'): ReadonlySet<string>
+  }
 }
 
 function sameKeys(
@@ -69,15 +88,96 @@ function sameKeys(
   )
 }
 
+function sameGroupOf(
+  a: ReadonlyMap<Key, string> | null | undefined,
+  b: ReadonlyMap<Key, string>,
+): boolean {
+  if (!a || a.size !== b.size) return false
+  for (const [key, groupId] of b) {
+    if (a.get(key) !== groupId) return false
+  }
+  return true
+}
+
+function sameStringSet(a: Iterable<string>, b: Iterable<string>): boolean {
+  const left = new Set(a)
+  const right = new Set(b)
+  if (left.size !== right.size) return false
+  for (const value of left) if (!right.has(value)) return false
+  return true
+}
+
+interface CollapseState {
+  collapsedGroups: ReadonlySet<string>
+}
+
+const collapseSelectors = {
+  collapsedGroups: createSelector(
+    (state: CollapseState) => state.collapsedGroups,
+  ),
+}
+
+class CollapseStore extends ReactStore<
+  CollapseState,
+  Record<string, never>,
+  typeof collapseSelectors
+> {
+  constructor(initial: Iterable<string>) {
+    super({ collapsedGroups: new Set(initial) }, {}, collapseSelectors)
+  }
+}
+
 export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   const selectionMode = options.selectionMode ?? 'none'
   const selectionFollowsFocus = options.selectionFollowsFocus ?? true
   const focusMode = options.focusMode ?? 'roving'
   const selectedKeysProp =
     options.selectedKeys === undefined ? undefined : [...options.selectedKeys]
+  const collapsedGroupsProp =
+    options.collapsedGroups === undefined
+      ? undefined
+      : new Set(options.collapsedGroups)
+  const collapseStore = useRefWithInit(
+    () =>
+      new CollapseStore(
+        collapsedGroupsProp ?? new Set(options.defaultCollapsedGroups),
+      ),
+  ).current
+  const collapsedGroupsSnapshot = collapseStore.useState('collapsedGroups')
+  const effectiveCollapsedGroups =
+    collapsedGroupsProp ?? collapsedGroupsSnapshot
+  const controlledCollapsedGroupsRef = React.useRef(
+    collapsedGroupsProp !== undefined,
+  )
+  const controlledCollapsedGroupsValueRef = React.useRef(collapsedGroupsProp)
+  controlledCollapsedGroupsRef.current = collapsedGroupsProp !== undefined
+  const pendingCollapsedGroupsRef = React.useRef<ReadonlySet<string>>(
+    effectiveCollapsedGroups,
+  )
   const keys = React.useMemo(
     () => options.items.map(options.getKey),
     [options.items, options.getKey],
+  )
+  const groupOf = React.useMemo(() => {
+    const result = new Map<Key, string>()
+    if (options.getGroupId) {
+      for (const item of options.items) {
+        const groupId = options.getGroupId(item)
+        if (groupId !== undefined) result.set(options.getKey(item), groupId)
+      }
+    }
+    return result
+  }, [options.getGroupId, options.getKey, options.items])
+  const visibleKeys = React.useMemo(
+    () =>
+      keys.filter(
+        (key) =>
+          !(
+            groupOf.has(key) &&
+            effectiveCollapsedGroups.has(groupOf.get(key) as string)
+          ),
+      ),
+    [effectiveCollapsedGroups, groupOf, keys],
   )
   const disabledKeys = React.useMemo(
     () =>
@@ -95,14 +195,23 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
     ...rowDisabledKeysRef.current.keys(),
   ])
   const firstNavigableKey =
-    keys.find((key) => !renderDisabledKeys.has(key)) ?? null
+    visibleKeys.find((key) => !renderDisabledKeys.has(key)) ?? null
   const metaRef = useRefWithInit(() => ({
     keys,
     disabledKeys,
+    visibleKeys,
+    getGroupId: options.getGroupId as
+      | ((item: unknown) => string | undefined)
+      | undefined,
+    groupOf,
+    collapsedGroups: effectiveCollapsedGroups,
   }))
   const meta = metaRef.current
   const onSelectionChangeRef = React.useRef(options.onSelectionChange)
   const onActionRef = React.useRef(options.onAction)
+  const onCollapsedGroupsChangeRef = React.useRef(
+    options.onCollapsedGroupsChange,
+  )
   const multiSelectActiveRef = React.useRef(false)
 
   const collection = useRefWithInit(
@@ -114,7 +223,7 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
           loop: false,
           autoHighlightFirst: false,
           clearSearchOnClose: false,
-          orderedItems: keys,
+          orderedItems: visibleKeys,
         },
       ),
   ).current
@@ -157,11 +266,16 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   const selectedKeysRef = React.useRef(selectedKeys)
   const highlightedIdRef = React.useRef(highlightedId)
   const highlightSourceRef = React.useRef(highlightSource)
+  const collapsedGroupsRef = React.useRef<ReadonlySet<string>>(
+    effectiveCollapsedGroups,
+  )
+  collapsedGroupsRef.current = effectiveCollapsedGroups
   selectedKeysRef.current = selectedKeys
   highlightedIdRef.current = highlightedId
   highlightSourceRef.current = highlightSource
   const syncedKeysRef = React.useRef<readonly Key[] | null>(null)
   const syncedDisabledRef = React.useRef<ReadonlySet<Key> | null>(null)
+  const syncedGroupOfRef = React.useRef<ReadonlyMap<Key, string> | null>(null)
   const getSelectionDisabledKeys = React.useCallback(
     (syncedDisabled: ReadonlySet<Key>) =>
       new Set([...syncedDisabled, ...rowDisabledKeysRef.current.keys()]),
@@ -182,6 +296,14 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
         enumerable: true,
       },
       meta: { value: meta, enumerable: true },
+      collapseStore: {
+        value: collapseStore,
+        enumerable: true,
+      },
+      collapsedGroups: {
+        get: () => collapsedGroupsRef.current,
+        enumerable: true,
+      },
       props: {
         value: {
           selectionMode,
@@ -292,6 +414,38 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
         },
         enumerable: true,
       },
+      toggleGroup: {
+        value: (id: string) => {
+          ;(value as ListStore<T>).setGroupCollapsed(
+            id,
+            !pendingCollapsedGroupsRef.current.has(id),
+          )
+        },
+        enumerable: true,
+      },
+      setGroupCollapsed: {
+        value: (id: string, collapsed: boolean) => {
+          const current = controlledCollapsedGroupsRef.current
+            ? pendingCollapsedGroupsRef.current
+            : collapseStore.state.collapsedGroups
+          if (current.has(id) === collapsed) return
+          const next = new Set(current)
+          if (collapsed) next.add(id)
+          else next.delete(id)
+          pendingCollapsedGroupsRef.current = next
+          onCollapsedGroupsChangeRef.current?.(next)
+          if (controlledCollapsedGroupsRef.current) {
+            queueMicrotask(() => {
+              pendingCollapsedGroupsRef.current =
+                controlledCollapsedGroupsValueRef.current ??
+                collapseStore.state.collapsedGroups
+            })
+          } else {
+            collapseStore.set('collapsedGroups', next)
+          }
+        },
+        enumerable: true,
+      },
     })
     return value
   }).current
@@ -308,9 +462,22 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   React.useLayoutEffect(() => {
     onSelectionChangeRef.current = options.onSelectionChange
     onActionRef.current = options.onAction
+    onCollapsedGroupsChangeRef.current = options.onCollapsedGroupsChange
     ;(store as ListStore<T> & { onAction?: typeof options.onAction }).onAction =
       onActionRef.current
   })
+
+  React.useLayoutEffect(() => {
+    controlledCollapsedGroupsValueRef.current = collapsedGroupsProp
+    if (
+      !sameStringSet(
+        collapseStore.state.collapsedGroups,
+        effectiveCollapsedGroups,
+      )
+    )
+      collapseStore.set('collapsedGroups', effectiveCollapsedGroups)
+    pendingCollapsedGroupsRef.current = effectiveCollapsedGroups
+  }, [collapseStore, collapsedGroupsProp, effectiveCollapsedGroups])
 
   React.useLayoutEffect(() => {
     selection.setMode(selectionMode)
@@ -319,26 +486,50 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
     const keysChanged =
       !sameKeys(syncedKeysRef.current ?? undefined, keys) ||
       !sameKeys(syncedDisabledRef.current ?? undefined, disabledKeys)
-    if (keysChanged) {
+    const visibleChanged = !sameKeys(meta.visibleKeys, visibleKeys)
+    const collapsedChanged = !sameKeys(
+      meta.collapsedGroups,
+      effectiveCollapsedGroups,
+    )
+    const groupOfChanged = !sameGroupOf(syncedGroupOfRef.current, groupOf)
+    if (keysChanged || visibleChanged || collapsedChanged || groupOfChanged) {
       meta.keys = keys
       meta.disabledKeys = disabledKeys
-      collection.setOrderedItems(keys, { reason: 'append' })
-      if (collection.state.highlightSource === 'auto')
+      meta.visibleKeys = visibleKeys
+      meta.groupOf = groupOf
+      meta.collapsedGroups = effectiveCollapsedGroups
+      collection.setOrderedItems(visibleKeys, { reason: 'append' })
+      if (
+        collection.state.highlightedId !== null &&
+        !visibleKeys.includes(collection.state.highlightedId)
+      )
+        collection.clearHighlight()
+      else if (collection.state.highlightSource === 'auto')
         collection.clearHighlight()
       selection.setOrderedKeys(keys, getSelectionDisabledKeys(disabledKeys))
       syncedKeysRef.current = keys
       syncedDisabledRef.current = disabledKeys
+      syncedGroupOfRef.current = groupOf
     }
   }, [
     collection,
     disabledKeys,
     keys,
+    visibleKeys,
+    effectiveCollapsedGroups,
+    groupOf,
     meta,
     selectedKeysProp,
     selection,
     selectionMode,
     getSelectionDisabledKeys,
   ])
+
+  React.useLayoutEffect(() => {
+    meta.getGroupId = options.getGroupId as
+      | ((item: unknown) => string | undefined)
+      | undefined
+  }, [meta, options.getGroupId])
 
   return store
 }
