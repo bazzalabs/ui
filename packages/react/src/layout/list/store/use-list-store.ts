@@ -38,10 +38,21 @@ export interface ListStore<_T> {
   readonly keyboardActiveKey: Key | null
   readonly meta: { keys: readonly Key[]; disabledKeys: ReadonlySet<Key> }
   /** Render-time snapshot of hook options for the component layer. Do not read from event handlers; use `selection.context.mode`. */
-  readonly props: { selectionMode: SelectionMode; empty: boolean }
+  readonly props: {
+    selectionMode: SelectionMode
+    empty: boolean
+    selectionFollowsFocus: boolean
+    focusMode: 'roving' | 'virtual'
+    disabledKeys: ReadonlySet<Key>
+    firstNavigableKey: Key | null
+  }
   select: SelectionStore['set']
   clearSelection(): void
   setKeyboardActive(key: Key): void
+  registerRowDisabled(key: Key, disabled: boolean): () => void
+  moveKeyboard(direction: 'next' | 'prev' | 'first' | 'last'): Key | null
+  setMultiSelectActive(active: boolean): void
+  readonly multiSelectActive: boolean
   scrollToKey(key: Key): void
 }
 
@@ -60,6 +71,8 @@ function sameKeys(
 
 export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   const selectionMode = options.selectionMode ?? 'none'
+  const selectionFollowsFocus = options.selectionFollowsFocus ?? true
+  const focusMode = options.focusMode ?? 'roving'
   const selectedKeysProp =
     options.selectedKeys === undefined ? undefined : [...options.selectedKeys]
   const keys = React.useMemo(
@@ -75,6 +88,14 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
       ),
     [options.items, options.getKey, options.isDisabled],
   )
+  const rowDisabledKeysRef = React.useRef(new Map<Key, true>())
+  const [, bumpRowDisabledVersion] = React.useReducer((n) => n + 1, 0)
+  const renderDisabledKeys = new Set([
+    ...disabledKeys,
+    ...rowDisabledKeysRef.current.keys(),
+  ])
+  const firstNavigableKey =
+    keys.find((key) => !renderDisabledKeys.has(key)) ?? null
   const metaRef = useRefWithInit(() => ({
     keys,
     disabledKeys,
@@ -82,6 +103,7 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   const meta = metaRef.current
   const onSelectionChangeRef = React.useRef(options.onSelectionChange)
   const onActionRef = React.useRef(options.onAction)
+  const multiSelectActiveRef = React.useRef(false)
 
   const collection = useRefWithInit(
     () =>
@@ -96,25 +118,38 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
         },
       ),
   ).current
-  const selection = useRefWithInit(
-    () =>
-      new SelectionStore(
-        {
-          selectedKeys: new Set(options.defaultSelectedKeys),
-          selectedKeysProp:
-            selectedKeysProp === undefined
-              ? undefined
-              : new Set(selectedKeysProp),
-          orderedKeys: keys,
-          disabledKeys,
+  const selection = useRefWithInit(() => {
+    const value = new SelectionStore(
+      {
+        selectedKeys: new Set(options.defaultSelectedKeys),
+        selectedKeysProp:
+          selectedKeysProp === undefined
+            ? undefined
+            : new Set(selectedKeysProp),
+        orderedKeys: keys,
+        disabledKeys,
+      },
+      {
+        mode: selectionMode,
+        onSelectionChange: (next, details) => {
+          if (details.type === 'clear' || details.type === 'set')
+            multiSelectActiveRef.current = false
+          onSelectionChangeRef.current?.(next, details)
         },
-        {
-          mode: selectionMode,
-          onSelectionChange: (next, details) =>
-            onSelectionChangeRef.current?.(next, details),
-        },
-      ),
-  ).current
+      },
+    )
+    const originalSet = value.set.bind(value)
+    const originalClear = value.clear.bind(value)
+    value.set = ((...args: never[]) => {
+      if (args.length === 1) multiSelectActiveRef.current = false
+      ;(originalSet as (...args: never[]) => void)(...args)
+    }) as SelectionStore['set']
+    value.clear = (() => {
+      multiSelectActiveRef.current = false
+      originalClear()
+    }) as SelectionStore['clear']
+    return value
+  }).current
 
   const selectedKeys = selection.useState('selectedKeys')
   const highlightedId = collection.useState('highlightedId')
@@ -127,6 +162,11 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   highlightSourceRef.current = highlightSource
   const syncedKeysRef = React.useRef<readonly Key[] | null>(null)
   const syncedDisabledRef = React.useRef<ReadonlySet<Key> | null>(null)
+  const getSelectionDisabledKeys = React.useCallback(
+    (syncedDisabled: ReadonlySet<Key>) =>
+      new Set([...syncedDisabled, ...rowDisabledKeysRef.current.keys()]),
+    [],
+  )
 
   const store = useRefWithInit(() => {
     const value = {} as ListStore<T>
@@ -143,13 +183,103 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
       },
       meta: { value: meta, enumerable: true },
       props: {
-        value: { selectionMode, empty: keys.length === 0 },
+        value: {
+          selectionMode,
+          empty: keys.length === 0,
+          selectionFollowsFocus,
+          focusMode,
+          disabledKeys: renderDisabledKeys,
+          firstNavigableKey,
+        },
         enumerable: true,
       },
-      select: { value: selection.set.bind(selection), enumerable: true },
-      clearSelection: { value: () => selection.clear(), enumerable: true },
+      select: {
+        value: (keys: Iterable<Key>) => {
+          multiSelectActiveRef.current = false
+          selection.set(keys)
+        },
+        enumerable: true,
+      },
+      clearSelection: {
+        value: () => {
+          multiSelectActiveRef.current = false
+          selection.clear()
+        },
+        enumerable: true,
+      },
       setKeyboardActive: {
-        value: (key: Key) => collection.setHighlightedId(key, 'keyboard'),
+        value: (key: Key) => {
+          if (
+            collection.state.highlightedId === key &&
+            collection.state.highlightSource !== 'keyboard'
+          ) {
+            collection.clearHighlight()
+          }
+          collection.setHighlightedId(key, 'keyboard')
+        },
+        enumerable: true,
+      },
+      registerRowDisabled: {
+        value: (key: Key, disabled: boolean) => {
+          const wasDisabled = rowDisabledKeysRef.current.has(key)
+          const added = disabled && !wasDisabled
+          if (disabled !== wasDisabled) {
+            if (disabled) rowDisabledKeysRef.current.set(key, true)
+            else rowDisabledKeysRef.current.delete(key)
+            bumpRowDisabledVersion()
+          }
+          const syncedDisabled = syncedDisabledRef.current ?? disabledKeys
+          selection.setOrderedKeys(
+            meta.keys,
+            getSelectionDisabledKeys(syncedDisabled),
+          )
+          return () => {
+            if (added && rowDisabledKeysRef.current.delete(key)) {
+              bumpRowDisabledVersion()
+              const currentDisabled = syncedDisabledRef.current ?? disabledKeys
+              selection.setOrderedKeys(
+                meta.keys,
+                getSelectionDisabledKeys(currentDisabled),
+              )
+            }
+          }
+        },
+        enumerable: true,
+      },
+      moveKeyboard: {
+        value: (direction: 'next' | 'prev' | 'first' | 'last') => {
+          const visibleIds = collection.getVisibleItemIds()
+          if (visibleIds.length === 0) return null
+          const current = collection.state.highlightedId
+          const currentIndex =
+            current !== null ? visibleIds.indexOf(current) : -1
+          let index: number
+          if (direction === 'first') index = 0
+          else if (direction === 'last') index = visibleIds.length - 1
+          else if (direction === 'next')
+            index = Math.min(currentIndex + 1, visibleIds.length - 1)
+          else
+            index =
+              currentIndex < 0
+                ? visibleIds.length - 1
+                : Math.max(currentIndex - 1, 0)
+          const key = visibleIds[index]
+          if (key !== undefined) {
+            ;(value as ListStore<T>).setKeyboardActive(key)
+            return key
+          }
+          return null
+        },
+        enumerable: true,
+      },
+      setMultiSelectActive: {
+        value: (active: boolean) => {
+          multiSelectActiveRef.current = active
+        },
+        enumerable: true,
+      },
+      multiSelectActive: {
+        get: () => multiSelectActiveRef.current,
         enumerable: true,
       },
       scrollToKey: {
@@ -170,6 +300,10 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   // the component render path; event handlers use the committed selection mode.
   store.props.selectionMode = selectionMode
   store.props.empty = keys.length === 0
+  store.props.selectionFollowsFocus = selectionFollowsFocus
+  store.props.focusMode = focusMode
+  store.props.disabledKeys = renderDisabledKeys
+  store.props.firstNavigableKey = firstNavigableKey
 
   React.useLayoutEffect(() => {
     onSelectionChangeRef.current = options.onSelectionChange
@@ -191,7 +325,7 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
       collection.setOrderedItems(keys, { reason: 'append' })
       if (collection.state.highlightSource === 'auto')
         collection.clearHighlight()
-      selection.setOrderedKeys(keys, disabledKeys)
+      selection.setOrderedKeys(keys, getSelectionDisabledKeys(disabledKeys))
       syncedKeysRef.current = keys
       syncedDisabledRef.current = disabledKeys
     }
@@ -203,6 +337,7 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
     selectedKeysProp,
     selection,
     selectionMode,
+    getSelectionDisabledKeys,
   ])
 
   return store
