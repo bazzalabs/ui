@@ -73,6 +73,10 @@ export interface ListStore<_T> {
   readonly collapseStore: {
     useState(key: 'collapsedGroups'): ReadonlySet<string>
   }
+  /** Internal render subscription for all committed list metadata. */
+  readonly metaStore: {
+    useState(key: 'version'): number
+  }
 }
 
 function sameKeys(
@@ -127,6 +131,24 @@ class CollapseStore extends ReactStore<
   }
 }
 
+interface MetaState {
+  version: number
+}
+
+const metaSelectors = {
+  version: createSelector((state: MetaState) => state.version),
+}
+
+class MetaStore extends ReactStore<
+  MetaState,
+  Record<string, never>,
+  typeof metaSelectors
+> {
+  constructor() {
+    super({ version: 0 }, {}, metaSelectors)
+  }
+}
+
 export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   const selectionMode = options.selectionMode ?? 'none'
   const selectionFollowsFocus = options.selectionFollowsFocus ?? true
@@ -143,6 +165,7 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
         collapsedGroupsProp ?? new Set(options.defaultCollapsedGroups),
       ),
   ).current
+  const metaStore = useRefWithInit(() => new MetaStore()).current
   const collapsedGroupsSnapshot = collapseStore.useState('collapsedGroups')
   const effectiveCollapsedGroups =
     collapsedGroupsProp ?? collapsedGroupsSnapshot
@@ -298,6 +321,10 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
       meta: { value: meta, enumerable: true },
       collapseStore: {
         value: collapseStore,
+        enumerable: true,
+      },
+      metaStore: {
+        value: metaStore,
         enumerable: true,
       },
       collapsedGroups: {
@@ -480,6 +507,9 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
   }, [collapseStore, collapsedGroupsProp, effectiveCollapsedGroups])
 
   React.useLayoutEffect(() => {
+    meta.getGroupId = options.getGroupId as
+      | ((item: unknown) => string | undefined)
+      | undefined
     selection.setMode(selectionMode)
     if (!sameKeys(selection.state.selectedKeysProp, selectedKeysProp))
       selection.setSelectedKeysProp(selectedKeysProp)
@@ -510,6 +540,7 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
       syncedKeysRef.current = keys
       syncedDisabledRef.current = disabledKeys
       syncedGroupOfRef.current = groupOf
+      metaStore.set('version', metaStore.state.version + 1)
     }
   }, [
     collection,
@@ -523,13 +554,9 @@ export function useListStore<T>(options: UseListStoreOptions<T>): ListStore<T> {
     selection,
     selectionMode,
     getSelectionDisabledKeys,
+    metaStore,
+    options.getGroupId,
   ])
-
-  React.useLayoutEffect(() => {
-    meta.getGroupId = options.getGroupId as
-      | ((item: unknown) => string | undefined)
-      | undefined
-  }, [meta, options.getGroupId])
 
   return store
 }

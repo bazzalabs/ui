@@ -56,6 +56,11 @@
       "types": "./dist/layout/list/index.d.ts",
       "import": "./dist/layout/list/index.js",
       "require": "./dist/layout/list/index.cjs"
+    },
+    "./layout/list/virtualizer": {
+      "types": "./dist/layout/list/virtualizer/index.d.ts",
+      "import": "./dist/layout/list/virtualizer/index.js",
+      "require": "./dist/layout/list/virtualizer/index.cjs"
     }
   },
   "files": [
@@ -70,7 +75,13 @@
   },
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
+    "react-dom": ">=18.0.0",
+    "@tanstack/react-virtual": ">=3.13.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-virtual": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@base-ui/react": "1.5.0",
@@ -80,6 +91,7 @@
   "devDependencies": {
     "@bazza-ui/typescript-config": "workspace:*",
     "@tanstack/react-form": "^1.27.7",
+    "@tanstack/react-virtual": "^3.13.12",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

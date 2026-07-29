@@ -13,6 +13,8 @@ export { ListRootDataAttributes } from './root/root.data-attrs.js'
 export type { ListColumn, ListRootProps, ListRootState } from './root/root.js'
 export { ListRowDataAttributes } from './row/row.data-attrs.js'
 export type { ListRowProps, ListRowState } from './row/row.js'
+export { ListSpacerDataAttributes } from './spacer/spacer.data-attrs.js'
+export type { ListSpacerProps, ListSpacerState } from './spacer/spacer.js'
 export type {
   ActivationDetails,
   Key,
