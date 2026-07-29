@@ -170,6 +170,7 @@
       "devDependencies": {
         "@bazza-ui/typescript-config": "workspace:*",
         "@tanstack/react-form": "^1.27.7",
+        "@tanstack/react-virtual": "^3.13.12",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.1",
         "@testing-library/user-event": "^14.6.1",
@@ -183,9 +184,13 @@
         "vitest": "^4.0.17",
       },
       "peerDependencies": {
+        "@tanstack/react-virtual": ">=3.13.0",
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0",
       },
+      "optionalPeers": [
+        "@tanstack/react-virtual",
+      ],
     },
     "packages/typescript-config": {
       "name": "@bazza-ui/typescript-config",

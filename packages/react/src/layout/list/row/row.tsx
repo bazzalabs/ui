@@ -59,7 +59,7 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       onPointerMove,
       ...rest
     } = props
-    const { store, layout, rootId, selectionMode, firstNavigableKey } =
+    const { store, layout, rootId, rootRef, selectionMode, firstNavigableKey } =
       useListContext()
     const group = useMaybeListGroupContext()
     const collectionGroupId = group ? group.collectionValue : undefined
@@ -119,10 +119,29 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     }, [collectionGroupId, disabled, effectiveDisabled, store, value])
 
     React.useLayoutEffect(() => {
+      const element = itemRef.current
+      return () => {
+        if (
+          element !== null &&
+          typeof document !== 'undefined' &&
+          document.activeElement === element
+        ) {
+          try {
+            rootRef.current?.focus({ preventScroll: true })
+          } catch {}
+        }
+      }
+    }, [rootRef])
+
+    React.useLayoutEffect(() => {
       // store.props is committed by the store hook before this effect runs.
-      if (keyboardActive && store.props.focusMode !== 'virtual')
+      if (
+        keyboardActive &&
+        store.props.focusMode === 'roving' &&
+        rootRef.current?.contains(document.activeElement)
+      )
         itemRef.current?.focus()
-    }, [keyboardActive, store])
+    }, [keyboardActive, rootRef, store.props.focusMode])
 
     React.useLayoutEffect(() => {
       if (effectiveDisabled && highlightedId === value)
