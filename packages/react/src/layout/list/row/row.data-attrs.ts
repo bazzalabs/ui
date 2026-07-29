@@ -7,4 +7,6 @@ export enum ListRowDataAttributes {
   lastSelected = 'data-last-selected',
   applyBackground = 'data-apply-background',
   disabled = 'data-disabled',
+  firstInGroup = 'data-first-in-group',
+  lastInGroup = 'data-last-in-group',
 }

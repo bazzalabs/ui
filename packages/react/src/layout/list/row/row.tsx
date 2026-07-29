@@ -3,6 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../utils/types.js'
+import { useMaybeListGroupContext } from '../contexts/group-context.js'
 import { useListContext } from '../contexts/list-context.js'
 import type { Key } from '../store/use-list-store.js'
 import { ListRowDataAttributes } from './row.data-attrs.js'
@@ -15,6 +16,8 @@ export interface ListRowState extends Record<string, unknown> {
   lastSelected: boolean
   applyBackground: boolean
   disabled: boolean
+  firstInGroup: boolean
+  lastInGroup: boolean
 }
 
 export interface ListRowProps extends ComponentProps<'div', ListRowState> {
@@ -37,6 +40,10 @@ const stateAttributesMapping = {
     value ? { [ListRowDataAttributes.applyBackground]: '' } : null,
   disabled: (value: unknown) =>
     value ? { [ListRowDataAttributes.disabled]: '' } : null,
+  firstInGroup: (value: unknown) =>
+    value ? { [ListRowDataAttributes.firstInGroup]: '' } : null,
+  lastInGroup: (value: unknown) =>
+    value ? { [ListRowDataAttributes.lastInGroup]: '' } : null,
 }
 
 export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
@@ -54,6 +61,8 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     } = props
     const { store, layout, rootId, selectionMode, firstNavigableKey } =
       useListContext()
+    const group = useMaybeListGroupContext()
+    const collectionGroupId = group ? group.collectionValue : undefined
     const effectiveDisabled = disabled || store.props.disabledKeys.has(value)
     const itemRef = React.useRef<HTMLDivElement>(null)
     const highlightedId = store.collection.useState('highlightedId')
@@ -61,6 +70,8 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     const selected = store.selection.useState('isSelected', value)
     const firstSelected = store.selection.useState('isFirstOfRun', value)
     const lastSelected = store.selection.useState('isLastOfRun', value)
+    const firstInGroup = store.collection.useState('isFirstInGroup', value)
+    const lastInGroup = store.collection.useState('isLastInGroup', value)
     const active = highlightedId === value && highlightSource === 'pointer'
     const keyboardActive =
       highlightedId === value && highlightSource === 'keyboard'
@@ -72,6 +83,8 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       lastSelected,
       applyBackground: active || keyboardActive || selected,
       disabled: effectiveDisabled,
+      firstInGroup,
+      lastInGroup,
     }
     const defaultStyle: React.CSSProperties = layout
       ? {
@@ -86,12 +99,16 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       const unregisterItem = store.collection.registerItem(value, {
         value,
         disabled: effectiveDisabled,
+        groupId: collectionGroupId,
       })
       const unregisterRef = store.collection.registerItemRef(value, itemRef)
       const unregisterRowDisabled = store.registerRowDisabled(value, disabled)
       const element = itemRef.current
       const unregisterRow = element
-        ? store.collection.registerRow(value, element, { kind: 'item' })
+        ? store.collection.registerRow(value, element, {
+            kind: 'item',
+            groupId: collectionGroupId,
+          })
         : undefined
       return () => {
         unregisterItem()
@@ -99,7 +116,7 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
         unregisterRowDisabled()
         unregisterRow?.()
       }
-    }, [disabled, effectiveDisabled, store, value])
+    }, [collectionGroupId, disabled, effectiveDisabled, store, value])
 
     React.useLayoutEffect(() => {
       // store.props is committed by the store hook before this effect runs.
