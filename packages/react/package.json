@@ -51,6 +51,11 @@
       "types": "./dist/internal/popup-menu/index.d.ts",
       "import": "./dist/internal/popup-menu/index.js",
       "require": "./dist/internal/popup-menu/index.cjs"
+    },
+    "./layout/list": {
+      "types": "./dist/layout/list/index.d.ts",
+      "import": "./dist/layout/list/index.js",
+      "require": "./dist/layout/list/index.cjs"
     }
   },
   "files": [
