@@ -12,6 +12,7 @@ export interface ListContextValue {
   rootRef: React.RefObject<HTMLElement | null>
   selectionMode: SelectionMode
   empty: boolean
+  firstNavigableKey: string | null
 }
 
 const ListContext = React.createContext<ListContextValue | null>(null)

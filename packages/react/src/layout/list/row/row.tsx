@@ -52,7 +52,9 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       onPointerMove,
       ...rest
     } = props
-    const { store, layout, rootId, selectionMode } = useListContext()
+    const { store, layout, rootId, selectionMode, firstNavigableKey } =
+      useListContext()
+    const effectiveDisabled = disabled || store.props.disabledKeys.has(value)
     const itemRef = React.useRef<HTMLDivElement>(null)
     const highlightedId = store.collection.useState('highlightedId')
     const highlightSource = store.collection.useState('highlightSource')
@@ -69,7 +71,7 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       firstSelected,
       lastSelected,
       applyBackground: active || keyboardActive || selected,
-      disabled,
+      disabled: effectiveDisabled,
     }
     const defaultStyle: React.CSSProperties = layout
       ? {
@@ -83,9 +85,10 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     React.useLayoutEffect(() => {
       const unregisterItem = store.collection.registerItem(value, {
         value,
-        disabled,
+        disabled: effectiveDisabled,
       })
       const unregisterRef = store.collection.registerItemRef(value, itemRef)
+      const unregisterRowDisabled = store.registerRowDisabled(value, disabled)
       const element = itemRef.current
       const unregisterRow = element
         ? store.collection.registerRow(value, element, { kind: 'item' })
@@ -93,33 +96,48 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       return () => {
         unregisterItem()
         unregisterRef()
+        unregisterRowDisabled()
         unregisterRow?.()
       }
-    }, [disabled, store, value])
+    }, [disabled, effectiveDisabled, store, value])
+
+    React.useLayoutEffect(() => {
+      // store.props is committed by the store hook before this effect runs.
+      if (keyboardActive && store.props.focusMode !== 'virtual')
+        itemRef.current?.focus()
+    }, [keyboardActive, store])
+
+    React.useLayoutEffect(() => {
+      if (effectiveDisabled && highlightedId === value)
+        store.collection.clearHighlight()
+    }, [effectiveDisabled, highlightedId, store, value])
 
     const handlePointerMove = React.useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
         onPointerMove?.(event)
-        if (!event.defaultPrevented && !disabled)
+        if (!event.defaultPrevented && !effectiveDisabled)
           store.collection.setHighlightedId(value, 'pointer')
       },
-      [disabled, onPointerMove, store, value],
+      [effectiveDisabled, onPointerMove, store, value],
     )
     const handleClick = React.useCallback(
       (event: React.MouseEvent<HTMLDivElement>) => {
         onClick?.(event)
-        if (event.defaultPrevented || disabled) return
+        if (event.defaultPrevented || effectiveDisabled) return
         store.collection.setHighlightedId(value, 'pointer')
         const modified =
           event.shiftKey || event.metaKey || event.ctrlKey || event.altKey
         if (event.shiftKey) {
           event.preventDefault()
           store.selection.selectRange(value)
+          if (store.selection.context.mode !== 'none')
+            store.setMultiSelectActive(true)
         } else if (event.metaKey || event.ctrlKey) {
           store.selection.toggle(value)
-        } else {
           if (store.selection.context.mode !== 'none')
-            store.selection.set([value])
+            store.setMultiSelectActive(true)
+        } else {
+          if (store.selection.context.mode !== 'none') store.select([value])
           if (!modified) {
             ;(store as ListStoreWithAction).onAction?.(value, {
               method: 'pointer',
@@ -128,7 +146,7 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
           }
         }
       },
-      [disabled, onClick, store, value],
+      [effectiveDisabled, onClick, store, value],
     )
 
     return useRender({
@@ -142,8 +160,15 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
         id: `${rootId}-${value}`,
         role: 'option',
         'aria-selected': selectionMode !== 'none' ? selected : undefined,
-        'aria-disabled': disabled || undefined,
-        tabIndex: -1,
+        'aria-disabled': effectiveDisabled || undefined,
+        tabIndex:
+          store.props.focusMode === 'virtual'
+            ? -1
+            : keyboardActive ||
+                (store.keyboardActiveKey === null &&
+                  firstNavigableKey === value)
+              ? 0
+              : -1,
         className,
         style: { ...defaultStyle, ...consumerStyle },
         onClick: handleClick,

@@ -4,6 +4,7 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import type { ComponentProps } from '../../../utils/types.js'
 import { ListContext } from '../contexts/list-context.js'
+import { useListKeyboard } from '../hooks/use-list-keyboard.js'
 import type { ListStore } from '../store/use-list-store.js'
 import { ListRootDataAttributes } from './root.data-attrs.js'
 
@@ -37,12 +38,21 @@ export const ListRoot = React.forwardRef<HTMLDivElement, ListRootProps>(
       className,
       style,
       children,
+      onKeyDown,
+      onFocus,
+      onBlur,
       onPointerLeave,
       ...rest
     } = props
     const rootRef = React.useRef<HTMLDivElement>(null)
     const rootId = React.useId()
-    const { selectionMode, empty } = store.props
+    const { selectionMode, empty, firstNavigableKey } = store.props
+    const { focusMode } = store.props
+    const highlightedId = store.collection.useState('highlightedId')
+    const highlightSource = store.collection.useState('highlightSource')
+    const keyboardActiveKey =
+      highlightSource === 'keyboard' ? highlightedId : null
+    const [focusWithin, setFocusWithin] = React.useState(false)
     const state: ListRoot.State = { empty }
     const template = columns
       ?.map((column) => `[${column.name}] ${column.size}`)
@@ -56,8 +66,17 @@ export const ListRoot = React.forwardRef<HTMLDivElement, ListRootProps>(
       : {}
     const consumerStyle = typeof style === 'function' ? style(state) : style
     const contextValue = React.useMemo(
-      () => ({ store, layout, columns, rootId, rootRef, selectionMode, empty }),
-      [columns, empty, layout, rootId, selectionMode, store],
+      () => ({
+        store,
+        layout,
+        columns,
+        rootId,
+        rootRef,
+        selectionMode,
+        empty,
+        firstNavigableKey,
+      }),
+      [columns, empty, firstNavigableKey, layout, rootId, selectionMode, store],
     )
 
     React.useLayoutEffect(() => {
@@ -75,6 +94,22 @@ export const ListRoot = React.forwardRef<HTMLDivElement, ListRootProps>(
       },
       [onPointerLeave, store],
     )
+    const handleKeyDown = useListKeyboard({ onKeyDown, store })
+    const handleFocus = React.useCallback(
+      (event: React.FocusEvent<HTMLDivElement>) => {
+        onFocus?.(event)
+        if (!event.defaultPrevented) setFocusWithin(true)
+      },
+      [onFocus],
+    )
+    const handleBlur = React.useCallback(
+      (event: React.FocusEvent<HTMLDivElement>) => {
+        onBlur?.(event)
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          setFocusWithin(false)
+      },
+      [onBlur],
+    )
 
     const element = useRender({
       render,
@@ -84,12 +119,20 @@ export const ListRoot = React.forwardRef<HTMLDivElement, ListRootProps>(
       props: {
         ...rest,
         [ListRootDataAttributes.root]: '',
+        'data-focus-within': focusWithin ? '' : undefined,
         role: 'listbox',
         'aria-multiselectable': selectionMode === 'multiple' ? true : undefined,
-        tabIndex: -1,
+        tabIndex: focusMode === 'virtual' ? 0 : -1,
+        'aria-activedescendant':
+          focusMode === 'virtual' && keyboardActiveKey !== null
+            ? `${rootId}-${keyboardActiveKey}`
+            : undefined,
         className,
         style: { ...defaultStyle, ...consumerStyle },
         onPointerLeave: handlePointerLeave,
+        onKeyDown: handleKeyDown,
+        onFocus: handleFocus,
+        onBlur: handleBlur,
         children,
       },
       defaultTagName: 'div',
