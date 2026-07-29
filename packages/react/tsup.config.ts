@@ -11,6 +11,7 @@ export default defineConfig((options: Options) => ({
     'internal/listbox/index': './src/internal/listbox/index.ts',
     'internal/selection/index': './src/internal/selection/index.ts',
     'internal/popup-menu/index': './src/internal/popup-menu/index.ts',
+    'layout/list/index': './src/layout/list/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
