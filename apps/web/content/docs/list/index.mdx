@@ -1,0 +1,201 @@
+---
+title: List
+section: Getting Started
+summary: A Linear-style table-list primitive with multi-selection, keyboard navigation, grouping, and virtualization.
+audience: private
+---
+
+List is a table-like primitive for displaying and interacting with collections of rows. It is designed for dense interfaces that need multi-selection, keyboard navigation, grouping, and efficient rendering of large datasets.
+
+<Example name="list-grouped" />
+
+## Installation
+
+Install the styled component from our registry:
+
+```npm
+npx shadcn@latest add {{REGISTRY_URL}}/r/list
+```
+
+The styled component is added to your components directory as `list-preview.tsx` to prevent conflicts with an existing list component file.
+
+Install the unstyled primitive from npm:
+
+```npm
+npm install @bazza-ui/react{{RELEASE_CHANNEL}}
+```
+
+```tsx
+import { List } from '@bazza-ui/react/layout/list';
+```
+
+## Anatomy
+
+```tsx
+const store = List.useStore({
+  items,
+  getKey: (item) => item.id,
+});
+
+<List.Root store={store} columns={columns}>
+  <List.Group value="Projects">
+    <List.GroupHeader>Projects</List.GroupHeader>
+    <List.GroupRows>
+      <List.Row value="project-1">
+        <List.Cell column="name">Project name</List.Cell>
+      </List.Row>
+    </List.GroupRows>
+  </List.Group>
+  <List.Spacer height={0} /> {/* Used for virtualization offsets */}
+</List.Root>
+```
+
+## Examples
+
+### Basic
+
+A simple list with selectable rows and cells.
+
+<Example name="list-basic">
+<Example.PreviewCode>
+
+```tsx
+const store = List.useStore({
+  items: transactions,
+  getKey: (transaction) => transaction.id,
+  selectionMode: 'multiple',
+  onAction: (key) => toast(`Opened ${key}`),
+});
+
+<List.Root store={store} columns={columns}>
+  {transactions.map((transaction) => (
+    <List.Row key={transaction.id} value={transaction.id}>
+      <List.Cell column="name">{transaction.name}</List.Cell>
+      <List.Cell column="status">{transaction.status}</List.Cell>
+      {/* …more cells */}
+    </List.Row>
+  ))}
+</List.Root>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### Grouped
+
+Organize rows into labeled groups for a clearer hierarchy.
+
+<Example name="list-grouped">
+<Example.PreviewCode>
+
+```tsx
+const store = List.useStore({
+  items: transactions,
+  getKey: (transaction) => transaction.id,
+  getGroupId: (transaction) => transaction.category,
+});
+
+<List.Root store={store} columns={columns}>
+  <List.Group value={category}>
+    <List.GroupHeader>{category} {rows.length}</List.GroupHeader>
+    <List.GroupRows>
+      {rows.map((transaction) => (
+        <List.Row key={transaction.id} value={transaction.id}>
+          <List.Cell column="name">{transaction.name}</List.Cell>
+          <List.Cell column="status">{transaction.status}</List.Cell>
+          {/* …more cells */}
+        </List.Row>
+      ))}
+    </List.GroupRows>
+  </List.Group>
+</List.Root>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### Virtualized
+
+Render large collections efficiently by virtualizing rows outside the viewport.
+
+<Example name="list-virtualized">
+<Example.PreviewCode>
+
+```tsx
+const store = List.useStore({
+  items: transactions,
+  getKey: (transaction) => transaction.id,
+});
+const virtualizer = useListVirtualizer(store, { estimateSize: () => 44 });
+
+<List.Root
+  store={store}
+  columns={columns}
+  ref={virtualizer.scrollContainerRef as React.Ref<HTMLDivElement>}
+>
+  <List.Spacer height={virtualizer.spacerTop} />
+  {virtualizer.virtualRows.map((row) => (
+    <List.Row key={row.key} value={row.key} data-index={row.index} ref={virtualizer.measureRow}>
+      <List.Cell column="name">{byId.get(row.key)?.name}</List.Cell>
+      {/* …more cells */}
+    </List.Row>
+  ))}
+  <List.Spacer height={virtualizer.spacerBottom} />
+</List.Root>
+```
+
+</Example.PreviewCode>
+</Example>
+
+### Virtualized with groups
+
+Combine grouped organization with virtualization for large, structured datasets.
+
+<Example name="list-virtualized-grouped">
+<Example.PreviewCode>
+
+```tsx
+const store = List.useStore({
+  items: transactions,
+  getKey: (transaction) => transaction.id,
+  getGroupId: (transaction) => transaction.category,
+});
+const virtualizer = useListVirtualizer(store, { estimateSize: () => 44 });
+
+<List.Root store={store} columns={columns} ref={virtualizer.scrollContainerRef as React.Ref<HTMLDivElement>}>
+  <List.Spacer height={virtualizer.spacerTop} />
+  {virtualizer.virtualRows.map((row) => row.kind === 'group-header' ? (
+    <List.Group key={`h-${row.key}`} value={row.key}>
+      <List.GroupHeader data-index={row.index} ref={virtualizer.measureRow}>
+        {row.key}
+      </List.GroupHeader>
+    </List.Group>
+  ) : (
+    <List.Row key={row.key} value={row.key} data-index={row.index} ref={virtualizer.measureRow}>
+      <List.Cell column="name">{byId.get(row.key)?.name}</List.Cell>
+      {/* …more cells */}
+    </List.Row>
+  ))}
+  <List.Spacer height={virtualizer.spacerBottom} />
+</List.Root>
+```
+
+</Example.PreviewCode>
+</Example>
+
+## Keyboard interactions
+
+| Key | Action |
+| --- | --- |
+| ↓ / j | Next row; selection follows focus |
+| ↑ / k | Previous row |
+| x | Toggle row and advance |
+| Shift + ↓/↑ | Extend range |
+| ⌘/Ctrl + A | Select all |
+| Escape | Clear selection |
+| Enter | Activate row |
+| Home / End | First/last row |
+
+## API reference
+
+See the [List API reference](/docs/list/api-reference).
