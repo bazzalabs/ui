@@ -173,4 +173,10 @@ export const componentItems: ComponentItem[] = [
     url: '/docs/video-player',
     audience: 'private',
   },
+  {
+    type: 'single',
+    title: 'List',
+    url: '/docs/list',
+    audience: 'private',
+  },
 ]
