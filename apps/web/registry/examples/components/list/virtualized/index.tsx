@@ -24,6 +24,8 @@ const byId = new Map(
   transactions.map((transaction) => [transaction.id, transaction]),
 )
 
+const getKey = (transaction: Transaction) => transaction.id
+
 function StatusBadge({ status }: { status: Transaction['status'] }) {
   return (
     <span
@@ -41,11 +43,14 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
 export default function ListVirtualized() {
   const store = List.useStore({
     items: transactions,
-    getKey: (transaction) => transaction.id,
+    getKey,
     selectionMode: 'multiple',
   })
   const selectedKeys = store.selection.useState('selectedKeys')
-  const virtualizer = useListVirtualizer(store, { estimateSize: () => 44 })
+  const virtualizer = useListVirtualizer(store, {
+    estimateSize: () => 44,
+    overscan: 20,
+  })
 
   return (
     <List.Root

@@ -26,6 +26,9 @@ const categories: Transaction['category'][] = [
   'Utilities',
 ]
 
+const getKey = (transaction: Transaction) => transaction.id
+const getGroupId = (transaction: Transaction) => transaction.category
+
 function StatusBadge({ status }: { status: Transaction['status'] }) {
   return (
     <span
@@ -43,8 +46,8 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
 export default function ListGrouped() {
   const store = List.useStore({
     items: transactions,
-    getKey: (transaction) => transaction.id,
-    getGroupId: (transaction) => transaction.category,
+    getKey,
+    getGroupId,
     defaultCollapsedGroups: ['Utilities'],
     selectionMode: 'multiple',
     onAction: (key) => toast(`Opened ${key}`),
