@@ -246,6 +246,16 @@ export const examples = {
         () =>
           import('@/registry/examples/components/dropdown-menu/virtualized'),
       ),
+      gifi: ex(
+        () => import('@/registry/examples/components/dropdown-menu/gifi'),
+        { extraFiles: ['data.ts'] },
+      ),
+      'virtualized-groups': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/virtualized-groups'
+          ),
+      ),
       'virtualized-advanced': ex(
         () =>
           import(

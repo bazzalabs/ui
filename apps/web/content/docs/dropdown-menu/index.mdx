@@ -283,7 +283,13 @@ Use virtualization to efficiently render large lists with thousands of items. Th
 
 <Example name="dropdown-menu-virtualized" />
 
+<Example name="dropdown-menu-gifi" />
+
+<Example name="dropdown-menu-virtualized-groups" />
+
 </ComponentOnly>
+
+In virtualized lists, groups and radio groups flatten into independent rows: `label`/`renderLabel` become standalone label rows, and each item mounts on its own. Container `render` functions on group and radio-group defs are ignored in virtualized mode (a dev-only warning is logged) — item-level `render` and separator `render` are always honored.
 
 ### Deep search
 
