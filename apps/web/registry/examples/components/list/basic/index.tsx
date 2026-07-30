@@ -18,6 +18,8 @@ const columns = [
   { name: 'amount', size: '7rem' },
 ]
 
+const getKey = (transaction: Transaction) => transaction.id
+
 function StatusBadge({ status }: { status: Transaction['status'] }) {
   return (
     <span
@@ -35,7 +37,7 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
 export default function ListBasic() {
   const store = List.useStore({
     items: transactions,
-    getKey: (transaction) => transaction.id,
+    getKey,
     selectionMode: 'multiple',
     onAction: (key) => toast(`Opened ${key}`),
   })
