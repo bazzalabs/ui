@@ -34,11 +34,9 @@ function createItemNode(
     onSelect: () => onSelect(label),
     render: ({ props, context }) => (
       <DropdownMenu.Item {...props}>
-        {!context.isDeepSearchResult && (
-          <DropdownMenu.Icon>
-            <TeamIcon />
-          </DropdownMenu.Icon>
-        )}
+        <DropdownMenu.Icon>
+          <TeamIcon />
+        </DropdownMenu.Icon>
         {renderLabel(label, context)}
         {selectedTeam === label && (
           <CheckIcon className="ml-auto size-4 shrink-0" />
@@ -61,10 +59,15 @@ function createTreeItemNode(
     render: ({ props, context }: TreeItemRenderParams) => (
       <DropdownMenu.TreeItem {...props} depth={context.tree?.depth}>
         {context.isDeepSearchResult ? (
-          <LabelWithBreadcrumbs
-            label={label}
-            breadcrumbs={context.breadcrumbs}
-          />
+          <>
+            <DropdownMenu.Icon>
+              <TeamIcon />
+            </DropdownMenu.Icon>
+            <LabelWithBreadcrumbs
+              label={label}
+              breadcrumbs={context.breadcrumbs}
+            />
+          </>
         ) : (
           <>
             {context.tree && context.tree.depth > 0 && (
