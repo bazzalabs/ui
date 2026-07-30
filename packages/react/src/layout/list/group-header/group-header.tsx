@@ -29,6 +29,8 @@ export const ListGroupHeader = React.forwardRef<
   const collapsed = store.collapseStore.useState('collapsedGroups').has(value)
   const state: ListGroupHeader.State = { collapsed }
   const consumerStyle = typeof style === 'function' ? style(state) : style
+  const consumerClassName =
+    typeof className === 'function' ? className(state) : className
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       onClick?.(event)
@@ -47,7 +49,7 @@ export const ListGroupHeader = React.forwardRef<
       [ListGroupHeaderDataAttributes.groupHeader]: '',
       role: 'button',
       'aria-expanded': !collapsed,
-      className,
+      className: consumerClassName,
       style: {
         ...(layout ? { gridColumn: '1 / -1', position: 'sticky', top: 0 } : {}),
         ...consumerStyle,

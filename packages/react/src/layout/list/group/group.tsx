@@ -29,6 +29,8 @@ export const ListGroup = React.forwardRef<HTMLDivElement, ListGroupProps>(
     const collapsed = store.collapseStore.useState('collapsedGroups').has(value)
     const state: ListGroup.State = { collapsed }
     const consumerStyle = typeof style === 'function' ? style(state) : style
+    const consumerClassName =
+      typeof className === 'function' ? className(state) : className
 
     React.useInsertionEffect(
       () => store.collection.registerGroup(collectionValue),
@@ -44,7 +46,7 @@ export const ListGroup = React.forwardRef<HTMLDivElement, ListGroupProps>(
         ...rest,
         [ListGroupDataAttributes.group]: '',
         role: 'presentation',
-        className,
+        className: consumerClassName,
         style: { ...(layout ? { display: 'contents' } : {}), ...consumerStyle },
         children,
       },

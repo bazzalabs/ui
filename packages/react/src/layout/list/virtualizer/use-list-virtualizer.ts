@@ -121,12 +121,16 @@ export function useListVirtualizer<T>(
     },
     [groupByKey, headerIndexesByGroup, rows],
   )
+  const getItemKey = React.useCallback(
+    (index: number) => internalKey(rows[index] as SourceRow),
+    [rows],
+  )
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: options.estimateSize ?? (() => 40),
     overscan: options.overscan ?? 10,
-    getItemKey: (index) => internalKey(rows[index] as SourceRow),
+    getItemKey,
     rangeExtractor,
     useFlushSync: false,
   })
