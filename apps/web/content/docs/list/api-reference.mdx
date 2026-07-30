@@ -1,0 +1,74 @@
+---
+title: API Reference
+section: Getting Started
+component: List
+summary: The full API reference for the List primitive.
+audience: private
+---
+
+## useStore
+
+Creates a store that manages the list's items, selection, focus, and actions.
+
+<TypeTableAuto type="UseListStoreOptions" pkg="@bazza-ui/react" />
+<TypeTableAuto type="ListStore" pkg="@bazza-ui/react" />
+
+## Root
+
+The root container provides list context and renders the list's columns and children.
+
+<TypeTableAuto type="ListRootProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ListRootState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ListRootDataAttributes" pkg="@bazza-ui/react" />
+<TypeTableAuto type="ListColumn" pkg="@bazza-ui/react" />
+
+## Row
+
+Represents a selectable row in the list.
+
+<TypeTableAuto type="ListRowProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ListRowState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ListRowDataAttributes" pkg="@bazza-ui/react" />
+
+## Cell
+
+Renders a cell for a configured list column.
+
+<TypeTableAuto type="ListCellProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ListCellDataAttributes" pkg="@bazza-ui/react" />
+
+## Group
+
+Groups related rows under a shared value and provides group context.
+
+<TypeTableAuto type="ListGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ListGroupState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ListGroupDataAttributes" pkg="@bazza-ui/react" />
+
+## GroupHeader
+
+Renders the header for a list group.
+
+<TypeTableAuto type="ListGroupHeaderProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ListGroupHeaderState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ListGroupHeaderDataAttributes" pkg="@bazza-ui/react" />
+
+## GroupRows
+
+Provides the children-only container for the rows in a list group.
+
+<TypeTableAuto type="ListGroupRowsProps" pkg="@bazza-ui/react" />
+
+## Spacer
+
+Adds vertical space used to represent rows outside the rendered viewport.
+
+<TypeTableAuto type="ListSpacerProps" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ListSpacerDataAttributes" pkg="@bazza-ui/react" />
+
+## Virtualizer
+
+Provides virtualization options and state for efficiently rendering large lists.
+
+<TypeTableAuto type="UseListVirtualizerOptions" pkg="@bazza-ui/react" />
+<TypeTableAuto type="ListVirtualizer" pkg="@bazza-ui/react" />
