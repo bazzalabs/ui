@@ -382,6 +382,12 @@ export const ui: RegistryIndex = {
     component: createNullComponent(),
     files: ['registry/ui/dropdown-menu/index.tsx'],
   },
+  list: {
+    name: 'list',
+    type: 'registry:ui',
+    component: createNullComponent(),
+    files: ['registry/ui/list/index.tsx'],
+  },
   select: {
     name: 'select',
     type: 'registry:ui',
