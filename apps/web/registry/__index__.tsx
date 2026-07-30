@@ -301,6 +301,15 @@ export const examples = {
       ),
     },
 
+    list: {
+      basic: ex(() => import('@/registry/examples/components/list/basic'), {
+        extraFiles: ['data.ts'],
+      }),
+      grouped: ex(() => import('@/registry/examples/components/list/grouped'), {
+        extraFiles: ['data.ts'],
+      }),
+    },
+
     'video-player': {
       linear: ex(
         () => import('@/registry/examples/components/video-player/linear'),
