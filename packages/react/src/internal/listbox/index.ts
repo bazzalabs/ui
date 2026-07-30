@@ -4,7 +4,10 @@
 // Core primitives for building listbox-like components.
 // Used by: DropdownMenu, ContextMenu, Select, CommandMenu
 
-export type { GroupContextValue } from './contexts/group-context.js'
+export type {
+  GroupContextValue,
+  GroupPositional,
+} from './contexts/group-context.js'
 export {
   GroupContext,
   useGroupContext,

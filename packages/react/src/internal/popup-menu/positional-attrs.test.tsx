@@ -358,3 +358,91 @@ describe('list-level and in-group attributes', () => {
     })
   })
 })
+
+describe('GroupValue positional override', () => {
+  it('overrides item in-group positional attributes', async () => {
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List>
+                  {/* Flags deliberately contradict mount order so the test
+                      fails if context overrides stop winning over the store */}
+                  <DropdownMenu.GroupValue
+                    groupId="g1"
+                    positional={{ firstInGroup: false, lastInGroup: true }}
+                  >
+                    <DropdownMenu.Item
+                      data-testid="override-first"
+                      value="first"
+                    >
+                      First
+                    </DropdownMenu.Item>
+                  </DropdownMenu.GroupValue>
+                  <DropdownMenu.GroupValue
+                    groupId="g1"
+                    positional={{ firstInGroup: true, lastInGroup: false }}
+                  >
+                    <DropdownMenu.Item data-testid="override-last" value="last">
+                      Last
+                    </DropdownMenu.Item>
+                  </DropdownMenu.GroupValue>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('override-first')).not.toHaveAttribute(
+        'data-first-in-group',
+      )
+      expect(screen.getByTestId('override-first')).toHaveAttribute(
+        'data-last-in-group',
+        '',
+      )
+      expect(screen.getByTestId('override-last')).toHaveAttribute(
+        'data-first-in-group',
+        '',
+      )
+      expect(screen.getByTestId('override-last')).not.toHaveAttribute(
+        'data-last-in-group',
+      )
+    })
+  })
+
+  it('overrides group label positional attributes', async () => {
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List>
+                  <DropdownMenu.GroupValue positional={{ firstGroup: true }}>
+                    <DropdownMenu.GroupLabel data-testid="override-label">
+                      Group
+                    </DropdownMenu.GroupLabel>
+                  </DropdownMenu.GroupValue>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('override-label')).toHaveAttribute(
+        'data-first-group',
+        '',
+      )
+    })
+  })
+})

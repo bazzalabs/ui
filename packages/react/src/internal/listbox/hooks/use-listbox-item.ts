@@ -441,14 +441,15 @@ export function useListboxItem(
     [handleClick, handlePointerMove, handlePointerDown],
   )
 
+  const contextPositional = groupContext?.positional
   const positional = React.useMemo(
     () => ({
-      first: isFirstRow,
-      last: isLastRow,
-      firstInGroup: isFirstInGroup,
-      lastInGroup: isLastInGroup,
+      first: contextPositional?.first ?? isFirstRow,
+      last: contextPositional?.last ?? isLastRow,
+      firstInGroup: contextPositional?.firstInGroup ?? isFirstInGroup,
+      lastInGroup: contextPositional?.lastInGroup ?? isLastInGroup,
     }),
-    [isFirstRow, isLastRow, isFirstInGroup, isLastInGroup],
+    [contextPositional, isFirstRow, isLastRow, isFirstInGroup, isLastInGroup],
   )
 
   return {
