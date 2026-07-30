@@ -54,6 +54,7 @@ function Example(props: {
   onMeasure?: (measure: (element: HTMLElement | null) => void) => void
   getGroupId?: (item: string) => string | undefined
   onVirtualRows?: (rows: ListVirtualizer['virtualRows']) => void
+  useFlushSync?: boolean
 }) {
   const stableGetGroupId = React.useCallback(getGroupId, [])
   const smallGroupId = React.useCallback(
@@ -343,5 +344,19 @@ describe('List.Spacer', () => {
     expect(screen.getByTestId('spacer')).not.toHaveStyle({
       gridColumn: '1 / -1',
     })
+  })
+})
+
+describe('useListVirtualizer useFlushSync option', () => {
+  it('leaves useFlushSync undefined by default', () => {
+    render(<Example />)
+
+    expect(virtualizerOptions.current.useFlushSync).toBeUndefined()
+  })
+
+  it('forwards an explicit useFlushSync value', () => {
+    render(<Example useFlushSync={false} />)
+
+    expect(virtualizerOptions.current.useFlushSync).toBe(false)
   })
 })

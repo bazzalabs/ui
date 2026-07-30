@@ -12,6 +12,15 @@ export interface UseListVirtualizerOptions {
   estimateSize?: (index: number) => number
   overscan?: number
   includeGroupHeaders?: boolean
+  /**
+   * Forwarded to `@tanstack/react-virtual`. When `true` (its default), scroll-driven
+   * range changes re-render synchronously via `flushSync`, preventing blank frames
+   * during fast scrolling. Set `false` if your list's items can change while the
+   * user is scrolling — mutating data mid-scroll with sync flushing enabled makes
+   * react-virtual attempt a render-phase `flushSync` (a dev-mode React error;
+   * React falls back to an async update).
+   */
+  useFlushSync?: boolean
 }
 
 export interface ListVirtualizer {
@@ -132,7 +141,7 @@ export function useListVirtualizer<T>(
     overscan: options.overscan ?? 10,
     getItemKey,
     rangeExtractor,
-    useFlushSync: false,
+    useFlushSync: options.useFlushSync,
   })
 
   const virtualItems = virtualizer.getVirtualItems()
