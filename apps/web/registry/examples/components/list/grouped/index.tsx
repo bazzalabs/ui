@@ -1,6 +1,7 @@
 'use client'
 
 import { toast } from 'sonner'
+import { Checkbox } from '@/components/ui/checkbox'
 import { List } from '@/registry/ui/list'
 import {
   formatAmount,
@@ -10,6 +11,7 @@ import {
 } from './data'
 
 const columns = [
+  { name: 'select', size: '2.5rem' },
   { name: 'date', size: '6rem' },
   { name: 'name', size: 'minmax(0, 1fr)' },
   { name: 'status', size: '7rem' },
@@ -47,6 +49,7 @@ export default function ListGrouped() {
     selectionMode: 'multiple',
     onAction: (key) => toast(`Opened ${key}`),
   })
+  const selectedKeys = store.selection.useState('selectedKeys')
 
   return (
     <List.Root
@@ -68,6 +71,19 @@ export default function ListGrouped() {
             <List.GroupRows>
               {rows.map((transaction) => (
                 <List.Row key={transaction.id} value={transaction.id}>
+                  <List.Cell column="select" className="justify-center">
+                    <Checkbox
+                      checked={selectedKeys.has(transaction.id)}
+                      onCheckedChange={() => {
+                        store.selection.toggle(transaction.id)
+                        store.setMultiSelectActive(true)
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                      tabIndex={-1}
+                      aria-label="Select row"
+                      className="opacity-0 group-data-[active]/row:opacity-100 group-data-[keyboard-active]/row:opacity-100 group-data-[selected]/row:opacity-100"
+                    />
+                  </List.Cell>
                   <List.Cell column="date" className="text-muted-foreground">
                     {formatDate(transaction.date)}
                   </List.Cell>

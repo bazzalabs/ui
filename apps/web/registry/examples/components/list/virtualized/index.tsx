@@ -2,6 +2,7 @@
 
 import { useListVirtualizer } from '@bazza-ui/react/layout/list/virtualizer'
 import type * as React from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { List } from '@/registry/ui/list'
 import {
   formatAmount,
@@ -11,6 +12,7 @@ import {
 } from './data'
 
 const columns = [
+  { name: 'select', size: '2.5rem' },
   { name: 'date', size: '6rem' },
   { name: 'name', size: 'minmax(0, 1fr)' },
   { name: 'status', size: '7rem' },
@@ -42,6 +44,7 @@ export default function ListVirtualized() {
     getKey: (transaction) => transaction.id,
     selectionMode: 'multiple',
   })
+  const selectedKeys = store.selection.useState('selectedKeys')
   const virtualizer = useListVirtualizer(store, { estimateSize: () => 44 })
 
   return (
@@ -61,6 +64,19 @@ export default function ListVirtualized() {
             data-index={row.index}
             ref={virtualizer.measureRow}
           >
+            <List.Cell column="select" className="justify-center">
+              <Checkbox
+                checked={selectedKeys.has(transaction.id)}
+                onCheckedChange={() => {
+                  store.selection.toggle(transaction.id)
+                  store.setMultiSelectActive(true)
+                }}
+                onClick={(event) => event.stopPropagation()}
+                tabIndex={-1}
+                aria-label="Select row"
+                className="opacity-0 group-data-[active]/row:opacity-100 group-data-[keyboard-active]/row:opacity-100 group-data-[selected]/row:opacity-100"
+              />
+            </List.Cell>
             <List.Cell column="date" className="text-muted-foreground">
               {formatDate(transaction.date)}
             </List.Cell>
