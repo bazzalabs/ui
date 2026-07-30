@@ -388,6 +388,19 @@
           "target": "app/filters-01/_/lib/filters.tsx"
         }
       ]
+    },
+    {
+      "name": "list",
+      "title": "List",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/react"],
+      "files": [
+        {
+          "path": "registry/ui/list/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/list-preview.tsx"
+        }
+      ]
     }
   ]
 }
