@@ -16,8 +16,8 @@ const rootClassName = 'w-full text-sm'
 const rowVariants = cva([
   'group/row relative z-[1] cursor-default select-none text-sm outline-none',
   'before:absolute before:inset-y-0 before:inset-x-1 before:z-[-1]',
-  'not-data-[selected]:hover:before:bg-muted/60',
-  'not-data-[selected]:hover:before:rounded-lg',
+  'not-data-[selected]:data-[active]:before:bg-muted/60',
+  'not-data-[selected]:data-[active]:before:rounded-lg',
   'data-[selected]:before:bg-muted',
   'data-[first-selected]:before:rounded-t-lg',
   'data-[last-selected]:before:rounded-b-lg',
