@@ -153,10 +153,24 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     const handlePointerMove = React.useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
         onPointerMove?.(event)
-        if (!event.defaultPrevented && !effectiveDisabled)
+        if (!event.defaultPrevented && !effectiveDisabled) {
           store.collection.setHighlightedId(value, 'pointer')
+          const active = document.activeElement
+          if (rootRef.current?.contains(active)) return
+          if (
+            active instanceof HTMLElement &&
+            (['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName) ||
+              active.isContentEditable)
+          )
+            return
+          try {
+            if (store.props.focusMode === 'virtual')
+              rootRef.current?.focus({ preventScroll: true })
+            else itemRef.current?.focus({ preventScroll: true })
+          } catch {}
+        }
       },
-      [effectiveDisabled, onPointerMove, store, value],
+      [effectiveDisabled, onPointerMove, rootRef, store, value],
     )
     const handleClick = React.useCallback(
       (event: React.MouseEvent<HTMLDivElement>) => {
