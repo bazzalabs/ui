@@ -308,6 +308,14 @@ export const examples = {
       grouped: ex(() => import('@/registry/examples/components/list/grouped'), {
         extraFiles: ['data.ts'],
       }),
+      virtualized: ex(
+        () => import('@/registry/examples/components/list/virtualized'),
+        { extraFiles: ['data.ts'] },
+      ),
+      'virtualized-grouped': ex(
+        () => import('@/registry/examples/components/list/virtualized-grouped'),
+        { extraFiles: ['data.ts'] },
+      ),
     },
 
     'video-player': {
