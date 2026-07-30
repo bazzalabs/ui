@@ -18,6 +18,8 @@ export const ListCell = React.forwardRef<HTMLDivElement, ListCellProps>(
     const { layout, columns } = useListContext()
     const state: ListCell.State = {}
     const consumerStyle = typeof style === 'function' ? style(state) : style
+    const consumerClassName =
+      typeof className === 'function' ? className(state) : className
     if (
       process.env.NODE_ENV !== 'production' &&
       columns &&
@@ -35,7 +37,7 @@ export const ListCell = React.forwardRef<HTMLDivElement, ListCellProps>(
         ...rest,
         [ListCellDataAttributes.cell]: '',
         'data-list-column': column,
-        className,
+        className: consumerClassName,
         style: { ...(layout ? { gridColumn: column } : {}), ...consumerStyle },
         children,
       },

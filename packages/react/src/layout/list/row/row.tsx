@@ -94,6 +94,8 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
         }
       : {}
     const consumerStyle = typeof style === 'function' ? style(state) : style
+    const consumerClassName =
+      typeof className === 'function' ? className(state) : className
 
     React.useLayoutEffect(() => {
       const unregisterItem = store.collection.registerItem(value, {
@@ -205,7 +207,7 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
                   firstNavigableKey === value)
               ? 0
               : -1,
-        className,
+        className: consumerClassName,
         style: { ...defaultStyle, ...consumerStyle },
         onClick: handleClick,
         onPointerMove: handlePointerMove,

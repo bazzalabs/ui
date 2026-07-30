@@ -65,6 +65,8 @@ export const ListRoot = React.forwardRef<HTMLDivElement, ListRootProps>(
         }
       : {}
     const consumerStyle = typeof style === 'function' ? style(state) : style
+    const consumerClassName =
+      typeof className === 'function' ? className(state) : className
     const contextValue = React.useMemo(
       () => ({
         store,
@@ -127,7 +129,7 @@ export const ListRoot = React.forwardRef<HTMLDivElement, ListRootProps>(
           focusMode === 'virtual' && keyboardActiveKey !== null
             ? `${rootId}-${keyboardActiveKey}`
             : undefined,
-        className,
+        className: consumerClassName,
         style: { ...defaultStyle, ...consumerStyle },
         onPointerLeave: handlePointerLeave,
         onKeyDown: handleKeyDown,

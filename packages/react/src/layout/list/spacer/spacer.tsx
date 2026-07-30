@@ -19,6 +19,8 @@ export const ListSpacer = React.forwardRef<HTMLDivElement, ListSpacerProps>(
     const { layout } = useListContext()
     const state: ListSpacer.State = {}
     const consumerStyle = typeof style === 'function' ? style(state) : style
+    const consumerClassName =
+      typeof className === 'function' ? className(state) : className
 
     const element = useRender({
       render,
@@ -28,7 +30,7 @@ export const ListSpacer = React.forwardRef<HTMLDivElement, ListSpacerProps>(
         ...rest,
         [ListSpacerDataAttributes.spacer]: '',
         'aria-hidden': true,
-        className,
+        className: consumerClassName,
         style: {
           ...(layout ? { gridColumn: '1 / -1' } : {}),
           height,
