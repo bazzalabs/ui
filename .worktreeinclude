@@ -1,0 +1,8 @@
+# Gitignored files copied into new worktrees by `wt step copy-ignored`
+# (whitelist: a file must be BOTH gitignored AND match a pattern here).
+# Unanchored patterns match at any depth, e.g. apps/web/.env.local.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

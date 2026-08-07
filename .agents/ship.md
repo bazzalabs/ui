@@ -26,4 +26,5 @@ None.
 
 - **Never run `bun run dev`** — assume the dev server is already running.
 - Worktrees via worktrunk (`wt`); Graphite (`gt`) owns branches/commits/PRs. Trunks: `main` and `canary`; default branch for new work: **canary**.
+- Worktree env files: `wt step copy-ignored` + root `.worktreeinclude` whitelist copy `.env` / `.env.local` (root and nested) into new worktrees via the `[pre-start]` hook in `.config/wt.toml`.
 - New publishable packages live in `packages/<name>` (npm scope `@bazza-ui/<name>`); registry UI components live in `apps/web/registry/ui/<name>` (`@bazza-ui/registry-<name>`, private).

@@ -3,21 +3,16 @@
 
 # Run once when a new worktree is created. These block until complete so any
 # editor or agent launched with `wt switch -x` sees local env files and deps.
+# copy_ignored copies gitignored files whitelisted in the root .worktreeinclude
+# (env files only); bun install covers dependencies.
 [pre-start]
-env = """
-src={{ primary_worktree_path }}
-dst={{ worktree_path }}
-
-[ -f "$src/.env.local" ] && cp "$src/.env.local" "$dst/.env.local" || true
-[ -f "$src/apps/web/.env.local" ] && cp "$src/apps/web/.env.local" "$dst/apps/web/.env.local" || true
-"""
+copy_ignored = "wt step copy-ignored"
 install = "bun install"
 
-# Don't seed new worktrees with machine/path-specific build caches. A copied
+# Extra excludes applied after the .worktreeinclude whitelist. Mostly moot now
+# that only env files are whitelisted, but kept as belt-and-braces: a copied
 # Turbopack dev cache (apps/web/.next-dev) references the source worktree's
-# absolute paths and sends `next dev` into an invalidation storm (tens of GB
-# of memory, server never ready). node_modules/dist still copy — that's the
-# intended cold-start win, reconciled by the `bun install` pre-start hook.
+# absolute paths and sends `next dev` into an invalidation storm.
 [step.copy-ignored]
 exclude = [
   ".next/",
