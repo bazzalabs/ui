@@ -470,6 +470,47 @@ function ExplicitTabMenu() {
   )
 }
 
+function FocusOwnershipSyncMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup-root">
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="input" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="item">Item</DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                    Submenu
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup data-testid="popup-sub">
+                        <DropdownMenu.Surface>
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item value="nested">
+                              Nested
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
+              <button type="button" data-testid="raw-button">
+                Raw button
+              </button>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 /**
  * A nested menu for testing data attributes on Popup components.
  */
@@ -681,6 +722,48 @@ describe('PopupMenu', () => {
         expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
         expect(screen.queryByTestId('popup-sub')).not.toBeInTheDocument()
       })
+    })
+  })
+
+  describe('focus ownership sync', () => {
+    it('follows DOM focus into a surface without stealing it', async () => {
+      const user = userEvent.setup()
+      render(<FocusOwnershipSyncMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+
+      const submenuTrigger = screen.getByTestId('submenu-trigger')
+      for (let index = 0; index < 3; index += 1) {
+        if (submenuTrigger.hasAttribute('data-highlighted')) break
+        await user.keyboard('{ArrowDown}')
+        await sleep(0)
+      }
+      await waitFor(() => {
+        expect(submenuTrigger).toHaveAttribute('data-highlighted')
+      })
+
+      await user.keyboard('{ArrowRight}')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-sub')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      act(() => screen.getByTestId('raw-button').focus())
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-root')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+      expect(screen.getByTestId('raw-button')).toHaveFocus()
+
+      await new Promise((r) => setTimeout(r, 50))
+      expect(screen.getByTestId('raw-button')).toHaveFocus()
     })
   })
 
