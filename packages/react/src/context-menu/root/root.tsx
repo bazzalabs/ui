@@ -323,6 +323,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         disabled={menuDisabled}
         depth={0}
         closeAll={closeAll}
+        explicitTabBehavior
         registerSurface={registerSurface}
         virtualization={virtualization}
         virtualAnchor={virtualAnchor}
