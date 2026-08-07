@@ -92,10 +92,10 @@ export interface PopupMenuSurfaceProps
 
   /**
    * Whether to clear the search query when the menu closes.
-   * - `true`: clear immediately when menu closes (default)
+   * - `'after-exit'`: clear after exit animation completes (default)
+   * - `true`: clear immediately when menu closes
    * - `false`: preserve search when menu closes
-   * - `'after-exit'`: clear after exit animation completes
-   * @default true
+   * @default 'after-exit'
    */
   clearSearchOnClose?: boolean | 'after-exit'
 
@@ -154,7 +154,7 @@ export const PopupMenuSurface = React.forwardRef<
     defaultSearch = '',
     loop = true,
     autoHighlightFirst = true,
-    clearSearchOnClose = true,
+    clearSearchOnClose = 'after-exit',
     resetScrollOnSearch = true,
     skipAutoFocus = false,
     orderedItems,
