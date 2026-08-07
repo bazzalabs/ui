@@ -117,6 +117,8 @@ const listVariants = cva([
   'py-1 outline-none',
   '!min-w-full w-[min(500px,max(var(--row-width,200px),200px))]',
   '[&_:where([bazzaui-dropdown-menu-group-label])]:mt-3',
+  // A label that opens the list shouldn't get the full group spacing above it.
+  '[&_[bazzaui-dropdown-menu-group-label][data-first]]:mt-1',
   '[&_:where([bazzaui-dropdown-menu-group-label])]:mb-1',
   '[&_:where([bazzaui-dropdown-menu-group-label])]:px-4',
   '[&_:where([bazzaui-dropdown-menu-group-label])]:text-xs',
@@ -438,6 +440,8 @@ type VirtualizedContentRow =
       groupId: string
       firstGroup: boolean
       lastGroup: boolean
+      firstRow: boolean
+      lastRow: boolean
       element: React.ReactNode
     }
   | { kind: 'separator'; key: string; node: DisplayNode }
@@ -498,6 +502,8 @@ function VirtualizedListContent({
             groupId: node.group.id,
             firstGroup: node === firstGroupNode,
             lastGroup: node === lastGroupNode,
+            firstRow: rows.length === 0,
+            lastRow: false,
             element: node.group.renderLabel ? (
               node.group.renderLabel({
                 props: { id: labelId },
@@ -534,6 +540,8 @@ function VirtualizedListContent({
             groupId: node.radioGroup.id,
             firstGroup: node === firstGroupNode,
             lastGroup: node === lastGroupNode,
+            firstRow: rows.length === 0,
+            lastRow: false,
             element: node.radioGroup.renderLabel ? (
               node.radioGroup.renderLabel({
                 props: { id: labelId },
@@ -580,6 +588,12 @@ function VirtualizedListContent({
     }
     if (lastNodeRow) {
       lastNodeRow.positional = { ...lastNodeRow.positional, last: true }
+    }
+
+    // A group with no rendered items leaves its label as the trailing row.
+    const finalRow = rows[rows.length - 1]
+    if (finalRow?.kind === 'group-label') {
+      finalRow.lastRow = true
     }
 
     if (shouldShowLoadingRow) {
@@ -735,6 +749,8 @@ function VirtualizedListContent({
               <Primitive.GroupValue
                 groupId={row.groupId}
                 positional={{
+                  first: row.firstRow,
+                  last: row.lastRow,
                   firstGroup: row.firstGroup,
                   lastGroup: row.lastGroup,
                 }}
@@ -1040,14 +1056,7 @@ const Group = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Group>
 >(({ className, ...props }, ref) => (
-  <Primitive.Group
-    ref={ref}
-    className={cn(
-      'first:[&_[bazzaui-dropdown-menu-group-label]]:mt-1',
-      className,
-    )}
-    {...props}
-  />
+  <Primitive.Group ref={ref} className={className} {...props} />
 ))
 Group.displayName = 'DropdownMenu.Group'
 
