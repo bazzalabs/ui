@@ -16,6 +16,7 @@ export {
   // Structure
   PopupMenuGroup as Group,
   PopupMenuGroupLabel as GroupLabel,
+  PopupMenuGroupValue as GroupValue,
   // Trigger components
   PopupMenuIcon as Icon,
   PopupMenuInput as Input,

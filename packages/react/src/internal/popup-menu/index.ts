@@ -282,6 +282,8 @@ export type {
   PopupMenuGroupState,
 } from './components/group/group.js'
 export { PopupMenuGroup } from './components/group/group.js'
+export type { PopupMenuGroupValueProps } from './components/group/group-value.js'
+export { PopupMenuGroupValue } from './components/group/group-value.js'
 export type {
   PopupMenuGroupLabelProps,
   PopupMenuGroupLabelState,

@@ -46,8 +46,10 @@ export const PopupMenuGroupLabel = React.forwardRef<
   const groupContext = useGroupContext()
   const groupId = groupContext?.groupId ?? ''
 
-  const isFirstGroup = store.useState('isFirstGroup', groupId)
-  const isLastGroup = store.useState('isLastGroup', groupId)
+  const storeFirstGroup = store.useState('isFirstGroup', groupId)
+  const storeLastGroup = store.useState('isLastGroup', groupId)
+  const isFirstGroup = groupContext?.positional?.firstGroup ?? storeFirstGroup
+  const isLastGroup = groupContext?.positional?.lastGroup ?? storeLastGroup
 
   const state: PopupMenuGroupLabel.State = React.useMemo(
     () => ({
