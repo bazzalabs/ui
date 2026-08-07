@@ -5,6 +5,14 @@ export enum PopupMenuGroupLabelDataAttributes {
    */
   slot = 'bazzaui-[component]-group-label',
   /**
+   * Present when this label is the first row in the list.
+   */
+  first = 'data-first',
+  /**
+   * Present when this label is the last row in the list.
+   */
+  last = 'data-last',
+  /**
    * Present when this label's parent group is the first visible group in the list.
    */
   firstGroup = 'data-first-group',

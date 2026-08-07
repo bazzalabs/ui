@@ -12,6 +12,14 @@ import { PopupMenuGroupLabelDataAttributes } from './group-label.data-attrs.js'
 
 export interface PopupMenuGroupLabelState extends Record<string, unknown> {
   /**
+   * Present when this label is the first row in the list.
+   */
+  first: boolean
+  /**
+   * Present when this label is the last row in the list.
+   */
+  last: boolean
+  /**
    * Present when this label's parent group is the first visible group in the list.
    */
   firstGroup: boolean
@@ -27,6 +35,10 @@ export interface PopupMenuGroupLabelProps
 }
 
 const stateAttributesMapping = {
+  first: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupLabelDataAttributes.first]: '' } : null,
+  last: (value: unknown): Record<string, string> | null =>
+    value ? { [PopupMenuGroupLabelDataAttributes.last]: '' } : null,
   firstGroup: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuGroupLabelDataAttributes.firstGroup]: '' } : null,
   lastGroup: (value: unknown): Record<string, string> | null =>
@@ -48,15 +60,23 @@ export const PopupMenuGroupLabel = React.forwardRef<
 
   const storeFirstGroup = store.useState('isFirstGroup', groupId)
   const storeLastGroup = store.useState('isLastGroup', groupId)
+  const storeFirstRow = store.useState('isFirstRow', groupId)
   const isFirstGroup = groupContext?.positional?.firstGroup ?? storeFirstGroup
   const isLastGroup = groupContext?.positional?.lastGroup ?? storeLastGroup
+  const isFirstRow = groupContext?.positional?.first ?? storeFirstRow
+  // No store fallback: the store can only say whether the *group* is the last
+  // row, and a label is followed by its own items — so it is the last row only
+  // when a consumer flattens the list and declares it (e.g. virtualized rows).
+  const isLastRow = groupContext?.positional?.last ?? false
 
   const state: PopupMenuGroupLabel.State = React.useMemo(
     () => ({
+      first: isFirstRow,
+      last: isLastRow,
       firstGroup: isFirstGroup,
       lastGroup: isLastGroup,
     }),
-    [isFirstGroup, isLastGroup],
+    [isFirstRow, isLastRow, isFirstGroup, isLastGroup],
   )
 
   // Get component name for slot attribute
