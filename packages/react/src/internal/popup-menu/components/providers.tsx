@@ -9,6 +9,7 @@ import {
   ComponentNameContext,
 } from '../contexts/component-name-context.js'
 import { FocusOwnerContext } from '../contexts/focus-owner-context.js'
+import { FocusZoneRegistryContext } from '../contexts/focus-zone-context.js'
 import { OpenChainContext } from '../contexts/open-chain-context.js'
 import {
   PopupMenuContext,
@@ -25,6 +26,7 @@ import {
 import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
+import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
 
 // ============================================================================
@@ -121,6 +123,11 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     children,
   } = props
 
+  const focusZoneRegistryRef = React.useRef<FocusZoneRegistry | null>(null)
+  if (!focusZoneRegistryRef.current) {
+    focusZoneRegistryRef.current = new FocusZoneRegistry()
+  }
+
   // PopupMenu context value
   const popupMenuContextValue: PopupMenuContextValue = React.useMemo(
     () => ({
@@ -186,7 +193,11 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
             <AimGuardProvider>
               <FocusOwnerContext.Provider value={focusOwnerStore}>
                 <OpenChainContext.Provider value={openChainStore}>
-                  {children}
+                  <FocusZoneRegistryContext.Provider
+                    value={focusZoneRegistryRef.current}
+                  >
+                    {children}
+                  </FocusZoneRegistryContext.Provider>
                 </OpenChainContext.Provider>
               </FocusOwnerContext.Provider>
             </AimGuardProvider>

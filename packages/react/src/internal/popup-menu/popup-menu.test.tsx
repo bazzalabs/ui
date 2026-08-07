@@ -470,6 +470,108 @@ function ExplicitTabMenu() {
   )
 }
 
+function FocusZoneInputMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup">
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="input" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                <DropdownMenu.Item value="second">Second</DropdownMenu.Item>
+              </DropdownMenu.List>
+              <DropdownMenu.FocusZone>
+                <button data-testid="apply" type="button">
+                  Apply
+                </button>
+                <button data-testid="cancel" type="button">
+                  Cancel
+                </button>
+              </DropdownMenu.FocusZone>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function FocusZoneListMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup">
+            <DropdownMenu.Surface>
+              <DropdownMenu.List data-testid="list">
+                <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+              </DropdownMenu.List>
+              <DropdownMenu.FocusZone>
+                <button data-testid="apply" type="button">
+                  Apply
+                </button>
+                <button data-testid="cancel" type="button">
+                  Cancel
+                </button>
+              </DropdownMenu.FocusZone>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function FocusZoneFormMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup">
+            <DropdownMenu.Surface>
+              <DropdownMenu.FocusZone>
+                <input data-testid="first-input" />
+                <input data-testid="second-input" />
+                <button data-testid="submit" type="button">
+                  Submit
+                </button>
+              </DropdownMenu.FocusZone>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function FocusZoneEmptyMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup">
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="input" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+              </DropdownMenu.List>
+              <DropdownMenu.FocusZone>
+                <span>hint</span>
+              </DropdownMenu.FocusZone>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function FocusOwnershipSyncMenu() {
   return (
     <DropdownMenu.Root>
@@ -722,6 +824,87 @@ describe('PopupMenu', () => {
         expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
         expect(screen.queryByTestId('popup-sub')).not.toBeInTheDocument()
       })
+    })
+  })
+
+  describe('FocusZone', () => {
+    it('cycles from Input through zone tabbables and preserves highlight', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneInputMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+      expect(screen.getByRole('option', { name: 'First' })).toHaveAttribute(
+        'data-highlighted',
+      )
+
+      await user.tab()
+      expect(screen.getByTestId('apply')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('cancel')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('input')).toHaveFocus()
+      expect(screen.getByTestId('popup')).toBeInTheDocument()
+
+      await user.tab({ shift: true })
+      expect(screen.getByTestId('cancel')).toHaveFocus()
+      await user.keyboard('{ArrowDown}')
+      // Arrows are inert while a zone element is focused: the highlight must
+      // not advance to the second item.
+      expect(screen.getByRole('option', { name: 'First' })).toHaveAttribute(
+        'data-highlighted',
+      )
+      expect(
+        screen.getByRole('option', { name: 'Second' }),
+      ).not.toHaveAttribute('data-highlighted')
+    })
+
+    it('cycles from List through zone tabbables when there is no Input', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneListMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('list')).toHaveFocus())
+      await user.tab()
+      expect(screen.getByTestId('apply')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('cancel')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('list')).toHaveFocus()
+      expect(screen.getByTestId('popup')).toBeInTheDocument()
+    })
+
+    it('auto-focuses and cycles form-only zone content', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneFormMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('first-input')).toHaveFocus(),
+      )
+      await user.tab()
+      expect(screen.getByTestId('second-input')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('submit')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('first-input')).toHaveFocus()
+      expect(screen.getByTestId('popup')).toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      await waitFor(() =>
+        expect(screen.queryByTestId('popup')).not.toBeInTheDocument(),
+      )
+    })
+
+    it('closes on Tab when the zone is empty', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneEmptyMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+      await user.tab()
+      await waitFor(() =>
+        expect(screen.queryByTestId('popup')).not.toBeInTheDocument(),
+      )
     })
   })
 

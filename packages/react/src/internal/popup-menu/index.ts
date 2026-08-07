@@ -278,6 +278,11 @@ export { PopupMenuRadioItemIndicator } from './components/radio-item/radio-item-
 // ============================================================================
 
 export type {
+  PopupMenuFocusZoneProps,
+  PopupMenuFocusZoneState,
+} from './components/focus-zone/focus-zone.js'
+export { PopupMenuFocusZone } from './components/focus-zone/focus-zone.js'
+export type {
   PopupMenuGroupProps,
   PopupMenuGroupState,
 } from './components/group/group.js'
