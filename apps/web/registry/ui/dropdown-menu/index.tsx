@@ -890,7 +890,10 @@ export function TreeConnector({
   return (
     <span
       aria-hidden="true"
-      className={cn('relative shrink-0 self-stretch text-border', className)}
+      className={cn(
+        'relative shrink-0 self-stretch text-neutral-300/75 dark:text-neutral-700',
+        className,
+      )}
       style={{ width: `calc(${tree.depth} * 1rem)` }}
     >
       {/* Pass-through rails for ancestors that still have siblings below. */}
