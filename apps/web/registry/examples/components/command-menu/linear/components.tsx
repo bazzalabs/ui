@@ -99,23 +99,15 @@ function SubpageHeader({
   )
 }
 
-function SubpageBackRow({ pageId }: { pageId: string }) {
+function AsyncIdleHint({ label }: { label: string }) {
+  const { search } = useDataList()
+
+  if (search.length > 0) return null
+
   return (
-    <CommandMenu.SubpageBackItem
-      forceMount
-      keywords={['back', 'previous']}
-      value={`${pageId}-back`}
-    >
-      <CommandMenu.Icon>
-        <span aria-hidden="true" className="text-xs leading-none">
-          ←
-        </span>
-      </CommandMenu.Icon>
-      Back
-      <CommandMenu.Shortcut>
-        <CommandMenu.Kbd keys="backspace" />
-      </CommandMenu.Shortcut>
-    </CommandMenu.SubpageBackItem>
+    <div className="flex h-10 items-center justify-center text-muted-foreground text-sm">
+      {label}
+    </div>
   )
 }
 
@@ -343,10 +335,9 @@ export function createSubpageNode({
           <SubpageHeader description={description} title={title} />
           <CommandMenu.Input placeholder={inputPlaceholder} />
           <CommandMenu.List>
-            <SubpageBackRow pageId={pageId} />
             {childNodes.map(renderNode)}
+            <CommandMenu.Empty>{emptyLabel}</CommandMenu.Empty>
           </CommandMenu.List>
-          <CommandMenu.Empty>{emptyLabel}</CommandMenu.Empty>
         </CommandMenu.Surface>
       </CommandMenu.Subpage>
     ),
@@ -362,6 +353,7 @@ export function createAsyncSubpageNode({
   inputPlaceholder,
   loadingLabel,
   emptyLabel,
+  idleLabel,
 }: {
   id: string
   title: string
@@ -371,6 +363,7 @@ export function createAsyncSubpageNode({
   inputPlaceholder: string
   loadingLabel: string
   emptyLabel: string
+  idleLabel: string
 }): SubpageDef {
   return {
     kind: 'subpage',
@@ -401,11 +394,11 @@ export function createAsyncSubpageNode({
           <SubpageHeader description={description} title={title} />
           <CommandMenu.Input placeholder={inputPlaceholder} />
           <CommandMenu.List>
-            <SubpageBackRow pageId={pageId} />
+            <AsyncIdleHint label={idleLabel} />
             <CommandMenuRows />
+            <CommandMenu.Loading>{loadingLabel}</CommandMenu.Loading>
+            <CommandMenu.Empty>{emptyLabel}</CommandMenu.Empty>
           </CommandMenu.List>
-          <CommandMenu.Loading>{loadingLabel}</CommandMenu.Loading>
-          <CommandMenu.Empty>{emptyLabel}</CommandMenu.Empty>
         </CommandMenu.Surface>
       </CommandMenu.Subpage>
     ),

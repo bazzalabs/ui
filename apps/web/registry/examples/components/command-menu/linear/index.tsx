@@ -185,6 +185,7 @@ function buildMenuContent({
     icon: <AssigneeIcon />,
     asyncNodes: assigneeLoader,
     inputPlaceholder: 'Search teammates…',
+    idleLabel: 'Start typing to search teammates…',
     loadingLabel: 'Searching teammates…',
     emptyLabel: 'No teammates found.',
   })
@@ -457,7 +458,7 @@ export default function CommandMenuLinear() {
   )
 
   return (
-    <CommandMenu.Root hotkey="mod+k">
+    <CommandMenu.Root>
       <CommandMenu.Trigger render={<Button variant="outline" />}>
         Open issue actions
         <CommandMenu.Kbd keys="mod+k" />
@@ -513,9 +514,9 @@ export default function CommandMenuLinear() {
             <CommandMenu.Input placeholder="Search issue commands…" />
             <CommandMenu.List>
               <CommandMenuRows />
+              <CommandMenu.Loading>Searching…</CommandMenu.Loading>
+              <CommandMenu.Empty>No matching commands.</CommandMenu.Empty>
             </CommandMenu.List>
-            <CommandMenu.Loading>Searching…</CommandMenu.Loading>
-            <CommandMenu.Empty>No matching commands.</CommandMenu.Empty>
           </CommandMenu.Surface>
         </CommandMenu.Popup>
       </CommandMenu.Portal>
