@@ -6,8 +6,11 @@ import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import type {
   GetQualifiedRowIdContext,
   GetQualifiedRowIdFn,
+  GroupDef,
   ItemDef,
   NodeDef,
+  RadioGroupDef,
+  RadioItemDef,
   SubmenuDef,
   SubpageDef,
 } from '../types.js'
@@ -129,6 +132,25 @@ function ListItemsWithCount() {
       <div data-testid="count">{count}</div>
       {nodes.map(renderNode)}
     </>
+  )
+}
+
+function MenuWithDataContent({ content }: { content: NodeDef[] }) {
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface content={content}>
+              <DropdownMenu.List>
+                <ListItems />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }
 
@@ -837,6 +859,105 @@ describe('List getQualifiedRowId', () => {
         'submenu-trigger-settings',
         'item-late',
       ])
+    })
+  })
+
+  describe('group labels', () => {
+    const groupItem = createTestItemDef('group-item', 'Group Item')
+
+    function createGroup(options: Partial<GroupDef> = {}): GroupDef {
+      return {
+        kind: 'group',
+        id: 'test-group',
+        label: 'Group Label',
+        nodes: [groupItem],
+        ...options,
+      }
+    }
+
+    function createRadioGroup(
+      options: Partial<RadioGroupDef> = {},
+    ): RadioGroupDef {
+      const radioItem: RadioItemDef = {
+        kind: 'radio-item',
+        value: 'one',
+        render: ({ props }) => <div {...props}>One</div>,
+      }
+
+      return {
+        kind: 'radio-group',
+        id: 'test-radio-group',
+        label: 'Radio Group Label',
+        nodes: [radioItem],
+        ...options,
+      }
+    }
+
+    it('renders a visible default label for a group', async () => {
+      render(<MenuWithDataContent content={[createGroup()]} />)
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Group Label', {
+            selector: '[bazzaui-dropdown-menu-group-label]',
+          }),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('renders a custom group label and passes its stable id', async () => {
+      const renderLabel = vi.fn(({ props }: { props: { id: string } }) => (
+        <div data-testid="custom-group-label" {...props} />
+      ))
+
+      render(<MenuWithDataContent content={[createGroup({ renderLabel })]} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-group-label')).toBeInTheDocument()
+      })
+      expect(renderLabel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          props: { id: expect.stringMatching(/-label$/) },
+        }),
+      )
+      expect(
+        screen.queryByText('Group Label', {
+          selector: '[bazzaui-dropdown-menu-group-label]',
+        }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('prefers the container render over renderLabel', async () => {
+      const renderLabel = vi.fn(() => <div data-testid="custom-group-label" />)
+
+      render(
+        <MenuWithDataContent
+          content={[
+            createGroup({
+              render: ({ children }) => (
+                <div data-testid="custom-group-container">{children}</div>
+              ),
+              renderLabel,
+            }),
+          ]}
+        />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-group-container')).toBeInTheDocument()
+      })
+      expect(renderLabel).not.toHaveBeenCalled()
+    })
+
+    it('renders a visible default label for a radio group', async () => {
+      render(<MenuWithDataContent content={[createRadioGroup()]} />)
+
+      await waitFor(() => {
+        const radioGroup = screen.getByRole('radiogroup')
+        expect(
+          radioGroup.querySelector('[bazzaui-dropdown-menu-group-label]'),
+        ).toHaveTextContent('Radio Group Label')
+      })
     })
   })
 

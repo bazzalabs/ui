@@ -3,6 +3,7 @@
 import * as React from 'react'
 import type { useSurfaceContext } from '../../listbox/index.js'
 import { normalizeValue } from '../../listbox/utils/normalize.js'
+import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
   PopupMenuListPrimitive,
   type PopupMenuListProps,
@@ -47,6 +48,32 @@ import {
   mergeAsyncNodesIntoTree,
   shouldLoadEagerly,
 } from './utils.js'
+
+function renderGroupLabelElement<
+  C extends GroupRenderContext & { label?: string },
+>(
+  groupId: string,
+  label: string | undefined,
+  renderLabel:
+    | ((params: { props: { id: string }; context: C }) => React.ReactNode)
+    | undefined,
+  context: C,
+): React.ReactNode {
+  if (!label && !renderLabel) return null
+  const labelId = `${groupId}-label`
+  if (renderLabel) {
+    return (
+      <React.Fragment key={labelId}>
+        {renderLabel({ props: { id: labelId }, context })}
+      </React.Fragment>
+    )
+  }
+  return (
+    <PopupMenuGroupLabel key={labelId} id={labelId}>
+      {label}
+    </PopupMenuGroupLabel>
+  )
+}
 
 // ============================================================================
 // Helper: Compute composite IDs for all row nodes
@@ -1146,6 +1173,17 @@ export const DataListInner = React.forwardRef<
           role="radiogroup"
           aria-label={radioGroup.label}
         >
+          {renderGroupLabelElement(
+            radioGroup.id,
+            radioGroup.label,
+            radioGroup.renderLabel,
+            {
+              ...groupContext,
+              label: radioGroup.label,
+              value: radioGroup.value,
+              disabled: radioGroup.disabled ?? false,
+            },
+          )}
           {childElements}
         </div>
       )
@@ -1183,6 +1221,10 @@ export const DataListInner = React.forwardRef<
         return (
           // biome-ignore lint/a11y/useSemanticElements: ignore for now
           <div key={group.id} role="group" aria-label={group.label}>
+            {renderGroupLabelElement(group.id, group.label, group.renderLabel, {
+              ...context,
+              label: group.label,
+            })}
             {children}
           </div>
         )
@@ -1224,6 +1266,17 @@ export const DataListInner = React.forwardRef<
             role="radiogroup"
             aria-label={radioGroup.label}
           >
+            {renderGroupLabelElement(
+              radioGroup.id,
+              radioGroup.label,
+              radioGroup.renderLabel,
+              {
+                ...context,
+                label: radioGroup.label,
+                value: radioGroup.value,
+                disabled: radioGroup.disabled ?? false,
+              },
+            )}
             {children}
           </div>
         )

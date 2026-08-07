@@ -691,6 +691,19 @@ export interface GroupRenderParams {
   children: React.ReactNode
 }
 
+/**
+ * Parameters passed to group label render functions.
+ */
+export interface GroupLabelRenderParams {
+  /** Props to spread onto the label element (stable id for aria wiring) */
+  props: { id: string }
+  /** Context for conditional rendering (includes label for convenience) */
+  context: GroupRenderContext & {
+    /** The group's label */
+    label?: string
+  }
+}
+
 // ============================================================================
 // Checkbox Item Types
 // ============================================================================
@@ -760,6 +773,23 @@ export interface RadioGroupRenderParams {
   }
   /** Pre-rendered radio items */
   children: React.ReactNode
+}
+
+/**
+ * Parameters passed to radio group label render functions.
+ */
+export interface RadioGroupLabelRenderParams {
+  /** Props to spread onto the label element (stable id for aria wiring) */
+  props: { id: string }
+  /** Context for conditional rendering (includes label for convenience) */
+  context: GroupRenderContext & {
+    /** The radio group's label */
+    label?: string
+    /** Current selected value */
+    value?: string
+    /** Whether the radio group is disabled */
+    disabled: boolean
+  }
 }
 
 // ============================================================================
@@ -1027,6 +1057,13 @@ export interface GroupDef {
   nodes: NodeDef[]
   /** Optional render function for the group container */
   render?: (params: GroupRenderParams) => React.ReactNode
+  /**
+   * Optional render function for the group's label row.
+   * Used by the default group container when no `render` is provided, and by
+   * virtualized lists (which ignore `render` and use only the label row).
+   * Precedence: `render` > `renderLabel` > `label`.
+   */
+  renderLabel?: (params: GroupLabelRenderParams) => React.ReactNode
 }
 
 /**
@@ -1050,6 +1087,13 @@ export interface RadioGroupDef
   nodes: RadioItemDef[]
   /** Optional render function for the radio group container */
   render?: (params: RadioGroupRenderParams) => React.ReactNode
+  /**
+   * Optional render function for the radio group's label row.
+   * Used by the default radio group container when no `render` is provided, and by
+   * virtualized lists (which ignore `render` and use only the label row).
+   * Precedence: `render` > `renderLabel` > `label`.
+   */
+  renderLabel?: (params: RadioGroupLabelRenderParams) => React.ReactNode
 }
 
 /**
