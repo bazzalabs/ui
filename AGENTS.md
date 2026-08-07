@@ -34,8 +34,9 @@ trunk worktree serves at `https://bazza-ui.localhost`). The URL follows the
 checked-out branch, so it changes when Graphite switches branches in a
 worktree — run `portless list` for live routes or `wt list` for expected URLs.
 
-Project hooks in `.config/wt.toml` copy `.env.local` files from the primary
-worktree and run `bun install` when a worktree is created. On first use, approve
+Project hooks in `.config/wt.toml` run `wt step copy-ignored` (copying the
+gitignored env files whitelisted in the root `.worktreeinclude`) and
+`bun install` when a worktree is created. On first use, approve
 the project hooks when prompted, or pre-approve them with `wt config approvals add`.
 Install shell integration with `wt config shell install` if `wt switch` should
 change the current shell directory.
