@@ -4,6 +4,7 @@ import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
   type BreadcrumbNode,
   type DisplayNode,
+  type DisplayRadioGroupNode,
   type DropdownMenuVirtualItem,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
@@ -115,6 +116,12 @@ const inputVariants = cva([
 const listVariants = cva([
   'py-1 outline-none',
   '!min-w-full w-[min(500px,max(var(--row-width,200px),200px))]',
+  '[&_:where([bazzaui-dropdown-menu-group-label])]:mt-3',
+  '[&_:where([bazzaui-dropdown-menu-group-label])]:mb-1',
+  '[&_:where([bazzaui-dropdown-menu-group-label])]:px-4',
+  '[&_:where([bazzaui-dropdown-menu-group-label])]:text-xs',
+  '[&_:where([bazzaui-dropdown-menu-group-label])]:font-medium',
+  '[&_:where([bazzaui-dropdown-menu-group-label])]:text-muted-foreground',
 ])
 
 const surfaceVariants = cva('divide-y')
@@ -409,12 +416,31 @@ interface VirtualizedListContentProps {
   withScrollFade: boolean
 }
 
+type NodeRowPositional = {
+  first?: boolean
+  last?: boolean
+  firstInGroup?: boolean
+  lastInGroup?: boolean
+}
+
 type VirtualizedContentRow =
   | {
       kind: 'node'
       key: string
       node: DisplayNode
+      groupId?: string
+      positional?: NodeRowPositional
+      radioGroup?: DisplayRadioGroupNode['radioGroup']
     }
+  | {
+      kind: 'group-label'
+      key: string
+      groupId: string
+      firstGroup: boolean
+      lastGroup: boolean
+      element: React.ReactNode
+    }
+  | { kind: 'separator'; key: string; node: DisplayNode }
   | {
       kind: 'loading'
       key: '__loading__'
@@ -437,24 +463,132 @@ function VirtualizedListContent({
 
   const shouldShowLoadingRow = asyncState.isInitialLoading
   const shouldShowEmptyRow = !asyncState.isInitialLoading && count === 0
-  const statusRowCount = shouldShowLoadingRow || shouldShowEmptyRow ? 1 : 0
 
-  const virtualizedRows = useMemo<VirtualizedContentRow[]>(() => {
-    const nodeRows = nodes.map((node) => ({
-      kind: 'node' as const,
-      key: getNodeKey(node),
-      node,
-    }))
+  const { rows: virtualizedRows, rowIndexByItemId } = useMemo(() => {
+    const rows: VirtualizedContentRow[] = []
+    const rowIndexByItemId = new Map<string, number>()
+
+    const groupNodes = nodes.filter(
+      (n) => isDisplayGroupNode(n) || isDisplayRadioGroupNode(n),
+    )
+    const firstGroupNode = groupNodes[0]
+    const lastGroupNode = groupNodes[groupNodes.length - 1]
+
+    const pushNodeRow = (
+      row: Extract<VirtualizedContentRow, { kind: 'node' }>,
+    ) => {
+      if ('compositeId' in row.node && row.node.compositeId) {
+        rowIndexByItemId.set(row.node.compositeId, rows.length)
+      }
+      rows.push(row)
+    }
+
+    for (const node of nodes) {
+      if (isDisplayGroupNode(node)) {
+        if (process.env.NODE_ENV !== 'production' && node.group.render) {
+          console.warn(
+            `[DropdownMenu.List virtualized] group "${node.group.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
+          )
+        }
+        if (node.group.label || node.group.renderLabel) {
+          const labelId = `${node.group.id}-label`
+          rows.push({
+            kind: 'group-label',
+            key: `group-label-${node.group.id}`,
+            groupId: node.group.id,
+            firstGroup: node === firstGroupNode,
+            lastGroup: node === lastGroupNode,
+            element: node.group.renderLabel ? (
+              node.group.renderLabel({
+                props: { id: labelId },
+                context: { ...node.context, label: node.group.label },
+              })
+            ) : (
+              <GroupLabel id={labelId}>{node.group.label}</GroupLabel>
+            ),
+          })
+        }
+        node.items.forEach((item, i) => {
+          pushNodeRow({
+            kind: 'node',
+            key: getNodeKey(item),
+            node: item,
+            groupId: node.group.id,
+            positional: {
+              firstInGroup: i === 0,
+              lastInGroup: i === node.items.length - 1,
+            },
+          })
+        })
+      } else if (isDisplayRadioGroupNode(node)) {
+        if (process.env.NODE_ENV !== 'production' && node.radioGroup.render) {
+          console.warn(
+            `[DropdownMenu.List virtualized] radio group "${node.radioGroup.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
+          )
+        }
+        if (node.radioGroup.label || node.radioGroup.renderLabel) {
+          const labelId = `${node.radioGroup.id}-label`
+          rows.push({
+            kind: 'group-label',
+            key: `group-label-${node.radioGroup.id}`,
+            groupId: node.radioGroup.id,
+            firstGroup: node === firstGroupNode,
+            lastGroup: node === lastGroupNode,
+            element: node.radioGroup.renderLabel ? (
+              node.radioGroup.renderLabel({
+                props: { id: labelId },
+                context: {
+                  ...node.context,
+                  label: node.radioGroup.label,
+                  value: node.radioGroup.value,
+                  disabled: node.radioGroup.disabled ?? false,
+                },
+              })
+            ) : (
+              <GroupLabel id={labelId}>{node.radioGroup.label}</GroupLabel>
+            ),
+          })
+        }
+        node.items.forEach((item, i) => {
+          pushNodeRow({
+            kind: 'node',
+            key: getNodeKey(item),
+            node: item,
+            groupId: node.radioGroup.id,
+            positional: {
+              firstInGroup: i === 0,
+              lastInGroup: i === node.items.length - 1,
+            },
+            radioGroup: node.radioGroup,
+          })
+        })
+      } else if (isDisplaySeparatorNode(node)) {
+        rows.push({ kind: 'separator', key: getNodeKey(node), node })
+      } else {
+        pushNodeRow({ kind: 'node', key: getNodeKey(node), node })
+      }
+    }
+
+    const nodeRows = rows.filter(
+      (r): r is Extract<VirtualizedContentRow, { kind: 'node' }> =>
+        r.kind === 'node',
+    )
+    const firstNodeRow = nodeRows[0]
+    const lastNodeRow = nodeRows[nodeRows.length - 1]
+    if (firstNodeRow) {
+      firstNodeRow.positional = { ...firstNodeRow.positional, first: true }
+    }
+    if (lastNodeRow) {
+      lastNodeRow.positional = { ...lastNodeRow.positional, last: true }
+    }
 
     if (shouldShowLoadingRow) {
-      return [...nodeRows, { kind: 'loading', key: '__loading__' }]
+      rows.push({ kind: 'loading', key: '__loading__' })
+    } else if (shouldShowEmptyRow) {
+      rows.push({ kind: 'empty', key: '__empty__' })
     }
 
-    if (shouldShowEmptyRow) {
-      return [...nodeRows, { kind: 'empty', key: '__empty__' }]
-    }
-
-    return nodeRows
+    return { rows, rowIndexByItemId }
   }, [nodes, shouldShowLoadingRow, shouldShowEmptyRow])
 
   // Create stable key function
@@ -479,7 +613,13 @@ function VirtualizedListContent({
     enabled: virtualizerEnabled,
     count: virtualizedRows.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => estimateSize,
+    estimateSize: (index) => {
+      const row = virtualizedRows[index]
+      if (!row) return estimateSize
+      if (row.kind === 'group-label') return 28
+      if (row.kind === 'separator') return 9
+      return estimateSize
+    },
     getItemKey,
     overscan,
     useFlushSync: false,
@@ -525,13 +665,15 @@ function VirtualizedListContent({
       // Only scroll for keyboard navigation, not pointer (pointer scrolls naturally)
       // Also check for valid item (index >= 0) and non-null id
       if (id !== null && index >= 0 && details.reason === 'keyboard') {
+        const rowIndex = rowIndexByItemId.get(id)
+        if (rowIndex === undefined) return
         // Use queueMicrotask to avoid "flushSync" warnings from virtualizer
         queueMicrotask(() => {
-          virtualizer.scrollToIndex(index + statusRowCount, { align: 'auto' })
+          virtualizer.scrollToIndex(rowIndex, { align: 'auto' })
         })
       }
     },
-    [virtualizer, statusRowCount],
+    [virtualizer, rowIndexByItemId],
   )
 
   // Wire up onHighlightChange callback for scroll sync
@@ -566,6 +708,41 @@ function VirtualizedListContent({
           let content: React.ReactNode
 
           if (row.kind === 'node') {
+            content = renderNode(row.node)
+            if (row.radioGroup) {
+              content = (
+                <Primitive.RadioGroupValue
+                  value={row.radioGroup.value}
+                  onValueChange={row.radioGroup.onValueChange}
+                  disabled={row.radioGroup.disabled ?? false}
+                >
+                  {content}
+                </Primitive.RadioGroupValue>
+              )
+            }
+            if (row.groupId || row.positional) {
+              content = (
+                <Primitive.GroupValue
+                  groupId={row.groupId}
+                  positional={row.positional}
+                >
+                  {content}
+                </Primitive.GroupValue>
+              )
+            }
+          } else if (row.kind === 'group-label') {
+            content = (
+              <Primitive.GroupValue
+                groupId={row.groupId}
+                positional={{
+                  firstGroup: row.firstGroup,
+                  lastGroup: row.lastGroup,
+                }}
+              >
+                {row.element}
+              </Primitive.GroupValue>
+            )
+          } else if (row.kind === 'separator') {
             content = renderNode(row.node)
           } else if (row.kind === 'loading') {
             content = <Loading />
