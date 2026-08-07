@@ -5,6 +5,24 @@
  */
 export class FocusZoneRegistry {
   private zones = new Map<string, Map<string, HTMLElement>>()
+  private surfaces = new Map<string, FocusZoneSurfaceEntry>()
+
+  registerSurface(surfaceId: string, entry: FocusZoneSurfaceEntry): () => void {
+    this.surfaces.set(surfaceId, entry)
+    return () => {
+      if (this.surfaces.get(surfaceId) === entry) {
+        this.surfaces.delete(surfaceId)
+      }
+    }
+  }
+
+  getParentSurfaceId(surfaceId: string): string | null {
+    return this.surfaces.get(surfaceId)?.parentSurfaceId ?? null
+  }
+
+  closeSurface(surfaceId: string): void {
+    this.surfaces.get(surfaceId)?.close()
+  }
 
   registerZone(
     surfaceId: string,
@@ -34,4 +52,9 @@ export class FocusZoneRegistry {
       a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
     )
   }
+}
+
+interface FocusZoneSurfaceEntry {
+  parentSurfaceId: string | null
+  close: () => void
 }

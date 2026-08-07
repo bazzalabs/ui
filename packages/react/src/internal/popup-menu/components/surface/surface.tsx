@@ -390,6 +390,29 @@ export const PopupMenuSurface = React.forwardRef<
     }
   }, [depth, open, surfaceId, focusOwnerStore, isSurfaceActive])
 
+  // Register this surface's position in the tree for Tab bubbling.
+  React.useEffect(() => {
+    if (!focusZoneRegistry || !isSurfaceActive) return undefined
+    if (!popupMenuContext.explicitTabBehavior) return undefined
+    return focusZoneRegistry.registerSurface(surfaceId, {
+      parentSurfaceId: submenuContext?.parentSurfaceId ?? null,
+      close: submenuContext
+        ? () => {
+            // Suppress keyboard auto-reopen while the trigger stays
+            // highlighted (same as ArrowLeft/Escape keyboard closes).
+            submenuContext.suppressAutoOpenRef.current = true
+            submenuContext.setOpen(false)
+          }
+        : () => {},
+    })
+  }, [
+    focusZoneRegistry,
+    isSurfaceActive,
+    popupMenuContext.explicitTabBehavior,
+    surfaceId,
+    submenuContext,
+  ])
+
   // Auto-focus when becoming owner
   // Skip for Combobox where the input is outside the popup and should retain focus
   React.useEffect(() => {
@@ -508,9 +531,38 @@ export const PopupMenuSurface = React.forwardRef<
       const zoneTabbables = zoneElements.flatMap(getTabbables)
 
       if (zoneTabbables.length === 0) {
-        // No zones (or only empty zones): explicit close, as before.
-        popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
-        return
+        if (!focusZoneRegistry) {
+          popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
+          return
+        }
+        // Bubble: find the nearest ancestor surface with zone tabbables.
+        const chain: string[] = []
+        let current = surfaceId
+        for (;;) {
+          const parent = focusZoneRegistry.getParentSurfaceId(current)
+          if (!parent) {
+            // No ancestor with zones: close the whole tree (no preventDefault).
+            popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
+            return
+          }
+          chain.push(current)
+          const parentTabbables = focusZoneRegistry
+            .getZoneElements(parent)
+            .flatMap(getTabbables)
+          if (parentTabbables.length > 0) {
+            event.preventDefault()
+            for (const id of chain) {
+              focusZoneRegistry.closeSurface(id)
+            }
+            focusOwnerStore.setOwnerId(parent)
+            const targetEl = event.shiftKey
+              ? parentTabbables[parentTabbables.length - 1]
+              : parentTabbables[0]
+            targetEl?.focus()
+            return
+          }
+          current = parent
+        }
       }
 
       // Cycle: primary stop (Input, or List when no Input) → zone tabbables.
@@ -536,7 +588,14 @@ export const PopupMenuSurface = React.forwardRef<
           : stops[(currentIndex + delta + stops.length) % stops.length]
       next?.focus()
     },
-    [onKeyDown, popupMenuContext, store, focusZoneRegistry, surfaceId],
+    [
+      onKeyDown,
+      popupMenuContext,
+      store,
+      focusZoneRegistry,
+      surfaceId,
+      focusOwnerStore,
+    ],
   )
 
   // Sync DOM focus into FocusOwnerStore: focus landing inside this surface

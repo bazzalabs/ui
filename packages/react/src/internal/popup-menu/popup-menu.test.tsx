@@ -572,6 +572,70 @@ function FocusZoneEmptyMenu() {
   )
 }
 
+function FocusZoneSubmenuBubblingMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup-root">
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="input-root" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                    Submenu
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup data-testid="popup-sub">
+                        <DropdownMenu.Surface>
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item value="nested-first">
+                              Nested first
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Submenu>
+                              <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-2">
+                                Submenu 2
+                              </DropdownMenu.SubmenuTrigger>
+                              <DropdownMenu.Portal>
+                                <DropdownMenu.Positioner>
+                                  <DropdownMenu.Popup data-testid="popup-sub2">
+                                    <DropdownMenu.Surface>
+                                      <DropdownMenu.List>
+                                        <DropdownMenu.Item value="deep">
+                                          Deep
+                                        </DropdownMenu.Item>
+                                      </DropdownMenu.List>
+                                    </DropdownMenu.Surface>
+                                  </DropdownMenu.Popup>
+                                </DropdownMenu.Positioner>
+                              </DropdownMenu.Portal>
+                            </DropdownMenu.Submenu>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
+              <DropdownMenu.FocusZone>
+                <button data-testid="apply" type="button">
+                  Apply
+                </button>
+                <button data-testid="cancel" type="button">
+                  Cancel
+                </button>
+              </DropdownMenu.FocusZone>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function FocusOwnershipSyncMenu() {
   return (
     <DropdownMenu.Root>
@@ -905,6 +969,119 @@ describe('PopupMenu', () => {
       await waitFor(() =>
         expect(screen.queryByTestId('popup')).not.toBeInTheDocument(),
       )
+    })
+  })
+
+  describe('FocusZone submenu bubbling', () => {
+    it('bubbles Tab from a first-level zone-less submenu to the first zone tabbable', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneSubmenuBubblingMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('input-root')).toHaveFocus(),
+      )
+      const submenuTrigger = screen.getByTestId('submenu-trigger')
+      for (let index = 0; index < 3; index += 1) {
+        if (submenuTrigger.hasAttribute('data-highlighted')) break
+        await user.keyboard('{ArrowDown}')
+        await sleep(0)
+      }
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-sub')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      await user.tab()
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-sub')).not.toBeInTheDocument()
+        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+        expect(screen.getByTestId('apply')).toHaveFocus()
+        expect(screen.getByTestId('popup-root')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      // The submenu must STAY closed: a keyboard auto-open timer armed before
+      // ArrowRight opened the submenu fires ~150ms later and must not reopen it.
+      await sleep(200)
+      expect(screen.queryByTestId('popup-sub')).not.toBeInTheDocument()
+    })
+
+    it('bubbles Shift+Tab from a first-level zone-less submenu to the last zone tabbable', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneSubmenuBubblingMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('input-root')).toHaveFocus(),
+      )
+      const submenuTrigger = screen.getByTestId('submenu-trigger')
+      for (let index = 0; index < 3; index += 1) {
+        if (submenuTrigger.hasAttribute('data-highlighted')) break
+        await user.keyboard('{ArrowDown}')
+        await sleep(0)
+      }
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-sub')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      await user.tab({ shift: true })
+
+      await waitFor(() => expect(screen.getByTestId('cancel')).toHaveFocus())
+    })
+
+    it('bubbles Tab from a second-level zone-less submenu through the submenu chain', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneSubmenuBubblingMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() =>
+        expect(screen.getByTestId('input-root')).toHaveFocus(),
+      )
+      const submenuTrigger = screen.getByTestId('submenu-trigger')
+      for (let index = 0; index < 3; index += 1) {
+        if (submenuTrigger.hasAttribute('data-highlighted')) break
+        await user.keyboard('{ArrowDown}')
+        await sleep(0)
+      }
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-sub')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+      const submenuTrigger2 = screen.getByTestId('submenu-trigger-2')
+      for (let index = 0; index < 3; index += 1) {
+        if (submenuTrigger2.hasAttribute('data-highlighted')) break
+        await user.keyboard('{ArrowDown}')
+        await sleep(0)
+      }
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-sub2')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      await user.tab()
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-sub')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('popup-sub2')).not.toBeInTheDocument()
+        expect(screen.getByTestId('apply')).toHaveFocus()
+      })
     })
   })
 
