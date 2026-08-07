@@ -22,6 +22,15 @@ export interface ComboboxSurfaceProps
    * @default true
    */
   autoHighlightFirst?: boolean | 'selected' | string
+
+  /**
+   * Whether to clear the search query when the combobox closes.
+   * - `true`: clear immediately when the combobox closes (default)
+   * - `false`: preserve search when the combobox closes
+   * - `'after-exit'`: clear after exit animation completes
+   * @default true
+   */
+  clearSearchOnClose?: boolean | 'after-exit'
 }
 
 /**
@@ -37,6 +46,7 @@ export const ComboboxSurface = React.forwardRef<
 >(function ComboboxSurface(props, forwardedRef) {
   const {
     autoHighlightFirst: autoHighlightFirstProp,
+    clearSearchOnClose = true,
     search: searchProp,
     onSearchChange: onSearchChangeProp,
     onPointerMove: onPointerMoveProp,
@@ -120,6 +130,7 @@ export const ComboboxSurface = React.forwardRef<
     <PopupMenuSurface
       ref={forwardedRef}
       autoHighlightFirst={autoHighlightFirst}
+      clearSearchOnClose={clearSearchOnClose}
       search={search}
       onSearchChange={handleSearchChange}
       onPointerMove={handlePointerMove}
