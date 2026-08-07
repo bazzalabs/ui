@@ -257,6 +257,13 @@ describe('popup menu positional group attributes', () => {
         'data-last-group',
         '',
       )
+      expect(screen.getByTestId('label-fruits')).toHaveAttribute(
+        'data-first',
+        '',
+      )
+      expect(screen.getByTestId('label-fruits')).not.toHaveAttribute(
+        'data-last',
+      )
     })
   })
 })
@@ -441,6 +448,42 @@ describe('GroupValue positional override', () => {
     await waitFor(() => {
       expect(screen.getByTestId('override-label')).toHaveAttribute(
         'data-first-group',
+        '',
+      )
+    })
+  })
+
+  it('overrides the group label row-position attributes', async () => {
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List>
+                  <DropdownMenu.GroupValue
+                    positional={{ first: true, last: true }}
+                  >
+                    <DropdownMenu.GroupLabel data-testid="override-first-label">
+                      Group
+                    </DropdownMenu.GroupLabel>
+                  </DropdownMenu.GroupValue>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('override-first-label')).toHaveAttribute(
+        'data-first',
+        '',
+      )
+      expect(screen.getByTestId('override-first-label')).toHaveAttribute(
+        'data-last',
         '',
       )
     })
