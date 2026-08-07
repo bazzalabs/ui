@@ -18,7 +18,6 @@ export default function DropdownMenuRadio() {
             <DropdownMenu.Surface>
               <DropdownMenu.Input hideUntilActive />
               <DropdownMenu.List>
-                <DropdownMenu.Empty />
                 <DropdownMenu.RadioGroup
                   value={sortBy}
                   onValueChange={(value) => setSortBy(value)}
