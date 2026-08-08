@@ -572,6 +572,40 @@ function FocusZoneEmptyMenu() {
   )
 }
 
+function HeaderFooterMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="input" />
+              <DropdownMenu.Header data-testid="header">
+                <button data-testid="header-btn" type="button">
+                  Header action
+                </button>
+              </DropdownMenu.Header>
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                <DropdownMenu.Item value="second">Second</DropdownMenu.Item>
+              </DropdownMenu.List>
+              <DropdownMenu.Footer data-testid="footer">
+                <button data-testid="apply" type="button">
+                  Apply
+                </button>
+                <button data-testid="cancel" type="button">
+                  Cancel
+                </button>
+              </DropdownMenu.Footer>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function FocusZoneSubmenuBubblingMenu() {
   return (
     <DropdownMenu.Root>
@@ -968,6 +1002,34 @@ describe('PopupMenu', () => {
       await user.tab()
       await waitFor(() =>
         expect(screen.queryByTestId('popup')).not.toBeInTheDocument(),
+      )
+    })
+  })
+
+  describe('Header and Footer', () => {
+    it('register as focus zones and expose slot attributes', async () => {
+      const user = userEvent.setup()
+      render(<HeaderFooterMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+
+      await user.tab()
+      expect(screen.getByTestId('header-btn')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('apply')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('cancel')).toHaveFocus()
+      await user.tab()
+      expect(screen.getByTestId('input')).toHaveFocus()
+
+      expect(screen.getByTestId('header')).toHaveAttribute(
+        'bazzaui-dropdown-menu-header',
+        '',
+      )
+      expect(screen.getByTestId('footer')).toHaveAttribute(
+        'bazzaui-dropdown-menu-footer',
+        '',
       )
     })
   })

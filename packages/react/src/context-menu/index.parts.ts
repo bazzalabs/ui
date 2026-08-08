@@ -14,10 +14,12 @@ export {
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuEmpty as Empty,
   PopupMenuFocusZone as FocusZone,
+  PopupMenuFooter as Footer,
   // Structure
   PopupMenuGroup as Group,
   PopupMenuGroupLabel as GroupLabel,
   PopupMenuGroupValue as GroupValue,
+  PopupMenuHeader as Header,
   // Trigger components
   PopupMenuIcon as Icon,
   PopupMenuInput as Input,

@@ -283,6 +283,11 @@ export type {
 } from './components/focus-zone/focus-zone.js'
 export { PopupMenuFocusZone } from './components/focus-zone/focus-zone.js'
 export type {
+  PopupMenuFooterProps,
+  PopupMenuFooterState,
+} from './components/footer/footer.js'
+export { PopupMenuFooter } from './components/footer/footer.js'
+export type {
   PopupMenuGroupProps,
   PopupMenuGroupState,
 } from './components/group/group.js'
@@ -294,6 +299,11 @@ export type {
   PopupMenuGroupLabelState,
 } from './components/group-label/group-label.js'
 export { PopupMenuGroupLabel } from './components/group-label/group-label.js'
+export type {
+  PopupMenuHeaderProps,
+  PopupMenuHeaderState,
+} from './components/header/header.js'
+export { PopupMenuHeader } from './components/header/header.js'
 export type {
   PopupMenuSeparatorProps,
   PopupMenuSeparatorState,
