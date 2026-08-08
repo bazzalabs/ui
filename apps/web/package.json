@@ -108,7 +108,8 @@
     "tailwindcss": "^4.1.0",
     "ts-morph": "^27.0.0",
     "tsx": "^4.20.5",
-    "typescript": "^5",
+    "typescript": "7.0.2",
+    "typescript5": "npm:typescript@^5.9.0",
     "unified": "^11.0.5"
   },
   "overrides": {

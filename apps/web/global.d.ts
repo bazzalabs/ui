@@ -42,3 +42,6 @@ declare module '*.svg' {
   const content: import('next/image').StaticImageData
   export default content
 }
+
+// CSS-only package exports (side-effect imports); TS 7's TS2882 requires these to resolve
+declare module 'rehype-callouts/theme/github'
