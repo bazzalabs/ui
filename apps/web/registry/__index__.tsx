@@ -265,6 +265,14 @@ export const examples = {
       async: ex(
         () => import('@/registry/examples/components/dropdown-menu/async'),
       ),
+      'footer-actions': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/footer-actions'),
+      ),
+      'header-toolbar': ex(
+        () =>
+          import('@/registry/examples/components/dropdown-menu/header-toolbar'),
+      ),
 
       // Guide snippets: flat files with stable slash-namespaced public names
       'guides/your-first-menu/surface-hidden-input': ex(
