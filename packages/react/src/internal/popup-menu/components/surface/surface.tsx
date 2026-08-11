@@ -168,6 +168,7 @@ export const PopupMenuSurface = React.forwardRef<
     className,
     style,
     onKeyDown,
+    onFocus,
     onPointerDown,
     onPointerMove,
     children,
@@ -400,6 +401,17 @@ export const PopupMenuSurface = React.forwardRef<
           return
         }
 
+        // If focus is already inside this surface (e.g. ownership was claimed
+        // because focus moved here), don't yank it to the input/list.
+        // Gated: only trees with explicit Tab behavior get this semantics.
+        if (
+          popupMenuContext.explicitTabBehavior &&
+          document.activeElement &&
+          surfaceRef.current.contains(document.activeElement)
+        ) {
+          return
+        }
+
         // Find input or list within this surface
         const input = surfaceRef.current.querySelector('input')
         const list = surfaceRef.current.querySelector('[role="listbox"]')
@@ -412,7 +424,12 @@ export const PopupMenuSurface = React.forwardRef<
     }, 0)
 
     return () => clearTimeout(timeoutId)
-  }, [isSurfaceActive, isOwner, skipAutoFocus])
+  }, [
+    isSurfaceActive,
+    isOwner,
+    skipAutoFocus,
+    popupMenuContext.explicitTabBehavior,
+  ])
 
   const contextValue = React.useMemo(
     () => ({
@@ -481,6 +498,22 @@ export const PopupMenuSurface = React.forwardRef<
     [onKeyDown, popupMenuContext],
   )
 
+  // Sync DOM focus into FocusOwnerStore: focus landing inside this surface
+  // makes it the focus owner (focusin bubbles; the contains-guard filters
+  // portal re-bubbling from child surfaces, same as handlePointerMove).
+  const handleFocus = React.useCallback(
+    (event: React.FocusEvent<HTMLDivElement>) => {
+      onFocus?.(event)
+      if (!popupMenuContext.explicitTabBehavior) return
+      const target = event.target as Node
+      if (!surfaceRef.current?.contains(target)) return
+      if (focusOwnerStore.state.ownerId !== surfaceId) {
+        focusOwnerStore.setOwnerId(surfaceId)
+      }
+    },
+    [onFocus, popupMenuContext, focusOwnerStore, surfaceId],
+  )
+
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'surface')
@@ -506,6 +539,7 @@ export const PopupMenuSurface = React.forwardRef<
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
       onKeyDown: handleKeyDown,
+      onFocus: handleFocus,
       children: renderedChildren,
     },
     enabled: isSurfaceActive,
