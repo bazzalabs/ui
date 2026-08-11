@@ -20,6 +20,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
+import { useMaybeFocusZoneRegistry } from '../../contexts/focus-zone-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
@@ -39,6 +40,7 @@ import type {
   DeepSearchConfig,
 } from '../../deep-search/types.js'
 import { defaultGetQualifiedRowId } from '../../deep-search/utils.js'
+import { getTabbables } from '../../utils/tabbables.js'
 
 // Surface doesn't expose data attributes - using empty state
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
@@ -213,6 +215,8 @@ export const PopupMenuSurface = React.forwardRef<
   // This ensures Popup and Surface share the same ID for data attribute tracking
   const surfaceId =
     popupSurfaceId ?? submenuContext?.childSurfaceId ?? generatedSurfaceId
+
+  const focusZoneRegistry = useMaybeFocusZoneRegistry()
 
   // Only render/activate the surface for the currently active page.
   const isSurfaceActive = React.useMemo(() => {
@@ -412,10 +416,16 @@ export const PopupMenuSurface = React.forwardRef<
           return
         }
 
-        // Find input or list within this surface
-        const input = surfaceRef.current.querySelector('input')
+        const zoneElements = focusZoneRegistry?.getZoneElements(surfaceId) ?? []
+        // Inputs that belong to the menu itself, not to a focus zone
+        // (a zone input must not steal the open-focus from the search Input).
+        const inputs = Array.from(surfaceRef.current.querySelectorAll('input'))
+        const input = inputs.find(
+          (el) => !zoneElements.some((zone) => zone.contains(el)),
+        )
         const list = surfaceRef.current.querySelector('[role="listbox"]')
-        const focusTarget = input ?? list
+        const zoneTabbable = zoneElements.flatMap(getTabbables)[0]
+        const focusTarget = input ?? list ?? zoneTabbable
 
         if (focusTarget && focusTarget instanceof HTMLElement) {
           focusTarget.focus()
@@ -429,6 +439,8 @@ export const PopupMenuSurface = React.forwardRef<
     isOwner,
     skipAutoFocus,
     popupMenuContext.explicitTabBehavior,
+    focusZoneRegistry,
+    surfaceId,
   ])
 
   const contextValue = React.useMemo(
@@ -483,8 +495,7 @@ export const PopupMenuSurface = React.forwardRef<
   )
 
   // Explicit Tab behavior: with no focus zones, Tab closes the whole menu
-  // tree (replaces Base UI's emergent focus-out close). No preventDefault:
-  // focus continuation follows the browser default.
+  // tree (replaces Base UI's emergent focus-out close).
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       onKeyDown?.(event)
@@ -493,9 +504,39 @@ export const PopupMenuSurface = React.forwardRef<
       if (!popupMenuContext.explicitTabBehavior) return
       const target = event.target as Node
       if (!surfaceRef.current?.contains(target)) return
-      popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
+      const zoneElements = focusZoneRegistry?.getZoneElements(surfaceId) ?? []
+      const zoneTabbables = zoneElements.flatMap(getTabbables)
+
+      if (zoneTabbables.length === 0) {
+        // No zones (or only empty zones): explicit close, as before.
+        popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
+        return
+      }
+
+      // Cycle: primary stop (Input, or List when no Input) → zone tabbables.
+      // Set-dedupe: nested/overlapping zones may yield the same element twice.
+      const primaryId = store.state.hasInput
+        ? store.context.inputId
+        : store.context.listId
+      const primaryEl = primaryId ? document.getElementById(primaryId) : null
+      const stopSet = new Set<HTMLElement>()
+      if (primaryEl instanceof HTMLElement) stopSet.add(primaryEl)
+      for (const el of zoneTabbables) stopSet.add(el)
+      const stops = [...stopSet]
+
+      event.preventDefault()
+      const active = document.activeElement as HTMLElement | null
+      const currentIndex = active ? stops.indexOf(active) : -1
+      const delta = event.shiftKey ? -1 : 1
+      const next =
+        currentIndex === -1
+          ? event.shiftKey
+            ? stops[stops.length - 1]
+            : stops[0]
+          : stops[(currentIndex + delta + stops.length) % stops.length]
+      next?.focus()
     },
-    [onKeyDown, popupMenuContext],
+    [onKeyDown, popupMenuContext, store, focusZoneRegistry, surfaceId],
   )
 
   // Sync DOM focus into FocusOwnerStore: focus landing inside this surface

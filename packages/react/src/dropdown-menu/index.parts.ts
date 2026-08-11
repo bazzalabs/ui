@@ -13,6 +13,7 @@ export {
   PopupMenuCheckboxItem as CheckboxItem,
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuEmpty as Empty,
+  PopupMenuFocusZone as FocusZone,
   // Structure
   PopupMenuGroup as Group,
   PopupMenuGroupLabel as GroupLabel,
