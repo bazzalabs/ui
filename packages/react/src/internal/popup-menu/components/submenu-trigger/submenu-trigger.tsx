@@ -862,6 +862,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     } else {
       openTimerRef.current = setTimeout(() => {
         openTimerRef.current = null
+        // An armed timer survives an explicit close (opening doesn't clear it
+        // and the highlight doesn't change), so consult the latch here too.
+        if (suppressAutoOpenRef.current) return
         setOpen(true)
       }, keyboardDelay)
     }
