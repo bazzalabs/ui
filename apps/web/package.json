@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "portless run",
     "dev:app": "sh -c 'if [ -n \"$PORTLESS_URL\" ]; then NEXT_PUBLIC_APP_URL=\"$PORTLESS_URL\" exec next dev --turbopack; else exec next dev --turbopack; fi'",
-    "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/index.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
+    "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/docs-types-entry.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
     "build": "next build --turbopack",
     "type-check": "tsc --noEmit",
     "start": "next start",
@@ -17,7 +17,7 @@
     "clean": "biome clean",
     "ui:add": "bunx --bun shadcn@latest add",
     "registry:build": "shadcn build -o public/r/base",
-    "type-gen": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/index.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
+    "type-gen": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/docs-types-entry.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {

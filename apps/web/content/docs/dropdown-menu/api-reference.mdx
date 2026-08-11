@@ -160,6 +160,24 @@ A visual separator between menu items. Renders a `<div>` element with `role="sep
 <TypeTableAuto type="DropdownMenuSeparatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuSeparatorState" pkg="@bazza-ui/react" />
 
+## Header
+
+Container for tabbable content at the top of a menu surface, such as toolbars or quick actions. Registers as a focus zone: its tabbable children join the surface's Tab cycle. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuHeaderProps" pkg="@bazza-ui/react" />
+
+## Footer
+
+Container for tabbable content at the bottom of a menu surface, such as action rows. Registers as a focus zone: its tabbable children join the surface's Tab cycle. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuFooterProps" pkg="@bazza-ui/react" />
+
+## FocusZone
+
+Declares its children as tabbable popup content: they join the surface's Tab cycle instead of Tab closing the menu. A zone with no tabbable children is treated as absent. Renders a `<div>` element.
+
+<TypeTableAuto type="DropdownMenuFocusZoneProps" pkg="@bazza-ui/react" />
+
 ## Empty
 
 Displayed when no items match the current search filter. Renders a `<div>` element.
