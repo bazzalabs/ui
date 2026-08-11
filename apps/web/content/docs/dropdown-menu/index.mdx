@@ -62,6 +62,8 @@ import { DropdownMenu } from '@bazza-ui/react';
         <DropdownMenu.Arrow />
         <DropdownMenu.Surface>
           <DropdownMenu.Input />
+          {/* Tabbable header/footer content */}
+          <DropdownMenu.Header />
           <DropdownMenu.List>
             {/* Scroll up/down arrows */}
             <DropdownMenu.ScrollUpArrow />
@@ -96,6 +98,9 @@ import { DropdownMenu } from '@bazza-ui/react';
             </DropdownMenu.Submenu>
             <DropdownMenu.Empty />
           </DropdownMenu.List>
+          <DropdownMenu.Footer />
+          {/* Arbitrary tabbable content */}
+          <DropdownMenu.FocusZone />
         </DropdownMenu.Surface>
       </DropdownMenu.Popup>
     </DropdownMenu.Positioner>
@@ -310,6 +315,35 @@ that organize descendants without being selectable themselves.
 <Example name="dropdown-menu-tree-linear" />
 
 </ComponentOnly>
+
+### Tabbable content
+
+By default, pressing Tab or Shift+Tab inside an open menu closes the whole menu tree.
+
+To put interactive controls inside the popup, wrap them in the `<DropdownMenu.Header>`, `<DropdownMenu.Footer>`, or `<DropdownMenu.FocusZone>` parts. Their tabbable children join the menu's Tab cycle: Tab moves from the input (or the list, when there is no input) through the controls in DOM order and wraps around, instead of closing the menu. Shift+Tab cycles in reverse.
+
+Arrow keys never leave the list: they drive the highlight from the input or the list, and while a header or footer control has focus they are inert — the list highlight stays where it was.
+
+<ComponentOnly>
+
+<Example name="dropdown-menu-footer-actions">
+  <Example.PreviewCode>
+
+  ```tsx
+  <DropdownMenu.Footer>
+    <Button variant="ghost" size="sm">Clear</Button>
+    <Button size="sm">Apply</Button>
+  </DropdownMenu.Footer>
+  ```
+
+  </Example.PreviewCode>
+</Example>
+
+<Example name="dropdown-menu-header-toolbar" />
+
+</ComponentOnly>
+
+In nested menus, pressing Tab inside a submenu that has no tabbable content closes the submenu chain and moves focus to the nearest ancestor surface that has some. `Header` and `Footer` are thin conveniences over `FocusZone` — reach for `FocusZone` directly for arbitrary tabbable regions.
 
 ## API Reference
 
