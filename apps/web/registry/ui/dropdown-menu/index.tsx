@@ -128,6 +128,10 @@ const listVariants = cva([
 
 const surfaceVariants = cva('divide-y')
 
+const headerVariants = cva(['flex items-center gap-2', 'px-2 py-2'])
+
+const footerVariants = cva(['flex items-center justify-end gap-2', 'px-2 py-2'])
+
 const subpageBackVariants = cva([
   'inline-flex items-center gap-1.5',
   'rounded-md px-2 py-1 text-xs font-medium',
@@ -1076,6 +1080,30 @@ const GroupLabel = forwardRef<
 ))
 GroupLabel.displayName = 'DropdownMenu.GroupLabel'
 
+const Header = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Header>
+>(({ className, ...props }, ref) => (
+  <Primitive.Header
+    ref={ref}
+    className={cn(headerVariants(), className)}
+    {...props}
+  />
+))
+Header.displayName = 'DropdownMenu.Header'
+
+const Footer = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Footer>
+>(({ className, ...props }, ref) => (
+  <Primitive.Footer
+    ref={ref}
+    className={cn(footerVariants(), className)}
+    {...props}
+  />
+))
+Footer.displayName = 'DropdownMenu.Footer'
+
 function Submenu({
   onOpenChange,
   ...props
@@ -1247,6 +1275,8 @@ const Arrow = Primitive.Arrow
 
 const Backdrop = Primitive.Backdrop
 
+const FocusZone = Primitive.FocusZone
+
 const Shortcut = forwardRef<
   HTMLSpanElement,
   React.ComponentProps<typeof Primitive.Shortcut>
@@ -1306,6 +1336,9 @@ export const DropdownMenu = {
   Separator,
   Group,
   GroupLabel,
+  Header,
+  Footer,
+  FocusZone,
   Submenu,
   SubmenuTrigger,
   SubmenuTriggerIndicator,
