@@ -57,6 +57,12 @@ export interface PopupMenuContextValue {
   depth: number
   /** Close the entire menu tree (deepest submenu to root, sequentially) */
   closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
+  /**
+   * Internal: when true, Surface handles Tab explicitly (close the tree, or
+   * cycle through focus zones). Enabled only by DropdownMenu.Root and
+   * ContextMenu.Root — never Select or Combobox.
+   */
+  explicitTabBehavior: boolean
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,

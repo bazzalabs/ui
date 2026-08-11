@@ -251,6 +251,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       disabled={menuDisabled}
       depth={0}
       closeAll={closeAll}
+      explicitTabBehavior
       registerSurface={registerSurface}
       virtualization={virtualization}
       menuType="dropdown"

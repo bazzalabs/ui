@@ -44,6 +44,12 @@ export interface PopupMenuProvidersProps {
   depth: number
   /** Close the entire menu tree */
   closeAll: () => void
+  /**
+   * Internal: when true, Surface handles Tab explicitly (close the tree, or
+   * cycle through focus zones). Enabled only by DropdownMenu.Root and
+   * ContextMenu.Root — never Select or Combobox.
+   */
+  explicitTabBehavior?: boolean
   /** Register a surface for closeAll tracking */
   registerSurface: (
     depth: number,
@@ -103,6 +109,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     disabled,
     depth,
     closeAll,
+    explicitTabBehavior = false,
     registerSurface,
     virtualization,
     debug,
@@ -121,6 +128,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       disabled,
       depth,
       closeAll,
+      explicitTabBehavior,
       registerSurface,
       virtualization,
       virtualAnchor,
@@ -133,6 +141,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       disabled,
       depth,
       closeAll,
+      explicitTabBehavior,
       registerSurface,
       virtualization,
       virtualAnchor,

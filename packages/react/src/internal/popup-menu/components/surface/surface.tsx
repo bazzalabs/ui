@@ -3,6 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
+import { REASONS } from '../../../../utils/events/index.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import {
   defaultFilter,
@@ -166,6 +167,7 @@ export const PopupMenuSurface = React.forwardRef<
     render,
     className,
     style,
+    onKeyDown,
     onPointerDown,
     onPointerMove,
     children,
@@ -463,6 +465,22 @@ export const PopupMenuSurface = React.forwardRef<
     [onPointerMove, surfaceId, focusOwnerStore],
   )
 
+  // Explicit Tab behavior: with no focus zones, Tab closes the whole menu
+  // tree (replaces Base UI's emergent focus-out close). No preventDefault:
+  // focus continuation follows the browser default.
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      onKeyDown?.(event)
+      if (event.defaultPrevented) return
+      if (event.key !== 'Tab') return
+      if (!popupMenuContext.explicitTabBehavior) return
+      const target = event.target as Node
+      if (!surfaceRef.current?.contains(target)) return
+      popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
+    },
+    [onKeyDown, popupMenuContext],
+  )
+
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'surface')
@@ -487,6 +505,7 @@ export const PopupMenuSurface = React.forwardRef<
       style,
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
+      onKeyDown: handleKeyDown,
       children: renderedChildren,
     },
     enabled: isSurfaceActive,

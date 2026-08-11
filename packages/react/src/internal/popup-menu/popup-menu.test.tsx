@@ -429,6 +429,47 @@ function MenuWithHideUntilActive() {
   )
 }
 
+function ExplicitTabMenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup data-testid="popup-root">
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="input" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="first" value="first">
+                  First
+                </DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger>
+                    Submenu
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup data-testid="popup-sub">
+                        <DropdownMenu.Surface>
+                          <DropdownMenu.Input data-testid="input-sub" />
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item value="nested">
+                              Nested
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 /**
  * A nested menu for testing data attributes on Popup components.
  */
@@ -581,6 +622,68 @@ function sleep(ms: number): Promise<void> {
 // ============================================================================
 
 describe('PopupMenu', () => {
+  describe('explicit Tab behavior', () => {
+    it('Tab closes the menu', async () => {
+      const user = userEvent.setup()
+      render(<ExplicitTabMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+
+      await user.tab()
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+    })
+
+    it('Shift+Tab closes the menu', async () => {
+      const user = userEvent.setup()
+      render(<ExplicitTabMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+
+      await user.tab({ shift: true }).catch(() => undefined)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+    })
+
+    it('Tab inside a submenu closes the entire tree', async () => {
+      const user = userEvent.setup()
+      render(<ExplicitTabMenu />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+
+      const submenuTrigger = screen.getByRole('menuitem', { name: 'Submenu' })
+      for (let index = 0; index < 3; index += 1) {
+        if (submenuTrigger.hasAttribute('data-highlighted')) break
+        await user.keyboard('{ArrowDown}')
+        await sleep(0)
+      }
+      await waitFor(() => {
+        expect(submenuTrigger).toHaveAttribute('data-highlighted')
+      })
+
+      await user.keyboard('{ArrowRight}')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-sub')).toBeInTheDocument()
+        expect(screen.getByTestId('input-sub')).toHaveFocus()
+      })
+
+      await user.tab()
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('popup-sub')).not.toBeInTheDocument()
+      })
+    })
+  })
+
   describe('data-focused attribute', () => {
     it('root popup has data-focused when menu opens', async () => {
       const user = userEvent.setup()
