@@ -88,6 +88,16 @@ const kbdKeyVariants = cva([
   'rounded-md bg-transparent border px-1 font-medium leading-none text-muted-foreground',
 ])
 
+const headerVariants = cva([
+  'flex items-center justify-between border-b px-4 py-2',
+  'text-xs font-medium text-muted-foreground',
+])
+
+const footerVariants = cva([
+  'flex items-center justify-end gap-2 border-t px-4 py-2',
+  'text-xs font-medium text-muted-foreground',
+])
+
 const Root = Primitive.Root
 
 const Trigger = Primitive.Trigger
@@ -234,14 +244,25 @@ const Header = forwardRef<
 >(({ className, ...props }, ref) => (
   <Primitive.Header
     ref={ref}
-    className={cn(
-      'flex items-center justify-between border-b px-4 py-2 text-xs font-medium text-muted-foreground',
-      className,
-    )}
+    className={cn(headerVariants(), className)}
     {...props}
   />
 ))
 Header.displayName = 'CommandMenu.Header'
+
+const Footer = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.Footer>
+>(({ className, ...props }, ref) => (
+  <Primitive.Footer
+    ref={ref}
+    className={cn(footerVariants(), className)}
+    {...props}
+  />
+))
+Footer.displayName = 'CommandMenu.Footer'
+
+const FocusZone = Primitive.FocusZone
 
 const Input = forwardRef<
   HTMLInputElement,
@@ -575,6 +596,8 @@ export const CommandMenu = {
   Backdrop,
   Popup,
   Header,
+  Footer,
+  FocusZone,
   Input,
   List,
   Item,
