@@ -14,10 +14,19 @@ export type {
   PopupMenuCheckboxItemState as CommandMenuCheckboxItemState,
   PopupMenuEmptyProps as CommandMenuEmptyProps,
   PopupMenuEmptyState as CommandMenuEmptyState,
+  PopupMenuFocusZone as CommandMenuFocusZone,
+  PopupMenuFocusZoneProps as CommandMenuFocusZoneProps,
+  PopupMenuFocusZoneState as CommandMenuFocusZoneState,
+  PopupMenuFooter as CommandMenuFooter,
+  PopupMenuFooterProps as CommandMenuFooterProps,
+  PopupMenuFooterState as CommandMenuFooterState,
   PopupMenuGroupLabelProps as CommandMenuGroupLabelProps,
   PopupMenuGroupLabelState as CommandMenuGroupLabelState,
   PopupMenuGroupProps as CommandMenuGroupProps,
   PopupMenuGroupState as CommandMenuGroupState,
+  PopupMenuHeader as CommandMenuHeader,
+  PopupMenuHeaderProps as CommandMenuHeaderProps,
+  PopupMenuHeaderState as CommandMenuHeaderState,
   PopupMenuIconProps as CommandMenuIconProps,
   PopupMenuIconState as CommandMenuIconState,
   PopupMenuItemProps as CommandMenuItemProps,
@@ -128,10 +137,6 @@ export type {
   CommandMenuBackdropProps,
   CommandMenuBackdropState,
 } from './backdrop/backdrop.js'
-export type {
-  CommandMenuHeaderProps,
-  CommandMenuHeaderState,
-} from './header/header.js'
 export * as CommandMenu from './index.parts.js'
 export type {
   CommandMenuInputProps,
