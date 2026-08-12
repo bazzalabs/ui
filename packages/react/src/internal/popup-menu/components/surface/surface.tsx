@@ -432,6 +432,14 @@ export const PopupMenuSurface = React.forwardRef<
 
   // Auto-focus when becoming owner
   // Skip for Combobox where the input is outside the popup and should retain focus
+  const hasAutoFocusedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (!isSurfaceActive || !open) {
+      hasAutoFocusedRef.current = false
+    }
+  }, [isSurfaceActive, open])
+
   React.useEffect(() => {
     if (!isSurfaceActive || !isOwner || skipAutoFocus) {
       return
@@ -445,18 +453,29 @@ export const PopupMenuSurface = React.forwardRef<
           return
         }
 
+        const zoneElements = focusZoneRegistry?.getZoneElements(surfaceId) ?? []
+        const isInitialAutoFocus = !hasAutoFocusedRef.current
+        hasAutoFocusedRef.current = true
+        const activeElementInZone = zoneElements.some(
+          (zone) =>
+            document.activeElement !== null &&
+            zone.contains(document.activeElement),
+        )
+
         // If focus is already inside this surface (e.g. ownership was claimed
         // because focus moved here), don't yank it to the input/list.
+        // Exception: on the surface's first auto-focus after opening, focus
+        // sitting inside a focus zone is a focus-manager artifact.
         // Gated: only trees with explicit Tab behavior get this semantics.
         if (
           popupMenuContext.explicitTabBehavior &&
           document.activeElement &&
-          surfaceRef.current.contains(document.activeElement)
+          surfaceRef.current.contains(document.activeElement) &&
+          !(isInitialAutoFocus && activeElementInZone)
         ) {
           return
         }
 
-        const zoneElements = focusZoneRegistry?.getZoneElements(surfaceId) ?? []
         // Inputs that belong to the menu itself, not to a focus zone
         // (a zone input must not steal the open-focus from the search Input).
         const inputs = Array.from(surfaceRef.current.querySelectorAll('input'))
@@ -549,6 +568,10 @@ export const PopupMenuSurface = React.forwardRef<
 
       if (zoneTabbables.length === 0) {
         if (!focusZoneRegistry) {
+          if (popupMenuContext.tabWithoutZones === 'inert') {
+            event.preventDefault()
+            return
+          }
           popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
           return
         }
@@ -559,6 +582,10 @@ export const PopupMenuSurface = React.forwardRef<
           const parent = focusZoneRegistry.getParentSurfaceId(current)
           if (!parent) {
             // No ancestor with zones: close the whole tree (no preventDefault).
+            if (popupMenuContext.tabWithoutZones === 'inert') {
+              event.preventDefault()
+              return
+            }
             popupMenuContext.closeAll(REASONS.focusOut, event.nativeEvent)
             return
           }

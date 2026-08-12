@@ -63,6 +63,13 @@ export interface PopupMenuContextValue {
    * ContextMenu.Root — never Select or Combobox.
    */
   explicitTabBehavior: boolean
+  /**
+   * Internal: what Tab does under `explicitTabBehavior` when the surface (and
+   * its ancestors) have no focus-zone tabbables. `'close'` closes the whole
+   * tree (dropdown/context-menu). `'inert'` swallows the event, keeping focus
+   * where it is (command palette).
+   */
+  tabWithoutZones: 'close' | 'inert'
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,

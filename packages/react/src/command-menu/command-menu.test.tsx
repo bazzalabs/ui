@@ -547,6 +547,103 @@ describe('CommandMenu', () => {
     })
   })
 
+  describe('focus zones', () => {
+    function FocusZoneFixture({
+      includeHeader = true,
+      includeFooter = false,
+      headerButton = true,
+    }: {
+      includeHeader?: boolean
+      includeFooter?: boolean
+      headerButton?: boolean
+    }) {
+      return (
+        <CommandMenu.Root defaultOpen>
+          <CommandMenu.Portal>
+            <CommandMenu.Popup data-testid="focus-zone-popup">
+              <CommandMenu.Surface data-testid="focus-zone-surface">
+                {includeHeader ? (
+                  <CommandMenu.Header data-testid="focus-zone-header">
+                    {headerButton ? (
+                      <button data-testid="header-button" type="button">
+                        Header action
+                      </button>
+                    ) : null}
+                  </CommandMenu.Header>
+                ) : null}
+                <CommandMenu.Input data-testid="focus-zone-input" />
+                <CommandMenu.List />
+                {includeFooter ? (
+                  <CommandMenu.Footer data-testid="focus-zone-footer">
+                    <button data-testid="footer-button-1" type="button">
+                      Footer one
+                    </button>
+                    <button data-testid="footer-button-2" type="button">
+                      Footer two
+                    </button>
+                  </CommandMenu.Footer>
+                ) : null}
+              </CommandMenu.Surface>
+            </CommandMenu.Popup>
+          </CommandMenu.Portal>
+        </CommandMenu.Root>
+      )
+    }
+
+    it('cycles from the input through header tabbables and back, in both directions', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneFixture />)
+
+      await waitFor(() =>
+        expect(screen.getByTestId('focus-zone-input')).toHaveFocus(),
+      )
+      await user.keyboard('{Tab}')
+      expect(screen.getByTestId('header-button')).toHaveFocus()
+      await user.keyboard('{Tab}')
+      expect(screen.getByTestId('focus-zone-input')).toHaveFocus()
+      await user.keyboard('{Shift>}{Tab}{/Shift}')
+      expect(screen.getByTestId('header-button')).toHaveFocus()
+    })
+
+    it('cycles through footer tabbables in DOM order', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneFixture includeFooter />)
+
+      await waitFor(() =>
+        expect(screen.getByTestId('focus-zone-input')).toHaveFocus(),
+      )
+      await user.keyboard('{Tab}')
+      await user.keyboard('{Tab}')
+      expect(screen.getByTestId('footer-button-1')).toHaveFocus()
+      await user.keyboard('{Tab}')
+      expect(screen.getByTestId('footer-button-2')).toHaveFocus()
+      await user.keyboard('{Tab}')
+      expect(screen.getByTestId('focus-zone-input')).toHaveFocus()
+    })
+
+    it('keeps focus and stays open when there are no zone tabbables', async () => {
+      const user = userEvent.setup()
+      render(<FocusZoneFixture headerButton={false} />)
+
+      const input = screen.getByTestId('focus-zone-input')
+      await waitFor(() => expect(input).toHaveFocus())
+      await user.keyboard('{Tab}')
+      expect(input).toHaveFocus()
+      expect(screen.getByTestId('focus-zone-surface')).toBeInTheDocument()
+    })
+
+    it('marks the header and footer as command-menu focus zones', () => {
+      render(<FocusZoneFixture includeFooter />)
+
+      expect(screen.getByTestId('focus-zone-header')).toHaveAttribute(
+        'bazzaui-command-menu-header',
+      )
+      expect(screen.getByTestId('focus-zone-footer')).toHaveAttribute(
+        'bazzaui-command-menu-footer',
+      )
+    })
+  })
+
   describe('Kbd integration', () => {
     it('renders Ctrl and K keys inside an item shortcut', async () => {
       renderCommandMenu({ rootProps: { defaultOpen: true } })

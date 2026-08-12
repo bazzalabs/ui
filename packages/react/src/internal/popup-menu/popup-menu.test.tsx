@@ -606,6 +606,35 @@ function HeaderFooterMenu() {
   )
 }
 
+function PreFocusedHeaderMenu() {
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.Header>
+                <button
+                  data-testid="prefocused-header-btn"
+                  type="button"
+                  // biome-ignore lint/a11y/noAutofocus: simulates a dialog-style focus manager focusing the first tabbable at open
+                  autoFocus
+                >
+                  Header action
+                </button>
+              </DropdownMenu.Header>
+              <DropdownMenu.Input data-testid="prefocused-input" />
+              <DropdownMenu.List>
+                <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function FocusZoneSubmenuBubblingMenu() {
   return (
     <DropdownMenu.Root>
@@ -1031,6 +1060,17 @@ describe('PopupMenu', () => {
         'bazzaui-dropdown-menu-footer',
         '',
       )
+    })
+
+    it('prefers the surface input over a pre-focused header zone tabbable', async () => {
+      const user = userEvent.setup()
+      render(<PreFocusedHeaderMenu />)
+
+      await waitFor(() =>
+        expect(screen.getByTestId('prefocused-input')).toHaveFocus(),
+      )
+      await user.tab()
+      expect(screen.getByTestId('prefocused-header-btn')).toHaveFocus()
     })
   })
 
