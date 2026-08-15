@@ -558,4 +558,103 @@ describe('CommandMenu', () => {
       expect(within(shortcut).getByText('K')).toBeInTheDocument()
     })
   })
+
+  describe('Backdrop', () => {
+    function BackdropFixture({
+      onBackdropPointerDown,
+    }: {
+      onBackdropPointerDown?: (
+        event: React.PointerEvent<HTMLDivElement>,
+      ) => void
+    }) {
+      return (
+        <CommandMenu.Root defaultOpen>
+          <CommandMenu.Portal>
+            <CommandMenu.Backdrop
+              data-testid="backdrop"
+              onPointerDown={onBackdropPointerDown}
+            />
+            <CommandMenu.Popup data-testid="dialog">
+              <CommandMenu.Surface>
+                <CommandMenu.Input data-testid="backdrop-input" />
+                <CommandMenu.List>
+                  <CommandMenu.Item id="one" onSelect={() => {}}>
+                    One
+                  </CommandMenu.Item>
+                </CommandMenu.List>
+              </CommandMenu.Surface>
+            </CommandMenu.Popup>
+          </CommandMenu.Portal>
+        </CommandMenu.Root>
+      )
+    }
+
+    it('closes the dialog on backdrop pointerdown', async () => {
+      render(<BackdropFixture />)
+
+      await waitFor(() =>
+        expect(screen.getByTestId('backdrop-input')).toHaveFocus(),
+      )
+
+      fireEvent.pointerDown(screen.getByTestId('backdrop'))
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('dialog')).not.toBeInTheDocument(),
+      )
+    })
+
+    it('notifies onOpenChange exactly once for a full click on the backdrop', async () => {
+      const onOpenChange = vi.fn()
+      render(
+        <CommandMenu.Root defaultOpen onOpenChange={onOpenChange}>
+          <CommandMenu.Portal>
+            <CommandMenu.Backdrop data-testid="backdrop" />
+            <CommandMenu.Popup data-testid="dialog">
+              <CommandMenu.Surface>
+                <CommandMenu.Input data-testid="backdrop-input" />
+                <CommandMenu.List>
+                  <CommandMenu.Item id="one" onSelect={() => {}}>
+                    One
+                  </CommandMenu.Item>
+                </CommandMenu.List>
+              </CommandMenu.Surface>
+            </CommandMenu.Popup>
+          </CommandMenu.Portal>
+        </CommandMenu.Root>,
+      )
+
+      await waitFor(() =>
+        expect(screen.getByTestId('backdrop-input')).toHaveFocus(),
+      )
+
+      const backdrop = screen.getByTestId('backdrop')
+      fireEvent.pointerDown(backdrop)
+      fireEvent.pointerUp(backdrop)
+      fireEvent.click(backdrop)
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('dialog')).not.toBeInTheDocument(),
+      )
+      expect(onOpenChange).toHaveBeenCalledTimes(1)
+      expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything())
+    })
+
+    it('stays open when the consumer prevents default on pointerdown', async () => {
+      render(
+        <BackdropFixture
+          onBackdropPointerDown={(event) => event.preventDefault()}
+        />,
+      )
+
+      await waitFor(() =>
+        expect(screen.getByTestId('backdrop-input')).toHaveFocus(),
+      )
+
+      fireEvent.pointerDown(screen.getByTestId('backdrop'))
+
+      // Give any close a chance to propagate, then assert it did not.
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(screen.getByTestId('dialog')).toBeInTheDocument()
+    })
+  })
 })
