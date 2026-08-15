@@ -45,6 +45,12 @@ export interface PopupMenuInputProps
    * @default false
    */
   hideUntilActive?: boolean
+
+  /**
+   * When true, Backspace in an empty subpage input navigates back one page.
+   * @default false
+   */
+  backspaceGoesBack?: boolean
 }
 
 /**
@@ -60,6 +66,7 @@ export const PopupMenuInput = React.forwardRef<
     value: controlledValue,
     onValueChange,
     hideUntilActive = false,
+    backspaceGoesBack = false,
     disabled: disabledProp = false,
     render,
     className,
@@ -166,6 +173,39 @@ export const PopupMenuInput = React.forwardRef<
     closeAll,
   })
 
+  const handleKeyDownWithBack = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (
+        backspaceGoesBack &&
+        event.key === 'Backspace' &&
+        !event.repeat &&
+        // Never navigate during IME composition — Backspace edits the
+        // composition buffer (mirrors the guard in useListboxKeyboard).
+        !event.nativeEvent.isComposing &&
+        event.keyCode !== 229 &&
+        displayValue === '' &&
+        subpageContext
+      ) {
+        const didGoBack = subpageContext.goBack()
+        if (didGoBack) {
+          event.preventDefault()
+          if (subpageContext.parentSurfaceId) {
+            focusOwnerStore.setOwnerId(subpageContext.parentSurfaceId)
+          }
+          return
+        }
+      }
+      handleKeyDown(event)
+    },
+    [
+      backspaceGoesBack,
+      displayValue,
+      subpageContext,
+      focusOwnerStore,
+      handleKeyDown,
+    ],
+  )
+
   const state: PopupMenuInput.State = React.useMemo(
     () => ({
       active: inputActive,
@@ -199,7 +239,7 @@ export const PopupMenuInput = React.forwardRef<
       style,
       value: displayValue,
       onChange: handleChange,
-      onKeyDown: handleKeyDown,
+      onKeyDown: handleKeyDownWithBack,
       onPointerDown: handlePointerDown,
     },
     defaultTagName: 'input',
