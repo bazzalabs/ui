@@ -12,6 +12,11 @@
       "import": "./dist/dropdown-menu/index.js",
       "require": "./dist/dropdown-menu/index.cjs"
     },
+    "./command-menu": {
+      "types": "./dist/command-menu/index.d.ts",
+      "import": "./dist/command-menu/index.js",
+      "require": "./dist/command-menu/index.cjs"
+    },
     "./kbd": {
       "types": "./dist/kbd/index.d.ts",
       "import": "./dist/kbd/index.js",
