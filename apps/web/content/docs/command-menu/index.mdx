@@ -260,6 +260,8 @@ const nodes: NodeDef[] = [
 | Single-key `shortcut` | Selects the matching item accelerator while the command menu is active. |
 | Root `hotkey` | Toggles the dialog globally, including while focus is inside `CommandMenu.Input`. |
 
+Tab cycles through Input → header/footer controls → Input. On pages without tabbable header or footer content, Tab does nothing.
+
 ## API overview
 
 | Part | Purpose |
@@ -268,7 +270,10 @@ const nodes: NodeDef[] = [
 | `CommandMenu.Trigger` | Opens the command menu from a button or custom rendered trigger. |
 | `CommandMenu.Portal`, `CommandMenu.Backdrop`, `CommandMenu.Popup` | Render the modal shell. |
 | `CommandMenu.Surface` | Provides search, highlight, selection, data-first content, and deep search context. |
-| `CommandMenu.Header`, `CommandMenu.Input`, `CommandMenu.List` | Compose the visible palette layout. |
+| `CommandMenu.Header` | Composes the visible palette header; its tabbable children join the Tab cycle. |
+| `CommandMenu.Footer` | Container for tabbable actions at the bottom of a surface; its children join the Tab cycle. |
+| `CommandMenu.FocusZone` | Generic focus-zone container for tabbable content anywhere in a surface. |
+| `CommandMenu.Input`, `CommandMenu.List` | Compose the visible palette layout. |
 | `CommandMenu.Item`, `CommandMenu.CheckboxItem` | Render selectable rows and persistent toggle rows. |
 | `CommandMenu.Group`, `CommandMenu.GroupLabel`, `CommandMenu.Separator` | Organize rows. |
 | `CommandMenu.Empty`, `CommandMenu.Loading` | Render search and async states. |
