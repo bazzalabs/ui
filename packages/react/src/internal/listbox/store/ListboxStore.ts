@@ -382,6 +382,34 @@ const selectors = {
   }),
 }
 
+interface DomOrderEntry {
+  id: string
+  element: HTMLElement | null
+  index: number
+}
+
+/**
+ * Orders items by DOM position, falling back to relative registration order
+ * when either element is unmounted/disconnected (a deterministic fallback —
+ * returning 0 would make the comparator inconsistent when null and connected
+ * elements are mixed, leaving placement implementation-defined).
+ */
+function compareByDomOrder(a: DomOrderEntry, b: DomOrderEntry): number {
+  if (
+    a.element === null ||
+    b.element === null ||
+    !a.element.isConnected ||
+    !b.element.isConnected
+  ) {
+    return a.index - b.index
+  }
+
+  return a.element.compareDocumentPosition(b.element) &
+    Node.DOCUMENT_POSITION_FOLLOWING
+    ? -1
+    : 1
+}
+
 const defaultSearchNormalizer: SearchNormalizer = (search) => {
   return normalizeValue(search)
 }
@@ -1486,14 +1514,30 @@ export class ListboxStore extends ReactStore<
       return result
     }
 
-    // Non-virtualized: use mounted items order
+    // Non-virtualized: sort mounted items by DOM order. Registration order
+    // (Map insertion) drifts when a subset remounts (Fast Refresh effects,
+    // Suspense retries, key changes), which made keyboard navigation jump.
+    const visibleItems: DomOrderEntry[] = []
+
+    let registrationIndex = 0
     this.context.items.forEach((registration, id) => {
+      const index = registrationIndex++
       const score = filteredItems.get(id) ?? 0
       const isVisible = search.length === 0 || score > 0
       if (isVisible && !registration.disabled) {
-        result.push(id)
+        visibleItems.push({
+          id,
+          element: this.context.refs.itemRefs.get(id)?.current ?? null,
+          index,
+        })
       }
     })
+
+    visibleItems.sort(compareByDomOrder)
+
+    for (const { id } of visibleItems) {
+      result.push(id)
+    }
 
     return result
   }
@@ -1614,15 +1658,27 @@ export class ListboxStore extends ReactStore<
         }
       }
     } else {
-      // Non-virtualized mode: use mounted items
+      // Non-virtualized mode: first valid item in DOM order — must agree with
+      // getVisibleItemIds(), which also sorts by DOM order (registration order
+      // drifts when a subset of items remounts).
+      let first: DomOrderEntry | null = null
+      let registrationIndex = 0
       for (const [id, registration] of this.context.items) {
+        const index = registrationIndex++
         const score = filteredItems.get(id) ?? 0
         const isVisible = effectiveSearch.length === 0 || score > 0
         if (isVisible && !registration.disabled) {
-          newHighlightId = id
-          break
+          const candidate: DomOrderEntry = {
+            id,
+            element: this.context.refs.itemRefs.get(id)?.current ?? null,
+            index,
+          }
+          if (first === null || compareByDomOrder(candidate, first) < 0) {
+            first = candidate
+          }
         }
       }
+      newHighlightId = first?.id ?? null
     }
 
     // Only update if highlight actually changed

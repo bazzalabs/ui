@@ -3376,4 +3376,109 @@ describe('PopupMenu', () => {
       expect(screen.getByTestId('child-b')).toBeInTheDocument()
     })
   })
+
+  describe('navigation order after partial remounts', () => {
+    function RemountFixture({
+      remountSecond,
+      remountFirst = false,
+    }: {
+      remountSecond: boolean
+      remountFirst?: boolean
+    }) {
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.Input data-testid="order-input" />
+                  <DropdownMenu.List>
+                    <DropdownMenu.Item
+                      key={remountFirst ? 'one-b' : 'one-a'}
+                      id="one"
+                      onSelect={() => {}}
+                    >
+                      One
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      key={remountSecond ? 'two-b' : 'two-a'}
+                      id="two"
+                      onSelect={() => {}}
+                    >
+                      Two
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item id="three" onSelect={() => {}}>
+                      Three
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item id="four" onSelect={() => {}}>
+                      Four
+                    </DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    it('keeps DOM order after one item remounts while open', async () => {
+      // Registration order (Map insertion) drifts from DOM order when a
+      // subset of items remounts (Fast Refresh re-running effects, Suspense
+      // retries, key changes). Navigation must follow DOM order regardless.
+      const user = userEvent.setup()
+      const { rerender } = render(<RemountFixture remountSecond={false} />)
+
+      await waitFor(() =>
+        expect(screen.getByTestId('order-input')).toHaveFocus(),
+      )
+
+      // Simulate a partial remount: item "Two" changes identity and
+      // re-registers with the store while the menu stays open.
+      rerender(<RemountFixture remountSecond />)
+
+      // "One" is auto-highlighted on open; navigation starts from it.
+      await waitFor(() =>
+        expect(document.querySelector('[data-highlighted]')?.textContent).toBe(
+          'One',
+        ),
+      )
+
+      const order: (string | null | undefined)[] = []
+      for (let i = 0; i < 3; i++) {
+        await user.keyboard('{ArrowDown}')
+        order.push(document.querySelector('[data-highlighted]')?.textContent)
+      }
+
+      expect(order).toEqual(['Two', 'Three', 'Four'])
+    })
+
+    it('auto-highlights the DOM-first match after the first item remounts', async () => {
+      // validateHighlight picks the auto-highlight target on refilter. It must
+      // agree with the DOM-ordered navigation, not registration order.
+      const user = userEvent.setup()
+      const { rerender } = render(<RemountFixture remountSecond={false} />)
+
+      await waitFor(() =>
+        expect(screen.getByTestId('order-input')).toHaveFocus(),
+      )
+
+      // Remount the visually-first item so registration order becomes
+      // Two, Three, Four, One while DOM order stays One, Two, Three, Four.
+      rerender(<RemountFixture remountSecond={false} remountFirst />)
+
+      // "o" matches One, Two, and Four — auto-highlight must pick the
+      // DOM-first match ("One"), not the registration-first one ("Two").
+      await user.type(screen.getByTestId('order-input'), 'o')
+
+      await waitFor(() =>
+        expect(document.querySelector('[data-highlighted]')?.textContent).toBe(
+          'One',
+        ),
+      )
+    })
+  })
 })
