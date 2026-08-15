@@ -2,9 +2,16 @@
 
 import {
   ArchiveIcon,
-  FilePlusIcon,
-  FolderOpenIcon,
-  SettingsIcon,
+  BoxIcon,
+  CircleIcon,
+  ClockIcon,
+  FileIcon,
+  GitPullRequestIcon,
+  GoalIcon,
+  LayersIcon,
+  PlusIcon,
+  TagIcon,
+  UsersRoundIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -12,72 +19,148 @@ import { Button } from '@/components/ui/button'
 import { CommandMenu } from '@/registry/ui/command-menu'
 
 export default function CommandMenuBasic() {
-  const [showArchived, setShowArchived] = useState(false)
-
   return (
     <CommandMenu.Root hotkey="mod+k">
       <CommandMenu.Trigger render={<Button variant="outline" />}>
-        Open command menu
-        <CommandMenu.Kbd keys="mod+k" />
+        Open
       </CommandMenu.Trigger>
       <CommandMenu.Portal>
         <CommandMenu.Backdrop />
         <CommandMenu.Popup>
           <CommandMenu.Surface>
-            <CommandMenu.Header>Quick actions</CommandMenu.Header>
             <CommandMenu.Input />
             <CommandMenu.List>
               <CommandMenu.Empty />
               <CommandMenu.Group>
-                <CommandMenu.GroupLabel>Workspace</CommandMenu.GroupLabel>
-                <CommandMenu.Item onSelect={() => toast('Created a new file')}>
+                <CommandMenu.GroupLabel>Issues</CommandMenu.GroupLabel>
+
+                <CommandMenu.Item>
                   <CommandMenu.Icon>
-                    <FilePlusIcon className="size-4" />
+                    <PlusIcon className="size-4" />
                   </CommandMenu.Icon>
-                  New file
+                  Create new issue...
                   <CommandMenu.Shortcut>
-                    <CommandMenu.Kbd keys="mod+shift+n" />
+                    <CommandMenu.Kbd keys="c p" />
                   </CommandMenu.Shortcut>
                 </CommandMenu.Item>
-                <CommandMenu.Item onSelect={() => toast('Opened recent files')}>
+
+                <CommandMenu.Item>
                   <CommandMenu.Icon>
-                    <FolderOpenIcon className="size-4" />
+                    <PlusIcon className="size-4" />
                   </CommandMenu.Icon>
-                  Open recent
+                  Create new issue in fullscreen...
                   <CommandMenu.Shortcut>
-                    <CommandMenu.Kbd keys="mod+o" />
+                    <CommandMenu.Kbd keys="v" />
+                  </CommandMenu.Shortcut>
+                </CommandMenu.Item>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <TagIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Create new label...
+                </CommandMenu.Item>
+              </CommandMenu.Group>
+
+              <CommandMenu.Group>
+                <CommandMenu.GroupLabel>Projects</CommandMenu.GroupLabel>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <BoxIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Create new project...
+                  <CommandMenu.Shortcut>
+                    <CommandMenu.Kbd keys="n p" />
                   </CommandMenu.Shortcut>
                 </CommandMenu.Item>
               </CommandMenu.Group>
-              <CommandMenu.Separator />
+
               <CommandMenu.Group>
-                <CommandMenu.GroupLabel>Preferences</CommandMenu.GroupLabel>
-                <CommandMenu.Item onSelect={() => toast('Opened settings')}>
+                <CommandMenu.GroupLabel>Documents</CommandMenu.GroupLabel>
+
+                <CommandMenu.Item>
                   <CommandMenu.Icon>
-                    <SettingsIcon className="size-4" />
+                    <FileIcon className="size-4" />
                   </CommandMenu.Icon>
-                  Settings
+                  Create new document in...
+                </CommandMenu.Item>
+              </CommandMenu.Group>
+
+              <CommandMenu.Group>
+                <CommandMenu.GroupLabel>Views</CommandMenu.GroupLabel>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <LayersIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Create view...
+                </CommandMenu.Item>
+              </CommandMenu.Group>
+
+              <CommandMenu.Group>
+                <CommandMenu.GroupLabel>Initiatives</CommandMenu.GroupLabel>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <GoalIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Create initiative...
                   <CommandMenu.Shortcut>
-                    <CommandMenu.Kbd keys="mod+shift+p" />
+                    <CommandMenu.Kbd keys="n i" />
                   </CommandMenu.Shortcut>
                 </CommandMenu.Item>
-                <CommandMenu.CheckboxItem
-                  checked={showArchived}
-                  onCheckedChange={(checked) => {
-                    setShowArchived(checked)
-                    toast(
-                      checked
-                        ? 'Showing archived items'
-                        : 'Hiding archived items',
-                    )
-                  }}
-                >
-                  <CommandMenu.CheckboxItemIndicator />
+              </CommandMenu.Group>
+
+              <CommandMenu.Group>
+                <CommandMenu.GroupLabel>Navigation</CommandMenu.GroupLabel>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <GitPullRequestIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Open pull requests...
+                  <CommandMenu.Shortcut>
+                    <CommandMenu.Kbd keys="O R" />
+                  </CommandMenu.Shortcut>
+                </CommandMenu.Item>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <ClockIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Open last viewed issue...
+                </CommandMenu.Item>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <CircleIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Open issue...
+                  <CommandMenu.Shortcut>
+                    <CommandMenu.Kbd keys="O I" />
+                  </CommandMenu.Shortcut>
+                </CommandMenu.Item>
+
+                <CommandMenu.Item>
+                  <CommandMenu.Icon>
+                    <UsersRoundIcon className="size-4" />
+                  </CommandMenu.Icon>
+                  Open team...
+                  <CommandMenu.Shortcut>
+                    <CommandMenu.Kbd keys="O T" />
+                  </CommandMenu.Shortcut>
+                </CommandMenu.Item>
+
+                <CommandMenu.Item>
                   <CommandMenu.Icon>
                     <ArchiveIcon className="size-4" />
                   </CommandMenu.Icon>
-                  Show archived
-                </CommandMenu.CheckboxItem>
+                  Open team archive...
+                  <CommandMenu.Shortcut>
+                    <CommandMenu.Kbd keys="O X" />
+                  </CommandMenu.Shortcut>
+                </CommandMenu.Item>
               </CommandMenu.Group>
             </CommandMenu.List>
           </CommandMenu.Surface>
