@@ -17,6 +17,19 @@
       ]
     },
     {
+      "name": "command-menu",
+      "title": "Command menu",
+      "type": "registry:component",
+      "dependencies": ["@bazza-ui/react", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/ui/command-menu/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/command-menu-preview.tsx"
+        }
+      ]
+    },
+    {
       "name": "filters",
       "title": "Filters",
       "description": "A powerful data table filter component inspired by Linear.",

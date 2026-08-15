@@ -333,6 +333,11 @@ export const examples = {
         { extraFiles: ['icons.tsx'] },
       ),
     },
+    'command-menu': {
+      basic: ex(
+        () => import('@/registry/examples/components/command-menu/basic'),
+      ),
+    },
   }),
 
   // Unstyled example variants live here as primitives docs pages adopt them.
