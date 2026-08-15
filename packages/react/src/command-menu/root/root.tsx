@@ -105,6 +105,8 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
       disabled={menuDisabled}
       depth={0}
       closeAll={closeAll}
+      explicitTabBehavior
+      tabWithoutZones="inert"
       registerSurface={registerSurface}
       menuType="dropdown"
       closeOnOutsidePress="pointerdown"

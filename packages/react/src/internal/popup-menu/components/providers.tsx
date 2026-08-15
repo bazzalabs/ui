@@ -52,6 +52,13 @@ export interface PopupMenuProvidersProps {
    * ContextMenu.Root — never Select or Combobox.
    */
   explicitTabBehavior?: boolean
+  /**
+   * Internal: what Tab does under `explicitTabBehavior` when the surface (and
+   * its ancestors) have no focus-zone tabbables. `'close'` closes the whole
+   * tree (dropdown/context-menu). `'inert'` swallows the event, keeping focus
+   * where it is (command palette).
+   */
+  tabWithoutZones?: 'close' | 'inert'
   /** Register a surface for closeAll tracking */
   registerSurface: (
     depth: number,
@@ -112,6 +119,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     depth,
     closeAll,
     explicitTabBehavior = false,
+    tabWithoutZones = 'close',
     registerSurface,
     virtualization,
     debug,
@@ -136,6 +144,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       depth,
       closeAll,
       explicitTabBehavior,
+      tabWithoutZones,
       registerSurface,
       virtualization,
       virtualAnchor,
@@ -149,6 +158,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       depth,
       closeAll,
       explicitTabBehavior,
+      tabWithoutZones,
       registerSurface,
       virtualization,
       virtualAnchor,
