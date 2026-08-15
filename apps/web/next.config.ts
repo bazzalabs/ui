@@ -66,6 +66,11 @@ const nextConfig: NextConfig = {
       destination: '/docs/primitives/dropdown-menu/api-reference',
       permanent: false,
     },
+    {
+      source: '/docs/command-menu',
+      destination: '/docs/components/command-menu',
+      permanent: false,
+    },
   ],
 }
 
