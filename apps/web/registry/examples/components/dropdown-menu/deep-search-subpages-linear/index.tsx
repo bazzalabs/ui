@@ -25,11 +25,17 @@ import {
   createAssigneeItemNode,
   createItemNode,
   createLabelItemNode,
+  createSelectionStore,
   createSubmenuNode,
   createSubpageNode,
   FilterIcon,
   LabelDot,
 } from './components'
+
+const projectLabelSelectionStore = createSelectionStore(
+  new Set(['pl-1', 'pl-3', 'pl-5']),
+)
+
 import {
   AssigneeIcon,
   LabelsIcon,
@@ -571,7 +577,13 @@ function buildMenuContent(params: {
     'Project labels',
     <LabelsIcon />,
     projectLabelData.map((label) =>
-      createLabelItemNode(label.id, label.name, label.color),
+      createLabelItemNode(
+        label.id,
+        label.name,
+        label.color,
+        projectLabelSelectionStore,
+        'project-label',
+      ),
     ),
     { inputPlaceholder: 'Project labels...' },
   )

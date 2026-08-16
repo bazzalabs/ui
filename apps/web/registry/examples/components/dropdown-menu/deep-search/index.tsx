@@ -2,6 +2,7 @@
 
 import type {
   BreadcrumbNode,
+  CheckboxItemDef,
   ItemDef,
   ItemRenderParams,
   NodeDef,
@@ -13,6 +14,26 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
+
+const labelSelectionListeners = new Set<() => void>()
+let selectedLabelIds = new Set(['bug', 'enhancement', 'urgent'])
+
+function subscribeToLabelSelection(listener: () => void) {
+  labelSelectionListeners.add(listener)
+  return () => labelSelectionListeners.delete(listener)
+}
+
+function getLabelSelectionSnapshot() {
+  return selectedLabelIds
+}
+
+function setLabelChecked(id: string, checked: boolean) {
+  const next = new Set(selectedLabelIds)
+  if (checked) next.add(id)
+  else next.delete(id)
+  selectedLabelIds = next
+  for (const listener of labelSelectionListeners) listener()
+}
 
 // Label color mapping
 const LABEL_COLORS: Record<string, string> = {
@@ -215,15 +236,18 @@ export default function DropdownMenuDeepSearch() {
       createItemNode(`priority-${p.id}`, p.name, undefined, [p.name]),
     )
 
-    const labelItems: ItemDef[] = labels.map((label) => ({
-      kind: 'item',
+    const labelItems: CheckboxItemDef[] = labels.map((label) => ({
+      kind: 'checkbox-item',
       id: `label-${label.id}`,
       value: label.name,
       keywords: [label.name, 'label', 'tag'],
       render: ({ props, context }: ItemRenderParams) => (
-        <DropdownMenu.Item
+        <LabelCheckboxItem
           {...props}
-          onSelect={() => toast(`Added label: ${label.name}`)}
+          labelId={label.id}
+          name={label.name}
+          color={label.color}
+          context={context}
           className={cn(
             'group/row flex items-center gap-2 text-sm select-none w-full',
             'py-1.5 px-3 relative z-[1]',
@@ -231,15 +255,7 @@ export default function DropdownMenuDeepSearch() {
             'before:absolute before:inset-x-1 before:inset-y-0 before:rounded-md before:z-[-1]',
             'data-[highlighted]:before:bg-accent',
           )}
-        >
-          <LabelDot color={label.color} />
-          <LabelWithBreadcrumbs
-            label={label.name}
-            breadcrumbs={
-              context.isDeepSearchResult ? context.breadcrumbs : undefined
-            }
-          />
-        </DropdownMenu.Item>
+        />
       ),
     }))
 
@@ -282,6 +298,45 @@ export default function DropdownMenuDeepSearch() {
         </DropdownMenu.Positioner>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+function LabelCheckboxItem({
+  labelId,
+  name,
+  color,
+  context,
+  ...props
+}: React.ComponentProps<typeof DropdownMenu.CheckboxItem> & {
+  labelId: string
+  name: string
+  color: string
+  context: ItemRenderParams['context']
+}) {
+  const checked = React.useSyncExternalStore(
+    subscribeToLabelSelection,
+    () => getLabelSelectionSnapshot().has(labelId),
+    () => getLabelSelectionSnapshot().has(labelId),
+  )
+
+  return (
+    <DropdownMenu.CheckboxItem
+      {...props}
+      checked={checked}
+      onCheckedChange={(nextChecked) => {
+        setLabelChecked(labelId, nextChecked === true)
+        toast(`${nextChecked ? 'Added' : 'Removed'} label: ${name}`)
+      }}
+    >
+      <DropdownMenu.CheckboxItemIndicator className="opacity-0 data-checked:opacity-100 data-unchecked:group-data-highlighted/row:opacity-100" />
+      <LabelDot color={color} />
+      <LabelWithBreadcrumbs
+        label={name}
+        breadcrumbs={
+          context.isDeepSearchResult ? context.breadcrumbs : undefined
+        }
+      />
+    </DropdownMenu.CheckboxItem>
   )
 }
 

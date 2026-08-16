@@ -1,6 +1,6 @@
 'use client'
 
-import type * as React from 'react'
+import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'
@@ -162,29 +162,27 @@ function AssigneeItem({ name, username }: { name: string; username: string }) {
 function LabelItem({
   name,
   color,
-  action,
+  checked,
+  onCheckedChange,
 }: {
   name: string
   color: string
-  action: 'add' | 'set-project'
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
 }) {
   return (
-    <DropdownMenu.Item
-      value={name}
+    <DropdownMenu.CheckboxItem
+      id={name}
       keywords={[name]}
-      onSelect={() =>
-        toast(
-          action === 'add'
-            ? `Added label: ${name}`
-            : `Set project label: ${name}`,
-        )
-      }
+      checked={checked}
+      onCheckedChange={(nextChecked) => onCheckedChange(nextChecked === true)}
     >
+      <DropdownMenu.CheckboxItemIndicator />
       <DropdownMenu.Icon>
         <LabelDot color={color} />
       </DropdownMenu.Icon>
       {name}
-    </DropdownMenu.Item>
+    </DropdownMenu.CheckboxItem>
   )
 }
 
@@ -218,6 +216,33 @@ function SubmenuSurface({
 }
 
 export default function DropdownMenuSubpageLinear() {
+  const [selectedLabelIds, setSelectedLabelIds] = React.useState(
+    () => new Set(['bug', 'task', 'urgent']),
+  )
+  const [selectedProjectLabelIds, setSelectedProjectLabelIds] = React.useState(
+    () => new Set(['pl-1', 'pl-3', 'pl-5']),
+  )
+
+  const toggleLabel = (
+    id: string,
+    checked: boolean,
+    project: boolean,
+    name: string,
+  ) => {
+    const setSelectedIds = project
+      ? setSelectedProjectLabelIds
+      : setSelectedLabelIds
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+    toast(
+      `${checked ? 'Added' : 'Removed'} ${project ? 'project label' : 'label'}: ${name}`,
+    )
+  }
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger render={<Button variant="outline" size="sm" />}>
@@ -305,7 +330,10 @@ export default function DropdownMenuSubpageLinear() {
                         key={label.id}
                         name={label.name}
                         color={label.color}
-                        action="add"
+                        checked={selectedLabelIds.has(label.id)}
+                        onCheckedChange={(checked) =>
+                          toggleLabel(label.id, checked, false, label.name)
+                        }
                       />
                     ))}
                   </SubmenuSurface>
@@ -404,7 +432,10 @@ export default function DropdownMenuSubpageLinear() {
                             key={label.id}
                             name={label.name}
                             color={label.color}
-                            action="set-project"
+                            checked={selectedProjectLabelIds.has(label.id)}
+                            onCheckedChange={(checked) =>
+                              toggleLabel(label.id, checked, true, label.name)
+                            }
                           />
                         ))}
                       </SubmenuSurface>

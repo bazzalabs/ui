@@ -1,6 +1,7 @@
 'use client'
 
 import type {
+  CheckboxItemDef,
   ItemDef,
   ItemRenderParams,
   NodeDef,
@@ -10,11 +11,32 @@ import type {
   SubpageDef,
   SubpageTriggerRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
-import type * as React from 'react'
+import * as React from 'react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { DropdownMenu, LabelWithBreadcrumbs } from '@/registry/ui/dropdown-menu'
+
+export function createSelectionStore(initial: Set<string>) {
+  let selectedIds = initial
+  const listeners = new Set<() => void>()
+  return {
+    subscribe(listener: () => void) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    getSnapshot: () => selectedIds,
+    set(id: string, checked: boolean) {
+      const next = new Set(selectedIds)
+      if (checked) next.add(id)
+      else next.delete(id)
+      selectedIds = next
+      for (const listener of listeners) listener()
+    },
+  }
+}
+
+export type SelectionStore = ReturnType<typeof createSelectionStore>
 
 // =============================================================================
 // Label Color Mapping
@@ -128,31 +150,75 @@ export function createItemNode(
  * Creates a label item node with a colored dot
  */
 export function createLabelItemNode(
-  _id: string,
+  labelId: string,
   name: string,
   color: string,
-): ItemDef {
+  store: SelectionStore,
+  type: 'label' | 'project-label' = 'label',
+): CheckboxItemDef {
   return {
-    kind: 'item',
+    kind: 'checkbox-item',
     value: name,
     keywords: [name],
     render: ({ props, context }: ItemRenderParams) => (
-      <DropdownMenu.Item
+      <LabelCheckboxItem
         {...props}
-        onSelect={() => toast(`Added label: ${name}`)}
-      >
-        <DropdownMenu.Icon>
-          <LabelDot color={color} />
-        </DropdownMenu.Icon>
-        <LabelWithBreadcrumbs
-          label={name}
-          breadcrumbs={
-            context.isDeepSearchResult ? context.breadcrumbs : undefined
-          }
-        />
-      </DropdownMenu.Item>
+        labelId={labelId}
+        name={name}
+        color={color}
+        context={context}
+        store={store}
+        type={type}
+      />
     ),
   }
+}
+
+function LabelCheckboxItem({
+  labelId,
+  name,
+  color,
+  context,
+  store,
+  type,
+  ...props
+}: React.ComponentProps<typeof DropdownMenu.CheckboxItem> & {
+  labelId: string
+  name: string
+  color: string
+  context: ItemRenderParams['context']
+  store: ReturnType<typeof createSelectionStore>
+  type: 'label' | 'project-label'
+}) {
+  const checked = React.useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().has(labelId),
+    () => store.getSnapshot().has(labelId),
+  )
+
+  return (
+    <DropdownMenu.CheckboxItem
+      {...props}
+      checked={checked}
+      onCheckedChange={(nextChecked) => {
+        store.set(labelId, nextChecked === true)
+        toast(
+          `${nextChecked ? 'Added' : 'Removed'} ${type === 'project-label' ? 'project label' : 'label'}: ${name}`,
+        )
+      }}
+    >
+      <DropdownMenu.CheckboxItemIndicator className="opacity-0 data-checked:opacity-100 data-unchecked:group-data-highlighted/row:opacity-100" />
+      <DropdownMenu.Icon>
+        <LabelDot color={color} />
+      </DropdownMenu.Icon>
+      <LabelWithBreadcrumbs
+        label={name}
+        breadcrumbs={
+          context.isDeepSearchResult ? context.breadcrumbs : undefined
+        }
+      />
+    </DropdownMenu.CheckboxItem>
+  )
 }
 
 /**
