@@ -155,6 +155,40 @@ function MenuWithDataContent({ content }: { content: NodeDef[] }) {
   )
 }
 
+function MenuWithNestedRows({
+  rowIdStrategy,
+}: {
+  rowIdStrategy?: 'qualified' | 'explicit' | 'hybrid'
+}) {
+  const content = React.useMemo(
+    () => [
+      createTestSubmenuDef('a', 'A', [
+        createTestSubmenuDef('b', 'B', [
+          createTestItemDef('nested-leaf', 'Nested Leaf'),
+        ]),
+      ]),
+    ],
+    [],
+  )
+
+  return (
+    <DropdownMenu.Root defaultOpen rowIdStrategy={rowIdStrategy}>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface content={content}>
+              <DropdownMenu.List>
+                <ListItems />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 // ============================================================================
 // Test Fixtures
 // ============================================================================
@@ -417,6 +451,35 @@ describe('useDataList', () => {
 })
 
 describe('List getQualifiedRowId', () => {
+  it('uses qualified ids for nested browse surfaces and preserves the legacy default', async () => {
+    const user = userEvent.setup()
+    const openNested = async () => {
+      await user.hover(screen.getByTestId('submenu-trigger-a'))
+      await waitFor(() =>
+        expect(screen.getByTestId('submenu-trigger-b')).toBeInTheDocument(),
+      )
+      await user.hover(screen.getByTestId('submenu-trigger-b'))
+      await waitFor(() =>
+        expect(screen.getByTestId('item-nested-leaf')).toBeInTheDocument(),
+      )
+    }
+
+    const { unmount } = render(<MenuWithNestedRows rowIdStrategy="qualified" />)
+    await openNested()
+    expect(screen.getByTestId('item-nested-leaf')).toHaveAttribute(
+      'id',
+      'a.b.nested-leaf',
+    )
+    unmount()
+
+    render(<MenuWithNestedRows />)
+    await openNested()
+    expect(screen.getByTestId('item-nested-leaf')).toHaveAttribute(
+      'id',
+      'Nested Leaf',
+    )
+  })
+
   describe('DOM ID verification', () => {
     it('renders items with their node.value as DOM id at root level', async () => {
       render(<MenuWithFlatItems />)
@@ -729,9 +792,11 @@ describe('List getQualifiedRowId', () => {
     function NestedSurfaceMenu({
       ancestorId,
       onContext,
+      rowIdStrategy,
     }: {
       ancestorId?: string
-      onContext: (context: GetQualifiedRowIdContext) => void
+      onContext?: (context: GetQualifiedRowIdContext) => void
+      rowIdStrategy?: 'qualified' | 'explicit' | 'hybrid'
     }) {
       const content: NodeDef[] = React.useMemo(() => {
         const leaf = createTestItemDef('leaf', 'Leaf')
@@ -792,13 +857,20 @@ describe('List getQualifiedRowId', () => {
         return [submenuA]
       }, [ancestorId])
 
+      const rootProps = onContext
+        ? {
+            getQualifiedRowId: (context: GetQualifiedRowIdContext) => {
+              onContext(context)
+              return defaultGetQualifiedRowId(context)
+            },
+          }
+        : {}
+
       return (
         <DropdownMenu.Root
           defaultOpen
-          getQualifiedRowId={(context) => {
-            onContext(context)
-            return defaultGetQualifiedRowId(context)
-          }}
+          rowIdStrategy={rowIdStrategy}
+          {...rootProps}
         >
           <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
           <DropdownMenu.Portal>
@@ -819,6 +891,31 @@ describe('List getQualifiedRowId', () => {
         </DropdownMenu.Root>
       )
     }
+
+    it('uses qualified ids for nested surfaces and preserves the legacy default', async () => {
+      const user = userEvent.setup()
+      const openNested = async () => {
+        await user.hover(screen.getByTestId('nested-trigger-a'))
+        await waitFor(() => {
+          expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument()
+        })
+        await user.hover(screen.getByTestId('nested-trigger-b'))
+        await waitFor(() => {
+          expect(screen.getByTestId('item-leaf')).toBeInTheDocument()
+        })
+      }
+
+      const { unmount } = render(
+        <NestedSurfaceMenu rowIdStrategy="qualified" />,
+      )
+      await openNested()
+      expect(screen.getByTestId('item-leaf')).toHaveAttribute('id', 'a.b.leaf')
+      unmount()
+
+      render(<NestedSurfaceMenu />)
+      await openNested()
+      expect(screen.getByTestId('item-leaf')).toHaveAttribute('id', 'leaf')
+    })
 
     it('threads display paths through nested data surfaces', async () => {
       const user = userEvent.setup()

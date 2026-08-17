@@ -3,7 +3,10 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useCallback, useImperativeHandle, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
-import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
+import type {
+  GetQualifiedRowIdFn,
+  RowIdStrategy,
+} from '../../internal/popup-menu/deep-search/types.js'
 import {
   type PopupMenuDebugOptions,
   PopupMenuProviders,
@@ -132,6 +135,9 @@ export interface DropdownMenuRootProps
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
 
+  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'hybrid'`. */
+  rowIdStrategy?: RowIdStrategy
+
   /**
    * Debug visualization options for submenu interaction heuristics.
    */
@@ -159,6 +165,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
     getQualifiedRowId,
+    rowIdStrategy,
     debug,
     children,
     ...rest
@@ -257,6 +264,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       menuType="dropdown"
       closeOnOutsidePress={closeOnOutsidePress}
       getQualifiedRowId={getQualifiedRowId}
+      rowIdStrategy={rowIdStrategy}
       debug={debug}
       componentName="dropdown-menu"
     >

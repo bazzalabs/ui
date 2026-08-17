@@ -318,6 +318,7 @@ export const PopupMenuList = React.forwardRef<
         deepSearchConfig={dataSurfaceCtx.deepSearchConfig}
         includeInDeepSearch={dataSurfaceCtx.includeInDeepSearch}
         getQualifiedRowId={dataSurfaceCtx.getQualifiedRowId}
+        isLegacyRowIdDefault={dataSurfaceCtx.isLegacyRowIdDefault}
         search={search}
         normalizedSearch={normalizedSearch}
         store={store}

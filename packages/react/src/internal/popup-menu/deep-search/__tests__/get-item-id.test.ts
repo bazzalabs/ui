@@ -8,8 +8,14 @@ import type {
   ItemDef,
   RowRenderContext,
   SubmenuDef,
+  TreeItemDef,
 } from '../types.js'
-import { defaultGetQualifiedRowId } from '../utils.js'
+import {
+  defaultGetQualifiedRowId,
+  explicitRowId,
+  qualifiedRowId,
+  rowIdStrategies,
+} from '../utils.js'
 
 // ============================================================================
 // Test Helpers
@@ -89,10 +95,23 @@ function _createDisplayRowNode(
  * Creates a BreadcrumbNode for testing.
  * Uses the value as the submenu ID if no explicit id is provided.
  */
-function createBreadcrumbNode(value: string, id?: string): BreadcrumbNode {
+function createBreadcrumbNode(
+  value: string,
+  id?: string,
+  kind: 'submenu' | 'tree-item' = 'submenu',
+): BreadcrumbNode {
   const submenuId = id ?? value.toLowerCase().replace(/\s+/g, '-')
+  const node =
+    kind === 'tree-item'
+      ? ({
+          kind,
+          id: submenuId,
+          value,
+          render: () => null,
+        } as TreeItemDef)
+      : createSubmenuDef(submenuId, value)
   return {
-    node: createSubmenuDef(submenuId, value),
+    node,
     value,
     id,
   }
@@ -477,6 +496,112 @@ describe('getOrderedItemIds behavior', () => {
       const navigableItems = ['item1', 'item2']
       expect(navigableItems.length).toBe(2)
     })
+  })
+})
+
+describe('qualifiedRowId', () => {
+  const scenarios = [
+    [
+      'root deep search backlog',
+      [],
+      [createBreadcrumbNode('Status')],
+      'status.backlog',
+    ],
+    ['nested browse backlog', ['status'], [], 'status.backlog'],
+    [
+      'recursion child',
+      [],
+      [createBreadcrumbNode('A'), createBreadcrumbNode('B')],
+      'a.b.leaf-item',
+    ],
+    ['nested deep search', ['a'], [createBreadcrumbNode('B')], 'a.b.leaf-item'],
+    [
+      'same named submenu',
+      ['status'],
+      [createBreadcrumbNode('status')],
+      'status.status.leaf-item',
+    ],
+    [
+      'tree coincidence browse backlog',
+      ['status'],
+      [createBreadcrumbNode('status', undefined, 'tree-item')],
+      'status.status.backlog',
+    ],
+    [
+      'tree coincidence deep search backlog',
+      [],
+      [
+        createBreadcrumbNode('Status'),
+        createBreadcrumbNode('status', undefined, 'tree-item'),
+      ],
+      'status.status.backlog',
+    ],
+    ['empty slug browse backlog', [], [], 'backlog'],
+    [
+      'empty slug deep search backlog',
+      [],
+      [createBreadcrumbNode('⚙️')],
+      'backlog',
+    ],
+  ] as const
+
+  it.each(scenarios)('%s', (_name, displayPath, breadcrumbs, expected) => {
+    expect(
+      qualifiedRowId(
+        createGetQualifiedRowIdContext({
+          value: _name.includes('backlog') ? 'Backlog' : 'Leaf Item',
+          displayPath,
+          breadcrumbs,
+        }),
+      ),
+    ).toBe(expected)
+  })
+
+  it('uses only the slug when there is no path or breadcrumb', () => {
+    expect(
+      qualifiedRowId(createGetQualifiedRowIdContext({ value: 'My Row' })),
+    ).toBe('my-row')
+  })
+
+  it('returns explicit ids verbatim', () => {
+    expect(
+      qualifiedRowId(
+        createGetQualifiedRowIdContext({
+          id: 'ID.With.Case',
+          value: 'Anything',
+          displayPath: ['a'],
+        }),
+      ),
+    ).toBe('ID.With.Case')
+  })
+})
+
+describe('explicitRowId and rowIdStrategies', () => {
+  it('returns explicit ids verbatim', () => {
+    expect(
+      explicitRowId(createGetQualifiedRowIdContext({ id: 'verbatim' })),
+    ).toBe('verbatim')
+  })
+
+  it('warns once and falls back to the qualified id when missing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const value = 'Unique Explicit Warning Row'
+    const ctx = createGetQualifiedRowIdContext({
+      value,
+      displayPath: ['status'],
+    })
+
+    expect(explicitRowId(ctx)).toBe('status.unique-explicit-warning-row')
+    expect(explicitRowId(ctx)).toBe('status.unique-explicit-warning-row')
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn).toHaveBeenCalledWith(
+      `[PopupMenu] rowIdStrategy "explicit" requires an explicit id, but the row with value "${value}" has none. Falling back to the qualified id.`,
+    )
+    warn.mockRestore()
+  })
+
+  it('uses the hybrid implementation as the default strategy', () => {
+    expect(rowIdStrategies.hybrid).toBe(defaultGetQualifiedRowId)
   })
 })
 

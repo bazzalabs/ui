@@ -5,7 +5,10 @@ import type {
   ListboxStore,
   VirtualItem,
 } from '../../listbox/store/ListboxStore.js'
-import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
+import type {
+  GetQualifiedRowIdFn,
+  RowIdStrategy,
+} from '../deep-search/types.js'
 import type {
   HighlightChangeEventDetails,
   PopupMenuOpenChangeReason,
@@ -102,6 +105,7 @@ export interface PopupMenuContextValue {
    * If not provided, uses the default implementation.
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
+  rowIdStrategy?: RowIdStrategy
 }
 
 const PopupMenuContext = React.createContext<PopupMenuContextValue | null>(null)

@@ -9,6 +9,7 @@ import type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   GetQualifiedRowIdContext,
+  GetQualifiedRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -18,6 +19,7 @@ import type {
   RadioGroupBehavior,
   RadioGroupDef,
   RadioItemDef,
+  RowIdStrategy,
   RowRenderContext,
   ScoredNode,
   SubmenuDef,
@@ -85,6 +87,49 @@ export function defaultGetQualifiedRowId(
   }
 
   return slugValue
+}
+
+export function qualifiedRowId(ctx: GetQualifiedRowIdContext): string {
+  if (ctx.id) {
+    return ctx.id
+  }
+  // Single source of truth for the composition rule: the id is the row's
+  // canonical definition-tree path. The leaf id is passed as `undefined`
+  // because the explicit-id short-circuit above already handled it.
+  return computeDefPath(
+    ctx.displayPath ?? [],
+    ctx.breadcrumbs,
+    undefined,
+    ctx.value,
+  ).join('.')
+}
+
+const warnedMissingExplicitIds = new Set<string>()
+
+function warnMissingExplicitId(value: string): void {
+  if (warnedMissingExplicitIds.has(value)) {
+    return
+  }
+  warnedMissingExplicitIds.add(value)
+  console.warn(
+    `[PopupMenu] rowIdStrategy "explicit" requires an explicit id, but the row with value "${value}" has none. Falling back to the qualified id.`,
+  )
+}
+
+export function explicitRowId(ctx: GetQualifiedRowIdContext): string {
+  if (ctx.id) {
+    return ctx.id
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    warnMissingExplicitId(ctx.value)
+  }
+  return qualifiedRowId(ctx)
+}
+
+export const rowIdStrategies: Record<RowIdStrategy, GetQualifiedRowIdFn> = {
+  qualified: qualifiedRowId,
+  explicit: explicitRowId,
+  hybrid: defaultGetQualifiedRowId,
 }
 
 /**
