@@ -487,6 +487,8 @@ Configuration options for deep search behavior.
 
 ### GetQualifiedRowIdFn
 
-Function type for custom ID generation. Passed to `Root` or data-first `Surface` via the `getQualifiedRowId` prop.
+Function type for custom ID generation. Passed to `Root` or data-first `Surface` via the `getQualifiedRowId` prop. When provided, this function takes precedence over `rowIdStrategy`.
+
+`rowIdStrategy` controls data-first row IDs and accepts `'qualified'`, `'explicit'`, or `'hybrid'`. It defaults to `'qualified'`, where id-less rows are identified by their full definition path (ancestor branch segments — submenus and tree items — plus their slugified value), identical in browse and deep-search contexts. Rows rendered inside subpages currently derive their ids independently of `rowIdStrategy`. `'explicit'` requires rows to declare explicit `id`s; when a row has none, it warns in development and falls back to the qualified ID. Use `'hybrid'` to restore the legacy behavior, where paths are included only during deep search.
 
 <TypeTableAuto type="GetQualifiedRowIdFn" pkg="@bazza-ui/react" />

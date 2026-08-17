@@ -120,22 +120,25 @@ export interface DropdownMenuRootProps
    *
    * Default behavior:
    * - If node.id is provided, use it as-is (treat as globally unique)
-   * - Otherwise, compute from breadcrumbs + value when deep searching
+   * - Otherwise, use the row's full definition path (`defPath`) — identical in
+   *   browse and deep-search contexts
    *
    * @example
    * ```tsx
    * <DropdownMenu.Root
    *   getQualifiedRowId={(ctx) => {
+   *     // Use explicit id if provided
    *     if (ctx.id) return ctx.id
-   *     const path = ctx.breadcrumbs.map(b => b.id ?? slugify(b.value))
-   *     return [...path, slugify(ctx.value)].join('.')
+   *
+   *     // Otherwise, use the row's canonical definition-tree path
+   *     return (ctx.defPath ?? []).join('.')
    *   }}
    * >
    * ```
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
 
-  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'hybrid'`. */
+  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`. */
   rowIdStrategy?: RowIdStrategy
 
   /**

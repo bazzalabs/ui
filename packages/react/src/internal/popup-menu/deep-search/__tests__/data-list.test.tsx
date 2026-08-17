@@ -451,7 +451,7 @@ describe('useDataList', () => {
 })
 
 describe('List getQualifiedRowId', () => {
-  it('uses qualified ids for nested browse surfaces and preserves the legacy default', async () => {
+  it('defaults to qualified ids for nested browse surfaces and hybrid restores the legacy ids', async () => {
     const user = userEvent.setup()
     const openNested = async () => {
       await user.hover(screen.getByTestId('submenu-trigger-a'))
@@ -464,7 +464,7 @@ describe('List getQualifiedRowId', () => {
       )
     }
 
-    const { unmount } = render(<MenuWithNestedRows rowIdStrategy="qualified" />)
+    const { unmount } = render(<MenuWithNestedRows />)
     await openNested()
     expect(screen.getByTestId('item-nested-leaf')).toHaveAttribute(
       'id',
@@ -472,7 +472,7 @@ describe('List getQualifiedRowId', () => {
     )
     unmount()
 
-    render(<MenuWithNestedRows />)
+    render(<MenuWithNestedRows rowIdStrategy="hybrid" />)
     await openNested()
     expect(screen.getByTestId('item-nested-leaf')).toHaveAttribute(
       'id',
@@ -892,7 +892,7 @@ describe('List getQualifiedRowId', () => {
       )
     }
 
-    it('uses qualified ids for nested surfaces and preserves the legacy default', async () => {
+    it('defaults to qualified ids for nested surfaces and hybrid restores the legacy ids', async () => {
       const user = userEvent.setup()
       const openNested = async () => {
         await user.hover(screen.getByTestId('nested-trigger-a'))
@@ -905,14 +905,12 @@ describe('List getQualifiedRowId', () => {
         })
       }
 
-      const { unmount } = render(
-        <NestedSurfaceMenu rowIdStrategy="qualified" />,
-      )
+      const { unmount } = render(<NestedSurfaceMenu />)
       await openNested()
       expect(screen.getByTestId('item-leaf')).toHaveAttribute('id', 'a.b.leaf')
       unmount()
 
-      render(<NestedSurfaceMenu />)
+      render(<NestedSurfaceMenu rowIdStrategy="hybrid" />)
       await openNested()
       expect(screen.getByTestId('item-leaf')).toHaveAttribute('id', 'leaf')
     })

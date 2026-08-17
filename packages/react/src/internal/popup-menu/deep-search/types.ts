@@ -370,7 +370,8 @@ export interface GetQualifiedRowIdContext {
  *
  * Default behavior:
  * - If node.id is provided, use it as-is (treat as globally unique)
- * - Otherwise, compute from breadcrumbs + value when deep searching
+ * - Otherwise, use the row's full definition path (`defPath`) — identical in
+ *   browse and deep-search contexts
  *
  * @example
  * ```ts
@@ -379,9 +380,8 @@ export interface GetQualifiedRowIdContext {
  *   // Use explicit id if provided
  *   if (ctx.id) return ctx.id
  *
- *   // Otherwise, build from breadcrumbs + value
- *   const path = ctx.breadcrumbs.map(b => b.id ?? slugify(b.value))
- *   return [...path, slugify(ctx.value)].join('.')
+ *   // Otherwise, use the row's canonical definition-tree path
+ *   return (ctx.defPath ?? []).join('.')
  * }
  * ```
  */
