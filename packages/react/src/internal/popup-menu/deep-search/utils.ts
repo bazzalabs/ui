@@ -88,6 +88,26 @@ export function defaultGetQualifiedRowId(
 }
 
 /**
+ * Computes a row's canonical definition-tree path (`defPath`): the display
+ * path of the computing surface, then breadcrumb segments, then the node's
+ * own segment (`id`, or its slugified `value`), root-first. Empty segments
+ * are skipped. Identical wherever the row renders — browse, deep search,
+ * or recursion.
+ */
+export function computeDefPath(
+  displayPath: string[],
+  breadcrumbs: BreadcrumbNode[],
+  id: string | undefined,
+  value: string,
+): string[] {
+  return [
+    ...displayPath,
+    ...breadcrumbs.map((b) => b.id ?? slugify(b.value)),
+    id ?? slugify(value),
+  ].filter(Boolean)
+}
+
+/**
  * Computes a deterministic page ID for a subpage node.
  *
  * Priority:
