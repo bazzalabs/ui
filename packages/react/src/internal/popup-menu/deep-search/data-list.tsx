@@ -8,6 +8,7 @@ import {
   PopupMenuListPrimitive,
   type PopupMenuListProps,
 } from '../components/list/list.js'
+import { useRowIdRegistry } from '../contexts/row-id-registry-context.js'
 import {
   type AsyncMenuState,
   useAsyncMenuCoordinator,
@@ -91,8 +92,24 @@ function computeItemIds(
   getQualifiedRowId: GetQualifiedRowIdFn,
   isDeepSearching: boolean,
   displayPath: string[],
-): void {
+): string[] {
   let index = 0
+  const computedIds: string[] = []
+  const seenIds = new Set<string>()
+  const warnedIds = new Set<string>()
+
+  const recordId = (id: string) => {
+    computedIds.push(id)
+    if (process.env.NODE_ENV !== 'production') {
+      if (seenIds.has(id) && !warnedIds.has(id)) {
+        warnedIds.add(id)
+        console.warn(
+          `[PopupMenu] Duplicate row id "${id}" computed for multiple rows in the same surface. Later rows overwrite earlier ones for highlight and keyboard navigation. Give the rows distinct explicit \`id\`s or distinct \`value\`s.`,
+        )
+      }
+      seenIds.add(id)
+    }
+  }
 
   for (const displayNode of displayNodes) {
     if (isDisplayGroupNode(displayNode)) {
@@ -116,6 +133,7 @@ function computeItemIds(
           group: item.context.group,
           radioGroup: null,
         })
+        recordId(item.compositeId)
         index++
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
@@ -139,6 +157,7 @@ function computeItemIds(
           group: null,
           radioGroup: item.radioGroup ?? null,
         })
+        recordId(item.compositeId)
         index++
       }
     } else if (isDisplaySeparatorNode(displayNode)) {
@@ -164,9 +183,12 @@ function computeItemIds(
         group: displayNode.context.group,
         radioGroup: displayNode.radioGroup ?? null,
       })
+      recordId(displayNode.compositeId)
       index++
     }
   }
+
+  return computedIds
 }
 
 /**
@@ -627,6 +649,8 @@ export const DataListInner = React.forwardRef<
   } = props
 
   const displayPath = useDisplayPath()
+  const rowIdRegistry = useRowIdRegistry()
+  const surfaceKey = React.useId()
 
   // Get coordinator for async state
   const coordinator = useAsyncMenuCoordinator()
@@ -680,7 +704,7 @@ export const DataListInner = React.forwardRef<
   } | null>(null)
 
   // Compute filtered display nodes and set composite IDs
-  const { displayNodes, isDeepSearching } = React.useMemo(() => {
+  const { displayNodes, isDeepSearching, computedIds } = React.useMemo(() => {
     const result = filterNodes({
       query: normalizedSearch,
       normalizeQuery: identityQuery,
@@ -740,7 +764,7 @@ export const DataListInner = React.forwardRef<
     }
 
     // Set composite IDs directly on the freshly created display nodes
-    computeItemIds(
+    const computedIds = computeItemIds(
       displayNodesToRender,
       getQualifiedRowId,
       result.isDeepSearching,
@@ -750,6 +774,7 @@ export const DataListInner = React.forwardRef<
     return {
       displayNodes: displayNodesToRender,
       isDeepSearching: result.isDeepSearching,
+      computedIds,
     }
   }, [
     normalizedSearch,
@@ -764,6 +789,12 @@ export const DataListInner = React.forwardRef<
     coordinator?.loaders,
     displayPath,
   ])
+
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'production' || !rowIdRegistry) return
+    rowIdRegistry.report(surfaceKey, computedIds)
+    return () => rowIdRegistry.unregister(surfaceKey)
+  }, [rowIdRegistry, surfaceKey, computedIds])
 
   // Sync orderedItems with the store when display nodes change
   // This is needed because DataSurface sets filter={false} on the underlying Surface

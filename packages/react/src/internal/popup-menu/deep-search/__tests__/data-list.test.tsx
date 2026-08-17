@@ -406,6 +406,41 @@ function MenuWithForcedSorting() {
 // ============================================================================
 
 describe('useDataList', () => {
+  it('warns for duplicate id-less values in one surface', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(
+      <MenuWithDataContent
+        content={[
+          createTestItemDef('first', 'Same'),
+          createTestItemDef('second', 'Same'),
+        ]}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PopupMenu] Duplicate row id "same" computed for multiple rows in the same surface',
+        ),
+      ),
+    )
+  })
+
+  it('does not warn for a clean menu with respect to duplicate row ids', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(<MenuWithFlatItems />)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument(),
+    )
+
+    expect(
+      warn.mock.calls.some(([message]) =>
+        String(message).startsWith('[PopupMenu] Duplicate row id'),
+      ),
+    ).toBe(false)
+  })
+
   it('lets a child component read and render nodes', async () => {
     render(<MenuWithDuplicateIds />)
 
@@ -793,13 +828,15 @@ describe('List getQualifiedRowId', () => {
       ancestorId,
       onContext,
       rowIdStrategy,
+      duplicateId,
     }: {
       ancestorId?: string
       onContext?: (context: GetQualifiedRowIdContext) => void
       rowIdStrategy?: 'qualified' | 'explicit' | 'hybrid'
+      duplicateId?: string
     }) {
       const content: NodeDef[] = React.useMemo(() => {
-        const leaf = createTestItemDef('leaf', 'Leaf')
+        const leaf = createTestItemDef('leaf', 'Leaf', { id: duplicateId })
         const submenuB: SubmenuDef = {
           kind: 'submenu',
           id: 'b',
@@ -854,8 +891,13 @@ describe('List getQualifiedRowId', () => {
             </DropdownMenu.Submenu>
           ),
         }
-        return [submenuA]
-      }, [ancestorId])
+        return [
+          ...(duplicateId
+            ? [createTestItemDef('root-duplicate', 'Root', { id: duplicateId })]
+            : []),
+          submenuA,
+        ]
+      }, [ancestorId, duplicateId])
 
       const rootProps = onContext
         ? {
@@ -891,6 +933,27 @@ describe('List getQualifiedRowId', () => {
         </DropdownMenu.Root>
       )
     }
+
+    it('warns when nested surfaces share an explicit row id', async () => {
+      const user = userEvent.setup()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      render(<NestedSurfaceMenu duplicateId="shared-row" />)
+      await user.hover(screen.getByTestId('nested-trigger-a'))
+      await waitFor(() =>
+        expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument(),
+      )
+      await user.hover(screen.getByTestId('nested-trigger-b'))
+      await waitFor(() =>
+        expect(screen.getByTestId('item-leaf')).toBeInTheDocument(),
+      )
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[PopupMenu] Duplicate row id "shared-row" is used by multiple surfaces',
+        ),
+      )
+    })
 
     it('defaults to qualified ids for nested surfaces and hybrid restores the legacy ids', async () => {
       const user = userEvent.setup()

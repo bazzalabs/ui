@@ -23,6 +23,8 @@ import {
   type PopupMenuDebugOptions,
   resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
+import { RowIdRegistryContext } from '../contexts/row-id-registry-context.js'
+import { createRowIdRegistry } from '../deep-search/row-id-registry.js'
 import type {
   GetQualifiedRowIdFn,
   RowIdStrategy,
@@ -141,6 +143,16 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     focusZoneRegistryRef.current = new FocusZoneRegistry()
   }
 
+  const rowIdRegistryRef = React.useRef<ReturnType<
+    typeof createRowIdRegistry
+  > | null>(null)
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    rowIdRegistryRef.current === null
+  ) {
+    rowIdRegistryRef.current = createRowIdRegistry()
+  }
+
   // PopupMenu context value
   const popupMenuContextValue: PopupMenuContextValue = React.useMemo(
     () => ({
@@ -203,24 +215,26 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   )
 
   return (
-    <ComponentNameContext.Provider value={componentName}>
-      <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
-        <PopupMenuContext.Provider value={popupMenuContextValue}>
-          <ListboxContextProvider.Provider value={listboxContextValue}>
-            <AimGuardProvider>
-              <FocusOwnerContext.Provider value={focusOwnerStore}>
-                <OpenChainContext.Provider value={openChainStore}>
-                  <FocusZoneRegistryContext.Provider
-                    value={focusZoneRegistryRef.current}
-                  >
-                    {children}
-                  </FocusZoneRegistryContext.Provider>
-                </OpenChainContext.Provider>
-              </FocusOwnerContext.Provider>
-            </AimGuardProvider>
-          </ListboxContextProvider.Provider>
-        </PopupMenuContext.Provider>
-      </PopupMenuDebugContext.Provider>
-    </ComponentNameContext.Provider>
+    <RowIdRegistryContext.Provider value={rowIdRegistryRef.current}>
+      <ComponentNameContext.Provider value={componentName}>
+        <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
+          <PopupMenuContext.Provider value={popupMenuContextValue}>
+            <ListboxContextProvider.Provider value={listboxContextValue}>
+              <AimGuardProvider>
+                <FocusOwnerContext.Provider value={focusOwnerStore}>
+                  <OpenChainContext.Provider value={openChainStore}>
+                    <FocusZoneRegistryContext.Provider
+                      value={focusZoneRegistryRef.current}
+                    >
+                      {children}
+                    </FocusZoneRegistryContext.Provider>
+                  </OpenChainContext.Provider>
+                </FocusOwnerContext.Provider>
+              </AimGuardProvider>
+            </ListboxContextProvider.Provider>
+          </PopupMenuContext.Provider>
+        </PopupMenuDebugContext.Provider>
+      </ComponentNameContext.Provider>
+    </RowIdRegistryContext.Provider>
   )
 }
