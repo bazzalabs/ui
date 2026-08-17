@@ -2633,6 +2633,50 @@ describe('PopupMenu', () => {
       expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
     })
 
+    it('filters checkbox items by value', async () => {
+      const user = userEvent.setup()
+      render(
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface data-testid="surface">
+                  <DropdownMenu.Input
+                    data-testid="search-input"
+                    placeholder="Search..."
+                  />
+                  <DropdownMenu.List>
+                    <DropdownMenu.CheckboxItem
+                      data-testid="item-checkbox"
+                      value="zulu"
+                    >
+                      Enable minimap
+                    </DropdownMenu.CheckboxItem>
+                    <DropdownMenu.Item data-testid="item-sibling" value="apple">
+                      Apple
+                    </DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      const input = screen.getByTestId('search-input')
+      await user.type(input, 'zulu')
+
+      expect(screen.getByTestId('item-checkbox')).toBeInTheDocument()
+      expect(screen.queryByTestId('item-sibling')).not.toBeInTheDocument()
+    })
+
     it('shows empty state when no items match', async () => {
       const user = userEvent.setup()
       render(<MenuWithKeywords />)

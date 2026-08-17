@@ -67,6 +67,12 @@ export interface PopupMenuCheckboxItemProps
   ) => void
 
   /**
+   * Unique value for this item used for filtering.
+   * If not provided, will be inferred from textContent.
+   */
+  value?: string
+
+  /**
    * Additional keywords to match against when filtering.
    * Useful for aliases or synonyms.
    */
@@ -149,6 +155,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     checked: checkedProp,
     defaultChecked = false,
     onCheckedChange,
+    value,
     keywords,
     disabled: disabledProp = false,
     onSelect,
@@ -193,6 +200,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const item = usePopupMenuItem({
     id,
+    value,
     keywords,
     disabled: disabledProp,
     forceMount,
