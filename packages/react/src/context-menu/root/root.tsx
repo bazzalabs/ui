@@ -115,11 +115,12 @@ export interface ContextMenuRootProps {
    *
    * Default behavior:
    * - If node.id is provided, use it as-is (treat as globally unique)
-   * - Otherwise, qualify with breadcrumbs + slugified value when deep searching
+   * - Otherwise, use the row's full definition path (`defPath`) — identical in
+   *   browse and deep-search contexts
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
 
-  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'hybrid'`. */
+  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`. */
   rowIdStrategy?: RowIdStrategy
 
   /**

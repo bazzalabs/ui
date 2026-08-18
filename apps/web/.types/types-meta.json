@@ -2583,6 +2583,13 @@
             "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
           },
           {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false,
+            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
+          },
+          {
             "name": "asyncContent",
             "type": "AsyncLoaderConfig | undefined",
             "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
@@ -4325,7 +4332,14 @@
             "type": "GetQualifiedRowIdFn | undefined",
             "formattedType": "GetQualifiedRowIdFn",
             "required": false,
-            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, qualify with breadcrumbs + slugified value when deep searching"
+            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, use the row's full definition path (`defPath`) — identical in\n  browse and deep-search contexts"
+          },
+          {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false,
+            "description": "Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`."
           },
           {
             "name": "debug",
@@ -4586,6 +4600,13 @@
             "formattedType": "(\n  checked: boolean,\n  eventDetails: CheckedChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback fired when the checked state changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
           },
           {
             "name": "keywords",
@@ -5076,6 +5097,14 @@
             "formattedType": "false | true",
             "required": false,
             "description": "When true, the input is not rendered until the user starts typing.\nThe List receives focus initially, and typing a character activates the input.\nOnce activated, the input stays visible until the menu closes.",
+            "default": "false"
+          },
+          {
+            "name": "backspaceGoesBack",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "When true, Backspace in an empty subpage input navigates back one page.",
             "default": "false"
           },
           {
@@ -6833,6 +6862,13 @@
             "required": false,
             "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
             "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
+          },
+          {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false,
+            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           }
         ]
       },
@@ -7581,6 +7617,12 @@
             "description": "Internal: when true, Surface handles Tab explicitly (close the tree, or\ncycle through focus zones). Enabled only by DropdownMenu.Root and\nContextMenu.Root — never Select or Combobox."
           },
           {
+            "name": "tabWithoutZones",
+            "type": "\"close\" | \"inert\"",
+            "required": true,
+            "description": "Internal: what Tab does under `explicitTabBehavior` when the surface (and\nits ancestors) have no focus-zone tabbables. `'close'` closes the whole\ntree (dropdown/context-menu). `'inert'` swallows the event, keeping focus\nwhere it is (command palette)."
+          },
+          {
             "name": "registerSurface",
             "type": "(depth: number, setOpen: (open: boolean) => void) => () => void",
             "formattedType": "(\n  depth: number,\n  setOpen: (open: boolean) => void,\n) => () => void",
@@ -7613,6 +7655,12 @@
             "formattedType": "GetQualifiedRowIdFn",
             "required": false,
             "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\nIf not provided, uses the default implementation."
+          },
+          {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false
           }
         ]
       },
@@ -8835,6 +8883,13 @@
             "formattedType": "(\n  context: GetQualifiedRowIdContext,\n) => string",
             "required": true,
             "description": "Function to generate qualified IDs for row items"
+          },
+          {
+            "name": "isLegacyRowIdDefault",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the implicit legacy row id fallback should be preserved"
           }
         ]
       },
@@ -10359,7 +10414,14 @@
             "type": "GetQualifiedRowIdFn | undefined",
             "formattedType": "GetQualifiedRowIdFn",
             "required": false,
-            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, compute from breadcrumbs + value when deep searching"
+            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, use the row's full definition path (`defPath`) — identical in\n  browse and deep-search contexts"
+          },
+          {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false,
+            "description": "Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`."
           },
           {
             "name": "debug",
@@ -10612,6 +10674,13 @@
             "formattedType": "(\n  checked: boolean,\n  eventDetails: CheckedChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback fired when the checked state changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
           },
           {
             "name": "keywords",
@@ -11102,6 +11171,14 @@
             "formattedType": "false | true",
             "required": false,
             "description": "When true, the input is not rendered until the user starts typing.\nThe List receives focus initially, and typing a character activates the input.\nOnce activated, the input stays visible until the menu closes.",
+            "default": "false"
+          },
+          {
+            "name": "backspaceGoesBack",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "When true, Backspace in an empty subpage input navigates back one page.",
             "default": "false"
           },
           {
@@ -12919,6 +12996,13 @@
             "required": false,
             "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
             "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
+          },
+          {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false,
+            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           }
         ]
       },
@@ -15117,13 +15201,6 @@
             "description": "Whether the popup is currently using align-item-with-trigger positioning.\nThis reflects the actual state, not just the prop value - it will be false\nif alignment couldn't be applied (e.g., not enough space, no selected item)."
           },
           {
-            "name": "isSubmenu",
-            "type": "boolean",
-            "formattedType": "false | true",
-            "required": true,
-            "description": "Whether this popup is a submenu (not the root menu)."
-          },
-          {
             "name": "hasOpenSubpage",
             "type": "boolean",
             "formattedType": "false | true",
@@ -15142,6 +15219,13 @@
             "type": "string[]",
             "required": true,
             "description": "Ordered stack of open non-root subpage IDs.\nFor nested subpages this includes each page in open order."
+          },
+          {
+            "name": "isSubmenu",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether this popup is a submenu (not the root menu)."
           }
         ]
       },
@@ -15879,6 +15963,14 @@
             "formattedType": "false | true",
             "required": false,
             "description": "When true, the input is not rendered until the user starts typing.\nThe List receives focus initially, and typing a character activates the input.\nOnce activated, the input stays visible until the menu closes.",
+            "default": "false"
+          },
+          {
+            "name": "backspaceGoesBack",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "When true, Backspace in an empty subpage input navigates back one page.",
             "default": "false"
           },
           {
@@ -16627,6 +16719,13 @@
             "required": false,
             "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
             "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
+          },
+          {
+            "name": "rowIdStrategy",
+            "type": "RowIdStrategy | undefined",
+            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
+            "required": false,
+            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           },
           {
             "name": "asyncContent",

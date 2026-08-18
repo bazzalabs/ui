@@ -296,11 +296,14 @@ export const PopupMenuSurface = React.forwardRef<
   const getQualifiedRowId =
     getQualifiedRowIdProp ??
     popupMenuContext.getQualifiedRowId ??
-    rowIdStrategies[rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'hybrid']
+    rowIdStrategies[
+      rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'qualified'
+    ]
   const isLegacyRowIdDefault =
     getQualifiedRowIdProp === undefined &&
     popupMenuContext.getQualifiedRowId === undefined &&
-    (rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'hybrid') === 'hybrid'
+    (rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'qualified') ===
+      'hybrid'
 
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
     if (typeof deepSearch === 'boolean' || deepSearch === undefined) {
