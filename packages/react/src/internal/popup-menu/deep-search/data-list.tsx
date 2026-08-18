@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import type { useSurfaceContext } from '../../listbox/index.js'
-import { normalizeValue } from '../../listbox/utils/normalize.js'
+import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
   PopupMenuListPrimitive,
@@ -17,6 +17,7 @@ import {
   type RenderNodeFn,
   useDataSurfaceContext,
 } from './context.js'
+import { ExtendDisplayPath, useDisplayPath } from './display-path-context.js'
 import type {
   AsyncLoaderResult,
   AsyncNodesConfig,
@@ -43,6 +44,7 @@ import {
 import {
   type AsyncSubmenuInfo,
   collectAsyncSubmenus,
+  computeDefPath,
   filterNodes,
   getSubpagePageId,
   mergeAsyncNodesIntoTree,
@@ -88,6 +90,7 @@ function computeItemIds(
   displayNodes: DisplayNode[],
   getQualifiedRowId: GetQualifiedRowIdFn,
   isDeepSearching: boolean,
+  displayPath: string[],
 ): void {
   let index = 0
 
@@ -100,6 +103,13 @@ function computeItemIds(
           id: item.node.id,
           index,
           breadcrumbs: item.context.breadcrumbs,
+          displayPath,
+          defPath: computeDefPath(
+            displayPath,
+            item.context.breadcrumbs,
+            item.node.id,
+            item.node.value,
+          ),
           isDeepSearching,
           search: item.context.search,
           isDeepSearchResult: item.context.isDeepSearchResult,
@@ -116,6 +126,13 @@ function computeItemIds(
           id: item.node.id,
           index,
           breadcrumbs: item.context.breadcrumbs,
+          displayPath,
+          defPath: computeDefPath(
+            displayPath,
+            item.context.breadcrumbs,
+            item.node.id,
+            item.node.value,
+          ),
           isDeepSearching,
           search: item.context.search,
           isDeepSearchResult: item.context.isDeepSearchResult,
@@ -134,6 +151,13 @@ function computeItemIds(
         id: displayNode.node.id,
         index,
         breadcrumbs: displayNode.context.breadcrumbs,
+        displayPath,
+        defPath: computeDefPath(
+          displayPath,
+          displayNode.context.breadcrumbs,
+          displayNode.node.id,
+          displayNode.node.value,
+        ),
         isDeepSearching,
         search: displayNode.context.search,
         isDeepSearchResult: displayNode.context.isDeepSearchResult,
@@ -600,6 +624,8 @@ export const DataListInner = React.forwardRef<
     ...listProps
   } = props
 
+  const displayPath = useDisplayPath()
+
   // Get coordinator for async state
   const coordinator = useAsyncMenuCoordinator()
 
@@ -716,6 +742,7 @@ export const DataListInner = React.forwardRef<
       displayNodesToRender,
       getQualifiedRowId,
       result.isDeepSearching,
+      displayPath,
     )
 
     return {
@@ -733,6 +760,7 @@ export const DataListInner = React.forwardRef<
     coordinator,
     coordinator?.isAnyLoading,
     coordinator?.loaders,
+    displayPath,
   ])
 
   // Sync orderedItems with the store when display nodes change
@@ -951,6 +979,8 @@ export const DataListInner = React.forwardRef<
           id: node.id,
         }
 
+        const submenuSegment = node.id ?? slugify(node.value)
+
         const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
           // Skip separators
           if (childNode.kind === 'separator') {
@@ -1055,7 +1085,7 @@ export const DataListInner = React.forwardRef<
         }
 
         return (
-          <React.Fragment key={compositeId}>
+          <ExtendDisplayPath key={compositeId} segment={submenuSegment}>
             {node.render({
               props: {
                 id: compositeId,
@@ -1074,7 +1104,7 @@ export const DataListInner = React.forwardRef<
               asyncContent: node.asyncNodes,
               renderNode: submenuRenderNode,
             })}
-          </React.Fragment>
+          </ExtendDisplayPath>
         )
       }
 

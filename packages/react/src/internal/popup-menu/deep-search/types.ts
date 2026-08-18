@@ -332,6 +332,22 @@ export interface GetQualifiedRowIdContext {
    */
   breadcrumbs: BreadcrumbNode[]
 
+  /**
+   * Segments of the ancestor submenus enclosing the surface this row is *displayed* in, outermost first — the contextual half of the row's path. Empty at the root surface. Each segment is the submenu's explicit `id`, or its slugified `value`; empty segments contribute nothing. Contextual: browse mode and deep search display the same row in different surfaces, so this differs between them — use `defPath` for the render-independent path.
+   */
+  displayPath?: string[]
+
+  /**
+   * Full path of this node in the content-definition tree, root-first,
+   * including the node's own segment (`id`, or its slugified `value`).
+   * Unlike `displayPath`/`breadcrumbs` — whose split depends on where the
+   * row is being displayed this render — `defPath` is identical wherever
+   * the row renders: browse, deep search, or recursion. Empty segments are
+   * skipped.
+   * Equals `[...displayPath, ...breadcrumb segments, own segment]`.
+   */
+  defPath?: string[]
+
   /** Whether deep search is currently active (search query meets minLength threshold) */
   isDeepSearching: boolean
 

@@ -14,6 +14,7 @@ import type {
   SubmenuDef,
   SubpageDef,
 } from '../types.js'
+import { defaultGetQualifiedRowId } from '../utils.js'
 
 // ============================================================================
 // Test Helpers
@@ -723,6 +724,219 @@ describe('List getQualifiedRowId', () => {
       // The exact index depends on implementation but should follow pattern
       const helpItem = screen.getByText('Help').closest('[role="option"]')
       expect(helpItem?.id).toMatch(/^item-\d+-Help$/)
+    })
+
+    function NestedSurfaceMenu({
+      ancestorId,
+      onContext,
+    }: {
+      ancestorId?: string
+      onContext: (context: GetQualifiedRowIdContext) => void
+    }) {
+      const content: NodeDef[] = React.useMemo(() => {
+        const leaf = createTestItemDef('leaf', 'Leaf')
+        const submenuB: SubmenuDef = {
+          kind: 'submenu',
+          id: 'b',
+          value: 'B',
+          nodes: [leaf],
+          render: ({ props, context, nodes }) => (
+            <DropdownMenu.Submenu>
+              <DropdownMenu.SubmenuTrigger
+                {...props}
+                data-testid="nested-trigger-b"
+              >
+                {context.value}
+              </DropdownMenu.SubmenuTrigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Positioner>
+                  <DropdownMenu.Popup>
+                    <DropdownMenu.Surface content={nodes}>
+                      <DropdownMenu.List>
+                        <ListItems />
+                      </DropdownMenu.List>
+                    </DropdownMenu.Surface>
+                  </DropdownMenu.Popup>
+                </DropdownMenu.Positioner>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Submenu>
+          ),
+        }
+        const submenuA: SubmenuDef = {
+          kind: 'submenu',
+          id: ancestorId,
+          value: 'A',
+          nodes: [submenuB],
+          render: ({ props, context, nodes }) => (
+            <DropdownMenu.Submenu>
+              <DropdownMenu.SubmenuTrigger
+                {...props}
+                data-testid="nested-trigger-a"
+              >
+                {context.value}
+              </DropdownMenu.SubmenuTrigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Positioner>
+                  <DropdownMenu.Popup>
+                    <DropdownMenu.Surface content={nodes}>
+                      <DropdownMenu.List>
+                        <ListItems />
+                      </DropdownMenu.List>
+                    </DropdownMenu.Surface>
+                  </DropdownMenu.Popup>
+                </DropdownMenu.Positioner>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Submenu>
+          ),
+        }
+        return [submenuA]
+      }, [ancestorId])
+
+      return (
+        <DropdownMenu.Root
+          defaultOpen
+          getQualifiedRowId={(context) => {
+            onContext(context)
+            return defaultGetQualifiedRowId(context)
+          }}
+        >
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface
+                  content={content}
+                  deepSearch={{ enabled: true, minLength: 1 }}
+                >
+                  <DropdownMenu.Input data-testid="nested-search-input" />
+                  <DropdownMenu.List>
+                    <ListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    it('threads display paths through nested data surfaces', async () => {
+      const user = userEvent.setup()
+      const contexts: GetQualifiedRowIdContext[] = []
+
+      render(
+        <NestedSurfaceMenu onContext={(context) => contexts.push(context)} />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('nested-trigger-a')).toBeInTheDocument()
+      })
+      await user.hover(screen.getByTestId('nested-trigger-a'))
+      await waitFor(() => {
+        expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument()
+      })
+      await user.hover(screen.getByTestId('nested-trigger-b'))
+      await waitFor(() => {
+        expect(screen.getByTestId('item-leaf')).toBeInTheDocument()
+      })
+
+      expect(
+        contexts.some(
+          (context) =>
+            context.value === 'A' && (context.displayPath ?? []).length === 0,
+        ),
+      ).toBe(true)
+      expect(
+        contexts.some(
+          (context) =>
+            context.value === 'B' &&
+            JSON.stringify(context.displayPath) === JSON.stringify(['a']),
+        ),
+      ).toBe(true)
+      expect(
+        contexts.some(
+          (context) =>
+            context.value === 'Leaf' &&
+            JSON.stringify(context.displayPath) === JSON.stringify(['a', 'b']),
+        ),
+      ).toBe(true)
+
+      expect(
+        contexts.some(
+          (context) =>
+            context.value === 'A' &&
+            JSON.stringify(context.defPath) === JSON.stringify(['a']),
+        ),
+      ).toBe(true)
+      expect(
+        contexts.some(
+          (context) =>
+            context.value === 'Leaf' &&
+            JSON.stringify(context.defPath) ===
+              JSON.stringify(['a', 'b', 'leaf']),
+        ),
+      ).toBe(true)
+    })
+
+    it('uses an explicit submenu id as the display path segment', async () => {
+      const user = userEvent.setup()
+      const contexts: GetQualifiedRowIdContext[] = []
+
+      render(
+        <NestedSurfaceMenu
+          ancestorId="custom-seg"
+          onContext={(context) => contexts.push(context)}
+        />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('nested-trigger-a')).toBeInTheDocument()
+      })
+      await user.hover(screen.getByTestId('nested-trigger-a'))
+      await waitFor(() => {
+        expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument()
+      })
+
+      expect(
+        contexts.some(
+          (context) =>
+            context.value === 'B' &&
+            JSON.stringify(context.displayPath) ===
+              JSON.stringify(['custom-seg']),
+        ),
+      ).toBe(true)
+    })
+
+    it('keeps definition paths equal between browse and deep search', async () => {
+      const user = userEvent.setup()
+      const contexts: GetQualifiedRowIdContext[] = []
+
+      render(
+        <NestedSurfaceMenu onContext={(context) => contexts.push(context)} />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('nested-search-input')).toBeInTheDocument()
+      })
+
+      await user.type(screen.getByTestId('nested-search-input'), 'Leaf')
+
+      await waitFor(() => {
+        expect(
+          contexts.some(
+            (context) => context.value === 'Leaf' && context.isDeepSearchResult,
+          ),
+        ).toBe(true)
+      })
+
+      const leafContext = contexts.find(
+        (context) => context.value === 'Leaf' && context.isDeepSearchResult,
+      )
+      expect(leafContext?.defPath).toEqual(['a', 'b', 'leaf'])
+      expect(leafContext?.displayPath ?? []).toEqual([])
+      expect(
+        leafContext?.breadcrumbs.map((breadcrumb) => breadcrumb.value),
+      ).toEqual(['A', 'B'])
     })
   })
 
