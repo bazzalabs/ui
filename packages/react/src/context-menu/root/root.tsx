@@ -3,7 +3,10 @@
 import { Popover } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
-import type { GetQualifiedRowIdFn } from '../../internal/popup-menu/deep-search/types.js'
+import type {
+  GetQualifiedRowIdFn,
+  RowIdStrategy,
+} from '../../internal/popup-menu/deep-search/types.js'
 import {
   type PopupMenuDebugOptions,
   PopupMenuProviders,
@@ -116,6 +119,9 @@ export interface ContextMenuRootProps {
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
 
+  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'hybrid'`. */
+  rowIdStrategy?: RowIdStrategy
+
   /**
    * Debug visualization options for submenu interaction heuristics.
    */
@@ -195,6 +201,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
     getQualifiedRowId,
+    rowIdStrategy,
     debug,
     children,
   } = props
@@ -331,6 +338,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         closeOnOutsidePress={closeOnOutsidePress}
         componentName="context-menu"
         getQualifiedRowId={getQualifiedRowId}
+        rowIdStrategy={rowIdStrategy}
         debug={debug}
       >
         <Popover.Root

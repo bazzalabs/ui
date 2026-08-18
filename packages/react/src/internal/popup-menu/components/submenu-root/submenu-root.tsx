@@ -337,6 +337,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       closeOnOutsidePress:
         parentPopupMenuContext?.closeOnOutsidePress ?? 'pointerdown',
       getQualifiedRowId: parentPopupMenuContext?.getQualifiedRowId,
+      rowIdStrategy: parentPopupMenuContext?.rowIdStrategy,
     }),
     [
       store,
@@ -353,6 +354,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       parentPopupMenuContext?.menuType,
       parentPopupMenuContext?.closeOnOutsidePress,
       parentPopupMenuContext?.getQualifiedRowId,
+      parentPopupMenuContext?.rowIdStrategy,
     ],
   )
 

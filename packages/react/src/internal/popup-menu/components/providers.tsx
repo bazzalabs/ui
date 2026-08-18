@@ -23,7 +23,10 @@ import {
   type PopupMenuDebugOptions,
   resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
-import type { GetQualifiedRowIdFn } from '../deep-search/types.js'
+import type {
+  GetQualifiedRowIdFn,
+  RowIdStrategy,
+} from '../deep-search/types.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
@@ -88,6 +91,7 @@ export interface PopupMenuProvidersProps {
    * Defined once at the root level and applied to all surfaces (root and submenus).
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
+  rowIdStrategy?: RowIdStrategy
   /**
    * Component name for generating bazzaui-* slot attributes.
    * E.g., 'dropdown-menu', 'context-menu', 'select', 'combobox'
@@ -127,6 +131,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     menuType = 'dropdown',
     closeOnOutsidePress = 'pointerdown',
     getQualifiedRowId,
+    rowIdStrategy,
     componentName,
     children,
   } = props
@@ -151,6 +156,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       menuType,
       closeOnOutsidePress,
       getQualifiedRowId,
+      rowIdStrategy,
     }),
     [
       store,
@@ -165,6 +171,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       menuType,
       closeOnOutsidePress,
       getQualifiedRowId,
+      rowIdStrategy,
     ],
   )
 

@@ -600,6 +600,7 @@ export interface DataListInnerProps extends PopupMenuListProps {
     typeof useDataSurfaceContext
   >['includeInDeepSearch']
   getQualifiedRowId: GetQualifiedRowIdFn
+  isLegacyRowIdDefault: boolean
   search: string
   normalizedSearch: string
   store: ReturnType<typeof useSurfaceContext>['store']
@@ -616,6 +617,7 @@ export const DataListInner = React.forwardRef<
     deepSearchConfig,
     includeInDeepSearch,
     getQualifiedRowId,
+    isLegacyRowIdDefault,
     search,
     normalizedSearch,
     store,
@@ -827,7 +829,29 @@ export const DataListInner = React.forwardRef<
       const { node, context } = displayNode
 
       // Use composite ID from display node, fallback to node.id/value for nested children
-      const compositeId = displayNode.compositeId ?? node.id ?? node.value
+      const compositeId =
+        displayNode.compositeId ??
+        (isLegacyRowIdDefault
+          ? (node.id ?? node.value)
+          : getQualifiedRowId({
+              node,
+              value: node.value,
+              id: node.id,
+              index: -1,
+              breadcrumbs: context.breadcrumbs,
+              isDeepSearching,
+              search: context.search,
+              isDeepSearchResult: context.isDeepSearchResult,
+              displayPath,
+              defPath: computeDefPath(
+                displayPath,
+                context.breadcrumbs,
+                node.id,
+                node.value,
+              ),
+              group: context.group ?? null,
+              radioGroup: displayNode.radioGroup ?? null,
+            }))
 
       const getBranchAsyncState = (branchNode: SubmenuDef | SubpageDef) => {
         if (!branchNode.asyncNodes || !coordinator) {
@@ -1134,7 +1158,14 @@ export const DataListInner = React.forwardRef<
 
       return null
     },
-    [coordinator, normalizedSearch],
+    [
+      coordinator,
+      normalizedSearch,
+      getQualifiedRowId,
+      isLegacyRowIdDefault,
+      displayPath,
+      isDeepSearching,
+    ],
   )
 
   // Helper to render a radio group

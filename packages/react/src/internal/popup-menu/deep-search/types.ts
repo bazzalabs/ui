@@ -387,6 +387,18 @@ export interface GetQualifiedRowIdContext {
  */
 export type GetQualifiedRowIdFn = (context: GetQualifiedRowIdContext) => string
 
+/**
+ * Named strategy for computing data-first row ids.
+ * - `'qualified'`: explicit `id` verbatim; otherwise the row's definition
+ *   path (`defPath`): display path + breadcrumb segments + slugified value,
+ *   identical in browse and deep-search contexts.
+ * - `'explicit'`: explicit `id` verbatim; warns in dev and falls back to
+ *   the qualified computation when `id` is missing.
+ * - `'hybrid'`: the legacy behavior (`defaultGetQualifiedRowId`) — slug
+ *   only while browsing, path-qualified while deep-searching.
+ */
+export type RowIdStrategy = 'qualified' | 'explicit' | 'hybrid'
+
 // ============================================================================
 // Render Context - passed to all render functions
 // ============================================================================
@@ -1438,6 +1450,9 @@ export interface DataSurfaceProps {
    * @default Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value
    */
   getQualifiedRowId?: GetQualifiedRowIdFn
+
+  /** Named row id strategy. Ignored when `getQualifiedRowId` is provided. */
+  rowIdStrategy?: RowIdStrategy
 
   /** Children (Input, List, etc.) */
   children: React.ReactNode

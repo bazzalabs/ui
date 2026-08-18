@@ -39,7 +39,7 @@ import type {
   DataSurfaceProps,
   DeepSearchConfig,
 } from '../../deep-search/types.js'
-import { defaultGetQualifiedRowId } from '../../deep-search/utils.js'
+import { rowIdStrategies } from '../../deep-search/utils.js'
 import { getTabbables } from '../../utils/tabbables.js'
 
 // Surface doesn't expose data attributes - using empty state
@@ -166,6 +166,7 @@ export const PopupMenuSurface = React.forwardRef<
     deepSearch,
     includeInDeepSearch = true,
     getQualifiedRowId: getQualifiedRowIdProp,
+    rowIdStrategy,
     render,
     className,
     style,
@@ -182,7 +183,8 @@ export const PopupMenuSurface = React.forwardRef<
     asyncContent !== undefined ||
     deepSearch !== undefined ||
     props.includeInDeepSearch !== undefined ||
-    getQualifiedRowIdProp !== undefined
+    getQualifiedRowIdProp !== undefined ||
+    rowIdStrategy !== undefined
 
   // Get store and depth from Listbox context
   const { store, depth, virtualization } = useListboxContext()
@@ -294,7 +296,11 @@ export const PopupMenuSurface = React.forwardRef<
   const getQualifiedRowId =
     getQualifiedRowIdProp ??
     popupMenuContext.getQualifiedRowId ??
-    defaultGetQualifiedRowId
+    rowIdStrategies[rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'hybrid']
+  const isLegacyRowIdDefault =
+    getQualifiedRowIdProp === undefined &&
+    popupMenuContext.getQualifiedRowId === undefined &&
+    (rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'hybrid') === 'hybrid'
 
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
     if (typeof deepSearch === 'boolean' || deepSearch === undefined) {
@@ -327,6 +333,7 @@ export const PopupMenuSurface = React.forwardRef<
       includeInDeepSearch,
       listId: dataListId,
       getQualifiedRowId,
+      isLegacyRowIdDefault,
     }),
     [
       content,
@@ -335,6 +342,7 @@ export const PopupMenuSurface = React.forwardRef<
       includeInDeepSearch,
       dataListId,
       getQualifiedRowId,
+      isLegacyRowIdDefault,
     ],
   )
 

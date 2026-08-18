@@ -33,6 +33,9 @@ export interface DataSurfaceContextValue {
 
   /** Function to generate qualified IDs for row items */
   getQualifiedRowId: GetQualifiedRowIdFn
+
+  /** Whether the implicit legacy row id fallback should be preserved */
+  isLegacyRowIdDefault: boolean
 }
 
 export const DataSurfaceContext =
