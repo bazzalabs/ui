@@ -13,6 +13,9 @@ import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
 import { ListboxStore, type VirtualItem } from '../../listbox/index.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
 import type { PopupMenuOpenChangeReason } from '../events.js'
+import type { MenuTreeResolver } from '../resolve/resolver.js'
+import { createMenuTreeResolver } from '../resolve/resolver.js'
+import type { GetRowIdFn } from '../resolve/types.js'
 import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { OpenChainStore } from '../store/OpenChainStore.js'
 
@@ -21,6 +24,12 @@ import { OpenChainStore } from '../store/OpenChainStore.js'
 // ============================================================================
 
 export interface UsePopupMenuRootParams {
+  /**
+   * Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).
+   * @default explicit `def.id` verbatim, else the joined definition path
+   * Read once when the menu root mounts — later changes have no effect.
+   */
+  getRowId?: GetRowIdFn
   /**
    * Callback when the open state changes.
    * The second parameter contains event details including the reason for the change.
@@ -90,6 +99,8 @@ export interface PopupMenuRootActions {
 }
 
 export interface UsePopupMenuRootReturn {
+  /** The menu-tree resolver for this menu root. */
+  menuTreeResolver: MenuTreeResolver
   /** The Listbox store instance */
   store: ListboxStore
   /** The FocusOwner store instance */
@@ -143,7 +154,16 @@ export function usePopupMenuRoot(
     closeOnOutsidePress = 'pointerdown',
     disabled: disabledProp = false,
     defaultDisabled = false,
+    getRowId,
   } = params
+
+  const menuTreeResolverRef = React.useRef<MenuTreeResolver | null>(null)
+  if (menuTreeResolverRef.current === null) {
+    menuTreeResolverRef.current = createMenuTreeResolver(
+      getRowId ? { getRowId } : undefined,
+    )
+  }
+  const menuTreeResolver = menuTreeResolverRef.current
 
   const [imperativeDisabled, setImperativeDisabled] =
     React.useState(defaultDisabled)
@@ -346,6 +366,7 @@ export function usePopupMenuRoot(
   }, [virtualized, itemsProp, onHighlightChange])
 
   return {
+    menuTreeResolver,
     store,
     focusOwnerStore,
     openChainStore,

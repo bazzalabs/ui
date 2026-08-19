@@ -79,6 +79,7 @@ export type {
   DisplayRowNode,
   DisplaySeparatorNode,
   DisplaySubpageNode,
+  GetRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -90,6 +91,7 @@ export type {
   ItemRenderProps,
   LoaderComponentProps,
   NodeDef,
+  PopupMenuNode,
   PopupMenuRadioGroupValueProps as CommandMenuRadioGroupValueProps,
   QueryAsyncNodesConfig,
   QueryDependentLoaderConfig,
@@ -114,6 +116,7 @@ export type {
   SubpageDef,
   SubpageTriggerRenderParams,
   SubpageTriggerRenderProps,
+  UnidentifiedMenuNode,
 } from '../internal/popup-menu/index.js'
 
 export {

@@ -1611,6 +1611,8 @@ export function filterNodes(options: FilterNodesOptions): {
  *
  * Note: Uses `node.id ?? node.value` as the identifier. For proper ID handling
  * with custom getItemId functions, use `getOrderedItemIds` from DataList instead.
+ *
+ * @deprecated Deprecated: reads `node.id ?? node.value` from defs and ignores the resolver's canonical row ids. Use `getOrderedItemIds` (DataList) or resolved menu nodes instead. Will be removed in a future release.
  */
 export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
   const ids: string[] = []

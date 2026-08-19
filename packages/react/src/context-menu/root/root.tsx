@@ -15,6 +15,7 @@ import {
   usePopupMenuRoot,
   type VirtualAnchor,
 } from '../../internal/popup-menu/index.js'
+import type { GetRowIdFn } from '../../internal/popup-menu/resolve/types.js'
 import type {
   ContextMenuHighlightChangeEventDetails,
   ContextMenuOpenChangeEventDetails,
@@ -124,6 +125,15 @@ export interface ContextMenuRootProps {
   rowIdStrategy?: RowIdStrategy
 
   /**
+   * Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).
+   * @default explicit `def.id` verbatim, else the joined definition path
+   * Read once when the menu root mounts — later changes have no effect.
+   * @example
+   * <ContextMenu.Root getRowId={(node) => node.def.id ?? node.defPath.join('.')} />
+   */
+  getRowId?: GetRowIdFn
+
+  /**
    * Debug visualization options for submenu interaction heuristics.
    */
   debug?: PopupMenuDebugOptions
@@ -203,6 +213,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     actionsRef,
     getQualifiedRowId,
     rowIdStrategy,
+    getRowId,
     debug,
     children,
   } = props
@@ -218,6 +229,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     handleOpenChange,
     disabled: menuDisabled,
     setDisabled,
+    menuTreeResolver,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -229,6 +241,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
     closeOnOutsidePress,
     disabled: disabledProp,
+    getRowId,
   })
 
   const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
@@ -325,6 +338,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
   return (
     <ContextMenuInternalContext.Provider value={internalContextValue}>
       <PopupMenuProviders
+        menuTreeResolver={menuTreeResolver}
         store={store}
         focusOwnerStore={focusOwnerStore}
         openChainStore={openChainStore}

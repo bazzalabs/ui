@@ -259,6 +259,7 @@ export type {
   DisplayRowNode,
   DisplaySeparatorNode,
   DisplaySubpageNode,
+  GetRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupLabelRenderParams,
@@ -271,6 +272,7 @@ export type {
   ItemRenderProps,
   LoaderComponentProps,
   NodeDef,
+  PopupMenuNode,
   PopupMenuRadioGroupValueProps as DropdownMenuRadioGroupValueProps,
   QueryAsyncNodesConfig,
   QueryDependentLoaderConfig,
@@ -299,6 +301,7 @@ export type {
   TreeItemDef,
   TreeItemRenderParams,
   TreeItemRenderProps,
+  UnidentifiedMenuNode,
 } from '../internal/popup-menu/index.js'
 
 export {

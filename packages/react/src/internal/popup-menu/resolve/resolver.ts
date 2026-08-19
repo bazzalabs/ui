@@ -39,6 +39,8 @@ const ROW_KINDS: ReadonlySet<NodeDef['kind']> = new Set<RowKind>([
  * identical arguments are no-ops.
  */
 export interface MenuTreeResolver {
+  /** The row-id seam this resolver was created with. */
+  readonly getRowId: GetRowIdFn
   /** Current root nodes, in def order. */
   readonly rootNodes: readonly PopupMenuNode[]
   /** Re-supply the root def list and reconcile the whole tree. */
@@ -218,6 +220,7 @@ export function createMenuTreeResolver(
   }
 
   return {
+    getRowId,
     get rootNodes() {
       return rootNodes
     },
