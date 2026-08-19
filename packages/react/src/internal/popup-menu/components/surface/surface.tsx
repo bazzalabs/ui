@@ -39,6 +39,7 @@ import type {
   DataSurfaceProps,
   DeepSearchConfig,
 } from '../../deep-search/types.js'
+import { isPopupMenuNode } from '../../resolve/resolve.js'
 import { getTabbables } from '../../utils/tabbables.js'
 
 // Surface doesn't expose data attributes - using empty state
@@ -174,6 +175,11 @@ export const PopupMenuSurface = React.forwardRef<
     children,
     ...rest
   } = props
+
+  const contentDefs = React.useMemo(
+    () => content?.map((entry) => (isPopupMenuNode(entry) ? entry.def : entry)),
+    [content],
+  )
 
   const isDataMode =
     content !== undefined ||
@@ -313,13 +319,19 @@ export const PopupMenuSurface = React.forwardRef<
   const dataListId = React.useId()
   const dataSurfaceContextValue: DataSurfaceContextValue = React.useMemo(
     () => ({
-      content: content ?? [],
+      content: contentDefs ?? [],
       asyncContent,
       deepSearchConfig,
       includeInDeepSearch,
       listId: dataListId,
     }),
-    [content, asyncContent, deepSearchConfig, includeInDeepSearch, dataListId],
+    [
+      contentDefs,
+      asyncContent,
+      deepSearchConfig,
+      includeInDeepSearch,
+      dataListId,
+    ],
   )
 
   const dataPopupContext = useMaybeDataPopupContext()

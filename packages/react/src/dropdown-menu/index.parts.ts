@@ -6,6 +6,12 @@
 
 // Re-export VirtualItem type from internal/listbox
 export type { VirtualItem } from '../internal/listbox/index.js'
+// Pure aliases of the canonical resolved-node model (ADR-0001): narrow the
+// alias if a family ever needs to diverge — never edit the canonical type.
+export type {
+  NodeDef,
+  PopupMenuNode as Node,
+} from '../internal/popup-menu/index.js'
 // Re-export shared components from internal/popup-menu
 export {
   PopupMenuArrow as Arrow,

@@ -2,6 +2,13 @@
 // Command Menu Parts
 // ============================================================================
 
+// Pure aliases of the canonical resolved-node model (ADR-0001): narrow the
+// alias if a family ever needs to diverge — never edit the canonical type.
+export type {
+  NodeDef,
+  PopupMenuNode as Node,
+} from '../internal/popup-menu/index.js'
+
 export {
   PopupMenuCheckboxItem as CheckboxItem,
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,

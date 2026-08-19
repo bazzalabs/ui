@@ -2,7 +2,10 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import type { CommandMenu } from '../../../../command-menu/index.js'
+import type { ContextMenu } from '../../../../context-menu/index.js'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
+import type { PopupMenuNode } from '../../resolve/types.js'
 import type {
   CheckboxItemDef,
   CheckboxItemRenderParams,
@@ -18,6 +21,21 @@ import type {
   SubmenuRenderParams,
   SubpageDef,
 } from '../types.js'
+
+const resolvedNodeForFamilyAliases = {} as PopupMenuNode
+const nodeDefForFamilyAliases = {} as NodeDef
+const dropdownNodeAlias: DropdownMenu.Node = resolvedNodeForFamilyAliases
+const dropdownNodeDefAlias: DropdownMenu.NodeDef = nodeDefForFamilyAliases
+const contextNodeAlias: ContextMenu.Node = resolvedNodeForFamilyAliases
+const contextNodeDefAlias: ContextMenu.NodeDef = nodeDefForFamilyAliases
+const commandNodeAlias: CommandMenu.Node = resolvedNodeForFamilyAliases
+const commandNodeDefAlias: CommandMenu.NodeDef = nodeDefForFamilyAliases
+void dropdownNodeAlias
+void dropdownNodeDefAlias
+void contextNodeAlias
+void contextNodeDefAlias
+void commandNodeAlias
+void commandNodeDefAlias
 
 // ============================================================================
 // Test Helpers
@@ -1165,6 +1183,61 @@ describe('Subpages', () => {
 })
 
 describe('resolved render params', () => {
+  it('accepts resolved submenu nodes as nested Surface content', async () => {
+    const child = createTestItemDef('nested-content-child', 'Child')
+    let useResolvedContent = false
+    const submenu = createTestSubmenuDef('parent', 'Parent', [child], {
+      render: ({ props, node }) => (
+        <DropdownMenu.Submenu>
+          <DropdownMenu.SubmenuTrigger {...props}>
+            Parent
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface
+                  content={useResolvedContent ? node.children : [child]}
+                >
+                  <DropdownMenu.List>
+                    <ListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    })
+
+    const { rerender } = render(<MenuWithDataContent content={[submenu]} />)
+    const user = userEvent.setup()
+    await user.hover(screen.getByRole('menuitem'))
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('item-nested-content-child'),
+      ).toBeInTheDocument()
+    })
+    const rawDefIds = [
+      screen.getByTestId('item-nested-content-child').getAttribute('id'),
+    ]
+
+    useResolvedContent = true
+    rerender(<MenuWithDataContent content={[submenu]} />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('item-nested-content-child'),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('item-nested-content-child')).toHaveTextContent(
+      'Child',
+    )
+    expect([
+      screen.getByTestId('item-nested-content-child').getAttribute('id'),
+    ]).toEqual(rawDefIds)
+  })
+
   it('passes the resolved node to item, submenu, and checkbox renders', () => {
     const defs: NodeDef[] = []
     let itemParams: ItemRenderParams | undefined
