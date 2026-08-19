@@ -5,7 +5,7 @@ import {
   useListboxContext,
   type useSurfaceContext,
 } from '../../listbox/index.js'
-import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
+import { normalizeValue } from '../../listbox/utils/normalize.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
   PopupMenuListPrimitive,
@@ -18,6 +18,7 @@ import {
 import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
 import { useMaybeSubpageContext } from '../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../contexts/subpage-stack-context.js'
+import { defaultGetRowId, resolveNodeDefs } from '../resolve/resolve.js'
 import {
   type AsyncMenuState,
   useAsyncMenuCoordinator,
@@ -25,9 +26,9 @@ import {
 import {
   DataListContext,
   type RenderNodeFn,
+  useDataPopupContext,
   useDataSurfaceContext,
 } from './context.js'
-import { ExtendDisplayPath, useDisplayPath } from './display-path-context.js'
 import type {
   AsyncLoaderResult,
   AsyncNodesConfig,
@@ -36,7 +37,6 @@ import type {
   DataListChildrenState,
   DisplayNode,
   DisplayRowNode,
-  GetQualifiedRowIdFn,
   GroupRenderContext,
   ItemDef,
   NodeDef,
@@ -54,12 +54,22 @@ import {
 import {
   type AsyncSubmenuInfo,
   collectAsyncSubmenus,
-  computeDefPath,
   filterNodes,
   getSubpagePageId,
   mergeAsyncNodesIntoTree,
   shouldLoadEagerly,
 } from './utils.js'
+
+const warnedOutOfTreeDefs = new WeakSet<NodeDef>()
+
+export function warnOutOfTreeDef(def: NodeDef): void {
+  if (process.env.NODE_ENV !== 'production' && !warnedOutOfTreeDefs.has(def)) {
+    warnedOutOfTreeDefs.add(def)
+    console.warn(
+      "[PopupMenu] Computed a row id for a definition outside the resolved menu tree. The id falls back to a root-relative resolution. Supply the definition through the menu's content/async pipeline, or memoize definitions passed to renderNode.",
+    )
+  }
+}
 
 function renderGroupLabelElement<
   C extends GroupRenderContext & { label?: string },
@@ -94,87 +104,25 @@ function renderGroupLabelElement<
 /**
  * Computes and sets composite IDs directly on all row nodes in the display list.
  * Mutates the displayNodes in place for performance.
- * The index is the flat position across all items (including those inside groups).
  */
 function computeItemIds(
   displayNodes: DisplayNode[],
-  getQualifiedRowId: GetQualifiedRowIdFn,
-  isDeepSearching: boolean,
-  displayPath: string[],
+  getIdForDef: (def: NodeDef) => string,
 ): void {
-  let index = 0
-
   for (const displayNode of displayNodes) {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        item.compositeId = getQualifiedRowId({
-          node: item.node,
-          value: item.node.value,
-          id: item.node.id,
-          index,
-          breadcrumbs: item.context.breadcrumbs,
-          displayPath,
-          defPath: computeDefPath(
-            displayPath,
-            item.context.breadcrumbs,
-            item.node.id,
-            item.node.value,
-          ),
-          isDeepSearching,
-          search: item.context.search,
-          isDeepSearchResult: item.context.isDeepSearchResult,
-          group: item.context.group,
-          radioGroup: null,
-        })
-        index++
+        item.compositeId = getIdForDef(item.node)
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
-        item.compositeId = getQualifiedRowId({
-          node: item.node,
-          value: item.node.value,
-          id: item.node.id,
-          index,
-          breadcrumbs: item.context.breadcrumbs,
-          displayPath,
-          defPath: computeDefPath(
-            displayPath,
-            item.context.breadcrumbs,
-            item.node.id,
-            item.node.value,
-          ),
-          isDeepSearching,
-          search: item.context.search,
-          isDeepSearchResult: item.context.isDeepSearchResult,
-          group: null,
-          radioGroup: item.radioGroup ?? null,
-        })
-        index++
+        item.compositeId = getIdForDef(item.node)
       }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // Separators don't need IDs
     } else {
       // Row node
-      displayNode.compositeId = getQualifiedRowId({
-        node: displayNode.node,
-        value: displayNode.node.value,
-        id: displayNode.node.id,
-        index,
-        breadcrumbs: displayNode.context.breadcrumbs,
-        displayPath,
-        defPath: computeDefPath(
-          displayPath,
-          displayNode.context.breadcrumbs,
-          displayNode.node.id,
-          displayNode.node.value,
-        ),
-        isDeepSearching,
-        search: displayNode.context.search,
-        isDeepSearchResult: displayNode.context.isDeepSearchResult,
-        group: displayNode.context.group,
-        radioGroup: displayNode.radioGroup ?? null,
-      })
-      index++
+      displayNode.compositeId = getIdForDef(displayNode.node)
     }
   }
 }
@@ -609,8 +557,6 @@ export interface DataListInnerProps extends PopupMenuListProps {
   includeInDeepSearch: ReturnType<
     typeof useDataSurfaceContext
   >['includeInDeepSearch']
-  getQualifiedRowId: GetQualifiedRowIdFn
-  isLegacyRowIdDefault: boolean
   search: string
   normalizedSearch: string
   store: ReturnType<typeof useSurfaceContext>['store']
@@ -626,8 +572,6 @@ export const DataListInner = React.forwardRef<
     asyncContent,
     deepSearchConfig,
     includeInDeepSearch,
-    getQualifiedRowId,
-    isLegacyRowIdDefault,
     search,
     normalizedSearch,
     store,
@@ -636,8 +580,18 @@ export const DataListInner = React.forwardRef<
     ...listProps
   } = props
 
-  const displayPath = useDisplayPath()
   const resolver = useMenuTreeResolver()
+  const { setResolvedContent } = useDataPopupContext()
+  const getIdForDef = React.useCallback(
+    (def: NodeDef): string => {
+      const resolved = resolver?.getNodeForDef(def)
+      if (resolved) return resolved.id
+      warnOutOfTreeDef(def)
+      const getRowId = resolver?.getRowId ?? defaultGetRowId
+      return resolveNodeDefs([def], null, [], getRowId)[0]!.id
+    },
+    [resolver],
+  )
   const graftParent = useGraftPoint()
   const { depth: surfaceDepth } = useListboxContext()
   const resolverSubpageContext = useMaybeSubpageContext()
@@ -696,8 +650,8 @@ export const DataListInner = React.forwardRef<
     return [...mergedContent, ...rootAsyncData.nodes]
   }, [mergedContent, asyncNodes, asyncContent])
 
-  // Feed root-owned resolution (inert in this stack: nothing renders from
-  // the resolved tree yet). setContent/graft are idempotent with reference
+  // Feed root-owned resolution. Resolution is load-bearing: render paths read
+  // resolved ids. setContent/graft are idempotent with reference
   // fast paths, so render-time calls (incl. StrictMode re-invocations) are
   // safe and cheap when content is unchanged. Subpage surfaces never feed:
   // their rows already belong to the root surface's def tree.
@@ -715,6 +669,16 @@ export const DataListInner = React.forwardRef<
     isResolutionRoot,
     contentWithRootAsync,
   ])
+
+  React.useEffect(() => {
+    if (isSubpageSurface) return
+    setResolvedContent(contentWithRootAsync)
+    return () => {
+      setResolvedContent((current) =>
+        current === contentWithRootAsync ? null : current,
+      )
+    }
+  }, [isSubpageSurface, setResolvedContent, contentWithRootAsync])
 
   const streamOrderRef = React.useRef<{
     query: string
@@ -782,12 +746,7 @@ export const DataListInner = React.forwardRef<
     }
 
     // Set composite IDs directly on the freshly created display nodes
-    computeItemIds(
-      displayNodesToRender,
-      getQualifiedRowId,
-      result.isDeepSearching,
-      displayPath,
-    )
+    computeItemIds(displayNodesToRender, getIdForDef)
 
     return {
       displayNodes: displayNodesToRender,
@@ -798,13 +757,12 @@ export const DataListInner = React.forwardRef<
     contentWithRootAsync,
     deepSearchConfig,
     includeInDeepSearch,
-    getQualifiedRowId,
+    getIdForDef,
     asyncSubmenus.length,
     asyncContent,
     coordinator,
     coordinator?.isAnyLoading,
     coordinator?.loaders,
-    displayPath,
   ])
 
   // Sync orderedItems with the store when display nodes change
@@ -871,29 +829,7 @@ export const DataListInner = React.forwardRef<
       const { node, context } = displayNode
 
       // Use composite ID from display node, fallback to node.id/value for nested children
-      const compositeId =
-        displayNode.compositeId ??
-        (isLegacyRowIdDefault
-          ? (node.id ?? node.value)
-          : getQualifiedRowId({
-              node,
-              value: node.value,
-              id: node.id,
-              index: -1,
-              breadcrumbs: context.breadcrumbs,
-              isDeepSearching,
-              search: context.search,
-              isDeepSearchResult: context.isDeepSearchResult,
-              displayPath,
-              defPath: computeDefPath(
-                displayPath,
-                context.breadcrumbs,
-                node.id,
-                node.value,
-              ),
-              group: context.group ?? null,
-              radioGroup: displayNode.radioGroup ?? null,
-            }))
+      const compositeId = displayNode.compositeId ?? getIdForDef(node)
 
       const getBranchAsyncState = (branchNode: SubmenuDef | SubpageDef) => {
         if (!branchNode.asyncNodes || !coordinator) {
@@ -1045,8 +981,6 @@ export const DataListInner = React.forwardRef<
           id: node.id,
         }
 
-        const submenuSegment = node.id ?? slugify(node.value)
-
         const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
           // Skip separators
           if (childNode.kind === 'separator') {
@@ -1151,7 +1085,7 @@ export const DataListInner = React.forwardRef<
         }
 
         return (
-          <ExtendDisplayPath key={compositeId} segment={submenuSegment}>
+          <React.Fragment key={compositeId}>
             <GraftPointContext.Provider
               value={resolver?.getNodeForDef(node) ?? null}
             >
@@ -1174,7 +1108,7 @@ export const DataListInner = React.forwardRef<
                 renderNode: submenuRenderNode,
               })}
             </GraftPointContext.Provider>
-          </ExtendDisplayPath>
+          </React.Fragment>
         )
       }
 
@@ -1204,15 +1138,7 @@ export const DataListInner = React.forwardRef<
 
       return null
     },
-    [
-      coordinator,
-      normalizedSearch,
-      getQualifiedRowId,
-      isLegacyRowIdDefault,
-      displayPath,
-      isDeepSearching,
-      resolver,
-    ],
+    [coordinator, normalizedSearch, getIdForDef, isDeepSearching, resolver],
   )
 
   // Helper to render a radio group

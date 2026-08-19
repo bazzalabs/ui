@@ -2,12 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import type {
   DisplayNode,
   DisplayRowNode,
-  GetQualifiedRowIdContext,
   ItemDef,
   TreeItemDef,
 } from '../types.js'
 import {
-  defaultGetQualifiedRowId,
   filterNodes,
   getBrowseNodesFlatten,
   getBrowseNodesPreserve,
@@ -109,18 +107,10 @@ describe('tree nodes', () => {
       filterNodes({ query: '', nodes, highlightedId: null }).displayNodes,
     ).filter((row) => row.node.value === 'Design team')
     const getId = (row: DisplayRowNode) =>
-      defaultGetQualifiedRowId({
-        node: row.node,
-        value: row.node.value,
-        id: row.node.id,
-        index: 0,
-        breadcrumbs: row.context.breadcrumbs,
-        isDeepSearching: false,
-        search: null,
-        isDeepSearchResult: false,
-        group: row.context.group,
-        radioGroup: null,
-      } satisfies GetQualifiedRowIdContext)
+      [
+        ...row.context.breadcrumbs.map((breadcrumb) => breadcrumb.value),
+        row.node.value,
+      ].join('.')
 
     expect(getId(browseRows[0])).not.toBe(getId(browseRows[1]))
   })

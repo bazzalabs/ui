@@ -36,8 +36,6 @@ export type {
   DisplayRowNode,
   DisplaySeparatorNode,
   DisplaySubpageNode,
-  GetQualifiedRowIdContext,
-  GetQualifiedRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupLabelRenderParams,
@@ -83,7 +81,6 @@ export type { FilterNodesOptions } from './utils.js'
 export {
   buildDisplayRowNodes,
   deduplicateNodes,
-  defaultGetQualifiedRowId,
   filterNodes,
   flattenNodes,
   getBrowseNodesFlatten,

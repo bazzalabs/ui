@@ -3,10 +3,6 @@
 import { Popover } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
-import type {
-  GetQualifiedRowIdFn,
-  RowIdStrategy,
-} from '../../internal/popup-menu/deep-search/types.js'
 import {
   type PopupMenuDebugOptions,
   PopupMenuProviders,
@@ -111,18 +107,9 @@ export interface ContextMenuRootProps {
   actionsRef?: React.RefObject<ContextMenuRoot.Actions | null>
 
   /**
-   * Function to generate qualified unique IDs for rows.
-   * Defined once at the root level and applied to all surfaces (root and submenus).
-   *
-   * Default behavior:
-   * - If node.id is provided, use it as-is (treat as globally unique)
    * - Otherwise, use the row's full definition path (`defPath`) — identical in
    *   browse and deep-search contexts
    */
-  getQualifiedRowId?: GetQualifiedRowIdFn
-
-  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`. */
-  rowIdStrategy?: RowIdStrategy
 
   /**
    * Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).
@@ -211,8 +198,6 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     closeOnOutsidePress = 'pointerdown',
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
-    getQualifiedRowId,
-    rowIdStrategy,
     getRowId,
     debug,
     children,
@@ -352,8 +337,6 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         menuType="context"
         closeOnOutsidePress={closeOnOutsidePress}
         componentName="context-menu"
-        getQualifiedRowId={getQualifiedRowId}
-        rowIdStrategy={rowIdStrategy}
         debug={debug}
       >
         <Popover.Root

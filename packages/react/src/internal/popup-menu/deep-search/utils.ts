@@ -8,8 +8,6 @@ import type {
   DisplayNode,
   DisplayRadioGroupNode,
   DisplayRowNode,
-  GetQualifiedRowIdContext,
-  GetQualifiedRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupRenderContext,
@@ -19,7 +17,6 @@ import type {
   RadioGroupBehavior,
   RadioGroupDef,
   RadioItemDef,
-  RowIdStrategy,
   RowRenderContext,
   ScoredNode,
   SubmenuDef,
@@ -35,103 +32,6 @@ import {
 const identityQuery = (query: string) => query
 
 // ============================================================================
-// Default getQualifiedRowId Implementation
-// ============================================================================
-
-/**
- * Default function to generate qualified unique IDs for rows.
- *
- * Logic:
- * - If node.id is provided, use it as-is (treat as globally unique)
- * - Otherwise, when deep searching, qualify with breadcrumb path + value
- * - When not deep searching, just use the slugified value
- *
- * @example
- * // With explicit id:
- * // { id: 'my-unique-id', value: 'In Progress' }
- * // => 'my-unique-id'
- *
- * // Without id, deep searching in "Status" submenu:
- * // { value: 'In Progress' } in Status submenu
- * // => 'status.in-progress'
- *
- * // Without id, not deep searching:
- * // { value: 'In Progress' }
- * // => 'in-progress'
- */
-export function defaultGetQualifiedRowId(
-  ctx: GetQualifiedRowIdContext,
-): string {
-  // If explicit id is provided, use it as-is (treat as globally unique)
-  if (ctx.id) {
-    return ctx.id
-  }
-
-  // Otherwise, compute from breadcrumbs + value
-  const slugValue = slugify(ctx.value)
-
-  // Tree browse rows need their breadcrumb path to avoid branch collisions.
-  const hasTreeBreadcrumb = ctx.breadcrumbs.some(
-    (breadcrumb) => breadcrumb.node.kind === 'tree-item',
-  )
-  if (
-    (ctx.isDeepSearching || hasTreeBreadcrumb) &&
-    ctx.breadcrumbs.length > 0
-  ) {
-    const slugBreadcrumbs = ctx.breadcrumbs
-      .map((b) => b.id ?? slugify(b.value))
-      .filter(Boolean)
-    if (slugBreadcrumbs.length > 0) {
-      return [...slugBreadcrumbs, slugValue].join('.')
-    }
-  }
-
-  return slugValue
-}
-
-export function qualifiedRowId(ctx: GetQualifiedRowIdContext): string {
-  if (ctx.id) {
-    return ctx.id
-  }
-  // Single source of truth for the composition rule: the id is the row's
-  // canonical definition-tree path. The leaf id is passed as `undefined`
-  // because the explicit-id short-circuit above already handled it.
-  return computeDefPath(
-    ctx.displayPath ?? [],
-    ctx.breadcrumbs,
-    undefined,
-    ctx.value,
-  ).join('.')
-}
-
-const warnedMissingExplicitIds = new Set<string>()
-
-function warnMissingExplicitId(value: string): void {
-  if (warnedMissingExplicitIds.has(value)) {
-    return
-  }
-  warnedMissingExplicitIds.add(value)
-  console.warn(
-    `[PopupMenu] rowIdStrategy "explicit" requires an explicit id, but the row with value "${value}" has none. Falling back to the qualified id.`,
-  )
-}
-
-export function explicitRowId(ctx: GetQualifiedRowIdContext): string {
-  if (ctx.id) {
-    return ctx.id
-  }
-  if (process.env.NODE_ENV !== 'production') {
-    warnMissingExplicitId(ctx.value)
-  }
-  return qualifiedRowId(ctx)
-}
-
-export const rowIdStrategies: Record<RowIdStrategy, GetQualifiedRowIdFn> = {
-  qualified: qualifiedRowId,
-  explicit: explicitRowId,
-  hybrid: defaultGetQualifiedRowId,
-}
-
 /**
  * Computes a row's canonical definition-tree path (`defPath`): the display
  * path of the computing surface, then breadcrumb segments, then the node's

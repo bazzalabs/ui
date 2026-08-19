@@ -3,10 +3,6 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useCallback, useImperativeHandle, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
-import type {
-  GetQualifiedRowIdFn,
-  RowIdStrategy,
-} from '../../internal/popup-menu/deep-search/types.js'
 import {
   type PopupMenuDebugOptions,
   PopupMenuProviders,
@@ -116,33 +112,6 @@ export interface DropdownMenuRootProps
   actionsRef?: React.RefObject<DropdownMenuRoot.Actions | null>
 
   /**
-   * Function to generate qualified unique IDs for rows.
-   * Defined once at the root level and applied to all surfaces (root and submenus).
-   *
-   * Default behavior:
-   * - If node.id is provided, use it as-is (treat as globally unique)
-   * - Otherwise, use the row's full definition path (`defPath`) — identical in
-   *   browse and deep-search contexts
-   *
-   * @example
-   * ```tsx
-   * <DropdownMenu.Root
-   *   getQualifiedRowId={(ctx) => {
-   *     // Use explicit id if provided
-   *     if (ctx.id) return ctx.id
-   *
-   *     // Otherwise, use the row's canonical definition-tree path
-   *     return (ctx.defPath ?? []).join('.')
-   *   }}
-   * >
-   * ```
-   */
-  getQualifiedRowId?: GetQualifiedRowIdFn
-
-  /** Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`. */
-  rowIdStrategy?: RowIdStrategy
-
-  /**
    * Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).
    * @default explicit `def.id` verbatim, else the joined definition path
    * Read once when the menu root mounts — later changes have no effect.
@@ -177,8 +146,6 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     closeOnOutsidePress = 'pointerdown',
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
-    getQualifiedRowId,
-    rowIdStrategy,
     getRowId,
     debug,
     children,
@@ -280,8 +247,6 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       virtualization={virtualization}
       menuType="dropdown"
       closeOnOutsidePress={closeOnOutsidePress}
-      getQualifiedRowId={getQualifiedRowId}
-      rowIdStrategy={rowIdStrategy}
       debug={debug}
       componentName="dropdown-menu"
     >

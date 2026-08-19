@@ -287,9 +287,6 @@ export interface AsyncState {
 }
 
 // ============================================================================
-// getQualifiedRowId - Unique ID Generation
-// ============================================================================
-
 /**
  * Branch node info passed in breadcrumbs context.
  * Contains the full submenu/subpage definition for maximum flexibility.
@@ -302,102 +299,6 @@ export interface BreadcrumbNode {
   /** The branch node's explicit id (if provided) */
   id?: string
 }
-
-/**
- * Context passed to the getQualifiedRowId function.
- * Provides all information needed to generate a unique ID for a row.
- */
-export interface GetQualifiedRowIdContext {
-  /** The node definition */
-  node:
-    | ItemDef
-    | RadioItemDef
-    | CheckboxItemDef
-    | SubmenuDef
-    | SubpageDef
-    | TreeItemDef
-
-  /** The node's value (node.value) - used for search/filtering and as fallback identifier */
-  value: string
-
-  /** The node's explicit id (node.id) - if provided, treated as globally unique */
-  id: string | undefined
-
-  /** Position in the flattened display list (0-based) */
-  index: number
-
-  /**
-   * Breadcrumb nodes from root to parent.
-   * Contains full submenu/subpage node definitions for maximum flexibility.
-   */
-  breadcrumbs: BreadcrumbNode[]
-
-  /**
-   * Segments of the ancestor submenus enclosing the surface this row is *displayed* in, outermost first — the contextual half of the row's path. Empty at the root surface. Each segment is the submenu's explicit `id`, or its slugified `value`; empty segments contribute nothing. Contextual: browse mode and deep search display the same row in different surfaces, so this differs between them — use `defPath` for the render-independent path.
-   */
-  displayPath?: string[]
-
-  /**
-   * Full path of this node in the content-definition tree, root-first,
-   * including the node's own segment (`id`, or its slugified `value`).
-   * Unlike `displayPath`/`breadcrumbs` — whose split depends on where the
-   * row is being displayed this render — `defPath` is identical wherever
-   * the row renders: browse, deep search, or recursion. Empty segments are
-   * skipped.
-   * Equals `[...displayPath, ...breadcrumb segments, own segment]`.
-   */
-  defPath?: string[]
-
-  /** Whether deep search is currently active (search query meets minLength threshold) */
-  isDeepSearching: boolean
-
-  /** Search context, null if browsing */
-  search: { query: string; score: number } | null
-
-  /** Whether surfaced via deep search (rendered outside its home menu) */
-  isDeepSearchResult: boolean
-
-  /** Group context, if any */
-  group: { id: string; label?: string } | null
-
-  /** Radio group context, if any */
-  radioGroup: { id: string; label?: string } | null
-}
-
-/**
- * Function that generates a unique qualified ID for a row.
- * Used for React keys, store registration, and DOM id attributes.
- *
- * Default behavior:
- * - If node.id is provided, use it as-is (treat as globally unique)
- * - Otherwise, use the row's full definition path (`defPath`) — identical in
- *   browse and deep-search contexts
- *
- * @example
- * ```ts
- * // Custom implementation
- * const getQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
- *   // Use explicit id if provided
- *   if (ctx.id) return ctx.id
- *
- *   // Otherwise, use the row's canonical definition-tree path
- *   return (ctx.defPath ?? []).join('.')
- * }
- * ```
- */
-export type GetQualifiedRowIdFn = (context: GetQualifiedRowIdContext) => string
-
-/**
- * Named strategy for computing data-first row ids.
- * - `'qualified'`: explicit `id` verbatim; otherwise the row's definition
- *   path (`defPath`): display path + breadcrumb segments + slugified value,
- *   identical in browse and deep-search contexts.
- * - `'explicit'`: explicit `id` verbatim; warns in dev and falls back to
- *   the qualified computation when `id` is missing.
- * - `'hybrid'`: the legacy behavior (`defaultGetQualifiedRowId`) — slug
- *   only while browsing, path-qualified while deep-searching.
- */
-export type RowIdStrategy = 'qualified' | 'explicit' | 'hybrid'
 
 // ============================================================================
 // Render Context - passed to all render functions
@@ -1449,10 +1350,6 @@ export interface DataSurfaceProps {
    *
    * @default Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value
    */
-  getQualifiedRowId?: GetQualifiedRowIdFn
-
-  /** Named row id strategy. Ignored when `getQualifiedRowId` is provided. */
-  rowIdStrategy?: RowIdStrategy
 
   /** Children (Input, List, etc.) */
   children: React.ReactNode
