@@ -59,7 +59,8 @@ export function computeDefPath(
  *
  * Priority:
  * - explicit `node.pageId`
- * - derived from breadcrumb ids/values + node id/value (slugified)
+ * - derived from breadcrumb and node segments following the canonical rule:
+ *   explicit `id` verbatim, otherwise slugified `value`
  */
 export function getSubpagePageId(
   node: SubpageDef,
@@ -70,9 +71,9 @@ export function getSubpagePageId(
   }
 
   const breadcrumbSegments = breadcrumbs
-    .map((breadcrumb) => slugify(breadcrumb.id ?? breadcrumb.value))
+    .map((breadcrumb) => breadcrumb.id ?? slugify(breadcrumb.value))
     .filter(Boolean)
-  const leafSegment = slugify(node.id ?? node.value)
+  const leafSegment = node.id ?? slugify(node.value)
   const path = [...breadcrumbSegments, leafSegment].filter(Boolean).join('.')
 
   return path ? `subpage.${path}` : 'subpage'
