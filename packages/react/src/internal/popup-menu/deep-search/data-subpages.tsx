@@ -3,7 +3,12 @@
 import * as React from 'react'
 import { normalizeValue } from '../../listbox/utils/normalize.js'
 import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
-import { defaultGetRowId, resolveNodeDefs } from '../resolve/resolve.js'
+import {
+  defaultGetRowId,
+  isPopupMenuNode,
+  resolveDetachedNode,
+} from '../resolve/resolve.js'
+import type { PopupMenuNode } from '../resolve/types.js'
 import { useAsyncMenuCoordinator } from './async-coordinator.js'
 import { useDataPopupContext } from './context.js'
 import { warnOutOfTreeDef } from './data-list.js'
@@ -227,15 +232,19 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const { dataSurfaceContext } = useDataPopupContext()
   const { resolvedContent } = useDataPopupContext()
   const resolver = useMenuTreeResolver()
-  const getIdForDef = React.useCallback(
-    (def: NodeDef): string => {
+  const getNodeForDefOrDetached = React.useCallback(
+    (def: NodeDef): PopupMenuNode => {
       const resolved = resolver?.getNodeForDef(def)
-      if (resolved) return resolved.id
+      if (resolved) return resolved
       warnOutOfTreeDef(def)
       const getRowId = resolver?.getRowId ?? defaultGetRowId
-      return resolveNodeDefs([def], null, [], getRowId)[0]!.id
+      return resolveDetachedNode(def, getRowId)
     },
     [resolver],
+  )
+  const getIdForDef = React.useCallback(
+    (def: NodeDef): string => getNodeForDefOrDetached(def).id,
+    [getNodeForDefOrDetached],
   )
 
   const content = dataSurfaceContext?.content ?? []
@@ -266,6 +275,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
+                node: getNodeForDefOrDetached(rowNode),
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -288,6 +298,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
+                node: getNodeForDefOrDetached(rowNode),
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -311,6 +322,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
+                node: getNodeForDefOrDetached(rowNode),
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -343,7 +355,8 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
             id: rowNode.id,
           }
 
-          const submenuRenderNode = (childNode: NodeDef) => {
+          const submenuRenderNode = (arg: NodeDef | PopupMenuNode) => {
+            const childNode = isPopupMenuNode(arg) ? arg.def : arg
             if (childNode.kind === 'separator') {
               return null
             }
@@ -385,6 +398,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                 return (
                   <React.Fragment key={childNode.id}>
                     {childNode.render({
+                      node: getNodeForDefOrDetached(childNode),
                       props: {},
                       context: {
                         ...groupContext,
@@ -438,6 +452,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
+                node: getNodeForDefOrDetached(rowNode),
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -468,6 +483,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
         return (
           <React.Fragment key={targetPageId}>
             {rowNode.renderTrigger({
+              node: getNodeForDefOrDetached(rowNode),
               props: {
                 id: rowId,
                 value: rowNode.value,
@@ -516,6 +532,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={radioGroup.id}>
               {radioGroup.render({
+                node: getNodeForDefOrDetached(radioGroup),
                 props: {
                   value: radioGroup.value,
                   onValueChange: radioGroup.onValueChange,
@@ -547,6 +564,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
       return (
         <React.Fragment key={pageId}>
           {node.renderContent({
+            node: getNodeForDefOrDetached(node),
             pageId,
             context: {
               ...context,
@@ -561,7 +579,8 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
             },
             nodes: node.nodes ?? [],
             asyncContent: node.asyncNodes,
-            renderNode: (childNode) => {
+            renderNode: (arg) => {
+              const childNode = isPopupMenuNode(arg) ? arg.def : arg
               if (childNode.kind === 'separator') {
                 return null
               }
@@ -619,6 +638,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                   return (
                     <React.Fragment key={childNode.id}>
                       {childNode.render({
+                        node: getNodeForDefOrDetached(childNode),
                         props: {},
                         context: {
                           ...groupContext,

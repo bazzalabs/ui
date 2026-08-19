@@ -5,6 +5,7 @@ import type { PopupMenuRadioGroupProps } from '../components/radio-group/radio-g
 import type { PopupMenuRadioItemProps } from '../components/radio-item/radio-item.js'
 import type { PopupMenuSubmenuTriggerProps } from '../components/submenu-trigger/submenu-trigger.js'
 import type { PopupMenuSubpageTriggerProps } from '../components/subpage-trigger/subpage-trigger.js'
+import type { PopupMenuNode } from '../resolve/types.js'
 
 // ============================================================================
 // Async Loader Types
@@ -385,6 +386,8 @@ export type ItemRenderProps = {
  * Parameters passed to item render functions.
  */
 export interface ItemRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the Item component */
   props: ItemRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
@@ -403,6 +406,8 @@ export type TreeItemRenderProps = Omit<ItemRenderProps, 'shortcut'> & {
 
 /** Parameters passed to tree item render functions. */
 export interface TreeItemRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   props: TreeItemRenderProps
   context: RowRenderContext & {
     value: string
@@ -434,6 +439,8 @@ export type RadioItemRenderProps = {
  * Parameters passed to radio item render functions.
  */
 export interface RadioItemRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the RadioItem component */
   props: RadioItemRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
@@ -470,6 +477,8 @@ export type SubmenuRenderProps = {
  * Includes context plus the submenu's child nodes and render function.
  */
 export interface SubmenuRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the SubmenuTrigger */
   props: SubmenuRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
@@ -495,7 +504,8 @@ export interface SubmenuRenderParams {
    * Function to render a child node.
    * Call this for each node in the submenu's list.
    */
-  renderNode: (node: NodeDef) => React.ReactNode
+  /** Resolved nodes are unwrapped to their defs. */
+  renderNode: (node: NodeDef | PopupMenuNode) => React.ReactNode
 }
 
 // ============================================================================
@@ -527,6 +537,8 @@ export type SubpageTriggerRenderProps = {
  * Parameters passed to subpage trigger render functions.
  */
 export interface SubpageTriggerRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the SubpageTrigger */
   props: SubpageTriggerRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
@@ -544,6 +556,8 @@ export interface SubpageTriggerRenderParams {
  * The returned JSX should include a `<PopupMenu.Subpage pageId={pageId}>` wrapper.
  */
 export interface SubpageContentRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Computed page ID for this subpage */
   pageId: string
   /** Context for conditional rendering */
@@ -569,7 +583,8 @@ export interface SubpageContentRenderParams {
    * Function to render a child node.
    * Call this for each node in the subpage's list.
    */
-  renderNode: (node: NodeDef) => React.ReactNode
+  /** Resolved nodes are unwrapped to their defs. */
+  renderNode: (node: NodeDef | PopupMenuNode) => React.ReactNode
 }
 
 // ============================================================================
@@ -609,6 +624,8 @@ export interface GroupRenderContext {
  * Parameters passed to group render functions.
  */
 export interface GroupRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props (empty for groups, but consistent structure) */
   props: Record<string, never>
   /** Context for conditional rendering (includes label for convenience) */
@@ -624,6 +641,8 @@ export interface GroupRenderParams {
  * Parameters passed to group label render functions.
  */
 export interface GroupLabelRenderParams {
+  /** The resolved menu node for this group — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the label element (stable id for aria wiring) */
   props: { id: string }
   /** Context for conditional rendering (includes label for convenience) */
@@ -661,6 +680,8 @@ export type CheckboxItemRenderProps = {
  * Parameters passed to checkbox item render functions.
  */
 export interface CheckboxItemRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the CheckboxItem component */
   props: CheckboxItemRenderProps
   /** Context for conditional rendering (includes props values for convenience) */
@@ -689,6 +710,8 @@ export type RadioGroupRenderProps = Required<
  * Parameters passed to radio group render functions.
  */
 export interface RadioGroupRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the RadioGroup component */
   props: RadioGroupRenderProps
   /** Context for conditional rendering */
@@ -708,6 +731,8 @@ export interface RadioGroupRenderParams {
  * Parameters passed to radio group label render functions.
  */
 export interface RadioGroupLabelRenderParams {
+  /** The resolved menu node for this group — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
   /** Props to spread onto the label element (stable id for aria wiring) */
   props: { id: string }
   /** Context for conditional rendering (includes label for convenience) */
@@ -1130,6 +1155,12 @@ export interface DisplayGroupNode {
   kind: 'group'
   /** The group definition */
   group: GroupDef
+  /**
+   * The resolver-owned node for `group`, set when the display node is built.
+   * Lets list renderers outside this package forward it to `renderLabel`
+   * without reaching into the resolver themselves.
+   */
+  resolvedNode: PopupMenuNode
   /** Pre-computed render context for this group */
   context: GroupRenderContext
   /** Display nodes for items within this group */
@@ -1146,6 +1177,12 @@ export interface DisplayRadioGroupNode {
   kind: 'radio-group'
   /** The radio group definition */
   radioGroup: RadioGroupDef
+  /**
+   * The resolver-owned node for `radioGroup`, set when the display node is built.
+   * Lets list renderers outside this package forward it to `renderLabel`
+   * without reaching into the resolver themselves.
+   */
+  resolvedNode: PopupMenuNode
   /** Pre-computed render context for this radio group */
   context: GroupRenderContext
   /** Display nodes for items within this radio group */

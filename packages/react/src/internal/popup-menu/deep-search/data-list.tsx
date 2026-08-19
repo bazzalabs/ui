@@ -18,7 +18,12 @@ import {
 import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
 import { useMaybeSubpageContext } from '../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../contexts/subpage-stack-context.js'
-import { defaultGetRowId, resolveNodeDefs } from '../resolve/resolve.js'
+import {
+  defaultGetRowId,
+  isPopupMenuNode,
+  resolveDetachedNode,
+} from '../resolve/resolve.js'
+import type { PopupMenuNode } from '../resolve/types.js'
 import {
   type AsyncMenuState,
   useAsyncMenuCoordinator,
@@ -77,8 +82,13 @@ function renderGroupLabelElement<
   groupId: string,
   label: string | undefined,
   renderLabel:
-    | ((params: { props: { id: string }; context: C }) => React.ReactNode)
+    | ((params: {
+        node: PopupMenuNode
+        props: { id: string }
+        context: C
+      }) => React.ReactNode)
     | undefined,
+  node: PopupMenuNode,
   context: C,
 ): React.ReactNode {
   if (!label && !renderLabel) return null
@@ -86,7 +96,7 @@ function renderGroupLabelElement<
   if (renderLabel) {
     return (
       <React.Fragment key={labelId}>
-        {renderLabel({ props: { id: labelId }, context })}
+        {renderLabel({ node, props: { id: labelId }, context })}
       </React.Fragment>
     )
   }
@@ -98,12 +108,15 @@ function renderGroupLabelElement<
 }
 
 // ============================================================================
-// Helper: Compute composite IDs for all row nodes
+// Helper: Compute resolved identity for all display nodes
 // ============================================================================
 
 /**
  * Computes and sets composite IDs directly on all row nodes in the display list.
  * Mutates the displayNodes in place for performance.
+ *
+ * Group nodes get their `resolvedNode` when they are built by `filterNodes`,
+ * not here.
  */
 function computeItemIds(
   displayNodes: DisplayNode[],
@@ -582,15 +595,19 @@ export const DataListInner = React.forwardRef<
 
   const resolver = useMenuTreeResolver()
   const { setResolvedContent } = useDataPopupContext()
-  const getIdForDef = React.useCallback(
-    (def: NodeDef): string => {
+  const getNodeForDefOrDetached = React.useCallback(
+    (def: NodeDef): PopupMenuNode => {
       const resolved = resolver?.getNodeForDef(def)
-      if (resolved) return resolved.id
+      if (resolved) return resolved
       warnOutOfTreeDef(def)
       const getRowId = resolver?.getRowId ?? defaultGetRowId
-      return resolveNodeDefs([def], null, [], getRowId)[0]!.id
+      return resolveDetachedNode(def, getRowId)
     },
     [resolver],
+  )
+  const getIdForDef = React.useCallback(
+    (def: NodeDef): string => getNodeForDefOrDetached(def).id,
+    [getNodeForDefOrDetached],
   )
   const graftParent = useGraftPoint()
   const { depth: surfaceDepth } = useListboxContext()
@@ -698,6 +715,7 @@ export const DataListInner = React.forwardRef<
       groupSearchBehavior: deepSearchConfig.groupSearchBehavior,
       radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
       sortGroups: deepSearchConfig.sortGroups,
+      getNodeForDef: getNodeForDefOrDetached,
     })
 
     const asyncResultBehavior = deepSearchConfig.asyncResultBehavior ?? 'stream'
@@ -758,6 +776,7 @@ export const DataListInner = React.forwardRef<
     deepSearchConfig,
     includeInDeepSearch,
     getIdForDef,
+    getNodeForDefOrDetached,
     asyncSubmenus.length,
     asyncContent,
     coordinator,
@@ -872,6 +891,7 @@ export const DataListInner = React.forwardRef<
         return (
           <React.Fragment key={compositeId}>
             {node.render({
+              node: getNodeForDefOrDetached(node),
               props: {
                 id: compositeId,
                 value: node.value,
@@ -896,6 +916,7 @@ export const DataListInner = React.forwardRef<
         return (
           <React.Fragment key={compositeId}>
             {node.render({
+              node: getNodeForDefOrDetached(node),
               props: {
                 id: compositeId,
                 value: node.value,
@@ -920,6 +941,7 @@ export const DataListInner = React.forwardRef<
         return (
           <React.Fragment key={compositeId}>
             {node.render({
+              node: getNodeForDefOrDetached(node),
               props: {
                 id: compositeId,
                 value: node.value,
@@ -944,6 +966,7 @@ export const DataListInner = React.forwardRef<
         return (
           <React.Fragment key={compositeId}>
             {node.render({
+              node: getNodeForDefOrDetached(node),
               props: {
                 id: compositeId,
                 value: node.value,
@@ -981,7 +1004,10 @@ export const DataListInner = React.forwardRef<
           id: node.id,
         }
 
-        const submenuRenderNode = (childNode: NodeDef): React.ReactNode => {
+        const submenuRenderNode = (
+          arg: NodeDef | PopupMenuNode,
+        ): React.ReactNode => {
+          const childNode = isPopupMenuNode(arg) ? arg.def : arg
           // Skip separators
           if (childNode.kind === 'separator') {
             return null
@@ -1028,6 +1054,7 @@ export const DataListInner = React.forwardRef<
               return (
                 <React.Fragment key={childNode.id}>
                   {childNode.render({
+                    node: getNodeForDefOrDetached(childNode),
                     props: {},
                     context: {
                       ...groupContext,
@@ -1090,6 +1117,7 @@ export const DataListInner = React.forwardRef<
               value={resolver?.getNodeForDef(node) ?? null}
             >
               {node.render({
+                node: getNodeForDefOrDetached(node),
                 props: {
                   id: compositeId,
                   value: node.value,
@@ -1119,6 +1147,7 @@ export const DataListInner = React.forwardRef<
         return (
           <React.Fragment key={compositeId}>
             {node.renderTrigger({
+              node: getNodeForDefOrDetached(node),
               props: {
                 id: compositeId,
                 value: node.value,
@@ -1183,6 +1212,7 @@ export const DataListInner = React.forwardRef<
         return (
           <React.Fragment key={radioGroup.id}>
             {radioGroup.render({
+              node: getNodeForDefOrDetached(radioGroup),
               props: {
                 value: radioGroup.value,
                 onValueChange: radioGroup.onValueChange,
@@ -1211,6 +1241,7 @@ export const DataListInner = React.forwardRef<
             radioGroup.id,
             radioGroup.label,
             radioGroup.renderLabel,
+            getNodeForDefOrDetached(radioGroup),
             {
               ...groupContext,
               label: radioGroup.label,
@@ -1222,7 +1253,7 @@ export const DataListInner = React.forwardRef<
         </div>
       )
     },
-    [renderRowNode],
+    [renderRowNode, getNodeForDefOrDetached],
   )
 
   // Build the renderNode function that handles groups, radio groups, and rows
@@ -1240,6 +1271,7 @@ export const DataListInner = React.forwardRef<
           return (
             <React.Fragment key={group.id}>
               {group.render({
+                node: getNodeForDefOrDetached(group),
                 props: {},
                 context: {
                   ...context,
@@ -1255,10 +1287,16 @@ export const DataListInner = React.forwardRef<
         return (
           // biome-ignore lint/a11y/useSemanticElements: ignore for now
           <div key={group.id} role="group" aria-label={group.label}>
-            {renderGroupLabelElement(group.id, group.label, group.renderLabel, {
-              ...context,
-              label: group.label,
-            })}
+            {renderGroupLabelElement(
+              group.id,
+              group.label,
+              group.renderLabel,
+              getNodeForDefOrDetached(group),
+              {
+                ...context,
+                label: group.label,
+              },
+            )}
             {children}
           </div>
         )
@@ -1276,6 +1314,7 @@ export const DataListInner = React.forwardRef<
           return (
             <React.Fragment key={radioGroup.id}>
               {radioGroup.render({
+                node: getNodeForDefOrDetached(radioGroup),
                 props: {
                   value: radioGroup.value,
                   onValueChange: radioGroup.onValueChange,
@@ -1304,6 +1343,7 @@ export const DataListInner = React.forwardRef<
               radioGroup.id,
               radioGroup.label,
               radioGroup.renderLabel,
+              getNodeForDefOrDetached(radioGroup),
               {
                 ...context,
                 label: radioGroup.label,
@@ -1339,7 +1379,7 @@ export const DataListInner = React.forwardRef<
       // renderRowNode already wraps in keyed Fragment
       return renderRowNode(displayNode)
     },
-    [renderRowNode],
+    [renderRowNode, getNodeForDefOrDetached],
   )
 
   // Get async state from coordinator

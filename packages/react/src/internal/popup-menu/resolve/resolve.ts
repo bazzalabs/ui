@@ -6,6 +6,43 @@ import type {
   UnidentifiedMenuNode,
 } from './types.js'
 
+const detachedNodeCache = new WeakMap<
+  GetRowIdFn,
+  WeakMap<NodeDef, PopupMenuNode>
+>()
+
+export function isPopupMenuNode(value: unknown): value is PopupMenuNode {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'def' in value &&
+    typeof (value as PopupMenuNode).id === 'string' &&
+    typeof (value as PopupMenuNode).segment === 'string' &&
+    Array.isArray((value as PopupMenuNode).defPath) &&
+    Array.isArray((value as PopupMenuNode).children) &&
+    typeof (value as PopupMenuNode).depth === 'number' &&
+    'parent' in value
+  )
+}
+
+/** Resolve a single out-of-tree def to a stable detached node (per seam, per def). */
+export function resolveDetachedNode(
+  def: NodeDef,
+  getRowId: GetRowIdFn,
+): PopupMenuNode {
+  let perSeam = detachedNodeCache.get(getRowId)
+  if (!perSeam) {
+    perSeam = new WeakMap()
+    detachedNodeCache.set(getRowId, perSeam)
+  }
+  let node = perSeam.get(def)
+  if (!node) {
+    node = resolveNodeDefs([def], null, [], getRowId)[0]!
+    perSeam.set(def, node)
+  }
+  return node
+}
+
 /** Default row id: explicit `def.id` verbatim, else the joined definition path. */
 export function defaultGetRowId(node: UnidentifiedMenuNode): string {
   return node.def.id ?? node.defPath.join('.')

@@ -1,5 +1,7 @@
 import { commandScore } from '../../listbox/utils/command-score.js'
 import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
+import { defaultGetRowId, resolveDetachedNode } from '../resolve/resolve.js'
+import type { PopupMenuNode } from '../resolve/types.js'
 import type {
   AsyncNodesConfig,
   BreadcrumbNode,
@@ -819,9 +821,19 @@ function expandTreeNode(
  * Gets nodes for browse mode (no search) with preserve behavior.
  * Keeps group structure intact, showing group containers with their items.
  */
+/**
+ * Fallback node resolution for callers without a menu-tree resolver (tests and
+ * standalone use of the filter helpers). Detached nodes are cached per def, so
+ * this stays referentially stable across calls.
+ */
+export function resolveDetachedNodeForDef(def: NodeDef): PopupMenuNode {
+  return resolveDetachedNode(def, defaultGetRowId)
+}
+
 export function getBrowseNodesPreserve(
   nodes: NodeDef[],
   highlightedId: string | null,
+  getNodeForDef: (def: NodeDef) => PopupMenuNode = resolveDetachedNodeForDef,
 ): DisplayNode[] {
   const result: DisplayNode[] = []
 
@@ -893,6 +905,7 @@ export function getBrowseNodesPreserve(
         result.push({
           kind: 'group',
           group: node,
+          resolvedNode: getNodeForDef(node),
           context: groupContext,
           items: groupItems,
           bestScore: 1,
@@ -939,6 +952,7 @@ export function getBrowseNodesPreserve(
         result.push({
           kind: 'radio-group',
           radioGroup: node,
+          resolvedNode: getNodeForDef(node),
           context: groupContext,
           items: radioItems,
           bestScore: 1,
@@ -1014,6 +1028,12 @@ export interface FilterNodesOptions {
   radioGroupSearchBehavior?: RadioGroupBehavior
   /** Whether to sort groups by best score */
   sortGroups?: boolean
+  /**
+   * Resolves a def to its resolver-owned node, used to populate
+   * `resolvedNode` on group display nodes. Defaults to detached resolution
+   * for callers without a menu-tree resolver.
+   */
+  getNodeForDef?: (def: NodeDef) => PopupMenuNode
 }
 
 /**
@@ -1034,6 +1054,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     includeInDeepSearch = true,
     minLength = 0,
     radioGroupSearchBehavior = 'preserve',
+    getNodeForDef = resolveDetachedNodeForDef,
   } = options
 
   // Determine if deep search should activate
@@ -1176,6 +1197,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
       radioGroupDisplayNodes.push({
         kind: 'radio-group',
         radioGroup: radioGroupDef,
+        resolvedNode: getNodeForDef(radioGroupDef),
         context: groupContext,
         items: itemsToDisplay.map((item) =>
           buildDisplayRowNode(item, query, highlightedId),
@@ -1236,6 +1258,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     minLength = 0,
     sortGroups = true,
     radioGroupSearchBehavior = 'preserve',
+    getNodeForDef = resolveDetachedNodeForDef,
   } = options
 
   // Determine if deep search should activate
@@ -1344,6 +1367,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     groupDisplayNodes.push({
       kind: 'group',
       group: groupDef,
+      resolvedNode: getNodeForDef(groupDef),
       context: groupContext,
       items: items.map((item) =>
         buildDisplayRowNode(item, query, highlightedId),
@@ -1402,6 +1426,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
       radioGroupDisplayNodes.push({
         kind: 'radio-group',
         radioGroup: radioGroupDef,
+        resolvedNode: getNodeForDef(radioGroupDef),
         context: groupContext,
         items: itemsToDisplay.map((item) =>
           buildDisplayRowNode(item, query, highlightedId),
@@ -1470,6 +1495,7 @@ export function filterNodes(options: FilterNodesOptions): {
     nodes,
     highlightedId,
     groupSearchBehavior = 'preserve',
+    getNodeForDef = resolveDetachedNodeForDef,
   } = options
   const normalizeQuery = options.normalizeQuery ?? normalizeValue
   const normalizedQuery = normalizeQuery(query)
@@ -1486,7 +1512,7 @@ export function filterNodes(options: FilterNodesOptions): {
   // Always preserve groups in browse mode (groupSearchBehavior only affects search)
   if (!normalizedQuery) {
     return {
-      displayNodes: getBrowseNodesPreserve(nodes, highlightedId),
+      displayNodes: getBrowseNodesPreserve(nodes, highlightedId, getNodeForDef),
       isDeepSearching: false,
     }
   }

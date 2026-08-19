@@ -4,12 +4,18 @@ import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import type {
+  CheckboxItemDef,
+  CheckboxItemRenderParams,
   GroupDef,
+  GroupLabelRenderParams,
   ItemDef,
+  ItemRenderParams,
   NodeDef,
   RadioGroupDef,
+  RadioGroupLabelRenderParams,
   RadioItemDef,
   SubmenuDef,
+  SubmenuRenderParams,
   SubpageDef,
 } from '../types.js'
 
@@ -896,6 +902,48 @@ describe('group labels', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('passes the resolved node to a group renderLabel', async () => {
+    const renderLabel = vi.fn(({ props }: GroupLabelRenderParams) => (
+      <div data-testid="custom-group-label" {...props} />
+    ))
+
+    render(<MenuWithDataContent content={[createGroup({ renderLabel })]} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('custom-group-label')).toBeInTheDocument()
+    })
+    expect(renderLabel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        node: expect.objectContaining({
+          kind: 'group',
+          id: 'test-group',
+        }),
+      }),
+    )
+  })
+
+  it('passes the resolved node to a radio group renderLabel', async () => {
+    const renderLabel = vi.fn(({ props }: RadioGroupLabelRenderParams) => (
+      <div data-testid="custom-radio-group-label" {...props} />
+    ))
+
+    render(
+      <MenuWithDataContent content={[createRadioGroup({ renderLabel })]} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('custom-radio-group-label')).toBeInTheDocument()
+    })
+    expect(renderLabel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        node: expect.objectContaining({
+          kind: 'radio-group',
+          id: 'test-radio-group',
+        }),
+      }),
+    )
+  })
+
   it('prefers the container render over renderLabel', async () => {
     const renderLabel = vi.fn(() => <div data-testid="custom-group-label" />)
 
@@ -1060,13 +1108,148 @@ describe('Subpages', () => {
   })
 })
 
+describe('resolved render params', () => {
+  it('passes the resolved node to item, submenu, and checkbox renders', () => {
+    const defs: NodeDef[] = []
+    let itemParams: ItemRenderParams | undefined
+    let submenuParams: SubmenuRenderParams | undefined
+    let checkboxParams: CheckboxItemRenderParams | undefined
+    const item: ItemDef = {
+      kind: 'item',
+      id: 'item',
+      value: 'Item',
+      render: (params) => {
+        itemParams = params
+        return (
+          <DropdownMenu.Item {...params.props} data-testid="param-item">
+            {params.node.def === item ? 'item' : 'wrong'}
+          </DropdownMenu.Item>
+        )
+      },
+    }
+    const checkbox: CheckboxItemDef = {
+      kind: 'checkbox-item',
+      id: 'checkbox',
+      value: 'Checkbox',
+      render: (params) => {
+        checkboxParams = params
+        return (
+          <DropdownMenu.CheckboxItem
+            {...params.props}
+            data-testid="param-checkbox"
+          >
+            {params.node.id}
+          </DropdownMenu.CheckboxItem>
+        )
+      },
+    }
+    const submenu = createTestSubmenuDef('submenu', 'Submenu', [checkbox], {
+      render: (params) => {
+        submenuParams = params
+        return (
+          <DropdownMenu.Submenu>
+            <DropdownMenu.SubmenuTrigger
+              {...params.props}
+              data-testid="param-submenu"
+            >
+              {params.node.id}
+            </DropdownMenu.SubmenuTrigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner>
+                <DropdownMenu.Popup>
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.List>
+                      {params.node.children.map(params.renderNode)}
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Submenu>
+        )
+      },
+    })
+    defs.push(item, submenu)
+
+    const user = userEvent.setup()
+    render(<MenuWithDataContent content={defs} />)
+    expect(screen.getByTestId('param-item')).toHaveAttribute('id', 'item')
+    expect(screen.getByTestId('param-item')).toHaveTextContent('item')
+    expect(submenuParams!.node.id).toBe(
+      screen.getByTestId('param-submenu').getAttribute('id'),
+    )
+    expect(submenuParams!.node.def).toBe(submenu)
+    expect(itemParams!.node.id).toBe(
+      screen.getByTestId('param-item').getAttribute('id'),
+    )
+    expect(itemParams!.node.def).toBe(item)
+
+    return user.hover(screen.getByTestId('param-submenu')).then(() =>
+      waitFor(() => {
+        expect(screen.getByTestId('param-checkbox')).toBeInTheDocument()
+        expect(checkboxParams!.node.id).toBe(
+          screen.getByTestId('param-checkbox').getAttribute('id'),
+        )
+        expect(checkboxParams!.node.def).toBe(checkbox)
+      }),
+    )
+  })
+
+  it('passes definition paths and unwraps resolved renderNode arguments', async () => {
+    const child = createTestItemDef('path-child', 'Child', {
+      render: ({ props, node }) => (
+        <DropdownMenu.Item {...props} data-testid="path-child">
+          <span data-testid="child-path">{node.defPath.join('/')}</span>
+        </DropdownMenu.Item>
+      ),
+    })
+    const submenu = createTestSubmenuDef('parent', 'Parent', [child], {
+      render: ({ props, node, renderNode }) => (
+        <DropdownMenu.Submenu>
+          <DropdownMenu.SubmenuTrigger {...props} />
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List>
+                    {renderNode(node.children[0])}
+                    {renderNode(node.children[0].def)}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    })
+    const user = userEvent.setup()
+    render(<MenuWithDataContent content={[submenu]} />)
+    await user.hover(screen.getByRole('menuitem'))
+    await waitFor(() => {
+      const childRows = screen.getAllByTestId('path-child')
+      expect(childRows).toHaveLength(2)
+      expect(childRows.map((row) => row.id)).toEqual([
+        'parent.child',
+        'parent.child',
+      ])
+      expect(
+        childRows.map(
+          (row) => row.querySelector('[data-testid="child-path"]')?.textContent,
+        ),
+      ).toEqual(['parent/child', 'parent/child'])
+    })
+  })
+})
+
 describe('resolved row ids', () => {
   function ResolvedRowsMenu({
     search = false,
     getRowId,
+    captureSubpageParams,
   }: {
     search?: boolean
     getRowId?: (node: { def: NodeDef; defPath: string[] }) => string
+    captureSubpageParams?: (params: ItemRenderParams) => void
   }) {
     const content = React.useMemo(
       () => [
@@ -1074,10 +1257,22 @@ describe('resolved row ids', () => {
           createTestItemDef('backlog', 'Backlog'),
         ]),
         createTestSubpageDef('details', 'Details', [
-          createTestItemDef('assigned-to-me', 'Assigned to me'),
+          createTestItemDef('assigned-to-me', 'Assigned to me', {
+            render: (params) => {
+              captureSubpageParams?.(params)
+              return (
+                <DropdownMenu.Item
+                  {...params.props}
+                  data-testid="item-assigned-to-me"
+                >
+                  Assigned to me
+                </DropdownMenu.Item>
+              )
+            },
+          }),
         ]),
       ],
-      [],
+      [captureSubpageParams],
     )
 
     return (
@@ -1144,7 +1339,14 @@ describe('resolved row ids', () => {
 
   it('uses subpage-qualified ids and the root getRowId seam for subpage rows', async () => {
     const user = userEvent.setup()
-    const { unmount } = render(<ResolvedRowsMenu />)
+    let subpageParams: ItemRenderParams | undefined
+    const { unmount } = render(
+      <ResolvedRowsMenu
+        captureSubpageParams={(params) => {
+          subpageParams = params
+        }}
+      />,
+    )
     await user.click(screen.getByTestId('subpage-trigger-details'))
     await waitFor(() =>
       expect(screen.getByTestId('item-assigned-to-me')).toHaveAttribute(
@@ -1152,6 +1354,8 @@ describe('resolved row ids', () => {
         'details.assigned-to-me',
       ),
     )
+    expect(subpageParams!.node.id).toBe('details.assigned-to-me')
+    expect(subpageParams!.node.defPath).toEqual(['details', 'assigned-to-me'])
 
     unmount()
     render(
