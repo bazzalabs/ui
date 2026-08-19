@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeDef } from '../../deep-search/types.js'
 import { computeDefPath } from '../../deep-search/utils.js'
-import { resolveNodeDefs } from '../resolve.js'
+import { defaultGetRowId, resolveNodeDefs } from '../resolve.js'
 
 const item = (value: string, id?: string): NodeDef =>
   ({ kind: 'item', value, id, render: () => null }) as NodeDef
@@ -11,7 +11,7 @@ const submenu = (value: string, nodes: NodeDef[], id?: string): NodeDef =>
 
 describe('resolveNodeDefs', () => {
   it('resolves flat items', () => {
-    const [node] = resolveNodeDefs([item('Apple')], null, [])
+    const [node] = resolveNodeDefs([item('Apple')], null, [], defaultGetRowId)
 
     expect(node).toMatchObject({
       segment: 'apple',
@@ -24,7 +24,12 @@ describe('resolveNodeDefs', () => {
   })
 
   it('preserves explicit ids verbatim', () => {
-    const [node] = resolveNodeDefs([item('Apple', 'Custom ID!')], null, [])
+    const [node] = resolveNodeDefs(
+      [item('Apple', 'Custom ID!')],
+      null,
+      [],
+      defaultGetRowId,
+    )
 
     expect(node).toMatchObject({
       segment: 'Custom ID!',
@@ -38,6 +43,7 @@ describe('resolveNodeDefs', () => {
       [submenu('Status', [item('Backlog')])],
       null,
       [],
+      defaultGetRowId,
     )
     const child = node.children[0]
 
@@ -55,7 +61,7 @@ describe('resolveNodeDefs', () => {
       id: 'g1',
       nodes: [item('Backlog')],
     } as NodeDef
-    const [node] = resolveNodeDefs([group], null, [])
+    const [node] = resolveNodeDefs([group], null, [], defaultGetRowId)
     const child = node.children[0]
 
     expect(node).toMatchObject({ id: 'g1', segment: 'g1', defPath: ['g1'] })
@@ -74,7 +80,7 @@ describe('resolveNodeDefs', () => {
       value: 'selected-value',
       nodes: [{ kind: 'radio-item', value: 'Backlog', render: () => null }],
     } as NodeDef
-    const [node] = resolveNodeDefs([radioGroup], null, [])
+    const [node] = resolveNodeDefs([radioGroup], null, [], defaultGetRowId)
     const child = node.children[0]
 
     expect(node).toMatchObject({
@@ -92,7 +98,7 @@ describe('resolveNodeDefs', () => {
       nodes: [item('Apple')],
       render: () => null,
     } as NodeDef
-    const [node] = resolveNodeDefs([treeItem], null, [])
+    const [node] = resolveNodeDefs([treeItem], null, [], defaultGetRowId)
 
     expect(node.children[0]).toMatchObject({
       defPath: ['fruits', 'apple'],
@@ -101,7 +107,12 @@ describe('resolveNodeDefs', () => {
   })
 
   it('drops empty segments from paths', () => {
-    const [node] = resolveNodeDefs([submenu('⚙️', [item('Backlog')])], null, [])
+    const [node] = resolveNodeDefs(
+      [submenu('⚙️', [item('Backlog')])],
+      null,
+      [],
+      defaultGetRowId,
+    )
 
     expect(node).toMatchObject({ segment: '', defPath: [], id: '' })
     expect(node.children[0]).toMatchObject({
@@ -115,6 +126,7 @@ describe('resolveNodeDefs', () => {
       [item('a'), { kind: 'separator' }, item('b')] as NodeDef[],
       null,
       [],
+      defaultGetRowId,
     )
 
     expect(nodes[1]).toMatchObject({ segment: '', id: '', index: 1 })
@@ -124,7 +136,8 @@ describe('resolveNodeDefs', () => {
     const root = submenu('Status', [
       submenu('Open Items', [item('Backlog')], 'open-items-id'),
     ])
-    const leaf = resolveNodeDefs([root], null, [])[0].children[0].children[0]
+    const leaf = resolveNodeDefs([root], null, [], defaultGetRowId)[0]
+      .children[0].children[0]
     const ancestorSegments = ['status', 'open-items-id']
 
     expect(leaf.defPath).toEqual(
