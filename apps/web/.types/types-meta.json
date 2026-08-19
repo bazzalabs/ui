@@ -2547,10 +2547,10 @@
           },
           {
             "name": "content",
-            "type": "NodeDef[] | undefined",
-            "formattedType": "NodeDef[]",
+            "type": "PopupMenuNode[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode[] | NodeDef[]",
             "required": false,
-            "description": "The menu content (node definitions with render functions)"
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
           },
           {
             "name": "render",
@@ -2573,21 +2573,6 @@
             "required": false,
             "description": "Default inclusion mode for descendant branch nodes in deep search results.\nSubmenus/subpages can override via `includeInDeepSearch`.",
             "default": "true"
-          },
-          {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
-            "required": false,
-            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
-            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false,
-            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           },
           {
             "name": "asyncContent",
@@ -4284,10 +4269,10 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((id: string | null, index: number, eventDetails: ContextMenuHighlightChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  id: string | null,\n  index: number,\n  eventDetails: ContextMenuHighlightChangeEventDetails,\n) => void",
+            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: ContextMenuHighlightChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: ContextMenuHighlightChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.\nThe third parameter contains event details including the reason for the change."
+            "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.\n`node` is the resolved menu node carrying the highlighted id, looked up in the menu's data-first tree — `null` when the highlight clears or when no data-first node carries that id (e.g. JSX-defined rows). A JSX row that shares an id with a data-first node yields that node; row ids are expected to be unique per menu.\nThe fourth parameter contains event details including the reason for the change."
           },
           {
             "name": "disabled",
@@ -4328,18 +4313,12 @@
             "description": "A ref to imperative actions.\n- `close`: closes the menu imperatively.\n- `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).\n- `setDisabled`: enables/disables the menu imperatively."
           },
           {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
+            "name": "getRowId",
+            "type": "GetRowIdFn | undefined",
+            "formattedType": "GetRowIdFn",
             "required": false,
-            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, use the row's full definition path (`defPath`) — identical in\n  browse and deep-search contexts"
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false,
-            "description": "Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`."
+            "description": "Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).",
+            "default": "explicit `def.id` verbatim, else the joined definition path\nRead once when the menu root mounts — later changes have no effect."
           },
           {
             "name": "debug",
@@ -6108,8 +6087,8 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((id: string | null, index: number) => void) | undefined",
-            "formattedType": "(\n  id: string | null,\n  index: number,\n) => void",
+            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: GenericEventDetails<string, { index: number; }>) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: GenericEventDetails<\n    string,\n    { index: number }\n  >,\n) => void",
             "required": false,
             "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex)."
           },
@@ -6828,10 +6807,10 @@
           },
           {
             "name": "content",
-            "type": "NodeDef[] | undefined",
-            "formattedType": "NodeDef[]",
+            "type": "PopupMenuNode[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode[] | NodeDef[]",
             "required": false,
-            "description": "The menu content (node definitions with render functions)"
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
           },
           {
             "name": "asyncContent",
@@ -6854,21 +6833,6 @@
             "required": false,
             "description": "Default inclusion mode for descendant branch nodes in deep search results.\nSubmenus/subpages can override via `includeInDeepSearch`.",
             "default": "true"
-          },
-          {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
-            "required": false,
-            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
-            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false,
-            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           }
         ]
       },
@@ -7648,19 +7612,6 @@
             "required": true,
             "description": "When to close the menu on outside interactions.\n- 'pointerdown': Close immediately when pointer is pressed outside (default)\n- 'click': Close when a full click (pointerdown + pointerup) occurs outside",
             "default": "'pointerdown'"
-          },
-          {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
-            "required": false,
-            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\nIf not provided, uses the default implementation."
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false
           }
         ]
       },
@@ -8598,7 +8549,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+            "description": "Unique identifier for this node.\nIf provided, it is used verbatim as the resolved row id. If omitted, the\ncanonical id is the node's definition path (ancestor segments plus the\nslugified `value`), or whatever the root `getRowId` seam computes."
           },
           {
             "name": "hidden",
@@ -8666,6 +8617,12 @@
         "kind": "interface",
         "doc": "Parameters passed to checkbox item render functions.",
         "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
+          },
           {
             "name": "props",
             "type": "CheckboxItemRenderProps",
@@ -8876,20 +8833,6 @@
             "type": "string",
             "required": true,
             "description": "List element ID for aria-activedescendant"
-          },
-          {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn",
-            "formattedType": "(\n  context: GetQualifiedRowIdContext,\n) => string",
-            "required": true,
-            "description": "Function to generate qualified IDs for row items"
-          },
-          {
-            "name": "isLegacyRowIdDefault",
-            "type": "boolean",
-            "formattedType": "false | true",
-            "required": true,
-            "description": "Whether the implicit legacy row id fallback should be preserved"
           }
         ]
       },
@@ -9084,6 +9027,12 @@
           }
         ]
       },
+      "GetRowIdFn": {
+        "name": "GetRowIdFn",
+        "kind": "typealias",
+        "doc": "Computes a node's row id from definitional facts. The id must be unique\nper menu root; it is the identity persistent state, registration, and\nhighlight key off.\n\nContract: the id may read the node's own facts (including its own sibling\n`index`) and may walk `parent` for lineage (as the default definition-path\nrule does), but it must not depend on an *ancestor's* sibling `index` —\nreconciliation invalidates ids by def identity and definition path, not by\nancestor reordering, so ancestor-index-dependent ids would go stale. The\nseam must also not mutate its argument.",
+        "definition": "(node: UnidentifiedMenuNode) => string"
+      },
       "GroupBehavior": {
         "name": "GroupBehavior",
         "kind": "typealias",
@@ -9141,6 +9090,13 @@
         "doc": "Parameters passed to group label render functions.",
         "props": [
           {
+            "name": "node",
+            "type": "PopupMenuNode | undefined",
+            "formattedType": "PopupMenuNode",
+            "required": false,
+            "description": "The resolved menu node for this group. Present when the label is rendered by the library's list; external virtualized wrappers that re-invoke label callbacks may omit it."
+          },
+          {
             "name": "props",
             "type": "{ id: string; }",
             "formattedType": "{ id: string }",
@@ -9194,6 +9150,12 @@
         "kind": "interface",
         "doc": "Parameters passed to group render functions.",
         "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
+          },
           {
             "name": "props",
             "type": "Record<string, never>",
@@ -9266,7 +9228,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+            "description": "Unique identifier for this node.\nIf provided, it is used verbatim as the resolved row id. If omitted, the\ncanonical id is the node's definition path (ancestor segments plus the\nslugified `value`), or whatever the root `getRowId` seam computes."
           },
           {
             "name": "hidden",
@@ -9340,6 +9302,12 @@
         "doc": "Parameters passed to item render functions.",
         "props": [
           {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
+          },
+          {
             "name": "props",
             "type": "ItemRenderProps",
             "formattedType": "{\n  id: string\n  value: string\n} & Required<Pick<PopupMenu.Item.Props, 'disabled'>> &\n  Pick<\n    PopupMenu.Item.Props,\n    | 'forceOrder'\n    | 'forceScore'\n    | 'shortcut'\n    | 'onSelect'\n    | 'closeOnClick'\n  >",
@@ -9359,13 +9327,13 @@
         "name": "ItemRenderProps",
         "kind": "typealias",
         "doc": "Props to spread onto the Item component.\nDerived from PopupMenuItemProps.",
-        "definition": "{\n    /**\n     * Qualified unique ID for the item.\n     * Must be passed to the rendered component for navigation to work.\n     * This is the computed qualified ID (includes breadcrumb path for deep search results).\n     */\n    id: string;\n    /**\n     * The original value from the node definition.\n     * Use this for display, search matching, or any logic that needs the raw value.\n     */\n    value: string;\n} & Required<Pick<PopupMenuItemProps, 'disabled'>> & Pick<PopupMenuItemProps, 'closeOnClick' | 'onSelect' | 'shortcut' | 'forceOrder' | 'forceScore'>",
+        "definition": "{\n    /**\n     * Canonical resolved row id for the item (explicit `id` verbatim, else the\n     * definition path — identical in browse and deep search).\n     * Must be passed to the rendered component for navigation to work.\n     */\n    id: string;\n    /**\n     * The original value from the node definition.\n     * Use this for display, search matching, or any logic that needs the raw value.\n     */\n    value: string;\n} & Required<Pick<PopupMenuItemProps, 'disabled'>> & Pick<PopupMenuItemProps, 'closeOnClick' | 'onSelect' | 'shortcut' | 'forceOrder' | 'forceScore'>",
         "props": [
           {
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Qualified unique ID for the item.\nMust be passed to the rendered component for navigation to work.\nThis is the computed qualified ID (includes breadcrumb path for deep search results)."
+            "description": "Canonical resolved row id for the item (explicit `id` verbatim, else the\ndefinition path — identical in browse and deep search).\nMust be passed to the rendered component for navigation to work."
           },
           {
             "name": "value",
@@ -9424,6 +9392,69 @@
         "kind": "typealias",
         "doc": "Union of all node definition types.",
         "definition": "ItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef | SeparatorDef | GroupDef | RadioGroupDef"
+      },
+      "PopupMenuNode": {
+        "name": "PopupMenuNode",
+        "kind": "interface",
+        "doc": "A menu node: the library-created, resolved instance of a node def.\nExactly one per logical row per menu root, in every render context —\nobject identity is row identity, and `id` is its serialization.\nCreated by resolution at the root or by grafting; instances are stable\nacross content re-supplies (reconciliation swaps `def` in place).",
+        "props": [
+          {
+            "name": "def",
+            "type": "NodeDef",
+            "formattedType": "| ItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef",
+            "required": true,
+            "description": "The originating def. Replaced in place when content is re-supplied.",
+            "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "kind",
+            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
+            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "required": true,
+            "description": "Mirror of `def.kind`, stable for the node's lifetime."
+          },
+          {
+            "name": "segment",
+            "type": "string",
+            "required": true,
+            "description": "This node's path component: explicit `def.id` verbatim when present,\notherwise the slugified `value` (kinds without a display value use\ntheir required `id`; id-less separators have an empty segment)."
+          },
+          {
+            "name": "defPath",
+            "type": "string[]",
+            "required": true,
+            "description": "Definition path: segments from the menu root to this node, including\nits own segment, root-first. Only submenu, subpage, and tree-item\nancestors contribute segments (groups and radio-groups are\npath-transparent). Empty segments are dropped."
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Row id: `def.id` verbatim when present, else `defPath.join('.')`."
+          },
+          {
+            "name": "parent",
+            "type": "PopupMenuNode | null",
+            "formattedType": "null | PopupMenuNode",
+            "required": true
+          },
+          {
+            "name": "children",
+            "type": "PopupMenuNode[]",
+            "required": true
+          },
+          {
+            "name": "depth",
+            "type": "number",
+            "required": true,
+            "description": "Def-tree depth counting every node kind; roots are 0."
+          },
+          {
+            "name": "index",
+            "type": "number",
+            "required": true,
+            "description": "Sibling index in the def tree (position within `parent.children`)."
+          }
+        ]
       },
       "ContextMenuRadioGroupValueProps": {
         "name": "ContextMenuRadioGroupValueProps",
@@ -9539,6 +9570,14 @@
         "doc": "Parameters passed to radio group label render functions.",
         "props": [
           {
+            "name": "node",
+            "type": "PopupMenuNode | undefined",
+            "formattedType": "PopupMenuNode",
+            "required": false,
+            "description": "The resolved menu node for this group. Present when the label is rendered by the library's list; external virtualized wrappers that re-invoke label callbacks may omit it.",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
+          {
             "name": "props",
             "type": "{ id: string; }",
             "formattedType": "{ id: string }",
@@ -9560,6 +9599,13 @@
         "kind": "interface",
         "doc": "Parameters passed to radio group render functions.",
         "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
           {
             "name": "props",
             "type": "RadioGroupRenderProps",
@@ -9794,7 +9840,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+            "description": "Unique identifier for this node.\nIf provided, it is used verbatim as the resolved row id. If omitted, the\ncanonical id is the node's definition path (ancestor segments plus the\nslugified `value`), or whatever the root `getRowId` seam computes."
           },
           {
             "name": "hidden",
@@ -9846,6 +9892,13 @@
         "doc": "Parameters passed to submenu render functions.\nIncludes context plus the submenu's child nodes and render function.",
         "props": [
           {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
+          {
             "name": "props",
             "type": "SubmenuRenderProps",
             "formattedType": "{\n  id: string\n  value: string\n} & Required<\n  Pick<PopupMenu.SubmenuTrigger.Props, 'disabled'>\n> &\n  Pick<\n    PopupMenu.SubmenuTrigger.Props,\n    'forceOrder' | 'forceScore'\n  >",
@@ -9876,9 +9929,10 @@
           },
           {
             "name": "renderNode",
-            "type": "(node: NodeDef) => ReactNode",
+            "type": "(node: PopupMenuNode | NodeDef) => ReactNode",
+            "formattedType": "(\n  node: PopupMenuNode | NodeDef,\n) => ReactNode",
             "required": true,
-            "description": "Function to render a child node.\nCall this for each node in the submenu's list."
+            "description": "Resolved nodes are unwrapped to their defs."
           }
         ]
       },
@@ -9930,6 +9984,13 @@
         "doc": "Parameters passed to subpage content render functions.\nThe returned JSX should include a `<PopupMenu.Subpage pageId={pageId}>` wrapper.",
         "props": [
           {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
+          {
             "name": "pageId",
             "type": "string",
             "required": true,
@@ -9959,9 +10020,10 @@
           },
           {
             "name": "renderNode",
-            "type": "(node: NodeDef) => ReactNode",
+            "type": "(node: PopupMenuNode | NodeDef) => ReactNode",
+            "formattedType": "(\n  node: PopupMenuNode | NodeDef,\n) => ReactNode",
             "required": true,
-            "description": "Function to render a child node.\nCall this for each node in the subpage's list."
+            "description": "Resolved nodes are unwrapped to their defs."
           }
         ]
       },
@@ -10033,7 +10095,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+            "description": "Unique identifier for this node.\nIf provided, it is used verbatim as the resolved row id. If omitted, the\ncanonical id is the node's definition path (ancestor segments plus the\nslugified `value`), or whatever the root `getRowId` seam computes."
           },
           {
             "name": "hidden",
@@ -10084,6 +10146,13 @@
         "kind": "interface",
         "doc": "Parameters passed to subpage trigger render functions.",
         "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
           {
             "name": "props",
             "type": "SubpageTriggerRenderProps",
@@ -10178,7 +10247,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+            "description": "Unique identifier for this node.\nIf provided, it is used verbatim as the resolved row id. If omitted, the\ncanonical id is the node's definition path (ancestor segments plus the\nslugified `value`), or whatever the root `getRowId` seam computes."
           },
           {
             "name": "hidden",
@@ -10245,6 +10314,13 @@
         "doc": "Parameters passed to tree item render functions.",
         "props": [
           {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
+          {
             "name": "props",
             "type": "TreeItemRenderProps",
             "formattedType": "Omit<ItemRenderProps, 'shortcut'> & {\n  selectable: boolean\n}",
@@ -10269,7 +10345,7 @@
             "name": "id",
             "type": "string",
             "required": true,
-            "description": "Qualified unique ID for the item.\nMust be passed to the rendered component for navigation to work.\nThis is the computed qualified ID (includes breadcrumb path for deep search results)."
+            "description": "Canonical resolved row id for the item (explicit `id` verbatim, else the\ndefinition path — identical in browse and deep search).\nMust be passed to the rendered component for navigation to work."
           },
           {
             "name": "value",
@@ -10320,6 +10396,66 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether this row can be selected."
+          }
+        ]
+      },
+      "UnidentifiedMenuNode": {
+        "name": "UnidentifiedMenuNode",
+        "kind": "typealias",
+        "doc": "A menu node before its row id is assigned — the argument to `GetRowIdFn`.\nCarries definitional facts only (`def`, `segment`, `defPath`, resolved\n`parent`, `depth`, def-tree sibling `index`). Contextual facts (search\nstate, deep-search flags, display position) are deliberately absent:\na context-dependent row id is inexpressible by construction.",
+        "definition": "Omit<PopupMenuNode, 'id'>",
+        "props": [
+          {
+            "name": "index",
+            "type": "number",
+            "required": true,
+            "description": "Sibling index in the def tree (position within `parent.children`)."
+          },
+          {
+            "name": "children",
+            "type": "PopupMenuNode[]",
+            "required": true,
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
+          {
+            "name": "depth",
+            "type": "number",
+            "required": true,
+            "description": "Def-tree depth counting every node kind; roots are 0."
+          },
+          {
+            "name": "kind",
+            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
+            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "required": true,
+            "description": "Mirror of `def.kind`, stable for the node's lifetime."
+          },
+          {
+            "name": "def",
+            "type": "NodeDef",
+            "formattedType": "| ItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef",
+            "required": true,
+            "description": "The originating def. Replaced in place when content is re-supplied.",
+            "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "segment",
+            "type": "string",
+            "required": true,
+            "description": "This node's path component: explicit `def.id` verbatim when present,\notherwise the slugified `value` (kinds without a display value use\ntheir required `id`; id-less separators have an empty segment)."
+          },
+          {
+            "name": "defPath",
+            "type": "string[]",
+            "required": true,
+            "description": "Definition path: segments from the menu root to this node, including\nits own segment, root-first. Only submenu, subpage, and tree-item\nancestors contribute segments (groups and radio-groups are\npath-transparent). Empty segments are dropped."
+          },
+          {
+            "name": "parent",
+            "type": "PopupMenuNode | null",
+            "formattedType": "null | PopupMenuNode",
+            "required": true,
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
           }
         ]
       },
@@ -10382,10 +10518,10 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((id: string | null, index: number, eventDetails: DropdownMenuHighlightChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  id: string | null,\n  index: number,\n  eventDetails: DropdownMenuHighlightChangeEventDetails,\n) => void",
+            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: DropdownMenuHighlightChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: DropdownMenuHighlightChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.\nThe third parameter contains event details including the reason for the change."
+            "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.\n`node` is the resolved menu node carrying the highlighted id, looked up in the menu's data-first tree — `null` when the highlight clears or when no data-first node carries that id (e.g. JSX-defined rows). A JSX row that shares an id with a data-first node yields that node; row ids are expected to be unique per menu.\nThe fourth parameter contains event details including the reason for the change."
           },
           {
             "name": "closeOnOutsidePress",
@@ -10410,18 +10546,13 @@
             "description": "A ref to imperative actions.\n- `close`: closes the menu imperatively.\n- `unmount`: unmounts the popup imperatively (when keep-mounted mode is enabled).\n- `setDisabled`: enables/disables the menu imperatively."
           },
           {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
+            "name": "getRowId",
+            "type": "GetRowIdFn | undefined",
+            "formattedType": "GetRowIdFn",
             "required": false,
-            "description": "Function to generate qualified unique IDs for rows.\nDefined once at the root level and applied to all surfaces (root and submenus).\n\nDefault behavior:\n- If node.id is provided, use it as-is (treat as globally unique)\n- Otherwise, use the row's full definition path (`defPath`) — identical in\n  browse and deep-search contexts"
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false,
-            "description": "Named preset for computing data-first row ids. Ignored when `getQualifiedRowId` is provided. Defaults to `'qualified'`."
+            "description": "Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).",
+            "default": "explicit `def.id` verbatim, else the joined definition path\nRead once when the menu root mounts — later changes have no effect.",
+            "referencePath": "@bazza-ui/react.GetRowIdFn"
           },
           {
             "name": "debug",
@@ -12240,8 +12371,8 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((id: string | null, index: number) => void) | undefined",
-            "formattedType": "(\n  id: string | null,\n  index: number,\n) => void",
+            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: GenericEventDetails<string, { index: number; }>) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: GenericEventDetails<\n    string,\n    { index: number }\n  >,\n) => void",
             "required": false,
             "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex)."
           },
@@ -12960,11 +13091,11 @@
           },
           {
             "name": "content",
-            "type": "NodeDef[] | undefined",
-            "formattedType": "NodeDef[]",
+            "type": "PopupMenuNode[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode[] | NodeDef[]",
             "required": false,
-            "description": "The menu content (node definitions with render functions)",
-            "referencePath": "@bazza-ui/react.NodeDef"
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
           },
           {
             "name": "asyncContent",
@@ -12988,21 +13119,6 @@
             "description": "Default inclusion mode for descendant branch nodes in deep search results.\nSubmenus/subpages can override via `includeInDeepSearch`.",
             "default": "true",
             "referencePath": "@bazza-ui/react.IncludeInDeepSearch"
-          },
-          {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
-            "required": false,
-            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
-            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false,
-            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           }
         ]
       },
@@ -14706,7 +14822,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Unique identifier for this node.\nIf not provided, a composite ID is generated from the `value` and breadcrumbs\nusing the `getItemId` function."
+            "description": "Unique identifier for this node.\nIf provided, it is used verbatim as the resolved row id. If omitted, the\ncanonical id is the node's definition path (ancestor segments plus the\nslugified `value`), or whatever the root `getRowId` seam computes."
           },
           {
             "name": "hidden",
@@ -14780,6 +14896,13 @@
         "kind": "interface",
         "doc": "Parameters passed to radio item render functions.",
         "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
           {
             "name": "props",
             "type": "RadioItemRenderProps",
@@ -16683,11 +16806,11 @@
           },
           {
             "name": "content",
-            "type": "NodeDef[] | undefined",
-            "formattedType": "NodeDef[]",
+            "type": "PopupMenuNode[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode[] | NodeDef[]",
             "required": false,
-            "description": "The menu content (node definitions with render functions)",
-            "referencePath": "@bazza-ui/react.NodeDef"
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
           },
           {
             "name": "render",
@@ -16711,21 +16834,6 @@
             "description": "Default inclusion mode for descendant branch nodes in deep search results.\nSubmenus/subpages can override via `includeInDeepSearch`.",
             "default": "true",
             "referencePath": "@bazza-ui/react.IncludeInDeepSearch"
-          },
-          {
-            "name": "getQualifiedRowId",
-            "type": "GetQualifiedRowIdFn | undefined",
-            "formattedType": "GetQualifiedRowIdFn",
-            "required": false,
-            "description": "Function to generate qualified IDs for row items.\nCalled for each item when rendering to produce IDs for:\n- React keys\n- Store registration\n- DOM id attributes",
-            "default": "Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value"
-          },
-          {
-            "name": "rowIdStrategy",
-            "type": "RowIdStrategy | undefined",
-            "formattedType": "\"qualified\" | \"explicit\" | \"hybrid\"",
-            "required": false,
-            "description": "Named row id strategy. Ignored when `getQualifiedRowId` is provided."
           },
           {
             "name": "asyncContent",

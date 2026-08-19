@@ -366,9 +366,9 @@ export interface RowRenderContext {
  */
 export type ItemRenderProps = {
   /**
-   * Qualified unique ID for the item.
+   * Canonical resolved row id for the item (explicit `id` verbatim, else the
+   * definition path — identical in browse and deep search).
    * Must be passed to the rendered component for navigation to work.
-   * This is the computed qualified ID (includes breadcrumb path for deep search results).
    */
   id: string
   /**
@@ -756,8 +756,9 @@ export interface RadioGroupLabelRenderParams {
 interface BaseNodeDef {
   /**
    * Unique identifier for this node.
-   * If not provided, a composite ID is generated from the `value` and breadcrumbs
-   * using the `getItemId` function.
+   * If provided, it is used verbatim as the resolved row id. If omitted, the
+   * canonical id is the node's definition path (ancestor segments plus the
+   * slugified `value`), or whatever the root `getRowId` seam computes.
    */
   id?: string
   /** Whether this node is hidden */
@@ -1381,16 +1382,6 @@ export interface DataSurfaceProps {
    * @default true
    */
   resetScrollOnSearch?: boolean
-
-  /**
-   * Function to generate qualified IDs for row items.
-   * Called for each item when rendering to produce IDs for:
-   * - React keys
-   * - Store registration
-   * - DOM id attributes
-   *
-   * @default Uses node.id if provided, otherwise qualifies with breadcrumbs + slugified value
-   */
 
   /** Children (Input, List, etc.) */
   children: React.ReactNode
