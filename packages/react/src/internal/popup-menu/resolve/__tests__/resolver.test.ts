@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { NodeDef } from '../../deep-search/types.js'
 import { defaultGetRowId, resolveNodeDefs } from '../resolve.js'
 import { createMenuTreeResolver } from '../resolver.js'
@@ -275,6 +275,100 @@ describe('createMenuTreeResolver', () => {
 
     expect(groupNode.children[1]!.defPath).toEqual(['status', 'late'])
     expect(groupNode.children[1]!.id).toBe('status.late')
+  })
+})
+
+describe('duplicate detection', () => {
+  const duplicateWarnings = (warn: ReturnType<typeof vi.spyOn>) =>
+    warn.mock.calls.filter(([message]) =>
+      String(message).startsWith('[PopupMenu] Duplicate row id'),
+    )
+
+  it('warns once for sibling id-less same-value items', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+
+    resolver.setContent([
+      item('Duplicate'),
+      item('Duplicate'),
+      item('Duplicate'),
+    ])
+
+    expect(duplicateWarnings(warn)).toHaveLength(1)
+    warn.mockRestore()
+  })
+
+  it('does not re-warn when the same content is re-supplied', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+    const content = [item('Stable'), item('Stable')]
+
+    resolver.setContent(content)
+    resolver.setContent(content)
+
+    expect(duplicateWarnings(warn)).toHaveLength(1)
+    warn.mockRestore()
+  })
+
+  it('warns for duplicate explicit ids across different branches', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+
+    resolver.setContent([
+      submenu('Branch A', [item('First', 'branch-shared')]),
+      submenu('Branch B', [item('Second', 'branch-shared')]),
+    ])
+
+    expect(duplicateWarnings(warn)).toHaveLength(1)
+    warn.mockRestore()
+  })
+
+  it('does not warn for two id-less separators', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+
+    resolver.setContent([{ kind: 'separator' }, { kind: 'separator' }])
+
+    expect(duplicateWarnings(warn)).toHaveLength(0)
+    warn.mockRestore()
+  })
+
+  it('does not warn when a group id collides with an item id', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+
+    resolver.setContent([
+      group('namespace-shared', []),
+      item('Row', 'namespace-shared'),
+    ])
+
+    expect(duplicateWarnings(warn)).toHaveLength(0)
+    warn.mockRestore()
+  })
+
+  it('does not warn for a kind change at a stable id', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+
+    resolver.setContent([item('Original', 'stable-kind')])
+    resolver.setContent([submenu('Replacement', [], 'stable-kind')])
+
+    expect(duplicateWarnings(warn)).toHaveLength(0)
+    warn.mockRestore()
+  })
+
+  it('does not warn for a two-call trim-then-regraft handoff', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const resolver = createMenuTreeResolver()
+    const originalChild = item('Handoff')
+    const branch = submenu('Handoff branch', [originalChild])
+
+    resolver.setContent([branch])
+    resolver.setContent([submenu('Handoff branch', [])])
+    resolver.graft(resolver.rootNodes[0]!, [originalChild])
+
+    expect(duplicateWarnings(warn)).toHaveLength(0)
+    warn.mockRestore()
   })
 })
 

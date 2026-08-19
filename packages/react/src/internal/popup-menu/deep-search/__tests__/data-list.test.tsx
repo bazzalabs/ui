@@ -420,10 +420,15 @@ describe('useDataList', () => {
     await waitFor(() =>
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining(
-          '[PopupMenu] Duplicate row id "same" computed for multiple rows in the same surface',
+          '[PopupMenu] Duplicate row id "same" resolved for multiple rows in the same menu',
         ),
       ),
     )
+    expect(
+      warn.mock.calls.filter(([message]) =>
+        String(message).startsWith('[PopupMenu] Duplicate row id'),
+      ),
+    ).toHaveLength(1)
   })
 
   it('does not warn for a clean menu with respect to duplicate row ids', async () => {
@@ -948,9 +953,14 @@ describe('List getQualifiedRowId', () => {
         expect(screen.getByTestId('item-leaf')).toBeInTheDocument(),
       )
 
+      expect(
+        warn.mock.calls.filter(([message]) =>
+          String(message).startsWith('[PopupMenu] Duplicate row id'),
+        ),
+      ).toHaveLength(1)
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining(
-          '[PopupMenu] Duplicate row id "shared-row" is used by multiple surfaces',
+          '[PopupMenu] Duplicate row id "shared-row" resolved for multiple rows in the same menu',
         ),
       )
     })
