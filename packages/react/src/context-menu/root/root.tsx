@@ -5,6 +5,7 @@ import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   type PopupMenuDebugOptions,
+  type PopupMenuHighlightChangeHandler,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
@@ -58,13 +59,10 @@ export interface ContextMenuRootProps {
   /**
    * Callback when the highlighted item changes.
    * Useful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.
-   * The third parameter contains event details including the reason for the change.
+   * `id` is first. `node` is the resolved menu node carrying the highlighted id, looked up in the menu's data-first tree — `null` when the highlight clears or when no data-first node carries that id (e.g. JSX-defined rows). A JSX row that shares an id with a data-first node yields that node; row ids are expected to be unique per menu.
+   * The fourth parameter contains event details including the reason for the change.
    */
-  onHighlightChange?: (
-    id: string | null,
-    index: number,
-    eventDetails: ContextMenuHighlightChangeEventDetails,
-  ) => void
+  onHighlightChange?: PopupMenuHighlightChangeHandler<ContextMenuHighlightChangeEventDetails>
 
   /**
    * Whether the component should ignore user interaction.

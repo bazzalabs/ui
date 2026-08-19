@@ -160,7 +160,7 @@ function VirtualizedMenuContent({
   )
 
   const handleHighlightChange = React.useCallback(
-    (_id: string | null, index: number) => {
+    (_id: string | null, _node: unknown, index: number) => {
       if (index >= 0) {
         queueMicrotask(() => {
           virtualizer.scrollToIndex(index, { align: 'auto' })
@@ -331,7 +331,7 @@ function VirtualizedSubmenu({ item, depth }: VirtualizedSubmenuProps) {
   )
 
   const handleHighlightChange = React.useCallback(
-    (_id: string | null, index: number) => {
+    (_id: string | null, _node: unknown, index: number) => {
       if (index >= 0) {
         queueMicrotask(() => {
           virtualizer.scrollToIndex(index, { align: 'auto' })

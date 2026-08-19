@@ -9,12 +9,17 @@ import {
   useSurfaceContext,
   type VirtualItem,
 } from '../../../listbox/index.js'
+import { useMenuTreeResolver } from '../../contexts/menu-tree-resolver-context.js'
 import { useOpenChain } from '../../contexts/open-chain-context.js'
 import {
   PopupMenuContext,
   useMaybePopupMenuContext,
 } from '../../contexts/popup-menu-context.js'
 import { SubmenuContext } from '../../contexts/submenu-context.js'
+import type {
+  HighlightChangeEventDetails,
+  PopupMenuHighlightChangeHandler,
+} from '../../events.js'
 import type { PopupMenuRootActions } from '../../hooks/use-popup-menu-root.js'
 
 export interface PopupMenuSubmenuRootProps
@@ -68,10 +73,11 @@ export interface PopupMenuSubmenuRootProps
   items?: VirtualItem[]
 
   /**
-   * Callback when the highlighted item changes.
+   * Callback when the highlighted item changes. `id` is first; `node` is the
+   * resolved menu node enrichment and may be null.
    * Useful for synchronizing with a virtualizer (e.g., scrollToIndex).
    */
-  onHighlightChange?: (id: string | null, index: number) => void
+  onHighlightChange?: PopupMenuHighlightChangeHandler<HighlightChangeEventDetails>
 
   /**
    * Event handler called after any open/close animations have completed.
@@ -125,6 +131,23 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   const parentDepth = parentListboxContext?.depth ?? 0
   const parentCloseAll = parentListboxContext?.closeAll
   const parentRegisterSurface = parentListboxContext?.registerSurface
+  const menuTreeResolver = useMenuTreeResolver()
+
+  const handleHighlightChange = React.useCallback(
+    (
+      id: string | null,
+      index: number,
+      eventDetails: HighlightChangeEventDetails,
+    ) => {
+      onHighlightChange?.(
+        id,
+        id === null ? null : (menuTreeResolver?.getNodeById(id) ?? null),
+        index,
+        eventDetails,
+      )
+    },
+    [menuTreeResolver, onHighlightChange],
+  )
 
   // Get parent surface ID for keyboard navigation back
   const { surfaceId: parentSurfaceId } = useSurfaceContext()
@@ -296,9 +319,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     return {
       virtualized,
       items: itemsProp ?? [],
-      onHighlightChange,
+      onHighlightChange: handleHighlightChange,
     }
-  }, [virtualized, itemsProp, onHighlightChange])
+  }, [virtualized, itemsProp, handleHighlightChange, onHighlightChange])
 
   // Listbox context value with incremented depth
   // Pass parent's closeAll and registerSurface through unchanged

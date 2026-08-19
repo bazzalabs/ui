@@ -3,6 +3,7 @@ import type {
   GenericEventDetails,
   REASONS,
 } from '../../utils/events/index.js'
+import type { PopupMenuNode } from './resolve/types.js'
 
 // ============================================================================
 // Shared Popup Menu Event Types
@@ -50,6 +51,15 @@ export type HighlightChangeEventDetails = GenericEventDetails<
   HighlightChangeReason,
   { index: number }
 >
+
+export type PopupMenuHighlightChangeHandler<
+  EventDetails = HighlightChangeEventDetails,
+> = (
+  id: string | null,
+  node: PopupMenuNode | null,
+  index: number,
+  eventDetails: EventDetails,
+) => void
 
 /**
  * Reasons why an item was selected.

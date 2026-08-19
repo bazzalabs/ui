@@ -350,7 +350,7 @@ export default function DropdownMenuVirtualizedAdvanced() {
 
   // Sync virtualizer scroll with keyboard highlight
   const handleHighlightChange = React.useCallback(
-    (_id: string | null, index: number) => {
+    (_id: string | null, _node: unknown, index: number) => {
       if (index < 0) return
 
       // Map selectable item index to row index

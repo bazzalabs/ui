@@ -524,6 +524,7 @@ export {
   shouldLoadEagerly,
   sortByScore,
 } from './deep-search/utils.js'
+export type { PopupMenuHighlightChangeHandler } from './events.js'
 export { defaultGetRowId, isPopupMenuNode } from './resolve/resolve.js'
 export type { MenuTreeResolver } from './resolve/resolver.js'
 export type {

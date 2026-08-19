@@ -68,6 +68,7 @@ export default function DropdownMenuVirtualized() {
   const handleHighlightChange = React.useCallback(
     (
       id: string | null,
+      _node: unknown,
       index: number,
       details: DropdownMenuRoot.HighlightChangeEventDetails,
     ) => {

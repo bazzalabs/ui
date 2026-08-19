@@ -311,6 +311,62 @@ function MenuWithForcedSorting() {
 // ============================================================================
 
 describe('useDataList', () => {
+  it('passes the resolved node for data-first highlights', async () => {
+    const user = userEvent.setup()
+    const onHighlightChange = vi.fn()
+    const row: ItemDef = {
+      kind: 'item',
+      id: 'data-first-row',
+      value: 'Data first row',
+      render: ({ props }) => (
+        <DropdownMenu.Item {...props}>Row</DropdownMenu.Item>
+      ),
+    }
+    const secondRow: ItemDef = {
+      kind: 'item',
+      id: 'data-first-second-row',
+      value: 'Data first second row',
+      render: ({ props }) => (
+        <DropdownMenu.Item {...props}>Second row</DropdownMenu.Item>
+      ),
+    }
+
+    render(
+      <DropdownMenu.Root defaultOpen onHighlightChange={onHighlightChange}>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface content={[secondRow, row]}>
+                <DropdownMenu.List data-testid="data-first-highlight-list">
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+
+    await screen.findByText('Row')
+    screen.getByTestId('data-first-highlight-list').focus()
+    // Auto-highlight may claim the first row before the callback registers;
+    // moving to the second row guarantees a highlight *change* is observed.
+    await user.keyboard('{ArrowDown}')
+    await user.keyboard('{ArrowDown}')
+
+    await waitFor(() => {
+      expect(onHighlightChange).toHaveBeenCalled()
+      const call = onHighlightChange.mock.calls
+        .filter((entry) => entry[0] === 'data-first-row')
+        .at(-1)
+      expect(call).toBeDefined()
+      expect(call?.[1]).not.toBeNull()
+      expect(call?.[1].id).toBe('data-first-row')
+      expect(call?.[1].def).toBe(row)
+    })
+  })
+
   it('warns for duplicate id-less values in one surface', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     render(
