@@ -5,23 +5,8 @@
 // Used by: DropdownMenu, ContextMenu
 
 // Contexts
-export type { ComponentName } from './contexts/component-name-context.js'
-export {
-  ComponentNameContext,
-  getSlotAttribute,
-  useComponentName,
-  useMaybeComponentName,
-} from './contexts/component-name-context.js'
-export {
-  FocusOwnerContext,
-  useFocusOwner,
-  useMaybeFocusOwner,
-} from './contexts/focus-owner-context.js'
-export {
-  OpenChainContext,
-  useMaybeOpenChain,
-  useOpenChain,
-} from './contexts/open-chain-context.js'
+export { useFocusOwner } from './contexts/focus-owner-context.js'
+export { useOpenChain } from './contexts/open-chain-context.js'
 export type {
   PopupMenuContextValue,
   VirtualAnchor,
@@ -34,68 +19,28 @@ export {
   useMaybePopupMenuContext,
   usePopupMenuContext,
 } from './contexts/popup-menu-context.js'
-export type {
-  PopupMenuDebugContextValue,
-  PopupMenuDebugOptions,
-  PopupMenuSafeTriangleAreaDebugConfig,
-  PopupMenuSafeTriangleAreaDebugOptions,
-  PopupMenuSafeTriangleAreaDebugSettings,
-} from './contexts/popup-menu-debug-context.js'
-export {
-  PopupMenuDebugContext,
-  resolvePopupMenuSafeTriangleAreaDebugConfig,
-  usePopupMenuDebug,
-} from './contexts/popup-menu-debug-context.js'
-export {
-  PopupSurfaceIdContext,
-  usePopupSurfaceId,
-} from './contexts/popup-surface-id-context.js'
+export type { PopupMenuDebugOptions } from './contexts/popup-menu-debug-context.js'
+export { PopupSurfaceIdContext } from './contexts/popup-surface-id-context.js'
 export type { SubmenuContextValue } from './contexts/submenu-context.js'
 export {
-  SubmenuContext,
   useMaybeSubmenuContext,
   useSubmenuContext,
 } from './contexts/submenu-context.js'
 export type { SubpageContextValue } from './contexts/subpage-context.js'
 export {
-  SubpageContext,
   useMaybeSubpageContext,
   useSubpageContext,
 } from './contexts/subpage-context.js'
-export type {
-  SubpageRegistration,
-  SubpageStackContextValue,
-} from './contexts/subpage-stack-context.js'
+export type { SubpageStackContextValue } from './contexts/subpage-stack-context.js'
 export {
-  ROOT_SUBPAGE_ID,
   SubpageStackContext,
   useMaybeSubpageStack,
   useSubpageStack,
 } from './contexts/subpage-stack-context.js'
-export type {
-  AimGuardContextValue,
-  AimGuardProviderProps,
-} from './hooks/use-aim-guard.js'
 // Hooks
-export {
-  AimGuardCtx,
-  AimGuardProvider,
-  useAimGuard,
-} from './hooks/use-aim-guard.js'
-export type { FocusOwnerState } from './store/FocusOwnerStore.js'
 // Stores
 export { FocusOwnerStore } from './store/FocusOwnerStore.js'
-export type { OpenChainState } from './store/OpenChainStore.js'
-export { OpenChainStore } from './store/OpenChainStore.js'
-export type { AnchorSide } from './utils/aim-guard.js'
 // Utils
-export {
-  getSmoothedHeading,
-  resolveAnchorSide,
-  willHitSubmenu,
-} from './utils/aim-guard.js'
-
-export { useMouseTrail } from './utils/use-mouse-trail.js'
 
 // ============================================================================
 // Shared Hooks
@@ -104,23 +49,16 @@ export { useMouseTrail } from './utils/use-mouse-trail.js'
 export type {
   PopupMenuRootActions,
   UsePopupMenuRootParams,
-  UsePopupMenuRootReturn,
 } from './hooks/use-popup-menu-root.js'
 export { usePopupMenuRoot } from './hooks/use-popup-menu-root.js'
-export type {
-  UseSubpageStackStateParams,
-  UseSubpageStackStateReturn,
-} from './hooks/use-subpage-stack-state.js'
 export { useSubpageStackState } from './hooks/use-subpage-stack-state.js'
 
 // ============================================================================
 // Shared Components
 // ============================================================================
 
-export { PopupMenuArrowDataAttributes } from './components/arrow/arrow.data-attrs.js'
 export type { PopupMenuArrowProps } from './components/arrow/arrow.js'
 export { PopupMenuArrow } from './components/arrow/arrow.js'
-export { PopupMenuBackdropDataAttributes } from './components/backdrop/backdrop.data-attrs.js'
 export type { PopupMenuBackdropProps } from './components/backdrop/backdrop.js'
 export { PopupMenuBackdrop } from './components/backdrop/backdrop.js'
 export { PopupMenuPopupDataAttributes } from './components/popup/popup.data-attrs.js'
@@ -132,13 +70,11 @@ export { PopupMenuPopup } from './components/popup/popup.js'
 export type { PopupMenuPortalProps } from './components/portal/portal.js'
 export { PopupMenuPortal } from './components/portal/portal.js'
 export { PopupMenuPositionerCssVars } from './components/positioner/positioner.css-vars.js'
-export { PopupMenuPositionerDataAttributes } from './components/positioner/positioner.data-attrs.js'
 export type {
   PopupMenuPositionerAlign,
   PopupMenuPositionerProps,
 } from './components/positioner/positioner.js'
 export { PopupMenuPositioner } from './components/positioner/positioner.js'
-export type { PopupMenuProvidersProps } from './components/providers.js'
 export { PopupMenuProviders } from './components/providers.js'
 
 // ============================================================================
@@ -150,17 +86,12 @@ export type {
   UsePopupMenuItemReturn,
 } from './hooks/use-popup-menu-item.js'
 export { usePopupMenuItem } from './hooks/use-popup-menu-item.js'
-export type {
-  UsePopupMenuKeyboardParams,
-  UsePopupMenuKeyboardReturn,
-} from './hooks/use-popup-menu-keyboard.js'
 export { usePopupMenuKeyboard } from './hooks/use-popup-menu-keyboard.js'
 
 // ============================================================================
 // Trigger Components
 // ============================================================================
 
-export { PopupMenuIconDataAttributes } from './components/icon/icon.data-attrs.js'
 export type {
   PopupMenuIconProps,
   PopupMenuIconState,
@@ -189,14 +120,12 @@ export type {
 export {
   PopupMenuList,
   PopupMenuListCssVars,
-  PopupMenuListDataAttributes,
 } from './components/list/list.js'
 export type {
   PopupMenuLoadingProps,
   PopupMenuLoadingState,
 } from './components/loading/loading.js'
 export { PopupMenuLoading } from './components/loading/loading.js'
-export { PopupMenuScrollArrowDataAttributes } from './components/scroll-arrow/scroll-arrow.data-attrs.js'
 export type {
   PopupMenuScrollArrowProps,
   PopupMenuScrollArrowState,
@@ -204,7 +133,6 @@ export type {
   PopupMenuScrollUpArrowProps,
 } from './components/scroll-arrow/scroll-arrow.js'
 export {
-  PopupMenuScrollArrow,
   PopupMenuScrollDownArrow,
   PopupMenuScrollUpArrow,
 } from './components/scroll-arrow/scroll-arrow.js'
@@ -222,15 +150,7 @@ export type {
   PopupMenuCheckboxItemProps,
   PopupMenuCheckboxItemState,
 } from './components/checkbox-item/checkbox-item.js'
-export {
-  PopupMenuCheckboxItem,
-  PopupMenuCheckboxItemDataAttributes,
-} from './components/checkbox-item/checkbox-item.js'
-export type { CheckboxItemContextValue } from './components/checkbox-item/checkbox-item-context.js'
-export {
-  CheckboxItemContext,
-  useCheckboxItemContext,
-} from './components/checkbox-item/checkbox-item-context.js'
+export { PopupMenuCheckboxItem } from './components/checkbox-item/checkbox-item.js'
 export type {
   PopupMenuCheckboxItemIndicatorProps,
   PopupMenuCheckboxItemIndicatorState,
@@ -240,38 +160,19 @@ export type {
   PopupMenuItemProps,
   PopupMenuItemState,
 } from './components/item/item.js'
-export {
-  PopupMenuItem,
-  PopupMenuItemDataAttributes,
-} from './components/item/item.js'
+export { PopupMenuItem } from './components/item/item.js'
 export type {
   PopupMenuRadioGroupProps,
   PopupMenuRadioGroupState,
 } from './components/radio-group/radio-group.js'
-export {
-  PopupMenuRadioGroup,
-  PopupMenuRadioGroupDataAttributes,
-} from './components/radio-group/radio-group.js'
-export type { RadioGroupContextValue } from './components/radio-group/radio-group-context.js'
-export {
-  RadioGroupContext,
-  useRadioGroupContext,
-} from './components/radio-group/radio-group-context.js'
+export { PopupMenuRadioGroup } from './components/radio-group/radio-group.js'
 export type { PopupMenuRadioGroupValueProps } from './components/radio-group/radio-group-value.js'
 export { PopupMenuRadioGroupValue } from './components/radio-group/radio-group-value.js'
 export type {
   PopupMenuRadioItemProps,
   PopupMenuRadioItemState,
 } from './components/radio-item/radio-item.js'
-export {
-  PopupMenuRadioItem,
-  PopupMenuRadioItemDataAttributes,
-} from './components/radio-item/radio-item.js'
-export type { RadioItemContextValue } from './components/radio-item/radio-item-context.js'
-export {
-  RadioItemContext,
-  useRadioItemContext,
-} from './components/radio-item/radio-item-context.js'
+export { PopupMenuRadioItem } from './components/radio-item/radio-item.js'
 export type {
   PopupMenuRadioItemIndicatorProps,
   PopupMenuRadioItemIndicatorState,
@@ -297,7 +198,6 @@ export type {
   PopupMenuGroupState,
 } from './components/group/group.js'
 export { PopupMenuGroup } from './components/group/group.js'
-export type { PopupMenuGroupValueProps } from './components/group/group-value.js'
 export { PopupMenuGroupValue } from './components/group/group-value.js'
 export type {
   PopupMenuGroupLabelProps,
@@ -318,30 +218,9 @@ export type {
   PopupMenuShortcutProps,
   PopupMenuShortcutState,
 } from './components/shortcut/shortcut.js'
-export {
-  PopupMenuShortcut,
-  PopupMenuShortcutDataAttributes,
-} from './components/shortcut/shortcut.js'
-export { PopupMenuTreeDataAttributes } from './components/tree/tree.data-attrs.js'
-export type {
-  PopupMenuTreeProps,
-  PopupMenuTreeState,
-} from './components/tree/tree.js'
+export { PopupMenuShortcut } from './components/shortcut/shortcut.js'
 export { PopupMenuTree } from './components/tree/tree.js'
-export { PopupMenuTreeConnectorDataAttributes } from './components/tree/tree-connector.data-attrs.js'
-export type {
-  PopupMenuTreeConnectorProps,
-  PopupMenuTreeConnectorState,
-} from './components/tree/tree-connector.js'
 export { PopupMenuTreeConnector } from './components/tree/tree-connector.js'
-export type { PopupMenuTreeContextValue } from './components/tree/tree-context.js'
-export {
-  TreeContext,
-  useMaybeTreeContext,
-} from './components/tree/tree-context.js'
-export { PopupMenuTreeItemCssVars } from './components/tree/tree-item.css-vars.js'
-export { PopupMenuTreeItemDataAttributes } from './components/tree/tree-item.data-attrs.js'
-export type { PopupMenuTreeItemProps } from './components/tree/tree-item.js'
 export { PopupMenuTreeItem } from './components/tree/tree-item.js'
 
 // ============================================================================
@@ -359,25 +238,19 @@ export type {
   PopupMenuSubmenuTriggerIndicatorProps,
   PopupMenuSubmenuTriggerIndicatorState,
 } from './components/submenu-trigger/submenu-trigger-indicator.js'
-export {
-  PopupMenuSubmenuTriggerDataAttributes,
-  PopupMenuSubmenuTriggerIndicator,
-} from './components/submenu-trigger/submenu-trigger-indicator.js'
+export { PopupMenuSubmenuTriggerIndicator } from './components/submenu-trigger/submenu-trigger-indicator.js'
 export type { PopupMenuSubpageProps } from './components/subpage/subpage.js'
 export { PopupMenuSubpage } from './components/subpage/subpage.js'
-export { PopupMenuSubpageBackDataAttributes } from './components/subpage-back/subpage-back.data-attrs.js'
 export type {
   PopupMenuSubpageBackProps,
   PopupMenuSubpageBackState,
 } from './components/subpage-back/subpage-back.js'
 export { PopupMenuSubpageBack } from './components/subpage-back/subpage-back.js'
-export { PopupMenuSubpageBackItemDataAttributes } from './components/subpage-back-item/subpage-back-item.data-attrs.js'
 export type {
   PopupMenuSubpageBackItemProps,
   PopupMenuSubpageBackItemState,
 } from './components/subpage-back-item/subpage-back-item.js'
 export { PopupMenuSubpageBackItem } from './components/subpage-back-item/subpage-back-item.js'
-export { PopupMenuSubpageTriggerDataAttributes } from './components/subpage-trigger/subpage-trigger.data-attrs.js'
 export type {
   PopupMenuSubpageTriggerProps,
   PopupMenuSubpageTriggerState,
@@ -389,19 +262,13 @@ export { PopupMenuSubpageTrigger } from './components/subpage-trigger/subpage-tr
 // ============================================================================
 
 // Async Coordinator
-export type {
-  AsyncMenuCoordinatorValue,
-  AsyncMenuState,
-} from './deep-search/async-coordinator.js'
+export type { AsyncMenuCoordinatorValue } from './deep-search/async-coordinator.js'
 export {
-  AsyncMenuCoordinatorContext,
-  AsyncMenuCoordinatorProvider,
   useAsyncMenuCoordinator,
   useMaybeAsyncMenuCoordinator,
 } from './deep-search/async-coordinator.js'
 // Context
 export type {
-  DataPopupContextValue,
   DataSurfaceContextValue,
   RenderNodeFn,
 } from './deep-search/context.js'
@@ -410,10 +277,8 @@ export {
   DataPopupContext,
   DataSurfaceContext,
   useDataList,
-  useDataPopupContext,
   useDataSurfaceContext,
   useMaybeDataList,
-  useMaybeDataPopupContext,
   useMaybeDataSurfaceContext,
 } from './deep-search/context.js'
 // Types
@@ -491,38 +356,10 @@ export {
 } from './deep-search/types.js'
 
 // Utilities
-export type {
-  AsyncSubmenuInfo,
-  FilterNodesOptions,
-} from './deep-search/utils.js'
 export {
-  buildDisplayRowNodes,
-  collectAsyncSubmenus,
-  deduplicateNodes,
-  filterNodes,
-  flattenNodes,
-  getBrowseNodesFlatten,
-  getBrowseNodesPreserve,
   getFirstNavigableId,
   getNavigableIds,
-  getSubpagePageId,
-  isCheckboxItemDef,
-  isGroupDef,
-  isItemDef,
-  isRadioGroupDef,
-  isRadioItemDef,
-  isSeparatorDef,
-  isSubmenuDef,
-  isSubpageDef,
   isTreeItemDef,
-  mergeAsyncNodesIntoTree,
-  mergeSubmenuNodes,
-  partitionByKind,
-  scoreNodes,
-  shouldIncludeInDeepSearch,
-  shouldIncludeSubmenuRowsInDeepSearch,
-  shouldLoadEagerly,
-  sortByScore,
 } from './deep-search/utils.js'
 export type { PopupMenuHighlightChangeHandler } from './events.js'
 export { defaultGetRowId, isPopupMenuNode } from './resolve/resolve.js'
