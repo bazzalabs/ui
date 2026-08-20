@@ -11,6 +11,7 @@ export default defineConfig((options: Options) => ({
     'context-menu/index': './src/context-menu/index.ts',
     'adapters/index': './src/adapters/index.ts',
     'internal/listbox/index': './src/internal/listbox/index.ts',
+    'internal/selection/index': './src/internal/selection/index.ts',
     'internal/popup-menu/index': './src/internal/popup-menu/index.ts',
   },
   format: ['esm', 'cjs'],
