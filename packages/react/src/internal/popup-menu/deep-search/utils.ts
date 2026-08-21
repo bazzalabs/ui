@@ -25,11 +25,6 @@ import type {
   SubpageDef,
   TreeItemDef,
 } from './types.js'
-import {
-  isDisplayGroupNode,
-  isDisplayRadioGroupNode,
-  isDisplaySeparatorNode,
-} from './types.js'
 
 const identityQuery = (query: string) => query
 
@@ -843,14 +838,18 @@ function expandTreeNode(
  * standalone use of the filter helpers). Detached nodes are cached per def, so
  * this stays referentially stable across calls.
  */
-export function resolveDetachedNodeForDef(def: NodeDef): PopupMenuNode {
+export function resolveDetachedNodeForDef<D extends NodeDef>(
+  def: D,
+): PopupMenuNode<D> {
   return resolveDetachedNode(def, defaultGetRowId)
 }
 
 export function getBrowseNodesPreserve(
   nodes: NodeDef[],
   highlightedId: string | null,
-  getNodeForDef: (def: NodeDef) => PopupMenuNode = resolveDetachedNodeForDef,
+  getNodeForDef: <D extends NodeDef>(
+    def: D,
+  ) => PopupMenuNode<D> = resolveDetachedNodeForDef,
 ): DisplayNode[] {
   const result: DisplayNode[] = []
 
@@ -1050,7 +1049,7 @@ export interface FilterNodesOptions {
    * `resolvedNode` on group display nodes. Defaults to detached resolution
    * for callers without a menu-tree resolver.
    */
-  getNodeForDef?: (def: NodeDef) => PopupMenuNode
+  getNodeForDef?: <D extends NodeDef>(def: D) => PopupMenuNode<D>
 }
 
 /**
@@ -1540,62 +1539,6 @@ export function filterNodes(options: FilterNodesOptions): {
   }
 
   return filterNodesFlatten(normalizedOptions)
-}
-
-// ============================================================================
-// Get Navigable IDs
-// ============================================================================
-
-/**
- * Gets the IDs of all navigable (non-disabled) nodes.
- * Handles row nodes, group nodes, and radio group nodes (extracts item IDs).
- * Separators are skipped as they're not navigable.
- * Used for keyboard navigation.
- *
- * Note: Uses `node.id ?? node.value` as the identifier. For proper ID handling
- * with custom getItemId functions, use `getOrderedItemIds` from DataList instead.
- *
- * @deprecated Deprecated: reads `node.id ?? node.value` from defs and ignores the resolver's canonical row ids. Use `getOrderedItemIds` (DataList) or resolved menu nodes instead. Will be removed in a future release.
- */
-export function getNavigableIds(displayNodes: DisplayNode[]): string[] {
-  const ids: string[] = []
-
-  for (const node of displayNodes) {
-    if (isDisplayGroupNode(node)) {
-      // Add IDs of items within the group
-      for (const item of node.items) {
-        if (!item.node.disabled) {
-          ids.push(item.node.id ?? item.node.value)
-        }
-      }
-    } else if (isDisplayRadioGroupNode(node)) {
-      // Add IDs of items within the radio group
-      for (const item of node.items) {
-        if (!item.node.disabled) {
-          ids.push(item.node.id ?? item.node.value)
-        }
-      }
-    } else if (isDisplaySeparatorNode(node)) {
-      // Separators are not navigable
-    } else {
-      // Row node (item, checkbox item, submenu, or subpage)
-      if (!node.node.disabled) {
-        ids.push(node.node.id ?? node.node.value)
-      }
-    }
-  }
-
-  return ids
-}
-
-/**
- * Gets the first navigable node ID.
- */
-export function getFirstNavigableId(
-  displayNodes: DisplayNode[],
-): string | null {
-  const ids = getNavigableIds(displayNodes)
-  return ids[0] ?? null
 }
 
 // ============================================================================

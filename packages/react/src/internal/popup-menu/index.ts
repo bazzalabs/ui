@@ -356,11 +356,7 @@ export {
 } from './deep-search/types.js'
 
 // Utilities
-export {
-  getFirstNavigableId,
-  getNavigableIds,
-  isTreeItemDef,
-} from './deep-search/utils.js'
+export { isTreeItemDef } from './deep-search/utils.js'
 export type { PopupMenuHighlightChangeHandler } from './events.js'
 export { defaultGetRowId, isPopupMenuNode } from './menu-tree/resolve.js'
 export type { MenuTreeResolver } from './menu-tree/resolver.js'

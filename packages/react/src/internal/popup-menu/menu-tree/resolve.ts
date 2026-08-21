@@ -26,10 +26,10 @@ export function isPopupMenuNode(value: unknown): value is PopupMenuNode {
 }
 
 /** Resolve a single out-of-tree def to a stable detached node (per seam, per def). */
-export function resolveDetachedNode(
-  def: NodeDef,
+export function resolveDetachedNode<D extends NodeDef>(
+  def: D,
   getRowId: GetRowIdFn,
-): PopupMenuNode {
+): PopupMenuNode<D> {
   let perSeam = detachedNodeCache.get(getRowId)
   if (!perSeam) {
     perSeam = new WeakMap()
@@ -40,7 +40,8 @@ export function resolveDetachedNode(
     node = resolveNodeDefs([def], null, [], getRowId)[0]!
     perSeam.set(def, node)
   }
-  return node
+  // node was built from (or cached under) this exact def; def === node.def
+  return node as PopupMenuNode<D>
 }
 
 /** Default row id: explicit `def.id` verbatim, else the joined definition path. */
