@@ -68,20 +68,20 @@ function prospectiveIdentity(
   basePath: readonly string[],
   index: number,
   getRowId: GetRowIdFn,
-): { segment: string; defPath: string[]; id: string } {
+): { pathSegment: string; defPath: string[]; id: string } {
   const segment = segmentForDef(def)
   const defPath = segment ? [...basePath, segment] : [...basePath]
   const probe: UnidentifiedMenuNode = {
     def,
     kind: def.kind,
-    segment,
+    pathSegment: segment,
     defPath,
     parent,
     children: [],
     depth: parent ? parent.depth + 1 : 0,
     index,
   }
-  return { segment, defPath, id: getRowId(probe) }
+  return { pathSegment: segment, defPath, id: getRowId(probe) }
 }
 
 export function createMenuTreeResolver(
@@ -168,7 +168,7 @@ export function createMenuTreeResolver(
 
     return defs.map((def, index) => {
       const node = matches[index]
-      const { segment, defPath, id } = prospectiveIdentity(
+      const { pathSegment, defPath, id } = prospectiveIdentity(
         def,
         parent,
         basePath,
@@ -197,7 +197,7 @@ export function createMenuTreeResolver(
 
       if (defToNode.get(node.def) === node) defToNode.delete(node.def)
       node.def = def
-      node.segment = segment
+      node.pathSegment = pathSegment
       node.defPath = defPath
       node.index = index
       if (node.id !== id) {

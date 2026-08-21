@@ -14,7 +14,7 @@ describe('resolveNodeDefs', () => {
     const [node] = resolveNodeDefs([item('Apple')], null, [], defaultGetRowId)
 
     expect(node).toMatchObject({
-      segment: 'apple',
+      pathSegment: 'apple',
       defPath: ['apple'],
       id: 'apple',
       depth: 0,
@@ -32,7 +32,7 @@ describe('resolveNodeDefs', () => {
     )
 
     expect(node).toMatchObject({
-      segment: 'Custom ID!',
+      pathSegment: 'Custom ID!',
       defPath: ['Custom ID!'],
       id: 'Custom ID!',
     })
@@ -64,7 +64,7 @@ describe('resolveNodeDefs', () => {
     const [node] = resolveNodeDefs([group], null, [], defaultGetRowId)
     const child = node.children[0]
 
-    expect(node).toMatchObject({ id: 'g1', segment: 'g1', defPath: ['g1'] })
+    expect(node).toMatchObject({ id: 'g1', pathSegment: 'g1', defPath: ['g1'] })
     expect(child).toMatchObject({
       defPath: ['backlog'],
       id: 'backlog',
@@ -84,7 +84,7 @@ describe('resolveNodeDefs', () => {
     const child = node.children[0]
 
     expect(node).toMatchObject({
-      segment: 'rg1',
+      pathSegment: 'rg1',
       id: 'rg1',
       defPath: ['rg1'],
     })
@@ -114,7 +114,7 @@ describe('resolveNodeDefs', () => {
       defaultGetRowId,
     )
 
-    expect(node).toMatchObject({ segment: '', defPath: [], id: '' })
+    expect(node).toMatchObject({ pathSegment: '', defPath: [], id: '' })
     expect(node.children[0]).toMatchObject({
       defPath: ['backlog'],
       id: 'backlog',
@@ -129,7 +129,7 @@ describe('resolveNodeDefs', () => {
       defaultGetRowId,
     )
 
-    expect(nodes[1]).toMatchObject({ segment: '', id: '', index: 1 })
+    expect(nodes[1]).toMatchObject({ pathSegment: '', id: '', index: 1 })
   })
 
   it('matches computeDefPath for nested contributing ancestors', () => {

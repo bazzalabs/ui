@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { MenuTreeResolver } from '../resolve/resolver.js'
+import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 
 const MenuTreeResolverContext = React.createContext<MenuTreeResolver | null>(
   null,

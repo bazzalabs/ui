@@ -39,7 +39,7 @@ import type {
   DataSurfaceProps,
   DeepSearchConfig,
 } from '../../deep-search/types.js'
-import { isPopupMenuNode } from '../../resolve/resolve.js'
+import { isPopupMenuNode } from '../../menu-tree/resolve.js'
 import { getTabbables } from '../../utils/tabbables.js'
 
 // Surface doesn't expose data attributes - using empty state

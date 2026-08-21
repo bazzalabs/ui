@@ -25,7 +25,7 @@ import {
   resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
-import type { MenuTreeResolver } from '../resolve/resolver.js'
+import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'

@@ -416,7 +416,7 @@ describe('getRowId seam', () => {
 
     expect(capture.node).toMatchObject({
       def: parent.children[0]!.def,
-      segment: 'backlog',
+      pathSegment: 'backlog',
       defPath: ['status', 'backlog'],
       parent,
       depth: 1,
@@ -448,7 +448,7 @@ describe('getRowId seam', () => {
     const explicitProbe = {
       def: explicit,
       kind: explicit.kind,
-      segment: 'explicit',
+      pathSegment: 'explicit',
       defPath: ['different'],
       parent: null,
       children: [],
@@ -459,7 +459,7 @@ describe('getRowId seam', () => {
     const idlessProbe = {
       def: idless,
       kind: idless.kind,
-      segment: 'ignored',
+      pathSegment: 'ignored',
       defPath: ['path', 'ignored'],
       parent: null,
       children: [],

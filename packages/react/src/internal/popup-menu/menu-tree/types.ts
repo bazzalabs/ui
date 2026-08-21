@@ -15,9 +15,9 @@ export interface PopupMenuNode {
   /**
    * This node's path component: explicit `def.id` verbatim when present,
    * otherwise the slugified `value` (kinds without a display value use
-   * their required `id`; id-less separators have an empty segment).
+   * their required `id`; id-less separators have an empty path segment).
    */
-  segment: string
+  pathSegment: string
   /**
    * Definition path: segments from the menu root to this node, including
    * its own segment, root-first. Only submenu, subpage, and tree-item
@@ -37,7 +37,7 @@ export interface PopupMenuNode {
 
 /**
  * A menu node before its row id is assigned — the argument to `GetRowIdFn`.
- * Carries definitional facts only (`def`, `segment`, `defPath`, resolved
+ * Carries definitional facts only (`def`, `pathSegment`, `defPath`, resolved
  * `parent`, `depth`, def-tree sibling `index`). Contextual facts (search
  * state, deep-search flags, display position) are deliberately absent:
  * a context-dependent row id is inexpressible by construction.

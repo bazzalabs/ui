@@ -1,7 +1,7 @@
 import { commandScore } from '../../listbox/utils/command-score.js'
 import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
-import { defaultGetRowId, resolveDetachedNode } from '../resolve/resolve.js'
-import type { PopupMenuNode } from '../resolve/types.js'
+import { defaultGetRowId, resolveDetachedNode } from '../menu-tree/resolve.js'
+import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
   AsyncNodesConfig,
   BreadcrumbNode,

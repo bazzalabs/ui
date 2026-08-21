@@ -17,7 +17,7 @@ export function isPopupMenuNode(value: unknown): value is PopupMenuNode {
     value !== null &&
     'def' in value &&
     typeof (value as PopupMenuNode).id === 'string' &&
-    typeof (value as PopupMenuNode).segment === 'string' &&
+    typeof (value as PopupMenuNode).pathSegment === 'string' &&
     Array.isArray((value as PopupMenuNode).defPath) &&
     Array.isArray((value as PopupMenuNode).children) &&
     typeof (value as PopupMenuNode).depth === 'number' &&
@@ -101,7 +101,7 @@ export function resolveNodeDefs(
     const unidentified: UnidentifiedMenuNode = {
       def,
       kind: def.kind,
-      segment,
+      pathSegment: segment,
       defPath,
       parent,
       children: [],

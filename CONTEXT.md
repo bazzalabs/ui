@@ -1,0 +1,61 @@
+# Popup Menu (data-first)
+
+The data-first popup-menu system in `@bazza-ui/react`: consumers describe menu content as declarative node definitions; the library resolves them into menu nodes, then renders, filters, deep-searches, and identifies rows.
+
+Where it lives (`packages/react/src/internal/popup-menu/`):
+
+- `menu-tree/` — the resolved-node model and the resolver (identity, reconcile, graft)
+- `data-first/` — the pipeline that renders defs: list, subpages, filtering/deep search, async
+- `components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
+
+## Language
+
+**Node Def**:
+A user-authored, declarative description of one menu entry (item, checkbox item, radio item, submenu, subpage, tree item, group, separator). Plain data; never mutated by the library.
+_Avoid_: node config, definition object
+
+**Menu Node**:
+The library-created, resolved instance of a node def — carries identity (row id, path segment, definition path), tree links (parent, children), and a reference to its originating def. Exactly one per logical row per menu root, in every render context; created by resolution at the root, or by grafting. Surfaced to consumers as `Node` under each family namespace.
+_Avoid_: resolved node (as a noun — "resolution" stays as the process), wrapper, instance
+
+**Menu Tree**:
+The single resolved node tree owned by one menu root, and the `MenuTreeResolver` that maintains it. Created once per root; re-supplied content reconciles into it rather than rebuilding it.
+_Avoid_: node graph, model
+
+**Display Node**:
+The render-scoped wrapper the pipeline builds from node defs for one surface's current render (filtering, scoring, grouping applied). Rebuilt per render; context-dependent.
+_Avoid_: row wrapper
+
+**Segment** (field: `pathSegment`):
+A node's single path component: its explicit id verbatim when present, otherwise its slugified value. A segment is not necessarily slug-shaped (explicit ids pass through untouched); segments that resolve to empty are dropped from paths. The concept is "segment"; the field is named `pathSegment` because a bare `segment` reads as a synonym for the row id (they are in fact equal whenever a def carries an explicit id).
+_Avoid_: slug, key, part
+
+**Definition Path** (`defPath`):
+The segments from the menu root to a node in the definition tree, including the node's own segment. Identical wherever the node renders — browse, deep search, or recursion. The canonical identity path.
+_Avoid_: absolute path, tree path, full path, ancestor path
+
+**Breadcrumbs**:
+The branch nodes walked by the displaying surface to reach a row within its own render pass. Carries rich node references, not just segments.
+_Avoid_: trail, crumb path
+
+**Browse / Deep Search**:
+The two render contexts: browsing renders each surface's own nodes in place; deep search flattens a subtree into the searching surface as results. A row's identity must not depend on which context displays it.
+
+**Row Id**:
+The unique identity of a menu node — the value persistent state, registration, and highlight key off. Produced once per node by `getRowId` (default: explicit id verbatim, else the joined definition path). Definitional and context-free: a row id never depends on how or where the row is rendered. Context-dependent ids are inexpressible by construction — `getRowId` receives only definitional facts.
+_Avoid_: composite id, qualified id
+
+**Graft**:
+Resolving node defs that arrive after mount (async loader results; render-time content) and attaching the resulting nodes under an already-resolved parent — the graft point — so they join the single resolved tree with correct lineage (definition path, row id).
+_Avoid_: merge, inject, append
+
+**Detached Node**:
+The stable placeholder node produced for a def that is rendered but is not part of the resolved tree (a consumer passing an arbitrary def to `renderNode`). Dev-warned once per def; its id is root-relative rather than path-qualified. Not a supported authoring pattern — memoize defs and prefer explicit ids.
+_Avoid_: orphan node, temp node
+
+## Removed vocabulary
+
+These terms described the string-based identity model and no longer exist in the code. They appear here only so the names are not reintroduced with new meanings.
+
+- **Row Id Strategy** (`rowIdStrategy`: `qualified` / `explicit` / `hybrid`) and `getQualifiedRowId` — superseded by the `getRowId` seam. `hybrid` has no successor: it made ids depend on render context, which the resolved-node model forbids by construction.
+- **Display Path** (`displayPath`) — the segments of the submenus enclosing the surface a row was displayed in. Contextual by nature; deleted along with the strategy machinery that consumed it.

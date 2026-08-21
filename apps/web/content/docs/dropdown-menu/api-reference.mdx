@@ -495,7 +495,7 @@ Configuration options for deep search behavior.
 
 ### GetRowIdFn
 
-Function type for `getRowId` on `Root`. It receives the unidentified resolved node (`UnidentifiedMenuNode` — the resolved node without its `id`) and is read once at mount. The node carries only definitional facts: `def`, `kind`, `segment`, `defPath`, `parent`, `depth`, `index`, and `children` (empty at id-computation time). Render-context facts (search state, display position) are excluded by construction.
+Function type for `getRowId` on `Root`. It receives the unidentified resolved node (`UnidentifiedMenuNode` — the resolved node without its `id`) and is read once at mount. The node carries only definitional facts: `def`, `kind`, `pathSegment`, `defPath`, `parent`, `depth`, `index`, and `children` (empty at id-computation time). Render-context facts (search state, display position) are excluded by construction.
 
 ```tsx
 <DropdownMenu.Root getRowId={(node) => node.def.id ?? node.defPath.join('.')}>

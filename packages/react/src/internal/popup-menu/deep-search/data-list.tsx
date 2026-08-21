@@ -21,8 +21,8 @@ import {
   defaultGetRowId,
   isPopupMenuNode,
   resolveDetachedNode,
-} from '../resolve/resolve.js'
-import type { PopupMenuNode } from '../resolve/types.js'
+} from '../menu-tree/resolve.js'
+import type { PopupMenuNode } from '../menu-tree/types.js'
 import {
   type AsyncMenuState,
   useAsyncMenuCoordinator,

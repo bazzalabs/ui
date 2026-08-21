@@ -9414,10 +9414,10 @@
             "description": "Mirror of `def.kind`, stable for the node's lifetime."
           },
           {
-            "name": "segment",
+            "name": "pathSegment",
             "type": "string",
             "required": true,
-            "description": "This node's path component: explicit `def.id` verbatim when present,\notherwise the slugified `value` (kinds without a display value use\ntheir required `id`; id-less separators have an empty segment)."
+            "description": "This node's path component: explicit `def.id` verbatim when present,\notherwise the slugified `value` (kinds without a display value use\ntheir required `id`; id-less separators have an empty path segment)."
           },
           {
             "name": "defPath",
@@ -10402,7 +10402,7 @@
       "UnidentifiedMenuNode": {
         "name": "UnidentifiedMenuNode",
         "kind": "typealias",
-        "doc": "A menu node before its row id is assigned — the argument to `GetRowIdFn`.\nCarries definitional facts only (`def`, `segment`, `defPath`, resolved\n`parent`, `depth`, def-tree sibling `index`). Contextual facts (search\nstate, deep-search flags, display position) are deliberately absent:\na context-dependent row id is inexpressible by construction.",
+        "doc": "A menu node before its row id is assigned — the argument to `GetRowIdFn`.\nCarries definitional facts only (`def`, `pathSegment`, `defPath`, resolved\n`parent`, `depth`, def-tree sibling `index`). Contextual facts (search\nstate, deep-search flags, display position) are deliberately absent:\na context-dependent row id is inexpressible by construction.",
         "definition": "Omit<PopupMenuNode, 'id'>",
         "props": [
           {
@@ -10439,10 +10439,10 @@
             "referencePath": "@bazza-ui/react.NodeDef"
           },
           {
-            "name": "segment",
+            "name": "pathSegment",
             "type": "string",
             "required": true,
-            "description": "This node's path component: explicit `def.id` verbatim when present,\notherwise the slugified `value` (kinds without a display value use\ntheir required `id`; id-less separators have an empty segment)."
+            "description": "This node's path component: explicit `def.id` verbatim when present,\notherwise the slugified `value` (kinds without a display value use\ntheir required `id`; id-less separators have an empty path segment)."
           },
           {
             "name": "defPath",
