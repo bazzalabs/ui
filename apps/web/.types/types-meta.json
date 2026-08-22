@@ -9006,9 +9006,9 @@
         "props": [
           {
             "name": "node",
-            "type": "SubpageDef",
+            "type": "PopupMenuNode<SubpageDef>",
             "required": true,
-            "description": "The original subpage definition"
+            "description": "The resolved node for this subpage. The authored def is `node.def`."
           },
           {
             "name": "context",
