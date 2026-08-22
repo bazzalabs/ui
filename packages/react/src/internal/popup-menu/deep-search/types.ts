@@ -1151,14 +1151,8 @@ export interface DisplaySubpageNode {
  */
 export interface DisplayGroupNode {
   kind: 'group'
-  /** The group definition */
-  group: GroupDef
-  /**
-   * The resolver-owned node for `group`, set when the display node is built.
-   * Lets list renderers outside this package forward it to `renderLabel`
-   * without reaching into the resolver themselves.
-   */
-  resolvedNode: PopupMenuNode
+  /** The resolved node; authored def at node.def. */
+  node: PopupMenuNode<GroupDef>
   /** Pre-computed render context for this group */
   context: GroupRenderContext
   /** Display nodes for items within this group */
@@ -1173,14 +1167,8 @@ export interface DisplayGroupNode {
  */
 export interface DisplayRadioGroupNode {
   kind: 'radio-group'
-  /** The radio group definition */
-  radioGroup: RadioGroupDef
-  /**
-   * The resolver-owned node for `radioGroup`, set when the display node is built.
-   * Lets list renderers outside this package forward it to `renderLabel`
-   * without reaching into the resolver themselves.
-   */
-  resolvedNode: PopupMenuNode
+  /** The resolved node; authored def at node.def. */
+  node: PopupMenuNode<RadioGroupDef>
   /** Pre-computed render context for this radio group */
   context: GroupRenderContext
   /** Display nodes for items within this radio group */
@@ -1194,8 +1182,8 @@ export interface DisplayRadioGroupNode {
  */
 export interface DisplaySeparatorNode {
   kind: 'separator'
-  /** The separator definition */
-  separator: SeparatorDef
+  /** The resolved node; authored def at node.def. */
+  node: PopupMenuNode<SeparatorDef>
 }
 
 /**

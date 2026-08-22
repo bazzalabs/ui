@@ -165,15 +165,15 @@ function getBreadcrumbStreamKey(breadcrumbs: BreadcrumbNode[]): string {
 
 function getDisplayNodeStreamKey(displayNode: DisplayNode): string {
   if (isDisplayGroupNode(displayNode)) {
-    return `group:${displayNode.group.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+    return `group:${displayNode.node.def.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
   }
 
   if (isDisplayRadioGroupNode(displayNode)) {
-    return `radio-group:${displayNode.radioGroup.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+    return `radio-group:${displayNode.node.def.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
   }
 
   if (isDisplaySeparatorNode(displayNode)) {
-    return `separator:${displayNode.separator.id ?? 'separator'}`
+    return `separator:${displayNode.node.def.id ?? 'separator'}`
   }
 
   return `row:${displayNode.node.def.kind}:${displayNode.node.def.id ?? ''}:${displayNode.node.def.value}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
@@ -1214,7 +1214,9 @@ export const DataListInner = React.forwardRef<
     (displayNode: DisplayNode): React.ReactNode => {
       // Handle group display nodes
       if (isDisplayGroupNode(displayNode)) {
-        const { group, context, items } = displayNode
+        const groupNode = displayNode.node
+        const { context, items } = displayNode
+        const group = groupNode.def
 
         // Render children - renderRowNode already wraps in keyed Fragment
         const children = items.map((item) => renderRowNode(item))
@@ -1224,7 +1226,7 @@ export const DataListInner = React.forwardRef<
           return (
             <React.Fragment key={group.id}>
               {group.render({
-                node: getNodeForDefOrDetached(group),
+                node: groupNode,
                 props: {},
                 context: {
                   ...context,
@@ -1244,7 +1246,7 @@ export const DataListInner = React.forwardRef<
               group.id,
               group.label,
               group.renderLabel,
-              getNodeForDefOrDetached(group),
+              groupNode,
               {
                 ...context,
                 label: group.label,
@@ -1257,7 +1259,9 @@ export const DataListInner = React.forwardRef<
 
       // Handle radio group display nodes
       if (isDisplayRadioGroupNode(displayNode)) {
-        const { radioGroup, context, items } = displayNode
+        const radioGroupNode = displayNode.node
+        const { context, items } = displayNode
+        const radioGroup = radioGroupNode.def
 
         // Render children - renderRowNode already wraps in keyed Fragment
         const children = items.map((item) => renderRowNode(item))
@@ -1267,7 +1271,7 @@ export const DataListInner = React.forwardRef<
           return (
             <React.Fragment key={radioGroup.id}>
               {radioGroup.render({
-                node: getNodeForDefOrDetached(radioGroup),
+                node: radioGroupNode,
                 props: {
                   value: radioGroup.value,
                   onValueChange: radioGroup.onValueChange,
@@ -1296,7 +1300,7 @@ export const DataListInner = React.forwardRef<
               radioGroup.id,
               radioGroup.label,
               radioGroup.renderLabel,
-              getNodeForDefOrDetached(radioGroup),
+              radioGroupNode,
               {
                 ...context,
                 label: radioGroup.label,
@@ -1311,7 +1315,7 @@ export const DataListInner = React.forwardRef<
 
       // Handle separator display nodes
       if (isDisplaySeparatorNode(displayNode)) {
-        const { separator } = displayNode
+        const separator = displayNode.node.def
 
         // Use custom render if provided
         if (separator.render) {
@@ -1332,7 +1336,7 @@ export const DataListInner = React.forwardRef<
       // renderRowNode already wraps in keyed Fragment
       return renderRowNode(displayNode)
     },
-    [renderRowNode, getNodeForDefOrDetached],
+    [renderRowNode],
   )
 
   // Get async state from coordinator
