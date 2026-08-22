@@ -1110,29 +1110,26 @@ export interface ScoredNode {
 // Display Node - node with render context attached
 // ============================================================================
 
+export type RowNodeDef =
+  | ItemDef
+  | RadioItemDef
+  | CheckboxItemDef
+  | SubmenuDef
+  | SubpageDef
+  | TreeItemDef
+
 /**
  * A row node ready for display with its render context.
  * Used for items, radio items, checkbox items, and submenu triggers.
  */
 export interface DisplayRowNode {
-  /** The original node definition */
-  node:
-    | ItemDef
-    | RadioItemDef
-    | CheckboxItemDef
-    | SubmenuDef
-    | SubpageDef
-    | TreeItemDef
+  kind: 'row'
+  /** The resolved menu node; its authored definition is `node.def`. */
+  node: PopupMenuNode<RowNodeDef>
   /** Pre-computed render context for this node */
   context: RowRenderContext
   /** Radio group this node belongs to, if rendering inside one */
   radioGroup?: { id: string; label?: string }
-  /**
-   * Computed composite ID for this node.
-   * Includes breadcrumb path for deep search results (e.g., "status.in-progress").
-   * Set after filtering via `computeItemIds`.
-   */
-  compositeId?: string
 }
 
 /**
@@ -1242,7 +1239,7 @@ export function isDisplaySeparatorNode(
  * Type guard for DisplayRowNode (items, checkbox items, submenus, subpages).
  */
 export function isDisplayRowNode(node: DisplayNode): node is DisplayRowNode {
-  return !('kind' in node)
+  return 'kind' in node && node.kind === 'row'
 }
 
 // ============================================================================

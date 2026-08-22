@@ -8,6 +8,7 @@ import {
   type DropdownMenuVirtualItem,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
+  isDisplayRowNode,
   isDisplaySeparatorNode,
   DropdownMenu as Primitive,
   useMaybeAsyncMenuCoordinator,
@@ -379,22 +380,22 @@ function displayNodesToVirtualItems(
     if (isDisplayGroupNode(displayNode)) {
       // Extract items from group
       for (const item of displayNode.items) {
-        if (item.compositeId) {
+        if (item.node.id) {
           items.push({
-            value: item.compositeId,
-            disabled: item.node.disabled ?? false,
-            keywords: item.node.keywords,
+            value: item.node.id,
+            disabled: item.node.def.disabled ?? false,
+            keywords: item.node.def.keywords,
           })
         }
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       // Extract items from radio group
       for (const item of displayNode.items) {
-        if (item.compositeId) {
+        if (item.node.id) {
           items.push({
-            value: item.compositeId,
-            disabled: item.node.disabled ?? false,
-            keywords: item.node.keywords,
+            value: item.node.id,
+            disabled: item.node.def.disabled ?? false,
+            keywords: item.node.def.keywords,
           })
         }
       }
@@ -402,11 +403,11 @@ function displayNodesToVirtualItems(
       // Skip separators - they're not navigable
     } else {
       // Row node (item, checkbox item, submenu)
-      if (displayNode.compositeId) {
+      if (displayNode.node.id) {
         items.push({
-          value: displayNode.compositeId,
-          disabled: displayNode.node.disabled ?? false,
-          keywords: displayNode.node.keywords,
+          value: displayNode.node.id,
+          disabled: displayNode.node.def.disabled ?? false,
+          keywords: displayNode.node.def.keywords,
         })
       }
     }
@@ -485,8 +486,8 @@ function VirtualizedListContent({
     const pushNodeRow = (
       row: Extract<VirtualizedContentRow, { kind: 'node' }>,
     ) => {
-      if ('compositeId' in row.node && row.node.compositeId) {
-        rowIndexByItemId.set(row.node.compositeId, rows.length)
+      if (isDisplayRowNode(row.node) && row.node.node.id) {
+        rowIndexByItemId.set(row.node.node.id, rows.length)
       }
       rows.push(row)
     }
@@ -794,15 +795,11 @@ function VirtualizedListContent({
   )
 }
 
-/**
- * Get a unique key for a display node.
- * Prefers compositeId (includes breadcrumb path) for row nodes.
- */
+/** Get a unique key for a display node. */
 function getNodeKey(node: DisplayNode): string {
   // Handle row nodes (items, checkbox items, submenus)
-  // Prefer compositeId which includes breadcrumb path for deep search results
-  if ('node' in node && node.node) {
-    return node.compositeId ?? node.node.id ?? node.node.value
+  if (isDisplayRowNode(node)) {
+    return node.node.id || node.node.def.value
   }
 
   // Handle group nodes

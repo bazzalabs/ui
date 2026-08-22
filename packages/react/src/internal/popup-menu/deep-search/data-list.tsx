@@ -108,42 +108,8 @@ function renderGroupLabelElement<
 }
 
 // ============================================================================
-// Helper: Compute resolved identity for all display nodes
+// Helper: Extract ordered resolved IDs for store navigation
 // ============================================================================
-
-/**
- * Computes and sets composite IDs directly on all row nodes in the display list.
- * Mutates the displayNodes in place for performance.
- *
- * Group nodes get their `resolvedNode` when they are built by `filterNodes`,
- * not here.
- */
-function computeItemIds(
-  displayNodes: DisplayNode[],
-  getIdForDef: (def: NodeDef) => string,
-): void {
-  for (const displayNode of displayNodes) {
-    if (isDisplayGroupNode(displayNode)) {
-      for (const item of displayNode.items) {
-        item.compositeId = getIdForDef(item.node)
-      }
-    } else if (isDisplayRadioGroupNode(displayNode)) {
-      for (const item of displayNode.items) {
-        item.compositeId = getIdForDef(item.node)
-      }
-    } else if (isDisplaySeparatorNode(displayNode)) {
-      // Separators don't need IDs
-    } else {
-      // Row node
-      displayNode.compositeId = getIdForDef(displayNode.node)
-    }
-  }
-}
-
-/**
- * Extracts ordered composite IDs from display nodes for store navigation.
- * Assumes `computeItemIds` has already been called to set `compositeId` on each node.
- */
 function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
   const ids: string[] = []
 
@@ -151,22 +117,22 @@ function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
         // Header tree rows are intentionally included: they are highlightable even when non-activatable.
-        if (!item.node.disabled && item.compositeId) {
-          ids.push(item.compositeId)
+        if (!item.node.def.disabled && item.node.id) {
+          ids.push(item.node.id)
         }
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
         // Header tree rows are intentionally included: they are highlightable even when non-activatable.
-        if (!item.node.disabled && item.compositeId) {
-          ids.push(item.compositeId)
+        if (!item.node.def.disabled && item.node.id) {
+          ids.push(item.node.id)
         }
       }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // skip
     } else {
-      if (!displayNode.node.disabled && displayNode.compositeId) {
-        ids.push(displayNode.compositeId)
+      if (!displayNode.node.def.disabled && displayNode.node.id) {
+        ids.push(displayNode.node.id)
       }
     }
   }
@@ -210,7 +176,7 @@ function getDisplayNodeStreamKey(displayNode: DisplayNode): string {
     return `separator:${displayNode.separator.id ?? 'separator'}`
   }
 
-  return `row:${displayNode.node.kind}:${displayNode.node.id ?? ''}:${displayNode.node.value}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+  return `row:${displayNode.node.def.kind}:${displayNode.node.def.id ?? ''}:${displayNode.node.def.value}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
 }
 
 const identityQuery = (query: string) => query
@@ -595,10 +561,6 @@ export const DataListInner = React.forwardRef<
     },
     [resolver],
   )
-  const getIdForDef = React.useCallback(
-    (def: NodeDef): string => getNodeForDefOrDetached(def).id,
-    [getNodeForDefOrDetached],
-  )
   const graftParent = useGraftPoint()
   const { depth: surfaceDepth } = useListboxContext()
   const resolverSubpageContext = useMaybeSubpageContext()
@@ -692,7 +654,7 @@ export const DataListInner = React.forwardRef<
     order: string[]
   } | null>(null)
 
-  // Compute filtered display nodes and set composite IDs
+  // Compute filtered display nodes
   const { displayNodes, isDeepSearching } = React.useMemo(() => {
     const result = filterNodes({
       query: normalizedSearch,
@@ -753,9 +715,6 @@ export const DataListInner = React.forwardRef<
       streamOrderRef.current = null
     }
 
-    // Set composite IDs directly on the freshly created display nodes
-    computeItemIds(displayNodesToRender, getIdForDef)
-
     return {
       displayNodes: displayNodesToRender,
       isDeepSearching: result.isDeepSearching,
@@ -765,7 +724,6 @@ export const DataListInner = React.forwardRef<
     contentWithRootAsync,
     deepSearchConfig,
     includeInDeepSearch,
-    getIdForDef,
     getNodeForDefOrDetached,
     asyncSubmenus.length,
     asyncContent,
@@ -785,7 +743,7 @@ export const DataListInner = React.forwardRef<
     'replace',
   )
 
-  // Compute new ordered IDs using composite IDs
+  // Compute new ordered resolved IDs
   const newOrderedItemIds = React.useMemo(
     () => getOrderedItemIds(displayNodes),
     [displayNodes],
@@ -835,10 +793,11 @@ export const DataListInner = React.forwardRef<
   // biome-ignore lint/correctness/useExhaustiveDependencies: renderRowNode and renderRadioGroup are intentionally recursive.
   const renderRowNode = React.useCallback(
     (displayNode: DisplayRowNode): React.ReactNode => {
-      const { node, context } = displayNode
+      const resolved = displayNode.node
+      const node = resolved.def
+      const { context } = displayNode
 
-      // Use composite ID from display node, fallback to node.id/value for nested children
-      const compositeId = displayNode.compositeId ?? getIdForDef(node)
+      const id = resolved.id
 
       const getBranchAsyncState = (branchNode: SubmenuDef | SubpageDef) => {
         if (!branchNode.asyncNodes || !coordinator) {
@@ -879,11 +838,11 @@ export const DataListInner = React.forwardRef<
 
       if (node.kind === 'item') {
         return (
-          <React.Fragment key={compositeId}>
+          <React.Fragment key={id}>
             {node.render({
-              node: getNodeForDefOrDetached(node),
+              node: resolved,
               props: {
-                id: compositeId,
+                id,
                 value: node.value,
                 disabled: node.disabled ?? false,
                 closeOnClick: node.closeOnClick,
@@ -904,11 +863,11 @@ export const DataListInner = React.forwardRef<
 
       if (node.kind === 'tree-item') {
         return (
-          <React.Fragment key={compositeId}>
+          <React.Fragment key={id}>
             {node.render({
-              node: getNodeForDefOrDetached(node),
+              node: resolved,
               props: {
-                id: compositeId,
+                id,
                 value: node.value,
                 disabled: node.disabled ?? false,
                 selectable: node.selectable !== false,
@@ -929,11 +888,11 @@ export const DataListInner = React.forwardRef<
 
       if (node.kind === 'radio-item') {
         return (
-          <React.Fragment key={compositeId}>
+          <React.Fragment key={id}>
             {node.render({
-              node: getNodeForDefOrDetached(node),
+              node: resolved,
               props: {
-                id: compositeId,
+                id,
                 value: node.value,
                 disabled: node.disabled ?? false,
                 closeOnClick: node.closeOnClick,
@@ -954,11 +913,11 @@ export const DataListInner = React.forwardRef<
 
       if (node.kind === 'checkbox-item') {
         return (
-          <React.Fragment key={compositeId}>
+          <React.Fragment key={id}>
             {node.render({
-              node: getNodeForDefOrDetached(node),
+              node: resolved,
               props: {
-                id: compositeId,
+                id,
                 value: node.value,
                 checked: node.checked,
                 onCheckedChange: node.onCheckedChange,
@@ -980,7 +939,7 @@ export const DataListInner = React.forwardRef<
 
       if (node.kind === 'submenu') {
         // For submenus, provide the nodes and a recursive renderNode function
-        // Note: We pass the compositeId to the submenu trigger so it registers with the
+        // Note: We pass the resolved id to the submenu trigger so it registers with the
         // correct ID for keyboard navigation during deep search
         const submenuAsyncState = getBranchAsyncState(node)
 
@@ -1030,7 +989,11 @@ export const DataListInner = React.forwardRef<
                 tree: null,
               }
 
-              return renderRowNode({ node: item, context: itemContext })
+              return renderRowNode({
+                kind: 'row',
+                node: getNodeForDefOrDetached(item),
+                context: itemContext,
+              })
             })
 
             // Use custom group render if provided
@@ -1096,20 +1059,19 @@ export const DataListInner = React.forwardRef<
 
           // renderRowNode already wraps in a keyed Fragment
           return renderRowNode({
-            node: childNode,
+            kind: 'row',
+            node: getNodeForDefOrDetached(childNode),
             context: childContext,
           })
         }
 
         return (
-          <React.Fragment key={compositeId}>
-            <GraftPointContext.Provider
-              value={resolver?.getNodeForDef(node) ?? null}
-            >
+          <React.Fragment key={id}>
+            <GraftPointContext.Provider value={resolved}>
               {node.render({
-                node: getNodeForDefOrDetached(node),
+                node: resolved,
                 props: {
-                  id: compositeId,
+                  id,
                   value: node.value,
                   disabled: node.disabled ?? false,
                   forceOrder: node.forceOrder,
@@ -1135,11 +1097,11 @@ export const DataListInner = React.forwardRef<
         const pageId = getSubpagePageId(node, context.breadcrumbs)
 
         return (
-          <React.Fragment key={compositeId}>
+          <React.Fragment key={id}>
             {node.renderTrigger({
-              node: getNodeForDefOrDetached(node),
+              node: resolved,
               props: {
-                id: compositeId,
+                id,
                 value: node.value,
                 disabled: node.disabled ?? false,
                 targetPageId: pageId,
@@ -1157,7 +1119,7 @@ export const DataListInner = React.forwardRef<
 
       return null
     },
-    [coordinator, normalizedSearch, getIdForDef, isDeepSearching, resolver],
+    [coordinator, normalizedSearch, getNodeForDefOrDetached, isDeepSearching],
   )
 
   // Helper to render a radio group
@@ -1191,7 +1153,8 @@ export const DataListInner = React.forwardRef<
         }
 
         return renderRowNode({
-          node: item,
+          kind: 'row',
+          node: getNodeForDefOrDetached(item),
           context: itemContext,
           radioGroup: { id: radioGroup.id, label: radioGroup.label },
         })

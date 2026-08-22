@@ -8986,11 +8986,15 @@
         "doc": "A row node ready for display with its render context.\nUsed for items, radio items, checkbox items, and submenu triggers.",
         "props": [
           {
+            "name": "kind",
+            "type": "\"row\"",
+            "required": true
+          },
+          {
             "name": "node",
-            "type": "ItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef",
-            "formattedType": "| ItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef",
+            "type": "PopupMenuNode<RowNodeDef>",
             "required": true,
-            "description": "The original node definition"
+            "description": "The resolved menu node; its authored definition is `node.def`."
           },
           {
             "name": "context",
@@ -9004,13 +9008,6 @@
             "formattedType": "{\n  id: string\n  label?: string | undefined\n}",
             "required": false,
             "description": "Radio group this node belongs to, if rendering inside one"
-          },
-          {
-            "name": "compositeId",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false,
-            "description": "Computed composite ID for this node.\nIncludes breadcrumb path for deep search results (e.g., \"status.in-progress\").\nSet after filtering via `computeItemIds`."
           }
         ]
       },
