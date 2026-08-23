@@ -464,6 +464,24 @@ describe('RadioGroupDef', () => {
         expect(displayNodes[0].radioGroup.label).toBe('Options')
       }
     })
+
+    it('resolves a node for the group without an explicit resolver', () => {
+      const nodes: NodeDef[] = [
+        createRadioGroupDef('rg1', 'opt1', [
+          createRadioItemDef('opt1', 'Option 1'),
+        ]),
+      ]
+
+      const displayNodes = getBrowseNodesPreserve(nodes, null)
+
+      // `resolvedNode` is non-optional, so the detached fallback must supply
+      // one even when no menu-tree resolver is threaded through.
+      if (isDisplayRadioGroupNode(displayNodes[0])) {
+        expect(displayNodes[0].resolvedNode).toBeDefined()
+        expect(displayNodes[0].resolvedNode.id).toBe('rg1')
+        expect(displayNodes[0].resolvedNode.kind).toBe('radio-group')
+      }
+    })
   })
 })
 

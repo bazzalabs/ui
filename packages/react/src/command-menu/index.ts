@@ -118,7 +118,6 @@ export type {
   SubpageTriggerRenderProps,
   UnidentifiedMenuNode,
 } from '../internal/popup-menu/index.js'
-
 export {
   DataListContext,
   DataSurfaceContext,
@@ -127,6 +126,7 @@ export {
   isDisplayRadioGroupNode,
   isDisplayRowNode,
   isDisplaySeparatorNode,
+  isPopupMenuNode,
   PopupMenuRadioGroupValue as CommandMenuRadioGroupValue,
   useAsyncMenuCoordinator,
   useDataList,

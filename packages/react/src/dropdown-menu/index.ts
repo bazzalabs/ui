@@ -303,7 +303,6 @@ export type {
   TreeItemRenderProps,
   UnidentifiedMenuNode,
 } from '../internal/popup-menu/index.js'
-
 export {
   DataListContext,
   DataSurfaceContext,
@@ -312,6 +311,7 @@ export {
   isDisplayRadioGroupNode,
   isDisplayRowNode,
   isDisplaySeparatorNode,
+  isPopupMenuNode,
   isTreeItemDef,
   PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
   useAsyncMenuCoordinator,

@@ -510,6 +510,7 @@ function VirtualizedListContent({
             lastRow: false,
             element: node.group.renderLabel ? (
               node.group.renderLabel({
+                node: node.resolvedNode,
                 props: { id: labelId },
                 context: { ...node.context, label: node.group.label },
               })
@@ -548,6 +549,7 @@ function VirtualizedListContent({
             lastRow: false,
             element: node.radioGroup.renderLabel ? (
               node.radioGroup.renderLabel({
+                node: node.resolvedNode,
                 props: { id: labelId },
                 context: {
                   ...node.context,
