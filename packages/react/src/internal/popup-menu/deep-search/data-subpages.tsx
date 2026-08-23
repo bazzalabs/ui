@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { normalizeValue } from '../../listbox/utils/normalize.js'
 import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
 import {
   defaultGetRowId,
@@ -29,7 +28,7 @@ import type {
   SubmenuDef,
   SubpageDef,
 } from './types.js'
-import { getSubpagePageId } from './utils.js'
+import { getAsyncLoaderIdForBranch, getSubpagePageId } from './utils.js'
 
 interface QueryExecutionState {
   effectiveQuery: string
@@ -88,16 +87,6 @@ function resolveQueryExecutionState(
     enabled: false,
     isBelowMinLength: true,
   }
-}
-
-function getAsyncLoaderIdForBranch(
-  node: SubmenuDef | SubpageDef,
-  breadcrumbs: BreadcrumbNode[],
-): string {
-  return [
-    ...breadcrumbs.map((breadcrumb) => normalizeValue(breadcrumb.value)),
-    normalizeValue(node.value),
-  ].join('.')
 }
 
 function getBranchAsyncState(

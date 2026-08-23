@@ -78,6 +78,22 @@ export function getSubpagePageId(
   return path ? `subpage.${path}` : 'subpage'
 }
 
+/**
+ * Path key for a branch's async loader. **Value-only by design** — breadcrumb
+ * and leaf `value`s, normalized and dot-joined; explicit `id`s are deliberately
+ * ignored. Must stay consistent with the key computations inside
+ * `collectAsyncSubmenus` and `mergeAsyncNodesIntoTree`.
+ */
+export function getAsyncLoaderIdForBranch(
+  node: SubmenuDef | SubpageDef,
+  breadcrumbs: BreadcrumbNode[],
+): string {
+  return [
+    ...breadcrumbs.map((breadcrumb) => normalizeValue(breadcrumb.value)),
+    normalizeValue(node.value),
+  ].join('.')
+}
+
 // ============================================================================
 // Type Guards
 // ============================================================================
@@ -1654,6 +1670,7 @@ export function collectAsyncSubmenus(
 
       // If this branch has async nodes, add it to the result
       if (node.asyncNodes && shouldIncludeBranchDescendants) {
+        // Must match getAsyncLoaderIdForBranch's value-only path-key scheme.
         const id = [...breadcrumbs, normalizeValue(node.value)].join('.')
         result.push({
           id,
@@ -1731,6 +1748,7 @@ export function mergeAsyncNodesIntoTree(
   ): NodeDef[] {
     return nodes.map((node) => {
       if (node.kind === 'submenu' || node.kind === 'subpage') {
+        // Must match getAsyncLoaderIdForBranch's value-only path-key scheme.
         const branchPath = [
           ...currentBreadcrumbs,
           normalizeValue(node.value),

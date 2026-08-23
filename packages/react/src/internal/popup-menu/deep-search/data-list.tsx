@@ -5,7 +5,6 @@ import {
   useListboxContext,
   type useSurfaceContext,
 } from '../../listbox/index.js'
-import { normalizeValue } from '../../listbox/utils/normalize.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
   PopupMenuListPrimitive,
@@ -60,6 +59,7 @@ import {
   type AsyncSubmenuInfo,
   collectAsyncSubmenus,
   filterNodes,
+  getAsyncLoaderIdForBranch,
   getSubpagePageId,
   mergeAsyncNodesIntoTree,
   shouldLoadEagerly,
@@ -308,16 +308,6 @@ function resolveQueryExecutionState(
     enabled: false,
     isBelowMinLength: true,
   }
-}
-
-function getAsyncLoaderIdForBranch(
-  node: SubmenuDef | SubpageDef,
-  breadcrumbs: BreadcrumbNode[],
-): string {
-  return [
-    ...breadcrumbs.map((breadcrumb) => normalizeValue(breadcrumb.value)),
-    normalizeValue(node.value),
-  ].join('.')
 }
 
 /**
