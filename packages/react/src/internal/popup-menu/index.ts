@@ -362,10 +362,10 @@ export {
   isTreeItemDef,
 } from './deep-search/utils.js'
 export type { PopupMenuHighlightChangeHandler } from './events.js'
-export { defaultGetRowId, isPopupMenuNode } from './resolve/resolve.js'
-export type { MenuTreeResolver } from './resolve/resolver.js'
+export { defaultGetRowId, isPopupMenuNode } from './menu-tree/resolve.js'
+export type { MenuTreeResolver } from './menu-tree/resolver.js'
 export type {
   GetRowIdFn,
   PopupMenuNode,
   UnidentifiedMenuNode,
-} from './resolve/types.js'
+} from './menu-tree/types.js'

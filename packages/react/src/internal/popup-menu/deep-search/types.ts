@@ -5,7 +5,7 @@ import type { PopupMenuRadioGroupProps } from '../components/radio-group/radio-g
 import type { PopupMenuRadioItemProps } from '../components/radio-item/radio-item.js'
 import type { PopupMenuSubmenuTriggerProps } from '../components/submenu-trigger/submenu-trigger.js'
 import type { PopupMenuSubpageTriggerProps } from '../components/subpage-trigger/subpage-trigger.js'
-import type { PopupMenuNode } from '../resolve/types.js'
+import type { PopupMenuNode } from '../menu-tree/types.js'
 
 // ============================================================================
 // Async Loader Types

@@ -14,9 +14,9 @@ import type {
   PopupMenuHighlightChangeHandler,
   PopupMenuOpenChangeReason,
 } from '../events.js'
-import type { MenuTreeResolver } from '../resolve/resolver.js'
-import { createMenuTreeResolver } from '../resolve/resolver.js'
-import type { GetRowIdFn } from '../resolve/types.js'
+import type { MenuTreeResolver } from '../menu-tree/resolver.js'
+import { createMenuTreeResolver } from '../menu-tree/resolver.js'
+import type { GetRowIdFn } from '../menu-tree/types.js'
 import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { OpenChainStore } from '../store/OpenChainStore.js'
 

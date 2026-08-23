@@ -3,7 +3,7 @@ import type {
   GenericEventDetails,
   REASONS,
 } from '../../utils/events/index.js'
-import type { PopupMenuNode } from './resolve/types.js'
+import type { PopupMenuNode } from './menu-tree/types.js'
 
 // ============================================================================
 // Shared Popup Menu Event Types

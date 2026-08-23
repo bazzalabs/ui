@@ -11,7 +11,7 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import type { GetRowIdFn } from '../../internal/popup-menu/resolve/types.js'
+import type { GetRowIdFn } from '../../internal/popup-menu/menu-tree/types.js'
 import type {
   DropdownMenuHighlightChangeEventDetails,
   DropdownMenuOpenChangeEventDetails,

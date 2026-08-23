@@ -111,7 +111,7 @@ describe('mounted menu-tree resolution', () => {
           onResolver={(value) => {
             resolver = value
           }}
-          getRowId={(node) => `x-${node.def.id ?? node.segment}`}
+          getRowId={(node) => `x-${node.def.id ?? node.pathSegment}`}
           content={[item('Settings'), submenu('Status', [item('Backlog')], [])]}
         />,
       )

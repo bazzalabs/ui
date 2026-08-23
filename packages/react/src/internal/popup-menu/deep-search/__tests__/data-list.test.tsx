@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CommandMenu } from '../../../../command-menu/index.js'
 import type { ContextMenu } from '../../../../context-menu/index.js'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
-import type { PopupMenuNode } from '../../resolve/types.js'
+import type { PopupMenuNode } from '../../menu-tree/types.js'
 import type {
   CheckboxItemDef,
   CheckboxItemRenderParams,
