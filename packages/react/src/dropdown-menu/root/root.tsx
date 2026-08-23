@@ -14,6 +14,7 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import type { GetRowIdFn } from '../../internal/popup-menu/resolve/types.js'
 import type {
   DropdownMenuHighlightChangeEventDetails,
   DropdownMenuOpenChangeEventDetails,
@@ -142,6 +143,15 @@ export interface DropdownMenuRootProps
   rowIdStrategy?: RowIdStrategy
 
   /**
+   * Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).
+   * @default explicit `def.id` verbatim, else the joined definition path
+   * Read once when the menu root mounts — later changes have no effect.
+   * @example
+   * <DropdownMenu.Root getRowId={(node) => node.def.id ?? node.defPath.join('.')} />
+   */
+  getRowId?: GetRowIdFn
+
+  /**
    * Debug visualization options for submenu interaction heuristics.
    */
   debug?: PopupMenuDebugOptions
@@ -169,6 +179,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     actionsRef,
     getQualifiedRowId,
     rowIdStrategy,
+    getRowId,
     debug,
     children,
     ...rest
@@ -185,6 +196,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     handleOpenChange,
     disabled: menuDisabled,
     setDisabled,
+    menuTreeResolver,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -196,6 +208,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
     closeOnOutsidePress,
     disabled,
+    getRowId,
   })
 
   const popoverActionsRef = useRef<Popover.Root.Actions | null>(null)
@@ -256,6 +269,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
   return (
     <PopupMenuProviders
       store={store}
+      menuTreeResolver={menuTreeResolver}
       focusOwnerStore={focusOwnerStore}
       openChainStore={openChainStore}
       disabled={menuDisabled}

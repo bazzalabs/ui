@@ -29,7 +29,7 @@ import type {
   RowIdStrategy,
 } from '../deep-search/types.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
-import { createMenuTreeResolver } from '../resolve/resolver.js'
+import type { MenuTreeResolver } from '../resolve/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
@@ -39,6 +39,8 @@ import type { OpenChainStore } from '../store/OpenChainStore.js'
 // ============================================================================
 
 export interface PopupMenuProvidersProps {
+  /** Created by `usePopupMenuRoot`, one per menu root. */
+  menuTreeResolver: MenuTreeResolver
   /** The Listbox store instance */
   store: ListboxStore
   /** The FocusOwner store instance */
@@ -136,18 +138,12 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     rowIdStrategy,
     componentName,
     children,
+    menuTreeResolver,
   } = props
 
   const focusZoneRegistryRef = React.useRef<FocusZoneRegistry | null>(null)
   if (!focusZoneRegistryRef.current) {
     focusZoneRegistryRef.current = new FocusZoneRegistry()
-  }
-
-  const menuTreeResolverRef = React.useRef<ReturnType<
-    typeof createMenuTreeResolver
-  > | null>(null)
-  if (menuTreeResolverRef.current === null) {
-    menuTreeResolverRef.current = createMenuTreeResolver()
   }
 
   // PopupMenu context value
@@ -212,7 +208,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   )
 
   return (
-    <MenuTreeResolverContext.Provider value={menuTreeResolverRef.current}>
+    <MenuTreeResolverContext.Provider value={menuTreeResolver}>
       <ComponentNameContext.Provider value={componentName}>
         <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
           <PopupMenuContext.Provider value={popupMenuContextValue}>

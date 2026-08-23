@@ -529,3 +529,10 @@ export {
   shouldLoadEagerly,
   sortByScore,
 } from './deep-search/utils.js'
+export { defaultGetRowId } from './resolve/resolve.js'
+export type { MenuTreeResolver } from './resolve/resolver.js'
+export type {
+  GetRowIdFn,
+  PopupMenuNode,
+  UnidentifiedMenuNode,
+} from './resolve/types.js'

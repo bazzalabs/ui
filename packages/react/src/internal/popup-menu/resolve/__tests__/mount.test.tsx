@@ -5,6 +5,7 @@ import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import { useMenuTreeResolver } from '../../contexts/menu-tree-resolver-context.js'
 import type { ItemDef, NodeDef, SubmenuDef } from '../../deep-search/types.js'
 import type { MenuTreeResolver } from '../resolver.js'
+import type { GetRowIdFn } from '../types.js'
 
 function item(value: string): ItemDef {
   return {
@@ -35,13 +36,15 @@ function Menu({
   content,
   onResolver,
   search = false,
+  getRowId,
 }: {
   content: NodeDef[]
   onResolver: (value: MenuTreeResolver) => void
   search?: boolean
+  getRowId?: GetRowIdFn
 }) {
   return (
-    <DropdownMenu.Root defaultOpen>
+    <DropdownMenu.Root defaultOpen getRowId={getRowId}>
       <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
       <Probe onResolver={onResolver} />
       <DropdownMenu.Portal>
@@ -100,6 +103,28 @@ function submenu(
 }
 
 describe('mounted menu-tree resolution', () => {
+  describe('public getRowId prop', () => {
+    it('uses the custom row-id seam for resolver node ids', async () => {
+      let resolver!: MenuTreeResolver
+      render(
+        <Menu
+          onResolver={(value) => {
+            resolver = value
+          }}
+          getRowId={(node) => `x-${node.def.id ?? node.segment}`}
+          content={[item('Settings'), submenu('Status', [item('Backlog')], [])]}
+        />,
+      )
+
+      await waitFor(() =>
+        expect(resolver.getNodeById('x-status')).toBeDefined(),
+      )
+      expect(resolver.getNodeById('x-status')?.children[0]?.id).toBe(
+        'x-backlog',
+      )
+    })
+  })
+
   it('resolves root content with qualified definition paths', async () => {
     let resolver!: MenuTreeResolver
     render(

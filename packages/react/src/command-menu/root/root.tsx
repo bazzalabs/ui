@@ -4,6 +4,7 @@ import { Dialog } from '@base-ui/react/dialog'
 import * as React from 'react'
 import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
+  type GetRowIdFn,
   PopupMenuProviders,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
@@ -20,6 +21,14 @@ export interface CommandMenuRootProps {
   hotkey?: string
   modal?: boolean
   disabled?: boolean
+  /**
+   * Computes canonical row ids for data-first content from the unidentified resolved node (definitional facts only).
+   * @default explicit `def.id` verbatim, else the joined definition path
+   * Read once when the menu root mounts — later changes have no effect.
+   * @example
+   * <CommandMenu.Root getRowId={(node) => node.def.id ?? node.defPath.join('.')} />
+   */
+  getRowId?: GetRowIdFn
 }
 
 /**
@@ -37,6 +46,7 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
     hotkey,
     modal = true,
     disabled,
+    getRowId,
   } = props
 
   const {
@@ -47,12 +57,14 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
     closeAll,
     handleOpenChange,
     disabled: menuDisabled,
+    menuTreeResolver,
   } = usePopupMenuRoot({
     onOpenChange:
       onOpenChange as unknown as UsePopupMenuRootParams['onOpenChange'],
     defaultOpen,
     disabled,
     closeOnOutsidePress: 'pointerdown',
+    getRowId,
   })
 
   store.useControlledProp('openProp', openProp)
@@ -99,6 +111,7 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
 
   return (
     <PopupMenuProviders
+      menuTreeResolver={menuTreeResolver}
       store={store}
       focusOwnerStore={focusOwnerStore}
       openChainStore={openChainStore}

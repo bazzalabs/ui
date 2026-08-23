@@ -409,6 +409,7 @@ export function ComboboxRoot<
     handleOpenChange: baseHandleOpenChange,
     disabled: menuDisabled,
     setDisabled,
+    menuTreeResolver,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -763,6 +764,7 @@ export function ComboboxRoot<
       value={comboboxContextValue as ComboboxContextValue<unknown>}
     >
       <PopupMenuProviders
+        menuTreeResolver={menuTreeResolver}
         store={store}
         focusOwnerStore={focusOwnerStore}
         openChainStore={openChainStore}

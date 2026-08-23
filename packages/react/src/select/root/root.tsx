@@ -355,6 +355,7 @@ export function SelectRoot<
     handleOpenChange,
     disabled: menuDisabled,
     setDisabled,
+    menuTreeResolver,
   } = usePopupMenuRoot({
     // Cast to generic type - component handles type safety via narrowed types
     onOpenChange:
@@ -580,6 +581,7 @@ export function SelectRoot<
       value={selectContextValue as SelectContextValue<unknown>}
     >
       <PopupMenuProviders
+        menuTreeResolver={menuTreeResolver}
         store={store}
         focusOwnerStore={focusOwnerStore}
         openChainStore={openChainStore}

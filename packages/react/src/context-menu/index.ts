@@ -242,6 +242,7 @@ export type {
   DisplayRadioGroupNode,
   DisplayRowNode,
   DisplaySubpageNode,
+  GetRowIdFn,
   GroupBehavior,
   GroupDef,
   GroupLabelRenderParams,
@@ -253,6 +254,7 @@ export type {
   ItemRenderParams,
   ItemRenderProps,
   NodeDef,
+  PopupMenuNode,
   PopupMenuRadioGroupValueProps as ContextMenuRadioGroupValueProps,
   RadioGroupDef,
   RadioGroupLabelRenderParams,
@@ -272,6 +274,7 @@ export type {
   TreeItemDef,
   TreeItemRenderParams,
   TreeItemRenderProps,
+  UnidentifiedMenuNode,
 } from '../internal/popup-menu/index.js'
 
 export {
