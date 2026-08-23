@@ -52,7 +52,7 @@ export interface MenuTreeResolver {
    */
   graft(parent: PopupMenuNode, defs: readonly NodeDef[]): void
   /** Node whose current `def` is reference-equal to `def`, if any. */
-  getNodeForDef(def: NodeDef): PopupMenuNode | undefined
+  getNodeForDef<D extends NodeDef>(def: D): PopupMenuNode<D> | undefined
   /** First registration wins; best-effort when ids collide. */
   getNodeById(id: string): PopupMenuNode | undefined
 }
@@ -234,8 +234,9 @@ export function createMenuTreeResolver(
       parent.children = reconcile(parent.children, defs, parent, baseOf(parent))
       lastGraftDefs.set(parent, defs)
     },
-    getNodeForDef(def) {
-      return defToNode.get(def)
+    getNodeForDef<D extends NodeDef>(def: D) {
+      // node was built from (or cached under) this exact def; def === node.def
+      return defToNode.get(def) as PopupMenuNode<D> | undefined
     },
     getNodeById(id) {
       return idToNode.get(id)

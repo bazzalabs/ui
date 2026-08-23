@@ -586,7 +586,7 @@ export const DataListInner = React.forwardRef<
   const resolver = useMenuTreeResolver()
   const { setResolvedContent } = useDataPopupContext()
   const getNodeForDefOrDetached = React.useCallback(
-    (def: NodeDef): PopupMenuNode => {
+    <D extends NodeDef>(def: D): PopupMenuNode<D> => {
       const resolved = resolver?.getNodeForDef(def)
       if (resolved) return resolved
       warnOutOfTreeDef(def)

@@ -6,12 +6,17 @@ import type { NodeDef } from '../deep-search/types.js'
  * object identity is row identity, and `id` is its serialization.
  * Created by resolution at the root or by grafting; instances are stable
  * across content re-supplies (reconciliation swaps `def` in place).
+ * The type parameter narrows `def`/`kind` for callers that know the def kind
+ * statically. Narrowing is a lookup-time snapshot: reconcile may replace `def`
+ * in place with another def of the same resolved id, so a long-held narrowed
+ * reference sees the current def, not necessarily the exact object/type it was
+ * looked up with.
  */
-export interface PopupMenuNode {
+export interface PopupMenuNode<D extends NodeDef = NodeDef> {
   /** The originating def. Replaced in place when content is re-supplied. */
-  def: NodeDef
+  def: D
   /** Mirror of `def.kind`, stable for the node's lifetime. */
-  kind: NodeDef['kind']
+  kind: D['kind']
   /**
    * This node's path component: explicit `def.id` verbatim when present,
    * otherwise the slugified `value` (kinds without a display value use

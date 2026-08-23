@@ -222,7 +222,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const { resolvedContent } = useDataPopupContext()
   const resolver = useMenuTreeResolver()
   const getNodeForDefOrDetached = React.useCallback(
-    (def: NodeDef): PopupMenuNode => {
+    <D extends NodeDef>(def: D): PopupMenuNode<D> => {
       const resolved = resolver?.getNodeForDef(def)
       if (resolved) return resolved
       warnOutOfTreeDef(def)

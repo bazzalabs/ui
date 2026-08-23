@@ -2547,8 +2547,8 @@
           },
           {
             "name": "content",
-            "type": "PopupMenuNode[] | NodeDef[] | undefined",
-            "formattedType": "PopupMenuNode[] | NodeDef[]",
+            "type": "PopupMenuNode<NodeDef>[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode<NodeDef>[] | NodeDef[]",
             "required": false,
             "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
           },
@@ -4269,8 +4269,8 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: ContextMenuHighlightChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: ContextMenuHighlightChangeEventDetails,\n) => void",
+            "type": "((node: PopupMenuNode<NodeDef> | null, id: string | null, index: number, eventDetails: ContextMenuHighlightChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode<NodeDef> | null,\n  id: string | null,\n  index: number,\n  eventDetails: ContextMenuHighlightChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.\n`node` is the resolved menu node carrying the highlighted id, looked up in the menu's data-first tree — `null` when the highlight clears or when no data-first node carries that id (e.g. JSX-defined rows). A JSX row that shares an id with a data-first node yields that node; row ids are expected to be unique per menu.\nThe fourth parameter contains event details including the reason for the change."
           },
@@ -6087,8 +6087,8 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: GenericEventDetails<string, { index: number; }>) => void) | undefined",
-            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: GenericEventDetails<\n    string,\n    { index: number }\n  >,\n) => void",
+            "type": "((node: PopupMenuNode<NodeDef> | null, id: string | null, index: number, eventDetails: GenericEventDetails<string, { index: number; }>) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode<NodeDef> | null,\n  id: string | null,\n  index: number,\n  eventDetails: GenericEventDetails<\n    string,\n    { index: number }\n  >,\n) => void",
             "required": false,
             "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex)."
           },
@@ -6807,8 +6807,8 @@
           },
           {
             "name": "content",
-            "type": "PopupMenuNode[] | NodeDef[] | undefined",
-            "formattedType": "PopupMenuNode[] | NodeDef[]",
+            "type": "PopupMenuNode<NodeDef>[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode<NodeDef>[] | NodeDef[]",
             "required": false,
             "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
           },
@@ -8619,7 +8619,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
           },
@@ -8907,6 +8907,12 @@
             "description": "The group definition"
           },
           {
+            "name": "resolvedNode",
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true,
+            "description": "The resolver-owned node for `group`, set when the display node is built.\nLets list renderers outside this package forward it to `renderLabel`\nwithout reaching into the resolver themselves."
+          },
+          {
             "name": "context",
             "type": "GroupRenderContext",
             "required": true,
@@ -8947,6 +8953,12 @@
             "type": "RadioGroupDef",
             "required": true,
             "description": "The radio group definition"
+          },
+          {
+            "name": "resolvedNode",
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true,
+            "description": "The resolver-owned node for `radioGroup`, set when the display node is built.\nLets list renderers outside this package forward it to `renderLabel`\nwithout reaching into the resolver themselves."
           },
           {
             "name": "context",
@@ -9091,10 +9103,9 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode | undefined",
-            "formattedType": "PopupMenuNode",
-            "required": false,
-            "description": "The resolved menu node for this group. Present when the label is rendered by the library's list; external virtualized wrappers that re-invoke label callbacks may omit it."
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true,
+            "description": "The resolved menu node for this group — canonical identity (`node.id`), definition path, and tree links"
           },
           {
             "name": "props",
@@ -9152,7 +9163,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
           },
@@ -9303,7 +9314,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
           },
@@ -9396,20 +9407,25 @@
       "PopupMenuNode": {
         "name": "PopupMenuNode",
         "kind": "interface",
-        "doc": "A menu node: the library-created, resolved instance of a node def.\nExactly one per logical row per menu root, in every render context —\nobject identity is row identity, and `id` is its serialization.\nCreated by resolution at the root or by grafting; instances are stable\nacross content re-supplies (reconciliation swaps `def` in place).",
+        "typeParams": [
+          {
+            "name": "D",
+            "constraint": "NodeDef",
+            "default": "NodeDef"
+          }
+        ],
+        "doc": "A menu node: the library-created, resolved instance of a node def.\nExactly one per logical row per menu root, in every render context —\nobject identity is row identity, and `id` is its serialization.\nCreated by resolution at the root or by grafting; instances are stable\nacross content re-supplies (reconciliation swaps `def` in place).\nThe type parameter narrows `def`/`kind` for callers that know the def kind\nstatically. Narrowing is a lookup-time snapshot: reconcile may replace `def`\nin place with another def of the same resolved id, so a long-held narrowed\nreference sees the current def, not necessarily the exact object/type it was\nlooked up with.",
         "props": [
           {
             "name": "def",
             "type": "NodeDef",
-            "formattedType": "| ItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef",
             "required": true,
             "description": "The originating def. Replaced in place when content is re-supplied.",
             "referencePath": "@bazza-ui/react.NodeDef"
           },
           {
             "name": "kind",
-            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
-            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "type": "D[\"kind\"]",
             "required": true,
             "description": "Mirror of `def.kind`, stable for the node's lifetime."
           },
@@ -9433,13 +9449,13 @@
           },
           {
             "name": "parent",
-            "type": "PopupMenuNode | null",
-            "formattedType": "null | PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef> | null",
+            "formattedType": "null | PopupMenuNode<NodeDef>",
             "required": true
           },
           {
             "name": "children",
-            "type": "PopupMenuNode[]",
+            "type": "PopupMenuNode<NodeDef>[]",
             "required": true
           },
           {
@@ -9571,10 +9587,9 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode | undefined",
-            "formattedType": "PopupMenuNode",
-            "required": false,
-            "description": "The resolved menu node for this group. Present when the label is rendered by the library's list; external virtualized wrappers that re-invoke label callbacks may omit it.",
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true,
+            "description": "The resolved menu node for this group — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
           },
           {
@@ -9601,7 +9616,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -9893,7 +9908,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -9929,8 +9944,8 @@
           },
           {
             "name": "renderNode",
-            "type": "(node: PopupMenuNode | NodeDef) => ReactNode",
-            "formattedType": "(\n  node: PopupMenuNode | NodeDef,\n) => ReactNode",
+            "type": "(node: NodeDef | PopupMenuNode<NodeDef>) => ReactNode",
+            "formattedType": "(\n  node: NodeDef | PopupMenuNode<NodeDef>,\n) => ReactNode",
             "required": true,
             "description": "Resolved nodes are unwrapped to their defs."
           }
@@ -9985,7 +10000,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -10020,8 +10035,8 @@
           },
           {
             "name": "renderNode",
-            "type": "(node: PopupMenuNode | NodeDef) => ReactNode",
-            "formattedType": "(\n  node: PopupMenuNode | NodeDef,\n) => ReactNode",
+            "type": "(node: NodeDef | PopupMenuNode<NodeDef>) => ReactNode",
+            "formattedType": "(\n  node: NodeDef | PopupMenuNode<NodeDef>,\n) => ReactNode",
             "required": true,
             "description": "Resolved nodes are unwrapped to their defs."
           }
@@ -10148,7 +10163,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -10315,7 +10330,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -10413,7 +10428,7 @@
           },
           {
             "name": "children",
-            "type": "PopupMenuNode[]",
+            "type": "PopupMenuNode<NodeDef>[]",
             "required": true,
             "referencePath": "@bazza-ui/react.PopupMenuNode"
           },
@@ -10452,8 +10467,8 @@
           },
           {
             "name": "parent",
-            "type": "PopupMenuNode | null",
-            "formattedType": "null | PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef> | null",
+            "formattedType": "null | PopupMenuNode<NodeDef>",
             "required": true,
             "referencePath": "@bazza-ui/react.PopupMenuNode"
           }
@@ -10518,8 +10533,8 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: DropdownMenuHighlightChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: DropdownMenuHighlightChangeEventDetails,\n) => void",
+            "type": "((node: PopupMenuNode<NodeDef> | null, id: string | null, index: number, eventDetails: DropdownMenuHighlightChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode<NodeDef> | null,\n  id: string | null,\n  index: number,\n  eventDetails: DropdownMenuHighlightChangeEventDetails,\n) => void",
             "required": false,
             "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex) or other UI state.\n`node` is the resolved menu node carrying the highlighted id, looked up in the menu's data-first tree — `null` when the highlight clears or when no data-first node carries that id (e.g. JSX-defined rows). A JSX row that shares an id with a data-first node yields that node; row ids are expected to be unique per menu.\nThe fourth parameter contains event details including the reason for the change."
           },
@@ -12371,8 +12386,8 @@
           },
           {
             "name": "onHighlightChange",
-            "type": "((node: PopupMenuNode | null, id: string | null, index: number, eventDetails: GenericEventDetails<string, { index: number; }>) => void) | undefined",
-            "formattedType": "(\n  node: PopupMenuNode | null,\n  id: string | null,\n  index: number,\n  eventDetails: GenericEventDetails<\n    string,\n    { index: number }\n  >,\n) => void",
+            "type": "((node: PopupMenuNode<NodeDef> | null, id: string | null, index: number, eventDetails: GenericEventDetails<string, { index: number; }>) => void) | undefined",
+            "formattedType": "(\n  node: PopupMenuNode<NodeDef> | null,\n  id: string | null,\n  index: number,\n  eventDetails: GenericEventDetails<\n    string,\n    { index: number }\n  >,\n) => void",
             "required": false,
             "description": "Callback when the highlighted item changes.\nUseful for synchronizing with a virtualizer (e.g., scrollToIndex)."
           },
@@ -13091,8 +13106,8 @@
           },
           {
             "name": "content",
-            "type": "PopupMenuNode[] | NodeDef[] | undefined",
-            "formattedType": "PopupMenuNode[] | NodeDef[]",
+            "type": "PopupMenuNode<NodeDef>[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode<NodeDef>[] | NodeDef[]",
             "required": false,
             "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -14898,7 +14913,7 @@
         "props": [
           {
             "name": "node",
-            "type": "PopupMenuNode",
+            "type": "PopupMenuNode<NodeDef>",
             "required": true,
             "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
@@ -16806,8 +16821,8 @@
           },
           {
             "name": "content",
-            "type": "PopupMenuNode[] | NodeDef[] | undefined",
-            "formattedType": "PopupMenuNode[] | NodeDef[]",
+            "type": "PopupMenuNode<NodeDef>[] | NodeDef[] | undefined",
+            "formattedType": "PopupMenuNode<NodeDef>[] | NodeDef[]",
             "required": false,
             "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
             "referencePath": "@bazza-ui/react.PopupMenuNode"
