@@ -1,4 +1,5 @@
 import { parseColorSeed } from '../color.js'
+import { generateButtonTokens } from '../components/button/generate-button-tokens.js'
 import { generateMode } from './core.js'
 import type {
   GeneratedTheme,
@@ -140,7 +141,40 @@ export function generateTheme(input: ThemeInput): GeneratedTheme {
   return {
     input: resolvedInput,
     prefix,
-    light: generateMode(light, 'light', resolvedInput.focusStrategy),
-    dark: generateMode(dark, 'dark', resolvedInput.focusStrategy),
+    light: withButton(
+      generateMode(light, 'light', resolvedInput.focusStrategy),
+      light,
+      'light',
+      resolvedInput.stateStrategy,
+      input.destructive,
+    ),
+    dark: withButton(
+      generateMode(dark, 'dark', resolvedInput.focusStrategy),
+      dark,
+      'dark',
+      resolvedInput.stateStrategy,
+      input.destructive,
+    ),
+  }
+}
+
+function withButton(
+  base: ReturnType<typeof generateMode>,
+  input: ResolvedModeInput,
+  mode: 'light' | 'dark',
+  strategy: 'overlay' | 'explicit',
+  destructive?: string,
+) {
+  const button = generateButtonTokens(
+    input,
+    mode,
+    base.tokens,
+    strategy,
+    destructive,
+  )
+  return {
+    ...base,
+    components: { button: button.tokens },
+    diagnostics: [...base.diagnostics, ...button.diagnostics],
   }
 }

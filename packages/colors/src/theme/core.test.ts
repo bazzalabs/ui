@@ -1,6 +1,9 @@
 import { converter } from 'culori'
 import { describe, expect, it } from 'vitest'
 import {
+  type ButtonDiagnostic,
+  type ButtonVariant,
+  type CoreDiagnostic,
   generateTheme,
   getColorDifference,
   getContrastRatio,
@@ -15,6 +18,15 @@ const inSrgb = (value: string) => {
   return [rgb.r, rgb.g, rgb.b].every((channel) => channel >= 0 && channel <= 1)
 }
 const oklch = (l: number, c: number, h: number) => `oklch(${l} ${c} ${h})`
+const buttonVariants: readonly ButtonVariant[] = [
+  'primary-neutral',
+  'primary-accent',
+  'destructive',
+  'outline',
+  'secondary',
+  'ghost',
+  'link',
+]
 const colors = (
   theme: ReturnType<typeof generateTheme>,
   mode: 'light' | 'dark',
@@ -23,6 +35,98 @@ const colors = (
     ({ value }) => value.match(/oklch\([^)]*\)/g) ?? [],
   )
 
+function invariant(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message)
+}
+const yieldToRunner = () =>
+  new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+function assertButtonDiagnostics(
+  generated: ReturnType<typeof generateTheme>['light'],
+) {
+  const diagnostics = generated.diagnostics.filter(
+    (diagnostic): diagnostic is ButtonDiagnostic =>
+      diagnostic.path.startsWith('button.'),
+  )
+  invariant(diagnostics.length === 143, 'expected 143 Button diagnostics')
+
+  const pathCount = (path: string) =>
+    diagnostics.filter((diagnostic) => diagnostic.path === path).length
+  for (const variant of buttonVariants) {
+    const transparent = variant === 'ghost' || variant === 'link'
+    for (const state of ['rest', 'hover', 'active', 'focus'] as const) {
+      invariant(
+        pathCount(`button.${variant}.${state}.foreground`) ===
+          (transparent ? 6 : 1),
+        `unexpected ${variant}.${state} foreground coverage`,
+      )
+      if (variant === 'outline')
+        invariant(
+          pathCount(`button.${variant}.${state}.border`) === 5,
+          `unexpected ${variant}.${state} border coverage`,
+        )
+    }
+    invariant(
+      pathCount(`button.${variant}.focus.inner`) === 1,
+      `unexpected ${variant} inner-focus coverage`,
+    )
+    invariant(
+      pathCount(`button.${variant}.focus.outer`) === 5,
+      `unexpected ${variant} outer-focus coverage`,
+    )
+    for (const state of ['hover', 'active'] as const)
+      invariant(
+        pathCount(`button.${variant}.state.${state}`) ===
+          (variant === 'link' ? 0 : 1),
+        `unexpected ${variant}.${state} state coverage`,
+      )
+  }
+  invariant(
+    pathCount('button.link.hover.underline') === 1,
+    'expected the link underline diagnostic',
+  )
+
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.kind === 'informational') continue
+    if ('renderedRest' in diagnostic) {
+      const measured = getColorDifference(
+        parseColorSeed(diagnostic.renderedRest),
+        parseColorSeed(diagnostic.renderedState),
+      )
+      invariant(
+        diagnostic.required ===
+          (diagnostic.path.endsWith('.hover') ? 0.015 : 0.025),
+        `unexpected state threshold at ${diagnostic.path}`,
+      )
+      invariant(
+        diagnostic.measured === measured,
+        `incorrect state measurement at ${diagnostic.path}`,
+      )
+      invariant(
+        measured >= diagnostic.required && diagnostic.pass,
+        `failed state gate at ${diagnostic.path}`,
+      )
+      continue
+    }
+    const measured = getContrastRatio(
+      parseColorSeed(diagnostic.foreground),
+      parseColorSeed(diagnostic.background),
+    )
+    invariant(
+      diagnostic.required === (diagnostic.property === 'foreground' ? 4.5 : 3),
+      `unexpected contrast threshold at ${diagnostic.path}`,
+    )
+    invariant(
+      diagnostic.measured === measured,
+      `incorrect contrast measurement at ${diagnostic.path}`,
+    )
+    invariant(
+      measured >= diagnostic.required && diagnostic.pass,
+      `failed contrast gate at ${diagnostic.path}`,
+    )
+  }
+}
+
 function assertCorpus(input: Parameters<typeof generateTheme>[0]) {
   const theme = generateTheme(input)
   for (const mode of ['light', 'dark'] as const) {
@@ -30,38 +134,46 @@ function assertCorpus(input: Parameters<typeof generateTheme>[0]) {
     const surfaces = [0, 1, 2, 3, 4].map((depth) =>
       parseColorSeed(generated.tokens.surface[depth as 0 | 1 | 2 | 3 | 4]),
     )
-    expect(surfaces.map((value) => value.l)).toEqual(
-      [...surfaces.map((value) => value.l)].sort((a, b) => a - b),
+    invariant(
+      surfaces.every(
+        (surface, index) => index === 0 || surface.l >= surfaces[index - 1]!.l,
+      ),
+      'surface lightness must be monotonic',
     )
-    for (const value of colors(theme, mode)) expect(inSrgb(value)).toBe(true)
+    for (const value of colors(theme, mode))
+      invariant(inSrgb(value), `out-of-gamut declaration: ${value}`)
     const foreground = ['strong', 'default', 'muted'].map((name) =>
       parseColorSeed(
         generated.tokens.foreground[name as 'strong' | 'default' | 'muted'],
       ),
     )
     if (mode === 'light') {
-      expect(foreground[0]!.l).toBeLessThan(foreground[1]!.l)
-      expect(foreground[1]!.l).toBeLessThan(foreground[2]!.l)
+      invariant(foreground[0]!.l < foreground[1]!.l, 'strong foreground order')
+      invariant(foreground[1]!.l < foreground[2]!.l, 'muted foreground order')
     } else {
-      expect(foreground[0]!.l).toBeGreaterThan(foreground[1]!.l)
-      expect(foreground[1]!.l).toBeGreaterThan(foreground[2]!.l)
+      invariant(foreground[0]!.l > foreground[1]!.l, 'strong foreground order')
+      invariant(foreground[1]!.l > foreground[2]!.l, 'muted foreground order')
     }
-    expect(
-      getColorDifference(foreground[0]!, foreground[1]!),
-    ).toBeGreaterThanOrEqual(0.015)
-    expect(
-      getColorDifference(foreground[1]!, foreground[2]!),
-    ).toBeGreaterThanOrEqual(0.015)
+    invariant(
+      getColorDifference(foreground[0]!, foreground[1]!) >= 0.015,
+      'strong/default foreground difference',
+    )
+    invariant(
+      getColorDifference(foreground[1]!, foreground[2]!) >= 0.015,
+      'default/muted foreground difference',
+    )
     const borders = ['subtle', 'default', 'strong'].map((name) =>
       parseColorSeed(
         generated.tokens.border[name as 'subtle' | 'default' | 'strong'],
       ),
     )
-    expect(getColorDifference(borders[0]!, borders[1]!)).toBeGreaterThanOrEqual(
-      0.01,
+    invariant(
+      getColorDifference(borders[0]!, borders[1]!) >= 0.01,
+      'subtle/default border difference',
     )
-    expect(getColorDifference(borders[1]!, borders[2]!)).toBeGreaterThanOrEqual(
-      0.01,
+    invariant(
+      getColorDifference(borders[1]!, borders[2]!) >= 0.01,
+      'default/strong border difference',
     )
     const requiredPairs = [
       ...(['strong', 'default', 'muted'] as const).flatMap((name) =>
@@ -97,29 +209,35 @@ function assertCorpus(input: Parameters<typeof generateTheme>[0]) {
       ] as const,
     ]
     for (const [
-      _path,
+      path,
       foregroundValue,
       backgroundValue,
       required,
     ] of requiredPairs)
-      expect(
+      invariant(
         getContrastRatio(
           parseColorSeed(foregroundValue),
           parseColorSeed(backgroundValue),
-        ),
-      ).toBeGreaterThanOrEqual(required)
-    const gated = generated.diagnostics.filter(
+        ) >= required,
+        `failed core contrast gate at ${path}`,
+      )
+    const coreDiagnostics = generated.diagnostics.filter(
+      (diagnostic): diagnostic is CoreDiagnostic =>
+        !diagnostic.path.startsWith('button.'),
+    )
+    const gated = coreDiagnostics.filter(
       (diagnostic) => diagnostic.kind === 'gated',
     )
-    expect(gated).toHaveLength(26)
-    expect(
+    invariant(gated.length === 26, 'expected 26 core gated diagnostics')
+    invariant(
       new Set(
         gated.map(
           (diagnostic) =>
             `${diagnostic.path}|${diagnostic.foreground}|${diagnostic.background}`,
         ),
-      ).size,
-    ).toBe(26)
+      ).size === 26,
+      'core gated diagnostics must be unique',
+    )
     for (const [
       path,
       foregroundValue,
@@ -132,70 +250,99 @@ function assertCorpus(input: Parameters<typeof generateTheme>[0]) {
           candidate.foreground === foregroundValue &&
           candidate.background === backgroundValue,
       )
-      expect(diagnostic).toBeDefined()
-      expect(diagnostic!.required).toBe(required)
-      expect(diagnostic!.measured).toBe(
-        getContrastRatio(
-          parseColorSeed(foregroundValue),
-          parseColorSeed(backgroundValue),
-        ),
+      invariant(diagnostic, `missing core diagnostic at ${path}`)
+      invariant(
+        diagnostic.required === required,
+        `incorrect threshold at ${path}`,
       )
-      expect(diagnostic!.pass).toBe(true)
+      invariant(
+        diagnostic.measured ===
+          getContrastRatio(
+            parseColorSeed(foregroundValue),
+            parseColorSeed(backgroundValue),
+          ),
+        `incorrect measurement at ${path}`,
+      )
+      invariant(diagnostic.pass, `failed core diagnostic at ${path}`)
     }
-    const informational = generated.diagnostics.filter(
+    const informational = coreDiagnostics.filter(
       (diagnostic) => diagnostic.kind === 'informational',
     )
-    expect(informational).toHaveLength(15)
-    expect(
-      informational.filter((diagnostic) => diagnostic.path === 'border.subtle'),
-    ).toHaveLength(5)
-    expect(
-      informational.filter(
-        (diagnostic) => diagnostic.path === 'border.default',
-      ),
-    ).toHaveLength(5)
-    expect(
+    invariant(
+      informational.length === 15,
+      'expected 15 core informational diagnostics',
+    )
+    invariant(
+      informational.filter((diagnostic) => diagnostic.path === 'border.subtle')
+        .length === 5,
+      'expected five subtle-border diagnostics',
+    )
+    invariant(
+      informational.filter((diagnostic) => diagnostic.path === 'border.default')
+        .length === 5,
+      'expected five default-border diagnostics',
+    )
+    invariant(
       informational.filter(
         (diagnostic) => diagnostic.path === 'foreground.disabled',
-      ),
-    ).toHaveLength(5)
+      ).length === 5,
+      'expected five disabled-foreground diagnostics',
+    )
     for (const diagnostic of informational)
-      expect(diagnostic.measured).toBe(
-        getContrastRatio(
-          parseColorSeed(diagnostic.foreground),
-          parseColorSeed(diagnostic.background),
-        ),
+      invariant(
+        diagnostic.measured ===
+          getContrastRatio(
+            parseColorSeed(diagnostic.foreground),
+            parseColorSeed(diagnostic.background),
+          ),
+        `incorrect informational measurement at ${diagnostic.path}`,
       )
     const borderContrast = borders.map((border) =>
       Math.min(...surfaces.map((surface) => getContrastRatio(border, surface))),
     )
-    expect(borderContrast[0]).toBeLessThanOrEqual(borderContrast[1]!)
-    expect(borderContrast[1]).toBeLessThanOrEqual(borderContrast[2]!)
+    invariant(borderContrast[0]! <= borderContrast[1]!, 'subtle border order')
+    invariant(borderContrast[1]! <= borderContrast[2]!, 'strong border order')
+    assertButtonDiagnostics(generated)
   }
 }
 
 describe('core themes', () => {
-  it('covers the exact deterministic theme corpus', () => {
-    const neutrals = [
+  for (const chroma of [0.08, 0.2, 0.35])
+    for (const neutral of [
       oklch(0.5, 0, 0),
       oklch(0.55, 0.03, 45),
       oklch(0.5, 0.03, 225),
-    ]
-    for (const neutral of neutrals)
-      for (const chroma of [0.08, 0.2, 0.35])
+    ])
+      it(`covers neutral corpus chroma ${chroma} neutral ${neutral}`, async () => {
+        await yieldToRunner()
         for (let hue = 0; hue < 360; hue += 30)
           for (let contrast = 0; contrast <= 100; contrast++)
-            assertCorpus({ neutral, accent: oklch(0.6, chroma, hue), contrast })
-    const accents = [
+            for (const stateStrategy of ['overlay', 'explicit'] as const)
+              assertCorpus({
+                neutral,
+                accent: oklch(0.6, chroma, hue),
+                contrast,
+                stateStrategy,
+              })
+      }, 120_000)
+
+  it('covers accent corpus', async () => {
+    await yieldToRunner()
+    for (const accent of [
       oklch(0.6, 0.2, 240),
       oklch(0.6, 0.2, 60),
       oklch(0.6, 0.2, 0),
-    ]
-    for (const accent of accents)
+    ])
       for (const chroma of [0, 0.02, 0.04])
         for (let hue = 0; hue < 360; hue += 60)
           for (const contrast of [0, 50, 100])
-            assertCorpus({ neutral: oklch(0.5, chroma, hue), accent, contrast })
+            for (const stateStrategy of ['overlay', 'explicit'] as const)
+              assertCorpus({
+                neutral: oklch(0.5, chroma, hue),
+                accent,
+                contrast,
+                stateStrategy,
+              })
   }, 120_000)
 
   it('validates defaults, paths, boundaries, modes, and strategies', () => {
