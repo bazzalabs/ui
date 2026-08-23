@@ -1,6 +1,15 @@
 import { slugify } from '../../listbox/utils/normalize.js'
 import type { NodeDef } from '../deep-search/types.js'
-import type { PopupMenuNode } from './types.js'
+import type {
+  GetRowIdFn,
+  PopupMenuNode,
+  UnidentifiedMenuNode,
+} from './types.js'
+
+/** Default row id: explicit `def.id` verbatim, else the joined definition path. */
+export function defaultGetRowId(node: UnidentifiedMenuNode): string {
+  return node.def.id ?? node.defPath.join('.')
+}
 
 /** Segment for a def: explicit `id` verbatim, else slugified `value`. */
 export function segmentForDef(def: NodeDef): string {
@@ -47,25 +56,31 @@ export function resolveNodeDefs(
   defs: readonly NodeDef[],
   parent: PopupMenuNode | null,
   basePath: readonly string[],
+  getRowId: GetRowIdFn,
 ): PopupMenuNode[] {
   return defs.map((def, index) => {
     const segment = segmentForDef(def)
     const defPath = segment ? [...basePath, segment] : [...basePath]
-    const node: PopupMenuNode = {
+    const unidentified: UnidentifiedMenuNode = {
       def,
       kind: def.kind,
       segment,
       defPath,
-      id: def.id ?? defPath.join('.'),
       parent,
       children: [],
       depth: parent ? parent.depth + 1 : 0,
       index,
     }
+    // Call the seam before spreading so the node reflects any reads the seam
+    // performs on the final definitional facts (spread-then-call would copy
+    // the fields before the seam runs).
+    const id = getRowId(unidentified)
+    const node: PopupMenuNode = { ...unidentified, id }
     node.children = resolveNodeDefs(
       childDefsOf(def),
       node,
       contributesPathSegment(def) ? node.defPath : basePath,
+      getRowId,
     )
     return node
   })

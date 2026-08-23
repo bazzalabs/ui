@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeDef } from '../../deep-search/types.js'
-import { resolveNodeDefs } from '../resolve.js'
+import { defaultGetRowId, resolveNodeDefs } from '../resolve.js'
 import { createMenuTreeResolver } from '../resolver.js'
 
 const item = (value: string, id?: string): NodeDef =>
@@ -20,7 +20,9 @@ describe('createMenuTreeResolver', () => {
 
     resolver.setContent([status])
 
-    expect(resolver.rootNodes).toEqual(resolveNodeDefs([status], null, []))
+    expect(resolver.rootNodes).toEqual(
+      resolveNodeDefs([status], null, [], defaultGetRowId),
+    )
     expect(resolver.getNodeById('status.backlog')?.def).toBe(backlog)
     expect(resolver.getNodeForDef(backlog)).toBe(
       resolver.getNodeById('status.backlog'),
@@ -273,5 +275,109 @@ describe('createMenuTreeResolver', () => {
 
     expect(groupNode.children[1]!.defPath).toEqual(['status', 'late'])
     expect(groupNode.children[1]!.id).toBe('status.late')
+  })
+})
+
+describe('getRowId seam', () => {
+  it('custom seam shapes ids', () => {
+    const resolver = createMenuTreeResolver({
+      getRowId: (node) => node.defPath.join('/') || node.def.id || '',
+    })
+    resolver.setContent([submenu('Status', [item('Backlog')])])
+
+    expect(resolver.getNodeById('status/backlog')).toBeDefined()
+    expect(resolver.getNodeById('status.backlog')).toBeUndefined()
+  })
+
+  it('matching agrees with the seam', () => {
+    const resolver = createMenuTreeResolver({
+      getRowId: (node) => node.defPath.join('/') || node.def.id || '',
+    })
+    resolver.setContent([submenu('Status', [item('Backlog')])])
+    const statusNode = resolver.rootNodes[0]!
+    const backlogNode = statusNode.children[0]!
+
+    resolver.setContent([submenu('Status', [item('Backlog')])])
+
+    expect(resolver.rootNodes[0]).toBe(statusNode)
+    expect(resolver.rootNodes[0]!.children[0]).toBe(backlogNode)
+  })
+
+  it('seam receives definitional facts', () => {
+    const captures: Array<{
+      node: Record<string, unknown>
+      hasId: boolean
+    }> = []
+    const resolver = createMenuTreeResolver({
+      getRowId: (node) => {
+        if (node.parent) {
+          captures.push({ node: { ...node }, hasId: 'id' in node })
+        }
+        return node.defPath.join('.')
+      },
+    })
+    resolver.setContent([submenu('Status', [item('Backlog')])])
+    const capture = captures[0]!
+    const parent = resolver.rootNodes[0]!
+
+    expect(capture.node).toMatchObject({
+      def: parent.children[0]!.def,
+      segment: 'backlog',
+      defPath: ['status', 'backlog'],
+      parent,
+      depth: 1,
+      index: 0,
+    })
+    expect(capture.hasId).toBe(false)
+  })
+
+  it('index-dependent seam is stable', () => {
+    const resolver = createMenuTreeResolver({
+      getRowId: (node) => `${node.defPath.join('.')}#${node.index}`,
+    })
+    resolver.setContent([item('First'), item('Second')])
+    const before = [...resolver.rootNodes]
+
+    expect(resolver.rootNodes.map((node) => node.id)).toEqual([
+      'first#0',
+      'second#1',
+    ])
+
+    resolver.setContent([item('First'), item('Second')])
+
+    expect(resolver.rootNodes[0]).toBe(before[0])
+    expect(resolver.rootNodes[1]).toBe(before[1])
+  })
+
+  it('default parity', () => {
+    const explicit = item('Ignored', 'explicit')
+    const explicitProbe = {
+      def: explicit,
+      kind: explicit.kind,
+      segment: 'explicit',
+      defPath: ['different'],
+      parent: null,
+      children: [],
+      depth: 0,
+      index: 0,
+    }
+    const idless = item('Ignored')
+    const idlessProbe = {
+      def: idless,
+      kind: idless.kind,
+      segment: 'ignored',
+      defPath: ['path', 'ignored'],
+      parent: null,
+      children: [],
+      depth: 0,
+      index: 0,
+    }
+
+    expect(defaultGetRowId(explicitProbe)).toBe(
+      explicit.id ?? explicitProbe.defPath.join('.'),
+    )
+    expect(defaultGetRowId(idlessProbe)).toBe(
+      idless.id ?? idlessProbe.defPath.join('.'),
+    )
   })
 })

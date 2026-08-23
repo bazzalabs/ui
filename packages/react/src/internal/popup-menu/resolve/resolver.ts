@@ -2,10 +2,15 @@ import type { NodeDef } from '../deep-search/types.js'
 import {
   childDefsOf,
   contributesPathSegment,
+  defaultGetRowId,
   resolveNodeDefs,
   segmentForDef,
 } from './resolve.js'
-import type { PopupMenuNode } from './types.js'
+import type {
+  GetRowIdFn,
+  PopupMenuNode,
+  UnidentifiedMenuNode,
+} from './types.js'
 
 /**
  * Owns the single resolved node tree for one menu root. Content may be
@@ -31,7 +36,37 @@ export interface MenuTreeResolver {
   getNodeById(id: string): PopupMenuNode | undefined
 }
 
-export function createMenuTreeResolver(): MenuTreeResolver {
+export interface MenuTreeResolverOptions {
+  /** Row-id seam; defaults to `defaultGetRowId`. */
+  getRowId?: GetRowIdFn
+}
+
+function prospectiveIdentity(
+  def: NodeDef,
+  parent: PopupMenuNode | null,
+  basePath: readonly string[],
+  index: number,
+  getRowId: GetRowIdFn,
+): { segment: string; defPath: string[]; id: string } {
+  const segment = segmentForDef(def)
+  const defPath = segment ? [...basePath, segment] : [...basePath]
+  const probe: UnidentifiedMenuNode = {
+    def,
+    kind: def.kind,
+    segment,
+    defPath,
+    parent,
+    children: [],
+    depth: parent ? parent.depth + 1 : 0,
+    index,
+  }
+  return { segment, defPath, id: getRowId(probe) }
+}
+
+export function createMenuTreeResolver(
+  options: MenuTreeResolverOptions = {},
+): MenuTreeResolver {
+  const getRowId = options.getRowId ?? defaultGetRowId
   let rootNodes: PopupMenuNode[] = []
   let lastRootDefs: readonly NodeDef[] | null = null
   const defToNode = new Map<NodeDef, PopupMenuNode>()
@@ -77,10 +112,8 @@ export function createMenuTreeResolver(): MenuTreeResolver {
 
     const matches: Array<PopupMenuNode | undefined> = []
     const matched = new Set<PopupMenuNode>()
-    for (const def of defs) {
-      const segment = segmentForDef(def)
-      const defPath = segment ? [...basePath, segment] : [...basePath]
-      const id = def.id ?? defPath.join('.')
+    for (const [index, def] of defs.entries()) {
+      const { id } = prospectiveIdentity(def, parent, basePath, index, getRowId)
       const bucket = buckets.get(id)
       // Kind participates in matching (not just id): a kind mismatch must
       // not consume the candidate, so a later same-kind def can still match.
@@ -99,13 +132,24 @@ export function createMenuTreeResolver(): MenuTreeResolver {
 
     return defs.map((def, index) => {
       const node = matches[index]
-      const segment = segmentForDef(def)
-      const defPath = segment ? [...basePath, segment] : [...basePath]
-      const id = def.id ?? defPath.join('.')
+      const { segment, defPath, id } = prospectiveIdentity(
+        def,
+        parent,
+        basePath,
+        index,
+        getRowId,
+      )
 
       if (!node) {
-        const created = resolveNodeDefs([def], parent, basePath)[0]!
+        const created = resolveNodeDefs([def], parent, basePath, getRowId)[0]!
         created.index = index
+        created.id = prospectiveIdentity(
+          def,
+          parent,
+          basePath,
+          index,
+          getRowId,
+        ).id
         register(created)
         return created
       }
