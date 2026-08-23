@@ -378,7 +378,7 @@ describe('RadioGroupDef', () => {
       if (isDisplayRadioGroupNode(displayNodes[0])) {
         // All items should be present in the radio group
         expect(displayNodes[0].items).toHaveLength(1) // Only matching items
-        expect(displayNodes[0].radioGroup.id).toBe('rg1')
+        expect(displayNodes[0].node.def.id).toBe('rg1')
       }
     })
 
@@ -461,7 +461,7 @@ describe('RadioGroupDef', () => {
       expect(isDisplayRadioGroupNode(displayNodes[0])).toBe(true)
       if (isDisplayRadioGroupNode(displayNodes[0])) {
         expect(displayNodes[0].items).toHaveLength(2)
-        expect(displayNodes[0].radioGroup.label).toBe('Options')
+        expect(displayNodes[0].node.def.label).toBe('Options')
       }
     })
 
@@ -474,12 +474,12 @@ describe('RadioGroupDef', () => {
 
       const displayNodes = getBrowseNodesPreserve(nodes, null)
 
-      // `resolvedNode` is non-optional, so the detached fallback must supply
+      // `node` is non-optional, so the detached fallback must supply
       // one even when no menu-tree resolver is threaded through.
       if (isDisplayRadioGroupNode(displayNodes[0])) {
-        expect(displayNodes[0].resolvedNode).toBeDefined()
-        expect(displayNodes[0].resolvedNode.id).toBe('rg1')
-        expect(displayNodes[0].resolvedNode.kind).toBe('radio-group')
+        expect(displayNodes[0].node).toBeDefined()
+        expect(displayNodes[0].node.id).toBe('rg1')
+        expect(displayNodes[0].node.kind).toBe('radio-group')
       }
     })
   })
@@ -1007,7 +1007,7 @@ describe('radioGroupSearchBehavior', () => {
       expect(displayNodes).toHaveLength(1)
       expect(isDisplayRadioGroupNode(displayNodes[0])).toBe(true)
       if (isDisplayRadioGroupNode(displayNodes[0])) {
-        expect(displayNodes[0].radioGroup.id).toBe('priority')
+        expect(displayNodes[0].node.def.id).toBe('priority')
       }
     })
 
@@ -1027,7 +1027,7 @@ describe('radioGroupSearchBehavior', () => {
       // Only theme radio group matches
       expect(displayNodes).toHaveLength(1)
       if (isDisplayRadioGroupNode(displayNodes[0])) {
-        expect(displayNodes[0].radioGroup.id).toBe('theme')
+        expect(displayNodes[0].node.def.id).toBe('theme')
         expect(displayNodes[0].items).toHaveLength(3) // All theme items
       }
     })

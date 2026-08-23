@@ -877,7 +877,7 @@ export function getBrowseNodesPreserve(
   for (const node of nodes) {
     if (node.kind === 'separator') {
       // Include separators in browse mode for visual separation
-      result.push({ kind: 'separator', separator: node })
+      result.push({ kind: 'separator', node: getNodeForDef(node) })
       continue
     }
 
@@ -946,8 +946,7 @@ export function getBrowseNodesPreserve(
 
         result.push({
           kind: 'group',
-          group: node,
-          resolvedNode: getNodeForDef(node),
+          node: getNodeForDef(node),
           context: groupContext,
           items: groupItems,
           bestScore: 1,
@@ -994,8 +993,7 @@ export function getBrowseNodesPreserve(
 
         result.push({
           kind: 'radio-group',
-          radioGroup: node,
-          resolvedNode: getNodeForDef(node),
+          node: getNodeForDef(node),
           context: groupContext,
           items: radioItems,
           bestScore: 1,
@@ -1074,8 +1072,8 @@ export interface FilterNodesOptions {
   sortGroups?: boolean
   /**
    * Resolves a def to its resolver-owned node, used to populate
-   * `resolvedNode` on group display nodes. Defaults to detached resolution
-   * for callers without a menu-tree resolver.
+   * `node` on group display nodes. Defaults to detached resolution for callers
+   * without a menu-tree resolver.
    */
   getNodeForDef?: <D extends NodeDef>(def: D) => PopupMenuNode<D>
 }
@@ -1241,8 +1239,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
 
       radioGroupDisplayNodes.push({
         kind: 'radio-group',
-        radioGroup: radioGroupDef,
-        resolvedNode: getNodeForDef(radioGroupDef),
+        node: getNodeForDef(radioGroupDef),
         context: groupContext,
         items: itemsToDisplay.map((item) =>
           buildDisplayRowNode(item, query, highlightedId, getNodeForDef),
@@ -1411,8 +1408,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
 
     groupDisplayNodes.push({
       kind: 'group',
-      group: groupDef,
-      resolvedNode: getNodeForDef(groupDef),
+      node: getNodeForDef(groupDef),
       context: groupContext,
       items: items.map((item) =>
         buildDisplayRowNode(item, query, highlightedId, getNodeForDef),
@@ -1470,8 +1466,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
 
       radioGroupDisplayNodes.push({
         kind: 'radio-group',
-        radioGroup: radioGroupDef,
-        resolvedNode: getNodeForDef(radioGroupDef),
+        node: getNodeForDef(radioGroupDef),
         context: groupContext,
         items: itemsToDisplay.map((item) =>
           buildDisplayRowNode(item, query, highlightedId, getNodeForDef),

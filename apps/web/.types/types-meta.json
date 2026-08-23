@@ -8901,16 +8901,10 @@
             "required": true
           },
           {
-            "name": "group",
-            "type": "GroupDef",
+            "name": "node",
+            "type": "PopupMenuNode<GroupDef>",
             "required": true,
-            "description": "The group definition"
-          },
-          {
-            "name": "resolvedNode",
-            "type": "PopupMenuNode<NodeDef>",
-            "required": true,
-            "description": "The resolver-owned node for `group`, set when the display node is built.\nLets list renderers outside this package forward it to `renderLabel`\nwithout reaching into the resolver themselves."
+            "description": "The resolved node; authored def at node.def."
           },
           {
             "name": "context",
@@ -8949,16 +8943,10 @@
             "required": true
           },
           {
-            "name": "radioGroup",
-            "type": "RadioGroupDef",
+            "name": "node",
+            "type": "PopupMenuNode<RadioGroupDef>",
             "required": true,
-            "description": "The radio group definition"
-          },
-          {
-            "name": "resolvedNode",
-            "type": "PopupMenuNode<NodeDef>",
-            "required": true,
-            "description": "The resolver-owned node for `radioGroup`, set when the display node is built.\nLets list renderers outside this package forward it to `renderLabel`\nwithout reaching into the resolver themselves."
+            "description": "The resolved node; authored def at node.def."
           },
           {
             "name": "context",
@@ -14606,11 +14594,11 @@
             "required": true
           },
           {
-            "name": "separator",
-            "type": "SeparatorDef",
+            "name": "node",
+            "type": "PopupMenuNode<SeparatorDef>",
             "required": true,
-            "description": "The separator definition",
-            "referencePath": "@bazza-ui/react.SeparatorDef"
+            "description": "The resolved node; authored def at node.def.",
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
           }
         ]
       },

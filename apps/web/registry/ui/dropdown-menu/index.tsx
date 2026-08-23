@@ -4,13 +4,13 @@ import { ScrollArea } from '@base-ui/react/scroll-area'
 import {
   type BreadcrumbNode,
   type DisplayNode,
-  type DisplayRadioGroupNode,
   type DropdownMenuVirtualItem,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
   isDisplayRowNode,
   isDisplaySeparatorNode,
   DropdownMenu as Primitive,
+  type RadioGroupDef,
   useMaybeAsyncMenuCoordinator,
   useMaybeSubmenuContext,
   useSurfaceContext,
@@ -437,7 +437,7 @@ type VirtualizedContentRow =
       node: DisplayNode
       groupId?: string
       positional?: NodeRowPositional
-      radioGroup?: DisplayRadioGroupNode['radioGroup']
+      radioGroup?: RadioGroupDef
     }
   | {
       kind: 'group-label'
@@ -494,29 +494,30 @@ function VirtualizedListContent({
 
     for (const node of nodes) {
       if (isDisplayGroupNode(node)) {
-        if (process.env.NODE_ENV !== 'production' && node.group.render) {
+        const group = node.node.def
+        if (process.env.NODE_ENV !== 'production' && group.render) {
           console.warn(
-            `[DropdownMenu.List virtualized] group "${node.group.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
+            `[DropdownMenu.List virtualized] group "${group.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
           )
         }
-        if (node.group.label || node.group.renderLabel) {
-          const labelId = `${node.group.id}-label`
+        if (group.label || group.renderLabel) {
+          const labelId = `${group.id}-label`
           rows.push({
             kind: 'group-label',
-            key: `group-label-${node.group.id}`,
-            groupId: node.group.id,
+            key: `group-label-${group.id}`,
+            groupId: group.id,
             firstGroup: node === firstGroupNode,
             lastGroup: node === lastGroupNode,
             firstRow: rows.length === 0,
             lastRow: false,
-            element: node.group.renderLabel ? (
-              node.group.renderLabel({
-                node: node.resolvedNode,
+            element: group.renderLabel ? (
+              group.renderLabel({
+                node: node.node,
                 props: { id: labelId },
-                context: { ...node.context, label: node.group.label },
+                context: { ...node.context, label: group.label },
               })
             ) : (
-              <GroupLabel id={labelId}>{node.group.label}</GroupLabel>
+              <GroupLabel id={labelId}>{group.label}</GroupLabel>
             ),
           })
         }
@@ -525,7 +526,7 @@ function VirtualizedListContent({
             kind: 'node',
             key: getNodeKey(item),
             node: item,
-            groupId: node.group.id,
+            groupId: group.id,
             positional: {
               firstInGroup: i === 0,
               lastInGroup: i === node.items.length - 1,
@@ -533,34 +534,35 @@ function VirtualizedListContent({
           })
         })
       } else if (isDisplayRadioGroupNode(node)) {
-        if (process.env.NODE_ENV !== 'production' && node.radioGroup.render) {
+        const radioGroup = node.node.def
+        if (process.env.NODE_ENV !== 'production' && radioGroup.render) {
           console.warn(
-            `[DropdownMenu.List virtualized] radio group "${node.radioGroup.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
+            `[DropdownMenu.List virtualized] radio group "${radioGroup.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
           )
         }
-        if (node.radioGroup.label || node.radioGroup.renderLabel) {
-          const labelId = `${node.radioGroup.id}-label`
+        if (radioGroup.label || radioGroup.renderLabel) {
+          const labelId = `${radioGroup.id}-label`
           rows.push({
             kind: 'group-label',
-            key: `group-label-${node.radioGroup.id}`,
-            groupId: node.radioGroup.id,
+            key: `group-label-${radioGroup.id}`,
+            groupId: radioGroup.id,
             firstGroup: node === firstGroupNode,
             lastGroup: node === lastGroupNode,
             firstRow: rows.length === 0,
             lastRow: false,
-            element: node.radioGroup.renderLabel ? (
-              node.radioGroup.renderLabel({
-                node: node.resolvedNode,
+            element: radioGroup.renderLabel ? (
+              radioGroup.renderLabel({
+                node: node.node,
                 props: { id: labelId },
                 context: {
                   ...node.context,
-                  label: node.radioGroup.label,
-                  value: node.radioGroup.value,
-                  disabled: node.radioGroup.disabled ?? false,
+                  label: radioGroup.label,
+                  value: radioGroup.value,
+                  disabled: radioGroup.disabled ?? false,
                 },
               })
             ) : (
-              <GroupLabel id={labelId}>{node.radioGroup.label}</GroupLabel>
+              <GroupLabel id={labelId}>{radioGroup.label}</GroupLabel>
             ),
           })
         }
@@ -569,12 +571,12 @@ function VirtualizedListContent({
             kind: 'node',
             key: getNodeKey(item),
             node: item,
-            groupId: node.radioGroup.id,
+            groupId: radioGroup.id,
             positional: {
               firstInGroup: i === 0,
               lastInGroup: i === node.items.length - 1,
             },
-            radioGroup: node.radioGroup,
+            radioGroup,
           })
         })
       } else if (isDisplaySeparatorNode(node)) {
@@ -795,29 +797,9 @@ function VirtualizedListContent({
   )
 }
 
-/** Get a unique key for a display node. */
-function getNodeKey(node: DisplayNode): string {
-  // Handle row nodes (items, checkbox items, submenus)
-  if (isDisplayRowNode(node)) {
-    return node.node.id || node.node.def.value
-  }
-
-  // Handle group nodes
-  if ('group' in node && node.group) {
-    return node.group.id
-  }
-
-  // Handle radio group nodes
-  if ('radioGroup' in node && node.radioGroup) {
-    return node.radioGroup.id
-  }
-
-  // Handle separator nodes
-  if ('separator' in node && node.separator) {
-    return node.separator.id ?? 'separator'
-  }
-
-  return String(Math.random())
+/** Return a display node's canonical resolved identity. */
+function getNodeKey(displayNode: DisplayNode): string {
+  return displayNode.node.id
 }
 
 const Input = forwardRef<
