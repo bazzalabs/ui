@@ -4,8 +4,6 @@ import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import type {
-  GetQualifiedRowIdContext,
-  GetQualifiedRowIdFn,
   GroupDef,
   ItemDef,
   NodeDef,
@@ -14,7 +12,6 @@ import type {
   SubmenuDef,
   SubpageDef,
 } from '../types.js'
-import { defaultGetQualifiedRowId } from '../utils.js'
 
 // ============================================================================
 // Test Helpers
@@ -155,54 +152,18 @@ function MenuWithDataContent({ content }: { content: NodeDef[] }) {
   )
 }
 
-function MenuWithNestedRows({
-  rowIdStrategy,
-}: {
-  rowIdStrategy?: 'qualified' | 'explicit' | 'hybrid'
-}) {
-  const content = React.useMemo(
-    () => [
-      createTestSubmenuDef('a', 'A', [
-        createTestSubmenuDef('b', 'B', [
-          createTestItemDef('nested-leaf', 'Nested Leaf'),
-        ]),
-      ]),
-    ],
-    [],
-  )
-
-  return (
-    <DropdownMenu.Root defaultOpen rowIdStrategy={rowIdStrategy}>
-      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.Surface content={content}>
-              <DropdownMenu.List>
-                <ListItems />
-              </DropdownMenu.List>
-            </DropdownMenu.Surface>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
-
 // ============================================================================
 // Test Fixtures
 // ============================================================================
 
 /**
  * Menu with Surface that has items with duplicate IDs across submenus.
- * This is the core problem that getQualifiedRowId() solves.
+ * This covers duplicate definition values across submenus.
  */
 function MenuWithDuplicateIds({
-  getQualifiedRowId,
   onSelectStatus,
   onSelectProjectStatus,
 }: {
-  getQualifiedRowId?: GetQualifiedRowIdFn
   onSelectStatus?: () => void
   onSelectProjectStatus?: () => void
 }) {
@@ -238,7 +199,6 @@ function MenuWithDuplicateIds({
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true, minLength: 0 }}
-              getQualifiedRowId={getQualifiedRowId}
             >
               <DropdownMenu.Input
                 data-testid="search-input"
@@ -261,11 +221,7 @@ function MenuWithDuplicateIds({
 /**
  * Menu with flat items (no submenus) for basic ID testing.
  */
-function MenuWithFlatItems({
-  getQualifiedRowId,
-}: {
-  getQualifiedRowId?: GetQualifiedRowIdFn
-}) {
+function MenuWithFlatItems() {
   const content: NodeDef[] = React.useMemo(
     () => [
       createTestItemDef('apple', 'Apple'),
@@ -285,64 +241,7 @@ function MenuWithFlatItems({
               data-testid="surface"
               content={content}
               deepSearch={{ enabled: true }}
-              getQualifiedRowId={getQualifiedRowId}
             >
-              <DropdownMenu.List>
-                <ListItems />
-              </DropdownMenu.List>
-            </DropdownMenu.Surface>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
-
-/**
- * Menu for testing custom getQualifiedRowId function.
- */
-function MenuWithCustomGetQualifiedRowId({
-  getQualifiedRowId,
-  getQualifiedRowIdSpy,
-}: {
-  getQualifiedRowId: GetQualifiedRowIdFn
-  getQualifiedRowIdSpy?: (ctx: GetQualifiedRowIdContext) => void
-}) {
-  const wrappedGetQualifiedRowId: GetQualifiedRowIdFn = React.useCallback(
-    (ctx) => {
-      getQualifiedRowIdSpy?.(ctx)
-      return getQualifiedRowId(ctx)
-    },
-    [getQualifiedRowId, getQualifiedRowIdSpy],
-  )
-
-  const content: NodeDef[] = React.useMemo(
-    () => [
-      createTestSubmenuDef('settings', 'Settings', [
-        createTestItemDef('theme', 'Theme'),
-        createTestItemDef('language', 'Language'),
-      ]),
-      createTestItemDef('help', 'Help'),
-    ],
-    [],
-  )
-
-  return (
-    <DropdownMenu.Root defaultOpen>
-      <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.Surface
-              data-testid="surface"
-              content={content}
-              deepSearch={{ enabled: true, minLength: 0 }}
-              getQualifiedRowId={wrappedGetQualifiedRowId}
-            >
-              <DropdownMenu.Input
-                data-testid="search-input"
-                placeholder="Search..."
-              />
               <DropdownMenu.List>
                 <ListItems />
               </DropdownMenu.List>
@@ -490,444 +389,387 @@ describe('useDataList', () => {
   })
 })
 
-describe('List getQualifiedRowId', () => {
-  it('defaults to qualified ids for nested browse surfaces and hybrid restores the legacy ids', async () => {
+describe('DOM ID verification', () => {
+  it('renders items with their node.value as DOM id at root level', async () => {
+    render(<MenuWithFlatItems />)
+
+    // Wait for items to be visible (menu is defaultOpen)
+    await waitFor(() => {
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+    })
+
+    // Items at root level should have slugified IDs
+    const apple = screen.getByTestId('item-apple')
+    const banana = screen.getByTestId('item-banana')
+    const cherry = screen.getByTestId('item-cherry')
+
+    expect(apple).toHaveAttribute('id', 'apple')
+    expect(banana).toHaveAttribute('id', 'banana')
+    expect(cherry).toHaveAttribute('id', 'cherry')
+  })
+
+  it('renders items with composite IDs when surfaced from submenus', async () => {
     const user = userEvent.setup()
-    const openNested = async () => {
-      await user.hover(screen.getByTestId('submenu-trigger-a'))
-      await waitFor(() =>
-        expect(screen.getByTestId('submenu-trigger-b')).toBeInTheDocument(),
+    render(<MenuWithDuplicateIds />)
+
+    // Wait for menu to open (defaultOpen)
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    // Search for "backlog" to surface items from both submenus
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'backlog')
+
+    // Wait for search results
+    await waitFor(() => {
+      // Both "backlog" items should be visible with different composite IDs
+      const items = screen.getAllByText('Backlog')
+      expect(items.length).toBe(2)
+    })
+
+    // Find items by their composite IDs (slugified)
+    const statusBacklog = document.getElementById('status.backlog')
+    const projectStatusBacklog = document.getElementById(
+      'project-status.backlog',
+    )
+
+    expect(statusBacklog).toBeInTheDocument()
+    expect(projectStatusBacklog).toBeInTheDocument()
+    expect(statusBacklog).not.toBe(projectStatusBacklog)
+  })
+
+  it('preserves value in render context', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithDuplicateIds />)
+
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    // Search for "backlog"
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'backlog')
+
+    await waitFor(() => {
+      const items = screen.getAllByText('Backlog')
+      expect(items.length).toBe(2)
+    })
+
+    // Both items should have data-value="Backlog" (the original value)
+    const statusBacklog = document.getElementById('status.backlog')
+    const projectStatusBacklog = document.getElementById(
+      'project-status.backlog',
+    )
+
+    expect(statusBacklog).toHaveAttribute('data-value', 'Backlog')
+    expect(projectStatusBacklog).toHaveAttribute('data-value', 'Backlog')
+  })
+})
+
+describe('deep search duplicate ID scenario', () => {
+  it('handles keyboard navigation with duplicate local IDs', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithDuplicateIds />)
+
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    // Search for "backlog"
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'backlog')
+
+    await waitFor(() => {
+      const items = screen.getAllByText('Backlog')
+      expect(items.length).toBe(2)
+    })
+
+    // First item should auto-highlight after search
+    // Wait for auto-highlight to settle
+    await waitFor(() => {
+      const statusBacklog = document.getElementById('status.backlog')
+      expect(statusBacklog).toHaveAttribute('data-highlighted', '')
+    })
+
+    // Navigate down - should highlight second item (project-status.backlog)
+    await user.keyboard('{ArrowDown}')
+
+    await waitFor(() => {
+      const projectStatusBacklog = document.getElementById(
+        'project-status.backlog',
       )
-      await user.hover(screen.getByTestId('submenu-trigger-b'))
-      await waitFor(() =>
-        expect(screen.getByTestId('item-nested-leaf')).toBeInTheDocument(),
+      expect(projectStatusBacklog).toHaveAttribute('data-highlighted', '')
+    })
+
+    const statusBacklog = document.getElementById('status.backlog')
+    expect(statusBacklog).not.toHaveAttribute('data-highlighted')
+  })
+
+  it('triggers correct onSelect for items with duplicate local IDs', async () => {
+    const user = userEvent.setup()
+    const onSelectStatus = vi.fn()
+    const onSelectProjectStatus = vi.fn()
+
+    render(
+      <MenuWithDuplicateIds
+        onSelectStatus={onSelectStatus}
+        onSelectProjectStatus={onSelectProjectStatus}
+      />,
+    )
+
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    // Search for "backlog"
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'backlog')
+
+    await waitFor(() => {
+      const items = screen.getAllByText('Backlog')
+      expect(items.length).toBe(2)
+    })
+
+    // Click the first backlog (status.backlog)
+    const statusBacklog = document.getElementById('status.backlog')
+    await user.click(statusBacklog!)
+
+    expect(onSelectStatus).toHaveBeenCalledTimes(1)
+    expect(onSelectProjectStatus).not.toHaveBeenCalled()
+  })
+
+  it('aria-activedescendant uses composite ID', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithDuplicateIds />)
+
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    // Search for "backlog"
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'backlog')
+
+    await waitFor(() => {
+      const items = screen.getAllByText('Backlog')
+      expect(items.length).toBe(2)
+    })
+
+    // First item should be auto-highlighted after search
+    // The aria-activedescendant is set on the input (combobox role)
+    await waitFor(() => {
+      expect(input).toHaveAttribute('aria-activedescendant', 'status.backlog')
+    })
+
+    // Navigate down to second item
+    await user.keyboard('{ArrowDown}')
+
+    await waitFor(() => {
+      expect(input).toHaveAttribute(
+        'aria-activedescendant',
+        'project-status.backlog',
       )
+    })
+  })
+})
+
+function NestedSurfaceMenu({
+  ancestorId,
+  duplicateId,
+}: {
+  ancestorId?: string
+  duplicateId?: string
+}) {
+  const content: NodeDef[] = React.useMemo(() => {
+    const leaf = createTestItemDef('leaf', 'Leaf', { id: duplicateId })
+    const submenuB: SubmenuDef = {
+      kind: 'submenu',
+      id: 'b',
+      value: 'B',
+      nodes: [leaf],
+      render: ({ props, context, nodes }) => (
+        <DropdownMenu.Submenu>
+          <DropdownMenu.SubmenuTrigger
+            {...props}
+            data-testid="nested-trigger-b"
+          >
+            {context.value}
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface content={nodes}>
+                  <DropdownMenu.List>
+                    <ListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
     }
+    const submenuA: SubmenuDef = {
+      kind: 'submenu',
+      id: ancestorId,
+      value: 'A',
+      nodes: [submenuB],
+      render: ({ props, context, nodes }) => (
+        <DropdownMenu.Submenu>
+          <DropdownMenu.SubmenuTrigger
+            {...props}
+            data-testid="nested-trigger-a"
+          >
+            {context.value}
+          </DropdownMenu.SubmenuTrigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface content={nodes}>
+                  <DropdownMenu.List>
+                    <ListItems />
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Submenu>
+      ),
+    }
+    return [
+      ...(duplicateId
+        ? [createTestItemDef('root-duplicate', 'Root', { id: duplicateId })]
+        : []),
+      submenuA,
+    ]
+  }, [ancestorId, duplicateId])
 
-    const { unmount } = render(<MenuWithNestedRows />)
-    await openNested()
-    expect(screen.getByTestId('item-nested-leaf')).toHaveAttribute(
-      'id',
-      'a.b.nested-leaf',
-    )
-    unmount()
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface
+              content={content}
+              deepSearch={{ enabled: true, minLength: 1 }}
+            >
+              <DropdownMenu.Input data-testid="nested-search-input" />
+              <DropdownMenu.List>
+                <ListItems />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
 
-    render(<MenuWithNestedRows rowIdStrategy="hybrid" />)
-    await openNested()
-    expect(screen.getByTestId('item-nested-leaf')).toHaveAttribute(
-      'id',
-      'Nested Leaf',
-    )
+it('warns when nested surfaces share an explicit row id', async () => {
+  const user = userEvent.setup()
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+  render(<NestedSurfaceMenu duplicateId="shared-row" />)
+  await user.hover(screen.getByTestId('nested-trigger-a'))
+  await waitFor(() =>
+    expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument(),
+  )
+  await user.hover(screen.getByTestId('nested-trigger-b'))
+  await waitFor(() =>
+    expect(screen.getByTestId('item-leaf')).toBeInTheDocument(),
+  )
+
+  expect(
+    warn.mock.calls.filter(([message]) =>
+      String(message).startsWith('[PopupMenu] Duplicate row id'),
+    ),
+  ).toHaveLength(1)
+  expect(warn).toHaveBeenCalledWith(
+    expect.stringContaining(
+      '[PopupMenu] Duplicate row id "shared-row" resolved for multiple rows in the same menu',
+    ),
+  )
+})
+
+describe('edge cases', () => {
+  it('handles empty search results', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithDuplicateIds />)
+
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'nonexistent')
+
+    // Should show empty state, no crash
+    await waitFor(() => {
+      expect(screen.getByTestId('empty')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('count')).toHaveTextContent('0')
   })
 
-  describe('DOM ID verification', () => {
-    it('renders items with their node.value as DOM id at root level', async () => {
-      render(<MenuWithFlatItems />)
+  it('handles clearing search after deep search', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithDuplicateIds />)
 
-      // Wait for items to be visible (menu is defaultOpen)
-      await waitFor(() => {
-        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
-      })
-
-      // Items at root level should have slugified IDs
-      const apple = screen.getByTestId('item-apple')
-      const banana = screen.getByTestId('item-banana')
-      const cherry = screen.getByTestId('item-cherry')
-
-      expect(apple).toHaveAttribute('id', 'apple')
-      expect(banana).toHaveAttribute('id', 'banana')
-      expect(cherry).toHaveAttribute('id', 'cherry')
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
     })
 
-    it('renders items with composite IDs when surfaced from submenus', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithDuplicateIds />)
+    const input = screen.getByTestId('search-input')
 
-      // Wait for menu to open (defaultOpen)
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search for "backlog" to surface items from both submenus
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'backlog')
-
-      // Wait for search results
-      await waitFor(() => {
-        // Both "backlog" items should be visible with different composite IDs
-        const items = screen.getAllByText('Backlog')
-        expect(items.length).toBe(2)
-      })
-
-      // Find items by their composite IDs (slugified)
-      const statusBacklog = document.getElementById('status.backlog')
-      const projectStatusBacklog = document.getElementById(
-        'project-status.backlog',
-      )
-
-      expect(statusBacklog).toBeInTheDocument()
-      expect(projectStatusBacklog).toBeInTheDocument()
-      expect(statusBacklog).not.toBe(projectStatusBacklog)
+    // Search for "backlog"
+    await user.type(input, 'backlog')
+    await waitFor(() => {
+      expect(screen.getAllByText('Backlog').length).toBe(2)
     })
 
-    it('preserves value in render context', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithDuplicateIds />)
+    // Clear search
+    await user.clear(input)
 
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search for "backlog"
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'backlog')
-
-      await waitFor(() => {
-        const items = screen.getAllByText('Backlog')
-        expect(items.length).toBe(2)
-      })
-
-      // Both items should have data-value="Backlog" (the original value)
-      const statusBacklog = document.getElementById('status.backlog')
-      const projectStatusBacklog = document.getElementById(
-        'project-status.backlog',
-      )
-
-      expect(statusBacklog).toHaveAttribute('data-value', 'Backlog')
-      expect(projectStatusBacklog).toHaveAttribute('data-value', 'Backlog')
-    })
-  })
-
-  describe('deep search duplicate ID scenario', () => {
-    it('handles keyboard navigation with duplicate local IDs', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithDuplicateIds />)
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search for "backlog"
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'backlog')
-
-      await waitFor(() => {
-        const items = screen.getAllByText('Backlog')
-        expect(items.length).toBe(2)
-      })
-
-      // First item should auto-highlight after search
-      // Wait for auto-highlight to settle
-      await waitFor(() => {
-        const statusBacklog = document.getElementById('status.backlog')
-        expect(statusBacklog).toHaveAttribute('data-highlighted', '')
-      })
-
-      // Navigate down - should highlight second item (project-status.backlog)
-      await user.keyboard('{ArrowDown}')
-
-      await waitFor(() => {
-        const projectStatusBacklog = document.getElementById(
-          'project-status.backlog',
-        )
-        expect(projectStatusBacklog).toHaveAttribute('data-highlighted', '')
-      })
-
-      const statusBacklog = document.getElementById('status.backlog')
-      expect(statusBacklog).not.toHaveAttribute('data-highlighted')
-    })
-
-    it('triggers correct onSelect for items with duplicate local IDs', async () => {
-      const user = userEvent.setup()
-      const onSelectStatus = vi.fn()
-      const onSelectProjectStatus = vi.fn()
-
-      render(
-        <MenuWithDuplicateIds
-          onSelectStatus={onSelectStatus}
-          onSelectProjectStatus={onSelectProjectStatus}
-        />,
-      )
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search for "backlog"
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'backlog')
-
-      await waitFor(() => {
-        const items = screen.getAllByText('Backlog')
-        expect(items.length).toBe(2)
-      })
-
-      // Click the first backlog (status.backlog)
-      const statusBacklog = document.getElementById('status.backlog')
-      await user.click(statusBacklog!)
-
-      expect(onSelectStatus).toHaveBeenCalledTimes(1)
-      expect(onSelectProjectStatus).not.toHaveBeenCalled()
-    })
-
-    it('aria-activedescendant uses composite ID', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithDuplicateIds />)
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search for "backlog"
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'backlog')
-
-      await waitFor(() => {
-        const items = screen.getAllByText('Backlog')
-        expect(items.length).toBe(2)
-      })
-
-      // First item should be auto-highlighted after search
-      // The aria-activedescendant is set on the input (combobox role)
-      await waitFor(() => {
-        expect(input).toHaveAttribute('aria-activedescendant', 'status.backlog')
-      })
-
-      // Navigate down to second item
-      await user.keyboard('{ArrowDown}')
-
-      await waitFor(() => {
-        expect(input).toHaveAttribute(
-          'aria-activedescendant',
-          'project-status.backlog',
-        )
-      })
+    // Should go back to browse mode showing submenu triggers
+    await waitFor(() => {
+      expect(screen.getByTestId('submenu-trigger-status')).toBeInTheDocument()
+      expect(
+        screen.getByTestId('submenu-trigger-project-status'),
+      ).toBeInTheDocument()
     })
   })
 
-  describe('custom getQualifiedRowId function', () => {
-    it('uses custom function for ID generation', async () => {
-      const user = userEvent.setup()
+  it('handles values with special characters', async () => {
+    const contentWithSpecialChars: NodeDef[] = [
+      createTestSubmenuDef('my-submenu', 'My Submenu', [
+        createTestItemDef('item_with_underscore', 'Item With Underscore'),
+        createTestItemDef('item-with-dashes', 'Item With Dashes'),
+      ]),
+    ]
 
-      // Custom function that uses "/" as separator
-      const customGetQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
-        if (ctx.breadcrumbs.length > 0) {
-          return [...ctx.breadcrumbs.map((b) => b.value), ctx.value].join('/')
-        }
-        return ctx.value
-      }
-
-      render(
-        <MenuWithCustomGetQualifiedRowId
-          getQualifiedRowId={customGetQualifiedRowId}
-        />,
-      )
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search for "theme" to surface item from submenu
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'theme')
-
-      await waitFor(() => {
-        expect(screen.getByText('Theme')).toBeInTheDocument()
-      })
-
-      // Item should have custom composite ID with "/" separator
-      const themeItem = document.getElementById('Settings/Theme')
-      expect(themeItem).toBeInTheDocument()
-    })
-
-    it('calls custom function with correct context', async () => {
-      const user = userEvent.setup()
-      const getQualifiedRowIdSpy = vi.fn()
-
-      const customGetQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
-        if (ctx.breadcrumbs.length > 0) {
-          return [...ctx.breadcrumbs.map((b) => b.value), ctx.value].join('.')
-        }
-        return ctx.value
-      }
-
-      render(
-        <MenuWithCustomGetQualifiedRowId
-          getQualifiedRowId={customGetQualifiedRowId}
-          getQualifiedRowIdSpy={getQualifiedRowIdSpy}
-        />,
-      )
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Search to trigger deep search and ID generation
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'theme')
-
-      await waitFor(() => {
-        expect(screen.getByText('Theme')).toBeInTheDocument()
-      })
-
-      // Find the call for the "Theme" item - look for calls where query contains 'theme' (case insensitive)
-      // The spy is called incrementally as the user types, so we need to find the right call
-      const themeCall = getQualifiedRowIdSpy.mock.calls.find(
-        (call) =>
-          call[0].value === 'Theme' &&
-          call[0].search?.query?.toLowerCase().includes('theme'),
-      )
-
-      expect(themeCall).toBeDefined()
-      const ctx = themeCall![0] as GetQualifiedRowIdContext
-
-      // Verify context fields
-      expect(ctx.value).toBe('Theme')
-      expect(ctx.breadcrumbs.map((b) => b.value)).toEqual(['Settings'])
-      expect(ctx.isDeepSearchResult).toBe(true)
-      // The query should contain 'theme' at some point
-      expect(ctx.search?.query.toLowerCase()).toContain('theme')
-    })
-
-    it('custom function can include index for uniqueness', async () => {
-      const user = userEvent.setup()
-
-      // Custom function that uses index prefix
-      const customGetQualifiedRowId: GetQualifiedRowIdFn = (ctx) => {
-        return `item-${ctx.index}-${ctx.value}`
-      }
-
-      render(
-        <MenuWithCustomGetQualifiedRowId
-          getQualifiedRowId={customGetQualifiedRowId}
-        />,
-      )
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Without search, items are just the submenu triggers and root items
-      // With search, we get deep items
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'help')
-
-      await waitFor(() => {
-        expect(screen.getByText('Help')).toBeInTheDocument()
-      })
-
-      // Help is a root item, so should have index-based ID
-      // The exact index depends on implementation but should follow pattern
-      const helpItem = screen.getByText('Help').closest('[role="option"]')
-      expect(helpItem?.id).toMatch(/^item-\d+-Help$/)
-    })
-
-    function NestedSurfaceMenu({
-      ancestorId,
-      onContext,
-      rowIdStrategy,
-      duplicateId,
-    }: {
-      ancestorId?: string
-      onContext?: (context: GetQualifiedRowIdContext) => void
-      rowIdStrategy?: 'qualified' | 'explicit' | 'hybrid'
-      duplicateId?: string
-    }) {
-      const content: NodeDef[] = React.useMemo(() => {
-        const leaf = createTestItemDef('leaf', 'Leaf', { id: duplicateId })
-        const submenuB: SubmenuDef = {
-          kind: 'submenu',
-          id: 'b',
-          value: 'B',
-          nodes: [leaf],
-          render: ({ props, context, nodes }) => (
-            <DropdownMenu.Submenu>
-              <DropdownMenu.SubmenuTrigger
-                {...props}
-                data-testid="nested-trigger-b"
-              >
-                {context.value}
-              </DropdownMenu.SubmenuTrigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Positioner>
-                  <DropdownMenu.Popup>
-                    <DropdownMenu.Surface content={nodes}>
-                      <DropdownMenu.List>
-                        <ListItems />
-                      </DropdownMenu.List>
-                    </DropdownMenu.Surface>
-                  </DropdownMenu.Popup>
-                </DropdownMenu.Positioner>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Submenu>
-          ),
-        }
-        const submenuA: SubmenuDef = {
-          kind: 'submenu',
-          id: ancestorId,
-          value: 'A',
-          nodes: [submenuB],
-          render: ({ props, context, nodes }) => (
-            <DropdownMenu.Submenu>
-              <DropdownMenu.SubmenuTrigger
-                {...props}
-                data-testid="nested-trigger-a"
-              >
-                {context.value}
-              </DropdownMenu.SubmenuTrigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Positioner>
-                  <DropdownMenu.Popup>
-                    <DropdownMenu.Surface content={nodes}>
-                      <DropdownMenu.List>
-                        <ListItems />
-                      </DropdownMenu.List>
-                    </DropdownMenu.Surface>
-                  </DropdownMenu.Popup>
-                </DropdownMenu.Positioner>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Submenu>
-          ),
-        }
-        return [
-          ...(duplicateId
-            ? [createTestItemDef('root-duplicate', 'Root', { id: duplicateId })]
-            : []),
-          submenuA,
-        ]
-      }, [ancestorId, duplicateId])
-
-      const rootProps = onContext
-        ? {
-            getQualifiedRowId: (context: GetQualifiedRowIdContext) => {
-              onContext(context)
-              return defaultGetQualifiedRowId(context)
-            },
-          }
-        : {}
-
+    function MenuWithSpecialChars() {
       return (
-        <DropdownMenu.Root
-          defaultOpen
-          rowIdStrategy={rowIdStrategy}
-          {...rootProps}
-        >
+        <DropdownMenu.Root defaultOpen>
           <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Positioner>
               <DropdownMenu.Popup>
                 <DropdownMenu.Surface
-                  content={content}
-                  deepSearch={{ enabled: true, minLength: 1 }}
+                  content={contentWithSpecialChars}
+                  deepSearch={{ enabled: true, minLength: 0 }}
                 >
-                  <DropdownMenu.Input data-testid="nested-search-input" />
+                  <DropdownMenu.Input
+                    data-testid="search-input"
+                    placeholder="Search..."
+                  />
                   <DropdownMenu.List>
                     <ListItems />
                   </DropdownMenu.List>
@@ -939,544 +781,389 @@ describe('List getQualifiedRowId', () => {
       )
     }
 
-    it('warns when nested surfaces share an explicit row id', async () => {
-      const user = userEvent.setup()
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const user = userEvent.setup()
+    render(<MenuWithSpecialChars />)
 
-      render(<NestedSurfaceMenu duplicateId="shared-row" />)
-      await user.hover(screen.getByTestId('nested-trigger-a'))
-      await waitFor(() =>
-        expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument(),
-      )
-      await user.hover(screen.getByTestId('nested-trigger-b'))
-      await waitFor(() =>
-        expect(screen.getByTestId('item-leaf')).toBeInTheDocument(),
-      )
-
-      expect(
-        warn.mock.calls.filter(([message]) =>
-          String(message).startsWith('[PopupMenu] Duplicate row id'),
-        ),
-      ).toHaveLength(1)
-      expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          '[PopupMenu] Duplicate row id "shared-row" resolved for multiple rows in the same menu',
-        ),
-      )
+    // Wait for menu to open
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
     })
 
-    it('defaults to qualified ids for nested surfaces and hybrid restores the legacy ids', async () => {
-      const user = userEvent.setup()
-      const openNested = async () => {
-        await user.hover(screen.getByTestId('nested-trigger-a'))
-        await waitFor(() => {
-          expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument()
-        })
-        await user.hover(screen.getByTestId('nested-trigger-b'))
-        await waitFor(() => {
-          expect(screen.getByTestId('item-leaf')).toBeInTheDocument()
-        })
-      }
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'item')
 
-      const { unmount } = render(<NestedSurfaceMenu />)
-      await openNested()
-      expect(screen.getByTestId('item-leaf')).toHaveAttribute('id', 'a.b.leaf')
-      unmount()
-
-      render(<NestedSurfaceMenu rowIdStrategy="hybrid" />)
-      await openNested()
-      expect(screen.getByTestId('item-leaf')).toHaveAttribute('id', 'leaf')
+    await waitFor(() => {
+      expect(screen.getByText('Item With Underscore')).toBeInTheDocument()
+      expect(screen.getByText('Item With Dashes')).toBeInTheDocument()
     })
 
-    it('threads display paths through nested data surfaces', async () => {
-      const user = userEvent.setup()
-      const contexts: GetQualifiedRowIdContext[] = []
+    // Verify composite IDs are slugified
+    const underscoreItem = document.getElementById(
+      'my-submenu.item-with-underscore',
+    )
+    const dashItem = document.getElementById('my-submenu.item-with-dashes')
 
-      render(
-        <NestedSurfaceMenu onContext={(context) => contexts.push(context)} />,
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('nested-trigger-a')).toBeInTheDocument()
-      })
-      await user.hover(screen.getByTestId('nested-trigger-a'))
-      await waitFor(() => {
-        expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument()
-      })
-      await user.hover(screen.getByTestId('nested-trigger-b'))
-      await waitFor(() => {
-        expect(screen.getByTestId('item-leaf')).toBeInTheDocument()
-      })
-
-      expect(
-        contexts.some(
-          (context) =>
-            context.value === 'A' && (context.displayPath ?? []).length === 0,
-        ),
-      ).toBe(true)
-      expect(
-        contexts.some(
-          (context) =>
-            context.value === 'B' &&
-            JSON.stringify(context.displayPath) === JSON.stringify(['a']),
-        ),
-      ).toBe(true)
-      expect(
-        contexts.some(
-          (context) =>
-            context.value === 'Leaf' &&
-            JSON.stringify(context.displayPath) === JSON.stringify(['a', 'b']),
-        ),
-      ).toBe(true)
-
-      expect(
-        contexts.some(
-          (context) =>
-            context.value === 'A' &&
-            JSON.stringify(context.defPath) === JSON.stringify(['a']),
-        ),
-      ).toBe(true)
-      expect(
-        contexts.some(
-          (context) =>
-            context.value === 'Leaf' &&
-            JSON.stringify(context.defPath) ===
-              JSON.stringify(['a', 'b', 'leaf']),
-        ),
-      ).toBe(true)
-    })
-
-    it('uses an explicit submenu id as the display path segment', async () => {
-      const user = userEvent.setup()
-      const contexts: GetQualifiedRowIdContext[] = []
-
-      render(
-        <NestedSurfaceMenu
-          ancestorId="custom-seg"
-          onContext={(context) => contexts.push(context)}
-        />,
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('nested-trigger-a')).toBeInTheDocument()
-      })
-      await user.hover(screen.getByTestId('nested-trigger-a'))
-      await waitFor(() => {
-        expect(screen.getByTestId('nested-trigger-b')).toBeInTheDocument()
-      })
-
-      expect(
-        contexts.some(
-          (context) =>
-            context.value === 'B' &&
-            JSON.stringify(context.displayPath) ===
-              JSON.stringify(['custom-seg']),
-        ),
-      ).toBe(true)
-    })
-
-    it('keeps definition paths equal between browse and deep search', async () => {
-      const user = userEvent.setup()
-      const contexts: GetQualifiedRowIdContext[] = []
-
-      render(
-        <NestedSurfaceMenu onContext={(context) => contexts.push(context)} />,
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('nested-search-input')).toBeInTheDocument()
-      })
-
-      await user.type(screen.getByTestId('nested-search-input'), 'Leaf')
-
-      await waitFor(() => {
-        expect(
-          contexts.some(
-            (context) => context.value === 'Leaf' && context.isDeepSearchResult,
-          ),
-        ).toBe(true)
-      })
-
-      const leafContext = contexts.find(
-        (context) => context.value === 'Leaf' && context.isDeepSearchResult,
-      )
-      expect(leafContext?.defPath).toEqual(['a', 'b', 'leaf'])
-      expect(leafContext?.displayPath ?? []).toEqual([])
-      expect(
-        leafContext?.breadcrumbs.map((breadcrumb) => breadcrumb.value),
-      ).toEqual(['A', 'B'])
-    })
+    expect(underscoreItem).toBeInTheDocument()
+    expect(dashItem).toBeInTheDocument()
   })
+})
 
-  describe('edge cases', () => {
-    it('handles empty search results', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithDuplicateIds />)
+describe('forced sorting', () => {
+  it('orders rendered rows by forceOrder before score', async () => {
+    render(<MenuWithForcedSorting />)
 
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'nonexistent')
-
-      // Should show empty state, no crash
-      await waitFor(() => {
-        expect(screen.getByTestId('empty')).toBeInTheDocument()
-      })
-
-      expect(screen.getByTestId('count')).toHaveTextContent('0')
+    await waitFor(() => {
+      expect(screen.getByTestId('item-early')).toBeInTheDocument()
+      expect(screen.getByTestId('submenu-trigger-settings')).toBeInTheDocument()
+      expect(screen.getByTestId('item-late')).toBeInTheDocument()
     })
 
-    it('handles clearing search after deep search', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithDuplicateIds />)
+    const listbox = screen.getByRole('listbox')
+    const renderedOrder = Array.from(
+      listbox.querySelectorAll('[role="option"], [role="menuitem"]'),
+    ).map((element) => element.getAttribute('data-testid'))
 
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      const input = screen.getByTestId('search-input')
-
-      // Search for "backlog"
-      await user.type(input, 'backlog')
-      await waitFor(() => {
-        expect(screen.getAllByText('Backlog').length).toBe(2)
-      })
-
-      // Clear search
-      await user.clear(input)
-
-      // Should go back to browse mode showing submenu triggers
-      await waitFor(() => {
-        expect(screen.getByTestId('submenu-trigger-status')).toBeInTheDocument()
-        expect(
-          screen.getByTestId('submenu-trigger-project-status'),
-        ).toBeInTheDocument()
-      })
-    })
-
-    it('handles values with special characters', async () => {
-      const contentWithSpecialChars: NodeDef[] = [
-        createTestSubmenuDef('my-submenu', 'My Submenu', [
-          createTestItemDef('item_with_underscore', 'Item With Underscore'),
-          createTestItemDef('item-with-dashes', 'Item With Dashes'),
-        ]),
-      ]
-
-      function MenuWithSpecialChars() {
-        return (
-          <DropdownMenu.Root defaultOpen>
-            <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Positioner>
-                <DropdownMenu.Popup>
-                  <DropdownMenu.Surface
-                    content={contentWithSpecialChars}
-                    deepSearch={{ enabled: true, minLength: 0 }}
-                  >
-                    <DropdownMenu.Input
-                      data-testid="search-input"
-                      placeholder="Search..."
-                    />
-                    <DropdownMenu.List>
-                      <ListItems />
-                    </DropdownMenu.List>
-                  </DropdownMenu.Surface>
-                </DropdownMenu.Popup>
-              </DropdownMenu.Positioner>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-        )
-      }
-
-      const user = userEvent.setup()
-      render(<MenuWithSpecialChars />)
-
-      // Wait for menu to open
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'item')
-
-      await waitFor(() => {
-        expect(screen.getByText('Item With Underscore')).toBeInTheDocument()
-        expect(screen.getByText('Item With Dashes')).toBeInTheDocument()
-      })
-
-      // Verify composite IDs are slugified
-      const underscoreItem = document.getElementById(
-        'my-submenu.item-with-underscore',
-      )
-      const dashItem = document.getElementById('my-submenu.item-with-dashes')
-
-      expect(underscoreItem).toBeInTheDocument()
-      expect(dashItem).toBeInTheDocument()
-    })
+    expect(renderedOrder).toEqual([
+      'item-early',
+      'submenu-trigger-settings',
+      'item-late',
+    ])
   })
+})
 
-  describe('forced sorting', () => {
-    it('orders rendered rows by forceOrder before score', async () => {
-      render(<MenuWithForcedSorting />)
+describe('group labels', () => {
+  const groupItem = createTestItemDef('group-item', 'Group Item')
 
-      await waitFor(() => {
-        expect(screen.getByTestId('item-early')).toBeInTheDocument()
-        expect(
-          screen.getByTestId('submenu-trigger-settings'),
-        ).toBeInTheDocument()
-        expect(screen.getByTestId('item-late')).toBeInTheDocument()
-      })
+  function createGroup(options: Partial<GroupDef> = {}): GroupDef {
+    return {
+      kind: 'group',
+      id: 'test-group',
+      label: 'Group Label',
+      nodes: [groupItem],
+      ...options,
+    }
+  }
 
-      const listbox = screen.getByRole('listbox')
-      const renderedOrder = Array.from(
-        listbox.querySelectorAll('[role="option"], [role="menuitem"]'),
-      ).map((element) => element.getAttribute('data-testid'))
-
-      expect(renderedOrder).toEqual([
-        'item-early',
-        'submenu-trigger-settings',
-        'item-late',
-      ])
-    })
-  })
-
-  describe('group labels', () => {
-    const groupItem = createTestItemDef('group-item', 'Group Item')
-
-    function createGroup(options: Partial<GroupDef> = {}): GroupDef {
-      return {
-        kind: 'group',
-        id: 'test-group',
-        label: 'Group Label',
-        nodes: [groupItem],
-        ...options,
-      }
+  function createRadioGroup(
+    options: Partial<RadioGroupDef> = {},
+  ): RadioGroupDef {
+    const radioItem: RadioItemDef = {
+      kind: 'radio-item',
+      value: 'one',
+      render: ({ props }) => <div {...props}>One</div>,
     }
 
-    function createRadioGroup(
-      options: Partial<RadioGroupDef> = {},
-    ): RadioGroupDef {
-      const radioItem: RadioItemDef = {
-        kind: 'radio-item',
-        value: 'one',
-        render: ({ props }) => <div {...props}>One</div>,
-      }
-
-      return {
-        kind: 'radio-group',
-        id: 'test-radio-group',
-        label: 'Radio Group Label',
-        nodes: [radioItem],
-        ...options,
-      }
+    return {
+      kind: 'radio-group',
+      id: 'test-radio-group',
+      label: 'Radio Group Label',
+      nodes: [radioItem],
+      ...options,
     }
+  }
 
-    it('renders a visible default label for a group', async () => {
-      render(<MenuWithDataContent content={[createGroup()]} />)
+  it('renders a visible default label for a group', async () => {
+    render(<MenuWithDataContent content={[createGroup()]} />)
 
-      await waitFor(() => {
-        expect(
-          screen.getByText('Group Label', {
-            selector: '[bazzaui-dropdown-menu-group-label]',
-          }),
-        ).toBeInTheDocument()
-      })
-    })
-
-    it('renders a custom group label and passes its stable id', async () => {
-      const renderLabel = vi.fn(({ props }: { props: { id: string } }) => (
-        <div data-testid="custom-group-label" {...props} />
-      ))
-
-      render(<MenuWithDataContent content={[createGroup({ renderLabel })]} />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('custom-group-label')).toBeInTheDocument()
-      })
-      expect(renderLabel).toHaveBeenCalledWith(
-        expect.objectContaining({
-          props: { id: expect.stringMatching(/-label$/) },
-        }),
-      )
+    await waitFor(() => {
       expect(
-        screen.queryByText('Group Label', {
+        screen.getByText('Group Label', {
           selector: '[bazzaui-dropdown-menu-group-label]',
         }),
-      ).not.toBeInTheDocument()
-    })
-
-    it('prefers the container render over renderLabel', async () => {
-      const renderLabel = vi.fn(() => <div data-testid="custom-group-label" />)
-
-      render(
-        <MenuWithDataContent
-          content={[
-            createGroup({
-              render: ({ children }) => (
-                <div data-testid="custom-group-container">{children}</div>
-              ),
-              renderLabel,
-            }),
-          ]}
-        />,
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('custom-group-container')).toBeInTheDocument()
-      })
-      expect(renderLabel).not.toHaveBeenCalled()
-    })
-
-    it('renders a visible default label for a radio group', async () => {
-      render(<MenuWithDataContent content={[createRadioGroup()]} />)
-
-      await waitFor(() => {
-        const radioGroup = screen.getByRole('radiogroup')
-        expect(
-          radioGroup.querySelector('[bazzaui-dropdown-menu-group-label]'),
-        ).toHaveTextContent('Radio Group Label')
-      })
+      ).toBeInTheDocument()
     })
   })
 
-  describe('Subpages', () => {
-    function MenuWithSubpages() {
-      const content: NodeDef[] = React.useMemo(
-        () => [
-          createTestSubpageDef('ai-filter', 'AI Filter', [
-            createTestItemDef('assigned-to-me', 'assigned to me'),
-            createTestItemDef(
-              'completed-last-month',
-              'completed in the last month',
+  it('renders a custom group label and passes its stable id', async () => {
+    const renderLabel = vi.fn(({ props }: { props: { id: string } }) => (
+      <div data-testid="custom-group-label" {...props} />
+    ))
+
+    render(<MenuWithDataContent content={[createGroup({ renderLabel })]} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('custom-group-label')).toBeInTheDocument()
+    })
+    expect(renderLabel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: { id: expect.stringMatching(/-label$/) },
+      }),
+    )
+    expect(
+      screen.queryByText('Group Label', {
+        selector: '[bazzaui-dropdown-menu-group-label]',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('prefers the container render over renderLabel', async () => {
+    const renderLabel = vi.fn(() => <div data-testid="custom-group-label" />)
+
+    render(
+      <MenuWithDataContent
+        content={[
+          createGroup({
+            render: ({ children }) => (
+              <div data-testid="custom-group-container">{children}</div>
             ),
+            renderLabel,
+          }),
+        ]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('custom-group-container')).toBeInTheDocument()
+    })
+    expect(renderLabel).not.toHaveBeenCalled()
+  })
+
+  it('renders a visible default label for a radio group', async () => {
+    render(<MenuWithDataContent content={[createRadioGroup()]} />)
+
+    await waitFor(() => {
+      const radioGroup = screen.getByRole('radiogroup')
+      expect(
+        radioGroup.querySelector('[bazzaui-dropdown-menu-group-label]'),
+      ).toHaveTextContent('Radio Group Label')
+    })
+  })
+})
+
+describe('Subpages', () => {
+  function MenuWithSubpages() {
+    const content: NodeDef[] = React.useMemo(
+      () => [
+        createTestSubpageDef('ai-filter', 'AI Filter', [
+          createTestItemDef('assigned-to-me', 'assigned to me'),
+          createTestItemDef(
+            'completed-last-month',
+            'completed in the last month',
+          ),
+        ]),
+      ],
+      [],
+    )
+
+    return (
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={{ enabled: true, minLength: 0 }}
+              >
+                <DropdownMenu.Input
+                  data-testid="search-input"
+                  placeholder="Search..."
+                />
+                <DropdownMenu.List>
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    )
+  }
+
+  function MenuWithNestedSubpage() {
+    const content: NodeDef[] = React.useMemo(
+      () => [
+        createTestSubmenuDef('filters', 'Filters', [
+          createTestSubpageDef('ai-filter-nested', 'AI Filter', [
+            createTestItemDef('due-next-two-weeks', 'due in the next 2 weeks'),
           ]),
-        ],
-        [],
-      )
+        ]),
+      ],
+      [],
+    )
 
-      return (
-        <DropdownMenu.Root defaultOpen>
-          <DropdownMenu.Trigger data-testid="trigger">
-            Open
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner>
-              <DropdownMenu.Popup>
-                <DropdownMenu.Surface
-                  content={content}
-                  deepSearch={{ enabled: true, minLength: 0 }}
-                >
-                  <DropdownMenu.Input
-                    data-testid="search-input"
-                    placeholder="Search..."
-                  />
-                  <DropdownMenu.List>
-                    <ListItems />
-                  </DropdownMenu.List>
-                </DropdownMenu.Surface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      )
-    }
+    return (
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={{ enabled: true, minLength: 0 }}
+              >
+                <DropdownMenu.Input
+                  data-testid="search-input"
+                  placeholder="Search..."
+                />
+                <DropdownMenu.List>
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    )
+  }
 
-    function MenuWithNestedSubpage() {
-      const content: NodeDef[] = React.useMemo(
-        () => [
-          createTestSubmenuDef('filters', 'Filters', [
-            createTestSubpageDef('ai-filter-nested', 'AI Filter', [
-              createTestItemDef(
-                'due-next-two-weeks',
-                'due in the next 2 weeks',
-              ),
-            ]),
-          ]),
-        ],
-        [],
-      )
+  it('renders subpage content via Subpages and navigates back', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithSubpages />)
 
-      return (
-        <DropdownMenu.Root defaultOpen>
-          <DropdownMenu.Trigger data-testid="trigger">
-            Open
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner>
-              <DropdownMenu.Popup>
-                <DropdownMenu.Surface
-                  content={content}
-                  deepSearch={{ enabled: true, minLength: 0 }}
-                >
-                  <DropdownMenu.Input
-                    data-testid="search-input"
-                    placeholder="Search..."
-                  />
-                  <DropdownMenu.List>
-                    <ListItems />
-                  </DropdownMenu.List>
-                </DropdownMenu.Surface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      )
-    }
-
-    it('renders subpage content via Subpages and navigates back', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithSubpages />)
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('subpage-trigger-ai-filter'),
-        ).toBeInTheDocument()
-      })
-
-      expect(screen.queryByText('assigned to me')).not.toBeInTheDocument()
-
-      await user.click(screen.getByTestId('subpage-trigger-ai-filter'))
-
-      await waitFor(() => {
-        expect(screen.getByText('assigned to me')).toBeInTheDocument()
-      })
-
-      await user.click(screen.getByTestId('subpage-back-ai-filter'))
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('subpage-trigger-ai-filter'),
-        ).toBeInTheDocument()
-      })
-      expect(screen.queryByText('assigned to me')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('subpage-trigger-ai-filter'),
+      ).toBeInTheDocument()
     })
 
-    it('supports nested subpages surfaced by deep search', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithNestedSubpage />)
+    expect(screen.queryByText('assigned to me')).not.toBeInTheDocument()
 
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
+    await user.click(screen.getByTestId('subpage-trigger-ai-filter'))
 
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'AI Filter')
-
-      await waitFor(() => {
-        expect(
-          screen.getByTestId('subpage-trigger-ai-filter-nested'),
-        ).toBeInTheDocument()
-      })
-
-      await user.click(screen.getByTestId('subpage-trigger-ai-filter-nested'))
-
-      await waitFor(() => {
-        expect(screen.getByText('due in the next 2 weeks')).toBeInTheDocument()
-      })
+    await waitFor(() => {
+      expect(screen.getByText('assigned to me')).toBeInTheDocument()
     })
+
+    await user.click(screen.getByTestId('subpage-back-ai-filter'))
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('subpage-trigger-ai-filter'),
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByText('assigned to me')).not.toBeInTheDocument()
+  })
+
+  it('supports nested subpages surfaced by deep search', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithNestedSubpage />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toBeInTheDocument()
+    })
+
+    const input = screen.getByTestId('search-input')
+    await user.type(input, 'AI Filter')
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('subpage-trigger-ai-filter-nested'),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('subpage-trigger-ai-filter-nested'))
+
+    await waitFor(() => {
+      expect(screen.getByText('due in the next 2 weeks')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('resolved row ids', () => {
+  function ResolvedRowsMenu({
+    search = false,
+    getRowId,
+  }: {
+    search?: boolean
+    getRowId?: (node: { def: NodeDef; defPath: string[] }) => string
+  }) {
+    const content = React.useMemo(
+      () => [
+        createTestSubmenuDef('status', 'Status', [
+          createTestItemDef('backlog', 'Backlog'),
+        ]),
+        createTestSubpageDef('details', 'Details', [
+          createTestItemDef('assigned-to-me', 'Assigned to me'),
+        ]),
+      ],
+      [],
+    )
+
+    return (
+      <DropdownMenu.Root defaultOpen getRowId={getRowId}>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={
+                  search ? { enabled: true, minLength: 1 } : undefined
+                }
+              >
+                {search && <DropdownMenu.Input aria-label="Search" />}
+                <DropdownMenu.List>
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    )
+  }
+
+  it('uses definition paths for nested browse row ids', async () => {
+    const user = userEvent.setup()
+    render(<ResolvedRowsMenu />)
+    await user.hover(screen.getByTestId('submenu-trigger-status'))
+    await waitFor(() =>
+      expect(screen.getByTestId('item-backlog')).toHaveAttribute(
+        'id',
+        'status.backlog',
+      ),
+    )
+  })
+
+  it('keeps nested row ids while deep-searching', async () => {
+    const user = userEvent.setup()
+    render(<ResolvedRowsMenu search />)
+    await user.type(screen.getByRole('combobox', { name: 'Search' }), 'backlog')
+    await waitFor(() =>
+      expect(screen.getByTestId('item-backlog')).toHaveAttribute(
+        'id',
+        'status.backlog',
+      ),
+    )
+  })
+
+  it('uses the root getRowId seam for rendered rows', async () => {
+    const user = userEvent.setup()
+    render(
+      <ResolvedRowsMenu
+        search
+        getRowId={(node) => `x-${node.def.id ?? node.defPath.join('.')}`}
+      />,
+    )
+    await user.type(screen.getByRole('combobox', { name: 'Search' }), 'backlog')
+    await waitFor(() =>
+      expect(screen.getByTestId('item-backlog').id).toBe('x-status.backlog'),
+    )
+  })
+
+  it('uses subpage-qualified ids and the root getRowId seam for subpage rows', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<ResolvedRowsMenu />)
+    await user.click(screen.getByTestId('subpage-trigger-details'))
+    await waitFor(() =>
+      expect(screen.getByTestId('item-assigned-to-me')).toHaveAttribute(
+        'id',
+        'details.assigned-to-me',
+      ),
+    )
+
+    unmount()
+    render(
+      <ResolvedRowsMenu
+        getRowId={(node) => `x-${node.def.id ?? node.defPath.join('.')}`}
+      />,
+    )
+    await user.click(screen.getByTestId('subpage-trigger-details'))
+    await waitFor(() =>
+      expect(screen.getByTestId('item-assigned-to-me').id).toBe(
+        'x-details.assigned-to-me',
+      ),
+    )
   })
 })

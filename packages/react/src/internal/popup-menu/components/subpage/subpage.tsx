@@ -138,8 +138,6 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
       menuType: parentPopupMenuContext.menuType,
       disabled: parentPopupMenuContext.disabled,
       closeOnOutsidePress: parentPopupMenuContext.closeOnOutsidePress,
-      getQualifiedRowId: parentPopupMenuContext.getQualifiedRowId,
-      rowIdStrategy: parentPopupMenuContext.rowIdStrategy,
     }),
     [store, parentPopupMenuContext],
   )

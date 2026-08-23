@@ -6,7 +6,6 @@ import type {
   DataListChildrenState,
   DeepSearchConfig,
   DisplayNode,
-  GetQualifiedRowIdFn,
   IncludeInDeepSearch,
   NodeDef,
 } from './types.js'
@@ -30,12 +29,6 @@ export interface DataSurfaceContextValue {
 
   /** List element ID for aria-activedescendant */
   listId: string
-
-  /** Function to generate qualified IDs for row items */
-  getQualifiedRowId: GetQualifiedRowIdFn
-
-  /** Whether the implicit legacy row id fallback should be preserved */
-  isLegacyRowIdDefault: boolean
 }
 
 export const DataSurfaceContext =
@@ -52,6 +45,9 @@ export interface DataPopupContextValue {
   setDataSurfaceContext: React.Dispatch<
     React.SetStateAction<DataSurfaceContextValue | null>
   >
+  /** The root data surface's async-merged content tree — the exact def references fed to the resolver; null until the root list registers. */
+  resolvedContent: NodeDef[] | null
+  setResolvedContent: React.Dispatch<React.SetStateAction<NodeDef[] | null>>
 }
 
 export const DataPopupContext =

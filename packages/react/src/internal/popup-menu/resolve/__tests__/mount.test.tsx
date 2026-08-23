@@ -234,7 +234,7 @@ describe('mounted menu-tree resolution', () => {
     expect(resolver.getNodeById('a.leaf')).toBe(before)
   })
 
-  it('preserves browse row ids', async () => {
+  it('asserts browse pipeline wiring: the DOM reads the row ids computed by the resolver', async () => {
     render(
       <Menu
         onResolver={() => {}}
@@ -253,7 +253,7 @@ describe('mounted menu-tree resolution', () => {
     )
   })
 
-  it('preserves deep-search row ids', async () => {
+  it('asserts deep-search pipeline wiring: the DOM reads the row ids computed by the resolver', async () => {
     const user = userEvent.setup()
     render(
       <Menu
@@ -263,8 +263,7 @@ describe('mounted menu-tree resolution', () => {
       />,
     )
     await user.type(screen.getByRole('combobox', { name: 'Search' }), 'back')
-    // A deep-search result surfaced from inside the submenu keeps its
-    // path-qualified id — the pre-resolver expectation, unchanged.
+    // The deep-search result reads the path-qualified id computed by the resolver.
     await waitFor(() =>
       expect(screen.getByRole('option', { name: 'Backlog' })).toHaveAttribute(
         'id',

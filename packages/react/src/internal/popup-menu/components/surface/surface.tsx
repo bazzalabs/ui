@@ -39,7 +39,6 @@ import type {
   DataSurfaceProps,
   DeepSearchConfig,
 } from '../../deep-search/types.js'
-import { rowIdStrategies } from '../../deep-search/utils.js'
 import { getTabbables } from '../../utils/tabbables.js'
 
 // Surface doesn't expose data attributes - using empty state
@@ -165,8 +164,6 @@ export const PopupMenuSurface = React.forwardRef<
     asyncContent,
     deepSearch,
     includeInDeepSearch = true,
-    getQualifiedRowId: getQualifiedRowIdProp,
-    rowIdStrategy,
     render,
     className,
     style,
@@ -182,9 +179,7 @@ export const PopupMenuSurface = React.forwardRef<
     content !== undefined ||
     asyncContent !== undefined ||
     deepSearch !== undefined ||
-    props.includeInDeepSearch !== undefined ||
-    getQualifiedRowIdProp !== undefined ||
-    rowIdStrategy !== undefined
+    props.includeInDeepSearch !== undefined
 
   // Get store and depth from Listbox context
   const { store, depth, virtualization } = useListboxContext()
@@ -293,18 +288,6 @@ export const PopupMenuSurface = React.forwardRef<
   ])
 
   const popupMenuContext = usePopupMenuContext()
-  const getQualifiedRowId =
-    getQualifiedRowIdProp ??
-    popupMenuContext.getQualifiedRowId ??
-    rowIdStrategies[
-      rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'qualified'
-    ]
-  const isLegacyRowIdDefault =
-    getQualifiedRowIdProp === undefined &&
-    popupMenuContext.getQualifiedRowId === undefined &&
-    (rowIdStrategy ?? popupMenuContext.rowIdStrategy ?? 'qualified') ===
-      'hybrid'
-
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
     if (typeof deepSearch === 'boolean' || deepSearch === undefined) {
       return {
@@ -335,18 +318,8 @@ export const PopupMenuSurface = React.forwardRef<
       deepSearchConfig,
       includeInDeepSearch,
       listId: dataListId,
-      getQualifiedRowId,
-      isLegacyRowIdDefault,
     }),
-    [
-      content,
-      asyncContent,
-      deepSearchConfig,
-      includeInDeepSearch,
-      dataListId,
-      getQualifiedRowId,
-      isLegacyRowIdDefault,
-    ],
+    [content, asyncContent, deepSearchConfig, includeInDeepSearch, dataListId],
   )
 
   const dataPopupContext = useMaybeDataPopupContext()

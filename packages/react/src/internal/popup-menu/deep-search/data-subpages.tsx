@@ -2,8 +2,11 @@
 
 import * as React from 'react'
 import { normalizeValue } from '../../listbox/utils/normalize.js'
+import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
+import { defaultGetRowId, resolveNodeDefs } from '../resolve/resolve.js'
 import { useAsyncMenuCoordinator } from './async-coordinator.js'
 import { useDataPopupContext } from './context.js'
+import { warnOutOfTreeDef } from './data-list.js'
 import type {
   AsyncRenderState,
   BreadcrumbNode,
@@ -21,7 +24,7 @@ import type {
   SubmenuDef,
   SubpageDef,
 } from './types.js'
-import { getSubpagePageId, mergeAsyncNodesIntoTree } from './utils.js'
+import { getSubpagePageId } from './utils.js'
 
 interface QueryExecutionState {
   effectiveQuery: string
@@ -222,18 +225,22 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const searchQuery = coordinator?.searchQuery ?? ''
 
   const { dataSurfaceContext } = useDataPopupContext()
+  const { resolvedContent } = useDataPopupContext()
+  const resolver = useMenuTreeResolver()
+  const getIdForDef = React.useCallback(
+    (def: NodeDef): string => {
+      const resolved = resolver?.getNodeForDef(def)
+      if (resolved) return resolved.id
+      warnOutOfTreeDef(def)
+      const getRowId = resolver?.getRowId ?? defaultGetRowId
+      return resolveNodeDefs([def], null, [], getRowId)[0]!.id
+    },
+    [resolver],
+  )
 
   const content = dataSurfaceContext?.content ?? []
 
-  const asyncNodes = React.useMemo(() => {
-    if (!coordinator) return []
-    return coordinator.getAsyncNodes()
-  }, [coordinator, coordinator?.loaders])
-
-  const mergedContent = React.useMemo(() => {
-    if (asyncNodes.length === 0) return content
-    return mergeAsyncNodesIntoTree(content, asyncNodes)
-  }, [content, asyncNodes])
+  const mergedContent = resolvedContent ?? content
 
   const subpages = React.useMemo(
     () => collectDisplaySubpages(mergedContent),
@@ -253,7 +260,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           | SubpageDef,
         rowContext: RowRenderContext,
       ): React.ReactNode => {
-        const rowId = rowNode.id ?? rowNode.value
+        const rowId = getIdForDef(rowNode)
 
         if (rowNode.kind === 'item') {
           return (
@@ -676,7 +683,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
         </React.Fragment>
       )
     },
-    [coordinator, searchQuery],
+    [coordinator, searchQuery, getIdForDef],
   )
 
   if (!dataSurfaceContext) {
