@@ -19,8 +19,11 @@ import type {
   RadioItemDef,
   SubmenuDef,
   SubmenuRenderParams,
+  SubpageContentRenderParams,
   SubpageDef,
+  TreeItemDef,
 } from '../types.js'
+import { selectResolvedChildren } from '../utils.js'
 
 const resolvedNodeForFamilyAliases = {} as PopupMenuNode
 const nodeDefForFamilyAliases = {} as NodeDef
@@ -30,12 +33,39 @@ const contextNodeAlias: ContextMenu.Node = resolvedNodeForFamilyAliases
 const contextNodeDefAlias: ContextMenu.NodeDef = nodeDefForFamilyAliases
 const commandNodeAlias: CommandMenu.Node = resolvedNodeForFamilyAliases
 const commandNodeDefAlias: CommandMenu.NodeDef = nodeDefForFamilyAliases
+const acceptsSubmenuNode = (params: SubmenuRenderParams) => {
+  const node: PopupMenuNode = resolvedNodeForFamilyAliases
+  return params.renderNode(node)
+}
+const acceptsSubpageNode = (params: SubpageContentRenderParams) => {
+  const node: PopupMenuNode = resolvedNodeForFamilyAliases
+  return params.renderNode(node)
+}
 void dropdownNodeAlias
 void dropdownNodeDefAlias
 void contextNodeAlias
 void contextNodeDefAlias
 void commandNodeAlias
 void commandNodeDefAlias
+void acceptsSubmenuNode
+void acceptsSubpageNode
+
+function resolvedTestNode(
+  def: NodeDef,
+  parent: PopupMenuNode | null,
+): PopupMenuNode {
+  return {
+    def,
+    kind: def.kind,
+    definitionKey: def.id ?? def.value ?? def.kind,
+    definitionPath: [],
+    id: `${parent?.id ?? 'root'}/${def.id ?? def.value ?? def.kind}`,
+    parent,
+    children: [],
+    depth: (parent?.depth ?? -1) + 1,
+    index: parent?.children.length ?? 0,
+  } as PopupMenuNode
+}
 
 // ============================================================================
 // Test Helpers
@@ -82,7 +112,7 @@ function createTestSubmenuDef(
     id,
     value,
     nodes,
-    render: ({ props, context, renderNode }) => (
+    render: ({ props, context, nodes: childNodes, renderNode }) => (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger
           {...props}
@@ -95,7 +125,9 @@ function createTestSubmenuDef(
           <DropdownMenu.Positioner>
             <DropdownMenu.Popup>
               <DropdownMenu.Surface>
-                <DropdownMenu.List>{nodes.map(renderNode)}</DropdownMenu.List>
+                <DropdownMenu.List>
+                  {childNodes.map(renderNode)}
+                </DropdownMenu.List>
               </DropdownMenu.Surface>
             </DropdownMenu.Popup>
           </DropdownMenu.Positioner>
@@ -1319,7 +1351,7 @@ describe('resolved render params', () => {
     )
   })
 
-  it('passes definition paths and unwraps resolved renderNode arguments', async () => {
+  it('passes definition paths and resolver-owned renderNode arguments', async () => {
     const child = createTestItemDef('path-child', 'Child', {
       render: ({ props, node }) => (
         <DropdownMenu.Item {...props} data-testid="path-child">
@@ -1337,7 +1369,6 @@ describe('resolved render params', () => {
                 <DropdownMenu.Surface>
                   <DropdownMenu.List>
                     {renderNode(node.children[0])}
-                    {renderNode(node.children[0].def)}
                   </DropdownMenu.List>
                 </DropdownMenu.Surface>
               </DropdownMenu.Popup>
@@ -1351,17 +1382,215 @@ describe('resolved render params', () => {
     await user.hover(screen.getByRole('menuitem'))
     await waitFor(() => {
       const childRows = screen.getAllByTestId('path-child')
-      expect(childRows).toHaveLength(2)
-      expect(childRows.map((row) => row.id)).toEqual([
-        'parent/child',
-        'parent/child',
-      ])
+      expect(childRows).toHaveLength(1)
+      expect(childRows.map((row) => row.id)).toEqual(['parent/child'])
       expect(
         childRows.map(
           (row) => row.querySelector('[data-testid="child-path"]')?.textContent,
         ),
-      ).toEqual(['parent/child', 'parent/child'])
+      ).toEqual(['parent/child'])
     })
+  })
+})
+
+describe('parent-local resolved child snapshots', () => {
+  it('rerenders data-first subpage callbacks with the latest resolved definitions', async () => {
+    const renderCalls: Array<{
+      node: PopupMenuNode
+      childNodes: PopupMenuNode[]
+    }> = []
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const makeContent = (suffix: string): NodeDef[] => {
+      const child = createTestItemDef(`fresh-child-${suffix}`, 'Fresh', {
+        id: 'fresh-child',
+      })
+      const subpage: SubpageDef = {
+        kind: 'subpage',
+        id: 'fresh-parent',
+        value: 'Fresh parent',
+        nodes: [child],
+        renderTrigger: ({ props }) => (
+          <DropdownMenu.SubpageTrigger {...props}>
+            Fresh parent
+          </DropdownMenu.SubpageTrigger>
+        ),
+        renderContent: ({ node, nodes: childNodes, pageId, renderNode }) => {
+          renderCalls.push({ node, childNodes })
+          return (
+            <DropdownMenu.Subpage pageId={pageId}>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List>
+                  {childNodes.map(renderNode)}
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+          )
+        },
+      }
+      return [subpage]
+    }
+
+    const first = makeContent('first')
+    const { rerender } = render(<MenuWithDataContent content={first} />)
+    await waitFor(() => expect(renderCalls.length).toBeGreaterThan(0))
+    const firstCall = renderCalls[renderCalls.length - 1]!
+    const firstParent = firstCall.node
+    const firstChild = firstCall.childNodes[0]!
+
+    const latest = makeContent('latest')
+    rerender(<MenuWithDataContent content={latest} />)
+    await waitFor(() => {
+      const call = renderCalls[renderCalls.length - 1]!
+      expect(call.node.def).toBe(latest[0])
+      expect(call.node).toBe(firstParent)
+      expect(call.childNodes[0]).toBe(firstChild)
+      expect(call.childNodes.map((child) => child.def)).toEqual(
+        latest[0]!.nodes,
+      )
+      expect(call.childNodes.every((child) => child.parent === call.node)).toBe(
+        true,
+      )
+      expect(
+        call.childNodes.some((child) => child.def === first[0]!.nodes[0]),
+      ).toBe(false)
+    })
+    expect(warning).not.toHaveBeenCalledWith(
+      expect.stringContaining('detached'),
+    )
+    warning.mockRestore()
+  })
+
+  it('preserves distinct shared children under two rendered submenu parents', async () => {
+    const shared = createTestItemDef('shared', 'Shared')
+    const captures: Array<{ parent: PopupMenuNode; child: PopupMenuNode }> = []
+    const makeParent = (id: string) =>
+      createTestSubmenuDef(id, id, [shared], {
+        render: ({ props, node, nodes, renderNode }) => {
+          captures.push({ parent: node, child: nodes[0]! })
+          return (
+            <DropdownMenu.Submenu>
+              <DropdownMenu.SubmenuTrigger {...props}>
+                {id}
+              </DropdownMenu.SubmenuTrigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Positioner>
+                  <DropdownMenu.Popup>
+                    <DropdownMenu.Surface>
+                      <DropdownMenu.List>
+                        {nodes.map(renderNode)}
+                      </DropdownMenu.List>
+                    </DropdownMenu.Surface>
+                  </DropdownMenu.Popup>
+                </DropdownMenu.Positioner>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Submenu>
+          )
+        },
+      })
+
+    render(
+      <MenuWithDataContent
+        content={[makeParent('first'), makeParent('second')]}
+      />,
+    )
+    await waitFor(() => expect(captures).toHaveLength(2))
+
+    expect(captures[0]!.child).not.toBe(captures[1]!.child)
+    expect(captures[0]!.child.parent).toBe(captures[0]!.parent)
+    expect(captures[1]!.child.parent).toBe(captures[1]!.parent)
+    expect(captures[0]!.child.def).toBe(shared)
+    expect(captures[1]!.child.def).toBe(shared)
+    expect(captures[0]!.child.definitionPath).toEqual(['first', 'shared'])
+    expect(captures[1]!.child.definitionPath).toEqual(['second', 'shared'])
+    expect(captures[0]!.child.id).toBe('first/shared')
+    expect(captures[1]!.child.id).toBe('second/shared')
+  })
+
+  it('rejects ambiguous graft-only and missing selected occurrences', () => {
+    const shared = createTestItemDef('shared', 'Shared')
+    const parent = resolvedTestNode(
+      createTestSubmenuDef('parent', 'Parent', []),
+      null,
+    )
+    const selected = resolvedTestNode(shared, parent)
+    const graftOnly = resolvedTestNode(shared, parent)
+    parent.children = [selected, graftOnly]
+
+    expect(() => selectResolvedChildren(parent, [shared])).toThrow(
+      'cannot be matched unambiguously',
+    )
+    parent.children = []
+    expect(() => selectResolvedChildren(parent, [shared])).toThrow(
+      'cannot be matched unambiguously',
+    )
+  })
+
+  it('filters loose radio and tree rows from a rendered submenu callback', async () => {
+    const radioRender = vi.fn(() => null)
+    const treeRender = vi.fn(() => null)
+    const itemRender = vi.fn(({ props }: ItemRenderParams) => (
+      <DropdownMenu.Item {...props} data-testid="supported-item">
+        Item
+      </DropdownMenu.Item>
+    ))
+    const checkboxRender = vi.fn(({ props }: CheckboxItemRenderParams) => (
+      <DropdownMenu.CheckboxItem {...props} data-testid="supported-checkbox">
+        Checkbox
+      </DropdownMenu.CheckboxItem>
+    ))
+    const radio: RadioItemDef = {
+      kind: 'radio-item',
+      id: 'loose-radio',
+      value: 'Radio',
+      render: radioRender,
+    }
+    const tree: TreeItemDef = {
+      kind: 'tree-item',
+      id: 'loose-tree',
+      value: 'Tree',
+      render: treeRender,
+    }
+    const nestedSubmenu = createTestSubmenuDef('nested', 'Nested', [], {
+      render: ({ props }) => (
+        <DropdownMenu.Submenu>
+          <DropdownMenu.SubmenuTrigger
+            {...props}
+            data-testid="supported-submenu"
+          >
+            Nested
+          </DropdownMenu.SubmenuTrigger>
+        </DropdownMenu.Submenu>
+      ),
+    })
+    const nestedSubpage = createTestSubpageDef('nested-page', 'Page', [])
+    const parent = createTestSubmenuDef('filter-parent', 'Parent', [
+      radio,
+      tree,
+      { kind: 'item', id: 'supported-item', value: 'Item', render: itemRender },
+      {
+        kind: 'checkbox-item',
+        id: 'supported-checkbox',
+        value: 'Checkbox',
+        render: checkboxRender,
+      },
+      nestedSubmenu,
+      nestedSubpage,
+    ])
+
+    const user = userEvent.setup()
+    render(<MenuWithDataContent content={[parent]} />)
+    await user.hover(screen.getByRole('menuitem'))
+    await waitFor(() =>
+      expect(screen.getByTestId('supported-item')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('supported-checkbox')).toBeInTheDocument()
+    expect(screen.getByTestId('supported-submenu')).toBeInTheDocument()
+    expect(
+      screen.getByTestId('subpage-trigger-nested-page'),
+    ).toBeInTheDocument()
+    expect(radioRender).not.toHaveBeenCalled()
+    expect(treeRender).not.toHaveBeenCalled()
   })
 })
 

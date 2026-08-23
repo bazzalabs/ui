@@ -1,34 +1,32 @@
 'use client'
 
 import * as React from 'react'
-import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
-import {
-  defaultGetResolvedId,
-  isPopupMenuNode,
-  resolveDetachedNode,
-} from '../menu-tree/resolve.js'
+import { GraftPointContext } from '../contexts/graft-point-context.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import { useAsyncMenuCoordinator } from './async-coordinator.js'
 import { useDataPopupContext } from './context.js'
-import { warnOutOfTreeDef } from './data-list.js'
 import type {
   AsyncRenderState,
   BreadcrumbNode,
-  CheckboxItemDef,
   DataSubpagesChildrenState,
   DataSubpagesProps,
   DisplaySubpageNode,
   GroupRenderContext,
-  ItemDef,
   NodeDef,
   QueryDependentLoaderConfig,
   RadioGroupDef,
-  RadioItemDef,
+  ResolvedMenuNode,
+  ResolvedMenuNodeOf,
+  RowNodeDef,
   RowRenderContext,
   SubmenuDef,
   SubpageDef,
 } from './types.js'
-import { getAsyncLoaderIdForBranch, getSubpagePageId } from './utils.js'
+import {
+  getAsyncLoaderIdForBranch,
+  getSubpagePageId,
+  selectResolvedChildren,
+} from './utils.js'
 
 interface QueryExecutionState {
   effectiveQuery: string
@@ -126,22 +124,46 @@ function getBranchAsyncState(
   }
 }
 
+function resolvedChildren(node: PopupMenuNode): ResolvedMenuNode[] {
+  return node.children as ResolvedMenuNode[]
+}
+
+function isResolvedNodeOfKind<K extends NodeDef['kind']>(
+  node: ResolvedMenuNode,
+  kind: K,
+): node is Extract<ResolvedMenuNode, { kind: K }> {
+  return node.kind === kind
+}
+
+function isResolvedRowNode(
+  node: ResolvedMenuNode,
+): node is Extract<ResolvedMenuNode, { kind: RowNodeDef['kind'] }> {
+  return (
+    node.kind === 'item' ||
+    node.kind === 'radio-item' ||
+    node.kind === 'checkbox-item' ||
+    node.kind === 'submenu' ||
+    node.kind === 'subpage' ||
+    node.kind === 'tree-item'
+  )
+}
+
 function collectDisplaySubpages(
-  nodes: NodeDef[],
-  getNodeForDef: <D extends NodeDef>(def: D) => PopupMenuNode<D>,
+  nodes: readonly ResolvedMenuNode[],
   breadcrumbs: BreadcrumbNode[] = [],
   group: { id: string; label?: string } | null = null,
 ): DisplaySubpageNode[] {
   const result: DisplaySubpageNode[] = []
 
-  for (const node of nodes) {
+  for (const resolved of nodes) {
+    const node = resolved.def
     if (node.kind === 'separator') {
       continue
     }
 
     if (node.kind === 'group') {
       result.push(
-        ...collectDisplaySubpages(node.nodes, getNodeForDef, breadcrumbs, {
+        ...collectDisplaySubpages(resolvedChildren(resolved), breadcrumbs, {
           id: node.id,
           label: node.label,
         }),
@@ -152,20 +174,25 @@ function collectDisplaySubpages(
     if (node.kind === 'radio-group') {
       if (node.hidden) continue
       result.push(
-        ...collectDisplaySubpages(node.nodes, getNodeForDef, breadcrumbs, null),
+        ...collectDisplaySubpages(
+          resolvedChildren(resolved),
+          breadcrumbs,
+          null,
+        ),
       )
       continue
     }
 
-    if (node.hidden) {
+    if ('hidden' in node && node.hidden) {
       continue
     }
 
     if (node.kind === 'submenu' || node.kind === 'subpage') {
       if (node.kind === 'subpage') {
+        const subpageNode = resolved as PopupMenuNode<SubpageDef>
         result.push({
-          node: getNodeForDef(node),
-          pageId: getSubpagePageId(node, breadcrumbs),
+          node: subpageNode,
+          pageId: getSubpagePageId(subpageNode.def, breadcrumbs),
           context: {
             search: null,
             breadcrumbs,
@@ -178,22 +205,19 @@ function collectDisplaySubpages(
         })
       }
 
-      if (node.nodes) {
-        const breadcrumb: BreadcrumbNode = {
-          node,
-          value: node.value,
-          id: node.id,
-        }
-
-        result.push(
-          ...collectDisplaySubpages(
-            node.nodes,
-            getNodeForDef,
-            [...breadcrumbs, breadcrumb],
-            null,
-          ),
-        )
+      const breadcrumb: BreadcrumbNode = {
+        node,
+        value: node.value,
+        id: node.id,
       }
+
+      result.push(
+        ...collectDisplaySubpages(
+          resolvedChildren(resolved),
+          [...breadcrumbs, breadcrumb],
+          null,
+        ),
+      )
     }
   }
 
@@ -222,31 +246,11 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const coordinator = useAsyncMenuCoordinator()
   const searchQuery = coordinator?.searchQuery ?? ''
 
-  const { dataSurfaceContext } = useDataPopupContext()
-  const { resolvedContent } = useDataPopupContext()
-  const resolver = useMenuTreeResolver()
-  const getNodeForDefOrDetached = React.useCallback(
-    <D extends NodeDef>(def: D): PopupMenuNode<D> => {
-      const resolved = resolver?.getNodeForDef(def)
-      if (resolved) return resolved
-      warnOutOfTreeDef(def)
-      const getResolvedId = resolver?.getResolvedId ?? defaultGetResolvedId
-      return resolveDetachedNode(def, getResolvedId)
-    },
-    [resolver],
-  )
-  const getIdForDef = React.useCallback(
-    (def: NodeDef): string => getNodeForDefOrDetached(def).id,
-    [getNodeForDefOrDetached],
-  )
-
-  const content = dataSurfaceContext?.content ?? []
-
-  const mergedContent = resolvedContent ?? content
+  const { resolvedNodes } = useDataPopupContext()
 
   const subpages = React.useMemo(
-    () => collectDisplaySubpages(mergedContent, getNodeForDefOrDetached),
-    [mergedContent, getNodeForDefOrDetached],
+    () => (resolvedNodes ? collectDisplaySubpages(resolvedNodes) : []),
+    [resolvedNodes],
   )
 
   const renderSubpageContent = React.useCallback(
@@ -255,21 +259,17 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
       const node = resolved.def
 
       const renderRowNode = (
-        rowNode:
-          | ItemDef
-          | RadioItemDef
-          | CheckboxItemDef
-          | SubmenuDef
-          | SubpageDef,
+        resolvedRowNode: ResolvedMenuNode,
         rowContext: RowRenderContext,
       ): React.ReactNode => {
-        const rowId = getIdForDef(rowNode)
+        const rowNode = resolvedRowNode.def
+        const rowId = resolvedRowNode.id
 
         if (rowNode.kind === 'item') {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
-                node: getNodeForDefOrDetached(rowNode),
+                node: resolvedRowNode,
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -292,7 +292,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
-                node: getNodeForDefOrDetached(rowNode),
+                node: resolvedRowNode,
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -316,7 +316,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={rowId}>
               {rowNode.render({
-                node: getNodeForDefOrDetached(rowNode),
+                node: resolvedRowNode,
                 props: {
                   id: rowId,
                   value: rowNode.value,
@@ -342,27 +342,34 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
             searchQuery,
             coordinator,
           )
-          const staticNodes = rowNode.nodes ?? []
+          const staticNodes = isResolvedNodeOfKind(resolvedRowNode, 'submenu')
+            ? selectResolvedChildren(resolvedRowNode, rowNode.nodes ?? [])
+            : []
           const submenuBreadcrumb: BreadcrumbNode = {
             node: rowNode,
             value: rowNode.value,
             id: rowNode.id,
           }
 
-          const submenuRenderNode = (arg: NodeDef | PopupMenuNode) => {
-            const childNode = isPopupMenuNode(arg) ? arg.def : arg
+          const submenuRenderNode = (arg: PopupMenuNode) => {
+            const resolvedArg = arg as ResolvedMenuNode
+            const childNode = resolvedArg.def
             if (childNode.kind === 'separator') {
               return null
             }
 
             if (childNode.kind === 'group') {
-              const groupItems = childNode.nodes.filter(
-                (n): n is ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef =>
-                  (n.kind === 'item' ||
-                    n.kind === 'checkbox-item' ||
-                    n.kind === 'submenu' ||
-                    n.kind === 'subpage') &&
-                  !n.hidden,
+              const groupItems = resolvedChildren(resolvedArg).filter(
+                (
+                  n,
+                ): n is Extract<
+                  ResolvedMenuNode,
+                  { kind: RowNodeDef['kind'] }
+                > =>
+                  isResolvedRowNode(n) &&
+                  n.kind !== 'radio-item' &&
+                  n.kind !== 'tree-item' &&
+                  !n.def.hidden,
               )
 
               if (groupItems.length === 0) {
@@ -375,7 +382,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                   breadcrumbs: [...rowContext.breadcrumbs, submenuBreadcrumb],
                   isDeepSearchResult: false,
                   highlighted: false,
-                  disabled: item.disabled ?? false,
+                  disabled: item.def.disabled ?? false,
                   group: { id: childNode.id, label: childNode.label },
                   tree: null,
                 }),
@@ -392,7 +399,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                 return (
                   <React.Fragment key={childNode.id}>
                     {childNode.render({
-                      node: getNodeForDefOrDetached(childNode),
+                      node: resolvedArg,
                       props: {},
                       context: {
                         ...groupContext,
@@ -416,23 +423,27 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
               )
             }
 
-            if (childNode.kind === 'radio-group') {
-              return renderRadioGroup(childNode, [
+            if (
+              childNode.kind === 'radio-group' &&
+              isResolvedNodeOfKind(resolvedArg, 'radio-group')
+            ) {
+              return renderRadioGroup(resolvedArg, [
                 ...rowContext.breadcrumbs,
                 submenuBreadcrumb,
               ])
             }
 
             if (
-              childNode.kind !== 'item' &&
-              childNode.kind !== 'checkbox-item' &&
-              childNode.kind !== 'submenu' &&
-              childNode.kind !== 'subpage'
+              !isResolvedRowNode(resolvedArg) ||
+              (resolvedArg.kind !== 'item' &&
+                resolvedArg.kind !== 'checkbox-item' &&
+                resolvedArg.kind !== 'submenu' &&
+                resolvedArg.kind !== 'subpage')
             ) {
               return null
             }
 
-            return renderRowNode(childNode, {
+            return renderRowNode(resolvedArg, {
               search: null,
               breadcrumbs: [...rowContext.breadcrumbs, submenuBreadcrumb],
               isDeepSearchResult: false,
@@ -445,49 +456,58 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
 
           return (
             <React.Fragment key={rowId}>
-              {rowNode.render({
-                node: getNodeForDefOrDetached(rowNode),
-                props: {
-                  id: rowId,
-                  value: rowNode.value,
-                  disabled: rowNode.disabled ?? false,
-                },
-                context: {
-                  ...rowContext,
-                  value: rowNode.value,
-                  disabled: rowNode.disabled ?? false,
-                  async: submenuAsyncState,
-                },
-                nodes: staticNodes,
-                asyncContent: rowNode.asyncNodes,
-                renderNode: submenuRenderNode,
-              })}
+              <GraftPointContext.Provider value={resolvedRowNode}>
+                {rowNode.render({
+                  node: resolvedRowNode,
+                  props: {
+                    id: rowId,
+                    value: rowNode.value,
+                    disabled: rowNode.disabled ?? false,
+                  },
+                  context: {
+                    ...rowContext,
+                    value: rowNode.value,
+                    disabled: rowNode.disabled ?? false,
+                    async: submenuAsyncState,
+                  },
+                  nodes: staticNodes,
+                  asyncContent: rowNode.asyncNodes,
+                  renderNode: submenuRenderNode,
+                })}
+              </GraftPointContext.Provider>
             </React.Fragment>
           )
         }
 
+        if (!isResolvedNodeOfKind(resolvedRowNode, 'subpage')) {
+          return null
+        }
+        const subpageNode = resolvedRowNode.def
         const subpageAsyncState = getBranchAsyncState(
-          rowNode,
+          subpageNode,
           rowContext.breadcrumbs,
           searchQuery,
           coordinator,
         )
-        const targetPageId = getSubpagePageId(rowNode, rowContext.breadcrumbs)
+        const targetPageId = getSubpagePageId(
+          subpageNode,
+          rowContext.breadcrumbs,
+        )
 
         return (
           <React.Fragment key={targetPageId}>
-            {rowNode.renderTrigger({
-              node: getNodeForDefOrDetached(rowNode),
+            {subpageNode.renderTrigger({
+              node: resolvedRowNode,
               props: {
                 id: rowId,
-                value: rowNode.value,
-                disabled: rowNode.disabled ?? false,
+                value: subpageNode.value,
+                disabled: subpageNode.disabled ?? false,
                 targetPageId,
               },
               context: {
                 ...rowContext,
-                value: rowNode.value,
-                disabled: rowNode.disabled ?? false,
+                value: subpageNode.value,
+                disabled: subpageNode.disabled ?? false,
                 async: subpageAsyncState,
               },
             })}
@@ -496,9 +516,10 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
       }
 
       const renderRadioGroup = (
-        radioGroup: RadioGroupDef,
+        radioGroupNode: ResolvedMenuNodeOf<RadioGroupDef>,
         breadcrumbs: BreadcrumbNode[] = [],
       ): React.ReactNode => {
+        const radioGroup = radioGroupNode.def
         const isDeepSearchResult = breadcrumbs.length > 0
 
         const groupContext: GroupRenderContext = {
@@ -508,15 +529,15 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           isDeepSearchResult,
         }
 
-        const childElements = radioGroup.nodes.map((item) => {
-          if (item.hidden) return null
+        const childElements = resolvedChildren(radioGroupNode).map((item) => {
+          if (!isResolvedRowNode(item) || item.def.hidden) return null
 
           return renderRowNode(item, {
             search: null,
             breadcrumbs,
             isDeepSearchResult,
             highlighted: false,
-            disabled: item.disabled ?? false,
+            disabled: item.def.disabled ?? false,
             group: null,
             tree: null,
           })
@@ -526,7 +547,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           return (
             <React.Fragment key={radioGroup.id}>
               {radioGroup.render({
-                node: getNodeForDefOrDetached(radioGroup),
+                node: radioGroupNode,
                 props: {
                   value: radioGroup.value,
                   onValueChange: radioGroup.onValueChange,
@@ -557,152 +578,157 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
 
       return (
         <React.Fragment key={pageId}>
-          {node.renderContent({
-            node: resolved,
-            pageId,
-            context: {
-              ...context,
-              value: node.value,
-              disabled: node.disabled ?? false,
-              async: getBranchAsyncState(
-                node,
-                context.breadcrumbs,
-                searchQuery,
-                coordinator,
-              ),
-            },
-            nodes: node.nodes ?? [],
-            asyncContent: node.asyncNodes,
-            renderNode: (arg) => {
-              const childNode = isPopupMenuNode(arg) ? arg.def : arg
-              if (childNode.kind === 'separator') {
-                return null
-              }
-
-              if (childNode.kind === 'group') {
-                const groupItems = childNode.nodes.filter(
-                  (
-                    n,
-                  ): n is ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef =>
-                    (n.kind === 'item' ||
-                      n.kind === 'checkbox-item' ||
-                      n.kind === 'submenu' ||
-                      n.kind === 'subpage') &&
-                    !n.hidden,
-                )
-
-                if (groupItems.length === 0) {
+          <GraftPointContext.Provider value={resolved}>
+            {node.renderContent({
+              node: resolved,
+              pageId,
+              context: {
+                ...context,
+                value: node.value,
+                disabled: node.disabled ?? false,
+                async: getBranchAsyncState(
+                  node,
+                  context.breadcrumbs,
+                  searchQuery,
+                  coordinator,
+                ),
+              },
+              nodes: selectResolvedChildren(resolved, node.nodes ?? []),
+              asyncContent: node.asyncNodes,
+              renderNode: (arg) => {
+                const resolvedArg = arg as ResolvedMenuNode
+                const childNode = resolvedArg.def
+                if (childNode.kind === 'separator') {
                   return null
                 }
 
-                const groupChildren = groupItems.map((item) =>
-                  renderRowNode(item, {
-                    search: null,
-                    breadcrumbs: [
-                      ...context.breadcrumbs,
-                      {
-                        node,
-                        value: node.value,
-                        id: node.id,
-                      },
-                    ],
-                    isDeepSearchResult: false,
-                    highlighted: false,
-                    disabled: item.disabled ?? false,
-                    group: { id: childNode.id, label: childNode.label },
-                    tree: null,
-                  }),
-                )
+                if (childNode.kind === 'group') {
+                  const groupItems = resolvedChildren(resolvedArg).filter(
+                    (
+                      n,
+                    ): n is Extract<
+                      ResolvedMenuNode,
+                      { kind: RowNodeDef['kind'] }
+                    > =>
+                      isResolvedRowNode(n) &&
+                      n.kind !== 'radio-item' &&
+                      n.kind !== 'tree-item' &&
+                      !n.def.hidden,
+                  )
 
-                if (childNode.render) {
-                  const groupContext: GroupRenderContext = {
-                    search: null,
-                    matchCount: groupItems.length,
-                    breadcrumbs: [
-                      ...context.breadcrumbs,
-                      {
-                        node,
-                        value: node.value,
-                        id: node.id,
-                      },
-                    ],
-                    isDeepSearchResult: false,
+                  if (groupItems.length === 0) {
+                    return null
+                  }
+
+                  const groupChildren = groupItems.map((item) =>
+                    renderRowNode(item, {
+                      search: null,
+                      breadcrumbs: [
+                        ...context.breadcrumbs,
+                        {
+                          node,
+                          value: node.value,
+                          id: node.id,
+                        },
+                      ],
+                      isDeepSearchResult: false,
+                      highlighted: false,
+                      disabled: item.def.disabled ?? false,
+                      group: { id: childNode.id, label: childNode.label },
+                      tree: null,
+                    }),
+                  )
+
+                  if (childNode.render) {
+                    const groupContext: GroupRenderContext = {
+                      search: null,
+                      matchCount: groupItems.length,
+                      breadcrumbs: [
+                        ...context.breadcrumbs,
+                        {
+                          node,
+                          value: node.value,
+                          id: node.id,
+                        },
+                      ],
+                      isDeepSearchResult: false,
+                    }
+
+                    return (
+                      <React.Fragment key={childNode.id}>
+                        {childNode.render({
+                          node: arg,
+                          props: {},
+                          context: {
+                            ...groupContext,
+                            label: childNode.label,
+                          },
+                          children: <>{groupChildren}</>,
+                        })}
+                      </React.Fragment>
+                    )
                   }
 
                   return (
-                    <React.Fragment key={childNode.id}>
-                      {childNode.render({
-                        node: getNodeForDefOrDetached(childNode),
-                        props: {},
-                        context: {
-                          ...groupContext,
-                          label: childNode.label,
-                        },
-                        children: <>{groupChildren}</>,
-                      })}
-                    </React.Fragment>
+                    // biome-ignore lint/a11y/useSemanticElements: ignore for now
+                    <div
+                      key={childNode.id}
+                      role="group"
+                      aria-label={childNode.label}
+                    >
+                      {groupChildren}
+                    </div>
                   )
                 }
 
-                return (
-                  // biome-ignore lint/a11y/useSemanticElements: ignore for now
-                  <div
-                    key={childNode.id}
-                    role="group"
-                    aria-label={childNode.label}
-                  >
-                    {groupChildren}
-                  </div>
-                )
-              }
+                if (
+                  childNode.kind === 'radio-group' &&
+                  isResolvedNodeOfKind(resolvedArg, 'radio-group')
+                ) {
+                  return renderRadioGroup(resolvedArg, [
+                    ...context.breadcrumbs,
+                    {
+                      node,
+                      value: node.value,
+                      id: node.id,
+                    },
+                  ])
+                }
 
-              if (childNode.kind === 'radio-group') {
-                return renderRadioGroup(childNode, [
-                  ...context.breadcrumbs,
-                  {
-                    node,
-                    value: node.value,
-                    id: node.id,
-                  },
-                ])
-              }
+                if (
+                  !isResolvedRowNode(resolvedArg) ||
+                  (resolvedArg.kind !== 'item' &&
+                    resolvedArg.kind !== 'checkbox-item' &&
+                    resolvedArg.kind !== 'submenu' &&
+                    resolvedArg.kind !== 'subpage')
+                ) {
+                  return null
+                }
 
-              if (
-                childNode.kind !== 'item' &&
-                childNode.kind !== 'checkbox-item' &&
-                childNode.kind !== 'submenu' &&
-                childNode.kind !== 'subpage'
-              ) {
-                return null
-              }
-
-              return renderRowNode(childNode, {
-                search: null,
-                breadcrumbs: [
-                  ...context.breadcrumbs,
-                  {
-                    node,
-                    value: node.value,
-                    id: node.id,
-                  },
-                ],
-                isDeepSearchResult: false,
-                highlighted: false,
-                disabled: childNode.disabled ?? false,
-                group: null,
-                tree: null,
-              })
-            },
-          })}
+                return renderRowNode(resolvedArg, {
+                  search: null,
+                  breadcrumbs: [
+                    ...context.breadcrumbs,
+                    {
+                      node,
+                      value: node.value,
+                      id: node.id,
+                    },
+                  ],
+                  isDeepSearchResult: false,
+                  highlighted: false,
+                  disabled: childNode.disabled ?? false,
+                  group: null,
+                  tree: null,
+                })
+              },
+            })}
+          </GraftPointContext.Provider>
         </React.Fragment>
       )
     },
-    [coordinator, searchQuery, getIdForDef],
+    [coordinator, searchQuery],
   )
-
-  if (!dataSurfaceContext) {
-    return null
-  }
 
   const childrenState: DataSubpagesChildrenState = {
     subpages,

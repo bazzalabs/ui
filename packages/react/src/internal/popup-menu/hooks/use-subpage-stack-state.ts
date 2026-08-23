@@ -49,7 +49,7 @@ export function useSubpageStackState(
   const subpagesRef = React.useRef<
     Map<string, { surfaceId: string; closeRootOnEsc: boolean }>
   >(new Map())
-  const [, setSubpageRegistryVersion] = React.useState(0)
+  const [subpageRegistryVersion, setSubpageRegistryVersion] = React.useState(0)
   const [isSubpageNavigating, setIsSubpageNavigating] = React.useState(false)
   const subpageNavigatingTimerRef = React.useRef<ReturnType<
     typeof setTimeout
@@ -190,8 +190,10 @@ export function useSubpageStackState(
   const subpageId = openSubpageIds[openSubpageIds.length - 1] ?? null
   const hasOpenSubpage = subpageId !== null
 
-  const subpageStackContextValue = React.useMemo(
-    () => ({
+  const subpageStackContextValue = React.useMemo(() => {
+    void subpageRegistryVersion
+
+    return {
       activePageId,
       activeSurfaceId,
       canGoBack,
@@ -201,19 +203,19 @@ export function useSubpageStackState(
       openPage,
       goBack,
       getSurfaceId,
-    }),
-    [
-      activePageId,
-      activeSurfaceId,
-      canGoBack,
-      shouldCloseRootOnEsc,
-      subpageStack,
-      registerPage,
-      openPage,
-      goBack,
-      getSurfaceId,
-    ],
-  )
+    }
+  }, [
+    subpageRegistryVersion,
+    activePageId,
+    activeSurfaceId,
+    canGoBack,
+    shouldCloseRootOnEsc,
+    subpageStack,
+    registerPage,
+    openPage,
+    goBack,
+    getSurfaceId,
+  ])
 
   return {
     subpageStackContextValue,

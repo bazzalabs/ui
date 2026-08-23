@@ -18,9 +18,9 @@ import { SubpageStackContext } from '../../contexts/subpage-stack-context.js'
 import {
   DataPopupContext,
   type DataSurfaceContextValue,
+  useResolvedNodesPublication,
 } from '../../deep-search/context.js'
 import { DataSubpagesContent } from '../../deep-search/data-subpages.js'
-import type { NodeDef } from '../../deep-search/types.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
@@ -130,9 +130,10 @@ export const PopupMenuPopup = React.forwardRef<
 
   const [dataSurfaceContext, setDataSurfaceContext] =
     React.useState<DataSurfaceContextValue | null>(null)
-  const [resolvedContent, setResolvedContent] = React.useState<
-    NodeDef[] | null
-  >(null)
+  const publication = useResolvedNodesPublication(
+    dataSurfaceContext,
+    hasOpenSubpage,
+  )
   const activeSurfaceId = subpageStackContextValue.activeSurfaceId
 
   // Track when popup opened to ignore initial pointer events
@@ -340,10 +341,9 @@ export const PopupMenuPopup = React.forwardRef<
     () => ({
       dataSurfaceContext,
       setDataSurfaceContext,
-      resolvedContent,
-      setResolvedContent,
+      ...publication,
     }),
-    [dataSurfaceContext, resolvedContent],
+    [dataSurfaceContext, publication],
   )
 
   return (

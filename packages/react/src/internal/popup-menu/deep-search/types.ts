@@ -490,23 +490,12 @@ export interface SubmenuRenderParams {
     /** Async loading state (if asyncNodes configured) */
     async?: AsyncRenderState
   }
-  /**
-   * The submenu's static child node definitions.
-   * Does NOT include async results - use `asyncContent` for that.
-   */
-  nodes: NodeDef[]
-  /**
-   * Async content configuration for this submenu.
-   * Pass this to the submenu's DataSurface to enable async loading
-   * with the submenu's own search query (independent of parent search).
-   */
+  /** Callback-time snapshot of the child definitions selected by the renderer; not a live collection. `node.def` exposes authored data. */
+  nodes: PopupMenuNode[]
+  /** Async content configuration for this submenu. */
   asyncContent?: AsyncNodesConfig
-  /**
-   * Function to render a child node.
-   * Call this for each node in the submenu's list.
-   */
-  /** Resolved nodes are unwrapped to their defs. */
-  renderNode: (node: NodeDef | PopupMenuNode) => React.ReactNode
+  /** Render a resolver-owned child Menu Node. */
+  renderNode: (node: PopupMenuNode) => React.ReactNode
 }
 
 // ============================================================================
@@ -569,23 +558,12 @@ export interface SubpageContentRenderParams {
     /** Async loading state (if asyncNodes configured) */
     async?: AsyncRenderState
   }
-  /**
-   * The subpage's static child node definitions.
-   * Does NOT include async results - use `asyncContent` for that.
-   */
-  nodes: NodeDef[]
-  /**
-   * Async content configuration for this subpage.
-   * Pass this to the subpage's DataSurface to enable async loading
-   * with the subpage's own search query (independent of parent search).
-   */
+  /** Callback-time snapshot of the child definitions selected by the renderer; not a live collection. `node.def` exposes authored data. */
+  nodes: PopupMenuNode[]
+  /** Async content configuration for this subpage. */
   asyncContent?: AsyncNodesConfig
-  /**
-   * Function to render a child node.
-   * Call this for each node in the subpage's list.
-   */
-  /** Resolved nodes are unwrapped to their defs. */
-  renderNode: (node: NodeDef | PopupMenuNode) => React.ReactNode
+  /** Render a resolver-owned child Menu Node. */
+  renderNode: (node: PopupMenuNode) => React.ReactNode
 }
 
 // ============================================================================
@@ -1072,6 +1050,21 @@ export type NodeDef =
   | SeparatorDef
   | GroupDef
   | RadioGroupDef
+
+/** A discriminated union of resolver-owned Menu Nodes. */
+export type ResolvedMenuNode =
+  | PopupMenuNode<ItemDef>
+  | PopupMenuNode<TreeItemDef>
+  | PopupMenuNode<RadioItemDef>
+  | PopupMenuNode<CheckboxItemDef>
+  | PopupMenuNode<SubmenuDef>
+  | PopupMenuNode<SubpageDef>
+  | PopupMenuNode<SeparatorDef>
+  | PopupMenuNode<GroupDef>
+  | PopupMenuNode<RadioGroupDef>
+
+/** A resolver-owned Menu Node narrowed to one authored definition family. */
+export type ResolvedMenuNodeOf<D extends NodeDef> = PopupMenuNode<D>
 
 // ============================================================================
 // Scored Node - internal type for search results
