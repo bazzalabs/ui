@@ -1318,8 +1318,12 @@ export interface DeepSearchConfig {
  * Props for the DataSurface component.
  */
 export interface DataSurfaceProps {
-  /** The menu content (node definitions with render functions) */
-  content?: NodeDef[]
+  /**
+   * The menu content (node definitions with render functions). Resolved nodes
+   * are accepted anywhere defs are; they are unwrapped to their defs, and
+   * re-supplying the same nodes preserves identity.
+   */
+  content?: NodeDef[] | PopupMenuNode[]
 
   /**
    * Async content configuration for root-level async loading.
