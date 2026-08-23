@@ -128,6 +128,7 @@ function getBranchAsyncState(
 
 function collectDisplaySubpages(
   nodes: NodeDef[],
+  getNodeForDef: <D extends NodeDef>(def: D) => PopupMenuNode<D>,
   breadcrumbs: BreadcrumbNode[] = [],
   group: { id: string; label?: string } | null = null,
 ): DisplaySubpageNode[] {
@@ -140,7 +141,7 @@ function collectDisplaySubpages(
 
     if (node.kind === 'group') {
       result.push(
-        ...collectDisplaySubpages(node.nodes, breadcrumbs, {
+        ...collectDisplaySubpages(node.nodes, getNodeForDef, breadcrumbs, {
           id: node.id,
           label: node.label,
         }),
@@ -150,7 +151,9 @@ function collectDisplaySubpages(
 
     if (node.kind === 'radio-group') {
       if (node.hidden) continue
-      result.push(...collectDisplaySubpages(node.nodes, breadcrumbs, null))
+      result.push(
+        ...collectDisplaySubpages(node.nodes, getNodeForDef, breadcrumbs, null),
+      )
       continue
     }
 
@@ -161,7 +164,7 @@ function collectDisplaySubpages(
     if (node.kind === 'submenu' || node.kind === 'subpage') {
       if (node.kind === 'subpage') {
         result.push({
-          node,
+          node: getNodeForDef(node),
           pageId: getSubpagePageId(node, breadcrumbs),
           context: {
             search: null,
@@ -185,6 +188,7 @@ function collectDisplaySubpages(
         result.push(
           ...collectDisplaySubpages(
             node.nodes,
+            getNodeForDef,
             [...breadcrumbs, breadcrumb],
             null,
           ),
@@ -241,13 +245,14 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const mergedContent = resolvedContent ?? content
 
   const subpages = React.useMemo(
-    () => collectDisplaySubpages(mergedContent),
-    [mergedContent],
+    () => collectDisplaySubpages(mergedContent, getNodeForDefOrDetached),
+    [mergedContent, getNodeForDefOrDetached],
   )
 
   const renderSubpageContent = React.useCallback(
     (displaySubpage: DisplaySubpageNode): React.ReactNode => {
-      const { node, context, pageId } = displaySubpage
+      const { node: resolved, context, pageId } = displaySubpage
+      const node = resolved.def
 
       const renderRowNode = (
         rowNode:
@@ -553,7 +558,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
       return (
         <React.Fragment key={pageId}>
           {node.renderContent({
-            node: getNodeForDefOrDetached(node),
+            node: resolved,
             pageId,
             context: {
               ...context,

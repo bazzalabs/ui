@@ -1137,8 +1137,8 @@ export interface DisplayRowNode {
  * Used by DataSubpages to render subpage content alongside the root Surface.
  */
 export interface DisplaySubpageNode {
-  /** The original subpage definition */
-  node: SubpageDef
+  /** The resolved node for this subpage. The authored def is `node.def`. */
+  node: PopupMenuNode<SubpageDef>
   /** Pre-computed render context for this subpage trigger/content */
   context: RowRenderContext
   /** Computed page ID for this subpage */
