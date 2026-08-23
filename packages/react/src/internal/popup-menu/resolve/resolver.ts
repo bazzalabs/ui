@@ -13,6 +13,25 @@ import type {
 } from './types.js'
 
 /**
+ * Node kinds that render a navigable row, as opposed to structural kinds
+ * (`group`, `radio-group`, `separator`) that only shape the tree.
+ */
+type RowKind = Extract<
+  NodeDef['kind'],
+  'item' | 'tree-item' | 'radio-item' | 'checkbox-item' | 'submenu' | 'subpage'
+>
+
+/** Widened to `NodeDef['kind']` so `has` accepts any node's kind. */
+const ROW_KINDS: ReadonlySet<NodeDef['kind']> = new Set<RowKind>([
+  'item',
+  'tree-item',
+  'radio-item',
+  'checkbox-item',
+  'submenu',
+  'subpage',
+])
+
+/**
  * Owns the single resolved node tree for one menu root. Content may be
  * re-supplied at any time (`setContent`) and late defs may be grafted under
  * an already-resolved parent (`graft`); both reconcile by id with a
@@ -72,9 +91,24 @@ export function createMenuTreeResolver(
   const defToNode = new Map<NodeDef, PopupMenuNode>()
   const idToNode = new Map<string, PopupMenuNode>()
   const lastGraftDefs = new WeakMap<PopupMenuNode, readonly NodeDef[]>()
+  const warnedDuplicateIds = new Set<string>()
+
+  const warnDuplicateId = (node: PopupMenuNode): void => {
+    if (process.env.NODE_ENV === 'production') return
+    if (!node.id) return
+    if (!ROW_KINDS.has(node.kind)) return
+    const holder = idToNode.get(node.id)
+    if (!holder || holder === node || !ROW_KINDS.has(holder.kind)) return
+    if (warnedDuplicateIds.has(node.id)) return
+    warnedDuplicateIds.add(node.id)
+    console.warn(
+      `[PopupMenu] Duplicate row id "${node.id}" resolved for multiple rows in the same menu. Row ids must be unique for stable highlight, keyboard navigation, and persistent row state. Give the rows distinct explicit \`id\`s or distinct \`value\`s.`,
+    )
+  }
 
   const register = (node: PopupMenuNode): void => {
     if (!defToNode.has(node.def)) defToNode.set(node.def, node)
+    warnDuplicateId(node)
     if (!idToNode.has(node.id)) idToNode.set(node.id, node)
     for (const child of node.children) register(child)
   }
@@ -167,6 +201,7 @@ export function createMenuTreeResolver(
       if (node.id !== id) {
         if (idToNode.get(node.id) === node) idToNode.delete(node.id)
         node.id = id
+        warnDuplicateId(node)
         if (!idToNode.has(id)) idToNode.set(id, node)
       }
       if (!defToNode.has(def)) defToNode.set(def, node)
