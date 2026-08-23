@@ -8,6 +8,7 @@ import type {
   DisplayNode,
   IncludeInDeepSearch,
   NodeDef,
+  ResolvedMenuNode,
 } from './types.js'
 
 // ============================================================================
@@ -45,9 +46,13 @@ export interface DataPopupContextValue {
   setDataSurfaceContext: React.Dispatch<
     React.SetStateAction<DataSurfaceContextValue | null>
   >
-  /** The root data surface's async-merged content tree — the exact def references fed to the resolver; null until the root list registers. */
-  resolvedContent: NodeDef[] | null
-  setResolvedContent: React.Dispatch<React.SetStateAction<NodeDef[] | null>>
+  /** The latest callback-time snapshot of the local surface's resolver-owned roots. */
+  resolvedNodes: readonly ResolvedMenuNode[] | null
+  publishResolvedNodes: (
+    sourceId: string,
+    nodes: readonly ResolvedMenuNode[],
+  ) => () => void
+  invalidateResolvedNodes: () => void
 }
 
 export const DataPopupContext =
@@ -77,6 +82,84 @@ export function useDataPopupContext(): DataPopupContextValue {
 
 export function useMaybeDataPopupContext(): DataPopupContextValue | null {
   return React.useContext(DataPopupContext)
+}
+
+export function useResolvedNodesPublication(
+  dataSurfaceContext: DataSurfaceContextValue | null,
+  hasOpenSubpage: boolean,
+): Pick<
+  DataPopupContextValue,
+  'resolvedNodes' | 'publishResolvedNodes' | 'invalidateResolvedNodes'
+> {
+  const [publication, setPublication] = React.useState<{
+    token: symbol
+    sourceId: string
+    nodes: readonly ResolvedMenuNode[]
+    pending: boolean
+  } | null>(null)
+  const publicationRef = React.useRef(publication)
+  const registeredSourceRef = React.useRef<string | null>(null)
+  const hasOpenSubpageRef = React.useRef(hasOpenSubpage)
+  hasOpenSubpageRef.current = hasOpenSubpage
+  publicationRef.current = publication
+
+  const setCurrent = React.useCallback((next: typeof publication) => {
+    publicationRef.current = next
+    setPublication(next)
+  }, [])
+  const clearToken = React.useCallback(
+    (token: symbol) => {
+      if (publicationRef.current?.token !== token) return
+      setCurrent(null)
+    },
+    [setCurrent],
+  )
+  const publishResolvedNodes = React.useCallback(
+    (sourceId: string, nodes: readonly ResolvedMenuNode[]) => {
+      const token = Symbol('resolved-nodes-publication')
+      setCurrent({ token, sourceId, nodes: [...nodes], pending: false })
+      return () => {
+        const current = publicationRef.current
+        if (!current || current.token !== token) return
+        if (hasOpenSubpageRef.current) {
+          setCurrent({ ...current, pending: true })
+          return
+        }
+        queueMicrotask(() => clearToken(token))
+      }
+    },
+    [clearToken, setCurrent],
+  )
+  const invalidateResolvedNodes = React.useCallback(() => {
+    const current = publicationRef.current
+    if (current) setCurrent({ ...current, nodes: [...current.nodes] })
+  }, [setCurrent])
+
+  React.useEffect(() => {
+    const previous = registeredSourceRef.current
+    const next = dataSurfaceContext?.listId ?? null
+    registeredSourceRef.current = next
+    if (previous && previous !== next) {
+      const current = publicationRef.current
+      if (current?.sourceId === previous) setCurrent(null)
+    }
+  }, [dataSurfaceContext?.listId, setCurrent])
+
+  React.useEffect(() => {
+    if (hasOpenSubpage) return
+    const pending = publicationRef.current
+    if (!pending?.pending) return
+    queueMicrotask(() => clearToken(pending.token))
+  }, [clearToken, hasOpenSubpage])
+
+  return React.useMemo(
+    () => ({
+      resolvedNodes: publication?.nodes ?? null,
+      publishResolvedNodes,
+      invalidateResolvedNodes,
+    }),
+    [publication?.nodes, publishResolvedNodes, invalidateResolvedNodes],
+  )
 }
 
 // ============================================================================

@@ -22,12 +22,45 @@ import type {
   RadioGroupBehavior,
   RadioGroupDef,
   RadioItemDef,
+  ResolvedMenuNode,
   RowRenderContext,
   ScoredNode,
   SubmenuDef,
   SubpageDef,
   TreeItemDef,
 } from './types.js'
+
+/** Select renderer-owned children by exact definition identity and occurrence. */
+export function selectResolvedChildren(
+  parent: PopupMenuNode,
+  selectedDefs: readonly NodeDef[],
+): ResolvedMenuNode[] {
+  const selectedCounts = new Map<NodeDef, number>()
+  for (const def of selectedDefs) {
+    selectedCounts.set(def, (selectedCounts.get(def) ?? 0) + 1)
+  }
+  const matches = new Map<NodeDef, PopupMenuNode[]>()
+  for (const child of parent.children) {
+    if (!selectedCounts.has(child.def)) continue
+    const bucket = matches.get(child.def) ?? []
+    bucket.push(child)
+    matches.set(child.def, bucket)
+  }
+  for (const [def, count] of selectedCounts) {
+    if ((matches.get(def)?.length ?? 0) !== count) {
+      throw new Error(
+        '[PopupMenu] Renderer-selected child definitions cannot be matched unambiguously to the resolved parent.',
+      )
+    }
+  }
+  const offsets = new Map<NodeDef, number>()
+  return selectedDefs.map((def) => {
+    const bucket = matches.get(def)!
+    const index = offsets.get(def) ?? 0
+    offsets.set(def, index + 1)
+    return bucket[index]! as ResolvedMenuNode
+  })
+}
 
 const identityQuery = (query: string) => query
 

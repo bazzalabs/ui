@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { useDataPopupContext } from '../internal/popup-menu/deep-search/context.js'
 import {
   type CheckboxItemDef,
   CommandMenu,
@@ -155,6 +156,99 @@ function DataCommandMenu({
       </CommandMenu.Portal>
     </CommandMenu.Root>
   )
+}
+
+function PublicationProbe() {
+  const { resolvedNodes } = useDataPopupContext()
+
+  return (
+    <output data-testid="publication">
+      {resolvedNodes
+        ?.map((node) => `${node.id}:${node.def.value ?? node.def.kind}`)
+        .join('|')}
+    </output>
+  )
+}
+
+function PublicationLifecycleMenu({ strict = false }: { strict?: boolean }) {
+  const [showRootSurface, setShowRootSurface] = React.useState(true)
+  const [showRootList, setShowRootList] = React.useState(true)
+  const [surfaceVersion, setSurfaceVersion] = React.useState('root')
+  const [itemValue, setItemValue] = React.useState('initial')
+  const nodes: NodeDef[] = [
+    createItemDef('published', itemValue),
+    createSubpageDef('details', 'Details', [createItemDef('child', 'Child')]),
+  ]
+
+  const menu = (
+    <CommandMenu.Root defaultOpen>
+      <CommandMenu.Trigger data-testid="trigger">Open</CommandMenu.Trigger>
+      <CommandMenu.Portal>
+        <CommandMenu.Popup>
+          <PublicationProbe />
+          <button
+            data-testid="remove-root-list"
+            onClick={() => setShowRootList(false)}
+            type="button"
+          >
+            Remove root list
+          </button>
+          <button
+            data-testid="remove-root-surface"
+            onClick={() => setShowRootSurface(false)}
+            type="button"
+          >
+            Remove root surface
+          </button>
+          <button
+            data-testid="replace-no-list"
+            onClick={() => setSurfaceVersion('replacement-no-list')}
+            type="button"
+          >
+            Replace with no-list surface
+          </button>
+          <button
+            data-testid="update-definition"
+            onClick={() => setItemValue('latest')}
+            type="button"
+          >
+            Update definition
+          </button>
+          <button
+            data-testid="replace-publishing-surface"
+            onClick={() => {
+              setSurfaceVersion('replacement-publishing')
+              setItemValue('replacement')
+            }}
+            type="button"
+          >
+            Replace publishing surface
+          </button>
+          {showRootSurface ? (
+            <CommandMenu.Surface
+              key={surfaceVersion}
+              content={nodes}
+              data-testid="surface-root"
+            >
+              <CommandMenu.Input
+                aria-label="Search commands"
+                data-testid="input-root"
+              />
+              {surfaceVersion ===
+              'replacement-no-list' ? null : showRootList ? (
+                <CommandMenu.List>
+                  <DataRows />
+                </CommandMenu.List>
+              ) : null}
+              <CommandMenu.Empty>No commands found</CommandMenu.Empty>
+            </CommandMenu.Surface>
+          ) : null}
+        </CommandMenu.Popup>
+      </CommandMenu.Portal>
+    </CommandMenu.Root>
+  )
+
+  return strict ? <React.StrictMode>{menu}</React.StrictMode> : menu
 }
 
 async function waitForRootInputFocus() {
@@ -325,5 +419,128 @@ describe('CommandMenu data-first API', () => {
       'true',
     )
     expect(screen.getByTestId('dialog')).toBeInTheDocument()
+  })
+
+  it('withdraws the root publication when its mounted root List is removed', async () => {
+    const user = userEvent.setup()
+
+    render(<PublicationLifecycleMenu />)
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'initial:initial',
+      ),
+    )
+
+    await user.click(screen.getByTestId('remove-root-list'))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(''),
+    )
+  })
+
+  it('retains an active sibling publication until a subpage return with no List remount', async () => {
+    const user = userEvent.setup()
+
+    render(<PublicationLifecycleMenu />)
+    await waitForRootInputFocus()
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'initial:initial',
+      ),
+    )
+    await user.click(screen.getByTestId('subpage-trigger-details'))
+    await waitForSubpageInputFocus('details')
+
+    await user.click(screen.getByTestId('remove-root-list'))
+    expect(screen.getByTestId('publication')).toHaveTextContent(
+      'initial:initial',
+    )
+
+    await user.click(screen.getByTestId('subpage-back-details'))
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(''),
+    )
+  })
+
+  it('keeps publication through ordinary subpage navigation and List remount', async () => {
+    const user = userEvent.setup()
+
+    render(<PublicationLifecycleMenu />)
+    await waitForRootInputFocus()
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'initial:initial',
+      ),
+    )
+    await user.click(screen.getByTestId('subpage-trigger-details'))
+    await waitForSubpageInputFocus('details')
+    expect(screen.getByTestId('publication')).toHaveTextContent(
+      'initial:initial',
+    )
+
+    await user.click(screen.getByTestId('subpage-back-details'))
+    await waitForRootInputFocus()
+    expect(screen.getByTestId('publication')).toHaveTextContent(
+      'initial:initial',
+    )
+  })
+
+  it('clears publication when the registered root Surface is removed on a subpage', async () => {
+    const user = userEvent.setup()
+
+    render(<PublicationLifecycleMenu />)
+    await waitForRootInputFocus()
+    await user.click(screen.getByTestId('subpage-trigger-details'))
+    await waitForSubpageInputFocus('details')
+
+    await user.click(screen.getByTestId('remove-root-surface'))
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(''),
+    )
+  })
+
+  it('clears an old publication when a keyed root Surface without a List replaces it', async () => {
+    const user = userEvent.setup()
+
+    render(<PublicationLifecycleMenu />)
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'initial:initial',
+      ),
+    )
+
+    await user.click(screen.getByTestId('replace-no-list'))
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(''),
+    )
+  })
+
+  it('survives StrictMode effect replay, definition updates, and keyed replacement', async () => {
+    const user = userEvent.setup()
+
+    render(<PublicationLifecycleMenu strict />)
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'initial:initial',
+      ),
+    )
+
+    await user.click(screen.getByTestId('update-definition'))
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'latest:latest',
+      ),
+    )
+
+    await user.click(screen.getByTestId('replace-publishing-surface'))
+    await waitFor(() =>
+      expect(screen.getByTestId('publication')).toHaveTextContent(
+        'replacement:replacement',
+      ),
+    )
+    await new Promise((resolve) => queueMicrotask(resolve))
+    expect(screen.getByTestId('publication')).toHaveTextContent(
+      'replacement:replacement',
+    )
   })
 })

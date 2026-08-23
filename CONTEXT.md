@@ -18,6 +18,11 @@ _Avoid_: node config, definition object
 The library-created, resolved instance of a node def — carries identity (resolved ID, definition key, definition path), tree links (parent, children), and a reference to its originating def. Exactly one per logical row per menu root, in every render context; created by resolution at the root, or by grafting. Surfaced to consumers as `Node` under each family namespace.
 _Avoid_: resolved node (as a noun — "resolution" stays as the process), wrapper, instance
 
+Submenu and subpage render callbacks receive only resolver-owned child Menu Nodes.
+Their `nodes` value is a callback-time snapshot of the child definitions selected
+by the renderer, not a live collection; authored fields are available through
+`child.def`. Pass those Menu Nodes to `renderNode` and `DataSurface.content`.
+
 **Menu Tree**:
 The single resolved node tree owned by one menu root, and the `MenuTreeResolver` that maintains it. Created once per root; re-supplied content reconciles into it rather than rebuilding it.
 _Avoid_: node graph, model
@@ -51,10 +56,6 @@ The definitional menu-node facts passed to `getResolvedId` before the resolved I
 **Graft**:
 Resolving node defs that arrive after mount (async loader results; render-time content) and attaching the resulting nodes under an already-resolved parent — the graft point — so they join the single resolved tree with correct lineage (definition path, Resolved ID).
 _Avoid_: merge, inject, append
-
-**Detached Node**:
-The stable placeholder node produced for a def that is rendered but is not part of the resolved tree (a consumer passing an arbitrary def to `renderNode`). Dev-warned once per def; its id is root-relative rather than path-qualified. Not a supported authoring pattern — memoize defs and prefer explicit ids.
-_Avoid_: orphan node, temp node
 
 ## Removed vocabulary
 
