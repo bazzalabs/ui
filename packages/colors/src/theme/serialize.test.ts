@@ -43,5 +43,50 @@ describe('theme serialization', () => {
     )
     expect(theme.light.tokens.shadow[1]).toContain('rgb(255 255 255 / 0.065)')
     expect(theme.light.tokens.shadow[1]).toContain('rgb(0 0 0 / 0.0875)')
+
+    for (const stateStrategy of ['overlay', 'explicit'] as const) {
+      const strategyTheme = generateTheme({
+        neutral: '#777',
+        accent: '#06c',
+        contrast: 50,
+        prefix: 'brand',
+        stateStrategy,
+      })
+      const buttonDeclarations = getThemeDeclarations(
+        strategyTheme,
+        'light',
+      ).filter(({ path }) => path.startsWith('button.'))
+      expect(buttonDeclarations).toHaveLength(7 * 4 * 4)
+      expect(
+        buttonDeclarations.every(({ value }) => !value.includes('var(')),
+      ).toBe(true)
+      expect(buttonDeclarations).toContainEqual(
+        expect.objectContaining({
+          path: 'button.primary-accent.background.hover',
+          name: '--brand-button-primary-accent-background-hover',
+        }),
+      )
+
+      const strategyCss = serializeTheme(strategyTheme, {
+        lightSelector: '.light',
+        darkSelector: '.dark',
+      })
+      const raw = '--brand-button-primary-accent-background-hover:'
+      const block =
+        '.light [data-slot="button"][data-variant="primary-accent"] {'
+      expect(strategyCss).toContain(raw)
+      expect(strategyCss).toContain(block)
+      expect(strategyCss.indexOf(raw)).toBeLessThan(strategyCss.indexOf(block))
+      expect(strategyCss).toContain(
+        '--button-background-hover: var(--brand-button-primary-accent-background-hover);',
+      )
+      expect(strategyCss).toContain(
+        '--button-shadow-focus: var(--brand-button-primary-accent-shadow-focus);',
+      )
+      expect(strategyCss).not.toContain('--color-button-')
+      expect(strategyCss).not.toContain(
+        '--brand-button-primary-accent-hover-background',
+      )
+    }
   })
 })

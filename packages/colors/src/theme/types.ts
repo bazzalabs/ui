@@ -1,6 +1,11 @@
 export type ThemeMode = 'light' | 'dark'
 export type FocusStrategy = 'accent' | 'neutral'
 export type StateStrategy = 'overlay' | 'explicit'
+
+import type {
+  ButtonDiagnostic,
+  ButtonTokens,
+} from '../components/button/types.js'
 export type ModeInput = Partial<
   Pick<ThemeInput, 'neutral' | 'accent' | 'contrast'>
 >
@@ -50,17 +55,22 @@ export type InformationalDiagnostic = {
   background: string
   measured: number
 }
-export type ThemeDiagnostic = GatedDiagnostic | InformationalDiagnostic
+export type CoreDiagnostic = GatedDiagnostic | InformationalDiagnostic
+export type ThemeDiagnostic = CoreDiagnostic | ButtonDiagnostic
 export type GeneratedMode = {
   input: ResolvedModeInput
   tokens: CoreTokens
   diagnostics: readonly ThemeDiagnostic[]
+  components?: { button: ButtonTokens }
+}
+export type GeneratedThemeMode = GeneratedMode & {
+  components: { button: ButtonTokens }
 }
 export type GeneratedTheme = {
   input: ThemeInput
   prefix: string
-  light: GeneratedMode
-  dark: GeneratedMode
+  light: GeneratedThemeMode
+  dark: GeneratedThemeMode
 }
 export type ThemeInputErrorCode =
   | 'invalid-input'
