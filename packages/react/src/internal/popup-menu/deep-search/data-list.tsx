@@ -1,14 +1,24 @@
 'use client'
 
 import * as React from 'react'
-import type { useSurfaceContext } from '../../listbox/index.js'
+import {
+  useListboxContext,
+  type useSurfaceContext,
+} from '../../listbox/index.js'
 import { normalizeValue, slugify } from '../../listbox/utils/normalize.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
   PopupMenuListPrimitive,
   type PopupMenuListProps,
 } from '../components/list/list.js'
+import {
+  GraftPointContext,
+  useGraftPoint,
+} from '../contexts/graft-point-context.js'
+import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
 import { useRowIdRegistry } from '../contexts/row-id-registry-context.js'
+import { useMaybeSubpageContext } from '../contexts/subpage-context.js'
+import { useMaybeSubpageStack } from '../contexts/subpage-stack-context.js'
 import {
   type AsyncMenuState,
   useAsyncMenuCoordinator,
@@ -651,6 +661,18 @@ export const DataListInner = React.forwardRef<
   const displayPath = useDisplayPath()
   const rowIdRegistry = useRowIdRegistry()
   const surfaceKey = React.useId()
+  const resolver = useMenuTreeResolver()
+  const graftParent = useGraftPoint()
+  const { depth: surfaceDepth } = useListboxContext()
+  const resolverSubpageContext = useMaybeSubpageContext()
+  const resolverSubpageStack = useMaybeSubpageStack()
+  // Mirrors surface.tsx's isSubpageSurfaceInThisPopup: a data surface
+  // rendered as a subpage of this popup must never feed resolution.
+  const isSubpageSurface = Boolean(
+    resolverSubpageContext &&
+      resolverSubpageStack?.getSurfaceId(resolverSubpageContext.pageId),
+  )
+  const isResolutionRoot = surfaceDepth === 0 && !isSubpageSurface
 
   // Get coordinator for async state
   const coordinator = useAsyncMenuCoordinator()
@@ -697,6 +719,26 @@ export const DataListInner = React.forwardRef<
     // For root-level DataSurface without asyncContent, append to static content
     return [...mergedContent, ...rootAsyncData.nodes]
   }, [mergedContent, asyncNodes, asyncContent])
+
+  // Feed root-owned resolution (inert in this stack: nothing renders from
+  // the resolved tree yet). setContent/graft are idempotent with reference
+  // fast paths, so render-time calls (incl. StrictMode re-invocations) are
+  // safe and cheap when content is unchanged. Subpage surfaces never feed:
+  // their rows already belong to the root surface's def tree.
+  React.useMemo(() => {
+    if (!resolver || isSubpageSurface) return
+    if (graftParent) {
+      resolver.graft(graftParent, contentWithRootAsync)
+    } else if (isResolutionRoot) {
+      resolver.setContent(contentWithRootAsync)
+    }
+  }, [
+    resolver,
+    graftParent,
+    isSubpageSurface,
+    isResolutionRoot,
+    contentWithRootAsync,
+  ])
 
   const streamOrderRef = React.useRef<{
     query: string
@@ -1141,24 +1183,28 @@ export const DataListInner = React.forwardRef<
 
         return (
           <ExtendDisplayPath key={compositeId} segment={submenuSegment}>
-            {node.render({
-              props: {
-                id: compositeId,
-                value: node.value,
-                disabled: node.disabled ?? false,
-                forceOrder: node.forceOrder,
-                forceScore: node.forceScore,
-              },
-              context: {
-                ...context,
-                value: node.value,
-                disabled: node.disabled ?? false,
-                async: submenuAsyncState,
-              },
-              nodes: staticNodes,
-              asyncContent: node.asyncNodes,
-              renderNode: submenuRenderNode,
-            })}
+            <GraftPointContext.Provider
+              value={resolver?.getNodeForDef(node) ?? null}
+            >
+              {node.render({
+                props: {
+                  id: compositeId,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
+                  forceOrder: node.forceOrder,
+                  forceScore: node.forceScore,
+                },
+                context: {
+                  ...context,
+                  value: node.value,
+                  disabled: node.disabled ?? false,
+                  async: submenuAsyncState,
+                },
+                nodes: staticNodes,
+                asyncContent: node.asyncNodes,
+                renderNode: submenuRenderNode,
+              })}
+            </GraftPointContext.Provider>
           </ExtendDisplayPath>
         )
       }
@@ -1196,6 +1242,7 @@ export const DataListInner = React.forwardRef<
       isLegacyRowIdDefault,
       displayPath,
       isDeepSearching,
+      resolver,
     ],
   )
 
