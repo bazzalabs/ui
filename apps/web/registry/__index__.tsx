@@ -391,6 +391,12 @@ const createNullComponent = () =>
   React.lazy(() => Promise.resolve({ default: () => null }))
 
 export const ui: RegistryIndex = {
+  'colors-button': {
+    name: 'colors-button',
+    type: 'registry:ui',
+    component: createNullComponent(),
+    files: ['registry/ui/colors-button/index.tsx'],
+  },
   'command-menu': {
     name: 'command-menu',
     type: 'registry:ui',
