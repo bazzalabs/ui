@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "colors-button",
+  "type": "registry:ui",
+  "title": "Button",
+  "dependencies": [
+    "@base-ui/react",
+    "class-variance-authority",
+    "lucide-react"
+  ],
+  "files": [
+    {
+      "path": "registry/ui/colors-button/index.tsx",
+      "content": "import { Button as ButtonPrimitive } from '@base-ui/react/button'\nimport { cva, type VariantProps } from 'class-variance-authority'\nimport { LoaderCircle } from 'lucide-react'\nimport { cn } from '@/lib/utils'\n\nconst stateClasses =\n  'bg-[var(--button-background)] text-[var(--button-foreground)] [box-shadow:var(--button-shadow)] hover:bg-[var(--button-background-hover)] hover:text-[var(--button-foreground-hover)] hover:[box-shadow:var(--button-shadow-hover)] active:bg-[var(--button-background-active)] active:text-[var(--button-foreground-active)] active:translate-y-px active:[box-shadow:var(--button-shadow-active)] focus-visible:[box-shadow:var(--button-shadow-focus)]'\n\nconst buttonVariants = cva(\n  \"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[background-color,color,box-shadow,transform] hover:transition-none disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none select-none\",\n  {\n    variants: {\n      variant: {\n        'primary-neutral': stateClasses,\n        'primary-accent': stateClasses,\n        destructive: stateClasses,\n        outline: stateClasses,\n        secondary: stateClasses,\n        ghost: stateClasses,\n        link: `${stateClasses} hover:underline underline-offset-4`,\n      },\n      size: {\n        default: 'h-9 gap-2 px-4 has-[>svg]:px-3',\n        xs: 'h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5',\n        sm: 'h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5',\n        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',\n        icon: 'size-9',\n        'icon-xs': 'size-6 rounded-md',\n        'icon-sm': 'size-8',\n        'icon-lg': 'size-10',\n      },\n    },\n    defaultVariants: {\n      variant: 'primary-neutral',\n      size: 'default',\n    },\n  },\n)\n\nexport type ButtonProps = Omit<ButtonPrimitive.Props, 'className'> &\n  VariantProps<typeof buttonVariants> & {\n    className?: string\n    loading?: boolean\n  }\n\nfunction Button({\n  className,\n  variant,\n  size,\n  loading = false,\n  disabled = false,\n  'aria-busy': ariaBusy,\n  children,\n  ...props\n}: ButtonProps) {\n  const resolvedVariant = variant ?? 'primary-neutral'\n\n  return (\n    <ButtonPrimitive\n      className={cn(\n        buttonVariants({ variant: resolvedVariant, size, className }),\n      )}\n      {...props}\n      data-slot=\"button\"\n      data-variant={resolvedVariant}\n      aria-busy={loading ? true : ariaBusy}\n      disabled={loading || disabled}\n    >\n      {loading && <LoaderCircle aria-hidden=\"true\" className=\"animate-spin\" />}\n      {children}\n    </ButtonPrimitive>\n  )\n}\n\nexport { Button, buttonVariants }\n",
+      "type": "registry:file",
+      "target": "components/ui/button.tsx"
+    }
+  ]
+}

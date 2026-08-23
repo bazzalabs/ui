@@ -4,6 +4,23 @@
   "homepage": "https://bazza-ui.com",
   "items": [
     {
+      "name": "colors-button",
+      "title": "Button",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "lucide-react"
+      ],
+      "files": [
+        {
+          "path": "registry/ui/colors-button/index.tsx",
+          "type": "registry:file",
+          "target": "components/ui/button.tsx"
+        }
+      ]
+    },
+    {
       "name": "dropdown-menu",
       "title": "Dropdown menu",
       "type": "registry:component",

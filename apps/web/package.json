@@ -8,6 +8,7 @@
     "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/docs-types-entry.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
     "build": "next build --turbopack",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "start": "next start",
     "start:portless": "portless run next start",
     "lint": "next lint",
@@ -99,6 +100,9 @@
     "@types/react-dom": "19.2.3",
     "@types/react-virtualized": "^9.22.3",
     "@types/unist": "^3.0.3",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.1",
+    "@vitejs/plugin-react": "5.1.2",
     "chokidar": "^4.0.3",
     "husky": "^9.1.7",
     "jsdom": "^26.0.0",
@@ -109,7 +113,9 @@
     "ts-morph": "^27.0.0",
     "tsx": "^4.20.5",
     "typescript": "^5",
-    "unified": "^11.0.5"
+    "unified": "^11.0.5",
+    "vite-tsconfig-paths": "5.1.4",
+    "vitest": "4.0.17"
   },
   "overrides": {
     "@types/react": "19.2.7",
