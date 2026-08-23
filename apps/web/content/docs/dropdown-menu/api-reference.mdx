@@ -15,6 +15,10 @@ Groups all parts of the dropdown menu. Manages open state and provides context t
 
 <TypeTableAuto type="DropdownMenuRootProps" pkg="@bazza-ui/react" />
 
+### onHighlightChange
+
+Called as `(node, id, index, eventDetails)` when the highlighted row changes. `node` is the resolved menu node looked up by `id` in the data-first tree, or `null` for JSX-defined rows and when the highlight clears.
+
 ## Trigger
 
 A button that opens the dropdown menu. Renders a `<button>` element.
@@ -320,16 +324,19 @@ These types are used to define menu content when using the Data-First API.
 
 ### NodeDef
 
-Union type of all possible node definitions. Import and use to type your menu content arrays.
+Union type of all possible node definitions. `DropdownMenu.NodeDef` is the namespaced alias. `DropdownMenu.Node` is the corresponding resolved-node alias. Import and use `NodeDef` to type your menu content arrays.
 
 ```tsx
-import type { NodeDef } from '@bazza-ui/react'
+import type { NodeDef, PopupMenuNode } from '@bazza-ui/react/dropdown-menu'
+// or via the namespace: DropdownMenu.NodeDef / DropdownMenu.Node
 
 const content: NodeDef[] = [
   { kind: 'item', value: 'Copy', render: ... },
   { kind: 'submenu', value: 'More', nodes: [...], render: ... },
   { kind: 'separator' },
 ]
+
+// Resolved nodes are available in render parameters as Node.
 ```
 
 <TypeTableAuto type="NodeDef" pkg="@bazza-ui/react" />
@@ -384,13 +391,13 @@ These types are passed to the `render` function of each node definition.
 
 ### ItemRenderParams
 
-Parameters passed to `ItemDef.render()`.
+Parameters passed to `ItemDef.render()`. The `node` member is the resolved menu node, including its canonical `id`, `defPath`, and `parent`/`children` relationships.
 
 ```tsx
 {
   kind: 'item',
   value: 'Copy',
-  render: ({ props, context }) => {
+  render: ({ props, node, context }) => {
     // props: { id, value, disabled, closeOnClick?, onSelect?, shortcut? }
     // context: { highlighted, disabled, search, breadcrumbs, isDeepSearchResult, group }
     return <DropdownMenu.Item {...props}>Copy</DropdownMenu.Item>
@@ -402,18 +409,19 @@ Parameters passed to `ItemDef.render()`.
 
 ### SubmenuRenderParams
 
-Parameters passed to `SubmenuDef.render()`.
+Parameters passed to `SubmenuDef.render()`. The `node` member is the resolved menu node, including its canonical `id`, `defPath`, and `parent`/`children` relationships.
 
 ```tsx
 {
   kind: 'submenu',
   value: 'More Options',
   nodes: [...],
-  render: ({ props, context, nodes, renderNode }) => {
+  render: ({ props, node, context, nodes, renderNode }) => {
     // props: { id, value, disabled }
     // context: { highlighted, disabled, search, breadcrumbs, isDeepSearchResult, async? }
+    // node: Node - the resolved submenu node
     // nodes: NodeDef[] - child nodes to render
-    // renderNode: (node: NodeDef) => ReactNode - function to render a child node
+    // renderNode: (node: NodeDef | Node) => ReactNode - function to render a child node
     return (
       <DropdownMenu.Submenu>
         <DropdownMenu.SubmenuTrigger {...props}>...</DropdownMenu.SubmenuTrigger>
@@ -428,25 +436,25 @@ Parameters passed to `SubmenuDef.render()`.
 
 ### CheckboxItemRenderParams
 
-Parameters passed to `CheckboxItemDef.render()`.
+Parameters passed to `CheckboxItemDef.render()`. The `node` member is the resolved menu node, including its canonical `id`, `defPath`, and `parent`/`children` relationships.
 
 <TypeTableAuto type="CheckboxItemRenderParams" pkg="@bazza-ui/react" />
 
 ### RadioItemRenderParams
 
-Parameters passed to `RadioItemDef.render()`.
+Parameters passed to `RadioItemDef.render()`. The `node` member is the resolved menu node, including its canonical `id`, `defPath`, and `parent`/`children` relationships.
 
 <TypeTableAuto type="RadioItemRenderParams" pkg="@bazza-ui/react" />
 
 ### GroupRenderParams
 
-Parameters passed to `GroupDef.render()`.
+Parameters passed to `GroupDef.render()`. The `node` member is the resolved menu node, including its canonical `id`, `defPath`, and `parent`/`children` relationships.
 
 <TypeTableAuto type="GroupRenderParams" pkg="@bazza-ui/react" />
 
 ### RadioGroupRenderParams
 
-Parameters passed to `RadioGroupDef.render()`.
+Parameters passed to `RadioGroupDef.render()`. The `node` member is the resolved menu node, including its canonical `id`, `defPath`, and `parent`/`children` relationships.
 
 <TypeTableAuto type="RadioGroupRenderParams" pkg="@bazza-ui/react" />
 
@@ -460,7 +468,7 @@ Represents a submenu in the breadcrumb path. Used in render context to show wher
 
 ```tsx
 interface BreadcrumbNode {
-  node: SubmenuDef  // The full submenu definition
+  node: SubmenuDef | SubpageDef | TreeItemDef  // The full submenu definition
   value: string     // The submenu's value
   id?: string       // The submenu's explicit id (if provided)
 }
@@ -485,10 +493,16 @@ Configuration options for deep search behavior.
 - `stream` (default): show available rows immediately and append later async batches without reordering earlier rows.
 - `block`: show loading-only state until all participating async loaders resolve, then render the full sorted result set.
 
-### GetQualifiedRowIdFn
+### GetRowIdFn
 
-Function type for custom ID generation. Passed to `Root` or data-first `Surface` via the `getQualifiedRowId` prop. When provided, this function takes precedence over `rowIdStrategy`.
+Function type for `getRowId` on `Root`. It receives the unidentified resolved node (`UnidentifiedMenuNode` — the resolved node without its `id`) and is read once at mount. The node carries only definitional facts: `def`, `kind`, `segment`, `defPath`, `parent`, `depth`, `index`, and `children` (empty at id-computation time). Render-context facts (search state, display position) are excluded by construction.
 
-`rowIdStrategy` controls data-first row IDs and accepts `'qualified'`, `'explicit'`, or `'hybrid'`. It defaults to `'qualified'`, where id-less rows are identified by their full definition path (ancestor branch segments — submenus and tree items — plus their slugified value), identical in browse and deep-search contexts. Rows rendered inside subpages currently derive their ids independently of `rowIdStrategy`. `'explicit'` requires rows to declare explicit `id`s; when a row has none, it warns in development and falls back to the qualified ID. Use `'hybrid'` to restore the legacy behavior, where paths are included only during deep search.
+```tsx
+<DropdownMenu.Root getRowId={(node) => node.def.id ?? node.defPath.join('.')}>
+  {/* ... */}
+</DropdownMenu.Root>
+```
 
-<TypeTableAuto type="GetQualifiedRowIdFn" pkg="@bazza-ui/react" />
+By default, `getRowId` returns explicit `def.id` values verbatim, or `defPath.join('.')` when no explicit id is provided. The former `'qualified'` behavior is now the default behavior of `getRowId`. `'explicit'` is a consumer-authored seam that requires `node.def.id`; `'hybrid'` has no successor because ids no longer depend on render context.
+
+<TypeTableAuto type="GetRowIdFn" pkg="@bazza-ui/react" />
