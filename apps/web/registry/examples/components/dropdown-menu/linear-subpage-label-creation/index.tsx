@@ -353,21 +353,24 @@ export default function DropdownMenuLinearSubpageLabelCreation() {
     [],
   )
 
-  const handleLabelHighlightChange = React.useCallback((id: string | null) => {
-    if (!id) {
-      return
-    }
+  const handleLabelHighlightChange = React.useCallback(
+    (id: string | null, _node: unknown) => {
+      if (!id) {
+        return
+      }
 
-    const colonIndex = id.lastIndexOf(':')
-    if (colonIndex === -1) {
-      return
-    }
+      const colonIndex = id.lastIndexOf(':')
+      if (colonIndex === -1) {
+        return
+      }
 
-    const colorId = id.slice(colonIndex + 1)
-    if (CREATABLE_LABEL_COLORS.some((c) => c.id === colorId)) {
-      setCreatingLabelColor(colorId)
-    }
-  }, [])
+      const colorId = id.slice(colonIndex + 1)
+      if (CREATABLE_LABEL_COLORS.some((c) => c.id === colorId)) {
+        setCreatingLabelColor(colorId)
+      }
+    },
+    [],
+  )
 
   React.useEffect(() => {
     if (!pendingCreatedLabelId) {

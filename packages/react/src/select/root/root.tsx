@@ -5,6 +5,7 @@ import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   type PopupMenuDebugOptions,
+  type PopupMenuHighlightChangeHandler,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
@@ -311,6 +312,17 @@ export function SelectRoot<
     ...rest
   } = props
 
+  const handleHighlightChange =
+    React.useCallback<PopupMenuHighlightChangeHandler>(
+      (id, _node, index, details) =>
+        onHighlightChange?.(
+          id,
+          index,
+          details as SelectHighlightChangeEventDetails,
+        ),
+      [onHighlightChange],
+    )
+
   // Generate a unique ID for the listbox
   const listId = React.useId()
 
@@ -363,8 +375,7 @@ export function SelectRoot<
     defaultOpen,
     virtualized,
     items: virtualItems,
-    onHighlightChange:
-      onHighlightChange as unknown as UsePopupMenuRootParams['onHighlightChange'],
+    onHighlightChange: handleHighlightChange,
     closeOnOutsidePress,
     disabled: disabledProp,
   })

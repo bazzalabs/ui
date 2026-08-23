@@ -1,10 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import type {
-  ChangeEventDetails,
-  GenericEventDetails,
-} from '../../../utils/events/index.js'
+import type { ChangeEventDetails } from '../../../utils/events/index.js'
 import {
   createChangeEventDetails,
   REASONS,
@@ -12,7 +9,11 @@ import {
 import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
 import { ListboxStore, type VirtualItem } from '../../listbox/index.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
-import type { PopupMenuOpenChangeReason } from '../events.js'
+import type {
+  HighlightChangeEventDetails,
+  PopupMenuHighlightChangeHandler,
+  PopupMenuOpenChangeReason,
+} from '../events.js'
 import type { MenuTreeResolver } from '../resolve/resolver.js'
 import { createMenuTreeResolver } from '../resolve/resolver.js'
 import type { GetRowIdFn } from '../resolve/types.js'
@@ -57,14 +58,11 @@ export interface UsePopupMenuRootParams {
   items?: VirtualItem[]
 
   /**
-   * Callback when the highlighted item changes.
-   * The third parameter contains event details including the reason for the change.
+   * Callback when the highlighted item changes. `id` is first; `node` is the
+   * resolved menu node enrichment and may be null.
+   * The fourth parameter contains event details including the reason for the change.
    */
-  onHighlightChange?: (
-    id: string | null,
-    index: number,
-    eventDetails: GenericEventDetails<string, { index: number }>,
-  ) => void
+  onHighlightChange?: PopupMenuHighlightChangeHandler<HighlightChangeEventDetails>
 
   /**
    * When to close the menu on outside interactions.
@@ -164,6 +162,22 @@ export function usePopupMenuRoot(
     )
   }
   const menuTreeResolver = menuTreeResolverRef.current
+
+  const handleHighlightChange = React.useCallback(
+    (
+      id: string | null,
+      index: number,
+      eventDetails: HighlightChangeEventDetails,
+    ) => {
+      onHighlightChange?.(
+        id,
+        id === null ? null : (menuTreeResolver.getNodeById(id) ?? null),
+        index,
+        eventDetails,
+      )
+    },
+    [menuTreeResolver, onHighlightChange],
+  )
 
   const [imperativeDisabled, setImperativeDisabled] =
     React.useState(defaultDisabled)
@@ -361,9 +375,9 @@ export function usePopupMenuRoot(
     return {
       virtualized,
       items: itemsProp ?? [],
-      onHighlightChange,
+      onHighlightChange: handleHighlightChange,
     }
-  }, [virtualized, itemsProp, onHighlightChange])
+  }, [virtualized, itemsProp, handleHighlightChange, onHighlightChange])
 
   return {
     menuTreeResolver,

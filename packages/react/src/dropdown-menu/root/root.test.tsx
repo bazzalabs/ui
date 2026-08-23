@@ -2549,6 +2549,7 @@ describe('<DropdownMenu.Root />', () => {
       await waitFor(() => {
         expect(onRootHighlightChange).toHaveBeenCalledWith(
           'highlight-root-item',
+          null,
           0,
           expect.objectContaining({ reason: expect.any(String) }),
         )
@@ -2586,6 +2587,7 @@ describe('<DropdownMenu.Root />', () => {
       await waitFor(() => {
         expect(onRootHighlightChange).toHaveBeenCalledWith(
           'highlight-root-subpage-item',
+          null,
           expect.any(Number),
           expect.objectContaining({ reason: 'keyboard' }),
         )
@@ -2628,6 +2630,7 @@ describe('<DropdownMenu.Root />', () => {
       await waitFor(() => {
         expect(onSubmenuHighlightChange).toHaveBeenCalledWith(
           'highlight-submenu-item',
+          null,
           expect.any(Number),
           expect.objectContaining({ reason: expect.any(String) }),
         )
@@ -2677,6 +2680,7 @@ describe('<DropdownMenu.Root />', () => {
       await waitFor(() => {
         expect(onSubmenuHighlightChange).toHaveBeenCalledWith(
           'highlight-submenu-subpage-item',
+          null,
           expect.any(Number),
           expect.objectContaining({ reason: expect.any(String) }),
         )

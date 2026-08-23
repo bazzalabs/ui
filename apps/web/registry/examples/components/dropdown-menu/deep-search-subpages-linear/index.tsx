@@ -192,7 +192,7 @@ function createLabelsSubmenu(params: {
   labelCreationStatus: LabelCreationStatus
   creatingLabelName: string | null
   creatingLabelColor: string
-  onHighlightChange: (id: string | null, index: number) => void
+  onHighlightChange: (id: string | null, _node: unknown, index: number) => void
 }): SubmenuDef {
   const {
     labels,
@@ -413,7 +413,11 @@ function buildMenuContent(params: {
   labelCreationStatus: LabelCreationStatus
   creatingLabelName: string | null
   creatingLabelColor: string
-  onLabelHighlightChange: (id: string | null, index: number) => void
+  onLabelHighlightChange: (
+    id: string | null,
+    _node: unknown,
+    index: number,
+  ) => void
 }): NodeDef[] {
   const {
     labels,
@@ -746,7 +750,7 @@ export default function DropdownMenuDeepSearchSubpagesLinear() {
   )
 
   const handleLabelHighlightChange = React.useCallback(
-    (id: string | null, _index: number) => {
+    (id: string | null, _node: unknown, _index: number) => {
       if (!id) return
       // Color items have values like "labelName:colorId"
       const colonIndex = id.lastIndexOf(':')
