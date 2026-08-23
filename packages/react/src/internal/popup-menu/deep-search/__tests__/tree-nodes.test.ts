@@ -71,7 +71,7 @@ describe('tree nodes', () => {
     const result = filterNodes({ query: '', nodes, highlightedId: null })
     const browseRows = rows(result.displayNodes)
 
-    expect(browseRows.map((row) => row.node.value)).toEqual([
+    expect(browseRows.map((row) => row.node.def.value)).toEqual([
       'Product & Engineering',
       'Core builder team',
       'Design team',
@@ -105,11 +105,11 @@ describe('tree nodes', () => {
   it('qualifies browse IDs for distinct tree branches', () => {
     const browseRows = rows(
       filterNodes({ query: '', nodes, highlightedId: null }).displayNodes,
-    ).filter((row) => row.node.value === 'Design team')
+    ).filter((row) => row.node.def.value === 'Design team')
     const getId = (row: DisplayRowNode) =>
       [
         ...row.context.breadcrumbs.map((breadcrumb) => breadcrumb.value),
-        row.node.value,
+        row.node.def.value,
       ].join('.')
 
     expect(getId(browseRows[0])).not.toBe(getId(browseRows[1]))
@@ -117,7 +117,7 @@ describe('tree nodes', () => {
 
   it('surfaces duplicate descendant values with breadcrumb paths', () => {
     const designRows = search('design').filter(
-      (row) => row.node.value === 'Design team',
+      (row) => row.node.def.value === 'Design team',
     )
     expect(designRows).toHaveLength(2)
     expect(designRows.map((row) => row.context.breadcrumbs[0].value)).toEqual([
@@ -128,7 +128,7 @@ describe('tree nodes', () => {
   })
 
   it('cascades ancestor matches to selectable descendants', () => {
-    expect(search('product').map((row) => row.node.value)).toEqual([
+    expect(search('product').map((row) => row.node.def.value)).toEqual([
       'Product & Engineering',
       'Core builder team',
       'Design team',
@@ -136,15 +136,17 @@ describe('tree nodes', () => {
   })
 
   it('hides header rows while retaining their breadcrumb contribution', () => {
-    expect(search('old').map((row) => row.node.value)).toContain('Old team')
+    expect(search('old').map((row) => row.node.def.value)).toContain('Old team')
     expect(
-      search('old').find((row) => row.node.value === 'Old team')?.context
+      search('old').find((row) => row.node.def.value === 'Old team')?.context
         .breadcrumbs[0].value,
     ).toBe('Archive')
-    expect(search('archive').map((row) => row.node.value)).toContain('Old team')
-    expect(search('archive').some((row) => row.node.value === 'Archive')).toBe(
-      false,
+    expect(search('archive').map((row) => row.node.def.value)).toContain(
+      'Old team',
     )
+    expect(
+      search('archive').some((row) => row.node.def.value === 'Archive'),
+    ).toBe(false)
   })
 
   it('does not search descendants when deepSearch is false', () => {
@@ -251,7 +253,7 @@ describe('tree nodes', () => {
       null,
     ) as DisplayRowNode[]
 
-    expect(browseRows.map((row) => row.node.value)).toEqual([
+    expect(browseRows.map((row) => row.node.def.value)).toEqual([
       'Visible parent',
       'Visible child',
       'Hidden-only parent',

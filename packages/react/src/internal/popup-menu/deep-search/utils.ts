@@ -499,7 +499,7 @@ function getMinForceOrderFromDisplayRows(nodes: DisplayRowNode[]): number {
   let minForceOrder = Number.POSITIVE_INFINITY
 
   for (const item of nodes) {
-    const forceOrder = getNodeForceOrder(item.node)
+    const forceOrder = getNodeForceOrder(item.node.def)
     if (forceOrder < minForceOrder) {
       minForceOrder = forceOrder
     }
@@ -602,6 +602,9 @@ export function buildDisplayRowNodes(
   scoredNodes: ScoredNode[],
   query: string,
   highlightedId: string | null,
+  getNodeForDef: <D extends NodeDef>(
+    def: D,
+  ) => PopupMenuNode<D> = resolveDetachedNodeForDef,
 ): DisplayRowNode[] {
   return scoredNodes.map((scoredNode) => {
     const isDeepSearchResult = scoredNode.breadcrumbs.length > 0
@@ -625,7 +628,8 @@ export function buildDisplayRowNodes(
     }
 
     return {
-      node: scoredNode.node,
+      kind: 'row',
+      node: getNodeForDef(scoredNode.node),
       context,
       radioGroup: scoredNode.radioGroup
         ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
@@ -642,6 +646,9 @@ function buildDisplayRowNode(
   scoredNode: ScoredNode,
   query: string,
   highlightedId: string | null,
+  getNodeForDef: <D extends NodeDef>(
+    def: D,
+  ) => PopupMenuNode<D> = resolveDetachedNodeForDef,
 ): DisplayRowNode {
   const isDeepSearchResult = scoredNode.breadcrumbs.length > 0
 
@@ -663,7 +670,8 @@ function buildDisplayRowNode(
   }
 
   return {
-    node: scoredNode.node,
+    kind: 'row',
+    node: getNodeForDef(scoredNode.node),
     context,
     radioGroup: scoredNode.radioGroup
       ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
@@ -683,6 +691,9 @@ export function getBrowseNodesFlatten(
   nodes: NodeDef[],
   highlightedId: string | null,
   group: { id: string; label?: string } | null = null,
+  getNodeForDef: <D extends NodeDef>(
+    def: D,
+  ) => PopupMenuNode<D> = resolveDetachedNodeForDef,
 ): DisplayRowNode[] {
   const result: DisplayRowNode[] = []
   const visibleRowNodes = nodes.filter(
@@ -703,7 +714,12 @@ export function getBrowseNodesFlatten(
       // Recurse into groups, passing group context
       const groupInfo = { id: node.id, label: node.label }
       result.push(
-        ...getBrowseNodesFlatten(node.nodes, highlightedId, groupInfo),
+        ...getBrowseNodesFlatten(
+          node.nodes,
+          highlightedId,
+          groupInfo,
+          getNodeForDef,
+        ),
       )
       continue
     }
@@ -728,6 +744,7 @@ export function getBrowseNodesFlatten(
           [],
           [],
           node === visibleRowNodes.at(-1),
+          getNodeForDef,
         ),
       )
       continue
@@ -743,7 +760,7 @@ export function getBrowseNodesFlatten(
       tree: null,
     }
 
-    result.push({ node, context })
+    result.push({ kind: 'row', node: getNodeForDef(node), context })
   }
 
   return result
@@ -757,6 +774,7 @@ function expandTreeNode(
   ancestorsLast: boolean[],
   breadcrumbs: BreadcrumbNode[],
   isLastChild: boolean,
+  getNodeForDef: <D extends NodeDef>(def: D) => PopupMenuNode<D>,
 ): DisplayRowNode[] {
   const supportedChildren = getSupportedTreeChildren(node.nodes ?? []).filter(
     (child) => !child.hidden,
@@ -770,7 +788,8 @@ function expandTreeNode(
   }
   const rows: DisplayRowNode[] = [
     {
-      node,
+      kind: 'row',
+      node: getNodeForDef(node),
       context: {
         search: null,
         breadcrumbs,
@@ -801,13 +820,15 @@ function expandTreeNode(
           [...ancestorsLast, isLastChild],
           childBreadcrumbs,
           childIsLast,
+          getNodeForDef,
         ),
       )
       return
     }
 
     rows.push({
-      node: child,
+      kind: 'row',
+      node: getNodeForDef(child),
       context: {
         search: null,
         breadcrumbs: childBreadcrumbs,
@@ -891,6 +912,7 @@ export function getBrowseNodesPreserve(
               [],
               [],
               child === visibleGroupChildren.at(-1),
+              getNodeForDef,
             ),
           )
           continue
@@ -906,7 +928,11 @@ export function getBrowseNodesPreserve(
           tree: null,
         }
 
-        groupItems.push({ node: child, context: itemContext })
+        groupItems.push({
+          kind: 'row',
+          node: getNodeForDef(child),
+          context: itemContext,
+        })
       }
 
       // Only include group if it has items
@@ -950,7 +976,8 @@ export function getBrowseNodesPreserve(
         }
 
         radioItems.push({
-          node: child,
+          kind: 'row',
+          node: getNodeForDef(child),
           context: itemContext,
           radioGroup: { id: node.id, label: node.label },
         })
@@ -999,6 +1026,7 @@ export function getBrowseNodesPreserve(
           [],
           [],
           node === visibleRowNodes.at(-1),
+          getNodeForDef,
         ),
       )
       continue
@@ -1013,7 +1041,7 @@ export function getBrowseNodesPreserve(
       group: null,
       tree: null,
     }
-    result.push({ node, context })
+    result.push({ kind: 'row', node: getNodeForDef(node), context })
   }
 
   return result
@@ -1161,6 +1189,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     unique,
     query,
     highlightedId,
+    getNodeForDef,
   )
 
   // Build display nodes for radio groups
@@ -1216,7 +1245,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
         resolvedNode: getNodeForDef(radioGroupDef),
         context: groupContext,
         items: itemsToDisplay.map((item) =>
-          buildDisplayRowNode(item, query, highlightedId),
+          buildDisplayRowNode(item, query, highlightedId, getNodeForDef),
         ),
         bestScore,
       })
@@ -1235,7 +1264,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     ...regularDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.context.search?.score ?? 0,
-      forceOrder: getNodeForceOrder(r.node),
+      forceOrder: getNodeForceOrder(r.node.def),
       kindRank: getRowKindSortRank(r.node.kind),
     })),
     ...radioGroupDisplayNodes.map((r) => ({
@@ -1386,7 +1415,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
       resolvedNode: getNodeForDef(groupDef),
       context: groupContext,
       items: items.map((item) =>
-        buildDisplayRowNode(item, query, highlightedId),
+        buildDisplayRowNode(item, query, highlightedId, getNodeForDef),
       ),
       bestScore,
     })
@@ -1445,7 +1474,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
         resolvedNode: getNodeForDef(radioGroupDef),
         context: groupContext,
         items: itemsToDisplay.map((item) =>
-          buildDisplayRowNode(item, query, highlightedId),
+          buildDisplayRowNode(item, query, highlightedId, getNodeForDef),
         ),
         bestScore,
       })
@@ -1455,7 +1484,9 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   // Build display nodes for ungrouped items
   const ungroupedDisplayNodes: DisplayRowNode[] = ungroupedItems
     .sort(compareScoredNodesByForceOrderAndScore)
-    .map((item) => buildDisplayRowNode(item, query, highlightedId))
+    .map((item) =>
+      buildDisplayRowNode(item, query, highlightedId, getNodeForDef),
+    )
 
   // Merge groups, radio groups, and ungrouped items, sorted by forced order then score.
   type SortableNode = {
@@ -1481,7 +1512,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     ...ungroupedDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.context.search?.score ?? 0,
-      forceOrder: getNodeForceOrder(r.node),
+      forceOrder: getNodeForceOrder(r.node.def),
       kindRank: getRowKindSortRank(r.node.kind),
     })),
   ]

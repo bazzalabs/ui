@@ -616,7 +616,7 @@ describe('RadioItemDef', () => {
       if (isDisplayRadioGroupNode(displayNodes[0])) {
         // Only the matching item should be shown
         expect(displayNodes[0].items).toHaveLength(1)
-        expect(displayNodes[0].items[0].node.value).toBe('eq')
+        expect(displayNodes[0].items[0].node.def.value).toBe('eq')
       }
     })
 
@@ -650,7 +650,7 @@ describe('RadioItemDef', () => {
       const radioGroups = displayNodes.filter(isDisplayRadioGroupNode)
       expect(radioGroups).toHaveLength(1)
       expect(radioGroups[0].items).toHaveLength(1)
-      expect(radioGroups[0].items[0].node.value).toBe('contains')
+      expect(radioGroups[0].items[0].node.def.value).toBe('contains')
       expect(radioGroups[0].context.breadcrumbs[0].value).toBe('Filters')
     })
   })
