@@ -9,6 +9,7 @@ import {
   createAssigneeItemNode,
   createItemNode,
   createLabelItemNode,
+  createSelectionStore,
   createSubmenuNode,
   createSubpageNode,
   FilterIcon,
@@ -27,6 +28,13 @@ import {
   Status,
   StatusIcon,
 } from './icons'
+
+const labelSelectionStore = createSelectionStore(
+  new Set(['bug', 'task', 'urgent']),
+)
+const projectLabelSelectionStore = createSelectionStore(
+  new Set(['pl-1', 'pl-3', 'pl-5']),
+)
 
 // =============================================================================
 // Label Data
@@ -147,7 +155,12 @@ function buildMenuContent(): NodeDef[] {
     'Labels',
     <LabelsIcon />,
     labelData.map((label) =>
-      createLabelItemNode(label.id, label.name, label.color),
+      createLabelItemNode(
+        label.id,
+        label.name,
+        label.color,
+        labelSelectionStore,
+      ),
     ),
     { inputPlaceholder: 'Labels...' },
   )
@@ -239,7 +252,13 @@ function buildMenuContent(): NodeDef[] {
     'Project labels',
     <LabelsIcon />,
     projectLabelData.map((label) =>
-      createLabelItemNode(label.id, label.name, label.color),
+      createLabelItemNode(
+        label.id,
+        label.name,
+        label.color,
+        projectLabelSelectionStore,
+        'project-label',
+      ),
     ),
     { inputPlaceholder: 'Project labels...' },
   )

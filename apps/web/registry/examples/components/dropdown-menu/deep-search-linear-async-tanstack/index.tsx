@@ -11,6 +11,7 @@ import {
   createAsyncSubmenuNode,
   createItemNode,
   createLabelItemNode,
+  createSelectionStore,
   createSubmenuNode,
   FilterIcon,
 } from './components'
@@ -28,6 +29,13 @@ import {
   Status,
   StatusIcon,
 } from './icons'
+
+const labelSelectionStore = createSelectionStore(
+  new Set(['bug', 'task', 'urgent']),
+)
+const projectLabelSelectionStore = createSelectionStore(
+  new Set(['pl-1', 'pl-3', 'pl-5']),
+)
 
 // =============================================================================
 // Simulated API Functions (with artificial delays)
@@ -82,7 +90,7 @@ async function fetchLabels(query?: string): Promise<NodeDef[]> {
     : labelData
 
   return filtered.map((label) =>
-    createLabelItemNode(label.id, label.name, label.color),
+    createLabelItemNode(label.id, label.name, label.color, labelSelectionStore),
   )
 }
 
@@ -160,7 +168,13 @@ async function fetchProjectLabels(query?: string): Promise<NodeDef[]> {
     : projectLabelData
 
   return filtered.map((label) =>
-    createLabelItemNode(label.id, label.name, label.color),
+    createLabelItemNode(
+      label.id,
+      label.name,
+      label.color,
+      projectLabelSelectionStore,
+      'project-label',
+    ),
   )
 }
 
