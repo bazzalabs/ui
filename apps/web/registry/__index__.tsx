@@ -175,6 +175,12 @@ export const examples = {
       checkbox: ex(
         () => import('@/registry/examples/components/dropdown-menu/checkbox'),
       ),
+      'checkbox-indicator-variants': ex(
+        () =>
+          import(
+            '@/registry/examples/components/dropdown-menu/checkbox-indicator-variants'
+          ),
+      ),
       radio: ex(
         () => import('@/registry/examples/components/dropdown-menu/radio'),
       ),
@@ -351,6 +357,10 @@ export const examples = {
     'dropdown-menu': {
       basic: ex(
         () => import('@/registry/examples/primitives/dropdown-menu/basic'),
+      ),
+      'close-on-click': ex(
+        () =>
+          import('@/registry/examples/primitives/dropdown-menu/close-on-click'),
       ),
     },
   }),
