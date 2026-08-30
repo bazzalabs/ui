@@ -9,7 +9,7 @@ export default defineConfig((options: Options) => ({
     'video-player/index': './src/video-player/index.ts',
     'combobox/index': './src/combobox/index.ts',
     'context-menu/index': './src/context-menu/index.ts',
-    'adapters/index': './src/adapters/index.ts',
+    'loaders/index': './src/loaders/index.ts',
     'internal/listbox/index': './src/internal/listbox/index.ts',
     'internal/popup-menu/index': './src/internal/popup-menu/index.ts',
   },

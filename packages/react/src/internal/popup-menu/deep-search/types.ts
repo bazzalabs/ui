@@ -97,7 +97,7 @@ export interface AsyncLoaderResult<TData, TRaw = unknown> {
  * The component should call hooks internally and pass the result to children.
  */
 export interface LoaderComponentProps {
-  /** Search query (for query-dependent loaders) */
+  /** Search query (for query loaders) */
   query: string
   /** Whether the loader should execute its fetch/query hook */
   enabled?: boolean
@@ -145,10 +145,10 @@ export interface StaticLoaderConfig {
 }
 
 /**
- * Query-dependent loader configuration.
+ * Query loader configuration.
  * Refetches based on search query - server does the filtering.
  */
-export interface QueryDependentLoaderConfig {
+export interface QueryLoaderConfig {
   type: 'query'
   /**
    * Component that calls hooks and provides loader state.
@@ -202,7 +202,7 @@ export type IncludeInDeepSearch = true | 'trigger-only' | false
 /**
  * Union of all async loader configurations.
  */
-export type AsyncLoaderConfig = StaticLoaderConfig | QueryDependentLoaderConfig
+export type AsyncLoaderConfig = StaticLoaderConfig | QueryLoaderConfig
 
 /**
  * Static async nodes configuration for submenus.
@@ -210,13 +210,13 @@ export type AsyncLoaderConfig = StaticLoaderConfig | QueryDependentLoaderConfig
 export type StaticAsyncNodesConfig = StaticLoaderConfig
 
 /**
- * Query-dependent async nodes configuration for submenus.
+ * Query async nodes configuration for submenus.
  */
-export type QueryAsyncNodesConfig = QueryDependentLoaderConfig
+export type QueryAsyncNodesConfig = QueryLoaderConfig
 
 /**
  * Async nodes configuration for submenus.
- * Union of static and query-dependent loader configs.
+ * Union of static and query loader configs.
  */
 export type AsyncNodesConfig = StaticAsyncNodesConfig | QueryAsyncNodesConfig
 

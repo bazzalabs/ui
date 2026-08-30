@@ -9,7 +9,7 @@ import type {
   InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
-  QueryDependentLoaderConfig,
+  QueryLoaderConfig,
   StaticLoaderConfig,
 } from '../internal/popup-menu/deep-search/types.js'
 
@@ -135,7 +135,7 @@ export function createSWRStaticLoader(
 }
 
 /**
- * Props for creating a query-dependent SWR loader component.
+ * Props for creating a query SWR loader component.
  */
 export interface CreateSWRQueryLoaderProps {
   /**
@@ -179,11 +179,11 @@ export interface CreateSWRQueryLoaderProps {
 }
 
 /**
- * Creates a query-dependent loader configuration backed by SWR.
+ * Creates a query loader configuration backed by SWR.
  */
 export function createSWRQueryLoader(
   props: CreateSWRQueryLoaderProps,
-): QueryDependentLoaderConfig {
+): QueryLoaderConfig {
   const {
     useSWR,
     minQueryLength = 1,

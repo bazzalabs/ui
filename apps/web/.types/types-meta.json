@@ -1480,7 +1480,7 @@
       "CreateQueryLoaderProps": {
         "name": "CreateQueryLoaderProps",
         "kind": "interface",
-        "doc": "Props for creating a query-dependent loader component.",
+        "doc": "Props for creating a query loader component.",
         "props": [
           {
             "name": "useQuery",
@@ -1662,7 +1662,7 @@
       "CreateVanillaQueryLoaderProps": {
         "name": "CreateVanillaQueryLoaderProps",
         "kind": "interface",
-        "doc": "Props for creating a query-dependent loader with vanilla fetch.",
+        "doc": "Props for creating a query loader with vanilla fetch.",
         "props": [
           {
             "name": "fetcher",
@@ -2577,7 +2577,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncLoaderConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
           },
@@ -6815,7 +6815,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncLoaderConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
           },
@@ -8761,7 +8761,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncLoaderConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for root-level async loading"
           },
@@ -9807,7 +9807,7 @@
           {
             "name": "asyncNodes",
             "type": "AsyncNodesConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async child nodes configuration.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync nodes are merged with static nodes."
           },
@@ -9923,7 +9923,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncNodesConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for this submenu.\nPass this to the submenu's DataSurface to enable async loading\nwith the submenu's own search query (independent of parent search)."
           },
@@ -10014,7 +10014,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncNodesConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for this subpage.\nPass this to the subpage's DataSurface to enable async loading\nwith the subpage's own search query (independent of parent search)."
           },
@@ -10055,7 +10055,7 @@
           {
             "name": "asyncNodes",
             "type": "AsyncNodesConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async child nodes configuration.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync nodes are merged with static nodes."
           },
@@ -13100,7 +13100,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncLoaderConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
           },
@@ -14206,7 +14206,7 @@
         "name": "AsyncLoaderConfig",
         "kind": "typealias",
         "doc": "Union of all async loader configurations.",
-        "definition": "StaticLoaderConfig | QueryDependentLoaderConfig"
+        "definition": "StaticLoaderConfig | QueryLoaderConfig"
       },
       "AsyncLoaderFetchStatus": {
         "name": "AsyncLoaderFetchStatus",
@@ -14380,7 +14380,7 @@
       "AsyncNodesConfig": {
         "name": "AsyncNodesConfig",
         "kind": "typealias",
-        "doc": "Async nodes configuration for submenus.\nUnion of static and query-dependent loader configs.",
+        "doc": "Async nodes configuration for submenus.\nUnion of static and query loader configs.",
         "definition": "StaticAsyncNodesConfig | QueryAsyncNodesConfig"
       },
       "AsyncRenderState": {
@@ -14611,7 +14611,7 @@
             "name": "query",
             "type": "string",
             "required": true,
-            "description": "Search query (for query-dependent loaders)"
+            "description": "Search query (for query loaders)"
           },
           {
             "name": "enabled",
@@ -14667,7 +14667,7 @@
         "name": "QueryAsyncNodesConfig",
         "kind": "typealias",
         "doc": "Query-dependent async nodes configuration for submenus.",
-        "definition": "QueryDependentLoaderConfig",
+        "definition": "QueryLoaderConfig",
         "props": [
           {
             "name": "type",
@@ -14729,8 +14729,8 @@
           }
         ]
       },
-      "QueryDependentLoaderConfig": {
-        "name": "QueryDependentLoaderConfig",
+      "QueryLoaderConfig": {
+        "name": "QueryLoaderConfig",
         "kind": "interface",
         "doc": "Query-dependent loader configuration.\nRefetches based on search query - server does the filtering.",
         "props": [
@@ -16838,7 +16838,7 @@
           {
             "name": "asyncContent",
             "type": "AsyncLoaderConfig | undefined",
-            "formattedType": "StaticLoaderConfig | QueryDependentLoaderConfig",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content.",
             "referencePath": "@bazza-ui/react.AsyncLoaderConfig"

@@ -94,7 +94,7 @@ export type {
   PopupMenuNode,
   PopupMenuRadioGroupValueProps as CommandMenuRadioGroupValueProps,
   QueryAsyncNodesConfig,
-  QueryDependentLoaderConfig,
+  QueryLoaderConfig,
   RadioGroupBehavior,
   RadioGroupDef,
   RadioGroupRenderParams,

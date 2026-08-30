@@ -9,7 +9,7 @@ import type {
   InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
-  QueryDependentLoaderConfig,
+  QueryLoaderConfig,
   StaticLoaderConfig,
 } from '../internal/popup-menu/deep-search/types.js'
 
@@ -316,7 +316,7 @@ export function createVanillaStaticLoader(
 }
 
 /**
- * Props for creating a query-dependent loader with vanilla fetch.
+ * Props for creating a query loader with vanilla fetch.
  */
 export interface CreateVanillaQueryLoaderProps {
   /**
@@ -361,7 +361,7 @@ export interface CreateVanillaQueryLoaderProps {
 }
 
 /**
- * Creates a query-dependent loader configuration using plain fetch/promises.
+ * Creates a query loader configuration using plain fetch/promises.
  * No external data library required.
  *
  * @example
@@ -384,7 +384,7 @@ export interface CreateVanillaQueryLoaderProps {
  */
 export function createVanillaQueryLoader(
   props: CreateVanillaQueryLoaderProps,
-): QueryDependentLoaderConfig {
+): QueryLoaderConfig {
   const {
     fetcher,
     minQueryLength = 1,
