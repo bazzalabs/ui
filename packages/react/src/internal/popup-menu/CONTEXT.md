@@ -53,6 +53,10 @@ _Avoid_: merge, inject, append
 The stable placeholder node produced for a def that is rendered but is not part of the resolved tree (a consumer passing an arbitrary def to `renderNode`). Dev-warned once per def; its id is root-relative rather than path-qualified. Not a supported authoring pattern — memoize defs and prefer explicit ids.
 _Avoid_: orphan node, temp node
 
+**Listbox**:
+The state layer beneath the engine: rows register into a `ListboxStore`, which owns highlight state and keyboard navigation. Implements the WAI-ARIA listbox pattern; shared by every menu family.
+_Avoid_: list store, selection engine
+
 ## Removed vocabulary
 
 These terms described the string-based identity model and no longer exist in the code. They appear here only so the names are not reintroduced with new meanings.
