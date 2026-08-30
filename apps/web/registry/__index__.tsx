@@ -13,7 +13,7 @@
  * Examples are organized by tier, mirroring the filesystem:
  *
  *   examples.components['dropdown-menu'].basic
- *   → registry/examples/components/dropdown-menu/basic/index.tsx
+ *   → registry/examples/styled/dropdown-menu/basic/index.tsx
  *
  *   examples.primitives['dropdown-menu'].basic   (future)
  *   → registry/examples/primitives/dropdown-menu/basic/index.tsx
@@ -48,13 +48,13 @@ export type RegistryIndex = Record<string, RegistryEntry>
 //
 // Standard example (folder with index.tsx), 1 line:
 //
-//   basic: ex(() => import('@/registry/examples/components/dropdown-menu/basic')),
+//   basic: ex(() => import('@/registry/examples/styled/dropdown-menu/basic')),
 //
 // Multi-file example — extra files are relative to the example directory and
 // shown as tabs in the code viewer, after index.tsx:
 //
 //   search: ex(
-//     () => import('@/registry/examples/components/dropdown-menu/search'),
+//     () => import('@/registry/examples/styled/dropdown-menu/search'),
 //     { extraFiles: ['data.ts'] },
 //   ),
 //
@@ -161,124 +161,103 @@ function flattenExamples(
 export const examples = {
   components: defineExamples('components', {
     'dropdown-menu': {
-      basic: ex(
-        () => import('@/registry/examples/components/dropdown-menu/basic'),
-      ),
+      basic: ex(() => import('@/registry/examples/styled/dropdown-menu/basic')),
       'close-on-click': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/close-on-click'),
+        () => import('@/registry/examples/styled/dropdown-menu/close-on-click'),
       ),
       'hidden-input': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/hidden-input'),
+        () => import('@/registry/examples/styled/dropdown-menu/hidden-input'),
       ),
       checkbox: ex(
-        () => import('@/registry/examples/components/dropdown-menu/checkbox'),
+        () => import('@/registry/examples/styled/dropdown-menu/checkbox'),
       ),
-      radio: ex(
-        () => import('@/registry/examples/components/dropdown-menu/radio'),
-      ),
+      radio: ex(() => import('@/registry/examples/styled/dropdown-menu/radio')),
       submenu: ex(
-        () => import('@/registry/examples/components/dropdown-menu/submenu'),
+        () => import('@/registry/examples/styled/dropdown-menu/submenu'),
       ),
       'subpage-linear': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/subpage-linear'),
+        () => import('@/registry/examples/styled/dropdown-menu/subpage-linear'),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
       subpage: ex(
-        () => import('@/registry/examples/components/dropdown-menu/subpage'),
+        () => import('@/registry/examples/styled/dropdown-menu/subpage'),
       ),
       'linear-subpage-label-creation': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/linear-subpage-label-creation'
+            '@/registry/examples/styled/dropdown-menu/linear-subpage-label-creation'
           ),
       ),
       search: ex(
-        () => import('@/registry/examples/components/dropdown-menu/search'),
+        () => import('@/registry/examples/styled/dropdown-menu/search'),
         { extraFiles: ['data.ts'] },
       ),
       'deep-search': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/deep-search'),
+        () => import('@/registry/examples/styled/dropdown-menu/deep-search'),
       ),
       'deep-search-linear': ex(
         () =>
-          import(
-            '@/registry/examples/components/dropdown-menu/deep-search-linear'
-          ),
+          import('@/registry/examples/styled/dropdown-menu/deep-search-linear'),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
       'tree-linear': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/tree-linear'),
+        () => import('@/registry/examples/styled/dropdown-menu/tree-linear'),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
       'deep-search-subpages-linear': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/deep-search-subpages-linear'
+            '@/registry/examples/styled/dropdown-menu/deep-search-subpages-linear'
           ),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
       'deep-search-linear-async': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/deep-search-linear-async'
+            '@/registry/examples/styled/dropdown-menu/deep-search-linear-async'
           ),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
       'deep-search-linear-async-tanstack': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/deep-search-linear-async-tanstack'
+            '@/registry/examples/styled/dropdown-menu/deep-search-linear-async-tanstack'
           ),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
       'async-deep-search': ex(
         () =>
-          import(
-            '@/registry/examples/components/dropdown-menu/async-deep-search'
-          ),
+          import('@/registry/examples/styled/dropdown-menu/async-deep-search'),
       ),
       virtualized: ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/virtualized'),
+        () => import('@/registry/examples/styled/dropdown-menu/virtualized'),
       ),
-      gifi: ex(
-        () => import('@/registry/examples/components/dropdown-menu/gifi'),
-        { extraFiles: ['data.ts'] },
-      ),
+      gifi: ex(() => import('@/registry/examples/styled/dropdown-menu/gifi'), {
+        extraFiles: ['data.ts'],
+      }),
       'virtualized-groups': ex(
         () =>
-          import(
-            '@/registry/examples/components/dropdown-menu/virtualized-groups'
-          ),
+          import('@/registry/examples/styled/dropdown-menu/virtualized-groups'),
       ),
       'virtualized-advanced': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/virtualized-advanced'
+            '@/registry/examples/styled/dropdown-menu/virtualized-advanced'
           ),
       ),
-      async: ex(
-        () => import('@/registry/examples/components/dropdown-menu/async'),
-      ),
+      async: ex(() => import('@/registry/examples/styled/dropdown-menu/async')),
       'footer-actions': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/footer-actions'),
+        () => import('@/registry/examples/styled/dropdown-menu/footer-actions'),
       ),
       'header-toolbar': ex(
-        () =>
-          import('@/registry/examples/components/dropdown-menu/header-toolbar'),
+        () => import('@/registry/examples/styled/dropdown-menu/header-toolbar'),
       ),
 
       // Guide snippets: flat files with stable slash-namespaced public names
       'guides/your-first-menu/surface-hidden-input': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/guides/your-first-menu/surface-hidden-input'
+            '@/registry/examples/styled/dropdown-menu/guides/your-first-menu/surface-hidden-input'
           ),
         {
           name: 'guides/dropdown-menu/your-first-menu/surface-hidden-input',
@@ -290,7 +269,7 @@ export const examples = {
       'guides/your-first-menu/01-initial': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/guides/your-first-menu/items-01'
+            '@/registry/examples/styled/dropdown-menu/guides/your-first-menu/items-01'
           ),
         {
           name: 'guides/dropdown-menu/your-first-menu/01-initial',
@@ -300,7 +279,7 @@ export const examples = {
       'guides/your-first-menu/items-02': ex(
         () =>
           import(
-            '@/registry/examples/components/dropdown-menu/guides/your-first-menu/items-02'
+            '@/registry/examples/styled/dropdown-menu/guides/your-first-menu/items-02'
           ),
         {
           name: 'guides/dropdown-menu/your-first-menu/items-02',
@@ -310,35 +289,33 @@ export const examples = {
     },
 
     select: {
-      basic: ex(() => import('@/registry/examples/components/select/basic')),
-      groups: ex(() => import('@/registry/examples/components/select/groups')),
-      search: ex(() => import('@/registry/examples/components/select/search')),
-      form: ex(() => import('@/registry/examples/components/select/form')),
+      basic: ex(() => import('@/registry/examples/styled/select/basic')),
+      groups: ex(() => import('@/registry/examples/styled/select/groups')),
+      search: ex(() => import('@/registry/examples/styled/select/search')),
+      form: ex(() => import('@/registry/examples/styled/select/form')),
       'object-values': ex(
-        () => import('@/registry/examples/components/select/object-values'),
+        () => import('@/registry/examples/styled/select/object-values'),
       ),
     },
 
     'video-player': {
       linear: ex(
-        () => import('@/registry/examples/components/video-player/linear'),
+        () => import('@/registry/examples/styled/video-player/linear'),
         { extraFiles: ['icons.tsx'] },
       ),
       modern: ex(
-        () => import('@/registry/examples/components/video-player/modern'),
+        () => import('@/registry/examples/styled/video-player/modern'),
         { extraFiles: ['icons.tsx'] },
       ),
       youtube: ex(
-        () => import('@/registry/examples/components/video-player/youtube'),
+        () => import('@/registry/examples/styled/video-player/youtube'),
         { extraFiles: ['icons.tsx'] },
       ),
     },
     'command-menu': {
-      basic: ex(
-        () => import('@/registry/examples/components/command-menu/basic'),
-      ),
+      basic: ex(() => import('@/registry/examples/styled/command-menu/basic')),
       linear: ex(
-        () => import('@/registry/examples/components/command-menu/linear'),
+        () => import('@/registry/examples/styled/command-menu/linear'),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
     },
