@@ -42,10 +42,10 @@
       "import": "./dist/context-menu/index.js",
       "require": "./dist/context-menu/index.cjs"
     },
-    "./adapters": {
-      "types": "./dist/adapters/index.d.ts",
-      "import": "./dist/adapters/index.js",
-      "require": "./dist/adapters/index.cjs"
+    "./loaders": {
+      "types": "./dist/loaders/index.d.ts",
+      "import": "./dist/loaders/index.js",
+      "require": "./dist/loaders/index.cjs"
     },
     "./internal/listbox": {
       "types": "./dist/internal/listbox/index.d.ts",

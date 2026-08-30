@@ -1,7 +1,7 @@
 'use client'
 
-import { createQueryLoader } from '@bazza-ui/react/adapters'
 import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
+import { createQueryLoader } from '@bazza-ui/react/loaders'
 import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'

@@ -1,6 +1,5 @@
 'use client'
 
-import { createQueryLoader } from '@bazza-ui/react/adapters'
 import type {
   ItemDef,
   ItemRenderParams,
@@ -8,6 +7,7 @@ import type {
   SubmenuDef,
   SubmenuRenderParams,
 } from '@bazza-ui/react/dropdown-menu'
+import { createQueryLoader } from '@bazza-ui/react/loaders'
 import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -161,7 +161,7 @@ async function fetchMeats(search: string): Promise<NodeDef[]> {
 }
 
 // =============================================================================
-// Query-Dependent Loaders (using TanStack Query)
+// Query Loaders (using TanStack Query)
 // =============================================================================
 
 const fruitsLoader = createQueryLoader({

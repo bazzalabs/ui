@@ -321,7 +321,7 @@ export type {
   LoaderComponentProps,
   NodeDef,
   QueryAsyncNodesConfig,
-  QueryDependentLoaderConfig,
+  QueryLoaderConfig,
   RadioGroupBehavior,
   RadioGroupDef,
   RadioGroupLabelRenderParams,

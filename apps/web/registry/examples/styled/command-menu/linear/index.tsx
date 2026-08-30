@@ -1,7 +1,7 @@
 'use client'
 
-import { createVanillaQueryLoader } from '@bazza-ui/react/adapters'
 import type { NodeDef } from '@bazza-ui/react/command-menu'
+import { createVanillaQueryLoader } from '@bazza-ui/react/loaders'
 import {
   BellIcon,
   ClipboardIcon,

@@ -1,10 +1,10 @@
 'use client'
 
+import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
 import {
   createVanillaQueryLoader,
   createVanillaStaticLoader,
-} from '@bazza-ui/react/adapters'
-import type { NodeDef } from '@bazza-ui/react/dropdown-menu'
+} from '@bazza-ui/react/loaders'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu } from '@/registry/ui/dropdown-menu'

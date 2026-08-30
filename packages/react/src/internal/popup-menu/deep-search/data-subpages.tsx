@@ -21,7 +21,7 @@ import type {
   GroupRenderContext,
   ItemDef,
   NodeDef,
-  QueryDependentLoaderConfig,
+  QueryLoaderConfig,
   RadioGroupDef,
   RadioItemDef,
   RowRenderContext,
@@ -36,7 +36,7 @@ interface QueryExecutionState {
   isBelowMinLength: boolean
 }
 
-function resolveInitialQueryBehavior(config: QueryDependentLoaderConfig):
+function resolveInitialQueryBehavior(config: QueryLoaderConfig):
   | {
       value: string
       loadWhen: 'needed' | 'parent-open'
@@ -60,7 +60,7 @@ function resolveInitialQueryBehavior(config: QueryDependentLoaderConfig):
 }
 
 function resolveQueryExecutionState(
-  config: QueryDependentLoaderConfig,
+  config: QueryLoaderConfig,
   query: string,
 ): QueryExecutionState {
   const minLength = config.minQueryLength ?? 1

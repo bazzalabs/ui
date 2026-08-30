@@ -5,8 +5,9 @@
  * traverse all public types under one `@bazza-ui/react` key, replacing the
  * root barrel removed when the package moved to subpath entrypoints.
  */
-export * from './adapters/index.js'
+
 export * from './combobox/index.js'
 export * from './context-menu/index.js'
 export * from './dropdown-menu/index.js'
+export * from './loaders/index.js'
 export * from './select/index.js'

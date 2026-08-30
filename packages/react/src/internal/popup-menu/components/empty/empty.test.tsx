@@ -2,11 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import {
   createVanillaQueryLoader,
   createVanillaStaticLoader,
-} from '../../../../adapters/vanilla.js'
-import { DropdownMenu } from '../../../../dropdown-menu/index.js'
+} from '../../../../loaders/vanilla.js'
 import type {
   AsyncNodesConfig,
   ItemDef,

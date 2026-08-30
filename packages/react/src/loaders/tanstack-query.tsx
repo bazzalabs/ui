@@ -9,7 +9,7 @@ import type {
   InitialQueryBehavior,
   LoaderComponentProps,
   NodeDef,
-  QueryDependentLoaderConfig,
+  QueryLoaderConfig,
   StaticLoaderConfig,
 } from '../internal/popup-menu/deep-search/types.js'
 
@@ -210,7 +210,7 @@ export function createStaticLoader(
 }
 
 /**
- * Props for creating a query-dependent loader component.
+ * Props for creating a query loader component.
  */
 export interface CreateQueryLoaderProps {
   /**
@@ -254,7 +254,7 @@ export interface CreateQueryLoaderProps {
 }
 
 /**
- * Creates a query-dependent loader configuration for use with async menus.
+ * Creates a query loader configuration for use with async menus.
  * The loader will re-fetch when the search query changes.
  *
  * @example
@@ -280,7 +280,7 @@ export interface CreateQueryLoaderProps {
  */
 export function createQueryLoader(
   props: CreateQueryLoaderProps,
-): QueryDependentLoaderConfig {
+): QueryLoaderConfig {
   const {
     useQuery,
     minQueryLength = 1,
