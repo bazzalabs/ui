@@ -13,6 +13,7 @@ import type {
  */
 export type SelectOpenChangeReason =
   | typeof REASONS.triggerPress
+  | typeof REASONS.triggerHover
   | typeof REASONS.escapeKey
   | typeof REASONS.outsidePress
   | typeof REASONS.focusOut

@@ -4,12 +4,18 @@ import type * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../index.js'
 
-function Menu(props: { onTriggerClick?: (e: React.MouseEvent) => void }) {
+function Menu(props: {
+  onTriggerClick?: (e: React.MouseEvent) => void
+  openOnHover?: boolean
+  delay?: number
+}) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         data-testid="trigger"
         onClick={props.onTriggerClick}
+        openOnHover={props.openOnHover}
+        delay={props.delay}
       >
         Open
       </DropdownMenu.Trigger>
@@ -29,6 +35,31 @@ function Menu(props: { onTriggerClick?: (e: React.MouseEvent) => void }) {
 }
 
 describe('DropdownMenu.Trigger', () => {
+  describe('openOnHover', () => {
+    it('opens when hovering the trigger', async () => {
+      const user = userEvent.setup()
+
+      render(<Menu openOnHover delay={0} />)
+
+      await user.hover(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+    })
+
+    it('does not open when openOnHover is not set', async () => {
+      const user = userEvent.setup()
+
+      render(<Menu />)
+
+      await user.hover(screen.getByTestId('trigger'))
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
+      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+    })
+  })
+
   it('opens with a consumer onClick present', async () => {
     const user = userEvent.setup()
     const onTriggerClick = vi.fn()

@@ -6,10 +6,17 @@ import { Select } from '../index.js'
 
 function SelectFixture(props: {
   onTriggerClick?: (e: React.MouseEvent) => void
+  openOnHover?: boolean
+  delay?: number
 }) {
   return (
     <Select.Root>
-      <Select.Trigger data-testid="trigger" onClick={props.onTriggerClick}>
+      <Select.Trigger
+        data-testid="trigger"
+        onClick={props.onTriggerClick}
+        openOnHover={props.openOnHover}
+        delay={props.delay}
+      >
         <Select.Value data-testid="value" placeholder="Select a fruit..." />
       </Select.Trigger>
       <Select.Portal>
@@ -33,6 +40,31 @@ function SelectFixture(props: {
 }
 
 describe('Select.Trigger', () => {
+  describe('openOnHover', () => {
+    it('opens when hovering the trigger', async () => {
+      const user = userEvent.setup()
+
+      render(<SelectFixture openOnHover delay={0} />)
+
+      await user.hover(screen.getByTestId('trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+    })
+
+    it('does not open when openOnHover is not set', async () => {
+      const user = userEvent.setup()
+
+      render(<SelectFixture />)
+
+      await user.hover(screen.getByTestId('trigger'))
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
+      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+    })
+  })
+
   it('opens with a consumer onClick present', async () => {
     const user = userEvent.setup()
     const onTriggerClick = vi.fn()

@@ -34,6 +34,23 @@ export interface SelectTriggerProps
    * Whether the trigger is disabled.
    */
   disabled?: boolean
+  /**
+   * Whether the select opens when hovering the trigger.
+   * @default false
+   */
+  openOnHover?: boolean
+  /**
+   * Delay before opening on hover (in milliseconds).
+   * Only applies when `openOnHover` is true.
+   * @default 100
+   */
+  delay?: number
+  /**
+   * Delay before closing when pointer leaves (in milliseconds).
+   * Only applies when `openOnHover` is true.
+   * @default 0
+   */
+  closeDelay?: number
 }
 
 const stateAttributesMapping = {
@@ -118,12 +135,21 @@ const SelectTriggerInner = React.forwardRef<
 /**
  * A button that opens the select dropdown.
  * Renders a `<button>` element with combobox ARIA semantics.
+ *
+ * Supports `openOnHover` to open the select when hovering the trigger,
+ * with configurable `delay` and `closeDelay`.
  */
 export const SelectTrigger = React.forwardRef<
   HTMLButtonElement,
   SelectTrigger.Props
 >(function SelectTrigger(props, forwardedRef) {
-  const { disabled: disabledProp, ...rest } = props
+  const {
+    disabled: disabledProp,
+    openOnHover,
+    delay = 100,
+    closeDelay,
+    ...rest
+  } = props
   const selectContext = useSelectContext()
   const popupMenuContext = usePopupMenuContext()
   const { store, closeAll, closeOnOutsidePress } = popupMenuContext
@@ -182,6 +208,9 @@ export const SelectTrigger = React.forwardRef<
     <Popover.Trigger
       ref={setRef}
       disabled={disabled}
+      openOnHover={openOnHover}
+      delay={delay}
+      closeDelay={closeDelay}
       render={(triggerProps, triggerState) => (
         <SelectTriggerInner
           {...rest}
