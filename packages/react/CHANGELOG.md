@@ -1,5 +1,15 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.11
+
+### Minor Changes
+
+- [#480](https://github.com/bazzalabs/ui/pull/480) [`a34d5b3`](https://github.com/bazzalabs/ui/commit/a34d5b3a5d2ae61aad3c5f9c4b89abea978a981d) Thanks [@kianbazza](https://github.com/kianbazza)! - `Select.Trigger` now accepts `openOnHover`, `delay`, and `closeDelay` for parity with `DropdownMenu.Trigger`, forwarding them to the underlying Base UI `Popover.Trigger`.
+
+### Patch Changes
+
+- [#481](https://github.com/bazzalabs/ui/pull/481) [`eb3fd0f`](https://github.com/bazzalabs/ui/commit/eb3fd0feb68881e9f58c608ed73efd2a0a04bd0c) Thanks [@kianbazza](https://github.com/kianbazza)! - `DropdownMenu.Trigger`'s hover `delay` now defaults to 100ms at runtime, as documented. Previously the prop was forwarded as `undefined`, so Base UI's 300ms default applied.
+
 ## 0.1.0-canary.10
 
 ### Minor Changes
