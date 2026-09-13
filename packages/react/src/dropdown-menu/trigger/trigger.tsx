@@ -118,7 +118,7 @@ export const DropdownMenuTrigger = React.forwardRef<
   HTMLButtonElement,
   DropdownMenuTrigger.Props
 >(function DropdownMenuTrigger(props, forwardedRef) {
-  const { disabled, openOnHover, delay, closeDelay, ...rest } = props
+  const { disabled, openOnHover, delay = 100, closeDelay, ...rest } = props
 
   const {
     store,
