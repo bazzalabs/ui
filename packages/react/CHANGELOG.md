@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.13
+
+### Patch Changes
+
+- [#487](https://github.com/bazzalabs/ui/pull/487) [`325af24`](https://github.com/bazzalabs/ui/commit/325af249a6732c8b260c7854586f748477acfb98) Thanks [@kianbazza](https://github.com/kianbazza)! - Bump `@base-ui/react` to `1.8.0` and `@base-ui/utils` to `0.4.0`.
+
 ## 0.1.0-canary.12
 
 ### Patch Changes
