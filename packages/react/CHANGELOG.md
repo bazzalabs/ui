@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.12
+
+### Patch Changes
+
+- [#485](https://github.com/bazzalabs/ui/pull/485) [`bf6f6fe`](https://github.com/bazzalabs/ui/commit/bf6f6fee099fa7815bc01a326f4d6c04c35b3089) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix `SubmenuTrigger` still opening its submenu on a raw click when `disabled`. The `disabled` state is now forwarded to the underlying `Popover.Trigger` so Base UI's click guard applies.
+
 ## 0.1.0-canary.11
 
 ### Minor Changes
