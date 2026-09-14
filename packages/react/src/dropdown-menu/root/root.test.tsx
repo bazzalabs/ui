@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -360,6 +360,54 @@ function DropdownMenuWithSubmenu() {
                 <DropdownMenu.Item data-testid="item-2">
                   Item 2
                 </DropdownMenu.Item>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function DropdownMenuWithDisabledSubmenuTrigger({
+  disabled,
+}: {
+  disabled?: boolean
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="surface">
+              <DropdownMenu.List>
+                <DropdownMenu.Item data-testid="item-1">
+                  Item 1
+                </DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger
+                    data-testid="submenu-trigger"
+                    disabled={disabled}
+                  >
+                    More Options
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup>
+                        <DropdownMenu.Surface data-testid="submenu-surface">
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item data-testid="submenu-item-1">
+                              Sub Item 1
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
               </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
@@ -2198,6 +2246,39 @@ describe('<DropdownMenu.Root />', () => {
           'role',
           'menuitem',
         )
+      })
+    })
+
+    it('does not open a disabled submenu trigger on raw click', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithDisabledSubmenuTrigger disabled />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      // fireEvent.click is a bare click with no preceding pointer events,
+      // which bypasses the trigger's own pointer guards.
+      fireEvent.click(screen.getByTestId('submenu-trigger'))
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
+      expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+    })
+
+    it('opens an enabled submenu trigger on raw click', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithDisabledSubmenuTrigger />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByTestId('submenu-trigger'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
       })
     })
 
