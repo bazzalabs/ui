@@ -124,6 +124,8 @@ Use the `hotkey` prop to register a global toggle. It parses strings such as `mo
 
 Each item accepts an `onSelect` callback that fires when the row is selected via pointer, `Enter`, or a matching single-key accelerator.
 
+`CommandMenu.LinkItem` renders the row as an `<a>` and navigates instead; see [Navigate to another page](#navigate-to-another-page).
+
 Use `shortcut` for accelerators and `CommandMenu.Shortcut` for visible shortcut hints. `Enter` closes the command menu after selection unless the row sets `closeOnClick={false}`. `CommandMenu.CheckboxItem` toggles its checked state and keeps the menu open by default.
 
 ```tsx
@@ -136,6 +138,23 @@ Use `shortcut` for accelerators and `CommandMenu.Shortcut` for visible shortcut 
   Watch issue
 </CommandMenu.CheckboxItem>
 ```
+
+### Navigate to another page
+
+Use `CommandMenu.LinkItem` to render a row as an `<a>` element. It navigates on click, `Enter`, or a matching `shortcut`, and modifier-clicks open the link in a new tab as usual. Unlike `Item`, `closeOnClick` defaults to `false`.
+
+<Example name="command-menu-link-item">
+<Example.PreviewCode>
+
+```tsx
+<CommandMenu.LinkItem href="/docs/getting-started">
+  Getting started
+</CommandMenu.LinkItem>
+```
+
+</Example.PreviewCode>
+
+</Example>
 
 ### Subpages
 

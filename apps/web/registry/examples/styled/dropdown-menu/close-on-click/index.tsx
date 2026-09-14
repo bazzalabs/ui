@@ -32,6 +32,10 @@ export default function DropdownMenuCloseOnClick() {
                 >
                   Paste (closes)
                 </DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.LinkItem href="/docs/components" closeOnClick>
+                  Components (closes)
+                </DropdownMenu.LinkItem>
               </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
