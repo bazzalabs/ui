@@ -1328,7 +1328,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       return null
     }, [submenuSafeTriangleDebugState])
 
-  const trigger = <Popover.Trigger nativeButton={false} render={element} />
+  const trigger = (
+    <Popover.Trigger
+      nativeButton={false}
+      disabled={disabled}
+      render={element}
+    />
+  )
 
   // Don't render if not visible
   if (!item.isVisible) return null
