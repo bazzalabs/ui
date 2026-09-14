@@ -15,6 +15,7 @@ Note: this team has a `Canary` state (merged to canary branch, published as cana
 - Build: `bun run build` (turbo; scope: `bun run build --filter <pkg>`)
 - Test: `bun run test` (Vitest via turbo; scope: `bun run test --filter <pkg>`)
 - Registry build: `bun run registry:build`
+- Docs type-gen: `bun run docs:type-gen` — regenerates the committed `apps/web/.types/types-meta.json` that the docs' auto type tables (`TypeTableAuto` / `StateTableAuto` / `DataAttrsTable`) read. **Required in the same commit whenever a PR adds, removes, or changes an exported type, prop, state, or data-attributes enum in `packages/react` or `packages/filters`**; commit the regenerated file.
 - Changesets: `bun run changeset` to add; publish scripts in root `package.json` (`ci:publish` lists packages explicitly — new publishable packages must be added there)
 - No DB/migrations in this repo (demo DB for examples lives in `apps/web` with `drizzle.config.ts` + seed script when present)
 
@@ -44,3 +45,4 @@ None.
 - Worktrees via worktrunk (`wt`); `gh stack` (GitHub CLI `gh-stack` extension) owns branches/commits/PRs. Trunks: `main` and `canary`; default branch for new work: **canary**.
 - Worktree env files: `wt step copy-ignored` + root `.worktreeinclude` whitelist copy `.env` / `.env.local` (root and nested) into new worktrees via the `[pre-start]` hook in `.config/wt.toml`.
 - New publishable packages live in `packages/<name>` (npm scope `@bazza-ui/<name>`); registry UI components live in `apps/web/registry/ui/<name>` (`@bazza-ui/registry-<name>`, private).
+- Committed generated artifacts: `apps/web/public/r/base/**` (`bun run registry:build`; regenerate when `apps/web/registry/ui/**` changes) and `apps/web/.types/types-meta.json` (`bun run docs:type-gen`; regenerate when public types change). Neither is checked by lint, typecheck, or tests — specs must list the regen step explicitly.
