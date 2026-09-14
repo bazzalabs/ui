@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.14
+
+### Minor Changes
+
+- [#489](https://github.com/bazzalabs/ui/pull/489) [`da59657`](https://github.com/bazzalabs/ui/commit/da5965701357c9e07cf8f20adf6fb497db6128e8) Thanks [@kianbazza](https://github.com/kianbazza)! - Add the `LinkItem` part to the dropdown menu, context menu, and command menu. It renders an `<a>` element that navigates on click, Enter, or shortcut, keeps native modifier-click behaviour, and defaults `closeOnClick` to `false`. The data-first API gains a matching `LinkItemDef` (`kind: 'link-item'`) with `LinkItemRenderParams`.
+
 ## 0.1.0-canary.13
 
 ### Patch Changes
