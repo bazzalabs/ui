@@ -118,6 +118,15 @@ A selectable item in the menu. Renders a `<div>` element with `role="option"`.
 <StateTableAuto type="DropdownMenuItemState" pkg="@bazza-ui/react" />
 <DataAttrsTable type="DropdownMenuItemDataAttributes" pkg="@bazza-ui/react" />
 
+## LinkItem
+
+A menu item that navigates to a URL. Renders an `<a>` element with `role="option"`. Unlike `Item`, `closeOnClick` defaults to `false`; modifier-clicks never close the menu.
+
+<CssSelector type="DropdownMenuLinkItemDataAttributes" />
+<TypeTableAuto type="DropdownMenuLinkItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuLinkItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuLinkItemDataAttributes" pkg="@bazza-ui/react" />
+
 ## Icon
 
 An icon displayed within a menu item. Renders a `<span>` element.
@@ -347,6 +356,12 @@ Defines a selectable menu item.
 
 <TypeTableAuto type="ItemDef" pkg="@bazza-ui/react" />
 
+### LinkItemDef
+
+Defines a menu item that navigates to a URL.
+
+<TypeTableAuto type="LinkItemDef" pkg="@bazza-ui/react" />
+
 ### SubmenuDef
 
 Defines a submenu trigger with nested content.
@@ -406,6 +421,12 @@ Parameters passed to `ItemDef.render()`. The `node` member is the menu node: its
 ```
 
 <TypeTableAuto type="ItemRenderParams" pkg="@bazza-ui/react" />
+
+### LinkItemRenderParams
+
+Parameters passed to `LinkItemDef.render()`.
+
+<TypeTableAuto type="LinkItemRenderParams" pkg="@bazza-ui/react" />
 
 ### SubmenuRenderParams
 

@@ -11,7 +11,7 @@ Where it lives (`packages/react/src/internal/popup-menu/`):
 ## Language
 
 **Node Def**:
-A user-authored, declarative description of one menu entry (item, checkbox item, radio item, submenu, subpage, tree item, group, separator). Plain data; never mutated by the library.
+A user-authored, declarative description of one menu entry (item, link item, checkbox item, radio item, submenu, subpage, tree item, group, separator). Plain data; never mutated by the library.
 _Avoid_: node config, definition object
 
 **Menu Node**:

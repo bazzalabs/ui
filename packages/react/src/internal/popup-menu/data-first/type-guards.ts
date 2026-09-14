@@ -7,6 +7,7 @@ import type {
   CheckboxItemDef,
   GroupDef,
   ItemDef,
+  LinkItemDef,
   NodeDef,
   RadioGroupDef,
   RadioItemDef,
@@ -22,6 +23,10 @@ import type {
 
 export function isItemDef(node: NodeDef): node is ItemDef {
   return node.kind === 'item'
+}
+
+export function isLinkItemDef(node: NodeDef): node is LinkItemDef {
+  return node.kind === 'link-item'
 }
 
 export function isRadioItemDef(node: NodeDef): node is RadioItemDef {
@@ -80,6 +85,7 @@ export function isRowMenuNode(
   const kind = node.def.kind
   return (
     kind === 'item' ||
+    kind === 'link-item' ||
     kind === 'radio-item' ||
     kind === 'checkbox-item' ||
     kind === 'submenu' ||

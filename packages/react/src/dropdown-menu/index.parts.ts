@@ -31,6 +31,7 @@ export {
   PopupMenuInput as Input,
   // Items
   PopupMenuItem as Item,
+  PopupMenuLinkItem as LinkItem,
   PopupMenuList as List,
   PopupMenuLoading as Loading,
   PopupMenuPopup as Popup,

@@ -844,6 +844,18 @@ const Item = forwardRef<
 ))
 Item.displayName = 'DropdownMenu.Item'
 
+const LinkItem = forwardRef<
+  HTMLAnchorElement,
+  React.ComponentProps<typeof Primitive.LinkItem>
+>(({ className, ...props }, ref) => (
+  <Primitive.LinkItem
+    ref={ref}
+    className={cn(menuItemVariants({ variant: 'item' }), className)}
+    {...props}
+  />
+))
+LinkItem.displayName = 'DropdownMenu.LinkItem'
+
 const Tree = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Tree>
@@ -1305,6 +1317,7 @@ export const DropdownMenu = {
   useDataList,
   Input,
   Item,
+  LinkItem,
   Tree,
   TreeItem,
   TreeConnector,

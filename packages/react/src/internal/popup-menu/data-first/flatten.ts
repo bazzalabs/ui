@@ -133,7 +133,8 @@ export function flattenNodes(
     if (
       isMenuNodeOfKind(node, 'item') ||
       isMenuNodeOfKind(node, 'radio-item') ||
-      isMenuNodeOfKind(node, 'checkbox-item')
+      isMenuNodeOfKind(node, 'checkbox-item') ||
+      isMenuNodeOfKind(node, 'link-item')
     ) {
       result.push({ node, breadcrumbs, group, radioGroup, inheritedKeywords })
       continue

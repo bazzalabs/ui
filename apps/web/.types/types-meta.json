@@ -4886,6 +4886,141 @@
           }
         ]
       },
+      "ContextMenuLinkItemProps": {
+        "name": "ContextMenuLinkItemProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items do not navigate and are skipped during keyboard navigation."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click, Enter key, or shortcut)."
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this item regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu. Defaults to false because\nfull-page navigation unmounts the menu anyway.",
+            "default": "false"
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item."
+          },
+          {
+            "name": "forceOrder",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Forces this row's relative order during score-based sorting.",
+            "default": "0"
+          },
+          {
+            "name": "forceScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Overrides this row's computed fuzzy-match score."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuLinkItemState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuLinkItemState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuLinkItemState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuLinkItemState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuLinkItemState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuLinkItemState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "ContextMenuLinkItemState": {
+        "name": "ContextMenuLinkItemState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "highlighted",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "first",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "last",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "firstInGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "lastInGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          }
+        ]
+      },
       "ContextMenuListChildrenState": {
         "name": "ContextMenuListChildrenState",
         "kind": "interface",
@@ -6740,6 +6875,49 @@
             "name": "disabled",
             "value": "data-disabled",
             "description": "Present when the item is disabled."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuLinkItemDataAttributes": {
+        "name": "ContextMenuLinkItemDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-link-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-link-item'}"
+          },
+          {
+            "name": "highlighted",
+            "value": "data-highlighted",
+            "description": "Present when the item is highlighted (via keyboard or pointer)."
+          },
+          {
+            "name": "disabled",
+            "value": "data-disabled",
+            "description": "Present when the item is disabled."
+          },
+          {
+            "name": "first",
+            "value": "data-first",
+            "description": "Present when this row is the first visible list-level row (not inside a group)."
+          },
+          {
+            "name": "last",
+            "value": "data-last",
+            "description": "Present when this row is the last visible list-level row (not inside a group)."
+          },
+          {
+            "name": "firstInGroup",
+            "value": "data-first-in-group",
+            "description": "Present when this row is the first visible row within its group."
+          },
+          {
+            "name": "lastInGroup",
+            "value": "data-last-in-group",
+            "description": "Present when this row is the last visible row within its group."
           }
         ],
         "enumCategory": "dataAttributes"
@@ -9046,11 +9224,189 @@
           }
         ]
       },
+      "LinkItemDef": {
+        "name": "LinkItemDef",
+        "kind": "interface",
+        "doc": "Link item node definition. Represents a menu row that navigates to `href` when activated.",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"link-item\"",
+            "required": true
+          },
+          {
+            "name": "render",
+            "type": "(params: LinkItemRenderParams) => ReactNode",
+            "formattedType": "(\n  params: LinkItemRenderParams,\n) => ReactNode",
+            "required": true
+          },
+          {
+            "name": "id",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique identifier for this node.\nIf provided, it contributes the Definition Key and encoded surface path;\nResolved ID generation otherwise follows the root policy or its\n`getResolvedId` seam."
+          },
+          {
+            "name": "hidden",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this node is hidden"
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items do not navigate and are skipped during keyboard navigation."
+          },
+          {
+            "name": "forceOrder",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Forces this row's relative order during score-based sorting.",
+            "default": "0"
+          },
+          {
+            "name": "forceScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Overrides this row's computed fuzzy-match score."
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click, Enter key, or shortcut)."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu. Defaults to false because\nfull-page navigation unmounts the menu anyway.",
+            "default": "false"
+          }
+        ]
+      },
+      "LinkItemRenderParams": {
+        "name": "LinkItemRenderParams",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true
+          },
+          {
+            "name": "props",
+            "type": "LinkItemRenderProps",
+            "formattedType": "{\n  id: string\n  value: string\n  href: string\n} & Required<Pick<PopupMenuLinkItemProps, 'disabled'>> &\n  Pick<\n    PopupMenuLinkItemProps,\n    | 'forceOrder'\n    | 'forceScore'\n    | 'shortcut'\n    | 'onSelect'\n    | 'closeOnClick'\n  >",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "RowRenderContext & { value: string; disabled: boolean; }",
+            "formattedType": "RowRenderContext & {\n  value: string\n  disabled: boolean\n}",
+            "required": true
+          }
+        ]
+      },
+      "LinkItemRenderProps": {
+        "name": "LinkItemRenderProps",
+        "kind": "typealias",
+        "definition": "{\n    id: string;\n    value: string;\n    href: string;\n} & Required<Pick<PopupMenuLinkItemProps, 'disabled'>> & Pick<PopupMenuLinkItemProps, 'closeOnClick' | 'onSelect' | 'shortcut' | 'forceOrder' | 'forceScore'>",
+        "props": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "href",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items do not navigate and are skipped during keyboard navigation."
+          },
+          {
+            "name": "forceOrder",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Forces this row's relative order during score-based sorting.",
+            "default": "0"
+          },
+          {
+            "name": "forceScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Overrides this row's computed fuzzy-match score."
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click, Enter key, or shortcut)."
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu. Defaults to false because\nfull-page navigation unmounts the menu anyway.",
+            "default": "false"
+          }
+        ]
+      },
       "NodeDef": {
         "name": "NodeDef",
         "kind": "typealias",
         "doc": "Union of all node definition types.",
-        "definition": "ItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef | SeparatorDef | GroupDef | RadioGroupDef"
+        "definition": "ItemDef | LinkItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef | SeparatorDef | GroupDef | RadioGroupDef"
       },
       "PopupMenuIdScope": {
         "name": "PopupMenuIdScope",
@@ -10084,15 +10440,15 @@
           },
           {
             "name": "kind",
-            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
-            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
+            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
             "required": true,
             "description": "Mirror of `def.kind`, stable for the node's lifetime."
           },
           {
             "name": "def",
             "type": "NodeDef",
-            "formattedType": "| ItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef",
+            "formattedType": "| ItemDef\n  | LinkItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef",
             "required": true,
             "description": "The originating def. Replaced in place when content is re-supplied.",
             "referencePath": "@bazza-ui/react.NodeDef"
@@ -11134,6 +11490,141 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether the item is disabled."
+          },
+          {
+            "name": "first",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "last",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "firstInGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "lastInGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          }
+        ]
+      },
+      "DropdownMenuLinkItemProps": {
+        "name": "DropdownMenuLinkItemProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items do not navigate and are skipped during keyboard navigation."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click, Enter key, or shortcut)."
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this item regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu. Defaults to false because\nfull-page navigation unmounts the menu anyway.",
+            "default": "false"
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item."
+          },
+          {
+            "name": "forceOrder",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Forces this row's relative order during score-based sorting.",
+            "default": "0"
+          },
+          {
+            "name": "forceScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Overrides this row's computed fuzzy-match score."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuLinkItemState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuLinkItemState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuLinkItemState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuLinkItemState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuLinkItemState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuLinkItemState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "DropdownMenuLinkItemState": {
+        "name": "DropdownMenuLinkItemState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "highlighted",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
           },
           {
             "name": "first",
@@ -13075,6 +13566,49 @@
             "name": "disabled",
             "value": "data-disabled",
             "description": "Present when the item is disabled."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "DropdownMenuLinkItemDataAttributes": {
+        "name": "DropdownMenuLinkItemDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-link-item",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-link-item'}"
+          },
+          {
+            "name": "highlighted",
+            "value": "data-highlighted",
+            "description": "Present when the item is highlighted (via keyboard or pointer)."
+          },
+          {
+            "name": "disabled",
+            "value": "data-disabled",
+            "description": "Present when the item is disabled."
+          },
+          {
+            "name": "first",
+            "value": "data-first",
+            "description": "Present when this row is the first visible list-level row (not inside a group)."
+          },
+          {
+            "name": "last",
+            "value": "data-last",
+            "description": "Present when this row is the last visible list-level row (not inside a group)."
+          },
+          {
+            "name": "firstInGroup",
+            "value": "data-first-in-group",
+            "description": "Present when this row is the first visible row within its group."
+          },
+          {
+            "name": "lastInGroup",
+            "value": "data-last-in-group",
+            "description": "Present when this row is the last visible row within its group."
           }
         ],
         "enumCategory": "dataAttributes"
@@ -15692,6 +16226,30 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether the trigger is disabled."
+          },
+          {
+            "name": "openOnHover",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether the select opens when hovering the trigger.",
+            "default": "false"
+          },
+          {
+            "name": "delay",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Delay before opening on hover (in milliseconds).\nOnly applies when `openOnHover` is true.",
+            "default": "100"
+          },
+          {
+            "name": "closeDelay",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Delay before closing when pointer leaves (in milliseconds).\nOnly applies when `openOnHover` is true.",
+            "default": "0"
           },
           {
             "name": "style",

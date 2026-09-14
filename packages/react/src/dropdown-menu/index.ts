@@ -70,6 +70,9 @@ export type {
   PopupMenuItem as DropdownMenuItem,
   PopupMenuItemProps as DropdownMenuItemProps,
   PopupMenuItemState as DropdownMenuItemState,
+  PopupMenuLinkItem as DropdownMenuLinkItem,
+  PopupMenuLinkItemProps as DropdownMenuLinkItemProps,
+  PopupMenuLinkItemState as DropdownMenuLinkItemState,
   PopupMenuList as DropdownMenuList,
   PopupMenuListChildrenState as DropdownMenuListChildrenState,
   PopupMenuListProps as DropdownMenuListProps,
@@ -145,6 +148,7 @@ export { DropdownMenuGroupLabelDataAttributes } from './group-label/group-label.
 export { DropdownMenuIconDataAttributes } from './icon/icon.data-attrs.js'
 export { DropdownMenuInputDataAttributes } from './input/input.data-attrs.js'
 export { DropdownMenuItemDataAttributes } from './item/item.data-attrs.js'
+export { DropdownMenuLinkItemDataAttributes } from './link-item/link-item.data-attrs.js'
 export { DropdownMenuListDataAttributes } from './list/list.data-attrs.js'
 export { DropdownMenuLoadingDataAttributes } from './loading/loading.data-attrs.js'
 export { DropdownMenuPopupDataAttributes } from './popup/popup.data-attrs.js'
@@ -270,6 +274,9 @@ export type {
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
+  LinkItemDef,
+  LinkItemRenderParams,
+  LinkItemRenderProps,
   LoaderComponentProps,
   NodeDef,
   PopupMenuIdScope,
