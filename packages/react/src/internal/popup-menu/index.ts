@@ -162,6 +162,11 @@ export type {
 } from './components/item/item.js'
 export { PopupMenuItem } from './components/item/item.js'
 export type {
+  PopupMenuLinkItemProps,
+  PopupMenuLinkItemState,
+} from './components/link-item/link-item.js'
+export { PopupMenuLinkItem } from './components/link-item/link-item.js'
+export type {
   PopupMenuRadioGroupProps,
   PopupMenuRadioGroupState,
 } from './components/radio-group/radio-group.js'
@@ -318,6 +323,9 @@ export type {
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
+  LinkItemDef,
+  LinkItemRenderParams,
+  LinkItemRenderProps,
   LoaderComponentProps,
   NodeDef,
   QueryAsyncNodesConfig,
@@ -356,7 +364,7 @@ export {
 } from './data-first/types.js'
 
 // Utilities
-export { isTreeItemDef } from './data-first/utils.js'
+export { isLinkItemDef, isTreeItemDef } from './data-first/utils.js'
 export type { PopupMenuHighlightChangeHandler } from './events.js'
 export { defaultGetResolvedId, isPopupMenuNode } from './menu-tree/resolve.js'
 export type { MenuTreeResolver } from './menu-tree/resolver.js'

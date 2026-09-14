@@ -39,6 +39,7 @@ import type {
   GroupDef,
   GroupRenderContext,
   ItemDef,
+  LinkItemDef,
   NodeDef,
   QueryLoaderConfig,
   RadioGroupDef,
@@ -812,6 +813,32 @@ export const DataListInner = React.forwardRef<
         )
       }
 
+      if (node.kind === 'link-item') {
+        return (
+          <React.Fragment key={id}>
+            {node.render({
+              node: resolved,
+              props: {
+                id,
+                value: node.value,
+                href: node.href,
+                disabled: node.disabled ?? false,
+                closeOnClick: node.closeOnClick,
+                onSelect: node.onSelect,
+                shortcut: node.shortcut,
+                forceOrder: node.forceOrder,
+                forceScore: node.forceScore,
+              },
+              context: {
+                ...context,
+                value: node.value,
+                disabled: node.disabled ?? false,
+              },
+            })}
+          </React.Fragment>
+        )
+      }
+
       if (node.kind === 'tree-item') {
         return (
           <React.Fragment key={id}>
@@ -921,10 +948,15 @@ export const DataListInner = React.forwardRef<
               (
                 n,
               ): n is PopupMenuNode<
-                ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+                | ItemDef
+                | LinkItemDef
+                | CheckboxItemDef
+                | SubmenuDef
+                | SubpageDef
               > =>
                 isRowMenuNode(n) &&
                 (n.kind === 'item' ||
+                  n.kind === 'link-item' ||
                   n.kind === 'checkbox-item' ||
                   n.kind === 'submenu' ||
                   n.kind === 'subpage') &&
@@ -997,6 +1029,7 @@ export const DataListInner = React.forwardRef<
           // Handle items, checkbox items, submenus, and subpages
           if (
             childNode.kind !== 'item' &&
+            childNode.kind !== 'link-item' &&
             childNode.kind !== 'checkbox-item' &&
             childNode.kind !== 'submenu' &&
             childNode.kind !== 'subpage'
@@ -1019,7 +1052,7 @@ export const DataListInner = React.forwardRef<
           return renderRowNode({
             kind: 'row',
             node: childMenuNode as PopupMenuNode<
-              ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+              ItemDef | LinkItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
             >,
             context: childContext,
           })

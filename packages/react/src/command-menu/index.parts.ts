@@ -20,6 +20,7 @@ export {
   PopupMenuHeader as Header,
   PopupMenuIcon as Icon,
   PopupMenuItem as Item,
+  PopupMenuLinkItem as LinkItem,
   PopupMenuList as List,
   PopupMenuLoading as Loading,
   PopupMenuSeparator as Separator,

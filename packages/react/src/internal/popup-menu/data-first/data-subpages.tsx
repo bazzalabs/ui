@@ -17,6 +17,7 @@ import type {
   GroupDef,
   GroupRenderContext,
   ItemDef,
+  LinkItemDef,
   QueryLoaderConfig,
   RadioGroupDef,
   RowNodeDef,
@@ -272,6 +273,32 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           )
         }
 
+        if (rowNode.kind === 'link-item') {
+          return (
+            <React.Fragment key={rowId}>
+              {rowNode.render({
+                node: rowMenuNode,
+                props: {
+                  id: rowId,
+                  value: rowNode.value,
+                  href: rowNode.href,
+                  disabled: rowNode.disabled ?? false,
+                  closeOnClick: rowNode.closeOnClick,
+                  onSelect: rowNode.onSelect,
+                  shortcut: rowNode.shortcut,
+                  forceOrder: rowNode.forceOrder,
+                  forceScore: rowNode.forceScore,
+                },
+                context: {
+                  ...rowContext,
+                  value: rowNode.value,
+                  disabled: rowNode.disabled ?? false,
+                },
+              })}
+            </React.Fragment>
+          )
+        }
+
         if (rowNode.kind === 'checkbox-item') {
           return (
             <React.Fragment key={rowId}>
@@ -344,9 +371,14 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                 (
                   n,
                 ): n is PopupMenuNode<
-                  ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+                  | ItemDef
+                  | LinkItemDef
+                  | CheckboxItemDef
+                  | SubmenuDef
+                  | SubpageDef
                 > =>
                   (n.def.kind === 'item' ||
+                    n.def.kind === 'link-item' ||
                     n.def.kind === 'checkbox-item' ||
                     n.def.kind === 'submenu' ||
                     n.def.kind === 'subpage') &&
@@ -414,6 +446,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
 
             if (
               childNode.kind !== 'item' &&
+              childNode.kind !== 'link-item' &&
               childNode.kind !== 'checkbox-item' &&
               childNode.kind !== 'submenu' &&
               childNode.kind !== 'subpage'
@@ -423,7 +456,11 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
 
             return renderRowNode(
               arg as PopupMenuNode<
-                ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+                | ItemDef
+                | LinkItemDef
+                | CheckboxItemDef
+                | SubmenuDef
+                | SubpageDef
               >,
               {
                 search: null,
@@ -580,9 +617,14 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                     (
                       n,
                     ): n is PopupMenuNode<
-                      ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+                      | ItemDef
+                      | LinkItemDef
+                      | CheckboxItemDef
+                      | SubmenuDef
+                      | SubpageDef
                     > =>
                       (n.def.kind === 'item' ||
+                        n.def.kind === 'link-item' ||
                         n.def.kind === 'checkbox-item' ||
                         n.def.kind === 'submenu' ||
                         n.def.kind === 'subpage') &&
@@ -650,6 +692,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
 
                 if (
                   childNode.kind !== 'item' &&
+                  childNode.kind !== 'link-item' &&
                   childNode.kind !== 'checkbox-item' &&
                   childNode.kind !== 'submenu' &&
                   childNode.kind !== 'subpage'
@@ -659,7 +702,11 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
 
                 return renderRowNode(
                   arg as PopupMenuNode<
-                    ItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
+                    | ItemDef
+                    | LinkItemDef
+                    | CheckboxItemDef
+                    | SubmenuDef
+                    | SubpageDef
                   >,
                   {
                     search: null,

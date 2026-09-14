@@ -21,6 +21,7 @@ export {
   isCheckboxItemDef,
   isGroupDef,
   isItemDef,
+  isLinkItemDef,
   isRadioGroupDef,
   isRadioItemDef,
   isSeparatorDef,

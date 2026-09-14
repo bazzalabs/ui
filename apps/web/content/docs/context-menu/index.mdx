@@ -69,6 +69,7 @@ function Demo() {
                 <ContextMenu.Icon />
                 <ContextMenu.Shortcut />
               </ContextMenu.Item>
+              <ContextMenu.LinkItem href="#projects">Projects</ContextMenu.LinkItem>
             </ContextMenu.Group>
             <ContextMenu.Separator />
             <ContextMenu.CheckboxItem>
@@ -368,6 +369,14 @@ A selectable item in the menu. Renders a `<div>` element with `role="option"`.
 <StateTableAuto type="ContextMenuItemState" pkg="@bazza-ui/react" />
 <DataAttrsTable type="ContextMenuItemDataAttributes" pkg="@bazza-ui/react" />
 
+### LinkItem
+
+A menu item that navigates to a URL. Renders an `<a>` element with `role="option"`. Unlike `Item`, `closeOnClick` defaults to `false`; modifier-clicks never close the menu.
+
+<TypeTableAuto type="ContextMenuLinkItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuLinkItemState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuLinkItemDataAttributes" pkg="@bazza-ui/react" />
+
 ### Icon
 
 An icon displayed within a menu item. Renders a `<span>` element.
@@ -526,6 +535,6 @@ Reads the computed data-list state from a `List` inside a data `Surface`, includ
 Context Menu uses the same node definition types as Dropdown Menu for the Data-First API. See the [Dropdown Menu Node Definition Types](/docs/dropdown-menu#node-definition-types) documentation for:
 
 - `NodeDef` - Union type of all node definitions
-- `ItemDef`, `SubmenuDef`, `CheckboxItemDef`, `RadioItemDef`, `RadioGroupDef`, `GroupDef`, `SeparatorDef`
-- `ItemRenderParams`, `SubmenuRenderParams`, and other render parameter types
+- `ItemDef`, `LinkItemDef`, `SubmenuDef`, `CheckboxItemDef`, `RadioItemDef`, `RadioGroupDef`, `GroupDef`, `SeparatorDef`
+- `ItemRenderParams`, `LinkItemRenderParams`, `SubmenuRenderParams`, and other render parameter types
 - `BreadcrumbNode`, `RowRenderContext`, `DeepSearchConfig`

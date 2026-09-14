@@ -78,6 +78,7 @@ import { CommandMenu } from '@bazza-ui/react/command-menu'
               <CommandMenu.Icon />
               <CommandMenu.Shortcut />
             </CommandMenu.Item>
+            <CommandMenu.LinkItem href="#projects">Projects</CommandMenu.LinkItem>
             <CommandMenu.CheckboxItem>
               <CommandMenu.CheckboxItemIndicator />
             </CommandMenu.CheckboxItem>
@@ -277,7 +278,7 @@ Tab cycles through Input → header/footer controls → Input. On pages without 
 | `CommandMenu.Footer` | Container for tabbable actions at the bottom of a surface; its children join the Tab cycle. |
 | `CommandMenu.FocusZone` | Generic focus-zone container for tabbable content anywhere in a surface. |
 | `CommandMenu.Input`, `CommandMenu.List` | Compose the visible palette layout. |
-| `CommandMenu.Item`, `CommandMenu.CheckboxItem` | Render selectable rows and persistent toggle rows. |
+| `CommandMenu.Item`, `CommandMenu.LinkItem`, `CommandMenu.CheckboxItem` | Render selectable rows, navigation links, and persistent toggle rows. |
 | `CommandMenu.Group`, `CommandMenu.GroupLabel`, `CommandMenu.Separator` | Organize rows. |
 | `CommandMenu.Empty`, `CommandMenu.Loading` | Render search and async states. |
 | `CommandMenu.Shortcut`, `CommandMenu.Icon` | Add row affordances. |

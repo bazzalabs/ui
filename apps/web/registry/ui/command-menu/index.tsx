@@ -352,6 +352,18 @@ const Item = forwardRef<
 ))
 Item.displayName = 'CommandMenu.Item'
 
+const LinkItem = forwardRef<
+  HTMLAnchorElement,
+  React.ComponentProps<typeof Primitive.LinkItem>
+>(({ className, ...props }, ref) => (
+  <Primitive.LinkItem
+    ref={ref}
+    className={cn(menuItemVariants({ variant: 'item' }), className)}
+    {...props}
+  />
+))
+LinkItem.displayName = 'CommandMenu.LinkItem'
+
 const CheckboxItem = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.CheckboxItem>
@@ -601,6 +613,7 @@ export const CommandMenu = {
   Input,
   List,
   Item,
+  LinkItem,
   CheckboxItem,
   CheckboxItemIndicator,
   Group,

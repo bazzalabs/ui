@@ -71,6 +71,9 @@ export type {
   PopupMenuItem as ContextMenuItem,
   PopupMenuItemProps as ContextMenuItemProps,
   PopupMenuItemState as ContextMenuItemState,
+  PopupMenuLinkItem as ContextMenuLinkItem,
+  PopupMenuLinkItemProps as ContextMenuLinkItemProps,
+  PopupMenuLinkItemState as ContextMenuLinkItemState,
   PopupMenuList as ContextMenuList,
   PopupMenuListChildrenState as ContextMenuListChildrenState,
   PopupMenuListProps as ContextMenuListProps,
@@ -143,6 +146,7 @@ export { ContextMenuGroupLabelDataAttributes } from './group-label/group-label.d
 export { ContextMenuIconDataAttributes } from './icon/icon.data-attrs.js'
 export { ContextMenuInputDataAttributes } from './input/input.data-attrs.js'
 export { ContextMenuItemDataAttributes } from './item/item.data-attrs.js'
+export { ContextMenuLinkItemDataAttributes } from './link-item/link-item.data-attrs.js'
 export { ContextMenuListDataAttributes } from './list/list.data-attrs.js'
 export { ContextMenuPopupDataAttributes } from './popup/popup.data-attrs.js'
 export { ContextMenuPositionerDataAttributes } from './positioner/positioner.data-attrs.js'
@@ -253,6 +257,9 @@ export type {
   ItemDef,
   ItemRenderParams,
   ItemRenderProps,
+  LinkItemDef,
+  LinkItemRenderParams,
+  LinkItemRenderProps,
   NodeDef,
   PopupMenuIdScope,
   PopupMenuNode,

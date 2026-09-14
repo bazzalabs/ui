@@ -1,6 +1,7 @@
 import type * as React from 'react'
 import type { PopupMenuCheckboxItemProps } from '../components/checkbox-item/checkbox-item.js'
 import type { PopupMenuItemProps } from '../components/item/item.js'
+import type { PopupMenuLinkItemProps } from '../components/link-item/link-item.js'
 import type { PopupMenuRadioGroupProps } from '../components/radio-group/radio-group.js'
 import type { PopupMenuRadioItemProps } from '../components/radio-item/radio-item.js'
 import type { PopupMenuSubmenuTriggerProps } from '../components/submenu-trigger/submenu-trigger.js'
@@ -404,6 +405,22 @@ export interface ItemRenderParams {
   }
 }
 
+export type LinkItemRenderProps = {
+  id: string
+  value: string
+  href: string
+} & Required<Pick<PopupMenuLinkItemProps, 'disabled'>> &
+  Pick<
+    PopupMenuLinkItemProps,
+    'closeOnClick' | 'onSelect' | 'shortcut' | 'forceOrder' | 'forceScore'
+  >
+
+export interface LinkItemRenderParams {
+  node: PopupMenuNode
+  props: LinkItemRenderProps
+  context: RowRenderContext & { value: string; disabled: boolean }
+}
+
 /** Props to spread onto a TreeItem component. */
 export type TreeItemRenderProps = Omit<ItemRenderProps, 'shortcut'> & {
   /** Whether this row can be selected. */
@@ -783,6 +800,26 @@ export interface ItemDef
   render: (params: ItemRenderParams) => React.ReactNode
 }
 
+/**
+ * Link item node definition. Represents a menu row that navigates to `href` when activated.
+ */
+export interface LinkItemDef
+  extends BaseNodeDef,
+    Required<Pick<PopupMenuLinkItemProps, 'value' | 'href'>>,
+    Pick<
+      PopupMenuLinkItemProps,
+      | 'keywords'
+      | 'disabled'
+      | 'onSelect'
+      | 'closeOnClick'
+      | 'shortcut'
+      | 'forceOrder'
+      | 'forceScore'
+    > {
+  kind: 'link-item'
+  render: (params: LinkItemRenderParams) => React.ReactNode
+}
+
 /** Tree item node definition. */
 export interface TreeItemDef
   extends BaseNodeDef,
@@ -1049,6 +1086,7 @@ export function defineRadioGroup(def: RadioGroupDef): RadioGroupDef {
  */
 export type NodeDef =
   | ItemDef
+  | LinkItemDef
   | TreeItemDef
   | RadioItemDef
   | CheckboxItemDef
@@ -1122,6 +1160,7 @@ export interface FlattenedNode {
 
 export type RowNodeDef =
   | ItemDef
+  | LinkItemDef
   | RadioItemDef
   | CheckboxItemDef
   | SubmenuDef

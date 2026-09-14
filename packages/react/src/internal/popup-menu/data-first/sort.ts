@@ -27,6 +27,7 @@ export function compareScoredNodesByForceOrderAndScore(
 export function getRowKindSortRank(
   kind:
     | 'item'
+    | 'link-item'
     | 'radio-item'
     | 'checkbox-item'
     | 'tree-item'
@@ -101,6 +102,7 @@ export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
 
     if (
       node.node.kind === 'item' ||
+      node.node.kind === 'link-item' ||
       node.node.kind === 'radio-item' ||
       node.node.kind === 'checkbox-item' ||
       node.node.kind === 'tree-item'
