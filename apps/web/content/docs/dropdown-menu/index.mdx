@@ -145,6 +145,28 @@ Use the `closeOnClick` prop to close the menu when an item is selected.
 <DropdownMenu.Item closeOnClick={false} />
 <DropdownMenu.CheckboxItem closeOnClick />
 <DropdownMenu.RadioItem closeOnClick />
+<DropdownMenu.LinkItem closeOnClick />
+```
+
+</Example.PreviewCode>
+
+</Example>
+
+</ComponentOnly>
+
+### Navigate to another page
+
+Use `DropdownMenu.LinkItem` to render a row as an `<a>` element. It navigates on click, `Enter`, or a matching `shortcut`, and modifier-clicks open the link in a new tab as usual. Unlike `Item`, `closeOnClick` defaults to `false`.
+
+<ComponentOnly>
+
+<Example name="dropdown-menu-link-item">
+<Example.PreviewCode>
+
+```tsx
+<DropdownMenu.LinkItem href="/docs/getting-started">
+  Getting started
+</DropdownMenu.LinkItem>
 ```
 
 </Example.PreviewCode>

@@ -215,6 +215,21 @@ function CanvasContextMenu() {
 }
 ```
 
+### Navigate to another page
+
+Use `ContextMenu.LinkItem` to render a row as an `<a>` element. It navigates on click, `Enter`, or a matching `shortcut`, and modifier-clicks open the link in a new tab as usual. Unlike `Item`, `closeOnClick` defaults to `false`.
+
+```tsx
+<ContextMenu.LinkItem href="/projects">Go to Projects</ContextMenu.LinkItem>
+<ContextMenu.LinkItem
+  href="https://github.com/bazzalabs/ui"
+  target="_blank"
+  rel="noreferrer"
+>
+  GitHub
+</ContextMenu.LinkItem>
+```
+
 ## Differences from Dropdown Menu
 
 | Feature | Context Menu | Dropdown Menu |

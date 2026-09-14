@@ -165,6 +165,9 @@ export const examples = {
       'close-on-click': ex(
         () => import('@/registry/examples/styled/dropdown-menu/close-on-click'),
       ),
+      'link-item': ex(
+        () => import('@/registry/examples/styled/dropdown-menu/link-item'),
+      ),
       'hidden-input': ex(
         () => import('@/registry/examples/styled/dropdown-menu/hidden-input'),
       ),
@@ -314,6 +317,9 @@ export const examples = {
     },
     'command-menu': {
       basic: ex(() => import('@/registry/examples/styled/command-menu/basic')),
+      'link-item': ex(
+        () => import('@/registry/examples/styled/command-menu/link-item'),
+      ),
       linear: ex(
         () => import('@/registry/examples/styled/command-menu/linear'),
         { extraFiles: ['components.tsx', 'icons.tsx'] },
