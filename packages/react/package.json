@@ -1,6 +1,6 @@
 {
   "name": "@bazza-ui/react",
-  "version": "0.1.0-canary.12",
+  "version": "0.1.0-canary.13",
   "private": false,
   "publishConfig": {
     "access": "public"
