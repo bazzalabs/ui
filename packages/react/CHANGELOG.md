@@ -1,5 +1,15 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.15
+
+### Minor Changes
+
+- [#495](https://github.com/bazzalabs/ui/pull/495) [`c32178f`](https://github.com/bazzalabs/ui/commit/c32178f6f55e5825436349e103c7f895dd833277) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `disabledBranchBehavior` to `DeepSearchConfig` (`'exclude' | 'inherit'`, default `'exclude'`) for choosing how descendants of a disabled submenu or subpage participate in deep search. By default they are left out of results while the disabled trigger still appears; `'inherit'` shows them as disabled, non-selectable deep results instead. An explicit `includeInDeepSearch` on the branch def always takes precedence.
+
+### Patch Changes
+
+- [#494](https://github.com/bazzalabs/ui/pull/494) [`463dec9`](https://github.com/bazzalabs/ui/commit/463dec9ab3a87ecbb46c79df1cc287799b712cca) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix deep search surfacing descendants of a `disabled` submenu or subpage as enabled, selectable rows. A deep-search result now inherits `disabled` from its nearest disabled submenu/subpage ancestor, so it renders disabled, is skipped by keyboard navigation, and does not fire `onSelect` — matching the branch's own behaviour under pointer and keyboard navigation.
+
 ## 0.1.0-canary.14
 
 ### Minor Changes
