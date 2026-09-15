@@ -1510,10 +1510,10 @@ describe('PopupMenu', () => {
   })
 
   describe('submenu safe triangle debug visualization', () => {
-    const getSafeTriangle = (tone?: string) => {
+    const getSafeTriangle = (tone?: string, scope = 'submenu') => {
       const selector = tone
-        ? `[data-bazzaui-submenu-safe-triangle-area][data-safe-triangle-tone="${tone}"]`
-        : '[data-bazzaui-submenu-safe-triangle-area]'
+        ? `[data-bazzaui-safe-triangle-area][data-safe-triangle-scope="${scope}"][data-safe-triangle-tone="${tone}"]`
+        : `[data-bazzaui-safe-triangle-area][data-safe-triangle-scope="${scope}"]`
 
       return document.querySelector(selector)
     }
