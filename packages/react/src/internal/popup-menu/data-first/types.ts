@@ -1308,6 +1308,15 @@ export type RadioGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
 export type AsyncResultBehavior = 'stream' | 'block'
 
 /**
+ * How the descendants of a disabled branch (a submenu or subpage with
+ * `disabled: true`) participate in deep search.
+ * - 'exclude': descendants are not deep results; the disabled trigger still is.
+ *   Equivalent to the branch's `includeInDeepSearch` defaulting to `'trigger-only'`.
+ * - 'inherit': descendants are deep results that inherit `disabled` — shown, not selectable.
+ */
+export type DisabledBranchBehavior = 'exclude' | 'inherit'
+
+/**
  * Configuration for deep search behavior.
  */
 export interface DeepSearchConfig {
@@ -1343,6 +1352,14 @@ export interface DeepSearchConfig {
    * @default 'stream'
    */
   asyncResultBehavior?: AsyncResultBehavior
+  /**
+   * How descendants of a disabled branch appear in deep search results.
+   * - 'exclude': not shown; the disabled branch trigger still appears (default)
+   * - 'inherit': shown as deep results with inherited `disabled`
+   * An explicit `includeInDeepSearch` on the branch def always takes precedence.
+   * @default 'exclude'
+   */
+  disabledBranchBehavior?: DisabledBranchBehavior
 }
 
 // ============================================================================

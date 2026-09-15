@@ -1540,7 +1540,7 @@ describe('Resolved IDs', () => {
 })
 
 describe('disabled submenu descendants in deep search', () => {
-  it('renders descendants disabled and prevents click and keyboard selection', async () => {
+  it('renders descendants disabled under inherit and prevents click and keyboard selection', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
     const content: NodeDef[] = [
@@ -1565,7 +1565,11 @@ describe('disabled submenu descendants in deep search', () => {
             <DropdownMenu.Popup>
               <DropdownMenu.Surface
                 content={content}
-                deepSearch={{ enabled: true, minLength: 0 }}
+                deepSearch={{
+                  enabled: true,
+                  minLength: 0,
+                  disabledBranchBehavior: 'inherit',
+                }}
               >
                 <DropdownMenu.Input data-testid="search-input" />
                 <DropdownMenu.List>
@@ -1589,5 +1593,51 @@ describe('disabled submenu descendants in deep search', () => {
 
     await user.keyboard('{ArrowDown}{Enter}')
     expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('excludes disabled descendants by default while keeping the trigger searchable', async () => {
+    const user = userEvent.setup()
+    const content: NodeDef[] = [
+      createTestSubmenuDef(
+        'actions',
+        'Actions',
+        [createTestItemDef('edit', 'Edit form')],
+        {
+          disabled: true,
+        },
+      ),
+    ]
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={{ enabled: true, minLength: 0 }}
+              >
+                <DropdownMenu.Input data-testid="search-input" />
+                <DropdownMenu.List>
+                  <ListItemsWithCount />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+    const input = await screen.findByTestId('search-input')
+    await user.type(input, 'edit')
+    await waitFor(() => {
+      expect(screen.getByTestId('count')).toHaveTextContent('0')
+    })
+    expect(screen.queryByText('Edit form')).toBeNull()
+    await user.clear(input)
+    await user.type(input, 'actions')
+    expect(await screen.findByText('Actions')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
   })
 })

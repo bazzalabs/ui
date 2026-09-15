@@ -300,6 +300,7 @@ export const PopupMenuSurface = React.forwardRef<
         radioGroupSearchBehavior: 'preserve',
         sortGroups: true,
         asyncResultBehavior: 'stream',
+        disabledBranchBehavior: 'exclude',
       }
     }
     return {
@@ -310,6 +311,7 @@ export const PopupMenuSurface = React.forwardRef<
         deepSearch.radioGroupSearchBehavior ?? 'preserve',
       sortGroups: deepSearch.sortGroups ?? true,
       asyncResultBehavior: deepSearch.asyncResultBehavior ?? 'stream',
+      disabledBranchBehavior: deepSearch.disabledBranchBehavior ?? 'exclude',
     }
   }, [deepSearch])
 

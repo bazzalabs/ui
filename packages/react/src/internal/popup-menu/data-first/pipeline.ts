@@ -20,6 +20,7 @@ import {
 } from './sort.js'
 import type {
   BreadcrumbNode,
+  DisabledBranchBehavior,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,
@@ -52,6 +53,8 @@ export interface FilterNodesOptions {
   deepSearch?: boolean
   /** Default include mode for descendant submenus during deep search */
   includeInDeepSearch?: IncludeInDeepSearch
+  /** How descendants of disabled branches participate in deep search */
+  disabledBranchBehavior?: DisabledBranchBehavior
   /** Minimum query length for deep search */
   minLength?: number
   /** How groups behave during search (only applies when searching, not browse mode) */
@@ -78,6 +81,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     highlightedId,
     deepSearch = true,
     includeInDeepSearch = true,
+    disabledBranchBehavior = 'exclude',
     minLength = 0,
     radioGroupSearchBehavior = 'preserve',
   } = options
@@ -89,6 +93,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
   const flattened = flattenNodes(nodes, {
     deep: shouldDeepSearch,
     includeInDeepSearch,
+    disabledBranchBehavior,
   })
 
   // For preserve-show-all, we need to track ALL radio group items before scoring
@@ -283,6 +288,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     highlightedId,
     deepSearch = true,
     includeInDeepSearch = true,
+    disabledBranchBehavior = 'exclude',
     minLength = 0,
     sortGroups = true,
     radioGroupSearchBehavior = 'preserve',
@@ -295,6 +301,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   const flattened = flattenNodes(nodes, {
     deep: shouldDeepSearch,
     includeInDeepSearch,
+    disabledBranchBehavior,
   })
 
   // For preserve-show-all, we need to track ALL radio group items before scoring

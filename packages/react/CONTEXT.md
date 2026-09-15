@@ -63,7 +63,7 @@ A submenu or subpage — the two node kinds that open a child surface. Groups, r
 _Avoid_: container, parent (as a category), nested menu
 
 **Disabled Branch**:
-A branch with `disabled` set: it cannot be opened by pointer or keyboard, and every descendant is disabled wherever it is displayed — including as a deep result. By contrast, `disabled` on a tree item affects only that row; its inline children stay independently enabled.
+A branch with `disabled` set: it cannot be opened by pointer or keyboard, and by default its descendants are not deep results — only the disabled trigger is. A surface may instead show them as deep results that inherit `disabled`. By contrast, `disabled` on a tree item affects only that row; its inline children stay independently enabled.
 _Avoid_: locked branch, inert branch
 
 **Popup**:

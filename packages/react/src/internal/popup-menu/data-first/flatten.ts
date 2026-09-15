@@ -3,9 +3,11 @@
 // ============================================================================
 
 import type { PopupMenuNode } from '../menu-tree/types.js'
+import { resolveBranchIncludeMode } from './async.js'
 import { isMenuNodeOfKind, isRowMenuNode } from './type-guards.js'
 import type {
   BreadcrumbNode,
+  DisabledBranchBehavior,
   FlattenedNode,
   GroupDef,
   IncludeInDeepSearch,
@@ -20,6 +22,8 @@ interface FlattenOptions {
   deep?: boolean
   /** Default include mode for descendant branch nodes */
   includeInDeepSearch?: IncludeInDeepSearch
+  /** How descendants of a disabled branch participate. */
+  disabledBranchBehavior?: DisabledBranchBehavior
   /** Whether ancestors allow this subtree to participate in deep search */
   descendantsIncluded?: boolean
   /** Parent breadcrumb nodes (branch nodes from root to parent) */
@@ -63,6 +67,7 @@ export function flattenNodes(
   const {
     deep = false,
     includeInDeepSearch = true,
+    disabledBranchBehavior = 'exclude',
     descendantsIncluded = true,
     breadcrumbs = [],
     group = null,
@@ -90,6 +95,7 @@ export function flattenNodes(
         ...flattenNodes(node.children, {
           deep,
           includeInDeepSearch,
+          disabledBranchBehavior,
           descendantsIncluded,
           breadcrumbs,
           group: groupInfo,
@@ -114,6 +120,7 @@ export function flattenNodes(
         ...flattenNodes(node.children, {
           deep,
           includeInDeepSearch,
+          disabledBranchBehavior,
           descendantsIncluded,
           breadcrumbs,
           group: null, // Reset regular group when entering a radio group
@@ -156,6 +163,7 @@ export function flattenNodes(
           ...flattenNodes(getSupportedTreeChildren(node.children), {
             deep,
             includeInDeepSearch,
+            disabledBranchBehavior,
             descendantsIncluded,
             breadcrumbs: [...breadcrumbs, treeBreadcrumb],
             group,
@@ -171,8 +179,11 @@ export function flattenNodes(
       isMenuNodeOfKind(node, 'submenu') ||
       isMenuNodeOfKind(node, 'subpage')
     ) {
-      const branchIncludeMode =
-        node.def.includeInDeepSearch ?? includeInDeepSearch
+      const branchIncludeMode = resolveBranchIncludeMode(
+        node.def,
+        includeInDeepSearch,
+        disabledBranchBehavior,
+      )
 
       // includeInDeepSearch only affects deep search results.
       // In shallow mode, branch triggers remain searchable as normal rows.
@@ -218,6 +229,7 @@ export function flattenNodes(
             {
               deep,
               includeInDeepSearch,
+              disabledBranchBehavior,
               descendantsIncluded: true,
               breadcrumbs: childBreadcrumbs,
               // Reset group and radio group context when entering a branch node

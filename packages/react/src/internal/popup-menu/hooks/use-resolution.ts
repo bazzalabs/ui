@@ -6,6 +6,7 @@ import { collectAsyncSubmenus } from '../data-first/async.js'
 import type { AsyncMenuCoordinatorValue } from '../data-first/async-coordinator.js'
 import type {
   AsyncLoaderConfig,
+  DisabledBranchBehavior,
   NodeDef,
   SubmenuDef,
   SubpageDef,
@@ -22,6 +23,7 @@ export interface UseResolutionOptions {
   isSubpageSurface: boolean
   isResolutionRoot: boolean
   includeInDeepSearch: boolean | 'trigger-only'
+  disabledBranchBehavior?: DisabledBranchBehavior
 }
 
 export interface ResolutionResult {
@@ -46,6 +48,7 @@ export function useResolution({
   isSubpageSurface,
   isResolutionRoot,
   includeInDeepSearch,
+  disabledBranchBehavior,
 }: UseResolutionOptions): ResolutionResult {
   React.useMemo(() => {
     if (!resolver || isSubpageSurface) return
@@ -97,8 +100,14 @@ export function useResolution({
     ],
   )
   const asyncSubmenus = React.useMemo(
-    () => collectAsyncSubmenus(staticNodes, includeInDeepSearch),
-    [staticNodes, includeInDeepSearch],
+    () =>
+      collectAsyncSubmenus(
+        staticNodes,
+        includeInDeepSearch,
+        true,
+        disabledBranchBehavior,
+      ),
+    [staticNodes, includeInDeepSearch, disabledBranchBehavior],
   )
 
   const previousBranchesRef = React.useRef<Set<PopupMenuNode>>(new Set())

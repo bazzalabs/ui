@@ -8659,6 +8659,14 @@
                 "description": "How async deep-search results are revealed.\n- 'stream': emit available results immediately, append later async batches (default)\n- 'block': show loading state only until all loaders resolve, then render once",
                 "default": "'stream'",
                 "referencePath": "@bazza-ui/react.AsyncResultBehavior"
+              },
+              {
+                "name": "disabledBranchBehavior",
+                "type": "DisabledBranchBehavior | undefined",
+                "formattedType": "\"exclude\" | \"inherit\"",
+                "required": false,
+                "description": "How descendants of a disabled branch appear in deep search results.\n- 'exclude': not shown; the disabled branch trigger still appears (default)\n- 'inherit': shown as deep results with inherited `disabled`\nAn explicit `includeInDeepSearch` on the branch def always takes precedence.",
+                "default": "'exclude'"
               }
             ]
           },
@@ -8728,8 +8736,22 @@
             "description": "How async deep-search results are revealed.\n- 'stream': emit available results immediately, append later async batches (default)\n- 'block': show loading state only until all loaders resolve, then render once",
             "default": "'stream'",
             "referencePath": "@bazza-ui/react.AsyncResultBehavior"
+          },
+          {
+            "name": "disabledBranchBehavior",
+            "type": "DisabledBranchBehavior | undefined",
+            "formattedType": "\"exclude\" | \"inherit\"",
+            "required": false,
+            "description": "How descendants of a disabled branch appear in deep search results.\n- 'exclude': not shown; the disabled branch trigger still appears (default)\n- 'inherit': shown as deep results with inherited `disabled`\nAn explicit `includeInDeepSearch` on the branch def always takes precedence.",
+            "default": "'exclude'"
           }
         ]
+      },
+      "DisabledBranchBehavior": {
+        "name": "DisabledBranchBehavior",
+        "kind": "typealias",
+        "doc": "How the descendants of a disabled branch (a submenu or subpage with\n`disabled: true`) participate in deep search.\n- 'exclude': descendants are not deep results; the disabled trigger still is.\n  Equivalent to the branch's `includeInDeepSearch` defaulting to `'trigger-only'`.\n- 'inherit': descendants are deep results that inherit `disabled` — shown, not selectable.",
+        "definition": "'exclude' | 'inherit'"
       },
       "DisplayGroupNode": {
         "name": "DisplayGroupNode",
