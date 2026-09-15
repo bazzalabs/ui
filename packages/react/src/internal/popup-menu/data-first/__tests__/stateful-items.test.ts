@@ -1326,6 +1326,25 @@ describe('Value Normalization', () => {
       expect(collected[0].id).toBe(resolver.getNodeForDef(nodes[0])!.id)
     })
 
+    it('collectAsyncSubmenus excludes disabled branches when configured', () => {
+      const asyncConfig = { type: 'static' as const, Loader: () => null }
+      const nodes: NodeDef[] = [
+        createSubmenuDef('disabled', 'Disabled', [], {
+          asyncNodes: asyncConfig,
+          disabled: true,
+        }),
+      ]
+      const resolver = createMenuTreeResolver()
+      resolver.setContent(nodes)
+      expect(
+        collectAsyncSubmenus(resolver.rootNodes, true, true, 'inherit'),
+      ).toHaveLength(1)
+      expect(
+        collectAsyncSubmenus(resolver.rootNodes, true, true, 'exclude'),
+      ).toHaveLength(0)
+      expect(collectAsyncSubmenus(resolver.rootNodes)).toHaveLength(0)
+    })
+
     it('collectAsyncSubmenus also collects async subpages', () => {
       const asyncConfig = {
         type: 'static' as const,
@@ -1544,13 +1563,18 @@ describe('deduplicateNodes', () => {
 })
 
 describe('Disabled branch inheritance in deep search', () => {
-  function searchRows(nodes: NodeDef[], query: string) {
+  function searchRows(
+    nodes: NodeDef[],
+    query: string,
+    extra: Partial<Parameters<typeof filterNodes>[0]> = {},
+  ) {
     const { displayNodes } = filterNodes({
       query,
       nodes: resolve(nodes),
       highlightedId: null,
       deepSearch: true,
       minLength: 0,
+      ...extra,
     })
     return displayNodes.filter(isDisplayRowNode)
   }
@@ -1560,6 +1584,7 @@ describe('Disabled branch inheritance in deep search', () => {
     const rows = searchRows(
       [createSubmenuDef('actions', 'Actions', [edit], { disabled: true })],
       'edit',
+      { disabledBranchBehavior: 'inherit' },
     )
 
     expect(rows).toHaveLength(1)
@@ -1572,6 +1597,7 @@ describe('Disabled branch inheritance in deep search', () => {
     const rows = searchRows(
       [createSubpageDef('actions', 'Actions', [edit], { disabled: true })],
       'edit',
+      { disabledBranchBehavior: 'inherit' },
     )
 
     expect(rows).toHaveLength(1)
@@ -1593,6 +1619,7 @@ describe('Disabled branch inheritance in deep search', () => {
         ]),
       ],
       'edit',
+      { disabledBranchBehavior: 'inherit' },
     )
 
     expect(rows).toHaveLength(2)
@@ -1632,5 +1659,95 @@ describe('Disabled branch inheritance in deep search', () => {
     )
 
     expect(rows).toHaveLength(0)
+  })
+
+  it('exclude drops descendants of a disabled submenu but keeps its trigger', () => {
+    const nodes = [
+      createSubmenuDef(
+        'actions',
+        'Actions',
+        [createItemDef('edit', 'Edit form')],
+        { disabled: true },
+      ),
+    ]
+
+    expect(
+      searchRows(nodes, 'edit', { disabledBranchBehavior: 'exclude' }),
+    ).toHaveLength(0)
+    const rows = searchRows(nodes, 'actions', {
+      disabledBranchBehavior: 'exclude',
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.node.def.id).toBe('actions')
+    expect(rows[0]!.context.disabled).toBe(true)
+  })
+
+  it('exclude drops descendants of a disabled subpage but keeps its trigger', () => {
+    const nodes = [
+      createSubpageDef(
+        'actions',
+        'Actions',
+        [createItemDef('edit', 'Edit form')],
+        { disabled: true },
+      ),
+    ]
+
+    expect(
+      searchRows(nodes, 'edit', { disabledBranchBehavior: 'exclude' }),
+    ).toHaveLength(0)
+    const rows = searchRows(nodes, 'actions', {
+      disabledBranchBehavior: 'exclude',
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.node.def.id).toBe('actions')
+    expect(rows[0]!.context.disabled).toBe(true)
+  })
+
+  it('explicit includeInDeepSearch on the def overrides exclude', () => {
+    const nodes = [
+      createSubmenuDef(
+        'actions',
+        'Actions',
+        [createItemDef('edit', 'Edit form')],
+        { disabled: true, includeInDeepSearch: true },
+      ),
+    ]
+
+    const rows = searchRows(nodes, 'edit', {
+      disabledBranchBehavior: 'exclude',
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.context.disabled).toBe(true)
+  })
+
+  it('exclude does not affect enabled branches', () => {
+    const nodes = [
+      createSubmenuDef('actions', 'Actions', [
+        createItemDef('edit', 'Edit form'),
+      ]),
+    ]
+
+    const rows = searchRows(nodes, 'edit', {
+      disabledBranchBehavior: 'exclude',
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.context.disabled).toBe(false)
+  })
+
+  it('omitting disabledBranchBehavior behaves as exclude', () => {
+    const nodes = [
+      createSubmenuDef(
+        'actions',
+        'Actions',
+        [createItemDef('edit', 'Edit form')],
+        { disabled: true },
+      ),
+    ]
+
+    expect(searchRows(nodes, 'edit')).toHaveLength(0)
+    const rows = searchRows(nodes, 'actions')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.node.def.id).toBe('actions')
+    expect(rows[0]!.context.disabled).toBe(true)
   })
 })

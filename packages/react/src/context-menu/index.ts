@@ -241,6 +241,7 @@ export type {
   DataListChildrenState,
   DataSurfaceContextValue,
   DeepSearchConfig,
+  DisabledBranchBehavior,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,

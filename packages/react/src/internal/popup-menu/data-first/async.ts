@@ -6,6 +6,7 @@ import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
   AsyncNodesConfig,
+  DisabledBranchBehavior,
   IncludeInDeepSearch,
   SubmenuDef,
   SubpageDef,
@@ -34,6 +35,7 @@ function collectAsyncSubmenusRaw(
   nodes: readonly PopupMenuNode[],
   includeInDeepSearch: IncludeInDeepSearch = true,
   descendantsIncluded = true,
+  disabledBranchBehavior: DisabledBranchBehavior = 'exclude',
 ): AsyncSubmenuInfo[] {
   const result: AsyncSubmenuInfo[] = []
 
@@ -49,6 +51,7 @@ function collectAsyncSubmenusRaw(
           staticChildrenOf(node),
           includeInDeepSearch,
           descendantsIncluded,
+          disabledBranchBehavior,
         ),
       )
       continue
@@ -62,6 +65,7 @@ function collectAsyncSubmenusRaw(
           staticChildrenOf(node),
           includeInDeepSearch,
           descendantsIncluded,
+          disabledBranchBehavior,
         ),
       )
       continue
@@ -70,8 +74,11 @@ function collectAsyncSubmenusRaw(
     if (node.def.kind === 'submenu' || node.def.kind === 'subpage') {
       if (node.def.hidden) continue
 
-      const branchIncludeMode =
-        node.def.includeInDeepSearch ?? includeInDeepSearch
+      const branchIncludeMode = resolveBranchIncludeMode(
+        node.def,
+        includeInDeepSearch,
+        disabledBranchBehavior,
+      )
       const shouldIncludeBranchDescendants =
         descendantsIncluded &&
         branchIncludeMode === true &&
@@ -93,6 +100,7 @@ function collectAsyncSubmenusRaw(
             staticChildrenOf(node),
             includeInDeepSearch,
             true,
+            disabledBranchBehavior,
           ),
         )
       }
@@ -110,6 +118,23 @@ export function shouldIncludeInDeepSearch(
   includeInDeepSearch: IncludeInDeepSearch | undefined,
 ): boolean {
   return includeInDeepSearch !== false
+}
+
+/**
+ * Resolves a branch's deep search inclusion mode. An explicit
+ * `includeInDeepSearch` on the def always wins; otherwise a disabled branch
+ * under `disabledBranchBehavior: 'exclude'` is treated as `'trigger-only'`,
+ * and every other branch takes the surface default.
+ */
+export function resolveBranchIncludeMode(
+  def: { includeInDeepSearch?: IncludeInDeepSearch; disabled?: boolean },
+  surfaceDefault: IncludeInDeepSearch,
+  disabledBranchBehavior: DisabledBranchBehavior = 'exclude',
+): IncludeInDeepSearch {
+  if (def.includeInDeepSearch !== undefined) return def.includeInDeepSearch
+  if (def.disabled && disabledBranchBehavior === 'exclude')
+    return 'trigger-only'
+  return surfaceDefault
 }
 
 /**
@@ -152,6 +177,7 @@ export function collectAsyncSubmenus(
   nodes: readonly PopupMenuNode[],
   includeInDeepSearch: IncludeInDeepSearch = true,
   descendantsIncluded = true,
+  disabledBranchBehavior: DisabledBranchBehavior = 'exclude',
 ): AsyncSubmenuInfo[] {
   const seen = new Set<string>()
   const result: AsyncSubmenuInfo[] = []
@@ -159,6 +185,7 @@ export function collectAsyncSubmenus(
     nodes,
     includeInDeepSearch,
     descendantsIncluded,
+    disabledBranchBehavior,
   )) {
     if (seen.has(info.id)) continue
     seen.add(info.id)

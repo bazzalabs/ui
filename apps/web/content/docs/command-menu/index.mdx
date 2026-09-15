@@ -234,6 +234,8 @@ Enable `deepSearch` on `CommandMenu.Surface` to search through nested `NodeDef[]
 
 Subpage definitions can provide `asyncNodes` for pages that load on demand. Use `type: 'static'` loaders when the page fetches once and filters client-side, or `type: 'query'` loaders when the current search query should be sent to the server. Deep search can reveal async results as they resolve with `asyncResultBehavior: 'stream'`, or wait until all participating loaders finish with `asyncResultBehavior: 'block'`.
 
+Descendants of a disabled submenu or subpage are left out of deep search results by default — the disabled trigger still appears, so users can see the branch exists. Set `disabledBranchBehavior: 'inherit'` to show them as disabled, non-selectable deep results instead. An explicit `includeInDeepSearch` on the branch always takes precedence.
+
 ```tsx
 const nodes: NodeDef[] = [
   {

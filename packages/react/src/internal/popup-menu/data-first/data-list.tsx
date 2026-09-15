@@ -571,6 +571,7 @@ export const DataListInner = React.forwardRef<
     isSubpageSurface,
     isResolutionRoot,
     includeInDeepSearch,
+    disabledBranchBehavior: deepSearchConfig.disabledBranchBehavior,
   })
 
   // Determine which async loaders should be rendered
@@ -617,6 +618,7 @@ export const DataListInner = React.forwardRef<
       highlightedId: null, // Primitives handle highlighting via store
       deepSearch: deepSearchConfig.enabled,
       includeInDeepSearch,
+      disabledBranchBehavior: deepSearchConfig.disabledBranchBehavior,
       minLength: deepSearchConfig.minLength,
       groupSearchBehavior: deepSearchConfig.groupSearchBehavior,
       radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,

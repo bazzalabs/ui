@@ -307,6 +307,7 @@ export type {
   CheckboxItemRenderProps,
   DataListChildrenState,
   DeepSearchConfig,
+  DisabledBranchBehavior,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,
