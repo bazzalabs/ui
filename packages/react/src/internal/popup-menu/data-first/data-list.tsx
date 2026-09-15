@@ -99,21 +99,21 @@ function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
     if (isDisplayGroupNode(displayNode)) {
       for (const item of displayNode.items) {
         // Header tree rows are intentionally included: they are highlightable even when non-activatable.
-        if (!item.node.def.disabled && item.node.id) {
+        if (!item.context.disabled && item.node.id) {
           ids.push(item.node.id)
         }
       }
     } else if (isDisplayRadioGroupNode(displayNode)) {
       for (const item of displayNode.items) {
         // Header tree rows are intentionally included: they are highlightable even when non-activatable.
-        if (!item.node.def.disabled && item.node.id) {
+        if (!item.context.disabled && item.node.id) {
           ids.push(item.node.id)
         }
       }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // skip
     } else {
-      if (!displayNode.node.def.disabled && displayNode.node.id) {
+      if (!displayNode.context.disabled && displayNode.node.id) {
         ids.push(displayNode.node.id)
       }
     }
@@ -796,7 +796,7 @@ export const DataListInner = React.forwardRef<
               props: {
                 id,
                 value: node.value,
-                disabled: node.disabled ?? false,
+                disabled: context.disabled,
                 closeOnClick: node.closeOnClick,
                 onSelect: node.onSelect,
                 shortcut: node.shortcut,
@@ -806,7 +806,6 @@ export const DataListInner = React.forwardRef<
               context: {
                 ...context,
                 value: node.value,
-                disabled: node.disabled ?? false,
               },
             })}
           </React.Fragment>
@@ -822,7 +821,7 @@ export const DataListInner = React.forwardRef<
                 id,
                 value: node.value,
                 href: node.href,
-                disabled: node.disabled ?? false,
+                disabled: context.disabled,
                 closeOnClick: node.closeOnClick,
                 onSelect: node.onSelect,
                 shortcut: node.shortcut,
@@ -832,7 +831,6 @@ export const DataListInner = React.forwardRef<
               context: {
                 ...context,
                 value: node.value,
-                disabled: node.disabled ?? false,
               },
             })}
           </React.Fragment>
@@ -847,7 +845,7 @@ export const DataListInner = React.forwardRef<
               props: {
                 id,
                 value: node.value,
-                disabled: node.disabled ?? false,
+                disabled: context.disabled,
                 selectable: node.selectable !== false,
                 closeOnClick: node.closeOnClick,
                 onSelect: node.onSelect,
@@ -857,7 +855,6 @@ export const DataListInner = React.forwardRef<
               context: {
                 ...context,
                 value: node.value,
-                disabled: node.disabled ?? false,
               },
             })}
           </React.Fragment>
@@ -872,7 +869,7 @@ export const DataListInner = React.forwardRef<
               props: {
                 id,
                 value: node.value,
-                disabled: node.disabled ?? false,
+                disabled: context.disabled,
                 closeOnClick: node.closeOnClick,
                 onSelect: node.onSelect,
                 shortcut: node.shortcut,
@@ -882,7 +879,6 @@ export const DataListInner = React.forwardRef<
               context: {
                 ...context,
                 value: node.value,
-                disabled: node.disabled ?? false,
               },
             })}
           </React.Fragment>
@@ -899,7 +895,7 @@ export const DataListInner = React.forwardRef<
                 value: node.value,
                 checked: node.checked,
                 onCheckedChange: node.onCheckedChange,
-                disabled: node.disabled ?? false,
+                disabled: context.disabled,
                 closeOnClick: node.closeOnClick,
                 forceOrder: node.forceOrder,
                 forceScore: node.forceScore,
@@ -908,7 +904,6 @@ export const DataListInner = React.forwardRef<
                 ...context,
                 value: node.value,
                 checked: node.checked,
-                disabled: node.disabled ?? false,
               },
             })}
           </React.Fragment>
@@ -1066,14 +1061,13 @@ export const DataListInner = React.forwardRef<
                 props: {
                   id,
                   value: node.value,
-                  disabled: node.disabled ?? false,
+                  disabled: context.disabled,
                   forceOrder: node.forceOrder,
                   forceScore: node.forceScore,
                 },
                 context: {
                   ...context,
                   value: node.value,
-                  disabled: node.disabled ?? false,
                   async: submenuAsyncState,
                 },
                 nodes: staticChildren,
@@ -1098,13 +1092,12 @@ export const DataListInner = React.forwardRef<
               props: {
                 id,
                 value: node.value,
-                disabled: node.disabled ?? false,
+                disabled: context.disabled,
                 targetPageId: pageId,
               },
               context: {
                 ...context,
                 value: node.value,
-                disabled: node.disabled ?? false,
                 async: subpageAsyncState,
               },
             })}

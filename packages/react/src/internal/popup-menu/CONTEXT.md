@@ -40,7 +40,15 @@ The branch nodes walked by the displaying surface to reach a row within its own 
 _Avoid_: trail, crumb path
 
 **Browse / Deep Search**:
-The two render contexts: browsing renders each surface's own nodes in place; deep search flattens a subtree into the searching surface as results. A row's identity must not depend on which context displays it.
+The two render contexts: browsing renders each surface's own nodes in place; deep search flattens a subtree into the searching surface as deep results. A row's identity must not depend on which context displays it.
+
+**Deep Search Inclusion** (`includeInDeepSearch`):
+How a branch participates in an ancestor's deep search, resolved per branch from its def or the surface default. Three modes: **included** (trigger and descendants are deep results), **trigger-only** (only the trigger is), **excluded** (neither is). Orthogonal to `hidden`, which removes the branch from every render context.
+_Avoid_: deep search mode, visibility, searchable
+
+**Inherited Disabled**:
+The disabled state a deep result carries from the nearest disabled branch on its breadcrumbs, as opposed to its own def's `disabled`. A row's effective disabled state is its own or an inherited one. Only branches confer it — tree items, groups, and radio groups do not.
+_Avoid_: propagated disabled, ancestor disabled, locked
 
 **Resolved ID** (`id`):
 The unique identity of a menu node — the value persistent state, registration, and highlight key off. Produced once per root by `getResolvedId`; the default is `definitionKey` for `idScope="menu"`, or a total UTF-16 code-unit encoding of every Definition Path entry joined with `/` for `idScope="surface"`. The encoder preserves ASCII letters, digits, `.`, `_`, `~`, and `-`, and encodes every other code unit as `%` plus four lowercase hexadecimal digits. IDs are opaque. `idScope` and the selected resolver are read once when the root resolver is created; later prop changes have no effect. Custom resolution replaces only final ID generation, while `idScope` still controls Definition Key validation. Separator definitions require an authored `id`.

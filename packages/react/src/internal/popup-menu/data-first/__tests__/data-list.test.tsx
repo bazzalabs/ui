@@ -1538,3 +1538,56 @@ describe('Resolved IDs', () => {
     )
   })
 })
+
+describe('disabled submenu descendants in deep search', () => {
+  it('renders descendants disabled and prevents click and keyboard selection', async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    const content: NodeDef[] = [
+      createTestSubmenuDef(
+        'actions',
+        'Actions',
+        [
+          {
+            ...createTestItemDef('edit', 'Edit form'),
+            onSelect,
+          },
+        ],
+        { disabled: true },
+      ),
+    ]
+
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={{ enabled: true, minLength: 0 }}
+              >
+                <DropdownMenu.Input data-testid="search-input" />
+                <DropdownMenu.List>
+                  <ListItemsWithCount />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+
+    const input = await screen.findByTestId('search-input')
+    await user.type(input, 'edit')
+
+    const row = await screen.findByText('Edit form')
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+
+    await user.click(row)
+    expect(onSelect).not.toHaveBeenCalled()
+
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+})
