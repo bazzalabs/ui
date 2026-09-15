@@ -20,6 +20,8 @@
     "command-menu-focus-zone-tab",
     "command-menu-shared-header-parts",
     "data-first-module-move",
+    "deep-search-disabled-branch-behavior",
+    "deep-search-inherit-disabled",
     "defer-menu-highlight-cleanup",
     "display-group-nodes",
     "display-path-context",
