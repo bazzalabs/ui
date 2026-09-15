@@ -19,6 +19,7 @@ import { useSubmenuContext } from '../../contexts/submenu-context.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { useAimMonitor } from '../../hooks/use-aim-monitor.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
+import type { AimGuard } from '../../store/AimGuardStore.js'
 import { isMouseLikePointerType } from '../../utils/is-mouse-like-pointer.js'
 import {
   PopupMenuSubmenuSafeTriangleArea,
@@ -231,16 +232,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   const focusOwnerStore = useFocusOwner()
 
   // Aim Guard: shields sibling rows while the pointer aims at the open submenu
-  const {
-    aimGuardActive,
-    guardedTriggerId,
-    guardedDepth,
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
-    guardedDepthRef,
-    activateAimGuard,
-    clearAimGuard,
-  } = useAimGuard()
+  const aimGuardStore = useAimGuard()
 
   const item = usePopupMenuItem({
     id: idProp,
@@ -257,6 +249,15 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   const disabled = item.disabled
 
+  const isBlockedByAimGuard = React.useCallback(() => {
+    const guard = aimGuardStore.get()
+    return (
+      guard !== null &&
+      guard.depth === parentDepth &&
+      guard.triggerId !== item.id
+    )
+  }, [aimGuardStore, parentDepth, item.id])
+
   const { showSafeTriangleArea, logAimGuardEvents } = usePopupMenuDebug()
   const showSafeTriangleAreaEnabled = showSafeTriangleArea.enabled
 
@@ -267,21 +268,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         triggerId: item.id,
         triggerStoreId: item.storeId,
         parentDepth,
-        aimGuardActive: aimGuardActiveRef.current,
-        guardedTriggerId: guardedTriggerIdRef.current,
-        guardedDepth: guardedDepthRef.current,
+        aimGuardActive: aimGuardStore.get() !== null,
+        guardedTriggerId: aimGuardStore.get()?.triggerId ?? null,
+        guardedDepth: aimGuardStore.get()?.depth ?? null,
         ...details,
       })
     },
-    [
-      logAimGuardEvents,
-      item.id,
-      item.storeId,
-      parentDepth,
-      aimGuardActiveRef,
-      guardedTriggerIdRef,
-      guardedDepthRef,
-    ],
+    [logAimGuardEvents, item.id, item.storeId, parentDepth, aimGuardStore],
   )
 
   const aimMonitor = useAimMonitor({
@@ -291,89 +284,68 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     closeDelay,
     closeOnPointerLeave,
     onHit: () => {
-      activateAimGuard(item.id, parentDepth, childSurfaceId, 600)
+      aimGuardStore.activate(
+        {
+          triggerId: item.id,
+          depth: parentDepth,
+          submenuSurfaceId: childSurfaceId,
+        },
+        600,
+      )
       parentStore.setHighlightedId(item.storeId)
       setOpen(true)
     },
     onMiss: () => {
-      clearAimGuard()
+      aimGuardStore.clear()
     },
     onClose: () => {
       setOpen(false)
     },
     onSettled: (cause) => {
-      if (cause === 'inside-at-leave') clearAimGuard()
+      if (cause === 'inside-at-leave') aimGuardStore.clear()
     },
     logContext: () => ({
       triggerId: item.id,
       triggerStoreId: item.storeId,
       parentDepth,
-      aimGuardActive: aimGuardActiveRef.current,
-      guardedTriggerId: guardedTriggerIdRef.current,
-      guardedDepth: guardedDepthRef.current,
+      aimGuardActive: aimGuardStore.get() !== null,
+      guardedTriggerId: aimGuardStore.get()?.triggerId ?? null,
+      guardedDepth: aimGuardStore.get()?.depth ?? null,
     }),
   })
 
   React.useEffect(() => {
-    if (
-      open ||
-      !aimGuardActiveRef.current ||
-      guardedTriggerIdRef.current !== item.id ||
-      guardedDepthRef.current !== parentDepth
-    ) {
+    const guard = aimGuardStore.get()
+    if (open || guard?.triggerId !== item.id || guard?.depth !== parentDepth) {
       return
     }
 
-    clearAimGuard()
-  }, [
-    open,
-    item.id,
-    parentDepth,
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
-    guardedDepthRef,
-    clearAimGuard,
-  ])
+    aimGuardStore.clear()
+  }, [open, item.id, parentDepth, aimGuardStore])
 
   React.useEffect(() => {
+    const guard = aimGuardStore.get()
     if (
       item.isVisible ||
-      !aimGuardActiveRef.current ||
-      guardedTriggerIdRef.current !== item.id ||
-      guardedDepthRef.current !== parentDepth
+      guard?.triggerId !== item.id ||
+      guard?.depth !== parentDepth
     ) {
       return
     }
 
-    clearAimGuard()
-  }, [
-    item.isVisible,
-    item.id,
-    parentDepth,
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
-    guardedDepthRef,
-    clearAimGuard,
-  ])
+    aimGuardStore.clear()
+  }, [item.isVisible, item.id, parentDepth, aimGuardStore])
 
   React.useEffect(() => {
     return () => {
       if (
-        aimGuardActiveRef.current &&
-        guardedTriggerIdRef.current === item.id &&
-        guardedDepthRef.current === parentDepth
+        aimGuardStore.get()?.triggerId === item.id &&
+        aimGuardStore.get()?.depth === parentDepth
       ) {
-        clearAimGuard()
+        aimGuardStore.clear()
       }
     }
-  }, [
-    item.id,
-    parentDepth,
-    aimGuardActiveRef,
-    guardedTriggerIdRef,
-    guardedDepthRef,
-    clearAimGuard,
-  ])
+  }, [item.id, parentDepth, aimGuardStore])
 
   // Register submenu open callback with parent store
   // When submenu is opened via keyboard (ArrowRight/Ctrl+L), transfer focus ownership
@@ -518,15 +490,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       }
 
       // Don't highlight if aim guard is active at this depth for a different trigger
-      if (
-        aimGuardActiveRef.current &&
-        guardedDepthRef.current === parentDepth &&
-        guardedTriggerIdRef.current !== item.id
-      ) {
+      const guard = aimGuardStore.get()
+      if (isBlockedByAimGuard()) {
         logAimTrace('pointermove-blocked-by-guard', {
           clientX: event.clientX,
           clientY: event.clientY,
-          blockedByTriggerId: guardedTriggerIdRef.current,
+          blockedByTriggerId: guard?.triggerId,
         })
         return
       }
@@ -568,11 +537,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     [
       onPointerMove,
       disabled,
-      aimGuardActiveRef,
-      guardedDepthRef,
-      parentDepth,
-      guardedTriggerIdRef,
-      item.id,
+      aimGuardStore,
+      isBlockedByAimGuard,
       item.storeId,
       openOnHighlight,
       open,
@@ -591,16 +557,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       if (event.defaultPrevented) return
       if (disabled) return
       if (!isMouseLikePointerType(event.pointerType)) return
-      if (
-        aimGuardActiveRef.current &&
-        guardedDepthRef.current === parentDepth &&
-        guardedTriggerIdRef.current !== item.id
-      ) {
+      const guard = aimGuardStore.get()
+      if (isBlockedByAimGuard()) {
         logAimTrace('pointerenter-blocked-by-guard', {
           clientX: event.clientX,
           clientY: event.clientY,
-          blockedByTriggerId: guardedTriggerIdRef.current,
-          blockedByDepth: guardedDepthRef.current,
+          blockedByTriggerId: guard?.triggerId,
+          blockedByDepth: guard?.depth,
         })
         return
       }
@@ -619,7 +582,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         return
       }
       aimMonitor.cancel()
-      clearAimGuard()
+      aimGuardStore.clear()
       clearOpenTimer()
       const pointerDelay = delay.pointer
       if (pointerDelay <= 0) setOpen(true)
@@ -632,21 +595,17 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     [
       onPointerEnter,
       disabled,
-      aimGuardActiveRef,
-      guardedDepthRef,
-      guardedTriggerIdRef,
-      item.id,
+      aimGuardStore,
+      isBlockedByAimGuard,
       item.storeId,
       parentStore,
       openOnHighlight,
       suppressAutoOpenRef,
       aimMonitor,
-      clearAimGuard,
       clearOpenTimer,
       delay.pointer,
       setOpen,
       logAimTrace,
-      parentDepth,
     ],
   )
 
@@ -661,20 +620,17 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         clientX: event.clientX,
         clientY: event.clientY,
       })
-      if (
-        aimGuardActiveRef.current &&
-        guardedDepthRef.current === parentDepth &&
-        guardedTriggerIdRef.current !== item.id
-      ) {
+      const guard = aimGuardStore.get()
+      if (isBlockedByAimGuard()) {
         logAimTrace('pointerleave-blocked-by-guard', {
           clientX: event.clientX,
           clientY: event.clientY,
-          blockedByTriggerId: guardedTriggerIdRef.current,
-          blockedByDepth: guardedDepthRef.current,
+          blockedByTriggerId: guard?.triggerId,
+          blockedByDepth: guard?.depth,
         })
         return
       }
-      if (!contentRef.current) clearAimGuard()
+      if (!contentRef.current) aimGuardStore.clear()
       aimMonitor.pointerLeft(event)
     },
     [
@@ -682,39 +638,40 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       disabled,
       clearOpenTimer,
       logAimTrace,
-      aimGuardActiveRef,
-      guardedDepthRef,
-      guardedTriggerIdRef,
-      parentDepth,
-      item.id,
+      aimGuardStore,
+      isBlockedByAimGuard,
       contentRef,
-      clearAimGuard,
       aimMonitor,
     ],
   )
 
   const aimMonitorDebugState = aimMonitor.debug.state
 
+  // Non-persistent overlay: hide the 'activated' triangle as soon as the Aim
+  // Guard is no longer this trigger's. Evaluate on debug-state change (the
+  // guard may already be idle, in which case the store never notifies) and on
+  // every subsequent guard change.
   React.useEffect(() => {
     if (
       !showSafeTriangleArea.enabled ||
       showSafeTriangleArea.persistOnSuccess ||
       aimMonitorDebugState !== 'activated'
-    )
+    ) {
       return
-    const isGuardActiveForThisTrigger =
-      aimGuardActive &&
-      guardedTriggerId === item.id &&
-      guardedDepth === parentDepth
-    if (!isGuardActiveForThisTrigger) aimMonitor.debug.reset()
+    }
+    const resetUnlessMine = (guard: AimGuard | null) => {
+      if (guard?.triggerId !== item.id || guard?.depth !== parentDepth) {
+        aimMonitor.debug.reset()
+      }
+    }
+    resetUnlessMine(aimGuardStore.get())
+    return aimGuardStore.subscribe(resetUnlessMine)
   }, [
     showSafeTriangleArea.enabled,
     showSafeTriangleArea.persistOnSuccess,
     aimMonitor,
     aimMonitorDebugState,
-    aimGuardActive,
-    guardedTriggerId,
-    guardedDepth,
+    aimGuardStore,
     item.id,
     parentDepth,
   ])
