@@ -1542,3 +1542,95 @@ describe('deduplicateNodes', () => {
     expect(rows[0]!.node.def).toBe(item)
   })
 })
+
+describe('Disabled branch inheritance in deep search', () => {
+  function searchRows(nodes: NodeDef[], query: string) {
+    const { displayNodes } = filterNodes({
+      query,
+      nodes: resolve(nodes),
+      highlightedId: null,
+      deepSearch: true,
+      minLength: 0,
+    })
+    return displayNodes.filter(isDisplayRowNode)
+  }
+
+  it('inherits disabled from a disabled submenu', () => {
+    const edit = createItemDef('edit', 'Edit form')
+    const rows = searchRows(
+      [createSubmenuDef('actions', 'Actions', [edit], { disabled: true })],
+      'edit',
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.context.disabled).toBe(true)
+    expect(rows[0]!.node.def.disabled).toBeUndefined()
+  })
+
+  it('inherits disabled from a disabled subpage', () => {
+    const edit = createItemDef('edit', 'Edit form')
+    const rows = searchRows(
+      [createSubpageDef('actions', 'Actions', [edit], { disabled: true })],
+      'edit',
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.context.disabled).toBe(true)
+    expect(rows[0]!.node.def.disabled).toBeUndefined()
+  })
+
+  it('inherits disabled through nested branches without affecting siblings', () => {
+    const rows = searchRows(
+      [
+        createSubmenuDef('actions', 'Actions', [
+          createSubmenuDef(
+            'disabled',
+            'Disabled',
+            [createItemDef('edit', 'Edit form')],
+            { disabled: true },
+          ),
+          createItemDef('sibling', 'Edit sibling'),
+        ]),
+      ],
+      'edit',
+    )
+
+    expect(rows).toHaveLength(2)
+    expect(
+      rows.find((row) => row.node.def.id === 'edit')!.context.disabled,
+    ).toBe(true)
+    expect(
+      rows.find((row) => row.node.def.id === 'sibling')!.context.disabled,
+    ).toBe(false)
+  })
+
+  it('keeps descendants of enabled branches enabled', () => {
+    const rows = searchRows(
+      [
+        createSubmenuDef('actions', 'Actions', [
+          createItemDef('edit', 'Edit form'),
+        ]),
+      ],
+      'edit',
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.context.disabled).toBe(false)
+  })
+
+  it('does not search descendants of hidden branches', () => {
+    const rows = searchRows(
+      [
+        createSubmenuDef(
+          'actions',
+          'Actions',
+          [createItemDef('edit', 'Edit form')],
+          { hidden: true },
+        ),
+      ],
+      'edit',
+    )
+
+    expect(rows).toHaveLength(0)
+  })
+})

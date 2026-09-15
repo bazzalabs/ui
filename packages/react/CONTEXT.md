@@ -51,8 +51,20 @@ A drill-in navigation that renders a sibling surface inside the same popup, with
 _Avoid_: page, drill-down, nested view
 
 **Surface**:
-One self-contained menu pane: a list of items plus optionally an input, header, footer, and focus zone. A popup contains one or more surfaces — the root surface and one sibling surface per open subpage.
-_Avoid_: panel, pane, view
+One self-contained menu pane: a list of items plus optionally an input, header, footer, and focus zone. A popup contains one or more surfaces — the root surface and one sibling surface per open subpage. A noun only — a row is never "surfaced"; it appears as a deep result.
+_Avoid_: panel, pane, view; "surface" as a verb
+
+**Deep Result**:
+A row rendered in an ancestor surface's deep-search results rather than in its own surface, shown with the breadcrumbs of the submenus/subpages walked to reach it. A deep result keeps its identity; only where it is displayed changes.
+_Avoid_: surfaced row, flattened row, search result (ambiguous with a surface's own filtered rows), nested match
+
+**Branch**:
+A submenu or subpage — the two node kinds that open a child surface. Groups, radio groups, and tree items contain rows but are not branches.
+_Avoid_: container, parent (as a category), nested menu
+
+**Disabled Branch**:
+A branch with `disabled` set: it cannot be opened by pointer or keyboard, and every descendant is disabled wherever it is displayed — including as a deep result. By contrast, `disabled` on a tree item affects only that row; its inline children stay independently enabled.
+_Avoid_: locked branch, inert branch
 
 **Popup**:
 The floating container a positioner places on screen; wraps its surfaces. Each menu level that floats independently — the root, and each open submenu — is its own popup.

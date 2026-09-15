@@ -2,10 +2,32 @@
 // Build Display Nodes
 // ============================================================================
 
-import type { DisplayRowNode, RowRenderContext, ScoredNode } from './types.js'
+import type {
+  BreadcrumbNode,
+  DisplayRowNode,
+  RowRenderContext,
+  ScoredNode,
+} from './types.js'
 
 // Build Display Nodes
 // ============================================================================
+
+/**
+ * A row is disabled if its own def says so, or if any submenu/subpage
+ * ancestor it was reached through (its breadcrumbs) is disabled.
+ * Tree-item ancestors are intentionally excluded: browse mode renders tree
+ * children with their own `disabled` regardless of the parent (`browse.ts`),
+ * and deep search must match browse.
+ */
+export function resolveRowDisabled(
+  def: { disabled?: boolean },
+  breadcrumbs: BreadcrumbNode[],
+): boolean {
+  if (def.disabled) return true
+  return breadcrumbs.some(
+    (crumb) => crumb.node.kind !== 'tree-item' && crumb.node.disabled === true,
+  )
+}
 
 /**
  * Converts scored nodes to display row nodes with render context.
@@ -30,7 +52,7 @@ export function buildDisplayRowNodes(
       // breadcrumbs already set above
       isDeepSearchResult,
       highlighted: scoredNode.node.def.id === highlightedId,
-      disabled: scoredNode.node.def.disabled ?? false,
+      disabled: resolveRowDisabled(scoredNode.node.def, scoredNode.breadcrumbs),
       group: scoredNode.group
         ? { id: scoredNode.group.id, label: scoredNode.group.label }
         : null,
@@ -69,7 +91,7 @@ export function buildDisplayRowNode(
     breadcrumbs: scoredNode.breadcrumbs,
     isDeepSearchResult,
     highlighted: scoredNode.node.def.id === highlightedId,
-    disabled: scoredNode.node.def.disabled ?? false,
+    disabled: resolveRowDisabled(scoredNode.node.def, scoredNode.breadcrumbs),
     group: scoredNode.group
       ? { id: scoredNode.group.id, label: scoredNode.group.label }
       : null,
