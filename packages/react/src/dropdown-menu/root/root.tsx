@@ -8,6 +8,7 @@ import {
   type PopupMenuHighlightChangeHandler,
   PopupMenuProviders,
   type PopupMenuRootActions,
+  RootHoverGuard,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
@@ -15,6 +16,7 @@ import type {
   GetResolvedIdFn,
   PopupMenuIdScope,
 } from '../../internal/popup-menu/menu-tree/types.js'
+import { REASONS } from '../../utils/events/index.js'
 import type {
   DropdownMenuHighlightChangeEventDetails,
   DropdownMenuOpenChangeEventDetails,
@@ -228,6 +230,16 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
+      // Uniform takeover: Base UI's hover-close is inert for hover-enabled roots;
+      // <RootHoverGuard> decides via the Aim Monitor.
+      if (
+        !nextOpen &&
+        popoverDetails.reason === 'trigger-hover' &&
+        store.context.hoverTrigger !== null
+      ) {
+        popoverDetails.cancel()
+        return
+      }
       // Forward to our internal handler with the reason and event
       handleOpenChange(
         nextOpen,
@@ -235,7 +247,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
         popoverDetails.event,
       )
     },
-    [handleOpenChange],
+    [handleOpenChange, store],
   )
 
   return (
@@ -263,6 +275,11 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
         modal={modal}
         actionsRef={actionsRef ? popoverActionsRef : undefined}
       >
+        <RootHoverGuard
+          onClose={(event) =>
+            handleOpenChange(false, REASONS.triggerHover, event)
+          }
+        />
         {children}
       </Popover.Root>
     </PopupMenuProviders>
