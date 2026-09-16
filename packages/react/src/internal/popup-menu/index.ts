@@ -76,6 +76,7 @@ export type {
 } from './components/positioner/positioner.js'
 export { PopupMenuPositioner } from './components/positioner/positioner.js'
 export { PopupMenuProviders } from './components/providers.js'
+export { RootHoverGuard } from './components/root-hover-guard/root-hover-guard.js'
 
 // ============================================================================
 // Item Hooks

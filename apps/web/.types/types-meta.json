@@ -3665,6 +3665,19 @@
             "description": "DOM refs for scroll behavior.\nStored in context (not state) to avoid re-renders."
           },
           {
+            "name": "hoverTrigger",
+            "type": "{ closeDelay: number; } | null",
+            "formattedType": "null | { closeDelay: number }",
+            "required": true,
+            "description": "Hover-open configuration published by the root trigger; `null` when the trigger is not hover-enabled."
+          },
+          {
+            "name": "rootHoverGuardCancel",
+            "type": "(() => void) | null",
+            "formattedType": "null | () => void",
+            "required": true
+          },
+          {
             "name": "onCloseComplete",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
@@ -3704,6 +3717,26 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+          },
+          {
+            "name": "hoverTriggerEnabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Mirrors `context.hoverTrigger !== null` so components can subscribe."
+          },
+          {
+            "name": "openedByHover",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "`true` while the current open was caused by `trigger-hover`. Reset on close\nand on any later accepted open with a different reason (e.g. Base UI's\nclick-to-stick re-emits `trigger-press` on a hover-opened popup)."
+          },
+          {
+            "name": "popupMountVersion",
+            "type": "number",
+            "required": true,
+            "description": "Bumped every time the root popup element registers via `setPopupRef`, so\neffects that need the mounted element (e.g. the root hover guard's\nlisteners) can re-run once it exists."
           },
           {
             "name": "openMethod",
@@ -7814,6 +7847,19 @@
             "description": "DOM refs for scroll behavior.\nStored in context (not state) to avoid re-renders."
           },
           {
+            "name": "hoverTrigger",
+            "type": "{ closeDelay: number; } | null",
+            "formattedType": "null | { closeDelay: number }",
+            "required": true,
+            "description": "Hover-open configuration published by the root trigger; `null` when the trigger is not hover-enabled."
+          },
+          {
+            "name": "rootHoverGuardCancel",
+            "type": "(() => void) | null",
+            "formattedType": "null | () => void",
+            "required": true
+          },
+          {
             "name": "onCloseComplete",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
@@ -7853,6 +7899,26 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+          },
+          {
+            "name": "hoverTriggerEnabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Mirrors `context.hoverTrigger !== null` so components can subscribe."
+          },
+          {
+            "name": "openedByHover",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "`true` while the current open was caused by `trigger-hover`. Reset on close\nand on any later accepted open with a different reason (e.g. Base UI's\nclick-to-stick re-emits `trigger-press` on a hover-opened popup)."
+          },
+          {
+            "name": "popupMountVersion",
+            "type": "number",
+            "required": true,
+            "description": "Bumped every time the root popup element registers via `setPopupRef`, so\neffects that need the mounted element (e.g. the root hover guard's\nlisteners) can re-run once it exists."
           },
           {
             "name": "openMethod",
@@ -10449,21 +10515,21 @@
             "description": "Sibling index in the def tree (position within `parent.children`)."
           },
           {
-            "name": "children",
-            "type": "PopupMenuNode<NodeDef>[]",
-            "required": true,
-            "referencePath": "@bazza-ui/react.PopupMenuNode"
-          },
-          {
             "name": "depth",
             "type": "number",
             "required": true,
             "description": "Def-tree depth counting every node kind; roots are 0."
           },
           {
+            "name": "children",
+            "type": "PopupMenuNode<NodeDef>[]",
+            "required": true,
+            "referencePath": "@bazza-ui/react.PopupMenuNode"
+          },
+          {
             "name": "kind",
-            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
-            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"submenu\" | \"tree-item\" | \"subpage\"",
+            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'submenu'\n  | 'tree-item'\n  | 'subpage'",
             "required": true,
             "description": "Mirror of `def.kind`, stable for the node's lifetime."
           },
@@ -10670,7 +10736,7 @@
             "type": "number | undefined",
             "formattedType": "number",
             "required": false,
-            "description": "Delay before closing when pointer leaves (in milliseconds).\nOnly applies when `openOnHover` is true.",
+            "description": "Delay before closing when the pointer leaves and is not aiming back at the popup (in milliseconds). Only applies when `openOnHover` is true.",
             "default": "0"
           },
           {
@@ -14262,6 +14328,19 @@
             "description": "DOM refs for scroll behavior.\nStored in context (not state) to avoid re-renders."
           },
           {
+            "name": "hoverTrigger",
+            "type": "{ closeDelay: number; } | null",
+            "formattedType": "null | { closeDelay: number }",
+            "required": true,
+            "description": "Hover-open configuration published by the root trigger; `null` when the trigger is not hover-enabled."
+          },
+          {
+            "name": "rootHoverGuardCancel",
+            "type": "(() => void) | null",
+            "formattedType": "null | () => void",
+            "required": true
+          },
+          {
             "name": "onCloseComplete",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
@@ -14301,6 +14380,26 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+          },
+          {
+            "name": "hoverTriggerEnabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Mirrors `context.hoverTrigger !== null` so components can subscribe."
+          },
+          {
+            "name": "openedByHover",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "`true` while the current open was caused by `trigger-hover`. Reset on close\nand on any later accepted open with a different reason (e.g. Base UI's\nclick-to-stick re-emits `trigger-press` on a hover-opened popup)."
+          },
+          {
+            "name": "popupMountVersion",
+            "type": "number",
+            "required": true,
+            "description": "Bumped every time the root popup element registers via `setPopupRef`, so\neffects that need the mounted element (e.g. the root hover guard's\nlisteners) can re-run once it exists."
           },
           {
             "name": "openMethod",
@@ -16270,7 +16369,7 @@
             "type": "number | undefined",
             "formattedType": "number",
             "required": false,
-            "description": "Delay before closing when pointer leaves (in milliseconds).\nOnly applies when `openOnHover` is true.",
+            "description": "Delay before closing when the pointer leaves and is not aiming back at the popup (in milliseconds). Only applies when `openOnHover` is true.",
             "default": "0"
           },
           {
@@ -18024,6 +18123,19 @@
             "description": "DOM refs for scroll behavior.\nStored in context (not state) to avoid re-renders."
           },
           {
+            "name": "hoverTrigger",
+            "type": "{ closeDelay: number; } | null",
+            "formattedType": "null | { closeDelay: number }",
+            "required": true,
+            "description": "Hover-open configuration published by the root trigger; `null` when the trigger is not hover-enabled."
+          },
+          {
+            "name": "rootHoverGuardCancel",
+            "type": "(() => void) | null",
+            "formattedType": "null | () => void",
+            "required": true
+          },
+          {
             "name": "onCloseComplete",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
@@ -18063,6 +18175,26 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+          },
+          {
+            "name": "hoverTriggerEnabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Mirrors `context.hoverTrigger !== null` so components can subscribe."
+          },
+          {
+            "name": "openedByHover",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "`true` while the current open was caused by `trigger-hover`. Reset on close\nand on any later accepted open with a different reason (e.g. Base UI's\nclick-to-stick re-emits `trigger-press` on a hover-opened popup)."
+          },
+          {
+            "name": "popupMountVersion",
+            "type": "number",
+            "required": true,
+            "description": "Bumped every time the root popup element registers via `setPopupRef`, so\neffects that need the mounted element (e.g. the root hover guard's\nlisteners) can re-run once it exists."
           },
           {
             "name": "openMethod",
