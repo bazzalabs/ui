@@ -54,6 +54,7 @@ export function definitionKeyForDef(def: NodeDef): string {
   switch (def.kind) {
     case 'group':
     case 'radio-group':
+    case 'checkbox-group':
       return def.id
     case 'separator':
       return def.id
@@ -67,6 +68,7 @@ export function childDefsOf(def: NodeDef): readonly NodeDef[] {
   switch (def.kind) {
     case 'group':
     case 'radio-group':
+    case 'checkbox-group':
       return def.nodes
     case 'submenu':
     case 'subpage':

@@ -308,6 +308,11 @@ export type {
   AsyncState,
   // ID generation types
   BreadcrumbNode,
+  CheckboxGroupBehavior,
+  CheckboxGroupDef,
+  CheckboxGroupLabelRenderParams,
+  CheckboxGroupRenderParams,
+  CheckboxGroupRenderProps,
   // Node types
   CheckboxItemDef,
   CheckboxItemRenderParams,
@@ -315,6 +320,7 @@ export type {
   DataListChildrenState,
   DeepSearchConfig,
   DisabledBranchBehavior,
+  DisplayCheckboxGroupNode,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,
@@ -364,7 +370,9 @@ export type {
   TreeItemRenderProps,
 } from './data-first/types.js'
 export {
+  defineCheckboxGroup,
   defineRadioGroup,
+  isDisplayCheckboxGroupNode,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
   isDisplayRowNode,

@@ -48,6 +48,7 @@ import type {
   SubpageDef,
 } from './types.js'
 import {
+  isDisplayCheckboxGroupNode,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
   isDisplaySeparatorNode,
@@ -110,6 +111,13 @@ function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
           ids.push(item.node.id)
         }
       }
+    } else if (isDisplayCheckboxGroupNode(displayNode)) {
+      for (const item of displayNode.items) {
+        // Header tree rows are intentionally included
+        if (!item.context.disabled && item.node.id) {
+          ids.push(item.node.id)
+        }
+      }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // skip
     } else {
@@ -152,6 +160,10 @@ function getDisplayNodeStreamKey(displayNode: DisplayNode): string {
 
   if (isDisplayRadioGroupNode(displayNode)) {
     return `radio-group:${displayNode.node.def.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
+  }
+
+  if (isDisplayCheckboxGroupNode(displayNode)) {
+    return `checkbox-group:${displayNode.node.def.id}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
   }
 
   if (isDisplaySeparatorNode(displayNode)) {
@@ -622,6 +634,7 @@ export const DataListInner = React.forwardRef<
       minLength: deepSearchConfig.minLength,
       groupSearchBehavior: deepSearchConfig.groupSearchBehavior,
       radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
+      checkboxGroupSearchBehavior: deepSearchConfig.checkboxGroupSearchBehavior,
       sortGroups: deepSearchConfig.sortGroups,
     })
 
@@ -1302,6 +1315,11 @@ export const DataListInner = React.forwardRef<
             {children}
           </div>
         )
+      }
+
+      // Checkbox group display nodes are rendered by a later change.
+      if (isDisplayCheckboxGroupNode(displayNode)) {
+        return null
       }
 
       // Handle separator display nodes

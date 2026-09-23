@@ -20,7 +20,10 @@ import {
 } from './sort.js'
 import type {
   BreadcrumbNode,
+  CheckboxGroupBehavior,
+  CheckboxGroupDef,
   DisabledBranchBehavior,
+  DisplayCheckboxGroupNode,
   DisplayGroupNode,
   DisplayNode,
   DisplayRadioGroupNode,
@@ -61,6 +64,8 @@ export interface FilterNodesOptions {
   groupSearchBehavior?: GroupBehavior
   /** How radio groups behave during search */
   radioGroupSearchBehavior?: RadioGroupBehavior
+  /** How checkbox groups behave during search */
+  checkboxGroupSearchBehavior?: CheckboxGroupBehavior
   /** Whether to sort groups by best score */
   sortGroups?: boolean
 }
@@ -69,6 +74,7 @@ export interface FilterNodesOptions {
  * Filters nodes with 'flatten' group behavior.
  * Groups are invisible, items shown in flat list.
  * Radio group behavior is controlled by radioGroupSearchBehavior.
+ * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
  */
 function filterNodesFlatten(options: FilterNodesOptions): {
   displayNodes: DisplayNode[]
@@ -84,6 +90,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     disabledBranchBehavior = 'exclude',
     minLength = 0,
     radioGroupSearchBehavior = 'preserve',
+    checkboxGroupSearchBehavior = 'preserve',
   } = options
 
   // Determine if deep search should activate
@@ -126,6 +133,35 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     }
   }
 
+  // For preserve-show-all, track ALL checkbox group items before scoring.
+  const allCheckboxGroupItems = new Map<
+    string,
+    {
+      checkboxGroupDef: CheckboxGroupDef
+      menuNode: PopupMenuNode<CheckboxGroupDef>
+      items: FlattenedNode[]
+      breadcrumbs: BreadcrumbNode[]
+    }
+  >()
+
+  if (checkboxGroupSearchBehavior === 'preserve-show-all') {
+    for (const flatNode of flattened) {
+      if (flatNode.checkboxGroup) {
+        const existing = allCheckboxGroupItems.get(flatNode.checkboxGroup.id)
+        if (existing) {
+          existing.items.push(flatNode)
+        } else {
+          allCheckboxGroupItems.set(flatNode.checkboxGroup.id, {
+            checkboxGroupDef: flatNode.checkboxGroup.checkboxGroupDef,
+            menuNode: flatNode.checkboxGroup.menuNode,
+            items: [flatNode],
+            breadcrumbs: flatNode.breadcrumbs,
+          })
+        }
+      }
+    }
+  }
+
   // Score nodes
   const scored = scoreNodes(flattened, query, normalizeQuery)
 
@@ -135,6 +171,15 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     {
       radioGroupDef: RadioGroupDef
       menuNode: PopupMenuNode<RadioGroupDef>
+      items: ScoredNode[]
+      breadcrumbs: BreadcrumbNode[]
+    }
+  >()
+  const checkboxGroupItems = new Map<
+    string,
+    {
+      checkboxGroupDef: CheckboxGroupDef
+      menuNode: PopupMenuNode<CheckboxGroupDef>
       items: ScoredNode[]
       breadcrumbs: BreadcrumbNode[]
     }
@@ -155,6 +200,22 @@ function filterNodesFlatten(options: FilterNodesOptions): {
           radioGroupItems.set(scoredNode.radioGroup.id, {
             radioGroupDef: scoredNode.radioGroup.radioGroupDef,
             menuNode: scoredNode.radioGroup.menuNode,
+            items: [scoredNode],
+            breadcrumbs: scoredNode.breadcrumbs,
+          })
+        }
+      }
+    } else if (scoredNode.checkboxGroup) {
+      if (checkboxGroupSearchBehavior === 'flatten') {
+        regularItems.push(scoredNode)
+      } else {
+        const existing = checkboxGroupItems.get(scoredNode.checkboxGroup.id)
+        if (existing) {
+          existing.items.push(scoredNode)
+        } else {
+          checkboxGroupItems.set(scoredNode.checkboxGroup.id, {
+            checkboxGroupDef: scoredNode.checkboxGroup.checkboxGroupDef,
+            menuNode: scoredNode.checkboxGroup.menuNode,
             items: [scoredNode],
             breadcrumbs: scoredNode.breadcrumbs,
           })
@@ -206,6 +267,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
             breadcrumbs: flatNode.breadcrumbs,
             group: flatNode.group,
             radioGroup: flatNode.radioGroup,
+            checkboxGroup: flatNode.checkboxGroup,
           }))
         } else {
           itemsToDisplay = matchingItems
@@ -240,7 +302,55 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     }
   }
 
-  // Merge regular items and radio groups, sorted by forced order then score.
+  const checkboxGroupDisplayNodes: DisplayCheckboxGroupNode[] = []
+
+  if (checkboxGroupSearchBehavior !== 'flatten') {
+    for (const [
+      checkboxGroupId,
+      { items: matchingItems, breadcrumbs, menuNode },
+    ] of checkboxGroupItems) {
+      let itemsToDisplay: ScoredNode[]
+      if (checkboxGroupSearchBehavior === 'preserve-show-all') {
+        const allItems = allCheckboxGroupItems.get(checkboxGroupId)
+        if (allItems) {
+          const matchingScores = new Map(
+            matchingItems.map((item) => [item.node.id, item.score]),
+          )
+          itemsToDisplay = allItems.items.map((flatNode) => ({
+            node: flatNode.node,
+            score: matchingScores.get(flatNode.node.id) ?? 0,
+            breadcrumbs: flatNode.breadcrumbs,
+            group: flatNode.group,
+            radioGroup: flatNode.radioGroup,
+            checkboxGroup: flatNode.checkboxGroup,
+          }))
+        } else {
+          itemsToDisplay = matchingItems
+        }
+      } else {
+        itemsToDisplay = matchingItems
+      }
+      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
+      const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
+      const groupContext: GroupRenderContext = {
+        search: query ? { query, bestScore } : null,
+        matchCount: matchingItems.length,
+        breadcrumbs,
+        isDeepSearchResult: breadcrumbs.length > 0,
+      }
+      checkboxGroupDisplayNodes.push({
+        kind: 'checkbox-group',
+        node: menuNode,
+        context: groupContext,
+        items: itemsToDisplay.map((item) =>
+          buildDisplayRowNode(item, query, highlightedId),
+        ),
+        bestScore,
+      })
+    }
+  }
+
+  // Merge regular items, radio groups, and checkbox groups, sorted by forced order then score.
   type SortableNode = {
     node: DisplayNode
     score: number
@@ -261,6 +371,12 @@ function filterNodesFlatten(options: FilterNodesOptions): {
       forceOrder: getMinForceOrderFromDisplayRows(r.items),
       kindRank: 0,
     })),
+    ...checkboxGroupDisplayNodes.map((r) => ({
+      node: r as DisplayNode,
+      score: r.bestScore,
+      forceOrder: getMinForceOrderFromDisplayRows(r.items),
+      kindRank: 0,
+    })),
   ]
 
   allNodes.sort(sortByForceOrderThenKindThenScore)
@@ -276,6 +392,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
  * Groups are shown as containers with their matching items.
  * Groups and ungrouped items are mixed by score.
  * Radio group behavior is controlled by radioGroupSearchBehavior.
+ * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
  */
 function filterNodesPreserve(options: FilterNodesOptions): {
   displayNodes: DisplayNode[]
@@ -292,12 +409,13 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     minLength = 0,
     sortGroups = true,
     radioGroupSearchBehavior = 'preserve',
+    checkboxGroupSearchBehavior = 'preserve',
   } = options
 
   // Determine if deep search should activate
   const shouldDeepSearch = deepSearch && query.length >= minLength
 
-  // Flatten nodes (tracking group and radio group membership)
+  // Flatten nodes (tracking group, radio group, and checkbox group membership)
   const flattened = flattenNodes(nodes, {
     deep: shouldDeepSearch,
     includeInDeepSearch,
@@ -333,6 +451,34 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     }
   }
 
+  const allCheckboxGroupItems = new Map<
+    string,
+    {
+      checkboxGroupDef: CheckboxGroupDef
+      menuNode: PopupMenuNode<CheckboxGroupDef>
+      items: FlattenedNode[]
+      breadcrumbs: BreadcrumbNode[]
+    }
+  >()
+
+  if (checkboxGroupSearchBehavior === 'preserve-show-all') {
+    for (const flatNode of flattened) {
+      if (flatNode.checkboxGroup) {
+        const existing = allCheckboxGroupItems.get(flatNode.checkboxGroup.id)
+        if (existing) {
+          existing.items.push(flatNode)
+        } else {
+          allCheckboxGroupItems.set(flatNode.checkboxGroup.id, {
+            checkboxGroupDef: flatNode.checkboxGroup.checkboxGroupDef,
+            menuNode: flatNode.checkboxGroup.menuNode,
+            items: [flatNode],
+            breadcrumbs: flatNode.breadcrumbs,
+          })
+        }
+      }
+    }
+  }
+
   // Score nodes
   const scored = scoreNodes(flattened, query, normalizeQuery)
 
@@ -355,6 +501,15 @@ function filterNodesPreserve(options: FilterNodesOptions): {
       breadcrumbs: BreadcrumbNode[]
     }
   >()
+  const checkboxGroupedItems = new Map<
+    string,
+    {
+      checkboxGroupDef: CheckboxGroupDef
+      menuNode: PopupMenuNode<CheckboxGroupDef>
+      items: ScoredNode[]
+      breadcrumbs: BreadcrumbNode[]
+    }
+  >()
   const ungroupedItems: ScoredNode[] = []
 
   for (const scoredNode of scored) {
@@ -370,6 +525,22 @@ function filterNodesPreserve(options: FilterNodesOptions): {
           radioGroupedItems.set(scoredNode.radioGroup.id, {
             radioGroupDef: scoredNode.radioGroup.radioGroupDef,
             menuNode: scoredNode.radioGroup.menuNode,
+            items: [scoredNode],
+            breadcrumbs: scoredNode.breadcrumbs,
+          })
+        }
+      }
+    } else if (scoredNode.checkboxGroup) {
+      if (checkboxGroupSearchBehavior === 'flatten') {
+        ungroupedItems.push(scoredNode)
+      } else {
+        const existing = checkboxGroupedItems.get(scoredNode.checkboxGroup.id)
+        if (existing) {
+          existing.items.push(scoredNode)
+        } else {
+          checkboxGroupedItems.set(scoredNode.checkboxGroup.id, {
+            checkboxGroupDef: scoredNode.checkboxGroup.checkboxGroupDef,
+            menuNode: scoredNode.checkboxGroup.menuNode,
             items: [scoredNode],
             breadcrumbs: scoredNode.breadcrumbs,
           })
@@ -444,6 +615,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
             breadcrumbs: flatNode.breadcrumbs,
             group: flatNode.group,
             radioGroup: flatNode.radioGroup,
+            checkboxGroup: flatNode.checkboxGroup,
           }))
         } else {
           itemsToDisplay = matchingItems
@@ -478,12 +650,59 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     }
   }
 
+  const checkboxGroupDisplayNodes: DisplayCheckboxGroupNode[] = []
+  if (checkboxGroupSearchBehavior !== 'flatten') {
+    for (const [
+      checkboxGroupId,
+      { items: matchingItems, breadcrumbs, menuNode },
+    ] of checkboxGroupedItems) {
+      let itemsToDisplay: ScoredNode[]
+      if (checkboxGroupSearchBehavior === 'preserve-show-all') {
+        const allItems = allCheckboxGroupItems.get(checkboxGroupId)
+        if (allItems) {
+          const matchingScores = new Map(
+            matchingItems.map((item) => [item.node.id, item.score]),
+          )
+          itemsToDisplay = allItems.items.map((flatNode) => ({
+            node: flatNode.node,
+            score: matchingScores.get(flatNode.node.id) ?? 0,
+            breadcrumbs: flatNode.breadcrumbs,
+            group: flatNode.group,
+            radioGroup: flatNode.radioGroup,
+            checkboxGroup: flatNode.checkboxGroup,
+          }))
+        } else {
+          itemsToDisplay = matchingItems
+        }
+      } else {
+        itemsToDisplay = matchingItems
+      }
+      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
+      const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
+      const groupContext: GroupRenderContext = {
+        search: query ? { query, bestScore } : null,
+        matchCount: matchingItems.length,
+        breadcrumbs,
+        isDeepSearchResult: breadcrumbs.length > 0,
+      }
+      checkboxGroupDisplayNodes.push({
+        kind: 'checkbox-group',
+        node: menuNode,
+        context: groupContext,
+        items: itemsToDisplay.map((item) =>
+          buildDisplayRowNode(item, query, highlightedId),
+        ),
+        bestScore,
+      })
+    }
+  }
+
   // Build display nodes for ungrouped items
   const ungroupedDisplayNodes: DisplayRowNode[] = ungroupedItems
     .sort(compareScoredNodesByForceOrderAndScore)
     .map((item) => buildDisplayRowNode(item, query, highlightedId))
 
-  // Merge groups, radio groups, and ungrouped items, sorted by forced order then score.
+  // Merge groups, radio groups, checkbox groups, and ungrouped items, sorted by forced order then score.
   type SortableNode = {
     node: DisplayNode
     score: number
@@ -499,6 +718,12 @@ function filterNodesPreserve(options: FilterNodesOptions): {
       kindRank: 0,
     })),
     ...radioGroupDisplayNodes.map((r) => ({
+      node: r as DisplayNode,
+      score: r.bestScore,
+      forceOrder: getMinForceOrderFromDisplayRows(r.items),
+      kindRank: 0,
+    })),
+    ...checkboxGroupDisplayNodes.map((r) => ({
       node: r as DisplayNode,
       score: r.bestScore,
       forceOrder: getMinForceOrderFromDisplayRows(r.items),
@@ -527,6 +752,8 @@ function filterNodesPreserve(options: FilterNodesOptions): {
  * Handles both browse mode and search mode (shallow and deep).
  * Respects groupSearchBehavior configuration (only applies during search).
  * Note: Radio groups are ALWAYS preserved regardless of groupSearchBehavior.
+ * Radio group behavior is controlled by radioGroupSearchBehavior.
+ * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
  */
 export function filterNodes(options: FilterNodesOptions): {
   displayNodes: DisplayNode[]

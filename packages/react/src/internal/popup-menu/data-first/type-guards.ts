@@ -4,6 +4,7 @@
 
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
+  CheckboxGroupDef,
   CheckboxItemDef,
   GroupDef,
   ItemDef,
@@ -55,6 +56,10 @@ export function isGroupDef(node: NodeDef): node is GroupDef {
 
 export function isRadioGroupDef(node: NodeDef): node is RadioGroupDef {
   return node.kind === 'radio-group'
+}
+
+export function isCheckboxGroupDef(node: NodeDef): node is CheckboxGroupDef {
+  return node.kind === 'checkbox-group'
 }
 
 export function isSeparatorDef(
