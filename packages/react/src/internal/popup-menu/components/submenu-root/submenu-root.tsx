@@ -359,6 +359,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       menuType: parentPopupMenuContext?.menuType ?? ('dropdown' as const),
       closeOnOutsidePress:
         parentPopupMenuContext?.closeOnOutsidePress ?? 'pointerdown',
+      rangeSelection: parentPopupMenuContext?.rangeSelection ?? true,
+      dragSelection: parentPopupMenuContext?.dragSelection ?? false,
+      getAriaSelectionText: parentPopupMenuContext?.getAriaSelectionText,
     }),
     [
       store,
@@ -374,6 +377,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       parentPopupMenuContext?.virtualAnchor,
       parentPopupMenuContext?.menuType,
       parentPopupMenuContext?.closeOnOutsidePress,
+      parentPopupMenuContext?.rangeSelection,
+      parentPopupMenuContext?.dragSelection,
+      parentPopupMenuContext?.getAriaSelectionText,
     ],
   )
 

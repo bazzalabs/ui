@@ -124,6 +124,31 @@ export interface ContextMenuRootProps {
   idScope?: PopupMenuIdScope
 
   /**
+   * Whether shift-clicking a checkbox item (or pressing Shift+Enter on the
+   * highlighted one) sets every checkbox item between it and the last
+   * checkbox item you interacted with to the same checked state. Also
+   * enables the keyboard span: hold Shift while moving the highlight, release
+   * Shift to apply.
+   * @default true
+   */
+  rangeSelection?: boolean
+  /**
+   * Lets the user press a checkbox item and drag across others to set them all
+   * to the pressed item's new state. Off by default. `'keep'` keeps rows set
+   * once the pointer has reached them; `'rubber-band'` returns rows outside the
+   * current span to their previous state. Mouse and pen only.
+   * @default false
+   */
+  dragSelection?: false | 'keep' | 'rubber-band'
+  /**
+   * Returns the text announced to screen readers after a range or drag
+   * selection changes rows, for localization. `count` is the number of rows
+   * changed and `checked` the state they were set to. Defaults to English
+   * ("3 items checked", "1 item unchecked").
+   */
+  getAriaSelectionText?: (count: number, checked: boolean) => string
+
+  /**
    * Debug visualization options for submenu interaction heuristics.
    */
   debug?: PopupMenuDebugOptions
@@ -199,6 +224,9 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     disabled: disabledProp = false,
     modal = true,
     closeOnOutsidePress = 'pointerdown',
+    rangeSelection = true,
+    dragSelection = false,
+    getAriaSelectionText,
     onOpenChangeComplete: onOpenChangeCompleteProp,
     actionsRef,
     getResolvedId,
@@ -341,6 +369,9 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
         virtualAnchor={virtualAnchor}
         menuType="context"
         closeOnOutsidePress={closeOnOutsidePress}
+        rangeSelection={rangeSelection}
+        dragSelection={dragSelection}
+        getAriaSelectionText={getAriaSelectionText}
         componentName="context-menu"
         debug={debug}
       >
