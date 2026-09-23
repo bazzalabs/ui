@@ -11,6 +11,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CommandMenu } from '../../command-menu/index.js'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
 
+async function clickWithShift(
+  user: ReturnType<typeof userEvent.setup>,
+  element: HTMLElement,
+) {
+  await user.keyboard('{Shift>}')
+  await user.click(element)
+  await user.keyboard('{/Shift}')
+}
+
 function Menu({
   children,
   ...props
@@ -1320,5 +1329,216 @@ describe('keyboard span selection', () => {
       )
     expect(spies[2]).not.toHaveBeenCalled()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+})
+
+describe('announcements', () => {
+  const makeRowsForAnnouncement = (spies: ReturnType<typeof vi.fn>[]) =>
+    (['a', 'b', 'c', 'd', 'e'] as const).map((name, index) => (
+      <DropdownMenu.CheckboxItem
+        key={name}
+        data-testid={`cb-${name}`}
+        onCheckedChange={spies[index]}
+      >
+        {name}
+      </DropdownMenu.CheckboxItem>
+    ))
+  const makeKeyboardAnnouncementRows = (
+    spies: ReturnType<typeof vi.fn>[],
+    checked: string[],
+  ) =>
+    (['a', 'b', 'c', 'd', 'e'] as const).map((name, index) => (
+      <DropdownMenu.CheckboxItem
+        key={name}
+        data-testid={`cb-${name}`}
+        defaultChecked={checked.includes(name)}
+        onCheckedChange={spies[index]}
+      >
+        {name}
+      </DropdownMenu.CheckboxItem>
+    ))
+  const layoutAnnouncementRows = () => {
+    const list = screen.getByTestId('list')
+    const rows = list.querySelectorAll<HTMLElement>(
+      '[role="menuitemcheckbox"], [role="option"], [role="menuitem"]',
+    )
+    rows.forEach((el, index) => {
+      const top = index * 32
+      Object.defineProperty(el, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          top,
+          bottom: top + 32,
+          left: 0,
+          right: 100,
+          width: 100,
+          height: 32,
+          x: 0,
+          y: top,
+          toJSON: () => ({}),
+        }),
+      })
+    })
+  }
+  const prepareAnnouncementDrag = async (spies: ReturnType<typeof vi.fn>[]) => {
+    const user = userEvent.setup()
+    render(<Menu dragSelection="keep">{makeRowsForAnnouncement(spies)}</Menu>)
+    await openMenu(user)
+    layoutAnnouncementRows()
+  }
+  const downAnnouncement = (id: string, y: number) =>
+    fireEvent.pointerDown(screen.getByTestId(id), {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      clientY: y,
+    })
+  const moveAnnouncement = (y: number) =>
+    fireEvent.pointerMove(document, { pointerId: 1, clientY: y })
+  const upAnnouncement = (y: number) =>
+    fireEvent.pointerUp(document, { pointerId: 1, clientY: y })
+
+  it('mounts one polite status region and resets its initial marker', async () => {
+    const user = userEvent.setup()
+    render(
+      <Menu>
+        <DropdownMenu.CheckboxItem>A</DropdownMenu.CheckboxItem>
+      </Menu>,
+    )
+    await openMenu(user)
+    const status = screen.getByRole('status')
+    expect(screen.getAllByRole('status')).toHaveLength(1)
+    expect(status).toHaveAttribute('aria-live', 'polite')
+    expect(status).toHaveAttribute('aria-atomic', 'true')
+    expect(status.textContent).toBe('\u2060')
+    await new Promise((r) => setTimeout(r, 250))
+    expect(status.textContent).toBe('')
+  })
+
+  it('announces Shift-click ranges, but not plain clicks', async () => {
+    const user = userEvent.setup()
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    render(<Menu>{makeRowsForAnnouncement(spies)}</Menu>)
+    await openMenu(user)
+    const status = screen.getByRole('status')
+    await new Promise((r) => setTimeout(r, 250))
+    await user.click(screen.getByTestId('cb-a'))
+    expect(status.textContent).toBe('')
+    await clickWithShift(user, screen.getByTestId('cb-c'))
+    expect(status).toHaveTextContent('2 items checked')
+  })
+
+  it('announces drag commits', async () => {
+    await prepareAnnouncementDrag(Array.from({ length: 5 }, () => vi.fn()))
+    const status = screen.getByRole('status')
+    downAnnouncement('cb-a', 16)
+    moveAnnouncement(112)
+    upAnnouncement(112)
+    expect(status).toHaveTextContent('4 items checked')
+  })
+
+  it('announces a keyboard span that unchecks a row', async () => {
+    const user = userEvent.setup()
+    render(
+      <Menu>
+        {makeKeyboardAnnouncementRows(
+          Array.from({ length: 5 }, () => vi.fn()),
+          ['a'],
+        )}
+      </Menu>,
+    )
+    await openMenu(user)
+    const status = screen.getByRole('status')
+    await new Promise((r) => setTimeout(r, 250))
+    screen.getByTestId('list').focus()
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}')
+    expect(status).toHaveTextContent('1 item unchecked')
+  })
+
+  it('announces identical commits twice with distinct raw text', async () => {
+    const user = userEvent.setup()
+    render(
+      <Menu getAriaSelectionText={() => '2 items checked'}>
+        {makeRowsForAnnouncement(Array.from({ length: 5 }, () => vi.fn()))}
+      </Menu>,
+    )
+    await openMenu(user)
+    const status = screen.getByRole('status')
+    await user.click(screen.getByTestId('cb-a'))
+    await clickWithShift(user, screen.getByTestId('cb-c'))
+    const first = status.textContent
+    expect(status).toHaveTextContent('2 items checked')
+    await clickWithShift(user, screen.getByTestId('cb-b'))
+    expect(status).toHaveTextContent('2 items checked')
+    expect(status.textContent).not.toBe(first)
+  })
+
+  it('leaves announcements unchanged for plain click and Enter', async () => {
+    const user = userEvent.setup()
+    render(
+      <Menu>
+        <DropdownMenu.CheckboxItem data-testid="only">
+          A
+        </DropdownMenu.CheckboxItem>
+      </Menu>,
+    )
+    await openMenu(user)
+    const status = screen.getByRole('status')
+    await new Promise((r) => setTimeout(r, 250))
+    await user.click(screen.getByTestId('only'))
+    const beforeEnter = status.textContent
+    screen.getByTestId('list').focus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('only')).toHaveAttribute('aria-checked', 'false')
+    expect(status.textContent).toBe(beforeEnter)
+  })
+
+  it('uses getAriaSelectionText verbatim', async () => {
+    const user = userEvent.setup()
+    render(
+      <Menu
+        getAriaSelectionText={(count, checked) =>
+          `${count} ${checked ? 'ausgewählt' : 'abgewählt'}`
+        }
+      >
+        {makeRowsForAnnouncement(Array.from({ length: 5 }, () => vi.fn()))}
+      </Menu>,
+    )
+    await openMenu(user)
+    await user.click(screen.getByTestId('cb-a'))
+    await clickWithShift(user, screen.getByTestId('cb-c'))
+    expect(screen.getByRole('status')).toHaveTextContent('2 ausgewählt')
+  })
+
+  it('does not announce a cancelled commit', async () => {
+    const user = userEvent.setup()
+    const cancel = vi.fn((_value, eventDetails) => eventDetails.cancel())
+    render(
+      <Menu>
+        <DropdownMenu.CheckboxGroup onValueChange={cancel}>
+          {(['a', 'b', 'c'] as const).map((name) => (
+            <DropdownMenu.CheckboxItem
+              key={name}
+              value={name}
+              data-testid={`cb-${name}`}
+            >
+              {name}
+            </DropdownMenu.CheckboxItem>
+          ))}
+        </DropdownMenu.CheckboxGroup>
+      </Menu>,
+    )
+    await openMenu(user)
+    const status = screen.getByRole('status')
+    await new Promise((r) => setTimeout(r, 250))
+    const before = status.textContent
+    await user.click(screen.getByTestId('cb-a'))
+    await clickWithShift(user, screen.getByTestId('cb-c'))
+    expect(status.textContent).toBe(before)
+    expect(cancel).toHaveBeenCalledTimes(2)
+    expect(cancel).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ reason: 'range-selection' }),
+    )
   })
 })
