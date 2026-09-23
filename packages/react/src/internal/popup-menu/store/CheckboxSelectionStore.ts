@@ -18,6 +18,8 @@ export interface SelectionListbox {
   getVisibleItemIds: () => string[]
   /** The mounted element of a row, or `null` when it is not mounted. */
   getItemElement: (id: string) => HTMLElement | null
+  /** The element the list scrolls in, or `null`. */
+  getScrollElement: () => HTMLElement | null
   /** Move the highlight to a row (pointer cause). */
   setHighlightedId: (id: string) => void
   /** Subscribe to the surface's open state (controlled or not). Returns an unsubscribe function. */
@@ -113,6 +115,8 @@ export interface CheckboxSelectionContext {
   warnedUnmounted: boolean
   press: PointerPress | null
   suppressClick: boolean
+  autoScrollFrame: number | null
+  autoScrollVelocity: number
 }
 
 // ============================================================================
@@ -130,6 +134,9 @@ const selectors = {
     state.preview.get(id),
   ),
 }
+
+const AUTO_SCROLL_ZONE_PX = 32
+const AUTO_SCROLL_MAX_STEP_PX = 16
 
 // ============================================================================
 // Store
@@ -155,6 +162,8 @@ export class CheckboxSelectionStore extends ReactStore<
         warnedUnmounted: false,
         press: null,
         suppressClick: false,
+        autoScrollFrame: null,
+        autoScrollVelocity: 0,
       },
       selectors,
     )
@@ -407,6 +416,7 @@ export class CheckboxSelectionStore extends ReactStore<
 
   /** Cancel the tracked press and, if it had become a drag, its preview. */
   cancelPress() {
+    this.stopAutoScroll()
     const press = this.context.press
     if (!press) return
     this.context.press = null
@@ -435,15 +445,26 @@ export class CheckboxSelectionStore extends ReactStore<
     }, 0)
   }
 
-  /** @internal exposed for auto-scroll: re-evaluate the row under the last pointer position. */
-  handlePressMove(clientY: number) {
+  /** Re-evaluate the row under a pointer position and extend the drag to it. */
+  private handlePressMove(clientY: number) {
     const press = this.context.press
     if (!press) return
     press.lastClientY = clientY
-    const rowId = this.resolveRowAtY(clientY)
+    const scrollElement = this.context.listbox.getScrollElement()
+    const rect = scrollElement?.getBoundingClientRect()
+    // Clamp to the scroll element so a pointer past its edge only reaches
+    // rows as they scroll in (a zero-height rect means no layout; skip).
+    const hasRect = rect !== undefined && rect.height > 0
+    const clampedY = hasRect
+      ? Math.min(Math.max(clientY, rect.top), rect.bottom - 1)
+      : clientY
+    const pastEdge = hasRect && (clientY < rect.top || clientY >= rect.bottom)
+    const rowId = this.resolveRowAtY(clampedY)
     if (rowId === null) return
     if (!press.dragging) {
-      if (rowId === press.id) return
+      // Still on the pressed row: not a drag yet, unless the pointer left the
+      // list through an edge (then the drag starts so auto-scroll can run).
+      if (rowId === press.id && !pastEdge) return
       press.dragging = true
       this.beginGesture('drag', press.id, press.mode)
       if (!this.state.gesture) {
@@ -453,6 +474,7 @@ export class CheckboxSelectionStore extends ReactStore<
     }
     this.extendGesture(rowId)
     this.context.listbox.setHighlightedId(rowId)
+    this.updateAutoScroll(clientY)
   }
 
   private endPress(event: PointerEvent) {
@@ -463,10 +485,73 @@ export class CheckboxSelectionStore extends ReactStore<
     this.handlePressMove(event.clientY)
     if (this.context.press !== press) return
     this.context.press = null
+    // After the final move, so the frame it may have scheduled is dropped too.
+    this.stopAutoScroll()
     press.cleanup()
     if (!press.dragging) return
     this.commitGesture(REASONS.dragSelection, event)
     this.armClickSuppression()
+  }
+
+  // --------------------------------------------------------------------------
+  // Auto-scroll
+  // --------------------------------------------------------------------------
+
+  /** Recompute the auto-scroll velocity for the pointer's position and keep the frame loop going. */
+  private updateAutoScroll(clientY: number) {
+    const press = this.context.press
+    const scrollElement = this.context.listbox.getScrollElement()
+    if (!press?.dragging || !scrollElement) {
+      this.stopAutoScroll()
+      return
+    }
+    const rect = scrollElement.getBoundingClientRect()
+    const topEdge = rect.top + AUTO_SCROLL_ZONE_PX
+    const bottomEdge = rect.bottom - AUTO_SCROLL_ZONE_PX
+    let velocity = 0
+    if (clientY < topEdge) {
+      velocity = -Math.min(1, (topEdge - clientY) / AUTO_SCROLL_ZONE_PX)
+    } else if (clientY > bottomEdge) {
+      velocity = Math.min(1, (clientY - bottomEdge) / AUTO_SCROLL_ZONE_PX)
+    }
+    this.context.autoScrollVelocity = velocity
+    if (velocity === 0) {
+      this.stopAutoScroll()
+      return
+    }
+    if (this.context.autoScrollFrame === null) {
+      this.scheduleAutoScrollFrame()
+    }
+  }
+
+  private scheduleAutoScrollFrame() {
+    this.context.autoScrollFrame = requestAnimationFrame(() => {
+      this.context.autoScrollFrame = null
+      const press = this.context.press
+      const scrollElement = this.context.listbox.getScrollElement()
+      const velocity = this.context.autoScrollVelocity
+      if (!press?.dragging || !scrollElement || velocity === 0) return
+      const before = scrollElement.scrollTop
+      // At least one whole pixel per frame, so a slow ramp still moves.
+      const step =
+        Math.sign(velocity) *
+        Math.max(1, Math.round(Math.abs(velocity) * AUTO_SCROLL_MAX_STEP_PX))
+      scrollElement.scrollTop = before + step
+      if (scrollElement.scrollTop === before) {
+        // Reached the end of the list; wait for the pointer to move again.
+        this.context.autoScrollVelocity = 0
+        return
+      }
+      this.handlePressMove(press.lastClientY)
+    })
+  }
+
+  private stopAutoScroll() {
+    if (this.context.autoScrollFrame !== null) {
+      cancelAnimationFrame(this.context.autoScrollFrame)
+      this.context.autoScrollFrame = null
+    }
+    this.context.autoScrollVelocity = 0
   }
 
   // --------------------------------------------------------------------------

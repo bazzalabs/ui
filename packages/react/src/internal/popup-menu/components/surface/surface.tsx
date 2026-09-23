@@ -517,6 +517,22 @@ export const PopupMenuSurface = React.forwardRef<
         getVisibleItemIds: () => store.getVisibleItemIds(),
         getItemElement: (id) =>
           store.context.refs.itemRefs.get(id)?.current ?? null,
+        getScrollElement: () => {
+          const listElement = store.context.refs.listRef.current
+          const scrollElement =
+            store.context.refs.listScrollContainerRef.current ??
+            (listElement ? store.getScrollResetElement(listElement) : null)
+          // Never auto-scroll an ancestor outside this surface (the page or
+          // an app shell); fall back to the list element itself.
+          if (
+            scrollElement &&
+            surfaceRef.current &&
+            !surfaceRef.current.contains(scrollElement)
+          ) {
+            return listElement
+          }
+          return scrollElement
+        },
         setHighlightedId: (id) => store.setHighlightedId(id, 'pointer'),
         observeOpen: (listener) =>
           store.observe('open', (open) => listener(open)),

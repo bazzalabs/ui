@@ -476,11 +476,24 @@ describe('drag selection', () => {
     </>
   )
   const layoutRows = () => {
-    const rows = screen
-      .getByTestId('list')
-      .querySelectorAll<HTMLElement>(
-        '[role="menuitemcheckbox"], [role="option"], [role="menuitem"]',
-      )
+    const list = screen.getByTestId('list')
+    Object.defineProperty(list, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        top: 0,
+        bottom: 1000,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 1000,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }),
+    })
+    const rows = list.querySelectorAll<HTMLElement>(
+      '[role="menuitemcheckbox"], [role="option"], [role="menuitem"]',
+    )
     rows.forEach((el, index) => {
       const top = index * 32
       Object.defineProperty(el, 'getBoundingClientRect', {
@@ -523,6 +536,174 @@ describe('drag selection', () => {
     await openMenu(user)
     layoutRows()
   }
+
+  describe('auto-scroll', () => {
+    const prepareAutoScroll = async () => {
+      const spies = Array.from({ length: 10 }, () => vi.fn())
+      const user = userEvent.setup()
+      render(
+        <Menu dragSelection="keep">
+          {Array.from({ length: 10 }, (_, index) => `cb-${index}`).map(
+            (id, index) => (
+              <DropdownMenu.CheckboxItem
+                key={id}
+                data-testid={id}
+                onCheckedChange={spies[index]}
+              >
+                {index}
+              </DropdownMenu.CheckboxItem>
+            ),
+          )}
+        </Menu>,
+      )
+      await openMenu(user)
+      const list = screen.getByTestId('list')
+      Object.defineProperty(list, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          top: 0,
+          bottom: 128,
+          left: 0,
+          right: 100,
+          width: 100,
+          height: 128,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }),
+      })
+      const rows = list.querySelectorAll<HTMLElement>(
+        '[role="menuitemcheckbox"]',
+      )
+      rows.forEach((el, index) => {
+        Object.defineProperty(el, 'getBoundingClientRect', {
+          configurable: true,
+          value: () => {
+            const top = index * 32 - list.scrollTop
+            return {
+              top,
+              bottom: top + 32,
+              left: 0,
+              right: 100,
+              width: 100,
+              height: 32,
+              x: 0,
+              y: top,
+              toJSON: () => ({}),
+            }
+          },
+        })
+      })
+      return { list, spies }
+    }
+
+    it('keeps extending the span as rows scroll into view', async () => {
+      const { list, spies } = await prepareAutoScroll()
+      down('cb-0', 8)
+      move(200)
+      for (let index = 0; index < 4; index++) {
+        expect(screen.getByTestId(`cb-${index}`)).toHaveAttribute(
+          'data-pending',
+        )
+      }
+      for (const index of [4, 5, 6]) {
+        expect(screen.getByTestId(`cb-${index}`)).not.toHaveAttribute(
+          'data-pending',
+        )
+      }
+      await waitFor(() => expect(list.scrollTop).toBeGreaterThan(0))
+      await waitFor(() =>
+        expect(screen.getByTestId('cb-6')).toHaveAttribute('data-pending'),
+      )
+      up(120)
+      for (const spy of spies.slice(0, 7)) {
+        expect(spy).toHaveBeenCalledWith(
+          true,
+          expect.objectContaining({ reason: 'drag-selection' }),
+        )
+      }
+    })
+
+    it('stops scrolling when the pointer returns inside the list', async () => {
+      const { list } = await prepareAutoScroll()
+      down('cb-0', 8)
+      move(120)
+      await waitFor(() => expect(list.scrollTop).toBeGreaterThan(0))
+      move(64)
+      const scrollTop = list.scrollTop
+      await new Promise((r) => setTimeout(r, 30))
+      expect(list.scrollTop).toBe(scrollTop)
+      up(64)
+    })
+
+    it.each([
+      [200, 16],
+      [104, 4],
+      [97, 1],
+      [96.25, 1],
+    ])('ramps scroll speed at clientY %i', async (clientY, expected) => {
+      const { list } = await prepareAutoScroll()
+      down('cb-0', 8)
+      move(clientY)
+      await new Promise((r) => setTimeout(r, 0))
+      expect(list.scrollTop).toBe(expected)
+      fireEvent.keyDown(document, { key: 'Escape' })
+    })
+
+    it('auto-scrolls upward and extends the span to rows entering view', async () => {
+      const { list } = await prepareAutoScroll()
+      list.scrollTop = 64
+      down('cb-3', 48)
+      move(8)
+      await waitFor(() => expect(list.scrollTop).toBeLessThan(64))
+      await waitFor(() =>
+        expect(screen.getByTestId('cb-1')).toHaveAttribute('data-pending'),
+      )
+      up(8)
+    })
+
+    it('starts auto-scroll when the press row is at the visible boundary', async () => {
+      const { spies } = await prepareAutoScroll()
+      down('cb-3', 112)
+      move(140)
+      expect(screen.getByTestId('cb-3')).toHaveAttribute('data-pending')
+      await waitFor(() =>
+        expect(screen.getByTestId('cb-4')).toHaveAttribute('data-pending'),
+      )
+      up(140)
+      expect(spies[3]).toHaveBeenCalledWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+      expect(spies[4]).toHaveBeenCalledWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    })
+
+    it('keeps a press released beyond the edge without movement as a click', async () => {
+      const { list, spies } = await prepareAutoScroll()
+      down('cb-3', 112)
+      up(112)
+      fireEvent.click(screen.getByTestId('cb-3'))
+      expect(spies[3]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'item-press' }),
+      )
+      expect(list.scrollTop).toBe(0)
+    })
+
+    it('stops scrolling when the drag is cancelled', async () => {
+      const { list } = await prepareAutoScroll()
+      down('cb-0', 8)
+      move(120)
+      await waitFor(() => expect(list.scrollTop).toBeGreaterThan(0))
+      fireEvent.keyDown(document, { key: 'Escape' })
+      const scrollTop = list.scrollTop
+      await new Promise((r) => setTimeout(r, 30))
+      expect(list.scrollTop).toBe(scrollTop)
+    })
+  })
 
   it('uses a normal click when pressed and released on the same row', async () => {
     const spies = Array.from({ length: 5 }, () => vi.fn())
