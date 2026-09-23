@@ -757,7 +757,8 @@ export class ListboxStore extends ReactStore<
     scrollEl.scrollTop = 0
   }
 
-  private getScrollResetElement(listEl: HTMLElement): HTMLElement {
+  /** The element that scrolls the list: the first scrollable ancestor of the list element, or the list element itself. */
+  getScrollResetElement(listEl: HTMLElement): HTMLElement {
     let element: HTMLElement | null = listEl
 
     while (element) {
