@@ -13,6 +13,7 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import type {
   CheckedChangeEventDetails,
   CheckedChangeReason,
@@ -270,6 +271,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const disabled = item.disabled
 
   const selection = useCheckboxSelection()
+  const { rangeSelection } = usePopupMenuContext()
   const preview = selection.useState('getPreview', item.storeId)
   const displayChecked = preview ?? checked
   const pending = preview !== undefined && preview !== checked
@@ -359,11 +361,24 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       onClick?.(event)
-      if (!event.defaultPrevented) {
-        item.handlers.onClick(event)
+      if (event.defaultPrevented) return
+      if (rangeSelection && event.shiftKey && !disabled && item.storeId) {
+        const anchor = selection.getUsableAnchor()
+        if (anchor !== null) {
+          // Range selection: commit through the store and never close the menu.
+          event.preventDefault()
+          selection.applyRange(
+            anchor,
+            item.storeId,
+            REASONS.rangeSelection,
+            event.nativeEvent,
+          )
+          return
+        }
       }
+      item.handlers.onClick(event)
     },
-    [onClick, item.handlers],
+    [onClick, rangeSelection, disabled, item.storeId, item.handlers, selection],
   )
 
   const handlePointerDown = React.useCallback(
