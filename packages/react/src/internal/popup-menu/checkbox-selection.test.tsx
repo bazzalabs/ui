@@ -8,6 +8,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { CommandMenu } from '../../command-menu/index.js'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
 
 function Menu({
@@ -976,5 +977,348 @@ describe('drag selection', () => {
     )
     up(80)
     expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+  })
+})
+
+describe('keyboard span selection', () => {
+  const makeKeyboardRows = (
+    spies: ReturnType<typeof vi.fn>[],
+    checked: string[] = [],
+  ) =>
+    (['a', 'b', 'c', 'd', 'e'] as const).map((name, index) => (
+      <DropdownMenu.CheckboxItem
+        key={name}
+        data-testid={`cb-${name}`}
+        defaultChecked={checked.includes(name)}
+        onCheckedChange={spies[index]}
+      >
+        {name}
+      </DropdownMenu.CheckboxItem>
+    ))
+  const spies5 = () => Array.from({ length: 5 }, () => vi.fn())
+  const focusList = () => screen.getByTestId('list').focus()
+  const noCalls = (spies: ReturnType<typeof vi.fn>[]) =>
+    expect(spies.every((spy) => spy.mock.calls.length === 0)).toBe(true)
+
+  it('previews then commits on Shift release', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}')
+    for (const n of ['a', 'b', 'c']) {
+      expect(screen.getByTestId(`cb-${n}`)).toHaveAttribute('data-pending')
+      expect(screen.getByTestId(`cb-${n}`)).toHaveAttribute(
+        'aria-checked',
+        'true',
+      )
+    }
+    noCalls(spies)
+    await user.keyboard('{/Shift}')
+    for (const i of [0, 1, 2]) {
+      expect(spies[i]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+      expect(screen.getByTestId(`cb-${'abc'[i]}`)).not.toHaveAttribute(
+        'data-pending',
+      )
+    }
+    expect(spies[3]).not.toHaveBeenCalled()
+    expect(spies[4]).not.toHaveBeenCalled()
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+  })
+  it('shrinks the rubber-band span', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}{ArrowUp}')
+    for (const n of ['a', 'b'])
+      expect(screen.getByTestId(`cb-${n}`)).toHaveAttribute('data-pending')
+    expect(screen.getByTestId('cb-c')).not.toHaveAttribute('data-pending')
+    await user.keyboard('{/Shift}')
+    for (const i of [0, 1])
+      expect(spies[i]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    expect(spies[2]).not.toHaveBeenCalled()
+  })
+  it('uses the start row target state', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies, ['b'])}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{ArrowDown}{Shift>}{ArrowDown}{/Shift}')
+    expect(spies[1]).toHaveBeenCalledExactlyOnceWith(
+      false,
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+    expect(spies[2]).not.toHaveBeenCalled()
+  })
+  it('spans to End and back to Home', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{End}{/Shift}')
+    for (const spy of spies)
+      expect(spy).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    cleanup()
+    const user2 = userEvent.setup()
+    const checkedSpies = spies5()
+    render(
+      <Menu>{makeKeyboardRows(checkedSpies, ['a', 'b', 'c', 'd', 'e'])}</Menu>,
+    )
+    await openMenu(user2)
+    focusList()
+    await user2.keyboard('{End}{Shift>}{Home}{/Shift}')
+    for (const spy of checkedSpies)
+      expect(spy).toHaveBeenCalledExactlyOnceWith(
+        false,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+  })
+  it('does not wrap at the end', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{End}{Shift>}{ArrowDown}')
+    expect(screen.getByTestId('cb-e')).toHaveAttribute('data-highlighted')
+    await user.keyboard('{/Shift}')
+    expect(spies[4]).toHaveBeenCalledExactlyOnceWith(
+      true,
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+    expect(spies.slice(0, 4).every((s) => !s.mock.calls.length)).toBe(true)
+  })
+  it('cancels on Escape', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    const onOpenChange = vi.fn()
+    render(<Menu onOpenChange={onOpenChange}>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{Escape}')
+    for (const name of ['a', 'b'])
+      expect(screen.getByTestId(`cb-${name}`)).not.toHaveAttribute(
+        'data-pending',
+      )
+    await new Promise((r) => setTimeout(r, 20))
+    expect(onOpenChange).not.toHaveBeenCalledWith(false, expect.anything())
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await user.keyboard('{/Shift}')
+    noCalls(spies)
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+  })
+  it('cancels on Escape from a focus zone', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    const onOpenChange = vi.fn()
+    render(
+      <Menu onOpenChange={onOpenChange}>
+        <DropdownMenu.Header>
+          <DropdownMenu.FocusZone>
+            <button type="button" data-testid="zone-btn">
+              Z
+            </button>
+          </DropdownMenu.FocusZone>
+        </DropdownMenu.Header>
+        {makeKeyboardRows(spies)}
+      </Menu>,
+    )
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}')
+    screen.getByTestId('zone-btn').focus()
+    fireEvent.keyDown(screen.getByTestId('zone-btn'), { key: 'Escape' })
+    for (const name of ['a', 'b'])
+      expect(screen.getByTestId(`cb-${name}`)).not.toHaveAttribute(
+        'data-pending',
+      )
+    await new Promise((r) => setTimeout(r, 20))
+    expect(onOpenChange).not.toHaveBeenCalledWith(false, expect.anything())
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await user.keyboard('{/Shift}')
+    noCalls(spies)
+  })
+  it('commits on Enter only once', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{Enter}')
+    for (const i of [0, 1])
+      expect(spies[i]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    await user.keyboard('{/Shift}')
+    for (const i of [0, 1]) expect(spies[i]).toHaveBeenCalledTimes(1)
+  })
+  it('cancels on window blur', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}')
+    fireEvent.blur(window)
+    await user.keyboard('{/Shift}')
+    noCalls(spies)
+  })
+  it('commits when Shift is released elsewhere', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}')
+    fireEvent.keyUp(document.body, { key: 'Shift' })
+    for (const i of [0, 1])
+      expect(spies[i]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+  })
+  it('moves past a plain item before starting a span', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(
+      <Menu>
+        <DropdownMenu.Item value="plain">Plain</DropdownMenu.Item>
+        {makeKeyboardRows(spies)}
+      </Menu>,
+    )
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}')
+    noCalls(spies)
+    expect(screen.getByTestId('cb-a')).toHaveAttribute('data-highlighted')
+  })
+  it('starts a span on a later Shift arrow after a plain item', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(
+      <Menu>
+        <DropdownMenu.Item value="plain">Plain</DropdownMenu.Item>
+        {makeKeyboardRows(spies)}
+      </Menu>,
+    )
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}{/Shift}')
+    for (const i of [0, 1])
+      expect(spies[i]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+  })
+  it('commits a checkbox group span once', async () => {
+    const user = userEvent.setup()
+    const onValueChange = vi.fn()
+    render(
+      <Menu>
+        <DropdownMenu.CheckboxGroup value={[]} onValueChange={onValueChange}>
+          {(['a', 'b', 'c', 'd'] as const).map((n) => (
+            <DropdownMenu.CheckboxItem key={n} value={n}>
+              {n}
+            </DropdownMenu.CheckboxItem>
+          ))}
+        </DropdownMenu.CheckboxGroup>
+      </Menu>,
+    )
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}{/Shift}')
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith(
+      ['a', 'b', 'c'],
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+  })
+  it('does not span when range selection is disabled', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(<Menu rangeSelection={false}>{makeKeyboardRows(spies)}</Menu>)
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}')
+    noCalls(spies)
+    expect(screen.getByTestId('cb-b')).toHaveAttribute('data-highlighted')
+  })
+  it('lets the consumer prevent span navigation', async () => {
+    const user = userEvent.setup()
+    const spies = spies5()
+    render(
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List
+                  data-testid="list"
+                  onKeyDown={(e) => {
+                    if (e.shiftKey) e.preventDefault()
+                  }}
+                >
+                  {makeKeyboardRows(spies)}
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+    await openMenu(user)
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}')
+    noCalls(spies)
+    expect(screen.getByTestId('cb-a')).toHaveAttribute('data-highlighted')
+  })
+  it('supports an input-driven command menu', async () => {
+    const user = userEvent.setup()
+    const spies = [vi.fn(), vi.fn(), vi.fn()]
+    render(
+      <CommandMenu.Root defaultOpen>
+        <CommandMenu.Portal>
+          <CommandMenu.Popup data-testid="dialog">
+            <CommandMenu.Surface>
+              <CommandMenu.Input data-testid="input" />
+              <CommandMenu.List>
+                {(['a', 'b', 'c'] as const).map((n, i) => (
+                  <CommandMenu.CheckboxItem
+                    key={n}
+                    value={n}
+                    onCheckedChange={spies[i]}
+                  >
+                    {n}
+                  </CommandMenu.CheckboxItem>
+                ))}
+              </CommandMenu.List>
+            </CommandMenu.Surface>
+          </CommandMenu.Popup>
+        </CommandMenu.Portal>
+      </CommandMenu.Root>,
+    )
+    await waitFor(() => expect(screen.getByTestId('input')).toHaveFocus())
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}')
+    for (const i of [0, 1])
+      expect(spies[i]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    expect(spies[2]).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })
