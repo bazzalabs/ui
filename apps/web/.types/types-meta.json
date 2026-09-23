@@ -4105,6 +4105,115 @@
           }
         ]
       },
+      "ContextMenuCheckboxGroupProps": {
+        "name": "ContextMenuCheckboxGroupProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "The controlled array of checked item values."
+          },
+          {
+            "name": "defaultValue",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "The default checked values for uncontrolled mode.",
+            "default": "[]"
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string[],\n  eventDetails: CheckboxValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this group regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuCheckboxGroupState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuCheckboxGroupState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuCheckboxGroupState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuCheckboxGroupState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuCheckboxGroupState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuCheckboxGroupState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "ContextMenuCheckboxGroupState": {
+        "name": "ContextMenuCheckboxGroupState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the checkbox group is disabled."
+          },
+          {
+            "name": "firstGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Present when this is the first visible group in the list."
+          },
+          {
+            "name": "lastGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Present when this is the last visible group in the list."
+          },
+          {
+            "name": "first",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "last",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          }
+        ]
+      },
       "ContextMenuCheckboxItemIndicatorProps": {
         "name": "ContextMenuCheckboxItemIndicatorProps",
         "kind": "interface",
@@ -6734,6 +6843,24 @@
             "name": "endingStyle",
             "value": "data-ending-style",
             "description": "Present when the popup menu is animating out."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
+      "ContextMenuCheckboxGroupDataAttributes": {
+        "name": "ContextMenuCheckboxGroupDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-context-menu-checkbox-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-context-menu-checkbox-group'}"
+          },
+          {
+            "name": "disabled",
+            "value": "data-disabled",
+            "description": "Present when the checkbox group is disabled."
           }
         ],
         "enumCategory": "dataAttributes"
@@ -9430,6 +9557,46 @@
         "doc": "Union of all node definition types.",
         "definition": "ItemDef | LinkItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef | SeparatorDef | GroupDef | RadioGroupDef"
       },
+      "ContextMenuCheckboxGroupValueProps": {
+        "name": "ContextMenuCheckboxGroupValueProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string[]",
+            "required": true,
+            "description": "The controlled array of checked item values."
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string[],\n  eventDetails: CheckboxValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "groupId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Stable identifier for this group. Defaults to a generated id."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true,
+            "description": "Children to render within the checkbox group context."
+          }
+        ]
+      },
       "PopupMenuIdScope": {
         "name": "PopupMenuIdScope",
         "kind": "typealias",
@@ -10755,6 +10922,115 @@
             "formattedType": "CSSProperties | (state: PopoverBackdropState) => CSSProperties",
             "required": false,
             "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          }
+        ]
+      },
+      "DropdownMenuCheckboxGroupProps": {
+        "name": "DropdownMenuCheckboxGroupProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "The controlled array of checked item values."
+          },
+          {
+            "name": "defaultValue",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "The default checked values for uncontrolled mode.",
+            "default": "[]"
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string[],\n  eventDetails: CheckboxValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this group regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuCheckboxGroupState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuCheckboxGroupState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuCheckboxGroupState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuCheckboxGroupState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuCheckboxGroupState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuCheckboxGroupState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "DropdownMenuCheckboxGroupState": {
+        "name": "DropdownMenuCheckboxGroupState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the checkbox group is disabled."
+          },
+          {
+            "name": "firstGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Present when this is the first visible group in the list."
+          },
+          {
+            "name": "lastGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Present when this is the last visible group in the list."
+          },
+          {
+            "name": "first",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "last",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
           }
         ]
       },
@@ -13451,6 +13727,24 @@
         ],
         "enumCategory": "dataAttributes"
       },
+      "DropdownMenuCheckboxGroupDataAttributes": {
+        "name": "DropdownMenuCheckboxGroupDataAttributes",
+        "kind": "enum",
+        "members": [
+          {
+            "name": "slot",
+            "value": "bazzaui-dropdown-menu-checkbox-group",
+            "description": "Identifies the component part.",
+            "valueType": "{'bazzaui-dropdown-menu-checkbox-group'}"
+          },
+          {
+            "name": "disabled",
+            "value": "data-disabled",
+            "description": "Present when the checkbox group is disabled."
+          }
+        ],
+        "enumCategory": "dataAttributes"
+      },
       "DropdownMenuCheckboxItemDataAttributes": {
         "name": "DropdownMenuCheckboxItemDataAttributes",
         "kind": "enum",
@@ -14866,6 +15160,46 @@
             "formattedType": "(\n  state: AsyncLoaderResult<NodeDef[], unknown>,\n) => ReactNode",
             "required": true,
             "description": "Render function receiving loader state"
+          }
+        ]
+      },
+      "DropdownMenuCheckboxGroupValueProps": {
+        "name": "DropdownMenuCheckboxGroupValueProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string[]",
+            "required": true,
+            "description": "The controlled array of checked item values."
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string[],\n  eventDetails: CheckboxValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "groupId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Stable identifier for this group. Defaults to a generated id."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true,
+            "description": "Children to render within the checkbox group context."
           }
         ]
       },
@@ -18213,14 +18547,12 @@
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any> | undefined",
-            "formattedType": "DataTableFilterActions<any>",
+            "type": "any",
             "required": false
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {
@@ -18277,24 +18609,21 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any>",
+            "type": "DataTableFilterActions",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
-            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
             "type": "Locale",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": true
           },
           {
@@ -18328,7 +18657,6 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
@@ -18355,15 +18683,13 @@
         "props": [
           {
             "name": "filter",
-            "type": "FilterModel | undefined",
-            "formattedType": "FilterModel",
+            "type": "any",
             "required": false,
             "description": "The current filter state. If omitted, will be read from FilterItem context."
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any> | undefined",
-            "formattedType": "DataTableFilterActions<any>",
+            "type": "any",
             "required": false,
             "description": "Filter actions. If omitted, will be read from FilterItem or Filter context."
           },
@@ -18409,8 +18735,7 @@
         "props": [
           {
             "name": "column",
-            "type": "Column<TData, TType> | undefined",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
+            "type": "any",
             "required": false,
             "description": "The column configuration. If omitted, will be read from FilterItem context."
           },
@@ -18503,24 +18828,21 @@
             "name": "filters",
             "type": "FiltersState",
             "shortType": "State",
-            "formattedType": "FilterModel<any>[]",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any>",
+            "type": "DataTableFilterActions",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
-            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {
@@ -18555,24 +18877,21 @@
             "name": "filters",
             "type": "FiltersState",
             "shortType": "State",
-            "formattedType": "FilterModel<any>[]",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any>",
+            "type": "DataTableFilterActions",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
-            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
             "type": "Locale",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": true
           },
           {
@@ -18618,8 +18937,7 @@
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {
@@ -18656,24 +18974,21 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any>",
+            "type": "DataTableFilterActions",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
-            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           }
         ]
@@ -18695,26 +19010,22 @@
         "props": [
           {
             "name": "column",
-            "type": "Column<TData, TType> | undefined",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
+            "type": "any",
             "required": false
           },
           {
             "name": "filter",
-            "type": "FilterModel<TType> | undefined",
-            "formattedType": "FilterModel<TType>",
+            "type": "any",
             "required": false
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any> | undefined",
-            "formattedType": "DataTableFilterActions<any>",
+            "type": "any",
             "required": false
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {
@@ -18765,13 +19076,11 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {
@@ -18799,32 +19108,27 @@
         "props": [
           {
             "name": "filter",
-            "type": "FilterModel<TType> | undefined",
-            "formattedType": "FilterModel<TType>",
+            "type": "any",
             "required": false
           },
           {
             "name": "column",
-            "type": "Column<TData, TType> | undefined",
-            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
+            "type": "any",
             "required": false
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any> | undefined",
-            "formattedType": "DataTableFilterActions<any>",
+            "type": "any",
             "required": false
           },
           {
             "name": "strategy",
-            "type": "FilterStrategy | undefined",
-            "formattedType": "\"client\" | \"server\"",
+            "type": "any",
             "required": false
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {
@@ -18859,26 +19163,22 @@
           },
           {
             "name": "filters",
-            "type": "FiltersState | undefined",
-            "formattedType": "FiltersState",
+            "type": "any",
             "required": false
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions<any> | undefined",
-            "formattedType": "DataTableFilterActions<any>",
+            "type": "any",
             "required": false
           },
           {
             "name": "strategy",
-            "type": "FilterStrategy | undefined",
-            "formattedType": "\"client\" | \"server\"",
+            "type": "any",
             "required": false
           },
           {
             "name": "locale",
-            "type": "Locale | undefined",
-            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
+            "type": "any",
             "required": false
           },
           {

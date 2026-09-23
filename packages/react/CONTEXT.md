@@ -18,6 +18,10 @@ _Avoid_: suite, cluster, category; "the dropdown-menu family" (a family is the g
 The single visually-emphasized row of a popup — what arrow keys move and `data-highlighted` styles. Distinct from DOM focus (which stays on the input, trigger, or a focus zone; highlight is virtual — DOM focus never moves to rows) and from selection (checked/chosen state).
 _Avoid_: active item, focused item
 
+**Checkbox Group**:
+A set of checkbox items whose checked state is owned by the group as one list of values, keyed by each item's `value`. Items inside it have no checked state of their own; every change — one click or a whole gesture — reaches the consumer as one group value change. The checkbox counterpart of a radio group.
+_Avoid_: checkbox list, multi-select group, checkbox set
+
 **Focus Zone**:
 A region of a surface, registered with it, that participates in tab navigation — Tab moves real DOM focus through its interactive content. Arrow-key navigation and highlight remain the listbox's job; a focus zone is where DOM focus is allowed to go inside the popup.
 _Avoid_: focus trap, focus region, tab group

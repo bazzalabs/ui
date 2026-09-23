@@ -17,6 +17,7 @@ import type {
   CheckedChangeReason,
 } from '../../events.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
+import { useMaybeCheckboxGroupContext } from '../checkbox-group/checkbox-group-context.js'
 import { PopupMenuCheckboxItemDataAttributes } from './checkbox-item.data-attrs.js'
 import {
   CheckboxItemContext,
@@ -143,7 +144,8 @@ const stateAttributesMapping = {
 
 /**
  * A selectable checkbox item within a popup menu.
- * Manages its own checked state independently.
+ * Manages its own checked state when standalone; inside a checkbox group the
+ * group owns it (`checked`, `defaultChecked` and `onCheckedChange` are ignored).
  * Renders a `<div>` element with role="menuitemcheckbox".
  */
 export const PopupMenuCheckboxItem = React.forwardRef<
@@ -174,15 +176,31 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     ...rest
   } = props
 
+  const group = useMaybeCheckboxGroupContext()
+  const registerItemValue = group?.registerItemValue
+
   // Controlled/uncontrolled state management
   const [internalChecked, setInternalChecked] =
     React.useState<boolean>(defaultChecked)
   const isControlled = checkedProp !== undefined
-  const checked = isControlled ? checkedProp : internalChecked
+  const ownChecked = isControlled ? checkedProp : internalChecked
+  const groupValue = group?.value
+  const checked = group
+    ? value !== undefined && (groupValue?.includes(value) ?? false)
+    : ownChecked
 
   const toggleChecked = React.useCallback(
     (reason: CheckedChangeReason = REASONS.itemPress, event?: Event) => {
       const newChecked = !checked
+      if (group) {
+        if (value === undefined) return
+        const current = group.value
+        const next = newChecked
+          ? [...current, value]
+          : current.filter((entry) => entry !== value)
+        group.setValue(next, reason, event)
+        return
+      }
       const eventDetails = createChangeEventDetails(reason, event)
 
       // Call user's callback first
@@ -195,14 +213,46 @@ export const PopupMenuCheckboxItem = React.forwardRef<
         setInternalChecked(newChecked)
       }
     },
-    [checked, isControlled, onCheckedChange],
+    [checked, group, value, isControlled, onCheckedChange],
   )
+
+  React.useEffect(() => {
+    if (registerItemValue === undefined || value === undefined) return
+    return registerItemValue(value)
+  }, [registerItemValue, value])
+
+  const didWarnRef = React.useRef(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: warn once on mount
+  React.useEffect(() => {
+    if (didWarnRef.current) return
+    if (
+      group &&
+      (props.checked !== undefined ||
+        props.defaultChecked !== undefined ||
+        props.onCheckedChange !== undefined)
+    ) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          'PopupMenu.CheckboxItem: `checked`, `defaultChecked` and `onCheckedChange` are ignored inside a checkbox group. The group owns checked state through its `value` and `onValueChange`.',
+        )
+      }
+      didWarnRef.current = true
+    }
+    if (group && value === undefined) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          'PopupMenu.CheckboxItem: a checkbox item inside a checkbox group needs a `value` prop. Without one the item is never checked.',
+        )
+      }
+      didWarnRef.current = true
+    }
+  }, [])
 
   const item = usePopupMenuItem({
     id,
     value,
     keywords,
-    disabled: disabledProp,
+    disabled: disabledProp || (group?.disabled ?? false),
     forceMount,
     shortcut,
     forceOrder,

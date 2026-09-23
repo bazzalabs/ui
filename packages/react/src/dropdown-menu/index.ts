@@ -37,6 +37,9 @@ export type {
   PopupMenuArrowProps as DropdownMenuArrowProps,
   PopupMenuBackdrop as DropdownMenuBackdrop,
   PopupMenuBackdropProps as DropdownMenuBackdropProps,
+  PopupMenuCheckboxGroup as DropdownMenuCheckboxGroup,
+  PopupMenuCheckboxGroupProps as DropdownMenuCheckboxGroupProps,
+  PopupMenuCheckboxGroupState as DropdownMenuCheckboxGroupState,
   PopupMenuCheckboxItem as DropdownMenuCheckboxItem,
   PopupMenuCheckboxItemIndicator as DropdownMenuCheckboxItemIndicator,
   PopupMenuCheckboxItemIndicatorProps as DropdownMenuCheckboxItemIndicatorProps,
@@ -138,6 +141,7 @@ export {
 // Data attributes with component-specific bazzaui-* selectors
 export { DropdownMenuArrowDataAttributes } from './arrow/arrow.data-attrs.js'
 export { DropdownMenuBackdropDataAttributes } from './backdrop/backdrop.data-attrs.js'
+export { DropdownMenuCheckboxGroupDataAttributes } from './checkbox-group/checkbox-group.data-attrs.js'
 export {
   DropdownMenuCheckboxItemDataAttributes,
   DropdownMenuCheckboxItemIndicatorDataAttributes,
@@ -280,6 +284,7 @@ export type {
   LinkItemRenderProps,
   LoaderComponentProps,
   NodeDef,
+  PopupMenuCheckboxGroupValueProps as DropdownMenuCheckboxGroupValueProps,
   PopupMenuIdScope,
   PopupMenuNode,
   PopupMenuRadioGroupValueProps as DropdownMenuRadioGroupValueProps,
@@ -323,6 +328,7 @@ export {
   isDisplaySeparatorNode,
   isPopupMenuNode,
   isTreeItemDef,
+  PopupMenuCheckboxGroupValue as DropdownMenuCheckboxGroupValue,
   PopupMenuRadioGroupValue as DropdownMenuRadioGroupValue,
   useAsyncMenuCoordinator,
   useDataList,
