@@ -23,12 +23,19 @@ export function scoreNodes(
   if (!normalizedQuery) {
     // No query - return all nodes with score 1
     return flattenedNodes.map(
-      ({ node, breadcrumbs, group, radioGroup }): ScoredNode => ({
+      ({
+        node,
+        breadcrumbs,
+        group,
+        radioGroup,
+        checkboxGroup,
+      }): ScoredNode => ({
         node,
         score: 1,
         breadcrumbs,
         group,
         radioGroup,
+        checkboxGroup,
       }),
     )
   }
@@ -40,6 +47,7 @@ export function scoreNodes(
     breadcrumbs,
     group,
     radioGroup,
+    checkboxGroup,
     inheritedKeywords,
   } of flattenedNodes) {
     // Normalize value and keywords to match cmdk's behavior
@@ -65,6 +73,7 @@ export function scoreNodes(
         breadcrumbs,
         group,
         radioGroup,
+        checkboxGroup,
       })
     }
   }

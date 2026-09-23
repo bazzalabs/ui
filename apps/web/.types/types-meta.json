@@ -2152,16 +2152,16 @@
             "description": "Ordered list of item values when using `filter={false}`.\nThis tells the store the intended display order for navigation/highlighting.\nRequired when `filter={false}` - must always be provided with the current visible items."
           },
           {
-            "name": "children",
-            "type": "ReactNode",
-            "required": true
-          },
-          {
             "name": "content",
             "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
             "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
             "required": false,
             "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
           },
           {
             "name": "render",
@@ -8183,11 +8183,11 @@
             "description": "Children (used for text content inference when value is not provided)."
           },
           {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
             "required": false,
-            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+            "description": "Callback when this item is selected (via click or Enter key).\nFor simple items, pass this directly. For checkbox/radio items,\nuse registerSelect() to register a dynamic handler."
           },
           {
             "name": "forceMount",
@@ -8198,19 +8198,19 @@
             "default": "false"
           },
           {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
             "name": "isSubmenuTrigger",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this item is a submenu trigger (for store registration).",
             "default": "false"
-          },
-          {
-            "name": "onSelect",
-            "type": "(() => void) | undefined",
-            "formattedType": "() => void",
-            "required": false,
-            "description": "Callback when this item is selected (via click or Enter key).\nFor simple items, pass this directly. For checkbox/radio items,\nuse registerSelect() to register a dynamic handler."
           }
         ]
       },
@@ -8489,6 +8489,173 @@
         "doc": "Defines how deep-search async results are revealed.\n- 'stream': show available results immediately and append new async batches as they resolve.\n- 'block': hide all deep-search rows until every participating async loader resolves.",
         "definition": "'stream' | 'block'"
       },
+      "CheckboxGroupBehavior": {
+        "name": "CheckboxGroupBehavior",
+        "kind": "typealias",
+        "doc": "Defines how checkbox groups behave during deep search.\n- 'flatten': Checkbox group items are shown individually in the flat list (not recommended).\n- 'preserve': Checkbox group is shown with only matching items visible.\n- 'preserve-show-all': Checkbox group is shown with ALL items visible when any item matches.\n  This is useful when you want users to see all options in a checkbox group.",
+        "definition": "'flatten' | 'preserve' | 'preserve-show-all'"
+      },
+      "CheckboxGroupDef": {
+        "name": "CheckboxGroupDef",
+        "kind": "interface",
+        "doc": "Checkbox group node definition.\nRepresents a group of checkbox items whose checked state the group owns as one array of values.\nProps derived from PopupMenuCheckboxGroupProps.",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"checkbox-group\"",
+            "required": true
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for this checkbox group"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Optional group heading/label"
+          },
+          {
+            "name": "hidden",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether the checkbox group is hidden"
+          },
+          {
+            "name": "value",
+            "type": "string[]",
+            "required": true,
+            "description": "Values of the currently checked items (controlled)."
+          },
+          {
+            "name": "nodes",
+            "type": "CheckboxItemDef[]",
+            "required": true,
+            "description": "Child nodes in this checkbox group - must be CheckboxItemDef nodes"
+          },
+          {
+            "name": "render",
+            "type": "((params: CheckboxGroupRenderParams) => ReactNode) | undefined",
+            "formattedType": "(\n  params: CheckboxGroupRenderParams,\n) => ReactNode",
+            "required": false,
+            "description": "Optional render function for the checkbox group container"
+          },
+          {
+            "name": "renderLabel",
+            "type": "((params: CheckboxGroupLabelRenderParams) => ReactNode) | undefined",
+            "formattedType": "(\n  params: CheckboxGroupLabelRenderParams,\n) => ReactNode",
+            "required": false,
+            "description": "Optional render function for the checkbox group's label row.\nUsed by the default checkbox group container when no `render` is provided, and by\nvirtualized lists (which ignore `render` and use only the label row).\nPrecedence: `render` > `renderLabel` > `label`."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string[],\n  eventDetails: CheckboxValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
+          }
+        ]
+      },
+      "CheckboxGroupLabelRenderParams": {
+        "name": "CheckboxGroupLabelRenderParams",
+        "kind": "interface",
+        "doc": "Parameters passed to checkbox group label render functions.",
+        "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true,
+            "description": "The resolved menu node for this group — canonical identity (`node.id`), definition path, and tree links"
+          },
+          {
+            "name": "props",
+            "type": "{ id: string; }",
+            "formattedType": "{ id: string }",
+            "required": true,
+            "description": "Props to spread onto the label element (stable id for aria wiring)"
+          },
+          {
+            "name": "context",
+            "type": "GroupRenderContext & { label?: string | undefined; value?: string[] | undefined; disabled: boolean; }",
+            "formattedType": "GroupRenderContext & {\n  label?: string | undefined\n  value?: string[] | undefined\n  disabled: boolean\n}",
+            "required": true,
+            "description": "Context for conditional rendering (includes label for convenience)"
+          }
+        ]
+      },
+      "CheckboxGroupRenderParams": {
+        "name": "CheckboxGroupRenderParams",
+        "kind": "interface",
+        "doc": "Parameters passed to checkbox group render functions.",
+        "props": [
+          {
+            "name": "node",
+            "type": "PopupMenuNode<NodeDef>",
+            "required": true,
+            "description": "The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links"
+          },
+          {
+            "name": "props",
+            "type": "CheckboxGroupRenderProps",
+            "formattedType": "Required<\n  Pick<PopupMenuCheckboxGroupProps, 'disabled'>\n> &\n  Pick<PopupMenuCheckboxGroupProps, 'onValueChange'> & {\n    value: string[]\n  }",
+            "required": true,
+            "description": "Props to spread onto the CheckboxGroup component"
+          },
+          {
+            "name": "context",
+            "type": "GroupRenderContext & { label?: string | undefined; value?: string[] | undefined; disabled: boolean; }",
+            "formattedType": "GroupRenderContext & {\n  label?: string | undefined\n  value?: string[] | undefined\n  disabled: boolean\n}",
+            "required": true,
+            "description": "Context for conditional rendering"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true,
+            "description": "Pre-rendered checkbox items"
+          }
+        ]
+      },
+      "CheckboxGroupRenderProps": {
+        "name": "CheckboxGroupRenderProps",
+        "kind": "typealias",
+        "doc": "Props to spread onto the CheckboxGroup component.\nDerived from PopupMenuCheckboxGroupProps.",
+        "definition": "Required<Pick<PopupMenuCheckboxGroupProps, 'disabled'>> & Pick<PopupMenuCheckboxGroupProps, 'onValueChange'> & {\n    value: string[];\n}",
+        "props": [
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether all items in this group are disabled.",
+            "default": "false"
+          },
+          {
+            "name": "onValueChange",
+            "type": "((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  value: string[],\n  eventDetails: CheckboxValueChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Callback fired when the selected value changes.\nThe second parameter contains event details including the reason for the change."
+          },
+          {
+            "name": "value",
+            "type": "string[]",
+            "required": true
+          }
+        ]
+      },
       "CheckboxItemDef": {
         "name": "CheckboxItemDef",
         "kind": "interface",
@@ -8687,13 +8854,13 @@
             "name": "nodes",
             "type": "DisplayNode[]",
             "required": true,
-            "description": "Display nodes (filtered and scored if searching).\nCan include groups (DisplayGroupNode) or radio groups (DisplayRadioGroupNode)\nwhen groupSearchBehavior: 'preserve'."
+            "description": "Display nodes (filtered and scored if searching).\nCan include groups (DisplayGroupNode), radio groups (DisplayRadioGroupNode), or checkbox groups (DisplayCheckboxGroupNode)\nwhen groupSearchBehavior: 'preserve'."
           },
           {
             "name": "renderNode",
             "type": "(displayNode: DisplayNode) => ReactNode",
             "required": true,
-            "description": "Function to render a node.\nHandles items, submenus, groups, and radio groups, calling their render functions with context."
+            "description": "Function to render a node.\nHandles items, submenus, groups, radio groups, and checkbox groups, calling their render functions with context."
           },
           {
             "name": "count",
@@ -8769,6 +8936,15 @@
                 "required": false,
                 "description": "How radio groups behave during search results.\n- 'flatten': Radio items shown individually (not recommended).\n- 'preserve': Only matching radio items are shown (default).\n- 'preserve-show-all': All radio items are shown when any item matches.",
                 "default": "'preserve'"
+              },
+              {
+                "name": "checkboxGroupSearchBehavior",
+                "type": "CheckboxGroupBehavior | undefined",
+                "formattedType": "\"preserve\" | \"flatten\" | \"preserve-show-all\"",
+                "required": false,
+                "description": "How checkbox groups behave during search results.\n- 'flatten': Checkbox items shown individually (not recommended).\n- 'preserve': Only matching checkbox items are shown (default).\n- 'preserve-show-all': All checkbox items are shown when any item matches.",
+                "default": "'preserve'",
+                "referencePath": "@bazza-ui/react.CheckboxGroupBehavior"
               },
               {
                 "name": "sortGroups",
@@ -8848,6 +9024,15 @@
             "default": "'preserve'"
           },
           {
+            "name": "checkboxGroupSearchBehavior",
+            "type": "CheckboxGroupBehavior | undefined",
+            "formattedType": "\"preserve\" | \"flatten\" | \"preserve-show-all\"",
+            "required": false,
+            "description": "How checkbox groups behave during search results.\n- 'flatten': Checkbox items shown individually (not recommended).\n- 'preserve': Only matching checkbox items are shown (default).\n- 'preserve-show-all': All checkbox items are shown when any item matches.",
+            "default": "'preserve'",
+            "referencePath": "@bazza-ui/react.CheckboxGroupBehavior"
+          },
+          {
             "name": "sortGroups",
             "type": "boolean | undefined",
             "formattedType": "false | true",
@@ -8879,6 +9064,38 @@
         "kind": "typealias",
         "doc": "How the descendants of a disabled branch (a submenu or subpage with\n`disabled: true`) participate in deep search.\n- 'exclude': descendants are not deep results; the disabled trigger still is.\n  Equivalent to the branch's `includeInDeepSearch` defaulting to `'trigger-only'`.\n- 'inherit': descendants are deep results that inherit `disabled` — shown, not selectable.",
         "definition": "'exclude' | 'inherit'"
+      },
+      "DisplayCheckboxGroupNode": {
+        "name": "DisplayCheckboxGroupNode",
+        "kind": "interface",
+        "doc": "A checkbox group node ready for display with its render context.\nContains the checkbox group definition and its items.",
+        "props": [
+          {
+            "name": "kind",
+            "type": "\"checkbox-group\"",
+            "required": true
+          },
+          {
+            "name": "node",
+            "type": "PopupMenuNode<CheckboxGroupDef>",
+            "required": true
+          },
+          {
+            "name": "context",
+            "type": "GroupRenderContext",
+            "required": true
+          },
+          {
+            "name": "items",
+            "type": "DisplayRowNode[]",
+            "required": true
+          },
+          {
+            "name": "bestScore",
+            "type": "number",
+            "required": true
+          }
+        ]
       },
       "DisplayGroupNode": {
         "name": "DisplayGroupNode",
@@ -8920,7 +9137,7 @@
         "name": "DisplayNode",
         "kind": "typealias",
         "doc": "Union of all display node types.\nCan be a row node (item/submenu/subpage), group node, radio group node, or separator.",
-        "definition": "DisplayRowNode | DisplayGroupNode | DisplayRadioGroupNode | DisplaySeparatorNode"
+        "definition": "DisplayRowNode | DisplayGroupNode | DisplayRadioGroupNode | DisplayCheckboxGroupNode | DisplaySeparatorNode"
       },
       "DisplayRadioGroupNode": {
         "name": "DisplayRadioGroupNode",
@@ -8986,6 +9203,13 @@
             "formattedType": "{\n  id: string\n  label?: string | undefined\n}",
             "required": false,
             "description": "Radio group this node belongs to, if rendering inside one"
+          },
+          {
+            "name": "checkboxGroup",
+            "type": "{ id: string; label?: string | undefined; def: CheckboxGroupDef; } | undefined",
+            "formattedType": "{\n  id: string\n  label?: string | undefined\n  def: CheckboxGroupDef\n}",
+            "required": false,
+            "description": "Checkbox group this node belongs to, if rendering inside one. Carries the def so the row can be wrapped in the group's value provider."
           }
         ]
       },
@@ -9259,18 +9483,18 @@
             "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
           },
           {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
-          },
-          {
             "name": "onSelect",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when this item is selected (via click or Enter key)."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
           },
           {
             "name": "closeOnClick",
@@ -9439,18 +9663,18 @@
             "description": "Keyboard shortcut to trigger this item."
           },
           {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
-          },
-          {
             "name": "onSelect",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when this item is selected (via click, Enter key, or shortcut)."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
           },
           {
             "name": "closeOnClick",
@@ -9555,7 +9779,7 @@
         "name": "NodeDef",
         "kind": "typealias",
         "doc": "Union of all node definition types.",
-        "definition": "ItemDef | LinkItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef | SeparatorDef | GroupDef | RadioGroupDef"
+        "definition": "ItemDef | LinkItemDef | TreeItemDef | RadioItemDef | CheckboxItemDef | SubmenuDef | SubpageDef | SeparatorDef | GroupDef | RadioGroupDef | CheckboxGroupDef"
       },
       "ContextMenuCheckboxGroupValueProps": {
         "name": "ContextMenuCheckboxGroupValueProps",
@@ -9637,7 +9861,7 @@
             "name": "definitionPath",
             "type": "string[]",
             "required": true,
-            "description": "Definition Path: Definition Keys from the menu root to this node,\nincluding its own key, root-first. Only submenu and subpage ancestors\ncontribute keys (groups, radio-groups, and tree-items are path-transparent)."
+            "description": "Definition Path: Definition Keys from the menu root to this node,\nincluding its own key, root-first. Only submenu and subpage ancestors\ncontribute keys (groups, radio-groups, checkbox-groups, and tree-items are path-transparent)."
           },
           {
             "name": "id",
@@ -9969,6 +10193,13 @@
             "formattedType": "null | {\n  id: string\n  label?: string | undefined\n  radioGroupDef: RadioGroupDef\n  menuNode: PopupMenuNode<RadioGroupDef>\n}",
             "required": true,
             "description": "The radio group this node belongs to, if any"
+          },
+          {
+            "name": "checkboxGroup",
+            "type": "{ id: string; label?: string | undefined; checkboxGroupDef: CheckboxGroupDef; menuNode: PopupMenuNode<CheckboxGroupDef>; } | null",
+            "formattedType": "null | {\n  id: string\n  label?: string | undefined\n  checkboxGroupDef: CheckboxGroupDef\n  menuNode: PopupMenuNode<CheckboxGroupDef>\n}",
+            "required": true,
+            "description": "The checkbox group this node belongs to, if any"
           }
         ]
       },
@@ -10489,18 +10720,18 @@
             "description": "Overrides this row's computed fuzzy-match score."
           },
           {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
-          },
-          {
             "name": "onSelect",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when this item is selected (via click or Enter key)."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
           },
           {
             "name": "closeOnClick",
@@ -10629,15 +10860,15 @@
           },
           {
             "name": "kind",
-            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
-            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-group\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
+            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-group'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
             "required": true,
             "description": "Mirror of `def.kind`, stable for the node's lifetime."
           },
           {
             "name": "def",
             "type": "NodeDef",
-            "formattedType": "| ItemDef\n  | LinkItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef",
+            "formattedType": "| ItemDef\n  | LinkItemDef\n  | TreeItemDef\n  | RadioItemDef\n  | CheckboxItemDef\n  | SubmenuDef\n  | SubpageDef\n  | SeparatorDef\n  | GroupDef\n  | RadioGroupDef\n  | CheckboxGroupDef",
             "required": true,
             "description": "The originating def. Replaced in place when content is re-supplied.",
             "referencePath": "@bazza-ui/react.NodeDef"
@@ -10652,7 +10883,7 @@
             "name": "definitionPath",
             "type": "string[]",
             "required": true,
-            "description": "Definition Path: Definition Keys from the menu root to this node,\nincluding its own key, root-first. Only submenu and subpage ancestors\ncontribute keys (groups, radio-groups, and tree-items are path-transparent)."
+            "description": "Definition Path: Definition Keys from the menu root to this node,\nincluding its own key, root-first. Only submenu and subpage ancestors\ncontribute keys (groups, radio-groups, checkbox-groups, and tree-items are path-transparent)."
           },
           {
             "name": "parent",
@@ -15442,18 +15673,18 @@
             "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
           },
           {
-            "name": "keywords",
-            "type": "string[] | undefined",
-            "formattedType": "string[]",
-            "required": false,
-            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
-          },
-          {
             "name": "onSelect",
             "type": "(() => void) | undefined",
             "formattedType": "() => void",
             "required": false,
             "description": "Callback when this item is selected."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
           },
           {
             "name": "closeOnClick",
@@ -17790,17 +18021,17 @@
             "description": "Ordered list of item values when using `filter={false}`.\nThis tells the store the intended display order for navigation/highlighting.\nRequired when `filter={false}` - must always be provided with the current visible items."
           },
           {
-            "name": "children",
-            "type": "ReactNode",
-            "required": true
-          },
-          {
             "name": "content",
             "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
             "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
             "required": false,
             "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
           },
           {
             "name": "render",
@@ -18547,12 +18778,14 @@
           },
           {
             "name": "actions",
-            "type": "any",
+            "type": "DataTableFilterActions<any> | undefined",
+            "formattedType": "DataTableFilterActions<any>",
             "required": false
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {
@@ -18609,21 +18842,24 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions",
+            "type": "DataTableFilterActions<any>",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
+            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
             "type": "Locale",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": true
           },
           {
@@ -18657,6 +18893,7 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
@@ -18683,13 +18920,15 @@
         "props": [
           {
             "name": "filter",
-            "type": "any",
+            "type": "FilterModel | undefined",
+            "formattedType": "FilterModel",
             "required": false,
             "description": "The current filter state. If omitted, will be read from FilterItem context."
           },
           {
             "name": "actions",
-            "type": "any",
+            "type": "DataTableFilterActions<any> | undefined",
+            "formattedType": "DataTableFilterActions<any>",
             "required": false,
             "description": "Filter actions. If omitted, will be read from FilterItem or Filter context."
           },
@@ -18735,7 +18974,8 @@
         "props": [
           {
             "name": "column",
-            "type": "any",
+            "type": "Column<TData, TType> | undefined",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": false,
             "description": "The column configuration. If omitted, will be read from FilterItem context."
           },
@@ -18828,21 +19068,24 @@
             "name": "filters",
             "type": "FiltersState",
             "shortType": "State",
+            "formattedType": "FilterModel<any>[]",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions",
+            "type": "DataTableFilterActions<any>",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
+            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {
@@ -18877,21 +19120,24 @@
             "name": "filters",
             "type": "FiltersState",
             "shortType": "State",
+            "formattedType": "FilterModel<any>[]",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions",
+            "type": "DataTableFilterActions<any>",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
+            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
             "type": "Locale",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": true
           },
           {
@@ -18937,7 +19183,8 @@
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {
@@ -18974,21 +19221,24 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
             "name": "actions",
-            "type": "DataTableFilterActions",
+            "type": "DataTableFilterActions<any>",
             "required": true
           },
           {
             "name": "strategy",
             "type": "FilterStrategy",
+            "formattedType": "\"client\" | \"server\"",
             "required": true
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           }
         ]
@@ -19010,22 +19260,26 @@
         "props": [
           {
             "name": "column",
-            "type": "any",
+            "type": "Column<TData, TType> | undefined",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": false
           },
           {
             "name": "filter",
-            "type": "any",
+            "type": "FilterModel<TType> | undefined",
+            "formattedType": "FilterModel<TType>",
             "required": false
           },
           {
             "name": "actions",
-            "type": "any",
+            "type": "DataTableFilterActions<any> | undefined",
+            "formattedType": "DataTableFilterActions<any>",
             "required": false
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {
@@ -19076,11 +19330,13 @@
           {
             "name": "column",
             "type": "Column<TData, TType>",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": true
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {
@@ -19108,27 +19364,32 @@
         "props": [
           {
             "name": "filter",
-            "type": "any",
+            "type": "FilterModel<TType> | undefined",
+            "formattedType": "FilterModel<TType>",
             "required": false
           },
           {
             "name": "column",
-            "type": "any",
+            "type": "Column<TData, TType> | undefined",
+            "formattedType": "ColumnConfig<\n  TData,\n  TType,\n  unknown,\n  string\n> &\n  ColumnProperties<TData, TType, unknown> &\n  ColumnPrivateProperties<TData, unknown>",
             "required": false
           },
           {
             "name": "actions",
-            "type": "any",
+            "type": "DataTableFilterActions<any> | undefined",
+            "formattedType": "DataTableFilterActions<any>",
             "required": false
           },
           {
             "name": "strategy",
-            "type": "any",
+            "type": "FilterStrategy | undefined",
+            "formattedType": "\"client\" | \"server\"",
             "required": false
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {
@@ -19163,22 +19424,26 @@
           },
           {
             "name": "filters",
-            "type": "any",
+            "type": "FiltersState | undefined",
+            "formattedType": "FiltersState",
             "required": false
           },
           {
             "name": "actions",
-            "type": "any",
+            "type": "DataTableFilterActions<any> | undefined",
+            "formattedType": "DataTableFilterActions<any>",
             "required": false
           },
           {
             "name": "strategy",
-            "type": "any",
+            "type": "FilterStrategy | undefined",
+            "formattedType": "\"client\" | \"server\"",
             "required": false
           },
           {
             "name": "locale",
-            "type": "any",
+            "type": "Locale | undefined",
+            "formattedType": "\"en\" | \"fr\" | \"nl\" | \"zh_CN\" | \"zh_TW\" | \"de\"",
             "required": false
           },
           {

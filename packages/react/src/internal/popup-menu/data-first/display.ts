@@ -66,6 +66,13 @@ export function buildDisplayRowNodes(
       radioGroup: scoredNode.radioGroup
         ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
         : undefined,
+      checkboxGroup: scoredNode.checkboxGroup
+        ? {
+            id: scoredNode.checkboxGroup.id,
+            label: scoredNode.checkboxGroup.label,
+            def: scoredNode.checkboxGroup.checkboxGroupDef,
+          }
+        : undefined,
     }
   })
 }
@@ -104,6 +111,13 @@ export function buildDisplayRowNode(
     context,
     radioGroup: scoredNode.radioGroup
       ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
+      : undefined,
+    checkboxGroup: scoredNode.checkboxGroup
+      ? {
+          id: scoredNode.checkboxGroup.id,
+          label: scoredNode.checkboxGroup.label,
+          def: scoredNode.checkboxGroup.checkboxGroupDef,
+        }
       : undefined,
   }
 }

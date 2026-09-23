@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createMenuTreeResolver } from '../../menu-tree/resolver.js'
 import type {
+  CheckboxGroupDef,
   CheckboxItemDef,
   GroupDef,
   ItemDef,
@@ -11,6 +12,7 @@ import type {
   SubpageDef,
 } from '../types.js'
 import {
+  isDisplayCheckboxGroupNode,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
   isDisplayRowNode,
@@ -20,6 +22,7 @@ import {
   filterNodes,
   flattenNodes,
   getBrowseNodesPreserve,
+  isCheckboxGroupDef,
   isCheckboxItemDef,
   isRadioGroupDef,
   isSubpageDef,
@@ -135,6 +138,22 @@ function createRadioGroupDef(
 ): RadioGroupDef {
   return {
     kind: 'radio-group',
+    id,
+    value,
+    nodes,
+    render: () => null,
+    ...options,
+  }
+}
+
+function createCheckboxGroupDef(
+  id: string,
+  value: string[],
+  nodes: CheckboxItemDef[],
+  options: Partial<CheckboxGroupDef> = {},
+): CheckboxGroupDef {
+  return {
+    kind: 'checkbox-group',
     id,
     value,
     nodes,
@@ -471,6 +490,126 @@ describe('RadioGroupDef', () => {
         expect(displayNodes[0].node.def.label).toBe('Options')
       }
     })
+  })
+})
+
+describe('CheckboxGroupDef', () => {
+  const checkboxGroup = () =>
+    createCheckboxGroupDef(
+      'cg1',
+      ['alpha'],
+      [
+        createCheckboxItemDef('alpha', 'Alpha', true),
+        createCheckboxItemDef('beta', 'Beta', false),
+      ],
+    )
+
+  it('recognizes checkbox group definitions only', () => {
+    expect(isCheckboxGroupDef(checkboxGroup())).toBe(true)
+    expect(isCheckboxGroupDef(createGroupDef('g1', []))).toBe(false)
+  })
+
+  it('tracks checkbox group membership and resets other group contexts', () => {
+    const nodes: NodeDef[] = [
+      createGroupDef('g1', [
+        createItemDef('item1', 'Item 1'),
+        createCheckboxGroupDef(
+          'cg1',
+          ['alpha'],
+          [
+            createCheckboxItemDef('alpha', 'Alpha', true),
+            createCheckboxItemDef('beta', 'Beta', false),
+          ],
+        ),
+      ]),
+      createItemDef('outside-checkbox-group', 'Outside checkbox group'),
+    ]
+    const flattened = flattenNodes(resolve(nodes))
+    expect(flattened[0].group?.id).toBe('g1')
+    expect(flattened[1].checkboxGroup?.id).toBe('cg1')
+    expect(flattened[2].checkboxGroup?.id).toBe('cg1')
+    expect(flattened[1].group).toBeNull()
+    expect(flattened[1].radioGroup).toBeNull()
+    expect(flattened[2].group).toBeNull()
+    expect(flattened[2].radioGroup).toBeNull()
+  })
+
+  it('preserves matching items by default', () => {
+    const { displayNodes } = filterNodes({
+      query: 'beta',
+      nodes: resolve([checkboxGroup()]),
+      highlightedId: null,
+    })
+    expect(displayNodes).toHaveLength(1)
+    expect(isDisplayCheckboxGroupNode(displayNodes[0])).toBe(true)
+    if (isDisplayCheckboxGroupNode(displayNodes[0]))
+      expect(displayNodes[0].items.map((item) => item.node.id)).toEqual([
+        'beta',
+      ])
+  })
+
+  it('shows every item with preserve-show-all', () => {
+    const { displayNodes } = filterNodes({
+      query: 'beta',
+      nodes: resolve([checkboxGroup()]),
+      highlightedId: null,
+      checkboxGroupSearchBehavior: 'preserve-show-all',
+    })
+    expect(isDisplayCheckboxGroupNode(displayNodes[0])).toBe(true)
+    if (isDisplayCheckboxGroupNode(displayNodes[0]))
+      expect(displayNodes[0].items[0].checkboxGroup?.def).toBeDefined()
+    if (isDisplayCheckboxGroupNode(displayNodes[0]))
+      expect(displayNodes[0].items).toHaveLength(2)
+  })
+
+  it('flattens matching items when requested', () => {
+    const { displayNodes } = filterNodes({
+      query: 'beta',
+      nodes: resolve([checkboxGroup()]),
+      highlightedId: null,
+      checkboxGroupSearchBehavior: 'flatten',
+    })
+    expect(displayNodes).toHaveLength(1)
+    expect(isDisplayRowNode(displayNodes[0])).toBe(true)
+    if (isDisplayRowNode(displayNodes[0]))
+      expect(displayNodes[0].node.id).toBe('beta')
+    if (isDisplayRowNode(displayNodes[0]))
+      expect(displayNodes[0].checkboxGroup?.def.value).toEqual(['alpha'])
+  })
+
+  it('preserves checkbox groups when regular groups flatten', () => {
+    const { displayNodes } = filterNodes({
+      query: 'beta',
+      nodes: resolve([checkboxGroup()]),
+      highlightedId: null,
+      groupSearchBehavior: 'flatten',
+    })
+    expect(displayNodes).toHaveLength(1)
+    expect(isDisplayCheckboxGroupNode(displayNodes[0])).toBe(true)
+    if (isDisplayCheckboxGroupNode(displayNodes[0]))
+      expect(displayNodes[0].items.map((item) => item.node.id)).toEqual([
+        'beta',
+      ])
+  })
+
+  it('includes checkbox group membership in browse rows', () => {
+    const displayNodes = getBrowseNodesPreserve(
+      resolve([checkboxGroup()]),
+      null,
+    )
+    expect(isDisplayCheckboxGroupNode(displayNodes[0])).toBe(true)
+    if (isDisplayCheckboxGroupNode(displayNodes[0]))
+      expect(
+        displayNodes[0].items.map((item) => item.checkboxGroup?.id),
+      ).toEqual(['cg1', 'cg1'])
+  })
+
+  it('skips hidden checkbox groups', () => {
+    const displayNodes = getBrowseNodesPreserve(
+      resolve([{ ...checkboxGroup(), hidden: true }]),
+      null,
+    )
+    expect(displayNodes).toHaveLength(0)
   })
 })
 

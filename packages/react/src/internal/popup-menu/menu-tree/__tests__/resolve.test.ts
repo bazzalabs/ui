@@ -103,6 +103,36 @@ describe('resolveNodeDefs', () => {
     expect(child).toMatchObject({ definitionPath: ['backlog'], id: 'backlog' })
   })
 
+  it('keeps checkbox-groups path-transparent and uses their id as Definition Key', () => {
+    const checkboxGroup = {
+      kind: 'checkbox-group',
+      id: 'cg1',
+      value: ['selected-value'],
+      nodes: [
+        {
+          kind: 'checkbox-item',
+          value: 'Backlog',
+          checked: false,
+          render: () => null,
+        },
+      ],
+    } as NodeDef
+    const [node] = resolveNodeDefs(
+      [checkboxGroup],
+      null,
+      [],
+      defaultGetResolvedId,
+    )
+    const child = node.children[0]
+
+    expect(node).toMatchObject({
+      definitionKey: 'cg1',
+      id: 'cg1',
+      definitionPath: ['cg1'],
+    })
+    expect(child).toMatchObject({ definitionPath: ['backlog'], id: 'backlog' })
+  })
+
   it('keeps tree-item Definition Keys out of descendant paths', () => {
     const treeItem = {
       kind: 'tree-item',
