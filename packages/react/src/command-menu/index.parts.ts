@@ -10,6 +10,8 @@ export type {
 } from '../internal/popup-menu/index.js'
 
 export {
+  PopupMenuCheckboxGroup as CheckboxGroup,
+  PopupMenuCheckboxGroupValue as CheckboxGroupValue,
   PopupMenuCheckboxItem as CheckboxItem,
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuEmpty as Empty,

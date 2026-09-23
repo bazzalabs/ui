@@ -104,6 +104,16 @@ describeStateProps('DropdownMenu', [
     state: { checked: true },
   },
   {
+    name: 'DropdownMenu.CheckboxGroup',
+    render: (p) => (
+      <OpenMenu>
+        <DropdownMenu.CheckboxGroup defaultValue={['a']} {...p}>
+          <DropdownMenu.CheckboxItem value="a">A</DropdownMenu.CheckboxItem>
+        </DropdownMenu.CheckboxGroup>
+      </OpenMenu>
+    ),
+  },
+  {
     name: 'DropdownMenu.RadioGroup',
     render: (p) => (
       <OpenMenu>
