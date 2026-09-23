@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  type CheckboxGroupDef,
   type CheckboxItemDef,
   CommandMenu,
   type DeepSearchConfig,
@@ -235,6 +236,30 @@ describe('CommandMenu data-first API', () => {
       expect(screen.getByTestId('list-root')).toBeInTheDocument()
       expect(screen.queryByTestId('list-projects')).not.toBeInTheDocument()
     })
+  })
+
+  it('renders checkbox groups in subpages and keeps the dialog open when toggled', async () => {
+    const user = userEvent.setup()
+    const onValueChange = vi.fn()
+    const checkboxGroup: CheckboxGroupDef = {
+      kind: 'checkbox-group',
+      id: 'page-checkboxes',
+      value: ['x'],
+      onValueChange,
+      nodes: [createCheckboxItemDef('x', 'x'), createCheckboxItemDef('y', 'y')],
+    }
+    render(
+      <DataCommandMenu
+        nodes={[createSubpageDef('checks', 'Checks', [checkboxGroup])]}
+      />,
+    )
+    await waitForRootInputFocus()
+    await user.click(screen.getByTestId('subpage-trigger-checks'))
+    await waitForSubpageInputFocus('checks')
+    expect(screen.getByTestId('item-x')).toHaveAttribute('aria-checked', 'true')
+    await user.click(screen.getByTestId('item-y'))
+    expect(onValueChange).toHaveBeenCalledWith(['x', 'y'], expect.anything())
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('a data-first subpage with Resolved ID "__root__" opens and closes normally', async () => {
