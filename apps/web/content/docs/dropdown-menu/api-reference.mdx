@@ -219,6 +219,22 @@ Displays a check mark when the checkbox item is checked. Renders a `<span>` elem
 <TypeTableAuto type="DropdownMenuCheckboxItemIndicatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="DropdownMenuCheckboxItemIndicatorState" pkg="@bazza-ui/react" />
 
+## CheckboxGroup
+
+Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="group"`.
+
+<CssSelector type="DropdownMenuCheckboxGroupDataAttributes" />
+
+<TypeTableAuto type="DropdownMenuCheckboxGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="DropdownMenuCheckboxGroupState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="DropdownMenuCheckboxGroupDataAttributes" pkg="@bazza-ui/react" />
+
+## CheckboxGroupValue
+
+Headless provider for checkbox group state: the same `value` / `onValueChange` contract as `CheckboxGroup` without rendering an element. Use it when you compose checkbox items yourself and do not want a wrapper element; rows of a `CheckboxGroupDef` read their state from the def and need no provider from you.
+
+<TypeTableAuto type="DropdownMenuCheckboxGroupValueProps" pkg="@bazza-ui/react" />
+
 ## RadioGroup
 
 Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="group"`.
@@ -386,6 +402,12 @@ Defines a group of mutually exclusive radio items.
 
 <TypeTableAuto type="RadioGroupDef" pkg="@bazza-ui/react" />
 
+### CheckboxGroupDef
+
+Defines a group of checkbox items whose checked state the group owns as one array of values. Rows inside it read their checked state from the group automatically.
+
+<TypeTableAuto type="CheckboxGroupDef" pkg="@bazza-ui/react" />
+
 ### GroupDef
 
 Defines a group container for organizing items.
@@ -478,6 +500,12 @@ Parameters passed to `GroupDef.render()`. The `node` member is the menu node: it
 Parameters passed to `RadioGroupDef.render()`. The `node` member is the menu node: its Resolved ID (`id`), Definition Key and Definition Path, and `parent`/`children` links; the authored def is `node.def`.
 
 <TypeTableAuto type="RadioGroupRenderParams" pkg="@bazza-ui/react" />
+
+### CheckboxGroupRenderParams
+
+Parameters passed to `CheckboxGroupDef.render()`. The `node` member is the menu node: its Resolved ID (`id`), Definition Key and Definition Path, and `parent`/`children` links; the authored def is `node.def`.
+
+<TypeTableAuto type="CheckboxGroupRenderParams" pkg="@bazza-ui/react" />
 
 ---
 

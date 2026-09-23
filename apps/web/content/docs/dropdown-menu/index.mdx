@@ -232,6 +232,18 @@ It can be used uncontrolled, or controlled via `checked` and `onCheckedChange` p
 
 </ComponentOnly>
 
+### Checkbox group
+
+Use the `<DropdownMenu.CheckboxGroup>` part when several checkbox items belong to one setting. The group owns the checked state as an array of item values: an item is checked when its `value` is in the group's `value`, and every change arrives through the group's `onValueChange`. Items inside a group need a unique `value` and must not set `checked` or `onCheckedChange`.
+
+Use `<DropdownMenu.CheckboxGroupValue>` instead when you only want to provide the value without rendering a wrapper element.
+
+<ComponentOnly>
+
+<Example name="dropdown-menu-checkbox-group" />
+
+</ComponentOnly>
+
 ### Radio group
 
 Use the `<DropdownMenu.RadioGroup>` and `<DropdownMenu.RadioItem>` parts to create menu items that work like radio buttons.

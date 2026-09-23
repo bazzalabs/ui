@@ -450,6 +450,20 @@ Displays a check mark when the checkbox item is checked. Renders a `<span>` elem
 <TypeTableAuto type="ContextMenuCheckboxItemIndicatorProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="ContextMenuCheckboxItemIndicatorState" pkg="@bazza-ui/react" />
 
+### CheckboxGroup
+
+Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="ContextMenuCheckboxGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="ContextMenuCheckboxGroupState" pkg="@bazza-ui/react" />
+<DataAttrsTable type="ContextMenuCheckboxGroupDataAttributes" pkg="@bazza-ui/react" />
+
+### CheckboxGroupValue
+
+Headless provider for checkbox group state: the same `value` / `onValueChange` contract as `CheckboxGroup` without rendering an element. Use it when you compose checkbox items yourself and do not want a wrapper element; rows of a `CheckboxGroupDef` read their state from the def and need no provider from you.
+
+<TypeTableAuto type="ContextMenuCheckboxGroupValueProps" pkg="@bazza-ui/react" />
+
 ### RadioGroup
 
 Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="group"`.
@@ -550,6 +564,6 @@ Reads the computed data-list state from a `List` inside a data `Surface`, includ
 Context Menu uses the same node definition types as Dropdown Menu for the Data-First API. See the [Dropdown Menu Node Definition Types](/docs/dropdown-menu#node-definition-types) documentation for:
 
 - `NodeDef` - Union type of all node definitions
-- `ItemDef`, `LinkItemDef`, `SubmenuDef`, `CheckboxItemDef`, `RadioItemDef`, `RadioGroupDef`, `GroupDef`, `SeparatorDef`
+- `ItemDef`, `LinkItemDef`, `SubmenuDef`, `CheckboxItemDef`, `CheckboxGroupDef`, `RadioItemDef`, `RadioGroupDef`, `GroupDef`, `SeparatorDef`
 - `ItemRenderParams`, `LinkItemRenderParams`, `SubmenuRenderParams`, and other render parameter types
 - `BreadcrumbNode`, `RowRenderContext`, `DeepSearchConfig`

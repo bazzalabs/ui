@@ -4155,21 +4155,21 @@
           {
             "name": "style",
             "type": "CSSProperties | (CSSProperties & ((state: PopupMenuCheckboxGroupState) => CSSProperties | undefined)) | undefined",
-            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuCheckboxGroupState) => CSSProperties",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.CheckboxGroup.State) => CSSProperties",
             "required": false,
             "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
           },
           {
             "name": "className",
             "type": "string | ((state: PopupMenuCheckboxGroupState) => string | undefined) | undefined",
-            "formattedType": "string | (state: PopupMenuCheckboxGroupState) => string",
+            "formattedType": "string | (state: PopupMenu.CheckboxGroup.State) => string",
             "required": false,
             "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
           },
           {
             "name": "render",
             "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuCheckboxGroupState> | undefined",
-            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuCheckboxGroupState,\n    ) => ReactElement)",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.CheckboxGroup.State,\n    ) => ReactElement)",
             "required": false,
             "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
           }
@@ -8609,7 +8609,7 @@
           {
             "name": "props",
             "type": "CheckboxGroupRenderProps",
-            "formattedType": "Required<\n  Pick<PopupMenuCheckboxGroupProps, 'disabled'>\n> &\n  Pick<PopupMenuCheckboxGroupProps, 'onValueChange'> & {\n    value: string[]\n  }",
+            "formattedType": "Required<\n  Pick<PopupMenu.CheckboxGroup.Props, 'disabled'>\n> &\n  Pick<PopupMenu.CheckboxGroup.Props, 'onValueChange'> & {\n    value: string[]\n  }",
             "required": true,
             "description": "Props to spread onto the CheckboxGroup component"
           },
@@ -11206,21 +11206,21 @@
           {
             "name": "style",
             "type": "CSSProperties | (CSSProperties & ((state: PopupMenuCheckboxGroupState) => CSSProperties | undefined)) | undefined",
-            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuCheckboxGroupState) => CSSProperties",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.CheckboxGroup.State) => CSSProperties",
             "required": false,
             "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
           },
           {
             "name": "className",
             "type": "string | ((state: PopupMenuCheckboxGroupState) => string | undefined) | undefined",
-            "formattedType": "string | (state: PopupMenuCheckboxGroupState) => string",
+            "formattedType": "string | (state: PopupMenu.CheckboxGroup.State) => string",
             "required": false,
             "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
           },
           {
             "name": "render",
             "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuCheckboxGroupState> | undefined",
-            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuCheckboxGroupState,\n    ) => ReactElement)",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.CheckboxGroup.State,\n    ) => ReactElement)",
             "required": false,
             "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
           }
