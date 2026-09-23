@@ -84,7 +84,11 @@ const menuItemVariants = cva(
     variants: {
       variant: {
         item: 'gap-2 aria-disabled:opacity-50',
-        checkbox: 'gap-2 aria-disabled:opacity-50',
+        checkbox: [
+          'gap-2 aria-disabled:opacity-50',
+          'data-pending:opacity-80',
+          'data-pending:before:outline data-pending:before:outline-1 data-pending:before:outline-dashed data-pending:before:-outline-offset-1 data-pending:before:outline-ring/60',
+        ],
         radio: 'justify-between gap-2 aria-disabled:opacity-50',
         submenuTrigger: [
           'justify-between gap-4 cursor-default',
@@ -1041,6 +1045,8 @@ const CheckboxItemIndicator = forwardRef<
         {...props}
         checked={state.checked}
         onClick={(e) => {
+          // A shift-click is a range selection; let the row handle it.
+          if (e.shiftKey) return
           e.stopPropagation()
           state.toggle()
         }}

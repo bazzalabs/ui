@@ -29,7 +29,10 @@ const menuItemVariants = cva(
     variants: {
       variant: {
         item: '',
-        checkbox: '',
+        checkbox: [
+          'data-pending:opacity-80',
+          'data-pending:before:outline data-pending:before:outline-1 data-pending:before:outline-dashed data-pending:before:-outline-offset-1 data-pending:before:outline-ring/60',
+        ],
         subpageTrigger: 'justify-between',
         subpageBackItem: '',
       },
@@ -396,6 +399,8 @@ const CheckboxItemIndicator = forwardRef<
         {...props}
         checked={state.checked}
         onClick={(e) => {
+          // A shift-click is a range selection; let the row handle it.
+          if (e.shiftKey) return
           e.stopPropagation()
           state.toggle()
         }}

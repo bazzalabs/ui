@@ -348,13 +348,22 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     [item.isHighlighted, disabled, displayChecked, pending, item.positional],
   )
 
+  // Toggling from an indicator is an interaction too: it sets the anchor.
+  const toggleFromIndicator = React.useCallback(
+    (reason?: CheckedChangeReason, event?: Event) => {
+      toggleChecked(reason, event)
+      if (item.storeId) selection.setAnchor(item.storeId)
+    },
+    [toggleChecked, selection, item.storeId],
+  )
+
   const checkboxItemContextValue: CheckboxItemContextValue = React.useMemo(
     () => ({
       ...item.contextValue,
       checked: displayChecked,
-      toggle: toggleChecked,
+      toggle: toggleFromIndicator,
     }),
-    [item.contextValue, displayChecked, toggleChecked],
+    [item.contextValue, displayChecked, toggleFromIndicator],
   )
 
   // Merge user-provided handlers with item handlers
