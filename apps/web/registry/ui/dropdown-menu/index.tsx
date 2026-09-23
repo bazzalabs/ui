@@ -1050,6 +1050,23 @@ const CheckboxItemIndicator = forwardRef<
   />
 ))
 
+const CheckboxGroup = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Primitive.CheckboxGroup>
+>(({ className, ...props }, ref) => (
+  <Primitive.CheckboxGroup
+    ref={ref}
+    className={cn(
+      'first:[&_[bazzaui-dropdown-menu-group-label]]:mt-2',
+      className,
+    )}
+    {...props}
+  />
+))
+CheckboxGroup.displayName = 'DropdownMenu.CheckboxGroup'
+
+const CheckboxGroupValue = Primitive.CheckboxGroupValue
+
 const RadioGroup = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.RadioGroup>
@@ -1382,6 +1399,8 @@ export const DropdownMenu = {
   TreeConnector,
   CheckboxItem,
   CheckboxItemIndicator,
+  CheckboxGroup,
+  CheckboxGroupValue,
   RadioGroup,
   RadioGroupValue,
   RadioItem,
