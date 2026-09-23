@@ -57,6 +57,47 @@ function setup(initialIds: string[]) {
 }
 
 describe('CheckboxSelectionStore', () => {
+  it('announces accepted changes with incrementing keys and a custom formatter', () => {
+    const { store } = setup([])
+    store.announce(3, true)
+    expect(store.state.announcement).toEqual({
+      text: '3 items checked',
+      key: 1,
+    })
+    store.announce(0, true)
+    expect(store.state.announcement).toEqual({
+      text: '3 items checked',
+      key: 1,
+    })
+    store.announce(1, false)
+    expect(store.state.announcement).toEqual({
+      text: '1 item unchecked',
+      key: 2,
+    })
+    store.setAnnouncementFormatter((count, checked) => `${count}:${checked}`)
+    store.announce(2, true)
+    expect(store.state.announcement).toEqual({ text: '2:true', key: 3 })
+  })
+
+  it('does not announce zero changes or cancelled gesture changes', () => {
+    const { store, row } = setup(['a'])
+    store.announce(0, true)
+    expect(store.state.announcement).toBeNull()
+    row('a', { checked: false, commit: () => false })
+    store.beginGesture('drag', 'a', 'keep')
+    store.commitGesture('drag-selection')
+    expect(store.state.announcement).toBeNull()
+  })
+
+  it('clears announcements and leaves an empty announcement unchanged', () => {
+    const { store } = setup([])
+    store.announce(2, true)
+    store.clearAnnouncement()
+    expect(store.state.announcement).toBeNull()
+    store.clearAnnouncement()
+    expect(store.state.announcement).toBeNull()
+  })
+
   it('computes spans in either direction and rejects unknown ids', () => {
     const { store } = setup(['a', 'b', 'c', 'd'])
     expect(store.computeSpan('a', 'c')).toEqual(['a', 'b', 'c'])
@@ -129,6 +170,17 @@ describe('CheckboxSelectionStore', () => {
     expect(store.state.anchorId).toBe('y')
     expect(store.state.gesture).toBeNull()
     expect(store.state.preview.size).toBe(0)
+  })
+
+  it('announces one accepted gesture change', () => {
+    const { store, row } = setup(['a'])
+    row('a', { checked: false })
+    store.beginGesture('drag', 'a', 'keep')
+    store.commitGesture('drag-selection')
+    expect(store.state.announcement).toEqual({
+      text: '1 item checked',
+      key: 1,
+    })
   })
 
   it('emits commits in visible list order', () => {

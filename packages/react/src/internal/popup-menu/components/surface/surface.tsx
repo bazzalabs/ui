@@ -41,6 +41,7 @@ import type {
 import { isPopupMenuNode } from '../../menu-tree/resolve.js'
 import { CheckboxSelectionStore } from '../../store/CheckboxSelectionStore.js'
 import { getTabbables } from '../../utils/tabbables.js'
+import { PopupMenuCheckboxSelectionStatus } from './checkbox-selection-status.js'
 
 // Surface doesn't expose data attributes - using empty state
 export interface PopupMenuSurfaceState extends Record<string, unknown> {}
@@ -540,6 +541,16 @@ export const PopupMenuSurface = React.forwardRef<
   ).current
 
   React.useEffect(() => selectionStore.attach(), [selectionStore])
+  React.useEffect(() => {
+    selectionStore.setAnnouncementFormatter(
+      popupMenuContext.getAriaSelectionText,
+    )
+  }, [selectionStore, popupMenuContext.getAriaSelectionText])
+  // An inactive surface (a subpage is open) drops its announcement so the
+  // region mounts empty again when the surface comes back.
+  React.useEffect(() => {
+    if (!isSurfaceActive) selectionStore.clearAnnouncement()
+  }, [selectionStore, isSurfaceActive])
 
   // Prevent pointer down from stealing focus from Input.
   // A press on an input itself must keep the browser's native
@@ -715,7 +726,13 @@ export const PopupMenuSurface = React.forwardRef<
       onPointerMove: handlePointerMove,
       onKeyDown: handleKeyDown,
       onFocus: handleFocus,
-      children: renderedChildren,
+      children: (
+        <>
+          {/* First, so styled surfaces using `divide-y` keep the list as the last child. */}
+          <PopupMenuCheckboxSelectionStatus />
+          {renderedChildren}
+        </>
+      ),
     },
     enabled: isSurfaceActive,
     defaultTagName: 'div',

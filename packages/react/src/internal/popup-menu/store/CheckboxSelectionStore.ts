@@ -106,6 +106,8 @@ export interface CheckboxSelectionState {
   gesture: SelectionGesture | null
   /** Preview overrides by registration id while a gesture is active. */
   preview: ReadonlyMap<string, boolean>
+  /** Latest announcement for the surface's status region; `key` increments per announcement so identical texts still mutate the region. */
+  announcement: { text: string; key: number } | null
 }
 
 export interface CheckboxSelectionContext {
@@ -117,6 +119,9 @@ export interface CheckboxSelectionContext {
   suppressClick: boolean
   autoScrollFrame: number | null
   autoScrollVelocity: number
+  getAriaSelectionText:
+    | ((count: number, checked: boolean) => string)
+    | undefined
 }
 
 // ============================================================================
@@ -133,6 +138,17 @@ const selectors = {
   getPreview: createSelector((state: CheckboxSelectionState, id: string) =>
     state.preview.get(id),
   ),
+  announcement: createSelector(
+    (state: CheckboxSelectionState) => state.announcement,
+  ),
+}
+
+const pluralRules = new Intl.PluralRules('en')
+
+/** Default English announcement, e.g. "3 items checked" / "1 item unchecked". */
+export function defaultSelectionText(count: number, checked: boolean): string {
+  const noun = pluralRules.select(count) === 'one' ? 'item' : 'items'
+  return `${count} ${noun} ${checked ? 'checked' : 'unchecked'}`
 }
 
 const AUTO_SCROLL_ZONE_PX = 32
@@ -155,7 +171,7 @@ export class CheckboxSelectionStore extends ReactStore<
 > {
   constructor(listbox: SelectionListbox) {
     super(
-      { anchorId: null, gesture: null, preview: new Map() },
+      { anchorId: null, gesture: null, preview: new Map(), announcement: null },
       {
         listbox,
         rows: new Map(),
@@ -164,6 +180,7 @@ export class CheckboxSelectionStore extends ReactStore<
         suppressClick: false,
         autoScrollFrame: null,
         autoScrollVelocity: 0,
+        getAriaSelectionText: undefined,
       },
       selectors,
     )
@@ -302,6 +319,7 @@ export class CheckboxSelectionStore extends ReactStore<
       anchorId: gesture.startId,
     })
     const count = this.commitChanges(changes, reason, event)
+    this.announce(count, gesture.target)
     return { count, checked: gesture.target }
   }
 
@@ -585,7 +603,29 @@ export class CheckboxSelectionStore extends ReactStore<
     }
     this.set('anchorId', targetId)
     const count = this.commitChanges(changes, reason, event)
+    this.announce(count, target)
     return { count, checked: target }
+  }
+
+  setAnnouncementFormatter(
+    formatter: ((count: number, checked: boolean) => string) | undefined,
+  ) {
+    this.context.getAriaSelectionText = formatter
+  }
+
+  /** Queue an announcement for the surface's status region. */
+  /** Drop the pending announcement (the surface is no longer active). */
+  clearAnnouncement() {
+    if (this.state.announcement !== null) this.set('announcement', null)
+  }
+
+  announce(count: number, checked: boolean) {
+    if (count === 0) return
+    const text =
+      this.context.getAriaSelectionText?.(count, checked) ??
+      defaultSelectionText(count, checked)
+    const key = (this.state.announcement?.key ?? 0) + 1
+    this.set('announcement', { text, key })
   }
 
   // --------------------------------------------------------------------------
