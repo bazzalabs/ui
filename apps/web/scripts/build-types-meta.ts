@@ -648,6 +648,8 @@ const COMPONENT_PREFIXES = [
 const COMPONENT_PARTS = [
   'Arrow',
   'Backdrop',
+  'CheckboxGroup',
+  'CheckboxGroupValue',
   'CheckboxItem',
   'CheckboxItemIndicator',
   'Clear',
