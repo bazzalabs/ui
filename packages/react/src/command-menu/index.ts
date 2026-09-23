@@ -8,6 +8,8 @@ export {
   useSurfaceContext,
 } from '../internal/listbox/index.js'
 export type {
+  PopupMenuCheckboxGroupProps as CommandMenuCheckboxGroupProps,
+  PopupMenuCheckboxGroupState as CommandMenuCheckboxGroupState,
   PopupMenuCheckboxItemIndicatorProps as CommandMenuCheckboxItemIndicatorProps,
   PopupMenuCheckboxItemIndicatorState as CommandMenuCheckboxItemIndicatorState,
   PopupMenuCheckboxItemProps as CommandMenuCheckboxItemProps,
@@ -97,6 +99,7 @@ export type {
   LinkItemRenderProps,
   LoaderComponentProps,
   NodeDef,
+  PopupMenuCheckboxGroupValueProps as CommandMenuCheckboxGroupValueProps,
   PopupMenuIdScope,
   PopupMenuNode,
   PopupMenuRadioGroupValueProps as CommandMenuRadioGroupValueProps,
@@ -135,6 +138,7 @@ export {
   isDisplayRowNode,
   isDisplaySeparatorNode,
   isPopupMenuNode,
+  PopupMenuCheckboxGroupValue as CommandMenuCheckboxGroupValue,
   PopupMenuRadioGroupValue as CommandMenuRadioGroupValue,
   useAsyncMenuCoordinator,
   useDataList,

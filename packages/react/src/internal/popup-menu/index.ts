@@ -147,6 +147,13 @@ export { PopupMenuSurface } from './components/surface/surface.js'
 // ============================================================================
 
 export type {
+  PopupMenuCheckboxGroupProps,
+  PopupMenuCheckboxGroupState,
+} from './components/checkbox-group/checkbox-group.js'
+export { PopupMenuCheckboxGroup } from './components/checkbox-group/checkbox-group.js'
+export type { PopupMenuCheckboxGroupValueProps } from './components/checkbox-group/checkbox-group-value.js'
+export { PopupMenuCheckboxGroupValue } from './components/checkbox-group/checkbox-group-value.js'
+export type {
   PopupMenuCheckboxItemProps,
   PopupMenuCheckboxItemState,
 } from './components/checkbox-item/checkbox-item.js'

@@ -86,6 +86,19 @@ export type CheckedChangeReason =
 export type CheckedChangeEventDetails = ChangeEventDetails<CheckedChangeReason>
 
 /**
+ * Reasons why a checkbox group's value changed.
+ */
+export type CheckboxValueChangeReason =
+  | typeof REASONS.itemPress
+  | typeof REASONS.itemKeyboardSelect
+
+/**
+ * Event details for checkbox group value changes.
+ */
+export type CheckboxValueChangeEventDetails =
+  ChangeEventDetails<CheckboxValueChangeReason>
+
+/**
  * Reasons why a radio group's value changed.
  */
 export type RadioValueChangeReason =
