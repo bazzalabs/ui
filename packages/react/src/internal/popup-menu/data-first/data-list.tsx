@@ -5,6 +5,7 @@ import {
   useListboxContext,
   type useSurfaceContext,
 } from '../../listbox/index.js'
+import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
   PopupMenuListPrimitive,
@@ -32,6 +33,7 @@ import type {
   AsyncLoaderResult,
   AsyncNodesConfig,
   BreadcrumbNode,
+  CheckboxGroupDef,
   CheckboxItemDef,
   DataListChildrenState,
   DisplayNode,
@@ -759,7 +761,7 @@ export const DataListInner = React.forwardRef<
   }, [store, orderedItemIds])
 
   // Helper to render a single row node (item, checkbox item, submenu, or subpage)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: renderRowNode and renderRadioGroup are intentionally recursive.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: renderRowNode, renderRadioGroup, and renderCheckboxGroup are intentionally recursive.
   const renderRowNode = React.useCallback(
     (displayNode: DisplayRowNode): React.ReactNode => {
       const resolved = displayNode.node
@@ -901,26 +903,41 @@ export const DataListInner = React.forwardRef<
       }
 
       if (node.kind === 'checkbox-item') {
+        const checkboxGroup = displayNode.checkboxGroup
+        const rendered = node.render({
+          node: resolved,
+          props: {
+            id,
+            value: node.value,
+            checked: node.checked,
+            onCheckedChange: node.onCheckedChange,
+            disabled: context.disabled,
+            closeOnClick: node.closeOnClick,
+            forceOrder: node.forceOrder,
+            forceScore: node.forceScore,
+          },
+          context: {
+            ...context,
+            value: node.value,
+            checked: checkboxGroup
+              ? checkboxGroup.def.value.includes(node.value)
+              : node.checked,
+          },
+        })
         return (
           <React.Fragment key={id}>
-            {node.render({
-              node: resolved,
-              props: {
-                id,
-                value: node.value,
-                checked: node.checked,
-                onCheckedChange: node.onCheckedChange,
-                disabled: context.disabled,
-                closeOnClick: node.closeOnClick,
-                forceOrder: node.forceOrder,
-                forceScore: node.forceScore,
-              },
-              context: {
-                ...context,
-                value: node.value,
-                checked: node.checked,
-              },
-            })}
+            {checkboxGroup ? (
+              <PopupMenuCheckboxGroupValue
+                groupId={checkboxGroup.id}
+                value={checkboxGroup.def.value}
+                onValueChange={checkboxGroup.def.onValueChange}
+                disabled={checkboxGroup.def.disabled ?? false}
+              >
+                {rendered}
+              </PopupMenuCheckboxGroupValue>
+            ) : (
+              rendered
+            )}
           </React.Fragment>
         )
       }
@@ -1032,6 +1049,13 @@ export const DataListInner = React.forwardRef<
           if (childNode.kind === 'radio-group') {
             return renderRadioGroup(
               childMenuNode as PopupMenuNode<RadioGroupDef>,
+              [...context.breadcrumbs, submenuBreadcrumb],
+            )
+          }
+          if (childNode.kind === 'checkbox-group') {
+            if (childNode.hidden) return null
+            return renderCheckboxGroup(
+              childMenuNode as PopupMenuNode<CheckboxGroupDef>,
               [...context.breadcrumbs, submenuBreadcrumb],
             )
           }
@@ -1213,6 +1237,83 @@ export const DataListInner = React.forwardRef<
     [renderRowNode],
   )
 
+  const renderCheckboxGroup = React.useCallback(
+    (
+      checkboxGroupNode: PopupMenuNode<CheckboxGroupDef>,
+      breadcrumbs: BreadcrumbNode[] = [],
+    ): React.ReactNode => {
+      const checkboxGroup = checkboxGroupNode.def
+      const isDeepSearchResult = breadcrumbs.length > 0
+      const groupContext: GroupRenderContext = {
+        search: null,
+        matchCount: checkboxGroup.nodes.length,
+        breadcrumbs,
+        isDeepSearchResult,
+      }
+      const childElements = checkboxGroupNode.children.map((item) => {
+        if (!isRowMenuNode(item) || item.def.hidden) return null
+        return renderRowNode({
+          kind: 'row',
+          node: item,
+          context: {
+            search: null,
+            breadcrumbs,
+            isDeepSearchResult,
+            highlighted: false,
+            disabled: item.def.disabled ?? false,
+            group: null,
+            tree: null,
+          },
+          checkboxGroup: {
+            id: checkboxGroup.id,
+            label: checkboxGroup.label,
+            def: checkboxGroup,
+          },
+        })
+      })
+      const context = {
+        ...groupContext,
+        label: checkboxGroup.label,
+        value: checkboxGroup.value,
+        disabled: checkboxGroup.disabled ?? false,
+      }
+      if (checkboxGroup.render) {
+        return (
+          <React.Fragment key={checkboxGroup.id}>
+            {checkboxGroup.render({
+              node: checkboxGroupNode,
+              props: {
+                value: checkboxGroup.value,
+                onValueChange: checkboxGroup.onValueChange,
+                disabled: checkboxGroup.disabled ?? false,
+              },
+              context,
+              children: <>{childElements}</>,
+            })}
+          </React.Fragment>
+        )
+      }
+      return (
+        // biome-ignore lint/a11y/useSemanticElements: ignore for now
+        <div
+          key={checkboxGroup.id}
+          role="group"
+          aria-label={checkboxGroup.label}
+        >
+          {renderGroupLabelElement(
+            checkboxGroup.id,
+            checkboxGroup.label,
+            checkboxGroup.renderLabel,
+            checkboxGroupNode,
+            context,
+          )}
+          {childElements}
+        </div>
+      )
+    },
+    [renderRowNode],
+  )
+
   // Build the renderNode function that handles groups, radio groups, and rows
   const renderNode: RenderNodeFn = React.useCallback(
     (displayNode: DisplayNode): React.ReactNode => {
@@ -1317,9 +1418,54 @@ export const DataListInner = React.forwardRef<
         )
       }
 
-      // Checkbox group display nodes are rendered by a later change.
       if (isDisplayCheckboxGroupNode(displayNode)) {
-        return null
+        const { context, items } = displayNode
+        const checkboxGroupNode = displayNode.node
+        const checkboxGroup = checkboxGroupNode.def
+        const children = items.map((item) => renderRowNode(item))
+        if (checkboxGroup.render) {
+          return (
+            <React.Fragment key={checkboxGroup.id}>
+              {checkboxGroup.render({
+                node: checkboxGroupNode,
+                props: {
+                  value: checkboxGroup.value,
+                  onValueChange: checkboxGroup.onValueChange,
+                  disabled: checkboxGroup.disabled ?? false,
+                },
+                context: {
+                  ...context,
+                  label: checkboxGroup.label,
+                  value: checkboxGroup.value,
+                  disabled: checkboxGroup.disabled ?? false,
+                },
+                children: <>{children}</>,
+              })}
+            </React.Fragment>
+          )
+        }
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: ignore for now
+          <div
+            key={checkboxGroup.id}
+            role="group"
+            aria-label={checkboxGroup.label}
+          >
+            {renderGroupLabelElement(
+              checkboxGroup.id,
+              checkboxGroup.label,
+              checkboxGroup.renderLabel,
+              checkboxGroupNode,
+              {
+                ...context,
+                label: checkboxGroup.label,
+                value: checkboxGroup.value,
+                disabled: checkboxGroup.disabled ?? false,
+              },
+            )}
+            {children}
+          </div>
+        )
       }
 
       // Handle separator display nodes
