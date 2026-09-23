@@ -517,8 +517,13 @@ export const PopupMenuSurface = React.forwardRef<
         getVisibleItemIds: () => store.getVisibleItemIds(),
         getItemElement: (id) =>
           store.context.refs.itemRefs.get(id)?.current ?? null,
+        setHighlightedId: (id) => store.setHighlightedId(id, 'pointer'),
+        observeOpen: (listener) =>
+          store.observe('open', (open) => listener(open)),
       }),
   ).current
+
+  React.useEffect(() => selectionStore.attach(), [selectionStore])
 
   // Prevent pointer down from stealing focus from Input.
   // A press on an input itself must keep the browser's native

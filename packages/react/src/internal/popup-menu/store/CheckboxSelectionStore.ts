@@ -1,4 +1,5 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
+import { REASONS } from '../../../utils/events/index.js'
 import type { SelectionCommitReason } from '../events.js'
 
 // ============================================================================
@@ -17,6 +18,10 @@ export interface SelectionListbox {
   getVisibleItemIds: () => string[]
   /** The mounted element of a row, or `null` when it is not mounted. */
   getItemElement: (id: string) => HTMLElement | null
+  /** Move the highlight to a row (pointer cause). */
+  setHighlightedId: (id: string) => void
+  /** Subscribe to the surface's open state (controlled or not). Returns an unsubscribe function. */
+  observeOpen: (listener: (open: boolean) => void) => () => void
 }
 
 /** The checkbox group that owns a row's checked state. */
@@ -67,6 +72,23 @@ export interface SelectionGesture {
   reached: string[]
 }
 
+export interface PointerPressParams {
+  /** The pressed row's registration id. */
+  id: string
+  pointerId: number
+  /** The pressed row's element; receives pointer capture. */
+  element: HTMLElement
+  mode: DragSelectionMode
+  clientY: number
+}
+
+interface PointerPress extends PointerPressParams {
+  /** True once the pointer has reached a row other than the pressed one. */
+  dragging: boolean
+  lastClientY: number
+  cleanup: () => void
+}
+
 /** Outcome of a commit, for announcements. */
 export interface SelectionCommitResult {
   /** Number of rows whose checked state changed (cancelled changes excluded). */
@@ -89,6 +111,8 @@ export interface CheckboxSelectionContext {
   rows: Map<string, CheckboxRowRegistration>
   /** Whether the unmounted-row warning has been shown for this surface. */
   warnedUnmounted: boolean
+  press: PointerPress | null
+  suppressClick: boolean
 }
 
 // ============================================================================
@@ -125,9 +149,34 @@ export class CheckboxSelectionStore extends ReactStore<
   constructor(listbox: SelectionListbox) {
     super(
       { anchorId: null, gesture: null, preview: new Map() },
-      { listbox, rows: new Map(), warnedUnmounted: false },
+      {
+        listbox,
+        rows: new Map(),
+        warnedUnmounted: false,
+        press: null,
+        suppressClick: false,
+      },
       selectors,
     )
+  }
+
+  /**
+   * Subscribe to the surface's open state so closing the menu cancels any
+   * press or gesture. Call from an effect; returns the cleanup, which also
+   * cancels whatever is in flight.
+   */
+  attach(): () => void {
+    const unsubscribe = this.context.listbox.observeOpen((open) => {
+      if (!open) {
+        this.cancelPress()
+        this.cancelGesture()
+      }
+    })
+    return () => {
+      unsubscribe()
+      this.cancelPress()
+      this.cancelGesture()
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -251,6 +300,173 @@ export class CheckboxSelectionStore extends ReactStore<
   cancelGesture() {
     if (!this.state.gesture) return
     this.update({ gesture: null, preview: new Map() })
+  }
+
+  // --------------------------------------------------------------------------
+  // Pointer drag
+  // --------------------------------------------------------------------------
+
+  /**
+   * Start tracking a press on a checkbox row. Nothing changes until the pointer
+   * reaches another row; see `handlePressMove`.
+   */
+  beginPress(params: PointerPressParams) {
+    if (this.context.press || this.state.gesture) return
+    if (!this.isSelectableRow(params.id)) return
+    const doc = params.element.ownerDocument
+    const win = doc.defaultView
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerId !== params.pointerId) return
+      this.handlePressMove(event.clientY)
+    }
+    const onUp = (event: PointerEvent) => {
+      if (event.pointerId !== params.pointerId) return
+      this.endPress(event)
+    }
+    const onCancel = (event: PointerEvent) => {
+      if (event.pointerId !== params.pointerId) return
+      this.cancelPress()
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (this.context.press?.dragging) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      this.cancelPress()
+    }
+    const onBlur = () => this.cancelPress()
+    const onLostCapture = () => this.cancelPress()
+    doc.addEventListener('pointermove', onMove, true)
+    doc.addEventListener('pointerup', onUp, true)
+    doc.addEventListener('pointercancel', onCancel, true)
+    doc.addEventListener('keydown', onKeyDown, true)
+    win?.addEventListener('blur', onBlur)
+    params.element.addEventListener('lostpointercapture', onLostCapture)
+    const supportsCapture =
+      typeof params.element.setPointerCapture === 'function'
+    if (supportsCapture) {
+      try {
+        params.element.setPointerCapture(params.pointerId)
+      } catch {
+        // The pointer may already be gone; the document listeners still work.
+      }
+    }
+    const cleanup = () => {
+      doc.removeEventListener('pointermove', onMove, true)
+      doc.removeEventListener('pointerup', onUp, true)
+      doc.removeEventListener('pointercancel', onCancel, true)
+      doc.removeEventListener('keydown', onKeyDown, true)
+      win?.removeEventListener('blur', onBlur)
+      params.element.removeEventListener('lostpointercapture', onLostCapture)
+      if (
+        supportsCapture &&
+        typeof params.element.hasPointerCapture === 'function' &&
+        params.element.hasPointerCapture(params.pointerId)
+      ) {
+        params.element.releasePointerCapture(params.pointerId)
+      }
+    }
+    this.context.press = {
+      ...params,
+      dragging: false,
+      lastClientY: params.clientY,
+      cleanup,
+    }
+  }
+
+  /** The row under a vertical pointer position, clamped to the first and last mounted rows. */
+  resolveRowAtY(clientY: number): string | null {
+    const rows: Array<{ id: string; top: number }> = []
+    for (const id of this.context.listbox.getVisibleItemIds()) {
+      const element = this.context.listbox.getItemElement(id)
+      if (!element) continue
+      rows.push({ id, top: element.getBoundingClientRect().top })
+    }
+    const first = rows[0]
+    if (!first) return null
+    let current = first.id
+    for (const row of rows) {
+      if (clientY >= row.top) current = row.id
+      else break
+    }
+    return current
+  }
+
+  /** Whether a press is being tracked (dragging or not). */
+  isPressActive(): boolean {
+    return this.context.press !== null
+  }
+
+  /** Returns true once, right after a drag committed, so the click the browser fires after the release does not toggle the pressed row again. */
+  consumeClickSuppression(): boolean {
+    const suppressed = this.context.suppressClick
+    this.context.suppressClick = false
+    return suppressed
+  }
+
+  /** Cancel the tracked press and, if it had become a drag, its preview. */
+  cancelPress() {
+    const press = this.context.press
+    if (!press) return
+    this.context.press = null
+    press.cleanup()
+    if (press.dragging) {
+      this.cancelGesture()
+      // The pointer may still be down; suppress the click the eventual
+      // release fires, not just clicks within the next tick.
+      const doc = press.element.ownerDocument
+      const onRelease = (event: PointerEvent) => {
+        if (event.pointerId !== press.pointerId) return
+        doc.removeEventListener('pointerup', onRelease, true)
+        doc.removeEventListener('pointercancel', onRelease, true)
+        this.armClickSuppression()
+      }
+      doc.addEventListener('pointerup', onRelease, true)
+      doc.addEventListener('pointercancel', onRelease, true)
+      this.armClickSuppression()
+    }
+  }
+
+  private armClickSuppression() {
+    this.context.suppressClick = true
+    setTimeout(() => {
+      this.context.suppressClick = false
+    }, 0)
+  }
+
+  /** @internal exposed for auto-scroll: re-evaluate the row under the last pointer position. */
+  handlePressMove(clientY: number) {
+    const press = this.context.press
+    if (!press) return
+    press.lastClientY = clientY
+    const rowId = this.resolveRowAtY(clientY)
+    if (rowId === null) return
+    if (!press.dragging) {
+      if (rowId === press.id) return
+      press.dragging = true
+      this.beginGesture('drag', press.id, press.mode)
+      if (!this.state.gesture) {
+        this.cancelPress()
+        return
+      }
+    }
+    this.extendGesture(rowId)
+    this.context.listbox.setHighlightedId(rowId)
+  }
+
+  private endPress(event: PointerEvent) {
+    const press = this.context.press
+    if (!press) return
+    // A release on another row the pointer reached without a move event
+    // (a fast flick) still counts as reaching it.
+    this.handlePressMove(event.clientY)
+    if (this.context.press !== press) return
+    this.context.press = null
+    press.cleanup()
+    if (!press.dragging) return
+    this.commitGesture(REASONS.dragSelection, event)
+    this.armClickSuppression()
   }
 
   // --------------------------------------------------------------------------

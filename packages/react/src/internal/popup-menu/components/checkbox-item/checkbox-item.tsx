@@ -271,7 +271,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const disabled = item.disabled
 
   const selection = useCheckboxSelection()
-  const { rangeSelection } = usePopupMenuContext()
+  const { rangeSelection, dragSelection } = usePopupMenuContext()
   const preview = selection.useState('getPreview', item.storeId)
   const displayChecked = preview ?? checked
   const pending = preview !== undefined && preview !== checked
@@ -360,6 +360,10 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   // Merge user-provided handlers with item handlers
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
+      if (selection.consumeClickSuppression()) {
+        event.preventDefault()
+        return
+      }
       onClick?.(event)
       if (event.defaultPrevented) return
       if (rangeSelection && event.shiftKey && !disabled && item.storeId) {
@@ -385,18 +389,43 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     (event: React.PointerEvent<HTMLDivElement>) => {
       item.handlers.onPointerDown(event)
       onPointerDown?.(event)
+      if (
+        dragSelection === false ||
+        disabled ||
+        !item.storeId ||
+        event.button !== 0 ||
+        event.shiftKey ||
+        (event.pointerType !== 'mouse' && event.pointerType !== 'pen')
+      ) {
+        return
+      }
+      selection.beginPress({
+        id: item.storeId,
+        pointerId: event.pointerId,
+        element: event.currentTarget,
+        mode: dragSelection,
+        clientY: event.clientY,
+      })
     },
-    [item.handlers, onPointerDown],
+    [
+      item.handlers,
+      onPointerDown,
+      dragSelection,
+      disabled,
+      item.storeId,
+      selection,
+    ],
   )
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       onPointerMove?.(event)
+      if (selection.isPressActive()) return
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers],
+    [onPointerMove, item.handlers, selection],
   )
 
   // Get component name for slot attribute

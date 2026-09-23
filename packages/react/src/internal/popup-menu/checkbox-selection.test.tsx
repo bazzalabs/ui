@@ -1,6 +1,12 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type * as React from 'react'
+import * as React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
 
@@ -434,5 +440,360 @@ describe('range selection', () => {
     expect(screen.getByRole('listbox')).toBeInTheDocument()
     await user.click(screen.getByTestId('cb-d'))
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+})
+
+describe('drag selection', () => {
+  const makeRows = (
+    spies: ReturnType<typeof vi.fn>[],
+    checked: string[] = [],
+    onClick: Record<string, ReturnType<typeof vi.fn>> = {},
+  ) => (
+    <>
+      {(['a', 'b', 'c'] as const).map((name) => (
+        <DropdownMenu.CheckboxItem
+          key={name}
+          data-testid={`cb-${name}`}
+          defaultChecked={checked.includes(name)}
+          onClick={onClick[name]}
+          onCheckedChange={spies[name.charCodeAt(0) - 97]}
+        >
+          {name}
+        </DropdownMenu.CheckboxItem>
+      ))}
+      <DropdownMenu.Item data-testid="item-x">Plain</DropdownMenu.Item>
+      {(['d', 'e'] as const).map((name) => (
+        <DropdownMenu.CheckboxItem
+          key={name}
+          data-testid={`cb-${name}`}
+          defaultChecked={checked.includes(name)}
+          onClick={onClick[name]}
+          onCheckedChange={spies[name.charCodeAt(0) - 97]}
+        >
+          {name}
+        </DropdownMenu.CheckboxItem>
+      ))}
+    </>
+  )
+  const layoutRows = () => {
+    const rows = screen
+      .getByTestId('list')
+      .querySelectorAll<HTMLElement>(
+        '[role="menuitemcheckbox"], [role="option"], [role="menuitem"]',
+      )
+    rows.forEach((el, index) => {
+      const top = index * 32
+      Object.defineProperty(el, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          top,
+          bottom: top + 32,
+          left: 0,
+          right: 100,
+          width: 100,
+          height: 32,
+          x: 0,
+          y: top,
+          toJSON: () => ({}),
+        }),
+      })
+    })
+  }
+  const down = (id: string, y: number, pointerType = 'mouse') =>
+    fireEvent.pointerDown(screen.getByTestId(id), {
+      pointerId: 1,
+      pointerType,
+      button: 0,
+      clientY: y,
+    })
+  const move = (y: number) =>
+    fireEvent.pointerMove(document, { pointerId: 1, clientY: y })
+  const up = (y: number) =>
+    fireEvent.pointerUp(document, { pointerId: 1, clientY: y })
+  const prepare = async (
+    spies: ReturnType<typeof vi.fn>[],
+    mode: 'keep' | 'rubber-band' = 'keep',
+    checked: string[] = [],
+    onClick: Record<string, ReturnType<typeof vi.fn>> = {},
+  ) => {
+    const user = userEvent.setup()
+    render(
+      <Menu dragSelection={mode}>{makeRows(spies, checked, onClick)}</Menu>,
+    )
+    await openMenu(user)
+    layoutRows()
+  }
+
+  it('uses a normal click when pressed and released on the same row', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    up(16)
+    fireEvent.click(screen.getByTestId('cb-a'))
+    expect(spies[0]).toHaveBeenCalledExactlyOnceWith(
+      true,
+      expect.objectContaining({ reason: 'item-press' }),
+    )
+  })
+  it('previews the span and follows the pointer highlight', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    move(80)
+    for (const id of ['cb-a', 'cb-b', 'cb-c']) {
+      expect(screen.getByTestId(id)).toHaveAttribute('data-pending')
+      expect(screen.getByTestId(id)).toHaveAttribute('aria-checked', 'true')
+    }
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+    expect(screen.getByTestId('cb-c')).toHaveAttribute('data-highlighted')
+  })
+  it('commits on release once, suppresses the following click, and stays open', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    const onClick = vi.fn()
+    await prepare(spies, 'keep', [], { a: onClick })
+    down('cb-a', 16)
+    move(80)
+    up(80)
+    for (const index of [0, 1, 2])
+      expect(spies[index]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    fireEvent.click(screen.getByTestId('cb-a'))
+    expect(onClick).not.toHaveBeenCalled()
+    expect(spies[0]).toHaveBeenCalledTimes(1)
+    for (const id of ['cb-a', 'cb-b', 'cb-c', 'cb-d', 'cb-e'])
+      expect(screen.getByTestId(id)).not.toHaveAttribute('data-pending')
+    expect(spies[3]).not.toHaveBeenCalled()
+    expect(spies[4]).not.toHaveBeenCalled()
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+  })
+  it('keeps every row reached in keep mode', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    move(144)
+    move(48)
+    up(48)
+    for (const index of [0, 1, 2, 3])
+      expect(spies[index]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    expect(spies[4]).not.toHaveBeenCalled()
+  })
+  it('tracks only the current span in rubber-band mode', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies, 'rubber-band')
+    down('cb-a', 16)
+    move(144)
+    move(48)
+    up(48)
+    expect(spies[0]).toHaveBeenCalledExactlyOnceWith(
+      true,
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+    expect(spies[1]).toHaveBeenCalledExactlyOnceWith(
+      true,
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+    expect(spies[2]).not.toHaveBeenCalled()
+    expect(spies[3]).not.toHaveBeenCalled()
+    expect(spies[4]).not.toHaveBeenCalled()
+  })
+  it('takes the target state from the pressed row', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies, 'keep', ['b'])
+    down('cb-b', 48)
+    move(144)
+    up(144)
+    expect(spies[1]).toHaveBeenCalledExactlyOnceWith(
+      false,
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+    expect(spies[2]).not.toHaveBeenCalled()
+    expect(spies[3]).not.toHaveBeenCalled()
+    expect(spies[4]).not.toHaveBeenCalled()
+  })
+  it('skips plain rows', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-c', 80)
+    move(176)
+    up(176)
+    for (const index of [2, 3, 4])
+      expect(spies[index]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+    expect(screen.getByTestId('item-x')).not.toHaveAttribute('aria-checked')
+  })
+  it('clamps pointer positions', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-e', 176)
+    move(-500)
+    for (const id of ['cb-a', 'cb-b', 'cb-c', 'cb-d', 'cb-e'])
+      expect(screen.getByTestId(id)).toHaveAttribute('data-pending')
+  })
+  it('clamps pointer positions in rubber-band mode', async () => {
+    const second = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(second, 'rubber-band')
+    down('cb-a', 16)
+    move(5000)
+    move(-500)
+    expect(screen.getByTestId('cb-a')).toHaveAttribute('data-pending')
+    for (const id of ['cb-b', 'cb-c', 'cb-d', 'cb-e'])
+      expect(screen.getByTestId(id)).not.toHaveAttribute('data-pending')
+  })
+  it.each([
+    'Escape',
+    'pointercancel',
+    'blur',
+  ] as const)('cancels a drag on %s', async (kind) => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    move(80)
+    if (kind === 'Escape')
+      fireEvent.keyDown(screen.getByTestId('list'), { key: 'Escape' })
+    else if (kind === 'pointercancel')
+      fireEvent.pointerCancel(document, { pointerId: 1 })
+    else fireEvent.blur(window)
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+    expect(screen.getByTestId('cb-a')).not.toHaveAttribute('data-pending')
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    up(16)
+    fireEvent.click(screen.getByTestId('cb-a'))
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+  })
+  it('Escape closes a press that never became a drag', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    fireEvent.keyDown(screen.getByTestId('list'), { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+  })
+  it('does not start a drag for touch', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16, 'touch')
+    move(80)
+    expect(screen.getByTestId('cb-a')).not.toHaveAttribute('data-pending')
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+  })
+  it('does nothing when drag selection is unset but preserves click behavior', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    const user = userEvent.setup()
+    render(<Menu>{makeRows(spies)}</Menu>)
+    await openMenu(user)
+    layoutRows()
+    down('cb-a', 16)
+    move(80)
+    expect(screen.getByTestId('cb-a')).not.toHaveAttribute('data-pending')
+    up(80)
+    fireEvent.click(screen.getByTestId('cb-a'))
+    expect(spies[0]).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ reason: 'item-press' }),
+    )
+  })
+  it('release row without a move commits the release span', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    up(80)
+    for (const index of [0, 1, 2])
+      expect(spies[index]).toHaveBeenCalledExactlyOnceWith(
+        true,
+        expect.objectContaining({ reason: 'drag-selection' }),
+      )
+  })
+  it('commits checkbox group changes once', async () => {
+    const spy = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Menu dragSelection="keep">
+        <DropdownMenu.CheckboxGroup value={[]} onValueChange={spy}>
+          {(['a', 'b', 'c', 'd'] as const).map((name) => (
+            <DropdownMenu.CheckboxItem
+              key={name}
+              value={name}
+              data-testid={`cb-${name}`}
+            >
+              {name}
+            </DropdownMenu.CheckboxItem>
+          ))}
+        </DropdownMenu.CheckboxGroup>
+      </Menu>,
+    )
+    await openMenu(user)
+    layoutRows()
+    down('cb-a', 16)
+    move(80)
+    up(80)
+    expect(spy).toHaveBeenCalledExactlyOnceWith(
+      ['a', 'b', 'c'],
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+  })
+  it('cancels when the controlled menu closes and on unmount', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    const user = userEvent.setup()
+    const view = render(
+      <Menu open dragSelection="keep">
+        {makeRows(spies)}
+      </Menu>,
+    )
+    await openMenu(user)
+    layoutRows()
+    down('cb-a', 16)
+    move(80)
+    view.rerender(
+      <Menu open={false} dragSelection="keep">
+        {makeRows(spies)}
+      </Menu>,
+    )
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+    expect(screen.queryByTestId('cb-a')).toBeNull()
+    up(80)
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+    view.unmount()
+  })
+  it('unmounting mid-drag commits nothing and throws nothing', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    await prepare(spies)
+    down('cb-a', 16)
+    move(80)
+    cleanup()
+    expect(() => up(80)).not.toThrow()
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
+  })
+  it('keeps the open subscription through StrictMode remounts', async () => {
+    const spies = Array.from({ length: 5 }, () => vi.fn())
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    const view = render(
+      <React.StrictMode>
+        <Menu open onOpenChange={onOpenChange} dragSelection="keep">
+          {makeRows(spies)}
+        </Menu>
+      </React.StrictMode>,
+    )
+    await openMenu(user)
+    layoutRows()
+    down('cb-a', 16)
+    move(80)
+    expect(screen.getByTestId('cb-c')).toHaveAttribute('data-pending')
+    view.rerender(
+      <React.StrictMode>
+        <Menu open={false} onOpenChange={onOpenChange} dragSelection="keep">
+          {makeRows(spies)}
+        </Menu>
+      </React.StrictMode>,
+    )
+    up(80)
+    expect(spies.every((spy) => !spy.mock.calls.length)).toBe(true)
   })
 })
