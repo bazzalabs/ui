@@ -79,6 +79,8 @@ export type ItemSelectEventDetails = ChangeEventDetails<ItemSelectReason>
 export type CheckedChangeReason =
   | typeof REASONS.itemPress
   | typeof REASONS.itemKeyboardSelect
+  | typeof REASONS.rangeSelection
+  | typeof REASONS.dragSelection
 
 /**
  * Event details for checkbox item checked state changes.
@@ -86,11 +88,20 @@ export type CheckedChangeReason =
 export type CheckedChangeEventDetails = ChangeEventDetails<CheckedChangeReason>
 
 /**
+ * Reasons a range selection or drag selection commit reports.
+ */
+export type SelectionCommitReason =
+  | typeof REASONS.rangeSelection
+  | typeof REASONS.dragSelection
+
+/**
  * Reasons why a checkbox group's value changed.
  */
 export type CheckboxValueChangeReason =
   | typeof REASONS.itemPress
   | typeof REASONS.itemKeyboardSelect
+  | typeof REASONS.rangeSelection
+  | typeof REASONS.dragSelection
 
 /**
  * Event details for checkbox group value changes.

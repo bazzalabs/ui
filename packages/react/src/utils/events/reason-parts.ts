@@ -19,6 +19,8 @@ export const focusOut = 'focus-out' as const
 export const itemPress = 'item-press' as const
 export const itemKeyboardSelect = 'item-keyboard-select' as const
 export const closePress = 'close-press' as const
+export const rangeSelection = 'range-selection' as const
+export const dragSelection = 'drag-selection' as const
 
 // Input interactions (Combobox)
 export const inputChange = 'input-change' as const

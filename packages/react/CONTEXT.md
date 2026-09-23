@@ -22,6 +22,14 @@ _Avoid_: active item, focused item
 A set of checkbox items whose checked state is owned by the group as one list of values, keyed by each item's `value`. Items inside it have no checked state of their own; every change — one click or a whole gesture — reaches the consumer as one group value change. The checkbox counterpart of a radio group.
 _Avoid_: checkbox list, multi-select group, checkbox set
 
+**Range Selection**:
+Shift-clicking a checkbox item (or Shift+Enter on the highlighted one) toggles it and sets every checkbox item between the **anchor** — the checkbox item of the latest interaction in that surface — and it to the same checked state. On by default; configured once per menu on its root. Selection here means checked state, never activation (`onSelect`).
+_Avoid_: range select, shift-select, multi-select
+
+**Drag Selection**:
+A gesture that previews one checked state across a span of checkbox items and commits it once when the gesture ends: pressing a checkbox item and dragging with a pointer (opt-in), or holding Shift and moving the highlight with the keyboard. The span runs from the starting row to the current row; the target is the starting row's new state. Pointer drags come in two modes: **keep** (rows stay set once reached) or **rubber band** (rows outside the current span return to their pre-drag state). Never crosses a surface or popup boundary.
+_Avoid_: paint select, swipe select, drag select
+
 **Focus Zone**:
 A region of a surface, registered with it, that participates in tab navigation — Tab moves real DOM focus through its interactive content. Arrow-key navigation and highlight remain the listbox's job; a focus zone is where DOM focus is allowed to go inside the popup.
 _Avoid_: focus trap, focus region, tab group
