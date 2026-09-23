@@ -177,6 +177,9 @@ export const examples = {
       'checkbox-group': ex(
         () => import('@/registry/examples/styled/dropdown-menu/checkbox-group'),
       ),
+      'drag-selection': ex(
+        () => import('@/registry/examples/styled/dropdown-menu/drag-selection'),
+      ),
       radio: ex(() => import('@/registry/examples/styled/dropdown-menu/radio')),
       submenu: ex(
         () => import('@/registry/examples/styled/dropdown-menu/submenu'),

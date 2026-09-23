@@ -280,6 +280,8 @@ For data-first subpages, `pageId` is the subpage's Resolved ID (`node.id`); pass
 | `ArrowDown` / `ArrowUp` | Moves highlight to the next or previous enabled row. |
 | `Home` / `End` | Moves highlight to the first or last enabled row. |
 | `Enter` | Selects the highlighted row. Items close the menu unless `closeOnClick={false}`; checkbox items stay open. |
+| `Shift` + `Enter` | Sets every checkbox item between the highlighted one and the last checkbox item you interacted with to the same state. |
+| `Shift` + `ArrowDown` / `ArrowUp` / `Home` / `End` | Previews a span of checkbox items from where you started holding Shift; releasing Shift (or pressing `Enter`) applies it. `Escape` cancels. |
 | `Escape` | Closes the command menu from the root surface or a subpage. |
 | `Backspace` | From an empty input on a subpage, goes back one page when `backspaceGoesBack` is enabled. |
 | Single-key `shortcut` | Selects the matching item accelerator while the command menu is active. |
