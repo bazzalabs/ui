@@ -46,9 +46,11 @@ export function getBrowseNodesFlatten(
       continue
     }
 
-    if (isMenuNodeOfKind(node, 'radio-group')) {
-      // Radio groups should not be flattened - skip in flatten mode
-      // They will be handled by getBrowseNodesPreserve
+    if (
+      isMenuNodeOfKind(node, 'radio-group') ||
+      isMenuNodeOfKind(node, 'checkbox-group')
+    ) {
+      // Radio groups and checkbox groups are not flattened here; `getBrowseNodesPreserve` handles them.
       continue
     }
 
@@ -198,7 +200,8 @@ export function getBrowseNodesPreserve(
         if (
           isMenuNodeOfKind(child, 'separator') ||
           isMenuNodeOfKind(child, 'group') ||
-          isMenuNodeOfKind(child, 'radio-group')
+          isMenuNodeOfKind(child, 'radio-group') ||
+          isMenuNodeOfKind(child, 'checkbox-group')
         ) {
           continue
         }
@@ -300,6 +303,46 @@ export function getBrowseNodesPreserve(
           bestScore: 1,
         })
       }
+      continue
+    }
+
+    if (isMenuNodeOfKind(node, 'checkbox-group')) {
+      if (node.def.hidden) continue
+      const items: DisplayRowNode[] = []
+      for (const child of node.children) {
+        if (!isRowMenuNode(child) || child.def.hidden) continue
+        items.push({
+          kind: 'row',
+          node: child,
+          context: {
+            search: null,
+            breadcrumbs: [],
+            isDeepSearchResult: false,
+            highlighted: child.def.id === highlightedId,
+            disabled: child.def.disabled ?? false,
+            group: null,
+            tree: null,
+          },
+          checkboxGroup: {
+            id: node.def.id,
+            label: node.def.label,
+            def: node.def,
+          },
+        })
+      }
+      if (items.length > 0)
+        result.push({
+          kind: 'checkbox-group',
+          node,
+          context: {
+            search: null,
+            matchCount: items.length,
+            breadcrumbs: [],
+            isDeepSearchResult: false,
+          },
+          items,
+          bestScore: 1,
+        })
       continue
     }
 

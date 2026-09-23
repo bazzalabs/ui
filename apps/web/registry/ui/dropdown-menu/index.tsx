@@ -5,6 +5,7 @@ import {
   type BreadcrumbNode,
   type DisplayNode,
   type DropdownMenuVirtualItem,
+  isDisplayCheckboxGroupNode,
   isDisplayGroupNode,
   isDisplayRadioGroupNode,
   isDisplayRowNode,
@@ -399,6 +400,16 @@ function displayNodesToVirtualItems(
           })
         }
       }
+    } else if (isDisplayCheckboxGroupNode(displayNode)) {
+      for (const item of displayNode.items) {
+        if (item.node.id) {
+          items.push({
+            value: item.node.id,
+            disabled: item.node.def.disabled ?? false,
+            keywords: item.node.def.keywords,
+          })
+        }
+      }
     } else if (isDisplaySeparatorNode(displayNode)) {
       // Skip separators - they're not navigable
     } else {
@@ -478,7 +489,10 @@ function VirtualizedListContent({
     const rowIndexByItemId = new Map<string, number>()
 
     const groupNodes = nodes.filter(
-      (n) => isDisplayGroupNode(n) || isDisplayRadioGroupNode(n),
+      (n) =>
+        isDisplayGroupNode(n) ||
+        isDisplayRadioGroupNode(n) ||
+        isDisplayCheckboxGroupNode(n),
     )
     const firstGroupNode = groupNodes[0]
     const lastGroupNode = groupNodes[groupNodes.length - 1]
@@ -577,6 +591,51 @@ function VirtualizedListContent({
               lastInGroup: i === node.items.length - 1,
             },
             radioGroup,
+          })
+        })
+      } else if (isDisplayCheckboxGroupNode(node)) {
+        const checkboxGroup = node.node.def
+        if (process.env.NODE_ENV !== 'production' && checkboxGroup.render) {
+          console.warn(
+            `[DropdownMenu.List virtualized] checkbox group "${checkboxGroup.id}" has a container render function; it is ignored in virtualized lists. Use renderLabel instead.`,
+          )
+        }
+        if (checkboxGroup.label || checkboxGroup.renderLabel) {
+          const labelId = `${checkboxGroup.id}-label`
+          rows.push({
+            kind: 'group-label',
+            key: `group-label-${checkboxGroup.id}`,
+            groupId: checkboxGroup.id,
+            firstGroup: node === firstGroupNode,
+            lastGroup: node === lastGroupNode,
+            firstRow: rows.length === 0,
+            lastRow: false,
+            element: checkboxGroup.renderLabel ? (
+              checkboxGroup.renderLabel({
+                node: node.node,
+                props: { id: labelId },
+                context: {
+                  ...node.context,
+                  label: checkboxGroup.label,
+                  value: checkboxGroup.value,
+                  disabled: checkboxGroup.disabled ?? false,
+                },
+              })
+            ) : (
+              <GroupLabel id={labelId}>{checkboxGroup.label}</GroupLabel>
+            ),
+          })
+        }
+        node.items.forEach((item, i) => {
+          pushNodeRow({
+            kind: 'node',
+            key: getNodeKey(item),
+            node: item,
+            groupId: checkboxGroup.id,
+            positional: {
+              firstInGroup: i === 0,
+              lastInGroup: i === node.items.length - 1,
+            },
           })
         })
       } else if (isDisplaySeparatorNode(node)) {

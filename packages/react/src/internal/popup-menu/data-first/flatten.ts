@@ -7,6 +7,7 @@ import { resolveBranchIncludeMode } from './async.js'
 import { isMenuNodeOfKind, isRowMenuNode } from './type-guards.js'
 import type {
   BreadcrumbNode,
+  CheckboxGroupDef,
   DisabledBranchBehavior,
   FlattenedNode,
   GroupDef,
@@ -32,6 +33,8 @@ interface FlattenOptions {
   group?: FlattenedNode['group']
   /** Current radio group context */
   radioGroup?: FlattenedNode['radioGroup']
+  /** Current checkbox group context */
+  checkboxGroup?: FlattenedNode['checkboxGroup']
   /** Keywords inherited from tree ancestors. */
   inheritedKeywords?: string[]
 }
@@ -58,7 +61,7 @@ export function getSupportedTreeChildren(
 /**
  * Flattens a tree of Menu Nodes into a flat array.
  * When deep=true, includes children of branch nodes with their breadcrumb paths.
- * Tracks group and radio group membership for each node.
+ * Tracks group, radio group, and checkbox group membership for each node.
  */
 export function flattenNodes(
   nodes: readonly PopupMenuNode[],
@@ -72,6 +75,7 @@ export function flattenNodes(
     breadcrumbs = [],
     group = null,
     radioGroup = null,
+    checkboxGroup = null,
     inheritedKeywords = [],
   } = options
   const result: FlattenedNode[] = []
@@ -100,6 +104,7 @@ export function flattenNodes(
           breadcrumbs,
           group: groupInfo,
           radioGroup: null, // Reset radio group when entering a regular group
+          checkboxGroup: null,
           inheritedKeywords,
         }),
       )
@@ -125,6 +130,31 @@ export function flattenNodes(
           breadcrumbs,
           group: null, // Reset regular group when entering a radio group
           radioGroup: radioGroupInfo,
+          checkboxGroup: null,
+          inheritedKeywords,
+        }),
+      )
+      continue
+    }
+
+    if (isMenuNodeOfKind(node, 'checkbox-group')) {
+      if (node.def.hidden) continue
+      const checkboxGroupInfo = {
+        id: node.def.id,
+        label: node.def.label,
+        checkboxGroupDef: node.def as CheckboxGroupDef,
+        menuNode: node,
+      }
+      result.push(
+        ...flattenNodes(node.children, {
+          deep,
+          includeInDeepSearch,
+          disabledBranchBehavior,
+          descendantsIncluded,
+          breadcrumbs,
+          group: null,
+          radioGroup: null,
+          checkboxGroup: checkboxGroupInfo,
           inheritedKeywords,
         }),
       )
@@ -143,13 +173,27 @@ export function flattenNodes(
       isMenuNodeOfKind(node, 'checkbox-item') ||
       isMenuNodeOfKind(node, 'link-item')
     ) {
-      result.push({ node, breadcrumbs, group, radioGroup, inheritedKeywords })
+      result.push({
+        node,
+        breadcrumbs,
+        group,
+        radioGroup,
+        checkboxGroup,
+        inheritedKeywords,
+      })
       continue
     }
 
     if (isMenuNodeOfKind(node, 'tree-item')) {
       if (node.def.selectable !== false) {
-        result.push({ node, breadcrumbs, group, radioGroup, inheritedKeywords })
+        result.push({
+          node,
+          breadcrumbs,
+          group,
+          radioGroup,
+          checkboxGroup,
+          inheritedKeywords,
+        })
       }
 
       if (node.children.length && node.def.deepSearch !== false) {
@@ -168,6 +212,7 @@ export function flattenNodes(
             breadcrumbs: [...breadcrumbs, treeBreadcrumb],
             group,
             radioGroup,
+            checkboxGroup,
             inheritedKeywords: [...inheritedKeywords, node.def.value],
           }),
         )
@@ -191,7 +236,14 @@ export function flattenNodes(
         !deep || (descendantsIncluded && branchIncludeMode !== false)
 
       if (shouldIncludeBranchTrigger) {
-        result.push({ node, breadcrumbs, group, radioGroup, inheritedKeywords })
+        result.push({
+          node,
+          breadcrumbs,
+          group,
+          radioGroup,
+          checkboxGroup,
+          inheritedKeywords,
+        })
       }
 
       // If deep search enabled and branch allows descendants, include children.
@@ -232,9 +284,10 @@ export function flattenNodes(
               disabledBranchBehavior,
               descendantsIncluded: true,
               breadcrumbs: childBreadcrumbs,
-              // Reset group and radio group context when entering a branch node
+              // Reset group, radio group, and checkbox group context when entering a branch node
               group: null,
               radioGroup: null,
+              checkboxGroup: null,
               inheritedKeywords,
             },
           ),

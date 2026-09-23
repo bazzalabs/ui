@@ -298,6 +298,7 @@ export const PopupMenuSurface = React.forwardRef<
         minLength: 0,
         groupSearchBehavior: 'preserve',
         radioGroupSearchBehavior: 'preserve',
+        checkboxGroupSearchBehavior: 'preserve',
         sortGroups: true,
         asyncResultBehavior: 'stream',
         disabledBranchBehavior: 'exclude',
@@ -309,6 +310,8 @@ export const PopupMenuSurface = React.forwardRef<
       groupSearchBehavior: deepSearch.groupSearchBehavior ?? 'preserve',
       radioGroupSearchBehavior:
         deepSearch.radioGroupSearchBehavior ?? 'preserve',
+      checkboxGroupSearchBehavior:
+        deepSearch.checkboxGroupSearchBehavior ?? 'preserve',
       sortGroups: deepSearch.sortGroups ?? true,
       asyncResultBehavior: deepSearch.asyncResultBehavior ?? 'stream',
       disabledBranchBehavior: deepSearch.disabledBranchBehavior ?? 'exclude',
