@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { REASONS } from '../../../../utils/events/index.js'
@@ -15,6 +16,7 @@ import {
   useSurfaceContext,
 } from '../../../listbox/index.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
+import { CheckboxSelectionContext } from '../../contexts/checkbox-selection-context.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -37,6 +39,7 @@ import type {
   DeepSearchConfig,
 } from '../../data-first/types.js'
 import { isPopupMenuNode } from '../../menu-tree/resolve.js'
+import { CheckboxSelectionStore } from '../../store/CheckboxSelectionStore.js'
 import { getTabbables } from '../../utils/tabbables.js'
 
 // Surface doesn't expose data attributes - using empty state
@@ -508,6 +511,15 @@ export const PopupMenuSurface = React.forwardRef<
     [store, surfaceId],
   )
 
+  const selectionStore = useRefWithInit(
+    () =>
+      new CheckboxSelectionStore({
+        getVisibleItemIds: () => store.getVisibleItemIds(),
+        getItemElement: (id) =>
+          store.context.refs.itemRefs.get(id)?.current ?? null,
+      }),
+  ).current
+
   // Prevent pointer down from stealing focus from Input.
   // A press on an input itself must keep the browser's native
   // focus-on-pointerdown behavior, so don't cancel it there.
@@ -690,7 +702,9 @@ export const PopupMenuSurface = React.forwardRef<
 
   return (
     <SurfaceContext.Provider value={contextValue}>
-      {element}
+      <CheckboxSelectionContext.Provider value={selectionStore}>
+        {element}
+      </CheckboxSelectionContext.Provider>
     </SurfaceContext.Provider>
   )
 })

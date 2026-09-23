@@ -32,6 +32,31 @@ export interface CommandMenuRootProps {
   getResolvedId?: GetResolvedIdFn
   /** Definition Key uniqueness scope. Read once when the menu root mounts. @default 'surface' */
   idScope?: PopupMenuIdScope
+
+  /**
+   * Whether shift-clicking a checkbox item (or pressing Shift+Enter on the
+   * highlighted one) sets every checkbox item between it and the last
+   * checkbox item you interacted with to the same checked state. Also
+   * enables the keyboard span: hold Shift while moving the highlight, release
+   * Shift to apply.
+   * @default true
+   */
+  rangeSelection?: boolean
+  /**
+   * Lets the user press a checkbox item and drag across others to set them all
+   * to the pressed item's new state. Off by default. `'keep'` keeps rows set
+   * once the pointer has reached them; `'rubber-band'` returns rows outside the
+   * current span to their previous state. Mouse and pen only.
+   * @default false
+   */
+  dragSelection?: false | 'keep' | 'rubber-band'
+  /**
+   * Returns the text announced to screen readers after a range or drag
+   * selection changes rows, for localization. `count` is the number of rows
+   * changed and `checked` the state they were set to. Defaults to English
+   * ("3 items checked", "1 item unchecked").
+   */
+  getAriaSelectionText?: (count: number, checked: boolean) => string
 }
 
 /**
@@ -51,6 +76,9 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
     disabled,
     getResolvedId,
     idScope = 'surface',
+    rangeSelection = true,
+    dragSelection = false,
+    getAriaSelectionText,
   } = props
 
   const {
@@ -128,6 +156,9 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
       registerSurface={registerSurface}
       menuType="dropdown"
       closeOnOutsidePress="pointerdown"
+      rangeSelection={rangeSelection}
+      dragSelection={dragSelection}
+      getAriaSelectionText={getAriaSelectionText}
       componentName="command-menu"
     >
       <Dialog.Root

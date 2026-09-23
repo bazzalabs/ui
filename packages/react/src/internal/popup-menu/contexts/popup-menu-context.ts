@@ -95,6 +95,22 @@ export interface PopupMenuContextValue {
    * @default 'pointerdown'
    */
   closeOnOutsidePress: 'click' | 'pointerdown'
+  /**
+   * Whether shift-click and Shift+Enter perform range selection on checkbox items.
+   * @default true
+   */
+  rangeSelection: boolean
+  /**
+   * Whether pressing a checkbox item and dragging performs drag selection, and
+   * how rows the pointer moves back over are treated.
+   * @default false
+   */
+  dragSelection: false | 'keep' | 'rubber-band'
+  /**
+   * Text announced to assistive technology after a range or drag selection
+   * changes rows. Defaults to English ("3 items checked").
+   */
+  getAriaSelectionText?: (count: number, checked: boolean) => string
 }
 
 const PopupMenuContext = React.createContext<PopupMenuContextValue | null>(null)

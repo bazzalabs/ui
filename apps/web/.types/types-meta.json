@@ -3940,6 +3940,29 @@
             "default": "'surface'"
           },
           {
+            "name": "rangeSelection",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether shift-clicking a checkbox item (or pressing Shift+Enter on the\nhighlighted one) sets every checkbox item between it and the last\ncheckbox item you interacted with to the same checked state. Also\nenables the keyboard span: hold Shift while moving the highlight, release\nShift to apply.",
+            "default": "true"
+          },
+          {
+            "name": "dragSelection",
+            "type": "false | \"keep\" | \"rubber-band\" | undefined",
+            "formattedType": "false | \"keep\" | \"rubber-band\"",
+            "required": false,
+            "description": "Lets the user press a checkbox item and drag across others to set them all\nto the pressed item's new state. Off by default. `'keep'` keeps rows set\nonce the pointer has reached them; `'rubber-band'` returns rows outside the\ncurrent span to their previous state. Mouse and pen only.",
+            "default": "false"
+          },
+          {
+            "name": "getAriaSelectionText",
+            "type": "((count: number, checked: boolean) => string) | undefined",
+            "formattedType": "(\n  count: number,\n  checked: boolean,\n) => string",
+            "required": false,
+            "description": "Returns the text announced to screen readers after a range or drag\nselection changes rows, for localization. `count` is the number of rows\nchanged and `checked` the state they were set to. Defaults to English\n(\"3 items checked\", \"1 item unchecked\")."
+          },
+          {
             "name": "debug",
             "type": "PopupMenuDebugOptions | undefined",
             "formattedType": "PopupMenuDebugOptions",
@@ -4422,6 +4445,13 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether the item is currently checked."
+          },
+          {
+            "name": "pending",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether a range or drag selection previews a different checked state for this item."
           },
           {
             "name": "first",
@@ -6886,6 +6916,11 @@
             "description": "Present when the checkbox item is unchecked."
           },
           {
+            "name": "pending",
+            "value": "data-pending",
+            "description": "Present while a range or drag selection previews a checked state for this\nitem that differs from its committed state."
+          },
+          {
             "name": "highlighted",
             "value": "data-highlighted",
             "description": "Present when the item is highlighted (via keyboard or pointer)."
@@ -7544,6 +7579,28 @@
             "required": true,
             "description": "When to close the menu on outside interactions.\n- 'pointerdown': Close immediately when pointer is pressed outside (default)\n- 'click': Close when a full click (pointerdown + pointerup) occurs outside",
             "default": "'pointerdown'"
+          },
+          {
+            "name": "rangeSelection",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether shift-click and Shift+Enter perform range selection on checkbox items.",
+            "default": "true"
+          },
+          {
+            "name": "dragSelection",
+            "type": "false | \"keep\" | \"rubber-band\"",
+            "required": true,
+            "description": "Whether pressing a checkbox item and dragging performs drag selection, and\nhow rows the pointer moves back over are treated.",
+            "default": "false"
+          },
+          {
+            "name": "getAriaSelectionText",
+            "type": "((count: number, checked: boolean) => string) | undefined",
+            "formattedType": "(\n  count: number,\n  checked: boolean,\n) => string",
+            "required": false,
+            "description": "Text announced to assistive technology after a range or drag selection\nchanges rows. Defaults to English (\"3 items checked\")."
           }
         ]
       },
@@ -8717,6 +8774,13 @@
             "description": "Overrides this row's computed fuzzy-match score."
           },
           {
+            "name": "checked",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "The controlled checked state."
+          },
+          {
             "name": "keywords",
             "type": "string[] | undefined",
             "formattedType": "string[]",
@@ -8730,13 +8794,6 @@
             "required": false,
             "description": "Whether clicking this item should close the menu.",
             "default": "false"
-          },
-          {
-            "name": "checked",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "The controlled checked state."
           },
           {
             "name": "onCheckedChange",
@@ -8761,7 +8818,7 @@
           {
             "name": "props",
             "type": "CheckboxItemRenderProps",
-            "formattedType": "{\n  id: string\n  value: string\n} & Required<\n  Pick<PopupMenu.CheckboxItem.Props, 'disabled'>\n> &\n  Pick<\n    PopupMenu.CheckboxItem.Props,\n    | 'forceOrder'\n    | 'forceScore'\n    | 'closeOnClick'\n    | 'checked'\n    | 'onCheckedChange'\n  >",
+            "formattedType": "{\n  id: string\n  value: string\n} & Required<\n  Pick<PopupMenu.CheckboxItem.Props, 'disabled'>\n> &\n  Pick<\n    PopupMenu.CheckboxItem.Props,\n    | 'forceOrder'\n    | 'forceScore'\n    | 'checked'\n    | 'closeOnClick'\n    | 'onCheckedChange'\n  >",
             "required": true,
             "description": "Props to spread onto the CheckboxItem component"
           },
@@ -8816,19 +8873,19 @@
             "description": "Overrides this row's computed fuzzy-match score."
           },
           {
+            "name": "checked",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "The controlled checked state."
+          },
+          {
             "name": "closeOnClick",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": false,
             "description": "Whether clicking this item should close the menu.",
             "default": "false"
-          },
-          {
-            "name": "checked",
-            "type": "boolean | undefined",
-            "formattedType": "false | true",
-            "required": false,
-            "description": "The controlled checked state."
           },
           {
             "name": "onCheckedChange",
@@ -10999,6 +11056,29 @@
             "referencePath": "@bazza-ui/react.PopupMenuIdScope"
           },
           {
+            "name": "rangeSelection",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether shift-clicking a checkbox item (or pressing Shift+Enter on the\nhighlighted one) sets every checkbox item between it and the last\ncheckbox item you interacted with to the same checked state. Also\nenables the keyboard span: hold Shift while moving the highlight, release\nShift to apply.",
+            "default": "true"
+          },
+          {
+            "name": "dragSelection",
+            "type": "false | \"keep\" | \"rubber-band\" | undefined",
+            "formattedType": "false | \"keep\" | \"rubber-band\"",
+            "required": false,
+            "description": "Lets the user press a checkbox item and drag across others to set them all\nto the pressed item's new state. Off by default. `'keep'` keeps rows set\nonce the pointer has reached them; `'rubber-band'` returns rows outside the\ncurrent span to their previous state. Mouse and pen only.",
+            "default": "false"
+          },
+          {
+            "name": "getAriaSelectionText",
+            "type": "((count: number, checked: boolean) => string) | undefined",
+            "formattedType": "(\n  count: number,\n  checked: boolean,\n) => string",
+            "required": false,
+            "description": "Returns the text announced to screen readers after a range or drag\nselection changes rows, for localization. `count` is the number of rows\nchanged and `checked` the state they were set to. Defaults to English\n(\"3 items checked\", \"1 item unchecked\")."
+          },
+          {
             "name": "debug",
             "type": "PopupMenuDebugOptions | undefined",
             "formattedType": "PopupMenuDebugOptions",
@@ -11473,6 +11553,13 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether the item is currently checked."
+          },
+          {
+            "name": "pending",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether a range or drag selection previews a different checked state for this item."
           },
           {
             "name": "first",
@@ -13997,6 +14084,11 @@
             "description": "Present when the checkbox item is unchecked."
           },
           {
+            "name": "pending",
+            "value": "data-pending",
+            "description": "Present while a range or drag selection previews a checked state for this\nitem that differs from its committed state."
+          },
+          {
             "name": "highlighted",
             "value": "data-highlighted",
             "description": "Present when the item is highlighted (via keyboard or pointer)."
@@ -15022,7 +15114,7 @@
             "name": "status",
             "type": "AsyncLoaderStatus",
             "shortType": "Status",
-            "formattedType": "\"error\" | \"idle\" | \"pending\" | \"success\"",
+            "formattedType": "\"error\" | \"pending\" | \"idle\" | \"success\"",
             "required": true,
             "description": "Canonical status state"
           },
@@ -15149,7 +15241,7 @@
             "name": "status",
             "type": "AsyncLoaderStatus",
             "shortType": "Status",
-            "formattedType": "\"error\" | \"idle\" | \"pending\" | \"success\"",
+            "formattedType": "\"error\" | \"pending\" | \"idle\" | \"success\"",
             "required": true,
             "description": "Canonical status state",
             "referencePath": "@bazza-ui/react.AsyncLoaderStatus"
