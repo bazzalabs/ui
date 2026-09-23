@@ -14,6 +14,20 @@ import type { SubmenuContextValue } from '../contexts/submenu-context.js'
 import type { SubpageContextValue } from '../contexts/subpage-context.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 
+const SPAN_NAVIGATION_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End'])
+
+/** Whether a Shift+Arrow would wrap around the list end (blocked while a span is active). */
+function wouldWrap(store: ListboxStore, key: string): boolean {
+  const ids = store.getVisibleItemIds()
+  const index = store.state.highlightedId
+    ? ids.indexOf(store.state.highlightedId)
+    : -1
+  if (index === -1) return false
+  if (key === 'ArrowDown') return index === ids.length - 1
+  if (key === 'ArrowUp') return index === 0
+  return false
+}
+
 export interface UsePopupMenuKeyboardParams {
   /** The Listbox store instance */
   store: ListboxStore
@@ -85,6 +99,40 @@ export function usePopupMenuKeyboard(
   const { rangeSelection } = usePopupMenuContext()
   const focusOwnerIsOwner = focusOwnerStore.useState('isOwner', surfaceId)
   const isOwner = skipFocusOwnerCheck ? true : focusOwnerIsOwner
+  // `selection` is either always null or always a store for a hook instance.
+  const gestureKind = selection
+    ? selection.useState('gesture')?.kind
+    : undefined
+  const spanActiveAtRender = gestureKind === 'keyboard'
+
+  // While a keyboard span is active, listen at the document so releasing
+  // Shift (or pressing Escape) after DOM focus moved elsewhere, e.g. into a
+  // focus zone, still commits (or cancels) instead of reaching the menu's
+  // own dismiss handling.
+  React.useEffect(() => {
+    if (!selection || !spanActiveAtRender) return
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Shift') {
+        selection.commitGesture(REASONS.dragSelection, event)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (selection.state.gesture?.kind !== 'keyboard') return
+      event.preventDefault()
+      event.stopPropagation()
+      selection.cancelGesture()
+    }
+    const cancel = () => selection.cancelGesture()
+    document.addEventListener('keyup', onKeyUp)
+    document.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('blur', cancel)
+    return () => {
+      document.removeEventListener('keyup', onKeyUp)
+      document.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('blur', cancel)
+    }
+  }, [selection, spanActiveAtRender])
 
   // Convert submenu context to the interface expected by the listbox hook
   const submenuInterface = React.useMemo(() => {
@@ -143,6 +191,49 @@ export function usePopupMenuKeyboard(
       onKeyDown?.(event)
       if (event.defaultPrevented) return
       const isComposing = event.nativeEvent.isComposing || event.keyCode === 229
+      const activeGesture = selection?.state.gesture
+      const keyboardSpanActive = activeGesture?.kind === 'keyboard'
+      if (
+        !isComposing &&
+        rangeSelection &&
+        selection &&
+        isOwner &&
+        enabled &&
+        !disabled
+      ) {
+        if (event.shiftKey && SPAN_NAVIGATION_KEYS.has(event.key)) {
+          if (!activeGesture) {
+            const startId = store.state.highlightedId
+            if (startId && selection.isSelectableRow(startId)) {
+              selection.beginGesture('keyboard', startId, 'rubber-band')
+            }
+          }
+          if (
+            selection.state.gesture?.kind === 'keyboard' &&
+            wouldWrap(store, event.key)
+          ) {
+            event.preventDefault()
+            return
+          }
+          handleListboxKeyDown(event)
+          if (selection.state.gesture?.kind === 'keyboard') {
+            const currentId = store.state.highlightedId
+            if (currentId) selection.extendGesture(currentId)
+          }
+          return
+        }
+        if (keyboardSpanActive && event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          selection.cancelGesture()
+          return
+        }
+        if (keyboardSpanActive && event.key === 'Enter') {
+          event.preventDefault()
+          selection.commitGesture(REASONS.dragSelection, event.nativeEvent)
+          return
+        }
+      }
       if (
         !isComposing &&
         rangeSelection &&
