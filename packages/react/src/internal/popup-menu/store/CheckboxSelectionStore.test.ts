@@ -10,6 +10,8 @@ function setup(initialIds: string[]) {
   const store = new CheckboxSelectionStore({
     getVisibleItemIds: () => ids,
     getItemElement: () => null,
+    setHighlightedId: vi.fn(),
+    observeOpen: () => () => {},
   })
   function owner(id: string, initial: string[], accept = true) {
     let value = [...initial]
@@ -262,6 +264,8 @@ describe('CheckboxSelectionStore', () => {
       getVisibleItemIds: () => ids,
       getItemElement: (id) =>
         id === 'mounted' ? document.createElement('div') : null,
+      setHighlightedId: vi.fn(),
+      observeOpen: () => () => {},
     })
     for (const id of ['a', 'b'])
       store.registerRow({
@@ -278,6 +282,8 @@ describe('CheckboxSelectionStore', () => {
       getVisibleItemIds: () => ['a', 'mounted', 'b'],
       getItemElement: (id) =>
         id === 'mounted' ? document.createElement('div') : null,
+      setHighlightedId: vi.fn(),
+      observeOpen: () => () => {},
     })
     for (const id of ['a', 'b'])
       mountedStore.registerRow({
