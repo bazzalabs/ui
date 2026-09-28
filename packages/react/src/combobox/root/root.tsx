@@ -785,6 +785,7 @@ export function ComboboxRoot<
         registerSurface={registerSurface}
         virtualization={virtualization}
         menuType="dropdown"
+        externalFocus
         componentName="combobox"
         debug={debug}
       >
