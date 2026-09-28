@@ -71,6 +71,19 @@ function collectAsyncSubmenusRaw(
       continue
     }
 
+    if (node.def.kind === 'checkbox-group') {
+      if (node.def.hidden) continue
+      result.push(
+        ...collectAsyncSubmenusRaw(
+          staticChildrenOf(node),
+          includeInDeepSearch,
+          descendantsIncluded,
+          disabledBranchBehavior,
+        ),
+      )
+      continue
+    }
+
     if (node.def.kind === 'submenu' || node.def.kind === 'subpage') {
       if (node.def.hidden) continue
 

@@ -28,7 +28,7 @@ export interface PopupMenuNode<D extends NodeDef = NodeDef> {
   /**
    * Definition Path: Definition Keys from the menu root to this node,
    * including its own key, root-first. Only submenu and subpage ancestors
-   * contribute keys (groups, radio-groups, and tree-items are path-transparent).
+   * contribute keys (groups, radio-groups, checkbox-groups, and tree-items are path-transparent).
    */
   definitionPath: string[]
   /** Resolved ID selected by the root's identity policy. */

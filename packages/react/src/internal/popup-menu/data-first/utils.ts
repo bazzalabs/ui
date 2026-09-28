@@ -18,6 +18,7 @@ export { filterNodes } from './pipeline.js'
 export { scoreNodes } from './score.js'
 export { deduplicateNodes, partitionByKind, sortByScore } from './sort.js'
 export {
+  isCheckboxGroupDef,
   isCheckboxItemDef,
   isGroupDef,
   isItemDef,

@@ -150,6 +150,12 @@ function collectDisplaySubpages(
       continue
     }
 
+    if (def.kind === 'checkbox-group') {
+      if (def.hidden) continue
+      result.push(...collectDisplaySubpages(node.children, breadcrumbs, null))
+      continue
+    }
+
     if (def.hidden) {
       continue
     }

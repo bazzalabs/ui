@@ -11,7 +11,7 @@ Where it lives (`packages/react/src/internal/popup-menu/`):
 ## Language
 
 **Node Def**:
-A user-authored, declarative description of one menu entry (item, link item, checkbox item, radio item, submenu, subpage, tree item, group, separator). Plain data; never mutated by the library.
+A user-authored, declarative description of one menu entry (item, link item, checkbox item, radio item, checkbox group, submenu, subpage, tree item, group, separator). Plain data; never mutated by the library.
 _Avoid_: node config, definition object
 
 **Menu Node**:
@@ -32,7 +32,7 @@ A node's single definition-path component: its explicit id verbatim when present
 _Avoid_: segment, slug, part
 
 **Definition Path** (`definitionPath`):
-The Definition Keys from the menu root to a node in the definition tree, including the node's own key. Only submenu and subpage ancestors contribute keys; groups, radio groups, and tree items are surface-transparent. Identical wherever the node renders — browse, deep search, or recursion.
+The Definition Keys from the menu root to a node in the definition tree, including the node's own key. Only submenu and subpage ancestors contribute keys; groups, radio groups, checkbox groups, and tree items are surface-transparent. Identical wherever the node renders — browse, deep search, or recursion.
 _Avoid_: absolute path, tree path, full path, ancestor path, segments
 
 **Breadcrumbs**:
@@ -47,7 +47,7 @@ How a branch participates in an ancestor's deep search, resolved per branch from
 _Avoid_: deep search mode, visibility, searchable
 
 **Inherited Disabled**:
-The disabled state a deep result carries from the nearest disabled branch on its breadcrumbs, as opposed to its own def's `disabled`. A row's effective disabled state is its own or an inherited one. Only branches confer it — tree items, groups, and radio groups do not.
+The disabled state a deep result carries from the nearest disabled branch on its breadcrumbs, as opposed to its own def's `disabled`. A row's effective disabled state is its own or an inherited one. Only branches confer it — tree items, groups, radio groups, and checkbox groups do not.
 _Avoid_: propagated disabled, ancestor disabled, locked
 
 **Resolved ID** (`id`):
@@ -66,7 +66,7 @@ The menu's top-level surface — the one a popup opens with. Owns the Menu Tree 
 _Avoid_: root node, root page, `__root__`
 
 **Branch**:
-A submenu or subpage Menu Node — a node that opens a child surface. Only branches can own a branch loader or a subpage. Groups, radio groups, and tree items contain nodes but are not branches; they open no surface.
+A submenu or subpage Menu Node — a node that opens a child surface. Only branches can own a branch loader or a subpage. Groups, radio groups, checkbox groups, and tree items contain nodes but are not branches; they open no surface.
 _Avoid_: container, parent (as a category), async submenu (a branch may be static)
 
 **Resolution**:

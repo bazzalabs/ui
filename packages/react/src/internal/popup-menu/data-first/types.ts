@@ -1,4 +1,5 @@
 import type * as React from 'react'
+import type { PopupMenuCheckboxGroupProps } from '../components/checkbox-group/checkbox-group.js'
 import type { PopupMenuCheckboxItemProps } from '../components/checkbox-item/checkbox-item.js'
 import type { PopupMenuItemProps } from '../components/item/item.js'
 import type { PopupMenuLinkItemProps } from '../components/link-item/link-item.js'
@@ -756,6 +757,57 @@ export interface RadioGroupLabelRenderParams {
 }
 
 // ============================================================================
+// Checkbox Group Types
+// ============================================================================
+
+/**
+ * Props to spread onto the CheckboxGroup component.
+ * Derived from PopupMenuCheckboxGroupProps.
+ */
+export type CheckboxGroupRenderProps = Required<
+  Pick<PopupMenuCheckboxGroupProps, 'disabled'>
+> &
+  Pick<PopupMenuCheckboxGroupProps, 'onValueChange'> & { value: string[] }
+/**
+ * Parameters passed to checkbox group render functions.
+ */
+export interface CheckboxGroupRenderParams {
+  /** The resolved menu node for this row — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
+  /** Props to spread onto the CheckboxGroup component */
+  props: CheckboxGroupRenderProps
+  /** Context for conditional rendering */
+  context: GroupRenderContext & {
+    /** The checkbox group's label */
+    label?: string
+    /** Current checked values */
+    value?: string[]
+    /** Whether the checkbox group is disabled */
+    disabled: boolean
+  }
+  /** Pre-rendered checkbox items */
+  children: React.ReactNode
+}
+/**
+ * Parameters passed to checkbox group label render functions.
+ */
+export interface CheckboxGroupLabelRenderParams {
+  /** The resolved menu node for this group — canonical identity (`node.id`), definition path, and tree links */
+  node: PopupMenuNode
+  /** Props to spread onto the label element (stable id for aria wiring) */
+  props: { id: string }
+  /** Context for conditional rendering (includes label for convenience) */
+  context: GroupRenderContext & {
+    /** The checkbox group's label */
+    label?: string
+    /** Current checked values */
+    value?: string[]
+    /** Whether the checkbox group is disabled */
+    disabled: boolean
+  }
+}
+
+// ============================================================================
 // Node Definitions
 // ============================================================================
 
@@ -1082,6 +1134,41 @@ export function defineRadioGroup(def: RadioGroupDef): RadioGroupDef {
 }
 
 /**
+ * Checkbox group node definition.
+ * Represents a group of checkbox items whose checked state the group owns as one array of values.
+ * Props derived from PopupMenuCheckboxGroupProps.
+ */
+export interface CheckboxGroupDef
+  extends Pick<PopupMenuCheckboxGroupProps, 'onValueChange' | 'disabled'> {
+  kind: 'checkbox-group'
+  /** Unique identifier for this checkbox group */
+  id: string
+  /** Optional group heading/label */
+  label?: string
+  /** Whether the checkbox group is hidden */
+  hidden?: boolean
+  /** Values of the currently checked items (controlled). */
+  value: string[]
+  /** Child nodes in this checkbox group - must be CheckboxItemDef nodes */
+  nodes: CheckboxItemDef[]
+  /** Optional render function for the checkbox group container */
+  render?: (params: CheckboxGroupRenderParams) => React.ReactNode
+  /**
+   * Optional render function for the checkbox group's label row.
+   * Used by the default checkbox group container when no `render` is provided, and by
+   * virtualized lists (which ignore `render` and use only the label row).
+   * Precedence: `render` > `renderLabel` > `label`.
+   */
+  renderLabel?: (params: CheckboxGroupLabelRenderParams) => React.ReactNode
+}
+/**
+ * Helper function to create a checkbox group definition with proper typing.
+ */
+export function defineCheckboxGroup(def: CheckboxGroupDef): CheckboxGroupDef {
+  return def
+}
+
+/**
  * Union of all node definition types.
  */
 export type NodeDef =
@@ -1095,6 +1182,7 @@ export type NodeDef =
   | SeparatorDef
   | GroupDef
   | RadioGroupDef
+  | CheckboxGroupDef
 
 // ============================================================================
 // Scored Node - internal type for search results
@@ -1128,6 +1216,13 @@ export interface ScoredNode {
     radioGroupDef: RadioGroupDef
     menuNode: PopupMenuNode<RadioGroupDef>
   } | null
+  /** The checkbox group this node belongs to, if any */
+  checkboxGroup: {
+    id: string
+    label?: string
+    checkboxGroupDef: CheckboxGroupDef
+    menuNode: PopupMenuNode<CheckboxGroupDef>
+  } | null
 }
 
 /** A row surfaced by `flattenNodes`, with the containers it was found under. */
@@ -1149,6 +1244,13 @@ export interface FlattenedNode {
     label?: string
     radioGroupDef: RadioGroupDef
     menuNode: PopupMenuNode<RadioGroupDef>
+  } | null
+  /** The checkbox group this node belongs to, if any */
+  checkboxGroup: {
+    id: string
+    label?: string
+    checkboxGroupDef: CheckboxGroupDef
+    menuNode: PopupMenuNode<CheckboxGroupDef>
   } | null
   /** Keywords inherited from tree ancestors. */
   inheritedKeywords: string[]
@@ -1179,6 +1281,8 @@ export interface DisplayRowNode {
   context: RowRenderContext
   /** Radio group this node belongs to, if rendering inside one */
   radioGroup?: { id: string; label?: string }
+  /** Checkbox group this node belongs to, if rendering inside one. Carries the def so the row can be wrapped in the group's value provider. */
+  checkboxGroup?: { id: string; label?: string; def: CheckboxGroupDef }
 }
 
 /**
@@ -1225,6 +1329,17 @@ export interface DisplayRadioGroupNode {
   /** Best match score among items in this radio group */
   bestScore: number
 }
+/**
+ * A checkbox group node ready for display with its render context.
+ * Contains the checkbox group definition and its items.
+ */
+export interface DisplayCheckboxGroupNode {
+  kind: 'checkbox-group'
+  node: PopupMenuNode<CheckboxGroupDef>
+  context: GroupRenderContext
+  items: DisplayRowNode[]
+  bestScore: number
+}
 
 /**
  * A separator node ready for display.
@@ -1243,6 +1358,7 @@ export type DisplayNode =
   | DisplayRowNode
   | DisplayGroupNode
   | DisplayRadioGroupNode
+  | DisplayCheckboxGroupNode
   | DisplaySeparatorNode
 
 /**
@@ -1261,6 +1377,14 @@ export function isDisplayRadioGroupNode(
   node: DisplayNode,
 ): node is DisplayRadioGroupNode {
   return 'kind' in node && node.kind === 'radio-group'
+}
+/**
+ * Type guard for DisplayCheckboxGroupNode.
+ */
+export function isDisplayCheckboxGroupNode(
+  node: DisplayNode,
+): node is DisplayCheckboxGroupNode {
+  return 'kind' in node && node.kind === 'checkbox-group'
 }
 
 /**
@@ -1299,6 +1423,14 @@ export type GroupBehavior = 'flatten' | 'preserve'
  *   This is useful when you want users to see all options in a radio group.
  */
 export type RadioGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
+/**
+ * Defines how checkbox groups behave during deep search.
+ * - 'flatten': Checkbox group items are shown individually in the flat list (not recommended).
+ * - 'preserve': Checkbox group is shown with only matching items visible.
+ * - 'preserve-show-all': Checkbox group is shown with ALL items visible when any item matches.
+ *   This is useful when you want users to see all options in a checkbox group.
+ */
+export type CheckboxGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
 
 /**
  * Defines how deep-search async results are revealed.
@@ -1339,6 +1471,14 @@ export interface DeepSearchConfig {
    * @default 'preserve'
    */
   radioGroupSearchBehavior?: RadioGroupBehavior
+  /**
+   * How checkbox groups behave during search results.
+   * - 'flatten': Checkbox items shown individually (not recommended).
+   * - 'preserve': Only matching checkbox items are shown (default).
+   * - 'preserve-show-all': All checkbox items are shown when any item matches.
+   * @default 'preserve'
+   */
+  checkboxGroupSearchBehavior?: CheckboxGroupBehavior
   /**
    * Whether to sort groups by their best-matching item's score.
    * Only applies when groupSearchBehavior: 'preserve'.
@@ -1451,14 +1591,14 @@ export interface DataListChildrenState {
 
   /**
    * Display nodes (filtered and scored if searching).
-   * Can include groups (DisplayGroupNode) or radio groups (DisplayRadioGroupNode)
+   * Can include groups (DisplayGroupNode), radio groups (DisplayRadioGroupNode), or checkbox groups (DisplayCheckboxGroupNode)
    * when groupSearchBehavior: 'preserve'.
    */
   nodes: DisplayNode[]
 
   /**
    * Function to render a node.
-   * Handles items, submenus, groups, and radio groups, calling their render functions with context.
+   * Handles items, submenus, groups, radio groups, and checkbox groups, calling their render functions with context.
    */
   renderNode: (displayNode: DisplayNode) => React.ReactNode
 
