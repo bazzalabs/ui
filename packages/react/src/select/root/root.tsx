@@ -8,9 +8,11 @@ import {
   type PopupMenuHighlightChangeHandler,
   PopupMenuProviders,
   type PopupMenuRootActions,
+  RootHoverGuard,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import { REASONS } from '../../utils/events/index.js'
 import {
   defaultItemEquality,
   type ItemEqualityComparer,
@@ -552,6 +554,16 @@ export function SelectRoot<
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = React.useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
+      // Uniform takeover: Base UI's hover-close is inert for hover-enabled roots;
+      // <RootHoverGuard> decides via the Aim Monitor.
+      if (
+        !nextOpen &&
+        popoverDetails.reason === 'trigger-hover' &&
+        store.context.hoverTrigger !== null
+      ) {
+        popoverDetails.cancel()
+        return
+      }
       // Forward to our internal handler with the reason and event
       handleOpenChange(
         nextOpen,
@@ -559,7 +571,7 @@ export function SelectRoot<
         popoverDetails.event,
       )
     },
-    [handleOpenChange],
+    [handleOpenChange, store],
   )
 
   // Handle animation complete - reset positioning state after close animation
@@ -615,6 +627,11 @@ export function SelectRoot<
           modal={modal}
           actionsRef={actionsRef ? popoverActionsRef : undefined}
         >
+          <RootHoverGuard
+            onClose={(event) =>
+              handleOpenChange(false, REASONS.triggerHover, event)
+            }
+          />
           {children}
         </Popover.Root>
       </PopupMenuProviders>

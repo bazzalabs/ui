@@ -849,6 +849,70 @@ describe('ListboxStore', () => {
     })
   })
 
+  describe('hover ownership (openedByHover)', () => {
+    it('is set by a trigger-hover open and cleared by any close', () => {
+      const store = createStore()
+
+      store.setOpen(true, 'trigger-hover', new MouseEvent('mouseenter'))
+      expect(store.state.openedByHover).toBe(true)
+
+      store.setOpen(false, 'escape-key')
+      expect(store.state.openedByHover).toBe(false)
+    })
+
+    it('is not set by a press open', () => {
+      const store = createStore()
+
+      store.setOpen(true, 'trigger-press', new MouseEvent('click'))
+      expect(store.state.openedByHover).toBe(false)
+    })
+
+    it('is dropped when a hover-opened popup is re-opened by a press (click-stick)', () => {
+      const store = createStore()
+
+      store.setOpen(true, 'trigger-hover', new MouseEvent('mouseenter'))
+      store.setOpen(true, 'trigger-press', new MouseEvent('click'))
+
+      expect(store.state.open).toBe(true)
+      expect(store.state.openedByHover).toBe(false)
+    })
+
+    it('is forgotten when a controlled open prop closes the popup without setOpen', () => {
+      const store = createStore({ openProp: undefined })
+
+      store.setOpen(true, 'trigger-hover', new MouseEvent('mouseenter'))
+      expect(store.state.openedByHover).toBe(true)
+
+      // Controlled close: only the prop changes; `setOpen` is never called.
+      store.set('openProp', false)
+      expect(store.state.openedByHover).toBe(false)
+
+      // Programmatic reopen must not look hover-opened.
+      store.set('openProp', true)
+      expect(store.state.openedByHover).toBe(false)
+    })
+
+    it('survives the one-render gap of an accepted controlled hover open', () => {
+      // Controlled `open={false}`: the hover request calls `onOpenChange`, the
+      // parent sets state, and `openProp` syncs to `true` on the next render.
+      // In between, internal `open` is `true` while effective open is still
+      // `false`; ownership must not be stripped in that window.
+      const store = createStore({ openProp: false })
+
+      store.setOpen(true, 'trigger-hover', new MouseEvent('mouseenter'))
+      expect(store.select('open')).toBe(false)
+      expect(store.state.openedByHover).toBe(true)
+
+      store.set('openProp', true)
+      expect(store.select('open')).toBe(true)
+      expect(store.state.openedByHover).toBe(true)
+
+      // …and a later controlled close still clears it.
+      store.set('openProp', false)
+      expect(store.state.openedByHover).toBe(false)
+    })
+  })
+
   describe('open method tracking', () => {
     it('records the open method from the triggering pointer event', () => {
       const store = createStore()

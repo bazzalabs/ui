@@ -107,6 +107,8 @@ export interface DOMRefs {
   listScrollContainerRef: React.RefObject<HTMLElement | null>
   /** Ref to the popup (visual container) element */
   popupRef: React.RefObject<HTMLElement | null>
+  /** Ref to the root trigger element (for the root hover guard). */
+  triggerRef: React.RefObject<HTMLElement | null>
   /** Map of item ID to ref for the item's DOM element */
   itemRefs: Map<string, React.RefObject<HTMLElement | null>>
   /** Map of group ID to ref for the group's DOM element */
@@ -118,6 +120,20 @@ export interface ListboxState {
   open: boolean
   /** Controlled open prop. When defined, selectors resolve this over `open`. */
   openProp: boolean | undefined
+  /** Mirrors `context.hoverTrigger !== null` so components can subscribe. */
+  hoverTriggerEnabled: boolean
+  /**
+   * `true` while the current open was caused by `trigger-hover`. Reset on close
+   * and on any later accepted open with a different reason (e.g. Base UI's
+   * click-to-stick re-emits `trigger-press` on a hover-opened popup).
+   */
+  openedByHover: boolean
+  /**
+   * Bumped every time the root popup element registers via `setPopupRef`, so
+   * effects that need the mounted element (e.g. the root hover guard's
+   * listeners) can re-run once it exists.
+   */
+  popupMountVersion: number
 
   /**
    * How the listbox was most recently opened (`mouse`/`touch`/`pen`/`keyboard`).
@@ -243,6 +259,9 @@ export interface ListboxContext {
    * Stored in context (not state) to avoid re-renders.
    */
   refs: DOMRefs
+  /** Hover-open configuration published by the root trigger; `null` when the trigger is not hover-enabled. */
+  hoverTrigger: { closeDelay: number } | null
+  rootHoverGuardCancel: (() => void) | null
   /**
    * Callback when menu close animation completes.
    * Used for resetting row width measurements.
@@ -293,6 +312,13 @@ interface ValidateHighlightOptions {
 const selectors = {
   open: createSelector((state: ListboxState) => state.openProp ?? state.open),
   openMethod: createSelector((state: ListboxState) => state.openMethod),
+  hoverTriggerEnabled: createSelector(
+    (state: ListboxState) => state.hoverTriggerEnabled,
+  ),
+  openedByHover: createSelector((state: ListboxState) => state.openedByHover),
+  popupMountVersion: createSelector(
+    (state: ListboxState) => state.popupMountVersion,
+  ),
   search: createSelector(
     (state: ListboxState) => state.searchProp ?? state.search,
   ),
@@ -459,12 +485,15 @@ export class ListboxStore extends ReactStore<
         listRef: { current: null },
         listScrollContainerRef: { current: null },
         popupRef: { current: null },
+        triggerRef: { current: null },
         itemRefs: new Map(),
         groupRefs: new Map(),
       },
       onCloseComplete: undefined,
       onPopupCloseComplete: undefined,
       lastPointerPosition: null,
+      hoverTrigger: null,
+      rootHoverGuardCancel: null,
     }
 
     const mergedContext = { ...defaultContext, ...context }
@@ -549,6 +578,33 @@ export class ListboxStore extends ReactStore<
   // ============================================================================
 
   /**
+   * Hover ownership (`openedByHover`) is recorded at request time in `setOpen`,
+   * but a controlled `open={false}` closes the popup without ever calling
+   * `setOpen`. Enforce the invariant on every state write: whenever the
+   * *effective* open (`openProp ?? open`) transitions `true → false`, hover
+   * ownership is forgotten, so a later programmatic reopen is not treated as
+   * hover-opened.
+   *
+   * Deliberately transition-based, not "false whenever effectively closed": a
+   * controlled hover open is accepted one render later (`onOpenChange` →
+   * parent `setState` → `openProp` sync), and during that window internal
+   * `open` is `true` while effective open is still `false`. Ownership must
+   * survive that window. The flip side — a controller that *rejects* a hover
+   * open and then opens programmatically — is indistinguishable by state
+   * alone and inherits hover ownership; this matches Base UI, whose
+   * `openEvent` is likewise recorded at request time.
+   */
+  override setState(newState: ListboxState) {
+    const wasOpen = this.state.openProp ?? this.state.open
+    const isOpen = newState.openProp ?? newState.open
+    if (wasOpen && !isOpen && newState.openedByHover) {
+      super.setState({ ...newState, openedByHover: false })
+      return
+    }
+    super.setState(newState)
+  }
+
+  /**
    * Set the open state with event details.
    *
    * @param open - The new open state
@@ -577,7 +633,13 @@ export class ListboxStore extends ReactStore<
       this.set('openMethod', deriveOpenMethod(event))
     }
 
-    this.set('open', open)
+    // Write `open` and hover ownership in one state update so the
+    // `setState` invariant (ownership only while effectively open) and
+    // subscribers see them land together.
+    this.update({
+      open,
+      openedByHover: open && reason === REASONS.triggerHover,
+    })
   }
 
   setSearch(search: string) {
@@ -994,6 +1056,22 @@ export class ListboxStore extends ReactStore<
    */
   setPopupRef(ref: React.RefObject<HTMLElement | null>) {
     this.context.refs.popupRef = ref
+    this.set('popupMountVersion', this.state.popupMountVersion + 1)
+  }
+
+  /** Set the root trigger element ref. Used by the root hover guard. */
+  setTriggerRef(ref: React.RefObject<HTMLElement | null>) {
+    this.context.refs.triggerRef = ref
+  }
+
+  /** Publish (or clear with `null`) the root trigger's hover-open configuration. */
+  setHoverTrigger(config: { closeDelay: number } | null) {
+    this.context.hoverTrigger = config
+    this.set('hoverTriggerEnabled', config !== null)
+  }
+
+  setRootHoverGuardCancel(fn: (() => void) | null) {
+    this.context.rootHoverGuardCancel = fn
   }
 
   /**
@@ -1800,6 +1878,9 @@ function createInitialState(): ListboxState {
   return {
     open: false,
     openProp: undefined,
+    hoverTriggerEnabled: false,
+    openedByHover: false,
+    popupMountVersion: 0,
     openMethod: null,
     search: '',
     searchProp: undefined,

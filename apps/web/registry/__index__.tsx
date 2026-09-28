@@ -195,6 +195,15 @@ export const examples = {
         () => import('@/registry/examples/styled/dropdown-menu/search'),
         { extraFiles: ['data.ts'] },
       ),
+      'hover-search': ex(
+        () => import('@/registry/examples/styled/dropdown-menu/hover-search'),
+        {
+          files: [
+            'dropdown-menu/hover-search/index.tsx',
+            'dropdown-menu/search/data.ts',
+          ],
+        },
+      ),
       'deep-search': ex(
         () => import('@/registry/examples/styled/dropdown-menu/deep-search'),
       ),

@@ -43,11 +43,7 @@ export interface DropdownMenuTriggerProps
    * @default 100
    */
   delay?: number
-  /**
-   * Delay before closing when pointer leaves (in milliseconds).
-   * Only applies when `openOnHover` is true.
-   * @default 0
-   */
+  /** Delay before closing when the pointer leaves and is not aiming back at the popup (in milliseconds). Only applies when `openOnHover` is true. @default 0 */
   closeDelay?: number
 }
 
@@ -137,6 +133,14 @@ export const DropdownMenuTrigger = React.forwardRef<
   // This ref tracks the element so we can add a one-time click blocker
   const triggerRef = React.useRef<HTMLButtonElement | null>(null)
 
+  React.useEffect(() => {
+    store.setTriggerRef(triggerRef)
+    store.setHoverTrigger(openOnHover ? { closeDelay: closeDelay ?? 0 } : null)
+    return () => {
+      store.setHoverTrigger(null)
+    }
+  }, [store, openOnHover, closeDelay])
+
   // Combine refs
   const setRef = React.useCallback(
     (element: HTMLButtonElement | null) => {
@@ -186,7 +190,6 @@ export const DropdownMenuTrigger = React.forwardRef<
       disabled={isDisabled}
       openOnHover={openOnHover}
       delay={delay}
-      closeDelay={closeDelay}
       render={(triggerProps, triggerState) => (
         <DropdownMenuTriggerInner
           {...rest}

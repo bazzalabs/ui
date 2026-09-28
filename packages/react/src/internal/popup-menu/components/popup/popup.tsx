@@ -178,8 +178,10 @@ export const PopupMenuPopup = React.forwardRef<
 
   // Register the root popup element with the store so popup-layer features
   // (e.g. Select's align-item-with-trigger) can measure it. Only the root popup
-  // (depth 0) registers; submenu popups must not clobber it.
-  React.useEffect(() => {
+  // (depth 0) registers; submenu popups must not clobber it. Layout effect so
+  // consumers that attach DOM listeners (the root hover guard) can do so
+  // before the first paint of the open popup.
+  React.useLayoutEffect(() => {
     if (depth !== 0) {
       return
     }
@@ -346,11 +348,14 @@ export const PopupMenuPopup = React.forwardRef<
               [PopupMenuPopupDataAttributes.submenu]: isSubmenu
                 ? ''
                 : undefined,
+              'data-bazzaui-surface-id': surfaceId,
               [PopupMenuPopupDataAttributes.navigating]: isSubpageNavigating
                 ? ''
                 : undefined,
             }}
             onPointerMove={(event) => {
+              if (depth === 0)
+                popupMenuContext?.store.context.rootHoverGuardCancel?.()
               handlePointerMove()
               handleFocusTransferOnMove(event)
               rest.onPointerMove?.(event)
