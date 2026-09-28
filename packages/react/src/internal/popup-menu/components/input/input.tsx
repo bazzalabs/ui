@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
@@ -235,8 +239,8 @@ export const PopupMenuInput = React.forwardRef<
       autoCorrect: 'off',
       spellCheck: false,
       disabled,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       value: displayValue,
       onChange: handleChange,
       onKeyDown: handleKeyDownWithBack,

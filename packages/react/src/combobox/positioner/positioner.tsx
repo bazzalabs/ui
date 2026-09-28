@@ -2,6 +2,7 @@
 
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
+import { composeStyle } from '../../utils/resolve-state-props.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import {
   type Align,
@@ -145,10 +146,10 @@ export const ComboboxPositioner = React.forwardRef<
   const popupWidth = inputWidth + popupPadding * 2
 
   // When input-embedded, set z-index: 0 so the input (with z-index: 1) appears above
-  const basePositionerStyles: React.CSSProperties = {
-    ...style,
+  const basePositionerStyles = composeStyle(style, (resolvedStyle) => ({
+    ...resolvedStyle,
     ...(isInputEmbedded ? { zIndex: 0 } : {}),
-  }
+  }))
 
   // For input-embedded layout, we need to use a render function to access
   // the actual side after collision detection
@@ -237,10 +238,10 @@ export const ComboboxPositioner = React.forwardRef<
     '--combobox-input-width': `${inputWidth}px`,
   } as React.CSSProperties
 
-  const positionerStyles: React.CSSProperties = {
-    ...basePositionerStyles,
+  const positionerStyles = composeStyle(style, (resolvedStyle) => ({
+    ...resolvedStyle,
     ...cssVariables,
-  }
+  }))
 
   return (
     <ComboboxPositionerContext.Provider value={contextValue}>

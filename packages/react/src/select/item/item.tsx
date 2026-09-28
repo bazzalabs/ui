@@ -10,6 +10,10 @@ import {
 } from '../../utils/item-equality.js'
 import { mergeKeywords, resolveItemFromItems } from '../../utils/items.js'
 import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
+import {
   resolveLabel,
   stringifyAsValue,
 } from '../../utils/resolve-value-label.js'
@@ -333,8 +337,8 @@ function SelectItemImpl<Value = unknown>(
       tabIndex: -1,
       'aria-selected': selected,
       'aria-disabled': disabled || undefined,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       onClick: handleClick,
       onPointerMove: handlePointerMove,
       onPointerDown: handlePointerDown,

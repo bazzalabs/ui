@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import {
   RowWidthContext,
@@ -289,8 +293,8 @@ export const PopupMenuListPrimitive = React.forwardRef<
       tabIndex: shouldHandleKeyboard ? 0 : -1,
       [PopupMenuListDataAttributes.list]: '',
       'data-input-embedded': isInputEmbedded ? '' : undefined,
-      className,
-      style,
+      className: resolveClassName(className, {}),
+      style: resolveStyle(style, {}),
       onKeyDown: handleKeyDown,
       onPointerDown: handlePointerDown,
       children: wrappedChildren,

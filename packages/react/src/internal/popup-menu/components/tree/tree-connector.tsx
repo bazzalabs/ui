@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import {
   getSlotAttribute,
@@ -54,8 +58,8 @@ export const PopupMenuTreeConnector = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       'aria-hidden': 'true',
       'data-depth': depth,
-      className,
-      style: mergeTreeDepthStyle(style, depth),
+      className: resolveClassName(className, state),
+      style: resolveStyle(mergeTreeDepthStyle(style, depth), state),
       children,
     },
     defaultTagName: 'span',

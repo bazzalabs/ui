@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { resolveLabelFromItems } from '../../utils/items.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import { stringifyAsValue } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
@@ -115,8 +119,8 @@ export const ComboboxItemLabel = React.forwardRef<
     props: {
       ...rest,
       [ComboboxItemLabelDataAttributes.slot]: '',
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       children: resolvedLabel,
     },
     defaultTagName: 'span',

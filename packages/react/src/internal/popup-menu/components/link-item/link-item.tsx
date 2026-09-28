@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext, useListboxContext } from '../../../listbox/index.js'
 import {
@@ -198,8 +202,8 @@ export const PopupMenuLinkItem = React.forwardRef<
       tabIndex: -1,
       'aria-selected': item.isHighlighted,
       'aria-disabled': disabled || undefined,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       onClick: handleClick,
       onPointerMove: handlePointerMove,
       onPointerDown: handlePointerDown,

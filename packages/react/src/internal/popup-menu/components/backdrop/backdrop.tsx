@@ -2,6 +2,7 @@
 
 import { Popover, type PopoverBackdropProps } from '@base-ui/react/popover'
 import * as React from 'react'
+import { composeStyle } from '../../../../utils/resolve-state-props.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -90,10 +91,10 @@ export const PopupMenuBackdrop = React.forwardRef<
 
   // Merge pointer-events: none into style to prevent backdrop from
   // intercepting pointer events meant for the menu
-  const style: React.CSSProperties = {
+  const style = composeStyle(rest.style, (resolvedStyle) => ({
     pointerEvents: 'none',
-    ...rest.style,
-  }
+    ...resolvedStyle,
+  }))
 
   return (
     <Popover.Backdrop

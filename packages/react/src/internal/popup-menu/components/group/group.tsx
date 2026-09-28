@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
@@ -120,8 +124,8 @@ export const PopupMenuGroup = React.forwardRef<
       // Using role="presentation" since we're inside a listbox.
       // The group is purely visual - items are the semantic options.
       role: 'presentation',
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       children,
     },
     enabled: isVisible,

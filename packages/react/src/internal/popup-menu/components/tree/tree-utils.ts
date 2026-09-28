@@ -1,23 +1,20 @@
 import type * as React from 'react'
+import {
+  composeStyle,
+  type StateStyle,
+} from '../../../../utils/resolve-state-props.js'
 import { PopupMenuTreeItemCssVars } from './tree-item.css-vars.js'
 
 export function mergeTreeDepthStyle<State>(
-  style:
-    | React.CSSProperties
-    | ((state: State) => React.CSSProperties | undefined)
-    | undefined,
+  style: StateStyle<State>,
   depth: number,
 ): React.CSSProperties | ((state: State) => React.CSSProperties) {
-  if (typeof style === 'function') {
-    return (state: State) =>
+  return composeStyle(
+    style,
+    (resolvedStyle) =>
       ({
-        ...style(state),
+        ...resolvedStyle,
         [PopupMenuTreeItemCssVars.treeDepth]: depth,
-      }) as React.CSSProperties
-  }
-
-  return {
-    ...style,
-    [PopupMenuTreeItemCssVars.treeDepth]: depth,
-  } as React.CSSProperties
+      }) as React.CSSProperties,
+  )
 }

@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { resolveLabelFromItems } from '../../utils/items.js'
 import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
+import {
   isValueEmpty,
   resolveLabel,
   stringifyAsValue,
@@ -229,8 +233,8 @@ function SelectValueImpl<Value = unknown>(
       ...rest,
       [SelectValueDataAttributes.slot]: '',
       ref: internalRef,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       children: content,
     },
     defaultTagName: 'span',

@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useItemContext } from '../../../listbox/index.js'
 import {
@@ -94,8 +98,8 @@ export const PopupMenuShortcut = React.forwardRef<
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       children: renderedChildren,
     },
     defaultTagName: 'kbd',

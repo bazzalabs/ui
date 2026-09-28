@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxItemContext } from '../item/item-context.js'
 import { ComboboxItemIndicatorDataAttributes } from './item-indicator.data-attrs.js'
@@ -59,8 +63,8 @@ export const ComboboxItemIndicator = React.forwardRef<
       ...rest,
       [ComboboxItemIndicatorDataAttributes.slot]: '',
       'aria-hidden': true,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
     },
     enabled: keepMounted || itemContext.selected,
     defaultTagName: 'span',
