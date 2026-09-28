@@ -5,6 +5,7 @@ import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
   AsyncContentMode,
   AsyncLoaderConfig,
+  AsyncResultBehavior,
   DataListChildrenState,
   DeepSearchConfig,
   DisplayNode,
@@ -25,6 +26,9 @@ export interface DataSurfaceContextValue {
 
   /** How `asyncContent` rows combine with `content` */
   asyncContentMode: AsyncContentMode
+
+  /** When `asyncContent` rows appear */
+  asyncContentReveal: AsyncResultBehavior
 
   /** Deep search configuration */
   deepSearchConfig: DeepSearchConfig

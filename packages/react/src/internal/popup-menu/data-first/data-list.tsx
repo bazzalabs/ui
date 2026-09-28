@@ -32,8 +32,10 @@ import {
 import { isRowMenuNode } from './type-guards.js'
 import type {
   AsyncContentMode,
+  AsyncLoaderConfig,
   AsyncLoaderResult,
   AsyncNodesConfig,
+  AsyncResultBehavior,
   BreadcrumbNode,
   CheckboxGroupDef,
   CheckboxItemDef,
@@ -292,6 +294,99 @@ function localFirst<T extends DisplayNode>(
 }
 
 /**
+ * Whether the root `asyncContent` loader has settled for the current search.
+ *
+ * After the effective query changes, the loader is pending until it is not
+ * loading or fetching and one of these holds: it was seen fetching since the
+ * change, it produced new data or a new error, or the query returned to the
+ * last settled query and that query's data (or error) is what's showing.
+ * Once settled, a background refetch of the same query that keeps its data
+ * stays settled; a first load does not. A root loader that is not rendered, or
+ * a query loader disabled below `minQueryLength`, has nothing pending, and
+ * tracking starts over when it becomes active again.
+ *
+ * Tracked across renders because the coordinator receives each result one
+ * effect after the loader renders it, so the first render after a change
+ * still holds the previous query's result.
+ */
+export function useRootAsyncSettled(
+  asyncContent: AsyncLoaderConfig | undefined,
+  query: string,
+  result: AsyncLoaderResult<NodeDef[]> | undefined,
+  loaderRendered: boolean,
+): { settled: boolean; settledOnce: boolean } {
+  const trackRef = React.useRef<{
+    key: string
+    dataAtChange: NodeDef[] | undefined
+    errorAtChange: Error | null | undefined
+    sawFetching: boolean
+    settled: boolean
+  } | null>(null)
+  const lastSettledRef = React.useRef<{
+    key: string
+    data: NodeDef[] | undefined
+    error: Error | null | undefined
+  } | null>(null)
+  const previousRef = React.useRef<{
+    data: NodeDef[] | undefined
+    error: Error | null | undefined
+  }>({ data: undefined, error: undefined })
+  const previous = previousRef.current
+  previousRef.current = { data: result?.data, error: result?.error }
+  const settledOnce = lastSettledRef.current !== null
+
+  if (!asyncContent || !loaderRendered) {
+    trackRef.current = null
+    return { settled: true, settledOnce }
+  }
+  const execution =
+    asyncContent.type === 'query'
+      ? resolveQueryExecutionState(asyncContent, query)
+      : null
+  if (execution && !execution.enabled) {
+    trackRef.current = null
+    return { settled: true, settledOnce }
+  }
+  const key = execution ? execution.effectiveQuery : ''
+
+  let track = trackRef.current
+  if (!track || track.key !== key) {
+    track = {
+      key,
+      dataAtChange: previous.data,
+      errorAtChange: previous.error,
+      sawFetching: false,
+      settled: false,
+    }
+    trackRef.current = track
+  }
+  if (!result) return { settled: false, settledOnce }
+  // A background refetch of a settled search keeps it settled.
+  if (track.settled && !result.isLoading) return { settled: true, settledOnce }
+  if (result.isLoading || result.isFetching) {
+    track.sawFetching = true
+    return { settled: false, settledOnce }
+  }
+
+  const last = lastSettledRef.current
+  const returnedToLastSettled =
+    last?.key === key &&
+    last.data === result.data &&
+    last.error === result.error
+  const settled =
+    returnedToLastSettled ||
+    track.sawFetching ||
+    (result.isError
+      ? result.error !== track.errorAtChange
+      : result.data !== track.dataAtChange)
+  if (settled) {
+    track.settled = true
+    lastSettledRef.current = { key, data: result.data, error: result.error }
+  }
+  return { settled, settledOnce: lastSettledRef.current !== null }
+}
+
+/**
  * Renders an async loader component and registers its state with the coordinator.
  * This component exists solely to call the Loader component (which contains hooks).
  */
@@ -543,6 +638,7 @@ export interface DataListInnerProps extends PopupMenuListProps {
   content: NodeDef[]
   asyncContent: ReturnType<typeof useDataSurfaceContext>['asyncContent']
   asyncContentMode?: AsyncContentMode
+  asyncContentReveal?: AsyncResultBehavior
   deepSearchConfig: ReturnType<typeof useDataSurfaceContext>['deepSearchConfig']
   includeInDeepSearch: ReturnType<
     typeof useDataSurfaceContext
@@ -561,6 +657,7 @@ export const DataListInner = React.forwardRef<
     content,
     asyncContent,
     asyncContentMode = 'replace',
+    asyncContentReveal = 'stream',
     deepSearchConfig,
     includeInDeepSearch,
     search,
@@ -639,6 +736,35 @@ export const DataListInner = React.forwardRef<
         : current,
     )
   }, [isSubpageSurface, setResolvedNodes, graftVersion])
+
+  const rootReveal = useRootAsyncSettled(
+    asyncContent,
+    normalizedSearch,
+    coordinator?.root?.result,
+    Boolean(shouldRenderAsyncLoaders),
+  )
+  const rootSettled = rootReveal.settled
+  // Each data surface has its own coordinator; its list publishes to it.
+  const publishesRootReveal = coordinator !== null
+  const setRootReveal = coordinator?.setRootReveal
+  React.useLayoutEffect(() => {
+    if (!publishesRootReveal || !setRootReveal) return
+    setRootReveal({
+      settled: rootReveal.settled,
+      settledOnce: rootReveal.settledOnce,
+      block: asyncContentReveal === 'block' && asyncContent !== undefined,
+    })
+  }, [
+    publishesRootReveal,
+    setRootReveal,
+    rootReveal.settled,
+    rootReveal.settledOnce,
+    asyncContentReveal,
+    asyncContent,
+  ])
+  // The last list shown while the root loader was settled; `'block'` keeps it
+  // up while the current search's rows are still loading.
+  const lastSettledDisplayRef = React.useRef<DisplayNode[] | null>(null)
 
   const streamOrderRef = React.useRef<{
     query: string
@@ -724,6 +850,14 @@ export const DataListInner = React.forwardRef<
       )
     }
 
+    if (asyncContentReveal === 'block' && asyncContent) {
+      if (rootSettled) {
+        lastSettledDisplayRef.current = displayNodesToRender
+      } else {
+        displayNodesToRender = lastSettledDisplayRef.current ?? []
+      }
+    }
+
     return {
       displayNodes: displayNodesToRender,
       isDeepSearching: result.isDeepSearching,
@@ -739,6 +873,8 @@ export const DataListInner = React.forwardRef<
     coordinator,
     coordinator?.isAnyLoading,
     coordinator?.loaders,
+    asyncContentReveal,
+    rootSettled,
     localDefs,
   ])
 

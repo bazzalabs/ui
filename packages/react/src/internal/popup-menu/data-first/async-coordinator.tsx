@@ -101,6 +101,30 @@ export interface AsyncMenuCoordinatorValue {
   // ---- Aggregated State ----
   /** Get the aggregate async state for DataList */
   getAsyncState: () => AsyncState
+
+  // ---- Root content reveal ----
+  /**
+   * Whether the root surface's `asyncContent` has settled for the current
+   * search, published by the root data list. `Empty` waits for it; in
+   * `asyncContentReveal: 'block'` mode `Loading` hides once it has settled.
+   */
+  rootReveal: RootRevealState
+  setRootReveal: (state: RootRevealState) => void
+}
+
+export interface RootRevealState {
+  /** No root loader is pending for the current search. */
+  settled: boolean
+  /** The root loader has settled at least once since mounting. */
+  settledOnce: boolean
+  /** The surface uses `asyncContentReveal: 'block'`. */
+  block: boolean
+}
+
+const INITIAL_ROOT_REVEAL: RootRevealState = {
+  settled: true,
+  settledOnce: false,
+  block: false,
 }
 
 // ============================================================================
@@ -149,6 +173,17 @@ export function AsyncMenuCoordinatorProvider(
     Map<string, Error>
   >(() => new Map())
   const [rootError, setRootError] = React.useState<Error | null>(null)
+  const [rootReveal, setRootRevealState] =
+    React.useState<RootRevealState>(INITIAL_ROOT_REVEAL)
+  const setRootReveal = React.useCallback((next: RootRevealState) => {
+    setRootRevealState((current) =>
+      current.settled === next.settled &&
+      current.settledOnce === next.settledOnce &&
+      current.block === next.block
+        ? current
+        : next,
+    )
+  }, [])
 
   const registerRootLoader = React.useCallback((state: RootAsyncMenuState) => {
     setRoot(state)
@@ -447,6 +482,8 @@ export function AsyncMenuCoordinatorProvider(
       erroredLoaders,
       rootError,
       getAsyncState,
+      rootReveal,
+      setRootReveal,
     }),
     [
       registerLoader,
@@ -477,6 +514,8 @@ export function AsyncMenuCoordinatorProvider(
       erroredLoaders,
       rootError,
       getAsyncState,
+      rootReveal,
+      setRootReveal,
     ],
   )
 

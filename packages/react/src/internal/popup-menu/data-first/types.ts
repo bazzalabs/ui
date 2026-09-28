@@ -1540,6 +1540,20 @@ export interface DataSurfaceProps {
    */
   asyncContentMode?: AsyncContentMode
 
+  /**
+   * When rows from `asyncContent` appear.
+   * - `'stream'`: as soon as they load (local `content` shows meanwhile).
+   * - `'block'`: only once the loader has settled for the current search. Until
+   *   then the previous settled list stays up unchanged; before anything has
+   *   settled the list is empty and `Loading` shows. Rows kept from a previous
+   *   search while the next one loads don't count as settled.
+   *
+   * Deep search has its own `deepSearch.asyncResultBehavior`, which still shows
+   * the loading state while a new search loads.
+   * @default 'stream'
+   */
+  asyncContentReveal?: AsyncResultBehavior
+
   /** Deep search configuration */
   deepSearch?: DeepSearchConfig | boolean
 

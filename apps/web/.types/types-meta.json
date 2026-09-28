@@ -2201,6 +2201,14 @@
             "default": "'replace'"
           },
           {
+            "name": "asyncContentReveal",
+            "type": "AsyncResultBehavior | undefined",
+            "formattedType": "\"block\" | \"stream\"",
+            "required": false,
+            "description": "When rows from `asyncContent` appear.\n- `'stream'`: as soon as they load (local `content` shows meanwhile).\n- `'block'`: only once the loader has settled for the current search. Until\n  then the previous settled list stays up unchanged; before anything has\n  settled the list is empty and `Loading` shows. Rows kept from a previous\n  search while the next one loads don't count as settled.\n\nDeep search has its own `deepSearch.asyncResultBehavior`, which still shows\nthe loading state while a new search loads.",
+            "default": "'stream'"
+          },
+          {
             "name": "defaultSearch",
             "type": "string | undefined",
             "formattedType": "string",
@@ -6737,6 +6745,14 @@
             "default": "'replace'"
           },
           {
+            "name": "asyncContentReveal",
+            "type": "AsyncResultBehavior | undefined",
+            "formattedType": "\"block\" | \"stream\"",
+            "required": false,
+            "description": "When rows from `asyncContent` appear.\n- `'stream'`: as soon as they load (local `content` shows meanwhile).\n- `'block'`: only once the loader has settled for the current search. Until\n  then the previous settled list stays up unchanged; before anything has\n  settled the list is empty and `Loading` shows. Rows kept from a previous\n  search while the next one loads don't count as settled.\n\nDeep search has its own `deepSearch.asyncResultBehavior`, which still shows\nthe loading state while a new search loads.",
+            "default": "'stream'"
+          },
+          {
             "name": "deepSearch",
             "type": "boolean | DeepSearchConfig | undefined",
             "formattedType": "false | true | DeepSearchConfig",
@@ -8566,6 +8582,17 @@
             "type": "() => AsyncState",
             "required": true,
             "description": "Get the aggregate async state for DataList"
+          },
+          {
+            "name": "rootReveal",
+            "type": "RootRevealState",
+            "required": true,
+            "description": "Whether the root surface's `asyncContent` has settled for the current\nsearch, published by the root data list. `Empty` waits for it; in\n`asyncContentReveal: 'block'` mode `Loading` hides once it has settled."
+          },
+          {
+            "name": "setRootReveal",
+            "type": "(state: RootRevealState) => void",
+            "required": true
           }
         ]
       },
@@ -8994,6 +9021,14 @@
             "required": true,
             "description": "How `asyncContent` rows combine with `content`",
             "referencePath": "@bazza-ui/react.AsyncContentMode"
+          },
+          {
+            "name": "asyncContentReveal",
+            "type": "AsyncResultBehavior",
+            "formattedType": "\"block\" | \"stream\"",
+            "required": true,
+            "description": "When `asyncContent` rows appear",
+            "referencePath": "@bazza-ui/react.AsyncResultBehavior"
           },
           {
             "name": "deepSearchConfig",
@@ -13935,6 +13970,15 @@
             "referencePath": "@bazza-ui/react.AsyncContentMode"
           },
           {
+            "name": "asyncContentReveal",
+            "type": "AsyncResultBehavior | undefined",
+            "formattedType": "\"block\" | \"stream\"",
+            "required": false,
+            "description": "When rows from `asyncContent` appear.\n- `'stream'`: as soon as they load (local `content` shows meanwhile).\n- `'block'`: only once the loader has settled for the current search. Until\n  then the previous settled list stays up unchanged; before anything has\n  settled the list is empty and `Loading` shows. Rows kept from a previous\n  search while the next one loads don't count as settled.\n\nDeep search has its own `deepSearch.asyncResultBehavior`, which still shows\nthe loading state while a new search loads.",
+            "default": "'stream'",
+            "referencePath": "@bazza-ui/react.AsyncResultBehavior"
+          },
+          {
             "name": "deepSearch",
             "type": "boolean | DeepSearchConfig | undefined",
             "formattedType": "false | true | DeepSearchConfig",
@@ -18211,6 +18255,15 @@
             "description": "How rows from `asyncContent` combine with `content` once they load.\n- `'replace'`: the loaded rows replace `content` (`content` shows until then).\n- `'append'`: `content` stays first and the loaded rows follow it. A loaded\n  row whose Definition Key matches a row already in `content` (including\n  rows inside groups and tree items) is dropped, so local rows win.",
             "default": "'replace'",
             "referencePath": "@bazza-ui/react.AsyncContentMode"
+          },
+          {
+            "name": "asyncContentReveal",
+            "type": "AsyncResultBehavior | undefined",
+            "formattedType": "\"block\" | \"stream\"",
+            "required": false,
+            "description": "When rows from `asyncContent` appear.\n- `'stream'`: as soon as they load (local `content` shows meanwhile).\n- `'block'`: only once the loader has settled for the current search. Until\n  then the previous settled list stays up unchanged; before anything has\n  settled the list is empty and `Loading` shows. Rows kept from a previous\n  search while the next one loads don't count as settled.\n\nDeep search has its own `deepSearch.asyncResultBehavior`, which still shows\nthe loading state while a new search loads.",
+            "default": "'stream'",
+            "referencePath": "@bazza-ui/react.AsyncResultBehavior"
           },
           {
             "name": "defaultSearch",
