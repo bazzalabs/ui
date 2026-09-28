@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,8 @@ import type { ContextMenu } from '../../../../context-menu/index.js'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
 import type { PopupMenuNode } from '../../menu-tree/types.js'
 import type {
+  CheckboxGroupDef,
+  CheckboxGroupLabelRenderParams,
   CheckboxItemDef,
   CheckboxItemRenderParams,
   GroupDef,
@@ -939,6 +941,28 @@ describe('group labels', () => {
     }
   }
 
+  function createCheckboxGroup(
+    options: Partial<CheckboxGroupDef> = {},
+  ): CheckboxGroupDef {
+    const checkboxItem: CheckboxItemDef = {
+      kind: 'checkbox-item',
+      value: 'one',
+      render: ({ props }) => (
+        <DropdownMenu.CheckboxItem {...props} data-testid="cb-one">
+          One
+        </DropdownMenu.CheckboxItem>
+      ),
+    }
+    return {
+      kind: 'checkbox-group',
+      id: 'test-checkbox-group',
+      label: 'Checkbox Group Label',
+      value: [],
+      nodes: [checkboxItem],
+      ...options,
+    }
+  }
+
   it('renders a visible default label for a group', async () => {
     render(<MenuWithDataContent content={[createGroup()]} />)
 
@@ -1046,6 +1070,222 @@ describe('group labels', () => {
         radioGroup.querySelector('[bazzaui-dropdown-menu-group-label]'),
       ).toHaveTextContent('Radio Group Label')
     })
+  })
+
+  it('renders a visible default label for a checkbox group', async () => {
+    render(<MenuWithDataContent content={[createCheckboxGroup()]} />)
+    await waitFor(() => {
+      expect(
+        screen.getByText('Checkbox Group Label', {
+          selector: '[bazzaui-dropdown-menu-group-label]',
+        }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByRole('group')).toBeInTheDocument()
+  })
+
+  it('passes the menu node and stable label id to a checkbox group renderLabel', async () => {
+    const renderLabel = vi.fn(({ props }: CheckboxGroupLabelRenderParams) => (
+      <div data-testid="custom-checkbox-label" {...props} />
+    ))
+    render(
+      <MenuWithDataContent content={[createCheckboxGroup({ renderLabel })]} />,
+    )
+    await waitFor(() => {
+      expect(screen.getByTestId('custom-checkbox-label')).toBeInTheDocument()
+    })
+    expect(renderLabel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        node: expect.objectContaining({ kind: 'checkbox-group' }),
+        props: { id: expect.stringMatching(/-label$/) },
+      }),
+    )
+  })
+})
+
+describe('checkbox groups', () => {
+  it('uses group value for checked state and updates the group when toggled', async () => {
+    const user = userEvent.setup()
+    const onValueChange = vi.fn()
+    const group: CheckboxGroupDef = {
+      kind: 'checkbox-group',
+      id: 'choices',
+      label: 'Choices',
+      value: ['b'],
+      onValueChange,
+      nodes: ['a', 'b', 'c'].map((value) => ({
+        kind: 'checkbox-item' as const,
+        value,
+        render: ({
+          props,
+        }: {
+          props: React.ComponentProps<typeof DropdownMenu.CheckboxItem>
+        }) => (
+          <DropdownMenu.CheckboxItem {...props} data-testid={`cb-${value}`}>
+            {value}
+          </DropdownMenu.CheckboxItem>
+        ),
+      })),
+    }
+    render(<MenuWithDataContent content={[group]} />)
+    expect(screen.getByTestId('cb-b')).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('cb-a')).toHaveAttribute('aria-checked', 'false')
+    await user.click(screen.getByTestId('cb-a'))
+    expect(onValueChange).toHaveBeenCalledOnce()
+    expect(onValueChange).toHaveBeenCalledWith(['b', 'a'], expect.anything())
+  })
+
+  it('passes value and children to custom group render', async () => {
+    const renderSpy = vi.fn(({ props, children }) => (
+      <div
+        data-testid="custom-checkbox-group"
+        data-value={props.value.join(',')}
+      >
+        {children}
+      </div>
+    ))
+    const group: CheckboxGroupDef = {
+      kind: 'checkbox-group',
+      id: 'custom-group',
+      value: ['b'],
+      render: renderSpy,
+      nodes: [
+        {
+          kind: 'checkbox-item',
+          value: 'b',
+          render: ({ props }) => (
+            <DropdownMenu.CheckboxItem {...props}>B</DropdownMenu.CheckboxItem>
+          ),
+        },
+      ],
+    }
+    render(<MenuWithDataContent content={[group]} />)
+    expect(screen.getByTestId('custom-checkbox-group')).toHaveAttribute(
+      'data-value',
+      'b',
+    )
+    expect(
+      within(screen.getByTestId('custom-checkbox-group')).getByRole(
+        'menuitemcheckbox',
+      ),
+    ).toBeInTheDocument()
+    expect(renderSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: expect.objectContaining({ value: ['b'] }),
+      }),
+    )
+  })
+
+  it('renders and updates a checkbox group inside a submenu', async () => {
+    const user = userEvent.setup()
+    const onValueChange = vi.fn()
+    const group: CheckboxGroupDef = {
+      kind: 'checkbox-group',
+      id: 'submenu-choices',
+      value: ['b'],
+      onValueChange,
+      nodes: ['a', 'b'].map((value) => ({
+        kind: 'checkbox-item' as const,
+        value,
+        render: ({ props }) => (
+          <DropdownMenu.CheckboxItem {...props} data-testid={`cb-${value}`}>
+            {value}
+          </DropdownMenu.CheckboxItem>
+        ),
+      })),
+    }
+    render(
+      <MenuWithDataContent
+        content={[createTestSubmenuDef('checkboxes', 'Checkboxes', [group])]}
+      />,
+    )
+    await user.hover(screen.getByTestId('submenu-trigger-checkboxes'))
+    expect(await screen.findByTestId('cb-b')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getByTestId('cb-a')).toHaveAttribute('aria-checked', 'false')
+    await user.click(screen.getByTestId('cb-a'))
+    expect(onValueChange).toHaveBeenCalledOnce()
+    expect(onValueChange).toHaveBeenCalledWith(['b', 'a'], expect.anything())
+  })
+
+  it('does not render a hidden checkbox group inside a submenu', async () => {
+    const user = userEvent.setup()
+    const group: CheckboxGroupDef = {
+      kind: 'checkbox-group',
+      id: 'hidden-checkboxes',
+      hidden: true,
+      value: [],
+      nodes: [
+        {
+          kind: 'checkbox-item',
+          value: 'a',
+          render: ({ props }) => (
+            <DropdownMenu.CheckboxItem {...props} data-testid="cb-a">
+              A
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+      ],
+    }
+    render(
+      <MenuWithDataContent
+        content={[createTestSubmenuDef('hidden-checks', 'Hidden', [group])]}
+      />,
+    )
+    await user.hover(screen.getByTestId('submenu-trigger-hidden-checks'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('cb-a')).toBeNull()
+    })
+  })
+
+  it('renders a deep-search checkbox result with its group checked state', async () => {
+    const user = userEvent.setup()
+    const group: CheckboxGroupDef = {
+      kind: 'checkbox-group',
+      id: 'deep-checks',
+      value: ['Match'],
+      nodes: [
+        {
+          kind: 'checkbox-item',
+          value: 'Match',
+          render: ({ props }) => (
+            <DropdownMenu.CheckboxItem {...props} data-testid="deep-checkbox">
+              Match
+            </DropdownMenu.CheckboxItem>
+          ),
+        },
+      ],
+    }
+    const content: NodeDef[] = [
+      createTestSubmenuDef('deep-menu', 'Deep Menu', [group]),
+    ]
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={{ enabled: true }}
+              >
+                <DropdownMenu.Input data-testid="deep-input" />
+                <DropdownMenu.List>
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+    await user.type(screen.getByTestId('deep-input'), 'Match')
+    expect(await screen.findByTestId('deep-checkbox')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
   })
 })
 

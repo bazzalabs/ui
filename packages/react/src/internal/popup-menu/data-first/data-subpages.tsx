@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
 import { GraftPointContext } from '../contexts/graft-point-context.js'
 import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
@@ -10,6 +11,7 @@ import { isRowMenuNode } from './type-guards.js'
 import type {
   AsyncRenderState,
   BreadcrumbNode,
+  CheckboxGroupDef,
   CheckboxItemDef,
   DataSubpagesChildrenState,
   DataSubpagesProps,
@@ -252,6 +254,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
       const renderRowNode = (
         rowMenuNode: PopupMenuNode<RowNodeDef>,
         rowContext: RowRenderContext,
+        checkboxGroup?: { id: string; label?: string; def: CheckboxGroupDef },
       ): React.ReactNode => {
         const rowNode = rowMenuNode.def
         const rowId = rowMenuNode.id
@@ -306,25 +309,39 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
         }
 
         if (rowNode.kind === 'checkbox-item') {
+          const rendered = rowNode.render({
+            node: rowMenuNode,
+            props: {
+              id: rowId,
+              value: rowNode.value,
+              checked: rowNode.checked,
+              onCheckedChange: rowNode.onCheckedChange,
+              disabled: rowNode.disabled ?? false,
+              closeOnClick: rowNode.closeOnClick,
+            },
+            context: {
+              ...rowContext,
+              value: rowNode.value,
+              checked: checkboxGroup
+                ? checkboxGroup.def.value.includes(rowNode.value)
+                : rowNode.checked,
+              disabled: rowNode.disabled ?? false,
+            },
+          })
           return (
             <React.Fragment key={rowId}>
-              {rowNode.render({
-                node: rowMenuNode,
-                props: {
-                  id: rowId,
-                  value: rowNode.value,
-                  checked: rowNode.checked,
-                  onCheckedChange: rowNode.onCheckedChange,
-                  disabled: rowNode.disabled ?? false,
-                  closeOnClick: rowNode.closeOnClick,
-                },
-                context: {
-                  ...rowContext,
-                  value: rowNode.value,
-                  checked: rowNode.checked,
-                  disabled: rowNode.disabled ?? false,
-                },
-              })}
+              {checkboxGroup ? (
+                <PopupMenuCheckboxGroupValue
+                  groupId={checkboxGroup.id}
+                  value={checkboxGroup.def.value}
+                  onValueChange={checkboxGroup.def.onValueChange}
+                  disabled={checkboxGroup.def.disabled ?? false}
+                >
+                  {rendered}
+                </PopupMenuCheckboxGroupValue>
+              ) : (
+                rendered
+              )}
             </React.Fragment>
           )
         }
@@ -448,6 +465,13 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                 ...rowContext.breadcrumbs,
                 submenuBreadcrumb,
               ])
+            }
+            if (childNode.kind === 'checkbox-group') {
+              if (childNode.hidden) return null
+              return renderCheckboxGroup(
+                arg as PopupMenuNode<CheckboxGroupDef>,
+                [...rowContext.breadcrumbs, submenuBreadcrumb],
+              )
             }
 
             if (
@@ -594,6 +618,71 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
         )
       }
 
+      const renderCheckboxGroup = (
+        checkboxGroupMenuNode: PopupMenuNode<CheckboxGroupDef>,
+        breadcrumbs: BreadcrumbNode[] = [],
+      ): React.ReactNode => {
+        const checkboxGroup = checkboxGroupMenuNode.def
+        const isDeepSearchResult = breadcrumbs.length > 0
+        const groupContext: GroupRenderContext = {
+          search: null,
+          matchCount: checkboxGroup.nodes.length,
+          breadcrumbs,
+          isDeepSearchResult,
+        }
+        const childElements = checkboxGroupMenuNode.children.map((item) => {
+          if (!isRowMenuNode(item) || item.def.hidden) return null
+          return renderRowNode(
+            item,
+            {
+              search: null,
+              breadcrumbs,
+              isDeepSearchResult,
+              highlighted: false,
+              disabled: item.def.disabled ?? false,
+              group: null,
+              tree: null,
+            },
+            {
+              id: checkboxGroup.id,
+              label: checkboxGroup.label,
+              def: checkboxGroup,
+            },
+          )
+        })
+        if (checkboxGroup.render) {
+          return (
+            <React.Fragment key={checkboxGroup.id}>
+              {checkboxGroup.render({
+                node: checkboxGroupMenuNode,
+                props: {
+                  value: checkboxGroup.value,
+                  onValueChange: checkboxGroup.onValueChange,
+                  disabled: checkboxGroup.disabled ?? false,
+                },
+                context: {
+                  ...groupContext,
+                  label: checkboxGroup.label,
+                  value: checkboxGroup.value,
+                  disabled: checkboxGroup.disabled ?? false,
+                },
+                children: <>{childElements}</>,
+              })}
+            </React.Fragment>
+          )
+        }
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: ignore for now
+          <div
+            key={checkboxGroup.id}
+            role="group"
+            aria-label={checkboxGroup.label}
+          >
+            {childElements}
+          </div>
+        )
+      }
+
       return (
         <React.Fragment key={pageId}>
           <GraftPointContext.Provider value={resolved}>
@@ -694,6 +783,13 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                     ...context.breadcrumbs,
                     subpageBreadcrumb,
                   ])
+                }
+                if (childNode.kind === 'checkbox-group') {
+                  if (childNode.hidden) return null
+                  return renderCheckboxGroup(
+                    arg as PopupMenuNode<CheckboxGroupDef>,
+                    [...context.breadcrumbs, subpageBreadcrumb],
+                  )
                 }
 
                 if (
