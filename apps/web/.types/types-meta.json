@@ -16451,6 +16451,14 @@
             "required": false,
             "description": "Milliseconds to wait after the search stops changing before passing it to\nthe loader. While waiting, the loader counts as fetching, so the menu\ndoesn't show \"no results\" or treat the search as finished too early.",
             "default": "0"
+          },
+          {
+            "name": "keepPreviousData",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Keep showing the last results while the next search loads, instead of\nclearing them on every change of the search. The refetch is reported as a\nbackground load, so `Loading` doesn't flash. Named after SWR's option.",
+            "default": "false"
           }
         ]
       },

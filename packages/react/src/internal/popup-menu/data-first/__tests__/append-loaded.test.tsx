@@ -243,6 +243,9 @@ describe('asyncContentMode', () => {
         group('people', [item('Alice'), item(query === '' ? 'Bob' : 'Dana')]),
       ],
       minQueryLength: 0,
+      // Results go straight from one to the next, so the merged group is what
+      // the Menu Tree holds when the second result arrives.
+      keepPreviousData: true,
     })
     function QueryMenu() {
       return (

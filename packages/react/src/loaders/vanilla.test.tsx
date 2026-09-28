@@ -379,6 +379,90 @@ describe('createVanillaQueryLoader', () => {
   // Abort / race condition handling
   // --------------------------------------------------------------------------
 
+  describe('keepPreviousData', () => {
+    it('keeps the last results while the next query loads, reported as a background refetch', async () => {
+      const first = createDeferred<NodeDef[]>()
+      const second = createDeferred<NodeDef[]>()
+      const fetcher = vi.fn((query: string) =>
+        query === 'a' ? first.promise : second.promise,
+      )
+      const config = createVanillaQueryLoader({
+        fetcher,
+        minQueryLength: 1,
+        keepPreviousData: true,
+      })
+      const { capture, rerender } = renderLoader(config.Loader, 'a')
+      await act(async () => first.resolve(MOCK_NODES))
+      await waitFor(() => expect(capture.latest.data).toEqual(MOCK_NODES))
+
+      const before = capture.all.length
+      rerender('b')
+
+      // Every result after the query changed, including the render before
+      // the fetch effect ran, keeps the data and reports a refetch.
+      await waitFor(() =>
+        expect(fetcher).toHaveBeenCalledWith('b', expect.anything()),
+      )
+      for (const result of capture.all.slice(before)) {
+        expect(result.data).toEqual(MOCK_NODES)
+        expect(result.isFetching).toBe(true)
+        expect(result.isRefetching).toBe(true)
+        expect(result.isLoading).toBe(false)
+      }
+
+      const next = [createNodeDef('b', 'B')]
+      await act(async () => second.resolve(next))
+      await waitFor(() => {
+        expect(capture.latest.data).toEqual(next)
+        expect(capture.latest.isFetching).toBe(false)
+      })
+    })
+
+    it('reports a first load for the next query when there is nothing to keep', async () => {
+      const second = createDeferred<NodeDef[]>()
+      const config = createVanillaQueryLoader({
+        fetcher: (query: string) =>
+          query === 'a' ? Promise.reject(new Error('offline')) : second.promise,
+        minQueryLength: 1,
+        keepPreviousData: true,
+      })
+      const { capture, rerender } = renderLoader(config.Loader, 'a')
+      await waitFor(() => expect(capture.latest.isError).toBe(true))
+
+      rerender('b')
+
+      await waitFor(() => {
+        expect(capture.latest.isLoading).toBe(true)
+        expect(capture.latest.isRefetching).toBe(false)
+        expect(capture.latest.data).toBeUndefined()
+      })
+    })
+  })
+
+  describe('reporting a new query at once', () => {
+    it('never reports the previous query as settled after the query changes', async () => {
+      const first = createDeferred<NodeDef[]>()
+      const second = createDeferred<NodeDef[]>()
+      const config = createVanillaQueryLoader({
+        fetcher: (query: string) =>
+          query === 'a' ? first.promise : second.promise,
+        minQueryLength: 1,
+      })
+      const { capture, rerender } = renderLoader(config.Loader, 'a')
+      await act(async () => first.resolve(MOCK_NODES))
+      await waitFor(() => expect(capture.latest.data).toEqual(MOCK_NODES))
+
+      const before = capture.all.length
+      rerender('b')
+
+      expect(capture.all.length).toBeGreaterThan(before)
+      for (const result of capture.all.slice(before)) {
+        expect(result.isFetching).toBe(true)
+        expect(result.data).toBeUndefined()
+      }
+    })
+  })
+
   describe('abort and race conditions', () => {
     it('aborts the previous request when query changes', async () => {
       const signals: AbortSignal[] = []
@@ -689,5 +773,35 @@ describe('createVanillaQueryLoader', () => {
       // Should have been called with the same query
       expect(fetcher).toHaveBeenLastCalledWith('a')
     })
+  })
+})
+
+describe('vanilla query loader refetch', () => {
+  it('ignores a refetch that finishes after the search moved on', async () => {
+    const lateRefetch = createDeferred<NodeDef[]>()
+    const bResult = [createNodeDef('b', 'B')]
+    let calls = 0
+    const config = createVanillaQueryLoader({
+      fetcher: (query: string) => {
+        calls++
+        if (query === 'a')
+          return calls === 1 ? Promise.resolve(MOCK_NODES) : lateRefetch.promise
+        return Promise.resolve(bResult)
+      },
+      minQueryLength: 1,
+    })
+    const { capture, rerender } = renderLoader(config.Loader, 'a')
+    await waitFor(() => expect(capture.latest.data).toEqual(MOCK_NODES))
+
+    act(() => {
+      void capture.latest.refetch?.()
+    })
+    rerender('b')
+    await waitFor(() => expect(capture.latest.data).toEqual(bResult))
+
+    await act(async () => lateRefetch.resolve(MOCK_NODES))
+
+    expect(capture.latest.data).toEqual(bResult)
+    expect(capture.latest.isFetching).toBe(false)
   })
 })

@@ -165,20 +165,24 @@ function useAsyncQueryState(
     options?: { signal?: AbortSignal },
   ) => Promise<NodeDef[]>,
   query: string,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; keepPreviousData?: boolean },
 ): AsyncLoaderResult<NodeDef[]> {
-  const { enabled = true } = options ?? {}
+  const { enabled = true, keepPreviousData = false } = options ?? {}
+  // `query` records which search the state belongs to.
   const [state, setState] = React.useState<
-    VanillaAsyncInternalState<NodeDef[]>
+    VanillaAsyncInternalState<NodeDef[]> & { query: string }
   >(() => ({
     data: undefined,
     error: null,
     isFetching: enabled,
     hasFetched: false,
+    query,
   }))
 
   const fetcherRef = React.useRef(fetcher)
   fetcherRef.current = fetcher
+  const latestQueryRef = React.useRef(query)
+  latestQueryRef.current = query
 
   React.useEffect(() => {
     if (!enabled) {
@@ -187,18 +191,26 @@ function useAsyncQueryState(
         error: null,
         isFetching: false,
         hasFetched: false,
+        query,
       })
       return
     }
 
     const controller = new AbortController()
 
-    setState({
-      data: undefined,
-      error: null,
-      isFetching: true,
-      hasFetched: false,
-    })
+    // With `keepPreviousData`, the last results stay while the new search
+    // loads, reported as a background refetch rather than a first load.
+    setState((previous) =>
+      keepPreviousData && previous.data !== undefined
+        ? { ...previous, error: null, isFetching: true, query }
+        : {
+            data: undefined,
+            error: null,
+            isFetching: true,
+            hasFetched: false,
+            query,
+          },
+    )
 
     fetcherRef
       .current(query, { signal: controller.signal })
@@ -209,6 +221,7 @@ function useAsyncQueryState(
             error: null,
             isFetching: false,
             hasFetched: true,
+            query,
           })
         }
       })
@@ -219,6 +232,7 @@ function useAsyncQueryState(
             error: normalizeError(error),
             isFetching: false,
             hasFetched: true,
+            query,
           })
         }
       })
@@ -226,7 +240,7 @@ function useAsyncQueryState(
     return () => {
       controller.abort()
     }
-  }, [enabled, query])
+  }, [enabled, query, keepPreviousData])
 
   const refetch = React.useCallback(() => {
     // Trigger re-run by toggling a state-based effect isn't ideal here,
@@ -236,29 +250,44 @@ function useAsyncQueryState(
       isFetching: true,
       error: null,
     }))
+    // A refetch answers the search it was started for; once the search has
+    // moved on, its result is ignored.
     fetcherRef
       .current(query)
       .then((data) => {
+        if (latestQueryRef.current !== query) return
         setState({
           data,
           error: null,
           isFetching: false,
           hasFetched: true,
+          query,
         })
       })
       .catch((error) => {
+        if (latestQueryRef.current !== query) return
         setState((s) => ({
           ...s,
           error: normalizeError(error),
           isFetching: false,
           hasFetched: true,
+          query,
         }))
       })
   }, [query])
 
+  // Until the effect catches up with a new search, report it as already
+  // fetching, so the menu never reads the previous search's result as final.
+  const current = React.useMemo(() => {
+    if (!enabled || state.query === query) return state
+    return keepPreviousData && state.data !== undefined
+      ? { ...state, error: null, isFetching: true }
+      : { data: undefined, error: null, isFetching: true, hasFetched: false }
+  }, [state, enabled, query, keepPreviousData])
+
   return React.useMemo(
-    () => toVanillaAsyncLoaderResult(state, refetch),
-    [state, refetch],
+    () => toVanillaAsyncLoaderResult(current, refetch),
+    [current, refetch],
   )
 }
 
@@ -365,6 +394,13 @@ export interface CreateVanillaQueryLoaderProps {
    * @default 0
    */
   debounce?: number
+  /**
+   * Keep showing the last results while the next search loads, instead of
+   * clearing them on every change of the search. The refetch is reported as a
+   * background load, so `Loading` doesn't flash. Named after SWR's option.
+   * @default false
+   */
+  keepPreviousData?: boolean
 }
 
 /**
@@ -401,6 +437,7 @@ export function createVanillaQueryLoader(
     belowMinBehavior = 'empty',
     placeholderNodes,
     debounce,
+    keepPreviousData = false,
   } = props
 
   const resolvedInitialQueryBehavior: InitialQueryBehavior | false =
@@ -418,7 +455,10 @@ export function createVanillaQueryLoader(
     const isEnabled =
       enabled ??
       (query.length >= minQueryLength || resolvedInitialQueryBehavior !== false)
-    const result = useAsyncQueryState(fetcher, query, { enabled: isEnabled })
+    const result = useAsyncQueryState(fetcher, query, {
+      enabled: isEnabled,
+      keepPreviousData,
+    })
     return <>{children(result)}</>
   }
 
