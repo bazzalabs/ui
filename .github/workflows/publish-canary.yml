@@ -48,6 +48,7 @@ jobs:
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
 
       - name: Create and publish versions
+        id: changesets
         uses: changesets/action@v1
         with:
           version: bun run ci:version
@@ -58,3 +59,47 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
           HUSKY: 0
+
+      # Linear release tracking. These steps must never fail an npm publish,
+      # hence continue-on-error.
+      - name: Resolve published @bazza-ui/react version
+        id: react
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+        run: |
+          version=$(jq -r '.[] | select(.name == "@bazza-ui/react") | .version' <<< "$PUBLISHED_PACKAGES")
+          if [ -z "$version" ]; then
+            echo "@bazza-ui/react was not published."
+            exit 0
+          fi
+
+          # HEAD carries the new tag, so look for the previous one from HEAD^.
+          base_ref=$(git describe --tags --abbrev=0 --match '@bazza-ui/react@*' HEAD^ 2>/dev/null || true)
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "base-ref=$base_ref" >> "$GITHUB_OUTPUT"
+          echo "Published version: $version (scanning from ${base_ref:-the current commit})"
+
+      - name: Sync Linear release
+        if: steps.react.outputs.version != ''
+        continue-on-error: true
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASE_REACT_CANARY_KEY }}
+          version: ${{ steps.react.outputs.version }}
+          name: ${{ steps.react.outputs.version }}
+          base_ref: ${{ steps.react.outputs.base-ref }}
+          include_paths: packages/react/**
+
+      - name: Complete Linear release
+        if: steps.react.outputs.version != ''
+        continue-on-error: true
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASE_REACT_CANARY_KEY }}
+          command: complete
+          version: ${{ steps.react.outputs.version }}
+          links: |
+            npm=https://www.npmjs.com/package/@bazza-ui/react/v/${{ steps.react.outputs.version }}
+            GitHub release=https://github.com/${{ github.repository }}/releases/tag/%40bazza-ui/react%40${{ steps.react.outputs.version }}
