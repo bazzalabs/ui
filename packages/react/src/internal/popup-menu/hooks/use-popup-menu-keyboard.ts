@@ -6,7 +6,10 @@
 // This wrapper integrates the focus owner and submenu contexts from popup-menu
 
 import * as React from 'react'
+import { REASONS } from '../../../utils/events/index.js'
 import { type ListboxStore, useListboxKeyboard } from '../../listbox/index.js'
+import { useMaybeCheckboxSelection } from '../contexts/checkbox-selection-context.js'
+import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
 import type { SubpageContextValue } from '../contexts/subpage-context.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
@@ -78,6 +81,10 @@ export function usePopupMenuKeyboard(
     closeAll,
     skipFocusOwnerCheck = false,
   } = params
+  const selection = useMaybeCheckboxSelection()
+  const { rangeSelection } = usePopupMenuContext()
+  const focusOwnerIsOwner = focusOwnerStore.useState('isOwner', surfaceId)
+  const isOwner = skipFocusOwnerCheck ? true : focusOwnerIsOwner
 
   // Convert submenu context to the interface expected by the listbox hook
   const submenuInterface = React.useMemo(() => {
@@ -115,11 +122,11 @@ export function usePopupMenuKeyboard(
     [closeAll],
   )
 
-  return useListboxKeyboard({
+  const { handleKeyDown: handleListboxKeyDown } = useListboxKeyboard({
     store,
     surfaceId,
     enabled: enabled && !disabled,
-    onKeyDown,
+    onKeyDown: undefined,
     onSelect: handleSelect,
     closeAll,
     focusOwner: focusOwnerStore,
@@ -129,4 +136,53 @@ export function usePopupMenuKeyboard(
     enableTypeToSearch,
     skipFocusOwnerCheck,
   })
+
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent) => {
+      // Consumer handler first; it may prevent everything below.
+      onKeyDown?.(event)
+      if (event.defaultPrevented) return
+      const isComposing = event.nativeEvent.isComposing || event.keyCode === 229
+      if (
+        !isComposing &&
+        rangeSelection &&
+        selection &&
+        event.key === 'Enter' &&
+        event.shiftKey &&
+        isOwner &&
+        enabled &&
+        !disabled
+      ) {
+        const targetId = store.state.highlightedId
+        const anchor = selection.getUsableAnchor()
+        if (
+          targetId &&
+          anchor !== null &&
+          selection.isSelectableRow(targetId)
+        ) {
+          event.preventDefault()
+          selection.applyRange(
+            anchor,
+            targetId,
+            REASONS.rangeSelection,
+            event.nativeEvent,
+          )
+          return
+        }
+      }
+      handleListboxKeyDown(event)
+    },
+    [
+      onKeyDown,
+      rangeSelection,
+      selection,
+      isOwner,
+      enabled,
+      disabled,
+      store,
+      handleListboxKeyDown,
+    ],
+  )
+
+  return React.useMemo(() => ({ handleKeyDown }), [handleKeyDown])
 }
