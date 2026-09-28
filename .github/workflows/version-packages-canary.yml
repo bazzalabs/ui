@@ -1,15 +1,26 @@
+# Opens or updates the Changesets version PR for `canary`, then tracks the
+# upcoming @bazza-ui/react canary as a release in Linear's "React (Canary)"
+# scheduled pipeline.
+#
+# The release is named after the version on the version PR branch
+# (changeset-release/canary), so it always matches what merging that PR will
+# publish. publish-canary.yml completes the release once the version is
+# published to npm.
+
 name: Version Packages (Canary)
 
 on:
   push:
     branches:
       - canary
+  workflow_dispatch:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   version:
     name: Create Canary Version PR
+    if: github.ref == 'refs/heads/canary'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,6 +49,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Create Release Pull Request
+        id: changesets
         uses: changesets/action@v1
         with:
           version: bun run ci:version
@@ -45,3 +57,45 @@ jobs:
           title: "chore: version canary packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Linear release tracking. These steps must never fail the version PR,
+      # hence continue-on-error.
+      - name: Resolve upcoming @bazza-ui/react version
+        id: next
+        if: steps.changesets.outputs.hasChangesets == 'true'
+        continue-on-error: true
+        run: |
+          if ! git fetch --quiet origin changeset-release/canary; then
+            echo "No version PR branch."
+            exit 0
+          fi
+
+          version=$(git show FETCH_HEAD:packages/react/package.json | jq -r .version)
+          current=$(git show "$GITHUB_SHA:packages/react/package.json" | jq -r .version)
+          if [ "$version" = "$current" ]; then
+            echo "The version PR does not bump @bazza-ui/react (still $current)."
+            exit 0
+          fi
+
+          # Scan from the last published @bazza-ui/react tag, so every sync
+          # covers the whole cycle. Fails the step if no tag is reachable.
+          base_ref=$(git describe --tags --abbrev=0 --match '@bazza-ui/react@*' "$GITHUB_SHA")
+
+          # changesets/action leaves HEAD on the version PR commit. Scan the
+          # pushed canary commit instead.
+          git checkout --quiet --detach "$GITHUB_SHA"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "base-ref=$base_ref" >> "$GITHUB_OUTPUT"
+          echo "Upcoming version: $version (scanning from $base_ref)"
+
+      - name: Sync Linear release
+        if: steps.next.outputs.version != ''
+        continue-on-error: true
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_RELEASE_REACT_CANARY_KEY }}
+          version: ${{ steps.next.outputs.version }}
+          name: ${{ steps.next.outputs.version }}
+          base_ref: ${{ steps.next.outputs.base-ref }}
+          include_paths: packages/react/**
