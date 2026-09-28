@@ -244,6 +244,22 @@ Use `<DropdownMenu.CheckboxGroupValue>` instead when you only want to provide th
 
 </ComponentOnly>
 
+### Range and drag selection
+
+Checkbox items support two ways to change many rows at once.
+
+Range selection is on by default. Shift-click a checkbox item, or press Shift+Enter on the highlighted one, to set every checkbox item between it and the last checkbox item you interacted with to the same state. Turn it off with `rangeSelection={false}` on the root.
+
+Drag selection previews a span of rows and applies it once at the end. With the keyboard it is always available while range selection is on: hold Shift while moving the highlight with the arrow keys, Home, or End, then release Shift to apply. With a pointer it is opt-in: set `dragSelection="keep"` or `dragSelection="rubber-band"` on the root, then press a checkbox item with a mouse or pen and drag across others. With `keep`, rows stay set once the pointer has reached them; with `rubber-band`, rows outside the current span return to their previous state. Escape cancels. Touch keeps its usual tap and scroll behaviour.
+
+Rows whose previewed state differs from their committed state carry `data-pending`. Both gestures keep the menu open, report a single `onValueChange` per checkbox group, and are announced to screen readers; pass `getAriaSelectionText` on the root to localize that announcement.
+
+<ComponentOnly>
+
+<Example name="dropdown-menu-drag-selection" />
+
+</ComponentOnly>
+
 ### Radio group
 
 Use the `<DropdownMenu.RadioGroup>` and `<DropdownMenu.RadioItem>` parts to create menu items that work like radio buttons.
