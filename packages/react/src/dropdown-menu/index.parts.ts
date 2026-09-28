@@ -16,6 +16,8 @@ export type {
 export {
   PopupMenuArrow as Arrow,
   PopupMenuBackdrop as Backdrop,
+  PopupMenuCheckboxGroup as CheckboxGroup,
+  PopupMenuCheckboxGroupValue as CheckboxGroupValue,
   PopupMenuCheckboxItem as CheckboxItem,
   PopupMenuCheckboxItemIndicator as CheckboxItemIndicator,
   PopupMenuEmpty as Empty,
