@@ -10,6 +10,7 @@ function setup(initialIds: string[]) {
   const store = new CheckboxSelectionStore({
     getVisibleItemIds: () => ids,
     getItemElement: () => null,
+    getScrollElement: () => null,
     setHighlightedId: vi.fn(),
     observeOpen: () => () => {},
   })
