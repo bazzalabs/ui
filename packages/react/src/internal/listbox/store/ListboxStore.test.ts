@@ -948,6 +948,59 @@ describe('ListboxStore', () => {
       expect(store.state.highlightedId).toBe('apple')
     })
 
+    it('preserves highlight on refresh updates while the item remains', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setHighlightedId('banana', 'keyboard')
+
+      // A new row arrives ahead of the highlighted one; the highlight follows identity.
+      store.setOrderedItems(['cherry', 'apple', 'banana'], {
+        reason: 'refresh',
+      })
+
+      expect(store.state.highlightedId).toBe('banana')
+    })
+
+    it('falls back to first item on refresh updates when the highlighted item is gone', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+        { id: 'cherry', value: 'Cherry' },
+      ])
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setHighlightedId('banana', 'keyboard')
+
+      store.setOrderedItems(['cherry', 'apple'], { reason: 'refresh' })
+
+      expect(store.state.highlightedId).toBe('cherry')
+    })
+
+    it('falls back to first item on refresh updates when the highlighted item becomes disabled', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'apple', value: 'Apple' },
+        { id: 'banana', value: 'Banana' },
+      ])
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setHighlightedId('banana', 'keyboard')
+      registerItems(store, [{ id: 'banana', value: 'Banana', disabled: true }])
+
+      store.setOrderedItems(['apple', 'banana', 'cherry'], {
+        reason: 'refresh',
+      })
+
+      expect(store.state.highlightedId).toBe('apple')
+    })
+
     it('clears highlight when ordered items is empty', () => {
       const store = createStore({ open: true }, { filter: false })
       registerItems(store, [

@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import {
+  type OrderedItemsUpdateReason,
   useListboxContext,
   type useSurfaceContext,
 } from '../../listbox/index.js'
@@ -706,10 +707,6 @@ export const DataListInner = React.forwardRef<
   // We use a ref to track the previous IDs and do a deep comparison to avoid
   // triggering highlight resets when the content hasn't actually changed.
   const prevOrderedItemIdsRef = React.useRef<string[]>([])
-  const prevOrderedItemsSearchRef = React.useRef<string | null>(null)
-  const orderedItemsUpdateReasonRef = React.useRef<'replace' | 'append'>(
-    'replace',
-  )
 
   // Compute new ordered resolved IDs
   const newOrderedItemIds = React.useMemo(
@@ -721,41 +718,50 @@ export const DataListInner = React.forwardRef<
   const orderedItemIds = React.useMemo(() => {
     const prev = prevOrderedItemIdsRef.current
     const current = newOrderedItemIds
-
-    // Deep comparison
     const changed =
       prev.length !== current.length || prev.some((id, i) => id !== current[i])
+    if (!changed) return prev
+    prevOrderedItemIdsRef.current = current
+    return current
+  }, [newOrderedItemIds])
 
-    if (changed) {
-      const asyncResultBehavior =
-        deepSearchConfig.asyncResultBehavior ?? 'stream'
-      const shouldUseAppendReason =
-        asyncResultBehavior === 'stream' &&
-        isDeepSearching &&
-        prevOrderedItemsSearchRef.current === normalizedSearch &&
-        isAppendOnlyOrderedItemsUpdate(prev, current)
-
-      orderedItemsUpdateReasonRef.current = shouldUseAppendReason
-        ? 'append'
-        : 'replace'
-      prevOrderedItemIdsRef.current = current
-      prevOrderedItemsSearchRef.current = normalizedSearch
-      return current
-    }
-
-    return prev
-  }, [
-    newOrderedItemIds,
-    deepSearchConfig.asyncResultBehavior,
-    isDeepSearching,
-    normalizedSearch,
-  ])
+  // What the store was last given: the rows and the search they were for.
+  // Tracked together, so a keystroke that leaves the rows unchanged still
+  // counts as a search change.
+  const lastSyncRef = React.useRef<{
+    ids: string[] | null
+    search: string | null
+  }>({ ids: null, search: null })
+  const asyncResultBehavior = deepSearchConfig.asyncResultBehavior ?? 'stream'
 
   React.useEffect(() => {
-    store.setOrderedItems(orderedItemIds, {
-      reason: orderedItemsUpdateReasonRef.current,
-    })
-  }, [store, orderedItemIds])
+    const last = lastSyncRef.current
+    lastSyncRef.current = { ids: orderedItemIds, search: normalizedSearch }
+    const searchChanged = last.search !== normalizedSearch
+
+    if (last.ids === orderedItemIds) {
+      // Same rows, new search: the highlight still resets to the first row.
+      if (searchChanged) store.highlightFirstOrderedItem()
+      return
+    }
+
+    // Same search, different rows (async results landed, a loader refetched):
+    // keep the highlighted row. A new search resets to the first row.
+    const reason: OrderedItemsUpdateReason = searchChanged
+      ? 'replace'
+      : asyncResultBehavior === 'stream' &&
+          isDeepSearching &&
+          isAppendOnlyOrderedItemsUpdate(last.ids ?? [], orderedItemIds)
+        ? 'append'
+        : 'refresh'
+    store.setOrderedItems(orderedItemIds, { reason })
+  }, [
+    store,
+    orderedItemIds,
+    normalizedSearch,
+    asyncResultBehavior,
+    isDeepSearching,
+  ])
 
   // Helper to render a single row node (item, checkbox item, submenu, or subpage)
   // biome-ignore lint/correctness/useExhaustiveDependencies: renderRowNode, renderRadioGroup, and renderCheckboxGroup are intentionally recursive.

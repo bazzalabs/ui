@@ -86,10 +86,12 @@ export type HighlightSource = 'keyboard' | 'pointer' | 'auto' | null
 
 /**
  * Describes why the consumer updated ordered items when filter={false}.
- * - `replace`: list was re-ordered/replaced (default)
+ * - `replace`: list was re-ordered/replaced (default); highlight moves to the first item
  * - `append`: new items were appended to the end while preserving existing order
+ * - `refresh`: the list changed but the search did not (e.g. async results
+ *   arrived); keep the highlighted item while it is still present and enabled
  */
-export type OrderedItemsUpdateReason = 'replace' | 'append'
+export type OrderedItemsUpdateReason = 'replace' | 'append' | 'refresh'
 
 export interface SetOrderedItemsOptions {
   /** Why ordered items were updated. @default 'replace' */
@@ -887,33 +889,38 @@ export class ListboxStore extends ReactStore<
       return
     }
 
-    // For append-only updates, preserve current highlight when it remains valid.
-    if (reason === 'append' && this.state.highlightedId !== null) {
+    // For append-only and same-search updates, preserve the current highlight
+    // while it remains valid (identity, not position).
+    if (
+      (reason === 'append' || reason === 'refresh') &&
+      this.state.highlightedId !== null
+    ) {
+      // Virtual items are pre-registered, so an unmounted virtualized row is
+      // still found here.
       const highlightedId = this.state.highlightedId
-      const highlightedRegistration = this.context.items.get(highlightedId)
-      const isStillInOrderedItems = items.includes(highlightedId)
-      const isStillEnabled = highlightedRegistration
-        ? !highlightedRegistration.disabled
-        : false
-
-      if (isStillInOrderedItems && isStillEnabled) {
+      const registration = this.context.items.get(highlightedId)
+      if (
+        items.includes(highlightedId) &&
+        registration !== undefined &&
+        !registration.disabled
+      ) {
         return
       }
     }
 
-    // When ordered items change, highlight the first registered item
-    // Use 'auto' source to indicate this is automatic (not user-initiated)
-    // This prevents submenus from auto-opening
-    if (items.length > 0) {
-      const firstRegisteredItem = items.find((id) => this.context.items.has(id))
-      if (firstRegisteredItem !== undefined) {
-        this.setHighlightedId(firstRegisteredItem, 'auto')
-      } else {
-        this.setHighlightedId(null)
-      }
-    } else {
-      this.setHighlightedId(null)
-    }
+    this.highlightFirstOrderedItem()
+  }
+
+  /**
+   * Highlights the first registered item in the ordered items (or clears the
+   * highlight when there is none). Uses the 'auto' source: not user-initiated,
+   * so submenus don't auto-open. No-op while closed.
+   */
+  highlightFirstOrderedItem() {
+    if (!this.state.open) return
+    const items = this.context.orderedItems
+    const firstRegisteredItem = items.find((id) => this.context.items.has(id))
+    this.setHighlightedId(firstRegisteredItem ?? null, 'auto')
   }
 
   /**
