@@ -7,5 +7,5 @@
 
 ## Relationships
 
-- **React Components → Popup Menu**: the menu family's members (`dropdown-menu`, `context-menu`, `combobox`, `command-menu`, `select`) are consumer-facing shells over the internal popup-menu engine. Engine vocabulary (node def, menu node, graft) stays internal; only `Node` surfaces on each family's namespace.
+- **React Components → Popup Menu**: the menu family's members (`dropdown-menu`, `context-menu`, `combobox`, `command-menu`, `select`, `suggestion-menu`) are consumer-facing shells over the internal popup-menu engine. Engine vocabulary (node def, menu node, graft) stays internal; only `Node` surfaces on each family's namespace.
 - **Popup Menu borrows from React Components**: the anatomy and interaction vocabulary (surface, popup, submenu, subpage, focus zone, highlight) is defined in React Components — consumer language — and used freely in the engine context without redefinition.
