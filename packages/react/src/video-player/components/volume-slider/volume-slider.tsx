@@ -2,6 +2,10 @@
 
 import { Slider } from '@base-ui/react/slider'
 import * as React from 'react'
+import {
+  composeStyle,
+  resolveStyle,
+} from '../../../utils/resolve-state-props.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import type { RenderProp } from '../../types.js'
 import { VolumeSliderCssVars } from './volume-slider.css-vars.js'
@@ -122,20 +126,18 @@ export const VolumeSlider = React.forwardRef<
   }
 
   // CSS custom properties for styling
-  const style = {
-    position: 'relative' as const,
-    [VolumeSliderCssVars.volume]: context.volume,
-    [VolumeSliderCssVars.volumePercentage]: `${percentage}%`,
-    ...sliderProps.style,
-  } as unknown as React.CSSProperties
-
-  const renderProps: VolumeSliderRenderProps = {
-    [VolumeSliderDataAttributes.muted]: context.muted || undefined,
-    [VolumeSliderDataAttributes.volume]: context.volume,
-    [VolumeSliderDataAttributes.pressing]: pressing || undefined,
-    [VolumeSliderDataAttributes.dragging]: dragging || undefined,
-    style,
-  }
+  // CSS custom properties first so a consumer style can override them. A
+  // function style stays a function so Slider.Root resolves it with its state.
+  const style = composeStyle(
+    sliderProps.style,
+    (resolvedStyle) =>
+      ({
+        position: 'relative' as const,
+        [VolumeSliderCssVars.volume]: context.volume,
+        [VolumeSliderCssVars.volumePercentage]: `${percentage}%`,
+        ...resolvedStyle,
+      }) as unknown as React.CSSProperties,
+  )
 
   // Render prop takes full control
   if (render) {
@@ -149,7 +151,13 @@ export const VolumeSlider = React.forwardRef<
         onValueChange={handleValueChange}
         onPointerDown={handlePointerDown}
         aria-label="Volume"
-        render={(baseProps) => render({ ...baseProps, ...renderProps }, state)}
+        render={(baseProps, rootState) => {
+          const renderProps: VolumeSliderRenderProps = {
+            ...dataAttributes,
+            style: resolveStyle(style, rootState) ?? {},
+          }
+          return render({ ...baseProps, ...renderProps }, state)
+        }}
       />
     )
   }
@@ -197,10 +205,10 @@ export const VolumeSliderTrack = React.forwardRef<
 >(function VolumeSliderTrack(props, forwardedRef) {
   const { style, ...trackProps } = props
 
-  const trackStyle: React.CSSProperties = {
+  const trackStyle = composeStyle(style, (resolvedStyle) => ({
     position: 'relative',
-    ...style,
-  }
+    ...resolvedStyle,
+  }))
 
   return <Slider.Track ref={forwardedRef} style={trackStyle} {...trackProps} />
 })

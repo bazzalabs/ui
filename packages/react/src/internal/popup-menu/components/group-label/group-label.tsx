@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
@@ -96,8 +100,8 @@ export const PopupMenuGroupLabel = React.forwardRef<
       // aria-hidden since the group label is decorative for screen readers
       // in the context of a listbox (options are the semantic elements)
       'aria-hidden': 'true',
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       children,
     },
     defaultTagName: 'div',

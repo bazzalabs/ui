@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useContextMenuInternal } from '../root/root.js'
 import { ContextMenuTriggerDataAttributes } from './trigger.data-attrs.js'
@@ -222,14 +226,14 @@ export const ContextMenuTrigger = React.forwardRef<
       onTouchMove: handleTouchMove,
       onTouchEnd: handleTouchEnd,
       onTouchCancel: handleTouchCancel,
-      className,
+      className: resolveClassName(className, state),
       style: {
         // Prevent native iOS callout on long-press
         WebkitTouchCallout: 'none',
         // Prevent text selection on long-press
         WebkitUserSelect: 'none',
         userSelect: 'none',
-        ...style,
+        ...resolveStyle(style, state),
       },
       children,
     },

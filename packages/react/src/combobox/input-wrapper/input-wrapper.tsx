@@ -3,6 +3,10 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { ComboboxInputWrapperDataAttributes } from './input-wrapper.data-attrs.js'
@@ -75,8 +79,8 @@ export const ComboboxInputWrapper = React.forwardRef<
     props: {
       ...rest,
       [ComboboxInputWrapperDataAttributes.slot]: '',
-      className,
-      style: { ...inputEmbeddedStyles, ...style },
+      className: resolveClassName(className, state),
+      style: { ...inputEmbeddedStyles, ...resolveStyle(style, state) },
       children,
     },
     defaultTagName: 'div',

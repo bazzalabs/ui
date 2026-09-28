@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
 import {
@@ -221,8 +225,8 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
       'aria-expanded': isTargetOpen,
       tabIndex: -1,
       'aria-disabled': disabled || undefined,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       onPointerDown: handlePointerDown,
       onClick: handleClick,
       onPointerMove: handlePointerMove,

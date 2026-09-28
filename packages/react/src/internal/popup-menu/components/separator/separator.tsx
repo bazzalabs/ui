@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useSurfaceContext } from '../../../listbox/index.js'
 import {
@@ -81,8 +85,8 @@ export const PopupMenuSeparator = React.forwardRef<
       // Using role="none" as this is a purely visual separator within a listbox.
       // The semantic separator role requires focus for interactive separators.
       role: 'none',
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
     },
     defaultTagName: 'div',
   })

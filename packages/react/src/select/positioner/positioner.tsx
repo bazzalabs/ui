@@ -6,6 +6,7 @@ import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
 import { clamp } from '../../utils/clamp.js'
 import { REASONS } from '../../utils/events/index.js'
+import { composeStyle } from '../../utils/resolve-state-props.js'
 import { getScale, normalizeRect, normalizeSize } from '../../utils/scale.js'
 import {
   getMaxScrollOffset,
@@ -469,11 +470,11 @@ export const SelectPositioner = React.forwardRef<
         sideOffset={alignItemWithTriggerActive ? 0 : sideOffset}
         disableAnchorTracking={alignItemWithTriggerActive || undefined}
         className={className}
-        style={{
-          ...style,
+        style={composeStyle(style, (resolvedStyle) => ({
+          ...resolvedStyle,
           ...alignmentStyles,
           ...(shouldHide ? { visibility: 'hidden' } : {}),
-        }}
+        }))}
         {...(alignItemWithTriggerActive
           ? { 'data-side': 'none', 'data-align': alignProp }
           : {})}

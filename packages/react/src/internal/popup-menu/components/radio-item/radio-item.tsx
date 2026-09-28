@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
 import {
@@ -244,8 +248,8 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
       tabIndex: -1,
       'aria-checked': checked,
       'aria-disabled': disabled || undefined,
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       onClick: handleClick,
       onPointerMove: handlePointerMove,
       onPointerDown: handlePointerDown,

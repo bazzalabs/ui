@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
+import {
   resolveLabel,
   stringifyAsValue,
 } from '../../../../utils/resolve-value-label.js'
@@ -122,8 +126,8 @@ export const PopupMenuIcon = React.forwardRef<
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
-      className,
-      style,
+      className: resolveClassName(className, state),
+      style: resolveStyle(style, state),
       children,
       onPointerDown: handlePointerDown,
       onClick: handleClick,

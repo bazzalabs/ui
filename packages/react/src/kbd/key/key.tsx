@@ -2,6 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { KbdKeyDataAttributes } from './key.data-attrs.js'
 
@@ -25,8 +29,8 @@ export const KbdKey = React.forwardRef<HTMLElement, KbdKey.Props>(
       props: {
         ...rest,
         [KbdKeyDataAttributes.key]: '',
-        className,
-        style,
+        className: resolveClassName(className, state),
+        style: resolveStyle(style, state),
         children: renderedChildren,
       },
       defaultTagName: 'kbd',

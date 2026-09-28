@@ -10,6 +10,10 @@ import {
 } from '@floating-ui/react'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import {
+  composeStyle,
+  resolveStyle,
+} from '../../../utils/resolve-state-props.js'
 import { useVideoPlayerContext } from '../../contexts/video-player-context.js'
 import { useTransitionStatus } from '../../hooks/use-transition-status.js'
 import type { RenderProp } from '../../types.js'
@@ -263,25 +267,32 @@ export const SeekSlider = React.forwardRef<
     ],
   )
 
-  const style = {
-    position: 'relative',
-    [SeekSliderCssVars.progress]: `${progress}%`,
-    [SeekSliderCssVars.buffered]: `${bufferedPercentage}%`,
-    [SeekSliderCssVars.currentTime]: context.currentTime,
-    [SeekSliderCssVars.duration]: context.duration,
-    [SeekSliderCssVars.hoverProgress]:
-      context.hoverProgress !== null ? `${context.hoverProgress}%` : undefined,
-    [SeekSliderCssVars.hoverTime]: context.hoverTime ?? undefined,
-    ...sliderProps.style,
-  } as unknown as React.CSSProperties
+  // CSS custom properties first so a consumer style can override them. A
+  // function style stays a function so Slider.Root resolves it with its state.
+  const style = composeStyle(
+    sliderProps.style,
+    (resolvedStyle) =>
+      ({
+        position: 'relative',
+        [SeekSliderCssVars.progress]: `${progress}%`,
+        [SeekSliderCssVars.buffered]: `${bufferedPercentage}%`,
+        [SeekSliderCssVars.currentTime]: context.currentTime,
+        [SeekSliderCssVars.duration]: context.duration,
+        [SeekSliderCssVars.hoverProgress]:
+          context.hoverProgress !== null
+            ? `${context.hoverProgress}%`
+            : undefined,
+        [SeekSliderCssVars.hoverTime]: context.hoverTime ?? undefined,
+        ...resolvedStyle,
+      }) as unknown as React.CSSProperties,
+  )
 
-  const renderProps: SeekSliderRenderProps = {
+  const dataAttributes = {
     [SeekSliderDataAttributes.seeking]: context.seeking || undefined,
     [SeekSliderDataAttributes.hovering]:
       context.hoverTime !== null || undefined,
     [SeekSliderDataAttributes.pressing]: pressing || undefined,
     [SeekSliderDataAttributes.dragging]: dragging || undefined,
-    style,
   }
 
   // Render prop: use Base UI's render prop to customize the root element
@@ -301,16 +312,16 @@ export const SeekSlider = React.forwardRef<
           onPointerDown={handlePointerDown}
           onKeyUp={handleKeyUp}
           aria-label="Seek"
-          render={(baseProps) =>
-            render(
-              {
-                ...baseProps,
-                ...renderProps,
-                style: { ...baseProps.style, ...renderProps.style },
+          render={(baseProps, rootState) => {
+            const renderProps: SeekSliderRenderProps = {
+              ...dataAttributes,
+              style: {
+                ...baseProps.style,
+                ...resolveStyle(style, rootState),
               },
-              state,
-            )
-          }
+            }
+            return render({ ...baseProps, ...renderProps }, state)
+          }}
         />
       </SeekSliderContext.Provider>
     )
@@ -331,8 +342,9 @@ export const SeekSlider = React.forwardRef<
         onPointerDown={handlePointerDown}
         onKeyUp={handleKeyUp}
         aria-label="Seek"
-        {...renderProps}
+        {...dataAttributes}
         {...sliderProps}
+        style={style}
       >
         {children ?? (
           <Slider.Control>
@@ -389,20 +401,21 @@ export const SeekSliderTrack = React.forwardRef<
   const state: SeekSliderTrackState = {}
 
   // Always apply position: relative so children with position: absolute work correctly
-  const trackStyle: React.CSSProperties = {
+  const trackStyle = composeStyle(style, (resolvedStyle) => ({
     position: 'relative',
-    ...style,
-  }
-
-  const renderProps: SeekSliderTrackRenderProps = {
-    ref: forwardedRef,
-    style: trackStyle,
-  }
+    ...resolvedStyle,
+  }))
 
   if (render) {
     return (
       <Slider.Track
-        render={(baseProps) => render({ ...baseProps, ...renderProps }, state)}
+        render={(baseProps, trackState) => {
+          const renderProps: SeekSliderTrackRenderProps = {
+            ref: forwardedRef,
+            style: resolveStyle(trackStyle, trackState) ?? {},
+          }
+          return render({ ...baseProps, ...renderProps }, state)
+        }}
       />
     )
   }
@@ -447,29 +460,24 @@ export const SeekSliderProgress = React.forwardRef<
 
   // Base UI handles positioning internally via inline styles
   // We only add height: 100% to ensure it fills the track vertically
-  const indicatorStyle: React.CSSProperties = {
+  const indicatorStyle = composeStyle(style, (resolvedStyle) => ({
     height: '100%',
-    ...style,
-  }
-
-  const renderProps: SeekSliderProgressRenderProps = {
-    ref: forwardedRef,
-    style: indicatorStyle,
-  }
+    ...resolvedStyle,
+  }))
 
   if (render) {
     return (
       <Slider.Indicator
-        render={(baseProps) =>
-          render(
-            {
-              ...baseProps,
-              ...renderProps,
-              style: { ...baseProps.style, ...indicatorStyle },
+        render={(baseProps, indicatorState) => {
+          const renderProps: SeekSliderProgressRenderProps = {
+            ref: forwardedRef,
+            style: {
+              ...baseProps.style,
+              ...resolveStyle(indicatorStyle, indicatorState),
             },
-            state,
-          )
-        }
+          }
+          return render({ ...baseProps, ...renderProps }, state)
+        }}
       />
     )
   }

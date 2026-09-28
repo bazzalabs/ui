@@ -6,6 +6,10 @@ import {
   createChangeEventDetails,
   REASONS,
 } from '../../../../utils/events/index.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
@@ -202,8 +206,8 @@ export const PopupMenuRadioGroup = React.forwardRef(
         ...(slotAttr ? { [slotAttr]: '' } : {}),
         role: 'group',
         'aria-disabled': disabled || undefined,
-        className,
-        style,
+        className: resolveClassName(className, state),
+        style: resolveStyle(style, state),
         children,
       },
       enabled: isVisible,

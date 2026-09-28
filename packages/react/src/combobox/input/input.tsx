@@ -5,6 +5,10 @@ import * as React from 'react'
 import { useFocusOwner } from '../../internal/popup-menu/contexts/focus-owner-context.js'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
 import { resolveLabelFromItems } from '../../utils/items.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { useIsInsideInputWrapper } from '../input-wrapper/input-wrapper-context.js'
@@ -191,8 +195,8 @@ export const ComboboxInput = React.forwardRef<
       spellCheck: false,
       disabled,
       placeholder: !hasValue ? placeholder : undefined,
-      className,
-      style: { ...inputEmbeddedStyles, ...style },
+      className: resolveClassName(className, state),
+      style: { ...inputEmbeddedStyles, ...resolveStyle(style, state) },
       value: displayValue,
       onChange: handleChange,
       onFocus: handleFocus,

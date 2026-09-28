@@ -6,6 +6,10 @@ import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
 import { REASONS } from '../../utils/events/index.js'
 import { mergeElementProps } from '../../utils/merge-element-props.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { DropdownMenuTriggerDataAttributes } from './trigger.data-attrs.js'
 
@@ -94,8 +98,8 @@ const DropdownMenuTriggerInner = React.forwardRef<
     props: {
       ...mergeElementProps<'button'>(triggerProps, {
         ...rest,
-        className,
-        style,
+        className: resolveClassName(className, state),
+        style: resolveStyle(style, state),
         children,
       } as Partial<React.ComponentPropsWithRef<'button'>>),
       [DropdownMenuTriggerDataAttributes.slot]: '',

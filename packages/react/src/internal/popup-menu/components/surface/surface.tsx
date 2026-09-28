@@ -4,6 +4,10 @@ import { useRender } from '@base-ui/react/use-render'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { REASONS } from '../../../../utils/events/index.js'
+import {
+  resolveClassName,
+  resolveStyle,
+} from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import {
   defaultFilter,
@@ -673,8 +677,8 @@ export const PopupMenuSurface = React.forwardRef<
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
-      className,
-      style,
+      className: resolveClassName(className, {}),
+      style: resolveStyle(style, {}),
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
       onKeyDown: handleKeyDown,
