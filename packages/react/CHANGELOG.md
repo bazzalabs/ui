@@ -1,5 +1,11 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.16
+
+### Patch Changes
+
+- [#516](https://github.com/bazzalabs/ui/pull/516) [`bbfedea`](https://github.com/bazzalabs/ui/commit/bbfedea65e831639891c6cf97122a514f812f5bb) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix function `className` and `style` props being ignored on most parts. Parts such as `Select.Trigger`, `Select.Item`, `Combobox.Input`, `DropdownMenu.Item`, `Kbd.Root` and the rest of the menu parts now call the function with the part's state and apply the result. Before, the function reached the DOM as-is: the element got no class and React logged a warning, and a function `style` threw in development. Positioners, `Backdrop`, `ContextMenu.Trigger` and the video player sliders no longer silently drop a function `style` when adding their own styles. `SeekSlider` also keeps its CSS variables when given a `style`.
+
 ## 0.1.0-canary.15
 
 ### Minor Changes
