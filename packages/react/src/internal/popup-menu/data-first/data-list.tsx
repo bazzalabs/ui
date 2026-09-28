@@ -364,7 +364,7 @@ export function useRootAsyncSettled(
   // A background refetch of a settled search keeps it settled.
   if (track.settled && !result.isLoading) return { settled: true, settledOnce }
   if (result.isLoading || result.isFetching) {
-    track.sawFetching = true
+    if (!debounceWaitResults.has(result)) track.sawFetching = true
     return { settled: false, settledOnce }
   }
 
@@ -387,6 +387,76 @@ export function useRootAsyncSettled(
 }
 
 /**
+ * The query and `enabled` flag a loader receives, with the config's `debounce`
+ * applied. The raw search is held for `debounce` ms after it stops changing
+ * (the first search passes at once), and both values come from the held
+ * search, so the loader never runs a search its config disallows. While a
+ * newer search is waiting and would fetch something else, `wrap` reports the
+ * loader's result as fetching.
+ */
+function useLoaderQuery(
+  config: AsyncLoaderConfig | undefined,
+  query: string,
+): {
+  query: string
+  enabled: boolean
+  wrap: (result: AsyncLoaderResult<NodeDef[]>) => AsyncLoaderResult<NodeDef[]>
+} {
+  const debounceMs = config?.type === 'query' ? (config.debounce ?? 0) : 0
+  const [held, setHeld] = React.useState(query)
+  React.useEffect(() => {
+    if (debounceMs <= 0) return undefined
+    const timeout = setTimeout(() => setHeld(query), debounceMs)
+    return () => clearTimeout(timeout)
+  }, [query, debounceMs])
+  const heldQuery = debounceMs > 0 ? held : query
+
+  const heldExecution =
+    config?.type === 'query'
+      ? resolveQueryExecutionState(config, heldQuery)
+      : null
+  const currentExecution =
+    config?.type === 'query' && heldQuery !== query
+      ? resolveQueryExecutionState(config, query)
+      : heldExecution
+  const pending =
+    heldExecution !== null &&
+    currentExecution !== null &&
+    currentExecution.enabled &&
+    (!heldExecution.enabled ||
+      currentExecution.effectiveQuery !== heldExecution.effectiveQuery)
+
+  return {
+    query: heldExecution?.effectiveQuery ?? query,
+    enabled: heldExecution?.enabled ?? true,
+    wrap: (result) => (pending ? asFetching(result) : result),
+  }
+}
+
+/**
+ * Results reported as fetching only because a newer search is waiting out its
+ * debounce. Settling doesn't count them as the loader having fetched.
+ */
+const debounceWaitResults = new WeakSet<AsyncLoaderResult<NodeDef[]>>()
+
+/** Reports a loader result as fetching, for a query still being debounced. */
+function asFetching(
+  result: AsyncLoaderResult<NodeDef[]>,
+): AsyncLoaderResult<NodeDef[]> {
+  const waiting: AsyncLoaderResult<NodeDef[]> = {
+    ...result,
+    fetchStatus: 'fetching',
+    isFetching: true,
+    isLoading: !result.hasData,
+    isInitialLoading: !result.hasData,
+    isRefetching: result.hasData,
+    loadingPhase: result.hasData ? 'background' : 'initial',
+  }
+  debounceWaitResults.add(waiting)
+  return waiting
+}
+
+/**
  * Renders an async loader component and registers its state with the coordinator.
  * This component exists solely to call the Loader component (which contains hooks).
  */
@@ -399,16 +469,7 @@ function AsyncLoaderRenderer({
   const { config, id } = info
   const Loader = config.Loader
 
-  const queryExecution = React.useMemo(() => {
-    if (config.type !== 'query') {
-      return null
-    }
-
-    return resolveQueryExecutionState(config, query)
-  }, [config, query])
-
-  const effectiveQuery = queryExecution?.effectiveQuery ?? query
-  const shouldFetch = queryExecution?.enabled ?? true
+  const loaderQuery = useLoaderQuery(config, query)
 
   // Track if this loader should be active
   const isActive = enabled || shouldLoadEagerly(config)
@@ -418,13 +479,13 @@ function AsyncLoaderRenderer({
   }
 
   return (
-    <Loader query={effectiveQuery} enabled={shouldFetch}>
+    <Loader query={loaderQuery.query} enabled={loaderQuery.enabled}>
       {(result) => (
         <AsyncLoaderResultHandler
           kind="branch"
           id={id}
           config={config}
-          result={result}
+          result={loaderQuery.wrap(result)}
           coordinator={coordinator}
         />
       )}
@@ -476,6 +537,7 @@ function AsyncLoaderResultHandler({
     hasData: boolean
     hasFetched: boolean
     error: Error | null
+    debounceWait: boolean
   } | null>(null)
 
   // Keep refs up to date
@@ -519,7 +581,10 @@ function AsyncLoaderResultHandler({
     const coord = coordinatorRef.current
     if (!coord) return
 
-    // Compare against previous values to avoid unnecessary updates
+    // Compare against previous values to avoid unnecessary updates. A debounce
+    // stand-in and the loader's real result can match field for field, so the
+    // stand-in marker is compared too: the real fetch must replace it.
+    const debounceWait = debounceWaitResults.has(result)
     const prev = prevResultRef.current
     const hasChanged =
       prev === null ||
@@ -537,7 +602,8 @@ function AsyncLoaderResultHandler({
       prev.isPaused !== result.isPaused ||
       prev.hasData !== result.hasData ||
       prev.hasFetched !== result.hasFetched ||
-      prev.error !== result.error
+      prev.error !== result.error ||
+      prev.debounceWait !== debounceWait
 
     if (hasChanged) {
       prevResultRef.current = {
@@ -556,6 +622,7 @@ function AsyncLoaderResultHandler({
         hasData: result.hasData,
         hasFetched: result.hasFetched,
         error: result.error,
+        debounceWait,
       }
       if (kind === 'root') coord.updateRootLoaderResult(result)
       else coord.updateLoaderResult(id, result)
@@ -578,6 +645,7 @@ function AsyncLoaderResultHandler({
     result.hasData,
     result.hasFetched,
     result.error,
+    debounceWaitResults.has(result),
   ])
 
   return null
@@ -599,16 +667,7 @@ function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
   const coordinator = useAsyncMenuCoordinator()
   const { asyncContent } = dataSurfaceCtx
 
-  const queryExecution = React.useMemo(() => {
-    if (asyncContent?.type !== 'query') {
-      return null
-    }
-
-    return resolveQueryExecutionState(asyncContent, query)
-  }, [asyncContent, query])
-
-  const effectiveQuery = queryExecution?.effectiveQuery ?? query
-  const shouldFetch = queryExecution?.enabled ?? true
+  const loaderQuery = useLoaderQuery(asyncContent, query)
 
   if (!asyncContent) {
     return null
@@ -617,12 +676,12 @@ function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
   const Loader = asyncContent.Loader
 
   return (
-    <Loader query={effectiveQuery} enabled={shouldFetch}>
+    <Loader query={loaderQuery.query} enabled={loaderQuery.enabled}>
       {(result) => (
         <AsyncLoaderResultHandler
           kind="root"
           config={asyncContent as AsyncNodesConfig}
-          result={result}
+          result={loaderQuery.wrap(result)}
           coordinator={coordinator}
         />
       )}

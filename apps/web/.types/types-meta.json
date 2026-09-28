@@ -15663,6 +15663,14 @@
             "required": true
           },
           {
+            "name": "debounce",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Milliseconds to wait after the search stops changing before passing it to\nthe loader. While waiting, the loader counts as fetching, so the menu\ndoesn't show \"no results\" or treat the search as finished too early.",
+            "default": "0"
+          },
+          {
             "name": "Loader",
             "type": "ComponentType<LoaderComponentProps>",
             "formattedType": "| ComponentClass<LoaderComponentProps, any>\n  | FunctionComponent<LoaderComponentProps>",
@@ -15726,6 +15734,14 @@
             "name": "type",
             "type": "\"query\"",
             "required": true
+          },
+          {
+            "name": "debounce",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Milliseconds to wait after the search stops changing before passing it to\nthe loader. While waiting, the loader counts as fetching, so the menu\ndoesn't show \"no results\" or treat the search as finished too early.",
+            "default": "0"
           },
           {
             "name": "Loader",
@@ -16098,6 +16114,14 @@
             "required": false,
             "description": "Placeholder nodes shown when query is below minQueryLength.",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "debounce",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Milliseconds to wait after the search stops changing before passing it to\nthe loader. While waiting, the loader counts as fetching, so the menu\ndoesn't show \"no results\" or treat the search as finished too early.",
+            "default": "0"
           }
         ]
       },
@@ -16228,6 +16252,14 @@
             "required": false,
             "description": "Placeholder nodes shown when query is below minQueryLength.",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "debounce",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Milliseconds to wait after the search stops changing before passing it to\nthe loader. While waiting, the loader counts as fetching, so the menu\ndoesn't show \"no results\" or treat the search as finished too early.",
+            "default": "0"
           }
         ]
       },
@@ -16411,6 +16443,14 @@
             "required": false,
             "description": "Placeholder nodes shown when query is below minQueryLength.",
             "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "debounce",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Milliseconds to wait after the search stops changing before passing it to\nthe loader. While waiting, the loader counts as fetching, so the menu\ndoesn't show \"no results\" or treat the search as finished too early.",
+            "default": "0"
           }
         ]
       },

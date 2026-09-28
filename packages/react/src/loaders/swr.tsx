@@ -176,6 +176,13 @@ export interface CreateSWRQueryLoaderProps {
    * Placeholder nodes shown when query is below minQueryLength.
    */
   placeholderNodes?: NodeDef[]
+  /**
+   * Milliseconds to wait after the search stops changing before passing it to
+   * the loader. While waiting, the loader counts as fetching, so the menu
+   * doesn't show "no results" or treat the search as finished too early.
+   * @default 0
+   */
+  debounce?: number
 }
 
 /**
@@ -192,6 +199,7 @@ export function createSWRQueryLoader(
     loadStrategy,
     belowMinBehavior = 'empty',
     placeholderNodes,
+    debounce,
   } = props
 
   const resolvedInitialQueryBehavior: InitialQueryBehavior | false =
@@ -222,6 +230,8 @@ export function createSWRQueryLoader(
     loadStrategy,
     belowMinBehavior,
     placeholderNodes,
+
+    debounce,
   }
 }
 
