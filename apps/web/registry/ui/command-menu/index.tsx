@@ -406,6 +406,9 @@ const CheckboxItemIndicator = forwardRef<
 ))
 CheckboxItemIndicator.displayName = 'CommandMenu.CheckboxItemIndicator'
 
+const CheckboxGroup = Primitive.CheckboxGroup
+const CheckboxGroupValue = Primitive.CheckboxGroupValue
+
 const Group = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof Primitive.Group>
@@ -616,6 +619,8 @@ export const CommandMenu = {
   LinkItem,
   CheckboxItem,
   CheckboxItemIndicator,
+  CheckboxGroup,
+  CheckboxGroupValue,
   Group,
   GroupLabel,
   Empty,
