@@ -13,6 +13,11 @@ export enum PopupMenuCheckboxItemDataAttributes {
    */
   unchecked = 'data-unchecked',
   /**
+   * Present while a range or drag selection previews a checked state for this
+   * item that differs from its committed state.
+   */
+  pending = 'data-pending',
+  /**
    * Present when the item is highlighted (via keyboard or pointer).
    */
   highlighted = 'data-highlighted',

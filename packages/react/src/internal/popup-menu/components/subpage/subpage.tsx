@@ -133,6 +133,9 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
       menuType: parentPopupMenuContext.menuType,
       disabled: parentPopupMenuContext.disabled,
       closeOnOutsidePress: parentPopupMenuContext.closeOnOutsidePress,
+      rangeSelection: parentPopupMenuContext.rangeSelection,
+      dragSelection: parentPopupMenuContext.dragSelection,
+      getAriaSelectionText: parentPopupMenuContext.getAriaSelectionText,
     }),
     [store, parentPopupMenuContext],
   )

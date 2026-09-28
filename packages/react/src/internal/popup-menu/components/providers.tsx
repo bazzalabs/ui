@@ -87,6 +87,22 @@ export interface PopupMenuProvidersProps {
    */
   closeOnOutsidePress?: 'click' | 'pointerdown'
   /**
+   * Whether shift-click and Shift+Enter perform range selection on checkbox items.
+   * @default true
+   */
+  rangeSelection?: boolean
+  /**
+   * Whether pressing a checkbox item and dragging performs drag selection, and
+   * how rows the pointer moves back over are treated.
+   * @default false
+   */
+  dragSelection?: false | 'keep' | 'rubber-band'
+  /**
+   * Text announced to assistive technology after a range or drag selection
+   * changes rows. Defaults to English ("3 items checked").
+   */
+  getAriaSelectionText?: (count: number, checked: boolean) => string
+  /**
    * Component name for generating bazzaui-* slot attributes.
    * E.g., 'dropdown-menu', 'context-menu', 'select', 'combobox'
    */
@@ -124,6 +140,9 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     virtualAnchor,
     menuType = 'dropdown',
     closeOnOutsidePress = 'pointerdown',
+    rangeSelection = true,
+    dragSelection = false,
+    getAriaSelectionText,
     componentName,
     children,
     menuTreeResolver,
@@ -148,6 +167,9 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       virtualAnchor,
       menuType,
       closeOnOutsidePress,
+      rangeSelection,
+      dragSelection,
+      getAriaSelectionText,
     }),
     [
       store,
@@ -161,6 +183,9 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       virtualAnchor,
       menuType,
       closeOnOutsidePress,
+      rangeSelection,
+      dragSelection,
+      getAriaSelectionText,
     ],
   )
 

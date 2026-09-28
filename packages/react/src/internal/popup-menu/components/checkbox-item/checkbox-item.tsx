@@ -12,6 +12,7 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext } from '../../../listbox/index.js'
+import { useCheckboxSelection } from '../../contexts/checkbox-selection-context.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -19,6 +20,7 @@ import {
 import type {
   CheckedChangeEventDetails,
   CheckedChangeReason,
+  SelectionCommitReason,
 } from '../../events.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import { useMaybeCheckboxGroupContext } from '../checkbox-group/checkbox-group-context.js'
@@ -43,6 +45,8 @@ export interface PopupMenuCheckboxItemState extends Record<string, unknown> {
    * Whether the item is currently checked.
    */
   checked: boolean
+  /** Whether a range or drag selection previews a different checked state for this item. */
+  pending: boolean
   first: boolean
   last: boolean
   firstInGroup: boolean
@@ -132,6 +136,8 @@ const stateAttributesMapping = {
     value
       ? { [PopupMenuCheckboxItemDataAttributes.checked]: '' }
       : { [PopupMenuCheckboxItemDataAttributes.unchecked]: '' },
+  pending: (value: unknown) =>
+    value ? { [PopupMenuCheckboxItemDataAttributes.pending]: '' } : null,
   highlighted: (value: unknown): Record<string, string> | null =>
     value ? { [PopupMenuCheckboxItemDataAttributes.highlighted]: '' } : null,
   disabled: (value: unknown): Record<string, string> | null =>
@@ -267,6 +273,57 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const disabled = item.disabled
 
+  const selection = useCheckboxSelection()
+  const preview = selection.useState('getPreview', item.storeId)
+  const displayChecked = preview ?? checked
+  const pending = preview !== undefined && preview !== checked
+
+  const commitOwn = React.useCallback(
+    (nextChecked: boolean, reason: SelectionCommitReason, event?: Event) => {
+      const eventDetails = createChangeEventDetails(reason, event)
+      onCheckedChange?.(nextChecked, eventDetails)
+      if (eventDetails.isCanceled) return false
+      if (!isControlled) setInternalChecked(nextChecked)
+      return true
+    },
+    [isControlled, onCheckedChange],
+  )
+
+  const checkedRef = React.useRef(checked)
+  checkedRef.current = checked
+  const groupValueRef = React.useRef(group?.value ?? [])
+  groupValueRef.current = group?.value ?? []
+  const groupId = group?.groupId
+  const groupSetValue = group?.setValue
+
+  React.useEffect(() => {
+    if (!item.storeId || disabled) return
+    if (groupId !== undefined && value === undefined) return
+    const owner =
+      groupId !== undefined && groupSetValue !== undefined
+        ? {
+            id: groupId,
+            getValue: () => groupValueRef.current,
+            setValue: groupSetValue,
+          }
+        : null
+    return selection.registerRow({
+      id: item.storeId,
+      value: value ?? item.storeId,
+      owner,
+      getChecked: () => checkedRef.current,
+      commit: commitOwn,
+    })
+  }, [
+    selection,
+    item.storeId,
+    value,
+    groupId,
+    groupSetValue,
+    disabled,
+    commitOwn,
+  ])
+
   // Register the select handler that toggles checked state
   // Note: closeOnClick is handled by usePopupMenuItem's onAfterSelect
   React.useEffect(() => {
@@ -274,30 +331,32 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       if (disabled) return
       toggleChecked()
       onSelect?.()
+      selection.setAnchor(item.storeId)
     }
     return item.registerSelect(handleSelect)
-  }, [disabled, toggleChecked, onSelect, item])
+  }, [disabled, toggleChecked, onSelect, item, selection])
 
   const state: PopupMenuCheckboxItem.State = React.useMemo(
     () => ({
       highlighted: item.isHighlighted,
       disabled,
-      checked,
+      checked: displayChecked,
+      pending,
       first: item.positional.first,
       last: item.positional.last,
       firstInGroup: item.positional.firstInGroup,
       lastInGroup: item.positional.lastInGroup,
     }),
-    [item.isHighlighted, disabled, checked, item.positional],
+    [item.isHighlighted, disabled, displayChecked, pending, item.positional],
   )
 
   const checkboxItemContextValue: CheckboxItemContextValue = React.useMemo(
     () => ({
       ...item.contextValue,
-      checked,
+      checked: displayChecked,
       toggle: toggleChecked,
     }),
-    [item.contextValue, checked, toggleChecked],
+    [item.contextValue, displayChecked, toggleChecked],
   )
 
   // Merge user-provided handlers with item handlers
@@ -344,7 +403,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       id: item.id,
       role: 'menuitemcheckbox',
       tabIndex: -1,
-      'aria-checked': checked,
+      'aria-checked': displayChecked,
       'aria-disabled': disabled || undefined,
       className: resolveClassName(className, state),
       style: resolveStyle(style, state),
