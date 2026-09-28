@@ -12,6 +12,7 @@ export type ComponentName =
   | 'select'
   | 'combobox'
   | 'command-menu'
+  | 'suggestion-menu'
 
 export const ComponentNameContext = React.createContext<ComponentName | null>(
   null,
