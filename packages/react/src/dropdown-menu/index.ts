@@ -239,6 +239,8 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 // ============================================================================
 
 export type {
+  // Async types
+  AsyncContentMode,
   AsyncLoaderConfig,
   AsyncLoaderFetchStatus,
   AsyncLoaderLoadingPhase,
@@ -249,7 +251,6 @@ export type {
   AsyncMenuCoordinatorValue,
   AsyncNodesConfig,
   AsyncRenderState,
-  // Async types
   AsyncResultBehavior,
   AsyncState,
   // ID generation types

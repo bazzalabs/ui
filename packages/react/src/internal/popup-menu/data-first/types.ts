@@ -1433,6 +1433,12 @@ export type RadioGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
 export type CheckboxGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
 
 /**
+ * How a surface's `asyncContent` rows combine with its `content`.
+ * See `DataSurfaceProps.asyncContentMode`.
+ */
+export type AsyncContentMode = 'replace' | 'append'
+
+/**
  * Defines how deep-search async results are revealed.
  * - 'stream': show available results immediately and append new async batches as they resolve.
  * - 'block': hide all deep-search rows until every participating async loader resolves.
@@ -1520,9 +1526,19 @@ export interface DataSurfaceProps {
   /**
    * Async content configuration for root-level async loading.
    * When provided, the Loader component will be rendered to fetch async data.
-   * Async content is merged with static content.
+   * How its rows combine with `content` is set by `asyncContentMode`.
    */
   asyncContent?: AsyncLoaderConfig
+
+  /**
+   * How rows from `asyncContent` combine with `content` once they load.
+   * - `'replace'`: the loaded rows replace `content` (`content` shows until then).
+   * - `'append'`: `content` stays first and the loaded rows follow it. A loaded
+   *   row whose Definition Key matches a row already in `content` (including
+   *   rows inside groups and tree items) is dropped, so local rows win.
+   * @default 'replace'
+   */
+  asyncContentMode?: AsyncContentMode
 
   /** Deep search configuration */
   deepSearch?: DeepSearchConfig | boolean

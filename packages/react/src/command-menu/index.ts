@@ -59,6 +59,7 @@ export type {
 // ============================================================================
 
 export type {
+  AsyncContentMode,
   AsyncLoaderConfig,
   AsyncLoaderFetchStatus,
   AsyncLoaderLoadingPhase,

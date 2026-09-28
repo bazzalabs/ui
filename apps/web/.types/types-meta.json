@@ -2190,7 +2190,15 @@
             "type": "AsyncLoaderConfig | undefined",
             "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
-            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nHow its rows combine with `content` is set by `asyncContentMode`."
+          },
+          {
+            "name": "asyncContentMode",
+            "type": "AsyncContentMode | undefined",
+            "formattedType": "\"replace\" | \"append\"",
+            "required": false,
+            "description": "How rows from `asyncContent` combine with `content` once they load.\n- `'replace'`: the loaded rows replace `content` (`content` shows until then).\n- `'append'`: `content` stays first and the loaded rows follow it. A loaded\n  row whose Definition Key matches a row already in `content` (including\n  rows inside groups and tree items) is dropped, so local rows win.",
+            "default": "'replace'"
           },
           {
             "name": "defaultSearch",
@@ -6718,7 +6726,15 @@
             "type": "AsyncLoaderConfig | undefined",
             "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
-            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nHow its rows combine with `content` is set by `asyncContentMode`."
+          },
+          {
+            "name": "asyncContentMode",
+            "type": "AsyncContentMode | undefined",
+            "formattedType": "\"replace\" | \"append\"",
+            "required": false,
+            "description": "How rows from `asyncContent` combine with `content` once they load.\n- `'replace'`: the loaded rows replace `content` (`content` shows until then).\n- `'append'`: `content` stays first and the loaded rows follow it. A loaded\n  row whose Definition Key matches a row already in `content` (including\n  rows inside groups and tree items) is dropped, so local rows win.",
+            "default": "'replace'"
           },
           {
             "name": "deepSearch",
@@ -8356,6 +8372,12 @@
           }
         ]
       },
+      "AsyncContentMode": {
+        "name": "AsyncContentMode",
+        "kind": "typealias",
+        "doc": "How a surface's `asyncContent` rows combine with its `content`.\nSee `DataSurfaceProps.asyncContentMode`.",
+        "definition": "'replace' | 'append'"
+      },
       "AsyncMenuCoordinatorValue": {
         "name": "AsyncMenuCoordinatorValue",
         "kind": "interface",
@@ -8963,6 +8985,15 @@
             "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
             "description": "Async content configuration for root-level async loading"
+          },
+          {
+            "name": "asyncContentMode",
+            "type": "AsyncContentMode",
+            "shortType": "Mode",
+            "formattedType": "\"replace\" | \"append\"",
+            "required": true,
+            "description": "How `asyncContent` rows combine with `content`",
+            "referencePath": "@bazza-ui/react.AsyncContentMode"
           },
           {
             "name": "deepSearchConfig",
@@ -13892,7 +13923,16 @@
             "type": "AsyncLoaderConfig | undefined",
             "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
-            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content."
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nHow its rows combine with `content` is set by `asyncContentMode`."
+          },
+          {
+            "name": "asyncContentMode",
+            "type": "AsyncContentMode | undefined",
+            "formattedType": "\"replace\" | \"append\"",
+            "required": false,
+            "description": "How rows from `asyncContent` combine with `content` once they load.\n- `'replace'`: the loaded rows replace `content` (`content` shows until then).\n- `'append'`: `content` stays first and the loaded rows follow it. A loaded\n  row whose Definition Key matches a row already in `content` (including\n  rows inside groups and tree items) is dropped, so local rows win.",
+            "default": "'replace'",
+            "referencePath": "@bazza-ui/react.AsyncContentMode"
           },
           {
             "name": "deepSearch",
@@ -18160,8 +18200,17 @@
             "type": "AsyncLoaderConfig | undefined",
             "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
             "required": false,
-            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nAsync content is merged with static content.",
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nHow its rows combine with `content` is set by `asyncContentMode`.",
             "referencePath": "@bazza-ui/react.AsyncLoaderConfig"
+          },
+          {
+            "name": "asyncContentMode",
+            "type": "AsyncContentMode | undefined",
+            "formattedType": "\"replace\" | \"append\"",
+            "required": false,
+            "description": "How rows from `asyncContent` combine with `content` once they load.\n- `'replace'`: the loaded rows replace `content` (`content` shows until then).\n- `'append'`: `content` stays first and the loaded rows follow it. A loaded\n  row whose Definition Key matches a row already in `content` (including\n  rows inside groups and tree items) is dropped, so local rows win.",
+            "default": "'replace'",
+            "referencePath": "@bazza-ui/react.AsyncContentMode"
           },
           {
             "name": "defaultSearch",

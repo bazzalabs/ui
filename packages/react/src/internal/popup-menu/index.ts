@@ -301,6 +301,8 @@ export {
 } from './data-first/context.js'
 // Types
 export type {
+  // Async types
+  AsyncContentMode,
   AsyncLoaderConfig,
   AsyncLoaderFetchStatus,
   AsyncLoaderLoadingPhase,
@@ -309,7 +311,6 @@ export type {
   AsyncLoaderStatus,
   AsyncNodesConfig,
   AsyncRenderState,
-  // Async types
   AsyncResultBehavior,
   AsyncState,
   // ID generation types

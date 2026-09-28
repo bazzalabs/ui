@@ -31,6 +31,7 @@ import {
 } from './context.js'
 import { isRowMenuNode } from './type-guards.js'
 import type {
+  AsyncContentMode,
   AsyncLoaderResult,
   AsyncNodesConfig,
   BreadcrumbNode,
@@ -269,6 +270,25 @@ function resolveQueryExecutionState(
     enabled: false,
     isBelowMinLength: true,
   }
+}
+
+/**
+ * Puts display nodes from local content ahead of loaded ones, keeping each
+ * side's order. Returns the input when nothing moves.
+ */
+function localFirst<T extends DisplayNode>(
+  nodes: T[],
+  localDefs: ReadonlySet<NodeDef>,
+): T[] {
+  const local: T[] = []
+  const loaded: T[] = []
+  for (const node of nodes) {
+    if (localDefs.has(node.node.def)) local.push(node)
+    else loaded.push(node)
+  }
+  if (local.length === 0 || loaded.length === 0) return nodes
+  const ordered = [...local, ...loaded]
+  return ordered.every((node, index) => node === nodes[index]) ? nodes : ordered
 }
 
 /**
@@ -522,6 +542,7 @@ function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
 export interface DataListInnerProps extends PopupMenuListProps {
   content: NodeDef[]
   asyncContent: ReturnType<typeof useDataSurfaceContext>['asyncContent']
+  asyncContentMode?: AsyncContentMode
   deepSearchConfig: ReturnType<typeof useDataSurfaceContext>['deepSearchConfig']
   includeInDeepSearch: ReturnType<
     typeof useDataSurfaceContext
@@ -539,6 +560,7 @@ export const DataListInner = React.forwardRef<
     children,
     content,
     asyncContent,
+    asyncContentMode = 'replace',
     deepSearchConfig,
     includeInDeepSearch,
     search,
@@ -575,10 +597,12 @@ export const DataListInner = React.forwardRef<
     nodes: resolvedNodes,
     graftVersion,
     asyncSubmenus,
+    localDefs,
   } = useResolution({
     resolver,
     content,
     asyncContent,
+    asyncContentMode,
     coordinator,
     graftParent,
     isSubpageSurface,
@@ -684,6 +708,22 @@ export const DataListInner = React.forwardRef<
       streamOrderRef.current = null
     }
 
+    // Append mode: local rows stay ahead of loaded rows even when scoring
+    // would interleave them; each side keeps its own order.
+    if (localDefs) {
+      displayNodesToRender = localFirst(
+        displayNodesToRender.map((displayNode) =>
+          'items' in displayNode
+            ? {
+                ...displayNode,
+                items: localFirst(displayNode.items, localDefs),
+              }
+            : displayNode,
+        ),
+        localDefs,
+      )
+    }
+
     return {
       displayNodes: displayNodesToRender,
       isDeepSearching: result.isDeepSearching,
@@ -699,6 +739,7 @@ export const DataListInner = React.forwardRef<
     coordinator,
     coordinator?.isAnyLoading,
     coordinator?.loaders,
+    localDefs,
   ])
 
   // Sync orderedItems with the store when display nodes change

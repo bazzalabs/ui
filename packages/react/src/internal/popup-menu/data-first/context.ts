@@ -3,6 +3,7 @@
 import * as React from 'react'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
+  AsyncContentMode,
   AsyncLoaderConfig,
   DataListChildrenState,
   DeepSearchConfig,
@@ -21,6 +22,9 @@ export interface DataSurfaceContextValue {
 
   /** Async content configuration for root-level async loading */
   asyncContent?: AsyncLoaderConfig
+
+  /** How `asyncContent` rows combine with `content` */
+  asyncContentMode: AsyncContentMode
 
   /** Deep search configuration */
   deepSearchConfig: DeepSearchConfig
