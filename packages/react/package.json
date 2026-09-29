@@ -66,6 +66,7 @@
     "type-check": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run",
+    "test:jsdom": "vitest run --project jsdom",
     "test:watch": "vitest --watch"
   },
   "peerDependencies": {
@@ -86,7 +87,9 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/browser-playwright": "^4.0.17",
     "jsdom": "^27.4.0",
+    "playwright": "^1.63.0",
     "react-hook-form": "^7.71.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
