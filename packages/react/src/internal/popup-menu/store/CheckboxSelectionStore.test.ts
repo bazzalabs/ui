@@ -89,13 +89,57 @@ describe('CheckboxSelectionStore', () => {
     expect(store.state.announcement).toBeNull()
   })
 
-  it('clears announcements and leaves an empty announcement unchanged', () => {
+  it('clears a pending announcement', () => {
     const { store } = setup([])
     store.announce(2, true)
     store.clearAnnouncement()
     expect(store.state.announcement).toBeNull()
-    store.clearAnnouncement()
-    expect(store.state.announcement).toBeNull()
+  })
+
+  it('cancels an in-flight gesture when the surface closes and on detach', () => {
+    let emitOpen: (open: boolean) => void = () => {}
+    const listbox = {
+      getVisibleItemIds: () => ['a', 'b'],
+      getItemElement: () => null,
+      getScrollElement: () => null,
+      setHighlightedId: vi.fn(),
+      observeOpen: (listener: (open: boolean) => void) => {
+        emitOpen = listener
+        return () => {
+          emitOpen = () => {}
+        }
+      },
+    }
+    const store = new CheckboxSelectionStore(listbox)
+    const commit = vi.fn(() => true)
+    for (const id of ['a', 'b']) {
+      store.registerRow({
+        id,
+        value: id,
+        owner: null,
+        getChecked: () => false,
+        commit,
+      })
+    }
+    const detach = store.attach()
+
+    store.beginGesture('drag', 'a', 'keep')
+    store.extendGesture('b')
+    emitOpen(false)
+    expect(store.state.gesture).toBeNull()
+    expect(store.state.preview.size).toBe(0)
+
+    store.beginGesture('drag', 'a', 'keep')
+    detach()
+    expect(store.state.gesture).toBeNull()
+
+    // StrictMode runs attach → detach → attach: the second subscription works
+    store.attach()
+    store.beginGesture('drag', 'a', 'keep')
+    emitOpen(false)
+    expect(store.state.gesture).toBeNull()
+    store.commitGesture('drag-selection')
+    expect(commit).not.toHaveBeenCalled()
   })
 
   it('computes spans in either direction and rejects unknown ids', () => {

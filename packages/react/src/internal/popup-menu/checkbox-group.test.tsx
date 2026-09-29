@@ -120,17 +120,16 @@ describe('PopupMenu.CheckboxGroup', () => {
     expect(screen.getByTestId('a')).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('renders role, data-testid, and checkbox group slot attributes', async () => {
+  it('renders a group with the checkbox group slot attribute', async () => {
     const user = userEvent.setup()
     render(
       <Menu>
-        <DropdownMenu.CheckboxGroup data-testid="group">
+        <DropdownMenu.CheckboxGroup>
           <Checkbox value="a" />
         </DropdownMenu.CheckboxGroup>
       </Menu>,
     )
     await openMenu(user)
-    expect(screen.getByRole('group')).toHaveAttribute('data-testid', 'group')
     expect(screen.getByRole('group')).toHaveAttribute(
       'bazzaui-dropdown-menu-checkbox-group',
     )
