@@ -39,3 +39,9 @@ export { SuggestionMenuPopup as Popup } from './popup/popup.js'
 export { SuggestionMenuPositioner as Positioner } from './positioner/positioner.js'
 export { SuggestionMenuRoot as Root } from './root/root.js'
 export { SuggestionMenuSurface as Surface } from './surface/surface.js'
+export { attachTextTrigger } from './text-trigger/attach-text-trigger.js'
+export type {
+  SuggestionMenuTextTrigger as TextTrigger,
+  SuggestionMenuTextTriggerMatch as TextTriggerMatch,
+} from './text-trigger/match.js'
+export { useTextTrigger } from './text-trigger/use-text-trigger.js'

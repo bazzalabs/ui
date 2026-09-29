@@ -55,6 +55,9 @@ export class SuggestionMenuHandle<Payload = unknown> {
   }
 
   #listeners = new Set<() => void>()
+  #openChangeListeners = new Set<
+    (open: boolean, reason: SuggestionMenuOpenChangeReason) => void
+  >()
   #connection: SuggestionMenuConnection | null = null
   // An open/close requested before any Root was connected.
   #pendingOpen: boolean | null = null
@@ -62,6 +65,19 @@ export class SuggestionMenuHandle<Payload = unknown> {
   /** The attached host input, if any. */
   get host(): Element | null {
     return this.#state.host
+  }
+
+  /** The query from the last `update()`. */
+  get query(): string {
+    return this.#state.query
+  }
+
+  /**
+   * The payload from the last `update()`, e.g. the text-field match to
+   * replace when a row is chosen.
+   */
+  get payload(): Payload | undefined {
+    return this.#state.payload
   }
 
   /** Whether the menu is open. `false` while no Root is connected. */
@@ -144,6 +160,24 @@ export class SuggestionMenuHandle<Payload = unknown> {
    */
   handleKeyDown(event: KeyboardEvent | React.KeyboardEvent): boolean {
     return this.#connection?.handleKeyDown(event) ?? false
+  }
+
+  /**
+   * @internal Called when the menu actually opens or closes (not for requests
+   * that were cancelled or refused), with the reason. Returns an unsubscribe.
+   */
+  subscribeOpenChange = (
+    listener: (open: boolean, reason: SuggestionMenuOpenChangeReason) => void,
+  ): (() => void) => {
+    this.#openChangeListeners.add(listener)
+    return () => {
+      this.#openChangeListeners.delete(listener)
+    }
+  }
+
+  /** @internal The Root reports a change that happened. */
+  notifyOpenChange(open: boolean, reason: SuggestionMenuOpenChangeReason) {
+    for (const listener of this.#openChangeListeners) listener(open, reason)
   }
 
   /** @internal Connects a mounted Root. Returns a disconnect function. */

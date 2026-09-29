@@ -193,6 +193,11 @@ export function SuggestionMenuRoot<Payload = unknown>(
 
   const storeRef = React.useRef<ListboxStore | null>(null)
   const reportedOpenRef = React.useRef<boolean | null>(null)
+  const pendingChangeRef = React.useRef<{
+    open: boolean
+    reason: SuggestionMenuOpenChangeReason
+    thisTask: boolean
+  } | null>(null)
   const {
     store,
     focusOwnerStore,
@@ -212,6 +217,26 @@ export function SuggestionMenuRoot<Payload = unknown>(
       nextOpen: boolean,
       details: SuggestionMenuOpenChangeEventDetails,
     ) => {
+      // The reason of the request that changes the state, for the handle:
+      // the first one in this task, or a later task's (a controlled parent
+      // may have refused an earlier one).
+      const pending = pendingChangeRef.current
+      if (
+        storeRef.current?.select('open') !== nextOpen &&
+        (!pending || pending.open !== nextOpen || !pending.thisTask)
+      ) {
+        const change = {
+          open: nextOpen,
+          reason: details.reason,
+          thisTask: true,
+        }
+        pendingChangeRef.current = change
+        queueMicrotask(() => {
+          change.thisTask = false
+        })
+        // A controlled parent may commit the change in a later task; to
+        // refuse it, it cancels the details, which drops the reason.
+      }
       const current =
         reportedOpenRef.current ?? storeRef.current?.select('open')
       if (current === nextOpen) return
@@ -224,7 +249,10 @@ export function SuggestionMenuRoot<Payload = unknown>(
       })
       onOpenChange?.(nextOpen, details)
       // A cancelled request didn't happen, so the next one is reported too.
-      if (details.isCanceled) reportedOpenRef.current = previous
+      if (details.isCanceled) {
+        reportedOpenRef.current = previous
+        pendingChangeRef.current = null
+      }
     }) as unknown as UsePopupMenuRootParams['onOpenChange'],
     defaultOpen,
     virtualized,
@@ -241,6 +269,19 @@ export function SuggestionMenuRoot<Payload = unknown>(
   storeRef.current = store
   store.useControlledProp('openProp', openProp)
   const open = store.useState('open')
+  // Tell the handle once the change has happened (a controlled parent may
+  // refuse it), e.g. so a text-field binding knows how the menu closed.
+  const lastNotifiedOpenRef = React.useRef(open)
+  React.useLayoutEffect(() => {
+    if (lastNotifiedOpenRef.current === open) return
+    lastNotifiedOpenRef.current = open
+    const pending = pendingChangeRef.current
+    pendingChangeRef.current = null
+    handle.notifyOpenChange(
+      open,
+      pending?.open === open ? pending.reason : REASONS.none,
+    )
+  }, [open, handle])
 
   const handleOpenChangeRef = React.useRef(handleOpenChange)
   handleOpenChangeRef.current = handleOpenChange
