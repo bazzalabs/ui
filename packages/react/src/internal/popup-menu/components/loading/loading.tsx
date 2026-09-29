@@ -72,10 +72,18 @@ export const PopupMenuLoading = React.forwardRef<
   const slotAttr = getSlotAttribute(componentName, 'loading')
 
   const asyncCoordinator = useMaybeAsyncMenuCoordinator()
-  const isLoading = asyncCoordinator
-    ? asyncCoordinator.isRootLoading ||
-      (asyncCoordinator.isAnyLoading && asyncCoordinator.searchQuery.length > 0)
-    : false
+  // In `asyncContentReveal: 'block'` mode the last settled list stays up while
+  // a new search loads; `Loading` doesn't show over it.
+  const holdsSettledList =
+    asyncCoordinator?.rootReveal.block === true &&
+    asyncCoordinator.rootReveal.settledOnce &&
+    !asyncCoordinator.rootReveal.settled
+  const isLoading =
+    asyncCoordinator && !holdsSettledList
+      ? asyncCoordinator.isRootLoading ||
+        (asyncCoordinator.isAnyLoading &&
+          asyncCoordinator.searchQuery.length > 0)
+      : false
   const shouldRender = forceMount || isLoading
   const isFirstRow = store.useState('isFirstRow', rowId)
   const isLastRow = store.useState('isLastRow', rowId)

@@ -58,9 +58,13 @@ export const PopupMenuEmpty = React.forwardRef<
   const slotAttr = getSlotAttribute(componentName, 'empty')
 
   const asyncCoordinator = useMaybeAsyncMenuCoordinator()
+  // "No results" also waits until the root loader has settled for the current
+  // search (e.g. a refetch that keeps the previous rows is not an answer yet).
   const isLoading = asyncCoordinator
     ? asyncCoordinator.isRootLoading ||
-      (asyncCoordinator.isAnyLoading && asyncCoordinator.searchQuery.length > 0)
+      (asyncCoordinator.isAnyLoading &&
+        asyncCoordinator.searchQuery.length > 0) ||
+      !asyncCoordinator.rootReveal.settled
     : false
   const hasNoResults = store.useState('hasSearchWithNoResults')
   const shouldRender = !isLoading && hasNoResults
