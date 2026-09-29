@@ -6,6 +6,7 @@ import {
   resolveClassName,
   resolveStyle,
 } from '../../utils/resolve-state-props.js'
+import { isValueEmpty } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { ComboboxClearDataAttributes } from './clear.data-attrs.js'
@@ -57,7 +58,7 @@ export const ComboboxClear = React.forwardRef<
 
   const hasValue = comboboxContext.multiple
     ? comboboxContext.values.length > 0
-    : comboboxContext.value !== ''
+    : !isValueEmpty(comboboxContext.value)
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
