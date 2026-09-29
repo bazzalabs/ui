@@ -171,8 +171,9 @@ describe('<Combobox.Root />', () => {
       const user = userEvent.setup()
       render(<BasicCombobox />)
 
-      const input = screen.getByTestId('input')
-      await user.click(input)
+      // Tab in rather than click: a click opens the popup on its own.
+      await user.tab()
+      expect(screen.getByTestId('input')).toHaveFocus()
 
       await waitFor(() => {
         expect(screen.getByTestId('surface')).toBeInTheDocument()
@@ -274,10 +275,11 @@ describe('<Combobox.Root />', () => {
       })
 
       const input = screen.getByTestId('input')
-      // Navigate to first item and select
+      // The first item is auto-highlighted; move to the second and select it
       await user.type(input, '{ArrowDown}{Enter}')
 
-      expect(onValueChange).toHaveBeenCalled()
+      expect(onValueChange).toHaveBeenCalledOnce()
+      expect(onValueChange.mock.calls[0]?.[0]).toBe('banana')
     })
 
     it('closes after selection by default (single-select)', async () => {
@@ -418,10 +420,15 @@ describe('<Combobox.Root />', () => {
 
       const input = screen.getByTestId('input')
 
-      // First item is auto-highlighted, navigate down then up
-      await user.type(input, '{ArrowDown}{ArrowUp}')
+      // First item is auto-highlighted; move down, then back up
+      await user.type(input, '{ArrowDown}')
+      await waitFor(() => {
+        expect(screen.getByTestId('item-banana')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
 
-      // First item should be highlighted again
+      await user.type(input, '{ArrowUp}')
       await waitFor(() => {
         expect(screen.getByTestId('item-apple')).toHaveAttribute(
           'data-highlighted',

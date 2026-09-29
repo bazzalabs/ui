@@ -191,10 +191,12 @@ describe('Select + React Hook Form', () => {
 
     await user.click(screen.getByTestId('item-cherry'))
 
-    // Hidden input should be updated
+    // Hidden input should be updated and submitted with the form
     await waitFor(() => {
       expect(hiddenInput).toHaveValue('cherry')
     })
+    const form = screen.getByTestId('form') as HTMLFormElement
+    expect(new FormData(form).get('fruit')).toBe('cherry')
   })
 
   it('works with default values', async () => {

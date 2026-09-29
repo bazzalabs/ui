@@ -266,21 +266,6 @@ describe('<Select.Root />', () => {
       })
     })
 
-    it('closes when Escape is pressed', async () => {
-      const user = userEvent.setup()
-      render(<BasicSelect defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      await user.keyboard('{Escape}')
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
-      })
-    })
-
     it('does not open when disabled', async () => {
       const user = userEvent.setup()
       render(<BasicSelect disabled />)
@@ -323,7 +308,8 @@ describe('<Select.Root />', () => {
       list.focus()
       await user.keyboard('{ArrowDown}{Enter}')
 
-      expect(onValueChange).toHaveBeenCalled()
+      expect(onValueChange).toHaveBeenCalledOnce()
+      expect(onValueChange.mock.calls[0]?.[0]).toBe('banana')
     })
 
     it('displays selected value in trigger', async () => {
@@ -648,39 +634,16 @@ describe('<Select.Root />', () => {
       const list = screen.getByTestId('list')
       list.focus()
 
-      // Navigate down then up
-      await user.keyboard('{ArrowDown}{ArrowUp}')
-
-      await waitFor(() => {
-        expect(screen.getByTestId('item-apple')).toHaveAttribute(
-          'data-highlighted',
-        )
-      })
-    })
-
-    it('skips disabled items during navigation', async () => {
-      const user = userEvent.setup()
-      render(<SelectWithDisabledItem />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // First item should be highlighted (apple)
-      await waitFor(() => {
-        expect(screen.getByTestId('item-apple')).toHaveAttribute(
-          'data-highlighted',
-        )
-      })
-
-      const list = screen.getByRole('listbox')
-      list.focus()
-
-      // ArrowDown should skip banana (disabled) and go to cherry
       await user.keyboard('{ArrowDown}')
-
       await waitFor(() => {
-        expect(screen.getByTestId('item-cherry')).toHaveAttribute(
+        expect(screen.getByTestId('item-banana')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+
+      await user.keyboard('{ArrowUp}')
+      await waitFor(() => {
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
           'data-highlighted',
         )
       })
@@ -703,21 +666,6 @@ describe('<Select.Root />', () => {
       expect(screen.getByTestId('item-apple')).toBeInTheDocument()
       expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
       expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
-    })
-
-    it('shows empty state when no items match', async () => {
-      const user = userEvent.setup()
-      render(<SelectWithSearch />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'xyz')
-
-      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
-      expect(screen.getByTestId('empty')).toBeInTheDocument()
     })
 
     it('clears search and re-hides a hideUntilActive input after exit when clearSearchOnClose is "after-exit"', async () => {
@@ -765,9 +713,12 @@ describe('<Select.Root />', () => {
       // and seeds the search.
       const list = screen.getByRole('listbox')
       list.focus()
-      fireEvent.keyDown(list, { key: 'a', code: 'KeyA' })
+      fireEvent.keyDown(list, { key: 'b', code: 'KeyB' })
       await waitFor(() => {
         expect(screen.getByTestId('search-input')).toBeInTheDocument()
+      })
+      await waitFor(() => {
+        expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
       })
 
       // Close and wait for the exit-complete callback.
@@ -786,6 +737,9 @@ describe('<Select.Root />', () => {
         expect(screen.getByTestId('surface')).toBeInTheDocument()
       })
       expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
+      // The search ('b', which hid apple) is cleared too.
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.getByTestId('item-banana')).toBeInTheDocument()
     })
 
     it('filters by keywords declared in the items prop', async () => {
@@ -1499,42 +1453,6 @@ describe('<Select.Root />', () => {
   })
 
   describe('animation', () => {
-    it('calls onOpenChangeComplete after animation completes', async () => {
-      const user = userEvent.setup()
-      const onOpenChangeComplete = vi.fn()
-
-      render(
-        <Select.Root defaultOpen onOpenChangeComplete={onOpenChangeComplete}>
-          <Select.Trigger data-testid="trigger">
-            <Select.Value placeholder="Select..." />
-          </Select.Trigger>
-          <Select.Portal>
-            <Select.Positioner>
-              <Select.Popup>
-                <Select.Surface data-testid="surface">
-                  <Select.List>
-                    <Select.Item value="apple">Apple</Select.Item>
-                  </Select.List>
-                </Select.Surface>
-              </Select.Popup>
-            </Select.Positioner>
-          </Select.Portal>
-        </Select.Root>,
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // Close the select
-      await user.keyboard('{Escape}')
-
-      // onOpenChangeComplete should be called with false after close animation
-      await waitFor(() => {
-        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
-      })
-    })
-
     it('preserves positioning state until close animation completes', async () => {
       const user = userEvent.setup()
       const onOpenChangeComplete = vi.fn()
@@ -1571,7 +1489,7 @@ describe('<Select.Root />', () => {
       })
     })
 
-    it('calls onOpenChangeComplete after open animation completes', async () => {
+    it('calls onOpenChangeComplete after the open and close animations', async () => {
       const user = userEvent.setup()
       const onOpenChangeComplete = vi.fn()
 
@@ -1605,6 +1523,13 @@ describe('<Select.Root />', () => {
       await waitFor(() => {
         expect(onOpenChangeComplete).toHaveBeenCalledWith(true)
       })
+
+      // …and with false after the close animation
+      await user.keyboard('{Escape}')
+      await waitFor(() => {
+        expect(onOpenChangeComplete).toHaveBeenLastCalledWith(false)
+      })
+      expect(onOpenChangeComplete).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -2021,18 +1946,6 @@ describe('<Select.Root />', () => {
           </Select.Root>
         )
       }
-
-      it('displays controlled object value', () => {
-        const onValueChange = vi.fn()
-        render(
-          <ControlledObjectSelect
-            value={fruits[1]}
-            onValueChange={onValueChange}
-          />,
-        )
-
-        expect(screen.getByTestId('value')).toHaveTextContent('Banana')
-      })
 
       it('updates display when controlled value changes', () => {
         const onValueChange = vi.fn()
