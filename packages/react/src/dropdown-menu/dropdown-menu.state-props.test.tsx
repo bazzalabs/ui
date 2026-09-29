@@ -79,6 +79,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.LinkItem>
       </OpenMenu>
     ),
+    state: { disabled: false, first: true, last: true },
   },
   {
     name: 'DropdownMenu.CheckboxItem',
@@ -112,6 +113,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.CheckboxGroup>
       </OpenMenu>
     ),
+    state: { disabled: false, firstGroup: true },
   },
   {
     name: 'DropdownMenu.RadioGroup',
@@ -122,6 +124,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.RadioGroup>
       </OpenMenu>
     ),
+    state: { disabled: false, firstGroup: true },
   },
   {
     name: 'DropdownMenu.RadioItem',
@@ -168,6 +171,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.Group>
       </OpenMenu>
     ),
+    state: { firstGroup: true },
   },
   {
     name: 'DropdownMenu.Separator',
@@ -178,6 +182,7 @@ describeStateProps('DropdownMenu', [
         <DropdownMenu.Item>Other</DropdownMenu.Item>
       </OpenMenu>
     ),
+    state: { first: false, last: false },
   },
   {
     name: 'DropdownMenu.Icon',
@@ -189,6 +194,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.Item>
       </OpenMenu>
     ),
+    state: { open: true },
   },
   {
     name: 'DropdownMenu.Shortcut',
@@ -200,6 +206,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.Item>
       </OpenMenu>
     ),
+    state: { highlighted: true },
   },
   {
     name: 'DropdownMenu.Empty',
@@ -225,12 +232,14 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.Loading>
       </OpenMenu>
     ),
+    state: { first: true, last: true },
   },
   {
     name: 'DropdownMenu.Input',
     render: (p) => (
       <OpenMenu surface={<DropdownMenu.Input {...p} />}>{item}</OpenMenu>
     ),
+    state: { active: false },
   },
   {
     name: 'DropdownMenu.Header',
@@ -273,6 +282,7 @@ describeStateProps('DropdownMenu', [
         {item}
       </OpenMenu>
     ),
+    state: { direction: 'down' },
   },
   {
     name: 'DropdownMenu.ScrollUpArrow',
@@ -281,6 +291,7 @@ describeStateProps('DropdownMenu', [
         {item}
       </OpenMenu>
     ),
+    state: { direction: 'up' },
   },
   {
     name: 'DropdownMenu.Tree',
@@ -292,6 +303,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.Tree>
       </OpenMenu>
     ),
+    state: { depth: 1 },
   },
   {
     name: 'DropdownMenu.TreeItem',
@@ -302,6 +314,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.TreeItem>
       </OpenMenu>
     ),
+    state: { disabled: false, first: true },
   },
   {
     name: 'DropdownMenu.TreeConnector',
@@ -338,6 +351,7 @@ describeStateProps('DropdownMenu', [
         </DropdownMenu.Submenu>
       </OpenMenu>
     ),
+    state: { popupOpen: false },
   },
   {
     name: 'DropdownMenu.SubpageTrigger',
@@ -383,6 +397,10 @@ describeStateProps('DropdownMenu', [
     interact: async () => {
       fireEvent.click(await screen.findByTestId('open-subpage'))
     },
+    state:
+      part === 'SubpageBack'
+        ? { canGoBack: true, disabled: false }
+        : { subpageBackItem: true, disabled: false },
   })),
 ])
 

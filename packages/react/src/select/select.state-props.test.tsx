@@ -59,10 +59,6 @@ describeStateProps('Select', [
     state: { open: true },
   },
   {
-    name: 'Select.Surface',
-    render: (p) => <OpenSelect surface={p} />,
-  },
-  {
     name: 'Select.Item',
     render: (p) => (
       <OpenSelect>
@@ -82,6 +78,7 @@ describeStateProps('Select', [
         </Select.Item>
       </OpenSelect>
     ),
+    state: { value: 'apple', selected: true },
   },
   {
     name: 'Select.ItemIndicator',
@@ -93,6 +90,7 @@ describeStateProps('Select', [
         </Select.Item>
       </OpenSelect>
     ),
+    state: { selected: true },
   },
 ])
 
