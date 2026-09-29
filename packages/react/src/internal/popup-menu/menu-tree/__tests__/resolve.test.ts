@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeDef } from '../../data-first/types.js'
-import { computeDefPath } from '../../data-first/utils.js'
 import { defaultGetResolvedId, resolveNodeDefs } from '../resolve.js'
 
 const item = (value: string, id?: string): NodeDef =>
@@ -186,17 +185,14 @@ describe('resolveNodeDefs', () => {
     })
   })
 
-  it('matches computeDefPath for nested contributing ancestors', () => {
+  it('builds the definition path from nested contributing ancestors', () => {
     const root = submenu('Status', [
       submenu('Open Items', [item('Backlog')], 'open-items-id'),
     ])
     const leaf = resolveNodeDefs([root], null, [], defaultGetResolvedId)[0]
       .children[0].children[0]
-    const ancestorDefinitionKeys = ['status', 'open-items-id']
 
-    expect(leaf.definitionPath).toEqual(
-      computeDefPath(ancestorDefinitionKeys, [], undefined, 'Backlog'),
-    )
+    expect(leaf.definitionPath).toEqual(['status', 'open-items-id', 'backlog'])
   })
 
   it('encodes every UTF-16 code unit in surface IDs', () => {

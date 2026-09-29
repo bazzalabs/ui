@@ -7,12 +7,7 @@ import type {
   NodeDef,
   TreeItemDef,
 } from '../types.js'
-import {
-  computeDefPath,
-  filterNodes,
-  getBrowseNodesFlatten,
-  getBrowseNodesPreserve,
-} from '../utils.js'
+import { filterNodes, getBrowseNodesPreserve } from '../utils.js'
 
 /** Resolves defs into Menu Nodes the way a root list does. */
 function resolve(nodes: NodeDef[]) {
@@ -20,33 +15,6 @@ function resolve(nodes: NodeDef[]) {
   resolver.setContent(nodes)
   return resolver.rootNodes
 }
-
-describe('computeDefPath', () => {
-  it('keeps only submenu/subpage breadcrumbs and retains an empty leaf key', () => {
-    expect(
-      computeDefPath(
-        ['root'],
-        [
-          {
-            node: tree('Inline', []) as TreeItemDef,
-            value: 'Inline',
-          },
-          {
-            node: {
-              kind: 'submenu',
-              value: 'Submenu',
-              nodes: [],
-              render: () => null,
-            },
-            value: 'Submenu',
-          },
-        ],
-        '',
-        'Leaf',
-      ),
-    ).toEqual(['root', 'submenu', ''])
-  })
-})
 
 const item = (value: string): ItemDef => ({
   kind: 'item',
@@ -273,21 +241,6 @@ describe('tree nodes', () => {
 
     expect(browseRows[0].context.tree?.isLastChild).toBe(false)
     expect(browseRows[1].context.tree?.ancestorsLast).toEqual([false])
-    expect(browseRows[2].context.tree?.isLastChild).toBe(true)
-  })
-
-  it('tracks lastness for id-less tree roots in flatten mode', () => {
-    const ungroupedNodes = [
-      tree('First root', [item('First child')], { id: undefined }),
-      tree('Second root', [item('Second child')], { id: undefined }),
-    ]
-    const browseRows = getBrowseNodesFlatten(
-      resolve(ungroupedNodes),
-      null,
-    ) as DisplayRowNode[]
-
-    expect(browseRows[0].context.tree?.isLastChild).toBe(false)
-    expect(browseRows[1].context.tree?.ancestorsLast.at(-1)).toBe(false)
     expect(browseRows[2].context.tree?.isLastChild).toBe(true)
   })
 

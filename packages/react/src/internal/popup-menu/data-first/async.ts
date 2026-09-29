@@ -124,16 +124,6 @@ function collectAsyncSubmenusRaw(
 }
 
 /**
- * Checks if a submenu should appear in deep search results.
- * `trigger-only` still includes the submenu trigger row.
- */
-export function shouldIncludeInDeepSearch(
-  includeInDeepSearch: IncludeInDeepSearch | undefined,
-): boolean {
-  return includeInDeepSearch !== false
-}
-
-/**
  * Resolves a branch's deep search inclusion mode. An explicit
  * `includeInDeepSearch` on the def always wins; otherwise a disabled branch
  * under `disabledBranchBehavior: 'exclude'` is treated as `'trigger-only'`,
@@ -148,16 +138,6 @@ export function resolveBranchIncludeMode(
   if (def.disabled && disabledBranchBehavior === 'exclude')
     return 'trigger-only'
   return surfaceDefault
-}
-
-/**
- * Checks if submenu descendants (rows inside submenu) should be included.
- * `trigger-only` excludes descendants.
- */
-export function shouldIncludeSubmenuRowsInDeepSearch(
-  includeInDeepSearch: IncludeInDeepSearch | undefined,
-): boolean {
-  return includeInDeepSearch === true
 }
 
 /**
