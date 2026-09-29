@@ -42,3 +42,6 @@ declare module '*.svg' {
   const content: import('next/image').StaticImageData
   export default content
 }
+
+// CSS-only package export, imported for its side effect
+declare module 'rehype-callouts/theme/github'

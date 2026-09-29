@@ -30,6 +30,8 @@
     /* AND if you're building for a library in a monorepo: */
     "declarationMap": true,
 
-    "lib": ["es2022", "dom", "dom.iterable"]
+    "lib": ["es2022", "dom", "dom.iterable"],
+    // Dev-only checks read `process.env.NODE_ENV`.
+    "types": ["node"]
   }
 }

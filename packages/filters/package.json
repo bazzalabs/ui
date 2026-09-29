@@ -48,7 +48,7 @@
     "remeda": "^2.30.0",
     "tinybench": "^4.0.1",
     "tsdown": "0.23.0",
-    "typescript": "^5",
+    "typescript": "7.0.2",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
   },
