@@ -67,8 +67,10 @@ function commandScoreInner(
   abbreviationIndex: number,
   memoizedResults: MemoizedResults,
 ): number {
-  if (abbreviationIndex === abbreviation.length) {
-    if (stringIndex === string.length) {
+  // Compare against the folded lengths: folding diacritics can shorten a
+  // string (e.g. decomposed input), and the matcher walks the folded strings.
+  if (abbreviationIndex === lowerAbbreviation.length) {
+    if (stringIndex === lowerString.length) {
       return SCORE_CONTINUE_MATCH
     }
     return PENALTY_NOT_COMPLETE

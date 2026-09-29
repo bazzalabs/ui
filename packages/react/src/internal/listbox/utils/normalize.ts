@@ -15,13 +15,14 @@ export function normalizeValue(value: string | undefined | null): string {
  *
  * Uses Unicode NFD decomposition and strips combining marks. Characters that
  * do not decompose into a base letter plus a combining mark (e.g. "ø", "ł")
- * are intentionally left unchanged.
+ * are intentionally left unchanged. Printable ASCII characters that Unicode lists
+ * as diacritics (`^` and `` ` ``) are kept, so they match literally.
  *
  * @param value - The value to fold
  * @returns The value with combining diacritical marks removed
  */
 export function deburr(value: string): string {
-  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '')
+  return value.normalize('NFD').replace(/(?![ -~])\p{Diacritic}/gu, '')
 }
 
 /**
