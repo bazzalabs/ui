@@ -199,3 +199,5 @@ When a rule is wrong for one line, disable it for that line and say why:
 `bazza/disable-needs-reason` rejects an exception with no rule or no reason, a `bazza/*` exception wider than one line, and `eslint-disable` comments (this repo has no ESLint, and oxlint ignores them).
 
 The `Allowlists` entries in `.oxlintrc.json` list files that broke a rule when it was added. Such a file is exempt from that rule until someone fixes it and deletes its line. Don't add files to an allowlist. New code follows the rules or uses a reasoned `oxlint-disable-next-line`.
+
+`bun run lint:exceptions` lists every allowlisted file by rule and every inline exception with its reason. CI runs it and adds the list to the job summary. It fails only on a malformed exception, which catches a bare `/* oxlint-disable */` that has silenced `bazza/disable-needs-reason` itself.

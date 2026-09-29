@@ -44,6 +44,12 @@ jobs:
       - name: Lint parts in packages/react (oxlint)
         run: bun run lint:oxlint
 
+      # Lists every allowlisted file and inline exception (also in the job
+      # summary). Fails only on a malformed exception comment.
+      - name: Report lint exceptions
+        if: ${{ !cancelled() }}
+        run: bun run lint:exceptions
+
   type-check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
