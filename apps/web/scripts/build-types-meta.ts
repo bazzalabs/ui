@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import prettier from 'prettier'
-import ts from 'typescript'
+import ts from 'typescript5'
 import type { TypeExpansionConfig } from './type-extraction.config'
 import { defaultConfig, shouldExpandType } from './type-extraction.config'
 
