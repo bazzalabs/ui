@@ -42,6 +42,38 @@
         ]
       }
     },
+    {
+      // Part-authoring rules: shipped source only. Tests define throwaway
+      // components and contexts that don't need to follow them.
+      "files": ["packages/react/src/**/*.{ts,tsx}"],
+      "rules": {
+        "bazza/forward-ref-named": "error",
+        "bazza/part-namespace": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/react/src/**/*.tsx",
+        "packages/react/src/**/*-context.ts"
+      ],
+      "rules": { "bazza/use-client": "error" }
+    },
+    {
+      "files": [
+        "packages/react/src/**/*.data-attrs.ts",
+        "packages/react/src/**/*.data-attributes.ts",
+        "packages/react/src/**/*.css-vars.ts"
+      ],
+      "rules": { "bazza/data-attrs-enum": "error" }
+    },
+    {
+      "files": ["packages/react/src/**/*.test.{ts,tsx}"],
+      "rules": {
+        "bazza/forward-ref-named": "off",
+        "bazza/part-namespace": "off",
+        "bazza/use-client": "off"
+      }
+    },
 
     // --- Allowlists -----------------------------------------------------------
     // Files that broke a rule when the rule was added. Each file is exempt from
@@ -49,6 +81,59 @@
     // delete its line. Never add a file here to get a new change through; use a
     // reasoned `oxlint-disable-next-line` instead.
 
+    {
+      // `as const` objects the docs can't read. Convert each to an enum.
+      "files": [
+        "packages/react/src/combobox/clear/clear.data-attrs.ts",
+        "packages/react/src/combobox/icon/icon.data-attrs.ts",
+        "packages/react/src/combobox/input-wrapper/input-wrapper.data-attrs.ts",
+        "packages/react/src/combobox/input/input.data-attrs.ts",
+        "packages/react/src/combobox/item-indicator/item-indicator.data-attrs.ts",
+        "packages/react/src/combobox/item-label/item-label.data-attrs.ts",
+        "packages/react/src/combobox/item/item.data-attrs.ts",
+        "packages/react/src/combobox/positioner/positioner.data-attrs.ts",
+        "packages/react/src/combobox/scroll-arrow/scroll-arrow.data-attrs.ts",
+        "packages/react/src/combobox/surface/surface.data-attrs.ts",
+        "packages/react/src/context-menu/icon/icon.data-attrs.ts",
+        "packages/react/src/context-menu/scroll-arrow/scroll-arrow.data-attrs.ts",
+        "packages/react/src/dropdown-menu/icon/icon.data-attrs.ts",
+        "packages/react/src/dropdown-menu/scroll-arrow/scroll-arrow.data-attrs.ts",
+        "packages/react/src/internal/popup-menu/components/icon/icon.data-attrs.ts",
+        "packages/react/src/internal/popup-menu/components/scroll-arrow/scroll-arrow.data-attrs.ts",
+        "packages/react/src/select/icon/icon.data-attrs.ts",
+        "packages/react/src/select/item-indicator/item-indicator.data-attrs.ts",
+        "packages/react/src/select/item-label/item-label.data-attrs.ts",
+        "packages/react/src/select/item/item.data-attrs.ts",
+        "packages/react/src/select/positioner/positioner.data-attrs.ts",
+        "packages/react/src/select/scroll-arrow/scroll-arrow.data-attrs.ts",
+        "packages/react/src/select/surface/surface.data-attrs.ts",
+        "packages/react/src/select/trigger/trigger.data-attrs.ts",
+        "packages/react/src/select/value/value.data-attrs.ts"
+      ],
+      "rules": { "bazza/data-attrs-enum": "off" }
+    },
+    {
+      // Exported parts with no namespace of their own.
+      "files": [
+        "packages/react/src/internal/popup-menu/components/list/list.tsx",
+        "packages/react/src/internal/popup-menu/data-first/data-list.tsx",
+        "packages/react/src/video-player/components/captions-menu/captions-menu.tsx",
+        "packages/react/src/video-player/components/playback-rate-menu/playback-rate-menu.tsx",
+        "packages/react/src/video-player/components/quality-menu/quality-menu.tsx",
+        "packages/react/src/video-player/components/seek-slider/seek-slider.tsx",
+        "packages/react/src/video-player/components/volume-slider/volume-slider.tsx"
+      ],
+      "rules": { "bazza/part-namespace": "off" }
+    },
+    {
+      // Context modules without `'use client'`.
+      "files": [
+        "packages/react/src/combobox/input-wrapper/input-wrapper-context.ts",
+        "packages/react/src/internal/popup-menu/contexts/graft-point-context.ts",
+        "packages/react/src/internal/popup-menu/contexts/menu-tree-resolver-context.ts"
+      ],
+      "rules": { "bazza/use-client": "off" }
+    },
     {
       // A class method calls `useRefWithInit`.
       "files": ["packages/react/src/internal/listbox/store/ListboxStore.ts"],

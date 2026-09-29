@@ -27,8 +27,12 @@ interface Diagnostic {
   labels: { span: { line: number } }[]
 }
 
-/** Writes `files` and `config` to a temp dir, lints it, and returns the findings. */
-async function lintIn(config: object, files: Files): Promise<Finding[]> {
+/** Writes `config` and `files` to a temp dir and runs oxlint there. */
+async function inTempDir<T>(
+  config: object,
+  files: Files,
+  use: (dir: string) => Promise<T>,
+): Promise<T> {
   const dir = await mkdtemp(join(tmpdir(), 'bazza-lint-'))
   try {
     await writeFile(join(dir, '.oxlintrc.json'), JSON.stringify(config))
@@ -36,13 +40,25 @@ async function lintIn(config: object, files: Files): Promise<Finding[]> {
       await mkdir(dirname(join(dir, path)), { recursive: true })
       await writeFile(join(dir, path), source)
     }
-    // oxlint exits 1 when it finds errors; the JSON on stdout is what matters.
-    const { stdout } = await run(
-      oxlint,
-      ['--disable-nested-config', '--format', 'json', '.'],
-      { cwd: dir },
-    ).catch((error: { stdout?: string }) => ({ stdout: error.stdout ?? '' }))
-    const parsed = JSON.parse(stdout) as { diagnostics: Diagnostic[] }
+    return await use(dir)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+
+/** Runs oxlint in `dir`. It exits 1 when it finds errors, so stdout is what matters. */
+function oxlintIn(dir: string, args: string[]): Promise<string> {
+  return run(oxlint, ['--disable-nested-config', ...args, '.'], { cwd: dir })
+    .then(({ stdout }) => stdout)
+    .catch((error: { stdout?: string }) => error.stdout ?? '')
+}
+
+/** Lints `files` with `config` and returns the findings, sorted by file and line. */
+function lintIn(config: object, files: Files): Promise<Finding[]> {
+  return inTempDir(config, files, async (dir) => {
+    const parsed = JSON.parse(await oxlintIn(dir, ['--format', 'json'])) as {
+      diagnostics: Diagnostic[]
+    }
     return parsed.diagnostics
       .map((d) => ({
         rule: d.code,
@@ -51,22 +67,32 @@ async function lintIn(config: object, files: Files): Promise<Finding[]> {
         message: d.message,
       }))
       .sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
+  })
 }
+
+/** A config with one rule switched on everywhere. */
+const oneRule = (rule: string) => ({
+  plugins: ['react'],
+  categories: { correctness: 'off' },
+  jsPlugins: [bazzaPlugin],
+  rules: { [rule]: 'error' },
+})
 
 /** Lints `files` with one rule switched on everywhere, e.g. `bazza/use-client`. */
 export function lintWith(rule: string, files: Files): Promise<Finding[]> {
-  return lintIn(
-    {
-      plugins: ['react'],
-      categories: { correctness: 'off' },
-      jsPlugins: [bazzaPlugin],
-      rules: { [rule]: 'error' },
-    },
-    files,
-  )
+  return lintIn(oneRule(rule), files)
+}
+
+/** Runs `oxlint --fix` with one rule switched on and returns the fixed file. */
+export function fixWith(
+  rule: string,
+  path: string,
+  source: string,
+): Promise<string> {
+  return inTempDir(oneRule(rule), { [path]: source }, async (dir) => {
+    await oxlintIn(dir, ['--fix'])
+    return readFile(join(dir, path), 'utf8')
+  })
 }
 
 /** The repo's `.oxlintrc.json`, with comments stripped and the plugin path made absolute. */

@@ -23,7 +23,10 @@ src/
 ## Component Pattern
 
 ```typescript
+'use client'
+
 import { useRender } from '@base-ui/react/use-render'
+import * as React from 'react'
 import type { ComponentProps } from '../../utils/types.js'
 
 export interface MyComponentState extends Record<string, unknown> {
@@ -58,6 +61,13 @@ export namespace MyComponent {
 }
 ```
 
+Every part follows this shape, and lint checks it:
+
+- **`'use client'` first.** Parts and `*-context.ts` modules use hooks, so a React Server Components app can only import them across a client boundary (`bazza/use-client`, fixable with `bun run check:fix`).
+- **A named render function.** Parts don't set `displayName`, so React DevTools and error messages show the function's name. Write `forwardRef(function MyComponent(…))`, or declare a named function and pass it by name, as generic parts do with `forwardRef(MyComponentImpl) as <…>` (`bazza/forward-ref-named`).
+- **A namespace with the part's types.** Consumers write `DropdownMenu.Item.Props`, and the docs type tables read the same names. Export `namespace MyComponent { Props }`, plus `State` when the part passes `state` to `useRender` (`bazza/part-namespace`).
+- **No default exports.** Parts are reached through their family's namespace (`DropdownMenu.Item`). Biome's `noDefaultExport` is on for `src`.
+
 ## State to Data Attributes
 
 Automatic conversion: `highlighted: true` becomes `data-highlighted=""`.
@@ -79,6 +89,8 @@ return useRender({ render, ref, state, stateAttributesMapping, props, defaultTag
 
 Filename: `<name>.data-attrs.ts`
 
+Export only `enum`s named `*DataAttributes`. The docs type generator (`apps/web/scripts/build-types-meta.ts`) reads nothing else, so an `as const` object renders an empty `DataAttrsTable`. To share an engine part's attributes, re-export its enum by name (`export { PopupMenuPopupDataAttributes } from '…'`), never `export *` (`bazza/data-attrs-enum`).
+
 ```typescript
 export enum DropdownMenuItemDataAttributes {
   /** Present when the item is highlighted. */
@@ -91,6 +103,8 @@ export enum DropdownMenuItemDataAttributes {
 ## CSS Variables File
 
 Filename: `<name>.css-vars.ts`
+
+Export only `enum`s named `*CssVars`, for the same reason as data attributes (`bazza/data-attrs-enum`).
 
 ```typescript
 export enum DropdownMenuPositionerCssVars {
