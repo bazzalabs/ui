@@ -1231,13 +1231,18 @@ describe('checkbox groups', () => {
     }
     render(
       <MenuWithDataContent
-        content={[createTestSubmenuDef('hidden-checks', 'Hidden', [group])]}
+        content={[
+          createTestSubmenuDef('hidden-checks', 'Hidden', [
+            group,
+            createTestItemDef('visible', 'Visible'),
+          ]),
+        ]}
       />,
     )
     await user.hover(screen.getByTestId('submenu-trigger-hidden-checks'))
-    await waitFor(() => {
-      expect(screen.queryByTestId('cb-a')).toBeNull()
-    })
+    // Wait for the submenu's content before asserting the group is absent.
+    await screen.findByTestId('item-visible')
+    expect(screen.queryByTestId('cb-a')).toBeNull()
   })
 
   it('renders a deep-search checkbox result with its group checked state', async () => {

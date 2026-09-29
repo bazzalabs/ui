@@ -728,7 +728,7 @@ describe('RadioItemDef', () => {
 // ============================================================================
 
 describe('Render Params Structure', () => {
-  it('should pass props to item render function', () => {
+  it("passes the def's disabled state to the row context", () => {
     const nodes: NodeDef[] = [
       createItemDef('item1', 'Item 1', { disabled: true }),
     ]
@@ -986,7 +986,7 @@ describe('radioGroupSearchBehavior', () => {
 
     it('should mix flattened radio items with regular items by score', () => {
       const nodes: NodeDef[] = [
-        createItemDef('item1', 'Dark Mode Toggle'),
+        createItemDef('item1', 'Toggle dark mode'),
         createThemeRadioGroup(),
       ]
 
@@ -1000,12 +1000,11 @@ describe('radioGroupSearchBehavior', () => {
       expect(displayNodes).toHaveLength(2)
       // Both should be row nodes (radio items flattened)
       expect(displayNodes.every(isDisplayRowNode)).toBe(true)
-      // Both should match "dark"
+      // The exact radio match outranks the authored-first partial match
       const ids = displayNodes
         .filter(isDisplayRowNode)
         .map((n) => n.node.def.id)
-      expect(ids).toContain('item1')
-      expect(ids).toContain('dark')
+      expect(ids).toEqual(['dark', 'item1'])
     })
   })
 
@@ -1095,9 +1094,11 @@ describe('radioGroupSearchBehavior', () => {
 
       // Only theme radio group matches
       expect(displayNodes).toHaveLength(1)
-      if (isDisplayRadioGroupNode(displayNodes[0])) {
-        expect(displayNodes[0].node.def.id).toBe('theme')
-        expect(displayNodes[0].items).toHaveLength(3) // All theme items
+      const [group] = displayNodes
+      expect(group && isDisplayRadioGroupNode(group)).toBe(true)
+      if (group && isDisplayRadioGroupNode(group)) {
+        expect(group.node.def.id).toBe('theme')
+        expect(group.items).toHaveLength(3) // All theme items
       }
     })
   })
@@ -1156,11 +1157,15 @@ describe('Value Normalization', () => {
 
       const flattened = flattenNodes(resolve(nodes))
       const scored = scoreNodes(flattened, 'dark')
+      const [trimmed] = scoreNodes(
+        flattenNodes(resolve([createItemDef('item1', 'Dark Mode')])),
+        'dark',
+      )
 
-      // Should match despite whitespace in value
+      // Scores as if the value had no surrounding whitespace
       expect(scored).toHaveLength(1)
       expect(scored[0].node.def.id).toBe('item1')
-      expect(scored[0].score).toBeGreaterThan(0)
+      expect(scored[0].score).toBe(trimmed?.score)
     })
 
     it('should match items with whitespace-only keywords filtered out', () => {
@@ -1172,10 +1177,20 @@ describe('Value Normalization', () => {
 
       const flattened = flattenNodes(resolve(nodes))
       const scored = scoreNodes(flattened, 'preferences')
+      const [clean] = scoreNodes(
+        flattenNodes(
+          resolve([
+            createItemDef('item1', 'Settings', {
+              keywords: ['config', 'preferences'],
+            }),
+          ]),
+        ),
+        'preferences',
+      )
 
-      // Should match on trimmed keyword
+      // Scores as if blank keywords were dropped and the rest trimmed
       expect(scored).toHaveLength(1)
-      expect(scored[0].score).toBeGreaterThan(0)
+      expect(scored[0].score).toBe(clean?.score)
     })
 
     it('should not match whitespace-only values', () => {

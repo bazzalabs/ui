@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeDef } from '../../data-first/types.js'
-import { defaultGetResolvedId, resolveNodeDefs } from '../resolve.js'
+import { defaultGetResolvedId } from '../resolve.js'
 import { createMenuTreeResolver } from '../resolver.js'
 
 const item = (value: string, id?: string): NodeDef =>
@@ -20,9 +20,10 @@ describe('createMenuTreeResolver', () => {
 
     resolver.setContent([status])
 
-    expect(resolver.rootNodes).toEqual(
-      resolveNodeDefs([status], null, [], defaultGetResolvedId),
-    )
+    expect(resolver.rootNodes.map((node) => node.def)).toEqual([status])
+    expect(resolver.rootNodes[0]?.children.map((node) => node.def)).toEqual([
+      backlog,
+    ])
     expect(resolver.getNodeById('status/backlog')?.def).toBe(backlog)
     expect(resolver.getNodeForDef(backlog)).toBe(
       resolver.getNodeById('status/backlog'),
@@ -540,19 +541,17 @@ describe('duplicate detection', () => {
 describe('getResolvedId seam', () => {
   it('custom seam shapes ids', () => {
     const resolver = createMenuTreeResolver({
-      getResolvedId: (node) =>
-        node.definitionPath.join('/') || node.def.id || '',
+      getResolvedId: (node) => node.definitionPath.join('.'),
     })
     resolver.setContent([submenu('Status', [item('Backlog')])])
 
-    expect(resolver.getNodeById('status/backlog')).toBeDefined()
-    expect(resolver.getNodeById('status.backlog')).toBeUndefined()
+    expect(resolver.getNodeById('status.backlog')).toBeDefined()
+    expect(resolver.getNodeById('status/backlog')).toBeUndefined()
   })
 
   it('matching agrees with the seam', () => {
     const resolver = createMenuTreeResolver({
-      getResolvedId: (node) =>
-        node.definitionPath.join('/') || node.def.id || '',
+      getResolvedId: (node) => `x-${node.definitionPath.join('/')}`,
     })
     resolver.setContent([submenu('Status', [item('Backlog')])])
     const statusNode = resolver.rootNodes[0]!
@@ -562,6 +561,7 @@ describe('getResolvedId seam', () => {
 
     expect(resolver.rootNodes[0]).toBe(statusNode)
     expect(resolver.rootNodes[0]!.children[0]).toBe(backlogNode)
+    expect(resolver.getNodeById('x-status/backlog')).toBe(backlogNode)
   })
 
   it('seam receives definitional facts', () => {
