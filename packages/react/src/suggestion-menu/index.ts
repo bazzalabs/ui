@@ -43,6 +43,14 @@ export type {
   SuggestionMenuSurface,
   SuggestionMenuSurfaceProps,
 } from './surface/surface.js'
+export type {
+  AttachTextTriggerOptions as SuggestionMenuAttachTextTriggerOptions,
+  SuggestionMenuTextTriggerHandle,
+} from './text-trigger/attach-text-trigger.js'
+export type {
+  SuggestionMenuTextTrigger,
+  SuggestionMenuTextTriggerMatch,
+} from './text-trigger/match.js'
 
 // ============================================================================
 // Re-exported from internal/popup-menu (with SuggestionMenu prefix)
