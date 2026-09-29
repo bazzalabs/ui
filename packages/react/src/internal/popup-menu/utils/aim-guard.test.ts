@@ -133,13 +133,14 @@ describe('aim-guard', () => {
         trail,
         100,
         150,
-        'right',
+        'left',
         triggerRect,
         rect,
       )
 
-      // Should infer direction toward the submenu (positive dx toward right edge)
-      expect(result.dx).not.toBe(0)
+      // Aims from the trigger center (100, 160) at the submenu's near-edge
+      // center (200, 200)
+      expect(result).toEqual({ dx: 100, dy: 40 })
     })
 
     it('handles empty trail', () => {
@@ -148,9 +149,8 @@ describe('aim-guard', () => {
 
       const result = getSmoothedHeading(trail, 100, 150, 'right', null, rect)
 
-      // Should still return a heading (inferred)
-      expect(result).toHaveProperty('dx')
-      expect(result).toHaveProperty('dy')
+      // Aims from the exit point at the right edge's center (400, 200)
+      expect(result).toEqual({ dx: 300, dy: 50 })
     })
 
     it('handles single point trail', () => {
@@ -159,8 +159,7 @@ describe('aim-guard', () => {
 
       const result = getSmoothedHeading(trail, 100, 150, 'right', null, rect)
 
-      expect(result).toHaveProperty('dx')
-      expect(result).toHaveProperty('dy')
+      expect(result).toEqual({ dx: 300, dy: 50 })
     })
 
     it('infers vertical heading for top anchored submenu when movement is slow', () => {
@@ -180,7 +179,9 @@ describe('aim-guard', () => {
         rect,
       )
 
-      expect(result.dy).toBeGreaterThan(0)
+      // Aims from the trigger center (230, 140) at the top edge's center
+      // (250, 200)
+      expect(result).toEqual({ dx: 20, dy: 60 })
     })
   })
 
@@ -376,23 +377,23 @@ describe('aim-guard', () => {
         expect(result).toBe(false)
       })
 
-      it('uses trigger rect for extra band calculation when provided', () => {
-        const triggerRect = createDOMRect(100, 180, 80, 40) // trigger to the left
+      it('widens the safe band with the trigger height', () => {
+        // band = max(12, min(36, height * 0.75)); the safe zone extends a
+        // quarter band past the submenu's top (100).
+        const shortTrigger = createDOMRect(100, 180, 80, 16) // band 12 → top 97
+        const tallTrigger = createDOMRect(100, 180, 80, 48) // band 36 → top 91
+        const aimJustAboveTop = (triggerRect: DOMRect) =>
+          willHitSubmenu(
+            200,
+            95,
+            { dx: 10, dy: 0 },
+            submenuRect,
+            'left',
+            triggerRect,
+          )
 
-        // Test that the safe zone extends beyond the submenu bounds
-        // With triggerRect.height=40, baseBand=30, extra=max(12, min(36, 30))=30
-        // top = 100 - 30*0.25 = 92.5, bottom = 300 + 30*0.25 = 307.5
-        const result = willHitSubmenu(
-          200,
-          95, // slightly above submenu top (100), but within extra band (92.5)
-          { dx: 10, dy: 0.5 }, // heading right toward submenu
-          submenuRect,
-          'left', // trigger to the left
-          triggerRect,
-        )
-
-        // Should still hit due to the extra band from trigger height
-        expect(result).toBe(true)
+        expect(aimJustAboveTop(shortTrigger)).toBe(false)
+        expect(aimJustAboveTop(tallTrigger)).toBe(true)
       })
     })
   })

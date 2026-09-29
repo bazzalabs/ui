@@ -3,8 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
-import { isLinkItemDef } from './data-first/type-guards.js'
-import type { ItemDef, LinkItemDef, NodeDef } from './data-first/types.js'
+import type { LinkItemDef } from './data-first/types.js'
 
 function Menu({ children }: { children: React.ReactNode }) {
   return (
@@ -182,16 +181,7 @@ describe('PopupMenu.LinkItem', () => {
         <DropdownMenu.LinkItem {...props}>Projects</DropdownMenu.LinkItem>
       ),
     }
-    const item: ItemDef = {
-      kind: 'item',
-      value: 'Other',
-      render: ({ props }) => (
-        <DropdownMenu.Item {...props}>Other</DropdownMenu.Item>
-      ),
-    }
-    expect(isLinkItemDef(def)).toBe(true)
-    expect(isLinkItemDef(item)).toBe(false)
-    function DataMenu({ nodes }: { nodes: NodeDef[] }) {
+    function DataMenu() {
       const { nodes: resolved, renderNode } = DropdownMenu.useDataList()
       return <>{resolved.map(renderNode)}</>
     }
@@ -203,7 +193,7 @@ describe('PopupMenu.LinkItem', () => {
             <DropdownMenu.Popup>
               <DropdownMenu.Surface content={[def]}>
                 <DropdownMenu.List>
-                  <DataMenu nodes={[def]} />
+                  <DataMenu />
                 </DropdownMenu.List>
               </DropdownMenu.Surface>
             </DropdownMenu.Popup>
