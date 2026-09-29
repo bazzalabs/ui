@@ -16,6 +16,8 @@ export interface SuggestionMenuRootContextValue {
   reportResults: (count: number, label: string | null) => void
   /** Writes the host's ARIA attributes again, e.g. once the list mounts. */
   syncHostAria: (listId?: string) => void
+  /** Whether the anchor has measured a rect during this opening. */
+  anchorReady: boolean
 }
 
 export const SuggestionMenuRootContext =

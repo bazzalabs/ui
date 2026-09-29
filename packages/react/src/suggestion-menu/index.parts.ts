@@ -21,7 +21,6 @@ export {
   PopupMenuLinkItem as LinkItem,
   PopupMenuLoading as Loading,
   PopupMenuPortal as Portal,
-  PopupMenuPositioner as Positioner,
   PopupMenuScrollDownArrow as ScrollDownArrow,
   PopupMenuScrollUpArrow as ScrollUpArrow,
   PopupMenuSeparator as Separator,
@@ -37,5 +36,6 @@ export {
 } from './handle.js'
 export { SuggestionMenuList as List } from './list/list.js'
 export { SuggestionMenuPopup as Popup } from './popup/popup.js'
+export { SuggestionMenuPositioner as Positioner } from './positioner/positioner.js'
 export { SuggestionMenuRoot as Root } from './root/root.js'
 export { SuggestionMenuSurface as Surface } from './surface/surface.js'
