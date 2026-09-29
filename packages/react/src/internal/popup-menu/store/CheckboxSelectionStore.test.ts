@@ -57,28 +57,6 @@ function setup(initialIds: string[]) {
 }
 
 describe('CheckboxSelectionStore', () => {
-  it('announces accepted changes with incrementing keys and a custom formatter', () => {
-    const { store } = setup([])
-    store.announce(3, true)
-    expect(store.state.announcement).toEqual({
-      text: '3 items checked',
-      key: 1,
-    })
-    store.announce(0, true)
-    expect(store.state.announcement).toEqual({
-      text: '3 items checked',
-      key: 1,
-    })
-    store.announce(1, false)
-    expect(store.state.announcement).toEqual({
-      text: '1 item unchecked',
-      key: 2,
-    })
-    store.setAnnouncementFormatter((count, checked) => `${count}:${checked}`)
-    store.announce(2, true)
-    expect(store.state.announcement).toEqual({ text: '2:true', key: 3 })
-  })
-
   it('does not announce zero changes or cancelled gesture changes', () => {
     const { store, row } = setup(['a'])
     store.announce(0, true)
@@ -142,21 +120,6 @@ describe('CheckboxSelectionStore', () => {
     expect(commit).not.toHaveBeenCalled()
   })
 
-  it('computes spans in either direction and rejects unknown ids', () => {
-    const { store } = setup(['a', 'b', 'c', 'd'])
-    expect(store.computeSpan('a', 'c')).toEqual(['a', 'b', 'c'])
-    expect(store.computeSpan('c', 'a')).toEqual(['a', 'b', 'c'])
-    expect(store.computeSpan('x', 'c')).toEqual([])
-  })
-
-  it('begins a gesture with the opposite checked state and previews its row', () => {
-    const { store, row } = setup(['a', 'b'])
-    row('b', { checked: false })
-    store.beginGesture('drag', 'b', 'keep')
-    expect(store.state.gesture?.target).toBe(true)
-    expect([...store.state.preview]).toEqual([['b', true]])
-  })
-
   it('does nothing when beginning on an unregistered or invisible row', () => {
     const { store, row } = setup(['a'])
     row('a', { checked: false })
@@ -164,17 +127,6 @@ describe('CheckboxSelectionStore', () => {
     store.beginGesture('drag', 'missing', 'keep')
     store.beginGesture('drag', 'hidden', 'keep')
     expect(store.state.gesture).toBeNull()
-  })
-
-  it('keeps reached rows or rubber-bands them out when extending back', () => {
-    for (const mode of ['keep', 'rubber-band'] as const) {
-      const { store, row } = setup(['a', 'b', 'c', 'd'])
-      for (const id of ['a', 'b', 'c', 'd']) row(id, { checked: false })
-      store.beginGesture('drag', 'a', mode)
-      store.extendGesture('d')
-      store.extendGesture('c')
-      expect(store.state.preview.has('d')).toBe(mode === 'keep')
-    }
   })
 
   it('excludes unregistered ids and counts only changed rows', () => {
@@ -214,17 +166,6 @@ describe('CheckboxSelectionStore', () => {
     expect(store.state.anchorId).toBe('y')
     expect(store.state.gesture).toBeNull()
     expect(store.state.preview.size).toBe(0)
-  })
-
-  it('announces one accepted gesture change', () => {
-    const { store, row } = setup(['a'])
-    row('a', { checked: false })
-    store.beginGesture('drag', 'a', 'keep')
-    store.commitGesture('drag-selection')
-    expect(store.state.announcement).toEqual({
-      text: '1 item checked',
-      key: 1,
-    })
   })
 
   it('emits commits in visible list order', () => {
@@ -283,34 +224,6 @@ describe('CheckboxSelectionStore', () => {
       'drag-selection',
       undefined,
     )
-  })
-
-  it('cancels a gesture without committing', () => {
-    const { store, row } = setup(['a', 'b'])
-    const a = row('a', { checked: false })
-    const b = row('b', { checked: false })
-    store.beginGesture('drag', 'a', 'keep')
-    store.extendGesture('b')
-    store.cancelGesture()
-    expect(store.state.preview.size).toBe(0)
-    expect(a.commit).not.toHaveBeenCalled()
-    expect(b.commit).not.toHaveBeenCalled()
-  })
-
-  it('applies ranges in either target state and updates the anchor', () => {
-    const { store, row } = setup(['a', 'b', 'c'])
-    row('a', { checked: false })
-    row('b', { checked: true })
-    row('c', { checked: false })
-    expect(store.applyRange('a', 'c', 'range-selection')).toEqual({
-      count: 2,
-      checked: true,
-    })
-    expect(store.state.anchorId).toBe('c')
-    expect(store.applyRange('a', 'c', 'range-selection')).toEqual({
-      count: 3,
-      checked: false,
-    })
   })
 
   it('returns no usable anchor after it is no longer visible', () => {

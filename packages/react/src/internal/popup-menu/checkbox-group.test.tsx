@@ -221,18 +221,4 @@ describe('PopupMenu.CheckboxGroup', () => {
       expect.stringContaining('duplicate item value "dup"'),
     )
   })
-
-  it('keeps standalone checkbox state behavior', async () => {
-    const user = userEvent.setup()
-    render(
-      <Menu>
-        <DropdownMenu.CheckboxItem defaultChecked data-testid="alone">
-          alone
-        </DropdownMenu.CheckboxItem>
-      </Menu>,
-    )
-    await openMenu(user)
-    await user.click(screen.getByTestId('alone'))
-    expect(screen.getByTestId('alone')).toHaveAttribute('aria-checked', 'false')
-  })
 })

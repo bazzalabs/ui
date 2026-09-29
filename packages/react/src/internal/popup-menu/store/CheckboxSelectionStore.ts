@@ -131,9 +131,6 @@ export interface CheckboxSelectionContext {
 const selectors = {
   anchorId: createSelector((state: CheckboxSelectionState) => state.anchorId),
   gesture: createSelector((state: CheckboxSelectionState) => state.gesture),
-  isGestureActive: createSelector(
-    (state: CheckboxSelectionState) => state.gesture !== null,
-  ),
   /** The preview for a row, or `undefined` when the row has no preview. */
   getPreview: createSelector((state: CheckboxSelectionState, id: string) =>
     state.preview.get(id),
@@ -146,7 +143,7 @@ const selectors = {
 const pluralRules = new Intl.PluralRules('en')
 
 /** Default English announcement, e.g. "3 items checked" / "1 item unchecked". */
-export function defaultSelectionText(count: number, checked: boolean): string {
+function defaultSelectionText(count: number, checked: boolean): string {
   const noun = pluralRules.select(count) === 'one' ? 'item' : 'items'
   return `${count} ${noun} ${checked ? 'checked' : 'unchecked'}`
 }
