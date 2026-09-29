@@ -342,6 +342,11 @@ export const examples = {
         () => import('@/registry/examples/primitives/dropdown-menu/basic'),
       ),
     },
+    'suggestion-menu': {
+      textarea: ex(
+        () => import('@/registry/examples/primitives/suggestion-menu/textarea'),
+      ),
+    },
   }),
 }
 

@@ -1,0 +1,269 @@
+---
+title: Suggestion Menu
+section: Getting Started
+summary: Suggests `/` commands, `@` mentions and `:` emoji while the user types in an editor or text field, without taking focus from it.
+audience: private
+tiers:
+  - primitives
+---
+
+<Example name="suggestion-menu-textarea" />
+
+## Overview
+
+`SuggestionMenu` is the list that appears when the user types `/`, `@` or `:` in a text field or an editor. Unlike every other menu, it doesn't own its input: the text is typed into a **host input** (an `<input>`, a `<textarea>`, or a contenteditable editor such as ProseMirror), and DOM focus never leaves it.
+
+The host tells the menu what was typed through a **handle**. The menu handles the rest: filtering, async results, the highlight, keyboard navigation, placement, and screen-reader output.
+
+## Installation
+
+Install the unstyled primitive from npm:
+
+```npm
+npm install @bazza-ui/react{{RELEASE_CHANNEL}}
+```
+
+```tsx
+import { SuggestionMenu } from '@bazza-ui/react/suggestion-menu'
+```
+
+## Anatomy
+
+```tsx
+const menu = SuggestionMenu.createHandle()
+
+<SuggestionMenu.Root handle={menu}>
+  <SuggestionMenu.Portal>
+    <SuggestionMenu.Positioner>
+      <SuggestionMenu.Popup>
+        <SuggestionMenu.Surface content={nodes} asyncContent={loader}>
+          <SuggestionMenu.List>
+            <SuggestionMenu.Group>
+              <SuggestionMenu.GroupLabel />
+              <SuggestionMenu.Item>
+                <SuggestionMenu.Icon />
+              </SuggestionMenu.Item>
+            </SuggestionMenu.Group>
+            <SuggestionMenu.Separator />
+            <SuggestionMenu.Loading />
+            <SuggestionMenu.Empty />
+          </SuggestionMenu.List>
+        </SuggestionMenu.Surface>
+      </SuggestionMenu.Popup>
+    </SuggestionMenu.Positioner>
+  </SuggestionMenu.Portal>
+</SuggestionMenu.Root>
+```
+
+There is no trigger button, input, submenu or subpage: the host input plays those roles. Submenu and subpage definitions in `content` are skipped with a development warning.
+
+## Connecting a host input
+
+Create the handle outside the component that renders the menu, or with `React.useState(() => SuggestionMenu.createHandle())`. Editor code that isn't React (a ProseMirror plugin, a CodeMirror extension) can call it directly.
+
+| Method | What it does |
+|---|---|
+| `attach(element)` | Makes `element` the host input. Returns a function that detaches it. |
+| `update({ query, anchor, payload })` | Opens the menu, or updates it while open. `query` is the text after the trigger; `anchor` measures where the popup goes; `payload` is passed to the Root's `children` function. |
+| `close()` | Closes the menu. Call it whenever the trigger ends (deleted, or the caret left it), even if the menu is already closed. |
+| `handleKeyDown(event)` | Passes a key press from the host. Returns `true` when the menu used the key and prevented its default. |
+| `isOpen`, `host`, `query`, `payload` | The current state. |
+
+The query has one source, the host. `SuggestionMenu.Surface` has no `search` prop, and stripping the trigger character is the host's job.
+
+## Text fields
+
+For an `<input>` or `<textarea>`, `SuggestionMenu.useTextTrigger` (or `SuggestionMenu.attachTextTrigger` outside React) is all the host code you need. It attaches the field, matches triggers, forwards keys, and anchors the popup at the trigger character. After Escape, or once a row is chosen, the menu stays closed until the trigger is typed again.
+
+Pass the returned ref straight to the field; the attached field is `menu.host`. Keys the menu uses (for example Enter choosing a row) don't reach your own `onKeyDown`, so an Enter-to-send handler keeps working. A handle shared by several fields follows the one with focus.
+
+<Example name="suggestion-menu-textarea">
+<Example.PreviewCode>
+
+```tsx
+const [menu] = React.useState(() =>
+  SuggestionMenu.createHandle<SuggestionMenuTextTriggerMatch>(),
+)
+const ref = SuggestionMenu.useTextTrigger(menu, {
+  triggers: [{ char: '@', allowSpaces: true }],
+})
+
+<textarea ref={ref} />
+```
+
+</Example.PreviewCode>
+</Example>
+
+Each trigger accepts:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `char` | | The trigger, e.g. `'@'`. It counts at the start of the text or after whitespace. |
+| `allowSpaces` | `false` | Let the query contain spaces, e.g. `@Alice Smith`. A line break always ends it. |
+| `startOfLine` | `false` | Only count the trigger at the start of a line. |
+| `minLength` | `0` | Characters that must follow the trigger before the menu opens. |
+
+The payload is the match: `{ trigger, query, from, to }`, where `to` is the end of the typed word. To insert a choice, replace `from`–`to` in the field's value:
+
+```tsx
+onSelect: () => {
+  const field = menu.host as HTMLTextAreaElement | null
+  const match = menu.payload
+  if (!field || !match) return
+  field.setRangeText(`@${name} `, match.from, match.to, 'end')
+  field.dispatchEvent(new Event('input', { bubbles: true }))
+}
+```
+
+## Editors
+
+Editors decide what counts as a trigger (a `/` inside a code block usually shouldn't open a menu), so they write their own detection and drive the handle from it. They also own the rule that Escape keeps the menu closed until the trigger is typed again. A ProseMirror plugin:
+
+```ts
+import type { SuggestionMenuHandle } from '@bazza-ui/react/suggestion-menu'
+import { Plugin } from 'prosemirror-state'
+
+export function slashMenu(menu: SuggestionMenuHandle<{ from: number }>) {
+  // Where the open trigger starts, and one the user dismissed with Escape.
+  // A full plugin would keep these in plugin state, mapped through edits.
+  let active: number | null = null
+  let dismissed: number | null = null
+
+  return new Plugin({
+    props: {
+      // Editors order their own keymaps, so the menu doesn't listen itself.
+      handleKeyDown: (_view, event) => {
+        const used = menu.handleKeyDown(event)
+        if (used && event.key === 'Escape') dismissed = active
+        return used
+      },
+    },
+    view: (view) => {
+      const detach = menu.attach(view.dom)
+      return {
+        destroy: () => {
+          menu.close()
+          detach()
+        },
+        update: (view) => {
+          const { $from, empty } = view.state.selection
+          const before = $from.parent.textBetween(0, $from.parentOffset)
+          // A dismissed trigger stays closed until its "/" is gone.
+          const { doc } = view.state
+          if (
+            dismissed !== null &&
+            (dismissed + 1 > doc.content.size ||
+              doc.textBetween(dismissed, dismissed + 1) !== '/')
+          ) {
+            dismissed = null
+          }
+          const match = empty ? /(?:^|\s)\/(\w*)$/.exec(before) : null
+          if (!match) {
+            active = null
+            return menu.close()
+          }
+
+          const from = $from.pos - match[1].length - 1
+          if (from === dismissed) return
+          active = from
+          menu.update({
+            query: match[1],
+            payload: { from },
+            // The trigger character, so typing doesn't move the popup.
+            anchor: () => {
+              const { left, top, bottom } = view.coordsAtPos(from)
+              return new DOMRect(left, top, 0, bottom - top)
+            },
+          })
+        },
+      }
+    },
+  })
+}
+```
+
+Choosing a row usually edits the document, which makes the plugin call `close()`. The menu still reports that close once, with `reason: 'item-press'`.
+
+## Async results
+
+Pass a loader as `asyncContent`. Suggestion menus default to `asyncContentMode="append"`: local `content` shows at once and loaded rows are added after it, with rows whose Resolved ID is already local dropped. The highlight stays on its row while results arrive.
+
+This `@` mention search keeps the previous results on screen while the next query loads, and waits 150 ms after typing stops:
+
+```tsx
+import { createQueryLoader } from '@bazza-ui/react/loaders'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+
+const people = createQueryLoader({
+  useQuery: (query, options) =>
+    useQuery({
+      queryKey: ['people', query],
+      queryFn: () => searchPeople(query),
+      enabled: options?.enabled,
+      placeholderData: keepPreviousData,
+    }),
+  minQueryLength: 0,
+  debounce: 150,
+})
+
+<SuggestionMenu.Surface content={recentPeople} asyncContent={people}>
+```
+
+`asyncContentReveal` decides when loaded rows appear. `'stream'` (the default) shows local rows now and adds remote ones as they arrive. `'block'` keeps the previous settled list until the current query's loaders finish, and shows `Loading` only the first time. Deep search's own `'block'` still shows `Loading` between searches.
+
+For a "searching…" indicator while results refetch, read `isAnyFetching` from `SuggestionMenu.useAsyncMenuCoordinator()` inside the Surface. The hook returns `null` when the Surface has no `asyncContent`.
+
+## When nothing matches
+
+`noResults` on the Root decides what happens once every search for the query has finished empty.
+
+- `'empty'` (default): the menu stays open and shows `SuggestionMenu.Empty`, and Enter reaches the host. Suits `@`, where the person may not exist.
+- `'close'`: the menu closes with `reason: 'no-results'`. An `update()` with the same query leaves it closed; any other query searches again. Suits `/`, where the user may be typing a path.
+
+## Keyboard
+
+| Key while open | Result |
+|---|---|
+| ↑ / ↓, Ctrl+N / Ctrl+P | Move the highlight |
+| Home / End | Highlight the first or last row |
+| Enter | Choose the highlighted row |
+| Escape | Close the menu, without closing an enclosing dialog |
+| Tab, ← / →, typing, ⌘ / Alt / Shift combinations | Stay with the host |
+
+Nothing is handled while the menu is closed or during IME composition.
+
+The menu closes when the host loses focus, but not when focus moves into the menu, when the window loses focus, or when the host gets focus back straight away. Pressing inside the menu keeps focus in the host.
+
+## Placement
+
+`anchor` is a function returning a `DOMRect`, usually the trigger character's. It's measured again when the page or a scrolling container around the host scrolls, and on every `update()`, so the popup follows the text. The text-field binding also updates when the field itself scrolls. Returning `null` keeps the last position.
+
+`SuggestionMenu.Positioner` places the popup below the anchor, aligned to its start. If there's no room below it opens above, and it keeps that side until it closes instead of flipping while the user types. It never moves beside the anchor, where it would cover the text.
+
+## Accessibility
+
+While the menu is open, the host gets the attributes that fit its element:
+
+| Host | Role | Attributes |
+|---|---|---|
+| `<input>` | `combobox` | `aria-expanded`, `aria-controls`, `aria-activedescendant`, `aria-autocomplete="list"`, `aria-haspopup="listbox"` |
+| `<textarea>`, contenteditable | its own (usually `textbox`) | the same, without `aria-expanded` |
+
+Don't set these attributes on an attached host yourself; the host's own values come back when the menu closes.
+
+`aria-activedescendant` follows the highlight only after the user moves it with the keyboard. It's cleared when the query changes, so screen readers keep reading what's typed.
+
+A polite status region announces the settled results and the row Enter would choose, for example "5 results, first: Alice Smith". Localise it with `getAriaResultsText`:
+
+```tsx
+<SuggestionMenu.Root
+  handle={menu}
+  getAriaResultsText={(count, label) =>
+    count === 0 ? 'Aucun résultat' : `${count} résultats, premier : ${label}`
+  }
+/>
+```
+
+## API Reference
+
+For the full API docs, see [Suggestion Menu API Reference](/docs/primitives/suggestion-menu/api-reference).

@@ -157,6 +157,12 @@ export const componentItems: ComponentItem[] = [
   },
   {
     type: 'single',
+    title: 'Suggestion Menu',
+    url: '/docs/primitives/suggestion-menu',
+    audience: 'private',
+  },
+  {
+    type: 'single',
     title: 'Context Menu',
     url: '/docs/context-menu',
     audience: 'private',
