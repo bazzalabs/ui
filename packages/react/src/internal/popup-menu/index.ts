@@ -81,6 +81,12 @@ export { PopupMenuProviders } from './components/providers.js'
 // Item Hooks
 // ============================================================================
 
+export {
+  type ForwardedKeyboardEvent,
+  type ForwardKeyDown,
+  type UseForwardedKeyDownParams,
+  useForwardedKeyDown,
+} from './hooks/use-forwarded-key-down.js'
 export type {
   UsePopupMenuItemParams,
   UsePopupMenuItemReturn,
