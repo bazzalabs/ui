@@ -1,0 +1,280 @@
+---
+title: API Reference
+section: Getting Started
+component: Command Menu
+summary: The full API reference for command menu.
+audience: private
+tiers:
+  - primitives
+---
+
+## Root
+
+Groups all parts of the command menu. Manages open state and the optional `hotkey` toggle, and provides context to children. Doesn't render its own HTML element.
+
+<BaseUIReference component="dialog" part="root" wrapper />
+
+<TypeTableAuto type="CommandMenuRootProps" pkg="@bazza-ui/react" />
+
+## Trigger
+
+A button that opens the command menu. Renders a `<button>` element.
+
+<BaseUIReference component="dialog" part="trigger" wrapper />
+
+<TypeTableAuto type="CommandMenuTriggerProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuTriggerState" pkg="@bazza-ui/react" />
+
+## Portal
+
+Moves the command menu popup to a different part of the DOM, by default `document.body`.
+
+<BaseUIReference component="dialog" part="portal" wrapper />
+
+<TypeTableAuto type="CommandMenuPortalProps" pkg="@bazza-ui/react" />
+
+## Backdrop
+
+An overlay beneath the popup. Pressing down on it closes the menu at once, as outside presses do for the other menus. Call `event.preventDefault()` in your own `onPointerDown` to opt out. Renders a `<div>` element.
+
+<BaseUIReference component="dialog" part="backdrop" wrapper />
+
+<TypeTableAuto type="CommandMenuBackdropProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuBackdropState" pkg="@bazza-ui/react" />
+
+## Popup
+
+The dialog that holds the palette. Its state adds the subpage navigation: whether a subpage is open, and which. Renders a `<div>` element with `role="dialog"`.
+
+<BaseUIReference component="dialog" part="popup" wrapper />
+
+<TypeTableAuto type="CommandMenuPopupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuPopupState" pkg="@bazza-ui/react" />
+
+## Surface
+
+One page of the palette: its search state, highlight, content and deep search. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuSurfaceProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuSurfaceState" pkg="@bazza-ui/react" />
+
+## Input
+
+A text input that filters the rows. On a subpage, pressing Backspace in the empty input goes back one page. Renders an `<input>` element.
+
+<TypeTableAuto type="CommandMenuInputProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuInputState" pkg="@bazza-ui/react" />
+
+## List
+
+Container for the rows. Manages keyboard navigation. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="CommandMenuListProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuListState" pkg="@bazza-ui/react" />
+
+## Item
+
+A selectable row. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="CommandMenuItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuItemState" pkg="@bazza-ui/react" />
+
+## LinkItem
+
+A row that navigates to a URL. Renders an `<a>` element with `role="option"`. Unlike `Item`, `closeOnClick` defaults to `false`; modifier-clicks never close the menu.
+
+<TypeTableAuto type="CommandMenuLinkItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuLinkItemState" pkg="@bazza-ui/react" />
+
+## Icon
+
+An icon displayed within a row. Renders a `<span>` element.
+
+<TypeTableAuto type="CommandMenuIconProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuIconState" pkg="@bazza-ui/react" />
+
+## Shortcut
+
+Displays a keyboard shortcut hint for a row. Renders a `<kbd>` element.
+
+<TypeTableAuto type="CommandMenuShortcutProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuShortcutState" pkg="@bazza-ui/react" />
+
+## Group
+
+Groups related rows together. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="CommandMenuGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuGroupState" pkg="@bazza-ui/react" />
+
+## GroupLabel
+
+A label for a group of rows. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuGroupLabelProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuGroupLabelState" pkg="@bazza-ui/react" />
+
+## Separator
+
+A visual separator between rows. Renders a `<div>` element with `role="separator"`.
+
+<TypeTableAuto type="CommandMenuSeparatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuSeparatorState" pkg="@bazza-ui/react" />
+
+## Header
+
+Container for tabbable content at the top of a surface, such as toolbars or quick actions. Registers as a focus zone: its tabbable children join the surface's Tab cycle. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuHeaderProps" pkg="@bazza-ui/react" />
+
+## Footer
+
+Container for tabbable content at the bottom of a surface, such as action rows. Registers as a focus zone: its tabbable children join the surface's Tab cycle. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuFooterProps" pkg="@bazza-ui/react" />
+
+## FocusZone
+
+Declares its children as tabbable popup content, so they join the surface's Tab cycle. A zone with no tabbable children is treated as absent. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuFocusZoneProps" pkg="@bazza-ui/react" />
+
+## Empty
+
+Displayed when no rows match the search. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuEmptyProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuEmptyState" pkg="@bazza-ui/react" />
+
+## Loading
+
+Displayed while async content loads for the first time. Renders a `<div>` element.
+
+<TypeTableAuto type="CommandMenuLoadingProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuLoadingState" pkg="@bazza-ui/react" />
+
+## CheckboxItem
+
+A row with a checkbox that stays open when toggled. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="CommandMenuCheckboxItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuCheckboxItemState" pkg="@bazza-ui/react" />
+
+## CheckboxItemIndicator
+
+Displays a check mark when the checkbox item is checked. Renders a `<span>` element.
+
+<TypeTableAuto type="CommandMenuCheckboxItemIndicatorProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuCheckboxItemIndicatorState" pkg="@bazza-ui/react" />
+
+## CheckboxGroup
+
+Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="group"`.
+
+<TypeTableAuto type="CommandMenuCheckboxGroupProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuCheckboxGroupState" pkg="@bazza-ui/react" />
+
+## CheckboxGroupValue
+
+Headless provider for checkbox group state: the same `value` / `onValueChange` contract as `CheckboxGroup` without rendering an element. Rows of a `CheckboxGroupDef` read their state from the def and need no provider from you.
+
+<TypeTableAuto type="CommandMenuCheckboxGroupValueProps" pkg="@bazza-ui/react" />
+
+## Subpage
+
+Groups the parts of one page in a multi-step flow. Link it to its trigger with a shared `pageId`. Escape closes the whole menu from a subpage by default. Doesn't render its own HTML element.
+
+<TypeTableAuto type="CommandMenuSubpageProps" pkg="@bazza-ui/react" />
+
+## SubpageTrigger
+
+A row that opens a subpage in the same popup. Set `targetPageId` to the subpage's `pageId`. Renders a `<div>` element with `role="menuitem"`.
+
+<TypeTableAuto type="CommandMenuSubpageTriggerProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuSubpageTriggerState" pkg="@bazza-ui/react" />
+
+## SubpageBack
+
+A button that goes back one page, for headers and toolbars outside the list. Renders a `<button>` element.
+
+<TypeTableAuto type="CommandMenuSubpageBackProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuSubpageBackState" pkg="@bazza-ui/react" />
+
+## SubpageBackItem
+
+A row that goes back one page. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="CommandMenuSubpageBackItemProps" pkg="@bazza-ui/react" />
+<StateTableAuto type="CommandMenuSubpageBackItemState" pkg="@bazza-ui/react" />
+
+---
+
+## Data-First API
+
+Instead of writing rows as JSX, you can pass them to `Surface` as data. Data-first content supports deep search across subpages and async results.
+
+### useDataList
+
+Reads the list computed by a `List` inside a data `Surface`: the visible nodes, the node renderer, the result count and the async state.
+
+<TypeTableAuto type="DataListChildrenState" pkg="@bazza-ui/react" />
+
+### DeepSearchConfig
+
+Configures `Surface`'s `deepSearch`, which searches the rows inside subpages from the root input.
+
+<TypeTableAuto type="DeepSearchConfig" pkg="@bazza-ui/react" />
+
+---
+
+## Node Definition Types
+
+These types define menu content for the Data-First API. Import them from `@bazza-ui/react/command-menu`.
+
+### NodeDef
+
+Union of every node definition. `CommandMenu.NodeDef` is the namespaced alias, and `CommandMenu.Node` is the corresponding menu node.
+
+<TypeTableAuto type="NodeDef" pkg="@bazza-ui/react" />
+
+### ItemDef
+
+Defines a selectable row.
+
+<TypeTableAuto type="ItemDef" pkg="@bazza-ui/react" />
+
+### LinkItemDef
+
+Defines a row that navigates to a URL.
+
+<TypeTableAuto type="LinkItemDef" pkg="@bazza-ui/react" />
+
+### SubpageDef
+
+Defines a row that opens a subpage, with the subpage's content.
+
+<TypeTableAuto type="SubpageDef" pkg="@bazza-ui/react" />
+
+### CheckboxItemDef
+
+Defines a toggleable checkbox row.
+
+<TypeTableAuto type="CheckboxItemDef" pkg="@bazza-ui/react" />
+
+### CheckboxGroupDef
+
+Defines a group of checkbox rows whose checked state the group owns as one array of values.
+
+<TypeTableAuto type="CheckboxGroupDef" pkg="@bazza-ui/react" />
+
+### GroupDef
+
+Defines a group of rows.
+
+<TypeTableAuto type="GroupDef" pkg="@bazza-ui/react" />
+
+### SeparatorDef
+
+Defines a visual separator.
+
+<TypeTableAuto type="SeparatorDef" pkg="@bazza-ui/react" />

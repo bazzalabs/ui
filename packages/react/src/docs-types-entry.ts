@@ -7,6 +7,7 @@
  */
 
 export * from './combobox/index.js'
+export * from './command-menu/index.js'
 export * from './context-menu/index.js'
 export * from './dropdown-menu/index.js'
 export * from './loaders/index.js'
