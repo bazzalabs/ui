@@ -30,6 +30,7 @@ Use `gt` for branch/commit/submit. Do **not** use `git commit` / `git push`.
 | [003](./003-bump-base-ui-react-to-1.5.0.md) | Bump `@base-ui/react` to `1.5.0` (+ `@base-ui/utils` to `0.2.9`, align `apps/web`) | P2 | S | — (independent chore; UI-303) | DONE |
 | [004](./004-align-listbox-controlled-state-with-base-ui-store-refactor.md) | Align `ListboxStore` controlled state with Base UI's `useControlledProp` refactor | P2 | M | 003 | DONE |
 | [005](./005-replace-font-submodule-and-next-font-generation-with-hosted-css-fonts.md) | Replace font submodule and `next/font` generation with hosted CSS fonts | P1 | M | — | DONE |
+| [006](./006-suggestion-menu-design.md) | `SuggestionMenu` design (design record, not an executor plan) | — | L | — | DECIDED |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 

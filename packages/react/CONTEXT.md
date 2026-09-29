@@ -11,7 +11,7 @@ An unstyled compound component exported from `@bazza-ui/react` (e.g. `DropdownMe
 _Avoid_: unstyled component, headless component, base component
 
 **Family**:
-A category of related library offerings. The **menu family** is the set backed by the popup-menu engine: dropdown-menu, context-menu, combobox, command-menu, select — each a **member** of the family. "Member" is relational only, never a label: refer to a member by its proper name ("the dropdown menu", "the dropdown menu docs"), not "the dropdown-menu member".
+A category of related library offerings. The **menu family** is the set backed by the popup-menu engine: dropdown-menu, context-menu, combobox, command-menu, select, suggestion-menu — each a **member** of the family. "Member" is relational only, never a label: refer to a member by its proper name ("the dropdown menu", "the dropdown menu docs"), not "the dropdown-menu member".
 _Avoid_: suite, cluster, category; "the dropdown-menu family" (a family is the group, not one member)
 
 **Highlight**:
@@ -45,6 +45,10 @@ _Avoid_: node API, data API, declarative API (both APIs are declarative)
 **Loader**:
 A source of node defs fetched after mount, created via a loader factory; results graft under the loader's parent node. Two kinds: a **static loader** fetches once; a **query loader** fetches per search query. The loader concept is agnostic to any data-fetching solution.
 _Avoid_: fetcher, data source, async source
+
+**Settled**:
+A surface's results are settled for the current query once none of its loaders is still pending for that query, meaning neither fetching nor waiting out a debounce. A loader that resolved or errored counts as settled; rows kept from a previous query while the next one loads do not. Announcing results and closing on no results both wait for it.
+_Avoid_: loaded, done, finished, ready (each ignores the "for the current query" part)
 
 **Adapter**:
 The binding that lets a data-fetching solution drive the loader pattern. Vanilla, SWR, and TanStack Query adapters ship in the package; consumers can write their own.
@@ -81,6 +85,18 @@ _Avoid_: locked branch, inert branch
 **Popup**:
 The floating container a positioner places on screen; wraps its surfaces. Each menu level that floats independently — the root, and each open submenu — is its own popup.
 _Avoid_: popover (for menus), overlay, floating panel
+
+**Suggestion Menu**:
+The menu family member whose query is typed into a host input it doesn't own. The popup is anchored to a point in the host's text, and DOM focus never leaves the host. Used for `/` commands, `@` mentions and `:` emoji in editors and text fields.
+_Avoid_: mention menu, slash menu (both are uses, not the component), typeahead, inline combobox, autocomplete (Base UI's autocomplete is a free-text input with suggestions, which is a different thing)
+
+**Host Input**:
+The editable element outside a suggestion menu's popup — an `<input>`, a `<textarea>`, or a contenteditable editor — that owns DOM focus and the typed text while the menu is open, and forwards key presses to it.
+_Avoid_: host (bare), external input, editor (too narrow: plain inputs are hosts too), trigger (a trigger opens a menu by being pressed; a host input is typed into)
+
+**Handle**:
+An object created outside React that connects a suggestion menu's Root to its host input. The host attaches to it, forwards key presses through it, and tells the menu the query, anchor and payload through it, so non-React editor code can drive the menu. A handle has at most one host input attached at a time. Same meaning as Base UI's `createHandle`: one object linking two places the component tree doesn't connect.
+_Avoid_: controller, connection, store (the store is internal state behind the handle), ref
 
 **Styled Component**:
 The styled, copy-paste counterpart of a primitive, distributed via the registry (`registry/ui/`). No relation to the `styled-components` library.

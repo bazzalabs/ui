@@ -1,0 +1,12 @@
+# Where the menu family deliberately departs from the textbook ARIA patterns
+
+Three accessibility choices in the menu family look like mistakes to anyone who knows the WAI-ARIA Authoring Practices, and each one would quietly make things worse for screen-reader users if someone "fixed" it. They are deliberate.
+
+1. **A suggestion menu's host only points `aria-activedescendant` at a row after the user moves the highlight with the keyboard.** The menu highlights the first row on every result change, so a host whose `aria-activedescendant` followed that would move it on every keystroke. VoiceOver then reads options over the characters being typed, and NVDA stops announcing edits and caret movement altogether. React Spectrum hit the same problem and clears `aria-activedescendant` on text changes and ←/→ for the same reason. The visual highlight doesn't change, and a polite status region announces the result count and the row Enter would choose, so nothing is hidden.
+2. **Groups are named with `aria-describedby` on each option, not `role="group"` with `aria-labelledby`.** With options inside `role="group"`, VoiceOver stops announcing the highlighted option in every browser. The description points at an always-mounted hidden node per group, not at the visible group label, because in virtualized lists the label row unmounts when it scrolls away. This applies to every kind of group: radio and checkbox groups render `presentation` too, even though a radio group is the textbook case for `role="group"`.
+3. **`<textarea>` and contenteditable hosts get no `aria-expanded`, and a `<textarea>` never gets `role="combobox"`.** WAI-ARIA 1.2 doesn't support `aria-expanded` on `textbox`, and ARIA in HTML allows `<textarea>` no role other than `textbox`. Those hosts get `aria-controls`, `aria-activedescendant`, `aria-autocomplete` and `aria-haspopup`, which are valid there. Only a single-line `<input>` gets the full combobox pattern.
+
+## Considered Options
+
+- **Following the APG combobox and grouped-listbox patterns literally**: `aria-activedescendant` always tracking the highlight, `role="group"` for groups, and the combobox attributes on every host. That's the familiar textbook shape, but it breaks on real screen readers in the ways above, and part of it is non-conforming ARIA.
+- **Announcing everything through a live region and never using `aria-activedescendant`**: avoids its bugs, but throws away the standard mechanism where it does work (NVDA and JAWS while arrowing), and live regions bring their own double-announcement and timing problems.
