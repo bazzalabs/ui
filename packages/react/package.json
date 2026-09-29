@@ -67,9 +67,9 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup --watch",
+    "dev": "tsdown --watch",
     "type-check": "tsc --noEmit",
-    "build": "tsup",
+    "build": "tsdown",
     "test": "vitest run",
     "test:jsdom": "vitest run --project jsdom",
     "test:watch": "vitest --watch"
@@ -96,7 +96,7 @@
     "jsdom": "^27.4.0",
     "playwright": "^1.63.0",
     "react-hook-form": "^7.71.1",
-    "tsup": "^8.5.1",
+    "tsdown": "0.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   }

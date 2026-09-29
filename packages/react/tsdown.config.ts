@@ -1,6 +1,6 @@
-import { defineConfig, type Options } from 'tsup'
+import { defineConfig } from 'tsdown'
 
-export default defineConfig((options: Options) => ({
+export default defineConfig((options) => ({
   entry: {
     'dropdown-menu/index': './src/dropdown-menu/index.ts',
     'command-menu/index': './src/command-menu/index.ts',
@@ -14,14 +14,25 @@ export default defineConfig((options: Options) => ({
     'internal/listbox/index': './src/internal/listbox/index.ts',
     'internal/popup-menu/index': './src/internal/popup-menu/index.ts',
   },
-  format: ['esm', 'cjs'],
-  dts: true,
+  format: {
+    esm: {},
+    // `exports` resolves types through `.d.ts` for both conditions, so the
+    // CommonJS build needs no declarations of its own.
+    cjs: { dts: false },
+  },
+  outputOptions: (output, format) =>
+    format === 'cjs' ? { ...output, strict: true, esModule: true } : output,
+  target: 'es2022',
+  // Keep `.js` / `.cjs` / `.d.ts`, which `exports` points at.
+  fixedExtension: false,
+  // Declaration maps would point at `src/`, which is not published.
+  dts: { sourcemap: false },
   minify: !options.watch,
   sourcemap: true,
   clean: true,
-  splitting: true,
-  external: ['react', 'react-dom'],
+  deps: {
+    neverBundle: ['react', 'react-dom'],
+  },
   outDir: 'dist/',
   onSuccess: options.watch ? 'echo "✅ @bazza-ui/react rebuilt"' : undefined,
-  ...options,
 }))
