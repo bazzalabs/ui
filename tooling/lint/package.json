@@ -1,0 +1,17 @@
+{
+  "name": "@bazza-ui/lint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@bazza-ui/typescript-config": "workspace:*",
+    "@types/node": "^22",
+    "oxlint": "1.86.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  }
+}

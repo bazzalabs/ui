@@ -1,0 +1,70 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // oxlint lints how parts in `packages/react` are written. Biome owns
+  // formatting and general linting, so oxlint's categories are off and only
+  // the rules named below run: the `bazza/*` rules in `tooling/lint`, plus
+  // built-ins Biome has no active equivalent for.
+  //
+  // Run with --disable-nested-config (see package.json): a nested config would
+  // otherwise replace these rules for its subtree without saying so.
+  // Conventions and how to write an exception: "Lint" in packages/react/AGENTS.md.
+  "plugins": ["react"],
+  "categories": { "correctness": "off" },
+  "jsPlugins": ["./tooling/lint/bazza-plugin.mjs"],
+  "options": {
+    // Only `oxlint-disable` counts as an exception. `bazza/disable-needs-reason`
+    // reports any `eslint-disable` comment.
+    "respectEslintDisableDirectives": false,
+    "denyWarnings": true
+  },
+  "ignorePatterns": ["**/node_modules/**", "**/dist/**"],
+  "overrides": [
+    {
+      // Correctness rules: source and tests.
+      "files": ["packages/react/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "error",
+        "bazza/disable-needs-reason": "error",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
+
+    // --- Allowlists -----------------------------------------------------------
+    // Files that broke a rule when the rule was added. Each file is exempt from
+    // that one rule until it's fixed. Shrink these lists: fix the file, then
+    // delete its line. Never add a file here to get a new change through; use a
+    // reasoned `oxlint-disable-next-line` instead.
+
+    {
+      // A class method calls `useRefWithInit`.
+      "files": ["packages/react/src/internal/listbox/store/ListboxStore.ts"],
+      "rules": { "react-hooks/rules-of-hooks": "off" }
+    },
+    {
+      // Imports `useDirection` from Base UI's internals.
+      "files": ["packages/react/src/select/positioner/positioner.tsx"],
+      "rules": { "no-restricted-imports": "off" }
+    },
+    {
+      // A stale `eslint-disable-line` comment.
+      "files": [
+        "packages/react/src/internal/popup-menu/data-first/data-list.tsx"
+      ],
+      "rules": { "bazza/disable-needs-reason": "off" }
+    }
+  ]
+}

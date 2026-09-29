@@ -10,8 +10,9 @@
     "bench:watch": "turbo run bench:watch",
     "type-check": "turbo run type-check",
     "clean": "zsh -c 'setopt nullglob && rm -rf **/node_modules **/dist **/.turbo **/.next **/.next-dev'",
-    "check": "biome check .",
-    "check:fix": "biome check --fix .",
+    "check": "biome check . && bun run lint:oxlint",
+    "check:fix": "biome check --fix . && bun run lint:oxlint --fix",
+    "lint:oxlint": "oxlint --disable-nested-config packages/react",
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "sgrep:watch": "sgrep watch .",
@@ -33,6 +34,7 @@
     "@types/node": "^22",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
+    "oxlint": "1.86.0",
     "repomix": "^1.2.1",
     "turbo": "^2.4.4",
     "typescript": "7.0.2"
@@ -44,6 +46,7 @@
   "workspaces": [
     "apps/*",
     "packages/*",
+    "tooling/*",
     "apps/web/registry/ui/*",
     "apps/web/registry/components/*"
   ],
