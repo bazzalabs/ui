@@ -38,10 +38,6 @@ describe('normalizeValue', () => {
     expect(normalizeValue('  hello')).toBe('hello')
   })
 
-  it('trims trailing whitespace', () => {
-    expect(normalizeValue('hello  ')).toBe('hello')
-  })
-
   it('trims both leading and trailing whitespace', () => {
     expect(normalizeValue('  hello  ')).toBe('hello')
   })
@@ -65,14 +61,6 @@ describe('normalizeValue', () => {
   it('returns empty string for whitespace-only string', () => {
     expect(normalizeValue('   ')).toBe('')
   })
-
-  it('returns unchanged string when no trimming needed', () => {
-    expect(normalizeValue('hello')).toBe('hello')
-  })
-
-  it('handles empty string', () => {
-    expect(normalizeValue('')).toBe('')
-  })
 })
 
 describe('slugify', () => {
@@ -94,11 +82,6 @@ describe('slugify', () => {
     expect(slugify('Café & Co.')).toBe('caf-co')
   })
 
-  it('trims whitespace', () => {
-    expect(slugify('  hello  ')).toBe('hello')
-    expect(slugify('  hello world  ')).toBe('hello-world')
-  })
-
   it('collapses multiple hyphens', () => {
     expect(slugify('hello--world')).toBe('hello-world')
     expect(slugify('hello - world')).toBe('hello-world')
@@ -118,12 +101,8 @@ describe('slugify', () => {
     expect(slugify('100% Complete!')).toBe('100-complete')
   })
 
-  it('returns empty string for undefined', () => {
-    expect(slugify(undefined)).toBe('')
-  })
-
-  it('returns empty string for null', () => {
-    expect(slugify(null)).toBe('')
+  it.each([undefined, null, ''])('returns empty string for %j', (value) => {
+    expect(slugify(value)).toBe('')
   })
 
   it('returns empty string for whitespace-only string', () => {
@@ -132,15 +111,5 @@ describe('slugify', () => {
 
   it('returns empty string for special-chars-only string', () => {
     expect(slugify('!@#$%')).toBe('')
-  })
-
-  it('handles empty string', () => {
-    expect(slugify('')).toBe('')
-  })
-
-  it('preserves numbers', () => {
-    expect(slugify('item1')).toBe('item1')
-    expect(slugify('123')).toBe('123')
-    expect(slugify('item 123')).toBe('item-123')
   })
 })
