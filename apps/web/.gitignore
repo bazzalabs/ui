@@ -44,3 +44,7 @@ next-env.d.ts
 
 # fumadocs
 .source/
+
+# agent rules written by `next dev` (Next.js 16.3+)
+/AGENTS.md
+/CLAUDE.md
