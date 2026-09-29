@@ -1,7 +1,34 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import prettier from 'prettier'
-import ts from 'typescript5'
+import {
+  type EnumDeclaration,
+  type InterfaceDeclaration,
+  isEnumDeclaration,
+  isInterfaceDeclaration,
+  isPropertyDeclaration,
+  isPropertySignatureDeclaration,
+  isStringLiteral,
+  isTypeAliasDeclaration,
+  type Node,
+  SyntaxKind,
+  type TypeAliasDeclaration,
+} from 'typescript/unstable/ast'
+import {
+  API,
+  type Checker,
+  type Diagnostic,
+  DiagnosticCategory,
+  isIntersectionType,
+  isObjectType,
+  isTypeReference,
+  isUnionType,
+  type Program,
+  SymbolFlags,
+  type Symbol as TsSymbol,
+  type Type,
+  TypeFlags,
+} from 'typescript/unstable/sync'
 import type { TypeExpansionConfig } from './type-extraction.config'
 import { defaultConfig, shouldExpandType } from './type-extraction.config'
 
@@ -107,16 +134,45 @@ export type MetaOutput = Record<string, PackageMeta>
 
 /** ---------- TS helpers (typed) ---------- */
 
-function isUnionType(t: ts.Type): t is ts.UnionType {
-  return (t.flags & ts.TypeFlags.Union) !== 0
+/**
+ * `typeToString` flags. TypeScript 7's API takes the numeric flags but does
+ * not export the `TypeFormatFlags` enum; the values match TypeScript 5's.
+ */
+const TypeFormatFlags = {
+  NoTruncation: 1 << 0,
+  WriteTypeArgumentsOfSignature: 1 << 5,
+  InTypeAlias: 1 << 23,
+} as const
+
+/** Resolve a symbol's declaration handles to AST nodes. */
+function declarationsOf(sym: TsSymbol): Node[] {
+  return sym.declarations
+    .map((handle) => handle.resolve())
+    .filter((node): node is Node => node !== undefined)
 }
 
-function isIntersectionType(t: ts.Type): t is ts.IntersectionType {
-  return (t.flags & ts.TypeFlags.Intersection) !== 0
+/** The value declaration if present, otherwise the first declaration. */
+function primaryDeclaration(sym: TsSymbol): Node | undefined {
+  return (sym.valueDeclaration ?? sym.declarations[0])?.resolve()
 }
 
-function isObjectLikeType(t: ts.Type): boolean {
-  return (t.flags & ts.TypeFlags.Object) !== 0
+/**
+ * `typeToString` of a symbol's type. TypeScript 7's `getTypeOfSymbol` can
+ * return nothing, which TypeScript 5's never did; say so instead of hiding it.
+ */
+function typeTextOfSymbol(sym: TsSymbol, checker: Checker): string {
+  const type = checker.getTypeOfSymbol(sym)
+  if (type) return checker.typeToString(type)
+  console.warn(`[types:meta] could not resolve the type of \`${sym.name}\``)
+  return 'unknown'
+}
+
+/** Whether a property signature or declaration is written as optional (`name?:`). */
+function isOptionalMember(decl: Node): boolean {
+  if (isPropertySignatureDeclaration(decl) || isPropertyDeclaration(decl)) {
+    return decl.postfixToken?.kind === SyntaxKind.QuestionToken
+  }
+  return false
 }
 
 /**
@@ -125,23 +181,23 @@ function isObjectLikeType(t: ts.Type): boolean {
  * `Align` should be expanded to `'start' | 'center' | 'end'`.
  */
 function expandTypeRecursively(
-  type: ts.Type,
-  checker: ts.TypeChecker,
-  visited: Set<ts.Type> = new Set(),
+  type: Type,
+  checker: Checker,
+  visited: Set<number> = new Set(),
   filterUndefined = true,
 ): string {
-  // Prevent infinite recursion
-  if (visited.has(type)) {
+  // Prevent infinite recursion (type objects are proxies; compare by id)
+  if (visited.has(type.id)) {
     return checker.typeToString(type)
   }
-  visited.add(type)
+  visited.add(type.id)
 
   // Handle union types - expand each member
   if (isUnionType(type)) {
     const expandedParts: string[] = []
-    for (const memberType of type.types) {
+    for (const memberType of type.getTypes()) {
       // Filter out 'undefined' from unions (we show this via the Optional badge instead)
-      if (filterUndefined && memberType.flags & ts.TypeFlags.Undefined) {
+      if (filterUndefined && memberType.flags & TypeFlags.Undefined) {
         continue
       }
       const expanded = expandTypeRecursively(
@@ -152,7 +208,7 @@ function expandTypeRecursively(
       )
       // If the member itself expands to a union, we should include its parts individually
       // to avoid nested parentheses like `('start' | 'center' | 'end') | 'list-start'`
-      if (isUnionType(memberType) && !memberType.aliasSymbol) {
+      if (isUnionType(memberType) && !memberType.getAliasSymbol()) {
         expandedParts.push(expanded)
       } else {
         expandedParts.push(expanded)
@@ -165,43 +221,37 @@ function expandTypeRecursively(
 
   // Handle intersection types
   if (isIntersectionType(type)) {
-    const parts = type.types.map((t) =>
-      expandTypeRecursively(t, checker, visited),
-    )
+    const parts = type
+      .getTypes()
+      .map((t) => expandTypeRecursively(t, checker, visited))
     return parts.join(' & ')
   }
 
   // Handle type aliases - try to get the underlying type
-  const symbol = type.getSymbol() ?? type.aliasSymbol
+  const symbol = type.getSymbol() ?? type.getAliasSymbol()
   if (symbol) {
-    const declarations = symbol.getDeclarations()
-    if (declarations && declarations.length > 0) {
-      const decl = declarations[0]!
-      if (isTypeAliasDecl(decl)) {
-        // Get the type that the alias points to
-        const aliasedType = checker.getTypeFromTypeNode(decl.type)
-        // If the aliased type is a union, expand it
-        if (isUnionType(aliasedType)) {
-          return expandTypeRecursively(aliasedType, checker, visited)
-        }
+    const decl = declarationsOf(symbol)[0]
+    if (decl && isTypeAliasDeclaration(decl)) {
+      // Get the type that the alias points to
+      const aliasedType = checker.getTypeFromTypeNode(decl.type)
+      // If the aliased type is a union, expand it
+      if (aliasedType && isUnionType(aliasedType)) {
+        return expandTypeRecursively(aliasedType, checker, visited)
       }
     }
   }
 
   // For literal types and primitives, just use typeToString
-  return checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation)
+  return checker.typeToString(type, undefined, TypeFormatFlags.NoTruncation)
 }
 
 /**
  * Check if a type is a type alias (not a primitive, object, or anonymous type)
  * and return its expanded form if so.
  */
-function expandTypeAlias(
-  type: ts.Type,
-  checker: ts.TypeChecker,
-): string | null {
+function expandTypeAlias(type: Type, checker: Checker): string | null {
   // Check if this is an alias (type reference to a type alias)
-  const aliasSymbol = type.aliasSymbol
+  const aliasSymbol = type.getAliasSymbol()
   if (!aliasSymbol) {
     // Even without an alias symbol, unions should be expanded
     if (isUnionType(type)) {
@@ -214,7 +264,7 @@ function expandTypeAlias(
 
   // Try recursive expansion first
   const expandedType = expandTypeRecursively(type, checker)
-  const aliasName = aliasSymbol.getName()
+  const aliasName = aliasSymbol.name
 
   // If the expanded type is different from just the alias name, return it
   if (expandedType !== aliasName) {
@@ -225,40 +275,89 @@ function expandTypeAlias(
   const fallbackExpanded = checker.typeToString(
     type,
     undefined,
-    ts.TypeFormatFlags.NoTruncation |
-      ts.TypeFormatFlags.InTypeAlias |
-      ts.TypeFormatFlags.WriteTypeArgumentsOfSignature,
+    TypeFormatFlags.NoTruncation |
+      TypeFormatFlags.InTypeAlias |
+      TypeFormatFlags.WriteTypeArgumentsOfSignature,
   )
 
   return fallbackExpanded !== aliasName ? fallbackExpanded : null
 }
 
+/**
+ * Property names of `t` in declaration order: an interface's own members in
+ * source order, then each base type's in `extends` order; an intersection's
+ * parts one after another. TypeScript 5's checker returned properties in this
+ * order; TypeScript 7's does not (it lists inherited members first), and the
+ * docs tables render props in array order.
+ */
+function propertyOrder(
+  t: Type,
+  checker: Checker,
+  seen: Set<number> = new Set(),
+): string[] {
+  if (seen.has(t.id)) return []
+  seen.add(t.id)
+  const names: string[] = []
+  const add = (list: readonly string[]) => {
+    for (const n of list) if (!names.includes(n)) names.push(n)
+  }
+  // A generic interface instantiation (`Props<X>`) orders like its interface.
+  const iface = t.isClassOrInterface()
+    ? t
+    : isTypeReference(t) && t.getTarget().isClassOrInterface()
+      ? t.getTarget()
+      : undefined
+  if (isIntersectionType(t)) {
+    for (const part of t.getTypes()) add(propertyOrder(part, checker, seen))
+  } else if (iface?.isClassOrInterface()) {
+    const ownDecls = new Set(
+      declarationsOf(iface.getSymbol()!).filter(isInterfaceDeclaration),
+    )
+    const own = checker
+      .getPropertiesOfType(iface)
+      .map((p) => ({ name: p.name, decl: primaryDeclaration(p) }))
+      .filter(({ decl }) => decl && ownDecls.has(decl.parent as never))
+      .sort((a, b) => a.decl!.pos - b.decl!.pos)
+    add(own.map(({ name }) => name))
+    for (const base of checker.getBaseTypes(iface)) {
+      add(propertyOrder(base, checker, seen))
+    }
+  }
+  add(checker.getPropertiesOfType(t).map((p) => p.name))
+  return names
+}
+
 /** Collect properties only from object(-like) types. Flattens intersections. */
 async function collectObjectProps(
-  t: ts.Type,
-  checker: ts.TypeChecker,
+  t: Type,
+  checker: Checker,
   ctx?: TypeExpansionContext,
 ): Promise<PropMeta[]> {
-  const seen = new Map<string, ts.Symbol>()
+  const seen = new Map<string, TsSymbol>()
 
-  const addProps = (tt: ts.Type) => {
-    if (!isObjectLikeType(tt)) return
+  const addProps = (tt: Type) => {
+    if (!isObjectType(tt)) return
     for (const s of checker.getPropertiesOfType(tt)) {
-      seen.set(s.getName(), s)
+      seen.set(s.name, s)
     }
   }
 
   if (isIntersectionType(t)) {
-    for (const part of t.types) addProps(part)
+    for (const part of t.getTypes()) addProps(part)
   } else if (!isUnionType(t)) {
     // unions are skipped (e.g., 'a' | 'b'); object unions aren't summarized here
     addProps(t)
   }
 
   // Filter out inherited HTML/React props unless they have custom documentation
-  const filteredSymbols = [...seen.values()].filter((sym) =>
-    shouldIncludeProp(sym, checker),
-  )
+  const order = propertyOrder(t, checker)
+  const rank = (sym: TsSymbol) => {
+    const i = order.indexOf(sym.name)
+    return i === -1 ? order.length : i
+  }
+  const filteredSymbols = [...seen.values()]
+    .filter((sym) => shouldIncludeProp(sym, checker))
+    .sort((a, b) => rank(a) - rank(b))
 
   // If context is provided, use it for type expansion
   if (ctx) {
@@ -267,159 +366,211 @@ async function collectObjectProps(
 
   // Fallback for backward compatibility (shouldn't happen in practice)
   return filteredSymbols.map((sym) => {
-    const decl = (sym.valueDeclaration ?? sym.declarations?.[0]) as
-      | ts.Declaration
-      | undefined
+    const decl = primaryDeclaration(sym)
 
     // If no valid declaration node exists, fall back to getTypeOfSymbol
     if (!decl) {
-      const type = checker.getTypeOfSymbol(sym)
       return {
-        name: sym.getName(),
-        type: checker.typeToString(type),
+        name: sym.name,
+        type: typeTextOfSymbol(sym, checker),
         required: true,
         description: getSymbolDoc(sym, checker),
-        default: getSymbolDefaultValue(sym),
+        default: getSymbolDefaultValue(sym, checker),
       }
     }
 
     const type = checker.getTypeOfSymbolAtLocation(sym, decl)
-    const required = ts.isPropertySignature(decl)
-      ? !decl.questionToken
-      : ts.isPropertyDeclaration(decl)
-        ? !decl.questionToken
-        : true
 
     return {
-      name: sym.getName(),
+      name: sym.name,
       type: checker.typeToString(type),
-      required,
+      required: !isOptionalMember(decl),
       description: getSymbolDoc(sym, checker),
-      default: getSymbolDefaultValue(sym),
+      default: getSymbolDefaultValue(sym, checker),
     }
   })
 }
 
-function loadCompilerOptions(tsconfigPath?: string): ts.CompilerOptions {
-  if (!tsconfigPath) return { skipLibCheck: true, strict: false }
-  const cfg = ts.readConfigFile(tsconfigPath, ts.sys.readFile)
-  if (cfg.error)
-    throw new Error(
-      ts.formatDiagnosticsWithColorAndContext([cfg.error], formatHost),
-    )
-  const parsed = ts.parseJsonConfigFileContent(
-    cfg.config,
-    ts.sys,
-    path.dirname(tsconfigPath),
-  )
-  return parsed.options
-}
-
-function sanitizeForAnalysis(options: ts.CompilerOptions): ts.CompilerOptions {
-  // We don't emit; ensure JSX + DOM + React types are available and resolution works with .js -> .tsx re-exports.
-  const merged: ts.CompilerOptions = {
-    ...options,
-    noEmit: true,
-    skipLibCheck: true,
-    jsx: options.jsx ?? ts.JsxEmit.ReactJSX,
-    jsxImportSource: options.jsxImportSource ?? 'react',
-    lib: options.lib ?? ['ES2021', 'DOM'],
-    types: Array.from(
-      new Set([...(options.types ?? []), 'node', 'react', 'react-dom']),
-    ),
-    moduleResolution:
-      options.moduleResolution ?? ts.ModuleResolutionKind.Bundler,
+/**
+ * Write a throwaway tsconfig next to `tsconfigPath` that extends it, roots the
+ * program at the package entries, and makes the DOM/React/Node types available
+ * for analysis. It lives next to the original so relative `extends`, `paths`,
+ * and type-root lookups resolve exactly as they do for the app.
+ */
+function writeAnalysisTsconfig(
+  api: API,
+  entries: string[],
+  tsconfigPath?: string,
+): string {
+  const dir = tsconfigPath ? path.dirname(tsconfigPath) : process.cwd()
+  const baseTypes = tsconfigPath
+    ? ((api.parseConfigFile(tsconfigPath).options.types as
+        | string[]
+        | undefined) ?? [])
+    : []
+  const config = {
+    ...(tsconfigPath ? { extends: `./${path.basename(tsconfigPath)}` } : {}),
+    include: [],
+    files: entries,
+    compilerOptions: {
+      noEmit: true,
+      skipLibCheck: true,
+      ...(tsconfigPath ? {} : { strict: false }),
+      incremental: false,
+      composite: false,
+      types: [...new Set([...baseTypes, 'node', 'react', 'react-dom'])],
+    },
   }
-  // Remove build-only flags that cause diagnostics in analysis mode
-  delete (merged as any).incremental
-  delete (merged as any).tsBuildInfoFile
-  delete (merged as any).composite
-  return merged
+  const file = path.join(dir, `.tsconfig.types-meta.${process.pid}.json`)
+  fs.writeFileSync(file, JSON.stringify(config, null, 2))
+  return file
 }
 
-const formatHost: ts.FormatDiagnosticsHost = {
-  getCanonicalFileName: (f) => f,
-  getCurrentDirectory: () => process.cwd(),
-  getNewLine: () => '\n',
+/** `file(line,col): category TS1234: message` plus the indented message chain. */
+function formatDiagnostic(d: Diagnostic, program: Program): string {
+  let location = ''
+  if (d.fileName) {
+    const file = path.relative(process.cwd(), d.fileName)
+    const sourceFile = program.getSourceFile(d.fileName)
+    const at = sourceFile?.getLineAndCharacterOfPosition(d.pos)
+    location = at
+      ? `${file}(${at.line + 1},${at.character + 1}): `
+      : `${file}: `
+  }
+  const category = DiagnosticCategory[d.category].toLowerCase()
+  const chain = (items: readonly Diagnostic[] = [], depth = 1): string[] =>
+    items.flatMap((c) => [
+      `${'  '.repeat(depth)}${c.text}`,
+      ...chain(c.messageChain, depth + 1),
+    ])
+  return [
+    `${location}${category} TS${d.code}: ${d.text}`,
+    ...chain(d.messageChain),
+  ].join('\n')
 }
 
-const isInterfaceDecl = (n: ts.Node): n is ts.InterfaceDeclaration =>
-  n.kind === ts.SyntaxKind.InterfaceDeclaration
-const isTypeAliasDecl = (n: ts.Node): n is ts.TypeAliasDeclaration =>
-  n.kind === ts.SyntaxKind.TypeAliasDeclaration
-const isEnumDecl = (n: ts.Node): n is ts.EnumDeclaration =>
-  n.kind === ts.SyntaxKind.EnumDeclaration
+function preEmitDiagnostics(program: Program): readonly Diagnostic[] {
+  return [
+    ...program.getConfigFileParsingDiagnostics(),
+    ...program.getProgramDiagnostics(),
+    ...program.getSyntacticDiagnostics(),
+    ...program.getGlobalDiagnostics(),
+    ...program.getSemanticDiagnostics(),
+  ]
+}
 
-function kindOfDecl(
-  d: ts.InterfaceDeclaration | ts.TypeAliasDeclaration | ts.EnumDeclaration,
-): TypeMeta['kind'] {
-  if (isInterfaceDecl(d)) return 'interface'
-  if (isTypeAliasDecl(d)) return 'typealias'
+type DocumentedDecl =
+  | InterfaceDeclaration
+  | TypeAliasDeclaration
+  | EnumDeclaration
+
+function isDocumentedDecl(n: Node): n is DocumentedDecl {
+  return (
+    isInterfaceDeclaration(n) ||
+    isTypeAliasDeclaration(n) ||
+    isEnumDeclaration(n)
+  )
+}
+
+function kindOfDecl(d: DocumentedDecl): TypeMeta['kind'] {
+  if (isInterfaceDeclaration(d)) return 'interface'
+  if (isTypeAliasDeclaration(d)) return 'typealias'
   return 'enum'
 }
 
-const printer = ts.createPrinter({ removeComments: false })
-function nodeText(node: ts.Node): string {
-  return printer.printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
+/**
+ * Source text of a type node, comments included (also a comment before the
+ * first union member), with continuation lines dedented by the indentation of
+ * the line the node starts on. TypeScript 7's printer drops comments, which
+ * the docs show for annotated unions.
+ */
+function nodeText(node: Node): string {
+  const sourceFile = node.getSourceFile()
+  const start = node.getStart(sourceFile)
+  const lineStart = sourceFile.text.lastIndexOf('\n', start - 1) + 1
+  const lineIndent = /^[ \t]*/.exec(sourceFile.text.slice(lineStart))![0].length
+  const [first = '', ...rest] = node.getFullText(sourceFile).trim().split('\n')
+  const indent = new RegExp(`^[ \\t]{0,${lineIndent}}`)
+  return [first, ...rest.map((line) => line.replace(indent, ''))].join('\n')
 }
 
-function getSymbolDoc(
-  sym: ts.Symbol,
-  checker: ts.TypeChecker,
-): string | undefined {
-  const txt = ts
-    .displayPartsToString(sym.getDocumentationComment(checker))
-    .trim()
+function getSymbolDoc(sym: TsSymbol, checker: Checker): string | undefined {
+  const txt =
+    sym.getDocumentationComment(checker).trim() || getInheritedDoc(sym, checker)
   return txt || undefined
+}
+
+/**
+ * Documentation inherited by an undocumented interface member, following
+ * TypeScript 5's `getDocumentationComment` fallback: the first base type that
+ * has a same-named property with a single declaration supplies the docs, even
+ * when they are empty. TypeScript 7's API inherits by a different rule and
+ * misses some of these (e.g. a member redeclared over an `Omit<…>` base).
+ */
+function getInheritedDoc(
+  sym: TsSymbol,
+  checker: Checker,
+  seen: Set<number> = new Set([sym.id]),
+): string {
+  for (const decl of declarationsOf(sym)) {
+    const owner = decl.parent
+    if (!owner || !isInterfaceDeclaration(owner)) continue
+    const ownerSym = checker.getSymbolAtLocation(owner.name)
+    if (!ownerSym) continue
+    const ownerType = checker.getDeclaredTypeOfSymbol(ownerSym)
+    if (!ownerType.isClassOrInterface()) continue
+    for (const base of checker.getBaseTypes(ownerType)) {
+      const baseProp = checker.getPropertyOfType(base, sym.name)
+      if (!baseProp || seen.has(baseProp.id)) continue
+      seen.add(baseProp.id)
+      if (baseProp.declarations.length !== 1) continue
+      return (
+        baseProp.getDocumentationComment(checker).trim() ||
+        getInheritedDoc(baseProp, checker, seen)
+      )
+    }
+  }
+  return ''
+}
+
+/** Text of the first JSDoc tag with this name (e.g. `default`, `type`). */
+function getSymbolTagText(
+  sym: TsSymbol,
+  checker: Checker,
+  tagName: string,
+): string | undefined {
+  const tag = sym.getJsDocTags(checker).find((t) => t.name === tagName)
+  return tag?.text?.trim() || undefined
 }
 
 /**
  * Extract @default value from JSDoc tags
  */
-function getSymbolDefaultValue(sym: ts.Symbol): string | undefined {
-  const tags = sym.getJsDocTags()
-  const defaultTag = tags.find((tag) => tag.name === 'default')
-  if (!defaultTag) return undefined
-
-  // Get the text of the default tag
-  const text = defaultTag.text
-    ? ts.displayPartsToString(
-        Array.isArray(defaultTag.text) ? defaultTag.text : [defaultTag.text],
-      )
-    : undefined
-
-  return text?.trim() || undefined
+function getSymbolDefaultValue(
+  sym: TsSymbol,
+  checker: Checker,
+): string | undefined {
+  return getSymbolTagText(sym, checker, 'default')
 }
 
 /**
  * Extract @type value from JSDoc tags (used for data attribute value types)
  */
-function getSymbolTypeTag(sym: ts.Symbol): string | undefined {
-  const tags = sym.getJsDocTags()
-  const typeTag = tags.find((tag) => tag.name === 'type')
-  if (!typeTag) return undefined
-
-  const text = typeTag.text
-    ? ts.displayPartsToString(
-        Array.isArray(typeTag.text) ? typeTag.text : [typeTag.text],
-      )
-    : undefined
-
-  return text?.trim() || undefined
+function getSymbolTypeTag(sym: TsSymbol, checker: Checker): string | undefined {
+  return getSymbolTagText(sym, checker, 'type')
 }
 
 /**
  * Check if a symbol has the @ignore JSDoc tag
  */
-function hasIgnoreTag(sym: ts.Symbol): boolean {
-  const tags = sym.getJsDocTags()
-  return tags.some((tag) => tag.name === 'ignore')
+function hasIgnoreTag(sym: TsSymbol, checker: Checker): boolean {
+  return sym.getJsDocTags(checker).some((tag) => tag.name === 'ignore')
 }
 
 /**
  * Check if a declaration comes from a library file (node_modules or @types)
  */
-function isFromLibrary(decl: ts.Declaration | undefined): boolean {
+function isFromLibrary(decl: Node | undefined): boolean {
   if (!decl) return false
   const sourceFile = decl.getSourceFile()
   const fileName = sourceFile.fileName
@@ -522,14 +673,14 @@ function isDataAttribute(name: string): boolean {
  * Check if a prop should be included in documentation.
  * Excludes inherited HTML/React props.
  */
-function shouldIncludeProp(sym: ts.Symbol, _checker: ts.TypeChecker): boolean {
+function shouldIncludeProp(sym: TsSymbol, checker: Checker): boolean {
   // Always skip props marked with @ignore
-  if (hasIgnoreTag(sym)) {
+  if (hasIgnoreTag(sym, checker)) {
     return false
   }
 
-  const name = sym.getName()
-  const decl = sym.valueDeclaration ?? sym.declarations?.[0]
+  const name = sym.name
+  const decl = primaryDeclaration(sym)
 
   // Always include core API props (render, className, style, children)
   if (ALWAYS_INCLUDE_PROPS.has(name)) {
@@ -593,8 +744,8 @@ function getEnumCategory(
  * Extract enum members with their values and JSDoc
  */
 function extractEnumMembers(
-  enumDecl: ts.EnumDeclaration,
-  checker: ts.TypeChecker,
+  enumDecl: EnumDeclaration,
+  checker: Checker,
 ): EnumMemberMeta[] {
   const members: EnumMemberMeta[] = []
 
@@ -606,7 +757,7 @@ function extractEnumMembers(
     let value: string | undefined
     if (member.initializer) {
       // If there's an explicit initializer, use it
-      if (ts.isStringLiteral(member.initializer)) {
+      if (isStringLiteral(member.initializer)) {
         value = member.initializer.text
       } else {
         value = member.initializer.getText()
@@ -616,7 +767,9 @@ function extractEnumMembers(
     if (!value) continue // Skip members without explicit string values
 
     const description = memberSym ? getSymbolDoc(memberSym, checker) : undefined
-    const valueType = memberSym ? getSymbolTypeTag(memberSym) : undefined
+    const valueType = memberSym
+      ? getSymbolTypeTag(memberSym, checker)
+      : undefined
 
     members.push({
       name: memberName,
@@ -821,19 +974,19 @@ async function formatTypeString(typeStr: string): Promise<string | undefined> {
 }
 
 function typeParamsMeta(
-  node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
+  node: InterfaceDeclaration | TypeAliasDeclaration,
 ): Array<{ name: string; constraint?: string; default?: string }> | undefined {
   const tps =
     node.typeParameters?.map((tp) => ({
       name: tp.name.getText(),
       constraint: tp.constraint ? nodeText(tp.constraint) : undefined,
-      default: tp.default ? nodeText(tp.default) : undefined,
+      default: tp.defaultType ? nodeText(tp.defaultType) : undefined,
     })) ?? []
   return tps.length ? tps : undefined
 }
 
 interface TypeExpansionContext {
-  checker: ts.TypeChecker
+  checker: Checker
   config: TypeExpansionConfig
   currentDepth: number
   allTypes: Map<string, TypeMeta> // All documented types for reference lookup
@@ -881,38 +1034,30 @@ function resolveTypeWithConstraints(
 }
 
 async function propMeta(
-  propSym: ts.Symbol,
+  propSym: TsSymbol,
   ctx: TypeExpansionContext,
 ): Promise<PropMeta> {
   const { checker, config, currentDepth, allTypes, currentPackage } = ctx
-  const decl = (propSym.valueDeclaration ?? propSym.declarations?.[0]) as
-    | ts.Declaration
-    | undefined
+  const decl = primaryDeclaration(propSym)
 
   // If no valid declaration node exists, fall back to getTypeOfSymbol
   // (can happen with synthetic properties from mapped types, etc.)
   if (!decl) {
-    const type = checker.getTypeOfSymbol(propSym)
-    const rawTypeStr = checker.typeToString(type)
     const typeStr = resolveTypeWithConstraints(
-      rawTypeStr,
+      typeTextOfSymbol(propSym, checker),
       ctx.typeParamConstraints,
     )
     return {
-      name: propSym.getName(),
+      name: propSym.name,
       type: typeStr,
       required: true,
       description: getSymbolDoc(propSym, checker),
-      default: getSymbolDefaultValue(propSym),
+      default: getSymbolDefaultValue(propSym, checker),
     }
   }
 
   const type = checker.getTypeOfSymbolAtLocation(propSym, decl)
-  const required = ts.isPropertySignature(decl)
-    ? !decl.questionToken
-    : ts.isPropertyDeclaration(decl)
-      ? !decl.questionToken
-      : true
+  const required = !isOptionalMember(decl)
 
   const rawTypeStr = checker.typeToString(type)
   // Resolve generic type parameters to their constraints for better documentation
@@ -922,7 +1067,7 @@ async function propMeta(
   )
   const baseTypeName = extractBaseTypeName(typeStr)
   const description = getSymbolDoc(propSym, checker)
-  const defaultValue = getSymbolDefaultValue(propSym)
+  const defaultValue = getSymbolDefaultValue(propSym, checker)
 
   // Well-known types that shouldn't be expanded (everyone knows what they are)
   const SKIP_EXPANSION_TYPES = new Set([
@@ -958,9 +1103,9 @@ async function propMeta(
   // Extract short type name from type alias (e.g., "Align" from PopupMenuPositionerAlign)
   // This is used for display in the collapsed type column
   let shortType: string | undefined
-  const aliasSymbol = type.aliasSymbol
+  const aliasSymbol = type.getAliasSymbol()
   if (aliasSymbol) {
-    const aliasName = aliasSymbol.getName()
+    const aliasName = aliasSymbol.name
     // Extract the last part of the type name (e.g., "Align" from "PopupMenuPositionerAlign")
     // Look for common suffixes like Align, Side, etc.
     const suffixMatch = aliasName.match(
@@ -972,7 +1117,7 @@ async function propMeta(
   }
 
   const meta: PropMeta = {
-    name: propSym.getName(),
+    name: propSym.name,
     type: typeStr,
     shortType,
     formattedType,
@@ -991,7 +1136,7 @@ async function propMeta(
       config,
     )
 
-  if (shouldExpand && isObjectLikeType(type)) {
+  if (shouldExpand && isObjectType(type)) {
     // Recursively expand the type
     const expandedProps = await collectObjectProps(type, checker, {
       ...ctx,
@@ -1032,20 +1177,9 @@ function findTypeReference(
   return undefined
 }
 
-/** Resolve a SourceFile robustly (path normalization). */
-function findSourceFile(
-  program: ts.Program,
-  absPath: string,
-): ts.SourceFile | undefined {
-  const want = path.normalize(absPath)
-  return program
-    .getSourceFiles()
-    .find((sf) => path.normalize(sf.fileName) === want)
-}
-
 /** Resolve re-exported symbols to their real declarations. */
-function resolveExport(sym: ts.Symbol, checker: ts.TypeChecker): ts.Symbol {
-  return (sym.getFlags() & ts.SymbolFlags.Alias) !== 0
+function resolveExport(sym: TsSymbol, checker: Checker): TsSymbol {
+  return (sym.flags & SymbolFlags.Alias) !== 0
     ? checker.getAliasedSymbol(sym)
     : sym
 }
@@ -1053,12 +1187,12 @@ function resolveExport(sym: ts.Symbol, checker: ts.TypeChecker): ts.Symbol {
 /** ---------- Collector ---------- */
 
 async function collectPackageTypes(
-  prog: ts.Program,
-  checker: ts.TypeChecker,
+  prog: Program,
+  checker: Checker,
   pkg: PkgArg,
   config: TypeExpansionConfig,
 ): Promise<PackageMeta> {
-  const sf = findSourceFile(prog, pkg.entry)
+  const sf = prog.getSourceFile(pkg.entry)
   if (!sf) throw new Error(`Entry not in program: ${pkg.entry}`)
   const moduleSym = checker.getSymbolAtLocation(sf)
   if (!moduleSym) throw new Error(`No module symbol for: ${pkg.entry}`)
@@ -1074,21 +1208,15 @@ async function collectPackageTypes(
   for (const exp of exportsArr) {
     const target = resolveExport(exp, checker)
 
-    const decls = target.getDeclarations() ?? []
-    const decl = decls.find(
-      (d) => isInterfaceDecl(d) || isTypeAliasDecl(d) || isEnumDecl(d),
-    ) as
-      | ts.InterfaceDeclaration
-      | ts.TypeAliasDeclaration
-      | ts.EnumDeclaration
-      | undefined
+    const decls = declarationsOf(target)
+    const decl = decls.find(isDocumentedDecl)
 
     if (process.env.DEBUG_TYPES) {
-      const kinds = decls.map((d) => ts.SyntaxKind[d.kind]).join(', ')
+      const kinds = decls.map((d) => SyntaxKind[d.kind]).join(', ')
       console.log(
         ' export',
-        exp.getName(),
-        exp.getFlags() & ts.SymbolFlags.Alias ? '(alias)' : '',
+        exp.name,
+        exp.flags & SymbolFlags.Alias ? '(alias)' : '',
         '-> decl kinds:',
         kinds || '(none)',
       )
@@ -1097,23 +1225,25 @@ async function collectPackageTypes(
     if (!decl) continue
 
     const kind = kindOfDecl(decl)
-    const typeParams = isEnumDecl(decl) ? undefined : typeParamsMeta(decl)
+    const typeParams = isEnumDeclaration(decl)
+      ? undefined
+      : typeParamsMeta(decl)
     const doc = getSymbolDoc(target, checker) || getSymbolDoc(exp, checker)
 
-    const meta: TypeMeta = { name: exp.getName(), kind, typeParams, doc }
+    const meta: TypeMeta = { name: exp.name, kind, typeParams, doc }
 
-    if (isTypeAliasDecl(decl)) {
+    if (isTypeAliasDeclaration(decl)) {
       meta.definition = nodeText(decl.type) // e.g. "'item' | 'group' | 'submenu'"
     }
 
-    if (kind === 'enum' && isEnumDecl(decl)) {
+    if (kind === 'enum' && isEnumDeclaration(decl)) {
       // Extract enum members with values and JSDoc
       const members = extractEnumMembers(decl, checker)
       if (members.length > 0) {
         meta.members = members
       }
       // Categorize the enum (dataAttributes, cssVars, or other)
-      meta.enumCategory = getEnumCategory(exp.getName())
+      meta.enumCategory = getEnumCategory(exp.name)
     } else if (kind !== 'enum') {
       const declaredType = checker.getDeclaredTypeOfSymbol(
         target /* not exp; see alias fix */,
@@ -1122,7 +1252,7 @@ async function collectPackageTypes(
       // Build a map of type parameter names to their constraints
       // e.g., "TColumns" -> "ReadonlyArray<ColumnConfig<TData, any, any, any>>"
       const typeParamConstraints = new Map<string, string>()
-      if (!isEnumDecl(decl) && decl.typeParameters) {
+      if (!isEnumDeclaration(decl) && decl.typeParameters) {
         for (const tp of decl.typeParameters) {
           if (tp.constraint) {
             typeParamConstraints.set(tp.name.getText(), nodeText(tp.constraint))
@@ -1156,47 +1286,76 @@ async function collectPackageTypes(
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
-  const rawOptions = loadCompilerOptions(args.tsconfig)
-  const options = sanitizeForAnalysis(rawOptions)
+  const tsconfigPath = args.tsconfig
+    ? path.resolve(process.cwd(), args.tsconfig)
+    : undefined
   const rootNames = args.packages.map((p) => p.entry)
-  const program = ts.createProgram({ rootNames, options })
-  const checker = program.getTypeChecker()
 
-  if (process.env.DEBUG_TYPES) {
-    console.log(
-      'Program files:\n' +
-        program
-          .getSourceFiles()
-          .map((sf) => ` - ${sf.fileName}`)
-          .join('\n'),
-    )
+  // TypeScript 7 runs the checker in a separate process; the API talks to it.
+  const api = new API({ cwd: process.cwd() })
+  let analysisTsconfig: string | undefined
+  const removeAnalysisTsconfig = () => {
+    if (analysisTsconfig) fs.rmSync(analysisTsconfig, { force: true })
   }
+  process.once('SIGINT', () => {
+    removeAnalysisTsconfig()
+    process.exit(130)
+  })
+  process.once('SIGTERM', () => {
+    removeAnalysisTsconfig()
+    process.exit(143)
+  })
+  try {
+    analysisTsconfig = writeAnalysisTsconfig(api, rootNames, tsconfigPath)
+    const snapshot = api.updateSnapshot({ openProjects: [analysisTsconfig] })
+    const project = snapshot.getProject(analysisTsconfig)
+    if (!project) throw new Error(`Could not open ${analysisTsconfig}`)
+    const { program, checker } = project
 
-  // Trigger type checking so diagnostics surface early
-  const diagnostics = ts.getPreEmitDiagnostics(program)
-  if (diagnostics.length) {
-    console.warn(
-      ts.formatDiagnosticsWithColorAndContext(diagnostics, formatHost),
-    )
-  }
-
-  const output: MetaOutput = {}
-  for (const pkg of args.packages) {
-    const meta = await collectPackageTypes(
-      program,
-      checker,
-      pkg,
-      args.config ?? defaultConfig,
-    )
-    if (process.env.DEBUG_TYPES && Object.keys(meta.types).length === 0) {
-      console.warn(`[warn] No exported types found for ${pkg.name}`)
+    if (process.env.DEBUG_TYPES) {
+      console.log(
+        'Program files:\n' +
+          program
+            .getSourceFileNames()
+            .map((f) => ` - ${f}`)
+            .join('\n'),
+      )
     }
-    output[pkg.name] = meta
-  }
 
-  fs.mkdirSync(path.dirname(args.out), { recursive: true })
-  fs.writeFileSync(args.out, JSON.stringify(output, null, 2))
-  console.log(`[types:meta] wrote ${args.out}`)
+    // Trigger type checking so diagnostics surface early
+    const diagnostics = preEmitDiagnostics(program)
+    if (diagnostics.length) {
+      console.warn(
+        diagnostics.map((d) => formatDiagnostic(d, program)).join('\n'),
+      )
+    }
+
+    const output: MetaOutput = {}
+    for (const pkg of args.packages) {
+      const meta = await collectPackageTypes(
+        program,
+        checker,
+        pkg,
+        args.config ?? defaultConfig,
+      )
+      if (process.env.DEBUG_TYPES && Object.keys(meta.types).length === 0) {
+        console.warn(`[warn] No exported types found for ${pkg.name}`)
+      }
+      output[pkg.name] = meta
+    }
+
+    fs.mkdirSync(path.dirname(args.out), { recursive: true })
+    fs.writeFileSync(args.out, JSON.stringify(output, null, 2))
+    console.log(`[types:meta] wrote ${args.out}`)
+  } finally {
+    try {
+      api.close()
+    } catch (error) {
+      // The checker process may already be gone; keep the original error.
+      if (process.env.DEBUG_TYPES) console.warn('api.close() failed:', error)
+    }
+    removeAnalysisTsconfig()
+  }
 }
 
 main().catch((err) => {
