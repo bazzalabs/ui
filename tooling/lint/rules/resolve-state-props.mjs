@@ -18,14 +18,20 @@
  * element props (like the `triggerProps` Base UI hands a trigger) comes back
  * resolved from Base UI; the rule can't see a prop's type to tell otherwise.
  */
-import { isUseRenderCall, keyName, unwrap, useRenderNames } from './ast.mjs'
-import { originOf, partRenderFunctions, variableOf } from './state-props.mjs'
+import {
+  isUseRenderCall,
+  keyName,
+  unwrap,
+  useRenderNames,
+  variableOf,
+} from './ast.mjs'
+import { originOf, partRenderFunctions } from './state-props.mjs'
 
 const section = 'See "Component Pattern" in packages/react/AGENTS.md.'
 const why =
   '`useRender` resolves `className` and `style` functions only at the top level of its options; inside `props` a function reaches the DOM.'
 
-const isCallTo = (node, name) =>
+const isIdentifierCall = (node, name) =>
   node?.type === 'CallExpression' &&
   node.callee.type === 'Identifier' &&
   node.callee.name === name
@@ -156,7 +162,8 @@ export const resolveStateProps = {
     /** Checks the `className` value inside `props`. */
     function checkClassName(node, check) {
       const value = unwrap(node)
-      if (isCallTo(value, 'resolveClassName') || isStringValue(value)) return
+      if (isIdentifierCall(value, 'resolveClassName') || isStringValue(value))
+        return
       if (value?.type === 'ConditionalExpression') {
         checkClassName(value.consequent, sibling(check))
         checkClassName(value.alternate, sibling(check))
@@ -187,7 +194,8 @@ export const resolveStateProps = {
      */
     function checkStyle(node, check, kind = 'value') {
       const value = unwrap(node)
-      if (isCallTo(value, 'resolveStyle') || isStringValue(value)) return
+      if (isIdentifierCall(value, 'resolveStyle') || isStringValue(value))
+        return
       if (value?.type === 'ObjectExpression') {
         for (const property of value.properties) {
           if (property.type === 'SpreadElement') {

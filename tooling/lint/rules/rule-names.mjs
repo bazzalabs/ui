@@ -7,6 +7,7 @@
  * both disable `bazza/use-client`.
  */
 export const bazzaRuleNames = new Set([
+  'context-hook-contract',
   'data-attrs-enum',
   'disable-needs-reason',
   'forward-ref-named',
@@ -21,6 +22,7 @@ export const bazzaRuleNames = new Set([
  * `.oxlintrc.json`); the rest also run on tests.
  */
 export const partShapeRuleNames = new Set([
+  'context-hook-contract',
   'data-attrs-enum',
   'forward-ref-named',
   'part-namespace',

@@ -12,8 +12,8 @@
  * part's or component's own props count: the props a Base UI render callback
  * receives are already resolved.
  */
-import { unwrap } from './ast.mjs'
-import { originOf, partRenderFunctions, variableOf } from './state-props.mjs'
+import { unwrap, variableOf } from './ast.mjs'
+import { originOf, partRenderFunctions } from './state-props.mjs'
 
 const isComposeStyleCall = (node) =>
   node.type === 'CallExpression' &&

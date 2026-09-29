@@ -818,6 +818,181 @@ export function helper(item: { style?: object }) {
   })
 })
 
+describe('bazza/context-hook-contract', () => {
+  it('accepts hooks that throw, fall back, or say Maybe, and non-null contexts', async () => {
+    const findings = await lintWith('bazza/context-hook-contract', {
+      'a-context.ts': `import * as React from 'react'
+import { createContext, useContext } from 'react'
+const Ctx = React.createContext<{ a: 1 } | null>(null)
+const Other = createContext<{ b: 1 } | undefined>(undefined)
+const WithDefault = React.createContext({ c: 1 })
+export function useCtx() {
+  const context = React.useContext(Ctx)
+  if (!context) {
+    throw new Error('Part must be used within Root')
+  }
+  return context
+}
+export const useOther = () => {
+  const value = useContext(Other) as { b: 1 } | undefined
+  if (value === undefined) throw new Error('Part must be used within Root')
+  return value
+}
+export function useCtxOrDefault() {
+  return React.useContext(Ctx) ?? { a: 1 as const }
+}
+export function useMaybeCtx() {
+  return React.useContext(Ctx)
+}
+export function useWithDefault() {
+  return React.useContext(WithDefault)
+}
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('reports hooks that can hand back a missing context', async () => {
+    const findings = await lintWith('bazza/context-hook-contract', {
+      'a-context.ts': `import * as React from 'react'
+import { useContext as useCtxHook } from 'react'
+const Ctx = React.createContext<{ a: 1; disabled?: boolean } | null>(null)
+export function useDirect() {
+  return React.useContext(Ctx)
+}
+export const useInline = () => useCtxHook(Ctx)!
+export function useOptional(optional = false) {
+  const ctx = React.useContext(Ctx)
+  if (!ctx && !optional) throw new Error('x')
+  return ctx
+}
+export function useDevOnly() {
+  const ctx = React.useContext(Ctx)
+  if (!ctx) {
+    if (process.env.NODE_ENV !== 'production') throw new Error('x')
+  }
+  return ctx
+}
+export function useWrongMissing() {
+  const ctx = React.useContext(Ctx)
+  if (ctx === undefined) throw new Error('x')
+  return ctx
+}
+export function useProperty(props: { ctx?: 1 }) {
+  const ctx = React.useContext(Ctx)
+  if (!props.ctx) throw new Error('x')
+  return ctx
+}
+export function useEarlyReturn(flag: boolean) {
+  const ctx = React.useContext(Ctx)
+  if (flag) return ctx
+  if (!ctx) throw new Error('x')
+  return ctx
+}
+export function useNullFallback() {
+  return React.useContext(Ctx) ?? null
+}
+export function useIsInside() {
+  return React.useContext(Ctx) !== null
+}
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.split(' ')[0]])).toEqual([
+      [5, '`useDirect`'],
+      [7, '`useInline`'],
+      [9, "Can't"],
+      [14, "Can't"],
+      [21, "Can't"],
+      [26, '`useProperty`'],
+      [31, "Can't"],
+      [37, '`useNullFallback`'],
+    ])
+    expect(findings[2]?.message).toContain(
+      "Can't tell whether `useOptional` handles a missing `Ctx`",
+    )
+    expect(findings[2]?.message).not.toContain('useMaybe')
+    expect(findings[0]?.message).toContain('rename the hook `useMaybeDirect`')
+  })
+
+  it('accepts every proof shape, derived values and nested helpers', async () => {
+    const findings = await lintWith('bazza/context-hook-contract', {
+      'a-context.ts': `import * as React from 'react'
+const NullCtx = React.createContext<{ a: 1 } | null>(null)
+const NoArgCtx = React.createContext<{ a: 1 } | undefined>()
+export function useLooseEquals() {
+  const ctx = React.useContext(NullCtx)
+  if (ctx == null) throw new Error('x')
+  return ctx
+}
+export function useStrictNull() {
+  const ctx = React.use(NullCtx)
+  if (ctx === null) {
+    const message = 'Part must be used within Root'
+    console.error(message)
+    throw new Error(message)
+  }
+  return ctx
+}
+export function useNoArg() {
+  const ctx = React.useContext(NoArgCtx)
+  function label() {
+    return 'x'
+  }
+  if (ctx === undefined) throw new Error(label())
+  return ctx
+}
+export function useStringFallback() {
+  return React.useContext(NullCtx) ?? 'none'
+}
+export function useIsInside() {
+  return React.useContext(NullCtx) !== null
+}
+export function useDepth() {
+  return React.useContext(NullCtx)?.a ?? 0
+}
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('checks the variable that holds the context, default exports, and contexts by scope', async () => {
+    const findings = await lintWith('bazza/context-hook-contract', {
+      'a-context.ts': `import * as React from 'react'
+const Ctx = React.createContext<{ a: 1 } | null>(null)
+const Other = React.createContext<{ b: 1 } | null>(null)
+export const useCrashes = () => React.useContext(Ctx)!.a
+export function useInvariant() {
+  const ctx = React.useContext(Ctx)
+  invariant(ctx, 'Part must be used within Root')
+  return ctx
+}
+export function useVariableFallback() {
+  return React.useContext(Ctx) ?? fallbackCtx
+}
+export function useWrongVariable() {
+  const ctx = React.useContext(Ctx)
+  const other = React.useContext(Other)
+  if (!other) throw new Error('x')
+  return ctx
+}
+export function useShadowed<T>(Ctx: React.Context<T>) {
+  return React.useContext(Ctx)
+}
+export default function useDefault() {
+  return React.useContext(Ctx)
+}
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.split(' ')[0]])).toEqual([
+      [4, "Can't"],
+      [6, "Can't"],
+      [11, "Can't"],
+      [14, '`useWrongVariable`'],
+      [23, '`useDefault`'],
+    ])
+  })
+})
+
 describe('the plugin', () => {
   it('registers exactly the rules listed in bazzaRuleNames', () => {
     expect(Object.keys(plugin.rules).sort()).toEqual([...bazzaRuleNames].sort())
@@ -956,6 +1131,13 @@ export const a = useDirection // eslint-disable-line no-console
   })
 
   it('applies the part rules to shipped source only', async () => {
+    const hookContext = `'use client'
+import * as React from 'react'
+const Ctx = React.createContext<{ a: 1 } | null>(null)
+export function useCtx() {
+  return React.useContext(Ctx)
+}
+`
     const shapeless = `import * as React from 'react'
 export const Part = React.forwardRef((props, ref) => <div ref={ref} />)
 `
@@ -966,6 +1148,9 @@ export const Part = React.forwardRef((props, ref) => <div ref={ref} />)
       'packages/react/src/part/part.data-attrs.ts':
         'export const PartDataAttributes = { a: 1 } as const\n',
       'packages/react/src/part/part-context.ts': 'export const a = 1\n',
+      'packages/react/src/part/hook-context.ts': hookContext,
+      'packages/react/src/part/hook.test.tsx': hookContext,
+      'packages/react/test/hook-context.ts': hookContext,
       'packages/react/src/part/helpers.ts': 'export const a = 1\n',
     })
     expect(
@@ -973,6 +1158,7 @@ export const Part = React.forwardRef((props, ref) => <div ref={ref} />)
         .map((f) => `${f.file.replace('packages/react/src/', '')} ${f.rule}`)
         .sort(),
     ).toEqual([
+      'part/hook-context.ts bazza(context-hook-contract)',
       'part/part-context.ts bazza(use-client)',
       'part/part.data-attrs.ts bazza(data-attrs-enum)',
       'part/part.tsx bazza(forward-ref-named)',

@@ -138,6 +138,28 @@ style: { ...internalStyles, ...resolveStyle(style, state) }
 <Popover.Positioner style={composeStyle(style, (resolved) => ({ ...resolved, transition: 'none' }))} />
 ```
 
+## Context hooks
+
+A part's context is created with a `null` default, so it's missing when the part renders outside its provider. Each context gets a hook that promises a value, and optionally one that doesn't:
+
+```typescript
+const SelectContext = React.createContext<SelectContextValue | null>(null)
+
+export function useSelectContext(): SelectContextValue {
+  const context = React.useContext(SelectContext)
+  if (!context) {
+    throw new Error('Select components must be used within a Select.Root')
+  }
+  return context
+}
+
+export function useMaybeSelectContext(): SelectContextValue | null {
+  return React.useContext(SelectContext)
+}
+```
+
+A hook named `useX` that reads such a context either reads it into a variable and, before any `return`, checks that variable (`!context`, `context == null`, or `=== null` for a `null` default) and throws, or falls back with `??` to a value that can't be `null`. A hook that can return the missing context is named `useMaybeX` (`bazza/context-hook-contract`).
+
 ## Context Providers
 
 Render element first, then wrap with provider:
