@@ -563,20 +563,15 @@ describe('PopupMenuPositioner', () => {
           expect(screen.getByTestId('submenu-positioner')).toBeInTheDocument()
         })
 
-        // After measurement is complete, transition should not be 'none'
-        // (we only disable transitions during the initial measurement phase)
+        // Transitions are only disabled for the first, pre-measurement render.
         const positioner = screen.getByTestId('submenu-positioner')
         expect(positioner).toHaveAttribute('data-align', 'list-start')
-
-        // The style should NOT have transition: none after measurement
-        // (transition: none is only applied during the measurement phase)
-        const _style = window.getComputedStyle(positioner)
-        // Note: We can't directly test for the absence of inline transition:none
-        // since it's removed after measurement, but we can verify the element is rendered correctly
-        expect(positioner).toBeInTheDocument()
+        await waitFor(() => {
+          expect(positioner.style.transition).not.toBe('none')
+        })
       })
 
-      it('measures and applies offset when submenu opens via keyboard', async () => {
+      it('opens a list-start submenu via keyboard', async () => {
         const user = userEvent.setup()
         render(<SubmenuOpenOnHover align="list-start" />)
 
@@ -610,7 +605,7 @@ describe('PopupMenuPositioner', () => {
         expect(positioner).toHaveAttribute('data-align', 'list-start')
       })
 
-      it('recalculates offset when submenu reopens', async () => {
+      it('reopens a list-start submenu via keyboard', async () => {
         const user = userEvent.setup()
         render(<SubmenuOpenOnHover align="list-start" />)
 
@@ -855,24 +850,6 @@ describe('PopupMenuPositioner', () => {
     })
 
     describe('offset calculation', () => {
-      it('calculates negative offset to align list with trigger when list-start is used', async () => {
-        render(<SubmenuWithStyledContent align="list-start" />)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('submenu-positioner')).toBeInTheDocument()
-        })
-
-        // Wait for measurement to complete (happens in requestAnimationFrame)
-        await waitFor(() => {
-          const positioner = screen.getByTestId('submenu-positioner')
-          expect(positioner).toHaveAttribute('data-align', 'list-start')
-        })
-
-        // Verify the submenu content is rendered correctly
-        expect(screen.getByTestId('submenu-list')).toBeInTheDocument()
-        expect(screen.getByTestId('submenu-item-1')).toBeInTheDocument()
-      })
-
       it('does not apply offset when using standard align values', async () => {
         render(<SubmenuWithStyledContent align="start" />)
 
@@ -944,64 +921,6 @@ describe('PopupMenuPositioner', () => {
         expect(positioner).toHaveAttribute('data-align', 'list-start')
         // Custom style should be preserved
         expect(positioner).toHaveStyle({ zIndex: '9999' })
-      })
-    })
-
-    describe('alignOffset prop', () => {
-      it('accepts additional alignOffset when using list-start', async () => {
-        // This test verifies the prop is accepted without errors
-        function SubmenuWithAlignOffset() {
-          return (
-            <DropdownMenu.Root defaultOpen>
-              <DropdownMenu.Trigger data-testid="trigger">
-                Open Menu
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Positioner>
-                  <DropdownMenu.Popup>
-                    <DropdownMenu.Surface>
-                      <DropdownMenu.List>
-                        <DropdownMenu.Submenu defaultOpen>
-                          <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
-                            Open Submenu
-                          </DropdownMenu.SubmenuTrigger>
-                          <DropdownMenu.Portal>
-                            <DropdownMenu.Positioner
-                              data-testid="submenu-positioner"
-                              align="list-start"
-                              alignOffset={-4}
-                              side="right"
-                            >
-                              <DropdownMenu.Popup data-testid="submenu-popup">
-                                <DropdownMenu.Surface>
-                                  <DropdownMenu.List data-testid="submenu-list">
-                                    <DropdownMenu.Item data-testid="submenu-item-1">
-                                      Sub Item 1
-                                    </DropdownMenu.Item>
-                                  </DropdownMenu.List>
-                                </DropdownMenu.Surface>
-                              </DropdownMenu.Popup>
-                            </DropdownMenu.Positioner>
-                          </DropdownMenu.Portal>
-                        </DropdownMenu.Submenu>
-                      </DropdownMenu.List>
-                    </DropdownMenu.Surface>
-                  </DropdownMenu.Popup>
-                </DropdownMenu.Positioner>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-          )
-        }
-
-        render(<SubmenuWithAlignOffset />)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('submenu-positioner')).toBeInTheDocument()
-        })
-
-        const positioner = screen.getByTestId('submenu-positioner')
-        expect(positioner).toHaveAttribute('data-align', 'list-start')
-        expect(screen.getByTestId('submenu-list')).toBeInTheDocument()
       })
     })
   })
