@@ -9,6 +9,7 @@ import {
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
 import { useSuggestionMenuRootContext } from '../root/root-context.js'
+import { SuggestionMenuResultsReporter } from './results-reporter.js'
 
 export interface SuggestionMenuSurfaceProps
   extends Omit<
@@ -78,7 +79,7 @@ export const SuggestionMenuSurface = React.forwardRef<
   HTMLDivElement,
   SuggestionMenuSurfaceProps
 >(function SuggestionMenuSurface(props, forwardedRef) {
-  const { content, asyncContentMode = 'append', ...rest } = props
+  const { content, asyncContentMode = 'append', children, ...rest } = props
   const { query } = useSuggestionMenuRootContext()
   const { store } = useListboxContext()
 
@@ -104,7 +105,10 @@ export const SuggestionMenuSurface = React.forwardRef<
       search={query}
       // DOM focus stays in the host input.
       skipAutoFocus
-    />
+    >
+      {children}
+      <SuggestionMenuResultsReporter />
+    </PopupMenuSurface>
   )
 })
 
