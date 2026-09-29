@@ -4,13 +4,21 @@ import { describe, expect, it, vi } from 'vitest'
 import { Combobox } from '../index.js'
 
 function ComboboxWithClear(props: {
+  selected?: boolean
+  keepMounted?: boolean
+  onValueChange?: (value: string) => void
   onClearPointerDown?: (e: React.PointerEvent) => void
 }) {
+  const { selected = true } = props
   return (
-    <Combobox.Root defaultValue="apple">
+    <Combobox.Root
+      defaultValue={selected ? 'apple' : undefined}
+      onValueChange={props.onValueChange}
+    >
       <Combobox.Input data-testid="input" />
       <Combobox.Clear
         data-testid="clear"
+        keepMounted={props.keepMounted}
         onPointerDown={props.onClearPointerDown}
       />
       <Combobox.Portal>
@@ -43,5 +51,32 @@ describe('Combobox.Clear pointerdown', () => {
     render(<ComboboxWithClear />)
 
     expect(fireEvent.pointerDown(screen.getByTestId('clear'))).toBe(false)
+  })
+})
+
+describe('Combobox.Clear value state', () => {
+  it('does not render when nothing is selected', () => {
+    render(<ComboboxWithClear selected={false} />)
+
+    expect(screen.queryByTestId('clear')).not.toBeInTheDocument()
+  })
+
+  it('stays disabled with keepMounted when nothing is selected', () => {
+    render(<ComboboxWithClear selected={false} keepMounted />)
+
+    expect(screen.getByTestId('clear')).toBeDisabled()
+  })
+
+  it('clears the selection and typed text, then hides itself', () => {
+    const onValueChange = vi.fn()
+    render(<ComboboxWithClear onValueChange={onValueChange} />)
+
+    fireEvent.change(screen.getByTestId('input'), { target: { value: 'app' } })
+    fireEvent.click(screen.getByTestId('clear'))
+
+    expect(onValueChange).toHaveBeenCalledOnce()
+    expect(onValueChange.mock.calls[0]?.[0]).toBe('')
+    expect(screen.getByTestId('input')).toHaveValue('')
+    expect(screen.queryByTestId('clear')).not.toBeInTheDocument()
   })
 })
