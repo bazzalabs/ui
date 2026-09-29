@@ -3,6 +3,7 @@ import plugin, {
   bazzaRuleNames,
   directiveProblem,
   parseDirective,
+  partShapeRuleNames,
 } from './bazza-plugin.mjs'
 import {
   type Finding,
@@ -14,11 +15,9 @@ import {
 const lines = (findings: readonly Finding[]) => findings.map((f) => f.line)
 const rules = (findings: readonly Finding[]) => findings.map((f) => f.rule)
 
-/** Every `bazza/*` rule except `disable-needs-reason`, as oxlint reports them. */
+/** The part-shape rules, as oxlint reports them. */
 const partRules = new Set(
-  [...bazzaRuleNames]
-    .filter((name) => name !== 'disable-needs-reason')
-    .map((name) => `bazza(${name})`),
+  [...partShapeRuleNames].map((name) => `bazza(${name})`),
 )
 /** Lints with the repo config, dropping findings from the part-shape rules. */
 const lintIgnoringPartRules = async (
@@ -516,6 +515,309 @@ export { BarDataAttributes } from './bar.js'
   })
 })
 
+describe('bazza/resolve-state-props', () => {
+  const part = (
+    body: string,
+    signature = 'props, forwardedRef',
+  ) => `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+import { mergeElementProps } from '../utils/merge-element-props.js'
+import { composeStyle, resolveClassName, resolveStyle } from '../utils/resolve-state-props.js'
+import { visuallyHidden } from '@base-ui/utils/visuallyHidden'
+const baseStyle = { color: 'red' }
+export const Part = React.forwardRef(function Part(${signature}) {
+${body}
+})
+`
+
+  it('accepts the shapes parts use today', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx':
+        part(`  const { render, className, style, children, triggerProps, ...rest } = props
+  const state = React.useMemo(() => ({ open: true }), [className])
+  const slot = rest.id ? { 'data-slot': '' } : {}
+  const resolved = resolveStyle(style, state)
+  return useRender({
+    render,
+    ref: forwardedRef,
+    state,
+    className,
+    style,
+    props: {
+      ...rest,
+      ...slot,
+      ...(rest.id ? { id: rest.id } : {}),
+      ...mergeElementProps<'button'>(triggerProps, { ...rest, className: resolveClassName(className, state) }),
+      style: { ...baseStyle, ...visuallyHidden, ...resolved },
+      onClick: () => props.onClick?.(),
+      children,
+    },
+    defaultTagName: 'div',
+  })`),
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('reports raw values, the props object, and rests that still hold them', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': part(`  const { className, style: styleProp, ...rest } = props
+  const { id, ...others } = props
+  const alias = styleProp
+  return useRender({
+    ref: forwardedRef,
+    props: {
+      className,
+      style: alias,
+      ...others,
+      ...props,
+      ...rest,
+    },
+  })`),
+    })
+    expect(findings.map((f) => f.line)).toEqual([14, 15, 16, 17])
+    expect(findings[0]?.message).toContain('resolveClassName(className, state)')
+    expect(findings[1]?.message).toContain('resolveStyle(styleProp, state)')
+    expect(findings[2]?.message).toContain('still holds')
+  })
+
+  it('reports composeStyle inside props, because it keeps a function a function', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': part(
+        '  return useRender({ ref: forwardedRef, props: { style: composeStyle(style, (s) => ({ ...s })) } })',
+        '{ className, style }, forwardedRef',
+      ),
+    })
+    expect(findings.map((f) => f.line)).toEqual([8])
+    expect(findings[0]?.message).toContain('`composeStyle` keeps a function')
+  })
+
+  it("reports what it can't prove: opaque props, helper calls, second-level destructures, hooks", async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': `${part(`  const { render, ...other } = props
+  const { className, ...rest } = other
+  const classes = clsx('base', className)
+  const elementProps = usePartProps(props)
+  return useRender({
+    render,
+    ref: forwardedRef,
+    props: { ...rest, className: classes, ...elementProps },
+  })`)}
+export function usePartElement(params: { props: object }) {
+  return useRender({ props: { ...params.props } })
+}
+export function PartTwo(props: object) {
+  return useRender({ props: elementPropsOf(props) })
+}
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.split('.')[0]])).toEqual([
+      [15, "`rest` still holds the part's `className` or `style`"],
+      [
+        15,
+        '`className` inside `props` must be `resolveClassName(className, state)` or a string',
+      ],
+      [
+        15,
+        "Can't tell whether `elementProps` carries the part's unresolved `className` or `style`",
+      ],
+      [
+        20,
+        "Can't tell whether this value carries the part's unresolved `className` or `style`",
+      ],
+      [
+        23,
+        "Can't tell whether this value carries the part's unresolved `className` or `style`",
+      ],
+    ])
+  })
+
+  it('does not trust a variable that changes after its declaration', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': part(`  const { className, style, ...rest } = props
+  const extra: Record<string, unknown> = {}
+  if (rest.id) extra.style = style
+  const assigned = {}
+  Object.assign(assigned, { className })
+  let cls = resolveClassName(className, {})
+  if (rest.id) cls = className
+  const dataAttrs: Record<string, string> = {}
+  if (rest.id) dataAttrs['data-open'] = ''
+  return useRender({
+    ref: forwardedRef,
+    props: { ...rest, ...extra, ...assigned, ...dataAttrs, className: cls },
+  })`),
+    })
+    expect(findings.map((f) => f.message.split(' carries')[0])).toEqual([
+      "Can't tell whether `extra`, which is reassigned or written to after its declaration,",
+      "Can't tell whether `assigned`, which is reassigned or written to after its declaration,",
+      "Can't tell whether `cls`, which is reassigned or written to after its declaration,",
+    ])
+  })
+
+  it('checks writes to parameter rests and through TypeScript wrappers, computed keys, and names the right branch', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': part(
+        `  const extra: Record<string, unknown> = {}
+  ;(extra as Record<string, unknown>).className = className
+  if (rest.id) rest.style = style
+  const key = rest.id ? 'className' : 'title'
+  return useRender({
+    ref: forwardedRef,
+    props: { ...extra, ...rest, [key]: className, ...(rest.id ? { id: rest.id } : getExtra()) },
+  })`,
+        '{ className, style, ...rest }, forwardedRef',
+      ),
+    })
+    expect(findings.map((f) => f.message.split(' carries')[0])).toEqual([
+      "Can't tell whether `extra`, which is reassigned or written to after its declaration,",
+      "Can't tell whether `rest`",
+      "Can't tell whether an entry whose key is computed",
+      "Can't tell whether this value",
+    ])
+  })
+
+  it('carries removed keys through chained destructures', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': part(`  const { className, ...other } = props
+  const { style, ...rest } = other
+  return useRender({
+    ref: forwardedRef,
+    props: { ...rest, className: resolveClassName(className, {}), style: resolveStyle(style, {}) },
+  })`),
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('checks module-level values used as className, merge arguments, conditionals and Impl parts', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+import { mergeElementProps } from './merge-element-props.js'
+import { resolveClassName } from './resolve-state-props.js'
+const cls = (state: { open: boolean }) => (state.open ? 'a' : 'b')
+function PartImpl(props: { className?: string; open: boolean }, ref: React.Ref<HTMLDivElement>) {
+  const { className, open, ...others } = props
+  const mergeState = (p: object) => ({ ...p, className })
+  return useRender({
+    ref,
+    props: {
+      ...mergeElementProps({}, { ...others }),
+      ...mergeState({}),
+      className: open ? resolveClassName(className, {}) : className,
+    },
+  })
+}
+export const Part = React.forwardRef(PartImpl)
+function OtherImpl(props: { className?: string }, ref: React.Ref<HTMLDivElement>) {
+  return useRender({ ref, props: { className: cls, ...mergeElementProps({}, { ...props, ...makeExtra() }) } })
+}
+export const Other = React.forwardRef(OtherImpl)
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.split('.')[0]])).toEqual([
+      [12, "`others` still holds the part's `className` or `style`"],
+      [
+        13,
+        "Can't tell whether this value carries the part's unresolved `className` or `style`",
+      ],
+      [14, "`className` is the part's unresolved `className`"],
+      [
+        20,
+        '`className` inside `props` must be `resolveClassName(className, state)` or a string',
+      ],
+      [20, "`props` still holds the part's `className` or `style`"],
+      [
+        20,
+        "Can't tell whether this value carries the part's unresolved `className` or `style`",
+      ],
+    ])
+  })
+
+  it("reports options it can't read", async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': part(`  const options = { ref: forwardedRef, props }
+  return useRender(options)`),
+    })
+    expect(findings.map((f) => f.line)).toEqual([9])
+    expect(findings[0]?.message).toContain(
+      "Can't tell whether `useRender`'s options",
+    )
+  })
+})
+
+describe('bazza/no-spread-style', () => {
+  it("reports spreading a part's style, including in callbacks, aliases and ?? wrappers", async () => {
+    const findings = await lintWith('bazza/no-spread-style', {
+      'a.tsx': `import * as React from 'react'
+export const A = React.forwardRef(function A({ style: styleProp }: { style?: object }, ref) {
+  const alias = styleProp
+  const measured = React.useMemo(() => ({ ...styleProp, transition: 'none' }), [styleProp])
+  return <div ref={ref} style={{ ...(alias ?? {}), ...measured }} />
+})
+export const B = React.forwardRef(function B(props: { style?: object; child: React.ReactElement<{ style?: object }> }, ref) {
+  return <div ref={ref} style={{ ...props.style, ...props.child.props.style }} />
+})
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([4, 5, 8, 8])
+  })
+
+  it('reports composeStyle results, destructures of a props alias, optional chains and plain components', async () => {
+    const findings = await lintWith('bazza/no-spread-style', {
+      'a.tsx': `import * as React from 'react'
+import { composeStyle } from './resolve-state-props.js'
+export const A = React.forwardRef(function A(props: { style?: object }, ref) {
+  const p = props
+  const { style: s } = p
+  const composed = composeStyle(s, (r) => ({ ...r }))
+  return <div ref={ref} style={{ ...composed, ...s, ...props?.style }} />
+})
+export function Plain({ style }: { style?: object }) {
+  return <div style={{ ...style }} />
+}
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([7, 7, 7, 10])
+  })
+
+  it('reports a style variable reassigned later and a style read through a props alias', async () => {
+    const findings = await lintWith('bazza/no-spread-style', {
+      'a.tsx': `export function Plain(props: { style?: object }) {
+  const p = props
+  let s = props.style
+  if (!s) s = {}
+  return <div style={{ ...s, ...p.style, ...p['style'] }} />
+}
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([5, 5, 5])
+  })
+
+  it('accepts resolved styles and props a Base UI render callback receives', async () => {
+    const findings = await lintWith('bazza/no-spread-style', {
+      'a.tsx': `import * as React from 'react'
+import { composeStyle, resolveStyle } from './resolve-state-props.js'
+const base = { color: 'red' }
+export const A = React.forwardRef(function A({ style, ...rest }: { style?: object; id?: string }, ref) {
+  const resolved = resolveStyle(style, {})
+  return (
+    <Slider
+      ref={ref}
+      {...rest}
+      style={composeStyle(style, (s) => ({ ...s, ...base, ...resolved }))}
+      render={(baseProps: { style?: object }) => <div style={{ ...baseProps.style }} />}
+    />
+  )
+})
+export function helper(item: { style?: object }) {
+  return { ...item.style }
+}
+`,
+    })
+    expect(findings).toEqual([])
+  })
+})
+
 describe('the plugin', () => {
   it('registers exactly the rules listed in bazzaRuleNames', () => {
     expect(Object.keys(plugin.rules).sort()).toEqual([...bazzaRuleNames].sort())
@@ -676,6 +978,31 @@ export const Part = React.forwardRef((props, ref) => <div ref={ref} />)
       'part/part.tsx bazza(forward-ref-named)',
       'part/part.tsx bazza(part-namespace)',
       'part/part.tsx bazza(use-client)',
+    ])
+  })
+
+  it('runs the correctness rules on tests and honours the style allowlist', async () => {
+    const source = `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+export const Part = React.forwardRef(function Part({ className, style }: { className?: string; style?: object }, ref) {
+  const s = { ...style }
+  return useRender({ ref, props: { className, style: s } })
+})
+`
+    const findings = await lintIgnoringPartRules({
+      'packages/react/src/part.test.tsx': source,
+      'packages/react/test/harness.tsx': source,
+      'packages/react/src/combobox/positioner/positioner.tsx': source,
+    })
+    expect(findings.map((f) => `${f.file} ${f.rule}`).sort()).toEqual([
+      'packages/react/src/combobox/positioner/positioner.tsx bazza(resolve-state-props)',
+      'packages/react/src/combobox/positioner/positioner.tsx bazza(resolve-state-props)',
+      'packages/react/src/part.test.tsx bazza(no-spread-style)',
+      'packages/react/src/part.test.tsx bazza(resolve-state-props)',
+      'packages/react/src/part.test.tsx bazza(resolve-state-props)',
+      'packages/react/test/harness.tsx bazza(no-spread-style)',
+      'packages/react/test/harness.tsx bazza(resolve-state-props)',
+      'packages/react/test/harness.tsx bazza(resolve-state-props)',
     ])
   })
 

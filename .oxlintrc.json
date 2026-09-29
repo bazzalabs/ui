@@ -25,6 +25,8 @@
       "rules": {
         "react-hooks/rules-of-hooks": "error",
         "bazza/disable-needs-reason": "error",
+        "bazza/resolve-state-props": "error",
+        "bazza/no-spread-style": "error",
         "no-restricted-imports": [
           "error",
           {
@@ -133,6 +135,17 @@
         "packages/react/src/internal/popup-menu/contexts/menu-tree-resolver-context.ts"
       ],
       "rules": { "bazza/use-client": "off" }
+    },
+    {
+      // Spread a `style` prop. The video player's are typed as objects today.
+      "files": [
+        "packages/react/src/combobox/positioner/positioner.tsx",
+        "packages/react/src/internal/popup-menu/components/positioner/positioner.tsx",
+        "packages/react/src/video-player/components/buffered-indicator/buffered-indicator.tsx",
+        "packages/react/src/video-player/components/seek-slider/seek-slider.tsx",
+        "packages/react/src/video-player/components/time-display/time-display.tsx"
+      ],
+      "rules": { "bazza/no-spread-style": "off" }
     },
     {
       // A class method calls `useRefWithInit`.

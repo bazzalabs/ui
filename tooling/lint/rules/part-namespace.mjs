@@ -11,11 +11,14 @@
 import {
   exportedLocals,
   findForwardRefCall,
-  findTopLevelBinding,
+  useRenderNames as findUseRenderNames,
   forwardRefNames,
-  importedNames,
+  isUseRenderCall,
+  keyName,
+  renderFunctionOf,
   topLevelDeclaration,
   unwrap,
+  walk,
 } from './ast.mjs'
 
 /** Type names exported from `namespace Name { … }` blocks, merged across blocks. */
@@ -45,45 +48,6 @@ function namespaceMembers(program) {
   return namespaces
 }
 
-const functionTypes = new Set([
-  'FunctionDeclaration',
-  'FunctionExpression',
-  'ArrowFunctionExpression',
-])
-
-/**
- * Calls `visit` on every AST node under `root`, without entering functions
- * nested inside it: a component declared inside a render function renders
- * itself, not the part.
- */
-function walk(root, visit) {
-  const stack = [root]
-  while (stack.length > 0) {
-    const node = stack.pop()
-    if (!node || typeof node.type !== 'string') continue
-    if (node !== root && functionTypes.has(node.type)) continue
-    visit(node)
-    for (const key of Object.keys(node)) {
-      if (key === 'parent') continue
-      const value = node[key]
-      if (Array.isArray(value)) stack.push(...value)
-      else if (value && typeof value === 'object') stack.push(value)
-    }
-  }
-}
-
-/** A call to `useRender` under any of `names`, or `<anything>.useRender(…)`. */
-function isUseRenderCall(node, names) {
-  if (node.type !== 'CallExpression') return false
-  const { callee } = node
-  if (callee.type === 'Identifier') return names.has(callee.name)
-  return (
-    callee.type === 'MemberExpression' &&
-    !callee.computed &&
-    callee.property.name === 'useRender'
-  )
-}
-
 /**
  * Whether the `useRender` calls under `root` pass `state`: `'yes'`, `'no'`, or
  * `'unknown'` when a call's options aren't an object literal the rule can read.
@@ -92,6 +56,7 @@ function statePassedToUseRender(root, names) {
   let result = 'no'
   walk(root, (node) => {
     if (result === 'yes') return
+    // A component declared inside the render function renders itself, not the part.
     if (!isUseRenderCall(node, names)) return
     const options = unwrap(node.arguments[0])
     if (options?.type !== 'ObjectExpression') {
@@ -101,32 +66,13 @@ function statePassedToUseRender(root, names) {
     for (const property of options.properties) {
       if (property.type === 'SpreadElement') {
         result = 'unknown'
-      } else if (
-        !property.computed &&
-        (property.key.name ?? property.key.value) === 'state'
-      ) {
+      } else if (keyName(property) === 'state') {
         result = 'yes'
         return
       }
     }
   })
   return result
-}
-
-const isFunction = (node) => functionTypes.has(node?.type)
-
-/**
- * The function that renders a part: the function passed to `forwardRef`, or
- * the function it names in this module. Undefined when the rule can't tell.
- */
-function renderFunction(forwardRefCall, program) {
-  const render = unwrap(forwardRefCall.arguments[0])
-  if (isFunction(render)) return render
-  if (render?.type !== 'Identifier') return undefined
-  const binding = findTopLevelBinding(program, render.name)
-  if (binding?.type === 'FunctionDeclaration') return binding
-  const init = unwrap(binding?.init)
-  return isFunction(init) ? init : undefined
 }
 
 const example = (name) =>
@@ -146,11 +92,7 @@ export const partNamespace = {
         const exported = exportedLocals(program)
         const namespaces = namespaceMembers(program)
         const names = forwardRefNames(program)
-        const useRenderNames = importedNames(
-          program,
-          '@base-ui/react/use-render',
-          'useRender',
-        )
+        const useRenderNames = findUseRenderNames(program)
         for (const statement of program.body) {
           const declaration = topLevelDeclaration(statement)
           if (declaration?.type !== 'VariableDeclaration') continue
@@ -161,7 +103,7 @@ export const partNamespace = {
             const call = findForwardRefCall(declarator.init, names)
             if (!call) continue
             const members = namespaces.get(name) ?? new Set()
-            const render = renderFunction(call, program)
+            const render = renderFunctionOf(call, program)
             const state = render
               ? statePassedToUseRender(render, useRenderNames)
               : 'unknown'

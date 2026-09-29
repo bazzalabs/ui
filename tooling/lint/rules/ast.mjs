@@ -9,7 +9,8 @@ export function unwrap(node) {
       current.type === 'TSSatisfiesExpression' ||
       current.type === 'TSNonNullExpression' ||
       current.type === 'TSTypeAssertion' ||
-      current.type === 'ParenthesizedExpression')
+      current.type === 'ParenthesizedExpression' ||
+      current.type === 'ChainExpression')
   ) {
     current = current.expression
   }
@@ -136,4 +137,72 @@ export function exportedLocals(program) {
     }
   }
   return locals
+}
+
+const functionTypes = new Set([
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'ArrowFunctionExpression',
+])
+
+/** Whether `node` is a function of any kind. */
+export const isFunction = (node) => functionTypes.has(node?.type)
+
+/** A property's key as a string: `a`, `'a'`, `['a']`. Undefined when it's computed from a value. */
+export function keyName(property) {
+  if (!property.computed) return property.key.name ?? String(property.key.value)
+  return property.key.type === 'Literal'
+    ? String(property.key.value)
+    : undefined
+}
+
+/**
+ * The function `forwardRef` renders with: an inline function, or a function
+ * declared at the top level of `program` and passed by name.
+ */
+export function renderFunctionOf(forwardRefCall, program) {
+  const render = unwrap(forwardRefCall.arguments[0])
+  if (isFunction(render)) return render
+  if (render?.type !== 'Identifier') return undefined
+  const binding = findTopLevelBinding(program, render.name)
+  if (binding?.type === 'FunctionDeclaration') return binding
+  const init = unwrap(binding?.init)
+  return isFunction(init) ? init : undefined
+}
+
+/**
+ * Calls `visit` on every AST node under `root`. Functions nested inside `root`
+ * are skipped unless `enterFunctions` is set; `visit` returning `false` skips a
+ * node's children.
+ */
+export function walk(root, visit, { enterFunctions = false } = {}) {
+  const stack = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()
+    if (!node || typeof node.type !== 'string') continue
+    if (!enterFunctions && node !== root && isFunction(node)) continue
+    if (visit(node) === false) continue
+    for (const key of Object.keys(node)) {
+      if (key === 'parent') continue
+      const value = node[key]
+      if (Array.isArray(value)) stack.push(...value)
+      else if (value && typeof value === 'object') stack.push(value)
+    }
+  }
+}
+
+/** Local names that refer to Base UI's `useRender`. */
+export const useRenderNames = (program) =>
+  importedNames(program, '@base-ui/react/use-render', 'useRender')
+
+/** A call to `useRender` under any of `names`, or `<anything>.useRender(…)`. */
+export function isUseRenderCall(node, names) {
+  if (node?.type !== 'CallExpression') return false
+  const { callee } = node
+  if (callee.type === 'Identifier') return names.has(callee.name)
+  return (
+    callee.type === 'MemberExpression' &&
+    !callee.computed &&
+    callee.property.name === 'useRender'
+  )
 }
