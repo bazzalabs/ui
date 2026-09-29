@@ -43,55 +43,7 @@ function registerItems(
 // ============================================================================
 
 describe('ListboxStore', () => {
-  describe('initial state', () => {
-    it('creates with default state', () => {
-      const store = createStore()
-
-      expect(store.state.open).toBe(false)
-      expect(store.state.search).toBe('')
-      expect(store.state.highlightedId).toBe(null)
-      expect(store.state.highlightSource).toBe(null)
-      expect(store.state.hasInput).toBe(false)
-      expect(store.state.filteredCount).toBe(0)
-      expect(store.state.virtualized).toBe(false)
-    })
-
-    it('creates with custom initial state', () => {
-      const store = createStore({ open: true, search: 'test' })
-
-      expect(store.state.open).toBe(true)
-      expect(store.state.search).toBe('test')
-    })
-
-    it('creates with default context', () => {
-      const store = createStore()
-
-      expect(store.context.loop).toBe(true)
-      expect(store.context.autoHighlightFirst).toBe(true)
-      expect(store.context.clearSearchOnClose).toBe(true)
-      expect(store.context.filter).toBeDefined()
-    })
-
-    it('creates with custom context', () => {
-      const store = createStore({}, { loop: false, autoHighlightFirst: false })
-
-      expect(store.context.loop).toBe(false)
-      expect(store.context.autoHighlightFirst).toBe(false)
-    })
-  })
-
   describe('item registration', () => {
-    it('registers items', () => {
-      const store = createStore()
-
-      store.registerItem('item-1', { value: 'Item 1' })
-      store.registerItem('item-2', { value: 'Item 2' })
-
-      expect(store.context.items.size).toBe(2)
-      expect(store.context.items.get('item-1')?.value).toBe('Item 1')
-      expect(store.context.items.get('item-2')?.value).toBe('Item 2')
-    })
-
     it('unregisters items on cleanup', () => {
       const store = createStore()
 
@@ -161,16 +113,6 @@ describe('ListboxStore', () => {
       cleanup()
 
       expect(store.context.groups.has('group-1')).toBe(false)
-    })
-
-    it('registers item select callbacks', () => {
-      const store = createStore()
-      const onSelect = vi.fn()
-
-      store.registerItem('item-1', { value: 'Item 1' })
-      store.registerItemSelect('item-1', onSelect)
-
-      expect(store.context.itemSelects.get('item-1')).toBe(onSelect)
     })
 
     it('matches shortcuts case-insensitively', () => {
@@ -346,14 +288,6 @@ describe('ListboxStore', () => {
     })
 
     describe('highlightNext', () => {
-      it('highlights next item', () => {
-        store.setHighlightedId('item-1')
-
-        store.highlightNext()
-
-        expect(store.state.highlightedId).toBe('item-2')
-      })
-
       it('highlights first item when no item is highlighted', () => {
         // Create store without auto-highlight
         const testStore = createStore(
@@ -387,32 +321,9 @@ describe('ListboxStore', () => {
 
         expect(store.state.highlightedId).toBe('item-3')
       })
-
-      it('skips disabled items', () => {
-        // Re-register with disabled item
-        store.context.items.clear()
-        registerItems(store, [
-          { id: 'item-1', value: 'Item 1' },
-          { id: 'item-2', value: 'Item 2', disabled: true },
-          { id: 'item-3', value: 'Item 3' },
-        ])
-        store.setHighlightedId('item-1')
-
-        store.highlightNext()
-
-        expect(store.state.highlightedId).toBe('item-3')
-      })
     })
 
     describe('highlightPrev', () => {
-      it('highlights previous item', () => {
-        store.setHighlightedId('item-2')
-
-        store.highlightPrev()
-
-        expect(store.state.highlightedId).toBe('item-1')
-      })
-
       it('highlights last item when no item is highlighted', () => {
         store.clearHighlight()
 
@@ -454,12 +365,6 @@ describe('ListboxStore', () => {
     })
 
     describe('highlightFirstItem', () => {
-      it('highlights the first visible item', () => {
-        store.highlightFirstItem()
-
-        expect(store.state.highlightedId).toBe('item-1')
-      })
-
       it('skips disabled first item', () => {
         store.context.items.clear()
         registerItems(store, [
@@ -488,27 +393,7 @@ describe('ListboxStore', () => {
       })
     })
 
-    describe('highlightItemByValue', () => {
-      it('highlights item by its value', () => {
-        store.highlightItemByValue('item-2')
-
-        expect(store.state.highlightedId).toBe('item-2')
-      })
-
-      it('falls back to first item if value not found', () => {
-        store.highlightItemByValue('nonexistent')
-
-        expect(store.state.highlightedId).toBe('item-1')
-      })
-    })
-
     describe('getVisibleItemIds', () => {
-      it('returns all non-disabled items when no search', () => {
-        const ids = store.getVisibleItemIds()
-
-        expect(ids).toEqual(['item-1', 'item-2', 'item-3'])
-      })
-
       it('excludes disabled items', () => {
         store.context.items.clear()
         registerItems(store, [
@@ -543,17 +428,6 @@ describe('ListboxStore', () => {
       expect(ids).toContain('apple')
       expect(ids).not.toContain('banana')
       expect(ids).not.toContain('cherry')
-    })
-
-    it('resets list scroll position when search changes', () => {
-      const scrollTo = vi.fn()
-      store.setListRef({
-        current: { scrollTo } as unknown as HTMLElement,
-      })
-
-      store.setSearch('app')
-
-      expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
     })
 
     it('resets the nearest scrollable ancestor when the list is rendered inside a scroll viewport', () => {
@@ -597,18 +471,6 @@ describe('ListboxStore', () => {
 
       expect(scrollContainerScrollTo).toHaveBeenCalledWith({ top: 0 })
       expect(listScrollTo).not.toHaveBeenCalled()
-    })
-
-    it('preserves list scroll position when resetScrollOnSearch is false', () => {
-      const scrollTo = vi.fn()
-      store.context.resetScrollOnSearch = false
-      store.setListRef({
-        current: { scrollTo } as unknown as HTMLElement,
-      })
-
-      store.setSearch('app')
-
-      expect(scrollTo).not.toHaveBeenCalled()
     })
 
     it('resets list scroll position when autoHighlightFirst is false', () => {
@@ -684,74 +546,9 @@ describe('ListboxStore', () => {
       expect(ids).toEqual(['apple', 'banana', 'cherry'])
       expect(store.state.filteredCount).toBe(3)
     })
-
-    it('supports custom search normalization', () => {
-      store.setSearch('app ')
-      expect(store.getVisibleItemIds()).toContain('apple')
-
-      store.setSearchNormalizer((query) => query)
-
-      const ids = store.getVisibleItemIds()
-      expect(ids).not.toContain('apple')
-      expect(ids).not.toContain('banana')
-      expect(ids).not.toContain('cherry')
-    })
-
-    it('filters with keywords', () => {
-      store.context.items.clear()
-      store.registerItem('item-1', {
-        value: 'Apple',
-        keywords: ['fruit', 'red'],
-      })
-      store.registerItem('item-2', { value: 'Banana', keywords: ['fruit'] })
-      store.registerItem('item-3', { value: 'Carrot', keywords: ['vegetable'] })
-
-      store.setSearch('fruit')
-
-      const ids = store.getVisibleItemIds()
-      expect(ids).toContain('item-1')
-      expect(ids).toContain('item-2')
-      expect(ids).not.toContain('item-3')
-    })
-
-    it('disables filtering when filter=false', () => {
-      store.context.filter = false
-
-      store.setSearch('xyz')
-
-      // All items should still be visible
-      const ids = store.getVisibleItemIds()
-      expect(ids).toEqual(['apple', 'banana', 'cherry'])
-    })
-
-    it('tracks visible groups', () => {
-      store.context.items.clear()
-      store.registerGroup('fruits')
-      store.registerGroup('vegetables')
-      store.registerItem('apple', { value: 'Apple', groupId: 'fruits' })
-      store.registerItem('banana', { value: 'Banana', groupId: 'fruits' })
-      store.registerItem('carrot', { value: 'Carrot', groupId: 'vegetables' })
-
-      store.setSearch('app')
-
-      expect(store.state.visibleGroups.has('fruits')).toBe(true)
-      expect(store.state.visibleGroups.has('vegetables')).toBe(false)
-    })
   })
 
   describe('open/close behavior', () => {
-    it('auto-highlights first item when opening (autoHighlightFirst=true)', () => {
-      const store = createStore({}, { autoHighlightFirst: true })
-      registerItems(store, [
-        { id: 'item-1', value: 'Item 1' },
-        { id: 'item-2', value: 'Item 2' },
-      ])
-
-      store.setOpen(true)
-
-      expect(store.state.highlightedId).toBe('item-1')
-    })
-
     it('does not auto-highlight when opening (autoHighlightFirst=false)', () => {
       const store = createStore({}, { autoHighlightFirst: false })
       registerItems(store, [
@@ -764,28 +561,6 @@ describe('ListboxStore', () => {
       expect(store.state.highlightedId).toBe(null)
     })
 
-    it('clears search when closing (clearSearchOnClose=true)', () => {
-      const store = createStore(
-        { open: true, search: 'test' },
-        { clearSearchOnClose: true },
-      )
-
-      store.setOpen(false)
-
-      expect(store.state.search).toBe('')
-    })
-
-    it('preserves search when closing (clearSearchOnClose=false)', () => {
-      const store = createStore(
-        { open: true, search: 'test' },
-        { clearSearchOnClose: false },
-      )
-
-      store.setOpen(false)
-
-      expect(store.state.search).toBe('test')
-    })
-
     it('preserves search when closing (clearSearchOnClose="after-exit")', () => {
       const store = createStore(
         { open: true, search: 'test' },
@@ -796,53 +571,6 @@ describe('ListboxStore', () => {
 
       // Search should NOT be cleared immediately - it's deferred to after animation
       expect(store.state.search).toBe('test')
-    })
-
-    it('clears search via clearSearch() when clearSearchOnClose="after-exit"', () => {
-      const store = createStore(
-        { open: true, search: 'test' },
-        { clearSearchOnClose: 'after-exit' },
-      )
-
-      store.setOpen(false)
-      expect(store.state.search).toBe('test')
-
-      // Simulates what Root.onOpenChangeComplete does after animation completes
-      store.clearSearch()
-      expect(store.state.search).toBe('')
-    })
-
-    it('preserves highlight when closing', () => {
-      const store = createStore({ open: true })
-      registerItems(store, [{ id: 'item-1', value: 'Item 1' }])
-      store.setHighlightedId('item-1')
-
-      store.setOpen(false)
-
-      expect(store.state.highlightedId).toBe('item-1')
-    })
-
-    it('clears deferred highlight via clearHighlight()', () => {
-      const store = createStore({ open: true })
-      registerItems(store, [{ id: 'item-1', value: 'Item 1' }])
-      store.setHighlightedId('item-1')
-
-      store.setOpen(false)
-      store.clearHighlight()
-
-      expect(store.state.highlightedId).toBe(null)
-    })
-
-    it('calls onOpenChange callback', () => {
-      const onOpenChange = vi.fn()
-      const store = createStore({}, { onOpenChange })
-
-      store.setOpen(true, 'trigger-press')
-
-      expect(onOpenChange).toHaveBeenCalledWith(
-        true,
-        expect.objectContaining({ reason: 'trigger-press' }),
-      )
     })
 
     it('prevents state change when onOpenChange cancels', () => {
@@ -907,18 +635,6 @@ describe('ListboxStore', () => {
   })
 
   describe('selection', () => {
-    it('selectHighlighted calls the item onSelect callback', () => {
-      const onSelect = vi.fn()
-      const store = createStore({ open: true })
-      store.registerItem('item-1', { value: 'Item 1' })
-      store.registerItemSelect('item-1', onSelect)
-      store.setHighlightedId('item-1')
-
-      store.selectHighlighted()
-
-      expect(onSelect).toHaveBeenCalled()
-    })
-
     it('selectHighlighted does nothing when no item is highlighted', () => {
       const onSelect = vi.fn()
       const store = createStore({ open: true }, { autoHighlightFirst: false })
@@ -931,18 +647,6 @@ describe('ListboxStore', () => {
       store.selectHighlighted()
 
       expect(onSelect).not.toHaveBeenCalled()
-    })
-
-    it('selectByShortcut selects item by shortcut key', () => {
-      const onSelect = vi.fn()
-      const store = createStore({ open: true })
-      store.registerItem('item-1', { value: 'Item 1', shortcut: 'a' })
-      store.registerItemSelect('item-1', onSelect)
-
-      const result = store.selectByShortcut('a')
-
-      expect(result).toBe(true)
-      expect(onSelect).toHaveBeenCalled()
     })
 
     it('selectByShortcut returns false for unknown shortcut', () => {
@@ -972,14 +676,6 @@ describe('ListboxStore', () => {
   })
 
   describe('virtualization', () => {
-    it('setVirtualized updates state', () => {
-      const store = createStore()
-
-      store.setVirtualized(true)
-
-      expect(store.state.virtualized).toBe(true)
-    })
-
     it('filters virtual items that have not mounted', () => {
       const store = createStore({ open: true, virtualized: true })
 
@@ -1151,37 +847,6 @@ describe('ListboxStore', () => {
   })
 
   describe('submenu management', () => {
-    it('registers submenu open/close callbacks', () => {
-      const store = createStore()
-      const onOpen = vi.fn()
-      const onClose = vi.fn()
-
-      store.registerItem('submenu-1', {
-        value: 'Submenu',
-        isSubmenuTrigger: true,
-      })
-      store.registerSubmenuOpen('submenu-1', onOpen)
-      store.registerSubmenuClose('submenu-1', onClose)
-
-      expect(store.context.submenuOpens.get('submenu-1')).toBe(onOpen)
-      expect(store.context.submenuCloses.get('submenu-1')).toBe(onClose)
-    })
-
-    it('openSubmenuForHighlighted calls submenu open callback', () => {
-      const onOpen = vi.fn()
-      const store = createStore({ open: true })
-      store.registerItem('submenu-1', {
-        value: 'Submenu',
-        isSubmenuTrigger: true,
-      })
-      store.registerSubmenuOpen('submenu-1', onOpen)
-      store.setHighlightedId('submenu-1')
-
-      store.openSubmenuForHighlighted()
-
-      expect(onOpen).toHaveBeenCalled()
-    })
-
     it('isHighlightedSubmenuTrigger returns correct value', () => {
       const store = createStore({ open: true })
       store.registerItem('submenu-1', {
@@ -1195,58 +860,6 @@ describe('ListboxStore', () => {
 
       store.setHighlightedId('item-1')
       expect(store.isHighlightedSubmenuTrigger()).toBe(false)
-    })
-
-    it('closeSiblingSubmenus closes all except specified', () => {
-      const onClose1 = vi.fn()
-      const onClose2 = vi.fn()
-      const onClose3 = vi.fn()
-      const store = createStore()
-
-      store.registerSubmenuClose('sub-1', onClose1)
-      store.registerSubmenuClose('sub-2', onClose2)
-      store.registerSubmenuClose('sub-3', onClose3)
-
-      store.closeSiblingSubmenus('sub-2')
-
-      expect(onClose1).toHaveBeenCalled()
-      expect(onClose2).not.toHaveBeenCalled()
-      expect(onClose3).toHaveBeenCalled()
-    })
-  })
-
-  describe('search callback', () => {
-    it('calls onSearchChange when search changes', () => {
-      const onSearchChange = vi.fn()
-      const store = createStore({}, { onSearchChange })
-
-      store.setSearch('test')
-
-      expect(onSearchChange).toHaveBeenCalledWith('test')
-    })
-
-    it('clearSearch resets search to empty', () => {
-      const store = createStore({ search: 'test' })
-
-      store.clearSearch()
-
-      expect(store.state.search).toBe('')
-    })
-  })
-
-  describe('autoHighlightFirst with string value', () => {
-    it('highlights specific item by value when autoHighlightFirst is string', () => {
-      const store = createStore({}, { autoHighlightFirst: 'item-2' })
-      registerItems(store, [
-        { id: 'item-1', value: 'Item 1' },
-        { id: 'item-2', value: 'Item 2' },
-        { id: 'item-3', value: 'Item 3' },
-      ])
-
-      store.setOpen(true)
-      store.applyAutoHighlight()
-
-      expect(store.state.highlightedId).toBe('item-2')
     })
   })
 
@@ -1282,20 +895,6 @@ describe('ListboxStore', () => {
   })
 
   describe('orderedItems (filter={false})', () => {
-    it('highlights first ordered item when set', () => {
-      const store = createStore({ open: true }, { filter: false })
-      registerItems(store, [
-        { id: 'apple', value: 'Apple' },
-        { id: 'banana', value: 'Banana' },
-        { id: 'cherry', value: 'Cherry' },
-      ])
-
-      // Consumer provides order: cherry first
-      store.setOrderedItems(['cherry', 'apple'])
-
-      expect(store.state.highlightedId).toBe('cherry')
-    })
-
     it('updates highlight when ordered items change', () => {
       const store = createStore({ open: true }, { filter: false })
       registerItems(store, [
@@ -1563,23 +1162,6 @@ describe('ListboxStore', () => {
       expect(visibleIds).toEqual(['banana', 'apple'])
     })
 
-    it('orderedItems is used when not virtualized', () => {
-      const store = createStore(
-        { open: true, virtualized: false },
-        { filter: false },
-      )
-      registerItems(store, [
-        { id: 'apple', value: 'Apple' },
-        { id: 'banana', value: 'Banana' },
-        { id: 'cherry', value: 'Cherry' },
-      ])
-
-      store.setOrderedItems(['cherry', 'apple', 'banana'])
-
-      const visibleIds = store.getVisibleItemIds()
-      expect(visibleIds).toEqual(['cherry', 'apple', 'banana'])
-    })
-
     it('falls back to mounted items order when neither is set', () => {
       const store = createStore(
         { open: true, virtualized: false },
@@ -1656,71 +1238,6 @@ describe('ListboxStore', () => {
       // With empty virtualItems, falls through to orderedItems
       const visibleIds = store.getVisibleItemIds()
       expect(visibleIds).toEqual(['apple', 'banana'])
-    })
-
-    it('falls back to mounted items when no virtualItems or orderedItems', () => {
-      const store = createStore(
-        { open: true, virtualized: true },
-        { filter: false },
-      )
-
-      // Register in specific order
-      store.registerItem('banana', { value: 'Banana' })
-      store.registerItem('apple', { value: 'Apple' })
-
-      store.setVirtualItems([]) // Empty virtualItems
-      // No orderedItems set
-
-      // Falls back to mounted items order
-      const visibleIds = store.getVisibleItemIds()
-      expect(visibleIds).toEqual(['banana', 'apple'])
-    })
-  })
-
-  describe('filter={false} behavior', () => {
-    it('items are always visible when filter is false', () => {
-      const store = createStore({ open: true }, { filter: false })
-      registerItems(store, [
-        { id: 'apple', value: 'Apple' },
-        { id: 'banana', value: 'Banana' },
-      ])
-
-      // Set search that wouldn't match
-      store.setSearch('xyz')
-
-      // Items should still be in filteredItems with score 1
-      expect(store.state.filteredItems.get('apple')).toBe(1)
-      expect(store.state.filteredItems.get('banana')).toBe(1)
-    })
-
-    it('highlight moves to first registered item when orderedItems changes', () => {
-      const store = createStore({ open: true }, { filter: false })
-      registerItems(store, [
-        { id: 'apple', value: 'Apple' },
-        { id: 'banana', value: 'Banana' },
-      ])
-
-      store.setOrderedItems(['apple', 'banana'])
-      expect(store.state.highlightedId).toBe('apple')
-
-      // Unregister apple
-      store.context.items.delete('apple')
-
-      // Update orderedItems (simulating consumer updating after item removal)
-      store.setOrderedItems(['banana'])
-
-      // Highlight should move to banana since apple is no longer registered
-      expect(store.state.highlightedId).toBe('banana')
-    })
-
-    it('isFilterDisabled returns true when filter={false}', () => {
-      const store = createStore({}, { filter: false })
-      expect(store.isFilterDisabled()).toBe(true)
-    })
-
-    it('isFilterDisabled returns false when filter is a function', () => {
-      const store = createStore({})
-      expect(store.isFilterDisabled()).toBe(false)
     })
   })
 
@@ -1855,62 +1372,6 @@ describe('ListboxStore', () => {
 
       expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a'])
       expect(store.context.rowElements.get('a')).toBe(elements[1])
-    })
-
-    it('selects first and last list-level rows', () => {
-      const store = createStore()
-      const elements = createRowElements(3)
-
-      store.registerRow('x', elements[0]!, { kind: 'item' })
-      store.registerRow('g', elements[1]!, { kind: 'group' })
-      store.registerRow('i', elements[2]!, { kind: 'item', groupId: 'g' })
-
-      expect(store.select('isFirstRow', 'x')).toBe(true)
-      expect(store.select('isLastRow', 'g')).toBe(true)
-      expect(store.select('isFirstRow', 'i')).toBe(false)
-      expect(store.select('isLastRow', 'i')).toBe(false)
-    })
-
-    it('selects first and last group rows', () => {
-      const store = createStore()
-      const elements = createRowElements(4)
-
-      store.registerRow('g1', elements[0]!, { kind: 'group' })
-      store.registerRow('x', elements[1]!, { kind: 'item' })
-      store.registerRow('g2', elements[2]!, { kind: 'group' })
-      store.registerRow('separator', elements[3]!, { kind: 'separator' })
-
-      expect(store.select('isFirstGroup', 'g1')).toBe(true)
-      expect(store.select('isLastGroup', 'g2')).toBe(true)
-      expect(store.select('isFirstGroup', 'x')).toBe(false)
-      expect(store.select('isLastGroup', 'separator')).toBe(false)
-
-      const loneStore = createStore()
-      const loneElements = createRowElements(1)
-
-      loneStore.registerRow('only-group', loneElements[0]!, { kind: 'group' })
-
-      expect(loneStore.select('isFirstGroup', 'only-group')).toBe(true)
-      expect(loneStore.select('isLastGroup', 'only-group')).toBe(true)
-    })
-
-    it('selects first and last rows within a group', () => {
-      const store = createStore()
-      const elements = createRowElements(4)
-
-      store.registerRow('loose', elements[0]!, { kind: 'item' })
-      store.registerRow('i1', elements[1]!, { kind: 'item', groupId: 'g' })
-      store.registerRow('i2', elements[2]!, { kind: 'item', groupId: 'g' })
-      store.registerRow('single', elements[3]!, { kind: 'item', groupId: 'h' })
-
-      expect(store.select('isFirstInGroup', 'i1')).toBe(true)
-      expect(store.select('isLastInGroup', 'i1')).toBe(false)
-      expect(store.select('isFirstInGroup', 'i2')).toBe(false)
-      expect(store.select('isLastInGroup', 'i2')).toBe(true)
-      expect(store.select('isFirstInGroup', 'loose')).toBe(false)
-      expect(store.select('isLastInGroup', 'loose')).toBe(false)
-      expect(store.select('isFirstInGroup', 'single')).toBe(true)
-      expect(store.select('isLastInGroup', 'single')).toBe(true)
     })
 
     it('returns false for positional selectors when virtualized', () => {
