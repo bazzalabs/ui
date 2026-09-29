@@ -13,6 +13,7 @@
     "check": "biome check . && bun run lint:oxlint",
     "check:fix": "biome check --fix . && bun run lint:oxlint --fix",
     "lint:oxlint": "oxlint --disable-nested-config packages/react",
+    "lint:exceptions": "bun tooling/lint/report-exceptions.ts",
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "sgrep:watch": "sgrep watch .",

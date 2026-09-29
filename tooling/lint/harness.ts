@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { readOxlintConfig } from './source-text.ts'
 
 const run = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
-const repoRoot = join(here, '../..')
 const oxlint = join(here, 'node_modules/.bin/oxlint')
 const bazzaPlugin = join(here, 'bazza-plugin.mjs')
 
@@ -95,10 +95,9 @@ export function fixWith(
   })
 }
 
-/** The repo's `.oxlintrc.json`, with comments stripped and the plugin path made absolute. */
-async function repoConfig(): Promise<object> {
-  const raw = await readFile(join(repoRoot, '.oxlintrc.json'), 'utf8')
-  const config = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, ''))
+/** The repo's `.oxlintrc.json`, with the plugin path made absolute. */
+function repoConfig(): object {
+  const config = readOxlintConfig()
   delete config.$schema
   config.jsPlugins = [bazzaPlugin]
   return config
@@ -108,6 +107,6 @@ async function repoConfig(): Promise<object> {
  * Lints `files` laid out at repo paths with the repo's own `.oxlintrc.json`,
  * so the tests see the same scoping CI does.
  */
-export async function lintWithRepoConfig(files: Files): Promise<Finding[]> {
-  return lintIn(await repoConfig(), files)
+export function lintWithRepoConfig(files: Files): Promise<Finding[]> {
+  return lintIn(repoConfig(), files)
 }
