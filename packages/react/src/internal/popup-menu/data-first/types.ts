@@ -153,6 +153,13 @@ export interface StaticLoaderConfig {
 export interface QueryLoaderConfig {
   type: 'query'
   /**
+   * Milliseconds to wait after the search stops changing before passing it to
+   * the loader. While waiting, the loader counts as fetching, so the menu
+   * doesn't show "no results" or treat the search as finished too early.
+   * @default 0
+   */
+  debounce?: number
+  /**
    * Component that calls hooks and provides loader state.
    * Receives the current search query as a prop.
    */
