@@ -4,6 +4,7 @@ section: Getting Started
 summary: Suggests `/` commands, `@` mentions and `:` emoji while the user types in an editor or text field, without taking focus from it.
 audience: private
 tiers:
+  - components
   - primitives
 ---
 
@@ -17,6 +18,24 @@ The host tells the menu what was typed through a **handle**. The menu handles th
 
 ## Installation
 
+<ComponentOnly>
+
+Install the styled component from our registry:
+
+```npm
+npx shadcn@latest add {{REGISTRY_URL}}/r/suggestion-menu
+```
+
+It wraps the `@bazza-ui/react` primitive with base styles and is added to your components directory as `suggestion-menu-preview.tsx`, so it won't conflict with an existing file.
+
+```tsx
+import { SuggestionMenu } from '@/components/ui/suggestion-menu-preview'
+```
+
+</ComponentOnly>
+
+<PrimitiveOnly>
+
 Install the unstyled primitive from npm:
 
 ```npm
@@ -26,6 +45,8 @@ npm install @bazza-ui/react{{RELEASE_CHANNEL}}
 ```tsx
 import { SuggestionMenu } from '@bazza-ui/react/suggestion-menu'
 ```
+
+</PrimitiveOnly>
 
 ## Anatomy
 
@@ -115,6 +136,28 @@ onSelect: () => {
 }
 ```
 
+<ComponentOnly>
+
+### Mentions
+
+Rows can be grouped and separated like in any other menu. Give a group a `render` that wraps its rows in `SuggestionMenu.Group` with a `SuggestionMenu.GroupLabel`, and give a separator one that returns `SuggestionMenu.Separator`. Groups with no matching rows are hidden as the query narrows. As in every menu, separators only show while nothing has been typed after the trigger.
+
+<Example name="suggestion-menu-mentions" />
+
+### Slash commands
+
+`SuggestionMenu.Shortcut` shows the editor shortcut for a command as a hint. The menu doesn't bind those keys, so everything typed still reaches the host. Since a `/` that matches nothing is probably a path, this menu uses `noResults="close"` (see [When nothing matches](#when-nothing-matches)).
+
+<Example name="suggestion-menu-slash-commands" />
+
+### Emoji
+
+`minLength: 1` waits for a character after `:`, so a colon at the end of a sentence doesn't open the menu. This one is attached to an `<input>`, which gets the `combobox` role while the menu is open.
+
+<Example name="suggestion-menu-emoji" />
+
+</ComponentOnly>
+
 ## Editors
 
 Editors decide what counts as a trigger (a `/` inside a code block usually shouldn't open a menu), so they write their own detection and drive the handle from it. They also own the rule that Escape keeps the menu closed until the trigger is typed again. A ProseMirror plugin:
@@ -187,6 +230,14 @@ Choosing a row usually edits the document, which makes the plugin call `close()`
 ## Async results
 
 Pass a loader as `asyncContent`. Suggestion menus default to `asyncContentMode="append"`: local `content` shows at once and loaded rows are added after it, with rows whose Resolved ID is already local dropped. The highlight stays on its row while results arrive.
+
+<ComponentOnly>
+
+Recent people are local, so they show and filter instantly. Everyone else comes from a search that takes a few hundred milliseconds. Someone who is both recent and a search result appears once, because both rows share an `id`. A spinner next to "People" shows while a search is in flight.
+
+<Example name="suggestion-menu-async" />
+
+</ComponentOnly>
 
 This `@` mention search keeps the previous results on screen while the next query loads, and waits 150 ms after typing stops:
 

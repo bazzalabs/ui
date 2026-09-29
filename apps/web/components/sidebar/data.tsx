@@ -158,7 +158,7 @@ export const componentItems: ComponentItem[] = [
   {
     type: 'single',
     title: 'Suggestion Menu',
-    url: '/docs/primitives/suggestion-menu',
+    url: '/docs/components/suggestion-menu',
     audience: 'private',
   },
   {

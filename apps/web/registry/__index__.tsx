@@ -331,6 +331,24 @@ export const examples = {
         { extraFiles: ['components.tsx', 'icons.tsx'] },
       ),
     },
+    'suggestion-menu': {
+      textarea: ex(
+        () => import('@/registry/examples/styled/suggestion-menu/textarea'),
+      ),
+      mentions: ex(
+        () => import('@/registry/examples/styled/suggestion-menu/mentions'),
+      ),
+      'slash-commands': ex(
+        () =>
+          import('@/registry/examples/styled/suggestion-menu/slash-commands'),
+      ),
+      emoji: ex(
+        () => import('@/registry/examples/styled/suggestion-menu/emoji'),
+      ),
+      async: ex(
+        () => import('@/registry/examples/styled/suggestion-menu/async'),
+      ),
+    },
   }),
 
   // Unstyled example variants live here as primitives docs pages adopt them.
@@ -385,6 +403,12 @@ const createNullComponent = () =>
   React.lazy(() => Promise.resolve({ default: () => null }))
 
 export const ui: RegistryIndex = {
+  'suggestion-menu': {
+    name: 'suggestion-menu',
+    type: 'registry:ui',
+    component: createNullComponent(),
+    files: ['registry/ui/suggestion-menu/index.tsx'],
+  },
   'command-menu': {
     name: 'command-menu',
     type: 'registry:ui',
