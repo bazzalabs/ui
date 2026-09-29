@@ -29,6 +29,7 @@ export type {
   SuggestionMenuPopup,
   SuggestionMenuPopupProps,
 } from './popup/popup.js'
+export type { GetAriaResultsText as SuggestionMenuGetAriaResultsText } from './root/results-status.js'
 export type {
   SuggestionMenuRoot,
   SuggestionMenuRootProps,

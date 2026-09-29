@@ -24,8 +24,15 @@ import type {
   SuggestionMenuOpenChangeReason,
 } from '../events.js'
 import type { SuggestionMenuAnchor, SuggestionMenuHandle } from '../handle.js'
+import { useHostAria } from './host-aria.js'
 import { watchHost } from './host-events.js'
 import { handleSuggestionMenuKey } from './keymap.js'
+import {
+  defaultGetAriaResultsText,
+  type GetAriaResultsText,
+  type ResultsAnnouncement,
+  SuggestionMenuResultsStatus,
+} from './results-status.js'
 import { SuggestionMenuRootContext } from './root-context.js'
 
 /** What the Root's `children` function receives. */
@@ -95,6 +102,13 @@ export interface SuggestionMenuRootProps<Payload = unknown>
    * @default 'surface'
    */
   idScope?: PopupMenuIdScope
+  /**
+   * Formats the result summary announced to screen readers once results
+   * settle, for localisation. Receives the number of results and the text of
+   * the row Enter would choose.
+   * @default (count, label) => count === 0 ? 'No results' : `${count} results, first: ${label}`
+   */
+  getAriaResultsText?: GetAriaResultsText
   /** The menu's parts, or a function of the payload and query that returns them. */
   children:
     | React.ReactNode
@@ -153,6 +167,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
     onOpenChangeComplete: onOpenChangeCompleteProp,
     getResolvedId,
     idScope = 'surface',
+    getAriaResultsText = defaultGetAriaResultsText,
     children,
     ...rest
   } = props
@@ -219,6 +234,14 @@ export function SuggestionMenuRoot<Payload = unknown>(
   const forwardKeyDownRef = React.useRef<ForwardKeyDown | null>(null)
   const detachHostRef = React.useRef<(() => void) | null>(null)
 
+  // `aria-activedescendant` follows keyboard highlight only (ADR 0005). Set
+  // when the menu moves the highlight for a key; cleared when the query
+  // changes, on ←/→, and when the pointer or the menu itself moves it.
+  const [keyboardHighlightQuery, setKeyboardHighlightQuery] = React.useState<
+    string | null
+  >(null)
+  const queryRef = React.useRef('')
+
   React.useLayoutEffect(() => {
     const isOpen = () => store.select('open')
     const send = (
@@ -257,14 +280,22 @@ export function SuggestionMenuRoot<Payload = unknown>(
     return handle.connect({
       isOpen,
       requestOpenChange: request,
-      handleKeyDown: (event) =>
-        handleSuggestionMenuKey(event, {
+      handleKeyDown: (event) => {
+        // Moving the caret hands the screen reader back to the text.
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+          setKeyboardHighlightQuery(null)
+        }
+        return handleSuggestionMenuKey(event, {
           isOpen,
           forward: (forwarded) => {
             const choosing = forwarded.key === 'Enter'
             if (choosing) startSelection()
             try {
-              return forwardKeyDownRef.current?.(forwarded) ?? false
+              const used = forwardKeyDownRef.current?.(forwarded) ?? false
+              if (used && !choosing) {
+                setKeyboardHighlightQuery(queryRef.current)
+              }
+              return used
             } finally {
               if (choosing) endSelection()
             }
@@ -275,7 +306,8 @@ export function SuggestionMenuRoot<Payload = unknown>(
               REASONS.escapeKey,
               'nativeEvent' in keyEvent ? keyEvent.nativeEvent : keyEvent,
             ),
-        }),
+        })
+      },
       attachHost: (host) => {
         detachHostRef.current?.()
         detachHostRef.current = host
@@ -308,6 +340,42 @@ export function SuggestionMenuRoot<Payload = unknown>(
   const anchor = anchorProp ?? handleState.anchor
   const payload = handleState.payload
   const host = handleState.host
+  queryRef.current = query
+
+  const highlightedId = store.useState('highlightedId')
+  const highlightSource = store.useState('highlightSource')
+  // Decided during render, so a pointer or automatic highlight never reaches
+  // the host, not even for one render.
+  const activeDescendant =
+    open && highlightSource === 'keyboard' && keyboardHighlightQuery === query
+      ? highlightedId
+      : null
+  React.useEffect(() => {
+    if (highlightSource !== 'keyboard') setKeyboardHighlightQuery(null)
+  }, [highlightSource])
+  // A new query disarms it for good, even if the text comes back.
+  React.useLayoutEffect(() => {
+    setKeyboardHighlightQuery(null)
+  }, [query])
+  const syncHostAria = useHostAria({ store, host, open, activeDescendant })
+
+  // The settled result summary, reported by the Surface once per settle.
+  const [announcement, setAnnouncement] =
+    React.useState<ResultsAnnouncement | null>(null)
+  const getAriaResultsTextRef = React.useRef(getAriaResultsText)
+  getAriaResultsTextRef.current = getAriaResultsText
+  const reportResults = React.useCallback(
+    (count: number, label: string | null) => {
+      const text = getAriaResultsTextRef.current(count, label)
+      setAnnouncement((current) => ({ text, key: (current?.key ?? 0) + 1 }))
+    },
+    [],
+  )
+  React.useEffect(() => {
+    if (open) return
+    setKeyboardHighlightQuery(null)
+    setAnnouncement(null)
+  }, [open])
 
   const virtualAnchor = React.useMemo(() => {
     if (!anchor) return undefined
@@ -341,8 +409,14 @@ export function SuggestionMenuRoot<Payload = unknown>(
   )
 
   const rootContext = React.useMemo(
-    () => ({ handle: handle as SuggestionMenuHandle, query, payload }),
-    [handle, query, payload],
+    () => ({
+      handle: handle as SuggestionMenuHandle,
+      query,
+      payload,
+      reportResults,
+      syncHostAria,
+    }),
+    [handle, query, payload, reportResults, syncHostAria],
   )
 
   return (
@@ -363,6 +437,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
       componentName="suggestion-menu"
     >
       <KeyboardBridge forwardKeyDownRef={forwardKeyDownRef} />
+      <SuggestionMenuResultsStatus announcement={announcement} />
       <SuggestionMenuRootContext.Provider value={rootContext}>
         <Popover.Root
           {...rest}

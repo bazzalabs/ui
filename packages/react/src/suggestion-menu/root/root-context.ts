@@ -9,6 +9,13 @@ export interface SuggestionMenuRootContextValue {
   query: string
   /** The payload from the last `update()`. */
   payload: unknown
+  /**
+   * Called by the Surface when its results have settled, with the number of
+   * results and the text of the row Enter would choose.
+   */
+  reportResults: (count: number, label: string | null) => void
+  /** Writes the host's ARIA attributes again, e.g. once the list mounts. */
+  syncHostAria: (listId?: string) => void
 }
 
 export const SuggestionMenuRootContext =
