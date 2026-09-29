@@ -118,7 +118,7 @@ export const ContextMenuTrigger = React.forwardRef<
       setAnchorPosition(event.clientX, event.clientY, false)
 
       // Open the menu
-      openMenu()
+      openMenu(event.nativeEvent)
     },
     [onContextMenu, disabled, setAnchorPosition, openMenu],
   )
@@ -136,6 +136,7 @@ export const ContextMenuTrigger = React.forwardRef<
 
       // Store initial touch position
       touchStartPosRef.current = { x: touch.clientX, y: touch.clientY }
+      const nativeEvent = event.nativeEvent
       setPressed(true)
 
       // Start long-press timer
@@ -150,7 +151,7 @@ export const ContextMenuTrigger = React.forwardRef<
         )
 
         // Open the menu
-        openMenu()
+        openMenu(nativeEvent)
 
         // Reset state
         setPressed(false)

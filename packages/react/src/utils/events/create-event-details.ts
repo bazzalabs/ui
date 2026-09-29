@@ -15,7 +15,7 @@ interface ReasonToEventMap {
   [REASONS.triggerPress]: MouseEvent | PointerEvent | TouchEvent | KeyboardEvent
   [REASONS.triggerHover]: MouseEvent | PointerEvent
   [REASONS.triggerFocus]: FocusEvent
-  [REASONS.triggerContextMenu]: MouseEvent
+  [REASONS.triggerContextMenu]: MouseEvent | TouchEvent
 
   // Dismissal reasons
   [REASONS.escapeKey]: KeyboardEvent

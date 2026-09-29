@@ -345,7 +345,7 @@ describe('<ContextMenu.Root />', () => {
       expect(onOpenChange).toHaveBeenCalledTimes(1)
       expect(onOpenChange).toHaveBeenLastCalledWith(
         true,
-        expect.objectContaining({}),
+        expect.objectContaining({ reason: 'trigger-context-menu' }),
       )
 
       // Second right-click at different position
@@ -410,7 +410,8 @@ describe('<ContextMenu.Root />', () => {
     })
 
     it('opens after 500ms long-press', async () => {
-      render(<BasicContextMenu />)
+      const onOpenChange = vi.fn()
+      render(<BasicContextMenu onOpenChange={onOpenChange} />)
 
       const trigger = screen.getByTestId('trigger')
       expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
@@ -438,6 +439,13 @@ describe('<ContextMenu.Root />', () => {
 
       // With fake timers, check synchronously after act
       expect(screen.getByTestId('surface')).toBeInTheDocument()
+      expect(onOpenChange).toHaveBeenCalledWith(
+        true,
+        expect.objectContaining({
+          reason: 'trigger-context-menu',
+          event: expect.objectContaining({ type: 'touchstart' }),
+        }),
+      )
     })
 
     it('cancels long-press if touch moves beyond threshold', async () => {
@@ -565,7 +573,10 @@ describe('<ContextMenu.Root />', () => {
 
       expect(onOpenChange).toHaveBeenCalledWith(
         true,
-        expect.objectContaining({}),
+        expect.objectContaining({
+          reason: 'trigger-context-menu',
+          event: expect.objectContaining({ type: 'contextmenu' }),
+        }),
       )
     })
 
