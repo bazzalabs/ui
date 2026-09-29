@@ -19009,6 +19009,1260 @@
             "description": "Whether the item is disabled"
           }
         ]
+      },
+      "SuggestionMenuHighlightChangeEventDetails": {
+        "name": "SuggestionMenuHighlightChangeEventDetails",
+        "kind": "typealias",
+        "doc": "Event details passed to the `onHighlightChange` callback.",
+        "definition": "GenericEventDetails<SuggestionMenuHighlightChangeReason, {\n    index: number;\n}>",
+        "props": [
+          {
+            "name": "reason",
+            "type": "SuggestionMenuHighlightChangeReason",
+            "formattedType": "\"pointer\" | \"keyboard\" | \"none\"",
+            "required": true,
+            "description": "The reason why this event occurred."
+          },
+          {
+            "name": "event",
+            "type": "Event | MouseEvent | PointerEvent | KeyboardEvent",
+            "required": true,
+            "description": "The native DOM event that triggered this event."
+          }
+        ]
+      },
+      "SuggestionMenuHighlightChangeReason": {
+        "name": "SuggestionMenuHighlightChangeReason",
+        "kind": "typealias",
+        "doc": "Reasons why the highlight changed.",
+        "definition": "typeof REASONS.pointer | typeof REASONS.keyboard | typeof REASONS.none"
+      },
+      "SuggestionMenuOpenChangeEventDetails": {
+        "name": "SuggestionMenuOpenChangeEventDetails",
+        "kind": "typealias",
+        "doc": "Event details passed to the `onOpenChange` callback.",
+        "definition": "ChangeEventDetails<SuggestionMenuOpenChangeReason>",
+        "props": [
+          {
+            "name": "reason",
+            "type": "SuggestionMenuOpenChangeReason",
+            "formattedType": "| 'escape-key'\n  | 'outside-press'\n  | 'focus-out'\n  | 'item-press'\n  | 'imperative-action'\n  | 'no-results'\n  | 'none'",
+            "required": true,
+            "description": "The reason why this state change occurred.\nUse this to conditionally handle different scenarios."
+          },
+          {
+            "name": "event",
+            "type": "Event | MouseEvent | PointerEvent | TouchEvent | KeyboardEvent | FocusEvent",
+            "formattedType": "| Event\n  | MouseEvent\n  | PointerEvent\n  | TouchEvent\n  | KeyboardEvent\n  | FocusEvent",
+            "required": true,
+            "description": "The native DOM event that triggered this change.\nMay be a synthetic event in some cases."
+          },
+          {
+            "name": "cancel",
+            "type": "() => void",
+            "required": true,
+            "description": "Cancels the state change.\nWhen called, the component's internal state will not update."
+          },
+          {
+            "name": "allowPropagation",
+            "type": "() => void",
+            "required": true,
+            "description": "Allows the native event to propagate.\nBy default, some events (like Escape key) stop propagation\nto prevent parent popups from closing simultaneously."
+          },
+          {
+            "name": "isCanceled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether `cancel()` has been called."
+          },
+          {
+            "name": "isPropagationAllowed",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether `allowPropagation()` has been called."
+          },
+          {
+            "name": "trigger",
+            "type": "Element | undefined",
+            "formattedType": "Element",
+            "required": true,
+            "description": "The element that triggered this event, if applicable."
+          }
+        ]
+      },
+      "SuggestionMenuOpenChangeReason": {
+        "name": "SuggestionMenuOpenChangeReason",
+        "kind": "typealias",
+        "doc": "Reasons why the suggestion menu's open state changed.\n- `imperative-action`: the handle's `update()` or `close()`, or the host\n  input was detached or replaced\n- `item-press`: a row was chosen (click or Enter)\n- `escape-key`: Escape was pressed in the host input\n- `outside-press`: a press outside the popup and the host input\n- `focus-out`: the host input lost focus\n- `no-results`: with `noResults: 'close'`, the results settled empty",
+        "definition": "typeof REASONS.imperativeAction | typeof REASONS.itemPress | typeof REASONS.escapeKey | typeof REASONS.outsidePress | typeof REASONS.focusOut | typeof REASONS.noResults | typeof REASONS.none"
+      },
+      "SuggestionMenuAnchor": {
+        "name": "SuggestionMenuAnchor",
+        "kind": "typealias",
+        "doc": "Where the popup is anchored: usually the trigger character's rect.",
+        "definition": "() => DOMRect | null"
+      },
+      "SuggestionMenuUpdate": {
+        "name": "SuggestionMenuUpdate",
+        "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Payload",
+            "default": "unknown"
+          }
+        ],
+        "doc": "What the host input tells the menu when a trigger is typed or updated.",
+        "props": [
+          {
+            "name": "query",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The text typed after the trigger."
+          },
+          {
+            "name": "anchor",
+            "type": "SuggestionMenuAnchor | undefined",
+            "formattedType": "SuggestionMenuAnchor",
+            "required": false,
+            "description": "Measures where the popup is anchored.",
+            "referencePath": "@bazza-ui/react.SuggestionMenuAnchor"
+          },
+          {
+            "name": "payload",
+            "type": "Payload | undefined",
+            "formattedType": "Payload",
+            "required": false,
+            "description": "Data for the Root's `children` function, e.g. which trigger was typed."
+          }
+        ]
+      },
+      "SuggestionMenuListProps": {
+        "name": "SuggestionMenuListProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Accessible label for the listbox.",
+            "default": "'Suggestions'"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode | ((state: PopupMenuListChildrenState) => ReactNode)",
+            "formattedType": "null | string | number | bigint | false | true | ReactElement | Iterable<ReactNode> | ReactPortal | Promise<AwaitedReactNode> | (state: PopupMenu.List.ChildrenState) => ReactNode",
+            "required": true,
+            "description": "Content to render inside the list.\nCan be a render function that receives the current search state."
+          },
+          {
+            "name": "measureRowWidth",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "When true, measures row widths and applies `--row-width` CSS variable.\nKeeps the list at the maximum width seen while scrolling.\nUseful for virtualized lists where content width varies.",
+            "default": "true"
+          },
+          {
+            "name": "maxRowWidth",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Maximum width cap for row measurement (in pixels).\nOnly used when `measureRowWidth` is true."
+          },
+          {
+            "name": "scrollContainerRef",
+            "type": "RefObject<HTMLElement | null> | undefined",
+            "formattedType": "RefObject<HTMLElement | null>",
+            "required": false,
+            "description": "Ref to the element that owns the list's scroll position.\nUse when the semantic list is rendered inside another scroll container."
+          },
+          {
+            "name": "remeasureDependencies",
+            "type": "DependencyList | undefined",
+            "formattedType": "DependencyList",
+            "required": false,
+            "description": "When any value in this array changes, previously-measured row IDs are\ncleared so rows re-measure (the sticky max width is kept — it only ever\ngrows until the menu closes). Use for state that changes row content for\nthe same IDs, e.g. tree rows that re-render as breadcrumb rows when deep\nsearch toggles. Values are compared with `Object.is`, so pass stable\nprimitives — an inline object recreated each render would re-trigger\nevery render."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuListState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.List.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuListState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.List.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuListState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.List.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuPopupProps": {
+        "name": "SuggestionMenuPopupProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuPopupState) => string) | undefined",
+            "formattedType": "string | (state: PopupMenu.Popup.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLAttributes<HTMLElement>, PopupMenuPopupState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLAttributes<HTMLElement>,\n      state: PopupMenu.Popup.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows replacing the popup element with a custom element.\nThe render state includes popup + subpage navigation state."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | ((state: PopoverPopupState) => CSSProperties | undefined) | undefined",
+            "formattedType": "CSSProperties | (state: PopoverPopupState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          }
+        ]
+      },
+      "SuggestionMenuPositionerProps": {
+        "name": "SuggestionMenuPositionerProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "side",
+            "type": "Side | undefined",
+            "formattedType": "| 'left'\n  | 'right'\n  | 'bottom'\n  | 'top'\n  | 'inline-end'\n  | 'inline-start'",
+            "required": false,
+            "description": "Which side of the anchor to place the popup on. If there's no room, it\nopens on the other side, and stays there until it closes.",
+            "default": "'bottom'"
+          },
+          {
+            "name": "align",
+            "type": "PopupMenuPositionerAlign",
+            "shortType": "Align",
+            "formattedType": "\"center\" | \"end\" | \"start\" | \"list-start\"",
+            "required": false,
+            "description": "How to align the popup against the anchor.",
+            "default": "'start'"
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | undefined",
+            "required": false,
+            "description": "Custom styles for the positioner.\nNote: During list-start alignment measurement, `transition: 'none'` is\ntemporarily applied to prevent visual flash."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopoverPositionerState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopoverPositionerState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps, PopoverPositionerState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopoverPositionerState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuGetAriaResultsText": {
+        "name": "SuggestionMenuGetAriaResultsText",
+        "kind": "typealias",
+        "doc": "Formats the result summary.",
+        "definition": "(count: number, label: string | null) => string"
+      },
+      "SuggestionMenuRootProps": {
+        "name": "SuggestionMenuRootProps",
+        "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Payload",
+            "default": "unknown"
+          }
+        ],
+        "props": [
+          {
+            "name": "handle",
+            "type": "SuggestionMenuHandle<Payload>",
+            "required": true,
+            "description": "Connects the menu to its host input. Create it with `SuggestionMenu.createHandle()`."
+          },
+          {
+            "name": "open",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether the menu is open, for controlled use. When set, `update()`,\n`close()` and the menu's own dismissals become `onOpenChange` requests."
+          },
+          {
+            "name": "defaultOpen",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether the menu is initially open, for uncontrolled use.",
+            "default": "false"
+          },
+          {
+            "name": "onOpenChange",
+            "type": "((open: boolean, eventDetails: SuggestionMenuOpenChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  open: boolean,\n  eventDetails: SuggestionMenuOpenChangeEventDetails,\n) => void",
+            "required": false,
+            "description": "Called when the menu asks to open or close, with the reason."
+          },
+          {
+            "name": "query",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The query, for controlled use. When set, it wins over the handle's\n`update({ query })`. The menu never changes the query itself."
+          },
+          {
+            "name": "anchor",
+            "type": "SuggestionMenuAnchor | undefined",
+            "formattedType": "SuggestionMenuAnchor",
+            "required": false,
+            "description": "Measures where the popup is anchored, for controlled use. When set, it\nwins over the handle's `update({ anchor })`.",
+            "referencePath": "@bazza-ui/react.SuggestionMenuAnchor"
+          },
+          {
+            "name": "virtualized",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether virtualization mode is enabled. Wire your virtualizer to\n`onHighlightChange` so it scrolls to the highlighted row.",
+            "default": "false"
+          },
+          {
+            "name": "items",
+            "type": "VirtualItem[] | undefined",
+            "formattedType": "VirtualItem[]",
+            "required": false,
+            "description": "Pre-registered items for virtualization."
+          },
+          {
+            "name": "onHighlightChange",
+            "type": "PopupMenuHighlightChangeHandler<SuggestionMenuHighlightChangeEventDetails> | undefined",
+            "formattedType": "PopupMenuHighlightChangeHandler<SuggestionMenuHighlightChangeEventDetails>",
+            "required": false,
+            "description": "Called when the highlighted row changes."
+          },
+          {
+            "name": "getResolvedId",
+            "type": "GetResolvedIdFn | undefined",
+            "formattedType": "GetResolvedIdFn",
+            "required": false,
+            "description": "Computes canonical Resolved IDs for data-first content. Read once when the\nmenu mounts.",
+            "referencePath": "@bazza-ui/react.GetResolvedIdFn"
+          },
+          {
+            "name": "idScope",
+            "type": "PopupMenuIdScope | undefined",
+            "formattedType": "\"menu\" | \"surface\"",
+            "required": false,
+            "description": "Definition Key uniqueness scope. Read once when the menu mounts.",
+            "default": "'surface'",
+            "referencePath": "@bazza-ui/react.PopupMenuIdScope"
+          },
+          {
+            "name": "getAriaResultsText",
+            "type": "GetAriaResultsText | undefined",
+            "formattedType": "GetAriaResultsText",
+            "required": false,
+            "description": "Formats the result summary announced to screen readers once results\nsettle, for localisation. Receives the number of results and the text of\nthe row Enter would choose.",
+            "default": "(count, label) => count === 0 ? 'No results' : `${count} results, first: ${label}`"
+          },
+          {
+            "name": "noResults",
+            "type": "\"close\" | \"empty\" | undefined",
+            "formattedType": "\"close\" | \"empty\"",
+            "required": false,
+            "description": "What happens when nothing matches the query, once every search for it has\nfinished.\n- `'empty'`: the menu stays open and shows `Empty`; Enter reaches the host.\n- `'close'`: the menu closes (reason `'no-results'`). An `update()` with\n  the same query leaves it closed; one with any other query searches\n  again.",
+            "default": "'empty'"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode | ((state: SuggestionMenuRootRenderState<Payload>) => ReactNode)",
+            "formattedType": "null | string | number | bigint | false | true | ReactElement | Iterable<ReactNode> | ReactPortal | Promise<AwaitedReactNode> | (state: SuggestionMenuRootRenderState<Payload>) => ReactNode",
+            "required": true,
+            "description": "The menu's parts, or a function of the payload and query that returns them."
+          }
+        ]
+      },
+      "SuggestionMenuRootRenderState": {
+        "name": "SuggestionMenuRootRenderState",
+        "kind": "interface",
+        "typeParams": [
+          {
+            "name": "Payload",
+            "default": "unknown"
+          }
+        ],
+        "doc": "What the Root's `children` function receives.",
+        "props": [
+          {
+            "name": "payload",
+            "type": "Payload | undefined",
+            "formattedType": "Payload",
+            "required": true,
+            "description": "The payload from the last `update()`."
+          },
+          {
+            "name": "query",
+            "type": "string",
+            "required": true,
+            "description": "The current query."
+          }
+        ]
+      },
+      "SuggestionMenuSurfaceProps": {
+        "name": "SuggestionMenuSurfaceProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "asyncContentMode",
+            "type": "AsyncContentMode | undefined",
+            "formattedType": "\"replace\" | \"append\"",
+            "required": false,
+            "description": "How rows from `asyncContent` combine with `content`.",
+            "default": "'append'",
+            "referencePath": "@bazza-ui/react.AsyncContentMode"
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuSurfaceState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Surface.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "filter",
+            "type": "false | FilterFn | undefined",
+            "formattedType": "false | FilterFn",
+            "required": false,
+            "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
+            "default": "commandScore (fuzzy matching)"
+          },
+          {
+            "name": "content",
+            "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
+            "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
+            "required": false,
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
+            "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Surface.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "normalizeSearch",
+            "type": "SearchNormalizer | undefined",
+            "formattedType": "SearchNormalizer",
+            "required": false,
+            "description": "Transforms search input before filtering and visibility logic.",
+            "default": "trim whitespace (`search.trim()`)"
+          },
+          {
+            "name": "loop",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether navigation should loop from last to first item and vice versa.",
+            "default": "true"
+          },
+          {
+            "name": "autoHighlightFirst",
+            "type": "string | boolean | undefined",
+            "formattedType": "string | false | true",
+            "required": false,
+            "description": "Controls auto-highlighting behavior when the menu opens.\n- `true`: highlight the first item (default)\n- `false`: don't auto-highlight any item\n- `string`: highlight the item with this specific value",
+            "default": "true"
+          },
+          {
+            "name": "clearSearchOnClose",
+            "type": "boolean | \"after-exit\" | undefined",
+            "formattedType": "false | true | \"after-exit\"",
+            "required": false,
+            "description": "Whether to clear the search query when the menu closes.\n- `'after-exit'`: clear after exit animation completes (default)\n- `true`: clear immediately when menu closes\n- `false`: preserve search when menu closes",
+            "default": "'after-exit'"
+          },
+          {
+            "name": "resetScrollOnSearch",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to reset the list scroll position when the search query changes.",
+            "default": "true"
+          },
+          {
+            "name": "orderedItems",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Ordered list of item values when using `filter={false}`.\nThis tells the store the intended display order for navigation/highlighting.\nRequired when `filter={false}` - must always be provided with the current visible items."
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuSurfaceState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Surface.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          },
+          {
+            "name": "deepSearch",
+            "type": "boolean | DeepSearchConfig | undefined",
+            "formattedType": "false | true | DeepSearchConfig",
+            "required": false,
+            "description": "Deep search configuration"
+          },
+          {
+            "name": "includeInDeepSearch",
+            "type": "IncludeInDeepSearch | undefined",
+            "formattedType": "false | true | \"trigger-only\"",
+            "required": false,
+            "description": "Default inclusion mode for descendant branch nodes in deep search results.\nSubmenus/subpages can override via `includeInDeepSearch`.",
+            "default": "true",
+            "referencePath": "@bazza-ui/react.IncludeInDeepSearch"
+          },
+          {
+            "name": "asyncContent",
+            "type": "AsyncLoaderConfig | undefined",
+            "formattedType": "StaticLoaderConfig | QueryLoaderConfig",
+            "required": false,
+            "description": "Async content configuration for root-level async loading.\nWhen provided, the Loader component will be rendered to fetch async data.\nHow its rows combine with `content` is set by `asyncContentMode`.",
+            "referencePath": "@bazza-ui/react.AsyncLoaderConfig"
+          },
+          {
+            "name": "asyncContentReveal",
+            "type": "AsyncResultBehavior | undefined",
+            "formattedType": "\"block\" | \"stream\"",
+            "required": false,
+            "description": "When rows from `asyncContent` appear.\n- `'stream'`: as soon as they load (local `content` shows meanwhile).\n- `'block'`: only once the loader has settled for the current search. Until\n  then the previous settled list stays up unchanged; before anything has\n  settled the list is empty and `Loading` shows. Rows kept from a previous\n  search while the next one loads don't count as settled.\n\nDeep search has its own `deepSearch.asyncResultBehavior`, which still shows\nthe loading state while a new search loads.",
+            "default": "'stream'",
+            "referencePath": "@bazza-ui/react.AsyncResultBehavior"
+          }
+        ]
+      },
+      "SuggestionMenuAttachTextTriggerOptions": {
+        "name": "SuggestionMenuAttachTextTriggerOptions",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "triggers",
+            "type": "readonly SuggestionMenuTextTrigger[]",
+            "required": true,
+            "description": "The characters that open the menu."
+          }
+        ]
+      },
+      "SuggestionMenuTextTriggerHandle": {
+        "name": "SuggestionMenuTextTriggerHandle",
+        "kind": "typealias",
+        "doc": "What the binding needs from a handle.",
+        "definition": "Pick<SuggestionMenuHandle<SuggestionMenuTextTriggerMatch>, 'attach' | 'update' | 'close' | 'handleKeyDown' | 'host' | 'subscribeOpenChange'>",
+        "props": [
+          {
+            "name": "close",
+            "type": "() => void",
+            "required": true,
+            "description": "Closes the menu. Call it whenever the trigger ends (deleted, or the caret\nleft it), even if the menu is already closed: it also resets what the\nmenu remembers about the trigger, such as a query that had no results."
+          },
+          {
+            "name": "handleKeyDown",
+            "type": "(event: KeyboardEvent | React.KeyboardEvent<Element>) => boolean",
+            "formattedType": "(\n  event: KeyboardEvent | React.KeyboardEvent<Element>,\n) => boolean",
+            "required": true,
+            "description": "Passes a key press from the host input to the menu. Returns `true` when\nthe menu used the key and prevented its default action; `false` means the\nkey keeps its normal meaning in the host."
+          },
+          {
+            "name": "update",
+            "type": "(next: SuggestionMenuUpdate<SuggestionMenuTextTriggerMatch>) => void",
+            "formattedType": "(\n  next: SuggestionMenuUpdate<SuggestionMenuTextTriggerMatch>,\n) => void",
+            "required": true,
+            "description": "Opens the menu, or updates its query, anchor and payload while open."
+          },
+          {
+            "name": "host",
+            "type": "Element | null",
+            "formattedType": "null | Element",
+            "required": true,
+            "description": "The attached host input, if any."
+          },
+          {
+            "name": "attach",
+            "type": "(element: Element) => () => void",
+            "required": true,
+            "description": "Attaches the host input. Attaching another element detaches the previous\none and closes the menu if it was open for it. Returns a function that\ndetaches this element."
+          },
+          {
+            "name": "subscribeOpenChange",
+            "type": "(listener: (open: boolean, reason: SuggestionMenuOpenChangeReason) => void) => () => void",
+            "formattedType": "(\n  listener: (\n    open: boolean,\n    reason: SuggestionMenuOpenChangeReason,\n  ) => void,\n) => () => void",
+            "required": true
+          }
+        ]
+      },
+      "SuggestionMenuTextTrigger": {
+        "name": "SuggestionMenuTextTrigger",
+        "kind": "interface",
+        "doc": "A character that opens the suggestion menu when typed in a text field.",
+        "props": [
+          {
+            "name": "char",
+            "type": "string",
+            "required": true,
+            "description": "The trigger, e.g. `'@'`, `'/'` or `':'`."
+          },
+          {
+            "name": "allowSpaces",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether the query may contain spaces, e.g. `@Alice Smith`. A line break\nalways ends it.",
+            "default": "false"
+          },
+          {
+            "name": "startOfLine",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether the trigger only counts at the start of a line.",
+            "default": "false"
+          },
+          {
+            "name": "minLength",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "How many characters must follow the trigger before the menu opens.",
+            "default": "0"
+          }
+        ]
+      },
+      "SuggestionMenuTextTriggerMatch": {
+        "name": "SuggestionMenuTextTriggerMatch",
+        "kind": "interface",
+        "doc": "A trigger typed in a text field: the menu's payload.",
+        "props": [
+          {
+            "name": "trigger",
+            "type": "SuggestionMenuTextTrigger",
+            "required": true,
+            "description": "The trigger that matched.",
+            "referencePath": "@bazza-ui/react.SuggestionMenuTextTrigger"
+          },
+          {
+            "name": "query",
+            "type": "string",
+            "required": true,
+            "description": "The text typed after the trigger."
+          },
+          {
+            "name": "from",
+            "type": "number",
+            "required": true,
+            "description": "Where the trigger character starts in the field's value."
+          },
+          {
+            "name": "to",
+            "type": "number",
+            "required": true,
+            "description": "Where the typed query ends: the caret, or further if the caret was moved\nback inside it. Replace `from`–`to` to insert a choice."
+          }
+        ]
+      },
+      "SuggestionMenuArrowProps": {
+        "name": "SuggestionMenuArrowProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "className",
+            "type": "string | ((state: PopoverArrowState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopoverArrowState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps, PopoverArrowState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopoverArrowState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | ((state: PopoverArrowState) => CSSProperties | undefined) | undefined",
+            "formattedType": "CSSProperties | (state: PopoverArrowState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          }
+        ]
+      },
+      "SuggestionMenuEmptyProps": {
+        "name": "SuggestionMenuEmptyProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuEmptyState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Empty.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuEmptyState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Empty.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuEmptyState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Empty.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuEmptyState": {
+        "name": "SuggestionMenuEmptyState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "first",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "last",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          }
+        ]
+      },
+      "SuggestionMenuFooterProps": {
+        "name": "SuggestionMenuFooterProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuFooterState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuFooterState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuFooterState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuFooterState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuFooterState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuFooterState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuGroupLabelProps": {
+        "name": "SuggestionMenuGroupLabelProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuGroupLabelState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.GroupLabel.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuGroupLabelState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.GroupLabel.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuGroupLabelState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.GroupLabel.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuGroupProps": {
+        "name": "SuggestionMenuGroupProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this group regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuGroupState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Group.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuGroupState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Group.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuGroupState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Group.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuHeaderProps": {
+        "name": "SuggestionMenuHeaderProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuHeaderState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuHeaderState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuHeaderState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuHeaderState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuHeaderState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuHeaderState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuIconProps": {
+        "name": "SuggestionMenuIconProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuIconState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Icon.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuIconState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Icon.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuIconState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Icon.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuItemProps": {
+        "name": "SuggestionMenuItemProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items are not selectable and are skipped during keyboard navigation."
+          },
+          {
+            "name": "activatable",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item can be activated via Enter or click.\nNon-activatable items are still highlightable via keyboard/pointer.",
+            "default": "true"
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click or Enter key)."
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this item regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu.",
+            "default": "true"
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item.\nWhen the menu is focused and the user presses this key, the item will be selected.\nShould be a single character (e.g., \"1\", \"a\", etc.)."
+          },
+          {
+            "name": "forceOrder",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Forces this row's relative order during score-based sorting.\nLower values appear earlier.",
+            "default": "0"
+          },
+          {
+            "name": "forceScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Overrides this row's computed fuzzy-match score."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuItemState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Item.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuItemState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Item.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuItemState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Item.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuItemState": {
+        "name": "SuggestionMenuItemState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "highlighted",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the item is highlighted (via keyboard or pointer)."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the item is disabled."
+          },
+          {
+            "name": "first",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "last",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "firstInGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          },
+          {
+            "name": "lastInGroup",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true
+          }
+        ]
+      },
+      "SuggestionMenuLinkItemProps": {
+        "name": "SuggestionMenuLinkItemProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "value",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Unique value for this item used for filtering.\nIf not provided, will be inferred from textContent."
+          },
+          {
+            "name": "keywords",
+            "type": "string[] | undefined",
+            "formattedType": "string[]",
+            "required": false,
+            "description": "Additional keywords to match against when filtering.\nUseful for aliases or synonyms."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether this item is disabled.\nDisabled items do not navigate and are skipped during keyboard navigation."
+          },
+          {
+            "name": "onSelect",
+            "type": "(() => void) | undefined",
+            "formattedType": "() => void",
+            "required": false,
+            "description": "Callback when this item is selected (via click, Enter key, or shortcut)."
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render this item regardless of filter results.",
+            "default": "false"
+          },
+          {
+            "name": "closeOnClick",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether clicking this item should close the menu. Defaults to false because\nfull-page navigation unmounts the menu anyway.",
+            "default": "false"
+          },
+          {
+            "name": "shortcut",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "Keyboard shortcut to trigger this item."
+          },
+          {
+            "name": "forceOrder",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Forces this row's relative order during score-based sorting.",
+            "default": "0"
+          },
+          {
+            "name": "forceScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "Overrides this row's computed fuzzy-match score."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuLinkItemState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuLinkItemState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuLinkItemState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuLinkItemState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuLinkItemState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuLinkItemState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuLoadingProps": {
+        "name": "SuggestionMenuLoadingProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "required": true
+          },
+          {
+            "name": "forceMount",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to force render the loading indicator regardless of async loading state.\nWhen true, the component always renders, allowing you to control visibility externally.",
+            "default": "false"
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuLoadingState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenuLoadingState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuLoadingState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenuLoadingState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuLoadingState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenuLoadingState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "SuggestionMenuPortalProps": {
+        "name": "SuggestionMenuPortalProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "className",
+            "type": "string | ((state: PopoverPortalState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopoverPortalState) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps, PopoverPortalState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopoverPortalState,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | ((state: PopoverPortalState) => CSSProperties | undefined) | undefined",
+            "formattedType": "CSSProperties | (state: PopoverPortalState) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          }
+        ]
+      },
+      "SuggestionMenuSeparatorProps": {
+        "name": "SuggestionMenuSeparatorProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "alwaysRender",
+            "type": "boolean | undefined",
+            "formattedType": "false | true",
+            "required": false,
+            "description": "Whether to always render the separator, even during search.\nBy default, separators are hidden when there's an active search query.",
+            "default": "false"
+          },
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuSeparatorState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Separator.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: PopupMenuSeparatorState) => string | undefined) | undefined",
+            "formattedType": "string | (state: PopupMenu.Separator.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentRenderFn<HTMLProps<any>, PopupMenuSeparatorState> | undefined",
+            "formattedType": "| ReactElement\n  | ((\n      props: HTMLProps,\n      state: PopupMenu.Separator.State,\n    ) => ReactElement)",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
       }
     }
   },

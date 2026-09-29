@@ -1,0 +1,163 @@
+---
+title: API Reference
+section: Getting Started
+component: Suggestion Menu
+summary: The full API reference for suggestion menu.
+audience: private
+tiers:
+  - primitives
+---
+
+## Handle
+
+Connects the menu to its host input. Create it with `SuggestionMenu.createHandle()`, outside React or in `React.useState`, and pass it to `SuggestionMenu.Root`.
+
+| Member | Description |
+|---|---|
+| `attach(element)` | Makes `element` the host input and returns a function that detaches it. Attaching another element detaches the previous one and closes the menu if it was open for it. |
+| `update({ query, anchor, payload })` | Opens the menu, or updates its query, anchor and payload while open. |
+| `close()` | Closes the menu. Call it whenever the trigger ends, even if the menu is already closed. |
+| `handleKeyDown(event)` | Passes a key press from the host. Returns `true` when the menu used the key. |
+| `isOpen` | Whether the menu is open. |
+| `host` | The attached host input, or `null`. |
+| `query` | The query from the last `update()`. |
+| `payload` | The payload from the last `update()`. |
+
+## Root
+
+Groups all parts of the suggestion menu and connects them to the host input through its handle. Never modal: DOM focus stays in the host input. Doesn't render its own HTML element.
+
+<BaseUIReference component="popover" part="root" wrapper />
+
+<TypeTableAuto type="SuggestionMenuRootProps" pkg="@bazza-ui/react" />
+
+## Portal
+
+Renders the popup outside the DOM hierarchy using a React Portal.
+
+<BaseUIReference component="popover" part="portal" />
+
+<TypeTableAuto type="SuggestionMenuPortalProps" pkg="@bazza-ui/react" />
+
+## Positioner
+
+Positions the popup against the host's text: below and aligned to the start by default. The side is chosen when the menu opens and held until it closes. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="positioner" wrapper />
+
+<TypeTableAuto type="SuggestionMenuPositionerProps" pkg="@bazza-ui/react" />
+
+## Popup
+
+The container for the suggestions. It isn't a dialog: focus never enters it. Renders a `<div>` element.
+
+<BaseUIReference component="popover" part="popup" wrapper />
+
+<TypeTableAuto type="SuggestionMenuPopupProps" pkg="@bazza-ui/react" />
+
+## Surface
+
+One pane of suggestions: its content, loaders, list and empty/loading states. The query comes from the host, so there is no `search` prop. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuSurfaceProps" pkg="@bazza-ui/react" />
+
+## List
+
+The listbox of suggestions, named "Suggestions" by default. Renders a `<div>` element with `role="listbox"`.
+
+<TypeTableAuto type="SuggestionMenuListProps" pkg="@bazza-ui/react" />
+
+## Item
+
+A suggestion. Renders a `<div>` element with `role="option"`.
+
+<TypeTableAuto type="SuggestionMenuItemProps" pkg="@bazza-ui/react" />
+
+## LinkItem
+
+A suggestion that navigates. Renders an `<a>` element.
+
+<TypeTableAuto type="SuggestionMenuLinkItemProps" pkg="@bazza-ui/react" />
+
+## Group
+
+Groups related suggestions. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuGroupProps" pkg="@bazza-ui/react" />
+
+## GroupLabel
+
+A visible label for a group. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuGroupLabelProps" pkg="@bazza-ui/react" />
+
+## Separator
+
+A divider between suggestions. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuSeparatorProps" pkg="@bazza-ui/react" />
+
+## Icon
+
+An icon inside a suggestion. Renders a `<span>` element.
+
+<TypeTableAuto type="SuggestionMenuIconProps" pkg="@bazza-ui/react" />
+
+## Empty
+
+Shown when nothing matches the query once every search has finished. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuEmptyProps" pkg="@bazza-ui/react" />
+
+## Loading
+
+Shown while the first results load. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuLoadingProps" pkg="@bazza-ui/react" />
+
+## Arrow
+
+An optional arrow pointing at the anchor. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuArrowProps" pkg="@bazza-ui/react" />
+
+## Header
+
+Content above the list, such as a hint about the trigger. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuHeaderProps" pkg="@bazza-ui/react" />
+
+## Footer
+
+Content below the list, such as keyboard hints. Renders a `<div>` element.
+
+<TypeTableAuto type="SuggestionMenuFooterProps" pkg="@bazza-ui/react" />
+
+## Other parts
+
+These work as they do in the other menus:
+
+- `GroupValue` groups rows by position in virtualized lists, without a wrapping element.
+- `ScrollUpArrow` and `ScrollDownArrow` scroll a list that overflows the popup.
+- `Tree`, `TreeItem` and `TreeConnector` render nested rows, for example files in folders.
+
+## Hooks
+
+- `SuggestionMenu.useDataList()`, inside a data-first `Surface`: returns `{ nodes, renderNode }` for the filtered rows.
+- `SuggestionMenu.useAsyncMenuCoordinator()`: the Surface's async state, e.g. `isAnyFetching` for a "searching…" indicator.
+
+## attachTextTrigger
+
+`SuggestionMenu.attachTextTrigger(menu, field, options)` makes an `<input>` or `<textarea>` the host. `SuggestionMenu.useTextTrigger(menu, options)` is its React hook and returns a ref for the field.
+
+<TypeTableAuto type="SuggestionMenuAttachTextTriggerOptions" pkg="@bazza-ui/react" />
+
+### TextTrigger
+
+<TypeTableAuto type="SuggestionMenuTextTrigger" pkg="@bazza-ui/react" />
+
+### TextTriggerMatch
+
+The payload the binding passes to `update()`.
+
+<TypeTableAuto type="SuggestionMenuTextTriggerMatch" pkg="@bazza-ui/react" />
