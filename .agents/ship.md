@@ -7,10 +7,12 @@
 States: Triage, Backlog, Icebox, Todo, In Progress, In Review, Ready, Canary, Stable, Canceled, Duplicate.
 Note: this team has no `Done` state; its completed states are `Canary` and `Stable`. `Ready` means merged to `canary` and waiting for the next canary publish. `Canary` means the work shipped in a published canary release: for `@bazza-ui/react` the Linear release automation on the "React (Canary)" pipeline sets it when the canary publishes; for other work, set it by hand when it merges to `canary`. `Stable` means it shipped in a stable release from `main`. Ship's "Done" transition maps to whichever of these applies. Parents should match their sub-issues' state at reconcile.
 
+Lifecycle labels: the workspace label group **`agent work`** (single-select) holds `agent:working`, `agent:addressing`, `agent:blocked`, `agent:review-me`, `agent:idle`, `agent:merged`.
+
 ## Toolchain
 
 - Package manager: **bun** exclusively (never npm/yarn/pnpm/npx). Monorepo: Turborepo + bun workspaces.
-- Lint/format: `bun run check` (check only) / `bun run check:fix` (Biome)
+- Lint/format: `bun run check` (check only) / `bun run check:fix`. Both run Biome on the repo, then oxlint on `packages/react` (`bazza/*` rules from `tooling/lint`, config in `.oxlintrc.json`). Rule tests: `bun run test --filter @bazza-ui/lint`.
 - Typecheck: `bun run type-check` (turbo; scope: `bun run type-check --filter <pkg>`)
 - Build: `bun run build` (turbo; scope: `bun run build --filter <pkg>`)
 - Test: `bun run test` (Vitest via turbo; scope: `bun run test --filter <pkg>`)

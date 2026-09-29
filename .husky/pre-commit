@@ -1,1 +1,2 @@
-bun run lint-staged
+# Biome rewrites files that oxlint also reads, so the two must not run at once.
+bun run lint-staged --concurrent false

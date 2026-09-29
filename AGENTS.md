@@ -12,7 +12,7 @@ Use **bun** exclusively. Never use npm/yarn/pnpm/npx.
 bun run type-check    # TypeScript check
 bun run test          # Run tests (Vitest)
 bun run build         # Build all packages
-bun run check:fix     # Lint + format (Biome)
+bun run check:fix     # Format + lint (Biome), then lint packages/react parts (oxlint)
 ```
 
 ## Worktrees
