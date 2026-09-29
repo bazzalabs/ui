@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -18,8 +18,6 @@ export interface StatePropsCase {
   render: (props: StatePropsTargetProps) => React.ReactElement
   /** A subset of the state the part should pass to the functions. */
   state?: Record<string, unknown>
-  /** Skip the `className` assertions (the part has no function `className`). */
-  skipClassName?: boolean
   /** Runs after render, for parts that only mount after interaction. */
   interact?: () => Promise<void>
 }
@@ -44,32 +42,28 @@ export function describeStateProps(family: string, cases: StatePropsCase[]) {
   describe(`${family}: state-function className and style`, () => {
     for (const testCase of cases) {
       describe(testCase.name, () => {
-        if (!testCase.skipClassName) {
-          it('applies a className function called with the part state', async () => {
-            const className = vi.fn((_state: unknown) => 'from-fn')
-            const element = await mount(testCase, { className })
-            expect(element).toHaveClass('from-fn')
-            expectCalledWithState(className, testCase.state)
-          })
+        it('applies className as a string or a function of the part state', async () => {
+          const withString = await mount(testCase, { className: 'from-string' })
+          expect(withString).toHaveClass('from-string')
+          cleanup()
 
-          it('applies a string className', async () => {
-            const element = await mount(testCase, { className: 'from-string' })
-            expect(element).toHaveClass('from-string')
-          })
-        }
-
-        it('applies a style function called with the part state', async () => {
-          const style = vi.fn((_state: unknown) => ({ color: STYLE_COLOR }))
-          const element = await mount(testCase, { style })
-          expect(element.style.color).toBe(STYLE_COLOR)
-          expectCalledWithState(style, testCase.state)
+          const className = vi.fn((_state: unknown) => 'from-fn')
+          const withFn = await mount(testCase, { className })
+          expect(withFn).toHaveClass('from-fn')
+          expectCalledWithState(className, testCase.state)
         })
 
-        it('applies a style object', async () => {
-          const element = await mount(testCase, {
+        it('applies style as an object or a function of the part state', async () => {
+          const withObject = await mount(testCase, {
             style: { color: STYLE_COLOR },
           })
-          expect(element.style.color).toBe(STYLE_COLOR)
+          expect(withObject.style.color).toBe(STYLE_COLOR)
+          cleanup()
+
+          const style = vi.fn((_state: unknown) => ({ color: STYLE_COLOR }))
+          const withFn = await mount(testCase, { style })
+          expect(withFn.style.color).toBe(STYLE_COLOR)
+          expectCalledWithState(style, testCase.state)
         })
       })
     }

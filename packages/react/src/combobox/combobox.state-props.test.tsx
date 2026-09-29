@@ -90,6 +90,7 @@ describeStateProps('Combobox', [
         </Combobox.Item>
       </OpenCombobox>
     ),
+    state: { value: 'apple', selected: true },
   },
   {
     name: 'Combobox.ItemIndicator',
@@ -101,6 +102,7 @@ describeStateProps('Combobox', [
         </Combobox.Item>
       </OpenCombobox>
     ),
+    state: { selected: true },
   },
 ])
 
