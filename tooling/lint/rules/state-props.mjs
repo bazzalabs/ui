@@ -19,8 +19,10 @@ import {
   isForwardRefCall,
   isFunction,
   keyName,
+  outermostWrapper,
   renderFunctionOf,
   unwrap,
+  variableOf,
   walk,
 } from './ast.mjs'
 
@@ -54,19 +56,6 @@ export function partRenderFunctions(program) {
   return functions
 }
 
-/** The variable `identifier` refers to, found through the scope chain. */
-export function variableOf(context, identifier) {
-  for (
-    let scope = context.sourceCode.getScope(identifier);
-    scope;
-    scope = scope.upper
-  ) {
-    const variable = scope.set?.get(identifier.name)
-    if (variable) return variable
-  }
-  return undefined
-}
-
 /** Whether `node` sits inside `ancestor` (or is it). */
 function isInside(node, ancestor) {
   for (let current = node; current; current = current.parent) {
@@ -87,14 +76,7 @@ function isChangedLater(variable, declaration) {
     if (isInside(id, declaration)) continue
     if (reference.isWrite?.()) return true
     // Look through `(x as T)` and `x!`, which don't change what's written to.
-    let target = id
-    while (
-      target.parent &&
-      unwrap(target.parent) !== target.parent &&
-      unwrap(target.parent) === unwrap(target)
-    ) {
-      target = target.parent
-    }
+    const target = outermostWrapper(id)
     const parent = target.parent
     if (
       parent?.type === 'CallExpression' &&

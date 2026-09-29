@@ -19,7 +19,8 @@ export function unwrap(node) {
 
 /** The declaration a top-level statement holds, looking inside `export`. */
 export function topLevelDeclaration(statement) {
-  return statement.type === 'ExportNamedDeclaration'
+  return statement.type === 'ExportNamedDeclaration' ||
+    statement.type === 'ExportDefaultDeclaration'
     ? statement.declaration
     : statement
 }
@@ -61,16 +62,8 @@ export function findImport(program, name) {
 }
 
 /** `forwardRef(…)` under any of `names`, or `<anything>.forwardRef(…)`. */
-export function isForwardRefCall(node, names = new Set(['forwardRef'])) {
-  if (node?.type !== 'CallExpression') return false
-  const { callee } = node
-  if (callee.type === 'Identifier') return names.has(callee.name)
-  return (
-    callee.type === 'MemberExpression' &&
-    !callee.computed &&
-    callee.property.name === 'forwardRef'
-  )
-}
+export const isForwardRefCall = (node, names) =>
+  isCallTo(node, 'forwardRef', names)
 
 /**
  * The `forwardRef(…)` call a value is built from, looking through TypeScript
@@ -196,13 +189,46 @@ export const useRenderNames = (program) =>
   importedNames(program, '@base-ui/react/use-render', 'useRender')
 
 /** A call to `useRender` under any of `names`, or `<anything>.useRender(…)`. */
-export function isUseRenderCall(node, names) {
+export const isUseRenderCall = (node, names) =>
+  isCallTo(node, 'useRender', names)
+
+/**
+ * `name(…)` under any of `localNames`, or `<object>.name(…)`, e.g. both
+ * `useContext(Ctx)` and `React.useContext(Ctx)`.
+ */
+export function isCallTo(node, name, localNames = new Set([name])) {
   if (node?.type !== 'CallExpression') return false
   const { callee } = node
-  if (callee.type === 'Identifier') return names.has(callee.name)
+  if (callee.type === 'Identifier') return localNames.has(callee.name)
   return (
     callee.type === 'MemberExpression' &&
     !callee.computed &&
-    callee.property.name === 'useRender'
+    callee.property.name === name
   )
+}
+
+/** Steps out of `(node as T)`, `node!` and parentheses: the outermost wrapper around `node`. */
+export function outermostWrapper(node) {
+  let current = node
+  while (
+    current.parent &&
+    unwrap(current.parent) !== current.parent &&
+    unwrap(current.parent) === unwrap(current)
+  ) {
+    current = current.parent
+  }
+  return current
+}
+
+/** The variable `identifier` refers to, found through the scope chain. */
+export function variableOf(context, identifier) {
+  for (
+    let scope = context.sourceCode.getScope(identifier);
+    scope;
+    scope = scope.upper
+  ) {
+    const variable = scope.set?.get(identifier.name)
+    if (variable) return variable
+  }
+  return undefined
 }
