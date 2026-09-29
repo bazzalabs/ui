@@ -1,11 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import type * as React from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { describeConformance } from '../../test/conformance.js'
 import { VideoPlayer } from './index.js'
 
-// Only the slider parts are covered here: they inherit Base UI Slider props,
-// which accept a state-function `style`.
+// Only the slider parts are covered here: they wrap Base UI Slider parts and
+// take their `className`, `style` and state. `SeekSliderThumb` only accepts an
+// object `style`. The sliders' own `render` prop only accepts a function, and
+// receives VideoPlayer state rather than slider state (UI-613).
 
 function Player(props: { children: React.ReactNode }) {
   return (
@@ -27,6 +29,14 @@ describeConformance('VideoPlayer', [
       </Player>
     ),
     state: sliderState,
+    functionRenderOnly: true,
+    renderState: {
+      volume: 1,
+      muted: false,
+      percentage: 100,
+      pressing: false,
+      dragging: false,
+    },
   },
   {
     name: 'VideoPlayer.VolumeSliderTrack',
@@ -42,6 +52,36 @@ describeConformance('VideoPlayer', [
     state: sliderState,
   },
   {
+    name: 'VideoPlayer.VolumeSliderRange',
+    render: (p) => (
+      <Player>
+        <VideoPlayer.VolumeSlider>
+          <VideoPlayer.VolumeSliderControl>
+            <VideoPlayer.VolumeSliderTrack>
+              <VideoPlayer.VolumeSliderRange {...p} />
+            </VideoPlayer.VolumeSliderTrack>
+          </VideoPlayer.VolumeSliderControl>
+        </VideoPlayer.VolumeSlider>
+      </Player>
+    ),
+    state: sliderState,
+  },
+  {
+    name: 'VideoPlayer.VolumeSliderThumb',
+    render: (p) => (
+      <Player>
+        <VideoPlayer.VolumeSlider>
+          <VideoPlayer.VolumeSliderControl>
+            <VideoPlayer.VolumeSliderTrack>
+              <VideoPlayer.VolumeSliderThumb {...p} />
+            </VideoPlayer.VolumeSliderTrack>
+          </VideoPlayer.VolumeSliderControl>
+        </VideoPlayer.VolumeSlider>
+      </Player>
+    ),
+    state: sliderState,
+  },
+  {
     name: 'VideoPlayer.SeekSlider',
     render: (p) => (
       <Player>
@@ -49,6 +89,17 @@ describeConformance('VideoPlayer', [
       </Player>
     ),
     state: sliderState,
+    functionRenderOnly: true,
+    renderState: {
+      currentTime: 0,
+      duration: 0,
+      progress: 0,
+      seeking: false,
+      hoverTime: null,
+      hoverProgress: null,
+      pressing: false,
+      dragging: false,
+    },
   },
   {
     name: 'VideoPlayer.SeekSliderTrack',
@@ -62,6 +113,8 @@ describeConformance('VideoPlayer', [
       </Player>
     ),
     state: sliderState,
+    functionRenderOnly: true,
+    renderState: {},
   },
   {
     name: 'VideoPlayer.SeekSliderProgress',
@@ -77,6 +130,26 @@ describeConformance('VideoPlayer', [
       </Player>
     ),
     state: sliderState,
+    functionRenderOnly: true,
+    renderState: { progress: 0 },
+  },
+  {
+    name: 'VideoPlayer.SeekSliderThumb',
+    render: (p) => (
+      <Player>
+        <VideoPlayer.SeekSlider>
+          <VideoPlayer.SeekSliderControl>
+            <VideoPlayer.SeekSliderTrack>
+              <VideoPlayer.SeekSliderThumb {...p} />
+            </VideoPlayer.SeekSliderTrack>
+          </VideoPlayer.SeekSliderControl>
+        </VideoPlayer.SeekSlider>
+      </Player>
+    ),
+    state: sliderState,
+    objectStyleOnly: true,
+    functionRenderOnly: true,
+    renderState: {},
   },
 ])
 
@@ -122,6 +195,28 @@ describe('VideoPlayer sliders keep their CSS variables', () => {
 })
 
 describe('VideoPlayer sliders resolve a style function in render-prop mode', () => {
+  for (const [name, Slider] of [
+    ['VolumeSlider', VideoPlayer.VolumeSlider],
+    ['SeekSlider', VideoPlayer.SeekSlider],
+  ] as const) {
+    it(`${name} resolves it once per render, like className`, async () => {
+      const className = vi.fn(() => 'from-fn')
+      const style = vi.fn(styleFn)
+      render(
+        <Player>
+          <Slider
+            className={className}
+            style={style}
+            render={(props) => <div {...props} data-testid="slider" />}
+          />
+        </Player>,
+      )
+
+      await screen.findByTestId('slider')
+      expect(style).toHaveBeenCalledTimes(className.mock.calls.length)
+    })
+  }
+
   it('VolumeSlider', async () => {
     render(
       <Player>

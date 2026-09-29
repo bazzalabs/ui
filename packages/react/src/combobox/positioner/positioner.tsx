@@ -1,6 +1,7 @@
 'use client'
 
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
+import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { composeStyle } from '../../utils/resolve-state-props.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
@@ -94,6 +95,37 @@ function getInputEmbeddedStyles(
 }
 
 // ============================================================================
+// Helper: Render the input-embedded positioner element
+// ============================================================================
+
+interface InputEmbeddedElementProps {
+  render: ComboboxPositionerProps['render']
+  state: ComboboxPositioner.State
+  props: Record<string, unknown>
+}
+
+/**
+ * Applies the consumer's `render` prop to the input-embedded positioner, whose
+ * own `Popover.Positioner` render function is taken by the side-aware layout.
+ * `props` already carries the positioner's data attributes, so `state` only
+ * goes to a render function.
+ */
+function InputEmbeddedElement({
+  render,
+  state,
+  props,
+}: InputEmbeddedElementProps) {
+  return useRender({
+    render:
+      typeof render === 'function'
+        ? (renderProps) => render(renderProps, state)
+        : render,
+    props,
+    defaultTagName: 'div',
+  })
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -120,6 +152,7 @@ export const ComboboxPositioner = React.forwardRef<
     className,
     style,
     children,
+    render,
     ...rest
   } = props
 
@@ -210,13 +243,16 @@ export const ComboboxPositioner = React.forwardRef<
 
           return (
             <ComboboxPositionerContext.Provider value={contextValue}>
-              <div
-                {...renderProps}
-                style={{ ...renderProps.style, ...cssVariables }}
-                data-side={actualSide}
-              >
-                {enhancedChildren}
-              </div>
+              <InputEmbeddedElement
+                render={render}
+                state={state}
+                props={{
+                  ...renderProps,
+                  style: { ...renderProps.style, ...cssVariables },
+                  'data-side': actualSide,
+                  children: enhancedChildren,
+                }}
+              />
             </ComboboxPositionerContext.Provider>
           )
         }}
@@ -255,6 +291,7 @@ export const ComboboxPositioner = React.forwardRef<
         style={positionerStyles}
         {...{ [ComboboxPositionerDataAttributes.slot]: '' }}
         {...rest}
+        render={render}
       >
         {children}
       </Popover.Positioner>
