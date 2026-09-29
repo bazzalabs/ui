@@ -319,6 +319,7 @@ export const PopupMenuList = React.forwardRef<
         {...props}
         content={dataSurfaceCtx.content}
         asyncContent={dataSurfaceCtx.asyncContent}
+        asyncContentMode={dataSurfaceCtx.asyncContentMode}
         deepSearchConfig={dataSurfaceCtx.deepSearchConfig}
         includeInDeepSearch={dataSurfaceCtx.includeInDeepSearch}
         search={search}

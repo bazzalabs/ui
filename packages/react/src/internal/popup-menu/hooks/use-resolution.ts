@@ -1,16 +1,26 @@
 'use client'
 
 import * as React from 'react'
+import {
+  type AppendLoadedResult,
+  appendLoadedDefs,
+} from '../data-first/append-loaded.js'
 import type { AsyncSubmenuInfo } from '../data-first/async.js'
 import { collectAsyncSubmenus } from '../data-first/async.js'
 import type { AsyncMenuCoordinatorValue } from '../data-first/async-coordinator.js'
 import type {
+  AsyncContentMode,
   AsyncLoaderConfig,
   DisabledBranchBehavior,
   NodeDef,
   SubmenuDef,
   SubpageDef,
 } from '../data-first/types.js'
+import {
+  childDefsOf,
+  contributesDefinitionPath,
+  definitionKeyForDef,
+} from '../menu-tree/resolve.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 
@@ -18,6 +28,8 @@ export interface UseResolutionOptions {
   resolver: MenuTreeResolver | null
   content: NodeDef[]
   asyncContent: AsyncLoaderConfig | undefined
+  /** How `asyncContent` rows combine with the static content. @default 'replace' */
+  asyncContentMode?: AsyncContentMode
   coordinator: AsyncMenuCoordinatorValue | null
   graftParent: PopupMenuNode | null
   isSubpageSurface: boolean
@@ -37,12 +49,19 @@ export interface ResolutionResult {
   /** Increments once per loader-effect run that grafted anything anywhere in this list's subtree. */
   graftVersion: number
   asyncSubmenus: readonly AsyncSubmenuInfo[]
+  /**
+   * With `asyncContentMode: 'append'`, the defs that came from local content
+   * (at any depth), so the list can keep local rows ahead of loaded ones.
+   * `null` in `'replace'` mode or before anything was appended.
+   */
+  localDefs: ReadonlySet<NodeDef> | null
 }
 
 export function useResolution({
   resolver,
   content,
   asyncContent,
+  asyncContentMode = 'replace',
   coordinator,
   graftParent,
   isSubpageSurface,
@@ -110,6 +129,71 @@ export function useResolution({
     [staticNodes, includeInDeepSearch, disabledBranchBehavior],
   )
 
+  // Cache the appended list on its two inputs, so re-running the loader phase
+  // with the same content and result hands resolution the same array (ADR 0002).
+  const appendCacheRef = React.useRef<{
+    local: readonly NodeDef[]
+    loaded: readonly NodeDef[]
+    result: AppendLoadedResult
+  } | null>(null)
+  // Local defs' last known Resolved IDs. After a merge the resolver maps the
+  // merged copy instead of the original, so this is the fallback for it.
+  const localIdsRef = React.useRef(new WeakMap<NodeDef, string>())
+  // Local containers replaced by merged copies that include loaded rows.
+  const [mergedLocalDefs, setMergedLocalDefs] = React.useState<
+    ReadonlySet<NodeDef>
+  >(() => new Set())
+  const withLoaded = (
+    local: readonly NodeDef[],
+    loaded: readonly NodeDef[],
+    parent: PopupMenuNode | null,
+  ) => {
+    if (asyncContentMode === 'replace' || !resolver) return loaded
+    const cached = appendCacheRef.current
+    if (cached?.local === local && cached.loaded === loaded) {
+      return cached.result.defs
+    }
+    const basePath =
+      parent && contributesDefinitionPath(parent.def)
+        ? parent.definitionPath
+        : []
+    const result = appendLoadedDefs(
+      local,
+      loaded,
+      {
+        localId: (def) => {
+          const id = resolver.getNodeForDef(def)?.id
+          if (id === undefined) return localIdsRef.current.get(def)
+          localIdsRef.current.set(def, id)
+          return id
+        },
+        loadedId: (def, path, index) => {
+          const definitionKey = definitionKeyForDef(def)
+          return resolver.getResolvedId({
+            def,
+            kind: def.kind,
+            definitionKey,
+            definitionPath: [...path, definitionKey],
+            parent,
+            children: [],
+            depth: parent ? parent.depth + 1 : 0,
+            index,
+          })
+        },
+      },
+      basePath,
+    )
+    appendCacheRef.current = { local, loaded, result }
+    const merged = new Set<NodeDef>()
+    for (const def of result.defs) {
+      if (result.localDefs.has(def) && !local.includes(def)) merged.add(def)
+    }
+    setMergedLocalDefs((current) =>
+      current.size === 0 && merged.size === 0 ? current : merged,
+    )
+    return result.defs
+  }
+
   const previousBranchesRef = React.useRef<Set<PopupMenuNode>>(new Set())
   // biome-ignore lint/correctness/useExhaustiveDependencies: ADR-0002 — the loader phase is keyed on the coordinator's loader map (the true input), not the coordinator object or its stable callbacks
   React.useEffect(() => {
@@ -149,14 +233,14 @@ export function useResolution({
         subpageBranch,
         rootResult
           ? asyncContent
-            ? rootResult
+            ? withLoaded(staticChildren, rootResult, subpageBranch)
             : [...staticChildren, ...rootResult]
           : staticChildren,
       )
     } else {
       const base = rootResult
         ? asyncContent
-          ? rootResult
+          ? withLoaded(content, rootResult, graftParent)
           : [...content, ...rootResult]
         : content
       if (graftParent) graft(graftParent, base)
@@ -191,6 +275,7 @@ export function useResolution({
     coordinator?.root,
     content,
     asyncContent,
+    asyncContentMode,
     asyncSubmenus,
     graftParent,
     isSubpageSurface,
@@ -222,5 +307,35 @@ export function useResolution({
       graftVersion,
     ],
   )
-  return { nodes, graftVersion, asyncSubmenus }
+  // Every def from local content (any depth), known from the first render;
+  // merged copies of local containers count as local too.
+  const localDefs = React.useMemo(() => {
+    if (asyncContentMode !== 'append') return null
+    const defs = new Set<NodeDef>(mergedLocalDefs)
+    const collect = (list: readonly NodeDef[]) => {
+      for (const def of list) {
+        defs.add(def)
+        collect(childDefsOf(def))
+      }
+    }
+    collect(
+      isSubpageSurface && subpageBranch
+        ? ((subpageBranch.def as SubmenuDef | SubpageDef).nodes ?? [])
+        : content,
+    )
+    return defs
+  }, [
+    asyncContentMode,
+    mergedLocalDefs,
+    content,
+    isSubpageSurface,
+    subpageBranch,
+  ])
+
+  return {
+    nodes,
+    graftVersion,
+    asyncSubmenus,
+    localDefs,
+  }
 }

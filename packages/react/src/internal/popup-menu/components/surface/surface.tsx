@@ -168,6 +168,7 @@ export const PopupMenuSurface = React.forwardRef<
     orderedItems,
     content,
     asyncContent,
+    asyncContentMode = 'replace',
     deepSearch,
     includeInDeepSearch = true,
     render,
@@ -331,6 +332,7 @@ export const PopupMenuSurface = React.forwardRef<
     () => ({
       content: contentDefs ?? [],
       asyncContent,
+      asyncContentMode,
       deepSearchConfig,
       includeInDeepSearch,
       listId: dataListId,
@@ -338,6 +340,7 @@ export const PopupMenuSurface = React.forwardRef<
     [
       contentDefs,
       asyncContent,
+      asyncContentMode,
       deepSearchConfig,
       includeInDeepSearch,
       dataListId,

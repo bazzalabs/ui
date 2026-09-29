@@ -236,6 +236,7 @@ export { usePopupMenuItem as useItem } from '../internal/popup-menu/index.js'
 // ============================================================================
 
 export type {
+  AsyncContentMode,
   // Async coordinator
   AsyncMenuCoordinatorValue,
   AsyncResultBehavior,
