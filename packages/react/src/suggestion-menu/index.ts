@@ -29,6 +29,10 @@ export type {
   SuggestionMenuPopup,
   SuggestionMenuPopupProps,
 } from './popup/popup.js'
+export type {
+  SuggestionMenuPositioner,
+  SuggestionMenuPositionerProps,
+} from './positioner/positioner.js'
 export type { GetAriaResultsText as SuggestionMenuGetAriaResultsText } from './root/results-status.js'
 export type {
   SuggestionMenuRoot,
@@ -70,7 +74,6 @@ export type {
   PopupMenuLoadingProps as SuggestionMenuLoadingProps,
   PopupMenuNode,
   PopupMenuPortalProps as SuggestionMenuPortalProps,
-  PopupMenuPositionerProps as SuggestionMenuPositionerProps,
   PopupMenuSeparatorProps as SuggestionMenuSeparatorProps,
   QueryLoaderConfig,
   SeparatorDef,

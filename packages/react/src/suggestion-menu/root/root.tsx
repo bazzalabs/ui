@@ -34,6 +34,7 @@ import {
   SuggestionMenuResultsStatus,
 } from './results-status.js'
 import { SuggestionMenuRootContext } from './root-context.js'
+import { useVirtualAnchor } from './virtual-anchor.js'
 
 /** What the Root's `children` function receives. */
 export interface SuggestionMenuRootRenderState<Payload = unknown> {
@@ -377,13 +378,18 @@ export function SuggestionMenuRoot<Payload = unknown>(
     setAnnouncement(null)
   }, [open])
 
-  const virtualAnchor = React.useMemo(() => {
-    if (!anchor) return undefined
-    return {
-      getBoundingClientRect: () => anchor() ?? new DOMRect(),
-      contextElement: host ?? undefined,
-    }
-  }, [anchor, host])
+  // Measured while open: again on each `update()`, query change and opening,
+  // never on close (the text the anchor measured may be gone by then).
+  const measureKey = React.useMemo(
+    () => ({}),
+    // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers
+    [handleState, query, open],
+  )
+  const { virtualAnchor, ready: anchorReady } = useVirtualAnchor(
+    open ? anchor : undefined,
+    host,
+    measureKey,
+  )
 
   const handleOpenChangeComplete = React.useCallback(
     (nextOpen: boolean) => {
@@ -415,8 +421,9 @@ export function SuggestionMenuRoot<Payload = unknown>(
       payload,
       reportResults,
       syncHostAria,
+      anchorReady,
     }),
-    [handle, query, payload, reportResults, syncHostAria],
+    [handle, query, payload, reportResults, syncHostAria, anchorReady],
   )
 
   return (
