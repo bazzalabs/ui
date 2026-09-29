@@ -4,21 +4,28 @@ import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { ListboxStore, VirtualItem } from '../../internal/listbox/index.js'
 import {
+  type ForwardKeyDown,
   type PopupMenuHighlightChangeHandler,
   PopupMenuProviders,
   type UsePopupMenuRootParams,
+  useFocusOwner,
+  useForwardedKeyDown,
+  usePopupMenuContext,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
 import type {
   GetResolvedIdFn,
   PopupMenuIdScope,
 } from '../../internal/popup-menu/menu-tree/types.js'
+import { REASONS } from '../../utils/events/index.js'
 import type {
   SuggestionMenuHighlightChangeEventDetails,
   SuggestionMenuOpenChangeEventDetails,
   SuggestionMenuOpenChangeReason,
 } from '../events.js'
 import type { SuggestionMenuAnchor, SuggestionMenuHandle } from '../handle.js'
+import { watchHost } from './host-events.js'
+import { handleSuggestionMenuKey } from './keymap.js'
 import { SuggestionMenuRootContext } from './root-context.js'
 
 /** What the Root's `children` function receives. */
@@ -92,6 +99,30 @@ export interface SuggestionMenuRootProps<Payload = unknown>
   children:
     | React.ReactNode
     | ((state: SuggestionMenuRootRenderState<Payload>) => React.ReactNode)
+}
+
+/**
+ * Runs inside the providers so the menu's keyboard handling can reach the
+ * store; hands the forwarding function to the Root.
+ */
+function KeyboardBridge(props: {
+  forwardKeyDownRef: React.MutableRefObject<ForwardKeyDown | null>
+}) {
+  const { store, closeAll } = usePopupMenuContext()
+  const focusOwnerStore = useFocusOwner()
+  const open = store.useState('open')
+  const forward = useForwardedKeyDown({
+    store,
+    surfaceId: 'suggestion-menu-host',
+    focusOwnerStore,
+    depth: 0,
+    submenuContext: null,
+    subpageContext: null,
+    enabled: open,
+    closeAll,
+  })
+  props.forwardKeyDownRef.current = forward
+  return null
 }
 
 const warned = new Set<string>()
@@ -185,21 +216,80 @@ export function SuggestionMenuRoot<Payload = unknown>(
 
   const handleOpenChangeRef = React.useRef(handleOpenChange)
   handleOpenChangeRef.current = handleOpenChange
+  const forwardKeyDownRef = React.useRef<ForwardKeyDown | null>(null)
+  const detachHostRef = React.useRef<(() => void) | null>(null)
 
-  React.useLayoutEffect(
-    () =>
-      handle.connect({
-        isOpen: () => store.select('open'),
-        requestOpenChange: (
-          nextOpen: boolean,
-          reason: SuggestionMenuOpenChangeReason,
-          event?: Event,
-        ) => handleOpenChangeRef.current(nextOpen, reason, event),
-        handleKeyDown: () => false,
-        attachHost: () => {},
-      }),
-    [handle, store],
-  )
+  React.useLayoutEffect(() => {
+    const isOpen = () => store.select('open')
+    const send = (
+      nextOpen: boolean,
+      reason: SuggestionMenuOpenChangeReason,
+      event?: Event,
+    ) => handleOpenChangeRef.current(nextOpen, reason, event)
+
+    // While a row is being chosen (Enter, or a click on a row), a `close()`
+    // from the row's `onSelect` waits, so the menu's own close reports
+    // `item-press` first; the waiting close is then a no-op.
+    let selecting = 0
+    let heldClose: { event: Event | undefined } | null = null
+    const startSelection = () => {
+      selecting += 1
+    }
+    const endSelection = () => {
+      selecting -= 1
+      if (selecting > 0 || !heldClose) return
+      const { event } = heldClose
+      heldClose = null
+      send(false, REASONS.imperativeAction, event)
+    }
+    const request = (
+      nextOpen: boolean,
+      reason: SuggestionMenuOpenChangeReason,
+      event?: Event,
+    ) => {
+      if (!nextOpen && reason === REASONS.imperativeAction && selecting > 0) {
+        heldClose = { event }
+        return
+      }
+      send(nextOpen, reason, event)
+    }
+
+    return handle.connect({
+      isOpen,
+      requestOpenChange: request,
+      handleKeyDown: (event) =>
+        handleSuggestionMenuKey(event, {
+          isOpen,
+          forward: (forwarded) => {
+            const choosing = forwarded.key === 'Enter'
+            if (choosing) startSelection()
+            try {
+              return forwardKeyDownRef.current?.(forwarded) ?? false
+            } finally {
+              if (choosing) endSelection()
+            }
+          },
+          dismiss: (keyEvent) =>
+            request(
+              false,
+              REASONS.escapeKey,
+              'nativeEvent' in keyEvent ? keyEvent.nativeEvent : keyEvent,
+            ),
+        }),
+      attachHost: (host) => {
+        detachHostRef.current?.()
+        detachHostRef.current = host
+          ? watchHost(host, {
+              isOpen,
+              getPopup: () => store.context.refs.popupRef.current,
+              onFocusOut: (event) => request(false, REASONS.focusOut, event),
+              onSelectionStart: startSelection,
+              onSelectionEnd: endSelection,
+            })
+          : null
+      },
+    })
+  }, [handle, store])
 
   if (queryProp !== undefined && handleState.updated.query) {
     warnOnce(
@@ -272,6 +362,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
       closeOnOutsidePress="pointerdown"
       componentName="suggestion-menu"
     >
+      <KeyboardBridge forwardKeyDownRef={forwardKeyDownRef} />
       <SuggestionMenuRootContext.Provider value={rootContext}>
         <Popover.Root
           {...rest}
