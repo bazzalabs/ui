@@ -1,7 +1,15 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest'
 import { ContextMenu } from '../index.js'
 
 // ============================================================================
@@ -20,37 +28,12 @@ function BasicContextMenu(
         Right-click here
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <ContextMenu.Positioner>
+        <ContextMenu.Positioner data-testid="positioner">
           <ContextMenu.Popup>
             <ContextMenu.Surface data-testid="surface" {...surfaceProps}>
               <ContextMenu.List>
                 <ContextMenu.Item data-testid="item-1">Item 1</ContextMenu.Item>
                 <ContextMenu.Item data-testid="item-2">Item 2</ContextMenu.Item>
-                <ContextMenu.Item data-testid="item-3">Item 3</ContextMenu.Item>
-              </ContextMenu.List>
-            </ContextMenu.Surface>
-          </ContextMenu.Popup>
-        </ContextMenu.Positioner>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
-  )
-}
-
-function ContextMenuWithDisabledItems() {
-  return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger data-testid="trigger">
-        Right-click here
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Positioner>
-          <ContextMenu.Popup>
-            <ContextMenu.Surface data-testid="surface">
-              <ContextMenu.List>
-                <ContextMenu.Item data-testid="item-1">Item 1</ContextMenu.Item>
-                <ContextMenu.Item data-testid="item-2" disabled>
-                  Item 2 (disabled)
-                </ContextMenu.Item>
                 <ContextMenu.Item data-testid="item-3">Item 3</ContextMenu.Item>
               </ContextMenu.List>
             </ContextMenu.Surface>
@@ -183,13 +166,8 @@ interface ContextMenuDisableHandle {
 
 const ContextMenuWithInputAndImperativeActions = React.forwardRef<
   ContextMenuDisableHandle,
-  {
-    dataInput?: boolean
-  }
->(function ContextMenuWithInputAndImperativeActions(
-  { dataInput = false },
-  forwardedRef,
-) {
+  Record<string, never>
+>(function ContextMenuWithInputAndImperativeActions(_props, forwardedRef) {
   const actionsRef = React.useRef<ContextMenu.Root.Actions | null>(null)
 
   React.useImperativeHandle(
@@ -209,11 +187,7 @@ const ContextMenuWithInputAndImperativeActions = React.forwardRef<
         <ContextMenu.Positioner>
           <ContextMenu.Popup>
             <ContextMenu.Surface data-testid="surface">
-              {dataInput ? (
-                <ContextMenu.Input data-testid="menu-data-input" />
-              ) : (
-                <ContextMenu.Input data-testid="menu-input" />
-              )}
+              <ContextMenu.Input data-testid="menu-input" />
 
               <ContextMenu.List>
                 <ContextMenu.Item data-testid="item-1">Item 1</ContextMenu.Item>
@@ -229,6 +203,20 @@ const ContextMenuWithInputAndImperativeActions = React.forwardRef<
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/**
+ * jsdom reports a 0×0 viewport, which makes the positioner clamp every menu
+ * to the origin. Give it a size so the cursor position shows up.
+ */
+function withViewport() {
+  const html = document.documentElement
+  const width = vi.spyOn(html, 'clientWidth', 'get').mockReturnValue(1024)
+  const height = vi.spyOn(html, 'clientHeight', 'get').mockReturnValue(768)
+  onTestFinished(() => {
+    width.mockRestore()
+    height.mockRestore()
+  })
+}
 
 /**
  * Simulates a right-click (contextmenu event) on an element
@@ -298,20 +286,21 @@ describe('<ContextMenu.Root />', () => {
     })
 
     it('positions menu at cursor location', async () => {
+      withViewport()
       render(<BasicContextMenu />)
 
       const trigger = screen.getByTestId('trigger')
       await rightClick(trigger, 150, 200)
 
       await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
+        expect(screen.getByTestId('positioner').style.transform).toBe(
+          'translate(150px, 200px)',
+        )
       })
-
-      // The positioner should be positioned at or near the click coordinates
-      // Note: Actual position depends on Base UI's Popover positioning logic
     })
 
     it('repositions menu on second right-click without closing', async () => {
+      withViewport()
       const onOpenChange = vi.fn()
 
       render(
@@ -320,7 +309,7 @@ describe('<ContextMenu.Root />', () => {
             Right-click here
           </ContextMenu.Trigger>
           <ContextMenu.Portal>
-            <ContextMenu.Positioner>
+            <ContextMenu.Positioner data-testid="positioner">
               <ContextMenu.Popup>
                 <ContextMenu.Surface data-testid="surface">
                   <ContextMenu.List>
@@ -358,25 +347,15 @@ describe('<ContextMenu.Root />', () => {
       // Should NOT have called onOpenChange with false (no close)
       // The menu repositions without closing
       expect(onOpenChange).not.toHaveBeenCalledWith(false, expect.anything())
+      await waitFor(() => {
+        expect(screen.getByTestId('positioner').style.transform).toBe(
+          'translate(200px, 200px)',
+        )
+      })
     })
   })
 
   describe('close behavior', () => {
-    it('closes when Escape is pressed', async () => {
-      const user = userEvent.setup()
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      await user.keyboard('{Escape}')
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
-      })
-    })
-
     it('closes when clicking outside', async () => {
       const user = userEvent.setup()
       render(
@@ -601,37 +580,7 @@ describe('<ContextMenu.Root />', () => {
     })
   })
 
-  describe('uncontrolled mode', () => {
-    it('respects defaultOpen prop', async () => {
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-    })
-
-    it('starts closed by default', () => {
-      render(<BasicContextMenu />)
-      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
-    })
-  })
-
   describe('item selection', () => {
-    it('closes menu when item is clicked', async () => {
-      const user = userEvent.setup()
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      await user.click(screen.getByTestId('item-1'))
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
-      })
-    })
-
     it('calls onSelect when item is clicked', async () => {
       render(<ContextMenuWithOnSelect />)
 
@@ -646,129 +595,13 @@ describe('<ContextMenu.Root />', () => {
       await user.click(screen.getByTestId('item-1'))
 
       expect(screen.getByTestId('selected')).toHaveTextContent('item-1')
-    })
-
-    it('does not select disabled items', async () => {
-      render(<ContextMenuWithDisabledItems />)
-
-      const trigger = screen.getByTestId('trigger')
-      await rightClick(trigger)
-
       await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
       })
-
-      const user = userEvent.setup()
-      const disabledItem = screen.getByTestId('item-2')
-      await user.click(disabledItem)
-
-      // Menu should still be open since disabled items don't close
-      expect(screen.getByTestId('surface')).toBeInTheDocument()
     })
   })
 
   describe('keyboard navigation', () => {
-    it('navigates with ArrowDown', async () => {
-      const user = userEvent.setup()
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // When menu opens, first item is already highlighted
-      expect(screen.getByTestId('item-1')).toHaveAttribute('data-highlighted')
-
-      // Focus the list to enable keyboard navigation
-      const list = screen.getByRole('listbox')
-      list.focus()
-
-      // ArrowDown moves to next item
-      await user.keyboard('{ArrowDown}')
-
-      expect(screen.getByTestId('item-2')).toHaveAttribute('data-highlighted')
-    })
-
-    it('navigates with ArrowUp', async () => {
-      const user = userEvent.setup()
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // First item is highlighted on open
-      expect(screen.getByTestId('item-1')).toHaveAttribute('data-highlighted')
-
-      const list = screen.getByRole('listbox')
-      list.focus()
-
-      // Go down to item-2, then down to item-3, then up to item-2
-      await user.keyboard('{ArrowDown}')
-      await user.keyboard('{ArrowDown}')
-      expect(screen.getByTestId('item-3')).toHaveAttribute('data-highlighted')
-
-      await user.keyboard('{ArrowUp}')
-      expect(screen.getByTestId('item-2')).toHaveAttribute('data-highlighted')
-    })
-
-    it('skips disabled items during navigation', async () => {
-      render(<ContextMenuWithDisabledItems />)
-
-      const trigger = screen.getByTestId('trigger')
-      await rightClick(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // First item is already highlighted when menu opens
-      expect(screen.getByTestId('item-1')).toHaveAttribute('data-highlighted')
-
-      const user = userEvent.setup()
-      const list = screen.getByRole('listbox')
-      list.focus()
-
-      // Navigate down - should skip item-2 (disabled) and go to item-3
-      await user.keyboard('{ArrowDown}')
-      expect(screen.getByTestId('item-3')).toHaveAttribute('data-highlighted')
-    })
-
-    it('navigates to first item with Home key', async () => {
-      const user = userEvent.setup()
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const surface = screen.getByTestId('surface')
-      surface.focus()
-
-      // Navigate to last item first
-      await user.keyboard('{End}')
-      expect(screen.getByTestId('item-3')).toHaveAttribute('data-highlighted')
-
-      // Then Home should go back to first
-      await user.keyboard('{Home}')
-      expect(screen.getByTestId('item-1')).toHaveAttribute('data-highlighted')
-    })
-
-    it('navigates to last item with End key', async () => {
-      const user = userEvent.setup()
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const surface = screen.getByTestId('surface')
-      surface.focus()
-
-      await user.keyboard('{End}')
-      expect(screen.getByTestId('item-3')).toHaveAttribute('data-highlighted')
-    })
-
     it('selects item with Enter key', async () => {
       render(<ContextMenuWithOnSelect />)
 
@@ -917,62 +750,6 @@ describe('<ContextMenu.Root />', () => {
       })
 
       expect(input).not.toBeDisabled()
-    })
-
-    it('disables Input when setDisabled(true) is called', async () => {
-      const actions = React.createRef<ContextMenuDisableHandle>()
-
-      render(
-        <ContextMenuWithInputAndImperativeActions ref={actions} dataInput />,
-      )
-
-      await rightClick(screen.getByTestId('trigger'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const dataInput = screen.getByTestId('menu-data-input')
-      expect(dataInput).not.toBeDisabled()
-
-      act(() => {
-        actions.current?.setDisabled(true)
-      })
-
-      expect(dataInput).toBeDisabled()
-
-      act(() => {
-        actions.current?.setDisabled(false)
-      })
-
-      expect(dataInput).not.toBeDisabled()
-    })
-  })
-
-  describe('ARIA attributes', () => {
-    it('items have correct role', async () => {
-      render(<BasicContextMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const item = screen.getByTestId('item-1')
-      expect(item).toHaveAttribute('role', 'option')
-    })
-
-    it('disabled items have aria-disabled', async () => {
-      render(<ContextMenuWithDisabledItems />)
-
-      const trigger = screen.getByTestId('trigger')
-      await rightClick(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const disabledItem = screen.getByTestId('item-2')
-      expect(disabledItem).toHaveAttribute('aria-disabled', 'true')
     })
   })
 

@@ -166,8 +166,6 @@ interface ContextMenuInternalContextValue {
   setAnchorPosition: (x: number, y: number, isTouchEvent?: boolean) => void
   /** Open the menu */
   openMenu: (event: Event) => void
-  /** Close the menu */
-  closeMenu: () => void
   /** Whether the menu is disabled */
   disabled: boolean
   /** Whether the menu is open */
@@ -307,11 +305,6 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     [store, menuDisabled],
   )
 
-  // Close the menu
-  const closeMenu = React.useCallback(() => {
-    handleOpenChange(false)
-  }, [handleOpenChange])
-
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
   const handleOpenChangeComplete = React.useCallback(
     (nextOpen: boolean) => {
@@ -350,11 +343,10 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     () => ({
       setAnchorPosition,
       openMenu,
-      closeMenu,
       disabled: menuDisabled,
       open,
     }),
-    [setAnchorPosition, openMenu, closeMenu, menuDisabled, open],
+    [setAnchorPosition, openMenu, menuDisabled, open],
   )
 
   return (
