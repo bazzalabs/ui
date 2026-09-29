@@ -175,8 +175,6 @@ function getDisplayNodeStreamKey(displayNode: DisplayNode): string {
   return `row:${displayNode.node.def.kind}:${displayNode.node.def.id ?? ''}:${displayNode.node.def.value}:${getBreadcrumbStreamKey(displayNode.context.breadcrumbs)}`
 }
 
-const identityQuery = (query: string) => query
-
 function orderDisplayNodesForStreaming(
   displayNodes: DisplayNode[],
   previousOrder: string[],
@@ -627,7 +625,6 @@ export const DataListInner = React.forwardRef<
   const { displayNodes, isDeepSearching } = React.useMemo(() => {
     const result = filterNodes({
       query: normalizedSearch,
-      normalizeQuery: identityQuery,
       nodes: resolvedNodes,
       highlightedId: null, // Primitives handle highlighting via store
       deepSearch: deepSearchConfig.enabled,
