@@ -41,4 +41,6 @@ export const auto = 'auto' as const
 
 // Programmatic/other
 export const imperativeAction = 'imperative-action' as const
+/** A suggestion menu's results settled empty with `noResults: 'close'`. */
+export const noResults = 'no-results' as const
 export const none = 'none' as const

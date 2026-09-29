@@ -3,6 +3,7 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { ListboxStore, VirtualItem } from '../../internal/listbox/index.js'
+import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
   type ForwardKeyDown,
   type PopupMenuHighlightChangeHandler,
@@ -110,6 +111,16 @@ export interface SuggestionMenuRootProps<Payload = unknown>
    * @default (count, label) => count === 0 ? 'No results' : `${count} results, first: ${label}`
    */
   getAriaResultsText?: GetAriaResultsText
+  /**
+   * What happens when nothing matches the query, once every search for it has
+   * finished.
+   * - `'empty'`: the menu stays open and shows `Empty`; Enter reaches the host.
+   * - `'close'`: the menu closes (reason `'no-results'`). An `update()` with
+   *   the same query leaves it closed; one with any other query searches
+   *   again.
+   * @default 'empty'
+   */
+  noResults?: 'empty' | 'close'
   /** The menu's parts, or a function of the payload and query that returns them. */
   children:
     | React.ReactNode
@@ -169,6 +180,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
     getResolvedId,
     idScope = 'surface',
     getAriaResultsText = defaultGetAriaResultsText,
+    noResults = 'empty',
     children,
     ...rest
   } = props
@@ -234,6 +246,13 @@ export function SuggestionMenuRoot<Payload = unknown>(
   handleOpenChangeRef.current = handleOpenChange
   const forwardKeyDownRef = React.useRef<ForwardKeyDown | null>(null)
   const detachHostRef = React.useRef<(() => void) | null>(null)
+  // With `noResults: 'close'`: the query whose results settled empty.
+  const emptyQueryRef = React.useRef<string | null>(null)
+  const noResultsRef = React.useRef(noResults)
+  noResultsRef.current = noResults
+  const queryPropRef = React.useRef(queryProp)
+  queryPropRef.current = queryProp
+  const openOnQueryChangeRef = React.useRef(false)
 
   // `aria-activedescendant` follows keyboard highlight only (ADR 0005). Set
   // when the menu moves the highlight for a key; cleared when the query
@@ -249,7 +268,31 @@ export function SuggestionMenuRoot<Payload = unknown>(
       nextOpen: boolean,
       reason: SuggestionMenuOpenChangeReason,
       event?: Event,
-    ) => handleOpenChangeRef.current(nextOpen, reason, event)
+    ) => {
+      if (reason === REASONS.imperativeAction) {
+        const empty = emptyQueryRef.current
+        if (nextOpen && empty !== null) {
+          // The query that settled empty stays closed (e.g. only the caret
+          // moved); any other query searches again. A controlled query may
+          // not have rendered yet, so that open waits for it.
+          const controlled = queryPropRef.current
+          if (controlled === empty) {
+            openOnQueryChangeRef.current = true
+            return
+          }
+          if (controlled === undefined && handle.getState().query === empty) {
+            return
+          }
+        }
+        emptyQueryRef.current = null
+        openOnQueryChangeRef.current = false
+      }
+      handleOpenChangeRef.current(
+        nextOpen,
+        reason as PopupMenuOpenChangeReason,
+        event,
+      )
+    }
 
     // While a row is being chosen (Enter, or a click on a row), a `close()`
     // from the row's `onSelect` waits, so the menu's own close reports
@@ -310,6 +353,9 @@ export function SuggestionMenuRoot<Payload = unknown>(
         })
       },
       attachHost: (host) => {
+        // A new host (or none) starts fresh.
+        emptyQueryRef.current = null
+        openOnQueryChangeRef.current = false
         detachHostRef.current?.()
         detachHostRef.current = host
           ? watchHost(host, {
@@ -338,6 +384,19 @@ export function SuggestionMenuRoot<Payload = unknown>(
   }
 
   const query = queryProp ?? handleState.query
+  // An open that waited for a controlled query to leave the empty one. The
+  // prop can render after the `update()` (e.g. state set from an editor's
+  // native listener), so it waits until the next `update()`, `close()` or
+  // host change.
+  React.useLayoutEffect(() => {
+    if (!openOnQueryChangeRef.current || query === emptyQueryRef.current) return
+    openOnQueryChangeRef.current = false
+    emptyQueryRef.current = null
+    handleOpenChangeRef.current(
+      true,
+      REASONS.imperativeAction as PopupMenuOpenChangeReason,
+    )
+  }, [query])
   const anchor = anchorProp ?? handleState.anchor
   const payload = handleState.payload
   const host = handleState.host
@@ -367,6 +426,14 @@ export function SuggestionMenuRoot<Payload = unknown>(
   getAriaResultsTextRef.current = getAriaResultsText
   const reportResults = React.useCallback(
     (count: number, label: string | null) => {
+      if (count === 0 && noResultsRef.current === 'close') {
+        emptyQueryRef.current = queryRef.current
+        handleOpenChangeRef.current(
+          false,
+          REASONS.noResults as PopupMenuOpenChangeReason,
+        )
+        return
+      }
       const text = getAriaResultsTextRef.current(count, label)
       setAnnouncement((current) => ({ text, key: (current?.key ?? 0) + 1 }))
     },
@@ -407,7 +474,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
     (nextOpen: boolean, details: Popover.Root.ChangeEventDetails) => {
       handleOpenChange(
         nextOpen,
-        details.reason as SuggestionMenuOpenChangeReason,
+        details.reason as PopupMenuOpenChangeReason,
         details.event,
       )
     },
