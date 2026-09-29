@@ -47,7 +47,13 @@ export const VolumeSlider = React.forwardRef<
   React.ComponentRef<typeof Slider.Root>,
   VolumeSliderProps
 >(function VolumeSlider(props, forwardedRef) {
-  const { render, children, onPointerDown, ...sliderProps } = props
+  const {
+    render,
+    children,
+    onPointerDown,
+    style: styleProp,
+    ...sliderProps
+  } = props
   const context = useVideoPlayerContext('VolumeSlider')
   const sliderRef = React.useRef<HTMLDivElement | null>(null)
   const [pressing, setPressing] = React.useState(false)
@@ -129,7 +135,7 @@ export const VolumeSlider = React.forwardRef<
   // CSS custom properties first so a consumer style can override them. A
   // function style stays a function so Slider.Root resolves it with its state.
   const style = composeStyle(
-    sliderProps.style,
+    styleProp,
     (resolvedStyle) =>
       ({
         position: 'relative' as const,
@@ -151,6 +157,7 @@ export const VolumeSlider = React.forwardRef<
         onValueChange={handleValueChange}
         onPointerDown={handlePointerDown}
         aria-label="Volume"
+        {...sliderProps}
         render={(baseProps, rootState) => {
           const renderProps: VolumeSliderRenderProps = {
             ...dataAttributes,

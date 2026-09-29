@@ -97,6 +97,7 @@ export const SeekSlider = React.forwardRef<
     onPointerDown,
     onKeyUp,
     onValueCommitted,
+    style: styleProp,
     ...sliderProps
   } = props
   const context = useVideoPlayerContext('SeekSlider')
@@ -270,7 +271,7 @@ export const SeekSlider = React.forwardRef<
   // CSS custom properties first so a consumer style can override them. A
   // function style stays a function so Slider.Root resolves it with its state.
   const style = composeStyle(
-    sliderProps.style,
+    styleProp,
     (resolvedStyle) =>
       ({
         position: 'relative',
@@ -312,6 +313,7 @@ export const SeekSlider = React.forwardRef<
           onPointerDown={handlePointerDown}
           onKeyUp={handleKeyUp}
           aria-label="Seek"
+          {...sliderProps}
           render={(baseProps, rootState) => {
             const renderProps: SeekSliderRenderProps = {
               ...dataAttributes,
@@ -409,6 +411,7 @@ export const SeekSliderTrack = React.forwardRef<
   if (render) {
     return (
       <Slider.Track
+        {...trackProps}
         render={(baseProps, trackState) => {
           const renderProps: SeekSliderTrackRenderProps = {
             ref: forwardedRef,
@@ -468,6 +471,7 @@ export const SeekSliderProgress = React.forwardRef<
   if (render) {
     return (
       <Slider.Indicator
+        {...indicatorProps}
         render={(baseProps, indicatorState) => {
           const renderProps: SeekSliderProgressRenderProps = {
             ref: forwardedRef,
@@ -529,6 +533,7 @@ export const SeekSliderThumb = React.forwardRef<
   if (render) {
     return (
       <Slider.Thumb
+        {...thumbProps}
         render={(baseProps) =>
           render(
             {
