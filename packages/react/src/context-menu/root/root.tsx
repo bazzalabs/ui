@@ -16,6 +16,7 @@ import type {
   GetResolvedIdFn,
   PopupMenuIdScope,
 } from '../../internal/popup-menu/menu-tree/types.js'
+import { REASONS } from '../../utils/events/index.js'
 import type {
   ContextMenuHighlightChangeEventDetails,
   ContextMenuOpenChangeEventDetails,
@@ -164,7 +165,7 @@ interface ContextMenuInternalContextValue {
   /** Set the virtual anchor position (called by Trigger on right-click) */
   setAnchorPosition: (x: number, y: number, isTouchEvent?: boolean) => void
   /** Open the menu */
-  openMenu: () => void
+  openMenu: (event: Event) => void
   /** Close the menu */
   closeMenu: () => void
   /** Whether the menu is disabled */
@@ -297,11 +298,14 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     [],
   )
 
-  // Open the menu
-  const openMenu = React.useCallback(() => {
-    if (menuDisabled) return
-    store.setOpen(true)
-  }, [store, menuDisabled])
+  // Open the menu (called by Trigger on right-click/long-press)
+  const openMenu = React.useCallback(
+    (event: Event) => {
+      if (menuDisabled) return
+      store.setOpen(true, REASONS.triggerContextMenu, event)
+    },
+    [store, menuDisabled],
+  )
 
   // Close the menu
   const closeMenu = React.useCallback(() => {
