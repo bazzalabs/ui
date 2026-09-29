@@ -10,6 +10,19 @@ export const bazzaRuleNames = new Set([
   'data-attrs-enum',
   'disable-needs-reason',
   'forward-ref-named',
+  'no-spread-style',
+  'part-namespace',
+  'resolve-state-props',
+  'use-client',
+])
+
+/**
+ * Rules about how shipped parts are written. They skip tests (see
+ * `.oxlintrc.json`); the rest also run on tests.
+ */
+export const partShapeRuleNames = new Set([
+  'data-attrs-enum',
+  'forward-ref-named',
   'part-namespace',
   'use-client',
 ])

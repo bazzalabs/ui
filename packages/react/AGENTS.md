@@ -27,6 +27,7 @@ src/
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { resolveClassName, resolveStyle } from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 
 export interface MyComponentState extends Record<string, unknown> {
@@ -49,7 +50,12 @@ export const MyComponent = React.forwardRef<HTMLDivElement, MyComponentProps>(
       render,
       ref: forwardedRef,
       state,
-      props: { ...rest, className, style, children },
+      props: {
+        ...rest,
+        className: resolveClassName(className, state),
+        style: resolveStyle(style, state),
+        children,
+      },
       defaultTagName: 'div',
     })
   }
@@ -67,8 +73,15 @@ Every part follows this shape, and lint checks it:
 - **A named render function.** Parts don't set `displayName`, so React DevTools and error messages show the function's name. Write `forwardRef(function MyComponent(…))`, or declare a named function and pass it by name, as generic parts do with `forwardRef(MyComponentImpl) as <…>` (`bazza/forward-ref-named`).
 - **A namespace with the part's types.** Consumers write `DropdownMenu.Item.Props`, and the docs type tables read the same names. Export `namespace MyComponent { Props }`, plus `State` when the part passes `state` to `useRender` (`bazza/part-namespace`).
 - **No default exports.** Parts are reached through their family's namespace (`DropdownMenu.Item`). Biome's `noDefaultExport` is on for `src`.
+- **`className` and `style` resolved before `props`.** Both can be functions of the part's state, and `useRender` only resolves functions passed at the top level of its options, not inside `props` (`bazza/resolve-state-props`). The rule has to prove each piece of `props` safe, and reports what it can't:
+  - `className` is `resolveClassName(className, state)` or a string, and `style` is `resolveStyle(style, state)` or an object whose spreads are. `composeStyle` is not allowed here, because it keeps a function a function.
+  - Every spread is an object literal, a `mergeProps` / `mergeElementProps` call, a rest object that destructured both out (`const { className, style, ...rest } = props`), another prop, or an import.
+  - A local variable counts as its initialiser only while nothing changes it. Any later write makes it unprovable (reassignment, `Object.assign(x, …)`, `delete`, `++`, or writing to `className` / `style`), except writing a literal to another key, as when filling in data attributes (`attrs['data-open'] = ''`). Build the value in one expression, or use a reasoned `oxlint-disable-next-line`.
+  - An entry with a computed key (`[key]: value`) needs a literal value, because the key could be `className` or `style`.
 
 ## State to Data Attributes
+
+The snippets below write `props` for the object literal from the Component Pattern (`{ ...rest, className: resolveClassName(className, state), … }`), never the part's raw props.
 
 Automatic conversion: `highlighted: true` becomes `data-highlighted=""`.
 
@@ -111,6 +124,18 @@ export enum DropdownMenuPositionerCssVars {
   /** @type {number} */
   availableWidth = '--available-width',
 }
+```
+
+## Composing styles
+
+A part's `style` can be a function of its state, and spreading a function copies nothing, so `{ ...style, transition: 'none' }` silently drops the consumer's styles (`bazza/no-spread-style`). Resolve it first, or compose it when a Base UI component resolves it later:
+
+```typescript
+// The part renders the element: resolve against its own state.
+style: { ...internalStyles, ...resolveStyle(style, state) }
+
+// A Base UI component receives it: keep a function a function.
+<Popover.Positioner style={composeStyle(style, (resolved) => ({ ...resolved, transition: 'none' }))} />
 ```
 
 ## Context Providers

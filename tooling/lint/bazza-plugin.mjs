@@ -8,14 +8,16 @@
 import { dataAttrsEnum } from './rules/data-attrs-enum.mjs'
 import { disableNeedsReason } from './rules/disable-needs-reason.mjs'
 import { forwardRefNamed } from './rules/forward-ref-named.mjs'
+import { noSpreadStyle } from './rules/no-spread-style.mjs'
 import { partNamespace } from './rules/part-namespace.mjs'
+import { resolveStateProps } from './rules/resolve-state-props.mjs'
 import { useClient } from './rules/use-client.mjs'
 
 export {
   directiveProblem,
   parseDirective,
 } from './rules/disable-needs-reason.mjs'
-export { bazzaRuleNames } from './rules/rule-names.mjs'
+export { bazzaRuleNames, partShapeRuleNames } from './rules/rule-names.mjs'
 
 export default {
   meta: { name: 'bazza' },
@@ -23,7 +25,9 @@ export default {
     'data-attrs-enum': dataAttrsEnum,
     'disable-needs-reason': disableNeedsReason,
     'forward-ref-named': forwardRefNamed,
+    'no-spread-style': noSpreadStyle,
     'part-namespace': partNamespace,
+    'resolve-state-props': resolveStateProps,
     'use-client': useClient,
   },
 }
