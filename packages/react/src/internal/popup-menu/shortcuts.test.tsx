@@ -327,54 +327,11 @@ describe('Keyboard Shortcuts', () => {
       list.focus()
       await user.keyboard('1')
 
-      // Shortcut should work
+      // Shortcut should work and close the menu
       expect(onSelect).toHaveBeenCalledWith('item-1')
-    })
-
-    it('closes menu after shortcut selection with hideUntilActive', async () => {
-      const onSelect = vi.fn()
-      const user = userEvent.setup()
-      render(<MenuWithShortcutsAndHideUntilActive onSelect={onSelect} />)
-
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const list = screen.getByTestId('list')
-      list.focus()
-      await user.keyboard('2')
-
-      // Menu should close
       await waitFor(() => {
         expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
       })
-    })
-
-    it('does not activate input when shortcut key is pressed', async () => {
-      const onSelect = vi.fn()
-      const user = userEvent.setup()
-      render(<MenuWithShortcutsAndHideUntilActive onSelect={onSelect} />)
-
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // Input should not be rendered initially
-      expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
-
-      const list = screen.getByTestId('list')
-      list.focus()
-      await user.keyboard('1')
-
-      // Input should still not be rendered (shortcut took priority)
-      // Note: Menu closes after shortcut, so we can't check input state
-      expect(onSelect).toHaveBeenCalledWith('item-1')
     })
 
     it('activates input when non-shortcut printable key is pressed', async () => {

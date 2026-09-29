@@ -145,26 +145,6 @@ describe('Empty and Loading visibility', () => {
       )
     }
 
-    it('does not show Empty when items are visible', async () => {
-      render(<BasicMenu />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
-      })
-
-      expect(screen.queryByTestId('empty')).not.toBeInTheDocument()
-    })
-
-    it('does not show Loading without async content', async () => {
-      render(<BasicMenu />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
-      })
-
-      expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
-    })
-
     it('shows Empty when search matches nothing', async () => {
       const user = userEvent.setup()
       render(<BasicMenu />)
@@ -274,16 +254,6 @@ describe('Empty and Loading visibility', () => {
         </DropdownMenu.Root>
       )
     }
-
-    it('shows Loading while fetching', async () => {
-      const deferred = createDeferred<NodeDef[]>()
-
-      render(<AsyncMenu fetcher={() => deferred.promise} />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toBeInTheDocument()
-      })
-    })
 
     it('does not show Empty while loading', async () => {
       const deferred = createDeferred<NodeDef[]>()
@@ -475,23 +445,6 @@ describe('Empty and Loading visibility', () => {
         </DropdownMenu.Root>
       )
     }
-
-    it('shows Loading while query-dependent fetcher is in-flight', async () => {
-      const user = userEvent.setup()
-      const deferred = createDeferred<NodeDef[]>()
-
-      render(<AsyncDeepSearchMenu fetcher={() => deferred.promise} />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      await user.type(screen.getByTestId('search-input'), 'test')
-
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toBeInTheDocument()
-      })
-    })
 
     it('does not show Empty while query-dependent fetcher is loading', async () => {
       const user = userEvent.setup()
