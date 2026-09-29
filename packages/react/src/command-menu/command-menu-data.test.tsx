@@ -416,7 +416,9 @@ describe('CommandMenu data-first API', () => {
       (context) => context.isDeepSearchResult,
     )
     expect(deepContexts.length).toBeGreaterThan(0)
-    expect(deepContexts[0]?.breadcrumbs.length).toBeGreaterThan(0)
+    expect(deepContexts[0]?.breadcrumbs.map((crumb) => crumb.value)).toEqual([
+      'Projects',
+    ])
 
     await user.click(screen.getByTestId('item-archived-project-deep'))
 
