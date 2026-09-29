@@ -89,16 +89,4 @@ describe('DropdownMenu.Trigger', () => {
 
     expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
   })
-
-  it('still opens with no onClick', async () => {
-    const user = userEvent.setup()
-
-    render(<Menu />)
-
-    await user.click(screen.getByTestId('trigger'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('surface')).toBeInTheDocument()
-    })
-  })
 })

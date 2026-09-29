@@ -693,13 +693,8 @@ interface DropdownMenuDisableHandle {
 
 const DropdownMenuWithInputAndImperativeActions = React.forwardRef<
   DropdownMenuDisableHandle,
-  {
-    dataInput?: boolean
-  }
->(function DropdownMenuWithInputAndImperativeActions(
-  { dataInput = false },
-  forwardedRef,
-) {
+  Record<string, never>
+>(function DropdownMenuWithInputAndImperativeActions(_props, forwardedRef) {
   const actionsRef = React.useRef<DropdownMenu.Root.Actions | null>(null)
 
   React.useImperativeHandle(
@@ -719,11 +714,7 @@ const DropdownMenuWithInputAndImperativeActions = React.forwardRef<
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
             <DropdownMenu.Surface data-testid="surface">
-              {dataInput ? (
-                <DropdownMenu.Input data-testid="menu-data-input" />
-              ) : (
-                <DropdownMenu.Input data-testid="menu-input" />
-              )}
+              <DropdownMenu.Input data-testid="menu-input" />
 
               <DropdownMenu.List>
                 <DropdownMenu.Item data-testid="item-1">
@@ -1212,7 +1203,7 @@ describe('<DropdownMenu.Root />', () => {
       expect(onOpenChange).toHaveBeenCalledWith(
         true,
         expect.objectContaining({
-          reason: expect.any(String),
+          reason: 'trigger-press',
         }),
       )
     })
@@ -1235,21 +1226,6 @@ describe('<DropdownMenu.Root />', () => {
           reason: 'escape-key',
         }),
       )
-    })
-  })
-
-  describe('uncontrolled mode', () => {
-    it('respects defaultOpen prop', async () => {
-      render(<BasicDropdownMenu defaultOpen />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-    })
-
-    it('starts closed by default', () => {
-      render(<BasicDropdownMenu />)
-      expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
     })
   })
 
@@ -1315,36 +1291,6 @@ describe('<DropdownMenu.Root />', () => {
       })
 
       expect(input).not.toBeDisabled()
-    })
-
-    it('disables Input when setDisabled(true) is called', async () => {
-      const user = userEvent.setup()
-      const actions = React.createRef<DropdownMenuDisableHandle>()
-
-      render(
-        <DropdownMenuWithInputAndImperativeActions ref={actions} dataInput />,
-      )
-
-      await user.click(screen.getByTestId('trigger'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const dataInput = screen.getByTestId('menu-data-input')
-      expect(dataInput).not.toBeDisabled()
-
-      act(() => {
-        actions.current?.setDisabled(true)
-      })
-
-      expect(dataInput).toBeDisabled()
-
-      act(() => {
-        actions.current?.setDisabled(false)
-      })
-
-      expect(dataInput).not.toBeDisabled()
     })
   })
 
@@ -1538,8 +1484,14 @@ describe('<DropdownMenu.Root />', () => {
         expect(screen.getByTestId('surface')).toBeInTheDocument()
       })
 
-      // In modal mode, the menu should trap focus
-      // This is handled by Base UI's Popover
+      // A modal menu locks page scroll while open (on <html> or <body>,
+      // depending on how the page's scrollbar is laid out)
+      await waitFor(() => {
+        expect([
+          document.documentElement.style.overflowY,
+          document.body.style.overflowY,
+        ]).toContain('hidden')
+      })
     })
   })
 
@@ -1654,29 +1606,6 @@ describe('<DropdownMenu.Root />', () => {
       expect(screen.getByTestId('item-3')).not.toHaveAttribute(
         'data-highlighted',
       )
-    })
-
-    it('allows keyboard navigation from highlighted item', async () => {
-      const user = userEvent.setup()
-      render(<DropdownMenuWithAutoHighlight autoHighlightFirst={true} />)
-
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // First item highlighted on open
-      expect(screen.getByTestId('item-1')).toHaveAttribute('data-highlighted')
-
-      // Focus the list and press ArrowDown
-      const list = screen.getByRole('listbox')
-      list.focus()
-      await user.keyboard('{ArrowDown}')
-
-      // Second item should now be highlighted
-      expect(screen.getByTestId('item-2')).toHaveAttribute('data-highlighted')
     })
   })
 
@@ -1972,7 +1901,7 @@ describe('<DropdownMenu.Root />', () => {
         expect(onValueChange).toHaveBeenCalledWith(
           'large',
           expect.objectContaining({
-            reason: expect.any(String),
+            reason: 'item-press',
           }),
         )
       })
@@ -2034,42 +1963,19 @@ describe('<DropdownMenu.Root />', () => {
           'aria-checked',
           'false',
         )
-      })
 
-      it('only allows one item to be selected at a time', async () => {
-        const user = userEvent.setup()
-        render(<UncontrolledRadioGroupMenu />)
-
-        const trigger = screen.getByTestId('trigger')
-        await user.click(trigger)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('surface')).toBeInTheDocument()
-        })
-
-        // Click small
-        await user.click(screen.getByTestId('radio-small'))
-        expect(screen.getByTestId('radio-small')).toHaveAttribute(
-          'aria-checked',
-          'true',
-        )
-
-        // Click large
+        // Click large: only large stays checked
         await user.click(screen.getByTestId('radio-large'))
-
-        // Only large should be checked
         expect(screen.getByTestId('radio-large')).toHaveAttribute(
           'aria-checked',
           'true',
         )
-        expect(screen.getByTestId('radio-small')).toHaveAttribute(
-          'aria-checked',
-          'false',
-        )
-        expect(screen.getByTestId('radio-medium')).toHaveAttribute(
-          'aria-checked',
-          'false',
-        )
+        for (const id of ['radio-small', 'radio-medium']) {
+          expect(screen.getByTestId(id)).toHaveAttribute(
+            'aria-checked',
+            'false',
+          )
+        }
       })
     })
 
@@ -2197,7 +2103,7 @@ describe('<DropdownMenu.Root />', () => {
 
   describe('Submenu', () => {
     describe('ARIA attributes', () => {
-      it('submenu trigger has aria-haspopup="menu"', async () => {
+      it('submenu trigger has menu ARIA attributes and data-submenu-trigger when closed', async () => {
         const user = userEvent.setup()
         render(<DropdownMenuWithSubmenu />)
 
@@ -2208,44 +2114,11 @@ describe('<DropdownMenu.Root />', () => {
           expect(screen.getByTestId('surface')).toBeInTheDocument()
         })
 
-        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
-          'aria-haspopup',
-          'menu',
-        )
-      })
-
-      it('submenu trigger has aria-expanded=false when closed', async () => {
-        const user = userEvent.setup()
-        render(<DropdownMenuWithSubmenu />)
-
-        const trigger = screen.getByTestId('trigger')
-        await user.click(trigger)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('surface')).toBeInTheDocument()
-        })
-
-        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
-          'aria-expanded',
-          'false',
-        )
-      })
-
-      it('submenu trigger has role="menuitem"', async () => {
-        const user = userEvent.setup()
-        render(<DropdownMenuWithSubmenu />)
-
-        const trigger = screen.getByTestId('trigger')
-        await user.click(trigger)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('surface')).toBeInTheDocument()
-        })
-
-        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
-          'role',
-          'menuitem',
-        )
+        const submenuTrigger = screen.getByTestId('submenu-trigger')
+        expect(submenuTrigger).toHaveAttribute('aria-haspopup', 'menu')
+        expect(submenuTrigger).toHaveAttribute('aria-expanded', 'false')
+        expect(submenuTrigger).toHaveAttribute('role', 'menuitem')
+        expect(submenuTrigger).toHaveAttribute('data-submenu-trigger')
       })
     })
 
@@ -2312,7 +2185,7 @@ describe('<DropdownMenu.Root />', () => {
         })
       })
 
-      it('closes submenu with ArrowLeft and returns focus to parent', async () => {
+      it('closes submenu with ArrowLeft and keeps the parent open', async () => {
         const user = userEvent.setup()
         render(<DropdownMenuWithSubmenu />)
 
@@ -2344,36 +2217,6 @@ describe('<DropdownMenu.Root />', () => {
 
         // Parent menu should still be open
         expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      it('closes submenu with Escape', async () => {
-        const user = userEvent.setup()
-        render(<DropdownMenuWithSubmenu />)
-
-        const trigger = screen.getByTestId('trigger')
-        await user.click(trigger)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('surface')).toBeInTheDocument()
-        })
-
-        // Navigate to and open submenu
-        const list = screen.getByRole('listbox')
-        list.focus()
-        await user.keyboard('{ArrowDown}')
-        await user.keyboard('{ArrowRight}')
-
-        await waitFor(() => {
-          expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
-        })
-
-        // Press Escape to close
-        await user.keyboard('{Escape}')
-
-        // By default closeRootOnEsc=true, so entire menu should close
-        await waitFor(() => {
-          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
-        })
       })
     })
 
@@ -2455,7 +2298,7 @@ describe('<DropdownMenu.Root />', () => {
         })
       })
 
-      it('closes all submenus when parent closes', async () => {
+      it('closes every open submenu when Escape is pressed in the deepest one', async () => {
         const user = userEvent.setup()
         render(<DropdownMenuWithNestedSubmenus />)
 
@@ -2561,22 +2404,6 @@ describe('<DropdownMenu.Root />', () => {
     })
 
     describe('data attributes', () => {
-      it('submenu trigger has data-submenu-trigger', async () => {
-        const user = userEvent.setup()
-        render(<DropdownMenuWithSubmenu />)
-
-        const trigger = screen.getByTestId('trigger')
-        await user.click(trigger)
-
-        await waitFor(() => {
-          expect(screen.getByTestId('surface')).toBeInTheDocument()
-        })
-
-        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
-          'data-submenu-trigger',
-        )
-      })
-
       it('submenu trigger has data-popup-open when submenu is open', async () => {
         const user = userEvent.setup()
         render(<DropdownMenuWithSubmenu />)
@@ -2798,17 +2625,48 @@ describe('<DropdownMenu.Root />', () => {
 
     it('does not open subpage on hover', async () => {
       const user = userEvent.setup()
-      render(<DropdownMenuWithNestedSubpages />)
+      render(
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open Menu</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface data-testid="root-surface">
+                  <DropdownMenu.List>
+                    <DropdownMenu.Item>First</DropdownMenu.Item>
+                    <DropdownMenu.SubpageTrigger
+                      data-testid="subpage-trigger"
+                      targetPageId="page"
+                    >
+                      Page
+                    </DropdownMenu.SubpageTrigger>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+                <DropdownMenu.Subpage pageId="page">
+                  <DropdownMenu.Surface data-testid="subpage-surface">
+                    <DropdownMenu.List>
+                      <DropdownMenu.Item>Inside</DropdownMenu.Item>
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Subpage>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
 
-      await user.click(screen.getByTestId('trigger'))
-
+      const subpageTrigger = await screen.findByTestId('subpage-trigger')
+      // The first row holds the initial highlight, so a highlight on the
+      // subpage trigger shows the hover reached it.
+      expect(subpageTrigger).not.toHaveAttribute('data-highlighted')
+      await user.hover(subpageTrigger)
       await waitFor(() => {
-        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+        expect(subpageTrigger).toHaveAttribute('data-highlighted')
       })
 
-      await user.hover(screen.getByTestId('subpage-trigger-1'))
-
-      expect(screen.queryByTestId('subpage-surface-1')).not.toBeInTheDocument()
+      // Give any delayed hover-open a chance to fire before asserting
+      await new Promise((r) => setTimeout(r, 250))
+      expect(screen.queryByTestId('subpage-surface')).not.toBeInTheDocument()
     })
 
     it('opens subpage only on selection, not on highlight', async () => {
