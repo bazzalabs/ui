@@ -147,7 +147,7 @@ describe('data-first tree rows', () => {
         onSelectArchive={onArchiveSelect}
       />,
     )
-    const input = await screen.findByTestId('search-input')
+    await screen.findByTestId('search-input')
 
     await waitFor(() => {
       expect(screen.getByTestId('tree-Product & Engineering')).toHaveAttribute(
@@ -156,13 +156,13 @@ describe('data-first tree rows', () => {
       )
     })
 
-    for (const [index, value] of [
+    for (const value of [
       'Core builder team',
       'Design team',
       'Archive',
       'Old team',
       'Settings',
-    ].entries()) {
+    ]) {
       await user.keyboard('{ArrowDown}')
       await waitFor(() => {
         expect(
@@ -171,7 +171,6 @@ describe('data-first tree rows', () => {
           ),
         ).toHaveAttribute('data-highlighted', '')
       })
-      expect(index).toBeLessThan(5)
     }
 
     await user.keyboard('{ArrowUp}')
@@ -186,7 +185,6 @@ describe('data-first tree rows', () => {
     expect(screen.getByTestId('surface')).toBeInTheDocument()
     expect(onSelect).not.toHaveBeenCalled()
     expect(onArchiveSelect).not.toHaveBeenCalled()
-    expect(input).toBeInTheDocument()
   })
 
   it('deep-searches descendants with breadcrumbs and ancestor cascade', async () => {
