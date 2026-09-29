@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {
-  describeStateProps,
-  type StatePropsTargetProps,
-} from '../../test/state-props.js'
+  type ConformanceTargetProps,
+  describeConformance,
+} from '../../test/conformance.js'
 import { ContextMenu } from './index.js'
 
-function Menu(props: { trigger: StatePropsTargetProps }) {
+function Menu(props: { trigger: ConformanceTargetProps }) {
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger {...props.trigger}>Right-click</ContextMenu.Trigger>
@@ -25,7 +25,7 @@ function Menu(props: { trigger: StatePropsTargetProps }) {
   )
 }
 
-describeStateProps('ContextMenu', [
+describeConformance('ContextMenu', [
   {
     name: 'ContextMenu.Trigger',
     render: (p) => <Menu trigger={p} />,

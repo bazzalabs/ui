@@ -2,17 +2,18 @@ import { render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { describe, expect, it } from 'vitest'
 import {
-  describeStateProps,
-  type StatePropsTargetProps,
-} from '../../test/state-props.js'
+  type ConformanceTargetProps,
+  describeConformance,
+} from '../../test/conformance.js'
 import { Combobox } from './index.js'
 
 function OpenCombobox(props: {
   children?: React.ReactNode
-  input?: StatePropsTargetProps
-  clear?: StatePropsTargetProps
-  positioner?: StatePropsTargetProps & { layout?: 'input-embedded' }
-  withWrapper?: StatePropsTargetProps
+  input?: ConformanceTargetProps
+  clear?: ConformanceTargetProps
+  positioner?: ConformanceTargetProps & { layout?: 'input-embedded' }
+  withWrapper?: ConformanceTargetProps
+  surface?: ConformanceTargetProps
 }) {
   const input = <Combobox.Input {...props.input} />
   return (
@@ -28,7 +29,7 @@ function OpenCombobox(props: {
       <Combobox.Portal>
         <Combobox.Positioner {...props.positioner}>
           <Combobox.Popup>
-            <Combobox.Surface>
+            <Combobox.Surface {...props.surface}>
               <Combobox.List>
                 {props.children ?? (
                   <Combobox.Item value="apple">Apple</Combobox.Item>
@@ -42,7 +43,7 @@ function OpenCombobox(props: {
   )
 }
 
-describeStateProps('Combobox', [
+describeConformance('Combobox', [
   {
     name: 'Combobox.Input',
     render: (p) => <OpenCombobox input={p} />,
@@ -69,6 +70,10 @@ describeStateProps('Combobox', [
       <OpenCombobox positioner={{ ...p, layout: 'input-embedded' }} />
     ),
     state: { open: true },
+  },
+  {
+    name: 'Combobox.Surface',
+    render: (p) => <OpenCombobox surface={p} />,
   },
   {
     name: 'Combobox.Item',

@@ -1,7 +1,7 @@
-import { describeStateProps } from '../../test/state-props.js'
+import { describeConformance } from '../../test/conformance.js'
 import { Kbd } from './index.js'
 
-describeStateProps('Kbd', [
+describeConformance('Kbd', [
   {
     name: 'Kbd.Root',
     render: (p) => <Kbd.Root keys="mod+k" platform="apple" {...p} />,

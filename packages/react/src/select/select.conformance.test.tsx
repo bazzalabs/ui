@@ -2,18 +2,18 @@ import { render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { describe, expect, it } from 'vitest'
 import {
-  describeStateProps,
-  type StatePropsTargetProps,
-} from '../../test/state-props.js'
+  type ConformanceTargetProps,
+  describeConformance,
+} from '../../test/conformance.js'
 import { Select } from './index.js'
 
 function OpenSelect(props: {
   children?: React.ReactNode
-  trigger?: StatePropsTargetProps
-  value?: StatePropsTargetProps
-  positioner?: StatePropsTargetProps
-  popup?: StatePropsTargetProps
-  surface?: StatePropsTargetProps
+  trigger?: ConformanceTargetProps
+  value?: ConformanceTargetProps
+  positioner?: ConformanceTargetProps
+  popup?: ConformanceTargetProps
+  surface?: ConformanceTargetProps
 }) {
   return (
     <Select.Root defaultOpen defaultValue="apple">
@@ -37,7 +37,7 @@ function OpenSelect(props: {
   )
 }
 
-describeStateProps('Select', [
+describeConformance('Select', [
   {
     name: 'Select.Trigger',
     render: (p) => <OpenSelect trigger={p} />,
@@ -57,6 +57,10 @@ describeStateProps('Select', [
     name: 'Select.Popup',
     render: (p) => <OpenSelect popup={p} />,
     state: { open: true },
+  },
+  {
+    name: 'Select.Surface',
+    render: (p) => <OpenSelect surface={p} />,
   },
   {
     name: 'Select.Item',

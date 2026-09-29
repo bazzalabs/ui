@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { describe, expect, it } from 'vitest'
 import {
-  describeStateProps,
-  type StatePropsTargetProps,
-} from '../../test/state-props.js'
+  type ConformanceTargetProps,
+  describeConformance,
+} from '../../test/conformance.js'
 import { DropdownMenu } from './index.js'
 
 // DropdownMenu re-exports the shared popup-menu parts, so this file covers the
@@ -13,19 +13,21 @@ import { DropdownMenu } from './index.js'
 function OpenMenu(props: {
   children?: React.ReactNode
   surface?: React.ReactNode
-  trigger?: StatePropsTargetProps
-  surfaceProps?: StatePropsTargetProps
-  listProps?: StatePropsTargetProps
+  trigger?: ConformanceTargetProps
+  surfaceProps?: ConformanceTargetProps
+  listProps?: ConformanceTargetProps
   popupChildren?: React.ReactNode
-  backdrop?: StatePropsTargetProps
+  backdrop?: ConformanceTargetProps
+  positioner?: ConformanceTargetProps
+  popup?: ConformanceTargetProps
 }) {
   return (
     <DropdownMenu.Root defaultOpen>
       <DropdownMenu.Trigger {...props.trigger}>Open</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         {props.backdrop && <DropdownMenu.Backdrop {...props.backdrop} />}
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
+        <DropdownMenu.Positioner {...props.positioner}>
+          <DropdownMenu.Popup {...props.popup}>
             <DropdownMenu.Surface {...props.surfaceProps}>
               {props.surface}
               <DropdownMenu.List {...props.listProps}>
@@ -42,7 +44,7 @@ function OpenMenu(props: {
 
 const item = <DropdownMenu.Item>Item</DropdownMenu.Item>
 
-describeStateProps('DropdownMenu', [
+describeConformance('DropdownMenu', [
   {
     name: 'DropdownMenu.Trigger',
     render: (p) => <OpenMenu trigger={p}>{item}</OpenMenu>,
@@ -52,6 +54,24 @@ describeStateProps('DropdownMenu', [
     name: 'DropdownMenu.Backdrop',
     render: (p) => <OpenMenu backdrop={p}>{item}</OpenMenu>,
     state: { open: true },
+  },
+  {
+    name: 'DropdownMenu.Positioner',
+    render: (p) => <OpenMenu positioner={p}>{item}</OpenMenu>,
+    objectStyleOnly: true,
+    state: { open: true, side: 'bottom' },
+  },
+  {
+    name: 'DropdownMenu.Popup',
+    render: (p) => <OpenMenu popup={p}>{item}</OpenMenu>,
+    state: { open: true },
+  },
+  {
+    name: 'DropdownMenu.Arrow',
+    render: (p) => (
+      <OpenMenu popupChildren={<DropdownMenu.Arrow {...p} />}>{item}</OpenMenu>
+    ),
+    state: { open: true, side: 'bottom' },
   },
   {
     name: 'DropdownMenu.Surface',
@@ -366,7 +386,7 @@ describeStateProps('DropdownMenu', [
   },
   ...(['SubpageBack', 'SubpageBackItem'] as const).map((part) => ({
     name: `DropdownMenu.${part}`,
-    render: (p: StatePropsTargetProps) => (
+    render: (p: ConformanceTargetProps) => (
       <OpenMenu
         popupChildren={
           <DropdownMenu.Subpage pageId="page">
