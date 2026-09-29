@@ -48,3 +48,6 @@ next-env.d.ts
 # agent rules written by `next dev` (Next.js 16.3+)
 /AGENTS.md
 /CLAUDE.md
+
+# temporary tsconfig written by scripts/build-types-meta.ts
+/.tsconfig.types-meta.*.json
