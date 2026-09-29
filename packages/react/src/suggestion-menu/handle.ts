@@ -128,7 +128,11 @@ export class SuggestionMenuHandle<Payload = unknown> {
     if (!this.isOpen) this.#requestOpen(true)
   }
 
-  /** Closes the menu. */
+  /**
+   * Closes the menu. Call it whenever the trigger ends (deleted, or the caret
+   * left it), even if the menu is already closed: it also resets what the
+   * menu remembers about the trigger, such as a query that had no results.
+   */
   close(): void {
     this.#requestOpen(false)
   }

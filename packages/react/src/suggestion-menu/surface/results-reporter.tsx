@@ -52,12 +52,14 @@ export function SuggestionMenuResultsReporter() {
   }
   const menuHighlightedId = menuHighlightRef.current
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!open || !settled) return undefined
-    // Read the rows once this update has finished: a settle published from a
-    // layout effect re-renders first, and cancels this timer if the results
-    // turned out not to be settled after all.
-    const timeout = setTimeout(() => {
+    // Read the rows once this update has finished, still before paint: a
+    // settle published from a layout effect re-renders first, and cancels
+    // this if the results turned out not to be settled after all.
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
       const ids = store.getVisibleItemIds()
       // The row Enter would choose: the highlighted one, if any.
       const current = store.state.highlightedId
@@ -67,7 +69,9 @@ export function SuggestionMenuResultsReporter() {
         chosen ? rowLabel(store, chosen) : null,
       )
     })
-    return () => clearTimeout(timeout)
+    return () => {
+      cancelled = true
+    }
   }, [open, settled, query, menuHighlightedId, store, reportResults])
 
   return null

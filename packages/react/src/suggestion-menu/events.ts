@@ -16,6 +16,7 @@ import type {
  * - `escape-key`: Escape was pressed in the host input
  * - `outside-press`: a press outside the popup and the host input
  * - `focus-out`: the host input lost focus
+ * - `no-results`: with `noResults: 'close'`, the results settled empty
  */
 export type SuggestionMenuOpenChangeReason =
   | typeof REASONS.imperativeAction
@@ -23,6 +24,7 @@ export type SuggestionMenuOpenChangeReason =
   | typeof REASONS.escapeKey
   | typeof REASONS.outsidePress
   | typeof REASONS.focusOut
+  | typeof REASONS.noResults
   | typeof REASONS.none
 
 /**
