@@ -5,7 +5,7 @@
 **bazza/ui** (key `UI`, id `c750e0fc-8df6-45d1-8672-c7966c81e39b`)
 
 States: Triage, Backlog, Icebox, Todo, In Progress, In Review, Ready, Canary, Stable, Canceled, Duplicate.
-Note: this team has no `Done` state; its completed states are `Canary` and `Stable`. `Ready` means merged to `canary` and waiting for the next canary publish. `Canary` means the work shipped in a published canary release: for `@bazza-ui/react` the Linear release automation on the "React (Canary)" pipeline sets it when the canary publishes; for other work, set it by hand when it merges to `canary`. `Stable` means it shipped in a stable release from `main`. Ship's "Done" transition maps to whichever of these applies. Parents should match their sub-issues' state at reconcile.
+Note: this team has no `Done` state; its completed states are `Canary` and `Stable`. `Ready` is set by the GitHub integration when a PR is marked ready for review; it does not mean merged. `Canary` is the state for anything merged into `canary`: the integration sets it automatically for a PR whose base is `canary`. In a stack merged with `gh stack merge`, only the bottom PR has `canary` as its base, so every other slice stays at `Ready` — after a stack merge, move every merged slice and its parent to `Canary` by hand. `Stable` means it shipped in a stable release from `main`. Ship's "Done" transition maps to `Canary` (or `Stable` for work merged to `main`). Parents should match their sub-issues' state.
 
 Lifecycle labels: the workspace label group **`agent work`** (single-select) holds `agent:working`, `agent:addressing`, `agent:blocked`, `agent:review-me`, `agent:idle`, `agent:merged`.
 
