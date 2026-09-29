@@ -17,6 +17,11 @@
       "import": "./dist/command-menu/index.js",
       "require": "./dist/command-menu/index.cjs"
     },
+    "./suggestion-menu": {
+      "types": "./dist/suggestion-menu/index.d.ts",
+      "import": "./dist/suggestion-menu/index.js",
+      "require": "./dist/suggestion-menu/index.cjs"
+    },
     "./kbd": {
       "types": "./dist/kbd/index.d.ts",
       "import": "./dist/kbd/index.js",
