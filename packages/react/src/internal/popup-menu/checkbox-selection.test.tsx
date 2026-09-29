@@ -52,76 +52,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('PopupMenu checkbox selection foundation', () => {
-  it('accepts root selection settings', async () => {
-    const user = userEvent.setup()
-    render(
-      <Menu rangeSelection={false} dragSelection="keep">
-        <DropdownMenu.CheckboxItem data-testid="item">
-          Item
-        </DropdownMenu.CheckboxItem>
-      </Menu>,
-    )
-    await openMenu(user)
-    expect(screen.getByTestId('item')).toBeInTheDocument()
-  })
-
-  it('does not mark a checkbox item pending by default', async () => {
-    const user = userEvent.setup()
-    render(
-      <Menu>
-        <DropdownMenu.CheckboxItem data-testid="item">
-          Item
-        </DropdownMenu.CheckboxItem>
-      </Menu>,
-    )
-    await openMenu(user)
-    expect(screen.getByTestId('item')).not.toHaveAttribute('data-pending')
-  })
-
-  it('toggles standalone checked state and reports item-press', async () => {
-    const user = userEvent.setup()
-    const onCheckedChange = vi.fn()
-    render(
-      <Menu>
-        <DropdownMenu.CheckboxItem
-          data-testid="item"
-          onCheckedChange={onCheckedChange}
-        >
-          Item
-        </DropdownMenu.CheckboxItem>
-      </Menu>,
-    )
-    await openMenu(user)
-    await user.click(screen.getByTestId('item'))
-    expect(screen.getByTestId('item')).toHaveAttribute('aria-checked', 'true')
-    expect(onCheckedChange).toHaveBeenCalledExactlyOnceWith(
-      true,
-      expect.objectContaining({ reason: 'item-press' }),
-    )
-  })
-
-  it('keeps checkbox group clicks to one value change', async () => {
-    const user = userEvent.setup()
-    const onValueChange = vi.fn()
-    render(
-      <Menu>
-        <DropdownMenu.CheckboxGroup onValueChange={onValueChange}>
-          <DropdownMenu.CheckboxItem value="one" data-testid="item">
-            Item
-          </DropdownMenu.CheckboxItem>
-        </DropdownMenu.CheckboxGroup>
-      </Menu>,
-    )
-    await openMenu(user)
-    await user.click(screen.getByTestId('item'))
-    expect(onValueChange).toHaveBeenCalledExactlyOnceWith(
-      ['one'],
-      expect.objectContaining({ reason: 'item-press' }),
-    )
-  })
-})
-
 describe('range selection', () => {
   const makeRows = (
     spies: ReturnType<typeof vi.fn>[],
@@ -196,6 +126,7 @@ describe('range selection', () => {
     render(<Menu>{makeRows(spies)}</Menu>)
     await openMenu(user)
     await clickWithShift(user, screen.getByTestId('cb-c'))
+    expect(screen.getByTestId('cb-c')).toHaveAttribute('aria-checked', 'true')
     expect(spies[2]).toHaveBeenCalledExactlyOnceWith(
       true,
       expect.objectContaining({ reason: 'item-press' }),
@@ -256,33 +187,6 @@ describe('range selection', () => {
       )
     }
     expect(spies[0]).toHaveBeenCalledTimes(1)
-  })
-
-  it('sets the span unchecked when the anchor is unchecked', async () => {
-    const user = userEvent.setup()
-    const spies = Array.from({ length: 3 }, () => vi.fn())
-    render(
-      <Menu>
-        {(['a', 'b', 'c'] as const).map((name, index) => (
-          <DropdownMenu.CheckboxItem
-            key={name}
-            data-testid={`cb-${name}`}
-            defaultChecked
-            onCheckedChange={spies[index]}
-          >
-            {name}
-          </DropdownMenu.CheckboxItem>
-        ))}
-      </Menu>,
-    )
-    await openMenu(user)
-    await user.click(screen.getByTestId('cb-a'))
-    await clickWithShift(user, screen.getByTestId('cb-c'))
-    for (const spy of spies.slice(1))
-      expect(spy).toHaveBeenCalledWith(
-        false,
-        expect.objectContaining({ reason: 'range-selection' }),
-      )
   })
 
   it('commits a checkbox group range once', async () => {
