@@ -69,6 +69,7 @@ export type {
   ItemRegistration,
   ListboxContext,
   ListboxState,
+  OrderedItemsUpdateReason,
   SearchNormalizer,
   State,
   VirtualItem,
