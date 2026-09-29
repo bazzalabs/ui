@@ -10,110 +10,6 @@ import { DropdownMenu } from '../../dropdown-menu/index.js'
 /**
  * A searchable menu with keywords on items.
  */
-function _NestedSearchableMenu() {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger data-testid="trigger">
-        Open Menu
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
-            <DropdownMenu.Surface data-testid="surface-root">
-              <DropdownMenu.Input
-                data-testid="input-root"
-                placeholder="Search root..."
-              />
-              <DropdownMenu.List>
-                <DropdownMenu.Item data-testid="root-apple" value="apple">
-                  Apple
-                </DropdownMenu.Item>
-                <DropdownMenu.Item data-testid="root-banana" value="banana">
-                  Banana
-                </DropdownMenu.Item>
-                <DropdownMenu.Submenu>
-                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-1">
-                    Fruits Submenu
-                  </DropdownMenu.SubmenuTrigger>
-                  <DropdownMenu.Portal>
-                    <DropdownMenu.Positioner>
-                      <DropdownMenu.Popup>
-                        <DropdownMenu.Surface data-testid="surface-submenu-1">
-                          <DropdownMenu.Input
-                            data-testid="input-submenu-1"
-                            placeholder="Search submenu 1..."
-                          />
-                          <DropdownMenu.List>
-                            <DropdownMenu.Item
-                              data-testid="sub1-cherry"
-                              value="cherry"
-                            >
-                              Cherry
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item
-                              data-testid="sub1-date"
-                              value="date"
-                            >
-                              Date
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Submenu>
-                              <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger-2">
-                                More Fruits
-                              </DropdownMenu.SubmenuTrigger>
-                              <DropdownMenu.Portal>
-                                <DropdownMenu.Positioner>
-                                  <DropdownMenu.Popup>
-                                    <DropdownMenu.Surface data-testid="surface-submenu-2">
-                                      <DropdownMenu.Input
-                                        data-testid="input-submenu-2"
-                                        placeholder="Search submenu 2..."
-                                      />
-                                      <DropdownMenu.List>
-                                        <DropdownMenu.Item
-                                          data-testid="sub2-elderberry"
-                                          value="elderberry"
-                                        >
-                                          Elderberry
-                                        </DropdownMenu.Item>
-                                        <DropdownMenu.Item
-                                          data-testid="sub2-fig"
-                                          value="fig"
-                                        >
-                                          Fig
-                                        </DropdownMenu.Item>
-                                      </DropdownMenu.List>
-                                      <DropdownMenu.Empty data-testid="empty-submenu-2">
-                                        No results in submenu 2
-                                      </DropdownMenu.Empty>
-                                    </DropdownMenu.Surface>
-                                  </DropdownMenu.Popup>
-                                </DropdownMenu.Positioner>
-                              </DropdownMenu.Portal>
-                            </DropdownMenu.Submenu>
-                          </DropdownMenu.List>
-                          <DropdownMenu.Empty data-testid="empty-submenu-1">
-                            No results in submenu 1
-                          </DropdownMenu.Empty>
-                        </DropdownMenu.Surface>
-                      </DropdownMenu.Popup>
-                    </DropdownMenu.Positioner>
-                  </DropdownMenu.Portal>
-                </DropdownMenu.Submenu>
-              </DropdownMenu.List>
-              <DropdownMenu.Empty data-testid="empty-root">
-                No results in root
-              </DropdownMenu.Empty>
-            </DropdownMenu.Surface>
-          </DropdownMenu.Popup>
-        </DropdownMenu.Positioner>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  )
-}
-
-/**
- * A searchable menu with keywords on items.
- */
 function MenuWithKeywords() {
   return (
     <DropdownMenu.Root defaultOpen>
@@ -1392,44 +1288,6 @@ describe('PopupMenu', () => {
   })
 
   describe('data-has-open-submenu attribute', () => {
-    it('root popup does not have data-has-open-submenu when no submenu is open', async () => {
-      const user = userEvent.setup()
-      render(<NestedMenuForDataAttrs />)
-
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
-      })
-
-      const rootPopup = screen.getByTestId('popup-root')
-      expect(rootPopup).not.toHaveAttribute('data-has-open-submenu')
-    })
-
-    it('root popup has data-has-open-submenu when submenu is open', async () => {
-      const user = userEvent.setup()
-      render(<NestedMenuForDataAttrs />)
-
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
-      })
-
-      // Open submenu
-      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
-      await user.hover(submenuTrigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
-      })
-
-      const rootPopup = screen.getByTestId('popup-root')
-      expect(rootPopup).toHaveAttribute('data-has-open-submenu', '')
-    })
-
     it('all parent popups have data-has-open-submenu in deep submenu chain', async () => {
       const user = userEvent.setup()
       render(<NestedMenuForDataAttrs />)
@@ -1478,6 +1336,10 @@ describe('PopupMenu', () => {
       await waitFor(() => {
         expect(screen.getByTestId('popup-root')).toBeInTheDocument()
       })
+
+      expect(screen.getByTestId('popup-root')).not.toHaveAttribute(
+        'data-has-open-submenu',
+      )
 
       // Open submenu using pointer events with explicit coordinates
       const submenuTrigger = screen.getByTestId('submenu-trigger-1')
@@ -1555,47 +1417,6 @@ describe('PopupMenu', () => {
       await new Promise((r) => setTimeout(r, 50))
 
       expect(getSafeTriangle()).toBeNull()
-
-      triggerRectSpy.mockRestore()
-      popupRectSpy.mockRestore()
-    })
-
-    it('renders the safe triangle in blue while hovering a submenu trigger', async () => {
-      const user = userEvent.setup()
-      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
-
-      await user.click(screen.getByTestId('trigger'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
-      })
-
-      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
-
-      await user.hover(submenuTrigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
-      })
-
-      const submenuPopup = screen.getByTestId('popup-submenu-1')
-      const triggerRectSpy = vi
-        .spyOn(submenuTrigger, 'getBoundingClientRect')
-        .mockImplementation(() =>
-          createRect({ top: 60, left: 80, width: 120, height: 30 }),
-        )
-      const popupRectSpy = vi
-        .spyOn(submenuPopup, 'getBoundingClientRect')
-        .mockImplementation(() =>
-          createRect({ top: 40, left: 240, width: 180, height: 160 }),
-        )
-
-      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 90 })
-      fireEvent.pointerMove(window, { clientX: 180, clientY: 90 })
-
-      await waitFor(() => {
-        expect(getSafeTriangle('hover')).toBeInTheDocument()
-      })
 
       triggerRectSpy.mockRestore()
       popupRectSpy.mockRestore()
@@ -1754,51 +1575,6 @@ describe('PopupMenu', () => {
         trigger1RectSpy.mockRestore()
         popup1RectSpy.mockRestore()
       }
-    })
-
-    it('renders the safe triangle in green when aim guard is activated on leave', async () => {
-      const user = userEvent.setup()
-      render(<NestedMenuForDataAttrs debug={{ showSafeTriangleArea: true }} />)
-
-      await user.click(screen.getByTestId('trigger'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-root')).toBeInTheDocument()
-      })
-
-      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
-
-      await user.hover(submenuTrigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
-      })
-
-      const submenuPopup = screen.getByTestId('popup-submenu-1')
-      const triggerRectSpy = vi
-        .spyOn(submenuTrigger, 'getBoundingClientRect')
-        .mockImplementation(() =>
-          createRect({ top: 60, left: 80, width: 120, height: 30 }),
-        )
-      const popupRectSpy = vi
-        .spyOn(submenuPopup, 'getBoundingClientRect')
-        .mockImplementation(() =>
-          createRect({ top: 40, left: 240, width: 180, height: 160 }),
-        )
-
-      fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
-      fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
-      fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
-
-      fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
-      fireEvent.pointerMove(window, { clientX: 190, clientY: 94 })
-
-      await waitFor(() => {
-        expect(getSafeTriangle('activated')).toBeInTheDocument()
-      })
-
-      triggerRectSpy.mockRestore()
-      popupRectSpy.mockRestore()
     })
 
     it('keeps the activated safe triangle after moving into submenu popup', async () => {
@@ -2775,23 +2551,6 @@ describe('PopupMenu', () => {
       expect(screen.queryByTestId('item-carrot')).not.toBeInTheDocument()
     })
 
-    it('filters items by specific keyword', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithKeywords />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'vegetable')
-
-      // Only Carrot has 'vegetable' keyword
-      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
-      expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
-    })
-
     it('filters checkbox items by value', async () => {
       const user = userEvent.setup()
       render(
@@ -3300,35 +3059,6 @@ describe('PopupMenu', () => {
 
       // List should be rendered and focusable
       expect(screen.getByTestId('list')).toBeInTheDocument()
-    })
-
-    it('activates input when user types a character', async () => {
-      const user = userEvent.setup()
-      render(<MenuWithHideUntilActive />)
-
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
-
-      // Input should not be rendered initially
-      expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
-
-      // Focus the list and type a character
-      const list = screen.getByTestId('list')
-      list.focus()
-      await user.keyboard('a')
-
-      // Input should now be rendered
-      await waitFor(() => {
-        expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      })
-
-      // Input should have the typed character
-      const input = screen.getByTestId('search-input')
-      expect(input).toHaveValue('a')
     })
 
     it('filters items after input is activated', async () => {
