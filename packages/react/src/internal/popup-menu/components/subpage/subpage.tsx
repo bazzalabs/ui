@@ -127,6 +127,7 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
       closeAll: parentPopupMenuContext.closeAll,
       explicitTabBehavior: parentPopupMenuContext.explicitTabBehavior,
       tabWithoutZones: parentPopupMenuContext.tabWithoutZones,
+      externalFocus: parentPopupMenuContext.externalFocus,
       registerSurface: parentPopupMenuContext.registerSurface,
       virtualization: parentPopupMenuContext.virtualization,
       virtualAnchor: parentPopupMenuContext.virtualAnchor,

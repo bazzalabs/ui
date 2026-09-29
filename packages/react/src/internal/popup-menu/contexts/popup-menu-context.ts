@@ -69,6 +69,12 @@ export interface PopupMenuContextValue {
    * where it is (command palette).
    */
   tabWithoutZones: 'close' | 'inert'
+  /**
+   * Internal: DOM focus stays on an element outside the popup (Combobox's
+   * input, a suggestion menu's host input) for as long as the menu is open.
+   * The root popup then neither moves focus in on open nor returns it on close.
+   */
+  externalFocus: boolean
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,

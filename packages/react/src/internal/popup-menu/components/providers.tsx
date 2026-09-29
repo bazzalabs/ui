@@ -62,6 +62,11 @@ export interface PopupMenuProvidersProps {
    * where it is (command palette).
    */
   tabWithoutZones?: 'close' | 'inert'
+  /**
+   * Internal: DOM focus stays on an element outside the popup for as long as
+   * the menu is open, so the root popup neither takes nor returns focus.
+   */
+  externalFocus?: boolean
   /** Register a surface for closeAll tracking */
   registerSurface: (
     depth: number,
@@ -134,6 +139,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     closeAll,
     explicitTabBehavior = false,
     tabWithoutZones = 'close',
+    externalFocus = false,
     registerSurface,
     virtualization,
     debug,
@@ -162,6 +168,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       closeAll,
       explicitTabBehavior,
       tabWithoutZones,
+      externalFocus,
       registerSurface,
       virtualization,
       virtualAnchor,
@@ -178,6 +185,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       closeAll,
       explicitTabBehavior,
       tabWithoutZones,
+      externalFocus,
       registerSurface,
       virtualization,
       virtualAnchor,

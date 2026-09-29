@@ -1426,7 +1426,7 @@
             "name": "side",
             "type": "Side",
             "shortType": "Side",
-            "formattedType": "\"top\" | \"left\" | \"right\" | \"bottom\"",
+            "formattedType": "\"left\" | \"right\" | \"bottom\" | \"top\"",
             "required": true,
             "description": "The side of the popup relative to the input."
           },
@@ -2107,6 +2107,13 @@
             "default": "commandScore (fuzzy matching)"
           },
           {
+            "name": "content",
+            "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
+            "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
+            "required": false,
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
+          },
+          {
             "name": "className",
             "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
             "formattedType": "string | (state: PopupMenu.Surface.State) => string",
@@ -2150,13 +2157,6 @@
             "formattedType": "string[]",
             "required": false,
             "description": "Ordered list of item values when using `filter={false}`.\nThis tells the store the intended display order for navigation/highlighting.\nRequired when `filter={false}` - must always be provided with the current visible items."
-          },
-          {
-            "name": "content",
-            "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
-            "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
-            "required": false,
-            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity."
           },
           {
             "name": "children",
@@ -2243,8 +2243,8 @@
         "props": [
           {
             "name": "showOn",
-            "type": "\"focus\" | \"open\" | undefined",
-            "formattedType": "\"focus\" | \"open\"",
+            "type": "\"open\" | \"focus\" | undefined",
+            "formattedType": "\"open\" | \"focus\"",
             "required": false,
             "description": "Controls when the backdrop becomes visible for submenus.\n- `\"focus\"`: Show when the submenu becomes the focus owner (prevents flicker on hover).\n  If a deeper submenu is open, the backdrop remains visible.\n- `\"open\"`: Show as soon as the submenu opens, regardless of focus.",
             "default": "\"focus\" for submenus, \"open\" for root menu"
@@ -3708,7 +3708,7 @@
           {
             "name": "openMethod",
             "type": "OpenMethod | null",
-            "formattedType": "null | \"keyboard\" | \"mouse\" | \"touch\" | \"pen\"",
+            "formattedType": "null | \"keyboard\" | \"touch\" | \"mouse\" | \"pen\"",
             "required": true,
             "description": "How the listbox was most recently opened (`mouse`/`touch`/`pen`/`keyboard`).\n`null` until first opened. Retained after close (only updated on open)."
           },
@@ -4099,8 +4099,8 @@
         "props": [
           {
             "name": "showOn",
-            "type": "\"focus\" | \"open\" | undefined",
-            "formattedType": "\"focus\" | \"open\"",
+            "type": "\"open\" | \"focus\" | undefined",
+            "formattedType": "\"open\" | \"focus\"",
             "required": false,
             "description": "Controls when the backdrop becomes visible for submenus.\n- `\"focus\"`: Show when the submenu becomes the focus owner (prevents flicker on hover).\n  If a deeper submenu is open, the backdrop remains visible.\n- `\"open\"`: Show as soon as the submenu opens, regardless of focus.",
             "default": "\"focus\" for submenus, \"open\" for root menu"
@@ -7554,6 +7554,13 @@
             "description": "Internal: what Tab does under `explicitTabBehavior` when the surface (and\nits ancestors) have no focus-zone tabbables. `'close'` closes the whole\ntree (dropdown/context-menu). `'inert'` swallows the event, keeping focus\nwhere it is (command palette)."
           },
           {
+            "name": "externalFocus",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Internal: DOM focus stays on an element outside the popup (Combobox's\ninput, a suggestion menu's host input) for as long as the menu is open.\nThe root popup then neither moves focus in on open nor returns it on close."
+          },
+          {
             "name": "registerSurface",
             "type": "(depth: number, setOpen: (open: boolean) => void) => () => void",
             "formattedType": "(\n  depth: number,\n  setOpen: (open: boolean) => void,\n) => () => void",
@@ -8041,7 +8048,7 @@
           {
             "name": "openMethod",
             "type": "OpenMethod | null",
-            "formattedType": "null | \"keyboard\" | \"mouse\" | \"touch\" | \"pen\"",
+            "formattedType": "null | \"keyboard\" | \"touch\" | \"mouse\" | \"pen\"",
             "required": true,
             "description": "How the listbox was most recently opened (`mouse`/`touch`/`pen`/`keyboard`).\n`null` until first opened. Retained after close (only updated on open)."
           },
@@ -10917,8 +10924,8 @@
           },
           {
             "name": "kind",
-            "type": "\"item\" | \"group\" | \"separator\" | \"checkbox-group\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
-            "formattedType": "| 'item'\n  | 'group'\n  | 'separator'\n  | 'checkbox-group'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
+            "type": "\"separator\" | \"item\" | \"group\" | \"checkbox-group\" | \"checkbox-item\" | \"link-item\" | \"radio-group\" | \"radio-item\" | \"tree-item\" | \"submenu\" | \"subpage\"",
+            "formattedType": "| 'separator'\n  | 'item'\n  | 'group'\n  | 'checkbox-group'\n  | 'checkbox-item'\n  | 'link-item'\n  | 'radio-group'\n  | 'radio-item'\n  | 'tree-item'\n  | 'submenu'\n  | 'subpage'",
             "required": true,
             "description": "Mirror of `def.kind`, stable for the node's lifetime."
           },
@@ -11207,8 +11214,8 @@
         "props": [
           {
             "name": "showOn",
-            "type": "\"focus\" | \"open\" | undefined",
-            "formattedType": "\"focus\" | \"open\"",
+            "type": "\"open\" | \"focus\" | undefined",
+            "formattedType": "\"open\" | \"focus\"",
             "required": false,
             "description": "Controls when the backdrop becomes visible for submenus.\n- `\"focus\"`: Show when the submenu becomes the focus owner (prevents flicker on hover).\n  If a deeper submenu is open, the backdrop remains visible.\n- `\"open\"`: Show as soon as the submenu opens, regardless of focus.",
             "default": "\"focus\" for submenus, \"open\" for root menu"
@@ -14922,7 +14929,7 @@
           {
             "name": "openMethod",
             "type": "OpenMethod | null",
-            "formattedType": "null | \"keyboard\" | \"mouse\" | \"touch\" | \"pen\"",
+            "formattedType": "null | \"keyboard\" | \"touch\" | \"mouse\" | \"pen\"",
             "required": true,
             "description": "How the listbox was most recently opened (`mouse`/`touch`/`pen`/`keyboard`).\n`null` until first opened. Retained after close (only updated on open)."
           },
@@ -16601,7 +16608,7 @@
           {
             "name": "side",
             "type": "\"none\" | Side",
-            "formattedType": "| 'none'\n  | 'top'\n  | 'left'\n  | 'right'\n  | 'bottom'\n  | 'inline-end'\n  | 'inline-start'",
+            "formattedType": "| 'none'\n  | 'left'\n  | 'right'\n  | 'bottom'\n  | 'top'\n  | 'inline-end'\n  | 'inline-start'",
             "required": true,
             "description": "Side the popup is placed on relative to the trigger.\n\nReports `'none'` while `alignItemWithTrigger` positioning is active, because\nthe popup overlaps the trigger and therefore has no physical side. This\nmirrors Base UI's behavior instead of leaking the `'bottom'` fallback that\nthe underlying Popover computes when no side is provided."
           },
@@ -17111,8 +17118,8 @@
         "props": [
           {
             "name": "showOn",
-            "type": "\"focus\" | \"open\" | undefined",
-            "formattedType": "\"focus\" | \"open\"",
+            "type": "\"open\" | \"focus\" | undefined",
+            "formattedType": "\"open\" | \"focus\"",
             "required": false,
             "description": "Controls when the backdrop becomes visible for submenus.\n- `\"focus\"`: Show when the submenu becomes the focus owner (prevents flicker on hover).\n  If a deeper submenu is open, the backdrop remains visible.\n- `\"open\"`: Show as soon as the submenu opens, regardless of focus.",
             "default": "\"focus\" for submenus, \"open\" for root menu"
@@ -18060,6 +18067,14 @@
             "default": "commandScore (fuzzy matching)"
           },
           {
+            "name": "content",
+            "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
+            "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
+            "required": false,
+            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
+            "referencePath": "@bazza-ui/react.NodeDef"
+          },
+          {
             "name": "className",
             "type": "string | ((state: PopupMenuSurfaceState) => string | undefined) | undefined",
             "formattedType": "string | (state: PopupMenu.Surface.State) => string",
@@ -18111,14 +18126,6 @@
             "formattedType": "string[]",
             "required": false,
             "description": "Ordered list of item values when using `filter={false}`.\nThis tells the store the intended display order for navigation/highlighting.\nRequired when `filter={false}` - must always be provided with the current visible items."
-          },
-          {
-            "name": "content",
-            "type": "NodeDef[] | PopupMenuNode<NodeDef>[] | undefined",
-            "formattedType": "NodeDef[] | PopupMenuNode<NodeDef>[]",
-            "required": false,
-            "description": "The menu content (node definitions with render functions). Resolved nodes\nare accepted anywhere defs are; they are unwrapped to their defs, and\nre-supplying the same nodes preserves identity.",
-            "referencePath": "@bazza-ui/react.NodeDef"
           },
           {
             "name": "children",
@@ -18363,7 +18370,7 @@
           {
             "name": "side",
             "type": "\"none\" | Side",
-            "formattedType": "\"none\" | \"top\" | \"left\" | \"right\" | \"bottom\"",
+            "formattedType": "\"none\" | \"left\" | \"right\" | \"bottom\" | \"top\"",
             "required": true,
             "description": "The rendered side of the popup (or 'none' when using align-item-with-trigger)."
           },
@@ -18724,7 +18731,7 @@
           {
             "name": "openMethod",
             "type": "OpenMethod | null",
-            "formattedType": "null | \"keyboard\" | \"mouse\" | \"touch\" | \"pen\"",
+            "formattedType": "null | \"keyboard\" | \"touch\" | \"mouse\" | \"pen\"",
             "required": true,
             "description": "How the listbox was most recently opened (`mouse`/`touch`/`pen`/`keyboard`).\n`null` until first opened. Retained after close (only updated on open)."
           },
@@ -18882,8 +18889,8 @@
           },
           {
             "name": "variant",
-            "type": "\"link\" | \"default\" | \"outline\" | \"destructive\" | \"secondary\" | \"ghost\" | null | undefined",
-            "formattedType": "| null\n  | 'link'\n  | 'default'\n  | 'outline'\n  | 'destructive'\n  | 'secondary'\n  | 'ghost'",
+            "type": "\"link\" | \"default\" | \"destructive\" | \"outline\" | \"secondary\" | \"ghost\" | null | undefined",
+            "formattedType": "| null\n  | 'link'\n  | 'default'\n  | 'destructive'\n  | 'outline'\n  | 'secondary'\n  | 'ghost'",
             "required": false
           },
           {
@@ -18892,16 +18899,16 @@
             "required": false
           },
           {
-            "name": "className",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false
-          },
-          {
             "name": "size",
             "type": "\"icon\" | \"default\" | \"sm\" | \"lg\" | null | undefined",
             "formattedType": "null | \"icon\" | \"default\" | \"sm\" | \"lg\"",
             "required": true
+          },
+          {
+            "name": "className",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false
           },
           {
             "name": "asChild",
@@ -19030,16 +19037,16 @@
             "required": false
           },
           {
-            "name": "className",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false
-          },
-          {
             "name": "size",
             "type": "\"icon\" | \"default\" | \"sm\" | \"lg\" | null | undefined",
             "formattedType": "null | \"icon\" | \"default\" | \"sm\" | \"lg\"",
             "required": true
+          },
+          {
+            "name": "className",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false
           },
           {
             "name": "asChild",
@@ -19380,16 +19387,16 @@
             "required": false
           },
           {
-            "name": "className",
-            "type": "string | undefined",
-            "formattedType": "string",
-            "required": false
-          },
-          {
             "name": "size",
             "type": "\"icon\" | \"default\" | \"sm\" | \"lg\" | null | undefined",
             "formattedType": "null | \"icon\" | \"default\" | \"sm\" | \"lg\"",
             "required": true
+          },
+          {
+            "name": "className",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false
           },
           {
             "name": "asChild",

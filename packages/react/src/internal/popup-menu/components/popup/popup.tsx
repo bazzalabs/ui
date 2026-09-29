@@ -285,13 +285,15 @@ export const PopupMenuPopup = React.forwardRef<
 
   // Disable Base UI's auto-focus behavior for:
   // - Submenus: Focus is managed by our FocusOwner system
-  // - Combobox: Focus should stay on the input element (which is outside the popup)
-  const initialFocus = submenuContext || comboboxContext ? false : undefined
+  // - Menus whose focus stays on an element outside the popup (`externalFocus`)
+  const externalFocus = popupMenuContext?.externalFocus ?? false
+  const initialFocus = submenuContext || externalFocus ? false : undefined
 
   // Disable returning focus to trigger when popup closes for:
   // - Submenus: Focus is managed by our FocusOwner system (we transfer to parent surface's input/list)
-  // - Combobox: When clicking outside, we want focus to go to whatever was clicked, not back to input
-  const finalFocus = submenuContext || comboboxContext ? false : undefined
+  // - Menus with `externalFocus`: When clicking outside, focus goes to whatever was clicked,
+  //   not back to the outside element
+  const finalFocus = submenuContext || externalFocus ? false : undefined
 
   // Add data-input-embedded attribute when layout is input-embedded
   const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
