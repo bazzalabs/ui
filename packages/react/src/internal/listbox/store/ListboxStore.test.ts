@@ -98,15 +98,13 @@ describe('ListboxStore', () => {
       const cleanup1 = store.registerItem('item-1', { value: 'Item 1' })
       const cleanup2 = store.registerItem('item-2', { value: 'Item 2' })
 
-      expect(store.context.items.size).toBe(2)
+      expect(store.getVisibleItemIds()).toEqual(['item-1', 'item-2'])
 
       cleanup1()
-      expect(store.context.items.size).toBe(1)
-      expect(store.context.items.has('item-1')).toBe(false)
-      expect(store.context.items.has('item-2')).toBe(true)
+      expect(store.getVisibleItemIds()).toEqual(['item-2'])
 
       cleanup2()
-      expect(store.context.items.size).toBe(0)
+      expect(store.getVisibleItemIds()).toEqual([])
     })
 
     it('registers items with groups', () => {
@@ -175,14 +173,20 @@ describe('ListboxStore', () => {
       expect(store.context.itemSelects.get('item-1')).toBe(onSelect)
     })
 
-    it('registers shortcuts', () => {
+    it('matches shortcuts case-insensitively', () => {
       const store = createStore()
+      const onSelectA = vi.fn()
+      const onSelectB = vi.fn()
 
       store.registerItem('item-1', { value: 'Item 1', shortcut: 'a' })
       store.registerItem('item-2', { value: 'Item 2', shortcut: 'B' })
+      store.registerItemSelect('item-1', onSelectA)
+      store.registerItemSelect('item-2', onSelectB)
 
-      expect(store.context.shortcuts.get('a')).toBe('item-1')
-      expect(store.context.shortcuts.get('b')).toBe('item-2') // lowercase
+      expect(store.selectByShortcut('A')).toBe(true)
+      expect(store.selectByShortcut('b')).toBe(true)
+      expect(onSelectA).toHaveBeenCalledOnce()
+      expect(onSelectB).toHaveBeenCalledOnce()
     })
   })
 
@@ -410,6 +414,8 @@ describe('ListboxStore', () => {
       })
 
       it('highlights last item when no item is highlighted', () => {
+        store.clearHighlight()
+
         store.highlightPrev()
 
         expect(store.state.highlightedId).toBe('item-3')
@@ -461,6 +467,7 @@ describe('ListboxStore', () => {
           { id: 'item-2', value: 'Item 2' },
           { id: 'item-3', value: 'Item 3' },
         ])
+        store.clearHighlight()
 
         store.highlightFirstItem()
 
@@ -473,6 +480,7 @@ describe('ListboxStore', () => {
           { id: 'item-1', value: 'Item 1', disabled: true },
           { id: 'item-2', value: 'Item 2', disabled: true },
         ])
+        store.setHighlightedId('item-1')
 
         store.highlightFirstItem()
 
@@ -972,18 +980,17 @@ describe('ListboxStore', () => {
       expect(store.state.virtualized).toBe(true)
     })
 
-    it('setVirtualItems pre-registers items', () => {
+    it('filters virtual items that have not mounted', () => {
       const store = createStore({ open: true, virtualized: true })
 
       store.setVirtualItems([
-        { value: 'item-1' },
-        { value: 'item-2' },
-        { value: 'item-3' },
+        { value: 'apple' },
+        { value: 'banana' },
+        { value: 'cherry' },
       ])
+      store.setSearch('ban')
 
-      expect(store.context.items.has('item-1')).toBe(true)
-      expect(store.context.items.has('item-2')).toBe(true)
-      expect(store.context.items.has('item-3')).toBe(true)
+      expect(store.getVisibleItemIds()).toEqual(['banana'])
     })
 
     it('uses virtualItems order for navigation', () => {
@@ -1118,7 +1125,7 @@ describe('ListboxStore', () => {
         { value: 'in-progress' },
       ])
 
-      expect(store.state.highlightedId).not.toBe('todo')
+      expect(store.state.highlightedId).toBe('backlog')
     })
 
     it('revalidates highlight when items are reordered', () => {
