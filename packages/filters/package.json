@@ -25,8 +25,8 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup --watch",
-    "build": "tsup",
+    "dev": "tsdown --watch",
+    "build": "tsdown",
     "type-check": "tsc --noEmit",
     "test": "vitest run --run --mode test",
     "test:watch": "vitest --mode test --watch --disable-console-intercept",
@@ -47,7 +47,7 @@
     "nanoid": "^5.1.5",
     "remeda": "^2.30.0",
     "tinybench": "^4.0.1",
-    "tsup": "^8.5.0",
+    "tsdown": "0.23.0",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
