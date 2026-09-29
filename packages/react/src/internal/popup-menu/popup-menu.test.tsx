@@ -323,7 +323,7 @@ function MenuWithClearSearchOnClose({
       <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
-          <DropdownMenu.Popup>
+          <DropdownMenu.Popup data-testid="popup">
             <DropdownMenu.Surface
               data-testid="surface"
               clearSearchOnClose={clearSearchOnClose}
@@ -1528,13 +1528,36 @@ describe('PopupMenu', () => {
         expect(screen.getByTestId('popup-root')).toBeInTheDocument()
       })
 
-      await user.hover(screen.getByTestId('submenu-trigger-1'))
+      const submenuTrigger = screen.getByTestId('submenu-trigger-1')
+
+      await user.hover(submenuTrigger)
 
       await waitFor(() => {
         expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
       })
 
+      // Same geometry and pointer sequence the enabled tests use, so the
+      // triangle would have a size to render.
+      const submenuPopup = screen.getByTestId('popup-submenu-1')
+      const triggerRectSpy = vi
+        .spyOn(submenuTrigger, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 60, left: 80, width: 120, height: 30 }),
+        )
+      const popupRectSpy = vi
+        .spyOn(submenuPopup, 'getBoundingClientRect')
+        .mockImplementation(() =>
+          createRect({ top: 40, left: 240, width: 180, height: 160 }),
+        )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 90 })
+      await new Promise((r) => setTimeout(r, 50))
+
       expect(getSafeTriangle()).toBeNull()
+
+      triggerRectSpy.mockRestore()
+      popupRectSpy.mockRestore()
     })
 
     it('renders the safe triangle in blue while hovering a submenu trigger', async () => {
@@ -2065,7 +2088,6 @@ describe('PopupMenu', () => {
         fireMissTrajectory(scenario.submenuTrigger)
 
         expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
-        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
 
         await waitFor(
           () => {
@@ -2087,14 +2109,16 @@ describe('PopupMenu', () => {
         fireMissTrajectory(scenario.submenuTrigger)
         expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
 
-        await scenario.user.hover(scenario.submenuTrigger)
+        // user.hover would be a no-op here: user-event still thinks the pointer
+        // is over the trigger, so it would not dispatch pointerenter.
+        fireEvent.pointerEnter(scenario.submenuTrigger, {
+          clientX: 100,
+          clientY: 75,
+        })
 
-        await waitFor(
-          () => {
-            expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
-          },
-          { timeout: 700 },
-        )
+        // Past the 220ms close delay: the cancelled timer must not close it.
+        await sleep(320)
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
       } finally {
         scenario.cleanup()
       }
@@ -2116,12 +2140,9 @@ describe('PopupMenu', () => {
           clientY: 120,
         })
 
-        await waitFor(
-          () => {
-            expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
-          },
-          { timeout: 700 },
-        )
+        // Past the 220ms close delay: the cancelled timer must not close it.
+        await sleep(320)
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
       } finally {
         scenario.cleanup()
       }
@@ -2365,14 +2386,17 @@ describe('PopupMenu', () => {
           expect(screen.getByTestId('popup-root')).toBeInTheDocument()
         })
 
-        const rootItem = screen.getByTestId('root-item-1')
+        // The first row is auto-highlighted on open, so hover a later row: a
+        // guard left over from before the close would block this highlight.
+        const siblingTrigger = screen.getByTestId('submenu-trigger-sibling')
+        expect(siblingTrigger).not.toHaveAttribute('data-highlighted')
 
-        fireEvent.pointerMove(rootItem, { clientX: 96, clientY: 74 })
-        fireEvent.pointerMove(rootItem, { clientX: 100, clientY: 78 })
+        fireEvent.pointerMove(siblingTrigger, { clientX: 96, clientY: 74 })
+        fireEvent.pointerMove(siblingTrigger, { clientX: 100, clientY: 78 })
 
         await waitFor(
           () => {
-            expect(rootItem).toHaveAttribute('data-highlighted', '')
+            expect(siblingTrigger).toHaveAttribute('data-highlighted', '')
           },
           { timeout: 250 },
         )
@@ -3038,7 +3062,7 @@ describe('PopupMenu', () => {
   })
 
   describe('clearSearchOnClose', () => {
-    it('clears search when menu closes (default behavior)', async () => {
+    it('clears search when menu closes when clearSearchOnClose is true', async () => {
       const user = userEvent.setup()
       render(<MenuWithClearSearchOnClose clearSearchOnClose={true} />)
 
@@ -3120,61 +3144,103 @@ describe('PopupMenu', () => {
       expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
     })
 
-    it('clears search after exit animation when clearSearchOnClose is "after-exit"', async () => {
+    it('keeps search during the exit animation and clears it after when clearSearchOnClose is "after-exit"', async () => {
       const user = userEvent.setup()
       const onOpenChangeComplete = vi.fn()
-      render(
-        <MenuWithClearSearchOnClose
-          clearSearchOnClose="after-exit"
-          onOpenChangeComplete={onOpenChangeComplete}
-        />,
-      )
-
-      // Open menu
-      const trigger = screen.getByTestId('trigger')
-      await user.click(trigger)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      const originalGetAnimations = Element.prototype.getAnimations
+      let finishExit: () => void = () => {}
+      const exitFinished = new Promise<void>((resolve) => {
+        finishExit = resolve
       })
-
-      // Type to filter
-      const input = screen.getByTestId('search-input')
-      await user.type(input, 'apple')
-      expect(input).toHaveValue('apple')
-
-      // Only apple should be visible
-      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
-      expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
-
-      // Close menu
-      await user.keyboard('{Escape}')
-
-      // Wait for menu to close and onOpenChangeComplete to be called
-      await waitFor(() => {
-        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      Object.defineProperty(Element.prototype, 'getAnimations', {
+        configurable: true,
+        value(this: Element) {
+          if (
+            this.getAttribute('data-testid') === 'popup' &&
+            this.hasAttribute('data-ending-style')
+          ) {
+            return [
+              {
+                finished: exitFinished.then(() => ({})),
+                pending: false,
+                playState: 'running',
+              },
+            ]
+          }
+          return []
+        },
       })
+      try {
+        render(
+          <MenuWithClearSearchOnClose
+            clearSearchOnClose="after-exit"
+            onOpenChangeComplete={onOpenChangeComplete}
+          />,
+        )
 
-      // onOpenChangeComplete should have been called with false
-      await waitFor(() => {
-        expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
-      })
+        // Open menu
+        const trigger = screen.getByTestId('trigger')
+        await user.click(trigger)
 
-      // Reopen menu
-      await user.click(trigger)
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
 
-      await waitFor(() => {
-        expect(screen.getByTestId('surface')).toBeInTheDocument()
-      })
+        // Type to filter
+        const input = screen.getByTestId('search-input')
+        await user.type(input, 'apple')
+        expect(input).toHaveValue('apple')
 
-      // Search should be cleared (cleared after animation completed)
-      const newInput = screen.getByTestId('search-input')
-      expect(newInput).toHaveValue('')
+        // Only apple should be visible
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+        expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
 
-      // All items should be visible
-      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
-      expect(screen.getByTestId('item-banana')).toBeInTheDocument()
-      expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
+        // Close menu
+        await user.keyboard('{Escape}')
+
+        // During the exit animation the search is still shown
+        await waitFor(() => {
+          expect(screen.getByTestId('popup')).toHaveAttribute(
+            'data-ending-style',
+          )
+        })
+        expect(screen.getByTestId('search-input')).toHaveValue('apple')
+        expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
+
+        finishExit()
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+        })
+        await waitFor(() => {
+          expect(onOpenChangeComplete).toHaveBeenCalledWith(false)
+        })
+
+        // Reopen menu
+        await user.click(trigger)
+
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        // Search should be cleared (cleared after animation completed)
+        const newInput = screen.getByTestId('search-input')
+        expect(newInput).toHaveValue('')
+
+        // All items should be visible
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+        expect(screen.getByTestId('item-banana')).toBeInTheDocument()
+        expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
+      } finally {
+        if (originalGetAnimations) {
+          Object.defineProperty(Element.prototype, 'getAnimations', {
+            configurable: true,
+            value: originalGetAnimations,
+          })
+        } else {
+          delete (Element.prototype as Partial<Element>).getAnimations
+        }
+      }
     })
 
     it('calls onOpenChangeComplete after animation completes', async () => {
