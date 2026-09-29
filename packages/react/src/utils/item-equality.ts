@@ -50,26 +50,6 @@ export function itemIncludes<Value>(
 }
 
 /**
- * Find the index of a value in a collection using custom equality.
- * Returns -1 if not found.
- */
-export function findItemIndex<Value>(
-  collection: readonly Value[] | undefined | null,
-  value: Value,
-  comparer: ItemEqualityComparer<Value>,
-): number {
-  if (!collection || collection.length === 0) {
-    return -1
-  }
-  return collection.findIndex((item) => {
-    if (item === undefined) {
-      return false
-    }
-    return compareItemEquality(item, value, comparer)
-  })
-}
-
-/**
  * Remove a value from a collection using custom equality.
  * Returns a new array without the matching item.
  */

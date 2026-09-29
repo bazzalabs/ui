@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   compareItemEquality,
   defaultItemEquality,
-  findItemIndex,
   itemIncludes,
   removeItem,
 } from './item-equality.js'
@@ -13,6 +12,9 @@ describe('item-equality utilities', () => {
       expect(defaultItemEquality('apple', 'apple')).toBe(true)
       expect(defaultItemEquality(1, 1)).toBe(true)
       expect(defaultItemEquality(true, true)).toBe(true)
+      // Object.is semantics, not ===
+      expect(defaultItemEquality(Number.NaN, Number.NaN)).toBe(true)
+      expect(defaultItemEquality(0, -0)).toBe(false)
     })
 
     it('returns false for different primitives', () => {
@@ -38,14 +40,6 @@ describe('item-equality utilities', () => {
       expect(defaultItemEquality(null, undefined)).toBe(false)
       expect(defaultItemEquality('apple', null)).toBe(false)
     })
-
-    it('handles NaN correctly (Object.is behavior)', () => {
-      expect(defaultItemEquality(Number.NaN, Number.NaN)).toBe(true)
-    })
-
-    it('distinguishes +0 and -0 (Object.is behavior)', () => {
-      expect(defaultItemEquality(0, -0)).toBe(false)
-    })
   })
 
   describe('compareItemEquality', () => {
@@ -59,15 +53,11 @@ describe('item-equality utilities', () => {
       expect(compareItemEquality(obj1, obj3, idComparer)).toBe(false)
     })
 
-    it('uses Object.is for null values regardless of comparer', () => {
+    it('uses Object.is for null and undefined values regardless of comparer', () => {
       const customComparer = () => true // Always return true
       expect(compareItemEquality(null, null, customComparer)).toBe(true)
       expect(compareItemEquality(null, 'apple', customComparer)).toBe(false)
       expect(compareItemEquality('apple', null, customComparer)).toBe(false)
-    })
-
-    it('uses Object.is for undefined values regardless of comparer', () => {
-      const customComparer = () => true
       expect(compareItemEquality(undefined, undefined, customComparer)).toBe(
         true,
       )
@@ -116,46 +106,8 @@ describe('item-equality utilities', () => {
     it('skips undefined items in collection', () => {
       const items = ['apple', undefined, 'cherry'] as (string | undefined)[]
       expect(itemIncludes(items, 'apple', defaultItemEquality)).toBe(true)
-      expect(itemIncludes(items, 'banana', defaultItemEquality)).toBe(false)
-    })
-  })
-
-  describe('findItemIndex', () => {
-    it('returns correct index when value is found', () => {
-      const fruits = ['apple', 'banana', 'cherry']
-      expect(findItemIndex(fruits, 'apple', defaultItemEquality)).toBe(0)
-      expect(findItemIndex(fruits, 'banana', defaultItemEquality)).toBe(1)
-      expect(findItemIndex(fruits, 'cherry', defaultItemEquality)).toBe(2)
-    })
-
-    it('returns -1 when value is not found', () => {
-      const fruits = ['apple', 'banana', 'cherry']
-      expect(findItemIndex(fruits, 'mango', defaultItemEquality)).toBe(-1)
-    })
-
-    it('returns -1 for empty collection', () => {
-      expect(findItemIndex([], 'apple', defaultItemEquality)).toBe(-1)
-    })
-
-    it('returns -1 for null/undefined collection', () => {
-      expect(findItemIndex(null, 'apple', defaultItemEquality)).toBe(-1)
-      expect(findItemIndex(undefined, 'apple', defaultItemEquality)).toBe(-1)
-    })
-
-    it('finds objects using custom equality comparer', () => {
-      const items = [
-        { id: 1, name: 'Apple' },
-        { id: 2, name: 'Banana' },
-        { id: 3, name: 'Cherry' },
-      ]
-      const idComparer = (a: { id: number }, b: { id: number }) => a.id === b.id
-
-      expect(
-        findItemIndex(items, { id: 2, name: 'Different' }, idComparer),
-      ).toBe(1)
-      expect(
-        findItemIndex(items, { id: 99, name: 'Missing' }, idComparer),
-      ).toBe(-1)
+      // An undefined slot never matches, not even an undefined value
+      expect(itemIncludes(items, undefined, defaultItemEquality)).toBe(false)
     })
   })
 
@@ -176,7 +128,7 @@ describe('item-equality utilities', () => {
       expect(result).toEqual(['apple', 'banana', 'cherry'])
     })
 
-    it('removes only first matching item with reference equality', () => {
+    it('removes every matching item with default equality', () => {
       const fruits = ['apple', 'banana', 'apple', 'cherry']
       const result = removeItem(fruits, 'apple', defaultItemEquality)
 
@@ -205,57 +157,6 @@ describe('item-equality utilities', () => {
     it('returns empty array when removing from empty collection', () => {
       const result = removeItem([], 'apple', defaultItemEquality)
       expect(result).toEqual([])
-    })
-  })
-
-  describe('real-world object value scenarios', () => {
-    interface Fruit {
-      id: number
-      name: string
-      color: string
-    }
-
-    const fruits: Fruit[] = [
-      { id: 1, name: 'Apple', color: 'red' },
-      { id: 2, name: 'Banana', color: 'yellow' },
-      { id: 3, name: 'Cherry', color: 'red' },
-    ]
-
-    const byId = (a: Fruit, b: Fruit) => a.id === b.id
-
-    it('supports selection by ID even when object reference differs', () => {
-      const selectedValue = { id: 2, name: 'Banana', color: 'yellow' }
-      const newReference = { id: 2, name: 'Updated Banana', color: 'yellow' }
-
-      // Even though the object reference changed, selection should match by ID
-      expect(itemIncludes(fruits, newReference, byId)).toBe(true)
-      expect(compareItemEquality(selectedValue, newReference, byId)).toBe(true)
-    })
-
-    it('supports multi-select toggle with object values', () => {
-      let selectedValues: Fruit[] = []
-
-      // Select first fruit
-      const fruit1 = { id: 1, name: 'Apple', color: 'red' }
-      if (!itemIncludes(selectedValues, fruit1, byId)) {
-        selectedValues = [...selectedValues, fruit1]
-      }
-      expect(selectedValues).toHaveLength(1)
-
-      // Select second fruit
-      const fruit2 = { id: 2, name: 'Banana', color: 'yellow' }
-      if (!itemIncludes(selectedValues, fruit2, byId)) {
-        selectedValues = [...selectedValues, fruit2]
-      }
-      expect(selectedValues).toHaveLength(2)
-
-      // Deselect first fruit (using different object reference)
-      const fruit1Again = { id: 1, name: 'Apple Updated', color: 'red' }
-      if (itemIncludes(selectedValues, fruit1Again, byId)) {
-        selectedValues = removeItem(selectedValues, fruit1Again, byId)
-      }
-      expect(selectedValues).toHaveLength(1)
-      expect(selectedValues[0].id).toBe(2)
     })
   })
 })

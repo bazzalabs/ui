@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { deriveOpenMethod } from './input-modality.js'
+import {
+  deriveOpenMethod,
+  ensureInputModalityTracking,
+} from './input-modality.js'
 
 describe('deriveOpenMethod', () => {
   it('uses the triggering event pointer type when present', () => {
@@ -12,10 +15,22 @@ describe('deriveOpenMethod', () => {
     )
   })
 
-  it('treats keyboard events as keyboard', () => {
-    expect(
-      deriveOpenMethod(new KeyboardEvent('keydown', { key: 'Enter' })),
-    ).toBe('keyboard')
+  it('treats keyboard events as keyboard even after a touch', () => {
+    ensureInputModalityTracking()
+    const touch = new Event('pointerdown', { bubbles: true })
+    Object.defineProperty(touch, 'pointerType', { value: 'touch' })
+    document.dispatchEvent(touch)
+    try {
+      // With no event, the last observed pointer wins…
+      expect(deriveOpenMethod()).toBe('touch')
+      // …but an explicit keyboard event overrides it.
+      expect(
+        deriveOpenMethod(new KeyboardEvent('keydown', { key: 'Enter' })),
+      ).toBe('keyboard')
+    } finally {
+      // A real keydown resets the tracked modality for later tests.
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' }))
+    }
   })
 
   it('defaults to keyboard when there is no event and no observed modality', () => {
