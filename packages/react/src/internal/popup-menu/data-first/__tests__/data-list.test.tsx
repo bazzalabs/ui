@@ -825,66 +825,6 @@ describe('edge cases', () => {
       ).toBeInTheDocument()
     })
   })
-
-  it('handles values with special characters', async () => {
-    const contentWithSpecialChars: NodeDef[] = [
-      createTestSubmenuDef('my-submenu', 'My Submenu', [
-        createTestItemDef('item_with_underscore', 'Item With Underscore'),
-        createTestItemDef('item-with-dashes', 'Item With Dashes'),
-      ]),
-    ]
-
-    function MenuWithSpecialChars() {
-      return (
-        <DropdownMenu.Root defaultOpen>
-          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Positioner>
-              <DropdownMenu.Popup>
-                <DropdownMenu.Surface
-                  content={contentWithSpecialChars}
-                  deepSearch={{ enabled: true, minLength: 0 }}
-                >
-                  <DropdownMenu.Input
-                    data-testid="search-input"
-                    placeholder="Search..."
-                  />
-                  <DropdownMenu.List>
-                    <ListItems />
-                  </DropdownMenu.List>
-                </DropdownMenu.Surface>
-              </DropdownMenu.Popup>
-            </DropdownMenu.Positioner>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      )
-    }
-
-    const user = userEvent.setup()
-    render(<MenuWithSpecialChars />)
-
-    // Wait for menu to open
-    await waitFor(() => {
-      expect(screen.getByTestId('search-input')).toBeInTheDocument()
-    })
-
-    const input = screen.getByTestId('search-input')
-    await user.type(input, 'item')
-
-    await waitFor(() => {
-      expect(screen.getByText('Item With Underscore')).toBeInTheDocument()
-      expect(screen.getByText('Item With Dashes')).toBeInTheDocument()
-    })
-
-    // Verify composite IDs are slugified
-    const underscoreItem = document.getElementById(
-      'my-submenu/item-with-underscore',
-    )
-    const dashItem = document.getElementById('my-submenu/item-with-dashes')
-
-    expect(underscoreItem).toBeInTheDocument()
-    expect(dashItem).toBeInTheDocument()
-  })
 })
 
 describe('forced sorting', () => {

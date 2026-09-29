@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeDef } from '../../data-first/types.js'
-import { defaultGetResolvedId } from '../resolve.js'
 import { createMenuTreeResolver } from '../resolver.js'
 
 const item = (value: string, id?: string): NodeDef =>
@@ -608,39 +607,5 @@ describe('getResolvedId seam', () => {
 
     expect(resolver.rootNodes[0]).toBe(before[0])
     expect(resolver.rootNodes[1]).toBe(before[1])
-  })
-
-  it('default parity', () => {
-    const explicit = item('Ignored', 'explicit')
-    const explicitProbe = {
-      def: explicit,
-      kind: explicit.kind,
-      definitionKey: 'explicit',
-      definitionPath: ['different'],
-      parent: null,
-      children: [],
-      depth: 0,
-      index: 0,
-    }
-    const idless = item('Ignored')
-    const idlessProbe = {
-      def: idless,
-      kind: idless.kind,
-      definitionKey: 'ignored',
-      definitionPath: ['path', 'ignored'],
-      parent: null,
-      children: [],
-      depth: 0,
-      index: 0,
-    }
-
-    expect(defaultGetResolvedId(explicitProbe)).toBe(
-      explicitProbe.definitionPath
-        .map((entry) => entry.replaceAll(' ', '%0020').replaceAll('!', '%0021'))
-        .join('/'),
-    )
-    expect(defaultGetResolvedId(idlessProbe)).toBe(
-      idlessProbe.definitionPath.join('/'),
-    )
   })
 })

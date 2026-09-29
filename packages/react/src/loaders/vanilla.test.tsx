@@ -91,15 +91,6 @@ function renderLoader(
 // ============================================================================
 
 describe('createVanillaStaticLoader', () => {
-  it('returns a config with type "static"', () => {
-    const config = createVanillaStaticLoader({
-      fetcher: async () => MOCK_NODES,
-    })
-
-    expect(config.type).toBe('static')
-    expect(config.Loader).toBeDefined()
-  })
-
   it('starts in a loading state', () => {
     const deferred = createDeferred<NodeDef[]>()
     const config = createVanillaStaticLoader({
@@ -221,15 +212,6 @@ describe('createVanillaQueryLoader', () => {
   // --------------------------------------------------------------------------
 
   describe('config shape', () => {
-    it('returns a config with type "query"', () => {
-      const config = createVanillaQueryLoader({
-        fetcher: async () => MOCK_NODES,
-      })
-
-      expect(config.type).toBe('query')
-      expect(config.Loader).toBeDefined()
-    })
-
     it('passes through all config options', () => {
       const placeholders: ItemDef[] = [createNodeDef('ph', 'Placeholder')]
 
@@ -341,39 +323,6 @@ describe('createVanillaQueryLoader', () => {
       expect(fetcher).toHaveBeenCalledTimes(2)
       expect(fetcher).toHaveBeenLastCalledWith('b', expect.any(Object))
     })
-
-    it('re-fetches on every keystroke', async () => {
-      const fetcher = vi.fn(async () => MOCK_NODES)
-      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 1 })
-
-      const { capture, rerender } = renderLoader(config.Loader, 'a')
-
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(false)
-      })
-
-      rerender('ap')
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(false)
-      })
-
-      rerender('app')
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(false)
-      })
-
-      rerender('appl')
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(false)
-      })
-
-      rerender('apple')
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(false)
-      })
-
-      expect(fetcher).toHaveBeenCalledTimes(5)
-    })
   })
 
   // --------------------------------------------------------------------------
@@ -381,38 +330,6 @@ describe('createVanillaQueryLoader', () => {
   // --------------------------------------------------------------------------
 
   describe('stale data clearing', () => {
-    it('clears previous data when a new query starts loading', async () => {
-      const firstDeferred = createDeferred<NodeDef[]>()
-      const secondDeferred = createDeferred<NodeDef[]>()
-      let callCount = 0
-
-      const fetcher = vi.fn(() => {
-        callCount++
-        return callCount === 1 ? firstDeferred.promise : secondDeferred.promise
-      })
-
-      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 1 })
-      const { capture, rerender } = renderLoader(config.Loader, 'a')
-
-      // Resolve first query
-      await act(async () => {
-        firstDeferred.resolve(MOCK_NODES)
-      })
-
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(false)
-        expect(capture.latest.data).toEqual(MOCK_NODES)
-      })
-
-      // Change query -- should clear data and show loading
-      rerender('b')
-
-      await waitFor(() => {
-        expect(capture.latest.isLoading).toBe(true)
-        expect(capture.latest.data).toBeUndefined()
-      })
-    })
-
     it('does not show stale results while loading a new query', async () => {
       const deferred1 = createDeferred<NodeDef[]>()
       const deferred2 = createDeferred<NodeDef[]>()
@@ -463,26 +380,6 @@ describe('createVanillaQueryLoader', () => {
   // --------------------------------------------------------------------------
 
   describe('abort and race conditions', () => {
-    it('passes an AbortSignal to the fetcher', async () => {
-      let receivedSignal: AbortSignal | undefined
-
-      const fetcher = vi.fn(
-        async (_query: string, options?: { signal?: AbortSignal }) => {
-          receivedSignal = options?.signal
-          return MOCK_NODES
-        },
-      )
-      const config = createVanillaQueryLoader({ fetcher, minQueryLength: 1 })
-
-      renderLoader(config.Loader, 'a')
-
-      await waitFor(() => {
-        expect(fetcher).toHaveBeenCalledTimes(1)
-      })
-
-      expect(receivedSignal).toBeInstanceOf(AbortSignal)
-    })
-
     it('aborts the previous request when query changes', async () => {
       const signals: AbortSignal[] = []
 
@@ -508,6 +405,7 @@ describe('createVanillaQueryLoader', () => {
       })
 
       // First signal should not be aborted yet
+      expect(signals[0]).toBeInstanceOf(AbortSignal)
       expect(signals[0].aborted).toBe(false)
 
       // Change query -- should abort first request

@@ -2,7 +2,6 @@
 // Full Pipeline
 // ============================================================================
 
-import { normalizeValue } from '../../listbox/utils/normalize.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import { getBrowseNodesPreserve } from './browse.js'
 import { buildDisplayRowNode, buildDisplayRowNodes } from './display.js'
@@ -38,16 +37,12 @@ import type {
   ScoredNode,
 } from './types.js'
 
-const identityQuery = (query: string) => query
-
 // Full Pipeline
 // ============================================================================
 
 export interface FilterNodesOptions {
-  /** The search query */
+  /** The search query, already normalized by the listbox store */
   query: string
-  /** Optional query normalizer. Defaults to trimming whitespace. */
-  normalizeQuery?: (query: string) => string
   /** The node definitions to filter */
   nodes: readonly PopupMenuNode[]
   /** Currently highlighted node ID */
@@ -82,7 +77,6 @@ function filterNodesFlatten(options: FilterNodesOptions): {
 } {
   const {
     query,
-    normalizeQuery,
     nodes,
     highlightedId,
     deepSearch = true,
@@ -163,7 +157,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
   }
 
   // Score nodes
-  const scored = scoreNodes(flattened, query, normalizeQuery)
+  const scored = scoreNodes(flattened, query)
 
   // Separate radio group items from regular items
   const radioGroupItems = new Map<
@@ -400,7 +394,6 @@ function filterNodesPreserve(options: FilterNodesOptions): {
 } {
   const {
     query,
-    normalizeQuery,
     nodes,
     highlightedId,
     deepSearch = true,
@@ -480,7 +473,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   }
 
   // Score nodes
-  const scored = scoreNodes(flattened, query, normalizeQuery)
+  const scored = scoreNodes(flattened, query)
 
   // Partition into groups, radio groups, and ungrouped
   const groupedItems = new Map<
@@ -765,20 +758,10 @@ export function filterNodes(options: FilterNodesOptions): {
     highlightedId,
     groupSearchBehavior = 'preserve',
   } = options
-  const normalizeQuery = options.normalizeQuery ?? normalizeValue
-  const normalizedQuery = normalizeQuery(query)
-  const normalizedOptions =
-    normalizedQuery === query
-      ? { ...options, normalizeQuery: identityQuery }
-      : {
-          ...options,
-          query: normalizedQuery,
-          normalizeQuery: identityQuery,
-        }
 
   // Browse mode - no query
   // Always preserve groups in browse mode (groupSearchBehavior only affects search)
-  if (!normalizedQuery) {
+  if (!query) {
     return {
       displayNodes: getBrowseNodesPreserve(nodes, highlightedId),
       isDeepSearching: false,
@@ -787,10 +770,10 @@ export function filterNodes(options: FilterNodesOptions): {
 
   // Search mode - dispatch based on group search behavior
   if (groupSearchBehavior === 'preserve') {
-    return filterNodesPreserve(normalizedOptions)
+    return filterNodesPreserve(options)
   }
 
-  return filterNodesFlatten(normalizedOptions)
+  return filterNodesFlatten(options)
 }
 
 // ============================================================================

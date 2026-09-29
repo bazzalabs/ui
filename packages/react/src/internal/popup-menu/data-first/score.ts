@@ -16,11 +16,8 @@ import type { FlattenedNode, ScoredNode } from './types.js'
 export function scoreNodes(
   flattenedNodes: FlattenedNode[],
   query: string,
-  normalizeQuery: (query: string) => string = normalizeValue,
 ): ScoredNode[] {
-  const normalizedQuery = normalizeQuery(query)
-
-  if (!normalizedQuery) {
+  if (!query) {
     // No query - return all nodes with score 1
     return flattenedNodes.map(
       ({
@@ -61,7 +58,7 @@ export function scoreNodes(
 
     const fuzzyScore = commandScore(
       normalizedValue,
-      normalizedQuery,
+      query,
       normalizedKeywords.length > 0 ? normalizedKeywords : undefined,
     )
     const score = node.def.forceScore ?? fuzzyScore

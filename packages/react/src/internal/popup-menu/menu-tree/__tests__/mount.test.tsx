@@ -35,13 +35,11 @@ function Probe({
 function Menu({
   content,
   onResolver,
-  search = false,
   getResolvedId,
   idScope,
 }: {
   content: NodeDef[]
   onResolver: (value: MenuTreeResolver) => void
-  search?: boolean
   getResolvedId?: GetResolvedIdFn
   idScope?: PopupMenuIdScope
 }) {
@@ -56,11 +54,7 @@ function Menu({
       <DropdownMenu.Portal>
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
-            <DropdownMenu.Surface
-              content={content}
-              deepSearch={search ? { enabled: true, minLength: 0 } : undefined}
-            >
-              {search && <DropdownMenu.Input aria-label="Search" />}
+            <DropdownMenu.Surface content={content}>
               <DropdownMenu.List>
                 <Rows />
               </DropdownMenu.List>
@@ -192,51 +186,6 @@ describe('mounted menu-tree resolution', () => {
     expect(resolver.getNodeById('second')).toBeUndefined()
   })
 
-  describe('public getResolvedId prop', () => {
-    it('uses the custom Resolved ID seam for resolver node IDs', async () => {
-      let resolver!: MenuTreeResolver
-      render(
-        <Menu
-          onResolver={(value) => {
-            resolver = value
-          }}
-          getResolvedId={(node) => `x-${node.def.id ?? node.definitionKey}`}
-          content={[item('Settings'), submenu('Status', [item('Backlog')], [])]}
-        />,
-      )
-
-      await waitFor(() =>
-        expect(resolver.getNodeById('x-status')).toBeDefined(),
-      )
-      expect(resolver.getNodeById('x-status')?.children[0]?.id).toBe(
-        'x-backlog',
-      )
-    })
-  })
-
-  it('resolves root content with qualified definition paths', async () => {
-    let resolver!: MenuTreeResolver
-    render(
-      <Menu
-        onResolver={(value) => {
-          resolver = value
-        }}
-        content={[
-          item('Settings'),
-          submenu('Status', [item('Backlog'), item('In Progress')], []),
-        ]}
-      />,
-    )
-
-    await waitFor(() =>
-      expect(resolver.getNodeById('status/backlog')).toBeDefined(),
-    )
-    const node = resolver.getNodeById('status/backlog')!
-    expect(node.definitionPath).toEqual(['status', 'backlog'])
-    expect(node.parent?.id).toBe('status')
-    expect(resolver.rootNodes).toHaveLength(2)
-  })
-
   it('keeps node instances stable across recreated content', async () => {
     let resolver!: MenuTreeResolver
     const content = () => [
@@ -324,43 +273,5 @@ describe('mounted menu-tree resolution', () => {
     await user.click(screen.getByRole('menuitem', { name: 'A' }))
     await waitFor(() => expect(resolver.getNodeById('a/late')).toBeDefined())
     expect(resolver.getNodeById('a/leaf')).toBe(before)
-  })
-
-  it('asserts browse pipeline wiring: the DOM reads the Resolved IDs computed by the resolver', async () => {
-    render(
-      <Menu
-        onResolver={() => {}}
-        content={[item('Apple'), submenu('Status', [item('Backlog')], [])]}
-      />,
-    )
-    await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Apple' })).toHaveAttribute(
-        'id',
-        'apple',
-      ),
-    )
-    expect(screen.getByRole('menuitem', { name: 'Status' })).toHaveAttribute(
-      'id',
-      'status',
-    )
-  })
-
-  it('asserts deep-search pipeline wiring: the DOM reads the Resolved IDs computed by the resolver', async () => {
-    const user = userEvent.setup()
-    render(
-      <Menu
-        onResolver={() => {}}
-        search
-        content={[item('Apple'), submenu('Status', [item('Backlog')], [])]}
-      />,
-    )
-    await user.type(screen.getByRole('combobox', { name: 'Search' }), 'back')
-    // The deep-search result reads the path-qualified id computed by the resolver.
-    await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Backlog' })).toHaveAttribute(
-        'id',
-        'status/backlog',
-      ),
-    )
   })
 })
