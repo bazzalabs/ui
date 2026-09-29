@@ -75,6 +75,14 @@ export interface UsePopupMenuRootParams {
   closeOnOutsidePress?: 'click' | 'pointerdown'
 
   /**
+   * Elements outside the menu that don't dismiss it (e.g. a suggestion menu's
+   * host input): pressing one, or moving focus from the menu to one, is not an
+   * outside press or a focus-out. Read when the event happens, so the returned
+   * elements may change over time.
+   */
+  getDismissExemptElements?: () => ReadonlyArray<Element | null | undefined>
+
+  /**
    * Whether the menu should ignore user interaction.
    * Can be controlled declaratively via this prop, or imperatively via actionsRef.setDisabled().
    * @default false
@@ -152,6 +160,7 @@ export function usePopupMenuRoot(
     items: itemsProp,
     onHighlightChange,
     closeOnOutsidePress = 'pointerdown',
+    getDismissExemptElements,
     disabled: disabledProp = false,
     defaultDisabled = false,
     getResolvedId,
@@ -195,6 +204,14 @@ export function usePopupMenuRoot(
   // mouse/touch/pen/keyboard. Idempotent; installed once for the whole app.
   React.useEffect(() => {
     ensureInputModalityTracking()
+  }, [])
+
+  const getExemptElementsRef = React.useRef(getDismissExemptElements)
+  getExemptElementsRef.current = getDismissExemptElements
+  const isExemptNode = React.useCallback((node: unknown): boolean => {
+    if (!(node instanceof Node)) return false
+    const elements = getExemptElementsRef.current?.() ?? []
+    return elements.some((element) => element?.contains(node) ?? false)
   }, [])
 
   // Track outside pointer events to distinguish outside-press from focus-out
@@ -322,6 +339,8 @@ export function usePopupMenuRoot(
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Element | null
       if (!target) return
+      // Presses on an exempt element (e.g. a host input) count as inside.
+      if (isExemptNode(target)) return
 
       // Check if the pointerdown is inside any part of the menu tree or its triggers
       // base-ui sets data-open on popups and data-popup-open on triggers
@@ -344,7 +363,7 @@ export function usePopupMenuRoot(
       document.removeEventListener('pointerdown', handlePointerDown, true)
       outsidePointerEventRef.current = null
     }
-  }, [isOpen, closeOnOutsidePress, disabled])
+  }, [isOpen, closeOnOutsidePress, disabled, isExemptNode])
 
   // Handle open state change
   const handleOpenChange = React.useCallback(
@@ -360,6 +379,19 @@ export function usePopupMenuRoot(
         return
       }
 
+      // A press on an exempt element, or focus moving to one, doesn't dismiss.
+      // Covers Base UI's own dismissal, which runs alongside our listener.
+      // For focus-out only the element gaining focus (`relatedTarget`) counts:
+      // `target` is the element losing it.
+      if (
+        !newOpen &&
+        ((reason === REASONS.outsidePress && isExemptNode(event?.target)) ||
+          (reason === REASONS.focusOut &&
+            isExemptNode((event as FocusEvent | undefined)?.relatedTarget)))
+      ) {
+        return
+      }
+
       store.setOpen(newOpen, reason, event)
       // Clear focus ownership and open chain when menu closes
       if (!newOpen) {
@@ -367,7 +399,7 @@ export function usePopupMenuRoot(
         openChainStore.clear()
       }
     },
-    [store, focusOwnerStore, openChainStore, disabled],
+    [store, focusOwnerStore, openChainStore, disabled, isExemptNode],
   )
 
   // Memoize listbox wiring config
