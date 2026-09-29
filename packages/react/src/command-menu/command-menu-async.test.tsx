@@ -316,12 +316,16 @@ describe('CommandMenu async data-first API', () => {
 
     await waitForRootInputFocus()
     await waitForSubpageContentReady('projects')
+    // Lazy: nothing mounts the loader until the subpage opens
+    expect(loader.queries).toHaveLength(0)
+
     await user.click(screen.getByTestId('subpage-trigger-projects'))
     if (!screen.queryByTestId('input-projects')) {
       await user.click(screen.getByTestId('subpage-trigger-projects'))
     }
 
     await waitForSubpageInputFocus('projects')
+    expect(loader.queries.length).toBeGreaterThan(0)
     expect(screen.getByTestId('loading-projects')).toBeInTheDocument()
 
     await user.type(screen.getByTestId('input-projects'), 'zebra')

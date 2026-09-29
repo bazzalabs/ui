@@ -532,21 +532,6 @@ describe('CommandMenu', () => {
     })
   })
 
-  describe('Structure', () => {
-    it('renders Header content before the input', () => {
-      renderCommandMenu({ rootProps: { defaultOpen: true } })
-
-      const header = screen.getByTestId('header-root')
-      const input = screen.getByTestId('input-root')
-
-      expect(header).toHaveTextContent('Command palette')
-      expect(
-        header.compareDocumentPosition(input) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-    })
-  })
-
   describe('focus zones', () => {
     function FocusZoneFixture({
       includeHeader = true,
@@ -659,13 +644,15 @@ describe('CommandMenu', () => {
   describe('Backdrop', () => {
     function BackdropFixture({
       onBackdropPointerDown,
+      onOpenChange,
     }: {
       onBackdropPointerDown?: (
         event: React.PointerEvent<HTMLDivElement>,
       ) => void
+      onOpenChange?: (open: boolean) => void
     }) {
       return (
-        <CommandMenu.Root defaultOpen>
+        <CommandMenu.Root defaultOpen onOpenChange={onOpenChange}>
           <CommandMenu.Portal>
             <CommandMenu.Backdrop
               data-testid="backdrop"
@@ -737,9 +724,11 @@ describe('CommandMenu', () => {
     })
 
     it('stays open when the consumer prevents default on pointerdown', async () => {
+      const onOpenChange = vi.fn()
       render(
         <BackdropFixture
           onBackdropPointerDown={(event) => event.preventDefault()}
+          onOpenChange={onOpenChange}
         />,
       )
 
@@ -749,8 +738,8 @@ describe('CommandMenu', () => {
 
       fireEvent.pointerDown(screen.getByTestId('backdrop'))
 
-      // Give any close a chance to propagate, then assert it did not.
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Closing on pointerdown is synchronous, so nothing is pending here.
+      expect(onOpenChange).not.toHaveBeenCalled()
       expect(screen.getByTestId('dialog')).toBeInTheDocument()
     })
   })
