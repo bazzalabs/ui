@@ -4,10 +4,26 @@ import plugin, {
   directiveProblem,
   parseDirective,
 } from './bazza-plugin.mjs'
-import { type Finding, lintWith, lintWithRepoConfig } from './harness.ts'
+import {
+  type Finding,
+  fixWith,
+  lintWith,
+  lintWithRepoConfig,
+} from './harness.ts'
 
 const lines = (findings: readonly Finding[]) => findings.map((f) => f.line)
 const rules = (findings: readonly Finding[]) => findings.map((f) => f.rule)
+
+/** Every `bazza/*` rule except `disable-needs-reason`, as oxlint reports them. */
+const partRules = new Set(
+  [...bazzaRuleNames]
+    .filter((name) => name !== 'disable-needs-reason')
+    .map((name) => `bazza(${name})`),
+)
+/** Lints with the repo config, dropping findings from the part-shape rules. */
+const lintIgnoringPartRules = async (
+  files: Parameters<typeof lintWithRepoConfig>[0],
+) => (await lintWithRepoConfig(files)).filter((f) => !partRules.has(f.rule))
 
 describe('bazza/disable-needs-reason', () => {
   it('accepts a one-line exception that names its rule and gives a reason', async () => {
@@ -145,6 +161,361 @@ export const a = 1
   })
 })
 
+describe('bazza/use-client', () => {
+  it("accepts a module whose prologue has 'use client'", async () => {
+    const findings = await lintWith('bazza/use-client', {
+      'a.tsx': `// Copyright header
+'use strict'
+'use client'
+export const a = 1
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('reports a module without it, including one that mentions it later', async () => {
+    const findings = await lintWith('bazza/use-client', {
+      'a.tsx': `import * as React from 'react'
+'use client'
+export const A = () => React.useId()
+`,
+    })
+    expect(lines(findings)).toEqual([1])
+  })
+
+  it('can be disabled for a file with a comment above its first statement', async () => {
+    const findings = await lintWith('bazza/use-client', {
+      'a.ts': `// oxlint-disable-next-line bazza/use-client -- server-only helper
+export const a = 1
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('adds the directive with --fix', async () => {
+    expect(
+      await fixWith('bazza/use-client', 'a.ts', "import { x } from './x'\n"),
+    ).toBe("'use client'\n\nimport { x } from './x'\n")
+  })
+})
+
+describe('bazza/forward-ref-named', () => {
+  it('accepts named function expressions and named functions passed by name', async () => {
+    const findings = await lintWith('bazza/forward-ref-named', {
+      'a.tsx': `import * as React from 'react'
+import { forwardRef } from 'react'
+function SelectItemImpl<V>(props: { value: V }, ref: React.Ref<HTMLDivElement>) {
+  return <div ref={ref} />
+}
+export const A = React.forwardRef(function A(props, forwardedRef) {
+  return <div ref={forwardedRef} {...props} />
+})
+export const B = forwardRef(SelectItemImpl) as <V>(props: { value: V }) => React.ReactElement
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('follows a name to its declaration in the module', async () => {
+    const findings = await lintWith('bazza/forward-ref-named', {
+      'a.tsx': `import * as React from 'react'
+import { forwardRef as fr } from 'react'
+import { renderItem } from './render'
+const ArrowImpl = (props: object, ref: React.Ref<HTMLDivElement>) => <div ref={ref} />
+const NamedImpl = function NamedImpl(props: object, ref: React.Ref<HTMLDivElement>) {
+  return <div ref={ref} />
+}
+export const A = React.forwardRef(ArrowImpl)
+export const B = React.forwardRef(NamedImpl)
+export const C = React.forwardRef(renderItem)
+export const D = fr((props, ref) => <div ref={ref} />)
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.split('.')[0]])).toEqual([
+      [
+        8,
+        '`forwardRef` wraps `ArrowImpl`, which is an arrow or anonymous function',
+      ],
+      [
+        10,
+        "Can't tell whether `renderItem` is a named function: declare it in this module with `function renderItem(…)`",
+      ],
+      [11, '`forwardRef` wraps an anonymous function'],
+    ])
+  })
+
+  it('reports arrows, anonymous functions and shapes it cannot follow', async () => {
+    const findings = await lintWith('bazza/forward-ref-named', {
+      'a.tsx': `import * as React from 'react'
+export const A = React.forwardRef((props, ref) => <div ref={ref} />)
+export const B = React.forwardRef(function (props, ref) {
+  return <div ref={ref} />
+})
+export const C = React.forwardRef(makeRender())
+`,
+    })
+    expect(lines(findings)).toEqual([2, 3, 6])
+    expect(findings[0]?.message).toContain('anonymous function')
+    expect(findings[2]?.message).toContain("Can't tell")
+  })
+})
+
+describe('bazza/part-namespace', () => {
+  const part = (
+    namespace: string,
+    extra = '',
+  ) => `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+export interface PartState extends Record<string, unknown> {}
+export interface PartProps {}
+export const Part = React.forwardRef<HTMLDivElement, Part.Props>(function Part(props, forwardedRef) {
+  const state: PartState = {}
+  return useRender({ ref: forwardedRef, state, props, defaultTagName: 'div' })
+})
+${namespace}
+${extra}`
+
+  it('accepts a part with State and Props on its namespace', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': part(`export namespace Part {
+  export type State = PartState
+  export interface Props extends PartProps {}
+}`),
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('reports a missing namespace, a missing Props, and a missing State', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'none.tsx': part(''),
+      'no-props.tsx': part(
+        'export namespace Part { export type State = PartState }',
+      ),
+      'no-state.tsx': part(
+        'export namespace Part { export interface Props extends PartProps {} }',
+      ),
+    })
+    expect(
+      findings.map((f) => [f.file, f.message.match(/has no (.+?) type/)?.[1]]),
+    ).toEqual([
+      ['no-props.tsx', '`Part.Props`'],
+      ['no-state.tsx', '`Part.State`'],
+      ['none.tsx', '`Part.State` or `Part.Props`'],
+    ])
+  })
+
+  it('needs no State when the part passes none to useRender', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+export const Part = React.forwardRef(function Part(props, ref) {
+  return <div ref={ref} />
+})
+export namespace Part { export type Props = React.ComponentProps<'div'> }
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('requires State only for the part whose own render passes state', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+function WithStateImpl(props: object, ref: React.Ref<HTMLDivElement>) {
+  return useRender({ ref, state: {}, props, defaultTagName: 'div' })
+}
+export const WithState = React.forwardRef(WithStateImpl)
+export namespace WithState { export interface Props {} }
+export const Plain = React.forwardRef(function Plain(props, ref) {
+  return <div ref={ref} />
+})
+export namespace Plain { export interface Props {} }
+`,
+    })
+    expect(
+      findings.map((f) => [f.line, f.message.match(/has no (.+?) type/)?.[1]]),
+    ).toEqual([[6, '`WithState.State`']])
+  })
+
+  it('finds parts wrapped in memo or built with an aliased forwardRef', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+import { forwardRef as fr } from 'react'
+export const Memo = React.memo(React.forwardRef(function Memo(props, ref) {
+  return <div ref={ref} />
+}))
+export const Aliased = fr(function Aliased(props, ref) {
+  return <div ref={ref} />
+})
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([3, 6])
+  })
+
+  it('counts only exported namespace members', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': part(
+        'export namespace Part { type State = PartState; interface Props extends PartProps {} }',
+      ),
+    })
+    expect(findings[0]?.message).toContain('`Part.State` or `Part.Props`')
+  })
+
+  it('recognises useRender by alias and ignores components nested in the render', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+import { useRender as useBaseRender } from '@base-ui/react/use-render'
+export const Aliased = React.forwardRef(function Aliased(props, ref) {
+  return useBaseRender({ ref, state: {}, props, defaultTagName: 'div' })
+})
+export namespace Aliased { export interface Props {} }
+export const Outer = React.forwardRef(function Outer(props, ref) {
+  function Inner() {
+    return useBaseRender({ state: {}, props: {}, defaultTagName: 'span' })
+  }
+  return <div ref={ref}><Inner /></div>
+})
+export namespace Outer { export interface Props {} }
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([3])
+  })
+
+  it("asks for State when it can't find or read the render function", async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+import { renderItem } from './render'
+const CastImpl = function CastImpl(props: object, ref: React.Ref<HTMLDivElement>) {
+  return useRender({ ref, state: {}, props, defaultTagName: 'div' })
+} as (props: object, ref: React.Ref<HTMLDivElement>) => React.ReactElement
+export const Cast = React.forwardRef(CastImpl)
+export namespace Cast { export interface Props {} }
+export const Imported = React.forwardRef(renderItem)
+export namespace Imported { export interface Props {} }
+export declare namespace Declared { interface Props {} }
+export const Declared = React.forwardRef(function Declared(props, ref) {
+  return <div ref={ref} />
+})
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.slice(0, 40)])).toEqual([
+      [7, 'Part `Cast` has no `Cast.State` type. Co'],
+      [9, "Can't tell whether part `Imported` passe"],
+    ])
+  })
+
+  it('merges namespace blocks declared more than once', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': part(`export namespace Part { export type State = PartState }
+export namespace Part { export interface Props extends PartProps {} }`),
+    })
+    expect(findings).toEqual([])
+  })
+
+  it("reports a part whose useRender options it can't read", async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+import { useRender } from '@base-ui/react/use-render'
+export const Part = React.forwardRef(function Part(props, ref) {
+  const options = { ref, props, defaultTagName: 'div' as const }
+  return useRender(options)
+})
+export namespace Part { export interface Props {} }
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([3])
+    expect(findings[0]?.message).toContain(
+      "Can't tell whether part `Part` passes `state`",
+    )
+  })
+
+  it('checks parts exported by name and generic parts behind a cast, not internal ones', async () => {
+    const findings = await lintWith('bazza/part-namespace', {
+      'a.tsx': `import * as React from 'react'
+function ItemImpl(props: object, ref: React.Ref<HTMLDivElement>) {
+  return <div ref={ref} />
+}
+const Item = React.forwardRef(ItemImpl) as (props: object) => React.ReactElement
+const Inner = React.forwardRef(function Inner(props, ref) {
+  return <div ref={ref} />
+})
+export { Item }
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([5])
+  })
+})
+
+describe('bazza/data-attrs-enum', () => {
+  it('accepts named enums and enums re-exported by name', async () => {
+    const findings = await lintWith('bazza/data-attrs-enum', {
+      'item.data-attrs.ts': `export { PopupMenuItemDataAttributes } from './popup.data-attrs.js'
+export enum ItemDataAttributes {
+  highlighted = 'data-highlighted',
+}
+`,
+      'positioner.css-vars.ts': `export enum PositionerCssVars {
+  availableWidth = '--available-width',
+}
+`,
+    })
+    expect(findings).toEqual([])
+  })
+
+  it('reports as-const objects, badly named enums and wildcard re-exports', async () => {
+    const findings = await lintWith('bazza/data-attrs-enum', {
+      'item.data-attrs.ts': `export const ItemDataAttributes = {
+  highlighted: 'data-highlighted',
+} as const
+export enum ItemAttrs { a = 'data-a' }
+export * from './other.js'
+`,
+      'positioner.css-vars.ts': `export enum PositionerVars { a = '--a' }
+`,
+    })
+    expect(findings.map((f) => [f.file, f.line])).toEqual([
+      ['item.data-attrs.ts', 1],
+      ['item.data-attrs.ts', 4],
+      ['item.data-attrs.ts', 5],
+      ['positioner.css-vars.ts', 1],
+    ])
+    expect(findings[0]?.message).toContain('as const')
+  })
+
+  it('checks what a local export list points at', async () => {
+    const findings = await lintWith('bazza/data-attrs-enum', {
+      'item.data-attrs.ts': `const ItemDataAttributes = { a: 'data-a' } as const
+enum ItemStateDataAttributes { b = 'data-b' }
+export { ItemDataAttributes, ItemStateDataAttributes }
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([3])
+    expect(findings[0]?.message).toContain('as const')
+  })
+
+  it('accepts enums re-exported from data-attribute files only', async () => {
+    const findings = await lintWith('bazza/data-attrs-enum', {
+      'item.data-attrs.ts': `import { PopupDataAttributes } from './popup.data-attrs.js'
+import { FOO } from './constants.js'
+export { PopupDataAttributes }
+export { FOO as FooDataAttributes }
+export { BarDataAttributes } from './bar.js'
+`,
+    })
+    expect(findings.map((f) => f.line)).toEqual([4, 5])
+    expect(findings[0]?.message).toContain(
+      "Can't tell whether `FooDataAttributes`",
+    )
+  })
+
+  it('reports a file whose name says neither kind', async () => {
+    const findings = await lintWith('bazza/data-attrs-enum', {
+      'item.tsx': 'export enum ItemDataAttributes { a = "data-a" }\n',
+    })
+    expect(findings[0]?.message).toContain("Can't tell whether this is")
+  })
+})
+
 describe('the plugin', () => {
   it('registers exactly the rules listed in bazzaRuleNames', () => {
     expect(Object.keys(plugin.rules).sort()).toEqual([...bazzaRuleNames].sort())
@@ -193,7 +564,7 @@ export function Part({ open }: { open: boolean }) {
   return null
 }
 `
-    const findings = await lintWithRepoConfig({
+    const findings = await lintIgnoringPartRules({
       'packages/react/src/part.tsx': hook,
       'packages/react/src/part.test.tsx': hook,
     })
@@ -204,7 +575,7 @@ export function Part({ open }: { open: boolean }) {
   })
 
   it('accepts hooks in forwardRef render functions named `*Impl`', async () => {
-    const findings = await lintWithRepoConfig({
+    const findings = await lintIgnoringPartRules({
       'packages/react/src/item.tsx': `import * as React from 'react'
 function SelectItemImpl<Value>(props: { value: Value }, ref: React.Ref<HTMLDivElement>) {
   const [state] = React.useState(props.value)
@@ -217,7 +588,7 @@ export const SelectItem = React.forwardRef(SelectItemImpl)
   })
 
   it("blocks Base UI's private internals and the old package name", async () => {
-    const findings = await lintWithRepoConfig({
+    const findings = await lintIgnoringPartRules({
       'packages/react/src/a.ts': `import { useDirection } from '@base-ui/react/internals/direction-context'
 import { Popover } from '@base-ui-components/react/popover'
 import { useRender } from '@base-ui/react/use-render'
@@ -245,7 +616,7 @@ export function A({ open }: { open: boolean }) {
   })
 
   it('honours a reasoned oxlint exception', async () => {
-    const findings = await lintWithRepoConfig({
+    const findings = await lintIgnoringPartRules({
       'packages/react/src/part.tsx': `import * as React from 'react'
 export function Part({ open }: { open: boolean }) {
   // oxlint-disable-next-line react-hooks/rules-of-hooks -- fixture for the exception syntax
@@ -258,7 +629,7 @@ export function Part({ open }: { open: boolean }) {
   })
 
   it('does not honour eslint-disable comments', async () => {
-    const findings = await lintWithRepoConfig({
+    const findings = await lintIgnoringPartRules({
       'packages/react/src/part.tsx': `import * as React from 'react'
 export function Part({ open }: { open: boolean }) {
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -274,12 +645,38 @@ export function Part({ open }: { open: boolean }) {
   })
 
   it('exempts allowlisted files from their rule only', async () => {
-    const findings = await lintWithRepoConfig({
+    const findings = await lintIgnoringPartRules({
       'packages/react/src/select/positioner/positioner.tsx': `import { useDirection } from '@base-ui/react/internals/direction-context'
 export const a = useDirection // eslint-disable-line no-console
 `,
     })
     expect(rules(findings)).toEqual(['bazza(disable-needs-reason)'])
+  })
+
+  it('applies the part rules to shipped source only', async () => {
+    const shapeless = `import * as React from 'react'
+export const Part = React.forwardRef((props, ref) => <div ref={ref} />)
+`
+    const findings = await lintWithRepoConfig({
+      'packages/react/src/part/part.tsx': shapeless,
+      'packages/react/src/part/part.test.tsx': shapeless,
+      'packages/react/test/harness.tsx': shapeless,
+      'packages/react/src/part/part.data-attrs.ts':
+        'export const PartDataAttributes = { a: 1 } as const\n',
+      'packages/react/src/part/part-context.ts': 'export const a = 1\n',
+      'packages/react/src/part/helpers.ts': 'export const a = 1\n',
+    })
+    expect(
+      findings
+        .map((f) => `${f.file.replace('packages/react/src/', '')} ${f.rule}`)
+        .sort(),
+    ).toEqual([
+      'part/part-context.ts bazza(use-client)',
+      'part/part.data-attrs.ts bazza(data-attrs-enum)',
+      'part/part.tsx bazza(forward-ref-named)',
+      'part/part.tsx bazza(part-namespace)',
+      'part/part.tsx bazza(use-client)',
+    ])
   })
 
   it.each([
@@ -299,8 +696,8 @@ export class Store {
 `,
     ],
   ])('exempts %s from its allowlisted rule', async (path, source) => {
-    expect(await lintWithRepoConfig({ [path]: source })).toEqual([])
+    expect(await lintIgnoringPartRules({ [path]: source })).toEqual([])
     const elsewhere = path.replace(/[^/]+$/, 'other.tsx')
-    expect(await lintWithRepoConfig({ [elsewhere]: source })).not.toEqual([])
+    expect(await lintIgnoringPartRules({ [elsewhere]: source })).not.toEqual([])
   })
 })

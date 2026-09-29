@@ -6,4 +6,10 @@
  * when it matches a directive to a rule: `use-client` and `foo/use-client`
  * both disable `bazza/use-client`.
  */
-export const bazzaRuleNames = new Set(['disable-needs-reason'])
+export const bazzaRuleNames = new Set([
+  'data-attrs-enum',
+  'disable-needs-reason',
+  'forward-ref-named',
+  'part-namespace',
+  'use-client',
+])
