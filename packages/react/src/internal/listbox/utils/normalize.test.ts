@@ -7,11 +7,18 @@ describe('deburr', () => {
     expect(deburr('niño')).toBe('nino')
     expect(deburr('munição')).toBe('municao')
     expect(deburr('Málaga')).toBe('Malaga')
-  })
-
-  it('handles combining marks across a whole word', () => {
     expect(deburr('résumé')).toBe('resume')
     expect(deburr('naïve')).toBe('naive')
+  })
+
+  it('keeps vowel signs, which are letters rather than accents', () => {
+    expect(deburr('कि')).toBe('कि')
+    expect(deburr('กิน')).toBe('กิน')
+  })
+
+  it('strips non-ASCII spacing diacritics', () => {
+    expect(deburr('Hawaiʻi')).toBe('Hawaii')
+    expect(deburr('col·lecció')).toBe('colleccio')
   })
 
   it('leaves non-decomposable characters unchanged', () => {
@@ -20,12 +27,9 @@ describe('deburr', () => {
     expect(deburr('Łódź')).toBe('Łodz')
   })
 
-  it('leaves plain ASCII untouched', () => {
+  it('leaves plain ASCII untouched, including accent-like punctuation', () => {
     expect(deburr('hello world')).toBe('hello world')
-  })
-
-  it('handles empty string', () => {
-    expect(deburr('')).toBe('')
+    expect(deburr('a^b`c~d')).toBe('a^b`c~d')
   })
 })
 
