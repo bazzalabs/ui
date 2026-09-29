@@ -17,8 +17,9 @@ describe('commandScore', () => {
   })
 
   it('matches against keywords', () => {
+    expect(commandScore('United States', 'america')).toBe(0)
     expect(
-      commandScore('United States', 'usa', ['usa', 'america']),
+      commandScore('United States', 'america', ['usa', 'america']),
     ).toBeGreaterThan(0)
   })
 
@@ -69,8 +70,11 @@ describe('commandScore', () => {
       )
     })
 
-    it('matches accented keywords', () => {
-      expect(commandScore('Brazil', 'sao', ['São Paulo'])).toBeGreaterThan(0)
+    it('matches accented keywords as well as unaccented ones', () => {
+      expect(commandScore('Brazil', 'sao', ['São Paulo'])).toBeCloseTo(
+        commandScore('Brazil', 'sao', ['Sao Paulo']),
+        3,
+      )
     })
   })
 })
