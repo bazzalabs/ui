@@ -15,12 +15,31 @@ import { REASONS } from '../../utils/events/index.js'
 
 export interface CommandMenuRootProps {
   children: React.ReactNode
+  /** Whether the command menu is open. To render an uncontrolled menu, use `defaultOpen` instead. */
   open?: boolean
+  /**
+   * Whether the command menu is open when it first renders. To render a controlled menu, use `open` instead.
+   * @default false
+   */
   defaultOpen?: boolean
+  /** Called when the command menu opens or closes. */
   onOpenChange?: (open: boolean) => void
+  /** Called after the open or close animation finishes. */
   onOpenChangeComplete?: (open: boolean) => void
+  /**
+   * A keyboard shortcut that toggles the menu from anywhere on the page, such as `'mod+k'`.
+   * `mod` is Command on Apple platforms and Control elsewhere. It also works while focus is in `CommandMenu.Input`, so the same shortcut closes the menu.
+   */
   hotkey?: string
+  /**
+   * Whether the menu is modal: page scroll is locked and outside elements can't be interacted with while it's open.
+   * @default true
+   */
   modal?: boolean
+  /**
+   * Whether the menu ignores the user opening or closing it: the trigger is disabled and the `hotkey` does nothing.
+   * @default false
+   */
   disabled?: boolean
   /**
    * Computes canonical Resolved IDs for data-first content from the Unresolved Menu Node (definitional facts only).
