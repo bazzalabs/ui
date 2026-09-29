@@ -52,6 +52,11 @@
       "import": "./dist/internal/listbox/index.js",
       "require": "./dist/internal/listbox/index.cjs"
     },
+    "./internal/selection": {
+      "types": "./dist/internal/selection/index.d.ts",
+      "import": "./dist/internal/selection/index.js",
+      "require": "./dist/internal/selection/index.cjs"
+    },
     "./internal/popup-menu": {
       "types": "./dist/internal/popup-menu/index.d.ts",
       "import": "./dist/internal/popup-menu/index.js",
