@@ -22,10 +22,6 @@ import {
   filterNodes,
   flattenNodes,
   getBrowseNodesPreserve,
-  isCheckboxGroupDef,
-  isCheckboxItemDef,
-  isRadioGroupDef,
-  isSubpageDef,
   scoreNodes,
 } from '../utils.js'
 
@@ -161,58 +157,6 @@ function createCheckboxGroupDef(
     ...options,
   }
 }
-
-// ============================================================================
-// Type Guard Tests
-// ============================================================================
-
-describe('Type Guards', () => {
-  describe('isCheckboxItemDef', () => {
-    it('should return true for checkbox items', () => {
-      const node = createCheckboxItemDef('cb1', 'Checkbox', true)
-      expect(isCheckboxItemDef(node)).toBe(true)
-    })
-
-    it('should return false for regular items', () => {
-      const node = createItemDef('item1', 'Item')
-      expect(isCheckboxItemDef(node)).toBe(false)
-    })
-
-    it('should return false for submenus', () => {
-      const node = createSubmenuDef('sub1', 'Submenu', [])
-      expect(isCheckboxItemDef(node)).toBe(false)
-    })
-  })
-
-  describe('isRadioGroupDef', () => {
-    it('should return true for radio groups', () => {
-      const node = createRadioGroupDef('rg1', 'value1', [])
-      expect(isRadioGroupDef(node)).toBe(true)
-    })
-
-    it('should return false for regular groups', () => {
-      const node = createGroupDef('g1', [])
-      expect(isRadioGroupDef(node)).toBe(false)
-    })
-
-    it('should return false for items', () => {
-      const node = createItemDef('item1', 'Item')
-      expect(isRadioGroupDef(node)).toBe(false)
-    })
-  })
-
-  describe('isSubpageDef', () => {
-    it('should return true for subpages', () => {
-      const node = createSubpageDef('subpage1', 'AI Filter', [])
-      expect(isSubpageDef(node)).toBe(true)
-    })
-
-    it('should return false for submenus', () => {
-      const node = createSubmenuDef('sub1', 'Submenu', [])
-      expect(isSubpageDef(node)).toBe(false)
-    })
-  })
-})
 
 // ============================================================================
 // CheckboxItemDef Tests
@@ -503,11 +447,6 @@ describe('CheckboxGroupDef', () => {
         createCheckboxItemDef('beta', 'Beta', false),
       ],
     )
-
-  it('recognizes checkbox group definitions only', () => {
-    expect(isCheckboxGroupDef(checkboxGroup())).toBe(true)
-    expect(isCheckboxGroupDef(createGroupDef('g1', []))).toBe(false)
-  })
 
   it('tracks checkbox group membership and resets other group contexts', () => {
     const nodes: NodeDef[] = [

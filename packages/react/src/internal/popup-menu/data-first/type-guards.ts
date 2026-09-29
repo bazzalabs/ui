@@ -4,14 +4,8 @@
 
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
-  CheckboxGroupDef,
-  CheckboxItemDef,
-  GroupDef,
-  ItemDef,
   LinkItemDef,
   NodeDef,
-  RadioGroupDef,
-  RadioItemDef,
   RowNodeDef,
   SubmenuDef,
   SubpageDef,
@@ -22,53 +16,13 @@ import type {
 // Type Guards
 // ============================================================================
 
-export function isItemDef(node: NodeDef): node is ItemDef {
-  return node.kind === 'item'
-}
-
 export function isLinkItemDef(node: NodeDef): node is LinkItemDef {
   return node.kind === 'link-item'
-}
-
-export function isRadioItemDef(node: NodeDef): node is RadioItemDef {
-  return node.kind === 'radio-item'
-}
-
-export function isCheckboxItemDef(node: NodeDef): node is CheckboxItemDef {
-  return node.kind === 'checkbox-item'
 }
 
 export function isTreeItemDef(node: NodeDef): node is TreeItemDef {
   return node.kind === 'tree-item'
 }
-
-export function isSubmenuDef(node: NodeDef): node is SubmenuDef {
-  return node.kind === 'submenu'
-}
-
-export function isSubpageDef(node: NodeDef): node is SubpageDef {
-  return node.kind === 'subpage'
-}
-
-export function isGroupDef(node: NodeDef): node is GroupDef {
-  return node.kind === 'group'
-}
-
-export function isRadioGroupDef(node: NodeDef): node is RadioGroupDef {
-  return node.kind === 'radio-group'
-}
-
-export function isCheckboxGroupDef(node: NodeDef): node is CheckboxGroupDef {
-  return node.kind === 'checkbox-group'
-}
-
-export function isSeparatorDef(
-  node: NodeDef,
-): node is { kind: 'separator'; id: string } {
-  return node.kind === 'separator'
-}
-
-// ============================================================================
 
 // ============================================================================
 // Menu Node Guards
