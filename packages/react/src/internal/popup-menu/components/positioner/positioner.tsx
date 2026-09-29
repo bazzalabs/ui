@@ -389,8 +389,10 @@ export const PopupMenuPositioner = React.forwardRef<
       collisionAvoidance={collisionAvoidance}
       style={style}
       {...(slotAttr ? { [slotAttr]: '' } : {})}
-      // Override data-align to show 'list-start' when using list-start alignment
-      data-align={useListStartAlign ? 'list-start' : undefined}
+      // Override data-align to show 'list-start' when using list-start
+      // alignment. The key is omitted otherwise: Base UI's prop merge does not
+      // skip `undefined`, so passing it would erase Base UI's own `data-align`.
+      {...(useListStartAlign ? { 'data-align': 'list-start' } : {})}
       {...anchorProps}
       {...rest}
     />
