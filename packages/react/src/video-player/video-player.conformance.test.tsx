@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { describe, expect, it } from 'vitest'
-import { describeStateProps } from '../../test/state-props.js'
+import { describeConformance } from '../../test/conformance.js'
 import { VideoPlayer } from './index.js'
 
 // Only the slider parts are covered here: they inherit Base UI Slider props,
@@ -18,7 +18,7 @@ function Player(props: { children: React.ReactNode }) {
 
 const sliderState = { orientation: 'horizontal' }
 
-describeStateProps('VideoPlayer', [
+describeConformance('VideoPlayer', [
   {
     name: 'VideoPlayer.VolumeSlider',
     render: (p) => (
