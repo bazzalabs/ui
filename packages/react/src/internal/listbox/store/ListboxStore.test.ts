@@ -1295,6 +1295,85 @@ describe('ListboxStore', () => {
   })
 
   describe('controlled prop separation', () => {
+    describe('while open is controlled', () => {
+      // The app opens the menu through the prop alone, so the internal `open`
+      // field stays false and only the effective state is open.
+      function openThroughProp(
+        initialState?: Partial<ListboxState>,
+        context?: Partial<ListboxContext>,
+      ) {
+        const store = createStore({ ...initialState, open: false }, context)
+        store.update({ openProp: true })
+        return store
+      }
+
+      it('highlights the first enabled item when items register after opening', () => {
+        const store = openThroughProp()
+        registerItems(store, [
+          { id: 'disabled', value: 'Disabled', disabled: true },
+          { id: 'first', value: 'First' },
+        ])
+        expect(store.state.highlightedId).toBe('first')
+      })
+
+      it('highlights the first enabled virtual item when virtual items arrive', () => {
+        const store = openThroughProp({ virtualized: true }, { filter: false })
+        store.setVirtualItems([
+          { value: 'disabled', disabled: true },
+          { value: 'first' },
+        ])
+        expect(store.state.highlightedId).toBe('first')
+      })
+
+      it('highlights the first ordered item when ordered items are set after opening', () => {
+        const store = openThroughProp({}, { filter: false })
+        registerItems(store, [
+          { id: 'first', value: 'First' },
+          { id: 'second', value: 'Second' },
+        ])
+        store.setOrderedItems(['second', 'first'])
+        expect(store.state.highlightedId).toBe('second')
+      })
+
+      it('highlights the first ordered item when it registers after opening', () => {
+        const store = createStore({ open: false }, { filter: false })
+        store.setOrderedItems(['first', 'second'])
+        store.update({ openProp: true })
+        expect(store.state.highlightedId).toBeNull()
+        registerItems(store, [
+          { id: 'first', value: 'First' },
+          { id: 'second', value: 'Second' },
+        ])
+        expect(store.state.highlightedId).toBe('first')
+      })
+
+      it('applies a value auto-highlight', () => {
+        const store = openThroughProp({}, { autoHighlightFirst: 'second' })
+        registerItems(store, [
+          { id: 'first', value: 'First' },
+          { id: 'second', value: 'Second' },
+        ])
+        store.applyAutoHighlight()
+        expect(store.state.highlightedId).toBe('second')
+      })
+
+      it('highlights the first match after a search', () => {
+        const store = openThroughProp()
+        registerItems(store, [
+          { id: 'apple', value: 'Apple' },
+          { id: 'banana', value: 'Banana' },
+        ])
+        store.setSearch('Ban')
+        expect(store.state.highlightedId).toBe('banana')
+      })
+
+      it('clears the search when the prop closes it', () => {
+        const store = openThroughProp({ search: 'query' })
+        store.update({ openProp: false })
+        expect(store.state.search).toBe('')
+      })
+    })
+
     it('effective open resolves openProp over internal open', () => {
       const store = createStore({ open: false })
       store.update({ openProp: true })

@@ -850,7 +850,7 @@ export class ListboxStore extends ReactStore<
     }
 
     // Skip highlight validation if not in the right state
-    if (!this.state.virtualized || !this.state.open || items.length === 0) {
+    if (!this.state.virtualized || !this.select('open') || items.length === 0) {
       return
     }
 
@@ -885,7 +885,7 @@ export class ListboxStore extends ReactStore<
     }
 
     // Skip highlight update if not open
-    if (!this.state.open) {
+    if (!this.select('open')) {
       return
     }
 
@@ -917,7 +917,7 @@ export class ListboxStore extends ReactStore<
    * so submenus don't auto-open. No-op while closed.
    */
   highlightFirstOrderedItem() {
-    if (!this.state.open) return
+    if (!this.select('open')) return
     const items = this.context.orderedItems
     const firstRegisteredItem = items.find((id) => this.context.items.has(id))
     this.setHighlightedId(firstRegisteredItem ?? null, 'auto')
@@ -937,7 +937,7 @@ export class ListboxStore extends ReactStore<
     if (this.context.filter !== false) {
       return
     }
-    if (!this.state.open) {
+    if (!this.select('open')) {
       return
     }
     if (this.state.highlightedId !== null) {
@@ -1414,7 +1414,7 @@ export class ListboxStore extends ReactStore<
    * Called by Surface after updating the context to ensure correct value is used.
    */
   applyAutoHighlight() {
-    if (!this.state.open) return
+    if (!this.select('open')) return
 
     const autoHighlight = this.context.autoHighlightFirst
     if (autoHighlight === true) {
@@ -1597,7 +1597,7 @@ export class ListboxStore extends ReactStore<
     const searchChanged = newSearch !== undefined && newSearch !== prevSearch
 
     // If not open or autoHighlightFirst disabled, don't change anything
-    if (!this.state.open || !this.context.autoHighlightFirst) {
+    if (!this.select('open') || !this.context.autoHighlightFirst) {
       return this.state.highlightedId
     }
 

@@ -249,7 +249,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     const parentStore = parentListboxContext.store
     // Poll the parent store's open state
     const checkParentOpen = () => {
-      const isOpen = parentStore.state.open
+      const isOpen = parentStore.select('open')
       setParentOpen(isOpen)
     }
 

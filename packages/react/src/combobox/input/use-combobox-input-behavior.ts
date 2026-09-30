@@ -227,7 +227,7 @@ export function useComboboxInputBehavior(
       store.setSearch(newValue)
 
       // Open the combobox if not already open
-      if (!store.state.open) {
+      if (!store.select('open')) {
         // Mark that we're opening by typing so the effect doesn't overwrite the value
         openedByTypingRef.current = true
         comboboxContext.openCombobox()
@@ -242,7 +242,7 @@ export function useComboboxInputBehavior(
       onFocus?.(event)
       if (event.defaultPrevented) return
 
-      const isOpen = store.state.open
+      const isOpen = store.select('open')
 
       // If popup is already open, input is getting focus while open
       // Mark as already focused so click handler knows not to apply cursorBehavior
@@ -307,7 +307,7 @@ export function useComboboxInputBehavior(
       onClick?.(event)
       if (event.defaultPrevented) return
 
-      const isOpen = store.state.open
+      const isOpen = store.select('open')
 
       if (!disabled && !isOpen) {
         const inputElement = event.target as HTMLInputElement

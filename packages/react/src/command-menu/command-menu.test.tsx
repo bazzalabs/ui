@@ -6,7 +6,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type * as React from 'react'
+import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Kbd } from '../kbd/index.js'
 import { CommandMenu } from './index.js'
@@ -321,6 +321,47 @@ describe('CommandMenu', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('dialog')).not.toBeInTheDocument()
       })
+    })
+
+    it('highlights rows on controlled open and search', async () => {
+      const spies = createFixtureSpies()
+      function Controlled() {
+        const [open, setOpen] = React.useState(false)
+        return (
+          <>
+            <button type="button" onClick={() => setOpen(true)}>
+              External open
+            </button>
+            <CommandMenuFixture rootProps={{ open }} spies={spies} />
+          </>
+        )
+      }
+      const user = userEvent.setup()
+      render(<Controlled />)
+      await user.click(screen.getByText('External open'))
+      await waitFor(() =>
+        expect(screen.getByTestId('item-open-file')).toHaveAttribute(
+          'data-highlighted',
+        ),
+      )
+      await user.type(screen.getByTestId('input-root'), 'copy')
+      await waitFor(() =>
+        expect(screen.getByTestId('item-copy-link')).toHaveAttribute(
+          'data-highlighted',
+        ),
+      )
+    })
+
+    it('hotkey requests close when controlled open starts true', async () => {
+      const onOpenChange = vi.fn()
+      renderCommandMenu({
+        rootProps: { hotkey: 'ctrl+k', onOpenChange, open: true },
+      })
+      await waitFor(() =>
+        expect(screen.getByTestId('dialog')).toBeInTheDocument(),
+      )
+      fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
+      expect(onOpenChange.mock.calls.map(([open]) => open)).toEqual([false])
     })
 
     it('closes with Escape from the root page', async () => {
