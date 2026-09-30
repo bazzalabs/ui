@@ -19,6 +19,7 @@ import {
   isForwardRefCall,
   isFunction,
   keyName,
+  memberName,
   outermostWrapper,
   renderFunctionOf,
   unwrap,
@@ -97,11 +98,7 @@ function isChangedLater(variable, declaration) {
     if (write?.type !== 'AssignmentExpression' || write.left !== parent) {
       continue
     }
-    const key = parent.computed
-      ? parent.property.type === 'Literal'
-        ? String(parent.property.value)
-        : undefined
-      : parent.property.name
+    const key = memberName(parent)
     if (key === 'className' || key === 'style') return true
     if (unwrap(write.right)?.type !== 'Literal') return true
   }

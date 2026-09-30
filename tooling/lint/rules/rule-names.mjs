@@ -11,6 +11,7 @@ export const bazzaRuleNames = new Set([
   'data-attrs-enum',
   'disable-needs-reason',
   'forward-ref-named',
+  'no-raw-controlled-state',
   'no-spread-style',
   'part-namespace',
   'resolve-state-props',
@@ -19,7 +20,10 @@ export const bazzaRuleNames = new Set([
 
 /**
  * Rules about how shipped parts are written. They skip tests (see
- * `.oxlintrc.json`); the rest also run on tests.
+ * `.oxlintrc.json`), and repo-config tests that aren't about part shape filter
+ * them out. The rest run on tests too, except `no-raw-controlled-state`, which
+ * skips tests because they read a store's internal fields on purpose. It isn't
+ * a part-shape rule, so those tests still see it.
  */
 export const partShapeRuleNames = new Set([
   'context-hook-contract',
