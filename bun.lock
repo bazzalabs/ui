@@ -135,7 +135,7 @@
     },
     "packages/filters": {
       "name": "@bazza-ui/filters",
-      "version": "0.0.0-20260205122308",
+      "version": "0.4.0-canary.5",
       "devDependencies": {
         "@bazza-ui/typescript-config": "*",
         "@ndaidong/txtgen": "^4.0.1",
@@ -162,7 +162,7 @@
     },
     "packages/react": {
       "name": "@bazza-ui/react",
-      "version": "0.1.0-canary.16",
+      "version": "0.1.0-canary.17",
       "dependencies": {
         "@base-ui/react": "1.8.0",
         "@base-ui/utils": "0.4.0",
