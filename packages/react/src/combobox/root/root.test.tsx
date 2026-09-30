@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Combobox } from '../index.js'
 
@@ -161,6 +162,40 @@ function ControlledInputCombobox({
   )
 }
 
+function ExternallyOpenedCombobox({
+  onOpenChange,
+}: {
+  onOpenChange: (open: boolean) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        External open
+      </button>
+      <Combobox.Root open={open} onOpenChange={onOpenChange}>
+        <Combobox.Input data-testid="input" />
+        <Combobox.Portal>
+          <Combobox.Positioner>
+            <Combobox.Popup>
+              <Combobox.Surface>
+                <Combobox.List>
+                  <Combobox.Item data-testid="item-apple" value="apple">
+                    Apple
+                  </Combobox.Item>
+                  <Combobox.Item data-testid="item-banana" value="banana">
+                    Banana
+                  </Combobox.Item>
+                </Combobox.List>
+              </Combobox.Surface>
+            </Combobox.Popup>
+          </Combobox.Positioner>
+        </Combobox.Portal>
+      </Combobox.Root>
+    </>
+  )
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -208,6 +243,25 @@ describe('<Combobox.Root />', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
       })
+    })
+
+    it('highlights rows and does not request reopening while controlled open', async () => {
+      const onOpenChange = vi.fn()
+      const user = userEvent.setup()
+      render(<ExternallyOpenedCombobox onOpenChange={onOpenChange} />)
+      await user.click(screen.getByText('External open'))
+      await waitFor(() =>
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-highlighted',
+        ),
+      )
+      await user.type(screen.getByTestId('input'), 'ban')
+      await waitFor(() =>
+        expect(screen.getByTestId('item-banana')).toHaveAttribute(
+          'data-highlighted',
+        ),
+      )
+      expect(onOpenChange.mock.calls.map(([open]) => open)).not.toContain(true)
     })
   })
 

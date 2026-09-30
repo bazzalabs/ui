@@ -125,7 +125,7 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
 
   useHotkey(
     hotkey ?? '',
-    () => handleOpenChange(!store.state.open, REASONS.imperativeAction),
+    () => handleOpenChange(!store.select('open'), REASONS.imperativeAction),
     // allowInInput keeps the hotkey working as a *toggle*: while the menu is
     // open, focus sits in the search input, so the close press must be allowed
     // to fire from an editable target.

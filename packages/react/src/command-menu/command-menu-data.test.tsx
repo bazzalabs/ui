@@ -210,6 +210,49 @@ describe('CommandMenu data-first API', () => {
     expect(screen.queryByTestId('item-deploy-preview')).not.toBeInTheDocument()
   })
 
+  it('highlights ordered rows on controlled open and search', async () => {
+    const nodes: NodeDef[] = [
+      createItemDef('open-file', 'Open file'),
+      createItemDef('copy-link', 'Copy link'),
+    ]
+    function Controlled() {
+      const [open, setOpen] = React.useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            External open
+          </button>
+          <CommandMenu.Root open={open}>
+            <CommandMenu.Portal>
+              <CommandMenu.Popup>
+                <CommandMenu.Surface content={nodes}>
+                  <CommandMenu.Input data-testid="input-root" />
+                  <CommandMenu.List>
+                    <DataRows />
+                  </CommandMenu.List>
+                </CommandMenu.Surface>
+              </CommandMenu.Popup>
+            </CommandMenu.Portal>
+          </CommandMenu.Root>
+        </>
+      )
+    }
+    const user = userEvent.setup()
+    render(<Controlled />)
+    await user.click(screen.getByText('External open'))
+    await waitFor(() =>
+      expect(screen.getByTestId('item-open-file')).toHaveAttribute(
+        'data-highlighted',
+      ),
+    )
+    await user.type(screen.getByTestId('input-root'), 'copy')
+    await waitFor(() =>
+      expect(screen.getByTestId('item-copy-link')).toHaveAttribute(
+        'data-highlighted',
+      ),
+    )
+  })
+
   it('renders subpage defs, navigates to page content, and returns on empty Backspace', async () => {
     const user = userEvent.setup()
     const nodes: NodeDef[] = [
