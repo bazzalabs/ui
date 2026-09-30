@@ -181,6 +181,20 @@ if (!isVisible) return null
 return element
 ```
 
+## Store state
+
+`ListboxStore` (the store behind every menu, select, and combobox) keeps a controlled value in two fields: the internal one (`open`, `search`) and the one synced from the prop with `store.useControlledProp(…)` (`openProp`, synced by each root; `searchProp`, synced by the surface). The effective value is `openProp ?? open`. While an app controls the prop, the internal field goes stale: an app that opens a menu through `open` leaves `state.open` at `false`.
+
+Read the effective value through the store's selectors, never the internal field:
+
+```typescript
+if (!store.select('open')) return          // in handlers, effects, and store methods
+const open = store.useState('open')        // in render
+const search = state.searchProp ?? state.search  // spelled out by hand, when a selector doesn't fit
+```
+
+Write with the store's actions (`setOpen`, `setSearch`), which call the consumer's callback and update the internal field. `bazza/no-raw-controlled-state` reports reads of `state.open` and `state.search`, including through a `const s = store.state` alias and `const { open } = store.state`.
+
 ## Lint
 
 `bun run check` runs Biome on the repo, then oxlint on this package. oxlint runs the `bazza/*` rules from `tooling/lint` plus built-in rules that have no active Biome equivalent:

@@ -818,6 +818,123 @@ export function helper(item: { style?: object }) {
   })
 })
 
+describe('bazza/no-raw-controlled-state', () => {
+  it('reports reads of the internal open and search values, directly, through an alias, and destructured', async () => {
+    const findings = await lintWith('bazza/no-raw-controlled-state', {
+      'a.ts': `export class Store {
+  state = { open: false, openProp: undefined as boolean | undefined, search: '', searchProp: undefined as string | undefined }
+  guard() {
+    if (!this.state.open) return
+    return this.state['search']
+  }
+}
+export function onKey(store: Store) {
+  const state = store.state
+  const { open, search: query } = store.state
+  return [!store.state.open, state.search, (store.state as Store['state']).open, open, query]
+}
+`,
+    })
+    expect(lines(findings)).toEqual([4, 5, 10, 10, 11, 11, 11])
+  })
+
+  it('accepts the effective value spelled out, writes, other fields and other objects', async () => {
+    const findings = await lintWith('bazza/no-raw-controlled-state', {
+      'a.ts': `type State = { open: boolean; openProp?: boolean; search: string; searchProp?: string; highlightedId: string | null }
+export const selectOpen = (state: State) => state.open
+export function read(store: { state: State }, menu: { open: boolean }, other: { state: State }) {
+  const search = store.state.searchProp ?? store.state.search
+  store.state.open = true
+  store.state.search ||= 'query'
+  delete store.state.search
+  return [search, store.state.highlightedId, store.state.openProp, menu.open, other.state.openProp ?? store.state.open]
+}
+`,
+    })
+    expect(lines(findings)).toEqual([6, 8])
+  })
+
+  it('reports the reads that left controlled menus without a highlight', async () => {
+    const findings = await lintWith('bazza/no-raw-controlled-state', {
+      'store.ts': `export class ListboxStore {
+  setVirtualItems(items: unknown[]) {
+    if (!this.state.virtualized || !this.state.open || items.length === 0) {
+      return
+    }
+  }
+  setOrderedItems(items: string[]) {
+    if (!this.state.open) {
+      return
+    }
+  }
+  highlightFirstOrderedItem() {
+    if (!this.state.open) return
+  }
+  maybeAutoHighlightOnRegister(id: string) {
+    if (!this.state.open) {
+      return
+    }
+  }
+  applyAutoHighlight() {
+    if (!this.state.open) return
+  }
+  validateHighlight() {
+    if (!this.state.open || !this.context.autoHighlightFirst) {
+      return this.state.highlightedId
+    }
+  }
+}
+`,
+      'root.tsx': `export function CommandMenuRoot({ store, hotkey, handleOpenChange }) {
+  useHotkey(hotkey, () => handleOpenChange(!store.state.open, 'imperative-action'))
+}
+`,
+      'input.ts': `export function useComboboxInputBehavior(store, comboboxContext) {
+  const handleChange = React.useCallback((newValue: string) => {
+    store.setSearch(newValue)
+    if (!store.state.open) {
+      comboboxContext.openCombobox()
+    }
+  }, [store])
+  const handleFocus = React.useCallback(() => {
+    const isOpen = store.state.open
+    return isOpen
+  }, [store])
+  const handleClick = React.useCallback(() => {
+    const isOpen = store.state.open
+    return isOpen
+  }, [store])
+  return { handleChange, handleFocus, handleClick }
+}
+`,
+      'submenu-root.tsx': `export function SubmenuRoot({ parentListboxContext, setParentOpen }) {
+  React.useEffect(() => {
+    const parentStore = parentListboxContext.store
+    const checkParentOpen = () => {
+      const isOpen = parentStore.state.open
+      setParentOpen(isOpen)
+    }
+    return parentStore.observe('open', checkParentOpen)
+  }, [parentListboxContext])
+}
+`,
+    })
+    expect(findings.map((f) => `${f.file}:${f.line}`)).toEqual([
+      'input.ts:4',
+      'input.ts:9',
+      'input.ts:13',
+      'root.tsx:2',
+      'store.ts:3',
+      'store.ts:8',
+      'store.ts:13',
+      'store.ts:16',
+      'store.ts:21',
+      'store.ts:24',
+      'submenu-root.tsx:5',
+    ])
+  })
+})
+
 describe('bazza/context-hook-contract', () => {
   it('accepts hooks that throw, fall back, or say Maybe, and non-null contexts', async () => {
     const findings = await lintWith('bazza/context-hook-contract', {
@@ -1076,6 +1193,21 @@ export const parts = [useDirection, Popover, useRender]
     expect(rules(findings)).toEqual([
       'eslint(no-restricted-imports)',
       'eslint(no-restricted-imports)',
+    ])
+  })
+
+  it('reports raw controlled store reads in shipped source, not in tests', async () => {
+    const source = `export function isOpen(store: { state: { open: boolean } }) {
+  return store.state.open
+}
+`
+    const findings = await lintIgnoringPartRules({
+      'packages/react/src/a.ts': source,
+      'packages/react/src/a.test.ts': source,
+      'packages/react/test/harness.ts': source,
+    })
+    expect(findings.map((f) => `${f.file} ${f.rule}`)).toEqual([
+      'packages/react/src/a.ts bazza(no-raw-controlled-state)',
     ])
   })
 

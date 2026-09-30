@@ -12,7 +12,7 @@
  * part's or component's own props count: the props a Base UI render callback
  * receives are already resolved.
  */
-import { unwrap, variableOf } from './ast.mjs'
+import { memberName, unwrap, variableOf } from './ast.mjs'
 import { originOf, partRenderFunctions } from './state-props.mjs'
 
 const isComposeStyleCall = (node) =>
@@ -57,12 +57,7 @@ export const noSpreadStyle = {
         return [...candidates(origin.alias)].some((v) => isStyleProp(v, seen))
       }
       if (node.type !== 'MemberExpression') return false
-      const key = node.computed
-        ? node.property.type === 'Literal'
-          ? node.property.value
-          : undefined
-        : node.property.name
-      if (key !== 'style') return false
+      if (memberName(node) !== 'style') return false
       const object = unwrap(node.object)
       // `child.props.style`: another element's props, which may hold a function.
       if (

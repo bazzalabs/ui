@@ -55,6 +55,12 @@
       }
     },
     {
+      // Store reads: shipped source only. Tests read a store's internal
+      // fields on purpose, to check them apart from the effective value.
+      "files": ["packages/react/src/**/*.{ts,tsx}"],
+      "rules": { "bazza/no-raw-controlled-state": "error" }
+    },
+    {
       "files": [
         "packages/react/src/**/*.tsx",
         "packages/react/src/**/*-context.ts"
@@ -74,6 +80,7 @@
       "rules": {
         "bazza/context-hook-contract": "off",
         "bazza/forward-ref-named": "off",
+        "bazza/no-raw-controlled-state": "off",
         "bazza/part-namespace": "off",
         "bazza/use-client": "off"
       }

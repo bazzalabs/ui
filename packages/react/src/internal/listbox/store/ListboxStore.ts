@@ -618,6 +618,7 @@ export class ListboxStore extends ReactStore<
 
     if (
       this.state.searchProp === undefined &&
+      // oxlint-disable-next-line bazza/no-raw-controlled-state -- search isn't controlled here, so the internal value is the effective one
       defaultSearch !== this.state.search
     ) {
       this.setSearch(defaultSearch)

@@ -149,6 +149,14 @@ export function keyName(property) {
     : undefined
 }
 
+/** The key a member expression reads: `a.b`, `a['b']`. Undefined when it's computed from a value. */
+export function memberName(member) {
+  if (!member.computed) return member.property.name
+  return member.property.type === 'Literal'
+    ? String(member.property.value)
+    : undefined
+}
+
 /**
  * The function `forwardRef` renders with: an inline function, or a function
  * declared at the top level of `program` and passed by name.
