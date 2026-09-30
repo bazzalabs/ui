@@ -1,5 +1,82 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.17
+
+### Minor Changes
+
+- [#527](https://github.com/bazzalabs/ui/pull/527) [`cc5d8dd`](https://github.com/bazzalabs/ui/commit/cc5d8dd97fe27d9c1fe8285e68a4b7c9994a69ec) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `asyncContentMode` to data-first surfaces. With `'append'`, rows from `asyncContent` are added after `content` instead of replacing it, and local rows stay ahead of loaded ones while searching. A loaded row with the same Resolved ID as a local row is dropped so the local row wins, and a loaded group with the same ID as a local group adds its new rows to that group. The default, `'replace'`, keeps today's behaviour.
+
+- [#528](https://github.com/bazzalabs/ui/pull/528) [`cea81b3`](https://github.com/bazzalabs/ui/commit/cea81b3eefd4cdd09418853f02e16755cecbf930) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `asyncContentReveal` to data-first surfaces. `'stream'` (the default) shows rows from `asyncContent` as soon as they load. `'block'` waits until the loader has finished for the current search and then shows everything at once; while a new search loads, the previous list stays on screen unchanged, without the loading state. `Empty` now waits until the surface's `asyncContent` has finished for the current search, so "no results" no longer shows while a refetch still holds the previous search's rows.
+
+- [#504](https://github.com/bazzalabs/ui/pull/504) [`ae86a2f`](https://github.com/bazzalabs/ui/commit/ae86a2fb9999592077a84727ebb2d32a5633c41d) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `CheckboxGroupDef` (`kind: 'checkbox-group'`) to the data-first API of the dropdown menu, context menu, and command menu, with `defineCheckboxGroup`, `CheckboxGroupRenderParams`, and a `checkboxGroupSearchBehavior` deep-search option that works like `radioGroupSearchBehavior`.
+
+- [#503](https://github.com/bazzalabs/ui/pull/503) [`ac064f9`](https://github.com/bazzalabs/ui/commit/ac064f9badbb8cbdc5537a7878487d33dd34e420) Thanks [@kianbazza](https://github.com/kianbazza)! - Add the `CheckboxGroup` part and the headless `CheckboxGroupValue` provider to the dropdown menu, context menu, and command menu. A checkbox group owns the checked state of the `CheckboxItem` parts inside it as one array of values and reports every change through a single `onValueChange`.
+
+- [#506](https://github.com/bazzalabs/ui/pull/506) [`171a20f`](https://github.com/bazzalabs/ui/commit/171a20fcb43ca50ac3d0dab92449f7652b5a37d7) Thanks [@kianbazza](https://github.com/kianbazza)! - Render data-first checkbox groups in lists, submenus, subpages, and deep-search results. Rows inside a `CheckboxGroupDef` read their checked state from the group automatically, so a custom `render` only needs to shape the container.
+
+- [#508](https://github.com/bazzalabs/ui/pull/508) [`b1bfc02`](https://github.com/bazzalabs/ui/commit/b1bfc02c7493f7b453438fc321d4ee256f2cc1f1) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `rangeSelection`, `dragSelection`, and `getAriaSelectionText` props to the dropdown menu, context menu, and command menu roots, the `'range-selection'` and `'drag-selection'` change reasons, and a `data-pending` attribute on `CheckboxItem` for rows whose previewed checked state differs from the committed one. The gestures themselves land in follow-up changes.
+
+- [#510](https://github.com/bazzalabs/ui/pull/510) [`a5437c7`](https://github.com/bazzalabs/ui/commit/a5437c777d4009be52d5271489e996c3b82296d8) Thanks [@kianbazza](https://github.com/kianbazza)! - Add drag selection to the dropdown menu, context menu, and command menu. Set `dragSelection="keep"` or `dragSelection="rubber-band"` on the root, then press a checkbox item with a mouse or pen and drag across others to set them all to the pressed item's new state. Rows preview while dragging (`data-pending`) and commit once on release; Escape cancels.
+
+- [#512](https://github.com/bazzalabs/ui/pull/512) [`8d6ef8c`](https://github.com/bazzalabs/ui/commit/8d6ef8c09ab8f9c9cab287689b8dd4f2d47c4a40) Thanks [@kianbazza](https://github.com/kianbazza)! - Hold Shift while moving the highlight with the arrow keys, Home, or End to preview a span of checkbox items; releasing Shift commits it as one change. Escape cancels. This is the keyboard form of drag selection and follows the root's `rangeSelection` prop.
+
+- [#529](https://github.com/bazzalabs/ui/pull/529) [`070dc1e`](https://github.com/bazzalabs/ui/commit/070dc1ea940e421427393c09c7022f057bc1af53) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `debounce` to query loaders (`createQueryLoader`, `createSWRQueryLoader`, `createVanillaQueryLoader`). The loader receives the search only after it stops changing for that many milliseconds, and counts as fetching while it waits, so the menu doesn't show "no results" or treat the search as finished too early.
+
+- [#509](https://github.com/bazzalabs/ui/pull/509) [`77f15eb`](https://github.com/bazzalabs/ui/commit/77f15eb31747366a8470965545272db9ef4e5cd5) Thanks [@kianbazza](https://github.com/kianbazza)! - Add range selection to the dropdown menu, context menu, and command menu: shift-click a checkbox item, or press Shift+Enter on the highlighted one, to set every checkbox item between it and the last one you interacted with to the same state. On by default; turn it off with `rangeSelection={false}` on the root. A range never closes the menu.
+
+- [#513](https://github.com/bazzalabs/ui/pull/513) [`fd34cae`](https://github.com/bazzalabs/ui/commit/fd34cae57d08ef2f4ea1ed39bf389e00c57cc270) Thanks [@kianbazza](https://github.com/kianbazza)! - Menus announce range and drag selection commits to screen readers ("3 items checked") through a built-in polite status region. Override the text with the root's `getAriaSelectionText(count, checked)` for localization.
+
+- [#534](https://github.com/bazzalabs/ui/pull/534) [`a2035b5`](https://github.com/bazzalabs/ui/commit/a2035b52f70fb7a324517b54a0a182b33ab58b05) Thanks [@kianbazza](https://github.com/kianbazza)! - `SuggestionMenu` anchors the popup to the host's text. `anchor` is a function returning a `DOMRect`, measured again whenever the page or the field scrolls, so the popup follows the text. A new position is computed only when the rect changes, and returning `null` keeps the last position. `SuggestionMenu.Positioner` places the popup below and aligned to the start by default. If there's no room below, it opens above, and it stays on that side until it closes instead of flipping while the user types. It never moves beside the anchor, where it would cover the text.
+
+- [#533](https://github.com/bazzalabs/ui/pull/533) [`0a7cd71`](https://github.com/bazzalabs/ui/commit/0a7cd711965fe7e2c84de9530614781e08ebd1c5) Thanks [@kianbazza](https://github.com/kianbazza)! - `SuggestionMenu` gives the host input the right ARIA while open. An `<input>` becomes a combobox. A `<textarea>` or contenteditable keeps its textbox role and gets no `aria-expanded`. The host's own attributes come back when the menu closes. `aria-activedescendant` follows the highlight only after the user moves it with the keyboard, so screen readers keep reading what's typed. A status region announces the count of settled results and the row Enter would choose (for example "5 results, first: Alice Smith"); format it with the new `getAriaResultsText` prop.
+
+- [#532](https://github.com/bazzalabs/ui/pull/532) [`bd83e7b`](https://github.com/bazzalabs/ui/commit/bd83e7bf09042ccc491f6008be5d24fd935ef658) Thanks [@kianbazza](https://github.com/kianbazza)! - `SuggestionMenu` handles the keyboard from the host input. Pass key presses to `handle.handleKeyDown(event)`: while the menu is open, ↑/↓, Ctrl+N/P and Home/End move the highlight, Enter chooses the highlighted row, and Escape closes the menu without closing an enclosing dialog. It returns `true` when the menu used the key. Tab, caret keys, typing, modified keys and keys pressed during IME composition stay with the input. The menu closes when the input loses focus, but not when focus moves into the menu or the window loses focus, and pressing inside the menu keeps focus in the input.
+
+- [#535](https://github.com/bazzalabs/ui/pull/535) [`74af92f`](https://github.com/bazzalabs/ui/commit/74af92fa901f0f2be26cdf054c80bc024d5369a1) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `noResults` to `SuggestionMenu.Root`. With `'empty'` (the default) the menu stays open and shows `Empty` when nothing matches, and Enter reaches the host input. With `'close'` the menu closes once every search for the query has finished empty (reason `'no-results'`), before the empty popup is painted. An `update()` with the same query leaves it closed, for example when only the caret moved. An `update()` with any other query searches again. `SuggestionMenu.useAsyncMenuCoordinator` is available for showing a "searching…" indicator while results refetch.
+
+- [#536](https://github.com/bazzalabs/ui/pull/536) [`7265a98`](https://github.com/bazzalabs/ui/commit/7265a981ef315e4878743339f13f46ab76a61fe8) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `SuggestionMenu.attachTextTrigger(menu, field, { triggers })` and its React hook `SuggestionMenu.useTextTrigger(menu, { triggers })`, which make an `<input>` or `<textarea>` a suggestion menu host with no other code.
+
+  - Typing a trigger such as `@` opens the menu with the text after it as the query.
+  - The popup is anchored at the trigger character, laid out with the field's own font and wrapping, and it follows the field when it scrolls.
+  - Keys the menu uses are forwarded to it and go no further, so an app's own Enter handler doesn't also run.
+  - After Escape, or once a row is chosen, the menu stays closed until the trigger is typed again.
+  - A handle shared by several fields follows the one with focus.
+  - Each trigger can allow spaces, require the start of a line, or wait for a minimum query length.
+  - The payload is the match, with the `from`–`to` range to replace when a row is chosen. It's readable as `menu.payload`, alongside the new `menu.query`.
+
+- [#531](https://github.com/bazzalabs/ui/pull/531) [`7656130`](https://github.com/bazzalabs/ui/commit/765613013fe54ffc7f2c3523f6ad889bb046becc) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `SuggestionMenu` (`@bazza-ui/react/suggestion-menu`), a menu for `/` commands, `@` mentions and `:` emoji typed into an editor or text field. A handle created with `SuggestionMenu.createHandle()` connects the menu to its host input: the host attaches itself with `attach()`, opens or updates the menu with `update({ query, anchor, payload })` and closes it with `close()`, including from non-React editor code. DOM focus stays in the host input, the menu is never modal, and pressing the host input doesn't dismiss it.
+
+- [#530](https://github.com/bazzalabs/ui/pull/530) [`3ed70f5`](https://github.com/bazzalabs/ui/commit/3ed70f506d99bee0be0635433612d1035e9be476) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `keepPreviousData` to `createVanillaQueryLoader`. When enabled, the last results stay on screen while the next search loads, reported as a background refetch so `Loading` doesn't flash. The vanilla query loader also reports a new search as loading from the first render after it changes, instead of one render later.
+
+### Patch Changes
+
+- [#569](https://github.com/bazzalabs/ui/pull/569) [`25cc2bc`](https://github.com/bazzalabs/ui/commit/25cc2bcf0d05df1b3769dbc81ccd832e1606368a) Thanks [@kianbazza](https://github.com/kianbazza)! - Build with `tsdown` instead of `tsup`.
+
+  - Fixes the CommonJS entry points of `@bazza-ui/react`. `require('@bazza-ui/react/dropdown-menu')` and six other subpaths threw `SyntaxError: Unexpected token ','` because a shared chunk did not parse.
+  - `@bazza-ui/react` no longer ships `.d.cts` files. Types still resolve through the same `.d.ts` files for both `import` and `require`.
+  - `@bazza-ui/filters/tanstack-table` now also exports the `CreateTSTColumns` type, the parameter type of `createTSTColumns`.
+  - The published JavaScript is smaller. Runtime exports are unchanged.
+
+- [#540](https://github.com/bazzalabs/ui/pull/540) [`50cb8aa`](https://github.com/bazzalabs/ui/commit/50cb8aa695f5e052c34244666a5aecf5dcab1b39) Thanks [@kianbazza](https://github.com/kianbazza)! - `Combobox.Clear` is now hidden (or disabled, with `keepMounted`) when a single-value combobox has no selection. It treated the empty `null` value as a selection before.
+
+- [#567](https://github.com/bazzalabs/ui/pull/567) [`0190a86`](https://github.com/bazzalabs/ui/commit/0190a864f4caa13807876e1044212f67cda494e2) Thanks [@kianbazza](https://github.com/kianbazza)! - `Combobox.Positioner` now applies its `render` prop when `layout="input-embedded"`. It was ignored before.
+
+- [#539](https://github.com/bazzalabs/ui/pull/539) [`1222f8c`](https://github.com/bazzalabs/ui/commit/1222f8c9ed39be57b235aa2e0d28f07dd2576b82) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix a crash when a menu search contains `^`, a backtick, or already-decomposed accented text. `^` and backtick now match literally instead of being folded away; other diacritic folding is unchanged.
+
+- [#541](https://github.com/bazzalabs/ui/pull/541) [`1ab4808`](https://github.com/bazzalabs/ui/commit/1ab4808c19ef5d152e26c67bbbb4933a2be72f2e) Thanks [@kianbazza](https://github.com/kianbazza)! - `ContextMenu.Root` now calls `onOpenChange` with the `'trigger-context-menu'` reason and the native `contextmenu` or `touchstart` event when the menu opens from a right-click or long-press. It reported `'none'` with a placeholder event before.
+
+- [#578](https://github.com/bazzalabs/ui/pull/578) [`09b825a`](https://github.com/bazzalabs/ui/commit/09b825a2df932ec4d6305fb3066be4e4b23def3c) Thanks [@kianbazza](https://github.com/kianbazza)! - Menus with a controlled `open` prop now highlight the first row when they open and after each search, and the command menu hotkey closes a menu that was opened through the prop.
+
+- [#511](https://github.com/bazzalabs/ui/pull/511) [`59efdf4`](https://github.com/bazzalabs/ui/commit/59efdf4f8f5ab5986a87032f8c936d2200ceb391) Thanks [@kianbazza](https://github.com/kianbazza)! - Drag selection now auto-scrolls the list when the pointer nears or passes its top or bottom edge, so a drag can reach rows that are not on screen.
+
+- [#514](https://github.com/bazzalabs/ui/pull/514) [`8a7cd70`](https://github.com/bazzalabs/ui/commit/8a7cd70678b4852103c07bd1a5ed30f33d187374) Thanks [@kianbazza](https://github.com/kianbazza)! - Toggling a checkbox item through its indicator (`CheckboxItemIndicator`'s `state.toggle()`) now sets the range selection anchor, so a later shift-click ranges from that item.
+
+- [#523](https://github.com/bazzalabs/ui/pull/523) [`92897ca`](https://github.com/bazzalabs/ui/commit/92897caf8cc7af78eb1fa9ddc1e34d62c960d9a8) Thanks [@kianbazza](https://github.com/kianbazza)! - Data-first menus keep the highlighted row when their rows change without the search changing, for example when async results arrive or a loader refetches. The highlight still moves to the first row when the search changes, or when the highlighted row disappears or becomes disabled.
+
+- [#563](https://github.com/bazzalabs/ui/pull/563) [`8a199f1`](https://github.com/bazzalabs/ui/commit/8a199f1551305e06718167096e199eb3ee44950a) Thanks [@kianbazza](https://github.com/kianbazza)! - Menu positioners now always render `data-align`. Previously it was only present for `align="list-start"` on a horizontal side; `align="start"`, `"center"` and `"end"`, the defaults, and `list-start` on a vertical side rendered no `data-align` at all.
+
+- [#567](https://github.com/bazzalabs/ui/pull/567) [`0190a86`](https://github.com/bazzalabs/ui/commit/0190a864f4caa13807876e1044212f67cda494e2) Thanks [@kianbazza](https://github.com/kianbazza)! - `VideoPlayer.VolumeSlider`, `VideoPlayer.SeekSlider`, `VideoPlayer.SeekSliderTrack`, `VideoPlayer.SeekSliderProgress` and `VideoPlayer.SeekSliderThumb` now pass their other props (such as `className`, `disabled` and `data-*` attributes) to the element when a `render` function is given. They were dropped before.
+
 ## 0.1.0-canary.16
 
 ### Patch Changes
