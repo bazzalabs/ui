@@ -9,14 +9,12 @@ import { useSurfaceContext } from '../contexts/surface-context.js'
 import { normalizeValue } from '../utils/normalize.js'
 
 /**
- * Aim guard refs for submenu navigation.
+ * Aim guard accessor for popup-menu submenu navigation.
  * Optional - only needed for popup menus with submenus.
  */
-export interface AimGuardRefs {
-  /** Whether aim guard is currently active */
-  aimGuardActiveRef: React.RefObject<boolean>
-  /** The depth at which aim guard is active (null when not guarding) */
-  guardedDepthRef: React.RefObject<number | null>
+export interface AimGuardAccessor {
+  /** Returns the depth currently shielded by the aim guard, or `null` when none is active. */
+  getGuardedDepth: () => number | null
 }
 
 /**
@@ -117,7 +115,7 @@ export interface UseListboxItemParams {
    * Optional aim guard refs for popup menu navigation.
    * When provided, pointer move events will respect the aim guard.
    */
-  aimGuard?: AimGuardRefs
+  aimGuard?: AimGuardAccessor
 }
 
 /**
@@ -394,11 +392,7 @@ export function useListboxItem(
 
       // Don't highlight if aim guard is active at this depth (user is moving toward submenu)
       // Only block highlighting in the same menu where the trigger is located
-      if (aimGuard) {
-        const { aimGuardActiveRef, guardedDepthRef } = aimGuard
-        if (aimGuardActiveRef.current && guardedDepthRef.current === depth)
-          return
-      }
+      if (aimGuard && aimGuard.getGuardedDepth() === depth) return
 
       // Check if pointer has actually moved - prevents phantom highlights when
       // content shifts under a stationary pointer (e.g., search results changing)

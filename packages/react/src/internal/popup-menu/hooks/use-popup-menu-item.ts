@@ -45,20 +45,19 @@ export function usePopupMenuItem(
     activatable = true,
     ...rest
   } = params
-  const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
+  const aimGuardStore = useAimGuard()
   const { closeAll } = useListboxContext()
   const popupMenuContext = useMaybePopupMenuContext()
 
   const menuDisabled = popupMenuContext?.disabled ?? false
   const effectiveDisabled = disabled || menuDisabled
 
-  // Create aim guard refs object for the listbox hook
+  // Create aim guard accessor for the listbox hook
   const aimGuard = React.useMemo(
     () => ({
-      aimGuardActiveRef,
-      guardedDepthRef,
+      getGuardedDepth: () => aimGuardStore.get()?.depth ?? null,
     }),
-    [aimGuardActiveRef, guardedDepthRef],
+    [aimGuardStore],
   )
 
   // Handle after-select behavior (close menu if closeOnClick is true)
