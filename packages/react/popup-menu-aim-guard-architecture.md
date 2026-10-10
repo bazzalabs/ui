@@ -48,7 +48,7 @@ The subsystem is split into four layers:
 | Module | Responsibility |
 | --- | --- |
 | `packages/react/src/internal/popup-menu/utils/aim-guard.ts` | Anchor detection, heading smoothing, projected hit-test |
-| `packages/react/src/internal/popup-menu/utils/use-mouse-trail.ts` | Global pointer trail buffer shared by subscribers |
+| `packages/react/src/internal/popup-menu/utils/use-mouse-trail.ts` | Pointer trail buffer, recorded only while a trigger holds it (hover or leave monitor) |
 | `packages/react/src/internal/popup-menu/hooks/use-aim-guard.tsx` | Global guard state, refs, timer, activation/clear API |
 | `packages/react/src/internal/popup-menu/hooks/use-popup-menu-item.ts` | Bridges guard refs into listbox item behavior |
 | `packages/react/src/internal/listbox/hooks/use-listbox-item.ts` | Depth-scoped pointer highlight blocking |
@@ -112,6 +112,8 @@ Computes a smoothed vector `(dx, dy)` from recent pointer trail segments.
 
 The fallback avoids a zero-vector decision when pointerleave event is nearly stationary.
 
+The trail starts empty at hover (see 7.4), so a fast pass may record only one sample inside the trigger. When fewer than 2 points remain, the leave handler appends the leave point, so the heading comes from the real path through the trigger rather than the fallback. The trail is deliberately not seeded from earlier positions (such as the listbox's last pointer position), which can be stale.
+
 ### 6.3 `willHitSubmenu(exitX, exitY, heading, rect, anchor, triggerRect)`
 
 Projects heading to the submenu entry edge and checks if projected cross-axis coordinate lands in an expanded acceptance band.
@@ -172,6 +174,15 @@ Core decision point:
    - clear guard,
    - schedule close (immediate or delayed),
    - optionally start leave monitor during close-delay window.
+
+### 7.4 Pointer Trail Lifetime
+
+`useMouseTrail` records positions only while at least one hold is active, through one shared `window` `pointermove` listener:
+
+- `hover`: taken on pointer enter (or the first pointer move over the trigger), starting from an empty trail; released after the leave logic runs, or when the trigger is hidden (a hidden trigger gets no pointerleave).
+- `monitor`: taken when the leave monitor starts, before its listener is added so each move reaches the trail first; released when the monitor is cleared.
+
+With no trigger hovered and no monitor running, no trail listener exists.
 
 ## 8. Continuous Intent Monitoring
 
@@ -333,17 +344,17 @@ Primary files:
 - `packages/react/src/internal/popup-menu/utils/aim-guard.test.ts`
 - `packages/react/src/internal/popup-menu/popup-menu.test.tsx`
 - `packages/react/src/internal/popup-menu/utils/use-mouse-trail.test.tsx`
+- `packages/react/src/internal/popup-menu/pointer-trail.test.tsx`
 
 ## 17. Performance Characteristics
 
 - Hot path avoids React state reads in handlers by using refs.
-- Mouse trail uses one global listener with subscriber fanout (O(subscribers) per pointermove).
+- Mouse trail uses one shared listener with subscriber fanout, attached only while a trigger is hovered or its leave monitor runs (usually one subscriber).
 - Monitor listener is short-lived and created only during leave windows.
 - Pointer highlight debounce in listbox reduces noisy updates.
 
 Potential pressure points:
 
-- global trail fanout in very large numbers of mounted subscribers,
 - high-volume console logging when `debug.logAimGuardEvents` is enabled.
 
 ## 18. Known Limitations and Improvement Opportunities
