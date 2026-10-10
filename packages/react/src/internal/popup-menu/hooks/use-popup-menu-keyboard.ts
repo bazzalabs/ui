@@ -12,6 +12,7 @@ import { useMaybeCheckboxSelection } from '../contexts/checkbox-selection-contex
 import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
 import type { SubpageContextValue } from '../contexts/subpage-context.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 
 const SPAN_NAVIGATION_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End'])
@@ -56,9 +57,10 @@ export interface UsePopupMenuKeyboardParams {
   onKeyDown?: React.KeyboardEventHandler
   /**
    * Callback to close the entire menu tree from the root.
-   * Used when Escape is pressed and closeRootOnEsc is true (default).
+   * Used when Escape is pressed and closeRootOnEsc is true (default), with
+   * the `escape-key` reason and the native event.
    */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
   /**
    * Whether to skip the focus owner check.
    * When true, keyboard handling will work based on `enabled` prop alone,

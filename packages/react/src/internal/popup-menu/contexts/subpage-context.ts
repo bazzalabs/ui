@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useMaybeSubpageStack } from './subpage-stack-context.js'
 
 export interface SubpageContextValue {
   /** Current page ID. */
@@ -31,6 +32,27 @@ export function useSubpageContext(): SubpageContextValue {
 
 export function useMaybeSubpageContext(): SubpageContextValue | null {
   return React.useContext(SubpageContext)
+}
+
+/**
+ * The subpage context only when its page belongs to the current popup's
+ * stack. A submenu rendered inside a subpage inherits the outer page's
+ * context, but its popup has its own stack, so back navigation from the
+ * submenu must not pop the outer page. The page's surface must be the one
+ * this popup registered, so a page in the submenu popup that reuses the
+ * outer page's ID doesn't count either.
+ */
+export function useMaybeSubpageContextInPopup(): SubpageContextValue | null {
+  const subpageContext = useMaybeSubpageContext()
+  const subpageStack = useMaybeSubpageStack()
+  if (
+    !subpageContext ||
+    subpageStack?.getSurfaceId(subpageContext.pageId) !==
+      subpageContext.surfaceId
+  ) {
+    return null
+  }
+  return subpageContext
 }
 
 export { SubpageContext }

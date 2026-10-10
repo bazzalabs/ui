@@ -17,8 +17,7 @@ import {
   useGraftPoint,
 } from '../contexts/graft-point-context.js'
 import { useMenuTreeResolver } from '../contexts/menu-tree-resolver-context.js'
-import { useMaybeSubpageContext } from '../contexts/subpage-context.js'
-import { useMaybeSubpageStack } from '../contexts/subpage-stack-context.js'
+import { useMaybeSubpageContextInPopup } from '../contexts/subpage-context.js'
 import { useResolution } from '../hooks/use-resolution.js'
 import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
@@ -731,14 +730,9 @@ export const DataListInner = React.forwardRef<
   const { setResolvedNodes } = useDataPopupContext()
   const graftParent = useGraftPoint()
   const { depth: surfaceDepth } = useListboxContext()
-  const resolverSubpageContext = useMaybeSubpageContext()
-  const resolverSubpageStack = useMaybeSubpageStack()
-  // Mirrors surface.tsx's isSubpageSurfaceInThisPopup: a data surface
-  // rendered as a subpage of this popup must never feed resolution.
-  const isSubpageSurface = Boolean(
-    resolverSubpageContext &&
-      resolverSubpageStack?.getSurfaceId(resolverSubpageContext.pageId),
-  )
+  // A data surface rendered as a subpage of this popup must never feed
+  // resolution (same rule as surface.tsx's isSubpageSurfaceInThisPopup).
+  const isSubpageSurface = useMaybeSubpageContextInPopup() !== null
   const isResolutionRoot = surfaceDepth === 0 && !isSubpageSurface
 
   // Get coordinator for async state
