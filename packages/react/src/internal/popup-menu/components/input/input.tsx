@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import { platform } from '@base-ui/utils/platform'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -110,6 +111,8 @@ export const PopupMenuInput = React.forwardRef<
     style,
     onKeyDown,
     onPointerDown,
+    onCompositionStart,
+    onCompositionEnd,
     ...rest
   } = props
 
@@ -125,6 +128,7 @@ export const PopupMenuInput = React.forwardRef<
   // Get values from store
   const search = store.useState('search')
   const highlightedId = store.useState('highlightedId')
+  const open = store.useState('open')
   const listId = store.context.listId
   const inputId = store.context.inputId
 
@@ -151,32 +155,120 @@ export const PopupMenuInput = React.forwardRef<
     return () => store.setHasInput(false)
   }, [store, shouldRender])
 
-  // Determine the actual value (controlled input prop > controlled surface > uncontrolled)
-  const isInputControlled = controlledValue !== undefined
-  const displayValue = isInputControlled ? controlledValue : search
-
-  // Consume pending search on activation
-  React.useEffect(() => {
-    if (pendingSearch && internalRef.current) {
-      // Always sync to store for filtering/highlighting, even in controlled mode
-      store.setSearch(pendingSearch)
-      onValueChange?.(pendingSearch)
-      // Clear pending search
-      store.setPendingSearch('')
-      // Focus the input
-      internalRef.current.focus()
+  // IME text isn't committed until the composition ends, so the search waits
+  // for it. While composing, the input shows the composing text.
+  const [composingValue, setComposingValue] = React.useState<string | null>(
+    null,
+  )
+  const isComposingRef = React.useRef(false)
+  // The input's value when the current composition started; a composition
+  // that ends on it was cancelled and commits nothing.
+  const compositionStartValueRef = React.useRef('')
+  // The value the last composition committed. WebKit follows
+  // `compositionend` with one more input event for the same text, in the same
+  // task, which mustn't commit again. Other browsers send none, so the value
+  // expires after the task instead of swallowing a later real edit.
+  const compositionEndValueRef = React.useRef<string | null>(null)
+  const compositionEndTimerRef = React.useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null)
+  const clearCompositionEndValue = React.useCallback(() => {
+    compositionEndValueRef.current = null
+    if (compositionEndTimerRef.current !== null) {
+      clearTimeout(compositionEndTimerRef.current)
+      compositionEndTimerRef.current = null
     }
-  }, [pendingSearch, store, onValueChange])
+  }, [])
+  React.useEffect(() => clearCompositionEndValue, [clearCompositionEndValue])
 
-  const handleChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value
+  // A composition can be cut off without a `compositionend` (the input stops
+  // rendering, or the menu closes). Drop it so filtering doesn't stay paused.
+  React.useEffect(() => {
+    if (!shouldRender || !open) {
+      isComposingRef.current = false
+      clearCompositionEndValue()
+      setComposingValue(null)
+    }
+  }, [shouldRender, open, clearCompositionEndValue])
 
+  // Determine the actual value
+  // (composing value > controlled input prop > controlled surface > uncontrolled)
+  const isInputControlled = controlledValue !== undefined
+  const displayValue =
+    composingValue ?? (isInputControlled ? controlledValue : search)
+
+  const commitValue = React.useCallback(
+    (newValue: string) => {
       // Always sync to store for filtering/highlighting, even in controlled mode
       store.setSearch(newValue)
       onValueChange?.(newValue)
     },
     [onValueChange, store],
+  )
+
+  // Consume pending search on activation
+  React.useEffect(() => {
+    if (pendingSearch && internalRef.current) {
+      commitValue(pendingSearch)
+      // Clear pending search
+      store.setPendingSearch('')
+      // Focus the input
+      internalRef.current.focus()
+    }
+  }, [pendingSearch, store, commitValue])
+
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      // The input keeps focus while the popup animates out. An edit then
+      // would land after the close, so the input keeps showing the frozen
+      // value instead, composing text included.
+      if (!store.select('open')) return
+      if (isComposingRef.current) {
+        setComposingValue(event.target.value)
+        return
+      }
+      const endValue = compositionEndValueRef.current
+      clearCompositionEndValue()
+      if (event.target.value === endValue) return
+      commitValue(event.target.value)
+    },
+    [commitValue, store, clearCompositionEndValue],
+  )
+
+  const handleCompositionStart = React.useCallback(
+    (event: React.CompositionEvent<HTMLInputElement>) => {
+      onCompositionStart?.(event)
+      // Some Android keyboards treat all typing as one composition. While the
+      // popup animates out, edits are ignored, so there's nothing to track.
+      if (platform.os.android || !store.select('open')) {
+        return
+      }
+      isComposingRef.current = true
+      compositionStartValueRef.current = event.currentTarget.value
+      clearCompositionEndValue()
+      setComposingValue(event.currentTarget.value)
+    },
+    [onCompositionStart, store, clearCompositionEndValue],
+  )
+
+  const handleCompositionEnd = React.useCallback(
+    (event: React.CompositionEvent<HTMLInputElement>) => {
+      onCompositionEnd?.(event)
+      if (!isComposingRef.current) {
+        return
+      }
+      isComposingRef.current = false
+      setComposingValue(null)
+      const { value } = event.currentTarget
+      if (!store.select('open') || value === compositionStartValueRef.current) {
+        return
+      }
+      clearCompositionEndValue()
+      compositionEndValueRef.current = value
+      compositionEndTimerRef.current = setTimeout(clearCompositionEndValue, 0)
+      commitValue(value)
+    },
+    [onCompositionEnd, commitValue, store, clearCompositionEndValue],
   )
 
   // A direct press on the input is an explicit "enter" action: make its
@@ -287,6 +379,8 @@ export const PopupMenuInput = React.forwardRef<
       style: resolveStyle(style, state),
       value: displayValue,
       onChange: handleChange,
+      onCompositionStart: handleCompositionStart,
+      onCompositionEnd: handleCompositionEnd,
       onKeyDown: handleKeyDownWithBack,
       onPointerDown: handlePointerDown,
     },
