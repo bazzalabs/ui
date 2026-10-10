@@ -42,7 +42,7 @@ export {
   useSurfaceContext,
 } from './contexts/surface-context.js'
 export type {
-  AimGuardRefs,
+  AimGuardAccessor,
   UseListboxItemParams,
   UseListboxItemReturn,
 } from './hooks/use-listbox-item.js'

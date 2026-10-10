@@ -2,200 +2,42 @@
 
 import * as React from 'react'
 import { usePopupMenuDebug } from '../contexts/popup-menu-debug-context.js'
+import { AimGuardStore } from '../store/AimGuardStore.js'
 
-export interface AimGuardContextValue {
-  aimGuardActive: boolean
-  guardedTriggerId: string | null
-  guardedDepth: number | null
-  guardedSubmenuSurfaceId: string | null
-  activateAimGuard: (
-    triggerId: string,
-    depth: number,
-    submenuSurfaceId: string,
-    timeoutMs?: number,
-  ) => void
-  clearAimGuard: () => void
-  aimGuardActiveRef: React.RefObject<boolean>
-  guardedTriggerIdRef: React.RefObject<string | null>
-  guardedDepthRef: React.RefObject<number | null>
-  guardedSubmenuSurfaceIdRef: React.RefObject<string | null>
-  isGuardBlocking: (rowId: string) => boolean
-}
+export const AimGuardContext = React.createContext<AimGuardStore | null>(null)
+const fallbackAimGuardStore = new AimGuardStore()
 
-const AimGuardCtx = React.createContext<AimGuardContextValue>({
-  aimGuardActive: false,
-  guardedTriggerId: null,
-  guardedDepth: null,
-  guardedSubmenuSurfaceId: null,
-  activateAimGuard: () => {},
-  clearAimGuard: () => {},
-  aimGuardActiveRef: { current: false },
-  guardedTriggerIdRef: { current: null },
-  guardedDepthRef: { current: null },
-  guardedSubmenuSurfaceIdRef: { current: null },
-  isGuardBlocking: () => false,
-})
-
-export const useAimGuard = () => React.useContext(AimGuardCtx)
+export const useAimGuard = (): AimGuardStore =>
+  React.useContext(AimGuardContext) ?? fallbackAimGuardStore
 
 export interface AimGuardProviderProps {
   children: React.ReactNode
 }
 
 /**
- * Provides aim guard for safe polygon navigation.
- * Prevents accidental submenu closures when users move diagonally toward an open submenu.
+ * Provides the short-lived shield that stops sibling rows from taking highlight
+ * while the pointer is aiming at an open submenu.
  */
 export function AimGuardProvider({ children }: AimGuardProviderProps) {
   const { logAimGuardEvents } = usePopupMenuDebug()
-  const [aimGuardActive, setAimGuardActive] = React.useState(false)
-  const [guardedTriggerId, setGuardedTriggerId] = React.useState<string | null>(
-    null,
+  const logEnabledRef = React.useRef(logAimGuardEvents)
+  logEnabledRef.current = logAimGuardEvents
+  const storeRef = React.useRef<AimGuardStore | null>(null)
+  if (storeRef.current === null) {
+    storeRef.current = new AimGuardStore({
+      log: (event, details) => {
+        if (!logEnabledRef.current) return
+        console.log(`[PopupMenu][AimGuardProvider] ${event}`, details)
+      },
+    })
+  }
+  const store = storeRef.current
+
+  React.useEffect(() => () => store.dispose(), [store])
+
+  return (
+    <AimGuardContext.Provider value={store}>
+      {children}
+    </AimGuardContext.Provider>
   )
-  const [guardedDepth, setGuardedDepth] = React.useState<number | null>(null)
-  const [guardedSubmenuSurfaceId, setGuardedSubmenuSurfaceId] = React.useState<
-    string | null
-  >(null)
-  const aimGuardActiveRef = React.useRef(false)
-  const guardedTriggerIdRef = React.useRef<string | null>(null)
-  const guardedDepthRef = React.useRef<number | null>(null)
-  const guardedSubmenuSurfaceIdRef = React.useRef<string | null>(null)
-
-  React.useEffect(() => {
-    aimGuardActiveRef.current = aimGuardActive
-  }, [aimGuardActive])
-
-  React.useEffect(() => {
-    guardedTriggerIdRef.current = guardedTriggerId
-  }, [guardedTriggerId])
-
-  React.useEffect(() => {
-    guardedDepthRef.current = guardedDepth
-  }, [guardedDepth])
-
-  React.useEffect(() => {
-    guardedSubmenuSurfaceIdRef.current = guardedSubmenuSurfaceId
-  }, [guardedSubmenuSurfaceId])
-
-  const guardTimerRef = React.useRef<number | null>(null)
-
-  const logAimGuard = React.useCallback(
-    (eventName: string, details?: Record<string, unknown>) => {
-      if (!logAimGuardEvents || typeof window === 'undefined') {
-        return
-      }
-
-      console.log(`[PopupMenu][AimGuardProvider] ${eventName}`, {
-        aimGuardActive: aimGuardActiveRef.current,
-        guardedTriggerId: guardedTriggerIdRef.current,
-        guardedDepth: guardedDepthRef.current,
-        guardedSubmenuSurfaceId: guardedSubmenuSurfaceIdRef.current,
-        ...details,
-      })
-    },
-    [logAimGuardEvents],
-  )
-
-  const resetAimGuardState = React.useCallback(() => {
-    aimGuardActiveRef.current = false
-    guardedTriggerIdRef.current = null
-    guardedDepthRef.current = null
-    guardedSubmenuSurfaceIdRef.current = null
-    setAimGuardActive(false)
-    setGuardedTriggerId(null)
-    setGuardedDepth(null)
-    setGuardedSubmenuSurfaceId(null)
-  }, [])
-
-  const clearAimGuard = React.useCallback(() => {
-    if (guardTimerRef.current !== null) {
-      window.clearTimeout(guardTimerRef.current)
-      guardTimerRef.current = null
-    }
-    logAimGuard('clear')
-    resetAimGuardState()
-  }, [resetAimGuardState, logAimGuard])
-
-  const activateAimGuard = React.useCallback(
-    (
-      triggerId: string,
-      depth: number,
-      submenuSurfaceId: string,
-      timeoutMs = 450,
-    ) => {
-      logAimGuard('activate', {
-        triggerId,
-        depth,
-        submenuSurfaceId,
-        timeoutMs,
-      })
-      aimGuardActiveRef.current = true
-      guardedTriggerIdRef.current = triggerId
-      guardedDepthRef.current = depth
-      guardedSubmenuSurfaceIdRef.current = submenuSurfaceId
-      setGuardedTriggerId(triggerId)
-      setGuardedDepth(depth)
-      setGuardedSubmenuSurfaceId(submenuSurfaceId)
-      setAimGuardActive(true)
-      if (guardTimerRef.current !== null) {
-        window.clearTimeout(guardTimerRef.current)
-      }
-      guardTimerRef.current = window.setTimeout(() => {
-        logAimGuard('timeout-expired', {
-          triggerId,
-          depth,
-          submenuSurfaceId,
-        })
-        resetAimGuardState()
-        guardTimerRef.current = null
-      }, timeoutMs) as unknown as number
-    },
-    [resetAimGuardState, logAimGuard],
-  )
-
-  React.useEffect(() => {
-    return () => {
-      if (guardTimerRef.current !== null) {
-        window.clearTimeout(guardTimerRef.current)
-        guardTimerRef.current = null
-      }
-
-      logAimGuard('provider-unmount-clear')
-    }
-  }, [logAimGuard])
-
-  const isGuardBlocking = React.useCallback(
-    (rowId: string) =>
-      aimGuardActiveRef.current && guardedTriggerIdRef.current !== rowId,
-    [],
-  )
-
-  const value = React.useMemo(
-    () => ({
-      aimGuardActive,
-      guardedTriggerId,
-      guardedDepth,
-      guardedSubmenuSurfaceId,
-      activateAimGuard,
-      clearAimGuard,
-      aimGuardActiveRef,
-      guardedTriggerIdRef,
-      guardedDepthRef,
-      guardedSubmenuSurfaceIdRef,
-      isGuardBlocking,
-    }),
-    [
-      aimGuardActive,
-      guardedTriggerId,
-      guardedDepth,
-      guardedSubmenuSurfaceId,
-      activateAimGuard,
-      clearAimGuard,
-      isGuardBlocking,
-    ],
-  )
-
-  return <AimGuardCtx.Provider value={value}>{children}</AimGuardCtx.Provider>
 }
-
-export { AimGuardCtx }
