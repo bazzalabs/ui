@@ -26,9 +26,9 @@ import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import type { AimGuard } from '../../store/AimGuardStore.js'
 import { isMouseLikePointerType } from '../../utils/is-mouse-like-pointer.js'
 import {
-  PopupMenuSubmenuSafeTriangleArea,
-  type PopupMenuSubmenuSafeTriangleTone,
-} from './submenu-safe-triangle-area.js'
+  PopupMenuSafeTriangleArea,
+  type PopupMenuSafeTriangleTone,
+} from '../debug/safe-triangle-area.js'
 import { PopupMenuSubmenuTriggerDataAttributes } from './submenu-trigger-indicator.js'
 
 export interface PopupMenuSubmenuTriggerState extends Record<string, unknown> {
@@ -749,7 +749,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     defaultTagName: 'div',
   })
 
-  const safeTriangleTone: PopupMenuSubmenuSafeTriangleTone | null =
+  const safeTriangleTone: PopupMenuSafeTriangleTone | null =
     React.useMemo(() => {
       if (aimMonitor.debug.state === 'hover') {
         return 'hover'
@@ -784,13 +784,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   return (
     <>
       {trigger}
-      <PopupMenuSubmenuSafeTriangleArea
+      <PopupMenuSafeTriangleArea
         config={showSafeTriangleArea}
         contentRef={contentRef}
-        triggerRef={triggerRef}
+        anchorRef={triggerRef}
         tone={safeTriangleTone}
+        scope="submenu"
         contentRectOverride={aimMonitor.debug.snapshot?.contentRect}
-        triggerRectOverride={aimMonitor.debug.snapshot?.anchorRect}
+        anchorRectOverride={aimMonitor.debug.snapshot?.anchorRect}
         mousePointOverride={
           aimMonitor.debug.snapshot
             ? [
