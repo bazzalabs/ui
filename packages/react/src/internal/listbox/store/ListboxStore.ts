@@ -49,6 +49,8 @@ export interface ItemRegistration {
   closeOnClick?: boolean
   /** Whether this item can be activated via Enter/click (default: true). Non-activatable items remain highlightable. */
   activatable?: boolean
+  /** The rendered element's DOM id, for `aria-activedescendant`. */
+  elementId?: string
 }
 
 /** Kinds of rows that participate in positional attributes. */
@@ -138,7 +140,17 @@ export interface ListboxState {
   highlightedId: string | null
   /** Source of the current highlight (keyboard or pointer) */
   highlightSource: HighlightSource
-  /** Whether an Input is present in the Surface */
+  /**
+   * DOM id of the highlighted item's element, for `aria-activedescendant`.
+   * `null` when nothing is highlighted or the highlighted item isn't mounted.
+   */
+  highlightedElementId: string | null
+  /**
+   * Whether an input outside the list owns keyboard focus: the surface's own
+   * input, or an input outside the popup that drives it (such as a suggestion
+   * menu's host). The list then leaves `aria-activedescendant`, its tab stop
+   * and key handling to that input.
+   */
   hasInput: boolean
   /** Whether the input is currently active (rendered) when hideUntilActive mode is used */
   inputActive: boolean
@@ -304,6 +316,9 @@ const selectors = {
   highlightedId: createSelector((state: ListboxState) => state.highlightedId),
   highlightSource: createSelector(
     (state: ListboxState) => state.highlightSource,
+  ),
+  highlightedElementId: createSelector(
+    (state: ListboxState) => state.highlightedElementId,
   ),
   hasInput: createSelector((state: ListboxState) => state.hasInput),
   inputActive: createSelector((state: ListboxState) => state.inputActive),
@@ -514,6 +529,9 @@ export class ListboxStore extends ReactStore<
         })
       }
     })
+
+    // Keep the highlighted element's DOM id in step with the highlight.
+    this.observe('highlightedId', () => this.syncHighlightedElementId())
 
     // Keep normalizedSearch in sync when search changes (including controlled props).
     this.observe('search', (search, prevSearch) => {
@@ -1102,7 +1120,8 @@ export class ListboxStore extends ReactStore<
       existing.forceScore === registration.forceScore &&
       existing.groupId === registration.groupId &&
       existing.shortcut === registration.shortcut &&
-      existing.activatable === registration.activatable
+      existing.activatable === registration.activatable &&
+      existing.elementId === registration.elementId
 
     if (isSameRegistration) {
       // Item already registered with same properties, skip recompute
@@ -1119,6 +1138,7 @@ export class ListboxStore extends ReactStore<
             this.context.shortcuts.delete(registration.shortcut.toLowerCase())
           }
           this.recomputeFilteredItems()
+          this.syncHighlightedElementId()
         }
       }
     }
@@ -1142,6 +1162,9 @@ export class ListboxStore extends ReactStore<
     // Trigger recompute
     this.recomputeFilteredItems()
 
+    // The highlight can land on an item before it mounts (virtualized lists)
+    this.syncHighlightedElementId()
+
     // When filter={false} and we're open with no highlight, try to highlight
     // This handles the case where orderedItems was set before items mounted
     this.maybeAutoHighlightOnRegister(id)
@@ -1164,6 +1187,18 @@ export class ListboxStore extends ReactStore<
       }
 
       this.recomputeFilteredItems()
+      this.syncHighlightedElementId()
+    }
+  }
+
+  private syncHighlightedElementId() {
+    const { highlightedId } = this.state
+    const elementId =
+      (highlightedId === null
+        ? undefined
+        : this.context.items.get(highlightedId)?.elementId) ?? null
+    if (elementId !== this.state.highlightedElementId) {
+      this.set('highlightedElementId', elementId)
     }
   }
 
@@ -1767,6 +1802,7 @@ export class ListboxStore extends ReactStore<
 
     // Validate highlight using the newly computed filteredItems
     // We pass filteredItems, newSearch, and prevSearch here because we need to detect search cleared
+    const prevHighlightedId = this.state.highlightedId
     const highlightedId = this.validateHighlight({
       filteredItems,
       newSearch: normalizedSearch,
@@ -1779,8 +1815,11 @@ export class ListboxStore extends ReactStore<
       filteredCount,
       filterTrigger: this.state.filterTrigger + 1,
       highlightedId,
-      // Auto-highlight shouldn't trigger scroll
-      highlightSource: null,
+      // Only a real highlight change gets a new source (auto, which doesn't
+      // scroll). Rows registering, e.g. a virtualized row mounting, keep
+      // the source of an unchanged highlight.
+      highlightSource:
+        highlightedId === prevHighlightedId ? this.state.highlightSource : null,
     })
   }
 
@@ -1815,6 +1854,7 @@ function createInitialState(): ListboxState {
     normalizedSearch: '',
     highlightedId: null,
     highlightSource: null,
+    highlightedElementId: null,
     hasInput: false,
     inputActive: false,
     pendingSearch: '',
