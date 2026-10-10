@@ -68,7 +68,7 @@
   ],
   "scripts": {
     "dev": "tsdown --watch",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun check",
     "build": "tsdown",
     "test": "vitest run",
     "test:jsdom": "vitest run --project jsdom",

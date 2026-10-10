@@ -13,7 +13,7 @@ Lifecycle labels: the workspace label group **`agent work`** (single-select) hol
 
 - Package manager: **bun** exclusively (never npm/yarn/pnpm/npx). Monorepo: Turborepo + bun workspaces.
 - Lint/format: `bun run check` (check only) / `bun run check:fix`. Both run Biome on the repo, then oxlint on `packages/react` (`bazza/*` rules from `tooling/lint`, config in `.oxlintrc.json`). Rule tests: `bun run test --filter @bazza-ui/lint`.
-- Typecheck: `bun run type-check` (turbo; scope: `bun run type-check --filter <pkg>`)
+- Typecheck: `bun run type-check` (turbo → per-package `bun check`, or `bun --check` in `apps/web`, whose own `check` script is Biome; scope: `bun run type-check --filter <pkg>`)
 - Build: `bun run build` (turbo; scope: `bun run build --filter <pkg>`)
 - Test: `bun run test` (Vitest via turbo; scope: `bun run test --filter <pkg>`)
 - Registry build: `bun run registry:build`
