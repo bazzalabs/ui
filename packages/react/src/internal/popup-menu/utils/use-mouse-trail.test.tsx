@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { useMouseTrail } from './use-mouse-trail.js'
 
 function MouseTrailProbe({ limit = 4 }: { limit?: number }) {
-  useMouseTrail(limit)
+  const { hold } = useMouseTrail(limit)
+  React.useEffect(() => {
+    hold('hover')
+  }, [hold])
   return null
 }
 
