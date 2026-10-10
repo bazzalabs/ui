@@ -305,7 +305,8 @@ export const PopupMenuInput = React.forwardRef<
     depth,
     submenuContext,
     subpageContext,
-    enabled: true,
+    // Keys are ignored while the popup animates out.
+    enabled: open,
     disabled,
     enableTypeToSearch: false,
     onKeyDown,
@@ -316,6 +317,7 @@ export const PopupMenuInput = React.forwardRef<
   const handleKeyDownWithBack = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (
+        open &&
         backspaceGoesBack &&
         event.key === 'Backspace' &&
         !event.repeat &&
@@ -338,6 +340,7 @@ export const PopupMenuInput = React.forwardRef<
       handleKeyDown(event)
     },
     [
+      open,
       backspaceGoesBack,
       displayValue,
       subpageContext,
