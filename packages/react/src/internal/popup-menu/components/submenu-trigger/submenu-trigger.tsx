@@ -848,6 +848,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     }
   }, [item.isHighlighted, suppressAutoOpenRef])
 
+  // Whether the trigger mounted already highlighted and hasn't lost the
+  // highlight since. A remount (e.g. a new `key`) keeps the store's keyboard
+  // highlight, but it isn't a new navigation, and the remounted suppression
+  // latch no longer knows the user closed the submenu.
+  const highlightedAtMountRef = React.useRef(item.isHighlighted)
+
   // When highlighted via keyboard, schedule open after keyboard delay
   // This effect only handles *navigation* highlight (ArrowUp/Down).
   // Explicit open actions (ArrowRight, Ctrl+L) bypass this by calling registerSubmenuOpen directly.
@@ -860,11 +866,19 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
     // Only schedule open when highlighted via explicit keyboard navigation
     // Don't auto-open for 'auto' highlights (search results, initial open)
+    if (!item.isHighlighted) {
+      highlightedAtMountRef.current = false
+    }
     if (
       !item.isHighlighted ||
       parentStore.state.highlightSource !== 'keyboard'
     ) {
       clearOpenTimer()
+      return
+    }
+
+    // Only a highlight that arrives after mount opens the submenu
+    if (highlightedAtMountRef.current) {
       return
     }
 

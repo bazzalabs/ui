@@ -3533,6 +3533,13 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this item can be activated via Enter/click (default: true). Non-activatable items remain highlightable."
+          },
+          {
+            "name": "elementId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The rendered element's DOM id, for `aria-activedescendant`."
           }
         ]
       },
@@ -3763,11 +3770,18 @@
             "description": "Source of the current highlight (keyboard or pointer)"
           },
           {
+            "name": "highlightedElementId",
+            "type": "string | null",
+            "formattedType": "null | string",
+            "required": true,
+            "description": "DOM id of the highlighted item's element, for `aria-activedescendant`.\n`null` when nothing is highlighted or the highlighted item isn't mounted."
+          },
+          {
             "name": "hasInput",
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether an Input is present in the Surface"
+            "description": "Whether an input outside the list owns keyboard focus: the surface's own\ninput, or an input outside the popup that drives it (such as a suggestion\nmenu's host). The list then leaves `aria-activedescendant`, its tab stop\nand key handling to that input."
           },
           {
             "name": "inputActive",
@@ -13189,6 +13203,13 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this item can be activated via Enter/click (default: true). Non-activatable items remain highlightable."
+          },
+          {
+            "name": "elementId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The rendered element's DOM id, for `aria-activedescendant`."
           }
         ]
       },
@@ -13419,11 +13440,18 @@
             "description": "Source of the current highlight (keyboard or pointer)"
           },
           {
+            "name": "highlightedElementId",
+            "type": "string | null",
+            "formattedType": "null | string",
+            "required": true,
+            "description": "DOM id of the highlighted item's element, for `aria-activedescendant`.\n`null` when nothing is highlighted or the highlighted item isn't mounted."
+          },
+          {
             "name": "hasInput",
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether an Input is present in the Surface"
+            "description": "Whether an input outside the list owns keyboard focus: the surface's own\ninput, or an input outside the popup that drives it (such as a suggestion\nmenu's host). The list then leaves `aria-activedescendant`, its tab stop\nand key handling to that input."
           },
           {
             "name": "inputActive",
@@ -17816,6 +17844,13 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this item can be activated via Enter/click (default: true). Non-activatable items remain highlightable."
+          },
+          {
+            "name": "elementId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The rendered element's DOM id, for `aria-activedescendant`."
           }
         ]
       },
@@ -18046,11 +18081,18 @@
             "description": "Source of the current highlight (keyboard or pointer)"
           },
           {
+            "name": "highlightedElementId",
+            "type": "string | null",
+            "formattedType": "null | string",
+            "required": true,
+            "description": "DOM id of the highlighted item's element, for `aria-activedescendant`.\n`null` when nothing is highlighted or the highlighted item isn't mounted."
+          },
+          {
             "name": "hasInput",
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether an Input is present in the Surface"
+            "description": "Whether an input outside the list owns keyboard focus: the surface's own\ninput, or an input outside the popup that drives it (such as a suggestion\nmenu's host). The list then leaves `aria-activedescendant`, its tab stop\nand key handling to that input."
           },
           {
             "name": "inputActive",
@@ -20843,6 +20885,13 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this item can be activated via Enter/click (default: true). Non-activatable items remain highlightable."
+          },
+          {
+            "name": "elementId",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The rendered element's DOM id, for `aria-activedescendant`."
           }
         ]
       },
@@ -21073,11 +21122,18 @@
             "description": "Source of the current highlight (keyboard or pointer)"
           },
           {
+            "name": "highlightedElementId",
+            "type": "string | null",
+            "formattedType": "null | string",
+            "required": true,
+            "description": "DOM id of the highlighted item's element, for `aria-activedescendant`.\n`null` when nothing is highlighted or the highlighted item isn't mounted."
+          },
+          {
             "name": "hasInput",
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether an Input is present in the Surface"
+            "description": "Whether an input outside the list owns keyboard focus: the surface's own\ninput, or an input outside the popup that drives it (such as a suggestion\nmenu's host). The list then leaves `aria-activedescendant`, its tab stop\nand key handling to that input."
           },
           {
             "name": "inputActive",

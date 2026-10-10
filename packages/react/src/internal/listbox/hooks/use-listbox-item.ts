@@ -299,6 +299,7 @@ export function useListboxItem(
       forceOrder,
       forceScore,
       closeOnClick,
+      elementId: domId,
     })
 
     return unregister
@@ -313,6 +314,7 @@ export function useListboxItem(
     forceOrder,
     forceScore,
     closeOnClick,
+    domId,
     store,
     forceMount,
   ])
