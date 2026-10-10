@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
 
 /**
@@ -60,6 +60,78 @@ function FilterableMenu({ counter }: { counter: RenderCounter }) {
   )
 }
 
+const SIBLING_LABELS = ['Sibling 1', 'Sibling 2', 'Sibling 3', 'Sibling 4']
+
+function SiblingRow({
+  counter,
+  label,
+}: {
+  counter: RenderCounter
+  label: string
+}) {
+  return (
+    <React.Profiler id={label} onRender={counter.onRender}>
+      <DropdownMenu.Item data-testid={label}>{label}</DropdownMenu.Item>
+    </React.Profiler>
+  )
+}
+
+function SubmenuMenu({ counter }: { counter: RenderCounter }) {
+  return (
+    <DropdownMenu.Root defaultOpen debug={{ logAimGuardEvents: true }}>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.List>
+                {SIBLING_LABELS.slice(0, 2).map((label) => (
+                  <SiblingRow key={label} counter={counter} label={label} />
+                ))}
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                    More
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup data-testid="submenu-popup">
+                        <DropdownMenu.Surface>
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item>Nested</DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+                {SIBLING_LABELS.slice(2).map((label) => (
+                  <SiblingRow key={label} counter={counter} label={label} />
+                ))}
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function createRect(rect: {
+  top: number
+  left: number
+  width: number
+  height: number
+}): DOMRect {
+  return {
+    ...rect,
+    x: rect.left,
+    y: rect.top,
+    right: rect.left + rect.width,
+    bottom: rect.top + rect.height,
+    toJSON: () => ({}),
+  }
+}
+
 /** Data attributes that change a row's output. */
 function readRowOutput(label: string) {
   const row = screen.queryByTestId(label)
@@ -115,6 +187,61 @@ describe('popup menu row re-renders', () => {
     for (const label of hidden) {
       expect(readRowOutput(label), label).toBeNull()
       expect(counter.get(label), label).toBe(before.get(label))
+    }
+  })
+
+  it('keeps sibling rows still while the aim guard activates and clears', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const aimGuardEvents = () =>
+      logSpy.mock.calls
+        .map(([message]) => String(message))
+        .filter((message) =>
+          message.startsWith('[PopupMenu][AimGuardProvider]'),
+        )
+
+    try {
+      render(<SubmenuMenu counter={counter} />)
+
+      const submenuTrigger = await screen.findByTestId('submenu-trigger')
+      await user.hover(submenuTrigger)
+      const submenuPopup = await screen.findByTestId('submenu-popup')
+
+      vi.spyOn(submenuTrigger, 'getBoundingClientRect').mockImplementation(() =>
+        createRect({ top: 60, left: 80, width: 120, height: 30 }),
+      )
+      vi.spyOn(submenuPopup, 'getBoundingClientRect').mockImplementation(() =>
+        createRect({ top: 40, left: 240, width: 180, height: 160 }),
+      )
+
+      const countEvents = (name: string) =>
+        aimGuardEvents().filter((message) => message.endsWith(` ${name}`))
+          .length
+      const clearsBefore = countEvents('clear')
+      const before = counter.snapshot()
+
+      // Leave the trigger heading toward the submenu.
+      fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
+      fireEvent.pointerMove(window, { clientX: 190, clientY: 94 })
+      await waitFor(() => {
+        expect(countEvents('activate')).toBe(1)
+      })
+
+      // Moving inside the submenu clears the guard.
+      fireEvent.pointerMove(submenuPopup, { clientX: 250, clientY: 90 })
+      await waitFor(() => {
+        expect(countEvents('clear')).toBe(clearsBefore + 1)
+      })
+
+      for (const label of SIBLING_LABELS) {
+        expect(counter.get(label), label).toBe(before.get(label))
+      }
+    } finally {
+      logSpy.mockRestore()
     }
   })
 })

@@ -63,14 +63,18 @@ Aim guard is provided once per popup-menu tree by `PopupMenuProviders` via `AimG
 
 ### 5.1 Guard Context State
 
-`AimGuardContextValue` keeps both React state and ref mirrors:
+`AimGuardProvider` provides two contexts:
 
-- `aimGuardActive: boolean`
-- `guardedTriggerId: string | null`
-- `guardedDepth: number | null`
-- `guardedSubmenuSurfaceId: string | null`
+- `AimGuardCtx` (`useAimGuard()`): ref mirrors (`aimGuardActiveRef`, `guardedTriggerIdRef`, `guardedDepthRef`, `guardedSubmenuSurfaceIdRef`) and stable callbacks (`activateAimGuard`, `clearAimGuard`, `isGuardBlocking`). Its value never changes for the provider's lifetime; the logging flag is read through a ref. Every row reads this context (via `usePopupMenuItem`), as does `Popup`.
+- `AimGuardStateCtx` (`useAimGuardState()`): React state for components that render from the guard:
+  - `aimGuardActive: boolean`
+  - `guardedTriggerId: string | null`
+  - `guardedDepth: number | null`
+  - `guardedSubmenuSurfaceId: string | null`
 
-Ref mirrors (`aimGuardActiveRef`, etc.) are used in high-frequency pointer handlers to avoid stale closures and avoid rerender coupling.
+  Only submenu triggers read it (for the safe-triangle debug state).
+
+Why two contexts: every guard activate and clear updates the state. If that state shared a context with the refs, every row in the menu would re-render on each guard transition, though rows only need the refs. Ref mirrors are also what high-frequency pointer handlers read, to avoid stale closures.
 
 ### 5.2 Why Trigger + Depth + Surface ID?
 
