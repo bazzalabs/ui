@@ -9,9 +9,13 @@ const DEBUG_ROW_WIDTH = false
 // This lets you visually inspect what elements look like during measurement
 const DEBUG_FREEZE_MEASUREMENT = false
 
-function debugLog(...args: unknown[]) {
+/**
+ * Logs when `DEBUG_ROW_WIDTH` is on. Details are built lazily, so no debug
+ * payload is built or measured while it's off.
+ */
+function debugLog(message: string, getDetails?: () => unknown) {
   if (DEBUG_ROW_WIDTH) {
-    console.log('[useStickyRowWidth]', ...args)
+    console.log('[useStickyRowWidth]', message, getDetails?.())
   }
 }
 
@@ -138,9 +142,9 @@ export function useStickyRowWidth(
     }
 
     maxSeenRef.current = existingWidth
-    debugLog('Hydrated max width from existing --row-width:', {
+    debugLog('Hydrated max width from existing --row-width:', () => ({
       hydratedWidth: existingWidth,
-    })
+    }))
   }, [enabled, getTargetElement])
 
   // RAF scheduler state
@@ -160,7 +164,7 @@ export function useStickyRowWidth(
       // Apply hard cap if specified
       const capped = maxWidth !== undefined ? Math.min(width, maxWidth) : width
 
-      debugLog('--row-width updated:', {
+      debugLog('--row-width updated:', () => ({
         rawWidth: width,
         cappedWidth: capped,
         cssValue: px(capped),
@@ -168,7 +172,7 @@ export function useStickyRowWidth(
         targetElement:
           el.tagName +
           (el.className ? `.${el.className.split(' ').join('.')}` : ''),
-      })
+      }))
 
       el.style.setProperty('--row-width', px(capped))
     },
@@ -176,92 +180,109 @@ export function useStickyRowWidth(
   )
 
   /**
-   * RAF scheduler: batch reads, then batch writes.
-   * This avoids layout thrashing by separating measurement from application.
+   * RAF scheduler. Each frame first measures every queued row in three
+   * passes (apply measuring styles, read widths, restore styles), so the
+   * whole batch costs one layout, then writes `--row-width` if it grew.
    */
   const schedule = React.useCallback(() => {
     if (scheduled.current) return
     scheduled.current = true
 
     requestAnimationFrame(() => {
-      // === READ PHASE: Measure all queued rows at once ===
+      // === MEASURE PHASE: write, read, then restore, for all queued rows ===
       const measurements = readQueue.current
       let maxWidth = maxSeenRef.current
       let foundNewMax = false
 
       if (measurements.length > 0) {
-        debugLog('Measuring batch of', measurements.length, 'rows')
+        debugLog('Measuring batch:', () => ({ rows: measurements.length }))
 
-        for (const { element, id } of measurements) {
-          // Skip if already measured
-          if (measuredIds.current.has(id)) continue
+        // Rows still waiting for a measurement. Skip rows already measured
+        // and rows no longer in the DOM (unmounted before RAF fired).
+        const pending = measurements.filter(
+          ({ element, id }) =>
+            !measuredIds.current.has(id) && element.isConnected,
+        )
+        debugLog('Rows skipped (unmounted):', () =>
+          measurements
+            .filter(
+              ({ element, id }) =>
+                !measuredIds.current.has(id) && !element.isConnected,
+            )
+            .map(({ id }) => id),
+        )
 
-          // Skip if element is no longer in the DOM (unmounted before RAF fired)
-          if (!element.isConnected) {
-            debugLog('Row skipped (unmounted):', { id })
-            continue
-          }
+        // Measure each element once, even if it was queued more than once.
+        const prevStyles = new Map<
+          HTMLElement,
+          { width: string; maxWidth: string }
+        >()
+        for (const { element } of pending) {
+          if (prevStyles.has(element)) continue
+          prevStyles.set(element, {
+            width: element.style.width,
+            maxWidth: element.style.maxWidth,
+          })
+        }
 
-          // Read natural width without interleaving writes
-          const prevWidth = element.style.width
-          const prevMaxWidth = element.style.maxWidth
-
+        // Write pass: apply measuring styles to every row first, so the read
+        // pass below triggers one layout for the whole batch instead of one
+        // per row.
+        for (const element of prevStyles.keys()) {
           // Add data-measuring attribute so CSS can remove constraints on descendants
           element.setAttribute('data-measuring', '')
 
           // Temporarily remove max-width constraint to get true natural width
           element.style.maxWidth = 'none'
           element.style.width = 'max-content'
+        }
 
-          const w = Math.max(element.scrollWidth, element.offsetWidth) + 1
+        // Read pass: natural widths, with no writes in between.
+        const widths = new Map<HTMLElement, number>()
+        for (const element of prevStyles.keys()) {
+          widths.set(
+            element,
+            Math.max(element.scrollWidth, element.offsetWidth) + 1,
+          )
+        }
 
-          // Log computed styles to debug constraint issues
-          const computed = getComputedStyle(element)
-          debugLog('Row measurement details:', {
-            id,
-            measuredWidth: w,
-            scrollWidth: element.scrollWidth,
-            offsetWidth: element.offsetWidth,
-            computedWidth: computed.width,
-            computedMaxWidth: computed.maxWidth,
-            inlineMaxWidth: prevMaxWidth,
-            textContent: element.textContent?.slice(0, 50),
-          })
-
-          // Reset styles unless DEBUG_FREEZE_MEASUREMENT is enabled
-          if (!DEBUG_FREEZE_MEASUREMENT) {
-            element.style.width = prevWidth
-            element.style.maxWidth = prevMaxWidth
-            element.removeAttribute('data-measuring')
-          }
-
-          // Debug: if width is suspiciously small, log more info
-          if (w <= 1) {
-            const rect = element.getBoundingClientRect()
+        // Log computed styles to debug constraint issues
+        debugLog('Row measurement details:', () =>
+          pending.map(({ element, id }) => {
             const computed = getComputedStyle(element)
-            debugLog('Row skipped (0-width, will retry):', {
+            return {
               id,
-              width: w,
+              measuredWidth: widths.get(element),
               scrollWidth: element.scrollWidth,
               offsetWidth: element.offsetWidth,
-              boundingRect: { width: rect.width, height: rect.height },
-              display: computed.display,
-              visibility: computed.visibility,
-              innerHTML: element.innerHTML.slice(0, 100),
-              isConnected: element.isConnected,
-              parentElement: element.parentElement?.tagName,
-            })
+              computedWidth: computed.width,
+              computedMaxWidth: computed.maxWidth,
+              inlineMaxWidth: prevStyles.get(element)?.maxWidth,
+              textContent: element.textContent?.slice(0, 50),
+            }
+          }),
+        )
+
+        // Restore pass: reset styles unless DEBUG_FREEZE_MEASUREMENT is enabled
+        if (!DEBUG_FREEZE_MEASUREMENT) {
+          for (const [element, prev] of prevStyles) {
+            element.style.width = prev.width
+            element.style.maxWidth = prev.maxWidth
+            element.removeAttribute('data-measuring')
+          }
+        }
+
+        for (const { element, id } of pending) {
+          // Skip if already measured earlier in this batch
+          if (measuredIds.current.has(id)) continue
+
+          const w = widths.get(element) ?? 0
+
+          if (w <= 1) {
             // Don't mark as measured - element was likely unmounted/replaced
             // before we could measure it. It will be re-queued when it re-mounts.
             continue
           }
-
-          debugLog('Row measured:', {
-            id,
-            width: w,
-            currentMax: maxWidth,
-            isNewMax: w > maxWidth,
-          })
 
           if (w > maxWidth) {
             maxWidth = w
@@ -271,16 +292,45 @@ export function useStickyRowWidth(
           measuredIds.current.add(id)
         }
 
+        // Debug: if a width is suspiciously small, log more info
+        debugLog('Rows skipped (0-width, will retry):', () =>
+          pending
+            .filter(({ element }) => (widths.get(element) ?? 0) <= 1)
+            .map(({ element, id }) => {
+              const rect = element.getBoundingClientRect()
+              const computed = getComputedStyle(element)
+              return {
+                id,
+                width: widths.get(element),
+                scrollWidth: element.scrollWidth,
+                offsetWidth: element.offsetWidth,
+                boundingRect: { width: rect.width, height: rect.height },
+                display: computed.display,
+                visibility: computed.visibility,
+                innerHTML: element.innerHTML.slice(0, 100),
+                isConnected: element.isConnected,
+                parentElement: element.parentElement?.tagName,
+              }
+            }),
+        )
+        debugLog('Rows measured:', () => ({
+          rows: pending.map(({ element, id }) => ({
+            id,
+            width: widths.get(element),
+          })),
+          currentMax: maxWidth,
+        }))
+
         readQueue.current = []
       }
 
-      // === WRITE PHASE: Apply styles after all reads complete ===
+      // === WRITE PHASE: apply --row-width after the batch is measured ===
       if (foundNewMax) {
-        debugLog('New max width found:', {
+        debugLog('New max width found:', () => ({
           previousMax: maxSeenRef.current,
           newMax: maxWidth,
           totalMeasured: measuredIds.current.size,
-        })
+        }))
         maxSeenRef.current = maxWidth
         writeQueue.current.push(() => applyVar(maxWidth))
       }
@@ -299,21 +349,21 @@ export function useStickyRowWidth(
   const queueMeasurement = React.useCallback(
     (element: HTMLElement, id: string) => {
       if (!enabled) {
-        debugLog('queueMeasurement skipped (disabled):', id)
+        debugLog('queueMeasurement skipped (disabled):', () => id)
         return
       }
 
       // Skip if already measured
       if (measuredIds.current.has(id)) {
-        debugLog('queueMeasurement skipped (already measured):', id)
+        debugLog('queueMeasurement skipped (already measured):', () => id)
         return
       }
 
-      debugLog('queueMeasurement:', {
+      debugLog('queueMeasurement:', () => ({
         id,
         queueSize: readQueue.current.length + 1,
         element: element.tagName,
-      })
+      }))
 
       // Add to read queue
       readQueue.current.push({ element, id })
@@ -339,11 +389,11 @@ export function useStickyRowWidth(
       el.style.removeProperty('--row-width')
     }
 
-    debugLog('Measurements reset:', {
+    debugLog('Measurements reset:', () => ({
       previousMaxWidth: prevMax,
       previousMeasuredCount: prevCount,
       targetElement: el?.tagName,
-    })
+    }))
   }, [getTargetElement])
 
   /**
@@ -354,10 +404,10 @@ export function useStickyRowWidth(
     const prevCount = measuredIds.current.size
     measuredIds.current.clear()
 
-    debugLog('Measured IDs cleared (sticky width kept):', {
+    debugLog('Measured IDs cleared (sticky width kept):', () => ({
       previousMeasuredCount: prevCount,
       currentMaxWidth: maxSeenRef.current,
-    })
+    }))
   }, [])
 
   // Re-apply the CSS variable when the target element resizes (e.g., viewport changes)
@@ -382,10 +432,10 @@ export function useStickyRowWidth(
       rafId = requestAnimationFrame(() => {
         rafId = null
         if (maxSeenRef.current > 0) {
-          debugLog('ResizeObserver triggered re-apply:', {
+          debugLog('ResizeObserver triggered re-apply:', () => ({
             currentMax: maxSeenRef.current,
             containerSize: entries[0]?.contentRect,
-          })
+          }))
           applyVar(maxSeenRef.current)
         }
       })
