@@ -27,7 +27,7 @@
   "scripts": {
     "dev": "tsdown --watch",
     "build": "tsdown",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun check",
     "test": "vitest run --run --mode test",
     "test:watch": "vitest --mode test --watch --disable-console-intercept",
     "bench": "vitest bench --run",
