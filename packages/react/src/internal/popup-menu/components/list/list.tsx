@@ -206,6 +206,15 @@ export const PopupMenuListPrimitive = React.forwardRef<
     }
   }, [measureRowWidth, resetMeasurements, store])
 
+  // Publishes everything that registered in this commit at once: a parent's
+  // layout effects run after its children's. Rows and items that register
+  // later (items register in passive effects) or in a commit the list
+  // wasn't part of bump the batch counter, which re-renders the list.
+  store.useState('registrationBatch')
+  React.useLayoutEffect(() => {
+    store.flushPendingRegistrations()
+  })
+
   // Row width context value
   const rowWidthContextValue = React.useMemo(
     () => (measureRowWidth ? { queueMeasurement } : null),

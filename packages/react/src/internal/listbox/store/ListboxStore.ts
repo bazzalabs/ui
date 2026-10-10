@@ -162,6 +162,12 @@ export interface ListboxState {
    * Immutable: replaced wholesale on every registry change so selectors recompute.
    */
   orderedRows: readonly ListboxOrderedRow[]
+  /**
+   * Bumped when rows or items start waiting for
+   * `flushPendingRegistrations()`. The list subscribes to it, so React
+   * re-renders the list right away and its layout effect publishes them.
+   */
+  registrationBatch: number
 }
 
 export interface ListboxContext {
@@ -363,6 +369,9 @@ const selectors = {
   openMethod: createSelector((state: ListboxState) => state.openMethod),
   search: createSelector(
     (state: ListboxState) => state.searchProp ?? state.search,
+  ),
+  registrationBatch: createSelector(
+    (state: ListboxState) => state.registrationBatch,
   ),
   normalizedSearch: createSelector(
     (state: ListboxState) => state.normalizedSearch,
@@ -680,6 +689,13 @@ export class ListboxStore extends ReactStore<
   }
 
   private defaultSearchInitialized = false
+
+  // Registrations waiting for `flushPendingRegistrations()`. A row maps to
+  // `null` when it unregistered.
+  private pendingRows = new Map<string, ListboxOrderedRow | null>()
+  private pendingRegisteredItems = new Set<string>()
+  private pendingRescore = false
+  private registrationBatchOpen = false
 
   initializeDefaultSearch(defaultSearch: string) {
     if (this.defaultSearchInitialized) return
@@ -1001,9 +1017,13 @@ export class ListboxStore extends ReactStore<
    * - Menu is open
    * - No item is currently highlighted
    * - autoHighlightFirst is enabled
-   * - The registering item is the first in orderedItems
+   * - One of the registering items is the first registered in orderedItems
    */
-  private maybeAutoHighlightOnRegister(id: string) {
+  private maybeAutoHighlightOnRegister(registeredIds: ReadonlySet<string>) {
+    if (registeredIds.size === 0) {
+      return
+    }
+
     if (this.context.filter !== false) {
       return
     }
@@ -1027,10 +1047,13 @@ export class ListboxStore extends ReactStore<
       this.context.items.has(itemId),
     )
 
-    // Only highlight if this is the first registered item
+    // Only highlight if the first registered item registered just now
     // Use 'auto' source to indicate this is automatic (not user-initiated)
-    if (firstRegisteredItem === id) {
-      this.setHighlightedId(id, 'auto')
+    if (
+      firstRegisteredItem !== undefined &&
+      registeredIds.has(firstRegisteredItem)
+    ) {
+      this.setHighlightedId(firstRegisteredItem, 'auto')
     }
   }
 
@@ -1187,7 +1210,7 @@ export class ListboxStore extends ReactStore<
           if (registration.shortcut) {
             this.context.shortcuts.delete(registration.shortcut.toLowerCase())
           }
-          this.recomputeFilteredItems()
+          this.queueRescore()
         }
       }
     }
@@ -1208,12 +1231,10 @@ export class ListboxStore extends ReactStore<
       this.context.shortcuts.set(key, id)
     }
 
-    // Trigger recompute
-    this.recomputeFilteredItems()
-
-    // When filter={false} and we're open with no highlight, try to highlight
-    // This handles the case where orderedItems was set before items mounted
-    this.maybeAutoHighlightOnRegister(id)
+    // Scores and auto-highlight run once for every item registered this
+    // commit, at the next flush.
+    this.pendingRegisteredItems.add(id)
+    this.queueRescore()
 
     return () => {
       this.context.items.delete(id)
@@ -1232,7 +1253,7 @@ export class ListboxStore extends ReactStore<
         this.context.shortcuts.delete(key)
       }
 
-      this.recomputeFilteredItems()
+      this.queueRescore()
     }
   }
 
@@ -1261,6 +1282,9 @@ export class ListboxStore extends ReactStore<
    * Rows are kept in `state.orderedRows` sorted by DOM document position.
    * Call from a layout effect once the element is mounted; the returned
    * cleanup removes the row (call it when the element unmounts).
+   *
+   * The change reaches `state.orderedRows` at the next
+   * `flushPendingRegistrations()`, so rows mounting together cost one sort.
    */
   registerRow(
     id: string,
@@ -1268,23 +1292,69 @@ export class ListboxStore extends ReactStore<
     row: { kind: ListboxRowKind; groupId?: string },
   ): () => void {
     this.context.rowElements.set(id, element)
-
-    const withoutRow = this.state.orderedRows.filter((r) => r.id !== id)
-    const next = [...withoutRow, { id, kind: row.kind, groupId: row.groupId }]
-    next.sort((a, b) => this.compareRowOrder(a, b))
-    this.set('orderedRows', next)
+    this.pendingRows.set(id, { id, kind: row.kind, groupId: row.groupId })
+    this.scheduleRegistrationFlush()
 
     return () => {
       // Only remove if this registration still owns the id (a re-registration
       // for the same id may have replaced the element already).
       if (this.context.rowElements.get(id) === element) {
         this.context.rowElements.delete(id)
-        this.set(
-          'orderedRows',
-          this.state.orderedRows.filter((r) => r.id !== id),
-        )
+        this.pendingRows.set(id, null)
+        this.scheduleRegistrationFlush()
       }
     }
+  }
+
+  /**
+   * Publish the rows and items registered or unregistered since the last
+   * flush: one sort of `orderedRows`, one `recomputeFilteredItems`. The list
+   * calls this from its layout effect, which runs after its rows' layout
+   * effects; registrations that arrive later bump `registrationBatch`, which
+   * re-renders the list. Store methods that read registration state call it
+   * first, and a microtask covers rows outside a list.
+   */
+  flushPendingRegistrations() {
+    this.registrationBatchOpen = false
+    if (this.pendingRows.size > 0) {
+      const pending = this.pendingRows
+      this.pendingRows = new Map()
+      const next = this.state.orderedRows.filter((r) => !pending.has(r.id))
+      let added = false
+      for (const row of pending.values()) {
+        if (row) {
+          next.push(row)
+          added = true
+        }
+      }
+      if (added) {
+        next.sort((a, b) => this.compareRowOrder(a, b))
+      }
+      this.set('orderedRows', next)
+    }
+
+    if (this.pendingRescore || this.pendingRegisteredItems.size > 0) {
+      const registered = this.pendingRegisteredItems
+      this.pendingRegisteredItems = new Set()
+      // A search change may already have recomputed with these items.
+      if (this.pendingRescore) {
+        this.recomputeFilteredItems()
+      }
+      this.maybeAutoHighlightOnRegister(registered)
+    }
+  }
+
+  private scheduleRegistrationFlush() {
+    if (this.registrationBatchOpen) return
+    this.registrationBatchOpen = true
+    this.set('registrationBatch', this.state.registrationBatch + 1)
+    // For rows outside a list, which nothing else flushes.
+    queueMicrotask(() => this.flushPendingRegistrations())
+  }
+
+  private queueRescore() {
+    this.pendingRescore = true
+    this.scheduleRegistrationFlush()
   }
 
   /**
@@ -1421,6 +1491,7 @@ export class ListboxStore extends ReactStore<
    * Returns true if an item was found and selected, false otherwise.
    */
   selectByShortcut(key: string): boolean {
+    this.flushPendingRegistrations()
     const itemId = this.context.shortcuts.get(key.toLowerCase())
     if (!itemId) return false
 
@@ -1537,6 +1608,7 @@ export class ListboxStore extends ReactStore<
   }
 
   getVisibleItemIds(): string[] {
+    this.flushPendingRegistrations()
     const result: string[] = []
     const search = this.state.normalizedSearch
     const filteredItems = this.state.filteredItems
@@ -1650,6 +1722,8 @@ export class ListboxStore extends ReactStore<
   private validateHighlight(
     options: ValidateHighlightOptions = {},
   ): string | null {
+    // Before reading defaults from state. A no-op when called from the flush.
+    this.flushPendingRegistrations()
     const {
       forceFirst = false,
       filteredItems = this.state.filteredItems,
@@ -1771,6 +1845,8 @@ export class ListboxStore extends ReactStore<
   }
 
   private recomputeFilteredItems(prevSearch?: string) {
+    // Scores every registered item, so a queued rescore is covered.
+    this.pendingRescore = false
     const { filter } = this.context
     const normalizedSearch = this.state.normalizedSearch
     const items = this.context.items
@@ -1894,6 +1970,7 @@ function createInitialState(): ListboxState {
     virtualized: false,
     virtualItemsCount: 0,
     orderedRows: [],
+    registrationBatch: 0,
   }
 }
 
