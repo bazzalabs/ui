@@ -57,11 +57,8 @@ export const PopupMenuSeparator = React.forwardRef<
     return store.registerRow(rowId, rowElement, { kind: 'separator' })
   }, [rowElement, rowId, store])
 
-  // Get search state from store
-  const search = store.useState('normalizedSearch')
-
   // Hide separator when there's an active search (unless alwaysRender)
-  const hasSearch = search.length > 0
+  const hasSearch = store.useState('hasSearch')
   const isHidden = hasSearch && !alwaysRender
   const isFirstRow = store.useState('isFirstRow', rowId)
   const isLastRow = store.useState('isLastRow', rowId)
