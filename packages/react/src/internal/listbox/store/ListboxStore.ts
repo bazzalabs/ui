@@ -301,6 +301,9 @@ const selectors = {
   normalizedSearch: createSelector(
     (state: ListboxState) => state.normalizedSearch,
   ),
+  hasSearch: createSelector(
+    (state: ListboxState) => state.normalizedSearch.length > 0,
+  ),
   highlightedId: createSelector((state: ListboxState) => state.highlightedId),
   highlightSource: createSelector(
     (state: ListboxState) => state.highlightSource,
@@ -368,6 +371,16 @@ const selectors = {
     }
     return state.filteredItems.get(itemId) ?? 0
   }),
+
+  /**
+   * Whether an item passes the filter: no active search, or a positive score.
+   * Returns a boolean so rows only re-render when their visibility flips.
+   */
+  isItemVisible: createSelector(
+    (state: ListboxState, itemId: string) =>
+      state.normalizedSearch.length === 0 ||
+      (state.filteredItems.get(itemId) ?? 0) > 0,
+  ),
 
   hasSearchWithNoResults: createSelector((state: ListboxState) => {
     // Must have an active search

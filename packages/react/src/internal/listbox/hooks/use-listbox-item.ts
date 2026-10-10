@@ -339,21 +339,19 @@ export function useListboxItem(
   }, [registrationId, onSelect, store])
 
   // Use selectors to get derived state (using registrationId as identifier)
-  const normalizedSearch = store.useState('normalizedSearch')
   const isHighlighted = store.useState('isHighlighted', registrationId)
   const isFirstRow = store.useState('isFirstRow', rowId)
   const isLastRow = store.useState('isLastRow', rowId)
   const isFirstInGroup = store.useState('isFirstInGroup', rowId)
   const isLastInGroup = store.useState('isLastInGroup', rowId)
-  const score = store.useState('getItemScore', registrationId)
+  // Boolean selector so a keystroke only re-renders rows whose visibility flips
+  const passesFilter = store.useState('isItemVisible', registrationId)
 
   // Check if filtering is disabled (consumer handles filtering externally)
   const filterDisabled = store.isFilterDisabled()
 
-  // Determine visibility based on filter score
   // When filterDisabled, consumer handles filtering so all items are visible
-  const hasSearch = normalizedSearch.length > 0
-  const isVisible = forceMount || filterDisabled || !hasSearch || score > 0
+  const isVisible = forceMount || filterDisabled || passesFilter
 
   // Note: Scroll behavior is now handled by the store's setHighlightedId method.
   // It uses the registered DOM refs to call scrollIntoView when the element exists,
