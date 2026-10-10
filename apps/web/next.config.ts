@@ -4,9 +4,18 @@ import type { NextConfig } from 'next'
 const portlessHost = process.env.PORTLESS_URL
   ? new URL(process.env.PORTLESS_URL).host
   : undefined
+const tailscaleHost = process.env.PORTLESS_TAILSCALE_URL
+  ? new URL(process.env.PORTLESS_TAILSCALE_URL).hostname
+  : undefined
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: portlessHost ? [portlessHost, '*.bazza-ui.localhost'] : [],
+  allowedDevOrigins: portlessHost
+    ? [
+        portlessHost,
+        '*.bazza-ui.localhost',
+        ...(tailscaleHost ? [tailscaleHost] : []),
+      ]
+    : [],
   devIndicators: {
     position: 'bottom-right',
   },
