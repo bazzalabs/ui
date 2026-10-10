@@ -1,13 +1,14 @@
 'use client'
 
+import { useValueAsRef } from '@base-ui/utils/useValueAsRef'
 import * as React from 'react'
 import { usePopupMenuDebug } from '../contexts/popup-menu-debug-context.js'
 
+/**
+ * Aim guard refs and actions. The value is stable for the provider's lifetime,
+ * so rows can read it without re-rendering on every guard update.
+ */
 export interface AimGuardContextValue {
-  aimGuardActive: boolean
-  guardedTriggerId: string | null
-  guardedDepth: number | null
-  guardedSubmenuSurfaceId: string | null
   activateAimGuard: (
     triggerId: string,
     depth: number,
@@ -22,11 +23,15 @@ export interface AimGuardContextValue {
   isGuardBlocking: (rowId: string) => boolean
 }
 
+/** Aim guard state for components that render from it. */
+export interface AimGuardStateContextValue {
+  aimGuardActive: boolean
+  guardedTriggerId: string | null
+  guardedDepth: number | null
+  guardedSubmenuSurfaceId: string | null
+}
+
 const AimGuardCtx = React.createContext<AimGuardContextValue>({
-  aimGuardActive: false,
-  guardedTriggerId: null,
-  guardedDepth: null,
-  guardedSubmenuSurfaceId: null,
   activateAimGuard: () => {},
   clearAimGuard: () => {},
   aimGuardActiveRef: { current: false },
@@ -36,7 +41,17 @@ const AimGuardCtx = React.createContext<AimGuardContextValue>({
   isGuardBlocking: () => false,
 })
 
+const AimGuardStateCtx = React.createContext<AimGuardStateContextValue>({
+  aimGuardActive: false,
+  guardedTriggerId: null,
+  guardedDepth: null,
+  guardedSubmenuSurfaceId: null,
+})
+
 export const useAimGuard = () => React.useContext(AimGuardCtx)
+
+/** Re-renders on every guard activate/clear; prefer `useAimGuard` refs. */
+export const useAimGuardState = () => React.useContext(AimGuardStateCtx)
 
 export interface AimGuardProviderProps {
   children: React.ReactNode
@@ -48,6 +63,8 @@ export interface AimGuardProviderProps {
  */
 export function AimGuardProvider({ children }: AimGuardProviderProps) {
   const { logAimGuardEvents } = usePopupMenuDebug()
+  // Read through a ref so toggling logging doesn't change the callbacks below
+  const logAimGuardEventsRef = useValueAsRef(logAimGuardEvents)
   const [aimGuardActive, setAimGuardActive] = React.useState(false)
   const [guardedTriggerId, setGuardedTriggerId] = React.useState<string | null>(
     null,
@@ -81,7 +98,7 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
 
   const logAimGuard = React.useCallback(
     (eventName: string, details?: Record<string, unknown>) => {
-      if (!logAimGuardEvents || typeof window === 'undefined') {
+      if (!logAimGuardEventsRef.current || typeof window === 'undefined') {
         return
       }
 
@@ -93,7 +110,7 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
         ...details,
       })
     },
-    [logAimGuardEvents],
+    [logAimGuardEventsRef],
   )
 
   const resetAimGuardState = React.useCallback(() => {
@@ -172,10 +189,6 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
 
   const value = React.useMemo(
     () => ({
-      aimGuardActive,
-      guardedTriggerId,
-      guardedDepth,
-      guardedSubmenuSurfaceId,
       activateAimGuard,
       clearAimGuard,
       aimGuardActiveRef,
@@ -184,18 +197,26 @@ export function AimGuardProvider({ children }: AimGuardProviderProps) {
       guardedSubmenuSurfaceIdRef,
       isGuardBlocking,
     }),
-    [
+    [activateAimGuard, clearAimGuard, isGuardBlocking],
+  )
+
+  const stateValue = React.useMemo(
+    () => ({
       aimGuardActive,
       guardedTriggerId,
       guardedDepth,
       guardedSubmenuSurfaceId,
-      activateAimGuard,
-      clearAimGuard,
-      isGuardBlocking,
-    ],
+    }),
+    [aimGuardActive, guardedTriggerId, guardedDepth, guardedSubmenuSurfaceId],
   )
 
-  return <AimGuardCtx.Provider value={value}>{children}</AimGuardCtx.Provider>
+  return (
+    <AimGuardCtx.Provider value={value}>
+      <AimGuardStateCtx.Provider value={stateValue}>
+        {children}
+      </AimGuardStateCtx.Provider>
+    </AimGuardCtx.Provider>
+  )
 }
 
-export { AimGuardCtx }
+export { AimGuardCtx, AimGuardStateCtx }
