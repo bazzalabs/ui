@@ -970,13 +970,15 @@ export const DataListInner = React.forwardRef<
     const searchChanged = last.search !== normalizedSearch
 
     if (last.ids === orderedItemIds) {
-      // Same rows, new search: the highlight still resets to the first row.
+      // Same rows, new search: the highlight resets to the first row (with
+      // autoHighlightFirst={false}, a still-listed highlight stays instead).
       if (searchChanged) store.highlightFirstOrderedItem()
       return
     }
 
     // Same search, different rows (async results landed, a loader refetched):
-    // keep the highlighted row. A new search resets to the first row.
+    // keep the highlighted row. A new search resets to the first row (with
+    // autoHighlightFirst={false}, a still-listed highlight stays instead).
     const reason: OrderedItemsUpdateReason = searchChanged
       ? 'replace'
       : asyncResultBehavior === 'stream' &&
