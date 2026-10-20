@@ -346,7 +346,7 @@ const [values, setValues] = React.useState<string[]>([])
 
 ### Filtering
 
-Combobox filters automatically as users type. The built-in fuzzy search uses the `commandScore` algorithm.
+Combobox filters automatically as users type. The built-in fuzzy search, `defaultFilter`, matches the words of a query in any order and scores each with the `commandScore` algorithm.
 
 #### Value and Keywords
 

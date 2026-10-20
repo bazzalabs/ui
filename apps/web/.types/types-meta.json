@@ -2156,7 +2156,7 @@
             "formattedType": "false | FilterFn",
             "required": false,
             "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "default": "defaultFilter (fuzzy matching, words in any order)"
           },
           {
             "name": "normalizeSearch",
@@ -5415,7 +5415,7 @@
             "formattedType": "false | FilterFn",
             "required": false,
             "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "default": "defaultFilter (fuzzy matching, words in any order)"
           },
           {
             "name": "normalizeSearch",
@@ -11912,7 +11912,7 @@
             "formattedType": "false | FilterFn",
             "required": false,
             "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "default": "defaultFilter (fuzzy matching, words in any order)"
           },
           {
             "name": "normalizeSearch",
@@ -16833,7 +16833,7 @@
             "formattedType": "false | FilterFn",
             "required": false,
             "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "default": "defaultFilter (fuzzy matching, words in any order)"
           },
           {
             "name": "normalizeSearch",
@@ -20406,7 +20406,7 @@
             "formattedType": "false | FilterFn",
             "required": false,
             "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "default": "defaultFilter (fuzzy matching, words in any order)"
           },
           {
             "name": "normalizeSearch",
@@ -21664,7 +21664,7 @@
             "formattedType": "false | FilterFn",
             "required": false,
             "description": "Filter function for matching items against search query.\nReturns a score between 0 and 1 (0 = no match, > 0 = match).\nPass `false` to disable filtering entirely.",
-            "default": "commandScore (fuzzy matching)"
+            "default": "defaultFilter (fuzzy matching, words in any order)"
           },
           {
             "name": "normalizeSearch",

@@ -175,6 +175,8 @@ function formatInput(string: string): string {
 
 /**
  * Calculates a fuzzy match score between a string and an abbreviation.
+ * The query's characters must appear in order across the string and then
+ * the keywords; `defaultFilter` also accepts its words in any order.
  *
  * @param string - The string to match against
  * @param abbreviation - The search query
@@ -205,7 +207,40 @@ export function commandScore(
 }
 
 /**
+ * Splits a search query into its whitespace-separated words.
+ */
+export function splitSearchWords(query: string): string[] {
+  return query.split(/\s+/).filter(Boolean)
+}
+
+/**
  * Default filter function for listbox items.
  * Returns a score > 0 for matches, 0 for non-matches.
+ *
+ * Like `commandScore`, but the words of a multi-word query may appear in any
+ * order: each word must match the value or keywords on its own. A
+ * single-word query scores exactly as `commandScore` does, and a multi-word
+ * query never scores lower than its in-order `commandScore`.
+ *
+ * @param string - The string to match against
+ * @param abbreviation - The search query
+ * @param keywords - Optional additional keywords to include in matching
+ * @returns A score between 0 and 1, where 1 is a perfect match and 0 is no match
  */
-export const defaultFilter = commandScore
+export function defaultFilter(
+  string: string,
+  abbreviation: string,
+  keywords?: string[],
+): number {
+  const inOrderScore = commandScore(string, abbreviation, keywords)
+  const words = splitSearchWords(abbreviation)
+  if (words.length < 2) return inOrderScore
+
+  let anyOrderScore = 1
+  for (const word of words) {
+    anyOrderScore *= commandScore(string, word, keywords)
+    if (anyOrderScore === 0) break
+  }
+
+  return Math.max(inOrderScore, anyOrderScore)
+}

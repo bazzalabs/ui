@@ -7,7 +7,12 @@ import type {
   NodeDef,
   TreeItemDef,
 } from '../types.js'
-import { filterNodes, getBrowseNodesPreserve } from '../utils.js'
+import {
+  filterNodes,
+  flattenNodes,
+  getBrowseNodesPreserve,
+  scoreNodes,
+} from '../utils.js'
 
 /** Resolves defs into Menu Nodes the way a root list does. */
 function resolve(nodes: NodeDef[]) {
@@ -273,5 +278,98 @@ describe('tree nodes', () => {
     expect(browseRows[1].context.tree?.isLastChild).toBe(true)
     expect(browseRows[2].context.tree?.hasChildren).toBe(false)
     expect(browseRows[4].context.tree?.isLastChild).toBe(true)
+  })
+})
+
+describe('tree search with several words', () => {
+  const repoNodes = [
+    tree('Navattic', [
+      { ...item('New project'), id: 'navattic-new-project' },
+      { ...item('Starter-chip matching'), id: 'navattic-starter-chip' },
+    ]),
+    tree('Acme', [{ ...item('New project'), id: 'acme-new-project' }]),
+  ]
+
+  /** Matching rows as `Ancestor › Row`, the way the menu shows them. */
+  function searchRepos(query: string) {
+    return rows(
+      filterNodes({
+        query,
+        nodes: resolve(repoNodes),
+        highlightedId: null,
+      }).displayNodes,
+    ).map((row) =>
+      [
+        ...row.context.breadcrumbs.map((crumb) => crumb.value),
+        row.node.def.value,
+      ].join(' › '),
+    )
+  }
+
+  function scoreOf(query: string, path: string) {
+    return scoreNodes(flattenNodes(resolve(repoNodes)), query).find(
+      (scored) =>
+        [
+          ...scored.breadcrumbs.map((crumb) => crumb.value),
+          scored.node.def.value,
+        ].join(' › ') === path,
+    )?.score
+  }
+
+  it.each([
+    ['navattic new', 'Navattic › New project'],
+    ['new navattic', 'Navattic › New project'],
+    ['nav proj', 'Navattic › New project'],
+    ['navattic starter', 'Navattic › Starter-chip matching'],
+    ['starter navattic', 'Navattic › Starter-chip matching'],
+  ])('finds the row for %j in any word order', (query, path) => {
+    expect(searchRepos(query)).toEqual([path])
+  })
+
+  it('finds nothing when one word matches nothing', () => {
+    expect(searchRepos('navattic xyz')).toEqual([])
+  })
+
+  it('ranks the breadcrumb order at least as high as the reverse', () => {
+    const breadcrumbOrder = scoreOf('navattic new', 'Navattic › New project')
+    const reverseOrder = scoreOf('new navattic', 'Navattic › New project')
+
+    expect(reverseOrder).toBeGreaterThan(0)
+    expect(breadcrumbOrder).toBeGreaterThanOrEqual(reverseOrder ?? 0)
+  })
+
+  it('does not lift rows above a closer match when the query names only their ancestor', () => {
+    const results = rows(
+      filterNodes({
+        query: 'new project',
+        nodes: resolve([
+          tree('New project templates', [
+            { ...item('Blank'), id: 'template-blank' },
+            { ...item('React'), id: 'template-react' },
+          ]),
+          { ...item('Create new project'), id: 'create-new-project' },
+        ]),
+        highlightedId: null,
+      }).displayNodes,
+    ).map((row) => row.node.def.value)
+
+    expect(results).toEqual([
+      'New project templates',
+      'Create new project',
+      'Blank',
+      'React',
+    ])
+  })
+
+  it('keeps single-word results and order', () => {
+    expect(searchRepos('new')).toEqual([
+      'Navattic › New project',
+      'Acme › New project',
+    ])
+    expect(searchRepos('navattic')).toEqual([
+      'Navattic',
+      'Navattic › New project',
+      'Navattic › Starter-chip matching',
+    ])
   })
 })

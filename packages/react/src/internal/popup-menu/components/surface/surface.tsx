@@ -57,7 +57,7 @@ export interface PopupMenuSurfaceProps
    * Filter function for matching items against search query.
    * Returns a score between 0 and 1 (0 = no match, > 0 = match).
    * Pass `false` to disable filtering entirely.
-   * @default commandScore (fuzzy matching)
+   * @default defaultFilter (fuzzy matching, words in any order)
    */
   filter?: FilterFn | false
 
