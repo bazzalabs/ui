@@ -15,7 +15,7 @@ import type {
   PopupMenuOpenChangeEventDetails,
   PopupMenuOpenChangeReason,
 } from '../../popup-menu/events.js'
-import { commandScore } from '../utils/command-score.js'
+import { defaultFilter } from '../utils/command-score.js'
 import { normalizeValue } from '../utils/normalize.js'
 
 export type { OpenMethod }
@@ -436,7 +436,7 @@ export class ListboxStore extends ReactStore<
     context?: Partial<ListboxContext>,
   ) {
     const defaultContext: ListboxContext = {
-      filter: commandScore,
+      filter: defaultFilter,
       normalizeSearch: defaultSearchNormalizer,
       loop: true,
       autoHighlightFirst: true,
@@ -1733,7 +1733,7 @@ export class ListboxStore extends ReactStore<
       })
     } else {
       // Apply filter function
-      const filterFn = filter || commandScore
+      const filterFn = filter || defaultFilter
       items.forEach((registration, id) => {
         const fuzzyScore = filterFn(
           registration.value,

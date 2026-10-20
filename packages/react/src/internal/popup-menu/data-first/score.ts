@@ -2,9 +2,17 @@
 // Score Nodes
 // ============================================================================
 
-import { commandScore } from '../../listbox/utils/command-score.js'
+import {
+  commandScore,
+  defaultFilter,
+  splitSearchWords,
+} from '../../listbox/utils/command-score.js'
 import { normalizeValue } from '../../listbox/utils/normalize.js'
 import type { FlattenedNode, ScoredNode } from './types.js'
+
+function normalizeKeywords(keywords: readonly string[]): string[] {
+  return keywords.map((k) => normalizeValue(k)).filter(Boolean)
+}
 
 // Score Nodes
 // ============================================================================
@@ -38,6 +46,7 @@ export function scoreNodes(
   }
 
   const results: ScoredNode[] = []
+  const isMultiWord = splitSearchWords(query).length > 1
 
   for (const {
     node,
@@ -49,18 +58,32 @@ export function scoreNodes(
   } of flattenedNodes) {
     // Normalize value and keywords to match cmdk's behavior
     const normalizedValue = normalizeValue(node.def.value)
-    const normalizedKeywords = [
-      ...(node.def.keywords ?? []),
-      ...inheritedKeywords,
-    ]
-      .map((k) => normalizeValue(k))
-      .filter(Boolean)
+    const ownKeywords = normalizeKeywords(node.def.keywords ?? [])
+    const ancestorValues = normalizeKeywords(inheritedKeywords)
+    const normalizedKeywords = [...ownKeywords, ...ancestorValues]
 
-    const fuzzyScore = commandScore(
+    let fuzzyScore = defaultFilter(
       normalizedValue,
       query,
       normalizedKeywords.length > 0 ? normalizedKeywords : undefined,
     )
+    // Tree rows read as "Ancestor › Row", so also match a multi-word query in
+    // that order — only when the query reaches past the ancestors into the
+    // row, so a query naming just an ancestor doesn't lift all its rows.
+    if (
+      ancestorValues.length > 0 &&
+      isMultiWord &&
+      defaultFilter(ancestorValues.join(' '), query) === 0
+    ) {
+      fuzzyScore = Math.max(
+        fuzzyScore,
+        commandScore(
+          [...ancestorValues, normalizedValue].join(' '),
+          query,
+          ownKeywords.length > 0 ? ownKeywords : undefined,
+        ),
+      )
+    }
     const score = node.def.forceScore ?? fuzzyScore
 
     if (score > 0) {

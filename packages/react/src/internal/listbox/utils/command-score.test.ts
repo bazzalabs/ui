@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { commandScore } from './command-score.js'
+import { commandScore, defaultFilter } from './command-score.js'
 
 describe('commandScore', () => {
   it('returns 1 for an empty query', () => {
@@ -76,5 +76,67 @@ describe('commandScore', () => {
         3,
       )
     })
+  })
+})
+
+describe('defaultFilter', () => {
+  it.each([
+    ['apple', 'app'],
+    ['apple', 'ale'],
+    ['apple', 'xyz'],
+    ['Dark Mode', 'dark-mode'],
+    ['New project', '  proj  '],
+    ['anything', ''],
+  ])('scores %j against the single-word query %j exactly as commandScore', (value, query) => {
+    expect(defaultFilter(value, query, ['Navattic'])).toBe(
+      commandScore(value, query, ['Navattic']),
+    )
+  })
+
+  it('keeps the single-word ranking of commandScore', () => {
+    const values = ['Delete', 'Duplicate', 'Edit details', 'Deploy']
+    const rank = (score: typeof commandScore) =>
+      values
+        .map((value) => ({ value, score: score(value, 'de') }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ value }) => value)
+
+    expect(rank(defaultFilter)).toEqual(rank(commandScore))
+    expect(rank(defaultFilter)).toEqual([
+      'Delete',
+      'Deploy',
+      'Edit details',
+      'Duplicate',
+    ])
+  })
+
+  it('matches the words of a query in any order', () => {
+    expect(commandScore('New project', 'navattic new', ['Navattic'])).toBe(0)
+    expect(
+      defaultFilter('New project', 'navattic new', ['Navattic']),
+    ).toBeGreaterThan(0)
+    expect(
+      defaultFilter('New project', 'new navattic', ['Navattic']),
+    ).toBeGreaterThan(0)
+  })
+
+  it('matches each word fuzzily', () => {
+    expect(
+      defaultFilter('New project', 'nav proj', ['Navattic']),
+    ).toBeGreaterThan(0)
+  })
+
+  it('returns 0 when any word does not match', () => {
+    expect(defaultFilter('New project', 'navattic xyz', ['Navattic'])).toBe(0)
+  })
+
+  it('never scores a multi-word query below its in-order score', () => {
+    expect(defaultFilter('Dark Mode', 'dark mode')).toBe(
+      commandScore('Dark Mode', 'dark mode'),
+    )
+    expect(defaultFilter('Dark Mode', 'dark mode')).toBeGreaterThan(
+      defaultFilter('Dark Mode', 'mode dark'),
+    )
   })
 })
