@@ -337,6 +337,7 @@ export const PopupMenuSurface = React.forwardRef<
       asyncContentReveal,
       deepSearchConfig,
       includeInDeepSearch,
+      filter,
       listId: dataListId,
     }),
     [
@@ -346,6 +347,7 @@ export const PopupMenuSurface = React.forwardRef<
       asyncContentReveal,
       deepSearchConfig,
       includeInDeepSearch,
+      filter,
       dataListId,
     ],
   )

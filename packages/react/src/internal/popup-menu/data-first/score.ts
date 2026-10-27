@@ -2,6 +2,7 @@
 // Score Nodes
 // ============================================================================
 
+import type { FilterFn } from '../../listbox/store/ListboxStore.js'
 import { commandScore } from '../../listbox/utils/command-score.js'
 import { normalizeValue } from '../../listbox/utils/normalize.js'
 import type { FlattenedNode, ScoredNode } from './types.js'
@@ -10,12 +11,14 @@ import type { FlattenedNode, ScoredNode } from './types.js'
 // ============================================================================
 
 /**
- * Scores nodes against a search query.
+ * Scores nodes against a search query with `filter` (`commandScore` by
+ * default). A node's `forceScore` replaces its computed score.
  * Returns only nodes with a score > 0.
  */
 export function scoreNodes(
   flattenedNodes: FlattenedNode[],
   query: string,
+  filter: FilterFn = commandScore,
 ): ScoredNode[] {
   if (!query) {
     // No query - return all nodes with score 1
@@ -56,7 +59,7 @@ export function scoreNodes(
       .map((k) => normalizeValue(k))
       .filter(Boolean)
 
-    const fuzzyScore = commandScore(
+    const fuzzyScore = filter(
       normalizedValue,
       query,
       normalizedKeywords.length > 0 ? normalizedKeywords : undefined,

@@ -702,6 +702,7 @@ export interface DataListInnerProps extends PopupMenuListProps {
   includeInDeepSearch: ReturnType<
     typeof useDataSurfaceContext
   >['includeInDeepSearch']
+  filter: ReturnType<typeof useDataSurfaceContext>['filter']
   search: string
   normalizedSearch: string
   store: ReturnType<typeof useSurfaceContext>['store']
@@ -719,6 +720,7 @@ export const DataListInner = React.forwardRef<
     asyncContentReveal = 'stream',
     deepSearchConfig,
     includeInDeepSearch,
+    filter,
     search,
     normalizedSearch,
     store,
@@ -845,6 +847,7 @@ export const DataListInner = React.forwardRef<
       radioGroupSearchBehavior: deepSearchConfig.radioGroupSearchBehavior,
       checkboxGroupSearchBehavior: deepSearchConfig.checkboxGroupSearchBehavior,
       sortGroups: deepSearchConfig.sortGroups,
+      filter,
     })
 
     const asyncResultBehavior = deepSearchConfig.asyncResultBehavior ?? 'stream'
@@ -927,6 +930,7 @@ export const DataListInner = React.forwardRef<
     graftVersion,
     deepSearchConfig,
     includeInDeepSearch,
+    filter,
     asyncSubmenus.length,
     asyncContent,
     coordinator,
@@ -1787,7 +1791,7 @@ export const DataListInner = React.forwardRef<
               key={info.id}
               info={info}
               query={normalizedSearch}
-              enabled={isDeepSearchActive}
+              enabled={isDeepSearchActive && filter !== false}
             />
           ))}
         </>

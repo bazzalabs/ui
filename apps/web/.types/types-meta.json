@@ -6684,6 +6684,12 @@
             "description": "Default submenu inclusion mode for deep search"
           },
           {
+            "name": "filter",
+            "type": "false | FilterFn",
+            "required": true,
+            "description": "Scores rows against the search, or `false` to show every row unfiltered"
+          },
+          {
             "name": "listId",
             "type": "string",
             "required": true,

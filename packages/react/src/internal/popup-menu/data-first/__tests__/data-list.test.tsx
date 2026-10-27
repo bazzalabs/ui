@@ -850,6 +850,82 @@ describe('forced sorting', () => {
   })
 })
 
+describe('surface filter', () => {
+  function MenuWithFilter({
+    filter,
+  }: {
+    filter: React.ComponentProps<typeof DropdownMenu.Surface>['filter']
+  }) {
+    const content: NodeDef[] = React.useMemo(
+      () => [
+        createTestItemDef('apple', 'Apple'),
+        createTestItemDef('banana', 'Banana'),
+        createTestItemDef('cherry', 'Cherry'),
+        createTestSubmenuDef('more', 'More', [
+          createTestItemDef('kiwi', 'Kiwi'),
+        ]),
+      ],
+      [],
+    )
+
+    return (
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                deepSearch={{ enabled: true, minLength: 0 }}
+                filter={filter}
+              >
+                <DropdownMenu.Input data-testid="search-input" />
+                <DropdownMenu.List>
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    )
+  }
+
+  it('scores rows with a custom filter instead of the default', async () => {
+    const user = userEvent.setup()
+    // Matches the rows the default filter rejects, and rejects "Banana".
+    const filter = vi.fn((value: string, search: string) =>
+      value.toLowerCase().includes(search) ? 0 : 1,
+    )
+    render(<MenuWithFilter filter={filter} />)
+
+    await user.type(screen.getByTestId('search-input'), 'an')
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
+      expect(screen.getByTestId('item-kiwi')).toBeInTheDocument()
+    })
+    expect(filter).toHaveBeenCalledWith('Apple', 'an', undefined)
+  })
+
+  it('shows every row unfiltered with filter={false}', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithFilter filter={false} />)
+
+    await user.type(screen.getByTestId('search-input'), 'cherry')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-input')).toHaveValue('cherry')
+    })
+    expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+    expect(screen.getByTestId('item-banana')).toBeInTheDocument()
+    expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
+    expect(screen.queryByTestId('item-kiwi')).not.toBeInTheDocument()
+  })
+})
+
 describe('group labels', () => {
   const groupItem = createTestItemDef('group-item', 'Group Item')
 

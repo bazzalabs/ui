@@ -2,6 +2,7 @@
 // Full Pipeline
 // ============================================================================
 
+import type { FilterFn } from '../../listbox/store/ListboxStore.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import { getBrowseNodesPreserve } from './browse.js'
 import { buildDisplayRowNode, buildDisplayRowNodes } from './display.js'
@@ -63,6 +64,16 @@ export interface FilterNodesOptions {
   checkboxGroupSearchBehavior?: CheckboxGroupBehavior
   /** Whether to sort groups by best score */
   sortGroups?: boolean
+  /**
+   * Scores each node against the query (`commandScore` by default). `false`
+   * turns filtering off: every node shows as it does with no query.
+   */
+  filter?: FilterFn | false
+}
+
+/** Options for a search that filters: `filter` is a function or the default. */
+type SearchFilterNodesOptions = Omit<FilterNodesOptions, 'filter'> & {
+  filter?: FilterFn
 }
 
 /**
@@ -71,7 +82,7 @@ export interface FilterNodesOptions {
  * Radio group behavior is controlled by radioGroupSearchBehavior.
  * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
  */
-function filterNodesFlatten(options: FilterNodesOptions): {
+function filterNodesFlatten(options: SearchFilterNodesOptions): {
   displayNodes: DisplayNode[]
   isDeepSearching: boolean
 } {
@@ -85,6 +96,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
     minLength = 0,
     radioGroupSearchBehavior = 'preserve',
     checkboxGroupSearchBehavior = 'preserve',
+    filter,
   } = options
 
   // Determine if deep search should activate
@@ -157,7 +169,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
   }
 
   // Score nodes
-  const scored = scoreNodes(flattened, query)
+  const scored = scoreNodes(flattened, query, filter)
 
   // Separate radio group items from regular items
   const radioGroupItems = new Map<
@@ -388,7 +400,7 @@ function filterNodesFlatten(options: FilterNodesOptions): {
  * Radio group behavior is controlled by radioGroupSearchBehavior.
  * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
  */
-function filterNodesPreserve(options: FilterNodesOptions): {
+function filterNodesPreserve(options: SearchFilterNodesOptions): {
   displayNodes: DisplayNode[]
   isDeepSearching: boolean
 } {
@@ -403,6 +415,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
     sortGroups = true,
     radioGroupSearchBehavior = 'preserve',
     checkboxGroupSearchBehavior = 'preserve',
+    filter,
   } = options
 
   // Determine if deep search should activate
@@ -473,7 +486,7 @@ function filterNodesPreserve(options: FilterNodesOptions): {
   }
 
   // Score nodes
-  const scored = scoreNodes(flattened, query)
+  const scored = scoreNodes(flattened, query, filter)
 
   // Partition into groups, radio groups, and ungrouped
   const groupedItems = new Map<
@@ -757,11 +770,12 @@ export function filterNodes(options: FilterNodesOptions): {
     nodes,
     highlightedId,
     groupSearchBehavior = 'preserve',
+    filter,
   } = options
 
-  // Browse mode - no query
+  // Browse mode - no query, or filtering turned off
   // Always preserve groups in browse mode (groupSearchBehavior only affects search)
-  if (!query) {
+  if (!query || filter === false) {
     return {
       displayNodes: getBrowseNodesPreserve(nodes, highlightedId),
       isDeepSearching: false,
@@ -770,10 +784,10 @@ export function filterNodes(options: FilterNodesOptions): {
 
   // Search mode - dispatch based on group search behavior
   if (groupSearchBehavior === 'preserve') {
-    return filterNodesPreserve(options)
+    return filterNodesPreserve({ ...options, filter })
   }
 
-  return filterNodesFlatten(options)
+  return filterNodesFlatten({ ...options, filter })
 }
 
 // ============================================================================

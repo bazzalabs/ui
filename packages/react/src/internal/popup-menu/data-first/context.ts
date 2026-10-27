@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { FilterFn } from '../../listbox/store/ListboxStore.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import type {
   AsyncContentMode,
@@ -35,6 +36,9 @@ export interface DataSurfaceContextValue {
 
   /** Default submenu inclusion mode for deep search */
   includeInDeepSearch: IncludeInDeepSearch
+
+  /** Scores rows against the search, or `false` to show every row unfiltered */
+  filter: FilterFn | false
 
   /** List element ID for aria-activedescendant */
   listId: string
