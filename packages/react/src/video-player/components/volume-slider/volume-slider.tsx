@@ -165,7 +165,9 @@ export const VolumeSlider = React.forwardRef<
           }
           return render({ ...baseProps, ...renderProps }, state)
         }}
-      />
+      >
+        {children}
+      </Slider.Root>
     )
   }
 
