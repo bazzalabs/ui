@@ -101,6 +101,7 @@ function Menu(props: {
   reveal?: 'stream' | 'block'
   content?: NodeDef[]
   deepSearch?: boolean
+  filter?: false
 }) {
   return (
     <DropdownMenu.Root defaultOpen>
@@ -111,6 +112,7 @@ function Menu(props: {
               content={props.content ?? [item('Alice'), item('Bob')]}
               asyncContent={props.loader}
               deepSearch={props.deepSearch}
+              filter={props.filter}
               asyncContentMode="append"
               asyncContentReveal={props.reveal}
             >
@@ -248,6 +250,19 @@ describe('asyncContentReveal', () => {
         'item-carol',
       ]),
     )
+  })
+
+  it('filter={false} still sends the search to the query loader, and keeps local rows unfiltered', async () => {
+    const loader = createControlledQueryLoader()
+    const user = userEvent.setup()
+    render(<Menu loader={loader.config} filter={false} />)
+
+    await user.type(screen.getByTestId('input'), 'zz')
+    loader.resolve('zz', [item('Dana')])
+
+    await waitFor(() => {
+      expect(rowIds()).toEqual(['item-alice', 'item-bob', 'item-dana'])
+    })
   })
 
   it("'block' shows local rows when the root loader is never rendered", async () => {
