@@ -834,12 +834,27 @@ interface BaseNodeDef {
 }
 
 /**
+ * Lets a node's `forceOrder` depend on how well it matches the search.
+ */
+interface ForceOrderMinScoreDef {
+  /**
+   * The lowest search score at which `forceOrder` applies. A row that matches
+   * with a lower score sorts by score, as if it had no `forceOrder`, and still
+   * shows. `forceScore`, when set, is the score compared. `commandScore`
+   * scores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.
+   * @default undefined (`forceOrder` applies to every match)
+   */
+  forceOrderMinScore?: number
+}
+
+/**
  * Item node definition.
  * Represents a selectable menu item.
  * Props derived from PopupMenuItemProps.
  */
 export interface ItemDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Required<Pick<PopupMenuItemProps, 'value'>>,
     Pick<
       PopupMenuItemProps,
@@ -864,6 +879,7 @@ export interface ItemDef
  */
 export interface LinkItemDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Required<Pick<PopupMenuLinkItemProps, 'value' | 'href'>>,
     Pick<
       PopupMenuLinkItemProps,
@@ -882,6 +898,7 @@ export interface LinkItemDef
 /** Tree item node definition. */
 export interface TreeItemDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Required<Pick<PopupMenuItemProps, 'value'>>,
     Pick<
       PopupMenuItemProps,
@@ -910,6 +927,7 @@ export interface TreeItemDef
  */
 export interface RadioItemDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Required<Pick<PopupMenuRadioItemProps, 'value'>>,
     Pick<
       PopupMenuRadioItemProps,
@@ -936,6 +954,7 @@ export interface RadioItemDef
  */
 export interface CheckboxItemDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Pick<
       PopupMenuCheckboxItemProps,
       | 'keywords'
@@ -966,6 +985,7 @@ export interface CheckboxItemDef
  */
 export interface SubmenuDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Required<Pick<PopupMenuSubmenuTriggerProps, 'value'>>,
     Pick<
       PopupMenuSubmenuTriggerProps,
@@ -1012,6 +1032,7 @@ export interface SubmenuDef
  */
 export interface SubpageDef
   extends BaseNodeDef,
+    ForceOrderMinScoreDef,
     Required<Pick<PopupMenuSubpageTriggerProps, 'value'>>,
     Pick<
       PopupMenuSubpageTriggerProps,

@@ -6378,6 +6378,14 @@
             "description": "Whether this node is hidden"
           },
           {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
+          },
+          {
             "name": "checked",
             "type": "boolean | undefined",
             "formattedType": "false | true",
@@ -7149,6 +7157,14 @@
             "description": "Whether this node is hidden"
           },
           {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
+          },
+          {
             "name": "value",
             "type": "string",
             "required": false,
@@ -7327,6 +7343,14 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this node is hidden"
+          },
+          {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
           },
           {
             "name": "value",
@@ -7980,6 +8004,14 @@
             "description": "Whether this node is hidden"
           },
           {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
+          },
+          {
             "name": "value",
             "type": "string",
             "required": true,
@@ -8400,6 +8432,14 @@
             "description": "Whether this node is hidden"
           },
           {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
+          },
+          {
             "name": "value",
             "type": "string",
             "required": false,
@@ -8649,6 +8689,14 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this node is hidden"
+          },
+          {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
           },
           {
             "name": "value",
@@ -13879,6 +13927,14 @@
             "formattedType": "false | true",
             "required": false,
             "description": "Whether this node is hidden"
+          },
+          {
+            "name": "forceOrderMinScore",
+            "type": "number | undefined",
+            "formattedType": "number",
+            "required": false,
+            "description": "The lowest search score at which `forceOrder` applies. A row that matches\nwith a lower score sorts by score, as if it had no `forceOrder`, and still\nshows. `forceScore`, when set, is the score compared. `commandScore`\nscores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.",
+            "default": "undefined (`forceOrder` applies to every match)"
           },
           {
             "name": "value",

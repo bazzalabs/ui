@@ -11,8 +11,9 @@ import { scoreNodes } from './score.js'
 import {
   compareScoredNodesByForceOrderAndScore,
   deduplicateNodes,
+  getDisplayRowForceOrder,
+  getDisplayRowScore,
   getMinForceOrderFromDisplayRows,
-  getNodeForceOrder,
   getRowKindSortRank,
   partitionByKind,
   sortByForceOrderThenKindThenScore,
@@ -367,8 +368,8 @@ function filterNodesFlatten(options: SearchFilterNodesOptions): {
   const allNodes: SortableNode[] = [
     ...regularDisplayNodes.map((r) => ({
       node: r as DisplayNode,
-      score: r.context.search?.score ?? 0,
-      forceOrder: getNodeForceOrder(r.node.def),
+      score: getDisplayRowScore(r),
+      forceOrder: getDisplayRowForceOrder(r),
       kindRank: getRowKindSortRank(r.node.kind),
     })),
     ...radioGroupDisplayNodes.map((r) => ({
@@ -737,8 +738,8 @@ function filterNodesPreserve(options: SearchFilterNodesOptions): {
     })),
     ...ungroupedDisplayNodes.map((r) => ({
       node: r as DisplayNode,
-      score: r.context.search?.score ?? 0,
-      forceOrder: getNodeForceOrder(r.node.def),
+      score: getDisplayRowScore(r),
+      forceOrder: getDisplayRowForceOrder(r),
       kindRank: getRowKindSortRank(r.node.kind),
     })),
   ]

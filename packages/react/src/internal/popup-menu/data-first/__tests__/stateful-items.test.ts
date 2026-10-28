@@ -1224,6 +1224,106 @@ describe('Forced sorting overrides', () => {
   })
 })
 
+describe('forceOrderMinScore', () => {
+  // "System" matches "sett" weakly (~0.14, through its keywords) and "s"
+  // strongly (~0.99); "Settle" matches both strongly (~0.99).
+  const themeKeywords = ['Theme', 'Change interface theme']
+
+  function rowValues(
+    nodes: NodeDef[],
+    query: string,
+    groupSearchBehavior: 'preserve' | 'flatten' = 'preserve',
+  ) {
+    const { displayNodes } = filterNodes({
+      query,
+      nodes: resolve(nodes),
+      highlightedId: null,
+      groupSearchBehavior,
+    })
+    return displayNodes.flatMap((node) =>
+      isDisplayRowNode(node)
+        ? [node.node.def.value]
+        : node.items.map((item) => item.node.def.value),
+    )
+  }
+
+  function menu(systemOptions: Partial<ItemDef>) {
+    return [
+      createItemDef('settle', 'Settle'),
+      createItemDef('system', 'System', {
+        keywords: themeKeywords,
+        forceOrder: -1,
+        ...systemOptions,
+      }),
+    ]
+  }
+
+  it.each([
+    'preserve',
+    'flatten',
+  ] as const)('ranks a weak match below its min score by score (%s)', (behavior) => {
+    expect(
+      rowValues(menu({ forceOrderMinScore: 0.5 }), 'sett', behavior),
+    ).toEqual(['Settle', 'System'])
+  })
+
+  it.each([
+    'preserve',
+    'flatten',
+  ] as const)('keeps forceOrder for a match at or above its min score (%s)', (behavior) => {
+    expect(rowValues(menu({ forceOrderMinScore: 0.5 }), 's', behavior)).toEqual(
+      ['System', 'Settle'],
+    )
+  })
+
+  it('applies forceOrder to every match without a min score', () => {
+    expect(rowValues(menu({}), 'sett')).toEqual(['System', 'Settle'])
+  })
+
+  it('compares forceScore, not the computed score, against the min score', () => {
+    // Computed ~0.14 for "sett", ~0.99 for "s"; forceScore sits across 0.5.
+    expect(
+      rowValues(menu({ forceOrderMinScore: 0.5, forceScore: 0.6 }), 'sett'),
+    ).toEqual(['System', 'Settle'])
+    expect(
+      rowValues(menu({ forceOrderMinScore: 0.5, forceScore: 0.4 }), 's'),
+    ).toEqual(['Settle', 'System'])
+  })
+
+  it('ranks a radio group of weak forced matches by score', () => {
+    const themeOption = (value: string) =>
+      createRadioItemDef(value.toLowerCase(), value, {
+        keywords: themeKeywords,
+        forceOrder: -1,
+        forceOrderMinScore: 0.5,
+      })
+    const nodes: NodeDef[] = [
+      createItemDef('settle', 'Settle'),
+      createRadioGroupDef('theme', 'system', [
+        themeOption('Light'),
+        themeOption('Dark'),
+        themeOption('System'),
+      ]),
+    ]
+
+    expect(rowValues(nodes, 'sett')).toEqual(['Settle', 'System'])
+    expect(rowValues(nodes, 's')).toEqual(['System', 'Settle'])
+  })
+
+  it('ranks a submenu trigger with a weak forced match by score', () => {
+    const nodes: NodeDef[] = [
+      createItemDef('settle', 'Settle'),
+      createSubmenuDef('system', 'System', [], {
+        keywords: themeKeywords,
+        forceOrder: -1,
+        forceOrderMinScore: 0.5,
+      }),
+    ]
+
+    expect(rowValues(nodes, 'sett', 'flatten')).toEqual(['Settle', 'System'])
+  })
+})
+
 describe('Menu Node pipeline', () => {
   it('deep search sees rows grafted under a branch below a group', () => {
     const submenu = createSubmenuDef('status', 'Status', [])
