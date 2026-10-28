@@ -1,5 +1,15 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.18
+
+### Minor Changes
+
+- [#602](https://github.com/bazzalabs/ui/pull/602) [`8deecbb`](https://github.com/bazzalabs/ui/commit/8deecbb58c024db1cdd1b71059b6c1a52e4f6d82) Thanks [@kianbazza](https://github.com/kianbazza)! - Add `forceOrderMinScore` to data-first node defs (items, link items, tree items, radio and checkbox items, submenus, subpages). A row whose search score is below it sorts by score, as if it had no `forceOrder`, and still shows. Use it to lead with a row only when it matches well: with `forceOrder: -1, forceOrderMinScore: 0.5`, a "System" theme option leads for "sys" but no longer outranks "Settle" for "sett". `forceScore`, when set, is the score compared. Without it, `forceOrder` applies to every match as before.
+
+### Patch Changes
+
+- [#601](https://github.com/bazzalabs/ui/pull/601) [`150bf4a`](https://github.com/bazzalabs/ui/commit/150bf4ab8cacb676a3de08a67fa70483f3670afc) Thanks [@kianbazza](https://github.com/kianbazza)! - Data-first surfaces now use their `filter` prop. A custom `filter` scores rows in search and deep search, with `forceScore` still taking precedence, where before every data-first search used `commandScore`. `filter={false}` turns filtering off: the surface shows its rows as it does with no search, which suits `content` you filter yourself or a query loader that filters on the server.
+
 ## 0.1.0-canary.17
 
 ### Minor Changes
