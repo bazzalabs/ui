@@ -7,8 +7,29 @@ import type { DisplayRowNode, ScoredNode } from './types.js'
 // Sort Nodes
 // ============================================================================
 
-export function getNodeForceOrder(node: { forceOrder?: number }): number {
-  return node.forceOrder ?? 0
+/**
+ * A row's `forceOrder` for sorting at `score`. A row whose score is below its
+ * `forceOrderMinScore` sorts as if it had no `forceOrder` (0).
+ */
+export function getNodeForceOrder(
+  def: { forceOrder?: number; forceOrderMinScore?: number },
+  score: number,
+): number {
+  const { forceOrder = 0, forceOrderMinScore } = def
+  if (forceOrderMinScore !== undefined && score < forceOrderMinScore) {
+    return 0
+  }
+  return forceOrder
+}
+
+/** A display row's search score, which its sort and `forceOrder` both use. */
+export function getDisplayRowScore(row: DisplayRowNode): number {
+  return row.context.search?.score ?? 0
+}
+
+/** `getNodeForceOrder` for a display row, at its search score. */
+export function getDisplayRowForceOrder(row: DisplayRowNode): number {
+  return getNodeForceOrder(row.node.def, getDisplayRowScore(row))
 }
 
 export function compareScoredNodesByForceOrderAndScore(
@@ -16,7 +37,8 @@ export function compareScoredNodesByForceOrderAndScore(
   b: ScoredNode,
 ): number {
   const orderDiff =
-    getNodeForceOrder(a.node.def) - getNodeForceOrder(b.node.def)
+    getNodeForceOrder(a.node.def, a.score) -
+    getNodeForceOrder(b.node.def, b.score)
   if (orderDiff !== 0) {
     return orderDiff
   }
@@ -64,7 +86,7 @@ export function getMinForceOrderFromDisplayRows(
   let minForceOrder = Number.POSITIVE_INFINITY
 
   for (const item of nodes) {
-    const forceOrder = getNodeForceOrder(item.node.def)
+    const forceOrder = getDisplayRowForceOrder(item)
     if (forceOrder < minForceOrder) {
       minForceOrder = forceOrder
     }
@@ -94,7 +116,7 @@ export function partitionByKind(nodes: ScoredNode[]): ScoredNode[] {
   >()
 
   for (const node of nodes) {
-    const forceOrder = getNodeForceOrder(node.node.def)
+    const forceOrder = getNodeForceOrder(node.node.def, node.score)
     const bucket = byForceOrder.get(forceOrder) ?? {
       items: [],
       branches: [],
