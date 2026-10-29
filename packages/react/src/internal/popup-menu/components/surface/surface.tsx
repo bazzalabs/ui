@@ -251,8 +251,12 @@ export const PopupMenuSurface = React.forwardRef<
     onSearchChange?.(search)
   })
 
-  // Update store context with surface configuration
-  React.useEffect(() => {
+  // Update store context with surface configuration. A layout effect, so it
+  // lands before children's passive effects register items or sync ordered
+  // items (e.g. `autoHighlightFirst={false}` must hold on the first open
+  // too). Children's layout effects, such as row registration, still run
+  // before it.
+  React.useLayoutEffect(() => {
     store.context.filter = isDataMode ? false : filter
     store.setSearchNormalizer(normalizeSearch)
     store.context.loop = loop
@@ -262,24 +266,6 @@ export const PopupMenuSurface = React.forwardRef<
     store.context.listId = listId
     store.context.inputId = inputId
     store.context.onSearchChange = handleSearchChange
-
-    // Configure virtualization if enabled via props
-    // Note: We only manage virtualization when explicitly provided via props.
-    // When virtualization is undefined, we don't clear it - this allows child
-    // components (like VirtualizedDataListContent) to manage virtualization
-    // independently without being overwritten by Surface.
-    if (virtualization) {
-      store.setVirtualized(virtualization.virtualized)
-      store.setVirtualItems(virtualization.items)
-      store.setOnHighlightChange(virtualization.onHighlightChange)
-    }
-
-    // Apply auto-highlight after context is updated
-    // This handles the case where autoHighlightFirst is a string value
-    // (the open observer only handles boolean true for backwards compatibility)
-    if (typeof autoHighlightFirst === 'string') {
-      store.applyAutoHighlight()
-    }
   }, [
     store,
     filter,
@@ -291,9 +277,29 @@ export const PopupMenuSurface = React.forwardRef<
     listId,
     inputId,
     handleSearchChange,
-    virtualization,
     isDataMode,
   ])
+
+  React.useEffect(() => {
+    // Configure virtualization if enabled via props
+    // Note: We only manage virtualization when explicitly provided via props.
+    // When virtualization is undefined, we don't clear it - this allows child
+    // components (like VirtualizedDataListContent) to manage virtualization
+    // independently without being overwritten by Surface.
+    if (virtualization) {
+      store.setVirtualized(virtualization.virtualized)
+      store.setVirtualItems(virtualization.items)
+      store.setOnHighlightChange(virtualization.onHighlightChange)
+    }
+
+    // Apply auto-highlight once the rows have registered (children's effects
+    // run first). This handles the case where autoHighlightFirst is a string
+    // value (the open observer only handles boolean true for backwards
+    // compatibility)
+    if (typeof autoHighlightFirst === 'string') {
+      store.applyAutoHighlight()
+    }
+  }, [store, autoHighlightFirst, virtualization])
 
   const popupMenuContext = usePopupMenuContext()
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
