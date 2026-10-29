@@ -4,33 +4,36 @@ import * as React from 'react'
 import { createPortal } from 'react-dom'
 import type { PopupMenuSafeTriangleAreaDebugSettings } from '../../contexts/popup-menu-debug-context.js'
 import { resolveAnchorSide } from '../../utils/aim-guard.js'
-import { useMousePosition } from '../../utils/use-mouse-position.js'
+import { useMousePosition } from './use-mouse-position.js'
 
-export type PopupMenuSubmenuSafeTriangleTone = 'hover' | 'activated' | 'missed'
+export type PopupMenuSafeTriangleTone = 'hover' | 'activated' | 'missed'
+export type PopupMenuSafeTriangleScope = 'submenu' | 'root'
 
-export interface PopupMenuSubmenuSafeTriangleAreaProps {
+export interface PopupMenuSafeTriangleAreaProps {
   config: PopupMenuSafeTriangleAreaDebugSettings
   contentRef: React.RefObject<HTMLElement | null>
-  triggerRef: React.RefObject<HTMLElement | null>
-  tone: PopupMenuSubmenuSafeTriangleTone
+  anchorRef: React.RefObject<HTMLElement | null>
+  tone: PopupMenuSafeTriangleTone
+  scope: PopupMenuSafeTriangleScope
   contentRectOverride?: DOMRect | null
-  triggerRectOverride?: DOMRect | null
+  anchorRectOverride?: DOMRect | null
   mousePointOverride?: [number, number] | null
 }
 
 /**
- * Visual-only debug triangle showing the submenu safe area.
+ * Visual-only debug triangle showing the Aim Monitor's safe area between an anchor and popup content.
  */
-export function PopupMenuSubmenuSafeTriangleArea(
-  props: PopupMenuSubmenuSafeTriangleAreaProps,
+export function PopupMenuSafeTriangleArea(
+  props: PopupMenuSafeTriangleAreaProps,
 ) {
   const {
     config,
     contentRef,
-    triggerRef,
+    anchorRef,
     tone,
+    scope,
     contentRectOverride,
-    triggerRectOverride,
+    anchorRectOverride,
     mousePointOverride,
   } = props
   const [liveMouseX, liveMouseY] = useMousePosition()
@@ -50,8 +53,8 @@ export function PopupMenuSubmenuSafeTriangleArea(
   }
 
   const triggerRect =
-    triggerRectOverride ??
-    (triggerRef.current ? triggerRef.current.getBoundingClientRect() : null)
+    anchorRectOverride ??
+    (anchorRef.current ? anchorRef.current.getBoundingClientRect() : null)
 
   const mouseX = mousePointOverride?.[0] ?? liveMouseX
   const mouseY = mousePointOverride?.[1] ?? liveMouseY
@@ -145,7 +148,8 @@ export function PopupMenuSubmenuSafeTriangleArea(
 
   const triangle = (
     <svg
-      data-bazzaui-submenu-safe-triangle-area=""
+      data-bazzaui-safe-triangle-area=""
+      data-safe-triangle-scope={scope}
       data-safe-triangle-tone={tone}
       aria-hidden
       viewBox={`0 0 ${triangleWidth} ${height}`}
