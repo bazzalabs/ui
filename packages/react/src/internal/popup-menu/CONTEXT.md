@@ -77,6 +77,14 @@ _Avoid_: resolving (as a noun), reconciliation (reconcile is one operation insid
 The state layer beneath the engine: rows register into a `ListboxStore`, which owns highlight state and keyboard navigation. Implements the WAI-ARIA listbox pattern; shared by every menu family.
 _Avoid_: list store, selection engine
 
+**Aim Monitor**:
+The module that watches the pointer after it leaves a trigger or popup and decides, from its trajectory toward the popup, whether the popup stays open or closes. Owns the close timer; adapters (submenu trigger, root hover guard) supply rect getters and react to hit / miss / close / settled transitions.
+_Avoid_: safe polygon (Base UI's term, and it names only the geometry), hover intent (the open side), leave monitor
+
+**Aim Guard**:
+The short-lived shield that stops sibling rows from taking highlight while the pointer is aiming at an open submenu. Activated by the submenu trigger on an Aim Monitor hit; cleared on miss, on entering the submenu, or on timeout.
+_Avoid_: aim monitor, safe triangle (that is the debug overlay)
+
 ## Removed vocabulary
 
 These terms described the string-based identity model and no longer exist in the code. They appear here only so the names are not reintroduced with new meanings.
