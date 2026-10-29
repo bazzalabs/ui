@@ -305,8 +305,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   } = useAimGuard()
   const { aimGuardActive, guardedTriggerId, guardedDepth } = useAimGuardState()
 
-  // Track mouse positions for aim guard trajectory calculation
-  const mouseTrailRef = useMouseTrail(4)
+  // Track mouse positions for aim guard trajectory calculation, only while
+  // this trigger holds the trail: while hovered, and while its leave
+  // monitor runs
+  const {
+    trailRef: mouseTrailRef,
+    hold: holdMouseTrail,
+    release: releaseMouseTrail,
+  } = useMouseTrail(4)
 
   const { showSafeTriangleArea, logAimGuardEvents } = usePopupMenuDebug()
   const showSafeTriangleAreaEnabled = showSafeTriangleArea.enabled
@@ -337,8 +343,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   const disabled = item.disabled
 
+  // Pass `details` as a function from per-move call sites, so nothing is
+  // built while logging is off
   const logAimTrace = React.useCallback(
-    (eventName: string, details?: Record<string, unknown>) => {
+    (
+      eventName: string,
+      details?: Record<string, unknown> | (() => Record<string, unknown>),
+    ) => {
       if (!logAimGuardEvents) {
         return
       }
@@ -350,7 +361,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         aimGuardActive: aimGuardActiveRef.current,
         guardedTriggerId: guardedTriggerIdRef.current,
         guardedDepth: guardedDepthRef.current,
-        ...details,
+        ...(typeof details === 'function' ? details() : details),
       })
     },
     [
@@ -506,14 +517,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
           (anchor === 'top' && axisDelta <= -2) ||
           (anchor === 'bottom' && axisDelta >= 2)
 
-        logAimTrace('leave-monitor-pointermove', {
+        logAimTrace('leave-monitor-pointermove', () => ({
           anchor,
           clientX,
           clientY,
           axisDelta,
           movedAwayFromSubmenu,
           lastHit,
-        })
+        }))
 
         if (lastHit && movedAwayFromSubmenu) {
           const debugSnapshot: SubmenuSafeTriangleDebugSnapshot = {
@@ -559,14 +570,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
           triggerRect,
         )
 
-        logAimTrace('leave-monitor-hit-eval', {
+        logAimTrace('leave-monitor-hit-eval', () => ({
           anchor,
           clientX,
           clientY,
           hit,
           lastHit,
           heading,
-        })
+        }))
 
         if (hit === lastHit) {
           return
@@ -609,6 +620,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         }
       }
 
+      // Keep the trail running for the heading checks above. Held before the
+      // monitor's listener is added, so each move reaches the trail first.
+      holdMouseTrail('monitor')
       window.addEventListener('pointermove', onWindowPointerMove, {
         passive: true,
       })
@@ -616,6 +630,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       leaveMonitorCleanupRef.current = () => {
         logAimTrace('leave-monitor-cleanup-remove-listener')
         window.removeEventListener('pointermove', onWindowPointerMove)
+        releaseMouseTrail('monitor')
       }
 
       leaveMonitorTimerRef.current = setTimeout(() => {
@@ -630,6 +645,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       contentRef,
       clearCloseTimer,
       mouseTrailRef,
+      holdMouseTrail,
+      releaseMouseTrail,
       showActivatedSafeTriangle,
       activateAimGuard,
       item.id,
@@ -745,6 +762,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     guardedDepthRef,
     clearAimGuard,
   ])
+
+  // A hidden trigger's element is gone, so no pointerleave will release the
+  // trail; end the hover and the leave monitor here
+  React.useEffect(() => {
+    if (item.isVisible) return
+    clearLeaveMonitor()
+    releaseMouseTrail('hover')
+  }, [item.isVisible, clearLeaveMonitor, releaseMouseTrail])
 
   React.useEffect(() => {
     return () => {
@@ -925,6 +950,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Different from usePopupMenuItem's handler: allows the guarded trigger to highlight itself
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      // Also covers a pointer that was already over the trigger when it mounted
+      holdMouseTrail('hover')
+
       onPointerMove?.(event)
 
       if (event.defaultPrevented) return
@@ -944,11 +972,11 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         guardedDepthRef.current === parentDepth &&
         guardedTriggerIdRef.current !== item.id
       ) {
-        logAimTrace('pointermove-blocked-by-guard', {
+        logAimTrace('pointermove-blocked-by-guard', () => ({
           clientX: event.clientX,
           clientY: event.clientY,
           blockedByTriggerId: guardedTriggerIdRef.current,
-        })
+        }))
         return
       }
 
@@ -962,10 +990,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       }
 
       if (suppressAutoOpenRef.current) {
-        logAimTrace('pointermove-open-suppressed-after-explicit-close', {
+        logAimTrace('pointermove-open-suppressed-after-explicit-close', () => ({
           clientX: event.clientX,
           clientY: event.clientY,
-        })
+        }))
         return
       }
 
@@ -1005,11 +1033,14 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       setOpen,
       logAimTrace,
       parentStore,
+      holdMouseTrail,
     ],
   )
 
   const handlePointerEnter = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      holdMouseTrail('hover')
+
       onPointerEnter?.(event)
 
       if (event.defaultPrevented) return
@@ -1093,6 +1124,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       setOpen,
       logAimTrace,
       parentDepth,
+      holdMouseTrail,
     ],
   )
 
@@ -1173,8 +1205,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
       // Calculate safe polygon and check if user is aiming toward submenu
       const anchor = resolveAnchorSide(contentRect, tRect, clientX, clientY)
+      // A fast pass can leave a single sample; the leave point gives the
+      // heading its second point instead of falling back to aiming at the
+      // submenu
+      const trail = mouseTrailRef.current
       const heading = getSmoothedHeading(
-        mouseTrailRef.current,
+        trail.length < 2 ? [...trail, [clientX, clientY]] : trail,
         clientX,
         clientY,
         anchor,
@@ -1261,6 +1297,16 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     ],
   )
 
+  // Released after the leave logic, which reads the trail and may start the
+  // leave monitor (taking its own hold)
+  const handlePointerLeaveAndReleaseTrail = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      handlePointerLeave(event)
+      releaseMouseTrail('hover')
+    },
+    [handlePointerLeave, releaseMouseTrail],
+  )
+
   const state: PopupMenuSubmenuTrigger.State = React.useMemo(
     () => ({
       submenuTrigger: true,
@@ -1307,7 +1353,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       onPointerMove: handlePointerMove,
       onPointerDown: handlePointerDown,
       onPointerEnter: handlePointerEnter,
-      onPointerLeave: handlePointerLeave,
+      onPointerLeave: handlePointerLeaveAndReleaseTrail,
       children: wrappedChildren,
     },
     defaultTagName: 'div',
