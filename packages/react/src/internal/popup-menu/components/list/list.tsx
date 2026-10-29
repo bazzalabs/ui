@@ -21,7 +21,7 @@ import {
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
-import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
+import { useMaybeSubpageContextInPopup } from '../../contexts/subpage-context.js'
 import { useMaybeDataSurfaceContext } from '../../data-first/context.js'
 import { DataListInner } from '../../data-first/data-list.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -121,7 +121,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
   const { store, surfaceId } = useSurfaceContext()
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
-  const subpageContext = useMaybeSubpageContext()
+  const subpageContext = useMaybeSubpageContextInPopup()
   const { disabled: popupMenuDisabled } = usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
   const comboboxContext = useMaybeComboboxContext()

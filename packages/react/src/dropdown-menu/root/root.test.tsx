@@ -322,9 +322,15 @@ function RadioGroupWithDisabledItem() {
   )
 }
 
-function DropdownMenuWithSubmenu() {
+function DropdownMenuWithSubmenu({
+  open,
+  onOpenChange,
+}: {
+  open?: boolean
+  onOpenChange?: DropdownMenu.Root.Props['onOpenChange']
+} = {}) {
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root open={open} onOpenChange={onOpenChange}>
       <DropdownMenu.Trigger data-testid="trigger">
         Open Menu
       </DropdownMenu.Trigger>
@@ -929,6 +935,175 @@ function DropdownMenuWithSubpageRenderSpy({
 function SubpageRenderSpy({ onRender }: { onRender: () => void }) {
   onRender()
   return <div data-testid="subpage-content">Subpage content</div>
+}
+
+function DropdownMenuWithSubmenuInSubpage({
+  onOpenChange,
+  closeRootOnEsc,
+  subpageCloseRootOnEsc,
+  submenuInput = false,
+  collidingSubmenuPage = false,
+}: {
+  onOpenChange?: DropdownMenu.Root.Props['onOpenChange']
+  closeRootOnEsc?: boolean
+  subpageCloseRootOnEsc?: boolean
+  submenuInput?: boolean
+  /** Adds a page to the submenu popup with the outer subpage's page ID. */
+  collidingSubmenuPage?: boolean
+}) {
+  return (
+    <DropdownMenu.Root onOpenChange={onOpenChange}>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="root-surface">
+              <DropdownMenu.List data-testid="root-list">
+                <DropdownMenu.SubpageTrigger
+                  data-testid="subpage-trigger"
+                  targetPageId="page"
+                >
+                  Page
+                </DropdownMenu.SubpageTrigger>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+
+            <DropdownMenu.Subpage
+              pageId="page"
+              closeRootOnEsc={subpageCloseRootOnEsc}
+            >
+              <DropdownMenu.Surface data-testid="subpage-surface">
+                <DropdownMenu.List data-testid="subpage-list">
+                  <DropdownMenu.Submenu closeRootOnEsc={closeRootOnEsc}>
+                    <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                      More
+                    </DropdownMenu.SubmenuTrigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Positioner>
+                        <DropdownMenu.Popup>
+                          <DropdownMenu.Surface data-testid="submenu-surface">
+                            {submenuInput && (
+                              <DropdownMenu.Input
+                                data-testid="submenu-input"
+                                backspaceGoesBack
+                              />
+                            )}
+                            <DropdownMenu.List data-testid="submenu-list">
+                              <DropdownMenu.Item data-testid="submenu-item">
+                                Submenu Item
+                              </DropdownMenu.Item>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                          {collidingSubmenuPage && (
+                            <DropdownMenu.Subpage pageId="page">
+                              <DropdownMenu.Surface>
+                                <DropdownMenu.List>
+                                  <DropdownMenu.Item>
+                                    Inner page item
+                                  </DropdownMenu.Item>
+                                </DropdownMenu.List>
+                              </DropdownMenu.Surface>
+                            </DropdownMenu.Subpage>
+                          )}
+                        </DropdownMenu.Popup>
+                      </DropdownMenu.Positioner>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Submenu>
+                  <DropdownMenu.Item data-testid="subpage-item">
+                    Subpage Item
+                  </DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+function DropdownMenuWithSubpageInSubmenu() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="root-surface">
+              <DropdownMenu.List data-testid="root-list">
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                    More
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup>
+                        <DropdownMenu.Surface data-testid="submenu-surface">
+                          <DropdownMenu.List data-testid="submenu-list">
+                            <DropdownMenu.SubpageTrigger
+                              data-testid="inner-subpage-trigger"
+                              targetPageId="inner"
+                            >
+                              Inner page
+                            </DropdownMenu.SubpageTrigger>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                        <DropdownMenu.Subpage pageId="inner">
+                          <DropdownMenu.Surface data-testid="inner-subpage-surface">
+                            <DropdownMenu.List data-testid="inner-subpage-list">
+                              <DropdownMenu.Item>Inner item</DropdownMenu.Item>
+                            </DropdownMenu.List>
+                          </DropdownMenu.Surface>
+                        </DropdownMenu.Subpage>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+/** Asserts the subpage still owns the keyboard: ArrowDown moves its highlight. */
+async function expectSubpageOperable(user: ReturnType<typeof userEvent.setup>) {
+  await waitFor(() => {
+    expect(screen.getByTestId('subpage-list')).toHaveFocus()
+  })
+  await user.keyboard('{ArrowDown}')
+  expect(screen.getByTestId('subpage-item')).toHaveAttribute('data-highlighted')
+}
+
+/** Opens the subpage, then its submenu, by keyboard. */
+async function openSubmenuInSubpage(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('trigger'))
+  await waitFor(() => {
+    expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+  })
+
+  screen.getByTestId('root-list').focus()
+  await user.keyboard('{Enter}')
+  await waitFor(() => {
+    expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+  })
+
+  screen.getByTestId('subpage-list').focus()
+  expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
+    'data-highlighted',
+  )
+  await user.keyboard('{ArrowRight}')
+  await waitFor(() => {
+    expect(screen.getByTestId('submenu-surface')).toContainElement(
+      document.activeElement as HTMLElement,
+    )
+  })
 }
 
 function DropdownMenuWithHighlightCallbacks({
@@ -2218,6 +2393,198 @@ describe('<DropdownMenu.Root />', () => {
         // Parent menu should still be open
         expect(screen.getByTestId('surface')).toBeInTheDocument()
       })
+
+      it('keeps the submenu open and operable when onOpenChange cancels Escape', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn(
+          (
+            open: boolean,
+            details: DropdownMenu.Root.OpenChangeEventDetails,
+          ) => {
+            if (!open && details.reason === 'escape-key') details.cancel()
+          },
+        )
+        render(<DropdownMenuWithSubmenu onOpenChange={onOpenChange} />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+        screen.getByRole('listbox').focus()
+        await user.keyboard('{ArrowDown}{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-item-1')).toHaveAttribute(
+            'data-highlighted',
+          )
+        })
+
+        await user.keyboard('{Escape}')
+        expect(onOpenChange).toHaveBeenLastCalledWith(
+          false,
+          expect.objectContaining({ reason: 'escape-key' }),
+        )
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('submenu-item-2')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+
+      it('tears the tree down when a controlled root accepts the close', async () => {
+        function ControlledMenu() {
+          const [open, setOpen] = React.useState(false)
+          return <DropdownMenuWithSubmenu open={open} onOpenChange={setOpen} />
+        }
+        const user = userEvent.setup()
+        render(<ControlledMenu />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByRole('listbox')).toHaveFocus()
+        })
+        await user.keyboard('{ArrowDown}{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-item-1')).toHaveAttribute(
+            'data-highlighted',
+          )
+        })
+
+        await user.keyboard('{Escape}')
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+        })
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+
+        // The next open starts from the root surface, which owns the keyboard.
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByRole('listbox')).toHaveFocus()
+        })
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+
+      it('keeps the tree intact and operable when a controlled root stays open', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        render(<DropdownMenuWithSubmenu open onOpenChange={onOpenChange} />)
+
+        await waitFor(() => {
+          expect(screen.getByRole('listbox')).toHaveFocus()
+        })
+        await user.keyboard('{ArrowDown}{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-item-1')).toHaveAttribute(
+            'data-highlighted',
+          )
+        })
+
+        // Escape in the submenu asks the root to close; the prop keeps it open.
+        await user.keyboard('{Escape}')
+        expect(onOpenChange).toHaveBeenLastCalledWith(false, expect.anything())
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('submenu-item-2')).toHaveAttribute(
+          'data-highlighted',
+        )
+
+        // Back in the root, Escape asks again and is refused again.
+        await user.keyboard('{ArrowLeft}')
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('submenu-surface'),
+          ).not.toBeInTheDocument()
+        })
+        await waitFor(() => {
+          expect(screen.getAllByRole('listbox')[0]).toHaveFocus()
+        })
+        onOpenChange.mockClear()
+        await user.keyboard('{Escape}')
+        expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything())
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('item-2')).toHaveAttribute('data-highlighted')
+      })
+
+      it('keeps the submenu operable when onOpenChange cancels an outside press', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn(
+          (
+            open: boolean,
+            details: DropdownMenu.Root.OpenChangeEventDetails,
+          ) => {
+            if (!open && details.reason === 'outside-press') details.cancel()
+          },
+        )
+        render(<DropdownMenuWithSubmenu onOpenChange={onOpenChange} />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByRole('listbox')).toHaveFocus()
+        })
+        await user.keyboard('{ArrowDown}{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-item-1')).toHaveAttribute(
+            'data-highlighted',
+          )
+        })
+
+        const outside = document.createElement('div')
+        document.body.append(outside)
+        try {
+          await user.pointer({ keys: '[MouseLeft]', target: outside })
+        } finally {
+          outside.remove()
+        }
+        expect(onOpenChange).toHaveBeenLastCalledWith(
+          false,
+          expect.objectContaining({ reason: 'outside-press' }),
+        )
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+
+        // The press moved DOM focus to the page; the submenu still owns keys.
+        screen.getAllByRole('listbox')[1]!.focus()
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('submenu-item-2')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+
+      it('reports the escape-key reason when Escape in a submenu closes the menu', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        render(<DropdownMenuWithSubmenu onOpenChange={onOpenChange} />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByTestId('surface')).toBeInTheDocument()
+        })
+
+        screen.getByRole('listbox').focus()
+        await user.keyboard('{ArrowDown}')
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-surface')).toContainElement(
+            document.activeElement as HTMLElement,
+          )
+        })
+
+        onOpenChange.mockClear()
+        await user.keyboard('{Escape}')
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+        })
+        expect(onOpenChange).toHaveBeenCalledTimes(1)
+        const [open, details] = onOpenChange.mock.calls[0]!
+        expect(open).toBe(false)
+        expect(details.reason).toBe('escape-key')
+        expect(details.event).toBeInstanceOf(KeyboardEvent)
+      })
     })
 
     describe('nested submenus', () => {
@@ -2990,6 +3357,213 @@ describe('<DropdownMenu.Root />', () => {
 
       expect(screen.getByTestId('subpage-surface-2')).toBeInTheDocument()
       expect(screen.queryByTestId('subpage-surface-1')).not.toBeInTheDocument()
+    })
+
+    it('reports the escape-key reason when Escape in a subpage closes the menu', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      render(
+        <DropdownMenuWithSubmenuInSubpage
+          subpageCloseRootOnEsc
+          onOpenChange={onOpenChange}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
+      screen.getByTestId('root-list').focus()
+      await user.keyboard('{Enter}')
+      await waitFor(() => {
+        expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+      })
+
+      onOpenChange.mockClear()
+      screen.getByTestId('subpage-list').focus()
+      await user.keyboard('{Escape}')
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('subpage-surface')).not.toBeInTheDocument()
+      })
+      expect(onOpenChange).toHaveBeenCalledTimes(1)
+      expect(onOpenChange).toHaveBeenCalledWith(
+        false,
+        expect.objectContaining({ reason: 'escape-key' }),
+      )
+    })
+
+    describe('submenu inside a subpage', () => {
+      it.each([
+        ['ArrowLeft', '{ArrowLeft}'],
+        ['Ctrl+H', '{Control>}h{/Control}'],
+      ])('%s closes the submenu and keeps the subpage active', async (_, keys) => {
+        const user = userEvent.setup()
+        render(<DropdownMenuWithSubmenuInSubpage />)
+
+        await openSubmenuInSubpage(user)
+        await user.keyboard(keys)
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('submenu-surface'),
+          ).not.toBeInTheDocument()
+        })
+        expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+        expect(screen.queryByTestId('root-surface')).not.toBeInTheDocument()
+        await expectSubpageOperable(user)
+      })
+
+      it('ArrowLeft closes the submenu when its popup reuses the subpage page ID', async () => {
+        const user = userEvent.setup()
+        render(<DropdownMenuWithSubmenuInSubpage collidingSubmenuPage />)
+
+        await openSubmenuInSubpage(user)
+        expect(screen.getByTestId('submenu-item')).toBeInTheDocument()
+        await user.keyboard('{ArrowLeft}')
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('submenu-surface'),
+          ).not.toBeInTheDocument()
+        })
+        expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+        await expectSubpageOperable(user)
+      })
+
+      it('Backspace in an empty submenu input keeps the subpage active', async () => {
+        const user = userEvent.setup()
+        render(<DropdownMenuWithSubmenuInSubpage submenuInput />)
+
+        await openSubmenuInSubpage(user)
+        expect(screen.getByTestId('submenu-input')).toHaveFocus()
+        await user.keyboard('{Backspace}')
+
+        expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+        expect(screen.queryByTestId('root-surface')).not.toBeInTheDocument()
+      })
+
+      it('Escape closes only the submenu when closeRootOnEsc is false', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        render(
+          <DropdownMenuWithSubmenuInSubpage
+            closeRootOnEsc={false}
+            onOpenChange={onOpenChange}
+          />,
+        )
+
+        await openSubmenuInSubpage(user)
+        onOpenChange.mockClear()
+        await user.keyboard('{Escape}')
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('submenu-surface'),
+          ).not.toBeInTheDocument()
+        })
+        expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+        expect(screen.queryByTestId('root-surface')).not.toBeInTheDocument()
+        expect(onOpenChange).not.toHaveBeenCalled()
+        await expectSubpageOperable(user)
+
+        // Escape in the subpage now goes back to the root surface.
+        await user.keyboard('{Escape}')
+        await waitFor(() => {
+          expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+        })
+      })
+
+      it('Escape closes the whole menu with the escape-key reason by default', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        render(<DropdownMenuWithSubmenuInSubpage onOpenChange={onOpenChange} />)
+
+        await openSubmenuInSubpage(user)
+        onOpenChange.mockClear()
+        await user.keyboard('{Escape}')
+
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('subpage-surface'),
+          ).not.toBeInTheDocument()
+        })
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+        expect(onOpenChange).toHaveBeenCalledTimes(1)
+        expect(onOpenChange).toHaveBeenCalledWith(
+          false,
+          expect.objectContaining({ reason: 'escape-key' }),
+        )
+      })
+
+      it('keeps the tree open and operable when onOpenChange cancels an item press', async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn(
+          (
+            open: boolean,
+            details: DropdownMenu.Root.OpenChangeEventDetails,
+          ) => {
+            if (!open && details.reason === 'item-press') details.cancel()
+          },
+        )
+        render(<DropdownMenuWithSubmenuInSubpage onOpenChange={onOpenChange} />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+        })
+        screen.getByTestId('root-list').focus()
+        await user.keyboard('{Enter}')
+        await waitFor(() => {
+          expect(screen.getByTestId('subpage-list')).toHaveFocus()
+        })
+
+        // Enter on the subpage item asks the root to close; the root refuses.
+        await user.keyboard('{ArrowDown}{Enter}')
+        expect(onOpenChange).toHaveBeenLastCalledWith(
+          false,
+          expect.objectContaining({ reason: 'item-press' }),
+        )
+        expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+
+        await user.keyboard('{ArrowUp}')
+        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
+          'data-highlighted',
+        )
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+        })
+      })
+
+      it('ArrowLeft in a subpage inside a submenu goes back within the submenu', async () => {
+        const user = userEvent.setup()
+        render(<DropdownMenuWithSubpageInSubmenu />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+        })
+        screen.getByTestId('root-list').focus()
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-list')).toHaveFocus()
+        })
+        await user.keyboard('{Enter}')
+        await waitFor(() => {
+          expect(screen.getByTestId('inner-subpage-list')).toHaveFocus()
+        })
+
+        await user.keyboard('{ArrowLeft}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+        })
+        expect(
+          screen.queryByTestId('inner-subpage-surface'),
+        ).not.toBeInTheDocument()
+        expect(screen.getByTestId('root-surface')).toBeInTheDocument()
+      })
     })
   })
 })

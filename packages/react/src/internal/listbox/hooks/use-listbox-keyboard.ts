@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { REASONS } from '../../../utils/events/index.js'
+import type { PopupMenuOpenChangeReason } from '../../popup-menu/events.js'
 import type { ListboxStore } from '../store/ListboxStore.js'
 
 /**
@@ -57,9 +59,10 @@ export interface UseListboxKeyboardParams {
   onSelect?: (details: { itemId: string | null; closeOnClick: boolean }) => void
   /**
    * Callback to close the entire menu tree from the root.
-   * Used when Escape is pressed and closeRootOnEsc is true (default).
+   * Used when Escape is pressed and closeRootOnEsc is true (default), with
+   * the `escape-key` reason and the native event.
    */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
 
   // Optional popup-menu features
 
@@ -291,7 +294,7 @@ export function useListboxKeyboard(
             event.stopPropagation()
 
             if (subpageContext.closeRootOnEsc) {
-              closeAll()
+              closeAll(REASONS.escapeKey, event.nativeEvent)
             } else {
               const didGoBack = subpageContext.goBack()
               if (didGoBack && focusOwner && subpageContext.parentSurfaceId) {
@@ -319,7 +322,7 @@ export function useListboxKeyboard(
 
           if (submenuContext?.closeRootOnEsc !== false) {
             // closeRootOnEsc is true (default): close entire menu tree
-            closeAll()
+            closeAll(REASONS.escapeKey, event.nativeEvent)
           } else {
             // closeRootOnEsc is false: close only this submenu
             submenuContext.setOpen(false)

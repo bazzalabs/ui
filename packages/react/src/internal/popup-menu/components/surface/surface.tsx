@@ -30,7 +30,7 @@ import { useMaybeFocusZoneRegistry } from '../../contexts/focus-zone-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
-import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
+import { useMaybeSubpageContextInPopup } from '../../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../../contexts/subpage-stack-context.js'
 import { AsyncMenuCoordinatorProvider } from '../../data-first/async-coordinator.js'
 import {
@@ -202,8 +202,10 @@ export const PopupMenuSurface = React.forwardRef<
   // Get submenu context (if inside a submenu)
   const submenuContext = useMaybeSubmenuContext()
 
-  // Get subpage context/stack (if inside a popup with subpage navigation)
-  const subpageContext = useMaybeSubpageContext()
+  // Get subpage context/stack (if inside a popup with subpage navigation).
+  // A subpage context inherited across a submenu boundary (not registered in
+  // this popup's stack) is ignored: that surface is its popup's root surface.
+  const subpageContext = useMaybeSubpageContextInPopup()
   const subpageStack = useMaybeSubpageStack()
 
   // Get focus owner store
@@ -235,14 +237,7 @@ export const PopupMenuSurface = React.forwardRef<
     }
 
     if (subpageContext) {
-      // If this page is registered in the current popup stack, use it.
-      // Otherwise (e.g., nested submenu popup), treat this surface as root surface.
-      const registeredSurfaceId = subpageStack.getSurfaceId(
-        subpageContext.pageId,
-      )
-      if (registeredSurfaceId) {
-        return subpageStack.activePageId === subpageContext.pageId
-      }
+      return subpageStack.activePageId === subpageContext.pageId
     }
 
     return subpageStack.activePageId === null
@@ -362,10 +357,8 @@ export const PopupMenuSurface = React.forwardRef<
   // must not clobber the root registration; it manages its own
   // DataSurfaceContext. A subpage context inherited across a submenu boundary
   // (not registered in this popup's stack) still counts as this popup's root
-  // surface — mirrors the isSurfaceActive resolution above.
-  const isSubpageSurfaceInThisPopup = Boolean(
-    subpageContext && subpageStack?.getSurfaceId(subpageContext.pageId),
-  )
+  // surface — useMaybeSubpageContextInPopup returns null for it.
+  const isSubpageSurfaceInThisPopup = subpageContext !== null
 
   React.useEffect(() => {
     if (!isDataMode || !setDataSurfaceContext || isSubpageSurfaceInThisPopup) {
