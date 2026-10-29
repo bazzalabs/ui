@@ -58,6 +58,39 @@ export interface PopupMenuInputProps
 }
 
 /**
+ * Whether a key belongs to the input's own text editing rather than menu
+ * navigation. Only an input with text keeps keys: Home/End and
+ * ArrowLeft/ArrowRight move the caret (ArrowRight still opens a highlighted
+ * submenu trigger), Shift+ArrowLeft/ArrowRight extend the selection, and
+ * Alt/Meta+Arrow jump by word or line. Shift+ArrowUp/ArrowDown stay with the
+ * menu so they can start a keyboard drag selection; Shift+Home/End select to
+ * either end of the text instead. An empty input leaves every key to the menu.
+ * Ctrl bindings (Ctrl+N/P/H/L) always navigate.
+ */
+function isTextEditKey(
+  event: React.KeyboardEvent,
+  hasText: boolean,
+  highlightedOpensSubmenu: boolean,
+): boolean {
+  if (!hasText) return false
+  const { key } = event
+  if (key === 'Home' || key === 'End' || key === 'ArrowLeft') return true
+  if (key === 'ArrowRight') {
+    return (
+      event.shiftKey ||
+      event.altKey ||
+      event.metaKey ||
+      event.ctrlKey ||
+      !highlightedOpensSubmenu
+    )
+  }
+  if (key === 'ArrowUp' || key === 'ArrowDown') {
+    return event.altKey || event.metaKey
+  }
+  return false
+}
+
+/**
  * Search input for filtering popup menu items.
  * Handles keyboard navigation (Arrow keys, Ctrl+N/P, Enter).
  * Renders an `<input>` element.
@@ -162,6 +195,16 @@ export const PopupMenuInput = React.forwardRef<
     [onPointerDown, disabled, focusOwnerStore, surfaceId],
   )
 
+  const isInputTextEditKey = React.useCallback(
+    (event: React.KeyboardEvent) =>
+      isTextEditKey(
+        event,
+        Boolean(internalRef.current?.value),
+        store.isHighlightedSubmenuTrigger(),
+      ),
+    [store],
+  )
+
   // Use centralized keyboard navigation hook
   const { handleKeyDown } = usePopupMenuKeyboard({
     store,
@@ -175,6 +218,7 @@ export const PopupMenuInput = React.forwardRef<
     enableTypeToSearch: false,
     onKeyDown,
     closeAll,
+    isTextEditKey: isInputTextEditKey,
   })
 
   const handleKeyDownWithBack = React.useCallback(

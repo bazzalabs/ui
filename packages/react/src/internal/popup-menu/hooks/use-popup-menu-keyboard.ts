@@ -69,6 +69,12 @@ export interface UsePopupMenuKeyboardParams {
    * @default false
    */
   skipFocusOwnerCheck?: boolean
+  /**
+   * Whether a key belongs to the element's own text editing (e.g. moving the
+   * caret in an input with text). Such keys skip menu keyboard handling and
+   * keep their native behaviour. Checked after the consumer's `onKeyDown`.
+   */
+  isTextEditKey?: (event: React.KeyboardEvent) => boolean
 }
 
 export interface UsePopupMenuKeyboardReturn {
@@ -96,6 +102,7 @@ export function usePopupMenuKeyboard(
     onKeyDown,
     closeAll,
     skipFocusOwnerCheck = false,
+    isTextEditKey,
   } = params
   const selection = useMaybeCheckboxSelection()
   const { rangeSelection } = usePopupMenuContext()
@@ -192,6 +199,7 @@ export function usePopupMenuKeyboard(
       // Consumer handler first; it may prevent everything below.
       onKeyDown?.(event)
       if (event.defaultPrevented) return
+      if (isTextEditKey?.(event)) return
       const isComposing = event.nativeEvent.isComposing || event.keyCode === 229
       const activeGesture = selection?.state.gesture
       const keyboardSpanActive = activeGesture?.kind === 'keyboard'
@@ -267,6 +275,7 @@ export function usePopupMenuKeyboard(
     },
     [
       onKeyDown,
+      isTextEditKey,
       rangeSelection,
       selection,
       isOwner,
