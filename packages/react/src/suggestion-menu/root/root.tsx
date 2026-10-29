@@ -4,6 +4,7 @@ import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { ListboxStore, VirtualItem } from '../../internal/listbox/index.js'
 import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
+import { useKeyboardHighlightGate } from '../../internal/popup-menu/hooks/use-keyboard-highlight-gate.js'
 import {
   type ForwardKeyDown,
   type PopupMenuHighlightChangeHandler,
@@ -295,12 +296,15 @@ export function SuggestionMenuRoot<Payload = unknown>(
   queryPropRef.current = queryProp
   const openOnQueryChangeRef = React.useRef(false)
 
+  const query = queryProp ?? handleState.query
   // `aria-activedescendant` follows keyboard highlight only (ADR 0005). Set
   // when the menu moves the highlight for a key; cleared when the query
   // changes, on ←/→, and when the pointer or the menu itself moves it.
-  const [keyboardHighlightQuery, setKeyboardHighlightQuery] = React.useState<
-    string | null
-  >(null)
+  const {
+    active: keyboardHighlightActive,
+    arm: armKeyboardHighlight,
+    disarm: disarmKeyboardHighlight,
+  } = useKeyboardHighlightGate({ store, open, query })
   const queryRef = React.useRef('')
 
   React.useLayoutEffect(() => {
@@ -368,7 +372,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
       handleKeyDown: (event) => {
         // Moving the caret hands the screen reader back to the text.
         if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-          setKeyboardHighlightQuery(null)
+          disarmKeyboardHighlight()
         }
         return handleSuggestionMenuKey(event, {
           isOpen,
@@ -378,7 +382,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
             try {
               const used = forwardKeyDownRef.current?.(forwarded) ?? false
               if (used && !choosing) {
-                setKeyboardHighlightQuery(queryRef.current)
+                armKeyboardHighlight()
               }
               return used
             } finally {
@@ -409,7 +413,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
           : null
       },
     })
-  }, [handle, store])
+  }, [handle, store, armKeyboardHighlight, disarmKeyboardHighlight])
 
   if (queryProp !== undefined && handleState.updated.query) {
     warnOnce(
@@ -424,7 +428,6 @@ export function SuggestionMenuRoot<Payload = unknown>(
     )
   }
 
-  const query = queryProp ?? handleState.query
   // An open that waited for a controlled query to leave the empty one. The
   // prop can render after the `update()` (e.g. state set from an editor's
   // native listener), so it waits until the next `update()`, `close()` or
@@ -444,20 +447,7 @@ export function SuggestionMenuRoot<Payload = unknown>(
   queryRef.current = query
 
   const highlightedId = store.useState('highlightedId')
-  const highlightSource = store.useState('highlightSource')
-  // Decided during render, so a pointer or automatic highlight never reaches
-  // the host, not even for one render.
-  const activeDescendant =
-    open && highlightSource === 'keyboard' && keyboardHighlightQuery === query
-      ? highlightedId
-      : null
-  React.useEffect(() => {
-    if (highlightSource !== 'keyboard') setKeyboardHighlightQuery(null)
-  }, [highlightSource])
-  // A new query disarms it for good, even if the text comes back.
-  React.useLayoutEffect(() => {
-    setKeyboardHighlightQuery(null)
-  }, [query])
+  const activeDescendant = keyboardHighlightActive ? highlightedId : null
   const syncHostAria = useHostAria({ store, host, open, activeDescendant })
 
   // The settled result summary, reported by the Surface once per settle.
@@ -482,7 +472,6 @@ export function SuggestionMenuRoot<Payload = unknown>(
   )
   React.useEffect(() => {
     if (open) return
-    setKeyboardHighlightQuery(null)
     setAnnouncement(null)
   }, [open])
 
