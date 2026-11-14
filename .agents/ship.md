@@ -21,6 +21,13 @@ Lifecycle labels: the workspace label group **`agent work`** (single-select) hol
 - Changesets: `bun run changeset` to add; publish scripts in root `package.json` (`ci:publish` lists packages explicitly — new publishable packages must be added there)
 - No DB/migrations in this repo (demo DB for examples lives in `apps/web` with `drizzle.config.ts` + seed script when present)
 
+## Defaults
+
+Overrides the global `~/.agents/ship.md`: runs here land drafts for review.
+
+- build: --unattended
+- quick: --unattended
+
 ## Stacking
 
 - **Tool**: `gh-stack` (GitHub CLI `gh stack` extension). Alternative value: `graphite` (`gt`).
