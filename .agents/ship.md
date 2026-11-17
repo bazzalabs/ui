@@ -7,8 +7,6 @@
 States: Triage, Backlog, Icebox, Todo, In Progress, In Review, Ready, Canary, Stable, Canceled, Duplicate.
 Note: this team has no `Done` state; its completed states are `Canary` and `Stable`. `Ready` is set by the GitHub integration when a PR is marked ready for review; it does not mean merged. `Canary` is the state for anything merged into `canary`: the integration sets it automatically for a PR whose base is `canary`. In a stack merged with `gh stack merge`, only the bottom PR has `canary` as its base, so every other slice stays at `Ready` — after a stack merge, move every merged slice and its parent to `Canary` by hand. `Stable` means it shipped in a stable release from `main`. Ship's "Done" transition maps to `Canary` (or `Stable` for work merged to `main`). Parents should match their sub-issues' state.
 
-Lifecycle labels: the workspace label group **`agent work`** (single-select) holds `agent:working`, `agent:addressing`, `agent:blocked`, `agent:review-me`, `agent:idle`, `agent:merged`.
-
 ## Toolchain
 
 - Package manager: **bun** exclusively (never npm/yarn/pnpm/npx). Monorepo: Turborepo + bun workspaces.
