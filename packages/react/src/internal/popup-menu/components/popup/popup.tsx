@@ -97,8 +97,7 @@ export const PopupMenuPopup = React.forwardRef<
   const submenuContext = useMaybeSubmenuContext()
 
   // Get aim guard to clear it when pointer enters submenu
-  const { clearAimGuard, aimGuardActiveRef, guardedSubmenuSurfaceIdRef } =
-    useAimGuard()
+  const aimGuardStore = useAimGuard()
 
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
@@ -192,49 +191,29 @@ export const PopupMenuPopup = React.forwardRef<
   const handlePointerMove = React.useCallback(() => {
     // Only handle if this is a submenu popup (not the root popup) and aim guard is active
     // Also verify this is the specific submenu the user was aiming for
-    if (
-      submenuContext &&
-      aimGuardActiveRef.current &&
-      guardedSubmenuSurfaceIdRef.current === surfaceId
-    ) {
-      clearAimGuard()
+    if (submenuContext && aimGuardStore.get()?.submenuSurfaceId === surfaceId) {
+      aimGuardStore.clear()
     }
-  }, [
-    submenuContext,
-    aimGuardActiveRef,
-    guardedSubmenuSurfaceIdRef,
-    surfaceId,
-    clearAimGuard,
-  ])
+  }, [submenuContext, aimGuardStore, surfaceId])
 
   React.useEffect(() => {
     if (
       submenuContext?.open !== false ||
-      !aimGuardActiveRef.current ||
-      guardedSubmenuSurfaceIdRef.current !== surfaceId
+      aimGuardStore.get()?.submenuSurfaceId !== surfaceId
     ) {
       return
     }
 
-    clearAimGuard()
-  }, [
-    submenuContext?.open,
-    aimGuardActiveRef,
-    guardedSubmenuSurfaceIdRef,
-    surfaceId,
-    clearAimGuard,
-  ])
+    aimGuardStore.clear()
+  }, [submenuContext?.open, aimGuardStore, surfaceId])
 
   React.useEffect(() => {
     return () => {
-      if (
-        aimGuardActiveRef.current &&
-        guardedSubmenuSurfaceIdRef.current === surfaceId
-      ) {
-        clearAimGuard()
+      if (aimGuardStore.get()?.submenuSurfaceId === surfaceId) {
+        aimGuardStore.clear()
       }
     }
-  }, [aimGuardActiveRef, guardedSubmenuSurfaceIdRef, surfaceId, clearAimGuard])
+  }, [aimGuardStore, surfaceId])
 
   // Transfer focus ownership when pointer moves inside this submenu popup
   // We ignore events shortly after open to prevent focus transfer when
