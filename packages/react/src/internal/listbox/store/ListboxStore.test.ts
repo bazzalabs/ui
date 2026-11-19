@@ -1524,4 +1524,53 @@ describe('ListboxStore', () => {
       expect(store.select('isLastInGroup', 'i')).toBe(false)
     })
   })
+
+  describe('highlightedElementId', () => {
+    it('follows the highlighted item as it registers, unregisters and re-registers', () => {
+      const store = createStore({ open: true })
+      store.setHighlightedId('x', 'keyboard')
+      expect(store.state.highlightedElementId).toBeNull()
+
+      const unregister = store.registerItem('x', {
+        value: 'x',
+        elementId: 'el-x',
+      })
+      expect(store.state.highlightedElementId).toBe('el-x')
+
+      unregister()
+      expect(store.state.highlightedElementId).toBeNull()
+
+      store.registerItem('x', { value: 'x', elementId: 'el-x-2' })
+      expect(store.state.highlightedElementId).toBe('el-x-2')
+    })
+
+    it('clears the element id when a highlighted virtualized row unmounts', () => {
+      const store = createStore({ open: true, virtualized: true })
+      store.setVirtualItems([{ value: 'a' }, { value: 'b' }])
+      store.setHighlightedId('b', 'keyboard')
+
+      const unregister = store.registerItem('b', {
+        value: 'b',
+        elementId: 'el-b',
+      })
+      expect(store.state.highlightedElementId).toBe('el-b')
+
+      // The row scrolls out of the window; the highlight stays on it.
+      unregister()
+      expect(store.state.highlightedId).toBe('b')
+      expect(store.state.highlightedElementId).toBeNull()
+    })
+
+    it('keeps the highlight source when a row registers without moving the highlight', () => {
+      const store = createStore({ open: true, virtualized: true })
+      store.setVirtualItems([{ value: 'a' }, { value: 'b' }])
+      store.setHighlightedId('b', 'keyboard')
+
+      store.registerItem('b', { value: 'b', elementId: 'el-b' })
+
+      expect(store.state.highlightedId).toBe('b')
+      expect(store.state.highlightSource).toBe('keyboard')
+      expect(store.state.highlightedElementId).toBe('el-b')
+    })
+  })
 })

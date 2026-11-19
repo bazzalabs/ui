@@ -491,6 +491,344 @@ describe('<Combobox.Root />', () => {
     })
   })
 
+  describe('aria-activedescendant', () => {
+    function ComboboxWithPopupId() {
+      return (
+        <Combobox.Root defaultOpen>
+          <Combobox.Input data-testid="input" />
+          <Combobox.Portal>
+            <Combobox.Positioner>
+              <Combobox.Popup data-testid="popup">
+                <Combobox.Surface data-testid="surface">
+                  <Combobox.List data-testid="list">
+                    <Combobox.Item data-testid="item-apple" value="apple">
+                      Apple
+                    </Combobox.Item>
+                    <Combobox.Item data-testid="item-banana" value="banana">
+                      Banana
+                    </Combobox.Item>
+                    <Combobox.Item data-testid="item-cherry" value="cherry">
+                      Cherry
+                    </Combobox.Item>
+                  </Combobox.List>
+                </Combobox.Surface>
+              </Combobox.Popup>
+            </Combobox.Positioner>
+          </Combobox.Portal>
+        </Combobox.Root>
+      )
+    }
+
+    const activeDescendant = () => {
+      const id = screen
+        .getByTestId('input')
+        .getAttribute('aria-activedescendant')
+      return id === null ? null : document.getElementById(id)
+    }
+
+    async function waitForAutoHighlight() {
+      await waitFor(() => {
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+    }
+
+    it('points the input at the option highlighted with the keyboard', async () => {
+      const user = userEvent.setup()
+      render(<BasicCombobox defaultOpen />)
+      await waitForAutoHighlight()
+
+      // The automatic highlight on open isn't announced.
+      expect(screen.getByTestId('input')).not.toHaveAttribute(
+        'aria-activedescendant',
+      )
+
+      await user.type(screen.getByTestId('input'), '{ArrowDown}')
+      expect(activeDescendant()).toBe(screen.getByTestId('item-banana'))
+      await user.keyboard('{ArrowDown}')
+      expect(activeDescendant()).toBe(screen.getByTestId('item-cherry'))
+    })
+
+    it('unsets it when the query changes, even if the highlight stays', async () => {
+      // External filtering keeps a highlight that is still the first row, so
+      // only the query change can unset it.
+      function ExternallyFilteredCombobox() {
+        const [query, setQuery] = React.useState('')
+        const values = ['apple', 'banana', 'cherry'].filter((value) =>
+          value.includes(query),
+        )
+        return (
+          <Combobox.Root defaultOpen onInputValueChange={setQuery}>
+            <Combobox.Input data-testid="input" />
+            <Combobox.Portal>
+              <Combobox.Positioner>
+                <Combobox.Popup>
+                  <Combobox.Surface filter={false} orderedItems={values}>
+                    <Combobox.List>
+                      {values.map((value) => (
+                        <Combobox.Item
+                          key={value}
+                          data-testid={`item-${value}`}
+                          value={value}
+                        >
+                          {value}
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        )
+      }
+      const user = userEvent.setup()
+      render(<ExternallyFilteredCombobox />)
+      await waitForAutoHighlight()
+
+      const input = screen.getByTestId('input')
+      await user.type(input, '{ArrowDown}')
+      expect(activeDescendant()).toBe(screen.getByTestId('item-banana'))
+
+      // "b" leaves Banana as the first row, so the highlight doesn't move.
+      await user.keyboard('b')
+      await waitFor(() => {
+        expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+      })
+      expect(screen.getByTestId('item-banana')).toHaveAttribute(
+        'data-highlighted',
+      )
+      expect(input).not.toHaveAttribute('aria-activedescendant')
+    })
+
+    it('leaves it unset for a pointer highlight', async () => {
+      const user = userEvent.setup()
+      render(<BasicCombobox defaultOpen />)
+      await waitForAutoHighlight()
+
+      await user.type(screen.getByTestId('input'), '{ArrowDown}')
+      await user.hover(screen.getByTestId('item-cherry'))
+      await waitFor(() => {
+        expect(screen.getByTestId('item-cherry')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+      expect(screen.getByTestId('input')).not.toHaveAttribute(
+        'aria-activedescendant',
+      )
+    })
+
+    it('removes it when the popup closes', async () => {
+      const user = userEvent.setup()
+      const originalGetAnimations = Element.prototype.getAnimations
+      Object.defineProperty(Element.prototype, 'getAnimations', {
+        configurable: true,
+        value(this: Element) {
+          // Hold the exit animation so the options stay mounted.
+          return this.getAttribute('data-testid') === 'popup' &&
+            this.hasAttribute('data-ending-style')
+            ? [
+                {
+                  finished: new Promise(() => {}),
+                  pending: false,
+                  playState: 'running',
+                },
+              ]
+            : []
+        },
+      })
+      try {
+        render(<ComboboxWithPopupId />)
+        await waitForAutoHighlight()
+
+        const input = screen.getByTestId('input')
+        await user.type(input, '{ArrowDown}')
+        expect(activeDescendant()).toBe(screen.getByTestId('item-banana'))
+
+        await user.keyboard('{Escape}')
+        await waitFor(() => {
+          expect(screen.getByTestId('popup')).toHaveAttribute(
+            'data-ending-style',
+          )
+        })
+        expect(screen.getByTestId('item-banana')).toHaveAttribute(
+          'data-highlighted',
+        )
+        expect(input).not.toHaveAttribute('aria-activedescendant')
+      } finally {
+        if (originalGetAnimations) {
+          Object.defineProperty(Element.prototype, 'getAnimations', {
+            configurable: true,
+            value: originalGetAnimations,
+          })
+        } else {
+          delete (Element.prototype as Partial<Element>).getAnimations
+        }
+      }
+    })
+
+    it('re-arms only when a key moves the highlight again', async () => {
+      const user = userEvent.setup()
+      render(<BasicCombobox defaultOpen />)
+      await waitForAutoHighlight()
+      const input = screen.getByTestId('input')
+
+      await user.type(input, '{ArrowDown}')
+      expect(activeDescendant()).toBe(screen.getByTestId('item-banana'))
+      await user.keyboard('{ArrowLeft}')
+      expect(input).not.toHaveAttribute('aria-activedescendant')
+      await user.keyboard('{Shift}')
+      expect(input).not.toHaveAttribute('aria-activedescendant')
+      await user.keyboard('{ArrowDown}')
+      expect(activeDescendant()).toBe(screen.getByTestId('item-cherry'))
+    })
+
+    it('never sets it while typing after a keyboard highlight', async () => {
+      // External filtering keeps a highlight that is still the first row, so
+      // the highlight source stays the keyboard while typing.
+      function ExternallyFilteredCombobox() {
+        const [query, setQuery] = React.useState('')
+        const values = ['apple', 'banana', 'cherry'].filter((value) =>
+          value.includes(query),
+        )
+        return (
+          <Combobox.Root defaultOpen onInputValueChange={setQuery}>
+            <Combobox.Input data-testid="input" />
+            <Combobox.Portal>
+              <Combobox.Positioner>
+                <Combobox.Popup>
+                  <Combobox.Surface filter={false} orderedItems={values}>
+                    <Combobox.List>
+                      {values.map((value) => (
+                        <Combobox.Item
+                          key={value}
+                          data-testid={`item-${value}`}
+                          value={value}
+                        >
+                          {value}
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        )
+      }
+      const user = userEvent.setup()
+      render(<ExternallyFilteredCombobox />)
+      await waitForAutoHighlight()
+      const input = screen.getByTestId('input')
+      await user.type(input, '{ArrowDown}')
+      expect(activeDescendant()).toBe(screen.getByTestId('item-banana'))
+
+      // Every value the attribute held, including ones replaced before the
+      // observer's callback ran.
+      const seen: Array<string | null> = []
+      const observer = new MutationObserver((records) => {
+        for (const record of records) seen.push(record.oldValue)
+        seen.push(input.getAttribute('aria-activedescendant'))
+      })
+      observer.observe(input, {
+        attributeFilter: ['aria-activedescendant'],
+        attributeOldValue: true,
+      })
+      const bananaId = screen.getByTestId('item-banana').id
+
+      await user.keyboard('ban')
+      await waitFor(() => {
+        expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+      })
+      expect(screen.getByTestId('item-banana')).toHaveAttribute(
+        'data-highlighted',
+      )
+      observer.disconnect()
+
+      // It was only ever removed, never set again.
+      expect(seen.filter((value) => value === bananaId)).toEqual([bananaId])
+      expect(input).not.toHaveAttribute('aria-activedescendant')
+    })
+
+    it('points at a virtualized option that mounts after the highlight moves to it', async () => {
+      const values = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
+      const WINDOW = 3
+      function VirtualizedCombobox() {
+        const [start, setStart] = React.useState(0)
+        return (
+          <Combobox.Root
+            defaultOpen
+            virtualized
+            virtualItems={values.map((value) => ({ value }))}
+            onHighlightChange={(_, index) => {
+              // A virtualizer scrolls the highlighted row into its window.
+              if (index >= 0) {
+                setStart((current) =>
+                  index < current
+                    ? index
+                    : index >= current + WINDOW
+                      ? index - WINDOW + 1
+                      : current,
+                )
+              }
+            }}
+          >
+            <Combobox.Input data-testid="input" />
+            <Combobox.Portal>
+              <Combobox.Positioner>
+                <Combobox.Popup>
+                  <Combobox.Surface>
+                    <Combobox.List>
+                      {values.slice(start, start + WINDOW).map((value) => (
+                        <Combobox.Item
+                          key={value}
+                          data-testid={`item-${value}`}
+                          value={value}
+                        >
+                          {value}
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.List>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        )
+      }
+      const user = userEvent.setup()
+      render(<VirtualizedCombobox />)
+      await waitFor(() => {
+        expect(screen.getByTestId('item-a1')).toHaveAttribute(
+          'data-highlighted',
+        )
+      })
+      expect(screen.queryByTestId('item-a4')).not.toBeInTheDocument()
+
+      await user.type(screen.getByTestId('input'), '{ArrowDown}{ArrowDown}')
+      await user.keyboard('{ArrowDown}')
+
+      const row = await screen.findByTestId('item-a4')
+      await waitFor(() => {
+        expect(row).toHaveAttribute('data-highlighted')
+      })
+      expect(screen.getByTestId('input')).toHaveAttribute(
+        'aria-activedescendant',
+        row.id,
+      )
+    })
+
+    it('does not set it or a tab stop on the list', async () => {
+      render(<BasicCombobox defaultOpen />)
+      await waitForAutoHighlight()
+
+      const list = screen.getByTestId('list')
+      expect(list).not.toHaveAttribute('aria-activedescendant')
+      expect(list).toHaveAttribute('tabindex', '-1')
+    })
+  })
+
   describe('controlled input', () => {
     it('uses controlled inputValue', async () => {
       const onInputValueChange = vi.fn()

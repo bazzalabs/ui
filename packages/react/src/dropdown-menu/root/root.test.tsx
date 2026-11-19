@@ -2750,6 +2750,93 @@ describe('<DropdownMenu.Root />', () => {
         expect(screen.getByTestId('surface')).toBeInTheDocument()
       })
 
+      it('does not reopen a submenu the user closed when its trigger remounts highlighted', async () => {
+        function MenuWithKeyedSubmenu({ submenuKey }: { submenuKey: string }) {
+          return (
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger data-testid="trigger">
+                Open Menu
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Positioner>
+                  <DropdownMenu.Popup>
+                    <DropdownMenu.Surface autoHighlightFirst={false}>
+                      <DropdownMenu.List data-testid="root-list">
+                        <DropdownMenu.Item value="first">
+                          First
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Submenu key={submenuKey}>
+                          <DropdownMenu.SubmenuTrigger
+                            data-testid="submenu-trigger"
+                            value="more"
+                          >
+                            More
+                          </DropdownMenu.SubmenuTrigger>
+                          <DropdownMenu.Portal>
+                            <DropdownMenu.Positioner>
+                              <DropdownMenu.Popup>
+                                <DropdownMenu.Surface data-testid="submenu-surface">
+                                  <DropdownMenu.List>
+                                    <DropdownMenu.Item>
+                                      Sub Item
+                                    </DropdownMenu.Item>
+                                  </DropdownMenu.List>
+                                </DropdownMenu.Surface>
+                              </DropdownMenu.Popup>
+                            </DropdownMenu.Positioner>
+                          </DropdownMenu.Portal>
+                        </DropdownMenu.Submenu>
+                      </DropdownMenu.List>
+                    </DropdownMenu.Surface>
+                  </DropdownMenu.Popup>
+                </DropdownMenu.Positioner>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          )
+        }
+        const user = userEvent.setup()
+        const { rerender } = render(<MenuWithKeyedSubmenu submenuKey="a" />)
+
+        await user.click(screen.getByTestId('trigger'))
+        await waitFor(() => {
+          expect(screen.getByTestId('root-list')).toHaveFocus()
+        })
+        // Highlighting the trigger with the keyboard opens the submenu.
+        const submenuTrigger = screen.getByTestId('submenu-trigger')
+        for (
+          let i = 0;
+          i < 3 && !submenuTrigger.hasAttribute('data-highlighted');
+          i++
+        ) {
+          await user.keyboard('{ArrowDown}')
+        }
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+        })
+        // Move into the submenu, then close it with ArrowLeft.
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('submenu-surface')).toContainElement(
+            document.activeElement as HTMLElement,
+          )
+        })
+        await user.keyboard('{ArrowLeft}')
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('submenu-surface'),
+          ).not.toBeInTheDocument()
+        })
+
+        rerender(<MenuWithKeyedSubmenu submenuKey="b" />)
+        expect(screen.getByTestId('submenu-trigger')).toHaveAttribute(
+          'data-highlighted',
+        )
+        // Past the default keyboard open delay (150ms).
+        await act(() => new Promise((resolve) => setTimeout(resolve, 250)))
+
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+      })
+
       it('keeps the submenu open and operable when onOpenChange cancels Escape', async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn(

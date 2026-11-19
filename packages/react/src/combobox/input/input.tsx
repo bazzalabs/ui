@@ -4,6 +4,7 @@ import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useFocusOwner } from '../../internal/popup-menu/contexts/focus-owner-context.js'
 import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { useKeyboardHighlightGate } from '../../internal/popup-menu/hooks/use-keyboard-highlight-gate.js'
 import { resolveLabelFromItems } from '../../utils/items.js'
 import {
   resolveClassName,
@@ -105,6 +106,27 @@ export const ComboboxInput = React.forwardRef<
   // Get open state
   const open = popupMenuContext.store.useState('open')
 
+  // DOM focus stays on this input, so it carries `aria-activedescendant` and
+  // the list doesn't (the list reads `hasInput`). It follows keyboard
+  // highlight only (ADR 0005): set when a key moves the highlight, unset for a
+  // pointer or automatic highlight, after the query changes, and on ←/→.
+  const { store } = popupMenuContext
+  const search = store.useState('search')
+  const highlightedElementId = store.useState('highlightedElementId')
+  const keyboardHighlight = useKeyboardHighlightGate({
+    store,
+    open,
+    query: search,
+  })
+  const activeDescendant = keyboardHighlight.active
+    ? (highlightedElementId ?? undefined)
+    : undefined
+
+  React.useEffect(() => {
+    store.setHasInput(true)
+    return () => store.setHasInput(false)
+  }, [store])
+
   // Use display value hook
   const { hasValue, displayValue, getValueText } = useComboboxDisplayValue({
     comboboxContext,
@@ -112,21 +134,54 @@ export const ComboboxInput = React.forwardRef<
   })
 
   // Use input behavior hook
-  const { handleChange, handleFocus, handleBlur, handleClick, handleKeyDown } =
-    useComboboxInputBehavior({
-      comboboxContext,
-      store: popupMenuContext.store,
-      focusOwnerStore,
-      open,
-      disabled,
-      cursorBehavior,
-      hasValue,
-      getValueText,
-      onFocus,
-      onBlur,
-      onClick,
-      onKeyDown,
-    })
+  const {
+    handleChange,
+    handleFocus,
+    handleBlur,
+    handleClick,
+    handleKeyDown: handleBehaviorKeyDown,
+  } = useComboboxInputBehavior({
+    comboboxContext,
+    store: popupMenuContext.store,
+    focusOwnerStore,
+    open,
+    disabled,
+    cursorBehavior,
+    hasValue,
+    getValueText,
+    onFocus,
+    onBlur,
+    onClick,
+    onKeyDown,
+  })
+
+  const { arm: armKeyboardHighlight, disarm: disarmKeyboardHighlight } =
+    keyboardHighlight
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      const prevHighlightedId = store.select('highlightedId')
+      handleBehaviorKeyDown(event)
+      // Moving the caret hands the screen reader back to the text.
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        disarmKeyboardHighlight()
+        return
+      }
+      // Arm only when this key moved the highlight (Enter chooses a row).
+      if (
+        event.key !== 'Enter' &&
+        store.select('highlightedId') !== prevHighlightedId &&
+        store.select('highlightSource') === 'keyboard'
+      ) {
+        armKeyboardHighlight()
+      }
+    },
+    [
+      handleBehaviorKeyDown,
+      store,
+      armKeyboardHighlight,
+      disarmKeyboardHighlight,
+    ],
+  )
 
   // Build data attributes
   const dataAttrs: Record<string, string> = {
@@ -190,6 +245,7 @@ export const ComboboxInput = React.forwardRef<
       'aria-expanded': open,
       'aria-controls': comboboxContext.listId,
       'aria-haspopup': 'listbox',
+      'aria-activedescendant': activeDescendant,
       autoComplete: 'off',
       autoCorrect: 'off',
       spellCheck: false,

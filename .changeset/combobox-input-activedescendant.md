@@ -1,0 +1,5 @@
+---
+'@bazza-ui/react': patch
+---
+
+`Combobox.Input` now sets `aria-activedescendant` to the highlighted option's element id while the popup is open, for highlights made with the keyboard, so screen readers announce the option you arrow to while focus stays in the input. As in the suggestion menu, it is set only when a key moves the highlight, stays unset for the automatic highlight after opening or typing and for pointer highlights, and clears when the query changes or the cursor moves with ArrowLeft or ArrowRight, so typing isn't interrupted. `Combobox.List` no longer sets `aria-activedescendant` or `tabIndex={0}` itself. Menu stores gain a `highlightedElementId` state and selector with the highlighted item's DOM id. When the store refilters (after a search, or when items mount or unmount) and the highlighted item stays the same, `highlightSource` now keeps its value instead of resetting to `null`. A submenu trigger that remounts while still highlighted no longer opens its submenu on its own.
