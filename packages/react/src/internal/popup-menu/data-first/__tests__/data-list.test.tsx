@@ -827,6 +827,141 @@ describe('edge cases', () => {
   })
 })
 
+describe('autoHighlightFirst', () => {
+  function MenuWithAutoHighlight({
+    autoHighlightFirst,
+    defaultOpen = true,
+  }: {
+    autoHighlightFirst: boolean | string
+    defaultOpen?: boolean
+  }) {
+    const content: NodeDef[] = React.useMemo(
+      () => [
+        createTestItemDef('apple', 'Apple'),
+        createTestItemDef('banana', 'Banana'),
+        createTestItemDef('cherry', 'Cherry'),
+      ],
+      [],
+    )
+
+    return (
+      <DropdownMenu.Root defaultOpen={defaultOpen}>
+        <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface
+                content={content}
+                autoHighlightFirst={autoHighlightFirst}
+              >
+                <DropdownMenu.Input data-testid="search-input" />
+                <DropdownMenu.List>
+                  <ListItems />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    )
+  }
+
+  const highlighted = () =>
+    document.querySelector('[data-highlighted]')?.getAttribute('data-testid') ??
+    null
+
+  it.each([
+    ['opened by the trigger', false],
+    ['open by default', true],
+  ])('leaves no row highlighted on the first open or after a search when false (%s)', async (_, defaultOpen) => {
+    const user = userEvent.setup()
+    render(
+      <MenuWithAutoHighlight
+        autoHighlightFirst={false}
+        defaultOpen={defaultOpen}
+      />,
+    )
+
+    if (!defaultOpen) await user.click(screen.getByTestId('trigger'))
+    const input = await screen.findByTestId('search-input')
+    await screen.findByTestId('item-apple')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(highlighted()).toBeNull()
+
+    await user.type(input, 'an')
+    await waitFor(() => {
+      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+    })
+    expect(highlighted()).toBeNull()
+  })
+
+  it('clears the highlight when its row is filtered out when false', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithAutoHighlight autoHighlightFirst={false} />)
+
+    const input = await screen.findByTestId('search-input')
+    await screen.findByTestId('item-cherry')
+    await user.click(input)
+    await user.keyboard('{ArrowUp}')
+    expect(highlighted()).toBe('item-cherry')
+
+    await user.type(input, 'ban')
+    await waitFor(() => {
+      expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
+    })
+    expect(highlighted()).toBeNull()
+  })
+
+  it('keeps a still-listed highlight after a search when false', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithAutoHighlight autoHighlightFirst={false} />)
+
+    const input = await screen.findByTestId('search-input')
+    await screen.findByTestId('item-cherry')
+    await user.click(input)
+    await user.keyboard('{ArrowUp}')
+    expect(highlighted()).toBe('item-cherry')
+
+    // "e" keeps Apple (listed first) and Cherry.
+    await user.type(input, 'e')
+    await waitFor(() => {
+      expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
+    })
+    expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+    expect(highlighted()).toBe('item-cherry')
+  })
+
+  it('highlights the matching row on open, then the first row after a search, when given a value', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithAutoHighlight autoHighlightFirst="banana" />)
+
+    const input = await screen.findByTestId('search-input')
+    await screen.findByTestId('item-banana')
+    await waitFor(() => {
+      expect(highlighted()).toBe('item-banana')
+    })
+
+    await user.type(input, 'ch')
+    await waitFor(() => {
+      expect(highlighted()).toBe('item-cherry')
+    })
+  })
+
+  it('highlights the first row after a search when true', async () => {
+    const user = userEvent.setup()
+    render(<MenuWithAutoHighlight autoHighlightFirst />)
+
+    const input = await screen.findByTestId('search-input')
+    await waitFor(() => {
+      expect(highlighted()).toBe('item-apple')
+    })
+    await user.type(input, 'ch')
+    await waitFor(() => {
+      expect(highlighted()).toBe('item-cherry')
+    })
+  })
+})
+
 describe('forced sorting', () => {
   it('orders rendered rows by forceOrder before score', async () => {
     render(<MenuWithForcedSorting />)

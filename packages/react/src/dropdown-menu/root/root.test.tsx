@@ -2073,6 +2073,23 @@ describe('<DropdownMenu.Root />', () => {
   })
 
   describe('autoHighlightFirst', () => {
+    it('highlights nothing on the first open when autoHighlightFirst=false', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithAutoHighlight autoHighlightFirst={false} />)
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      for (const testId of ['item-1', 'item-2', 'item-3']) {
+        expect(screen.getByTestId(testId)).not.toHaveAttribute(
+          'data-highlighted',
+        )
+      }
+    })
+
     it('highlights first item when autoHighlightFirst=true (default)', async () => {
       const user = userEvent.setup()
       render(<DropdownMenuWithAutoHighlight autoHighlightFirst={true} />)

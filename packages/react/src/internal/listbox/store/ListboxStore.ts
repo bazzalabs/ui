@@ -914,15 +914,7 @@ export class ListboxStore extends ReactStore<
       (reason === 'append' || reason === 'refresh') &&
       this.state.highlightedId !== null
     ) {
-      // Virtual items are pre-registered, so an unmounted virtualized row is
-      // still found here.
-      const highlightedId = this.state.highlightedId
-      const registration = this.context.items.get(highlightedId)
-      if (
-        items.includes(highlightedId) &&
-        registration !== undefined &&
-        !registration.disabled
-      ) {
+      if (this.isListedOrderedItem(this.state.highlightedId)) {
         return
       }
     }
@@ -934,12 +926,36 @@ export class ListboxStore extends ReactStore<
    * Highlights the first registered item in the ordered items (or clears the
    * highlight when there is none). Uses the 'auto' source: not user-initiated,
    * so submenus don't auto-open. No-op while closed.
+   *
+   * With `autoHighlightFirst={false}` nothing is highlighted automatically:
+   * the current highlight stays while its row is still listed, and clears
+   * otherwise.
    */
   highlightFirstOrderedItem() {
     if (!this.select('open')) return
+    if (this.context.autoHighlightFirst === false) {
+      const id = this.state.highlightedId
+      if (id !== null && !this.isListedOrderedItem(id)) {
+        this.setHighlightedId(null, 'auto')
+      }
+      return
+    }
     const items = this.context.orderedItems
     const firstRegisteredItem = items.find((id) => this.context.items.has(id))
     this.setHighlightedId(firstRegisteredItem ?? null, 'auto')
+  }
+
+  /**
+   * Whether an item is in the ordered items, registered and enabled. Virtual
+   * items are pre-registered, so an unmounted virtualized row counts.
+   */
+  private isListedOrderedItem(id: string): boolean {
+    const registration = this.context.items.get(id)
+    return (
+      this.context.orderedItems.includes(id) &&
+      registration !== undefined &&
+      !registration.disabled
+    )
   }
 
   /**

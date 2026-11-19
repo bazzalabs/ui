@@ -3030,6 +3030,74 @@ describe('PopupMenu', () => {
       // Empty state should not be shown since items exist
       expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
     })
+
+    it('respects autoHighlightFirst={false} when orderedItems change', async () => {
+      function ExternallyFilteredMenu() {
+        const [search, setSearch] = React.useState('')
+        const values = ['apple', 'banana', 'cherry'].filter((value) =>
+          value.includes(search),
+        )
+        return (
+          <DropdownMenu.Root defaultOpen>
+            <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner>
+                <DropdownMenu.Popup>
+                  <DropdownMenu.Surface
+                    filter={false}
+                    orderedItems={values}
+                    search={search}
+                    onSearchChange={setSearch}
+                    autoHighlightFirst={false}
+                  >
+                    <DropdownMenu.Input data-testid="search-input" />
+                    <DropdownMenu.List>
+                      {values.map((value) => (
+                        <DropdownMenu.Item
+                          key={value}
+                          data-testid={`item-${value}`}
+                          value={value}
+                        >
+                          {value}
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        )
+      }
+      const highlighted = () =>
+        document
+          .querySelector('[data-highlighted]')
+          ?.getAttribute('data-testid') ?? null
+
+      const user = userEvent.setup()
+      render(<ExternallyFilteredMenu />)
+      const input = await screen.findByTestId('search-input')
+      await waitFor(() => {
+        expect(input).toHaveFocus()
+      })
+      expect(highlighted()).toBeNull()
+      await user.keyboard('{ArrowUp}')
+      expect(highlighted()).toBe('item-cherry')
+
+      // "r" lists only Cherry: the highlight stays.
+      await user.keyboard('r')
+      await waitFor(() => {
+        expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+      })
+      expect(highlighted()).toBe('item-cherry')
+
+      // "a" lists Apple and Banana: Cherry is gone, so the highlight clears.
+      await user.keyboard('{Backspace}a')
+      await waitFor(() => {
+        expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
+      })
+      expect(highlighted()).toBeNull()
+    })
   })
 
   // Note: Search isolation across nested surfaces tests removed due to complexity.
