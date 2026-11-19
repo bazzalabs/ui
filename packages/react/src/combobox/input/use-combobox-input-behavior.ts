@@ -390,6 +390,15 @@ export function useComboboxInputBehavior(
     [open, comboboxContext, onKeyDown, hasValue, getValueText],
   )
 
+  // The keyboard hook runs at depth 0 with no submenu or subpage context, so
+  // the only close that reaches it is `closeAll()` with no reason, after a row
+  // is selected.
+  const { closeCombobox } = comboboxContext
+  const closeFromKeyboard = React.useCallback(
+    () => closeCombobox(),
+    [closeCombobox],
+  )
+
   // Use centralized keyboard navigation hook for when popup is open
   // This handles Enter to select, arrow keys for navigation, Escape to close, etc.
   const { handleKeyDown: handleKeyDownFromHook } = usePopupMenuKeyboard({
@@ -402,7 +411,7 @@ export function useComboboxInputBehavior(
     enabled: open, // Only enabled when popup is open
     enableTypeToSearch: false,
     onKeyDown: handleKeyDownWhenClosed, // Chain with our closed-state handler
-    closeAll: comboboxContext.closeCombobox,
+    closeAll: closeFromKeyboard,
     // Skip focus owner check because the input is outside the Surface
     // but should still handle keyboard navigation when the popup is open
     skipFocusOwnerCheck: true,

@@ -24,6 +24,7 @@ import {
   type PopupMenuDebugOptions,
   resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import { AimGuardProvider } from '../hooks/use-aim-guard.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
@@ -48,7 +49,7 @@ export interface PopupMenuProvidersProps {
   /** Nesting depth: 0 = root menu */
   depth: number
   /** Close the entire menu tree */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
   /**
    * Internal: when true, Surface handles Tab explicitly (close the tree, or
    * cycle through focus zones). Enabled only by DropdownMenu.Root and
