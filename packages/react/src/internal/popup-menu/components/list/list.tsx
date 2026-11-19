@@ -217,6 +217,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
   const filteredCount = store.useState('filteredCount')
   const hasInput = store.useState('hasInput')
   const highlightedId = store.useState('highlightedId')
+  const open = store.useState('open')
   const listId = store.context.listId
 
   // When there's no Input, the List should receive focus and handle keyboard nav
@@ -231,7 +232,8 @@ export const PopupMenuListPrimitive = React.forwardRef<
     depth,
     submenuContext,
     subpageContext,
-    enabled: shouldHandleKeyboard,
+    // Keys are ignored while the popup animates out.
+    enabled: shouldHandleKeyboard && open,
     disabled: popupMenuDisabled,
     enableTypeToSearch: true,
     onKeyDown,
