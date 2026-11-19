@@ -1213,6 +1213,74 @@ function DropdownMenuWithHighlightCallbacks({
   )
 }
 
+function DropdownMenuWithInputs() {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger data-testid="trigger">
+        Open Menu
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface data-testid="surface">
+              <DropdownMenu.Input data-testid="input" />
+              <DropdownMenu.List data-testid="list">
+                <DropdownMenu.Item data-testid="banana" value="Banana">
+                  Banana
+                </DropdownMenu.Item>
+                <DropdownMenu.Item data-testid="mango" value="Mango">
+                  Mango
+                </DropdownMenu.Item>
+                <DropdownMenu.Submenu>
+                  <DropdownMenu.SubmenuTrigger
+                    data-testid="submenu-trigger"
+                    value="Tangerines"
+                  >
+                    Tangerines
+                  </DropdownMenu.SubmenuTrigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Positioner>
+                      <DropdownMenu.Popup>
+                        <DropdownMenu.Surface data-testid="submenu-surface">
+                          <DropdownMenu.Input data-testid="submenu-input" />
+                          <DropdownMenu.List>
+                            <DropdownMenu.Item value="Lime">
+                              Lime
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Item value="Lemon">
+                              Lemon
+                            </DropdownMenu.Item>
+                          </DropdownMenu.List>
+                        </DropdownMenu.Surface>
+                      </DropdownMenu.Popup>
+                    </DropdownMenu.Positioner>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Submenu>
+                <DropdownMenu.SubpageTrigger
+                  data-testid="subpage-trigger"
+                  targetPageId="page"
+                  value="Plantains"
+                >
+                  Plantains
+                </DropdownMenu.SubpageTrigger>
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+
+            <DropdownMenu.Subpage pageId="page">
+              <DropdownMenu.Surface data-testid="subpage-surface">
+                <DropdownMenu.Input data-testid="subpage-input" />
+                <DropdownMenu.List>
+                  <DropdownMenu.Item value="Kiwi">Kiwi</DropdownMenu.Item>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Subpage>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -1245,6 +1313,294 @@ describe('<DropdownMenu.Root />', () => {
       await user.type(screen.getByTestId('search-input'), 'a')
 
       expect(scrollTo).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Input text editing keys', () => {
+    const highlighted = () =>
+      document.querySelector('[data-highlighted]')?.getAttribute('data-testid')
+
+    async function openWithInput(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByTestId('trigger'))
+      const input = await screen.findByTestId<HTMLInputElement>('input')
+      await waitFor(() => {
+        expect(input).toHaveFocus()
+      })
+      return input
+    }
+
+    /** Moves the highlight with ArrowDown until `testId` is highlighted. */
+    async function highlight(
+      user: ReturnType<typeof userEvent.setup>,
+      testId: string,
+    ) {
+      for (let i = 0; i < 5 && highlighted() !== testId; i++) {
+        await user.keyboard('{ArrowDown}')
+      }
+      expect(screen.getByTestId(testId)).toHaveAttribute('data-highlighted')
+    }
+
+    it('Home and End move the caret when the input has text', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      const input = await openWithInput(user)
+
+      await user.keyboard('an')
+      // Highlight a middle row, so a Home or End that navigated would move it.
+      await highlight(user, 'mango')
+
+      await user.keyboard('{Home}')
+      expect(input.selectionStart).toBe(0)
+      expect(highlighted()).toBe('mango')
+
+      await user.keyboard('{End}')
+      expect(input.selectionStart).toBe(2)
+      expect(highlighted()).toBe('mango')
+    })
+
+    it('ArrowLeft and ArrowRight move the caret when the input has text', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      const input = await openWithInput(user)
+
+      await user.keyboard('an')
+      const before = highlighted()
+
+      await user.keyboard('{ArrowLeft}')
+      expect(input.selectionStart).toBe(1)
+      await user.keyboard('{ArrowRight}')
+      expect(input.selectionStart).toBe(2)
+      expect(highlighted()).toBe(before)
+    })
+
+    it.each([
+      ['Shift+Home', { key: 'Home', shiftKey: true }],
+      ['Shift+End', { key: 'End', shiftKey: true }],
+      ['Shift+ArrowLeft', { key: 'ArrowLeft', shiftKey: true }],
+      ['Alt+ArrowUp', { key: 'ArrowUp', altKey: true }],
+      ['Meta+ArrowDown', { key: 'ArrowDown', metaKey: true }],
+    ])('leaves %s to the input when it has text', async (_, init) => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      const input = await openWithInput(user)
+
+      await user.keyboard('an')
+      const before = highlighted()
+
+      expect(fireEvent.keyDown(input, init)).toBe(true)
+      expect(highlighted()).toBe(before)
+    })
+
+    it('Home and End move the highlight when the input is empty', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await user.keyboard('{End}')
+      expect(highlighted()).toBe('subpage-trigger')
+      await user.keyboard('{Home}')
+      expect(highlighted()).toBe('banana')
+    })
+
+    function CheckboxMenuWithInput() {
+      return (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.Input data-testid="input" />
+                  <DropdownMenu.List>
+                    <DropdownMenu.CheckboxItem
+                      data-testid="cb-a"
+                      value="item a"
+                    >
+                      Item a
+                    </DropdownMenu.CheckboxItem>
+                    <DropdownMenu.CheckboxItem
+                      data-testid="cb-b"
+                      value="item b"
+                    >
+                      Item b
+                    </DropdownMenu.CheckboxItem>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    it.each([
+      ['Shift+ArrowDown', '{Shift>}{ArrowDown}'],
+      ['Shift+End', '{Shift>}{End}'],
+      ['Shift+Home', '{End}{Shift>}{Home}'],
+    ])('%s starts a span selection when the input is empty', async (_, keys) => {
+      const user = userEvent.setup()
+      render(<CheckboxMenuWithInput />)
+      await openWithInput(user)
+
+      await user.keyboard(keys)
+      expect(screen.getByTestId('cb-a')).toHaveAttribute('data-pending')
+      expect(screen.getByTestId('cb-b')).toHaveAttribute('data-pending')
+      await user.keyboard('{/Shift}')
+    })
+
+    it('Shift+ArrowDown starts a span selection when the input has text', async () => {
+      const user = userEvent.setup()
+      render(<CheckboxMenuWithInput />)
+      const input = await openWithInput(user)
+
+      await user.keyboard('item')
+      expect(input).toHaveValue('item')
+      await user.keyboard('{Shift>}{ArrowDown}')
+      expect(screen.getByTestId('cb-a')).toHaveAttribute('data-pending')
+      expect(screen.getByTestId('cb-b')).toHaveAttribute('data-pending')
+      await user.keyboard('{/Shift}')
+      expect(input).toHaveValue('item')
+    })
+
+    it.each([
+      ['Alt+ArrowDown', { key: 'ArrowDown', altKey: true }, 'mango'],
+      ['Meta+ArrowDown', { key: 'ArrowDown', metaKey: true }, 'mango'],
+      ['Alt+ArrowUp', { key: 'ArrowUp', altKey: true }, 'subpage-trigger'],
+      ['Meta+ArrowUp', { key: 'ArrowUp', metaKey: true }, 'subpage-trigger'],
+    ])('%s moves the highlight when the input is empty', async (_, init, expected) => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      const input = await openWithInput(user)
+      expect(highlighted()).toBe('banana')
+
+      expect(fireEvent.keyDown(input, init)).toBe(false)
+      expect(highlighted()).toBe(expected)
+    })
+
+    it.each([
+      ['Shift+ArrowRight', { key: 'ArrowRight', shiftKey: true }],
+      ['Alt+ArrowRight', { key: 'ArrowRight', altKey: true }],
+      ['Meta+ArrowRight', { key: 'ArrowRight', metaKey: true }],
+    ])('leaves %s to the input on a highlighted submenu trigger when it has text', async (_, init) => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      const input = await openWithInput(user)
+
+      await user.keyboard('an')
+      await highlight(user, 'submenu-trigger')
+
+      expect(fireEvent.keyDown(input, init)).toBe(true)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+    })
+
+    it('Ctrl+L opens a highlighted submenu trigger when the input has text', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await user.keyboard('an')
+      await highlight(user, 'submenu-trigger')
+      await user.keyboard('{Control>}l{/Control}')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+      })
+    })
+
+    it('Ctrl+N and Ctrl+P move the highlight when the input has text', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await user.keyboard('an')
+      const before = highlighted()
+      await user.keyboard('{Control>}n{/Control}')
+      expect(highlighted()).not.toBe(before)
+      await user.keyboard('{Control>}p{/Control}')
+      expect(highlighted()).toBe(before)
+    })
+
+    it('ArrowRight opens a highlighted submenu trigger when the input has text', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await user.keyboard('an')
+      await highlight(user, 'submenu-trigger')
+      await user.keyboard('{ArrowRight}')
+
+      await waitFor(() => {
+        expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+      })
+    })
+
+    it('ArrowLeft in a submenu input with text keeps the submenu open', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await highlight(user, 'submenu-trigger')
+      await user.keyboard('{ArrowRight}')
+      const submenuInput =
+        await screen.findByTestId<HTMLInputElement>('submenu-input')
+      await waitFor(() => {
+        expect(submenuInput).toHaveFocus()
+      })
+
+      await user.keyboard('le{ArrowLeft}')
+      expect(submenuInput.selectionStart).toBe(1)
+      expect(screen.getByTestId('submenu-surface')).toBeInTheDocument()
+
+      // Ctrl+H still closes the submenu mid-text.
+      await user.keyboard('{Control>}h{/Control}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+      })
+    })
+
+    it('ArrowLeft in an empty submenu input closes the submenu', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await highlight(user, 'submenu-trigger')
+      await user.keyboard('{ArrowRight}')
+      const submenuInput = await screen.findByTestId('submenu-input')
+      await waitFor(() => {
+        expect(submenuInput).toHaveFocus()
+      })
+
+      await user.keyboard('{ArrowLeft}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('submenu-surface')).not.toBeInTheDocument()
+      })
+    })
+
+    it('ArrowLeft in a subpage input goes back only when the input is empty', async () => {
+      const user = userEvent.setup()
+      render(<DropdownMenuWithInputs />)
+      await openWithInput(user)
+
+      await highlight(user, 'subpage-trigger')
+      await user.keyboard('{Enter}')
+      const subpageInput =
+        await screen.findByTestId<HTMLInputElement>('subpage-input')
+      await waitFor(() => {
+        expect(subpageInput).toHaveFocus()
+      })
+
+      await user.keyboard('k{ArrowLeft}')
+      expect(subpageInput.selectionStart).toBe(0)
+      expect(screen.getByTestId('subpage-surface')).toBeInTheDocument()
+
+      await user.keyboard('{Delete}{ArrowLeft}')
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('subpage-surface')).not.toBeInTheDocument()
     })
   })
 
