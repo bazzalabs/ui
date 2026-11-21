@@ -220,6 +220,26 @@ describe('submenu pointer trail', () => {
     expect(below).toHaveAttribute('data-highlighted')
   })
 
+  it('closes when the trigger scrolls past a pointer that never moved over it', async () => {
+    const hasLogged = spyOnAimGuardLogs()
+    render(<MenuWithSubmenu />)
+
+    // Scrolling moves the trigger under a still pointer: the browser sends
+    // pointerenter and pointerleave with no pointermove in between.
+    const submenuTrigger = await screen.findByTestId('submenu-trigger')
+    mockTriggerRect(submenuTrigger)
+    fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 75 })
+    mockSubmenuRect(await screen.findByTestId('submenu-popup'))
+    fireEvent.pointerLeave(submenuTrigger, { clientX: 180, clientY: 75 })
+
+    expect(hasLogged('pointerleave-miss-close')).toBe(true)
+    expect(hasLogged('pointerleave-hit-activate-guard')).toBe(false)
+
+    const below = screen.getByTestId('item-below')
+    fireEvent.pointerMove(below, { clientX: 180, clientY: 100 })
+    expect(below).toHaveAttribute('data-highlighted')
+  })
+
   it('still guards a one-sample pass that leaves toward the submenu', async () => {
     const hasLogged = spyOnAimGuardLogs()
     render(<MenuWithSubmenu />)

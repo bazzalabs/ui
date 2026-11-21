@@ -112,7 +112,7 @@ Computes a smoothed vector `(dx, dy)` from recent pointer trail segments.
 
 The fallback avoids a zero-vector decision when pointerleave event is nearly stationary.
 
-The trail starts empty at hover (see 7.4), so a fast pass may record only one sample inside the trigger. When fewer than 2 points remain, the leave handler appends the leave point, so the heading comes from the real path through the trigger rather than the fallback. The trail is deliberately not seeded from earlier positions (such as the listbox's last pointer position), which can be stale.
+The trail starts empty at hover (see 7.4), so a fast pass may record only one sample inside the trigger. When fewer than 2 points remain, the leave handler appends the leave point, so the heading comes from the real path through the trigger rather than the fallback. An empty trail means the pointer never moved over the trigger: the trigger moved under it (scrolling, a layout shift). The leave then counts as a miss, without a heading check. The trail is deliberately not seeded from earlier positions (such as the listbox's last pointer position), which can be stale.
 
 ### 6.3 `willHitSubmenu(exitX, exitY, heading, rect, anchor, triggerRect)`
 

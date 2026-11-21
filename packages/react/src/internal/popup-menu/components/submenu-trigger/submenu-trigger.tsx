@@ -1217,14 +1217,12 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         tRect,
         contentRect,
       )
-      const hit = willHitSubmenu(
-        clientX,
-        clientY,
-        heading,
-        contentRect,
-        anchor,
-        tRect,
-      )
+      // An empty trail means the pointer never moved over the trigger: the
+      // trigger moved under it (scrolling, a layout shift), so nothing says
+      // it is aiming at the submenu
+      const hit =
+        trail.length > 0 &&
+        willHitSubmenu(clientX, clientY, heading, contentRect, anchor, tRect)
 
       logAimTrace('pointerleave-hit-eval', {
         anchor,
