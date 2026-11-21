@@ -70,6 +70,7 @@
     "dev": "tsdown --watch",
     "type-check": "bun check",
     "build": "tsdown",
+    "bench:browser": "bun bench/menu-typing/run.ts",
     "test": "vitest run",
     "test:jsdom": "vitest run --project jsdom",
     "test:watch": "vitest --watch"
