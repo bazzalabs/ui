@@ -1,5 +1,32 @@
 # @bazza-ui/react
 
+## 0.1.0-canary.19
+
+### Patch Changes
+
+- [#608](https://github.com/bazzalabs/ui/pull/608) [`64fc447`](https://github.com/bazzalabs/ui/commit/64fc4474bbef8294f966c577b42ee88cbabfef41) Thanks [@kianbazza](https://github.com/kianbazza)! - Fix menu groups that a search hid staying hidden when a later search matched their items. Typing "audi" and then replacing it with "apple" now shows the Fruits group with Apple, instead of no rows. A group around a `RadioGroup` or `CheckboxGroup` now shows when a search matches an item inside it, instead of hiding along with it.
+
+  A `Group`, `RadioGroup` or `CheckboxGroup` hidden by a search now stays in the DOM, empty, with the `hidden` attribute, `display: none` and (on `Group`) `data-hidden`, so its items are still searched. Styles that pick the first group with `:first-child` will now match the hidden group; use `[data-first]` (or `[data-first-group]`) instead.
+
+- [#584](https://github.com/bazzalabs/ui/pull/584) [`7c7670f`](https://github.com/bazzalabs/ui/commit/7c7670f1f0944a21cb8b303f6108e63c2194c439) Thanks [@kianbazza](https://github.com/kianbazza)! - Moving the pointer from a submenu trigger toward its submenu no longer re-renders every row in the menu. Rows used to re-render each time the aim guard turned on or off, though only submenu triggers render from it.
+
+- [#596](https://github.com/bazzalabs/ui/pull/596) [`7d6e8fc`](https://github.com/bazzalabs/ui/commit/7d6e8fcfc2dbd0cb9d4a21dae05b8794b847b82c) Thanks [@kianbazza](https://github.com/kianbazza)! - Rows that mount together are now sorted once, and items that mount together are re-scored once, instead of once per row or item. Opening a long menu, or clearing a search that brings hundreds of rows back, used to take hundreds of milliseconds.
+
+  Which item is highlighted changes in two cases:
+
+  - With `filter={false}`, items that mount together highlight the first of them in `orderedItems`, not the first to register.
+  - When the highlighted item registers again in one commit, for example because its `shortcut` or `keywords` changed, it stays highlighted. The highlight used to move to the first row.
+
+  For direct users of the store (`DropdownMenuStore`, `ContextMenuStore`, `SelectStore`, `ComboboxStore`): `registerRow` and `registerItem` no longer update `state.orderedRows`, `state.filteredItems`, `state.filteredCount` or `state.highlightedId` right away. They publish at the next `flushPendingRegistrations()`, which the list calls from a layout effect, or in a microtask at the latest. `getVisibleItemIds()` and `selectByShortcut()` flush first. The store state gains a `registrationBatch` counter that re-renders the list when rows or items register outside its own commit.
+
+- [#582](https://github.com/bazzalabs/ui/pull/582) [`091e148`](https://github.com/bazzalabs/ui/commit/091e14889092fe1d6784d6c48a35d8e52a373d51) Thanks [@kianbazza](https://github.com/kianbazza)! - Typing in a menu's `Input` now re-renders only the rows whose visibility changes, for rows passed to `List` as JSX children. Every mounted item and separator used to re-render on each keystroke, even when it stayed visible or hidden. Data-first lists, and `List` children passed as a function, still re-render their visible rows on each keystroke. The store also gains `isItemVisible` and `hasSearch` selectors.
+
+- [#586](https://github.com/bazzalabs/ui/pull/586) [`6f1acc4`](https://github.com/bazzalabs/ui/commit/6f1acc46729f6632395dd678bad017fd10dd9279) Thanks [@kianbazza](https://github.com/kianbazza)! - A menu with a submenu no longer listens to every pointer move on the page while it's open. The pointer trail used to aim at a submenu is now recorded only while a submenu trigger is hovered, and while the pointer is on its way from the trigger to the submenu. Whether the pointer is heading for the submenu is now judged from its path across the trigger, not from its last few positions anywhere on the page. When a fast pass records only one position inside the trigger, the point where the pointer left is used as the second. When a trigger scrolls past a pointer that didn't move over it, its submenu now closes instead of staying open. Aim guard trace details are also no longer built on each pointer move unless `logAimGuardEvents` is on.
+
+- [#583](https://github.com/bazzalabs/ui/pull/583) [`7a8e431`](https://github.com/bazzalabs/ui/commit/7a8e43188635ff8f9a93cf629859700919ebbe46) Thanks [@kianbazza](https://github.com/kianbazza)! - Menu rows look up their `data-first`, `data-last`, `data-first-group`, `data-last-group`, `data-first-in-group` and `data-last-in-group` state instead of scanning every mounted row. The positions are worked out once each time the row order changes, so a store update in a long menu no longer costs time proportional to the square of its row count.
+
+- [#585](https://github.com/bazzalabs/ui/pull/585) [`fcf806c`](https://github.com/bazzalabs/ui/commit/fcf806c8b2772c3785025e6fae2b257a0b6e2c76) Thanks [@kianbazza](https://github.com/kianbazza)! - Measuring row widths for `--row-width` now forces one layout per batch of rows instead of one per row. Each batch applies the measuring styles to every row, reads every width, then restores the styles. Measurement also no longer calls `getComputedStyle` for each row when its debug logging is off.
+
 ## 0.1.0-canary.18
 
 ### Minor Changes
