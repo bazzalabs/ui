@@ -87,7 +87,9 @@ export const PopupMenuGroupLabel = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'group-label')
 
-  return useRender({
+  const isHidden = groupContext?.hidden ?? false
+
+  const element = useRender({
     render,
     ref: forwardedRef,
     state,
@@ -104,8 +106,13 @@ export const PopupMenuGroupLabel = React.forwardRef<
       style: resolveStyle(style, state),
       children,
     },
+    enabled: !isHidden,
     defaultTagName: 'div',
   })
+
+  if (isHidden) return null
+
+  return element
 })
 
 export namespace PopupMenuGroupLabel {

@@ -350,8 +350,10 @@ export function useListboxItem(
   // Check if filtering is disabled (consumer handles filtering externally)
   const filterDisabled = store.isFilterDisabled()
 
-  // When filterDisabled, consumer handles filtering so all items are visible
-  const isVisible = forceMount || filterDisabled || passesFilter
+  // When filterDisabled, consumer handles filtering so all items are visible.
+  // A group hidden by the search hides every item in it, forceMount included.
+  const isVisible =
+    !groupContext?.hidden && (forceMount || filterDisabled || passesFilter)
 
   // Note: Scroll behavior is now handled by the store's setHighlightedId method.
   // It uses the registered DOM refs to call scrollIntoView when the element exists,

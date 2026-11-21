@@ -21,6 +21,7 @@ import type {
   CheckboxValueChangeEventDetails,
   CheckboxValueChangeReason,
 } from '../../events.js'
+import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuCheckboxGroupDataAttributes } from './checkbox-group.data-attrs.js'
 import {
   CheckboxGroupContext,
@@ -161,20 +162,13 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       [],
     )
 
-    // Register group with store for filtering visibility
-    React.useEffect(() => {
-      const unregister = store.registerGroup(groupId, internalRef)
-      return unregister
-    }, [groupId, store])
-
-    React.useLayoutEffect(() => {
-      if (!rowElement) return undefined
-      return store.registerRow(groupId, rowElement, { kind: 'group' })
-    }, [rowElement, groupId, store])
-
-    // Check visibility using selector
-    const isGroupVisible = store.useState('isGroupVisible', groupId)
-    const isVisible = forceMount || isGroupVisible
+    const { isVisible, groupContextValue } = useGroupVisibility({
+      store,
+      groupId,
+      forceMount,
+      ref: internalRef,
+      rowElement,
+    })
     const isFirstGroup = store.useState('isFirstGroup', groupId)
     const isLastGroup = store.useState('isLastGroup', groupId)
     const isFirstRow = store.useState('isFirstRow', groupId)
@@ -185,8 +179,6 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       () => ({ groupId, value, setValue, disabled, registerItemValue }),
       [groupId, value, setValue, disabled, registerItemValue],
     )
-
-    const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
 
     const state: PopupMenuCheckboxGroup.State = React.useMemo(
       () => ({
@@ -213,17 +205,15 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
         ...(slotAttr ? { [slotAttr]: '' } : {}),
         role: 'group',
         'aria-disabled': disabled || undefined,
+        hidden: isVisible ? rest.hidden : true,
         className: resolveClassName(className, state),
-        style: resolveStyle(style, state),
+        style: isVisible
+          ? resolveStyle(style, state)
+          : { ...resolveStyle(style, state), display: 'none' },
         children,
       },
-      enabled: isVisible,
       defaultTagName: 'div',
     })
-
-    if (!isVisible) {
-      return null
-    }
 
     return (
       <CheckboxGroupContext.Provider value={checkboxGroupContextValue}>

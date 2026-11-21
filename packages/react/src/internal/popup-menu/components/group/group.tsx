@@ -13,6 +13,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { PopupMenuGroupDataAttributes } from './group.data-attrs.js'
+import { useGroupVisibility } from './use-group-visibility.js'
 
 export interface PopupMenuGroupState extends Record<string, unknown> {
   /**
@@ -55,7 +56,8 @@ const stateAttributesMapping = {
 
 /**
  * Groups related popup menu items together.
- * Hidden when no child items match the current filter.
+ * Hidden when no child items match the current filter. A hidden group stays
+ * mounted (with the `hidden` attribute) so a later search can bring it back.
  * Renders a `<div>` element with role="group".
  */
 export const PopupMenuGroup = React.forwardRef<
@@ -76,27 +78,17 @@ export const PopupMenuGroup = React.forwardRef<
   const internalRef = React.useRef<HTMLDivElement>(null)
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-  // Register group with store
-  React.useEffect(() => {
-    const unregister = store.registerGroup(groupId, internalRef)
-    return unregister
-  }, [groupId, store])
-
-  React.useLayoutEffect(() => {
-    if (!rowElement) return undefined
-    return store.registerRow(groupId, rowElement, { kind: 'group' })
-  }, [rowElement, groupId, store])
-
-  // Check if group has visible items using selector
-  const isGroupVisible = store.useState('isGroupVisible', groupId)
-  const isVisible = forceMount || isGroupVisible
+  const { isVisible, groupContextValue } = useGroupVisibility({
+    store,
+    groupId,
+    forceMount,
+    ref: internalRef,
+    rowElement,
+  })
   const isFirstGroup = store.useState('isFirstGroup', groupId)
   const isLastGroup = store.useState('isLastGroup', groupId)
   const isFirstRow = store.useState('isFirstRow', groupId)
   const isLastRow = store.useState('isLastRow', groupId)
-
-  // Provide group context to children
-  const groupContextValue = React.useMemo(() => ({ groupId }), [groupId])
 
   const state: PopupMenuGroup.State = React.useMemo(
     () => ({
@@ -124,17 +116,15 @@ export const PopupMenuGroup = React.forwardRef<
       // Using role="presentation" since we're inside a listbox.
       // The group is purely visual - items are the semantic options.
       role: 'presentation',
+      hidden: isVisible ? rest.hidden : true,
       className: resolveClassName(className, state),
-      style: resolveStyle(style, state),
+      style: isVisible
+        ? resolveStyle(style, state)
+        : { ...resolveStyle(style, state), display: 'none' },
       children,
     },
-    enabled: isVisible,
     defaultTagName: 'div',
   })
-
-  if (!isVisible) {
-    return null
-  }
 
   return (
     <GroupContext.Provider value={groupContextValue}>

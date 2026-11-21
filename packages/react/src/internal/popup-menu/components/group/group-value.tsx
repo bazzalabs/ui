@@ -5,6 +5,7 @@ import {
   GroupContext,
   type GroupContextValue,
   type GroupPositional,
+  useGroupContext,
 } from '../../../listbox/index.js'
 
 export interface PopupMenuGroupValueProps {
@@ -22,9 +23,11 @@ export interface PopupMenuGroupValueProps {
  */
 export function PopupMenuGroupValue(props: PopupMenuGroupValueProps) {
   const { groupId, positional, children } = props
+  // Rows inside a group a search hides stay hidden.
+  const isParentHidden = useGroupContext()?.hidden
   const contextValue: GroupContextValue = React.useMemo(
-    () => ({ groupId, positional }),
-    [groupId, positional],
+    () => ({ groupId, positional, hidden: isParentHidden }),
+    [groupId, positional, isParentHidden],
   )
   return (
     <GroupContext.Provider value={contextValue}>

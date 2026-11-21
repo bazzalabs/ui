@@ -7,7 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
-import { useSurfaceContext } from '../../../listbox/index.js'
+import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -57,9 +57,11 @@ export const PopupMenuSeparator = React.forwardRef<
     return store.registerRow(rowId, rowElement, { kind: 'separator' })
   }, [rowElement, rowId, store])
 
-  // Hide separator when there's an active search (unless alwaysRender)
+  // Hide separator when there's an active search (unless alwaysRender), or
+  // when a search hides its group
   const hasSearch = store.useState('hasSearch')
-  const isHidden = hasSearch && !alwaysRender
+  const isGroupHidden = useGroupContext()?.hidden ?? false
+  const isHidden = (hasSearch && !alwaysRender) || isGroupHidden
   const isFirstRow = store.useState('isFirstRow', rowId)
   const isLastRow = store.useState('isLastRow', rowId)
   const state = React.useMemo(
