@@ -184,7 +184,11 @@ describe('popup menu positional group attributes', () => {
     await user.type(input, 'car')
 
     await waitFor(() => {
-      expect(screen.queryByTestId('group-fruits')).not.toBeInTheDocument()
+      // A hidden group stays mounted so a later search can bring it back.
+      expect(screen.getByTestId('group-fruits')).not.toBeVisible()
+      expect(screen.getByTestId('group-fruits')).not.toHaveAttribute(
+        'data-first-group',
+      )
       expect(screen.getByTestId('group-vegetables')).toHaveAttribute(
         'data-first-group',
         '',

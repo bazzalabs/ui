@@ -1067,7 +1067,7 @@ const CheckboxGroup = forwardRef<
   <Primitive.CheckboxGroup
     ref={ref}
     className={cn(
-      'first:[&_[bazzaui-dropdown-menu-group-label]]:mt-2',
+      'data-first:[&_[bazzaui-dropdown-menu-group-label]]:mt-2',
       className,
     )}
     {...props}
@@ -1084,7 +1084,7 @@ const RadioGroup = forwardRef<
   <Primitive.RadioGroup
     ref={ref}
     className={cn(
-      'first:[&_[bazzaui-dropdown-menu-group-label]]:mt-2',
+      'data-first:[&_[bazzaui-dropdown-menu-group-label]]:mt-2',
       className,
     )}
     {...props}

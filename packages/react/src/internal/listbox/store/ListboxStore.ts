@@ -203,6 +203,8 @@ export interface ListboxContext {
   readonly items: Map<string, ItemRegistration>
   /** Map of group ID to set of item IDs */
   readonly groups: Map<string, Set<string>>
+  /** Map of a nested group's ID to the ID of the group around it */
+  readonly groupParents: Map<string, string>
   /** Map of item ID to onSelect callback */
   readonly itemSelects: Map<string, () => void>
   /** Map of submenu trigger ID to open callback */
@@ -525,6 +527,7 @@ export class ListboxStore extends ReactStore<
       inputId: '',
       items: new Map(),
       groups: new Map(),
+      groupParents: new Map(),
       itemSelects: new Map(),
       submenuOpens: new Map(),
       submenuCloses: new Map(),
@@ -1259,21 +1262,31 @@ export class ListboxStore extends ReactStore<
 
   /**
    * Register a group. Optionally registers the group's DOM element ref,
-   * used for scroll positioning (e.g. revealing the group's label).
+   * used for scroll positioning (e.g. revealing the group's label), and the
+   * ID of the group around it: a search that matches an item in a nested
+   * group shows every group around it too.
    * Returns a cleanup function.
    */
   registerGroup(
     id: string,
     ref?: React.RefObject<HTMLElement | null>,
+    parentId?: string,
   ): () => void {
     this.context.groups.set(id, new Set())
     if (ref) {
       this.context.refs.groupRefs.set(id, ref)
     }
+    if (parentId) {
+      this.context.groupParents.set(id, parentId)
+      this.queueRescore()
+    }
 
     return () => {
       this.context.groups.delete(id)
       this.context.refs.groupRefs.delete(id)
+      if (parentId && this.context.groupParents.get(id) === parentId) {
+        this.context.groupParents.delete(id)
+      }
     }
   }
 
@@ -1889,8 +1902,10 @@ export class ListboxStore extends ReactStore<
         filteredItems.set(id, score)
         if (score > 0) {
           filteredCount++
-          if (registration.groupId) {
-            visibleGroups.add(registration.groupId)
+          let groupId = registration.groupId
+          while (groupId && !visibleGroups.has(groupId)) {
+            visibleGroups.add(groupId)
+            groupId = this.context.groupParents.get(groupId)
           }
         }
       })

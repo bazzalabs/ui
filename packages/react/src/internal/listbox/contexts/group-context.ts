@@ -18,6 +18,12 @@ export interface GroupPositional {
 export interface GroupContextValue {
   groupId?: string
   positional?: GroupPositional
+  /**
+   * True while a search hides the group. Its parts stay mounted, so its items
+   * stay registered and a later search can bring the group back, but they
+   * render nothing.
+   */
+  hidden?: boolean
 }
 
 const GroupContext = React.createContext<GroupContextValue | null>(null)

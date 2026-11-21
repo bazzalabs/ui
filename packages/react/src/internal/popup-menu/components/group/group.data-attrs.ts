@@ -5,6 +5,11 @@ export enum PopupMenuGroupDataAttributes {
    */
   slot = 'bazzaui-[component]-group',
   /**
+   * Present when a search hides every item in the group. The group stays in
+   * the DOM with the `hidden` attribute, so a later search can bring it back.
+   */
+  hidden = 'data-hidden',
+  /**
    * Present when this is the first visible group in the list.
    */
   firstGroup = 'data-first-group',

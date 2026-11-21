@@ -252,7 +252,10 @@ const Group = forwardRef<
 >(({ className, ...props }, ref) => (
   <Primitive.Group
     ref={ref}
-    className={cn('first:[&_[bazzaui-select-group-label]]:mt-1', className)}
+    className={cn(
+      'data-first:[&_[bazzaui-select-group-label]]:mt-1',
+      className,
+    )}
     {...props}
   />
 ))
