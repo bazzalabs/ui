@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
+import { type ListboxStore, useSurfaceContext } from '../listbox/index.js'
 
 /**
  * Counts commits per row. A `<Profiler>` around a row reports every render of
@@ -142,6 +143,65 @@ function readRowOutput(label: string) {
     row.hasAttribute('data-last'),
   ].join()
 }
+
+/**
+ * Subscribes to the surface's store from a layout effect. Layout effects run
+ * in sibling order, so it subscribes before the rows rendered after it
+ * register.
+ */
+function StoreProbe({ onStore }: { onStore: (store: ListboxStore) => void }) {
+  const { store } = useSurfaceContext()
+  React.useLayoutEffect(() => {
+    onStore(store)
+  }, [store, onStore])
+  return null
+}
+
+describe('popup menu row registration', () => {
+  it('publishes rows and items that mount together once', () => {
+    const published = { rowOrder: 0, scores: 0 }
+    const onStore = (store: ListboxStore) => {
+      let rowOrder = store.state.orderedRows
+      let scores = store.state.filterTrigger
+      store.subscribe((state) => {
+        if (state.orderedRows !== rowOrder) {
+          rowOrder = state.orderedRows
+          published.rowOrder++
+        }
+        if (state.filterTrigger !== scores) {
+          scores = state.filterTrigger
+          published.scores++
+        }
+      })
+    }
+
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List>
+                  <StoreProbe onStore={onStore} />
+                  {ITEM_LABELS.map((label) => (
+                    <DropdownMenu.Item key={label} value={label}>
+                      {label}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+
+    // Synchronously after the render: published by the list, not a microtask.
+    expect(screen.getAllByRole('option')).toHaveLength(ITEM_LABELS.length)
+    expect(published).toEqual({ rowOrder: 1, scores: 1 })
+  })
+})
 
 describe('popup menu row re-renders', () => {
   it('re-renders only rows whose output changes while filtering', async () => {

@@ -3824,6 +3824,12 @@
             "type": "readonly ListboxOrderedRow[]",
             "required": true,
             "description": "Rows currently mounted in the DOM, sorted by document position.\nMounted ⇔ visible, so this is the list of visible rows.\nImmutable: replaced wholesale on every registry change so selectors recompute."
+          },
+          {
+            "name": "registrationBatch",
+            "type": "number",
+            "required": true,
+            "description": "Bumped when rows or items start waiting for\n`flushPendingRegistrations()`. The list subscribes to it, so React\nre-renders the list right away and its layout effect publishes them."
           }
         ]
       },
@@ -13534,6 +13540,12 @@
             "type": "readonly ListboxOrderedRow[]",
             "required": true,
             "description": "Rows currently mounted in the DOM, sorted by document position.\nMounted ⇔ visible, so this is the list of visible rows.\nImmutable: replaced wholesale on every registry change so selectors recompute."
+          },
+          {
+            "name": "registrationBatch",
+            "type": "number",
+            "required": true,
+            "description": "Bumped when rows or items start waiting for\n`flushPendingRegistrations()`. The list subscribes to it, so React\nre-renders the list right away and its layout effect publishes them."
           }
         ]
       },
@@ -18169,6 +18181,12 @@
             "type": "readonly ListboxOrderedRow[]",
             "required": true,
             "description": "Rows currently mounted in the DOM, sorted by document position.\nMounted ⇔ visible, so this is the list of visible rows.\nImmutable: replaced wholesale on every registry change so selectors recompute."
+          },
+          {
+            "name": "registrationBatch",
+            "type": "number",
+            "required": true,
+            "description": "Bumped when rows or items start waiting for\n`flushPendingRegistrations()`. The list subscribes to it, so React\nre-renders the list right away and its layout effect publishes them."
           }
         ]
       },
@@ -21196,6 +21214,12 @@
             "type": "readonly ListboxOrderedRow[]",
             "required": true,
             "description": "Rows currently mounted in the DOM, sorted by document position.\nMounted ⇔ visible, so this is the list of visible rows.\nImmutable: replaced wholesale on every registry change so selectors recompute."
+          },
+          {
+            "name": "registrationBatch",
+            "type": "number",
+            "required": true,
+            "description": "Bumped when rows or items start waiting for\n`flushPendingRegistrations()`. The list subscribes to it, so React\nre-renders the list right away and its layout effect publishes them."
           }
         ]
       },

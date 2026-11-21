@@ -195,6 +195,17 @@ const search = state.searchProp ?? state.search  // spelled out by hand, when a 
 
 Write with the store's actions (`setOpen`, `setSearch`), which call the consumer's callback and update the internal field. `bazza/no-raw-controlled-state` reports reads of `state.open` and `state.search`, including through a `const s = store.state` alias and `const { open } = store.state`.
 
+Rows and items don't reach state when they register. `registerRow` and `registerItem` queue the change, and `flushPendingRegistrations()` publishes the whole batch: one sort of `orderedRows`, one rescore of `filteredItems` and `filteredCount`, and one auto-highlight check. The list flushes from its layout effect, and a microtask flushes anything left. Between a registration and the flush, those fields are stale. A store method that reads them calls the flush first, as `getVisibleItemIds()`, `selectByShortcut()` and `validateHighlight()` do:
+
+```typescript
+getVisibleItemIds(): string[] {
+  this.flushPendingRegistrations()
+  // ...read state.filteredItems and state.normalizedSearch
+}
+```
+
+Tests that register directly with the store flush before asserting on state.
+
 ## Lint
 
 `bun run check` runs Biome on the repo, then oxlint on this package. oxlint runs the `bazza/*` rules from `tooling/lint` plus built-in rules that have no active Biome equivalent:

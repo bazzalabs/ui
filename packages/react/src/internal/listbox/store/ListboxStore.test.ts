@@ -31,11 +31,31 @@ function registerItems(
     })
     cleanups.push(cleanup)
   }
+  // Items mounting together register in one commit, which the list flushes.
+  store.flushPendingRegistrations()
   return () => {
     cleanups.forEach((cleanup) => {
       cleanup()
     })
+    store.flushPendingRegistrations()
   }
+}
+
+/** Counts how many times a slice of the store's state changes. */
+function countChanges<T>(
+  store: ListboxStore,
+  select: (state: ListboxState) => T,
+): () => number {
+  let changes = 0
+  let previous = select(store.state)
+  store.subscribe((state) => {
+    const next = select(state)
+    if (!Object.is(previous, next)) {
+      changes++
+      previous = next
+    }
+  })
+  return () => changes
 }
 
 // ============================================================================
@@ -44,6 +64,25 @@ function registerItems(
 
 describe('ListboxStore', () => {
   describe('item registration', () => {
+    it('scores items that register together once', () => {
+      const store = createStore({ search: 'item', normalizedSearch: 'item' })
+      const scoring = countChanges(store, (state) => state.filterTrigger)
+
+      const cleanups = Array.from({ length: 20 }, (_, i) =>
+        store.registerItem(`item-${i}`, { value: `Item ${i}` }),
+      )
+      expect(scoring()).toBe(0)
+
+      store.flushPendingRegistrations()
+      expect(scoring()).toBe(1)
+      expect(store.state.filteredCount).toBe(20)
+
+      for (const cleanup of cleanups) cleanup()
+      store.flushPendingRegistrations()
+      expect(scoring()).toBe(2)
+      expect(store.state.filteredCount).toBe(0)
+    })
+
     it('unregisters items on cleanup', () => {
       const store = createStore()
 
@@ -1178,16 +1217,32 @@ describe('ListboxStore', () => {
       store.setOrderedItems(['apple', 'banana'])
       store.setOpen(true)
 
-      // Register banana first (but apple is first in orderedItems)
+      // Register banana first, in its own commit (but apple is first in orderedItems)
       store.registerItem('banana', { value: 'Banana' })
+      store.flushPendingRegistrations()
       // banana is highlighted because it's the first REGISTERED item in orderedItems
       expect(store.state.highlightedId).toBe('banana')
 
-      // Register apple (first in orderedItems)
+      // Register apple (first in orderedItems) in a later commit
       store.registerItem('apple', { value: 'Apple' })
+      store.flushPendingRegistrations()
       // Highlight stays on banana - we don't re-highlight once something is highlighted
       // This prevents jarring jumps as items mount
       expect(store.state.highlightedId).toBe('banana')
+    })
+
+    it('highlights the first in orderedItems when items register in one commit', () => {
+      const store = createStore({ open: false }, { filter: false })
+
+      store.setOrderedItems(['apple', 'banana'])
+      store.setOpen(true)
+
+      // Registration order differs from orderedItems, all in one commit.
+      store.registerItem('banana', { value: 'Banana' })
+      store.registerItem('apple', { value: 'Apple' })
+      store.flushPendingRegistrations()
+
+      expect(store.state.highlightedId).toBe('apple')
     })
   })
 
@@ -1465,12 +1520,43 @@ describe('ListboxStore', () => {
       return elements
     }
 
+    it('publishes rows that register together once, in DOM order', () => {
+      const store = createStore()
+      const elements = createRowElements(20)
+      const orderChanges = countChanges(store, (state) => state.orderedRows)
+
+      // Rows mounting in one commit register in effect order, here reversed.
+      for (let i = elements.length - 1; i >= 0; i--) {
+        store.registerRow(`row-${i}`, elements[i]!, { kind: 'item' })
+      }
+      expect(orderChanges()).toBe(0)
+
+      store.flushPendingRegistrations()
+
+      expect(orderChanges()).toBe(1)
+      expect(store.state.orderedRows.map((row) => row.id)).toEqual(
+        elements.map((_, i) => `row-${i}`),
+      )
+    })
+
+    it('publishes rows on its own when no list flushes them', async () => {
+      const store = createStore()
+      const elements = createRowElements(2)
+
+      store.registerRow('b', elements[1]!, { kind: 'item' })
+      store.registerRow('a', elements[0]!, { kind: 'item' })
+      await Promise.resolve()
+
+      expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a', 'b'])
+    })
+
     it('sorts registered rows by DOM order', () => {
       const store = createStore()
       const elements = createRowElements(2)
 
       store.registerRow('b', elements[1]!, { kind: 'item' })
       store.registerRow('a', elements[0]!, { kind: 'item' })
+      store.flushPendingRegistrations()
 
       expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a', 'b'])
     })
@@ -1481,8 +1567,10 @@ describe('ListboxStore', () => {
 
       const unregisterA = store.registerRow('a', elements[0]!, { kind: 'item' })
       store.registerRow('b', elements[1]!, { kind: 'item' })
+      store.flushPendingRegistrations()
 
       unregisterA()
+      store.flushPendingRegistrations()
 
       expect(store.state.orderedRows.map((row) => row.id)).toEqual(['b'])
       expect(store.context.rowElements.has('a')).toBe(false)
@@ -1496,11 +1584,13 @@ describe('ListboxStore', () => {
         kind: 'item',
       })
       store.registerRow('a', elements[1]!, { kind: 'item' })
+      store.flushPendingRegistrations()
 
       expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a'])
       expect(store.context.rowElements.get('a')).toBe(elements[1])
 
       unregisterOld()
+      store.flushPendingRegistrations()
 
       expect(store.state.orderedRows.map((row) => row.id)).toEqual(['a'])
       expect(store.context.rowElements.get('a')).toBe(elements[1])
@@ -1513,6 +1603,8 @@ describe('ListboxStore', () => {
       store.registerRow('x', elements[0]!, { kind: 'item' })
       store.registerRow('g', elements[1]!, { kind: 'group' })
       store.registerRow('i', elements[2]!, { kind: 'item', groupId: 'g' })
+      store.flushPendingRegistrations()
+      expect(store.select('isFirstRow', 'x')).toBe(true)
 
       store.update({ virtualized: true })
 
@@ -1542,6 +1634,7 @@ describe('ListboxStore', () => {
         })
         rowIds.push(id)
       }
+      store.flushPendingRegistrations()
 
       // Count element reads on the current order.
       let reads = 0
