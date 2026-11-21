@@ -20,7 +20,7 @@ import {
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { usePopupMenuDebug } from '../../contexts/popup-menu-debug-context.js'
 import { useSubmenuContext } from '../../contexts/submenu-context.js'
-import { useAimGuard } from '../../hooks/use-aim-guard.js'
+import { useAimGuard, useAimGuardState } from '../../hooks/use-aim-guard.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import {
   type AnchorSide,
@@ -297,15 +297,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   // Get aim guard for safe polygon navigation
   const {
-    aimGuardActive,
-    guardedTriggerId,
-    guardedDepth,
     aimGuardActiveRef,
     guardedTriggerIdRef,
     guardedDepthRef,
     activateAimGuard,
     clearAimGuard,
   } = useAimGuard()
+  const { aimGuardActive, guardedTriggerId, guardedDepth } = useAimGuardState()
 
   // Track mouse positions for aim guard trajectory calculation
   const mouseTrailRef = useMouseTrail(4)
