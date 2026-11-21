@@ -289,6 +289,72 @@ interface ValidateHighlightOptions {
 }
 
 // ============================================================================
+// Row Positions
+// ============================================================================
+
+/** First/last row ids among the mounted rows, derived from `orderedRows`. */
+interface RowPositions {
+  /** First row outside any group. */
+  firstRowId: string | undefined
+  /** Last row outside any group. */
+  lastRowId: string | undefined
+  firstGroupId: string | undefined
+  lastGroupId: string | undefined
+  /** Rows that are first among their group's rows. */
+  firstInGroupIds: ReadonlySet<string>
+  /** Rows that are last among their group's rows. */
+  lastInGroupIds: ReadonlySet<string>
+}
+
+// `orderedRows` is replaced wholesale on every registry change, so its identity
+// keys one derivation per order change. Positional selectors run per row on
+// every store notification and stay O(1).
+const rowPositionsCache = new WeakMap<
+  readonly ListboxOrderedRow[],
+  RowPositions
+>()
+
+function getRowPositions(rows: readonly ListboxOrderedRow[]): RowPositions {
+  const cached = rowPositionsCache.get(rows)
+  if (cached) return cached
+
+  let firstRowId: string | undefined
+  let lastRowId: string | undefined
+  let firstGroupId: string | undefined
+  let lastGroupId: string | undefined
+  const firstInGroup = new Map<string, string>()
+  const lastInGroup = new Map<string, string>()
+
+  for (const row of rows) {
+    if (row.groupId === undefined) {
+      firstRowId ??= row.id
+      lastRowId = row.id
+    }
+    if (row.kind === 'group') {
+      firstGroupId ??= row.id
+      lastGroupId = row.id
+    }
+    if (row.groupId) {
+      if (!firstInGroup.has(row.groupId)) {
+        firstInGroup.set(row.groupId, row.id)
+      }
+      lastInGroup.set(row.groupId, row.id)
+    }
+  }
+
+  const positions: RowPositions = {
+    firstRowId,
+    lastRowId,
+    firstGroupId,
+    lastGroupId,
+    firstInGroupIds: new Set(firstInGroup.values()),
+    lastInGroupIds: new Set(lastInGroup.values()),
+  }
+  rowPositionsCache.set(rows, positions)
+  return positions
+}
+
+// ============================================================================
 // Selectors
 // ============================================================================
 
@@ -327,42 +393,32 @@ const selectors = {
 
   isFirstRow: createSelector((state: ListboxState, rowId: string) => {
     if (state.virtualized) return false
-    const rows = state.orderedRows.filter((r) => r.groupId === undefined)
-    return rows[0]?.id === rowId
+    return getRowPositions(state.orderedRows).firstRowId === rowId
   }),
 
   isLastRow: createSelector((state: ListboxState, rowId: string) => {
     if (state.virtualized) return false
-    const rows = state.orderedRows.filter((r) => r.groupId === undefined)
-    return rows.at(-1)?.id === rowId
+    return getRowPositions(state.orderedRows).lastRowId === rowId
   }),
 
   isFirstGroup: createSelector((state: ListboxState, rowId: string) => {
     if (state.virtualized) return false
-    const groups = state.orderedRows.filter((r) => r.kind === 'group')
-    return groups[0]?.id === rowId
+    return getRowPositions(state.orderedRows).firstGroupId === rowId
   }),
 
   isLastGroup: createSelector((state: ListboxState, rowId: string) => {
     if (state.virtualized) return false
-    const groups = state.orderedRows.filter((r) => r.kind === 'group')
-    return groups.at(-1)?.id === rowId
+    return getRowPositions(state.orderedRows).lastGroupId === rowId
   }),
 
   isFirstInGroup: createSelector((state: ListboxState, rowId: string) => {
     if (state.virtualized) return false
-    const row = state.orderedRows.find((r) => r.id === rowId)
-    if (!row?.groupId) return false
-    const siblings = state.orderedRows.filter((r) => r.groupId === row.groupId)
-    return siblings[0]?.id === rowId
+    return getRowPositions(state.orderedRows).firstInGroupIds.has(rowId)
   }),
 
   isLastInGroup: createSelector((state: ListboxState, rowId: string) => {
     if (state.virtualized) return false
-    const row = state.orderedRows.find((r) => r.id === rowId)
-    if (!row?.groupId) return false
-    const siblings = state.orderedRows.filter((r) => r.groupId === row.groupId)
-    return siblings.at(-1)?.id === rowId
+    return getRowPositions(state.orderedRows).lastInGroupIds.has(rowId)
   }),
 
   getItemScore: createSelector((state: ListboxState, itemId: string) => {

@@ -1523,5 +1523,69 @@ describe('ListboxStore', () => {
       expect(store.select('isFirstInGroup', 'i')).toBe(false)
       expect(store.select('isLastInGroup', 'i')).toBe(false)
     })
+
+    it('reads the row order a bounded number of times per order change', () => {
+      const store = createStore()
+      const rowCount = 100
+      const elements = createRowElements(rowCount + 1)
+      const rowIds: string[] = []
+
+      // A group row holding the first half of the items, then loose rows, so
+      // every positional selector has rows to match.
+      store.registerRow('g', elements[0]!, { kind: 'group' })
+      rowIds.push('g')
+      for (let i = 1; i <= rowCount; i++) {
+        const id = `row-${i}`
+        store.registerRow(id, elements[i]!, {
+          kind: 'item',
+          groupId: i <= rowCount / 2 ? 'g' : undefined,
+        })
+        rowIds.push(id)
+      }
+
+      // Count element reads on the current order.
+      let reads = 0
+      const counted = new Proxy([...store.state.orderedRows], {
+        get(target, key, receiver) {
+          if (typeof key === 'string' && /^\d+$/.test(key)) reads++
+          return Reflect.get(target, key, receiver)
+        },
+      })
+      store.set('orderedRows', counted)
+
+      const selectAll = () =>
+        rowIds.map((id) => [
+          store.select('isFirstRow', id),
+          store.select('isLastRow', id),
+          store.select('isFirstGroup', id),
+          store.select('isLastGroup', id),
+          store.select('isFirstInGroup', id),
+          store.select('isLastInGroup', id),
+        ])
+
+      // The first read after an order change walks the rows once.
+      const first = selectAll()
+      expect(reads).toBeLessThanOrEqual(rowIds.length)
+
+      // Each store notification re-runs every row's selectors. One that
+      // leaves the order alone reads nothing from it.
+      const readsAfterOrderChange = reads
+      store.setHighlightedId('row-1')
+      const second = selectAll()
+      expect(reads - readsAfterOrderChange).toBe(0)
+
+      expect(second).toEqual(first)
+      expect(first[0]).toEqual([true, false, true, true, false, false])
+      expect(first[1]).toEqual([false, false, false, false, true, false])
+      expect(first[rowCount / 2]).toEqual([
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+      ])
+      expect(first[rowCount]).toEqual([false, true, false, false, false, false])
+    })
   })
 })
