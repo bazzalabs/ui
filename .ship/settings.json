@@ -1,0 +1,5 @@
+{
+  "trunks": ["canary", "main"],
+  "defaultTrunk": "canary",
+  "stacking": "github"
+}
