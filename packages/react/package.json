@@ -71,6 +71,8 @@
     "type-check": "bun check",
     "build": "tsdown",
     "bench:browser": "bun bench/menu-typing/run.ts",
+    "bench:size": "bun bench/size/run.ts",
+    "bench:dist-imports": "bun bench/size/dist-imports.ts",
     "test": "vitest run",
     "test:jsdom": "vitest run --project jsdom",
     "test:watch": "vitest --watch"
