@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { NodeDef } from '../../data-first/types.js'
-import { defaultGetResolvedId, resolveNodeDefs } from '../resolve.js'
+import type { AnyNodeDef as NodeDef } from './node-def-map.js'
+import { defaultGetResolvedId, resolveNodeDefs } from './resolve.js'
 
 const item = (value: string, id?: string): NodeDef =>
   ({ kind: 'item', value, id, render: () => null }) as NodeDef
@@ -9,7 +9,14 @@ const submenu = (value: string, nodes: NodeDef[], id?: string): NodeDef =>
   ({ kind: 'submenu', value, id, nodes, render: () => null }) as NodeDef
 
 const subpage = (value: string, nodes: NodeDef[], id?: string): NodeDef =>
-  ({ kind: 'subpage', value, id, nodes, render: () => null }) as NodeDef
+  ({
+    kind: 'subpage',
+    value,
+    id,
+    nodes,
+    renderTrigger: () => null,
+    renderContent: () => null,
+  }) as NodeDef
 
 describe('resolveNodeDefs', () => {
   it('resolves flat items', () => {
@@ -52,7 +59,7 @@ describe('resolveNodeDefs', () => {
       [],
       defaultGetResolvedId,
     )
-    const child = node.children[0]
+    const child = node!.children[0]!
 
     expect(child).toMatchObject({
       definitionPath: ['status', 'backlog'],
@@ -69,7 +76,7 @@ describe('resolveNodeDefs', () => {
       nodes: [item('Backlog')],
     } as NodeDef
     const [node] = resolveNodeDefs([group], null, [], defaultGetResolvedId)
-    const child = node.children[0]
+    const child = node!.children[0]!
 
     expect(node).toMatchObject({
       id: 'g1',
@@ -92,7 +99,7 @@ describe('resolveNodeDefs', () => {
       nodes: [{ kind: 'radio-item', value: 'Backlog', render: () => null }],
     } as NodeDef
     const [node] = resolveNodeDefs([radioGroup], null, [], defaultGetResolvedId)
-    const child = node.children[0]
+    const child = node!.children[0]!
 
     expect(node).toMatchObject({
       definitionKey: 'rg1',
@@ -122,7 +129,7 @@ describe('resolveNodeDefs', () => {
       [],
       defaultGetResolvedId,
     )
-    const child = node.children[0]
+    const child = node!.children[0]!
 
     expect(node).toMatchObject({
       definitionKey: 'cg1',
@@ -141,7 +148,7 @@ describe('resolveNodeDefs', () => {
     } as NodeDef
     const [node] = resolveNodeDefs([treeItem], null, [], defaultGetResolvedId)
 
-    expect(node.children[0]).toMatchObject({
+    expect(node!.children[0]!).toMatchObject({
       definitionPath: ['apple'],
       id: 'apple',
     })
@@ -160,7 +167,7 @@ describe('resolveNodeDefs', () => {
       definitionPath: [''],
       id: '',
     })
-    expect(node.children[0]).toMatchObject({
+    expect(node!.children[0]!).toMatchObject({
       definitionPath: ['', 'backlog'],
       id: '/backlog',
     })
@@ -178,7 +185,7 @@ describe('resolveNodeDefs', () => {
       defaultGetResolvedId,
     )
 
-    expect(nodes[1]).toMatchObject({
+    expect(nodes[1]!).toMatchObject({
       definitionKey: 'separator',
       id: 'separator',
       index: 1,
@@ -189,8 +196,8 @@ describe('resolveNodeDefs', () => {
     const root = submenu('Status', [
       submenu('Open Items', [item('Backlog')], 'open-items-id'),
     ])
-    const leaf = resolveNodeDefs([root], null, [], defaultGetResolvedId)[0]
-      .children[0].children[0]
+    const leaf = resolveNodeDefs([root], null, [], defaultGetResolvedId)[0]!
+      .children[0]!.children[0]!
 
     expect(leaf.definitionPath).toEqual(['status', 'open-items-id', 'backlog'])
   })
@@ -222,7 +229,7 @@ describe('resolveNodeDefs', () => {
       defaultGetResolvedId,
     )
 
-    expect(node.children[0]!.children[0]).toMatchObject({
+    expect(node!.children[0]!.children[0]!).toMatchObject({
       definitionPath: ['details', 'nested', 'leaf'],
       id: 'details/nested/leaf',
     })

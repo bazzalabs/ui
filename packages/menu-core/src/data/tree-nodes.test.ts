@@ -1,13 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createMenuTreeResolver } from '../../menu-tree/resolver.js'
 import type {
-  DisplayNode,
-  DisplayRowNode,
-  ItemDef,
-  NodeDef,
-  TreeItemDef,
-} from '../types.js'
-import { filterNodes, getBrowseNodesPreserve } from '../utils.js'
+  AnyNodeDefTypes,
+  ItemNodeDef,
+  AnyNodeDef as NodeDef,
+  TreeItemNodeDef,
+} from '../tree/node-def-map.js'
+import { createMenuTreeResolver } from '../tree/resolver.js'
+import { getBrowseNodesPreserve } from './browse.js'
+import { filterNodes } from './pipeline.js'
+import type {
+  PipelineDisplayNode as DisplayNode,
+  PipelineDisplayRowNode as DisplayRowNode,
+} from './types.js'
+
+type ItemDef = ItemNodeDef<AnyNodeDefTypes>
+type TreeItemDef = TreeItemNodeDef<AnyNodeDefTypes>
 
 /** Resolves defs into Menu Nodes the way a root list does. */
 function resolve(nodes: NodeDef[]) {
@@ -92,21 +99,21 @@ describe('tree nodes', () => {
     expect(browseRows.every((row) => row.context.group?.id === 'teams')).toBe(
       true,
     )
-    expect(browseRows[1].context.tree).toMatchObject({
+    expect(browseRows[1]!.context.tree).toMatchObject({
       depth: 1,
       isLastChild: false,
       ancestorsLast: [false],
     })
-    expect(browseRows[2].context.tree).toMatchObject({
+    expect(browseRows[2]!.context.tree).toMatchObject({
       depth: 1,
       isLastChild: true,
       ancestorsLast: [false],
     })
-    expect(browseRows[3].context.tree).toMatchObject({
+    expect(browseRows[3]!.context.tree).toMatchObject({
       header: true,
       depth: 0,
     })
-    expect(browseRows[1].context.breadcrumbs.map((b) => b.value)).toEqual([
+    expect(browseRows[1]!.context.breadcrumbs.map((b) => b.value)).toEqual([
       'Product & Engineering',
     ])
   })
@@ -122,7 +129,7 @@ describe('tree nodes', () => {
         row.node.def.value,
       ].join('.')
 
-    expect(getId(browseRows[0])).not.toBe(getId(browseRows[1]))
+    expect(getId(browseRows[0]!)).not.toBe(getId(browseRows[1]!))
   })
 
   it('surfaces duplicate descendant values with breadcrumb paths', () => {
@@ -130,7 +137,7 @@ describe('tree nodes', () => {
       (row) => row.node.def.value === 'Design team',
     )
     expect(designRows).toHaveLength(2)
-    expect(designRows.map((row) => row.context.breadcrumbs[0].value)).toEqual([
+    expect(designRows.map((row) => row.context.breadcrumbs[0]!.value)).toEqual([
       'Product & Engineering',
       'Platform',
     ])
@@ -149,7 +156,7 @@ describe('tree nodes', () => {
     expect(search('old').map((row) => row.node.def.value)).toContain('Old team')
     expect(
       search('old').find((row) => row.node.def.value === 'Old team')?.context
-        .breadcrumbs[0].value,
+        .breadcrumbs[0]?.value,
     ).toBe('Archive')
     expect(search('archive').map((row) => row.node.def.value)).toContain(
       'Old team',
@@ -162,7 +169,7 @@ describe('tree nodes', () => {
   it('does not search descendants when deepSearch is false', () => {
     const shallowNodes = [
       {
-        ...nodes[0],
+        ...nodes[0]!,
         nodes: [
           tree('Product & Engineering', [item('Core builder team')], {
             deepSearch: false,
@@ -224,9 +231,9 @@ describe('tree nodes', () => {
       }).displayNodes,
     )
 
-    expect(browseRows[0].context.tree?.isLastChild).toBe(false)
-    expect(browseRows[1].context.tree?.ancestorsLast).toEqual([false])
-    expect(browseRows[2].context.tree?.isLastChild).toBe(true)
+    expect(browseRows[0]!.context.tree?.isLastChild).toBe(false)
+    expect(browseRows[1]!.context.tree?.ancestorsLast).toEqual([false])
+    expect(browseRows[2]!.context.tree?.isLastChild).toBe(true)
   })
 
   it('tracks lastness for id-less ungrouped tree roots', () => {
@@ -239,9 +246,9 @@ describe('tree nodes', () => {
       null,
     ) as DisplayRowNode[]
 
-    expect(browseRows[0].context.tree?.isLastChild).toBe(false)
-    expect(browseRows[1].context.tree?.ancestorsLast).toEqual([false])
-    expect(browseRows[2].context.tree?.isLastChild).toBe(true)
+    expect(browseRows[0]!.context.tree?.isLastChild).toBe(false)
+    expect(browseRows[1]!.context.tree?.ancestorsLast).toEqual([false])
+    expect(browseRows[2]!.context.tree?.isLastChild).toBe(true)
   })
 
   it('does not render hidden tree children or count them as children', () => {
@@ -269,9 +276,9 @@ describe('tree nodes', () => {
       'Visible-first parent',
       'Visible-first child',
     ])
-    expect(browseRows[0].context.tree?.hasChildren).toBe(true)
-    expect(browseRows[1].context.tree?.isLastChild).toBe(true)
-    expect(browseRows[2].context.tree?.hasChildren).toBe(false)
-    expect(browseRows[4].context.tree?.isLastChild).toBe(true)
+    expect(browseRows[0]!.context.tree?.hasChildren).toBe(true)
+    expect(browseRows[1]!.context.tree?.isLastChild).toBe(true)
+    expect(browseRows[2]!.context.tree?.hasChildren).toBe(false)
+    expect(browseRows[4]!.context.tree?.isLastChild).toBe(true)
   })
 })

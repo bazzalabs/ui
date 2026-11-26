@@ -132,3 +132,48 @@ export type DisplayNode<T extends DisplayNodeTypes = DisplayNodeTypes> =
   | DisplayRadioGroupNode<T>
   | DisplayCheckboxGroupNode<T>
   | DisplaySeparatorNode<T>
+
+/**
+ * Type guard for DisplayGroupNode.
+ */
+export function isDisplayGroupNode<T extends DisplayNodeTypes>(
+  node: DisplayNode<T>,
+): node is DisplayGroupNode<T> {
+  return 'kind' in node && node.kind === 'group'
+}
+
+/**
+ * Type guard for DisplayRadioGroupNode.
+ */
+export function isDisplayRadioGroupNode<T extends DisplayNodeTypes>(
+  node: DisplayNode<T>,
+): node is DisplayRadioGroupNode<T> {
+  return 'kind' in node && node.kind === 'radio-group'
+}
+
+/**
+ * Type guard for DisplayCheckboxGroupNode.
+ */
+export function isDisplayCheckboxGroupNode<T extends DisplayNodeTypes>(
+  node: DisplayNode<T>,
+): node is DisplayCheckboxGroupNode<T> {
+  return 'kind' in node && node.kind === 'checkbox-group'
+}
+
+/**
+ * Type guard for DisplaySeparatorNode.
+ */
+export function isDisplaySeparatorNode<T extends DisplayNodeTypes>(
+  node: DisplayNode<T>,
+): node is DisplaySeparatorNode<T> {
+  return 'kind' in node && node.kind === 'separator'
+}
+
+/**
+ * Type guard for DisplayRowNode (items, checkbox items, submenus, subpages).
+ */
+export function isDisplayRowNode<T extends DisplayNodeTypes>(
+  node: DisplayNode<T>,
+): node is DisplayRowNode<T> {
+  return 'kind' in node && node.kind === 'row'
+}

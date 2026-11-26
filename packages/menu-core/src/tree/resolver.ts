@@ -1,0 +1,346 @@
+import type {
+  AnyMenuNode,
+  GetResolvedIdFn,
+  MenuIdScope,
+  MenuNode,
+  UnresolvedMenuNode,
+} from './menu-node.js'
+import type { AnyNodeDef } from './node-def-map.js'
+import {
+  childDefsOf,
+  contributesDefinitionPath,
+  defaultGetResolvedId,
+  definitionKeyForDef,
+  resolveNodeDefs,
+} from './resolve.js'
+
+/**
+ * Owns the single resolved node tree for one menu root. Content may be
+ * re-supplied at any time (`setContent`) and late defs may be grafted under
+ * an already-resolved parent (`graft`); both reconcile by id with a
+ * reference fast path, so node instances are stable and repeat calls with
+ * identical arguments are no-ops.
+ */
+export interface MenuTreeResolver<
+  N extends MenuNode<AnyNodeDef, N> = AnyMenuNode,
+> {
+  /** The Resolved ID seam this resolver was created with. */
+  readonly getResolvedId: GetResolvedIdFn<N>
+  /** Definition Key uniqueness policy, captured when this resolver is created. */
+  readonly idScope: MenuIdScope
+  /** Current root nodes, in def order. */
+  readonly rootNodes: readonly N[]
+  /** Re-supply the root def list and reconcile the whole tree. */
+  setContent(defs: readonly N['def'][]): void
+  /**
+   * Resolve `defs` under `parent` (the graft point) and reconcile them
+   * against `parent.children`. `defs` is the parent's full child list
+   * from the graft source's perspective (static + late defs).
+   */
+  graft(parent: N, defs: readonly N['def'][]): void
+  /** Node whose current `def` is reference-equal to `def`, if any. */
+  getNodeForDef<D extends N['def']>(
+    def: D,
+  ): (N & { def: D; kind: D['kind'] }) | undefined
+  /** First registration wins; best-effort when ids collide. */
+  getNodeById(id: string): N | undefined
+}
+
+export interface MenuTreeResolverOptions<
+  N extends MenuNode<AnyNodeDef, N> = AnyMenuNode,
+> {
+  /** Resolved-ID seam; defaults to `defaultGetResolvedId`. */
+  getResolvedId?: GetResolvedIdFn<N>
+  /** Definition Key uniqueness scope; captured when this resolver is created. */
+  idScope?: MenuIdScope
+}
+
+function prospectiveIdentity<N extends MenuNode<AnyNodeDef, N>>(
+  def: N['def'],
+  parent: N | null,
+  basePath: readonly string[],
+  index: number,
+  getResolvedId: GetResolvedIdFn<N>,
+): { definitionKey: string; definitionPath: string[]; id: string } {
+  const definitionKey = definitionKeyForDef(def)
+  const definitionPath = [...basePath, definitionKey]
+  const probe = {
+    def,
+    kind: def.kind,
+    definitionKey,
+    definitionPath,
+    parent,
+    children: [],
+    depth: parent ? parent.depth + 1 : 0,
+    index,
+  } as unknown as UnresolvedMenuNode<N>
+  return { definitionKey, definitionPath, id: getResolvedId(probe) }
+}
+
+export function createMenuTreeResolver<
+  N extends MenuNode<AnyNodeDef, N> = AnyMenuNode,
+>(options: MenuTreeResolverOptions<N> = {}): MenuTreeResolver<N> {
+  const idScope = options.idScope ?? 'surface'
+  const getResolvedId: GetResolvedIdFn<N> =
+    options.getResolvedId ?? ((node) => defaultGetResolvedId(node, idScope))
+  let rootNodes: N[] = []
+  let lastRootDefs: readonly N['def'][] | null = null
+  const defToNode = new Map<N['def'], N>()
+  const idToNode = new Map<string, N>()
+  const lastGraftDefs = new WeakMap<N, readonly N['def'][]>()
+  const warnedDuplicateIds = new Set<string>()
+  let warnedEmptyKey = false
+  const warnedDuplicateKeys = new WeakMap<object, Set<string>>()
+  let warnedEmptyId = false
+  const keyHolders = new WeakMap<object, Map<string, Set<N>>>()
+  const menuScope = {}
+
+  const scopeOf = (node: N): object => {
+    if (idScope === 'menu') return menuScope
+    let current: N | null = node.parent
+    while (current) {
+      if (contributesDefinitionPath(current.def)) return current
+      current = current.parent
+    }
+    return menuScope
+  }
+
+  const warn = (message: string): void => {
+    if (process.env.NODE_ENV !== 'production') console.warn(message)
+  }
+
+  const scopeLabel = (scope: object): string => {
+    if (idScope === 'menu') return 'menu'
+    if (scope === menuScope) return 'root surface'
+    const surface = scope as N
+    return `surface "${surface.definitionPath.join('/')}"`
+  }
+
+  const warnDuplicateId = (node: N): void => {
+    if (process.env.NODE_ENV === 'production') return
+    if (node.id === '') {
+      if (!warnedEmptyId) {
+        warnedEmptyId = true
+        warn(`[PopupMenu] Empty Resolved ID for ${node.kind} definition.`)
+      }
+    }
+    const holder = idToNode.get(node.id)
+    if (!holder || holder === node) return
+    if (warnedDuplicateIds.has(node.id)) return
+    warnedDuplicateIds.add(node.id)
+    warn(
+      `[PopupMenu] Duplicate Resolved ID "${node.id}" in menu scope; ${holder.kind} and ${node.kind} definitions conflict.`,
+    )
+  }
+
+  const register = (node: N, scope: object = menuScope): void => {
+    if (node.definitionKey === '') {
+      if (!warnedEmptyKey) {
+        warnedEmptyKey = true
+        warn(
+          `[PopupMenu] Empty Definition Key in ${node.kind} definition (${scopeLabel(scope)}).`,
+        )
+      }
+    }
+    let holdersByKey = keyHolders.get(scope)
+    if (!holdersByKey) {
+      holdersByKey = new Map()
+      keyHolders.set(scope, holdersByKey)
+    }
+    let holders = holdersByKey.get(node.definitionKey)
+    if (!holders) {
+      holders = new Set()
+      holdersByKey.set(node.definitionKey, holders)
+    }
+    const holder = [...holders].find((candidate) => candidate !== node)
+    if (holder) {
+      let warnedKeys = warnedDuplicateKeys.get(scope)
+      if (!warnedKeys) {
+        warnedKeys = new Set()
+        warnedDuplicateKeys.set(scope, warnedKeys)
+      }
+      if (!warnedKeys.has(node.definitionKey)) {
+        warnedKeys.add(node.definitionKey)
+        warn(
+          `[PopupMenu] Duplicate Definition Key "${node.definitionKey}" in ${scopeLabel(scope)}; ${holder.kind} and ${node.kind} definitions conflict.`,
+        )
+      }
+    }
+    holders.add(node)
+    if (!defToNode.has(node.def)) defToNode.set(node.def, node)
+    warnDuplicateId(node)
+    if (!idToNode.has(node.id)) idToNode.set(node.id, node)
+    const childScope =
+      idScope === 'surface' && contributesDefinitionPath(node.def)
+        ? node
+        : scope
+    for (const child of node.children) register(child, childScope)
+  }
+
+  const retire = (node: N): void => {
+    const scope = scopeOf(node)
+    const holdersByKey = keyHolders.get(scope)
+    const holders = holdersByKey?.get(node.definitionKey)
+    if (holders) {
+      holders.delete(node)
+      if (holders.size === 0) holdersByKey?.delete(node.definitionKey)
+      if (holdersByKey?.size === 0) keyHolders.delete(scope)
+    }
+    if (defToNode.get(node.def) === node) defToNode.delete(node.def)
+    if (idToNode.get(node.id) === node) idToNode.delete(node.id)
+    lastGraftDefs.delete(node)
+    for (const child of node.children) retire(child)
+  }
+
+  const samePath = (left: readonly string[], right: readonly string[]) =>
+    left.length === right.length &&
+    left.every((part, index) => part === right[index])
+
+  const baseOf = (node: N): readonly string[] =>
+    contributesDefinitionPath(node.def)
+      ? node.definitionPath
+      : node.parent
+        ? baseOf(node.parent)
+        : []
+
+  const reconcile = (
+    existing: N[],
+    defs: readonly N['def'][],
+    parent: N | null,
+    basePath: readonly string[],
+  ): N[] => {
+    const buckets = new Map<string, N[]>()
+    for (const node of existing) {
+      const bucket = buckets.get(node.id)
+      if (bucket) bucket.push(node)
+      else buckets.set(node.id, [node])
+    }
+
+    const matches: Array<N | undefined> = []
+    const matched = new Set<N>()
+    for (const [index, def] of defs.entries()) {
+      const { id } = prospectiveIdentity(
+        def,
+        parent,
+        basePath,
+        index,
+        getResolvedId,
+      )
+      const bucket = buckets.get(id)
+      // Kind participates in matching (not just id): a kind mismatch must
+      // not consume the candidate, so a later same-kind def can still match.
+      const node = bucket?.find(
+        (candidate) => !matched.has(candidate) && candidate.kind === def.kind,
+      )
+      if (node) {
+        matched.add(node)
+        matches.push(node)
+      } else matches.push(undefined)
+    }
+
+    let unchanged = existing.length === defs.length
+    for (const node of existing) {
+      if (!matched.has(node)) {
+        unchanged = false
+        retire(node)
+      }
+    }
+
+    const result = defs.map((def, index) => {
+      const node = matches[index]
+      const { definitionKey, definitionPath, id } = prospectiveIdentity(
+        def,
+        parent,
+        basePath,
+        index,
+        getResolvedId,
+      )
+
+      if (!node) {
+        unchanged = false
+        const created = resolveNodeDefs<N>(
+          [def],
+          parent,
+          basePath,
+          getResolvedId,
+        )[0]!
+        created.index = index
+        created.id = prospectiveIdentity(
+          def,
+          parent,
+          basePath,
+          index,
+          getResolvedId,
+        ).id
+        register(created, scopeOf(created))
+        return created
+      }
+
+      if (node.def === def && samePath(node.definitionPath, definitionPath)) {
+        if (existing[index] !== node || node.index !== index) unchanged = false
+        node.index = index
+        return node
+      }
+
+      unchanged = false
+      if (defToNode.get(node.def) === node) defToNode.delete(node.def)
+      const oldScope = scopeOf(node)
+      const oldHoldersByKey = keyHolders.get(oldScope)
+      const oldHolders = oldHoldersByKey?.get(node.definitionKey)
+      if (oldHolders) {
+        oldHolders.delete(node)
+        if (oldHolders.size === 0) {
+          oldHoldersByKey?.delete(node.definitionKey)
+        }
+        if (oldHoldersByKey?.size === 0) keyHolders.delete(oldScope)
+      }
+      node.def = def
+      node.definitionKey = definitionKey
+      node.definitionPath = definitionPath
+      node.index = index
+      if (node.id !== id) {
+        if (idToNode.get(node.id) === node) idToNode.delete(node.id)
+        node.id = id
+        warnDuplicateId(node)
+        if (!idToNode.has(id)) idToNode.set(id, node)
+      }
+      if (!defToNode.has(def)) defToNode.set(def, node)
+
+      lastGraftDefs.delete(node)
+      node.children = reconcile(
+        node.children,
+        childDefsOf(def) as readonly N['def'][],
+        node,
+        contributesDefinitionPath(def) ? node.definitionPath : basePath,
+      )
+      register(node, scopeOf(node))
+      return node
+    })
+    return unchanged ? existing : result
+  }
+
+  return {
+    getResolvedId,
+    idScope,
+    get rootNodes() {
+      return rootNodes
+    },
+    setContent(defs) {
+      if (defs === lastRootDefs) return
+      rootNodes = reconcile(rootNodes, defs, null, [])
+      lastRootDefs = defs
+    },
+    graft(parent, defs) {
+      if (defs === lastGraftDefs.get(parent)) return
+      parent.children = reconcile(parent.children, defs, parent, baseOf(parent))
+      lastGraftDefs.set(parent, defs)
+    },
+    getNodeForDef<D extends N['def']>(def: D) {
+      // node was built from (or cached under) this exact def; def === node.def
+      return defToNode.get(def) as (N & { def: D; kind: D['kind'] }) | undefined
+    },
+    getNodeById(id) {
+      return idToNode.get(id)
+    },
+  }
+}

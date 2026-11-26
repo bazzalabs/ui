@@ -4,8 +4,10 @@
 // a field's type or optionality in `@bazza-ui/menu-core` fails here.
 import type {
   DisplayNode as CoreDisplayNode,
+  GetResolvedIdFn as CoreGetResolvedIdFn,
   NodeDef as CoreNodeDef,
   UnresolvedMenuNode as CoreUnresolvedMenuNode,
+  MenuIdScope,
 } from '@bazza-ui/menu-core'
 import type * as React from 'react'
 import { expectTypeOf } from 'vitest'
@@ -15,6 +17,8 @@ import type {
   RadioValueChangeEventDetails,
 } from '../../events.js'
 import type {
+  GetResolvedIdFn,
+  PopupMenuIdScope,
   PopupMenuNode,
   UnresolvedMenuNode,
 } from '../../menu-tree/types.js'
@@ -299,8 +303,9 @@ void [submenu, group, unrendered]
 // Unions spelled out in packages/react cover menu-core's
 // ----------------------------------------------------------------------------
 
-// `NodeDef`, `DisplayNode`, and `UnresolvedMenuNode` keep their own spelling
-// because the docs print it; these catch a kind added to menu-core only.
+// `NodeDef`, `DisplayNode`, `UnresolvedMenuNode`, `GetResolvedIdFn`, and
+// `PopupMenuIdScope` keep their own spelling because the docs print it (a type
+// alias's docs show its declared text); these catch menu-core drifting from it.
 expectTypeOf<NodeDef>().toEqualTypeOf<CoreNodeDef<PopupMenuNodeDefTypes>>()
 expectTypeOf<DisplayNode>().toEqualTypeOf<
   CoreDisplayNode<PopupMenuDisplayNodeTypes>
@@ -308,3 +313,7 @@ expectTypeOf<DisplayNode>().toEqualTypeOf<
 expectTypeOf<UnresolvedMenuNode>().toEqualTypeOf<
   CoreUnresolvedMenuNode<PopupMenuNode>
 >()
+expectTypeOf<GetResolvedIdFn>().toEqualTypeOf<
+  CoreGetResolvedIdFn<PopupMenuNode>
+>()
+expectTypeOf<PopupMenuIdScope>().toEqualTypeOf<MenuIdScope>()

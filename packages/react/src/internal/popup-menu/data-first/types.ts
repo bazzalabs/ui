@@ -1,20 +1,28 @@
 import type {
+  CheckboxGroupBehavior,
   CheckboxGroupNodeDef,
   CheckboxItemNodeDef,
+  BreadcrumbNode as CoreBreadcrumbNode,
   DisplayCheckboxGroupNode as CoreDisplayCheckboxGroupNode,
   DisplayGroupNode as CoreDisplayGroupNode,
   DisplayRadioGroupNode as CoreDisplayRadioGroupNode,
   DisplayRowNode as CoreDisplayRowNode,
   DisplaySeparatorNode as CoreDisplaySeparatorNode,
   DisplaySubpageNode as CoreDisplaySubpageNode,
+  GroupRenderContext as CoreGroupRenderContext,
   RowNodeDef as CoreRowNodeDef,
-  DisplayNodeTypes,
+  RowRenderContext as CoreRowRenderContext,
+  ScoredNode as CoreScoredNode,
+  DisabledBranchBehavior,
+  GroupBehavior,
   GroupNodeDef,
   IncludeInDeepSearch,
   ItemNodeDef,
   LinkItemNodeDef,
   NodeDefTypes,
+  PipelineDisplayTypes,
   QueryLoaderConfigBase,
+  RadioGroupBehavior,
   RadioGroupNodeDef,
   RadioItemNodeDef,
   SeparatorNodeDef,
@@ -22,6 +30,13 @@ import type {
   SubmenuNodeDef,
   SubpageNodeDef,
   TreeItemNodeDef,
+} from '@bazza-ui/menu-core'
+import {
+  isDisplayCheckboxGroupNode as coreIsDisplayCheckboxGroupNode,
+  isDisplayGroupNode as coreIsDisplayGroupNode,
+  isDisplayRadioGroupNode as coreIsDisplayRadioGroupNode,
+  isDisplayRowNode as coreIsDisplayRowNode,
+  isDisplaySeparatorNode as coreIsDisplaySeparatorNode,
 } from '@bazza-ui/menu-core'
 import type * as React from 'react'
 import type { PopupMenuCheckboxGroupProps } from '../components/checkbox-group/checkbox-group.js'
@@ -38,8 +53,12 @@ import type { PopupMenuNode } from '../menu-tree/types.js'
 // and live in `@bazza-ui/menu-core`. This file instantiates them with React's
 // render callbacks and loader components, and keeps the public names.
 export type {
+  CheckboxGroupBehavior,
+  DisabledBranchBehavior,
+  GroupBehavior,
   IncludeInDeepSearch,
   InitialQueryBehavior,
+  RadioGroupBehavior,
 } from '@bazza-ui/menu-core'
 
 // ============================================================================
@@ -253,16 +272,8 @@ export interface AsyncState {
  * Branch node info passed in breadcrumbs context.
  * Contains the full submenu/subpage definition for maximum flexibility.
  */
-export interface BreadcrumbNode {
-  /** The branch node definition */
-  node: SubmenuDef | SubpageDef | TreeItemDef
-  /** The branch Menu Node. `node`, `value`, and `id` mirror its def for compatibility. */
-  menuNode: PopupMenuNode<SubmenuDef | SubpageDef | TreeItemDef>
-  /** The branch node's value */
-  value: string
-  /** The branch node's explicit id (if provided) */
-  id?: string
-}
+export interface BreadcrumbNode
+  extends CoreBreadcrumbNode<PopupMenuDisplayNodeTypes> {}
 
 // ============================================================================
 // Render Context - passed to all render functions
@@ -272,52 +283,8 @@ export interface BreadcrumbNode {
  * Context passed to item, submenu, and subpage render functions.
  * Provides information about the current rendering context (search, breadcrumbs, state).
  */
-export interface RowRenderContext {
-  /**
-   * Search context - the query in the menu where this row is being rendered.
-   * `null` if no active search (browsing mode).
-   */
-  search: {
-    /** Current search query */
-    query: string
-    /** Match score for this row (higher = better match). */
-    score: number
-  } | null
-
-  /**
-   * Full path of branch nodes from root to this row's parent.
-   * Contains the full submenu/subpage node definitions for maximum flexibility.
-   * Empty array [] for items directly in root menu.
-   */
-  breadcrumbs: BreadcrumbNode[]
-
-  /**
-   * True if this row is being rendered outside its "home" menu
-   * (surfaced via deep search from an ancestor menu).
-   */
-  isDeepSearchResult: boolean
-
-  /** Whether this row is currently highlighted/focused */
-  highlighted: boolean
-
-  /** Whether this row is disabled */
-  disabled: boolean
-
-  /**
-   * The group this item belongs to, if any.
-   * `null` if the item is not inside a group.
-   */
-  group: { id: string; label?: string } | null
-
-  /** Tree rendering context, or null for non-tree and search rows. */
-  tree: {
-    depth: number
-    hasChildren: boolean
-    isLastChild: boolean
-    ancestorsLast: boolean[]
-    header: boolean
-  } | null
-}
+export interface RowRenderContext
+  extends CoreRowRenderContext<PopupMenuDisplayNodeTypes> {}
 
 // ============================================================================
 // Item Render Params
@@ -561,30 +528,8 @@ export interface SubpageContentRenderParams {
  * Context passed to group render functions.
  * Contains information about the group's state during search.
  */
-export interface GroupRenderContext {
-  /**
-   * Search context with the best match score among items in this group.
-   * `null` if no active search (browsing mode).
-   */
-  search: {
-    /** Current search query */
-    query: string
-    /** Best match score among items in this group (higher = better match). */
-    bestScore: number
-  } | null
-
-  /** Number of matching items in this group */
-  matchCount: number
-
-  /**
-   * Breadcrumb nodes if this group is from a surfaced submenu.
-   * Empty array [] for groups in the root menu.
-   */
-  breadcrumbs: BreadcrumbNode[]
-
-  /** Whether this group is from deep search (surfaced from a submenu) */
-  isDeepSearchResult: boolean
-}
+export interface GroupRenderContext
+  extends CoreGroupRenderContext<PopupMenuDisplayNodeTypes> {}
 
 /**
  * Parameters passed to group render functions.
@@ -918,69 +863,7 @@ export type NodeDef =
  * A node with its search score and breadcrumb path.
  * Used internally during filtering and scoring.
  */
-export interface ScoredNode {
-  /** The row's Menu Node; its authored definition is `node.def`. */
-  node: PopupMenuNode<RowNodeDef>
-  /** Search match score (higher = better match). */
-  score: number
-  /**
-   * Breadcrumb nodes leading to this node.
-   * Contains the full submenu definitions for maximum flexibility.
-   */
-  breadcrumbs: BreadcrumbNode[]
-  /** The group this node belongs to, if any */
-  group: {
-    id: string
-    label?: string
-    groupDef: GroupDef
-    menuNode: PopupMenuNode<GroupDef>
-  } | null
-  /** The radio group this node belongs to, if any */
-  radioGroup: {
-    id: string
-    label?: string
-    radioGroupDef: RadioGroupDef
-    menuNode: PopupMenuNode<RadioGroupDef>
-  } | null
-  /** The checkbox group this node belongs to, if any */
-  checkboxGroup: {
-    id: string
-    label?: string
-    checkboxGroupDef: CheckboxGroupDef
-    menuNode: PopupMenuNode<CheckboxGroupDef>
-  } | null
-}
-
-/** A row surfaced by `flattenNodes`, with the containers it was found under. */
-export interface FlattenedNode {
-  /** The row's Menu Node; its authored definition is `node.def`. */
-  node: PopupMenuNode<RowNodeDef>
-  /** Breadcrumb nodes (branch nodes from root to parent) */
-  breadcrumbs: BreadcrumbNode[]
-  /** The group this node belongs to, if any */
-  group: {
-    id: string
-    label?: string
-    groupDef: GroupDef
-    menuNode: PopupMenuNode<GroupDef>
-  } | null
-  /** The radio group this node belongs to, if any */
-  radioGroup: {
-    id: string
-    label?: string
-    radioGroupDef: RadioGroupDef
-    menuNode: PopupMenuNode<RadioGroupDef>
-  } | null
-  /** The checkbox group this node belongs to, if any */
-  checkboxGroup: {
-    id: string
-    label?: string
-    checkboxGroupDef: CheckboxGroupDef
-    menuNode: PopupMenuNode<CheckboxGroupDef>
-  } | null
-  /** Keywords inherited from tree ancestors. */
-  inheritedKeywords: string[]
-}
+export interface ScoredNode extends CoreScoredNode<PopupMenuDisplayNodeTypes> {}
 
 // ============================================================================
 // Display Node - node with render context attached
@@ -989,10 +872,13 @@ export interface FlattenedNode {
 export type RowNodeDef = CoreRowNodeDef<PopupMenuNodeDefTypes>
 
 /**
- * The types `@bazza-ui/menu-core`'s Display Node shapes are instantiated
- * with: this package's Menu Nodes, defs, and render contexts.
+ * The types `@bazza-ui/menu-core`'s pipeline and Display Node shapes are
+ * instantiated with: this package's Menu Nodes, defs, and render contexts,
+ * under their public names. It refines the pipeline's types for
+ * `PopupMenuNode`, so what the pipeline builds is assignable to these.
  */
-export interface PopupMenuDisplayNodeTypes extends DisplayNodeTypes {
+export interface PopupMenuDisplayNodeTypes
+  extends PipelineDisplayTypes<PopupMenuNode> {
   rowNode: PopupMenuNode<RowNodeDef>
   subpageNode: PopupMenuNode<SubpageDef>
   groupNode: PopupMenuNode<GroupDef>
@@ -1000,6 +886,8 @@ export interface PopupMenuDisplayNodeTypes extends DisplayNodeTypes {
   checkboxGroupNode: PopupMenuNode<CheckboxGroupDef>
   separatorNode: PopupMenuNode<SeparatorDef>
   checkboxGroupDef: CheckboxGroupDef
+  breadcrumbNode: PopupMenuNode<SubmenuDef | SubpageDef | TreeItemDef>
+  breadcrumb: BreadcrumbNode
   rowContext: RowRenderContext
   groupContext: GroupRenderContext
   rowDisplayNode: DisplayRowNode
@@ -1056,76 +944,49 @@ export type DisplayNode =
   | DisplayCheckboxGroupNode
   | DisplaySeparatorNode
 
+// The Display Node guards live in `@bazza-ui/menu-core`, generic over the
+// Display Node types; these bind them to this package's Display Nodes.
+
 /**
  * Type guard for DisplayGroupNode.
  */
-export function isDisplayGroupNode(
+export const isDisplayGroupNode: (
   node: DisplayNode,
-): node is DisplayGroupNode {
-  return 'kind' in node && node.kind === 'group'
-}
+) => node is DisplayGroupNode =
+  coreIsDisplayGroupNode<PopupMenuDisplayNodeTypes>
 
 /**
  * Type guard for DisplayRadioGroupNode.
  */
-export function isDisplayRadioGroupNode(
+export const isDisplayRadioGroupNode: (
   node: DisplayNode,
-): node is DisplayRadioGroupNode {
-  return 'kind' in node && node.kind === 'radio-group'
-}
+) => node is DisplayRadioGroupNode =
+  coreIsDisplayRadioGroupNode<PopupMenuDisplayNodeTypes>
 /**
  * Type guard for DisplayCheckboxGroupNode.
  */
-export function isDisplayCheckboxGroupNode(
+export const isDisplayCheckboxGroupNode: (
   node: DisplayNode,
-): node is DisplayCheckboxGroupNode {
-  return 'kind' in node && node.kind === 'checkbox-group'
-}
+) => node is DisplayCheckboxGroupNode =
+  coreIsDisplayCheckboxGroupNode<PopupMenuDisplayNodeTypes>
 
 /**
  * Type guard for DisplaySeparatorNode.
  */
-export function isDisplaySeparatorNode(
+export const isDisplaySeparatorNode: (
   node: DisplayNode,
-): node is DisplaySeparatorNode {
-  return 'kind' in node && node.kind === 'separator'
-}
+) => node is DisplaySeparatorNode =
+  coreIsDisplaySeparatorNode<PopupMenuDisplayNodeTypes>
 
 /**
  * Type guard for DisplayRowNode (items, checkbox items, submenus, subpages).
  */
-export function isDisplayRowNode(node: DisplayNode): node is DisplayRowNode {
-  return 'kind' in node && node.kind === 'row'
-}
+export const isDisplayRowNode: (node: DisplayNode) => node is DisplayRowNode =
+  coreIsDisplayRowNode<PopupMenuDisplayNodeTypes>
 
 // ============================================================================
 // Deep Search Configuration
 // ============================================================================
-
-/**
- * Defines how groups behave during deep search.
- * - 'flatten': Groups become invisible, items shown in flat list by score.
- * - 'preserve': Groups are shown as containers with their matching items.
- * Note: Radio groups are ALWAYS preserved regardless of this setting.
- */
-export type GroupBehavior = 'flatten' | 'preserve'
-
-/**
- * Defines how radio groups behave during deep search.
- * - 'flatten': Radio group items are shown individually in the flat list (not recommended).
- * - 'preserve': Radio group is shown with only matching items visible.
- * - 'preserve-show-all': Radio group is shown with ALL items visible when any item matches.
- *   This is useful when you want users to see all options in a radio group.
- */
-export type RadioGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
-/**
- * Defines how checkbox groups behave during deep search.
- * - 'flatten': Checkbox group items are shown individually in the flat list (not recommended).
- * - 'preserve': Checkbox group is shown with only matching items visible.
- * - 'preserve-show-all': Checkbox group is shown with ALL items visible when any item matches.
- *   This is useful when you want users to see all options in a checkbox group.
- */
-export type CheckboxGroupBehavior = 'flatten' | 'preserve' | 'preserve-show-all'
 
 /**
  * How a surface's `asyncContent` rows combine with its `content`.
@@ -1139,15 +1000,6 @@ export type AsyncContentMode = 'replace' | 'append'
  * - 'block': hide all deep-search rows until every participating async loader resolves.
  */
 export type AsyncResultBehavior = 'stream' | 'block'
-
-/**
- * How the descendants of a disabled branch (a submenu or subpage with
- * `disabled: true`) participate in deep search.
- * - 'exclude': descendants are not deep results; the disabled trigger still is.
- *   Equivalent to the branch's `includeInDeepSearch` defaulting to `'trigger-only'`.
- * - 'inherit': descendants are deep results that inherit `disabled` — shown, not selectable.
- */
-export type DisabledBranchBehavior = 'exclude' | 'inherit'
 
 /**
  * Configuration for deep search behavior.

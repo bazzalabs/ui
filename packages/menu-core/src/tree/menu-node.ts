@@ -1,3 +1,5 @@
+import type { AnyNodeDef } from './node-def-map.js'
+
 /**
  * A Menu Node: what the library creates for a node def. It carries identity
  * (Resolved ID, Definition Key, Definition Path), tree links (`parent`,
@@ -50,3 +52,41 @@ export interface MenuNode<D extends { kind: string }, N> {
  * inexpressible by construction.
  */
 export type UnresolvedMenuNode<N extends { id: string }> = Omit<N, 'id'>
+
+/**
+ * A Menu Node of any framework's defs: what the Menu Tree and the data
+ * pipeline resolve to when no framework supplies its own Menu Node type.
+ */
+export interface AnyMenuNode<D extends AnyNodeDef = AnyNodeDef>
+  extends MenuNode<D, AnyMenuNode> {}
+
+/**
+ * A framework's Menu Node `N` narrowed to the defs of kind `K`, as a kind
+ * guard narrows it: `def` is the framework's def of that kind.
+ */
+export type MenuNodeOfKind<
+  N extends { def: AnyNodeDef },
+  K extends AnyNodeDef['kind'],
+> = N & { def: N['def'] & { kind: K }; kind: K }
+
+/**
+ * Where a Definition Key must be unique: across the whole menu root
+ * (`'menu'`) or within each surface (`'surface'`).
+ */
+export type MenuIdScope = 'menu' | 'surface'
+
+/**
+ * Computes a node's Resolved ID from definitional facts. The ID must be unique
+ * per menu root; it is the identity persistent state, registration, and
+ * highlight key off.
+ *
+ * Contract: the id may read the node's own facts (including its own sibling
+ * `index`) and may walk `parent` for lineage (as the default definition-path
+ * rule does), but it must not depend on an *ancestor's* sibling `index`:
+ * reconciliation invalidates ids by def identity and definition path, not by
+ * ancestor reordering, so ancestor-index-dependent ids would go stale. The
+ * seam must also not mutate its argument.
+ */
+export type GetResolvedIdFn<N extends { id: string }> = (
+  node: UnresolvedMenuNode<N>,
+) => string

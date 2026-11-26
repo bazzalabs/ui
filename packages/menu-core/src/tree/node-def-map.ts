@@ -462,3 +462,18 @@ export type RowNodeDef<R extends NodeDefTypes = NodeDefTypes> = NodeDefMap<R>[
   | 'submenu'
   | 'subpage'
   | 'tree-item']
+
+/**
+ * The node def schema with every framework slot left `unknown`, whose defs
+ * hold defs of the same schema as children. Every framework's defs are
+ * assignable to `AnyNodeDef`, so the Menu Tree and the data pipeline read
+ * defs through it.
+ */
+export interface AnyNodeDefTypes extends NodeDefTypes {
+  nodeDef: AnyNodeDef
+  radioItemDef: RadioItemNodeDef<AnyNodeDefTypes>
+  checkboxItemDef: CheckboxItemNodeDef<AnyNodeDefTypes>
+}
+
+/** Any framework's node def, read without its render slots or loader types. */
+export type AnyNodeDef = NodeDef<AnyNodeDefTypes>
